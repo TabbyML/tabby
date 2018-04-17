@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <math.h>
+#include <unistd.h>
 
 #include <Eigen/Eigen>
 #include <unsupported/Eigen/CXX11/Tensor>
@@ -19,70 +20,16 @@
 
 #include <mkldnn.hpp>
 
-// #include <boost/algorithm/string/split.hpp>
-
+class Variable;
+using VariableIndex = std::map<std::string, Variable>;
 using Tensor2D = Eigen::Tensor<float, 2, Eigen::RowMajor>;
 using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
 using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
 
-class Variable
-{
-public:
-  Variable(unsigned int rank,
-              const unsigned int* dimensions,
-              const float* data)
-    : _rank(rank)
-    , _dimensions(dimensions)
-    , _data(data) {
-  }
-
-  unsigned int rank() const {
-    return _rank;
-  }
-
-  const unsigned int* dim() const {
-    return _dimensions;
-  }
-
-  const float* data() const {
-    return _data;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const Variable& index);
-
-private:
-  unsigned int _rank;
-  const unsigned int* _dimensions;
-  const float* _data;
-};
-
-using VariableIndex = std::map<std::string, Variable>;
-
-// class TensorIndex
-// {
-// public:
-//   std::vector<float>& get(const std::string& key, size_t size) {
-//     auto it = _index.find(key);
-//     if (it == _index.end()) {
-//       auto pair = _index.emplace(key);
-//       std::vector<float>& tensor = pair.first->second;
-//       tensor.resize(size);
-//       return tensor;
-//     } else {
-//       std::vector<float>& tensor = it->second;
-//       if (tensor.size() < size)
-//         tensor.resize(size);
-//       return tensor;
-//     }
-//   }
-// private:
-//   std::unordred_map<std::string, std::vector<float> > _index;
-// };
-
 class Vocabulary
 {
 public:
-  const std::string unk_token = "<unk>";
+  static const std::string unk_token;
 
   Vocabulary(const char* path) {
     std::ifstream in(path);
@@ -114,17 +61,100 @@ private:
   std::unordered_map<std::string, unsigned int> _token_to_id;
 };
 
-const Variable& get_variable(const std::map<std::string, Variable>& index,
-                             const std::string& scope) {
+const std::string Vocabulary::unk_token = "<unk>";
+
+class Variable
+{
+public:
+  Variable(unsigned int rank,
+              const unsigned int* dimensions,
+              const float* data)
+    : _rank(rank)
+    , _dimensions(dimensions)
+    , _data(data) {
+  }
+  unsigned int rank() const {
+    return _rank;
+  }
+  const unsigned int* dim() const {
+    return _dimensions;
+  }
+  const float* data() const {
+    return _data;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Variable& index);
+
+private:
+  unsigned int _rank;
+  const unsigned int* _dimensions;
+  const float* _data;
+};
+
+std::ostream& operator<<(std::ostream& os, const Variable& index) {
+  os << '(';
+  for (unsigned int i = 0; i < index._rank; ++i) {
+    if (i > 0)
+      os << ", ";
+    os << index._dimensions[i];
+  }
+  os << ')';
+  return os;
+}
+
+const Variable& get_variable(const VariableIndex& index, const std::string& scope) {
   auto it = index.lower_bound(scope);
   return it->second;
 }
-
-const float* get_variable_data(const std::map<std::string, Variable>& index,
-                               const std::string& scope) {
+const float* get_variable_data(const VariableIndex& index, const std::string& scope) {
   return get_variable(index, scope).data();
 }
 
+template <typename T>
+T consume(unsigned char** ptr) {
+  T val = *reinterpret_cast<T*>(*ptr);
+  *ptr += sizeof(T);
+  return val;
+}
+
+VariableIndex build_variable_index(void* model) {
+  auto ptr = reinterpret_cast<unsigned char*>(model);
+  auto num_variables = consume<unsigned int>(&ptr);
+
+  VariableIndex variable_index;
+
+  for (unsigned int i = 0; i < num_variables; ++i) {
+    auto name_length = consume<unsigned short>(&ptr);
+    auto name = reinterpret_cast<const char*>(ptr);
+    ptr += name_length;
+    unsigned int rank = consume<unsigned char>(&ptr);
+    auto dimensions = reinterpret_cast<const unsigned int*>(ptr);
+    unsigned int offset = 1;
+    for (unsigned int k = 0; k < rank; k++)
+      offset *= consume<unsigned int>(&ptr);
+    unsigned int data_width = consume<unsigned char>(&ptr);
+    auto data = reinterpret_cast<const float*>(ptr);
+    ptr += offset * data_width;
+    variable_index.emplace(name, Variable(rank, dimensions, data));
+  }
+
+  return variable_index;
+}
+
+void* load_model(const char* path) {
+  struct stat st;
+  int s = stat(path, &st);
+  if (s == -1)
+    return nullptr;
+  int fd = open(path, O_RDONLY, 0);
+  if (fd == -1)
+    return nullptr;
+  void* model = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
+  close(fd);
+  if (model == MAP_FAILED)
+    return nullptr;
+  return model;
+}
 
 void maybe_resize(std::vector<float>& v, size_t size) {
   if (size > v.size()) {
@@ -132,82 +162,50 @@ void maybe_resize(std::vector<float>& v, size_t size) {
   }
 }
 
-class Dense
-{
-public:
-  Dense(const std::map<std::string, Variable>& index, const std::string& scope)
-    : _weight(get_variable(index, scope + "/kernel"))
-    , _bias(get_variable(index, scope + "/bias")) {
-  }
+float array_sum(const float* array, unsigned int size) {
+  float sum = 0;
+  for (unsigned int i = 0; i < size; ++i)
+    sum += array[i];
+  return sum;
+}
 
-  void compute(const float* input,
-               unsigned int batch_size,
-               unsigned int input_depth,
-               float* output) {
-    MKL_INT m = batch_size;
-    MKL_INT n = output_depth();
-    MKL_INT k = input_depth;
-    for (int i = 0; i < m; ++i)
-      memcpy(output + (i * n), _bias.data(), n * sizeof (float));
-    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
-                m, n, k,
-                1.0, input, k,
-                _weight.data(), n,
-                1.0, output, n);
-  }
+float array_mean(const float* array, unsigned int size) {
+  return array_sum(array, size) / size;
+}
 
-  unsigned int output_depth() const {
-    return _weight.dim()[2];
-  }
+void sgemm(const float* a,
+           const float* b,
+           CBLAS_TRANSPOSE trans_a,
+           CBLAS_TRANSPOSE trans_b,
+           MKL_INT m,
+           MKL_INT n,
+           MKL_INT k,
+           float beta,
+           float* c) {
+  MKL_INT lda = (trans_a == CblasNoTrans) ? k : m;
+  MKL_INT ldb = (trans_b == CblasNoTrans) ? n : k;
+  MKL_INT ldc = n;
 
-private:
-  const Variable& _weight;
-  const Variable& _bias;
-};
+  cblas_sgemm(CblasRowMajor, trans_a, trans_b,
+              m, n, k,
+              1.0 /* alpha */, a, lda,
+              b, ldb,
+              beta, c, ldc);
+}
 
-// class Operation
-// {
-// public:
-//   virtual ~Operation() = default;
-//   virtual std::vector<float>& apply(const float* input,
-//                                     const std::vector<unsigned int>& dims) = 0;
-
-// protected:
-//   std::vector<float> _output;
-// };
-
-class LayerNorm
-{
-public:
-  LayerNorm(const std::map<std::string, Variable>& index, const std::string& scope)
-    : _beta(get_variable_data(index, scope + "/beta"))
-    , _gamma(get_variable_data(index, scope + "/gamma")) {
-  }
-
-  void compute(const float* input,
-               unsigned int batch_size,
-               unsigned int depth,
-               float* output) {
-    maybe_resize(_tmp, depth);
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      const float* x = input + (i * depth);
-      float mean = cblas_sasum(depth, x, 1) / depth;
-      float* y = output + (i * depth);
-      memcpy(y, x, depth * sizeof (float));
-      cblas_saxpy(depth, -1.0, &mean, 0, y, 1); // y is now centered
-      vsPowx(depth, y, 2, _tmp.data());
-      float std = cblas_sasum(depth, _tmp.data(), 1) / depth;
-      cblas_sscal(depth, std, y, 1); // y is now centered and normalized.
-      vsMul(depth, y, _beta, y);
-      cblas_saxpy(depth, 1.0, _gamma, 1, y, 1);
-    }
-  }
-
-private:
-  const float* _beta;
-  const float* _gamma;
-  std::vector<float> _tmp;
-};
+void mat_mul(const float* a,
+             const float* b,
+             CBLAS_TRANSPOSE trans_a,
+             CBLAS_TRANSPOSE trans_b,
+             MKL_INT m,
+             MKL_INT n,
+             MKL_INT k,
+             float* c) {
+  sgemm(a, b,
+        trans_a, trans_b,
+        m, n, k,
+        0.0 /* beta */, c);
+}
 
 void batch_mat_mul(const float* a,
                    const float* b,
@@ -241,6 +239,90 @@ void batch_mat_mul(const float* a,
                     &beta, c_array.data(), &ldc,
                     1 /* group_count */, &batch_size);
 }
+
+void concat_in_depth(const std::vector<const float*>& inputs,
+                     const std::vector<unsigned int>& depths,
+                     unsigned int batch_size,
+                     float* output) {
+  unsigned int num_inputs = inputs.size();
+  unsigned int total_depth = 0;
+
+  for (unsigned int i = 0; i < num_inputs; ++i) {
+    const unsigned int depth = depths[i];
+    const float* a = inputs[i];
+    float* b = output + (total_depth * batch_size);
+    mkl_somatcopy('R', 'T', batch_size, depth, 1.0, a, depth, b, batch_size);
+    total_depth += depth;
+  }
+
+  mkl_simatcopy('R', 'T', total_depth, batch_size, 1.0, output, batch_size, total_depth);
+}
+
+
+class Dense
+{
+public:
+  Dense(const std::map<std::string, Variable>& index, const std::string& scope)
+    : _weight(get_variable(index, scope + "/kernel"))
+    , _bias(get_variable(index, scope + "/bias")) {
+  }
+
+  void compute(const float* input,
+               unsigned int batch_size,
+               unsigned int input_depth,
+               float* output) {
+    MKL_INT m = batch_size;
+    MKL_INT n = output_depth();
+    MKL_INT k = input_depth;
+    for (int i = 0; i < m; ++i)
+      memcpy(output + (i * n), _bias.data(), n * sizeof (float));
+    sgemm(input, _weight.data(),
+          CblasNoTrans, CblasNoTrans,
+          m, n, k,
+          1.0, output);
+  }
+
+  unsigned int output_depth() const {
+    return _weight.dim()[2];
+  }
+
+private:
+  const Variable& _weight;
+  const Variable& _bias;
+};
+
+class LayerNorm
+{
+public:
+  LayerNorm(const std::map<std::string, Variable>& index, const std::string& scope)
+    : _beta(get_variable_data(index, scope + "/beta"))
+    , _gamma(get_variable_data(index, scope + "/gamma")) {
+  }
+
+  void compute(const float* input,
+               unsigned int batch_size,
+               unsigned int depth,
+               float* output) {
+    maybe_resize(_tmp, depth);
+    for (unsigned int i = 0; i < batch_size; ++i) {
+      const float* x = input + (i * depth);
+      float* y = output + (i * depth);
+      float mean = array_mean(x, depth);
+      memcpy(y, x, depth * sizeof (float));
+      cblas_saxpy(depth, -1.0, &mean, 0, y, 1); // y is now centered
+      vsPowx(depth, y, 2, _tmp.data());
+      float std = array_mean(_tmp.data(), depth);
+      cblas_sscal(depth, std, y, 1); // y is now centered and normalized.
+      vsMul(depth, y, _beta, y);
+      cblas_saxpy(depth, 1.0, _gamma, 1, y, 1);
+    }
+  }
+
+private:
+  const float* _beta;
+  const float* _gamma;
+  std::vector<float> _tmp;
+};
 
 void softmax(mkldnn::engine& engine, float* input, int batch, int depth, float* output) {
   auto memory_desc = mkldnn::memory::desc({batch, depth},
@@ -342,63 +424,6 @@ private:
 //   mkldnn::engine& _engine;
 // };
 
-std::ostream& operator<<(std::ostream& os, const Variable& index) {
-  os << '(';
-  for (unsigned int i = 0; i < index._rank; ++i) {
-    if (i > 0)
-      os << ", ";
-    os << index._dimensions[i];
-  }
-  os << ')';
-  return os;
-}
-
-template <typename T>
-T consume(unsigned char** ptr) {
-  T val = *reinterpret_cast<T*>(*ptr);
-  *ptr += sizeof(T);
-  return val;
-}
-
-std::map<std::string, Variable> build_variable_index(void* model) {
-  unsigned char* ptr = reinterpret_cast<unsigned char*>(model);
-  unsigned int num_variables = consume<unsigned int>(&ptr);
-
-  std::map<std::string, Variable> variable_index;
-
-  for (unsigned int i = 0; i < num_variables; ++i) {
-    unsigned short name_length = consume<unsigned short>(&ptr);
-    const char* name = reinterpret_cast<const char*>(ptr);
-    ptr += name_length;
-    unsigned int rank = consume<unsigned char>(&ptr);
-    const unsigned int* dimensions = reinterpret_cast<const unsigned int*>(ptr);
-    unsigned int offset = 1;
-    for (unsigned int k = 0; k < rank; k++)
-      offset *= consume<unsigned int>(&ptr);
-    unsigned int data_width = consume<unsigned char>(&ptr);
-    const float* data = reinterpret_cast<const float*>(ptr);
-    ptr += offset * data_width;
-    variable_index.emplace(name, Variable(rank, dimensions, data));
-  }
-
-  return variable_index;
-}
-
-void* load_model(const char* path) {
-  struct stat st;
-  stat(path, &st);
-
-  int fd = open(path, O_RDONLY, 0);
-  if (fd == -1)
-    return nullptr;
-
-  void* model = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
-  if (model == MAP_FAILED)
-    return nullptr;
-
-  return model;
-}
-
 std::vector<float>& embed(const Variable& var, const std::vector<unsigned int> ids) {
   static std::vector<float> emb;
   unsigned int depth = var.dim()[1];
@@ -413,23 +438,6 @@ std::vector<float>& embed(const Variable& var, const std::vector<unsigned int> i
   }
 
   return emb;
-}
-
-std::vector<float> build_scaled_time(unsigned int depth, unsigned int max_time) {
-  // No need to optimize here, this is a one time operation.
-  float log_timescale_increment = log(10000) / (depth - 1);
-  std::vector<float> timescales(depth, -log_timescale_increment);
-  for (unsigned int i = 0; i < timescales.size(); ++i)
-    timescales[i] = exp(timescales[i] * i);
-
-  std::vector<float> scaled_time(depth * max_time);
-  for (unsigned int i = 0; i < max_time; ++i) {
-    for (unsigned int j = 0; j < depth; ++j) {
-      scaled_time[j + (i * depth)] = (i + 1) * timescales[j];
-    }
-  }
-
-  return scaled_time;
 }
 
 void concat(mkldnn::engine& engine,
@@ -467,43 +475,64 @@ void concat(mkldnn::engine& engine,
   mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
 }
 
-void test_concat(mkldnn::engine& engine) {
-  std::vector<float> a = {1, 2, 1, 2};
-  std::vector<float> b = {3, 4, 3, 4};
-  std::vector<float> out;
-  std::vector<std::vector<float> > in({a, b});
-  concat(engine, in, out, {2, 2}, 1, mkldnn::memory::format::nc);
+void test_concat() {
+  std::vector<float> a = {1, 2, 3, 1, 2, 3};
+  std::vector<float> b = {3, 4, 5, 6, 3, 4, 5, 6};
+  std::vector<float> out(a.size() + b.size());
+  //std::vector<std::vector<float> > in({a, b});
+  //concat(engine, in, out, {2, 2}, 1, mkldnn::memory::format::nc);
+  concat_in_depth({a.data(), b.data()}, {3, 4}, 2, out.data());
 
   for (auto v : out)
     std::cout << " " << v;
   std::cout << std::endl;
 }
 
-std::vector<float> precompute_position_encoding(mkldnn::engine& engine, int depth, int max_time) {
-  const std::vector<float> scaled_time = build_scaled_time(depth / 2, max_time);
+std::vector<float> build_scaled_time(unsigned int max_time, unsigned int depth) {
+  // No need to optimize here, this is a one time operation.
+  float log_timescale_increment = log(10000) / (depth - 1);
+  std::vector<float> timescales(depth, -log_timescale_increment);
+  for (unsigned int i = 0; i < timescales.size(); ++i)
+    timescales[i] = exp(timescales[i] * i);
+
+  std::vector<float> scaled_time(depth * max_time);
+  for (unsigned int i = 0; i < max_time; ++i) {
+    for (unsigned int j = 0; j < depth; ++j) {
+      scaled_time[j + (i * depth)] = (i + 1) * timescales[j];
+    }
+  }
+
+  return scaled_time;
+}
+
+std::vector<float> precompute_position_encoding(unsigned int max_time,
+                                                unsigned int depth) {
+  const std::vector<float> scaled_time = build_scaled_time(max_time, depth / 2);
   std::vector<float> sin_encoding(scaled_time.size());
   std::vector<float> cos_encoding(scaled_time.size());
-  std::vector<float> position_encoding(scaled_time.size() * 2);
 
   vsSin(scaled_time.size(), scaled_time.data(), sin_encoding.data());
   vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
 
-  std::vector<std::vector<float> > sin_cos_encoding = {sin_encoding, cos_encoding};
-  std::vector<int> dimensions = {max_time, depth / 2};
-  std::vector<float> encoding;
-  concat(engine, sin_cos_encoding, encoding, dimensions, 1, mkldnn::memory::format::nc);
-  return encoding;
+  std::vector<float> position_encoding(sin_encoding.size() + cos_encoding.size());
+  concat_in_depth({sin_encoding.data(), cos_encoding.data()},
+                  {depth / 2, depth / 2}, max_time,
+                  position_encoding.data());
+
+  // std::vector<std::vector<float> > sin_cos_encoding = {sin_encoding, cos_encoding};
+  // std::vector<int> dimensions = {max_time, depth / 2};
+  // std::vector<float> encoding;
+  // concat(engine, sin_cos_encoding, encoding, dimensions, 1, mkldnn::memory::format::nc);
+  return position_encoding;
 }
 
-std::vector<float>& embed_and_encode(mkldnn::engine& engine,
-                                     const Variable& embeddings,
+std::vector<float>& embed_and_encode(const Variable& embeddings,
                                      const std::vector<unsigned int>& ids,
                                      const std::vector<unsigned int>& lengths) {
   unsigned int batch_size = lengths.size();
   unsigned int depth = embeddings.dim()[1];
 
-  static const std::vector<float> position_encoding = precompute_position_encoding(
-    engine, depth, 100);
+  static const std::vector<float> position_encoding = precompute_position_encoding(100, depth);
   std::vector<float>& embedded = embed(embeddings, ids);
 
   cblas_sscal(embedded.size(), 1.0 / sqrt(depth), embedded.data(), 1);
@@ -550,7 +579,7 @@ int main() {
   if (model == nullptr)
     return 1;
 
-  std::map<std::string, Variable> variable_index = build_variable_index(model);
+  VariableIndex variable_index = build_variable_index(model);
   for (const auto& index : variable_index)
     std::cout << index.first << ": " << index.second << std::endl;
 
@@ -580,7 +609,7 @@ int main() {
   auto cpu_engine = mkldnn::engine(mkldnn::engine::cpu, 0);
 
   const Variable& encoder_embeddings = get_variable(variable_index, "transformer/encoder/w_embs");
-  std::vector<float>& encoder_input = embed_and_encode(cpu_engine, encoder_embeddings, ids, lengths);
+  std::vector<float>& encoder_input = embed_and_encode(encoder_embeddings, ids, lengths);
 
   unsigned int BT = cum_length;
   unsigned int B = lengths.size();
@@ -651,6 +680,8 @@ int main() {
   Dense dense_1(variable_index, "transformer/encoder/layer_0/multi_head/conv1d_1");
   std::vector<float> outputs(B * T * dense_1.output_depth());
   dense_1.compute(t_combined.data(), B * T, D, outputs.data());
+
+  test_concat();
 
   return 0;
 }

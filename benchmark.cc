@@ -275,8 +275,80 @@ void benchmark_gemm(int samples = 300) {
   std::cout << "abs diff = " << abs_diff(o1, o2) << std::endl;
 }
 
+void gemm_batch(const std::vector<float>& a,
+                const std::vector<float>& b,
+                MKL_INT batch_size,
+                MKL_INT m,
+                MKL_INT n,
+                MKL_INT k,
+                std::vector<float>& c) {
+  CBLAS_TRANSPOSE trans_a = CblasNoTrans;
+  CBLAS_TRANSPOSE trans_b = CblasNoTrans;
+  MKL_INT lda = k;
+  MKL_INT ldb = n;
+  MKL_INT ldc = n;
+  float alpha = 1.0;
+  float beta = 0.0;
+
+  std::vector<const float*> a_array(batch_size);
+  std::vector<const float*> b_array(batch_size);
+  std::vector<float*> c_array(batch_size);
+  for (MKL_INT i = 0; i < batch_size; ++i) {
+    a_array[i] = a.data() + (i * m * k);
+    b_array[i] = b.data() + (i * k * n);
+    c_array[i] = c.data() + (i * m * n);
+  }
+
+  cblas_sgemm_batch(CblasRowMajor,
+                    &trans_a, &trans_b,
+                    &m, &n, &k,
+                    &alpha, a_array.data(), &lda,
+                    b_array.data(), &ldb,
+                    &beta, c_array.data(), &ldc,
+                    1 /* group_count */, &batch_size);
+}
+
+void gemm_batch_loop(const std::vector<float>& a,
+                     const std::vector<float>& b,
+                     MKL_INT batch_size,
+                     MKL_INT m,
+                     MKL_INT n,
+                     MKL_INT k,
+                     std::vector<float>& c) {
+  for (MKL_INT i = 0; i < batch_size; ++i) {
+    const float* ai = a.data() + (i * m * k);
+    const float* bi = b.data() + (i * k * n);
+    float* ci = c.data() + (i * m * n);
+
+    cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+                m, n, k,
+                1.0, ai, k,
+                bi, n,
+                0.0, ci, n);
+  }
+}
+
+void benchmark_gemm_batch(int samples = 3000) {
+  int batch_size = 5 * 8;
+  int m = 24;
+  int n = 27;
+  int k = 64;
+
+  std::vector<float> a = rand_vector(batch_size * m * k);
+  std::vector<float> b = rand_vector(batch_size * k * n);
+  std::vector<float> c(batch_size * m * n);
+
+  BENCHMARK(gemm_batch(a, b, batch_size, m, n, k, c), samples);
+  std::vector<float> c1(c);
+  BENCHMARK(gemm_batch_loop(a, b, batch_size, m, n, k, c), samples);
+  std::vector<float> c2(c);
+  std::cout << "abs diff = " << abs_diff(c1, c2) << std::endl;
+}
+
+
 int main() {
   //benchmark_mean();
-  benchmark_gemm();
+  //benchmark_gemm();
+  benchmark_gemm_batch();
   return 0;
 }
