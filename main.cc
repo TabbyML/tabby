@@ -6,155 +6,18 @@
 #include <cstring>
 #include <unordered_map>
 
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
-#include <unistd.h>
-
 #include <Eigen/Eigen>
 #include <unsupported/Eigen/CXX11/Tensor>
-
 #include <mkl.h>
+// #include <mkldnn.hpp>
 
-#include <mkldnn.hpp>
+#include "model.h"
+#include "vocabulary.h"
+#include "routines.h"
 
-class Variable;
-using VariableIndex = std::map<std::string, Variable>;
 using Tensor2D = Eigen::Tensor<float, 2, Eigen::RowMajor>;
 using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
 using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
-
-class Vocabulary
-{
-public:
-  static const std::string unk_token;
-
-  Vocabulary(const char* path) {
-    std::ifstream in(path);
-    std::string line;
-    while (std::getline(in, line)) {
-      _token_to_id.emplace(line, _id_to_token.size());
-      _id_to_token.push_back(line);
-    }
-    _token_to_id.emplace(unk_token, _id_to_token.size());
-    _id_to_token.push_back(unk_token);
-
-  }
-
-  const std::string& to_token(unsigned int id) const {
-    return _id_to_token[id];
-  }
-  unsigned int to_id(const std::string& token) const {
-    auto it = _token_to_id.find(token);
-    if (it == _token_to_id.end())
-      return _token_to_id.at(unk_token);
-    return it->second;
-  }
-  unsigned int size() const {
-    return _id_to_token.size();
-  }
-
-private:
-  std::vector<std::string> _id_to_token;
-  std::unordered_map<std::string, unsigned int> _token_to_id;
-};
-
-const std::string Vocabulary::unk_token = "<unk>";
-
-class Variable
-{
-public:
-  Variable(unsigned int rank,
-              const unsigned int* dimensions,
-              const float* data)
-    : _rank(rank)
-    , _dimensions(dimensions)
-    , _data(data) {
-  }
-  unsigned int rank() const {
-    return _rank;
-  }
-  const unsigned int* dim() const {
-    return _dimensions;
-  }
-  const float* data() const {
-    return _data;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const Variable& index);
-
-private:
-  unsigned int _rank;
-  const unsigned int* _dimensions;
-  const float* _data;
-};
-
-std::ostream& operator<<(std::ostream& os, const Variable& index) {
-  os << '(';
-  for (unsigned int i = 0; i < index._rank; ++i) {
-    if (i > 0)
-      os << ", ";
-    os << index._dimensions[i];
-  }
-  os << ')';
-  return os;
-}
-
-const Variable& get_variable(const VariableIndex& index, const std::string& scope) {
-  auto it = index.lower_bound(scope);
-  return it->second;
-}
-const float* get_variable_data(const VariableIndex& index, const std::string& scope) {
-  return get_variable(index, scope).data();
-}
-
-template <typename T>
-T consume(unsigned char** ptr) {
-  T val = *reinterpret_cast<T*>(*ptr);
-  *ptr += sizeof(T);
-  return val;
-}
-
-VariableIndex build_variable_index(void* model) {
-  auto ptr = reinterpret_cast<unsigned char*>(model);
-  auto num_variables = consume<unsigned int>(&ptr);
-
-  VariableIndex variable_index;
-
-  for (unsigned int i = 0; i < num_variables; ++i) {
-    auto name_length = consume<unsigned short>(&ptr);
-    auto name = reinterpret_cast<const char*>(ptr);
-    ptr += name_length;
-    unsigned int rank = consume<unsigned char>(&ptr);
-    auto dimensions = reinterpret_cast<const unsigned int*>(ptr);
-    unsigned int offset = 1;
-    for (unsigned int k = 0; k < rank; k++)
-      offset *= consume<unsigned int>(&ptr);
-    unsigned int data_width = consume<unsigned char>(&ptr);
-    auto data = reinterpret_cast<const float*>(ptr);
-    ptr += offset * data_width;
-    variable_index.emplace(name, Variable(rank, dimensions, data));
-  }
-
-  return variable_index;
-}
-
-void* load_model(const char* path) {
-  struct stat st;
-  int s = stat(path, &st);
-  if (s == -1)
-    return nullptr;
-  int fd = open(path, O_RDONLY, 0);
-  if (fd == -1)
-    return nullptr;
-  void* model = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
-  close(fd);
-  if (model == MAP_FAILED)
-    return nullptr;
-  return model;
-}
 
 void maybe_resize(std::vector<float>& v, size_t size) {
   if (size > v.size()) {
@@ -162,433 +25,578 @@ void maybe_resize(std::vector<float>& v, size_t size) {
   }
 }
 
-float array_sum(const float* array, unsigned int size) {
-  float sum = 0;
-  for (unsigned int i = 0; i < size; ++i)
-    sum += array[i];
-  return sum;
-}
-
-float array_mean(const float* array, unsigned int size) {
-  return array_sum(array, size) / size;
-}
-
-void sgemm(const float* a,
-           const float* b,
-           CBLAS_TRANSPOSE trans_a,
-           CBLAS_TRANSPOSE trans_b,
-           MKL_INT m,
-           MKL_INT n,
-           MKL_INT k,
-           float beta,
-           float* c) {
-  MKL_INT lda = (trans_a == CblasNoTrans) ? k : m;
-  MKL_INT ldb = (trans_b == CblasNoTrans) ? n : k;
-  MKL_INT ldc = n;
-
-  cblas_sgemm(CblasRowMajor, trans_a, trans_b,
-              m, n, k,
-              1.0 /* alpha */, a, lda,
-              b, ldb,
-              beta, c, ldc);
-}
-
-void mat_mul(const float* a,
-             const float* b,
-             CBLAS_TRANSPOSE trans_a,
-             CBLAS_TRANSPOSE trans_b,
-             MKL_INT m,
-             MKL_INT n,
-             MKL_INT k,
-             float* c) {
-  sgemm(a, b,
-        trans_a, trans_b,
-        m, n, k,
-        0.0 /* beta */, c);
-}
-
-void batch_mat_mul(const float* a,
-                   const float* b,
-                   CBLAS_TRANSPOSE trans_a,
-                   CBLAS_TRANSPOSE trans_b,
-                   MKL_INT batch_size,
-                   MKL_INT m,
-                   MKL_INT n,
-                   MKL_INT k,
-                   float* c) {
-  MKL_INT lda = (trans_a == CblasNoTrans) ? k : m;
-  MKL_INT ldb = (trans_b == CblasNoTrans) ? n : k;
-  MKL_INT ldc = n;
-  float alpha = 1.0;
-  float beta = 0.0;
-
-  std::vector<const float*> a_array(batch_size);
-  std::vector<const float*> b_array(batch_size);
-  std::vector<float*> c_array(batch_size);
-  for (MKL_INT i = 0; i < batch_size; ++i) {
-    a_array[i] = a + (i * m * k);
-    b_array[i] = b + (i * k * n);
-    c_array[i] = c + (i * m * n);
-  }
-
-  cblas_sgemm_batch(CblasRowMajor,
-                    &trans_a, &trans_b,
-                    &m, &n, &k,
-                    &alpha, a_array.data(), &lda,
-                    b_array.data(), &ldb,
-                    &beta, c_array.data(), &ldc,
-                    1 /* group_count */, &batch_size);
-}
-
-void concat_in_depth(const std::vector<const float*>& inputs,
-                     const std::vector<unsigned int>& depths,
-                     unsigned int batch_size,
-                     float* output) {
-  unsigned int num_inputs = inputs.size();
-  unsigned int total_depth = 0;
-
-  for (unsigned int i = 0; i < num_inputs; ++i) {
-    const unsigned int depth = depths[i];
-    const float* a = inputs[i];
-    float* b = output + (total_depth * batch_size);
-    mkl_somatcopy('R', 'T', batch_size, depth, 1.0, a, depth, b, batch_size);
-    total_depth += depth;
-  }
-
-  mkl_simatcopy('R', 'T', total_depth, batch_size, 1.0, output, batch_size, total_depth);
-}
-
-
-class Dense
+class Node
 {
 public:
-  Dense(const std::map<std::string, Variable>& index, const std::string& scope)
-    : _weight(get_variable(index, scope + "/kernel"))
-    , _bias(get_variable(index, scope + "/bias")) {
+  virtual ~Node() {
+    free(_output);
+  }
+protected:
+  float* output_buffer(size_t size) {
+    if (size > _alloc_size) {
+      _output = realloc(_output, size * sizeof (float));
+      _alloc_size = size;
+    }
+    return reinterpret_cast<float*>(_output);
+  }
+private:
+  void* _output = nullptr;
+  size_t _alloc_size = 0;
+};
+
+class ScaledEmbeddings : public Node
+{
+public:
+  ScaledEmbeddings(const Model& model, const std::string& scope) {
+    const Variable& weight = model.get_variable(scope + "/w_embs");
+    _weight = weight.data();
+    _size = weight.dim()[1];
   }
 
-  void compute(const float* input,
-               unsigned int batch_size,
-               unsigned int input_depth,
-               float* output) {
-    MKL_INT m = batch_size;
-    MKL_INT n = output_depth();
-    MKL_INT k = input_depth;
-    for (int i = 0; i < m; ++i)
-      memcpy(output + (i * n), _bias.data(), n * sizeof (float));
-    sgemm(input, _weight.data(),
-          CblasNoTrans, CblasNoTrans,
-          m, n, k,
-          1.0, output);
+  float* operator()(const unsigned int* ids, unsigned int batch_size, float* output = nullptr) {
+    unsigned int output_size = batch_size * _size;
+    if (output == nullptr)
+      output = output_buffer(output_size);
+    gather(ids, _weight, batch_size, _size, output);
+    array_mul(sqrt(_size), output, output_size);
+    return output;
   }
 
   unsigned int output_depth() const {
-    return _weight.dim()[2];
+    return _size;
   }
 
 private:
-  const Variable& _weight;
-  const Variable& _bias;
+  const float* _weight;
+  unsigned int _size;
 };
 
-class LayerNorm
+class PositionEncoder : public Node
 {
 public:
-  LayerNorm(const std::map<std::string, Variable>& index, const std::string& scope)
-    : _beta(get_variable_data(index, scope + "/beta"))
-    , _gamma(get_variable_data(index, scope + "/gamma")) {
+  PositionEncoder(unsigned int depth)
+    : _depth(depth) {
   }
 
-  void compute(const float* input,
-               unsigned int batch_size,
-               unsigned int depth,
-               float* output) {
-    maybe_resize(_tmp, depth);
+  float* operator()(const float* input,
+                    unsigned int index,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    if (_cached_encodings.empty())
+      precompute_position_encoding(300);
+    if (output == nullptr)
+      output = output_buffer(batch_size * _depth);
+    array_copy(input, output, batch_size * _depth);
+    const float* x = _cached_encodings.data() + (index * _depth);
     for (unsigned int i = 0; i < batch_size; ++i) {
-      const float* x = input + (i * depth);
-      float* y = output + (i * depth);
-      float mean = array_mean(x, depth);
-      memcpy(y, x, depth * sizeof (float));
-      cblas_saxpy(depth, -1.0, &mean, 0, y, 1); // y is now centered
-      vsPowx(depth, y, 2, _tmp.data());
-      float std = array_mean(_tmp.data(), depth);
-      cblas_sscal(depth, std, y, 1); // y is now centered and normalized.
-      vsMul(depth, y, _beta, y);
-      cblas_saxpy(depth, 1.0, _gamma, 1, y, 1);
+      float* y = output + (i * _depth);
+      array_add(x, y, _depth);
     }
+    return output;
+  }
+
+  float* operator()(const float* input,
+                    const unsigned int* lengths,
+                    unsigned int batch_size,
+                    unsigned int total_length,
+                    float* output = nullptr) {
+    if (_cached_encodings.empty())
+      precompute_position_encoding(300);
+    if (output == nullptr)
+      output = output_buffer(total_length * _depth);
+    array_copy(input, output, total_length * _depth);
+    const float* x = _cached_encodings.data();
+    unsigned int offset = 0;
+    for (unsigned int i = 0; i < batch_size; ++i) {
+      const unsigned int length = lengths[i];
+      float* y = output + (offset * _depth);
+      array_add(x, y, length * _depth);
+      offset += length;
+    }
+    return output;
+  }
+
+private:
+  unsigned int _depth;
+  std::vector<float> _cached_encodings;
+
+  void precompute_position_encoding(unsigned int max_time) {
+    float log_timescale_increment = log(10000) / (_depth / 2 - 1);
+    std::vector<float> timescales(_depth / 2, -log_timescale_increment);
+    for (unsigned int i = 0; i < timescales.size(); ++i)
+      timescales[i] = exp(timescales[i] * i);
+
+    std::vector<float> scaled_time((_depth / 2) * max_time);
+    for (unsigned int i = 0; i < max_time; ++i) {
+      for (unsigned int j = 0; j < _depth / 2; ++j) {
+        scaled_time[j + (i * _depth / 2)] = (i + 1) * timescales[j];
+      }
+    }
+
+    std::vector<float> sin_encoding(scaled_time.size());
+    std::vector<float> cos_encoding(scaled_time.size());
+
+    vsSin(scaled_time.size(), scaled_time.data(), sin_encoding.data());
+    vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
+
+    _cached_encodings.resize(sin_encoding.size() + cos_encoding.size());
+    concat_in_depth({sin_encoding.data(), cos_encoding.data()},
+                    {_depth / 2, _depth / 2}, max_time,
+                    _cached_encodings.data());
+  }
+};
+
+class Dense : public Node
+{
+public:
+  Dense(const Model& model, const std::string& scope) {
+    const Variable& weight = model.get_variable(scope + "/kernel");
+    const Variable& bias = model.get_variable(scope + "/bias");
+    _weight = weight.data();
+    _bias = bias.data();
+    _input_depth = weight.dim()[weight.rank() - 2];
+    _output_depth = weight.dim()[weight.rank() - 1];
+  }
+
+  float* operator()(const float* input,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    if (output == nullptr)
+      output = output_buffer(batch_size * _output_depth);
+    linear(input, _weight, _bias, batch_size, _input_depth, _output_depth, output);
+    return output;
+  }
+
+  unsigned int output_depth() const {
+    return _output_depth;
+  }
+
+private:
+  const float* _weight;
+  const float* _bias;
+  unsigned int _input_depth;
+  unsigned int _output_depth;
+};
+
+class LayerNorm : public Node
+{
+public:
+  LayerNorm(const Model& model, const std::string& scope) {
+    const Variable& beta = model.get_variable(scope + "/beta");
+    const Variable& gamma = model.get_variable(scope + "/gamma");
+    _beta = beta.data();
+    _gamma = gamma.data();
+    _depth = beta.dim()[0];
+  }
+
+  float* operator()(const float* input,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    if (output == nullptr)
+      output = output_buffer(batch_size * _depth);
+    maybe_resize(_tmp, _depth);
+    for (unsigned int i = 0; i < batch_size; ++i) {
+      const float* x = input + (i * _depth);
+      float* y = output + (i * _depth);
+      float mean = array_mean(x, _depth);
+      array_copy(x, y, _depth);
+      array_sub(mean, y, _depth); // y is now centered
+      array_pow(y, _tmp.data(), 2, _depth);
+      float variance = array_mean(_tmp.data(), _depth);
+      array_mul(1.0 / sqrt(variance), y, _depth); // y is now centered and normalized.
+      array_mul(_gamma, y, _depth);
+      array_add(_beta, y, _depth);
+    }
+    return output;
   }
 
 private:
   const float* _beta;
   const float* _gamma;
+  unsigned int _depth;
   std::vector<float> _tmp;
 };
 
-void softmax(mkldnn::engine& engine, float* input, int batch, int depth, float* output) {
-  auto memory_desc = mkldnn::memory::desc({batch, depth},
-                                          mkldnn::memory::data_type::f32,
-                                          mkldnn::memory::format::nc);
-  auto softmax_desc = mkldnn::softmax_forward::desc(mkldnn::prop_kind::forward_inference,
-                                                    memory_desc, 1 /* softmax_axis */);
-
-  auto memory_primitive_desc = mkldnn::memory::primitive_desc(memory_desc, engine);
-  auto input_memory = mkldnn::memory(memory_primitive_desc, input);
-  auto output_memory = mkldnn::memory(memory_primitive_desc, output);
-
-  std::vector<mkldnn::primitive> primitives;
-  primitives.push_back(mkldnn::softmax_forward(
-                         mkldnn::softmax_forward::primitive_desc(softmax_desc, engine),
-                         mkldnn::primitive::at(input_memory),
-                         output_memory));
-  mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
-}
-
-class DotProductAttention
+class TransformerFeedForward : public Node
 {
 public:
-  DotProductAttention(mkldnn::engine& engine)
-    : _engine(engine) {
+  TransformerFeedForward(const Model& model,
+                         const std::string& scope)
+    : _layer_norm(model, scope + "/LayerNorm")
+    , _ff1(model, scope + "/conv1d")
+    , _ff2(model, scope + "/conv1d_1") {
   }
 
-  void operator()(const float* queries,
-                  const float* keys,
-                  const float* values,
-                  unsigned int batch,
-                  unsigned int queries_time,
-                  unsigned int keys_time,
-                  unsigned int depth,
-                  float* context) {
-    maybe_resize(_dot, batch * queries_time * keys_time);
-    maybe_resize(_attn, batch * queries_time * keys_time);
+  float* operator()(const float* input,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    float* normed = _layer_norm(input, batch_size);
+    float* inner = _ff1(normed, batch_size);
 
-    batch_mat_mul(queries, keys,
-                  CblasNoTrans, CblasTrans,
-                  batch, queries_time, keys_time, depth,
-                  _dot.data());
-    softmax(_engine, _dot.data(), batch * queries_time, keys_time, _attn.data());
-    batch_mat_mul(_attn.data(), values,
-                  CblasNoTrans, CblasNoTrans,
-                  batch, queries_time, depth, keys_time,
-                  context);
+    relu(inner, batch_size * _ff1.output_depth());
+
+    // auto memory_desc = mkldnn::memory::desc({batch_size, _ff1.output_depth()},
+    //                                         mkldnn::memory::data_type::f32,
+    //                                         mkldnn::memory::format::nc);
+    // auto relu_desc = mkldnn::eltwise_forward::desc(mkldnn::prop_kind::forward_inference,
+    //                                                memory_desc,
+    //                                                0);
+    // auto memory_primitive_desc = mkldnn::memory::primitive_desc(memory_desc, _engine);
+    // auto memory = mkldnn::memory(memory_primitive_desc, inner);
+
+    // std::vector<mkldnn::primitive> primitives;
+    // primitives.push_back(mkldnn::eltwise_forward(
+    //                        mkldnn::eltwise_forward::primitive_desc(relu_desc, _engine),
+    //                        mkldnn::primitive::at(memory),
+    //                        memory));
+    // mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
+
+    output = _ff2(inner, batch_size, output);
+    array_add(input, output, batch_size * _ff2.output_depth());
+    return output;
   }
 
 private:
-  mkldnn::engine _engine;
+  LayerNorm _layer_norm;
+  Dense _ff1;
+  Dense _ff2;
+};
+
+class DotProductAttention : public Node
+{
+public:
+
+  float* operator()(const float* queries,
+                    const float* keys,
+                    const float* values,
+                    unsigned int batch_size,
+                    unsigned int queries_time,
+                    unsigned int keys_time,
+                    unsigned int depth,
+                    float* output = nullptr) {
+    maybe_resize(_dot, batch_size * queries_time * keys_time);
+    batch_mat_mul(queries, keys,
+                  CblasNoTrans, CblasTrans,
+                  batch_size, queries_time, keys_time, depth,
+                  _dot.data());
+    maybe_resize(_attn, batch_size * queries_time * keys_time);
+    softmax(_dot.data(), batch_size * queries_time, keys_time, _attn.data());
+    if (output == nullptr)
+      output = output_buffer(batch_size * queries_time * depth);
+    batch_mat_mul(_attn.data(), values,
+                  CblasNoTrans, CblasNoTrans,
+                  batch_size, queries_time, depth, keys_time,
+                  output);
+    return output;
+  }
+
+private:
   std::vector<float> _dot;
   std::vector<float> _attn;
 };
 
-// class SoftMax
-// {
-// public:
-//   SoftMax(mkldnn::engine& engine)
-//     : _engine(engine) {
-//   }
+class MultiHeadAttention
+{
+public:
+  MultiHeadAttention(const Model& model,
+                     const std::string& scope,
+                     unsigned int num_heads,
+                     bool with_cache)
+    : _num_heads(num_heads)
+    , _layer_norm(model, scope + "/LayerNorm")
+    , _with_cache(with_cache) {
+    for (unsigned int i = 0;; ++i) {
+      std::string conv_scope = scope + "/conv1d";
+      if (i > 0)
+        conv_scope += "_" + std::to_string(i);
 
-//   template <typename Input, typename Output>
-//   void compute(const Input& input, Output& output) {
-//     const auto& dims = input.dimensions();
+      try {
+        _projections.emplace_back(model, conv_scope);
+      } catch(std::exception&) {
+        break;
+      }
+    }
 
-//     int D = dims.back();
-//   }
-
-//   virtual std::vector<float>& apply(const float* input,
-//                                     const std::vector<unsigned int>& dims) override {
-//     int D = dims.back();
-//     int B = 1;
-//     for (size_t i = 0; i < dims.size() - 1; ++i)
-//       B *= dims[i];
-
-//     _output.resize(B * D);
-
-//     auto memory_desc = mkldnn::memory::desc({B, D},
-//                                             mkldnn::memory::data_type::f32,
-//                                             mkldnn::memory::format::nc);
-//     auto softmax_desc = mkldnn::softmax_forward::desc(mkldnn::prop_kind::forward_inference,
-//                                                       memory_desc, 1 /* softmax_axis */);
-
-//     auto memory_primitive_desc = mkldnn::memory::primitive_desc(memory_desc, _engine);
-//     auto input_memory = mkldnn::memory(memory_primitive_desc, const_cast<float*>(input));
-//     auto output_memory = mkldnn::memory(memory_primitive_desc, _output.data());
-
-//     std::vector<mkldnn::primitive> primitives;
-//     primitives.push_back(mkldnn::softmax_forward(
-//                            mkldnn::softmax_forward::primitive_desc(softmax_desc, _engine),
-//                            mkldnn::primitive::at(input_memory),
-//                            output_memory));
-//     mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
-//     return _output;
-//   }
-
-// private:
-//   mkldnn::engine& _engine;
-// };
-
-std::vector<float>& embed(const Variable& var, const std::vector<unsigned int> ids) {
-  static std::vector<float> emb;
-  unsigned int depth = var.dim()[1];
-  unsigned int batch_size = ids.size();
-  emb.resize(batch_size * depth);
-
-  const float* src = var.data();
-  float* dst = emb.data();
-
-  for (unsigned int i = 0; i < batch_size; ++i) {
-    std::memcpy(dst + (i * depth), src + (ids[i] * depth), depth * sizeof (float));
+    _depth = _projections.back().output_depth();
   }
 
-  return emb;
-}
+  float* operator()(const float* queries,
+                    const float* memory,
+                    const unsigned int* queries_length,
+                    const unsigned int* memory_length,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    if (memory_length == nullptr)
+      memory_length = queries_length;
+    unsigned int cum_queries_length = 0;
+    unsigned int cum_memory_length = 0;
+    unsigned int queries_time = 0;
+    unsigned int memory_time = 0;
+    for (unsigned int i = 0; i < batch_size; ++i) {
+      cum_queries_length += queries_length[i];
+      queries_time = std::max(queries_time, queries_length[i]);
+      cum_memory_length += memory_length[i];
+      memory_time = std::max(memory_time, memory_length[i]);
+    }
 
-void concat(mkldnn::engine& engine,
-            std::vector<std::vector<float> >& inputs,
-            std::vector<float>& output,
-            const std::vector<int>& dimension,
-            int concat_dimension,
-            mkldnn::memory::format format,
-            mkldnn::memory::data_type data_type = mkldnn::memory::data_type::f32) {
-  std::vector<mkldnn::memory::primitive_desc> inputs_primitive_desc;
-  std::vector<mkldnn::memory> inputs_memory;
-  std::vector<mkldnn::primitive::at> inputs_primitive_at;
+    float* normed_queries = _layer_norm(queries, cum_queries_length);
+    float* queries_proj;
+    const float* keys_proj;
+    const float* values_proj;
 
-  for (auto& input : inputs) {
-    auto input_desc = mkldnn::memory::desc(dimension, data_type, format);
-    inputs_primitive_desc.emplace_back(input_desc, engine);
-    inputs_memory.emplace_back(inputs_primitive_desc.back(), input.data());
-    inputs_primitive_at.emplace_back(inputs_memory.back(), 0);
+    //std::cout << normed_queries[0] << std::endl;
+
+    if (memory == nullptr) {
+      float* fused_proj = _projections[0](normed_queries, cum_queries_length);
+      unsigned int fused_depth = _projections[0].output_depth();
+      maybe_resize(_splits, cum_queries_length * fused_depth);
+      std::vector<float*> splits = split_in_depth(fused_proj, cum_queries_length, fused_depth,
+                                                  3, _splits.data());
+      queries_proj = splits[0];
+      keys_proj = splits[1];
+      values_proj = splits[2];
+      if (_with_cache) {
+        //std::cout << "cache previous self proj" << std::endl;
+        _step += 1;
+        maybe_resize(_keys_accu, _step * batch_size * _depth);
+        maybe_resize(_values_accu, _step * batch_size * _depth);
+        array_copy(keys_proj, &_keys_accu.back() + 1 - batch_size * _depth, batch_size * _depth);
+        array_copy(values_proj, &_values_accu.back() + 1 - batch_size * _depth, batch_size * _depth);
+        keys_proj = _keys_accu.data();
+        values_proj = _values_accu.data();
+      }
+    } else {
+      queries_proj = _projections[0](normed_queries, cum_queries_length);
+      if (_with_cache && _cached_memory_keys != nullptr) {
+        //std::cout << "cache encoder memory proj" << std::endl;
+        keys_proj = _cached_memory_keys;
+        values_proj = _cached_memory_values;
+      } else {
+        unsigned int fused_depth = _projections[1].output_depth();
+        maybe_resize(_splits, cum_memory_length * fused_depth);
+        float* fused_proj = _projections[1](memory, cum_memory_length);
+        std::vector<float*> splits = split_in_depth(fused_proj, cum_memory_length, fused_depth,
+                                                    2, _splits.data());
+        keys_proj = splits[0];
+        values_proj = splits[1];
+        _cached_memory_keys = keys_proj;
+        _cached_memory_values = values_proj;
+      }
+    }
+
+    unsigned int dk = _depth / _num_heads;
+    array_mul(1.0 / sqrt(dk), queries_proj, cum_queries_length * _depth);
+
+    std::vector<float> padded_queries(batch_size * queries_time * _depth);
+    std::vector<float> padded_keys(batch_size * memory_time * _depth);
+    std::vector<float> padded_values(batch_size * memory_time * _depth);
+    pad_sequences(queries_proj, queries_length, batch_size, queries_time, _depth, padded_queries.data());
+    pad_sequences(keys_proj, memory_length, batch_size, memory_time, _depth, padded_keys.data());
+    pad_sequences(values_proj, memory_length, batch_size, memory_time, _depth, padded_values.data());
+
+    // b x T x D
+    Eigen::TensorMap<Tensor4D> t_queries_map(padded_queries.data(), batch_size, queries_time, _num_heads, dk);
+    Eigen::TensorMap<Tensor4D> t_keys_map(padded_keys.data(), batch_size, memory_time, _num_heads, dk);
+    Eigen::TensorMap<Tensor4D> t_values_map(padded_values.data(), batch_size, memory_time, _num_heads, dk);
+
+    Eigen::array<int, 4> shuffling;
+    shuffling[0] = 0;
+    shuffling[1] = 2;
+    shuffling[2] = 1;
+    shuffling[3] = 3;
+
+    Tensor4D t_queries = t_queries_map.shuffle(shuffling);
+    Tensor4D t_keys = t_keys_map.shuffle(shuffling);
+    Tensor4D t_values = t_values_map.shuffle(shuffling);
+
+    //std::cout << queries_time << " " << memory_time << std::endl;
+
+    float* context = _attention(t_queries.data(),
+                                t_keys.data(),
+                                t_values.data(),
+                                batch_size * _num_heads,
+                                queries_time,
+                                memory_time,
+                                dk);
+
+    //std::cout << "context: " << context[0] << std::endl;
+
+    Eigen::TensorMap<Tensor4D> t_context(context, batch_size, _num_heads, queries_time, dk);
+    Tensor4D t_combined = t_context.shuffle(shuffling);
+
+    //std::cout << "combined: " << t_combined.data()[0] << std::endl << std::endl;
+
+    std::vector<float> combined_pruned(cum_queries_length * _depth);
+    unpad_sequences(t_combined.data(), queries_length, batch_size, queries_time, _depth, combined_pruned.data());
+
+    output = _projections.back()(combined_pruned.data(), cum_queries_length, output);
+
+    array_add(queries, output, cum_queries_length * _projections.back().output_depth());
+    return output;
   }
 
-  std::vector<int> output_dimension(dimension);
-  output_dimension[concat_dimension] *= inputs.size();
-  int output_size = 1;
-  for (int dim : output_dimension)
-    output_size *= dim;
-  output.resize(output_size);
+private:
+  unsigned int _num_heads;
+  unsigned int _depth;
+  LayerNorm _layer_norm;
+  DotProductAttention _attention;
+  std::vector<float> _splits;
+  std::vector<Dense> _projections;
+  bool _with_cache;
+  std::vector<float> _keys_accu;
+  std::vector<float> _values_accu;
+  unsigned int _step = 0;
+  const float* _cached_memory_keys = nullptr;
+  const float* _cached_memory_values = nullptr;
+};
 
-  auto output_desc = mkldnn::memory::desc(output_dimension, data_type, format);
-  auto output_memory = mkldnn::memory({output_desc, engine}, output.data());
+class TransformerEncoderLayer : public Node
+{
+public:
+  TransformerEncoderLayer(const Model& model,
+                          const std::string& scope)
+    : _multi_head_attention(model, scope + "/multi_head", 8, false)
+    , _ff(model, scope + "/ffn") {
+  }
 
-  auto concat_desc = mkldnn::concat::primitive_desc(concat_dimension, inputs_primitive_desc);
+  float* operator()(const float* input,
+                    const float* memory,
+                    const unsigned int* lengths,
+                    const unsigned int* memory_lengths,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    unsigned int total_batch_size = 0;
+    for (unsigned int i = 0; i < batch_size; ++i)
+      total_batch_size += lengths[i];
+    const float* context = _multi_head_attention(input, memory, lengths, memory_lengths, batch_size);
+    return _ff(context, total_batch_size, output);
+  }
 
-  std::vector<mkldnn::primitive> primitives;
-  primitives.push_back(mkldnn::concat(concat_desc, inputs_primitive_at, output_memory));
-  mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
-}
+private:
+  MultiHeadAttention _multi_head_attention;
+  TransformerFeedForward _ff;
+};
 
-void test_concat() {
-  std::vector<float> a = {1, 2, 3, 1, 2, 3};
-  std::vector<float> b = {3, 4, 5, 6, 3, 4, 5, 6};
-  std::vector<float> out(a.size() + b.size());
-  //std::vector<std::vector<float> > in({a, b});
-  //concat(engine, in, out, {2, 2}, 1, mkldnn::memory::format::nc);
-  concat_in_depth({a.data(), b.data()}, {3, 4}, 2, out.data());
+class TransformerDecoderLayer : public Node
+{
+public:
+  TransformerDecoderLayer(const Model& model,
+                          const std::string& scope)
+    : _masked_multi_head_attention(model, scope + "/masked_multi_head", 8, true)
+    , _multi_head_attention(model, scope + "/multi_head", 8, true)
+    , _ff(model, scope + "/ffn") {
+  }
 
-  for (auto v : out)
-    std::cout << " " << v;
-  std::cout << std::endl;
-}
+  float* operator()(const float* input,
+                    const float* memory,
+                    const unsigned int* lengths,
+                    const unsigned int* history_lengths,
+                    const unsigned int* memory_lengths,
+                    unsigned int batch_size,
+                    float* output = nullptr) {
+    const float* encoded = _masked_multi_head_attention(
+      input, nullptr, lengths, history_lengths, batch_size);
+    const float* context = _multi_head_attention(
+      encoded, memory, lengths, memory_lengths, batch_size);
+    return _ff(context, batch_size, output);
+  }
 
-std::vector<float> build_scaled_time(unsigned int max_time, unsigned int depth) {
-  // No need to optimize here, this is a one time operation.
-  float log_timescale_increment = log(10000) / (depth - 1);
-  std::vector<float> timescales(depth, -log_timescale_increment);
-  for (unsigned int i = 0; i < timescales.size(); ++i)
-    timescales[i] = exp(timescales[i] * i);
+private:
+  MultiHeadAttention _masked_multi_head_attention;
+  MultiHeadAttention _multi_head_attention;
+  TransformerFeedForward _ff;
+};
 
-  std::vector<float> scaled_time(depth * max_time);
-  for (unsigned int i = 0; i < max_time; ++i) {
-    for (unsigned int j = 0; j < depth; ++j) {
-      scaled_time[j + (i * depth)] = (i + 1) * timescales[j];
+template <typename TransformerLayer>
+class TransformerStack : public Node
+{
+public:
+  TransformerStack(const Model& model, const std::string& scope, bool dynamic)
+    : _scaled_embeddings(model, scope)
+    , _position_encoder(_scaled_embeddings.output_depth())
+    , _output_norm(model, scope + "/LayerNorm") {
+    for (unsigned int l = 0;; ++l) {
+      try {
+        _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
+      } catch (std::exception&) {
+        break;
+      }
     }
   }
 
-  return scaled_time;
-}
+protected:
+  ScaledEmbeddings _scaled_embeddings;
+  PositionEncoder _position_encoder;
+  std::vector<TransformerLayer> _layers;
+  LayerNorm _output_norm;
+};
 
-std::vector<float> precompute_position_encoding(unsigned int max_time,
-                                                unsigned int depth) {
-  const std::vector<float> scaled_time = build_scaled_time(max_time, depth / 2);
-  std::vector<float> sin_encoding(scaled_time.size());
-  std::vector<float> cos_encoding(scaled_time.size());
-
-  vsSin(scaled_time.size(), scaled_time.data(), sin_encoding.data());
-  vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
-
-  std::vector<float> position_encoding(sin_encoding.size() + cos_encoding.size());
-  concat_in_depth({sin_encoding.data(), cos_encoding.data()},
-                  {depth / 2, depth / 2}, max_time,
-                  position_encoding.data());
-
-  // std::vector<std::vector<float> > sin_cos_encoding = {sin_encoding, cos_encoding};
-  // std::vector<int> dimensions = {max_time, depth / 2};
-  // std::vector<float> encoding;
-  // concat(engine, sin_cos_encoding, encoding, dimensions, 1, mkldnn::memory::format::nc);
-  return position_encoding;
-}
-
-std::vector<float>& embed_and_encode(const Variable& embeddings,
-                                     const std::vector<unsigned int>& ids,
-                                     const std::vector<unsigned int>& lengths) {
-  unsigned int batch_size = lengths.size();
-  unsigned int depth = embeddings.dim()[1];
-
-  static const std::vector<float> position_encoding = precompute_position_encoding(100, depth);
-  std::vector<float>& embedded = embed(embeddings, ids);
-
-  cblas_sscal(embedded.size(), 1.0 / sqrt(depth), embedded.data(), 1);
-
-  unsigned int offset = 0;
-  for (unsigned int i = 0; i < batch_size; ++i) {
-    const int n = lengths[i] * depth;
-    const float* x = position_encoding.data();
-    float* y = embedded.data() + (offset * depth);
-    cblas_saxpy(n, 1, x, 1, y, 1);
-    offset += lengths[i];
+class TransformerEncoder : public TransformerStack<TransformerEncoderLayer>
+{
+public:
+  TransformerEncoder(const Model& model, const std::string& scope)
+    : TransformerStack(model, scope, false) {
   }
 
-  return embedded;
-}
+  float* operator()(const unsigned int* ids,
+                    const unsigned int* lengths,
+                    unsigned int batch_size,
+                    unsigned int flattened_batch_size,
+                    float* output = nullptr) {
+    const float* embeddings = _scaled_embeddings(ids, flattened_batch_size);
+    const float* input = _position_encoder(embeddings, lengths, batch_size, flattened_batch_size);
 
-void pad_sequence(const std::vector<float>& input,
-                  unsigned int depth,
-                  const std::vector<unsigned int>& lengths,
-                  std::vector<float>& output) {
-  unsigned int batch_size = lengths.size();
-  unsigned int max_length = *std::max_element(lengths.begin(), lengths.end());
-  output.resize(batch_size * max_length * depth);
-  const float* src = input.data();
-  float* dst = output.data();
-  for (const auto length : lengths) {
-    unsigned int count = depth * length;
-    memcpy(dst, src, count * sizeof (float));
-    dst += count;
-    src += count;
-    if (length < max_length) {
-      count = (max_length - length) * depth;
-      memset(dst, 0, count * sizeof (float));
-      dst += count;
+    const float* x = input;
+    for (auto& layer : _layers) {
+      x = layer(x, nullptr, lengths, nullptr, batch_size);
+      //std::cout << x[0] << std::endl;
     }
+    return _output_norm(x, flattened_batch_size, output);
   }
-}
+};
+
+class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
+{
+public:
+  TransformerDecoder(const Model& model, const std::string& scope)
+    : TransformerStack(model, scope, true)
+    , _proj(model, scope + "/dense") {
+  }
+
+  float* operator()(unsigned int step,
+                    const unsigned int* ids,
+                    unsigned int batch_size,
+                    const float* memory,
+                    const unsigned int* memory_length,
+                    float* output = nullptr) {
+    const float* embeddings = _scaled_embeddings(ids, batch_size);
+    const float* input = _position_encoder(embeddings, step, batch_size);
+    std::vector<unsigned int> query_lengths(batch_size, 1);
+    std::vector<unsigned int> history_lengths(batch_size, step + 1);
+
+    const float* x = input;
+    for (auto& layer : _layers)
+      x = layer(x, memory, query_lengths.data(), history_lengths.data(), memory_length, batch_size);
+    x = _output_norm(x, batch_size);
+    return _proj(x, batch_size, output);
+  }
+
+private:
+  Dense _proj;
+};
 
 int main() {
-  const char* model_path = "/home/klein/dev/ctransformer/model.bin";
-  const char* vocab_path = "/home/klein/dev/OpenNMT-tf/models/averaged-ende-export500k/export/manual/1519808686/assets/wmt14-ende.vocab";
-
-  void* model = load_model(model_path);
-  if (model == nullptr)
-    return 1;
-
-  VariableIndex variable_index = build_variable_index(model);
-  for (const auto& index : variable_index)
-    std::cout << index.first << ": " << index.second << std::endl;
-
-  Vocabulary vocabulary(vocab_path);
+  Model model("/home/klein/dev/ctransformer/model.bin");
+  Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
 
   std::vector<std::vector<std::string> > input = {
-    {"▁Gut", "ach", ":", "▁Increase", "d", "▁safety", "▁for", "▁pedestrian", "s"},
-    {"▁They", "▁are", "▁not", "▁even", "▁100", "▁metres", "▁apart"}
+    {"▁Gut", "ach", ":", "▁Increase", "d", "▁safety", "▁for", "▁pedestrian", "s"}//,
+    //   {"▁They", "▁are", "▁not", "▁even", "▁100", "▁metres", "▁apart"}
   };
+
+  // Ref Trans:
+  // ▁Gut ach : ▁Mehr ▁Sicherheit ▁für ▁Fußgänger
+  // ▁Sie ▁liegen ▁nicht ▁einmal ▁100 ▁Meter ▁voneinander ▁entfernt
 
   std::vector<unsigned int> ids;
   std::vector<unsigned int> lengths;
@@ -606,196 +614,45 @@ int main() {
     lengths.push_back(length);
   }
 
-  auto cpu_engine = mkldnn::engine(mkldnn::engine::cpu, 0);
+  // for (const auto& id : ids)
+  //   std::cout << id << std::endl;
 
-  const Variable& encoder_embeddings = get_variable(variable_index, "transformer/encoder/w_embs");
-  std::vector<float>& encoder_input = embed_and_encode(encoder_embeddings, ids, lengths);
+  unsigned int batch_size = lengths.size();
 
-  unsigned int BT = cum_length;
-  unsigned int B = lengths.size();
-  unsigned int T = max_length;
-  unsigned int D = 512;
-  unsigned int H = 8;
-  unsigned int DK = D / H;
+  TransformerEncoder encoder(model, "transformer/encoder");
+  const float* encoded = encoder(ids.data(), lengths.data(), batch_size, cum_length);
 
-  LayerNorm layer_norm(variable_index, "transformer/encoder/layer_0/multi_head/LayerNorm");
-  std::vector<float> norm(BT * D);
-  layer_norm.compute(encoder_input.data(), BT, D, norm.data());
+  TransformerDecoder decoder(model, "transformer/decoder");
 
-  Dense dense(variable_index, "transformer/encoder/layer_0/multi_head/conv1d");
-  std::vector<float> fused_proj(BT * dense.output_depth());
-  dense.compute(norm.data(), BT, D, fused_proj.data());
+  std::vector<unsigned int> sample_from = { 1, 1 };
+  std::vector<std::vector<unsigned int> > sampled_ids(batch_size);
+  std::vector<bool> finished(batch_size, false);
+  std::vector<float> probs(batch_size * vocabulary.size());
+  bool all_finished = false;
 
-  mkl_simatcopy('R', 'T', BT, D, 1.0, fused_proj.data(), D, BT);
-  unsigned int chunk_size = BT * D;
-  std::vector<float> queries(fused_proj.data(), fused_proj.data() + chunk_size);
-  std::vector<float> keys(fused_proj.data() + chunk_size, fused_proj.data() + chunk_size * 2);
-  std::vector<float> values(fused_proj.data() + chunk_size * 2, fused_proj.data() + chunk_size * 3);
+  for (unsigned int step = 0; !all_finished; ++step) {
+    float* logits = decoder(step, sample_from.data(), batch_size, encoded, lengths.data());
+    softmax(logits, batch_size, vocabulary.size(), probs.data());
+    all_finished = true;
+    for (unsigned int i = 0; i < batch_size; ++i) {
+      unsigned int best = cblas_isamax(vocabulary.size(), probs.data() + (i*vocabulary.size()), 1);
+      std::cout << i << ": " << vocabulary.to_token(best) << std::endl;
+      sample_from[i] = best;
+      if (best == 2)
+        finished[i] = true;
+      else {
+        all_finished = false;
+        sampled_ids[i].push_back(best);
+      }
+    }
+  }
 
-  cblas_sscal(chunk_size, 1.0 / sqrt(D / H), queries.data(), 1);
-
-  // D x B
-
-  mkl_simatcopy('R', 'T', D, BT, 1.0, queries.data(), BT, D);
-  mkl_simatcopy('R', 'T', D, BT, 1.0, keys.data(), BT, D);
-  mkl_simatcopy('R', 'T', D, BT, 1.0, values.data(), BT, D);
-
-  std::vector<float> padded_queries;
-  std::vector<float> padded_keys;
-  std::vector<float> padded_values;
-  pad_sequence(queries, D, lengths, padded_queries);
-  pad_sequence(keys, D, lengths, padded_keys);
-  pad_sequence(values, D, lengths, padded_values);
-
-  // b x T x D
-  Eigen::TensorMap<Tensor4D> t_queries_map(padded_queries.data(), B, T, H, DK);
-  Eigen::TensorMap<Tensor4D> t_keys_map(padded_keys.data(), B, T, H, DK);
-  Eigen::TensorMap<Tensor4D> t_values_map(padded_values.data(), B, T, H, DK);
-
-  Eigen::array<int, 4> shuffling;
-  shuffling[0] = 0;
-  shuffling[1] = 2;
-  shuffling[2] = 1;
-  shuffling[3] = 3;
-
-  Tensor4D t_queries = t_queries_map.shuffle(shuffling);
-  Tensor4D t_keys = t_keys_map.shuffle(shuffling);
-  Tensor4D t_values = t_values_map.shuffle(shuffling);
-
-
-  DotProductAttention attention(cpu_engine);
-  std::vector<float> context(B * H * T * DK);
-  attention(t_queries.data(),
-            t_keys.data(),
-            t_values.data(),
-            B * H,
-            T,
-            T,
-            DK,
-            context.data());
-
-  Eigen::TensorMap<Tensor4D> t_context(context.data(), B, H, T, DK);
-  Tensor4D t_combined = t_queries_map.shuffle(shuffling);
-
-  Dense dense_1(variable_index, "transformer/encoder/layer_0/multi_head/conv1d_1");
-  std::vector<float> outputs(B * T * dense_1.output_depth());
-  dense_1.compute(t_combined.data(), B * T, D, outputs.data());
-
-  test_concat();
+  for (unsigned int i = 0; i < batch_size; ++i) {
+    for (auto id : sampled_ids[i]) {
+      std::cout << " " << vocabulary.to_token(id);
+    }
+    std::cout << std::endl;
+  }
 
   return 0;
 }
-
-// class MultiHeadAttention
-// {
-// public:
-//   MultiHeadAttention(bool is_self_attention,
-//                      unsigned int num_heads,
-//                      const std::string& scope,
-//                      const VariableIndex& variable_index,
-//                      mkldnn::engine& engine)
-//     : _num_heads(num_heads),
-//     , _scope(scope)
-//     , _engine(engine)
-//     , _layer_norm(variable_index, scope + "/LayerNorm") {
-//     unsigned int num_kernels = is_self_attention ? 2 : 3;
-//     for (unsigned int i = 0; i < num_kernels; ++i) {
-//       std::string conv_scope = scope + "/conv1d";
-//       if (i > 0) {
-//         conv_scope += "_" + std::to_string(i);
-//       }
-//       _projections.emplace_back(variable_index, conv_scope);
-//     }
-//   }
-
-//   void compute(const float* queries,
-//                const float* memory,
-//                unsigned int total_batch_size,
-//                unsigned int queries_time,
-//                unsigned int memory_time,
-//                unsigned int depth;
-//                float* output) {
-//     maybe_resize(_queries_norm, total_batch_size * depth);
-//     maybe_resize(_fused_proj, total_batch_size * depth * 3);
-
-//     _layer_norm.apply(queries, total_batch_size, depth, _queries_norm);
-//     _projections[0].compute(_queries_norm.data(), total_batch_size, depth, _fused_proj.data());
-
-//     float* queries_proj;
-//     float* keys_proj;
-//     float* values_proj;
-
-//     if (memory == nullptr) {
-
-//     } else {
-//       _projections[0].compute(memory.data(), total_batch_size, depth, _fused_proj.data());
-
-//     }
-
-//     std::vector<float> fused_proj(BT * dense.output_depth());
-//   dense.compute(norm.data(), BT, D, fused_proj.data());
-
-//   mkl_simatcopy('R', 'T', BT, D, 1.0, fused_proj.data(), D, BT);
-//   unsigned int chunk_size = BT * D;
-//   std::vector<float> queries(fused_proj.data(), fused_proj.data() + chunk_size);
-//   std::vector<float> keys(fused_proj.data() + chunk_size, fused_proj.data() + chunk_size * 2);
-//   std::vector<float> values(fused_proj.data() + chunk_size * 2, fused_proj.data() + chunk_size * 3);
-
-//   cblas_sscal(chunk_size, 1.0 / sqrt(D / H), queries.data(), 1);
-
-//   // D x B
-
-//   mkl_simatcopy('R', 'T', D, BT, 1.0, queries.data(), BT, D);
-//   mkl_simatcopy('R', 'T', D, BT, 1.0, keys.data(), BT, D);
-//   mkl_simatcopy('R', 'T', D, BT, 1.0, values.data(), BT, D);
-
-//   std::vector<float> padded_queries;
-//   std::vector<float> padded_keys;
-//   std::vector<float> padded_values;
-//   pad_sequence(queries, D, lengths, padded_queries);
-//   pad_sequence(keys, D, lengths, padded_keys);
-//   pad_sequence(values, D, lengths, padded_values);
-
-//   // b x T x D
-//   Eigen::TensorMap<Tensor4D> t_queries_map(padded_queries.data(), B, T, H, DK);
-//   Eigen::TensorMap<Tensor4D> t_keys_map(padded_keys.data(), B, T, H, DK);
-//   Eigen::TensorMap<Tensor4D> t_values_map(padded_values.data(), B, T, H, DK);
-
-//   Eigen::array<int, 4> shuffling;
-//   shuffling[0] = 0;
-//   shuffling[1] = 2;
-//   shuffling[2] = 1;
-//   shuffling[3] = 3;
-
-//   Tensor4D t_queries = t_queries_map.shuffle(shuffling);
-//   Tensor4D t_keys = t_keys_map.shuffle(shuffling);
-//   Tensor4D t_values = t_values_map.shuffle(shuffling);
-
-
-//   DotProductAttention attention(cpu_engine);
-//   std::vector<float> context(B * H * T * DK);
-//   attention(t_queries.data(),
-//             t_keys.data(),
-//             t_values.data(),
-//             B * H,
-//             T,
-//             T,
-//             DK,
-//             context.data());
-
-//   Eigen::TensorMap<Tensor4D> t_context(context.data(), B, H, T, DK);
-//   Tensor4D t_combined = t_queries_map.shuffle(shuffling);
-
-//   Dense dense_1(variable_index, "transformer/encoder/layer_0/multi_head/conv1d_1");
-//   std::vector<float> outputs(B * T * dense_1.output_depth());
-//   dense_1.compute(t_combined.data(), B * T, D, outputs.data());
-
-//   }
-
-// private:
-//   unsigned int _num_heads;
-//   const std::string& _scope;
-//   mkldnn::engine& _engine;
-//   LayerNorm _layer_norm;
-//   std::vector<Dense> _projections;
-// };

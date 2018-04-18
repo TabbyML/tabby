@@ -3,21 +3,24 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_CXX_STANDARD 11)
 set(MKL_DNN_ROOT /home/klein/dev/ctransformer/mkl-dnn/install)
 set(MKL_ROOT /opt/intel/mkl)
+set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
 set(CMAKE_BUILD_TYPE Release)
 
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64")
 # find_package(Boost)
 include_directories(
   # ${Boost_INCLUDE_DIRS}
-  ${MKL_DNN_ROOT}/include
+  #${MKL_DNN_ROOT}/include
   ${MKL_ROOT}/include
   ${EIGEN_ROOT}
+  ${TBB_ROOT}/include
   /home/klein/dev/ctransformer/gemmlowp/public
   )
 link_directories(
-  ${MKL_DNN_ROOT}/lib
+  #${MKL_DNN_ROOT}/lib
   ${MKL_ROOT}/lib/intel64
+  ${TBB_ROOT}/lib/intel64/gcc4.7/
   )
 #add_definitions(-DEIGEN_USE_MKL_ALL)
 add_executable(main
@@ -27,10 +30,29 @@ add_executable(benchmark
   benchmark.cc
   )
 target_link_libraries(main
-  mkl_rt
-  mkldnn
+  mkl_intel_ilp64
+  mkl_gnu_thread
+  mkl_core
+  gomp
+  #mkldnn
+  pthread
+  m
+  dl
+  #tbb
+  #-lstdc++ -lpthread -lm -ldl
+  # mkl_rt
+  # tbb
   )
 target_link_libraries(benchmark
-  mkl_rt
-  mkldnn
+  mkl_intel_ilp64
+  mkl_gnu_thread
+  mkl_core
+  gomp
+  #mkldnn
+  pthread
+  m
+  dl
+  #tbb
+  # mkl_rt
+  # tbb
   )

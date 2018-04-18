@@ -115,6 +115,28 @@ void gemm_bias_before(const std::vector<float>& input,
 }
 
 static inline
+void gemm_bias_before_parallel(const std::vector<float>& input,
+                               const std::vector<float>& weight,
+                               const std::vector<float>& bias,
+                               int batch_size,
+                               int input_depth,
+                               int output_depth,
+                               std::vector<float>& output) {
+  const int m = batch_size;
+  const int n = output_depth;
+  const int k = input_depth;
+  #pragma omp parallel for
+  for (int i = 0; i < m; ++i)
+    memcpy(output.data() + (i * n), bias.data(), n * sizeof (float));
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans,
+              m, n, k,
+              1.0,
+              input.data(), k,
+              weight.data(), n,
+              1.0, output.data(), n);
+}
+
+static inline
 void gemm_bias_before_wt(const std::vector<float>& input,
                          const std::vector<float>& weight_t,
                          const std::vector<float>& bias,
@@ -273,6 +295,8 @@ void benchmark_gemm(int samples = 300) {
             samples);
   o2 = output;
   std::cout << "abs diff = " << abs_diff(o1, o2) << std::endl;
+  BENCHMARK(gemm_bias_before_parallel(input, weight_t, bias, batch_size, input_depth, output_depth, output),
+            samples);
 }
 
 void gemm_batch(const std::vector<float>& a,
@@ -345,10 +369,36 @@ void benchmark_gemm_batch(int samples = 3000) {
   std::cout << "abs diff = " << abs_diff(c1, c2) << std::endl;
 }
 
+void parallel_memcpy(float* dst, const float* src, int batch_size, int depth) {
+  #pragma omp parallel for
+  for (int i = 0; i < batch_size; ++i)
+    memcpy(dst + (i * depth), src + (i * depth), depth);
+}
+
+void memcpy(float* dst, const float* src, int batch_size, int depth) {
+  for (int i = 0; i < batch_size; ++i)
+    memcpy(dst + (i * depth), src + (i * depth), depth);
+}
+
+void benchmark_memcpy(int samples = 10000) {
+  int batch_size = 64 * 20;
+  int depth = 512;
+
+  std::vector<float> a = rand_vector(batch_size * depth);
+  std::vector<float> b(a.size());
+
+  BENCHMARK(memcpy(b.data(), a.data(), batch_size, depth), samples);
+  std::vector<float> b1(b);
+  BENCHMARK(parallel_memcpy(b.data(), a.data(), batch_size, depth), samples);
+  std::vector<float> b2(b);
+  std::cout << "abs diff = " << abs_diff(b1, b2) << std::endl;
+}
+
 
 int main() {
   //benchmark_mean();
   //benchmark_gemm();
-  benchmark_gemm_batch();
+  //benchmark_gemm_batch();
+  benchmark_memcpy();
   return 0;
 }
