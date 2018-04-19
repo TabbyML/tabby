@@ -7,20 +7,20 @@ set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -mavx -mfpmath=sse -funroll-loops")
 # find_package(Boost)
 include_directories(
   # ${Boost_INCLUDE_DIRS}
   #${MKL_DNN_ROOT}/include
   ${MKL_ROOT}/include
   ${EIGEN_ROOT}
-  ${TBB_ROOT}/include
+  #${TBB_ROOT}/include
   /home/klein/dev/ctransformer/gemmlowp/public
   )
 link_directories(
   #${MKL_DNN_ROOT}/lib
   ${MKL_ROOT}/lib/intel64
-  ${TBB_ROOT}/lib/intel64/gcc4.7/
+  #${TBB_ROOT}/lib/intel64/gcc4.7/
   )
 #add_definitions(-DEIGEN_USE_MKL_ALL)
 add_executable(main

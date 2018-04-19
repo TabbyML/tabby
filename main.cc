@@ -6,8 +6,8 @@
 #include <cstring>
 #include <unordered_map>
 
-#include <Eigen/Eigen>
-#include <unsupported/Eigen/CXX11/Tensor>
+// #include <Eigen/Eigen>
+// #include <unsupported/Eigen/CXX11/Tensor>
 #include <mkl.h>
 // #include <mkldnn.hpp>
 
@@ -15,9 +15,9 @@
 #include "vocabulary.h"
 #include "routines.h"
 
-using Tensor2D = Eigen::Tensor<float, 2, Eigen::RowMajor>;
-using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
-using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
+// using Tensor2D = Eigen::Tensor<float, 2, Eigen::RowMajor>;
+// using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
+// using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
 
 void maybe_resize(std::vector<float>& v, size_t size) {
   if (size > v.size()) {
@@ -300,11 +300,9 @@ class MultiHeadAttention
 public:
   MultiHeadAttention(const Model& model,
                      const std::string& scope,
-                     unsigned int num_heads,
-                     bool with_cache)
+                     unsigned int num_heads)
     : _num_heads(num_heads)
-    , _layer_norm(model, scope + "/LayerNorm")
-    , _with_cache(with_cache) {
+    , _layer_norm(model, scope + "/LayerNorm") {
     for (unsigned int i = 0;; ++i) {
       std::string conv_scope = scope + "/conv1d";
       if (i > 0)
@@ -325,6 +323,7 @@ public:
                     const unsigned int* queries_length,
                     const unsigned int* memory_length,
                     unsigned int batch_size,
+                    int step = -1,
                     float* output = nullptr) {
     if (memory_length == nullptr)
       memory_length = queries_length;
@@ -344,8 +343,6 @@ public:
     const float* keys_proj;
     const float* values_proj;
 
-    //std::cout << normed_queries[0] << std::endl;
-
     if (memory == nullptr) {
       float* fused_proj = _projections[0](normed_queries, cum_queries_length);
       unsigned int fused_depth = _projections[0].output_depth();
@@ -355,20 +352,17 @@ public:
       queries_proj = splits[0];
       keys_proj = splits[1];
       values_proj = splits[2];
-      if (_with_cache) {
-        //std::cout << "cache previous self proj" << std::endl;
-        _step += 1;
-        maybe_resize(_keys_accu, _step * batch_size * _depth);
-        maybe_resize(_values_accu, _step * batch_size * _depth);
-        array_copy(keys_proj, &_keys_accu.back() + 1 - batch_size * _depth, batch_size * _depth);
-        array_copy(values_proj, &_values_accu.back() + 1 - batch_size * _depth, batch_size * _depth);
+      if (step >= 0) {
+        maybe_resize(_keys_accu, (step + 1) * batch_size * _depth);
+        maybe_resize(_values_accu, (step + 1) * batch_size * _depth);
+        array_copy(keys_proj, _keys_accu.data() + step * batch_size * _depth, batch_size * _depth);
+        array_copy(values_proj, _values_accu.data() + step * batch_size * _depth, batch_size * _depth);
         keys_proj = _keys_accu.data();
         values_proj = _values_accu.data();
       }
     } else {
       queries_proj = _projections[0](normed_queries, cum_queries_length);
-      if (_with_cache && _cached_memory_keys != nullptr) {
-        //std::cout << "cache encoder memory proj" << std::endl;
+      if (step > 0 && _cached_memory_keys != nullptr) {
         keys_proj = _cached_memory_keys;
         values_proj = _cached_memory_values;
       } else {
@@ -387,49 +381,34 @@ public:
     unsigned int dk = _depth / _num_heads;
     array_mul(1.0 / sqrt(dk), queries_proj, cum_queries_length * _depth);
 
-    std::vector<float> padded_queries(batch_size * queries_time * _depth);
-    std::vector<float> padded_keys(batch_size * memory_time * _depth);
-    std::vector<float> padded_values(batch_size * memory_time * _depth);
-    pad_sequences(queries_proj, queries_length, batch_size, queries_time, _depth, padded_queries.data());
-    pad_sequences(keys_proj, memory_length, batch_size, memory_time, _depth, padded_keys.data());
-    pad_sequences(values_proj, memory_length, batch_size, memory_time, _depth, padded_values.data());
+    maybe_resize(_padded_queries, batch_size * queries_time * _depth);
+    maybe_resize(_padded_keys, batch_size * memory_time * _depth);
+    maybe_resize(_padded_values, batch_size * memory_time * _depth);
+    pad_sequences(queries_proj, queries_length, batch_size, queries_time, _depth, _padded_queries.data());
+    pad_sequences(keys_proj, memory_length, batch_size, memory_time, _depth, _padded_keys.data());
+    pad_sequences(values_proj, memory_length, batch_size, memory_time, _depth, _padded_values.data());
 
-    // b x T x D
-    Eigen::TensorMap<Tensor4D> t_queries_map(padded_queries.data(), batch_size, queries_time, _num_heads, dk);
-    Eigen::TensorMap<Tensor4D> t_keys_map(padded_keys.data(), batch_size, memory_time, _num_heads, dk);
-    Eigen::TensorMap<Tensor4D> t_values_map(padded_values.data(), batch_size, memory_time, _num_heads, dk);
+    maybe_resize(_split_queries, batch_size * queries_time * _depth);
+    maybe_resize(_split_keys, batch_size * memory_time * _depth);
+    maybe_resize(_split_values, batch_size * memory_time * _depth);
+    swap_middle_dims(_padded_queries.data(), batch_size, queries_time, _num_heads, dk, _split_queries.data());
+    swap_middle_dims(_padded_keys.data(), batch_size, memory_time, _num_heads, dk, _split_keys.data());
+    swap_middle_dims(_padded_values.data(), batch_size, memory_time, _num_heads, dk, _split_values.data());
 
-    Eigen::array<int, 4> shuffling;
-    shuffling[0] = 0;
-    shuffling[1] = 2;
-    shuffling[2] = 1;
-    shuffling[3] = 3;
-
-    Tensor4D t_queries = t_queries_map.shuffle(shuffling);
-    Tensor4D t_keys = t_keys_map.shuffle(shuffling);
-    Tensor4D t_values = t_values_map.shuffle(shuffling);
-
-    //std::cout << queries_time << " " << memory_time << std::endl;
-
-    float* context = _attention(t_queries.data(),
-                                t_keys.data(),
-                                t_values.data(),
+    float* context = _attention(_split_queries.data(),
+                                _split_keys.data(),
+                                _split_values.data(),
                                 batch_size * _num_heads,
                                 queries_time,
                                 memory_time,
                                 dk);
 
-    //std::cout << "context: " << context[0] << std::endl;
+    float* combined = _padded_queries.data();
+    float* combined_pruned = queries_proj;
+    swap_middle_dims(context, batch_size, _num_heads, queries_time, dk, combined);
+    unpad_sequences(combined, queries_length, batch_size, queries_time, _depth, combined_pruned);
 
-    Eigen::TensorMap<Tensor4D> t_context(context, batch_size, _num_heads, queries_time, dk);
-    Tensor4D t_combined = t_context.shuffle(shuffling);
-
-    //std::cout << "combined: " << t_combined.data()[0] << std::endl << std::endl;
-
-    std::vector<float> combined_pruned(cum_queries_length * _depth);
-    unpad_sequences(t_combined.data(), queries_length, batch_size, queries_time, _depth, combined_pruned.data());
-
-    output = _projections.back()(combined_pruned.data(), cum_queries_length, output);
+    output = _projections.back()(combined_pruned, cum_queries_length, output);
 
     array_add(queries, output, cum_queries_length * _projections.back().output_depth());
     return output;
@@ -442,12 +421,16 @@ private:
   DotProductAttention _attention;
   std::vector<float> _splits;
   std::vector<Dense> _projections;
-  bool _with_cache;
   std::vector<float> _keys_accu;
   std::vector<float> _values_accu;
-  unsigned int _step = 0;
   const float* _cached_memory_keys = nullptr;
   const float* _cached_memory_values = nullptr;
+  std::vector<float> _padded_queries;
+  std::vector<float> _padded_keys;
+  std::vector<float> _padded_values;
+  std::vector<float> _split_queries;
+  std::vector<float> _split_keys;
+  std::vector<float> _split_values;
 };
 
 class TransformerEncoderLayer : public Node
@@ -455,7 +438,7 @@ class TransformerEncoderLayer : public Node
 public:
   TransformerEncoderLayer(const Model& model,
                           const std::string& scope)
-    : _multi_head_attention(model, scope + "/multi_head", 8, false)
+    : _multi_head_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
   }
 
@@ -482,12 +465,13 @@ class TransformerDecoderLayer : public Node
 public:
   TransformerDecoderLayer(const Model& model,
                           const std::string& scope)
-    : _masked_multi_head_attention(model, scope + "/masked_multi_head", 8, true)
-    , _multi_head_attention(model, scope + "/multi_head", 8, true)
+    : _masked_multi_head_attention(model, scope + "/masked_multi_head", 8)
+    , _multi_head_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
   }
 
-  float* operator()(const float* input,
+  float* operator()(unsigned int step,
+                    const float* input,
                     const float* memory,
                     const unsigned int* lengths,
                     const unsigned int* history_lengths,
@@ -495,9 +479,9 @@ public:
                     unsigned int batch_size,
                     float* output = nullptr) {
     const float* encoded = _masked_multi_head_attention(
-      input, nullptr, lengths, history_lengths, batch_size);
+      input, nullptr, lengths, history_lengths, batch_size, step);
     const float* context = _multi_head_attention(
-      encoded, memory, lengths, memory_lengths, batch_size);
+      encoded, memory, lengths, memory_lengths, batch_size, step);
     return _ff(context, batch_size, output);
   }
 
@@ -511,7 +495,7 @@ template <typename TransformerLayer>
 class TransformerStack : public Node
 {
 public:
-  TransformerStack(const Model& model, const std::string& scope, bool dynamic)
+  TransformerStack(const Model& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
     , _position_encoder(_scaled_embeddings.output_depth())
     , _output_norm(model, scope + "/LayerNorm") {
@@ -535,7 +519,7 @@ class TransformerEncoder : public TransformerStack<TransformerEncoderLayer>
 {
 public:
   TransformerEncoder(const Model& model, const std::string& scope)
-    : TransformerStack(model, scope, false) {
+    : TransformerStack(model, scope) {
   }
 
   float* operator()(const unsigned int* ids,
@@ -547,10 +531,8 @@ public:
     const float* input = _position_encoder(embeddings, lengths, batch_size, flattened_batch_size);
 
     const float* x = input;
-    for (auto& layer : _layers) {
+    for (auto& layer : _layers)
       x = layer(x, nullptr, lengths, nullptr, batch_size);
-      //std::cout << x[0] << std::endl;
-    }
     return _output_norm(x, flattened_batch_size, output);
   }
 };
@@ -559,7 +541,7 @@ class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
 {
 public:
   TransformerDecoder(const Model& model, const std::string& scope)
-    : TransformerStack(model, scope, true)
+    : TransformerStack(model, scope)
     , _proj(model, scope + "/dense") {
   }
 
@@ -576,7 +558,7 @@ public:
 
     const float* x = input;
     for (auto& layer : _layers)
-      x = layer(x, memory, query_lengths.data(), history_lengths.data(), memory_length, batch_size);
+      x = layer(step, x, memory, query_lengths.data(), history_lengths.data(), memory_length, batch_size);
     x = _output_norm(x, batch_size);
     return _proj(x, batch_size, output);
   }
@@ -585,24 +567,15 @@ private:
   Dense _proj;
 };
 
-int main() {
-  Model model("/home/klein/dev/ctransformer/model.bin");
-  Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
-
-  std::vector<std::vector<std::string> > input = {
-    {"▁Gut", "ach", ":", "▁Increase", "d", "▁safety", "▁for", "▁pedestrian", "s"}//,
-    //   {"▁They", "▁are", "▁not", "▁even", "▁100", "▁metres", "▁apart"}
-  };
-
-  // Ref Trans:
-  // ▁Gut ach : ▁Mehr ▁Sicherheit ▁für ▁Fußgänger
-  // ▁Sie ▁liegen ▁nicht ▁einmal ▁100 ▁Meter ▁voneinander ▁entfernt
-
+void translate(const std::vector<std::vector<std::string> >& input_tokens,
+               const Vocabulary& vocabulary,
+               TransformerEncoder& encoder,
+               TransformerDecoder& decoder) {
   std::vector<unsigned int> ids;
   std::vector<unsigned int> lengths;
   unsigned int max_length = 0;
   unsigned int cum_length = 0;
-  for (const auto& sentence : input) {
+  for (const auto& sentence : input_tokens) {
     unsigned int length = 0;
     for (const auto& token : sentence) {
       ids.push_back(vocabulary.to_id(token));
@@ -614,17 +587,10 @@ int main() {
     lengths.push_back(length);
   }
 
-  // for (const auto& id : ids)
-  //   std::cout << id << std::endl;
-
   unsigned int batch_size = lengths.size();
-
-  TransformerEncoder encoder(model, "transformer/encoder");
   const float* encoded = encoder(ids.data(), lengths.data(), batch_size, cum_length);
 
-  TransformerDecoder decoder(model, "transformer/decoder");
-
-  std::vector<unsigned int> sample_from = { 1, 1 };
+  std::vector<unsigned int> sample_from(batch_size, vocabulary.to_id("<s>"));
   std::vector<std::vector<unsigned int> > sampled_ids(batch_size);
   std::vector<bool> finished(batch_size, false);
   std::vector<float> probs(batch_size * vocabulary.size());
@@ -636,7 +602,6 @@ int main() {
     all_finished = true;
     for (unsigned int i = 0; i < batch_size; ++i) {
       unsigned int best = cblas_isamax(vocabulary.size(), probs.data() + (i*vocabulary.size()), 1);
-      std::cout << i << ": " << vocabulary.to_token(best) << std::endl;
       sample_from[i] = best;
       if (best == 2)
         finished[i] = true;
@@ -652,6 +617,48 @@ int main() {
       std::cout << " " << vocabulary.to_token(id);
     }
     std::cout << std::endl;
+  }
+}
+
+int main() {
+  Model model("/home/klein/dev/ctransformer/model.bin");
+  Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
+
+  TransformerEncoder encoder(model, "transformer/encoder");
+  TransformerDecoder decoder(model, "transformer/decoder");
+
+  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
+  std::vector<std::vector<std::string> > input_tokens;
+  std::string line;
+  unsigned int max_batch_size = 1;
+  unsigned int max_iter = 10;
+  unsigned int iter = 0;
+
+  while (std::getline(text_file, line)) {
+    input_tokens.emplace_back();
+    std::string token;
+    for (unsigned int i = 0; i < line.length(); ++i) {
+      if (line[i] == ' ') {
+        if (!token.empty()) {
+          input_tokens.back().push_back(token);
+          token.clear();
+        }
+      } else {
+        token += line[i];
+      }
+    }
+
+    if (input_tokens.size() == max_batch_size) {
+      translate(input_tokens, vocabulary, encoder, decoder);
+      input_tokens.clear();
+      iter += 1;
+      if (iter >= max_iter)
+        break;
+    }
+  }
+
+  if (!input_tokens.empty()) {
+    translate(input_tokens, vocabulary, encoder, decoder);
   }
 
   return 0;

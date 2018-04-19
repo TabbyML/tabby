@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Eigen/Eigen>
-#include <unsupported/Eigen/CXX11/Tensor>
+// #include <Eigen/Eigen>
+// #include <unsupported/Eigen/CXX11/Tensor>
 
 #include <mkl.h>
 
@@ -255,6 +255,19 @@ void unpad_sequences(const float* input,
     array_copy(src, dst, count);
     dst += count;
     src += count + (max_length - length) * depth;
+  }
+}
+
+void swap_middle_dims(const float* x, unsigned int d0, unsigned int d1, unsigned int d2, unsigned int d3, float* y) {
+  for (unsigned int i0 = 0; i0 < d0; ++i0) {
+    for (unsigned int i1 = 0; i1 < d1; ++i1) {
+      for (unsigned int i2 = 0; i2 < d2; ++i2) {
+        for (unsigned int i3 = 0; i3 < d3; ++i3) {
+          y[i3 + (i1 * d3) + (i2 * d3 * d1) + (i0 * d3 * d1 * d2)] =
+            x[i3 + (i2 * d3) + (i1 * d3 * d2) + (i0 * d3 * d2 * d1)];
+        }
+      }
+    }
   }
 }
 
