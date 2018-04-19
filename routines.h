@@ -5,6 +5,16 @@
 
 #include <mkl.h>
 
+#define EPSILON 0.000001f
+
+void assert_not_nan(const float* x, unsigned int size) {
+  for (unsigned int i = 0; i < size; ++i) {
+    if (isnan(x[i])) {
+      throw std::runtime_error("NaN");
+    }
+  }
+}
+
 void array_copy(const float* x, float* y, unsigned int size) {
   memcpy(y, x, size * sizeof (float));
 }
@@ -19,6 +29,13 @@ float array_sum(const float* array, unsigned int size) {
 
 float array_mean(const float* array, unsigned int size) {
   return array_sum(array, size) / size;
+}
+
+float array_max(const float* array, unsigned int size) {
+  float max = 0;
+  for (unsigned int i = 0; i < size; ++i)
+    max = std::max(max, array[i]);
+  return max;
 }
 
 void array_add(float a, float* y, unsigned int size) {
@@ -153,11 +170,14 @@ std::vector<float*> split_in_depth(const float* input,
 }
 
 void softmax(float* input, int batch, int depth, float* output) {
-  vsExp(batch * depth, input, output);
   for (unsigned int i = 0; i < batch; ++i) {
-    float* a = output + (i * depth);
-    float sum = array_sum(a, depth);
-    array_mul(1.f / sum, a, depth);
+    float* x = input + (i * depth);
+    float* y = output + (i * depth);
+    float max = array_max(x, depth);
+    array_sub(max, x, depth);
+    vsExp(depth, x, y);
+    float sum = array_sum(y, depth);
+    array_mul(1.f / (sum + EPSILON), y, depth);
   }
 
   // auto memory_desc = mkldnn::memory::desc({batch, depth},
@@ -179,8 +199,10 @@ void softmax(float* input, int batch, int depth, float* output) {
 }
 
 void relu(float* x, unsigned int size) {
-  for (unsigned int i = 0; i < size; ++i)
-    x[i] = std::max(x[i], 0.f);
+  for (unsigned int i = 0; i < size; ++i) {
+    if (x[i] < 0)
+      x[i] = 0;
+  }
 }
 
 void gather(const unsigned int* indices,

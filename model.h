@@ -63,9 +63,8 @@ public:
       _variable_index.emplace(name, Variable(rank, dimensions, data));
     }
 
-
-    for (const auto& index : _variable_index)
-      std::cout << index.first << ": " << index.second << std::endl;
+    // for (const auto& index : _variable_index)
+    //   std::cout << index.first << ": " << index.second << std::endl;
   }
 
   ~Model() {

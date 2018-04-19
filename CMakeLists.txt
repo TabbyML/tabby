@@ -7,7 +7,7 @@ set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -mavx -mfpmath=sse -funroll-loops")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64")
 # find_package(Boost)
 include_directories(
   # ${Boost_INCLUDE_DIRS}

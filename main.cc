@@ -19,29 +19,56 @@
 // using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
 // using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
 
-void maybe_resize(std::vector<float>& v, size_t size) {
-  if (size > v.size()) {
-    v.resize(size);
+template <typename T>
+class ReusableVector
+{
+public:
+  ReusableVector() {
   }
-}
+  ReusableVector(size_t size) {
+    maybe_resize(size);
+  }
+  ~ReusableVector() {
+    free(_buffer);
+  }
+
+  T* data() {
+    return reinterpret_cast<T*>(_buffer);
+  }
+
+  size_t size() const {
+    return _size;
+  }
+
+  void maybe_resize(size_t size, bool keep_content = false) {
+    if (size > _alloc_size) {
+      void* new_buffer = malloc(size * sizeof (T));
+      if (keep_content)
+        memcpy(new_buffer, _buffer, _size * sizeof (T));
+      free(_buffer);
+      _buffer = new_buffer;
+      _alloc_size = size;
+    }
+    _size = size;
+  }
+
+private:
+  void* _buffer = nullptr;
+  size_t _size = 0;
+  size_t _alloc_size = 0;
+};
 
 class Node
 {
 public:
-  virtual ~Node() {
-    free(_output);
-  }
+  virtual ~Node() = default;
 protected:
   float* output_buffer(size_t size) {
-    if (size > _alloc_size) {
-      _output = realloc(_output, size * sizeof (float));
-      _alloc_size = size;
-    }
-    return reinterpret_cast<float*>(_output);
+    _output.maybe_resize(size);
+    return _output.data();
   }
 private:
-  void* _output = nullptr;
-  size_t _alloc_size = 0;
+  ReusableVector<float> _output;
 };
 
 class ScaledEmbeddings : public Node
@@ -194,7 +221,7 @@ public:
                     float* output = nullptr) {
     if (output == nullptr)
       output = output_buffer(batch_size * _depth);
-    maybe_resize(_tmp, _depth);
+    _tmp.maybe_resize(_depth);
     for (unsigned int i = 0; i < batch_size; ++i) {
       const float* x = input + (i * _depth);
       float* y = output + (i * _depth);
@@ -203,7 +230,7 @@ public:
       array_sub(mean, y, _depth); // y is now centered
       array_pow(y, _tmp.data(), 2, _depth);
       float variance = array_mean(_tmp.data(), _depth);
-      array_mul(1.0 / sqrt(variance), y, _depth); // y is now centered and normalized.
+      array_mul(1.0 / sqrt(variance + EPSILON), y, _depth); // y is now centered and normalized.
       array_mul(_gamma, y, _depth);
       array_add(_beta, y, _depth);
     }
@@ -214,7 +241,7 @@ private:
   const float* _beta;
   const float* _gamma;
   unsigned int _depth;
-  std::vector<float> _tmp;
+  ReusableVector<float> _tmp;
 };
 
 class TransformerFeedForward : public Node
@@ -274,12 +301,12 @@ public:
                     unsigned int keys_time,
                     unsigned int depth,
                     float* output = nullptr) {
-    maybe_resize(_dot, batch_size * queries_time * keys_time);
+    _dot.maybe_resize(batch_size * queries_time * keys_time);
     batch_mat_mul(queries, keys,
                   CblasNoTrans, CblasTrans,
                   batch_size, queries_time, keys_time, depth,
                   _dot.data());
-    maybe_resize(_attn, batch_size * queries_time * keys_time);
+    _attn.maybe_resize(batch_size * queries_time * keys_time);
     softmax(_dot.data(), batch_size * queries_time, keys_time, _attn.data());
     if (output == nullptr)
       output = output_buffer(batch_size * queries_time * depth);
@@ -291,8 +318,8 @@ public:
   }
 
 private:
-  std::vector<float> _dot;
-  std::vector<float> _attn;
+  ReusableVector<float> _dot;
+  ReusableVector<float> _attn;
 };
 
 class MultiHeadAttention
@@ -346,15 +373,15 @@ public:
     if (memory == nullptr) {
       float* fused_proj = _projections[0](normed_queries, cum_queries_length);
       unsigned int fused_depth = _projections[0].output_depth();
-      maybe_resize(_splits, cum_queries_length * fused_depth);
+      _splits.maybe_resize(cum_queries_length * fused_depth);
       std::vector<float*> splits = split_in_depth(fused_proj, cum_queries_length, fused_depth,
                                                   3, _splits.data());
       queries_proj = splits[0];
       keys_proj = splits[1];
       values_proj = splits[2];
       if (step >= 0) {
-        maybe_resize(_keys_accu, (step + 1) * batch_size * _depth);
-        maybe_resize(_values_accu, (step + 1) * batch_size * _depth);
+        _keys_accu.maybe_resize((step + 1) * batch_size * _depth, true);
+        _values_accu.maybe_resize((step + 1) * batch_size * _depth, true);
         array_copy(keys_proj, _keys_accu.data() + step * batch_size * _depth, batch_size * _depth);
         array_copy(values_proj, _values_accu.data() + step * batch_size * _depth, batch_size * _depth);
         keys_proj = _keys_accu.data();
@@ -367,7 +394,7 @@ public:
         values_proj = _cached_memory_values;
       } else {
         unsigned int fused_depth = _projections[1].output_depth();
-        maybe_resize(_splits, cum_memory_length * fused_depth);
+        _splits.maybe_resize(cum_memory_length * fused_depth);
         float* fused_proj = _projections[1](memory, cum_memory_length);
         std::vector<float*> splits = split_in_depth(fused_proj, cum_memory_length, fused_depth,
                                                     2, _splits.data());
@@ -381,16 +408,16 @@ public:
     unsigned int dk = _depth / _num_heads;
     array_mul(1.0 / sqrt(dk), queries_proj, cum_queries_length * _depth);
 
-    maybe_resize(_padded_queries, batch_size * queries_time * _depth);
-    maybe_resize(_padded_keys, batch_size * memory_time * _depth);
-    maybe_resize(_padded_values, batch_size * memory_time * _depth);
+    _padded_queries.maybe_resize(batch_size * queries_time * _depth);
+    _padded_keys.maybe_resize(batch_size * memory_time * _depth);
+    _padded_values.maybe_resize(batch_size * memory_time * _depth);
     pad_sequences(queries_proj, queries_length, batch_size, queries_time, _depth, _padded_queries.data());
     pad_sequences(keys_proj, memory_length, batch_size, memory_time, _depth, _padded_keys.data());
     pad_sequences(values_proj, memory_length, batch_size, memory_time, _depth, _padded_values.data());
 
-    maybe_resize(_split_queries, batch_size * queries_time * _depth);
-    maybe_resize(_split_keys, batch_size * memory_time * _depth);
-    maybe_resize(_split_values, batch_size * memory_time * _depth);
+    _split_queries.maybe_resize(batch_size * queries_time * _depth);
+    _split_keys.maybe_resize(batch_size * memory_time * _depth);
+    _split_values.maybe_resize(batch_size * memory_time * _depth);
     swap_middle_dims(_padded_queries.data(), batch_size, queries_time, _num_heads, dk, _split_queries.data());
     swap_middle_dims(_padded_keys.data(), batch_size, memory_time, _num_heads, dk, _split_keys.data());
     swap_middle_dims(_padded_values.data(), batch_size, memory_time, _num_heads, dk, _split_values.data());
@@ -419,18 +446,18 @@ private:
   unsigned int _depth;
   LayerNorm _layer_norm;
   DotProductAttention _attention;
-  std::vector<float> _splits;
+  ReusableVector<float> _splits;
   std::vector<Dense> _projections;
-  std::vector<float> _keys_accu;
-  std::vector<float> _values_accu;
+  ReusableVector<float> _keys_accu;
+  ReusableVector<float> _values_accu;
   const float* _cached_memory_keys = nullptr;
   const float* _cached_memory_values = nullptr;
-  std::vector<float> _padded_queries;
-  std::vector<float> _padded_keys;
-  std::vector<float> _padded_values;
-  std::vector<float> _split_queries;
-  std::vector<float> _split_keys;
-  std::vector<float> _split_values;
+  ReusableVector<float> _padded_queries;
+  ReusableVector<float> _padded_keys;
+  ReusableVector<float> _padded_values;
+  ReusableVector<float> _split_queries;
+  ReusableVector<float> _split_keys;
+  ReusableVector<float> _split_values;
 };
 
 class TransformerEncoderLayer : public Node
@@ -531,8 +558,9 @@ public:
     const float* input = _position_encoder(embeddings, lengths, batch_size, flattened_batch_size);
 
     const float* x = input;
-    for (auto& layer : _layers)
+    for (auto& layer : _layers) {
       x = layer(x, nullptr, lengths, nullptr, batch_size);
+    }
     return _output_norm(x, flattened_batch_size, output);
   }
 };
@@ -587,6 +615,9 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     lengths.push_back(length);
   }
 
+  // for (auto id : ids)
+  //   std::cout << id << std::endl;
+
   unsigned int batch_size = lengths.size();
   const float* encoded = encoder(ids.data(), lengths.data(), batch_size, cum_length);
 
@@ -595,6 +626,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   std::vector<bool> finished(batch_size, false);
   std::vector<float> probs(batch_size * vocabulary.size());
   bool all_finished = false;
+  unsigned max_steps = 200;
 
   for (unsigned int step = 0; !all_finished; ++step) {
     float* logits = decoder(step, sample_from.data(), batch_size, encoded, lengths.data());
@@ -603,7 +635,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     for (unsigned int i = 0; i < batch_size; ++i) {
       unsigned int best = cblas_isamax(vocabulary.size(), probs.data() + (i*vocabulary.size()), 1);
       sample_from[i] = best;
-      if (best == 2)
+      if (best == 2 || (step + 1) == max_steps)
         finished[i] = true;
       else {
         all_finished = false;
@@ -621,6 +653,8 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
 }
 
 int main() {
+  vmlSetMode(VML_EP);
+
   Model model("/home/klein/dev/ctransformer/model.bin");
   Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
 
@@ -631,10 +665,11 @@ int main() {
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
   unsigned int max_batch_size = 1;
-  unsigned int max_iter = 10;
+  unsigned int max_iter = 10000;
   unsigned int iter = 0;
 
   while (std::getline(text_file, line)) {
+    std::cout << "  INPUT: " << line << std::endl;
     input_tokens.emplace_back();
     std::string token;
     for (unsigned int i = 0; i < line.length(); ++i) {
