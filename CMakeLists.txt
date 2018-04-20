@@ -5,9 +5,9 @@ set(MKL_DNN_ROOT /home/klein/dev/ctransformer/mkl-dnn/install)
 set(MKL_ROOT /opt/intel/mkl)
 set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -mavx -msse4 -Wall")
 # find_package(Boost)
 include_directories(
   # ${Boost_INCLUDE_DIRS}
@@ -23,36 +23,29 @@ link_directories(
   #${TBB_ROOT}/lib/intel64/gcc4.7/
   )
 #add_definitions(-DEIGEN_USE_MKL_ALL)
+set(MKL_LIBRARIES
+  mkl_intel_ilp64
+  mkl_gnu_thread
+  mkl_core
+  gomp
+  #mkldnn
+  pthread
+  m
+  dl
+  )
 add_executable(main
   main.cc
   )
 add_executable(benchmark
   benchmark.cc
   )
+add_executable(tensor_demo tensor_demo.cc)
 target_link_libraries(main
-  mkl_intel_ilp64
-  mkl_gnu_thread
-  mkl_core
-  gomp
-  #mkldnn
-  pthread
-  m
-  dl
-  #tbb
-  #-lstdc++ -lpthread -lm -ldl
-  # mkl_rt
-  # tbb
+  ${MKL_LIBRARIES}
   )
 target_link_libraries(benchmark
-  mkl_intel_ilp64
-  mkl_gnu_thread
-  mkl_core
-  gomp
-  #mkldnn
-  pthread
-  m
-  dl
-  #tbb
-  # mkl_rt
-  # tbb
+  ${MKL_LIBRARIES}
+  )
+target_link_libraries(tensor_demo
+  ${MKL_LIBRARIES}
   )

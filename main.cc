@@ -58,6 +58,8 @@ private:
   size_t _alloc_size = 0;
 };
 
+using DecoderState = std::unordered_map<std::string, ReusableVector<float> >;
+
 class Node
 {
 public:
@@ -259,25 +261,7 @@ public:
                     float* output = nullptr) {
     float* normed = _layer_norm(input, batch_size);
     float* inner = _ff1(normed, batch_size);
-
     relu(inner, batch_size * _ff1.output_depth());
-
-    // auto memory_desc = mkldnn::memory::desc({batch_size, _ff1.output_depth()},
-    //                                         mkldnn::memory::data_type::f32,
-    //                                         mkldnn::memory::format::nc);
-    // auto relu_desc = mkldnn::eltwise_forward::desc(mkldnn::prop_kind::forward_inference,
-    //                                                memory_desc,
-    //                                                0);
-    // auto memory_primitive_desc = mkldnn::memory::primitive_desc(memory_desc, _engine);
-    // auto memory = mkldnn::memory(memory_primitive_desc, inner);
-
-    // std::vector<mkldnn::primitive> primitives;
-    // primitives.push_back(mkldnn::eltwise_forward(
-    //                        mkldnn::eltwise_forward::primitive_desc(relu_desc, _engine),
-    //                        mkldnn::primitive::at(memory),
-    //                        memory));
-    // mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
-
     output = _ff2(inner, batch_size, output);
     array_add(input, output, batch_size * _ff2.output_depth());
     return output;
@@ -296,23 +280,42 @@ public:
   float* operator()(const float* queries,
                     const float* keys,
                     const float* values,
+                    const unsigned int* values_lengths,
                     unsigned int batch_size,
+                    unsigned int num_heads,
                     unsigned int queries_time,
                     unsigned int keys_time,
                     unsigned int depth,
                     float* output = nullptr) {
-    _dot.maybe_resize(batch_size * queries_time * keys_time);
+    unsigned int total_batch_size = batch_size * num_heads;
+    _dot.maybe_resize(total_batch_size * queries_time * keys_time);
     batch_mat_mul(queries, keys,
                   CblasNoTrans, CblasTrans,
-                  batch_size, queries_time, keys_time, depth,
+                  total_batch_size, queries_time, keys_time, depth,
                   _dot.data());
-    _attn.maybe_resize(batch_size * queries_time * keys_time);
-    softmax(_dot.data(), batch_size * queries_time, keys_time, _attn.data());
+    if (batch_size > 1 && values_lengths != nullptr) {
+      for (unsigned int b = 0; b < batch_size; ++b) {
+        const unsigned int length = values_lengths[b];
+        if (length == keys_time)
+          continue;
+        for (unsigned int h = 0; h < num_heads; ++h) {
+          for (unsigned int i = 0; i < queries_time; ++i) {
+            float* x = _dot.data() + (b * num_heads * queries_time * keys_time) + (h * queries_time * keys_time) + (i * keys_time);
+            array_fill(x + length, std::numeric_limits<float>::lowest(), keys_time - length);
+          }
+        }
+      }
+    }
+    _attn.maybe_resize(total_batch_size * queries_time * keys_time);
+    softmax(_dot.data(), total_batch_size * queries_time, keys_time, _attn.data());
+    // for (unsigned int i = 0; i < keys_time; ++i)
+    //   std::cout << ' ' << _attn.data()[i];
+    // std::cout << std::endl;
     if (output == nullptr)
-      output = output_buffer(batch_size * queries_time * depth);
+      output = output_buffer(total_batch_size * queries_time * depth);
     batch_mat_mul(_attn.data(), values,
                   CblasNoTrans, CblasNoTrans,
-                  batch_size, queries_time, depth, keys_time,
+                  total_batch_size, queries_time, depth, keys_time,
                   output);
     return output;
   }
@@ -380,12 +383,8 @@ public:
       keys_proj = splits[1];
       values_proj = splits[2];
       if (step >= 0) {
-        _keys_accu.maybe_resize((step + 1) * batch_size * _depth, true);
-        _values_accu.maybe_resize((step + 1) * batch_size * _depth, true);
-        array_copy(keys_proj, _keys_accu.data() + step * batch_size * _depth, batch_size * _depth);
-        array_copy(values_proj, _values_accu.data() + step * batch_size * _depth, batch_size * _depth);
-        keys_proj = _keys_accu.data();
-        values_proj = _values_accu.data();
+        keys_proj = push_proj(keys_proj, _keys_accu, step, batch_size, _depth);
+        values_proj = push_proj(values_proj, _values_accu, step, batch_size, _depth);
       }
     } else {
       queries_proj = _projections[0](normed_queries, cum_queries_length);
@@ -425,7 +424,9 @@ public:
     float* context = _attention(_split_queries.data(),
                                 _split_keys.data(),
                                 _split_values.data(),
-                                batch_size * _num_heads,
+                                memory_length,
+                                batch_size,
+                                _num_heads,
                                 queries_time,
                                 memory_time,
                                 dk);
@@ -441,17 +442,43 @@ public:
     return output;
   }
 
+  static float* push_proj(const float* proj,
+                          ReusableVector<float>& accu,
+                          unsigned int step,
+                          unsigned int batch_size,
+                          unsigned int depth) {
+    if (step == 0) {
+      accu.maybe_resize(batch_size * depth);
+      array_copy(proj, accu.data(), batch_size * depth);
+    } else {
+      static ReusableVector<float> tmp;
+      tmp.maybe_resize(step * batch_size * depth);
+      array_copy(accu.data(), tmp.data(), step * batch_size * depth);
+      accu.maybe_resize((step + 1) * batch_size * depth);
+      const float* src = tmp.data();
+      float* dst = accu.data();
+      for (unsigned int i = 0; i < batch_size; ++i) {
+        array_copy(src, dst, step * depth);
+        src += step * depth;
+        dst += step * depth;
+        array_copy(proj + (i * depth), dst, depth);
+        dst += depth;
+      }
+    }
+    return accu.data();
+  }
+
 private:
   unsigned int _num_heads;
   unsigned int _depth;
   LayerNorm _layer_norm;
   DotProductAttention _attention;
-  ReusableVector<float> _splits;
   std::vector<Dense> _projections;
-  ReusableVector<float> _keys_accu;
-  ReusableVector<float> _values_accu;
   const float* _cached_memory_keys = nullptr;
   const float* _cached_memory_values = nullptr;
+  ReusableVector<float> _splits;
+  ReusableVector<float> _keys_accu;
+  ReusableVector<float> _values_accu;
   ReusableVector<float> _padded_queries;
   ReusableVector<float> _padded_keys;
   ReusableVector<float> _padded_values;
@@ -593,6 +620,7 @@ public:
 
 private:
   Dense _proj;
+  //DecoderState _state;
 };
 
 void translate(const std::vector<std::vector<std::string> >& input_tokens,
@@ -633,7 +661,8 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     softmax(logits, batch_size, vocabulary.size(), probs.data());
     all_finished = true;
     for (unsigned int i = 0; i < batch_size; ++i) {
-      unsigned int best = cblas_isamax(vocabulary.size(), probs.data() + (i*vocabulary.size()), 1);
+      unsigned int best = array_max_element(probs.data() + (i*vocabulary.size()), vocabulary.size());
+      //std::cout << vocabulary.to_token(best) << std::endl;
       sample_from[i] = best;
       if (best == 2 || (step + 1) == max_steps)
         finished[i] = true;
@@ -664,8 +693,8 @@ int main() {
   std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
-  unsigned int max_batch_size = 1;
-  unsigned int max_iter = 10000;
+  unsigned int max_batch_size = 5;
+  unsigned int max_iter = 1000;
   unsigned int iter = 0;
 
   while (std::getline(text_file, line)) {
@@ -681,6 +710,10 @@ int main() {
       } else {
         token += line[i];
       }
+    }
+    if (!token.empty()) {
+      input_tokens.back().push_back(token);
+      token.clear();
     }
 
     if (input_tokens.size() == max_batch_size) {

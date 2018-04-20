@@ -3,39 +3,43 @@
 // #include <Eigen/Eigen>
 // #include <unsupported/Eigen/CXX11/Tensor>
 
+#include <numeric>
+#include <algorithm>
+
 #include <mkl.h>
 
 #define EPSILON 0.000001f
 
 void assert_not_nan(const float* x, unsigned int size) {
   for (unsigned int i = 0; i < size; ++i) {
-    if (isnan(x[i])) {
+    if (std::isnan(x[i])) {
       throw std::runtime_error("NaN");
     }
   }
 }
 
+void array_fill(float* x, float a, unsigned int size) {
+  std::fill_n(x, size, a);
+}
+
 void array_copy(const float* x, float* y, unsigned int size) {
-  memcpy(y, x, size * sizeof (float));
+  cblas_scopy(size, x, 1, y, 1);
 }
 
 float array_sum(const float* array, unsigned int size) {
-  float sum = 0;
-  // TODO: make sure this is optimized by the compiler.
-  for (unsigned int i = 0; i < size; ++i)
-    sum += array[i];
-  return sum;
+  return std::accumulate(array, array + size, 0.f);
 }
 
 float array_mean(const float* array, unsigned int size) {
   return array_sum(array, size) / size;
 }
 
+unsigned int array_max_element(const float* array, unsigned int size) {
+  return std::max_element(array, array + size) - array;
+}
+
 float array_max(const float* array, unsigned int size) {
-  float max = 0;
-  for (unsigned int i = 0; i < size; ++i)
-    max = std::max(max, array[i]);
-  return max;
+  return array[array_max_element(array, size)];
 }
 
 void array_add(float a, float* y, unsigned int size) {
@@ -179,23 +183,6 @@ void softmax(float* input, int batch, int depth, float* output) {
     float sum = array_sum(y, depth);
     array_mul(1.f / (sum + EPSILON), y, depth);
   }
-
-  // auto memory_desc = mkldnn::memory::desc({batch, depth},
-  //                                         mkldnn::memory::data_type::f32,
-  //                                         mkldnn::memory::format::nc);
-  // auto softmax_desc = mkldnn::softmax_forward::desc(mkldnn::prop_kind::forward_inference,
-  //                                                   memory_desc, 1 /* softmax_axis */);
-
-  // auto memory_primitive_desc = mkldnn::memory::primitive_desc(memory_desc, engine);
-  // auto input_memory = mkldnn::memory(memory_primitive_desc, input);
-  // auto output_memory = mkldnn::memory(memory_primitive_desc, output);
-
-  // std::vector<mkldnn::primitive> primitives;
-  // primitives.push_back(mkldnn::softmax_forward(
-  //                        mkldnn::softmax_forward::primitive_desc(softmax_desc, engine),
-  //                        mkldnn::primitive::at(input_memory),
-  //                        output_memory));
-  // mkldnn::stream(mkldnn::stream::kind::eager).submit(primitives).wait();
 }
 
 void relu(float* x, unsigned int size) {
@@ -257,7 +244,7 @@ void pad_sequences(const float* input,
     src += count;
     if (length < max_length) {
       count = (max_length - length) * depth;
-      memset(dst, 0, count * sizeof (float));
+      array_fill(dst, 0, count);
       dst += count;
     }
   }
