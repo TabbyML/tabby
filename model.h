@@ -11,7 +11,7 @@
 #include <map>
 #include <iostream>
 
-#include "variable.h"
+#include "storage_view.h"
 
 void* mmap_file(const char* path, size_t* file_size) {
   *file_size = 0;
@@ -33,7 +33,7 @@ void* mmap_file(const char* path, size_t* file_size) {
 template <typename T>
 T consume(unsigned char** ptr) {
   T val = *reinterpret_cast<T*>(*ptr);
-  *ptr += sizeof(T);
+  *ptr += sizeof (T);
   return val;
 }
 
@@ -55,12 +55,14 @@ public:
       unsigned short rank = consume<unsigned char>(&ptr);
       auto dimensions = reinterpret_cast<const unsigned int*>(ptr);
       unsigned int offset = 1;
-      for (unsigned int k = 0; k < rank; k++)
+      std::vector<size_t> shape(rank);
+      for (unsigned int k = 0; k < rank; k++) {
+        shape[k] = static_cast<size_t>(dimensions[k]);
         offset *= consume<unsigned int>(&ptr);
+      }
       unsigned int data_width = consume<unsigned char>(&ptr);
-      auto data = reinterpret_cast<const float*>(ptr);
+      _variable_index.emplace(name, StorageView<float>(reinterpret_cast<float*>(ptr), shape));
       ptr += offset * data_width;
-      _variable_index.emplace(name, Variable(rank, dimensions, data));
     }
 
     // for (const auto& index : _variable_index)
@@ -72,19 +74,15 @@ public:
       munmap(_model, _model_size);
   }
 
-  const Variable& get_variable(const std::string& scope) const {
+  const StorageView<float>& get_variable(const std::string& scope) const {
     auto it = _variable_index.lower_bound(scope);
     if (it->first.find(scope) == std::string::npos)
       throw std::out_of_range("no variable found in scope '" + scope + "'");
     return it->second;
   }
 
-  const float* get_variable_data(const std::string& scope) const {
-    return get_variable(scope).data();
-  }
-
 private:
   void* _model;
   size_t _model_size;
-  std::map<std::string, Variable> _variable_index;
+  std::map<std::string, StorageView<float> > _variable_index;
 };

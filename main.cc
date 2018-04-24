@@ -6,171 +6,129 @@
 #include <cstring>
 #include <unordered_map>
 
-// #include <Eigen/Eigen>
-// #include <unsupported/Eigen/CXX11/Tensor>
-#include <mkl.h>
-// #include <mkldnn.hpp>
-
 #include "model.h"
 #include "vocabulary.h"
 #include "routines.h"
+#include "storage_view.h"
 
-// using Tensor2D = Eigen::Tensor<float, 2, Eigen::RowMajor>;
-// using Tensor3D = Eigen::Tensor<float, 3, Eigen::RowMajor>;
-// using Tensor4D = Eigen::Tensor<float, 4, Eigen::RowMajor>;
-
-template <typename T>
-class ReusableVector
-{
-public:
-  ReusableVector() {
-  }
-  ReusableVector(size_t size) {
-    maybe_resize(size);
-  }
-  ~ReusableVector() {
-    free(_buffer);
-  }
-
-  T* data() {
-    return reinterpret_cast<T*>(_buffer);
-  }
-
-  size_t size() const {
-    return _size;
-  }
-
-  void maybe_resize(size_t size, bool keep_content = false) {
-    if (size > _alloc_size) {
-      void* new_buffer = malloc(size * sizeof (T));
-      if (keep_content)
-        memcpy(new_buffer, _buffer, _size * sizeof (T));
-      free(_buffer);
-      _buffer = new_buffer;
-      _alloc_size = size;
+void pad_sequences(const StorageView<float>& flattened,
+                   const StorageView<size_t>& lengths,
+                   StorageView<float>& padded) {
+  size_t batch_size = lengths.dim(0);
+  size_t max_length = *std::max_element(lengths.data(), lengths.data() + lengths.size());
+  size_t depth = flattened.dim(1);
+  padded.resize({batch_size, max_length, depth});
+  const float* src = flattened.data();
+  float* dst = padded.data();
+  for (size_t i = 0; i < batch_size; ++i) {
+    const size_t length = lengths[i];
+    size_t count = length * depth;
+    array_copy(src, dst, count);
+    dst += count;
+    src += count;
+    if (length < max_length) {
+      count = (max_length - length) * depth;
+      array_fill(dst, 0, count);
+      dst += count;
     }
-    _size = size;
   }
-
-private:
-  void* _buffer = nullptr;
-  size_t _size = 0;
-  size_t _alloc_size = 0;
-};
-
-using DecoderState = std::unordered_map<std::string, ReusableVector<float> >;
+}
 
 class Node
 {
 public:
   virtual ~Node() = default;
 protected:
-  float* output_buffer(size_t size) {
-    _output.maybe_resize(size);
-    return _output.data();
-  }
-private:
-  ReusableVector<float> _output;
+  StorageView<float> _output;
 };
 
 class ScaledEmbeddings : public Node
 {
 public:
-  ScaledEmbeddings(const Model& model, const std::string& scope) {
-    const Variable& weight = model.get_variable(scope + "/w_embs");
-    _weight = weight.data();
-    _size = weight.dim()[1];
+  ScaledEmbeddings(const Model& model, const std::string& scope)
+    : _weight(model.get_variable(scope + "/w_embs")) {
   }
 
-  float* operator()(const unsigned int* ids, unsigned int batch_size, float* output = nullptr) {
-    unsigned int output_size = batch_size * _size;
-    if (output == nullptr)
-      output = output_buffer(output_size);
-    gather(ids, _weight, batch_size, _size, output);
-    array_mul(sqrt(_size), output, output_size);
-    return output;
+  StorageView<float>& operator()(const StorageView<size_t>& ids) {
+    size_t batch_size = ids.dim(0);
+    size_t embedding_size = output_depth();
+    _output.resize({batch_size, embedding_size});
+    gather(ids.data(), _weight.data(), batch_size, embedding_size, _output.data());
+    array_mul(sqrt(embedding_size), _output.data(), _output.size());
+    return _output;
   }
 
-  unsigned int output_depth() const {
-    return _size;
+  size_t output_depth() const {
+    return _weight.shape().back();
   }
 
 private:
-  const float* _weight;
-  unsigned int _size;
+  const StorageView<float>& _weight;
 };
 
 class PositionEncoder : public Node
 {
 public:
-  PositionEncoder(unsigned int depth)
-    : _depth(depth) {
-  }
-
-  float* operator()(const float* input,
-                    unsigned int index,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
+  StorageView<float>& operator()(const StorageView<float>& input, size_t index) {
+    size_t batch_size = input.dim(0);
+    size_t depth = input.dim(1);
     if (_cached_encodings.empty())
-      precompute_position_encoding(300);
-    if (output == nullptr)
-      output = output_buffer(batch_size * _depth);
-    array_copy(input, output, batch_size * _depth);
-    const float* x = _cached_encodings.data() + (index * _depth);
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      float* y = output + (i * _depth);
-      array_add(x, y, _depth);
+      precompute_position_encoding(_max_cached_time, depth);
+    _output.resize_as(input);
+    array_copy(input.data(), _output.data(), input.size());
+    const float* x = _cached_encodings.index({index});
+    for (size_t i = 0; i < batch_size; ++i) {
+      float* y = _output.index({i});
+      array_add(x, y, depth);
     }
-    return output;
+    return _output;
   }
 
-  float* operator()(const float* input,
-                    const unsigned int* lengths,
-                    unsigned int batch_size,
-                    unsigned int total_length,
-                    float* output = nullptr) {
+  StorageView<float>& operator()(const StorageView<float>& input,
+                                 const StorageView<size_t>& lengths) {
+    size_t batch_size = lengths.dim(0);
+    size_t depth = input.dim(1);
     if (_cached_encodings.empty())
-      precompute_position_encoding(300);
-    if (output == nullptr)
-      output = output_buffer(total_length * _depth);
-    array_copy(input, output, total_length * _depth);
+      precompute_position_encoding(_max_cached_time, depth);
+    _output.resize_as(input);
+    array_copy(input.data(), _output.data(), input.size());
     const float* x = _cached_encodings.data();
-    unsigned int offset = 0;
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      const unsigned int length = lengths[i];
-      float* y = output + (offset * _depth);
-      array_add(x, y, length * _depth);
+    size_t offset = 0;
+    for (size_t i = 0; i < batch_size; ++i) {
+      const size_t length = lengths[i];
+      float* y = _output.index({offset});
+      array_add(x, y, length * depth);
       offset += length;
     }
-    return output;
+    return _output;
   }
 
 private:
-  unsigned int _depth;
-  std::vector<float> _cached_encodings;
+  size_t _max_cached_time = 300;
+  StorageView<float> _cached_encodings;
 
-  void precompute_position_encoding(unsigned int max_time) {
-    float log_timescale_increment = log(10000) / (_depth / 2 - 1);
-    std::vector<float> timescales(_depth / 2, -log_timescale_increment);
-    for (unsigned int i = 0; i < timescales.size(); ++i)
+  void precompute_position_encoding(size_t max_time, size_t depth) {
+    float log_timescale_increment = log(10000) / (depth / 2 - 1);
+    StorageView<float> timescales({depth / 2}, -log_timescale_increment);
+    for (size_t i = 0; i < timescales.size(); ++i)
       timescales[i] = exp(timescales[i] * i);
 
-    std::vector<float> scaled_time((_depth / 2) * max_time);
-    for (unsigned int i = 0; i < max_time; ++i) {
-      for (unsigned int j = 0; j < _depth / 2; ++j) {
-        scaled_time[j + (i * _depth / 2)] = (i + 1) * timescales[j];
+    StorageView<float> scaled_time({max_time, depth / 2});
+    for (size_t i = 0; i < scaled_time.dim(0); ++i) {
+      for (size_t j = 0; j < scaled_time.dim(1); ++j) {
+        scaled_time[{i, j}] = (i + 1) * timescales[j];
       }
     }
 
-    std::vector<float> sin_encoding(scaled_time.size());
-    std::vector<float> cos_encoding(scaled_time.size());
+    StorageView<float> sin_encoding(scaled_time.shape());
+    StorageView<float> cos_encoding(scaled_time.shape());
 
     vsSin(scaled_time.size(), scaled_time.data(), sin_encoding.data());
     vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
 
-    _cached_encodings.resize(sin_encoding.size() + cos_encoding.size());
+    _cached_encodings.resize({max_time, depth});
     concat_in_depth({sin_encoding.data(), cos_encoding.data()},
-                    {_depth / 2, _depth / 2}, max_time,
+                    {depth / 2, depth / 2}, max_time,
                     _cached_encodings.data());
   }
 };
@@ -178,72 +136,65 @@ private:
 class Dense : public Node
 {
 public:
-  Dense(const Model& model, const std::string& scope) {
-    const Variable& weight = model.get_variable(scope + "/kernel");
-    const Variable& bias = model.get_variable(scope + "/bias");
-    _weight = weight.data();
-    _bias = bias.data();
-    _input_depth = weight.dim()[weight.rank() - 2];
-    _output_depth = weight.dim()[weight.rank() - 1];
+  Dense(const Model& model, const std::string& scope)
+    : _weight(model.get_variable(scope + "/kernel"))
+    , _bias(model.get_variable(scope + "/bias")) {
   }
 
-  float* operator()(const float* input,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
-    if (output == nullptr)
-      output = output_buffer(batch_size * _output_depth);
-    linear(input, _weight, _bias, batch_size, _input_depth, _output_depth, output);
-    return output;
+  StorageView<float>& operator()(const StorageView<float>& input) {
+    const auto& shape = input.shape();
+    size_t batch_size = 1;
+    for (size_t i = 0; i < shape.size() - 1; ++i)
+      batch_size *= shape[i];
+    size_t input_depth = shape.back();
+    size_t output_depth_ = output_depth();
+    _output.resize({batch_size, output_depth_});
+    linear(input.data(), _weight.data(), _bias.data(),
+           batch_size, input_depth, output_depth_, _output.data());
+    return _output;
   }
 
-  unsigned int output_depth() const {
-    return _output_depth;
+  size_t output_depth() const {
+    return _weight.shape().back();
   }
 
 private:
-  const float* _weight;
-  const float* _bias;
-  unsigned int _input_depth;
-  unsigned int _output_depth;
+  const StorageView<float>& _weight;
+  const StorageView<float>& _bias;
 };
 
 class LayerNorm : public Node
 {
 public:
-  LayerNorm(const Model& model, const std::string& scope) {
-    const Variable& beta = model.get_variable(scope + "/beta");
-    const Variable& gamma = model.get_variable(scope + "/gamma");
-    _beta = beta.data();
-    _gamma = gamma.data();
-    _depth = beta.dim()[0];
+  LayerNorm(const Model& model, const std::string& scope)
+    : _beta(model.get_variable(scope + "/beta"))
+    , _gamma(model.get_variable(scope + "/gamma")) {
   }
 
-  float* operator()(const float* input,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
-    if (output == nullptr)
-      output = output_buffer(batch_size * _depth);
-    _tmp.maybe_resize(_depth);
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      const float* x = input + (i * _depth);
-      float* y = output + (i * _depth);
-      float mean = array_mean(x, _depth);
-      array_copy(x, y, _depth);
-      array_sub(mean, y, _depth); // y is now centered
-      array_pow(y, _tmp.data(), 2, _depth);
-      float variance = array_mean(_tmp.data(), _depth);
-      array_mul(1.0 / sqrt(variance + EPSILON), y, _depth); // y is now centered and normalized.
-      array_mul(_gamma, y, _depth);
-      array_add(_beta, y, _depth);
+  StorageView<float>& operator()(const StorageView<float>& input) {
+    size_t batch_size = input.dim(0);
+    size_t depth = input.dim(1);
+    _output.resize_as(input);
+    _tmp.resize({depth});
+    for (size_t i = 0; i < batch_size; ++i) {
+      const float* x = input.index({i});
+      float* y = _output.index({i});
+      float mean = array_mean(x, depth);
+      array_copy(x, y, depth);
+      array_sub(mean, y, depth); // y is now centered
+      array_pow(y, _tmp.data(), 2, depth);
+      float variance = array_mean(_tmp.data(), depth);
+      array_mul(1.0 / sqrt(variance + EPSILON), y, depth); // y is now centered and normalized.
+      array_mul(_gamma.data(), y, depth);
+      array_add(_beta.data(), y, depth);
     }
-    return output;
+    return _output;
   }
 
 private:
-  const float* _beta;
-  const float* _gamma;
-  unsigned int _depth;
-  ReusableVector<float> _tmp;
+  const StorageView<float>& _beta;
+  const StorageView<float>& _gamma;
+  StorageView<float> _tmp;
 };
 
 class TransformerFeedForward : public Node
@@ -256,15 +207,13 @@ public:
     , _ff2(model, scope + "/conv1d_1") {
   }
 
-  float* operator()(const float* input,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
-    float* normed = _layer_norm(input, batch_size);
-    float* inner = _ff1(normed, batch_size);
-    relu(inner, batch_size * _ff1.output_depth());
-    output = _ff2(inner, batch_size, output);
-    array_add(input, output, batch_size * _ff2.output_depth());
-    return output;
+  StorageView<float>& operator()(const StorageView<float>& input) {
+    const StorageView<float>& normed = _layer_norm(input);
+    StorageView<float>& inner = _ff1(normed);
+    relu(inner.data(), inner.size());
+    StorageView<float>& outer = _ff2(inner);
+    array_add(input.data(), outer.data(), input.size());
+    return outer;
   }
 
 private:
@@ -277,52 +226,51 @@ class DotProductAttention : public Node
 {
 public:
 
-  float* operator()(const float* queries,
-                    const float* keys,
-                    const float* values,
-                    const unsigned int* values_lengths,
-                    unsigned int batch_size,
-                    unsigned int num_heads,
-                    unsigned int queries_time,
-                    unsigned int keys_time,
-                    unsigned int depth,
-                    float* output = nullptr) {
-    unsigned int total_batch_size = batch_size * num_heads;
-    _dot.maybe_resize(total_batch_size * queries_time * keys_time);
-    batch_mat_mul(queries, keys,
+  StorageView<float>& operator()(const StorageView<float>& queries,
+                                 const StorageView<float>& keys,
+                                 const StorageView<float>& values,
+                                 const StorageView<size_t>* values_lengths) {
+    size_t batch_size = queries.dim(0);
+    size_t num_heads = queries.dim(1);
+    size_t queries_time = queries.dim(2);
+    size_t memory_time = keys.dim(2);
+    size_t depth = queries.dim(3);
+
+    _dot.resize({batch_size, num_heads, queries_time, memory_time});
+    _attn.resize_as(_dot);
+
+    batch_mat_mul(queries.data(), keys.data(),
                   CblasNoTrans, CblasTrans,
-                  total_batch_size, queries_time, keys_time, depth,
+                  batch_size * num_heads, queries_time, memory_time, depth,
                   _dot.data());
+
     if (batch_size > 1 && values_lengths != nullptr) {
-      for (unsigned int b = 0; b < batch_size; ++b) {
-        const unsigned int length = values_lengths[b];
-        if (length == keys_time)
+      for (size_t b = 0; b < batch_size; ++b) {
+        const size_t length = (*values_lengths)[b];
+        if (length == memory_time)
           continue;
-        for (unsigned int h = 0; h < num_heads; ++h) {
-          for (unsigned int i = 0; i < queries_time; ++i) {
-            float* x = _dot.data() + (b * num_heads * queries_time * keys_time) + (h * queries_time * keys_time) + (i * keys_time);
-            array_fill(x + length, std::numeric_limits<float>::lowest(), keys_time - length);
+        for (size_t h = 0; h < num_heads; ++h) {
+          for (size_t i = 0; i < queries_time; ++i) {
+            float* x = _dot.index({b, h, i});
+            array_fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
           }
         }
       }
     }
-    _attn.maybe_resize(total_batch_size * queries_time * keys_time);
-    softmax(_dot.data(), total_batch_size * queries_time, keys_time, _attn.data());
-    // for (unsigned int i = 0; i < keys_time; ++i)
-    //   std::cout << ' ' << _attn.data()[i];
-    // std::cout << std::endl;
-    if (output == nullptr)
-      output = output_buffer(total_batch_size * queries_time * depth);
-    batch_mat_mul(_attn.data(), values,
+
+    softmax(_dot.data(), batch_size * num_heads * queries_time, memory_time, _attn.data());
+
+    _output.resize_as(queries);
+    batch_mat_mul(_attn.data(), values.data(),
                   CblasNoTrans, CblasNoTrans,
-                  total_batch_size, queries_time, depth, keys_time,
-                  output);
-    return output;
+                  batch_size * num_heads, queries_time, depth, memory_time,
+                  _output.data());
+    return _output;
   }
 
 private:
-  ReusableVector<float> _dot;
-  ReusableVector<float> _attn;
+  StorageView<float> _dot;
+  StorageView<float> _attn;
 };
 
 class MultiHeadAttention
@@ -330,10 +278,10 @@ class MultiHeadAttention
 public:
   MultiHeadAttention(const Model& model,
                      const std::string& scope,
-                     unsigned int num_heads)
+                     size_t num_heads)
     : _num_heads(num_heads)
     , _layer_norm(model, scope + "/LayerNorm") {
-    for (unsigned int i = 0;; ++i) {
+    for (size_t i = 0;; ++i) {
       std::string conv_scope = scope + "/conv1d";
       if (i > 0)
         conv_scope += "_" + std::to_string(i);
@@ -348,143 +296,137 @@ public:
     _depth = _projections.back().output_depth();
   }
 
-  float* operator()(const float* queries,
-                    const float* memory,
-                    const unsigned int* queries_length,
-                    const unsigned int* memory_length,
-                    unsigned int batch_size,
-                    int step = -1,
-                    float* output = nullptr) {
+  StorageView<float>& operator()(const StorageView<float>& queries,
+                                 const StorageView<size_t>& queries_length,
+                                 const StorageView<float>* memory = nullptr,
+                                 const StorageView<size_t>* memory_length = nullptr,
+                                 int step = -1) {
     if (memory_length == nullptr)
-      memory_length = queries_length;
-    unsigned int cum_queries_length = 0;
-    unsigned int cum_memory_length = 0;
-    unsigned int queries_time = 0;
-    unsigned int memory_time = 0;
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      cum_queries_length += queries_length[i];
-      queries_time = std::max(queries_time, queries_length[i]);
-      cum_memory_length += memory_length[i];
-      memory_time = std::max(memory_time, memory_length[i]);
-    }
+      memory_length = &queries_length;
 
-    float* normed_queries = _layer_norm(queries, cum_queries_length);
-    float* queries_proj;
-    const float* keys_proj;
-    const float* values_proj;
+    size_t batch_size = queries_length.dim(0);
+    size_t queries_time = *std::max_element(queries_length.data(),
+                                            queries_length.data() + queries_length.size());
+    size_t memory_time = *std::max_element(memory_length->data(),
+                                           memory_length->data() + memory_length->size());
+
+    const StorageView<float>& normed_queries = _layer_norm(queries);
+    StorageView<float> queries_proj;
+    StorageView<float> keys_proj;
+    StorageView<float> values_proj;
 
     if (memory == nullptr) {
-      float* fused_proj = _projections[0](normed_queries, cum_queries_length);
-      unsigned int fused_depth = _projections[0].output_depth();
-      _splits.maybe_resize(cum_queries_length * fused_depth);
-      std::vector<float*> splits = split_in_depth(fused_proj, cum_queries_length, fused_depth,
+      const StorageView<float>& fused_proj = _projections[0](normed_queries);
+
+      _splits.resize_as(fused_proj);
+      std::vector<float*> splits = split_in_depth(fused_proj.data(),
+                                                  fused_proj.dim(0), fused_proj.dim(1),
                                                   3, _splits.data());
-      queries_proj = splits[0];
-      keys_proj = splits[1];
-      values_proj = splits[2];
+
+      queries_proj = StorageView<float>(splits[0], {fused_proj.dim(0), _depth});
+      keys_proj = StorageView<float>(splits[1], {fused_proj.dim(0), _depth});
+      values_proj = StorageView<float>(splits[2], {fused_proj.dim(0), _depth});
+
+      // TODO
       if (step >= 0) {
-        keys_proj = push_proj(keys_proj, _keys_accu, step, batch_size, _depth);
-        values_proj = push_proj(values_proj, _values_accu, step, batch_size, _depth);
+        keys_proj = push_proj(keys_proj, _keys_accu, step);
+        values_proj = push_proj(values_proj, _values_accu, step);
       }
     } else {
-      queries_proj = _projections[0](normed_queries, cum_queries_length);
-      if (step > 0 && _cached_memory_keys != nullptr) {
+      StorageView<float>& proj = _projections[0](normed_queries);
+      queries_proj = StorageView<float>(proj.data(), {proj.dim(0), _depth});
+      if (step > 0 && !_cached_memory_keys.empty()) {
         keys_proj = _cached_memory_keys;
         values_proj = _cached_memory_values;
       } else {
-        unsigned int fused_depth = _projections[1].output_depth();
-        _splits.maybe_resize(cum_memory_length * fused_depth);
-        float* fused_proj = _projections[1](memory, cum_memory_length);
-        std::vector<float*> splits = split_in_depth(fused_proj, cum_memory_length, fused_depth,
+        const StorageView<float>& fused_proj = _projections[1](*memory);
+        _splits.resize_as(fused_proj);
+        std::vector<float*> splits = split_in_depth(fused_proj.data(),
+                                                    fused_proj.dim(0), fused_proj.dim(1),
                                                     2, _splits.data());
-        keys_proj = splits[0];
-        values_proj = splits[1];
+        keys_proj = StorageView<float>(splits[0], {fused_proj.dim(0), _depth});
+        values_proj = StorageView<float>(splits[1], {fused_proj.dim(0), _depth});
         _cached_memory_keys = keys_proj;
         _cached_memory_values = values_proj;
       }
     }
 
-    unsigned int dk = _depth / _num_heads;
-    array_mul(1.0 / sqrt(dk), queries_proj, cum_queries_length * _depth);
+    size_t dk = _depth / _num_heads;
+    array_mul(1.0 / sqrt(dk), queries_proj.data(), queries_proj.size());
 
-    _padded_queries.maybe_resize(batch_size * queries_time * _depth);
-    _padded_keys.maybe_resize(batch_size * memory_time * _depth);
-    _padded_values.maybe_resize(batch_size * memory_time * _depth);
-    pad_sequences(queries_proj, queries_length, batch_size, queries_time, _depth, _padded_queries.data());
-    pad_sequences(keys_proj, memory_length, batch_size, memory_time, _depth, _padded_keys.data());
-    pad_sequences(values_proj, memory_length, batch_size, memory_time, _depth, _padded_values.data());
+    pad_sequences(queries_proj, queries_length, _padded_queries);
+    pad_sequences(keys_proj, *memory_length, _padded_keys);
+    pad_sequences(values_proj, *memory_length, _padded_values);
 
-    _split_queries.maybe_resize(batch_size * queries_time * _depth);
-    _split_keys.maybe_resize(batch_size * memory_time * _depth);
-    _split_values.maybe_resize(batch_size * memory_time * _depth);
-    swap_middle_dims(_padded_queries.data(), batch_size, queries_time, _num_heads, dk, _split_queries.data());
-    swap_middle_dims(_padded_keys.data(), batch_size, memory_time, _num_heads, dk, _split_keys.data());
-    swap_middle_dims(_padded_values.data(), batch_size, memory_time, _num_heads, dk, _split_values.data());
+    _split_queries.resize({batch_size, _num_heads, queries_time, dk});
+    _split_keys.resize({batch_size, _num_heads, memory_time, dk});
+    _split_values.resize_as(_split_keys);
 
-    float* context = _attention(_split_queries.data(),
-                                _split_keys.data(),
-                                _split_values.data(),
-                                memory_length,
-                                batch_size,
-                                _num_heads,
-                                queries_time,
-                                memory_time,
-                                dk);
+    swap_middle_dims(_padded_queries.data(),
+                     batch_size, queries_time, _num_heads, dk, _split_queries.data());
+    swap_middle_dims(_padded_keys.data(),
+                     batch_size, memory_time, _num_heads, dk, _split_keys.data());
+    swap_middle_dims(_padded_values.data(),
+                     batch_size, memory_time, _num_heads, dk, _split_values.data());
 
-    float* combined = _padded_queries.data();
-    float* combined_pruned = queries_proj;
-    swap_middle_dims(context, batch_size, _num_heads, queries_time, dk, combined);
-    unpad_sequences(combined, queries_length, batch_size, queries_time, _depth, combined_pruned);
+    StorageView<float>& context = _attention(_split_queries,
+                                             _split_keys,
+                                             _split_values,
+                                             memory_length);
 
-    output = _projections.back()(combined_pruned, cum_queries_length, output);
+    StorageView<float>& combined = _padded_queries;
+    StorageView<float>& combined_pruned = queries_proj;
+    swap_middle_dims(context.data(), batch_size, _num_heads, queries_time, dk, combined.data());
+    unpad_sequences(combined.data(), queries_length.data(),
+                    batch_size, queries_time, _depth, combined_pruned.data());
 
-    array_add(queries, output, cum_queries_length * _projections.back().output_depth());
+    StorageView<float>& output = _projections.back()(combined_pruned);
+    array_add(queries.data(), output.data(), queries.size());
     return output;
   }
 
-  static float* push_proj(const float* proj,
-                          ReusableVector<float>& accu,
-                          unsigned int step,
-                          unsigned int batch_size,
-                          unsigned int depth) {
+  static StorageView<float>& push_proj(const StorageView<float>& proj,
+                                       StorageView<float>& accu,
+                                       size_t step) {
     if (step == 0) {
-      accu.maybe_resize(batch_size * depth);
-      array_copy(proj, accu.data(), batch_size * depth);
+      accu = proj;
     } else {
-      static ReusableVector<float> tmp;
-      tmp.maybe_resize(step * batch_size * depth);
-      array_copy(accu.data(), tmp.data(), step * batch_size * depth);
-      accu.maybe_resize((step + 1) * batch_size * depth);
+      static StorageView<float> tmp;
+      tmp = accu;
+      size_t batch_size = proj.dim(0);
+      size_t depth = proj.dim(1);
+      accu.resize({batch_size * step + 1, depth});
       const float* src = tmp.data();
       float* dst = accu.data();
-      for (unsigned int i = 0; i < batch_size; ++i) {
+      for (size_t i = 0; i < batch_size; ++i) {
         array_copy(src, dst, step * depth);
         src += step * depth;
         dst += step * depth;
-        array_copy(proj + (i * depth), dst, depth);
+        array_copy(proj.index({i}), dst, depth);
         dst += depth;
       }
     }
-    return accu.data();
+    return accu;
   }
 
 private:
-  unsigned int _num_heads;
-  unsigned int _depth;
+  size_t _num_heads;
+  size_t _depth;
   LayerNorm _layer_norm;
   DotProductAttention _attention;
   std::vector<Dense> _projections;
-  const float* _cached_memory_keys = nullptr;
-  const float* _cached_memory_values = nullptr;
-  ReusableVector<float> _splits;
-  ReusableVector<float> _keys_accu;
-  ReusableVector<float> _values_accu;
-  ReusableVector<float> _padded_queries;
-  ReusableVector<float> _padded_keys;
-  ReusableVector<float> _padded_values;
-  ReusableVector<float> _split_queries;
-  ReusableVector<float> _split_keys;
-  ReusableVector<float> _split_values;
+
+  StorageView<float> _cached_memory_keys;
+  StorageView<float> _cached_memory_values;
+  StorageView<float> _splits;
+  StorageView<float> _keys_accu;
+  StorageView<float> _values_accu;
+  StorageView<float> _padded_queries;
+  StorageView<float> _padded_keys;
+  StorageView<float> _padded_values;
+  StorageView<float> _split_queries;
+  StorageView<float> _split_keys;
+  StorageView<float> _split_values;
 };
 
 class TransformerEncoderLayer : public Node
@@ -496,17 +438,10 @@ public:
     , _ff(model, scope + "/ffn") {
   }
 
-  float* operator()(const float* input,
-                    const float* memory,
-                    const unsigned int* lengths,
-                    const unsigned int* memory_lengths,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
-    unsigned int total_batch_size = 0;
-    for (unsigned int i = 0; i < batch_size; ++i)
-      total_batch_size += lengths[i];
-    const float* context = _multi_head_attention(input, memory, lengths, memory_lengths, batch_size);
-    return _ff(context, total_batch_size, output);
+  StorageView<float>& operator()(const StorageView<float>& input,
+                                 const StorageView<size_t>& lengths) {
+    const StorageView<float>& context = _multi_head_attention(input, lengths);
+    return _ff(context);
   }
 
 private:
@@ -524,19 +459,17 @@ public:
     , _ff(model, scope + "/ffn") {
   }
 
-  float* operator()(unsigned int step,
-                    const float* input,
-                    const float* memory,
-                    const unsigned int* lengths,
-                    const unsigned int* history_lengths,
-                    const unsigned int* memory_lengths,
-                    unsigned int batch_size,
-                    float* output = nullptr) {
-    const float* encoded = _masked_multi_head_attention(
-      input, nullptr, lengths, history_lengths, batch_size, step);
-    const float* context = _multi_head_attention(
-      encoded, memory, lengths, memory_lengths, batch_size, step);
-    return _ff(context, batch_size, output);
+  StorageView<float>& operator()(size_t step,
+                                 const StorageView<float>& input,
+                                 const StorageView<float>& memory,
+                                 const StorageView<size_t>& lengths,
+                                 const StorageView<size_t>& history_lengths,
+                                 const StorageView<size_t>& memory_lengths) {
+    const StorageView<float>& encoded = _masked_multi_head_attention(
+      input, lengths, nullptr, &history_lengths, step);
+    const StorageView<float>& context = _multi_head_attention(
+      encoded, lengths, &memory, &memory_lengths, step);
+    return _ff(context);
   }
 
 private:
@@ -551,9 +484,9 @@ class TransformerStack : public Node
 public:
   TransformerStack(const Model& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
-    , _position_encoder(_scaled_embeddings.output_depth())
+    , _position_encoder()
     , _output_norm(model, scope + "/LayerNorm") {
-    for (unsigned int l = 0;; ++l) {
+    for (size_t l = 0;; ++l) {
       try {
         _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
       } catch (std::exception&) {
@@ -576,19 +509,16 @@ public:
     : TransformerStack(model, scope) {
   }
 
-  float* operator()(const unsigned int* ids,
-                    const unsigned int* lengths,
-                    unsigned int batch_size,
-                    unsigned int flattened_batch_size,
-                    float* output = nullptr) {
-    const float* embeddings = _scaled_embeddings(ids, flattened_batch_size);
-    const float* input = _position_encoder(embeddings, lengths, batch_size, flattened_batch_size);
+  StorageView<float>& operator()(const StorageView<size_t>& ids,
+                                 const StorageView<size_t>& lengths) {
+    const StorageView<float>& embeddings = _scaled_embeddings(ids);
+    const StorageView<float>& input = _position_encoder(embeddings, lengths);
 
-    const float* x = input;
+    const StorageView<float>* x = &input;
     for (auto& layer : _layers) {
-      x = layer(x, nullptr, lengths, nullptr, batch_size);
+      x = &layer(*x, lengths);
     }
-    return _output_norm(x, flattened_batch_size, output);
+    return _output_norm(*x);
   }
 };
 
@@ -600,22 +530,22 @@ public:
     , _proj(model, scope + "/dense") {
   }
 
-  float* operator()(unsigned int step,
-                    const unsigned int* ids,
-                    unsigned int batch_size,
-                    const float* memory,
-                    const unsigned int* memory_length,
-                    float* output = nullptr) {
-    const float* embeddings = _scaled_embeddings(ids, batch_size);
-    const float* input = _position_encoder(embeddings, step, batch_size);
-    std::vector<unsigned int> query_lengths(batch_size, 1);
-    std::vector<unsigned int> history_lengths(batch_size, step + 1);
+  StorageView<float>& operator()(size_t step,
+                                 const StorageView<size_t>& ids,
+                                 const StorageView<float>& memory,
+                                 const StorageView<size_t>& memory_lengths) {
+    size_t batch_size = ids.dim(0);
+    const StorageView<float>& embeddings = _scaled_embeddings(ids);
+    const StorageView<float>& input = _position_encoder(embeddings, step);
+    StorageView<size_t> query_lengths({batch_size}, 1);
+    StorageView<size_t> history_lengths({batch_size}, step + 1);
 
-    const float* x = input;
-    for (auto& layer : _layers)
-      x = layer(step, x, memory, query_lengths.data(), history_lengths.data(), memory_length, batch_size);
-    x = _output_norm(x, batch_size);
-    return _proj(x, batch_size, output);
+    const StorageView<float>* x = &input;
+    for (auto& layer : _layers) {
+      x = &layer(step, *x, memory, query_lengths, history_lengths, memory_lengths);
+    }
+    const StorageView<float>& normed = _output_norm(*x);
+    return _proj(normed);
   }
 
 private:
@@ -627,44 +557,44 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
                const Vocabulary& vocabulary,
                TransformerEncoder& encoder,
                TransformerDecoder& decoder) {
-  std::vector<unsigned int> ids;
-  std::vector<unsigned int> lengths;
-  unsigned int max_length = 0;
-  unsigned int cum_length = 0;
-  for (const auto& sentence : input_tokens) {
-    unsigned int length = 0;
-    for (const auto& token : sentence) {
-      ids.push_back(vocabulary.to_id(token));
-      ++length;
+  StorageView<size_t> lengths({input_tokens.size()});
+  size_t total_length = 0;
+  for (size_t i = 0; i < input_tokens.size(); ++i) {
+    const size_t length = input_tokens[i].size();
+    lengths[i] = length;
+    total_length += length;
+  }
+
+  StorageView<size_t> ids({total_length});
+  size_t offset = 0;
+  for (const auto& tokens : input_tokens) {
+    for (const auto& token : tokens) {
+      ids[offset] = vocabulary.to_id(token);
+      offset += 1;
     }
-    if (length > max_length)
-      max_length = length;
-    cum_length += length;
-    lengths.push_back(length);
   }
 
   // for (auto id : ids)
   //   std::cout << id << std::endl;
 
-  unsigned int batch_size = lengths.size();
-  const float* encoded = encoder(ids.data(), lengths.data(), batch_size, cum_length);
+  size_t batch_size = lengths.size();
+  const StorageView<float>& encoded = encoder(ids, lengths);
 
-  std::vector<unsigned int> sample_from(batch_size, vocabulary.to_id("<s>"));
-  std::vector<std::vector<unsigned int> > sampled_ids(batch_size);
+  StorageView<size_t> sample_from({batch_size}, vocabulary.to_id("<s>"));
+  StorageView<float> probs({batch_size, vocabulary.size()});
+  std::vector<std::vector<size_t> > sampled_ids(batch_size);
   std::vector<bool> finished(batch_size, false);
-  std::vector<float> probs(batch_size * vocabulary.size());
   bool all_finished = false;
-  unsigned max_steps = 200;
+  size_t max_steps = 200;
 
-  for (unsigned int step = 0; !all_finished; ++step) {
-    float* logits = decoder(step, sample_from.data(), batch_size, encoded, lengths.data());
-    softmax(logits, batch_size, vocabulary.size(), probs.data());
+  for (size_t step = 0; step < max_steps && !all_finished; ++step) {
+    StorageView<float>& logits = decoder(step, sample_from, encoded, lengths);
+    softmax(logits.data(), batch_size, vocabulary.size(), probs.data());
     all_finished = true;
-    for (unsigned int i = 0; i < batch_size; ++i) {
-      unsigned int best = array_max_element(probs.data() + (i*vocabulary.size()), vocabulary.size());
-      //std::cout << vocabulary.to_token(best) << std::endl;
+    for (size_t i = 0; i < batch_size; ++i) {
+      size_t best = array_max_element(probs.index({i}), vocabulary.size());
       sample_from[i] = best;
-      if (best == 2 || (step + 1) == max_steps)
+      if (best == 2)
         finished[i] = true;
       else {
         all_finished = false;
@@ -673,7 +603,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     }
   }
 
-  for (unsigned int i = 0; i < batch_size; ++i) {
+  for (size_t i = 0; i < batch_size; ++i) {
     for (auto id : sampled_ids[i]) {
       std::cout << " " << vocabulary.to_token(id);
     }
@@ -693,15 +623,15 @@ int main() {
   std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
-  unsigned int max_batch_size = 5;
-  unsigned int max_iter = 1000;
-  unsigned int iter = 0;
+  size_t max_batch_size = 1;
+  size_t max_iter = 1000;
+  size_t iter = 0;
 
   while (std::getline(text_file, line)) {
     std::cout << "  INPUT: " << line << std::endl;
     input_tokens.emplace_back();
     std::string token;
-    for (unsigned int i = 0; i < line.length(); ++i) {
+    for (size_t i = 0; i < line.length(); ++i) {
       if (line[i] == ' ') {
         if (!token.empty()) {
           input_tokens.back().push_back(token);

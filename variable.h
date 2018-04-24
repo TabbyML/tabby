@@ -25,9 +25,7 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const Variable& index);
 
 private:
-  unsigned short _rank;
-  const unsigned int* _dimensions;
-  const float* _data;
+  const StorageView<float> _data;
 };
 
 std::ostream& operator<<(std::ostream& os, const Variable& index) {

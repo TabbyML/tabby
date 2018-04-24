@@ -10,58 +10,58 @@
 
 #define EPSILON 0.000001f
 
-void assert_not_nan(const float* x, unsigned int size) {
-  for (unsigned int i = 0; i < size; ++i) {
+void assert_not_nan(const float* x, size_t size) {
+  for (size_t i = 0; i < size; ++i) {
     if (std::isnan(x[i])) {
       throw std::runtime_error("NaN");
     }
   }
 }
 
-void array_fill(float* x, float a, unsigned int size) {
+void array_fill(float* x, float a, size_t size) {
   std::fill_n(x, size, a);
 }
 
-void array_copy(const float* x, float* y, unsigned int size) {
+void array_copy(const float* x, float* y, size_t size) {
   cblas_scopy(size, x, 1, y, 1);
 }
 
-float array_sum(const float* array, unsigned int size) {
+float array_sum(const float* array, size_t size) {
   return std::accumulate(array, array + size, 0.f);
 }
 
-float array_mean(const float* array, unsigned int size) {
+float array_mean(const float* array, size_t size) {
   return array_sum(array, size) / size;
 }
 
-unsigned int array_max_element(const float* array, unsigned int size) {
+size_t array_max_element(const float* array, size_t size) {
   return std::max_element(array, array + size) - array;
 }
 
-float array_max(const float* array, unsigned int size) {
+float array_max(const float* array, size_t size) {
   return array[array_max_element(array, size)];
 }
 
-void array_add(float a, float* y, unsigned int size) {
+void array_add(float a, float* y, size_t size) {
   cblas_saxpy(size, 1.0, &a, 0, y, 1);
 }
-void array_add(const float* x, float* y, unsigned int size) {
+void array_add(const float* x, float* y, size_t size) {
   cblas_saxpy(size, 1.0 /* a */, x, 1 /* incx */, y, 1 /* incy */);
 }
 
-void array_sub(float a, float* y, unsigned int size) {
+void array_sub(float a, float* y, size_t size) {
   float a_rev = -a;
   array_add(a_rev, y, size);
 }
 
-void array_mul(float a, float* y, unsigned int size) {
+void array_mul(float a, float* y, size_t size) {
   cblas_sscal(size, a, y, 1);
 }
-void array_mul(const float* x, float* y, unsigned int size) {
+void array_mul(const float* x, float* y, size_t size) {
   vsMul(size, y, x, y);
 }
 
-void array_pow(const float* x, float *y, float power, unsigned int size) {
+void array_pow(const float* x, float *y, float power, size_t size) {
   vsPowx(size, x, power, y);
 }
 
@@ -133,14 +133,14 @@ void batch_mat_mul(const float* a,
 }
 
 void concat_in_depth(const std::vector<const float*>& inputs,
-                     const std::vector<unsigned int>& depths,
-                     unsigned int batch_size,
+                     const std::vector<size_t>& depths,
+                     size_t batch_size,
                      float* output) {
-  unsigned int num_inputs = inputs.size();
-  unsigned int total_depth = 0;
+  size_t num_inputs = inputs.size();
+  size_t total_depth = 0;
 
-  for (unsigned int i = 0; i < num_inputs; ++i) {
-    const unsigned int depth = depths[i];
+  for (size_t i = 0; i < num_inputs; ++i) {
+    const size_t depth = depths[i];
     const float* a = inputs[i];
     float* b = output + (total_depth * batch_size);
     mkl_somatcopy('R', 'T', batch_size, depth, 1.0, a, depth, b, batch_size);
@@ -151,14 +151,14 @@ void concat_in_depth(const std::vector<const float*>& inputs,
 }
 
 std::vector<float*> split_in_depth(const float* input,
-                                   unsigned int batch_size,
-                                   unsigned int depth,
-                                   unsigned int num_splits,
+                                   size_t batch_size,
+                                   size_t depth,
+                                   size_t num_splits,
                                    float* output) {
   mkl_somatcopy('R', 'T', batch_size, depth, 1.0 /* alpha */, input, depth, output, batch_size);
 
-  unsigned int split_size = depth / num_splits;
-  for (unsigned int i = 0; i < num_splits; ++i) {
+  size_t split_size = depth / num_splits;
+  for (size_t i = 0; i < num_splits; ++i) {
     float* a = output + (i * split_size * batch_size);
     mkl_simatcopy('R', 'T',
                   split_size, batch_size,
@@ -173,8 +173,8 @@ std::vector<float*> split_in_depth(const float* input,
   return splits;
 }
 
-void softmax(float* input, int batch, int depth, float* output) {
-  for (unsigned int i = 0; i < batch; ++i) {
+void softmax(float* input, size_t batch_size, size_t depth, float* output) {
+  for (size_t i = 0; i < batch_size; ++i) {
     float* x = input + (i * depth);
     float* y = output + (i * depth);
     float max = array_max(x, depth);
@@ -185,19 +185,19 @@ void softmax(float* input, int batch, int depth, float* output) {
   }
 }
 
-void relu(float* x, unsigned int size) {
-  for (unsigned int i = 0; i < size; ++i) {
+void relu(float* x, size_t size) {
+  for (size_t i = 0; i < size; ++i) {
     if (x[i] < 0)
       x[i] = 0;
   }
 }
 
-void gather(const unsigned int* indices,
+void gather(const size_t* indices,
             const float* tensor,
-            unsigned int num_indices,
-            unsigned int stride,
+            size_t num_indices,
+            size_t stride,
             float* output) {
-  for (unsigned int i = 0; i < num_indices; ++i) {
+  for (size_t i = 0; i < num_indices; ++i) {
     const float* src = tensor + (indices[i] * stride);
     float* dst = output + (i * stride);
     array_copy(src, dst, stride);
@@ -207,9 +207,9 @@ void gather(const unsigned int* indices,
 void linear(const float* input,
             const float* weight,
             const float* bias,
-            unsigned int batch_size,
-            unsigned int input_depth,
-            unsigned int output_depth,
+            size_t batch_size,
+            size_t input_depth,
+            size_t output_depth,
             float* output) {
   MKL_INT m = batch_size;
   MKL_INT n = output_depth;
@@ -228,50 +228,28 @@ void linear(const float* input,
         beta, output);
 }
 
-void pad_sequences(const float* input,
-                   const unsigned int* lengths,
-                   unsigned int batch_size,
-                   unsigned int max_length,
-                   unsigned int depth,
-                   float* output) {
-  const float* src = input;
-  float* dst = output;
-  for (unsigned int i = 0; i < batch_size; ++i) {
-    const unsigned int length = lengths[i];
-    unsigned int count = depth * length;
-    array_copy(src, dst, count);
-    dst += count;
-    src += count;
-    if (length < max_length) {
-      count = (max_length - length) * depth;
-      array_fill(dst, 0, count);
-      dst += count;
-    }
-  }
-}
-
 void unpad_sequences(const float* input,
-                     const unsigned int* lengths,
-                     unsigned int batch_size,
-                     unsigned int max_length,
-                     unsigned int depth,
+                     const size_t* lengths,
+                     size_t batch_size,
+                     size_t max_length,
+                     size_t depth,
                      float* output) {
   const float* src = input;
   float* dst = output;
-  for (unsigned int i = 0; i < batch_size; ++i) {
-    const unsigned int length = lengths[i];
-    unsigned int count = depth * length;
+  for (size_t i = 0; i < batch_size; ++i) {
+    const size_t length = lengths[i];
+    size_t count = depth * length;
     array_copy(src, dst, count);
     dst += count;
     src += count + (max_length - length) * depth;
   }
 }
 
-void swap_middle_dims(const float* x, unsigned int d0, unsigned int d1, unsigned int d2, unsigned int d3, float* y) {
-  for (unsigned int i0 = 0; i0 < d0; ++i0) {
-    for (unsigned int i1 = 0; i1 < d1; ++i1) {
-      for (unsigned int i2 = 0; i2 < d2; ++i2) {
-        for (unsigned int i3 = 0; i3 < d3; ++i3) {
+void swap_middle_dims(const float* x, size_t d0, size_t d1, size_t d2, size_t d3, float* y) {
+  for (size_t i0 = 0; i0 < d0; ++i0) {
+    for (size_t i1 = 0; i1 < d1; ++i1) {
+      for (size_t i2 = 0; i2 < d2; ++i2) {
+        for (size_t i3 = 0; i3 < d3; ++i3) {
           y[i3 + (i1 * d3) + (i2 * d3 * d1) + (i0 * d3 * d1 * d2)] =
             x[i3 + (i2 * d3) + (i1 * d3 * d2) + (i0 * d3 * d2 * d1)];
         }
