@@ -1,6 +1,9 @@
 #pragma once
 
+#include <iostream>
+
 #include <algorithm>
+#include <cassert>
 #include <ostream>
 #include <stdexcept>
 #include <typeinfo>
@@ -50,8 +53,7 @@ public:
     size_t offset = 0;
     for (size_t i = 0; i < indices.size(); ++i)
       offset += indices[i] * _strides[i];
-    if (offset >= _size)
-      throw std::invalid_argument("index out of bound");
+    assert(offset < _size);
     return _data + offset;
   }
 
@@ -59,8 +61,7 @@ public:
     return const_cast<T&>(static_cast<const StorageView&>(*this)[index]);
   }
   const T& operator[](size_t index) const {
-    if (index > _size)
-      throw std::invalid_argument("index out of bound");
+    assert(index < _size);
     return _data[index];
   }
   T& operator[](const std::vector<size_t>& indices) {
@@ -78,15 +79,15 @@ public:
     return _shape;
   }
 
-  size_t dim(size_t dim) const {
+  size_t dim(ssize_t dim) const {
     if (dim < 0)
-      dim = _shape.size() - dim;
+      dim = _shape.size() + dim;
     return _shape[dim];
   }
 
-  size_t stride(size_t dim) const {
+  size_t stride(ssize_t dim) const {
     if (dim < 0)
-      dim = _shape.size() - dim;
+      dim = _shape.size() + dim;
     return _strides[dim];
   }
 
@@ -126,8 +127,7 @@ public:
   }
 
   StorageView& reshape(const Shape& new_shape) {
-    if (_size != size(new_shape))
-      throw std::invalid_argument("incompatible shape");
+    assert(_size == size(new_shape));
     _shape = new_shape;
     _strides = strides(new_shape);
     return *this;
@@ -191,10 +191,17 @@ public:
   }
 
   StorageView& copy_from(const StorageView& other) {
-    if (_size != other._size)
-      throw std::invalid_argument("storages do not have the same size");
+    assert(_size == other._size);
     std::copy_n(other._data, other._size, _data);
     return *this;
+  }
+
+  StorageView& shallow_copy(StorageView& other) {
+    return assign(other._data, other._shape);
+  }
+
+  StorageView& deep_copy(const StorageView& other) {
+    return assign(other);
   }
 
   template <typename U>
@@ -248,6 +255,7 @@ protected:
       strides[d] = stride(shape, d);
     return strides;
   }
+
 };
 
 template <typename T>

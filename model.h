@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -9,7 +11,6 @@
 
 #include <string>
 #include <map>
-#include <iostream>
 
 #include "storage_view.h"
 

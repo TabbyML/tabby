@@ -15,8 +15,8 @@ void pad_sequences(const StorageView<float>& flattened,
                    const StorageView<size_t>& lengths,
                    StorageView<float>& padded) {
   size_t batch_size = lengths.dim(0);
-  size_t max_length = *std::max_element(lengths.data(), lengths.data() + lengths.size());
-  size_t depth = flattened.dim(1);
+  size_t max_length = *std::max_element(lengths.data(), lengths.data() + batch_size);
+  size_t depth = flattened.dim(-1);
   padded.resize({batch_size, max_length, depth});
   const float* src = flattened.data();
   float* dst = padded.data();
@@ -323,29 +323,31 @@ public:
                                                   fused_proj.dim(0), fused_proj.dim(1),
                                                   3, _splits.data());
 
-      queries_proj = StorageView<float>(splits[0], {fused_proj.dim(0), _depth});
-      keys_proj = StorageView<float>(splits[1], {fused_proj.dim(0), _depth});
-      values_proj = StorageView<float>(splits[2], {fused_proj.dim(0), _depth});
+      queries_proj.assign(splits[0], {fused_proj.dim(0), _depth});
+      keys_proj.assign(splits[1], {fused_proj.dim(0), _depth});
+      values_proj.assign(splits[2], {fused_proj.dim(0), _depth});
 
       // TODO
       if (step >= 0) {
-        keys_proj = push_proj(keys_proj, _keys_accu, step);
-        values_proj = push_proj(values_proj, _values_accu, step);
+        push_proj(keys_proj, _keys_accu, step);
+        push_proj(values_proj, _values_accu, step);
+        keys_proj.shallow_copy(_keys_accu);
+        values_proj.shallow_copy(_values_accu);
       }
     } else {
       StorageView<float>& proj = _projections[0](normed_queries);
-      queries_proj = StorageView<float>(proj.data(), {proj.dim(0), _depth});
+      queries_proj.shallow_copy(proj);
       if (step > 0 && !_cached_memory_keys.empty()) {
-        keys_proj = _cached_memory_keys;
-        values_proj = _cached_memory_values;
+        keys_proj.shallow_copy(_cached_memory_keys);
+        values_proj.shallow_copy(_cached_memory_values);
       } else {
         const StorageView<float>& fused_proj = _projections[1](*memory);
         _splits.resize_as(fused_proj);
         std::vector<float*> splits = split_in_depth(fused_proj.data(),
                                                     fused_proj.dim(0), fused_proj.dim(1),
                                                     2, _splits.data());
-        keys_proj = StorageView<float>(splits[0], {fused_proj.dim(0), _depth});
-        values_proj = StorageView<float>(splits[1], {fused_proj.dim(0), _depth});
+        keys_proj.assign(splits[0], {fused_proj.dim(0), _depth});
+        values_proj.assign(splits[1], {fused_proj.dim(0), _depth});
         _cached_memory_keys = keys_proj;
         _cached_memory_values = values_proj;
       }
@@ -395,7 +397,7 @@ public:
       tmp = accu;
       size_t batch_size = proj.dim(0);
       size_t depth = proj.dim(1);
-      accu.resize({batch_size * step + 1, depth});
+      accu.resize({batch_size * (step + 1), depth});
       const float* src = tmp.data();
       float* dst = accu.data();
       for (size_t i = 0; i < batch_size; ++i) {
@@ -498,8 +500,8 @@ public:
 protected:
   ScaledEmbeddings _scaled_embeddings;
   PositionEncoder _position_encoder;
-  std::vector<TransformerLayer> _layers;
   LayerNorm _output_norm;
+  std::vector<TransformerLayer> _layers;
 };
 
 class TransformerEncoder : public TransformerStack<TransformerEncoderLayer>
@@ -592,6 +594,8 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     softmax(logits.data(), batch_size, vocabulary.size(), probs.data());
     all_finished = true;
     for (size_t i = 0; i < batch_size; ++i) {
+      if (finished[i])
+        continue;
       size_t best = array_max_element(probs.index({i}), vocabulary.size());
       sample_from[i] = best;
       if (best == 2)
@@ -623,7 +627,7 @@ int main() {
   std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
-  size_t max_batch_size = 1;
+  size_t max_batch_size = 2;
   size_t max_iter = 1000;
   size_t iter = 0;
 
