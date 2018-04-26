@@ -559,11 +559,15 @@ public:
                                  const StorageView<float>& input,
                                  const StorageView<size_t>& input_lengths,
                                  const StorageView<float>& memory,
-                                 const StorageView<size_t>& memory_lengths) {
+                                 const StorageView<size_t>& memory_lengths,
+                                 StorageView<float>& cached_self_attn_keys,
+                                 StorageView<float>& cached_self_attn_values,
+                                 StorageView<float>& cached_attn_keys,
+                                 StorageView<float>& cached_attn_values) {
     const StorageView<float>& encoded = _self_attention(
-      input, input_lengths, &_cached_self_attn_keys, &_cached_self_attn_values, step);
+      input, input_lengths, &cached_self_attn_keys, &cached_self_attn_values, step);
     const StorageView<float>& context = _encoder_attention(
-      encoded, input_lengths, memory, memory_lengths, &_cached_attn_keys, &_cached_attn_values, step);
+      encoded, input_lengths, memory, memory_lengths, &cached_attn_keys, &cached_attn_values, step);
     return _ff(context);
   }
 
@@ -571,10 +575,6 @@ private:
   TransformerSelfAttention _self_attention;
   TransformerAttention _encoder_attention;
   TransformerFeedForward _ff;
-  StorageView<float> _cached_self_attn_keys;
-  StorageView<float> _cached_self_attn_values;
-  StorageView<float> _cached_attn_keys;
-  StorageView<float> _cached_attn_values;
 };
 
 template <typename TransformerLayer>
@@ -621,26 +621,44 @@ public:
   }
 };
 
+struct TransformerDecoderState {
+  StorageView<float> memory;
+  StorageView<size_t> memory_lengths;
+  std::vector<StorageView<float>> cache;
+};
+
 class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
 {
 public:
   TransformerDecoder(const Model& model, const std::string& scope)
     : TransformerStack(model, scope)
     , _proj(model, scope + "/dense") {
+    _state.cache.resize(_layers.size() * 4);
   }
 
-  StorageView<float>& operator()(size_t step,
-                                 const StorageView<size_t>& ids,
-                                 const StorageView<float>& memory,
-                                 const StorageView<size_t>& memory_lengths) {
+  void reset_state(const StorageView<float>& memory,
+                   const StorageView<size_t>& memory_lengths) {
+    _state.memory = memory;
+    _state.memory_lengths = memory_lengths;
+  }
+
+  StorageView<float>& operator()(size_t step, const StorageView<size_t>& ids) {
     size_t batch_size = ids.dim(0);
     const StorageView<float>& embeddings = _scaled_embeddings(ids);
     const StorageView<float>& input = _position_encoder(embeddings, step);
     StorageView<size_t> query_lengths({batch_size}, 1);
 
     const StorageView<float>* x = &input;
-    for (auto& layer : _layers) {
-      x = &layer(step, *x, query_lengths, memory, memory_lengths);
+    for (size_t l = 0; l < _layers.size(); ++l) {
+      x = &_layers[l](step,
+                      *x,
+                      query_lengths,
+                      _state.memory,
+                      _state.memory_lengths,
+                      _state.cache[0 + l * 4],
+                      _state.cache[1 + l * 4],
+                      _state.cache[2 + l * 4],
+                      _state.cache[3 + l * 4]);
     }
     const StorageView<float>& normed = _output_norm(*x);
     return _proj(normed);
@@ -648,7 +666,7 @@ public:
 
 private:
   Dense _proj;
-  //DecoderState _state;
+  TransformerDecoderState _state;
 };
 
 void translate(const std::vector<std::vector<std::string> >& input_tokens,
@@ -678,6 +696,8 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   size_t batch_size = lengths.size();
   const StorageView<float>& encoded = encoder(ids, lengths);
 
+  decoder.reset_state(encoded, lengths);
+
   StorageView<size_t> sample_from({batch_size}, vocabulary.to_id("<s>"));
   StorageView<float> probs({batch_size, vocabulary.size()});
   std::vector<std::vector<size_t> > sampled_ids(batch_size);
@@ -686,7 +706,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   size_t max_steps = 200;
 
   for (size_t step = 0; step < max_steps && !all_finished; ++step) {
-    StorageView<float>& logits = decoder(step, sample_from, encoded, lengths);
+    StorageView<float>& logits = decoder(step, sample_from);
     softmax(logits.data(), batch_size, vocabulary.size(), probs.data());
     all_finished = true;
     for (size_t i = 0; i < batch_size; ++i) {
