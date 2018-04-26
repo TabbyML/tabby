@@ -149,6 +149,10 @@ public:
     return resize(new_shape);
   }
 
+  StorageView& grow(size_t dim, size_t size) {
+    return resize(dim, _shape[dim] + size);
+  }
+
   StorageView& resize_as(const StorageView& other) {
     return resize(other._shape);
   }

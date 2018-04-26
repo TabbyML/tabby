@@ -228,36 +228,6 @@ void linear(const float* input,
         beta, output);
 }
 
-void unpad_sequences(const float* input,
-                     const size_t* lengths,
-                     size_t batch_size,
-                     size_t max_length,
-                     size_t depth,
-                     float* output) {
-  const float* src = input;
-  float* dst = output;
-  for (size_t i = 0; i < batch_size; ++i) {
-    const size_t length = lengths[i];
-    size_t count = depth * length;
-    array_copy(src, dst, count);
-    dst += count;
-    src += count + (max_length - length) * depth;
-  }
-}
-
-void swap_middle_dims(const float* x, size_t d0, size_t d1, size_t d2, size_t d3, float* y) {
-  for (size_t i0 = 0; i0 < d0; ++i0) {
-    for (size_t i1 = 0; i1 < d1; ++i1) {
-      for (size_t i2 = 0; i2 < d2; ++i2) {
-        for (size_t i3 = 0; i3 < d3; ++i3) {
-          y[i3 + (i1 * d3) + (i2 * d3 * d1) + (i0 * d3 * d1 * d2)] =
-            x[i3 + (i2 * d3) + (i1 * d3 * d2) + (i0 * d3 * d2 * d1)];
-        }
-      }
-    }
-  }
-}
-
 // void test_concat() {
 //   std::vector<float> a = {1, 2, 3, 1, 2, 3};
 //   std::vector<float> b = {3, 4, 5, 6, 3, 4, 5, 6};

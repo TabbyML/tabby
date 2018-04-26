@@ -11,15 +11,17 @@
 #include "routines.h"
 #include "storage_view.h"
 
-void pad_sequences(const StorageView<float>& flattened,
+template <typename T>
+void pad_sequences(const StorageView<T>& flattened,
                    const StorageView<size_t>& lengths,
-                   StorageView<float>& padded) {
+                   StorageView<T>& padded) {
+  assert(flattened.rank() == 2);
   size_t batch_size = lengths.dim(0);
   size_t max_length = *std::max_element(lengths.data(), lengths.data() + batch_size);
-  size_t depth = flattened.dim(-1);
+  size_t depth = flattened.dim(1);
   padded.resize({batch_size, max_length, depth});
-  const float* src = flattened.data();
-  float* dst = padded.data();
+  const T* src = flattened.data();
+  T* dst = padded.data();
   for (size_t i = 0; i < batch_size; ++i) {
     const size_t length = lengths[i];
     size_t count = length * depth;
@@ -34,15 +36,48 @@ void pad_sequences(const StorageView<float>& flattened,
   }
 }
 
-class Node
-{
-public:
-  virtual ~Node() = default;
-protected:
-  StorageView<float> _output;
-};
+template <typename T>
+void unpad_sequences(const StorageView<T>& padded,
+                     const StorageView<size_t>& lengths,
+                     StorageView<T>& flattened) {
+  assert(padded.rank() == 3);
+  size_t batch_size = lengths.dim(0);
+  size_t max_length = padded.dim(1);
+  size_t depth = padded.dim(2);
+  size_t total_length = std::accumulate(lengths.data(), lengths.data() + batch_size, 0);
+  flattened.resize({total_length, depth});
+  const T* src = padded.data();
+  T* dst = flattened.data();
+  for (size_t i = 0; i < batch_size; ++i) {
+    const size_t length = lengths[i];
+    size_t count = depth * length;
+    array_copy(src, dst, count);
+    dst += count;
+    src += count + (max_length - length) * depth;
+  }
+}
 
-class ScaledEmbeddings : public Node
+template <typename U, typename V>
+void swap_middle_dims(const StorageView<U>& x, StorageView<V>& y) {
+  assert(x.rank() == 4);
+  size_t d0 = x.dim(0);
+  size_t d1 = x.dim(1);
+  size_t d2 = x.dim(2);
+  size_t d3 = x.dim(3);
+  y.resize({d0, d2, d1, d3});
+  for (size_t i0 = 0; i0 < d0; ++i0) {
+    for (size_t i1 = 0; i1 < d1; ++i1) {
+      for (size_t i2 = 0; i2 < d2; ++i2) {
+        for (size_t i3 = 0; i3 < d3; ++i3) {
+          y[i3 + (i1 * d3) + (i2 * d3 * d1) + (i0 * d3 * d1 * d2)] =
+            x[i3 + (i2 * d3) + (i1 * d3 * d2) + (i0 * d3 * d2 * d1)];
+        }
+      }
+    }
+  }
+}
+
+class ScaledEmbeddings
 {
 public:
   ScaledEmbeddings(const Model& model, const std::string& scope)
@@ -64,12 +99,14 @@ public:
 
 private:
   const StorageView<float>& _weight;
+  StorageView<float> _output;
 };
 
-class PositionEncoder : public Node
+class PositionEncoder
 {
 public:
   StorageView<float>& operator()(const StorageView<float>& input, size_t index) {
+    assert(input.rank() == 2);
     size_t batch_size = input.dim(0);
     size_t depth = input.dim(1);
     if (_cached_encodings.empty())
@@ -86,6 +123,7 @@ public:
 
   StorageView<float>& operator()(const StorageView<float>& input,
                                  const StorageView<size_t>& lengths) {
+    assert(input.rank() == 2);
     size_t batch_size = lengths.dim(0);
     size_t depth = input.dim(1);
     if (_cached_encodings.empty())
@@ -104,8 +142,9 @@ public:
   }
 
 private:
-  size_t _max_cached_time = 300;
+  size_t _max_cached_time = 500;
   StorageView<float> _cached_encodings;
+  StorageView<float> _output;
 
   void precompute_position_encoding(size_t max_time, size_t depth) {
     float log_timescale_increment = log(10000) / (depth / 2 - 1);
@@ -133,7 +172,7 @@ private:
   }
 };
 
-class Dense : public Node
+class Dense
 {
 public:
   Dense(const Model& model, const std::string& scope)
@@ -146,11 +185,11 @@ public:
     size_t batch_size = 1;
     for (size_t i = 0; i < shape.size() - 1; ++i)
       batch_size *= shape[i];
-    size_t input_depth = shape.back();
-    size_t output_depth_ = output_depth();
-    _output.resize({batch_size, output_depth_});
+    size_t in_depth = shape.back();
+    size_t out_depth = output_depth();
+    _output.resize({batch_size, out_depth});
     linear(input.data(), _weight.data(), _bias.data(),
-           batch_size, input_depth, output_depth_, _output.data());
+           batch_size, in_depth, out_depth, _output.data());
     return _output;
   }
 
@@ -161,9 +200,10 @@ public:
 private:
   const StorageView<float>& _weight;
   const StorageView<float>& _bias;
+  StorageView<float> _output;
 };
 
-class LayerNorm : public Node
+class LayerNorm
 {
 public:
   LayerNorm(const Model& model, const std::string& scope)
@@ -172,6 +212,7 @@ public:
   }
 
   StorageView<float>& operator()(const StorageView<float>& input) {
+    assert(input.rank() == 2);
     size_t batch_size = input.dim(0);
     size_t depth = input.dim(1);
     _output.resize_as(input);
@@ -195,9 +236,10 @@ private:
   const StorageView<float>& _beta;
   const StorageView<float>& _gamma;
   StorageView<float> _tmp;
+  StorageView<float> _output;
 };
 
-class TransformerFeedForward : public Node
+class TransformerFeedForward
 {
 public:
   TransformerFeedForward(const Model& model,
@@ -222,14 +264,18 @@ private:
   Dense _ff2;
 };
 
-class DotProductAttention : public Node
+class DotProductAttention
 {
 public:
 
   StorageView<float>& operator()(const StorageView<float>& queries,
                                  const StorageView<float>& keys,
                                  const StorageView<float>& values,
-                                 const StorageView<size_t>* values_lengths) {
+                                 const StorageView<size_t>& values_lengths) {
+    assert(queries.rank() == 4);
+    assert(keys.rank() == 4);
+    assert(values.rank() == 4);
+
     size_t batch_size = queries.dim(0);
     size_t num_heads = queries.dim(1);
     size_t queries_time = queries.dim(2);
@@ -244,9 +290,9 @@ public:
                   batch_size * num_heads, queries_time, memory_time, depth,
                   _dot.data());
 
-    if (batch_size > 1 && values_lengths != nullptr) {
+    if (batch_size > 1) {
       for (size_t b = 0; b < batch_size; ++b) {
-        const size_t length = (*values_lengths)[b];
+        const size_t length = values_lengths[b];
         if (length == memory_time)
           continue;
         for (size_t h = 0; h < num_heads; ++h) {
@@ -260,12 +306,13 @@ public:
 
     softmax(_dot.data(), batch_size * num_heads * queries_time, memory_time, _attn.data());
 
-    _output.resize_as(queries);
+    StorageView<float>& output = _dot;
+    output.resize_as(queries);
     batch_mat_mul(_attn.data(), values.data(),
                   CblasNoTrans, CblasNoTrans,
                   batch_size * num_heads, queries_time, depth, memory_time,
-                  _output.data());
-    return _output;
+                  output.data());
+    return output;
   }
 
 private:
@@ -279,150 +326,57 @@ public:
   MultiHeadAttention(const Model& model,
                      const std::string& scope,
                      size_t num_heads)
-    : _num_heads(num_heads)
-    , _layer_norm(model, scope + "/LayerNorm") {
-    for (size_t i = 0;; ++i) {
-      std::string conv_scope = scope + "/conv1d";
-      if (i > 0)
-        conv_scope += "_" + std::to_string(i);
-
-      try {
-        _projections.emplace_back(model, conv_scope);
-      } catch(std::exception&) {
-        break;
-      }
-    }
-
-    _depth = _projections.back().output_depth();
+    : _layer_norm(model, scope + "/LayerNorm")
+    , _num_heads(num_heads) {
   }
 
-  StorageView<float>& operator()(const StorageView<float>& queries,
-                                 const StorageView<size_t>& queries_length,
-                                 const StorageView<float>* memory = nullptr,
-                                 const StorageView<size_t>* memory_length = nullptr,
-                                 int step = -1) {
-    if (memory_length == nullptr)
-      memory_length = &queries_length;
+  void split_heads(const StorageView<float>& x, StorageView<float>& y) {
+    assert(x.rank() == 3);
+    StorageView<const float> z(x.data(), {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
+    swap_middle_dims(z, y);
+  }
 
-    size_t batch_size = queries_length.dim(0);
-    size_t queries_time = *std::max_element(queries_length.data(),
-                                            queries_length.data() + queries_length.size());
-    size_t memory_time = *std::max_element(memory_length->data(),
-                                           memory_length->data() + memory_length->size());
+  void combine_heads(const StorageView<float>& x, StorageView<float>& y) {
+    swap_middle_dims(x, y);
+    y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
+  }
 
-    const StorageView<float>& normed_queries = _layer_norm(queries);
-    StorageView<float> queries_proj;
-    StorageView<float> keys_proj;
-    StorageView<float> values_proj;
+  StorageView<float>& compute_attention(const StorageView<float>& queries,
+                                        const StorageView<float>& keys,
+                                        const StorageView<float>& values,
+                                        const StorageView<size_t>& queries_lengths,
+                                        const StorageView<size_t>& values_lengths) {
+    size_t dk = queries.dim(-1) / _num_heads;
 
-    if (memory == nullptr) {
-      const StorageView<float>& fused_proj = _projections[0](normed_queries);
+    pad_sequences(queries, queries_lengths, _padded_queries);
+    pad_sequences(keys, values_lengths, _padded_keys);
+    pad_sequences(values, values_lengths, _padded_values);
 
-      _splits.resize_as(fused_proj);
-      std::vector<float*> splits = split_in_depth(fused_proj.data(),
-                                                  fused_proj.dim(0), fused_proj.dim(1),
-                                                  3, _splits.data());
+    split_heads(_padded_queries, _split_queries);
+    split_heads(_padded_keys, _split_keys);
+    split_heads(_padded_values, _split_values);
 
-      queries_proj.assign(splits[0], {fused_proj.dim(0), _depth});
-      keys_proj.assign(splits[1], {fused_proj.dim(0), _depth});
-      values_proj.assign(splits[2], {fused_proj.dim(0), _depth});
+    array_mul(1.0 / sqrt(dk), _split_queries.data(), _split_queries.size());
 
-      // TODO
-      if (step >= 0) {
-        push_proj(keys_proj, _keys_accu, step);
-        push_proj(values_proj, _values_accu, step);
-        keys_proj.shallow_copy(_keys_accu);
-        values_proj.shallow_copy(_values_accu);
-      }
-    } else {
-      StorageView<float>& proj = _projections[0](normed_queries);
-      queries_proj.shallow_copy(proj);
-      if (step > 0 && !_cached_memory_keys.empty()) {
-        keys_proj.shallow_copy(_cached_memory_keys);
-        values_proj.shallow_copy(_cached_memory_values);
-      } else {
-        const StorageView<float>& fused_proj = _projections[1](*memory);
-        _splits.resize_as(fused_proj);
-        std::vector<float*> splits = split_in_depth(fused_proj.data(),
-                                                    fused_proj.dim(0), fused_proj.dim(1),
-                                                    2, _splits.data());
-        keys_proj.assign(splits[0], {fused_proj.dim(0), _depth});
-        values_proj.assign(splits[1], {fused_proj.dim(0), _depth});
-        _cached_memory_keys = keys_proj;
-        _cached_memory_values = values_proj;
-      }
-    }
-
-    size_t dk = _depth / _num_heads;
-    array_mul(1.0 / sqrt(dk), queries_proj.data(), queries_proj.size());
-
-    pad_sequences(queries_proj, queries_length, _padded_queries);
-    pad_sequences(keys_proj, *memory_length, _padded_keys);
-    pad_sequences(values_proj, *memory_length, _padded_values);
-
-    _split_queries.resize({batch_size, _num_heads, queries_time, dk});
-    _split_keys.resize({batch_size, _num_heads, memory_time, dk});
-    _split_values.resize_as(_split_keys);
-
-    swap_middle_dims(_padded_queries.data(),
-                     batch_size, queries_time, _num_heads, dk, _split_queries.data());
-    swap_middle_dims(_padded_keys.data(),
-                     batch_size, memory_time, _num_heads, dk, _split_keys.data());
-    swap_middle_dims(_padded_values.data(),
-                     batch_size, memory_time, _num_heads, dk, _split_values.data());
-
-    StorageView<float>& context = _attention(_split_queries,
-                                             _split_keys,
-                                             _split_values,
-                                             memory_length);
+    const StorageView<float>& context = _attention(_split_queries,
+                                                   _split_keys,
+                                                   _split_values,
+                                                   values_lengths);
 
     StorageView<float>& combined = _padded_queries;
-    StorageView<float>& combined_pruned = queries_proj;
-    swap_middle_dims(context.data(), batch_size, _num_heads, queries_time, dk, combined.data());
-    unpad_sequences(combined.data(), queries_length.data(),
-                    batch_size, queries_time, _depth, combined_pruned.data());
+    combine_heads(context, combined);
 
-    StorageView<float>& output = _projections.back()(combined_pruned);
-    array_add(queries.data(), output.data(), queries.size());
-    return output;
+    StorageView<float>& combined_pruned = _padded_keys;
+    unpad_sequences(combined, queries_lengths, combined_pruned);
+    return combined_pruned;
   }
 
-  static StorageView<float>& push_proj(const StorageView<float>& proj,
-                                       StorageView<float>& accu,
-                                       size_t step) {
-    if (step == 0) {
-      accu = proj;
-    } else {
-      static StorageView<float> tmp;
-      tmp = accu;
-      size_t batch_size = proj.dim(0);
-      size_t depth = proj.dim(1);
-      accu.resize({batch_size * (step + 1), depth});
-      const float* src = tmp.data();
-      float* dst = accu.data();
-      for (size_t i = 0; i < batch_size; ++i) {
-        array_copy(src, dst, step * depth);
-        src += step * depth;
-        dst += step * depth;
-        array_copy(proj.index({i}), dst, depth);
-        dst += depth;
-      }
-    }
-    return accu;
-  }
+protected:
+  LayerNorm _layer_norm;
 
 private:
   size_t _num_heads;
-  size_t _depth;
-  LayerNorm _layer_norm;
   DotProductAttention _attention;
-  std::vector<Dense> _projections;
-
-  StorageView<float> _cached_memory_keys;
-  StorageView<float> _cached_memory_values;
-  StorageView<float> _splits;
-  StorageView<float> _keys_accu;
-  StorageView<float> _values_accu;
   StorageView<float> _padded_queries;
   StorageView<float> _padded_keys;
   StorageView<float> _padded_values;
@@ -431,57 +385,200 @@ private:
   StorageView<float> _split_values;
 };
 
-class TransformerEncoderLayer : public Node
+class TransformerSelfAttention : public MultiHeadAttention
+{
+private:
+  Dense _linear_in;
+  Dense _linear_out;
+  StorageView<float> _splits;
+
+public:
+  TransformerSelfAttention(const Model& model,
+                           const std::string& scope,
+                           size_t num_heads)
+    : MultiHeadAttention(model, scope, num_heads)
+    , _linear_in(model, scope + "/conv1d")
+    , _linear_out(model, scope + "/conv1d_1") {
+  }
+
+  StorageView<float>& operator()(const StorageView<float>& queries,
+                                 const StorageView<size_t>& queries_lengths,
+                                 StorageView<float>* cached_keys = nullptr,
+                                 StorageView<float>* cached_values = nullptr,
+                                 ssize_t step = 0) {
+    const StorageView<float>& normed_queries = _layer_norm(queries);
+    const StorageView<float>& fused_proj = _linear_in(normed_queries);
+
+    _splits.resize_as(fused_proj);
+    std::vector<float*> splits = split_in_depth(fused_proj.data(),
+                                                fused_proj.dim(0), fused_proj.dim(1),
+                                                3, _splits.data());
+
+    size_t split_depth = fused_proj.dim(1) / 3;
+    StorageView<float> queries_proj(splits[0], {fused_proj.dim(0), split_depth});
+    StorageView<float> keys_proj(splits[1], {fused_proj.dim(0), split_depth});
+    StorageView<float> values_proj(splits[2], {fused_proj.dim(0), split_depth});
+    StorageView<size_t> values_lengths(queries_lengths);
+
+    if (step >= 0 && cached_keys != nullptr) {
+      cache_proj(step, keys_proj, *cached_keys);
+      cache_proj(step, values_proj, *cached_values);
+      keys_proj.shallow_copy(*cached_keys);
+      values_proj.shallow_copy(*cached_values);
+      values_lengths.fill(step + 1);
+    }
+
+    const StorageView<float>& attention_output = compute_attention(queries_proj,
+                                                                   keys_proj,
+                                                                   values_proj,
+                                                                   queries_lengths,
+                                                                   values_lengths);
+
+    StorageView<float>& output = _linear_out(attention_output);
+    array_add(queries.data(), output.data(), queries.size());
+    return output;
+  }
+
+  static void cache_proj(ssize_t step, const StorageView<float>& proj, StorageView<float>& cache) {
+    assert(proj.rank() == 2);
+    if (step == 0) {
+      cache = proj;
+      return;
+    }
+    assert(cache.rank() == 2);
+    size_t batch_size = proj.dim(0);
+    size_t depth = proj.dim(1);
+    static StorageView<float> tmp;
+    tmp = cache;
+    cache.grow(0, batch_size);
+    const float* src = tmp.data();
+    float* dst = cache.data();
+    for (size_t i = 0; i < batch_size; ++i) {
+      array_copy(src, dst, step * depth);
+      src += step * depth;
+      dst += step * depth;
+      array_copy(proj.index({i}), dst, depth);
+      dst += depth;
+    }
+  }
+
+};
+
+class TransformerAttention : public MultiHeadAttention
+{
+private:
+  Dense _linear_query;
+  Dense _linear_memory;
+  Dense _linear_out;
+  StorageView<float> _splits;
+
+public:
+  TransformerAttention(const Model& model,
+                       const std::string& scope,
+                       size_t num_heads)
+    : MultiHeadAttention(model, scope, num_heads)
+    , _linear_query(model, scope + "/conv1d")
+    , _linear_memory(model, scope + "/conv1d_1")
+    , _linear_out(model, scope + "/conv1d_2") {
+  }
+
+  StorageView<float>& operator()(const StorageView<float>& queries,
+                                 const StorageView<size_t>& queries_lengths,
+                                 const StorageView<float>& memory,
+                                 const StorageView<size_t>& memory_lengths,
+                                 StorageView<float>* cached_keys = nullptr,
+                                 StorageView<float>* cached_values = nullptr,
+                                 ssize_t step = -1) {
+    size_t depth = _linear_query.output_depth();
+
+    const StorageView<float>& normed_queries = _layer_norm(queries);
+    const StorageView<float>& queries_proj = _linear_query(normed_queries);
+    StorageView<float> keys_proj;
+    StorageView<float> values_proj;
+
+    if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
+      keys_proj.shallow_copy(*cached_keys);
+      values_proj.shallow_copy(*cached_values);
+    } else {
+      const StorageView<float>& memory_proj = _linear_memory(memory);
+      _splits.resize_as(memory_proj);
+      std::vector<float*> splits = split_in_depth(memory_proj.data(),
+                                                  memory_proj.dim(0), memory_proj.dim(1),
+                                                  2, _splits.data());
+      keys_proj.assign(splits[0], {memory_proj.dim(0), depth});
+      values_proj.assign(splits[1], {memory_proj.dim(0), depth});
+      if (cached_keys != nullptr) {
+        *cached_keys = keys_proj;
+        *cached_values = values_proj;
+      }
+    }
+
+    const StorageView<float>& attention_output = compute_attention(queries_proj,
+                                                                   keys_proj,
+                                                                   values_proj,
+                                                                   queries_lengths,
+                                                                   memory_lengths);
+
+    StorageView<float>& output = _linear_out(attention_output);
+    array_add(queries.data(), output.data(), queries.size());
+    return output;
+  }
+};
+
+class TransformerEncoderLayer
 {
 public:
   TransformerEncoderLayer(const Model& model,
                           const std::string& scope)
-    : _multi_head_attention(model, scope + "/multi_head", 8)
+    : _self_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
   }
 
   StorageView<float>& operator()(const StorageView<float>& input,
                                  const StorageView<size_t>& lengths) {
-    const StorageView<float>& context = _multi_head_attention(input, lengths);
+    const StorageView<float>& context = _self_attention(input, lengths);
     return _ff(context);
   }
 
 private:
-  MultiHeadAttention _multi_head_attention;
+  TransformerSelfAttention _self_attention;
   TransformerFeedForward _ff;
 };
 
-class TransformerDecoderLayer : public Node
+class TransformerDecoderLayer
 {
 public:
   TransformerDecoderLayer(const Model& model,
                           const std::string& scope)
-    : _masked_multi_head_attention(model, scope + "/masked_multi_head", 8)
-    , _multi_head_attention(model, scope + "/multi_head", 8)
+    : _self_attention(model, scope + "/masked_multi_head", 8)
+    , _encoder_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
   }
 
   StorageView<float>& operator()(size_t step,
                                  const StorageView<float>& input,
+                                 const StorageView<size_t>& input_lengths,
                                  const StorageView<float>& memory,
-                                 const StorageView<size_t>& lengths,
-                                 const StorageView<size_t>& history_lengths,
                                  const StorageView<size_t>& memory_lengths) {
-    const StorageView<float>& encoded = _masked_multi_head_attention(
-      input, lengths, nullptr, &history_lengths, step);
-    const StorageView<float>& context = _multi_head_attention(
-      encoded, lengths, &memory, &memory_lengths, step);
+    const StorageView<float>& encoded = _self_attention(
+      input, input_lengths, &_cached_self_attn_keys, &_cached_self_attn_values, step);
+    const StorageView<float>& context = _encoder_attention(
+      encoded, input_lengths, memory, memory_lengths, &_cached_attn_keys, &_cached_attn_values, step);
     return _ff(context);
   }
 
 private:
-  MultiHeadAttention _masked_multi_head_attention;
-  MultiHeadAttention _multi_head_attention;
+  TransformerSelfAttention _self_attention;
+  TransformerAttention _encoder_attention;
   TransformerFeedForward _ff;
+  StorageView<float> _cached_self_attn_keys;
+  StorageView<float> _cached_self_attn_values;
+  StorageView<float> _cached_attn_keys;
+  StorageView<float> _cached_attn_values;
 };
 
 template <typename TransformerLayer>
-class TransformerStack : public Node
+class TransformerStack
 {
 public:
   TransformerStack(const Model& model, const std::string& scope)
@@ -540,11 +637,10 @@ public:
     const StorageView<float>& embeddings = _scaled_embeddings(ids);
     const StorageView<float>& input = _position_encoder(embeddings, step);
     StorageView<size_t> query_lengths({batch_size}, 1);
-    StorageView<size_t> history_lengths({batch_size}, step + 1);
 
     const StorageView<float>* x = &input;
     for (auto& layer : _layers) {
-      x = &layer(step, *x, memory, query_lengths, history_lengths, memory_lengths);
+      x = &layer(step, *x, query_lengths, memory, memory_lengths);
     }
     const StorageView<float>& normed = _output_norm(*x);
     return _proj(normed);
@@ -627,8 +723,8 @@ int main() {
   std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
-  size_t max_batch_size = 2;
-  size_t max_iter = 1000;
+  size_t max_batch_size = 1;
+  size_t max_iter = 100000;
   size_t iter = 0;
 
   while (std::getline(text_file, line)) {
