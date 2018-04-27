@@ -153,6 +153,10 @@ public:
     return resize(dim, _shape[dim] + size);
   }
 
+  StorageView& shrink(size_t dim, size_t size) {
+    return resize(dim, _shape[dim] - size);
+  }
+
   template <typename U>
   StorageView& resize_as(const StorageView<U>& other) {
     return resize(other._shape);

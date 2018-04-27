@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstring>
 #include <unordered_map>
+#include <chrono>
 
 #include "model.h"
 #include "vocabulary.h"
@@ -12,9 +13,9 @@
 #include "storage_view.h"
 
 template <typename T>
-void pad_sequences(const StorageView<T>& flattened,
-                   const StorageView<size_t>& lengths,
-                   StorageView<T>& padded) {
+static void pad_sequences(const StorageView<T>& flattened,
+                          const StorageView<size_t>& lengths,
+                          StorageView<T>& padded) {
   assert(flattened.rank() == 2);
   size_t batch_size = lengths.dim(0);
   size_t max_length = *std::max_element(lengths.data(), lengths.data() + batch_size);
@@ -37,9 +38,9 @@ void pad_sequences(const StorageView<T>& flattened,
 }
 
 template <typename T>
-void unpad_sequences(const StorageView<T>& padded,
-                     const StorageView<size_t>& lengths,
-                     StorageView<T>& flattened) {
+static void unpad_sequences(const StorageView<T>& padded,
+                            const StorageView<size_t>& lengths,
+                            StorageView<T>& flattened) {
   assert(padded.rank() == 3);
   size_t batch_size = lengths.dim(0);
   size_t max_length = padded.dim(1);
@@ -58,7 +59,7 @@ void unpad_sequences(const StorageView<T>& padded,
 }
 
 template <typename U, typename V>
-void swap_middle_dims(const StorageView<U>& x, StorageView<V>& y) {
+static void swap_middle_dims(const StorageView<U>& x, StorageView<V>& y) {
   assert(x.rank() == 4);
   size_t d0 = x.dim(0);
   size_t d1 = x.dim(1);
@@ -627,6 +628,42 @@ struct TransformerDecoderState {
   std::vector<StorageView<float>> cache;
 };
 
+static void remove_batch(StorageView<float>& s,
+                         const StorageView<size_t>& lengths,
+                         const std::vector<bool>& finished) {
+  assert(s.rank() == 2);
+  static StorageView<float> tmp;
+  tmp = s;
+  size_t batch_size = lengths.dim(0);
+  size_t depth = s.dim(1);
+  const float* src = tmp.data();
+  float* dst = s.data();
+  size_t cum_length = 0;
+  for (size_t i = 0; i < batch_size; ++i) {
+    const size_t length = lengths[i];
+    const size_t count = length * depth;
+    if (!finished[i]) {
+      array_copy(src, dst, count);
+      dst += count;
+      cum_length += length;
+    }
+    src += count;
+  }
+  s.resize(0, cum_length);
+}
+
+static void remove_batch(StorageView<size_t>& s, const std::vector<bool>& finished) {
+  assert(s.rank() == 1);
+  size_t write_index = 0;
+  size_t read_index = 0;
+  while (read_index < s.dim(0)) {
+    if (!finished[read_index])
+      s[write_index++] = s[read_index];
+    read_index++;
+  }
+  s.resize(0, write_index);
+}
+
 class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
 {
 public:
@@ -640,6 +677,19 @@ public:
                    const StorageView<size_t>& memory_lengths) {
     _state.memory = memory;
     _state.memory_lengths = memory_lengths;
+  }
+
+  void prune_batch(size_t step, const std::vector<bool>& ids) {
+    size_t batch_size = _state.memory_lengths.dim(0);
+    StorageView<size_t> step_lengths({batch_size}, step + 1);
+    for (size_t l = 0; l < _layers.size(); ++l) {
+      remove_batch(_state.cache[0 + l * 4], step_lengths, ids);
+      remove_batch(_state.cache[1 + l * 4], step_lengths, ids);
+      remove_batch(_state.cache[2 + l * 4], _state.memory_lengths, ids);
+      remove_batch(_state.cache[3 + l * 4], _state.memory_lengths, ids);
+    }
+    remove_batch(_state.memory, _state.memory_lengths, ids);
+    remove_batch(_state.memory_lengths, ids);
   }
 
   StorageView<float>& operator()(size_t step, const StorageView<size_t>& ids) {
@@ -702,23 +752,40 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   StorageView<float> probs({batch_size, vocabulary.size()});
   std::vector<std::vector<size_t> > sampled_ids(batch_size);
   std::vector<bool> finished(batch_size, false);
-  bool all_finished = false;
+  std::vector<size_t> batch_offset(batch_size);
+  for (size_t i = 0; i < batch_offset.size(); ++i)
+    batch_offset[i] = i;
   size_t max_steps = 200;
 
-  for (size_t step = 0; step < max_steps && !all_finished; ++step) {
+  for (size_t step = 0; step < max_steps; ++step) {
     StorageView<float>& logits = decoder(step, sample_from);
-    softmax(logits.data(), batch_size, vocabulary.size(), probs.data());
-    all_finished = true;
-    for (size_t i = 0; i < batch_size; ++i) {
-      if (finished[i])
-        continue;
+    softmax(logits.data(), logits.dim(0), logits.dim(1), probs.data());
+
+    std::vector<bool> finished_batch(logits.dim(0), false);
+    bool one_finished = false;
+    for (size_t i = 0; i < logits.dim(0); ++i) {
       size_t best = array_max_element(probs.index({i}), vocabulary.size());
-      sample_from[i] = best;
-      if (best == 2)
-        finished[i] = true;
-      else {
-        all_finished = false;
-        sampled_ids[i].push_back(best);
+      size_t batch_id = batch_offset[i];
+      if (best == 2) {
+        finished[batch_id] = true;
+        finished_batch[i] = true;
+        one_finished = true;
+      } else {
+        sample_from[i] = best;
+        sampled_ids[batch_id].push_back(best);
+      }
+    }
+
+    if (one_finished) {
+      remove_batch(sample_from, finished_batch);
+      if (sample_from.empty())
+        break;
+      decoder.prune_batch(step, finished_batch);
+      size_t write_index = 0;
+      size_t read_index = 0;
+      for (; read_index < finished_batch.size(); ++read_index) {
+        if (!finished_batch[read_index])
+          batch_offset[write_index++] = batch_offset[read_index];
       }
     }
   }
@@ -731,7 +798,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
   vmlSetMode(VML_EP);
 
   Model model("/home/klein/dev/ctransformer/model.bin");
@@ -740,15 +807,16 @@ int main() {
   TransformerEncoder encoder(model, "transformer/encoder");
   TransformerDecoder decoder(model, "transformer/decoder");
 
-  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
+  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en.200");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
-  size_t max_batch_size = 1;
-  size_t max_iter = 100000;
-  size_t iter = 0;
+
+  size_t max_batch_size = argc > 1 ? std::stoi(argv[1]) : 1;
+  size_t num_tokens = 0;
+
+  std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
   while (std::getline(text_file, line)) {
-    std::cout << "  INPUT: " << line << std::endl;
     input_tokens.emplace_back();
     std::string token;
     for (size_t i = 0; i < line.length(); ++i) {
@@ -765,13 +833,11 @@ int main() {
       input_tokens.back().push_back(token);
       token.clear();
     }
+    num_tokens += input_tokens.back().size();
 
     if (input_tokens.size() == max_batch_size) {
       translate(input_tokens, vocabulary, encoder, decoder);
       input_tokens.clear();
-      iter += 1;
-      if (iter >= max_iter)
-        break;
     }
   }
 
@@ -779,5 +845,8 @@ int main() {
     translate(input_tokens, vocabulary, encoder, decoder);
   }
 
+  std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+  std::cerr << static_cast<double>(num_tokens) / static_cast<double>(duration / 1000) << std::endl;
   return 0;
 }
