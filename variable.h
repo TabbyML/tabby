@@ -1,40 +1,23 @@
 #pragma once
 
-#include <ostream>
-
 class Variable
 {
 public:
-  Variable(unsigned short rank,
-           const unsigned int* dimensions,
-           const float* data)
-    : _rank(rank)
-    , _dimensions(dimensions)
-    , _data(data) {
+  Variable(const float* data, const std::vector<size_t>& shape)
+    : _data(data)
+    , _shape(shape) {
   }
-  unsigned short rank() const {
-    return _rank;
+  size_t rank() const {
+    return _shape.size();
   }
-  const unsigned int* dim() const {
-    return _dimensions;
+  const std::vector<size_t>& shape() const {
+    return _shape;
   }
   const float* data() const {
     return _data;
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const Variable& index);
-
 private:
-  const StorageView<float> _data;
+  const float* _data;
+  std::vector<size_t> _shape;
 };
-
-std::ostream& operator<<(std::ostream& os, const Variable& index) {
-  os << '(';
-  for (unsigned short i = 0; i < index._rank; ++i) {
-    if (i > 0)
-      os << ", ";
-    os << index._dimensions[i];
-  }
-  os << ')';
-  return os;
-}
