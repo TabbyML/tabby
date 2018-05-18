@@ -65,6 +65,10 @@ void array_pow(const float* x, float *y, float power, size_t size) {
   vsPowx(size, x, power, y);
 }
 
+void array_exp(const float* x, float*y, size_t size) {
+  vsExp(size, x, y);
+}
+
 void sgemm(const float* a,
            const float* b,
            CBLAS_TRANSPOSE trans_a,
@@ -171,37 +175,6 @@ std::vector<float*> split_in_depth(const float* input,
     splits[i] = output + (i * batch_size * split_size);
   }
   return splits;
-}
-
-void softmax(float* input, size_t batch_size, size_t depth, float* output) {
-  for (size_t i = 0; i < batch_size; ++i) {
-    float* x = input + (i * depth);
-    float* y = output + (i * depth);
-    float max = array_max(x, depth);
-    array_sub(max, x, depth);
-    vsExp(depth, x, y);
-    float sum = array_sum(y, depth);
-    array_mul(1.f / (sum + EPSILON), y, depth);
-  }
-}
-
-void relu(float* x, size_t size) {
-  for (size_t i = 0; i < size; ++i) {
-    if (x[i] < 0)
-      x[i] = 0;
-  }
-}
-
-void gather(const size_t* indices,
-            const float* tensor,
-            size_t num_indices,
-            size_t stride,
-            float* output) {
-  for (size_t i = 0; i < num_indices; ++i) {
-    const float* src = tensor + (indices[i] * stride);
-    float* dst = output + (i * stride);
-    array_copy(src, dst, stride);
-  }
 }
 
 void linear(const float* input,

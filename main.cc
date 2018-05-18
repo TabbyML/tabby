@@ -11,6 +11,7 @@
 #include "vocabulary.h"
 #include "routines.h"
 #include "storage_view.h"
+#include "ops.h"
 
 template <typename T>
 static void pad_sequences(const StorageView<T>& flattened,
@@ -82,24 +83,22 @@ class ScaledEmbeddings
 {
 public:
   ScaledEmbeddings(const Model& model, const std::string& scope)
-    : _weight(model.get_variable(scope + "/w_embs")) {
+    : _gather_op(model.get_variable(scope + "/w_embs")) {
   }
 
   StorageView<float>& operator()(const StorageView<size_t>& ids) {
-    size_t batch_size = ids.dim(0);
+    _gather_op(ids, _output);
     size_t embedding_size = output_depth();
-    _output.resize({batch_size, embedding_size});
-    gather(ids.data(), _weight.data(), batch_size, embedding_size, _output.data());
     array_mul(sqrt(embedding_size), _output.data(), _output.size());
     return _output;
   }
 
   size_t output_depth() const {
-    return _weight.shape().back();
+    return _gather_op.output_depth();
   }
 
 private:
-  const StorageView<float>& _weight;
+  onmt::ops::Gather _gather_op;
   StorageView<float> _output;
 };
 
@@ -177,30 +176,20 @@ class Dense
 {
 public:
   Dense(const Model& model, const std::string& scope)
-    : _weight(model.get_variable(scope + "/kernel"))
-    , _bias(model.get_variable(scope + "/bias")) {
+    : _op(model.get_variable(scope + "/kernel"), &model.get_variable(scope + "/bias")) {
   }
 
   StorageView<float>& operator()(const StorageView<float>& input) {
-    const auto& shape = input.shape();
-    size_t batch_size = 1;
-    for (size_t i = 0; i < shape.size() - 1; ++i)
-      batch_size *= shape[i];
-    size_t in_depth = shape.back();
-    size_t out_depth = output_depth();
-    _output.resize({batch_size, out_depth});
-    linear(input.data(), _weight.data(), _bias.data(),
-           batch_size, in_depth, out_depth, _output.data());
+    _op(input, _output);
     return _output;
   }
 
   size_t output_depth() const {
-    return _weight.shape().back();
+    return _op.output_depth();
   }
 
 private:
-  const StorageView<float>& _weight;
-  const StorageView<float>& _bias;
+  onmt::ops::Linear _op;
   StorageView<float> _output;
 };
 
@@ -208,35 +197,16 @@ class LayerNorm
 {
 public:
   LayerNorm(const Model& model, const std::string& scope)
-    : _beta(model.get_variable(scope + "/beta"))
-    , _gamma(model.get_variable(scope + "/gamma")) {
+    : _op(model.get_variable(scope + "/beta"), model.get_variable(scope + "/gamma")) {
   }
 
   StorageView<float>& operator()(const StorageView<float>& input) {
-    assert(input.rank() == 2);
-    size_t batch_size = input.dim(0);
-    size_t depth = input.dim(1);
-    _output.resize_as(input);
-    _tmp.resize({depth});
-    for (size_t i = 0; i < batch_size; ++i) {
-      const float* x = input.index({i});
-      float* y = _output.index({i});
-      float mean = array_mean(x, depth);
-      array_copy(x, y, depth);
-      array_sub(mean, y, depth); // y is now centered
-      array_pow(y, _tmp.data(), 2, depth);
-      float variance = array_mean(_tmp.data(), depth);
-      array_mul(1.0 / sqrt(variance + EPSILON), y, depth); // y is now centered and normalized.
-      array_mul(_gamma.data(), y, depth);
-      array_add(_beta.data(), y, depth);
-    }
+    _op(input, _output);
     return _output;
   }
 
 private:
-  const StorageView<float>& _beta;
-  const StorageView<float>& _gamma;
-  StorageView<float> _tmp;
+  onmt::ops::LayerNorm _op;
   StorageView<float> _output;
 };
 
@@ -253,7 +223,7 @@ public:
   StorageView<float>& operator()(const StorageView<float>& input) {
     const StorageView<float>& normed = _layer_norm(input);
     StorageView<float>& inner = _ff1(normed);
-    relu(inner.data(), inner.size());
+    onmt::ops::ReLU()(inner);
     StorageView<float>& outer = _ff2(inner);
     array_add(input.data(), outer.data(), input.size());
     return outer;
@@ -305,7 +275,7 @@ public:
       }
     }
 
-    softmax(_dot.data(), batch_size * num_heads * queries_time, memory_time, _attn.data());
+    onmt::ops::SoftMax()(_dot, _attn);
 
     StorageView<float>& output = _dot;
     output.resize_as(queries);
@@ -759,7 +729,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
 
   for (size_t step = 0; step < max_steps; ++step) {
     StorageView<float>& logits = decoder(step, sample_from);
-    softmax(logits.data(), logits.dim(0), logits.dim(1), probs.data());
+    onmt::ops::SoftMax()(logits, probs);
 
     std::vector<bool> finished_batch(logits.dim(0), false);
     bool one_finished = false;
