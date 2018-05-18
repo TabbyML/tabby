@@ -99,7 +99,7 @@ public:
   }
 
 private:
-  const Variable& _weight;
+  const StorageView<float>& _weight;
   StorageView<float> _output;
 };
 
@@ -199,8 +199,8 @@ public:
   }
 
 private:
-  const Variable& _weight;
-  const Variable& _bias;
+  const StorageView<float>& _weight;
+  const StorageView<float>& _bias;
   StorageView<float> _output;
 };
 
@@ -234,8 +234,8 @@ public:
   }
 
 private:
-  const Variable& _beta;
-  const Variable& _gamma;
+  const StorageView<float>& _beta;
+  const StorageView<float>& _gamma;
   StorageView<float> _tmp;
   StorageView<float> _output;
 };

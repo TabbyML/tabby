@@ -12,7 +12,7 @@
 #include <string>
 #include <map>
 
-#include "variable.h"
+#include "storage_view.h"
 
 void* mmap_file(const char* path, size_t* file_size) {
   *file_size = 0;
@@ -62,7 +62,7 @@ public:
         offset *= consume<unsigned int>(&ptr);
       }
       unsigned int data_width = consume<unsigned char>(&ptr);
-      _variable_index.emplace(name, Variable(reinterpret_cast<const float*>(ptr), shape));
+      _variable_index.emplace(name, StorageView<float>(reinterpret_cast<float*>(ptr), shape));
       ptr += offset * data_width;
     }
 
@@ -75,7 +75,7 @@ public:
       munmap(_model, _model_size);
   }
 
-  const Variable& get_variable(const std::string& scope) const {
+  const StorageView<float>& get_variable(const std::string& scope) const {
     auto it = _variable_index.lower_bound(scope);
     if (it->first.find(scope) == std::string::npos)
       throw std::out_of_range("no variable found in scope '" + scope + "'");
@@ -85,5 +85,5 @@ public:
 private:
   void* _model;
   size_t _model_size;
-  std::map<std::string, Variable> _variable_index;
+  std::map<std::string, StorageView<float> > _variable_index;
 };
