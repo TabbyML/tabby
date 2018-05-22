@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compute.h"
 #include "routines.h"
 #include "storage_view.h"
 
@@ -14,22 +15,21 @@ namespace onmt {
       }
 
       void operator()(const StorageView<float>& input, StorageView<float>& output) const {
-        assert(input.rank() == 2);
-        size_t batch_size = input.dim(0);
-        size_t depth = input.dim(1);
+        size_t depth = input.dim(-1);
+        size_t batch_size = input.size() / depth;
         StorageView<float> tmp({depth});
         output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
           const float* x = input.index({i});
           float* y = output.index({i});
-          float mean = array_mean(x, depth);
-          array_copy(x, y, depth);
-          array_sub(mean, y, depth); // y is now centered
-          array_pow(y, tmp.data(), 2, depth);
-          float variance = array_mean(tmp.data(), depth);
-          array_mul(1.0 / sqrt(variance + EPSILON), y, depth); // y is now centered and normalized.
-          array_mul(_gamma.data(), y, depth);
-          array_add(_beta.data(), y, depth);
+          float mean = compute::mean(x, depth);
+          compute::copy(x, y, depth);
+          compute::sub(mean, y, depth);
+          compute::pow(y, tmp.data(), 2.f, depth);
+          float variance = compute::mean(tmp.data(), depth);
+          compute::mul(static_cast<float>(1.f / sqrt(variance + EPSILON)), y, depth);
+          compute::mul(_gamma.data(), y, depth);
+          compute::add(_beta.data(), y, depth);
         }
       }
 
@@ -59,32 +59,27 @@ namespace onmt {
 
         assert(k == b.dim(_trans_b ? -1 : -2));
 
-        y.resize({m, n});
+        Shape output_shape(a.shape());
+        output_shape[output_shape.size() - 1] = n;
+        output_shape[output_shape.size() - 2] = m;
+        y.resize(output_shape);
 
         if (_beta != static_cast<Out>(0)) {
           assert(c != nullptr);
           if (_broadcast_c) {
             assert(c->size() == n);
             for (size_t i = 0; i < m; ++i)
-              array_copy(c->data(), y.index({i}), n);
+              compute::copy(c->data(), y.index({i}), n);
           } else {
             assert(c->size() == y.size());
-            array_copy(c->data(), y.data(), y.size());
+            compute::copy(c->data(), y.data(), y.size());
           }
         }
 
-        CBLAS_TRANSPOSE trans_a = _trans_a ? CblasTrans : CblasNoTrans;
-        CBLAS_TRANSPOSE trans_b = _trans_b ? CblasTrans : CblasNoTrans;
-
-        sgemm(a.data(), b.data(),
-              trans_a, trans_b,
-              m, n, k,
-              _alpha, _beta, y.data());
-
-        // Restore collapsed dimensions.
-        Shape output_shape(a.shape());
-        output_shape.back() = n;
-        y.reshape(output_shape);
+        compute::gemm(a.data(), b.data(),
+                      _trans_a, _trans_b,
+                      m, n, k,
+                      _alpha, _beta, y.data());
       }
 
     private:
@@ -111,27 +106,25 @@ namespace onmt {
                       bool transpose_b,
                       StorageView<Out>& y) const {
         size_t m, n, k;
-        CBLAS_TRANSPOSE trans_a, trans_b;
 
         if (transpose_a) {
           m = a.dim(-1);
           k = a.dim(-2);
-          trans_a = CblasTrans;
         } else {
           m = a.dim(-2);
           k = a.dim(-1);
-          trans_a = CblasNoTrans;
         }
 
         if (transpose_b) {
           n = b.dim(-2);
           assert(k == b.dim(-1));
-          trans_b = CblasTrans;
         } else {
           n = b.dim(-1);
           assert(k == b.dim(-2));
-          trans_b = CblasNoTrans;
         }
+
+        In alpha = 1;
+        Out beta = 0;
 
         if (m * k != a.size()) {
           size_t batch_size = a.size() / (m * k);
@@ -139,10 +132,16 @@ namespace onmt {
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;
           y.resize(output_shape);
-          batch_mat_mul(a.data(), b.data(), trans_a, trans_b, batch_size, m, n, k, y.data());
+          compute::gemm_batch(a.data(), b.data(),
+                              transpose_a, transpose_b,
+                              batch_size, m, n, k,
+                              alpha, beta, y.data());
         } else {
           y.resize({m, n});
-          mat_mul(a.data(), b.data(), trans_a, trans_b, m, n, k, y.data());
+          compute::gemm(a.data(), b.data(),
+                        transpose_a, transpose_b,
+                        m, n, k,
+                        alpha, beta, y.data());
         }
       }
     };
@@ -174,12 +173,12 @@ namespace onmt {
         for (size_t i = 0; i < batch_size; ++i) {
           const In* x = input.data() + (i * depth);
           Out* y = output.data() + (i * depth);
-          In max = array_max(x, depth);
-          array_copy(x, y, depth);
-          array_sub(max, y, depth);
-          array_exp(y, y, depth);
-          Out sum = array_sum(y, depth);
-          array_mul(1.f / (sum + EPSILON), y, depth);
+          In max = compute::max(x, depth);
+          compute::copy(x, y, depth);
+          compute::sub(max, y, depth);
+          compute::exp(y, y, depth);
+          Out sum = compute::sum(y, depth);
+          compute::mul(1.f / (sum + EPSILON), y, depth);
         }
       }
     };
@@ -199,7 +198,7 @@ namespace onmt {
         for (size_t i = 0; i < batch_size; ++i) {
           const T* src = _from.index({input[i]});
           T* dst = output.index({i});
-          array_copy(src, dst, depth);
+          compute::copy(src, dst, depth);
         }
       }
 

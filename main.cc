@@ -12,6 +12,7 @@
 #include "routines.h"
 #include "storage_view.h"
 #include "ops.h"
+#include "compute.h"
 
 template <typename T>
 static void pad_sequences(const StorageView<T>& flattened,
@@ -27,12 +28,12 @@ static void pad_sequences(const StorageView<T>& flattened,
   for (size_t i = 0; i < batch_size; ++i) {
     const size_t length = lengths[i];
     size_t count = length * depth;
-    array_copy(src, dst, count);
+    onmt::compute::copy(src, dst, count);
     dst += count;
     src += count;
     if (length < max_length) {
       count = (max_length - length) * depth;
-      array_fill(dst, 0, count);
+      onmt::compute::fill(dst, static_cast<T>(0), count);
       dst += count;
     }
   }
@@ -53,7 +54,7 @@ static void unpad_sequences(const StorageView<T>& padded,
   for (size_t i = 0; i < batch_size; ++i) {
     const size_t length = lengths[i];
     size_t count = depth * length;
-    array_copy(src, dst, count);
+    onmt::compute::copy(src, dst, count);
     dst += count;
     src += count + (max_length - length) * depth;
   }
@@ -89,7 +90,7 @@ public:
   StorageView<float>& operator()(const StorageView<size_t>& ids) {
     _gather_op(ids, _output);
     size_t embedding_size = output_depth();
-    array_mul(sqrt(embedding_size), _output.data(), _output.size());
+    onmt::compute::mul(static_cast<float>(sqrt(embedding_size)), _output.data(), _output.size());
     return _output;
   }
 
@@ -113,13 +114,13 @@ public:
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
     _output.resize_as(input);
-    array_copy(input.data(), _output.data(), input.size());
+    onmt::compute::copy(input.data(), _output.data(), input.size());
     const float* x = _cached_encodings.data();
     size_t offset = 0;
     for (size_t i = 0; i < batch_size; ++i) {
       const size_t length = lengths[i];
       float* y = _output.index({offset});
-      array_add(x, y, length * depth);
+      onmt::compute::add(x, y, length * depth);
       offset += length;
     }
     return _output;
@@ -218,7 +219,7 @@ public:
     StorageView<float>& inner = _ff1(normed);
     onmt::ops::ReLU()(inner);
     StorageView<float>& outer = _ff2(inner);
-    array_add(input.data(), outer.data(), input.size());
+    onmt::compute::add(input.data(), outer.data(), input.size());
     return outer;
   }
 
@@ -255,7 +256,7 @@ public:
         for (size_t h = 0; h < num_heads; ++h) {
           for (size_t i = 0; i < queries_time; ++i) {
             float* x = _dot.index({b, h, i});
-            array_fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
+            onmt::compute::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
           }
         }
       }
@@ -307,7 +308,7 @@ public:
     split_heads(_padded_keys, _split_keys);
     split_heads(_padded_values, _split_values);
 
-    array_mul(1.0 / sqrt(dk), _split_queries.data(), _split_queries.size());
+    onmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)), _split_queries.data(), _split_queries.size());
 
     const StorageView<float>& context = _attention(_split_queries,
                                                    _split_keys,
@@ -386,7 +387,7 @@ public:
                                                                    values_lengths);
 
     StorageView<float>& output = _linear_out(attention_output);
-    array_add(queries.data(), output.data(), queries.size());
+    onmt::compute::add(queries.data(), output.data(), queries.size());
     return output;
   }
 
@@ -405,10 +406,10 @@ public:
     const float* src = tmp.data();
     float* dst = cache.data();
     for (size_t i = 0; i < batch_size; ++i) {
-      array_copy(src, dst, step * depth);
+      onmt::compute::copy(src, dst, step * depth);
       src += step * depth;
       dst += step * depth;
-      array_copy(proj.index({i}), dst, depth);
+      onmt::compute::copy(proj.index({i}), dst, depth);
       dst += depth;
     }
   }
@@ -471,7 +472,7 @@ public:
                                                                    memory_lengths);
 
     StorageView<float>& output = _linear_out(attention_output);
-    array_add(queries.data(), output.data(), queries.size());
+    onmt::compute::add(queries.data(), output.data(), queries.size());
     return output;
   }
 };
@@ -593,7 +594,7 @@ static void remove_batch(StorageView<float>& s,
     const size_t length = lengths[i];
     const size_t count = length * depth;
     if (!finished[i]) {
-      array_copy(src, dst, count);
+      onmt::compute::copy(src, dst, count);
       dst += count;
       cum_length += length;
     }
@@ -714,7 +715,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     std::vector<bool> finished_batch(logits.dim(0), false);
     bool one_finished = false;
     for (size_t i = 0; i < logits.dim(0); ++i) {
-      size_t best = array_max_element(probs.index({i}), vocabulary.size());
+      size_t best = onmt::compute::max_element(probs.index({i}), vocabulary.size());
       size_t batch_id = batch_offset[i];
       if (best == 2) {
         finished[batch_id] = true;
