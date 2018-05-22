@@ -240,15 +240,8 @@ public:
     size_t num_heads = queries.dim(1);
     size_t queries_time = queries.dim(2);
     size_t memory_time = keys.dim(2);
-    size_t depth = queries.dim(3);
 
-    _dot.resize({batch_size, num_heads, queries_time, memory_time});
-    _attn.resize_as(_dot);
-
-    batch_mat_mul(queries.data(), keys.data(),
-                  CblasNoTrans, CblasTrans,
-                  batch_size * num_heads, queries_time, memory_time, depth,
-                  _dot.data());
+    onmt::ops::MatMul()(queries, keys, false, true, _dot);
 
     if (batch_size > 1) {
       for (size_t b = 0; b < batch_size; ++b) {
@@ -265,14 +258,8 @@ public:
     }
 
     onmt::ops::SoftMax()(_dot, _attn);
-
-    StorageView<float>& output = _dot;
-    output.resize_as(queries);
-    batch_mat_mul(_attn.data(), values.data(),
-                  CblasNoTrans, CblasNoTrans,
-                  batch_size * num_heads, queries_time, depth, memory_time,
-                  output.data());
-    return output;
+    onmt::ops::MatMul()(_attn, values, _dot);
+    return _dot;
   }
 
 private:

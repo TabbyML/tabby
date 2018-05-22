@@ -81,6 +81,56 @@ namespace onmt {
       const StorageView<float>* _bias;
     };
 
+    class MatMul {
+    public:
+      void operator()(const StorageView<float>& a,
+                      const StorageView<float>& b,
+                      StorageView<float>& y) const {
+        operator()(a, b, false, false, y);
+      }
+
+      void operator()(const StorageView<float>& a,
+                      const StorageView<float>& b,
+                      bool transpose_a,
+                      bool transpose_b,
+                      StorageView<float>& y) const {
+        size_t m, n, k;
+        CBLAS_TRANSPOSE trans_a, trans_b;
+
+        if (transpose_a) {
+          m = a.dim(-1);
+          k = a.dim(-2);
+          trans_a = CblasTrans;
+        } else {
+          m = a.dim(-2);
+          k = a.dim(-1);
+          trans_a = CblasNoTrans;
+        }
+
+        if (transpose_b) {
+          n = b.dim(-2);
+          assert(k == b.dim(-1));
+          trans_b = CblasTrans;
+        } else {
+          n = b.dim(-1);
+          assert(k == b.dim(-2));
+          trans_b = CblasNoTrans;
+        }
+
+        if (m * k != a.size()) {
+          size_t batch_size = a.size() / (m * k);
+          Shape output_shape(a.shape());
+          output_shape[output_shape.size() - 1] = n;
+          output_shape[output_shape.size() - 2] = m;
+          y.resize(output_shape);
+          batch_mat_mul(a.data(), b.data(), trans_a, trans_b, batch_size, m, n, k, y.data());
+        } else {
+          y.resize({m, n});
+          mat_mul(a.data(), b.data(), trans_a, trans_b, m, n, k, y.data());
+        }
+      }
+    };
+
     class ReLU {
     public:
       void operator()(StorageView<float>& x) const {
@@ -101,6 +151,7 @@ namespace onmt {
       void operator()(const StorageView<float>& input, StorageView<float>& output) const {
         size_t depth = input.dim(-1);
         size_t batch_size = input.size() / depth;
+        output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
           const float* x = input.data() + (i * depth);
           float* y = output.data() + (i * depth);
