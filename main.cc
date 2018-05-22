@@ -105,22 +105,6 @@ private:
 class PositionEncoder
 {
 public:
-  StorageView<float>& operator()(const StorageView<float>& input, size_t index) {
-    assert(input.rank() == 2);
-    size_t batch_size = input.dim(0);
-    size_t depth = input.dim(1);
-    if (_cached_encodings.empty())
-      precompute_position_encoding(_max_cached_time, depth);
-    _output.resize_as(input);
-    array_copy(input.data(), _output.data(), input.size());
-    const float* x = _cached_encodings.index({index});
-    for (size_t i = 0; i < batch_size; ++i) {
-      float* y = _output.index({i});
-      array_add(x, y, depth);
-    }
-    return _output;
-  }
-
   StorageView<float>& operator()(const StorageView<float>& input,
                                  const StorageView<size_t>& lengths) {
     assert(input.rank() == 2);
@@ -139,6 +123,11 @@ public:
       offset += length;
     }
     return _output;
+  }
+
+  StorageView<float>& operator()(const StorageView<float>& input, size_t index) {
+    StorageView<size_t> lengths({input.dim(0)}, 1);
+    return operator()(input, lengths);
   }
 
 private:
