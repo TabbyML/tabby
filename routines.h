@@ -76,6 +76,7 @@ void sgemm(const float* a,
            MKL_INT m,
            MKL_INT n,
            MKL_INT k,
+           float alpha,
            float beta,
            float* c) {
   MKL_INT lda = (trans_a == CblasNoTrans) ? k : m;
@@ -84,7 +85,7 @@ void sgemm(const float* a,
 
   cblas_sgemm(CblasRowMajor, trans_a, trans_b,
               m, n, k,
-              1.0 /* alpha */, a, lda,
+              alpha, a, lda,
               b, ldb,
               beta, c, ldc);
 }
@@ -100,7 +101,7 @@ void mat_mul(const float* a,
   sgemm(a, b,
         trans_a, trans_b,
         m, n, k,
-        0.0 /* beta */, c);
+        1.0 /* alpha */, 0.0 /* beta */, c);
 }
 
 void batch_mat_mul(const float* a,
@@ -176,49 +177,3 @@ std::vector<float*> split_in_depth(const float* input,
   }
   return splits;
 }
-
-void linear(const float* input,
-            const float* weight,
-            const float* bias,
-            size_t batch_size,
-            size_t input_depth,
-            size_t output_depth,
-            float* output) {
-  MKL_INT m = batch_size;
-  MKL_INT n = output_depth;
-  MKL_INT k = input_depth;
-  float beta = 0.0;
-
-  if (bias != nullptr) {
-    beta = 1.0;
-    for (MKL_INT i = 0; i < m; ++i)
-      array_copy(bias, output + (i * n), n);
-  }
-
-  sgemm(input, weight,
-        CblasNoTrans, CblasNoTrans,
-        m, n, k,
-        beta, output);
-}
-
-// void test_concat() {
-//   std::vector<float> a = {1, 2, 3, 1, 2, 3};
-//   std::vector<float> b = {3, 4, 5, 6, 3, 4, 5, 6};
-//   std::vector<float> out(a.size() + b.size());
-//   //std::vector<std::vector<float> > in({a, b});
-//   //concat(engine, in, out, {2, 2}, 1, mkldnn::memory::format::nc);
-//   concat_in_depth({a.data(), b.data()}, {3, 4}, 2, out.data());
-
-//   for (auto v : out)
-//     std::cout << " " << v;
-//   std::cout << std::endl;
-// }
-
-// void test_split() {
-//   std::vector<float> a = {1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6};
-//   std::vector<float> out(a.size());
-//   split_in_depth(a.data(), 2, 6, 2, out.data());
-//   for (auto v : out)
-//     std::cout << " " << v;
-//   std::cout << std::endl;
-// }

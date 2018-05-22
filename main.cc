@@ -98,7 +98,7 @@ public:
   }
 
 private:
-  onmt::ops::Gather _gather_op;
+  onmt::ops::Gather<float> _gather_op;
   StorageView<float> _output;
 };
 
@@ -165,20 +165,24 @@ class Dense
 {
 public:
   Dense(const Model& model, const std::string& scope)
-    : _op(model.get_variable(scope + "/kernel"), &model.get_variable(scope + "/bias")) {
+    : _gemm(1.0, 1.0, true, false, true)
+    , _weight(model.get_variable(scope + "/kernel"))
+    , _bias(model.get_variable(scope + "/bias")) {
   }
 
   StorageView<float>& operator()(const StorageView<float>& input) {
-    _op(input, _output);
+    _gemm(input, _weight, &_bias, _output);
     return _output;
   }
 
   size_t output_depth() const {
-    return _op.output_depth();
+    return _weight.dim(-2);
   }
 
 private:
-  onmt::ops::Linear _op;
+  onmt::ops::Gemm<float, float> _gemm;
+  const StorageView<float>& _weight;
+  const StorageView<float>& _bias;
   StorageView<float> _output;
 };
 
