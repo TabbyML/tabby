@@ -14,92 +14,27 @@
 #include "ops.h"
 #include "compute.h"
 
-template <typename T>
-static void pad_sequences(const onmt::StorageView<T>& flattened,
-                          const onmt::StorageView<size_t>& lengths,
-                          onmt::StorageView<T>& padded) {
-  assert(flattened.rank() == 2);
-  size_t batch_size = lengths.dim(0);
-  size_t max_length = *std::max_element(lengths.data(), lengths.data() + batch_size);
-  size_t depth = flattened.dim(1);
-  padded.resize({batch_size, max_length, depth});
-  const T* src = flattened.data();
-  T* dst = padded.data();
-  for (size_t i = 0; i < batch_size; ++i) {
-    const size_t length = lengths[i];
-    size_t count = length * depth;
-    onmt::compute::copy(src, dst, count);
-    dst += count;
-    src += count;
-    if (length < max_length) {
-      count = (max_length - length) * depth;
-      onmt::compute::fill(dst, static_cast<T>(0), count);
-      dst += count;
-    }
-  }
-}
-
-template <typename T>
-static void unpad_sequences(const onmt::StorageView<T>& padded,
-                            const onmt::StorageView<size_t>& lengths,
-                            onmt::StorageView<T>& flattened) {
-  assert(padded.rank() == 3);
-  size_t batch_size = lengths.dim(0);
-  size_t max_length = padded.dim(1);
-  size_t depth = padded.dim(2);
-  size_t total_length = std::accumulate(lengths.data(), lengths.data() + batch_size, 0);
-  flattened.resize({total_length, depth});
-  const T* src = padded.data();
-  T* dst = flattened.data();
-  for (size_t i = 0; i < batch_size; ++i) {
-    const size_t length = lengths[i];
-    size_t count = depth * length;
-    onmt::compute::copy(src, dst, count);
-    dst += count;
-    src += count + (max_length - length) * depth;
-  }
-}
-
-template <typename U, typename V>
-static void swap_middle_dims(const onmt::StorageView<U>& x, onmt::StorageView<V>& y) {
-  assert(x.rank() == 4);
-  size_t d0 = x.dim(0);
-  size_t d1 = x.dim(1);
-  size_t d2 = x.dim(2);
-  size_t d3 = x.dim(3);
-  y.resize({d0, d2, d1, d3});
-  for (size_t i0 = 0; i0 < d0; ++i0) {
-    for (size_t i1 = 0; i1 < d1; ++i1) {
-      for (size_t i2 = 0; i2 < d2; ++i2) {
-        for (size_t i3 = 0; i3 < d3; ++i3) {
-          y[i3 + (i1 * d3) + (i2 * d3 * d1) + (i0 * d3 * d1 * d2)] =
-            x[i3 + (i2 * d3) + (i1 * d3 * d2) + (i0 * d3 * d2 * d1)];
-        }
-      }
-    }
-  }
-}
-
 class ScaledEmbeddings
 {
 public:
   ScaledEmbeddings(const onmt::Model& model, const std::string& scope)
-    : _gather_op(model.get_variable(scope + "/w_embs")) {
+    : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<size_t>& ids) {
-    _gather_op(ids, _output);
+    _gather_op(_embeddings, ids, _output);
     size_t embedding_size = output_depth();
     onmt::compute::mul(static_cast<float>(sqrt(embedding_size)), _output.data(), _output.size());
     return _output;
   }
 
   size_t output_depth() const {
-    return _gather_op.output_depth();
+    return _embeddings.dim(-1);
   }
 
 private:
-  onmt::ops::Gather<float> _gather_op;
+  onmt::ops::Gather _gather_op;
+  const onmt::StorageView<float>& _embeddings;
   onmt::StorageView<float> _output;
 };
 
@@ -107,7 +42,7 @@ class PositionEncoder
 {
 public:
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& input,
-                                 const onmt::StorageView<size_t>& lengths) {
+                                       const onmt::StorageView<size_t>& lengths) {
     assert(input.rank() == 2);
     size_t batch_size = lengths.dim(0);
     size_t depth = input.dim(1);
@@ -156,9 +91,7 @@ private:
     vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
 
     _cached_encodings.resize({max_time, depth});
-    concat_in_depth({sin_encoding.data(), cos_encoding.data()},
-                    {depth / 2, depth / 2}, max_time,
-                    _cached_encodings.data());
+    onmt::ops::Concat(-1)({&sin_encoding, &cos_encoding}, _cached_encodings);
   }
 };
 
@@ -166,13 +99,13 @@ class Dense
 {
 public:
   Dense(const onmt::Model& model, const std::string& scope)
-    : _gemm(1.0, 1.0, true, false, true)
+    : _gemm_op(1, 1, true, false, true)
     , _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias")) {
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& input) {
-    _gemm(input, _weight, &_bias, _output);
+    _gemm_op(input, _weight, &_bias, _output);
     return _output;
   }
 
@@ -181,7 +114,7 @@ public:
   }
 
 private:
-  onmt::ops::Gemm<float, float> _gemm;
+  onmt::ops::Gemm _gemm_op;
   const onmt::StorageView<float>& _weight;
   const onmt::StorageView<float>& _bias;
   onmt::StorageView<float> _output;
@@ -191,16 +124,19 @@ class LayerNorm
 {
 public:
   LayerNorm(const onmt::Model& model, const std::string& scope)
-    : _op(model.get_variable(scope + "/beta"), model.get_variable(scope + "/gamma")) {
+    : _beta(model.get_variable(scope + "/beta"))
+    , _gamma(model.get_variable(scope + "/gamma")) {
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& input) {
-    _op(input, _output);
+    _norm_op(_beta, _gamma, input, _output);
     return _output;
   }
 
 private:
-  onmt::ops::LayerNorm _op;
+  onmt::ops::LayerNorm _norm_op;
+  const onmt::StorageView<float>& _beta;
+  const onmt::StorageView<float>& _gamma;
   onmt::StorageView<float> _output;
 };
 
@@ -234,9 +170,9 @@ class DotProductAttention
 public:
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& queries,
-                                 const onmt::StorageView<float>& keys,
-                                 const onmt::StorageView<float>& values,
-                                 const onmt::StorageView<size_t>& values_lengths) {
+                                       const onmt::StorageView<float>& keys,
+                                       const onmt::StorageView<float>& values,
+                                       const onmt::StorageView<size_t>& values_lengths) {
     assert(queries.rank() == 4);
     assert(keys.rank() == 4);
     assert(values.rank() == 4);
@@ -294,10 +230,10 @@ public:
   }
 
   onmt::StorageView<float>& compute_attention(const onmt::StorageView<float>& queries,
-                                        const onmt::StorageView<float>& keys,
-                                        const onmt::StorageView<float>& values,
-                                        const onmt::StorageView<size_t>& queries_lengths,
-                                        const onmt::StorageView<size_t>& values_lengths) {
+                                              const onmt::StorageView<float>& keys,
+                                              const onmt::StorageView<float>& values,
+                                              const onmt::StorageView<size_t>& queries_lengths,
+                                              const onmt::StorageView<size_t>& values_lengths) {
     size_t dk = queries.dim(-1) / _num_heads;
 
     pad_sequences(queries, queries_lengths, _padded_queries);
@@ -311,9 +247,9 @@ public:
     onmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)), _split_queries.data(), _split_queries.size());
 
     const onmt::StorageView<float>& context = _attention(_split_queries,
-                                                   _split_keys,
-                                                   _split_values,
-                                                   values_lengths);
+                                                         _split_keys,
+                                                         _split_values,
+                                                         values_lengths);
 
     onmt::StorageView<float>& combined = _padded_queries;
     combine_heads(context, combined);
@@ -354,10 +290,10 @@ public:
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& queries,
-                                 const onmt::StorageView<size_t>& queries_lengths,
-                                 onmt::StorageView<float>* cached_keys = nullptr,
-                                 onmt::StorageView<float>* cached_values = nullptr,
-                                 ssize_t step = 0) {
+                                       const onmt::StorageView<size_t>& queries_lengths,
+                                       onmt::StorageView<float>* cached_keys = nullptr,
+                                       onmt::StorageView<float>* cached_values = nullptr,
+                                       ssize_t step = 0) {
     const onmt::StorageView<float>& normed_queries = _layer_norm(queries);
     const onmt::StorageView<float>& fused_proj = _linear_in(normed_queries);
 
@@ -381,10 +317,10 @@ public:
     }
 
     const onmt::StorageView<float>& attention_output = compute_attention(queries_proj,
-                                                                   keys_proj,
-                                                                   values_proj,
-                                                                   queries_lengths,
-                                                                   values_lengths);
+                                                                         keys_proj,
+                                                                         values_proj,
+                                                                         queries_lengths,
+                                                                         values_lengths);
 
     onmt::StorageView<float>& output = _linear_out(attention_output);
     onmt::compute::add(queries.data(), output.data(), queries.size());
@@ -435,12 +371,12 @@ public:
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& queries,
-                                 const onmt::StorageView<size_t>& queries_lengths,
-                                 const onmt::StorageView<float>& memory,
-                                 const onmt::StorageView<size_t>& memory_lengths,
-                                 onmt::StorageView<float>* cached_keys = nullptr,
-                                 onmt::StorageView<float>* cached_values = nullptr,
-                                 ssize_t step = -1) {
+                                       const onmt::StorageView<size_t>& queries_lengths,
+                                       const onmt::StorageView<float>& memory,
+                                       const onmt::StorageView<size_t>& memory_lengths,
+                                       onmt::StorageView<float>* cached_keys = nullptr,
+                                       onmt::StorageView<float>* cached_values = nullptr,
+                                       ssize_t step = -1) {
     size_t depth = _linear_query.output_depth();
 
     const onmt::StorageView<float>& normed_queries = _layer_norm(queries);
@@ -466,10 +402,10 @@ public:
     }
 
     const onmt::StorageView<float>& attention_output = compute_attention(queries_proj,
-                                                                   keys_proj,
-                                                                   values_proj,
-                                                                   queries_lengths,
-                                                                   memory_lengths);
+                                                                         keys_proj,
+                                                                         values_proj,
+                                                                         queries_lengths,
+                                                                         memory_lengths);
 
     onmt::StorageView<float>& output = _linear_out(attention_output);
     onmt::compute::add(queries.data(), output.data(), queries.size());
@@ -487,7 +423,7 @@ public:
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& input,
-                                 const onmt::StorageView<size_t>& lengths) {
+                                       const onmt::StorageView<size_t>& lengths) {
     const onmt::StorageView<float>& context = _self_attention(input, lengths);
     return _ff(context);
   }
@@ -508,14 +444,14 @@ public:
   }
 
   onmt::StorageView<float>& operator()(size_t step,
-                                 const onmt::StorageView<float>& input,
-                                 const onmt::StorageView<size_t>& input_lengths,
-                                 const onmt::StorageView<float>& memory,
-                                 const onmt::StorageView<size_t>& memory_lengths,
-                                 onmt::StorageView<float>& cached_self_attn_keys,
-                                 onmt::StorageView<float>& cached_self_attn_values,
-                                 onmt::StorageView<float>& cached_attn_keys,
-                                 onmt::StorageView<float>& cached_attn_values) {
+                                       const onmt::StorageView<float>& input,
+                                       const onmt::StorageView<size_t>& input_lengths,
+                                       const onmt::StorageView<float>& memory,
+                                       const onmt::StorageView<size_t>& memory_lengths,
+                                       onmt::StorageView<float>& cached_self_attn_keys,
+                                       onmt::StorageView<float>& cached_self_attn_values,
+                                       onmt::StorageView<float>& cached_attn_keys,
+                                       onmt::StorageView<float>& cached_attn_values) {
     const onmt::StorageView<float>& encoded = _self_attention(
       input, input_lengths, &cached_self_attn_keys, &cached_self_attn_values, step);
     const onmt::StorageView<float>& context = _encoder_attention(
@@ -561,7 +497,7 @@ public:
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<size_t>& ids,
-                                 const onmt::StorageView<size_t>& lengths) {
+                                       const onmt::StorageView<size_t>& lengths) {
     const onmt::StorageView<float>& embeddings = _scaled_embeddings(ids);
     const onmt::StorageView<float>& input = _position_encoder(embeddings, lengths);
 

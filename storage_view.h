@@ -198,13 +198,13 @@ namespace onmt {
     }
 
     StorageView& fill(T value) {
-      onmt::compute::fill(_data, value, _size);
+      compute::fill(_data, value, _size);
       return *this;
     }
 
     StorageView& copy_from(const StorageView& other) {
       assert(_size == other._size);
-      onmt::compute::copy(other._data, _data, other._size);
+      compute::copy(other._data, _data, other._size);
       return *this;
     }
 

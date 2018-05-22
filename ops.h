@@ -4,44 +4,100 @@
 #include "routines.h"
 #include "storage_view.h"
 
+#define EPSILON 0.000001f
+
 namespace onmt {
   namespace ops {
 
-    class LayerNorm {
+    class Concat {
     public:
-      LayerNorm(const StorageView<float>& beta, const StorageView<float>& gamma)
-        : _beta(beta)
-        , _gamma(gamma) {
+      Concat(int axis)
+        : _axis(axis) {
       }
 
-      void operator()(const StorageView<float>& input, StorageView<float>& output) const {
+      template <typename T>
+      void operator()(const std::vector<StorageView<T>*>& inputs,
+                      StorageView<T>& output) const {
+        size_t rank = inputs.front()->rank();
+        size_t axis = _axis < 0 ? rank + _axis : _axis;
+        size_t concat_dims = 0;
+        for (const auto& x : inputs) {
+          concat_dims += x->dim(axis);
+        }
+
+        Shape output_shape(inputs.front()->shape());
+        output_shape[axis] = concat_dims;
+        output.resize(output_shape);
+
+        if (axis == 0) {
+          T* dst = output.data();
+          for (const auto& x : inputs) {
+            compute::copy(x->data(), dst, x->size());
+            dst += x->size();
+          }
+        } else if (axis == rank - 1) {
+          size_t offset = 0;
+          for (const auto& x : inputs) {
+            size_t depth = x->dim(-1);
+            size_t batch = x->size() / depth;
+            for (size_t i = 0; i < batch; ++i) {
+              compute::copy(x->data() + i * depth, output.data() + offset + i * concat_dims, depth);
+            }
+            offset += depth;
+          }
+        } else {
+          throw std::invalid_argument("unsupported concat axis " + std::to_string(axis));
+        }
+      }
+
+    private:
+      int _axis;
+    };
+
+    class Transpose {
+    public:
+      void operator()(StorageView<float>& x) const {
+        size_t depth = x.dim(-1);
+        size_t batch_size = x.size() / depth;
+        compute::transpose_2d_inplace(x.data(), batch_size, depth);
+      }
+
+      void operator()(const StorageView<float>& x, StorageView<float>& y) const {
+        size_t depth = x.dim(-1);
+        size_t batch_size = x.size() / depth;
+        compute::transpose_2d(x.data(), batch_size, depth, y.data());
+      }
+    };
+
+    class LayerNorm {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& beta,
+                      const StorageView<T>& gamma,
+                      const StorageView<T>& input,
+                      StorageView<T>& output) const {
         size_t depth = input.dim(-1);
         size_t batch_size = input.size() / depth;
         StorageView<float> tmp({depth});
         output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
-          const float* x = input.index({i});
-          float* y = output.index({i});
-          float mean = compute::mean(x, depth);
+          const T* x = input.index({i});
+          T* y = output.index({i});
+          T mean = compute::mean(x, depth);
           compute::copy(x, y, depth);
           compute::sub(mean, y, depth);
-          compute::pow(y, tmp.data(), 2.f, depth);
-          float variance = compute::mean(tmp.data(), depth);
-          compute::mul(static_cast<float>(1.f / sqrt(variance + EPSILON)), y, depth);
-          compute::mul(_gamma.data(), y, depth);
-          compute::add(_beta.data(), y, depth);
+          compute::pow(y, tmp.data(), static_cast<T>(2), depth);
+          T variance = compute::mean(tmp.data(), depth);
+          compute::mul(static_cast<T>(1.0 / sqrt(variance + EPSILON)), y, depth);
+          compute::mul(gamma.data(), y, depth);
+          compute::add(beta.data(), y, depth);
         }
       }
-
-    private:
-      const StorageView<float>& _beta;
-      const StorageView<float>& _gamma;
     };
 
-    template <typename In, typename Out>
     class Gemm {
     public:
-      Gemm(In alpha, Out beta, bool broadcast_c, bool trans_a, bool trans_b)
+      Gemm(float alpha, float beta, bool broadcast_c, bool trans_a, bool trans_b)
         : _alpha(alpha)
         , _beta(beta)
         , _broadcast_c(broadcast_c)
@@ -49,6 +105,7 @@ namespace onmt {
         , _trans_b(trans_b) {
       }
 
+      template <typename In, typename Out>
       void operator()(const StorageView<In>& a,
                       const StorageView<In>& b,
                       const StorageView<Out>* c,
@@ -64,7 +121,7 @@ namespace onmt {
         output_shape[output_shape.size() - 2] = m;
         y.resize(output_shape);
 
-        if (_beta != static_cast<Out>(0)) {
+        if (_beta != 0.f) {
           assert(c != nullptr);
           if (_broadcast_c) {
             assert(c->size() == n);
@@ -79,12 +136,13 @@ namespace onmt {
         compute::gemm(a.data(), b.data(),
                       _trans_a, _trans_b,
                       m, n, k,
-                      _alpha, _beta, y.data());
+                      static_cast<In>(_alpha), static_cast<Out>(_beta),
+                      y.data());
       }
 
     private:
-      In _alpha;
-      Out _beta;
+      float _alpha;
+      float _beta;
       bool _broadcast_c;
       bool _trans_a;
       bool _trans_b;
@@ -183,31 +241,29 @@ namespace onmt {
       }
     };
 
-    template <typename T>
     class Gather {
     public:
-      Gather(const StorageView<T>& from)
-        : _from(from) {
-        assert(from.rank() == 2);
+      Gather(int axis = 0)
+        : _axis(axis) {
+        if (axis != 0)
+          throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
-
-      void operator()(const StorageView<size_t>& input, StorageView<T>& output) const {
+      template <typename T>
+      void operator()(const StorageView<T>& data,
+                      const StorageView<size_t>& input,
+                      StorageView<T>& output) const {
         size_t batch_size = input.dim(0);
-        size_t depth = _from.dim(-1);
+        size_t depth = data.dim(-1);
         output.resize({batch_size, depth});
         for (size_t i = 0; i < batch_size; ++i) {
-          const T* src = _from.index({input[i]});
+          const T* src = data.index({input[i]});
           T* dst = output.index({i});
           compute::copy(src, dst, depth);
         }
       }
 
-      size_t output_depth() const {
-        return _from.dim(-1);
-      }
-
     private:
-      const StorageView<T>& _from;
+      int _axis;
     };
 
   }

@@ -78,6 +78,10 @@ namespace onmt {
               size_t m, size_t n, size_t k,
               In alpha, Out beta,
               Out* c);
+    template <typename T>
+    void transpose_2d_inplace(T* a, size_t rows, size_t cols);
+    template <typename T>
+    void transpose_2d(const T* a, size_t rows, size_t cols, T* b);
 
     template <typename In, typename Out>
     void gemm_batch(const In* a, const In* b,
@@ -96,7 +100,7 @@ namespace onmt {
     }
 
 
-    // Specialization for CPU float.
+    // Intel MKL specialization for standard float.
     template<>
     void copy(const float* x, float* y, size_t size) {
       cblas_scopy(size, x, 1, y, 1);
@@ -186,6 +190,15 @@ namespace onmt {
                         b_array.data(), &ldb,
                         &beta, c_array.data(), &ldc,
                         1 /* group_count */, &b_);
+    }
+
+    template<>
+    void transpose_2d_inplace(float* a, size_t rows, size_t cols) {
+      mkl_simatcopy('R', 'T', rows, cols, 1.0, a, cols, rows);
+    }
+    template<>
+    void transpose_2d(const float* a, size_t rows, size_t cols, float* b) {
+      mkl_somatcopy('R', 'T', rows, cols, 1.0, a, cols, b, rows);
     }
 
   }
