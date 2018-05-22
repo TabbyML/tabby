@@ -62,8 +62,19 @@ public:
   }
 
   onmt::StorageView<float>& operator()(const onmt::StorageView<float>& input, size_t index) {
-    onmt::StorageView<size_t> lengths({input.dim(0)}, 1);
-    return operator()(input, lengths);
+    assert(input.rank() == 2);
+    size_t batch_size = input.dim(0);
+    size_t depth = input.dim(1);
+    if (_cached_encodings.empty())
+      precompute_position_encoding(_max_cached_time, depth);
+    _output.resize_as(input);
+    onmt::compute::copy(input.data(), _output.data(), input.size());
+    const float* x = _cached_encodings.index({index});
+    for (size_t i = 0; i < batch_size; ++i) {
+      float* y = _output.index({i});
+      onmt::compute::add(x, y, depth);
+    }
+    return _output;
   }
 
 private:
