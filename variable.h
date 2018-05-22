@@ -2,31 +2,35 @@
 
 #include <ostream>
 
-class Variable
-{
-public:
-  Variable(unsigned short rank,
-           const unsigned int* dimensions,
-           const float* data)
-    : _rank(rank)
-    , _dimensions(dimensions)
-    , _data(data) {
-  }
-  unsigned short rank() const {
-    return _rank;
-  }
-  const unsigned int* dim() const {
-    return _dimensions;
-  }
-  const float* data() const {
-    return _data;
-  }
+namespace onmt {
 
-  friend std::ostream& operator<<(std::ostream& os, const Variable& index);
+  class Variable
+  {
+  public:
+    Variable(unsigned short rank,
+             const unsigned int* dimensions,
+             const float* data)
+      : _rank(rank)
+      , _dimensions(dimensions)
+      , _data(data) {
+    }
+    unsigned short rank() const {
+      return _rank;
+    }
+    const unsigned int* dim() const {
+      return _dimensions;
+    }
+    const float* data() const {
+      return _data;
+    }
 
-private:
-  const StorageView<float> _data;
-};
+    friend std::ostream& operator<<(std::ostream& os, const Variable& index);
+
+  private:
+    const StorageView<float> _data;
+  };
+
+}
 
 std::ostream& operator<<(std::ostream& os, const Variable& index) {
   os << '(';

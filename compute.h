@@ -14,8 +14,7 @@ namespace onmt {
 
     template <typename T>
     void copy(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] = x[i];
+      std::copy_n(x, size, y);
     }
 
     template <typename T>
