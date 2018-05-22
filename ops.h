@@ -29,24 +29,20 @@ namespace onmt {
         output_shape[axis] = concat_dims;
         output.resize(output_shape);
 
-        if (axis == 0) {
-          T* dst = output.data();
-          for (const auto& x : inputs) {
-            compute::copy(x->data(), dst, x->size());
-            dst += x->size();
+        size_t offset = 0;
+        for (const auto& x : inputs) {
+          size_t iter_dim = 1;
+          size_t copy_dim = 1;
+          for (size_t i = 0; i < axis; ++i)
+            iter_dim *= x->dim(i);
+          for (size_t i = axis; i < x->rank(); ++i)
+            copy_dim *= x->dim(i);
+          for (size_t i = 0; i < iter_dim; ++i) {
+            compute::copy(x->data() + i * copy_dim,
+                          output.data() + offset + i * concat_dims * output.stride(axis),
+                          copy_dim);
           }
-        } else if (axis == rank - 1) {
-          size_t offset = 0;
-          for (const auto& x : inputs) {
-            size_t depth = x->dim(-1);
-            size_t batch = x->size() / depth;
-            for (size_t i = 0; i < batch; ++i) {
-              compute::copy(x->data() + i * depth, output.data() + offset + i * concat_dims, depth);
-            }
-            offset += depth;
-          }
-        } else {
-          throw std::invalid_argument("unsupported concat axis " + std::to_string(axis));
+          offset += copy_dim;
         }
       }
 
@@ -56,17 +52,43 @@ namespace onmt {
 
     class Transpose {
     public:
-      void operator()(StorageView<float>& x) const {
+      template <typename T>
+      void operator()(StorageView<T>& x) const {
         size_t depth = x.dim(-1);
         size_t batch_size = x.size() / depth;
         compute::transpose_2d_inplace(x.data(), batch_size, depth);
       }
 
-      void operator()(const StorageView<float>& x, StorageView<float>& y) const {
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
         size_t depth = x.dim(-1);
         size_t batch_size = x.size() / depth;
         compute::transpose_2d(x.data(), batch_size, depth, y.data());
       }
+    };
+
+    class Unsqueeze {
+    public:
+      Unsqueeze(const std::vector<size_t>& axes)
+        : _axes(axes) {
+        std::sort(_axes.begin(), _axes.end());
+      }
+
+      template <typename T>
+      void operator()(StorageView<T>& data) const {
+        Shape new_shape;
+        for (size_t i = 0, j = 0; i < data.rank(); ++i) {
+          if (i == _axes[j]) {
+            ++j;
+            new_shape.push_back(1);
+          }
+          new_shape.push_back(data.dim(i));
+        }
+        data.reshape(new_shape);
+      }
+
+    private:
+      std::vector<size_t> _axes;
     };
 
     class LayerNorm {
