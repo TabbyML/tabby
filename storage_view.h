@@ -270,25 +270,26 @@ namespace onmt {
 
   };
 
-}
 
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const onmt::StorageView<T>& storage) {
-  if (storage.size() < 5) {
-    for (size_t i = 0; i < storage.size(); ++i) {
-      os << ' ' << storage[i];
+  template <typename T>
+  std::ostream& operator<<(std::ostream& os, const onmt::StorageView<T>& storage) {
+    if (storage.size() < 5) {
+      for (size_t i = 0; i < storage.size(); ++i) {
+        os << ' ' << storage[i];
+      }
+    } else {
+      os << " " << storage[0] << " " << storage[1] << " ... "
+         << storage[storage.size() - 2] << " " << storage[storage.size() - 1];
     }
-  } else {
-    os << " " << storage[0] << " " << storage[1] << " ... "
-       << storage[storage.size() - 2] << " " << storage[storage.size() - 1];
+    os << std::endl;
+    os << '[' << typeid(T).name() << " storage viewed as ";
+    for (size_t i = 0; i < storage.rank(); ++i) {
+      if (i > 0)
+        os << 'x';
+      os << storage.dim(i);
+    }
+    os << ']';
+    return os;
   }
-  os << std::endl;
-  os << '[' << typeid(T).name() << " storage viewed as ";
-  for (size_t i = 0; i < storage.rank(); ++i) {
-    if (i > 0)
-      os << 'x';
-    os << storage.dim(i);
-  }
-  os << ']';
-  return os;
+
 }
