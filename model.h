@@ -40,6 +40,7 @@ namespace onmt {
     return val;
   }
 
+  template <typename DataType = float>
   class Model
   {
   public:
@@ -64,7 +65,7 @@ namespace onmt {
           offset *= consume<unsigned int>(&ptr);
         }
         unsigned int data_width = consume<unsigned char>(&ptr);
-        _variable_index.emplace(name, StorageView<float>(reinterpret_cast<float*>(ptr), shape));
+        _variable_index.emplace(name, StorageView<DataType>(reinterpret_cast<DataType*>(ptr), shape));
         ptr += offset * data_width;
       }
 
@@ -77,7 +78,7 @@ namespace onmt {
         munmap(_model, _model_size);
     }
 
-    const StorageView<float>& get_variable(const std::string& scope) const {
+    const StorageView<DataType>& get_variable(const std::string& scope) const {
       auto it = _variable_index.lower_bound(scope);
       if (it->first.find(scope) == std::string::npos)
         throw std::out_of_range("no variable found in scope '" + scope + "'");
@@ -87,7 +88,7 @@ namespace onmt {
   private:
     void* _model;
     size_t _model_size;
-    std::map<std::string, StorageView<float> > _variable_index;
+    std::map<std::string, StorageView<DataType> > _variable_index;
   };
 
 }

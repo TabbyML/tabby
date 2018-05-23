@@ -237,9 +237,11 @@ namespace onmt {
       }
 
       template <typename T>
-      void operator()(const StorageView<T>& input, StorageView<T>& output) const {
-        output = input;
-        operator()(output);
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y.resize_as(x);
+        for (size_t i = 0; i < x.size(); ++i) {
+          y[i] = x[i] > 0 ? x[i] : static_cast<T>(0);
+        }
       }
     };
 

@@ -72,6 +72,10 @@ namespace onmt {
     void pow(const T* x, T* y, T power, size_t size);
     template <typename T>
     void exp(const T* x, T* y, size_t size);
+    template <typename T>
+    void cos(const T* x, T* y, size_t size);
+    template <typename T>
+    void sin(const T* x, T* y, size_t size);
     template <typename In, typename Out>
     void gemm(const In* a, const In* b,
               bool transpose_a, bool transpose_b,
@@ -128,6 +132,14 @@ namespace onmt {
     template<>
     void exp(const float* x, float*y, size_t size) {
       vsExp(size, x, y);
+    }
+    template<>
+    void cos(const float* x, float* y, size_t size) {
+      vsCos(size, x, y);
+    }
+    template<>
+    void sin(const float* x, float* y, size_t size) {
+      vsSin(size, x, y);
     }
 
     template<>
