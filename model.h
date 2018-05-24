@@ -1,14 +1,6 @@
 #pragma once
 
-#include <iostream>
-
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
-#include <unistd.h>
-
+#include <fstream>
 #include <string>
 #include <map>
 
@@ -16,28 +8,18 @@
 
 namespace onmt {
 
-  void* mmap_file(const char* path, size_t* file_size) {
-    *file_size = 0;
-    struct stat st;
-    int s = stat(path, &st);
-    if (s == -1)
-      return nullptr;
-    *file_size = st.st_size;
-    int fd = open(path, O_RDONLY, 0);
-    if (fd == -1)
-      return nullptr;
-    void* map = mmap(NULL, *file_size, PROT_READ, MAP_PRIVATE | MAP_POPULATE, fd, 0);
-    close(fd);
-    if (map == MAP_FAILED)
-      return nullptr;
-    return map;
+  template <typename T>
+  T consume(std::ifstream& in) {
+    T val;
+    in.read(reinterpret_cast<char*>(&val), sizeof (T));
+    return val;
   }
 
   template <typename T>
-  T consume(unsigned char** ptr) {
-    T val = *reinterpret_cast<T*>(*ptr);
-    *ptr += sizeof (T);
-    return val;
+  T* consume(std::ifstream& in, size_t n) {
+    T* data = new T[n];
+    in.read(reinterpret_cast<char*>(data), n * sizeof (T));
+    return data;
   }
 
   template <typename DataType = float>
@@ -45,37 +27,35 @@ namespace onmt {
   {
   public:
     Model(const std::string& path) {
-      _model = mmap_file(path.c_str(), &_model_size);
-      if (_model == nullptr)
+      std::ifstream model(path, std::ios_base::in | std::ios_base::binary);
+      if (!model.is_open())
         throw std::runtime_error("failed to load the model " + path);
 
-      auto ptr = reinterpret_cast<unsigned char*>(_model);
-      auto num_variables = consume<unsigned int>(&ptr);
+      auto num_variables = consume<uint32_t>(model);
 
-      for (unsigned int i = 0; i < num_variables; ++i) {
-        auto name_length = consume<unsigned short>(&ptr);
-        auto name = reinterpret_cast<const char*>(ptr);
-        ptr += name_length;
-        unsigned short rank = consume<unsigned char>(&ptr);
-        auto dimensions = reinterpret_cast<const unsigned int*>(ptr);
-        unsigned int offset = 1;
+      for (uint32_t i = 0; i < num_variables; ++i) {
+        auto name_length = consume<uint16_t>(model);
+        auto name = consume<char>(model, name_length);
+        auto rank = consume<uint8_t>(model);
+        auto dimensions = consume<uint32_t>(model, rank);
+        auto data_width = consume<uint8_t>(model);
+        auto data_size = consume<uint32_t>(model);
+        auto data = consume<DataType>(model, data_size);
+
         std::vector<size_t> shape(rank);
         for (unsigned int k = 0; k < rank; k++) {
           shape[k] = static_cast<size_t>(dimensions[k]);
-          offset *= consume<unsigned int>(&ptr);
         }
-        unsigned int data_width = consume<unsigned char>(&ptr);
-        _variable_index.emplace(name, StorageView<DataType>(reinterpret_cast<DataType*>(ptr), shape));
-        ptr += offset * data_width;
+
+        StorageView<DataType> view(data, shape);
+        _variable_index.emplace(std::piecewise_construct,
+                                std::forward_as_tuple(name),
+                                std::forward_as_tuple(view));
+
+        delete [] name;
+        delete [] dimensions;
+        delete [] data;
       }
-
-      // for (const auto& index : _variable_index)
-      //   std::cout << index.first << ": " << index.second << std::endl;
-    }
-
-    ~Model() {
-      if (_model != nullptr)
-        munmap(_model, _model_size);
     }
 
     const StorageView<DataType>& get_variable(const std::string& scope) const {
@@ -86,8 +66,6 @@ namespace onmt {
     }
 
   private:
-    void* _model;
-    size_t _model_size;
     std::map<std::string, StorageView<DataType> > _variable_index;
   };
 
