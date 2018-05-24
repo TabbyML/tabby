@@ -9,6 +9,9 @@
 #include <vector>
 
 #include "compute.h"
+#include "utils.h"
+
+#define ALIGNMENT 64
 
 using Shape = std::vector<size_t>;
 
@@ -114,16 +117,22 @@ namespace onmt {
     }
 
     StorageView& release() {
-      if (_own_data && _data != nullptr)
-        delete [] _data;
+      if (_own_data && _buffer != nullptr)
+        free(_buffer);
       _data = nullptr;
+      _buffer = nullptr;
       _allocated_size = 0;
       return clear();
     }
 
     StorageView& reserve(size_t size) {
       release();
-      _data = new T[size];
+      size_t required_bytes = size * sizeof (T);
+      size_t buffer_space = required_bytes + ALIGNMENT;
+      _buffer = malloc(buffer_space);
+      void* aligned_ptr = _buffer;
+      _data = static_cast<T*>(align(ALIGNMENT, required_bytes, aligned_ptr, buffer_space));
+      assert(_data != nullptr);
       _own_data = true;
       _allocated_size = size;
       return *this;
@@ -235,6 +244,7 @@ namespace onmt {
 
   protected:
     T* _data = nullptr;
+    void* _buffer = nullptr;
     bool _own_data = true;
     size_t _allocated_size = 0;
     size_t _size = 0;
