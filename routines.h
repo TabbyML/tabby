@@ -2,6 +2,8 @@
 
 #include <mkl.h>
 
+#include "storage_view.h"
+
 std::vector<float*> split_in_depth(const float* input,
                                    size_t batch_size,
                                    size_t depth,

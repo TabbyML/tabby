@@ -49,3 +49,5 @@ target_link_libraries(benchmark
 target_link_libraries(tensor_demo
   ${MKL_LIBRARIES}
   )
+
+add_subdirectory(tests)
