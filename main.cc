@@ -17,7 +17,7 @@
 class ScaledEmbeddings
 {
 public:
-  ScaledEmbeddings(const onmt::Model& model, const std::string& scope)
+  ScaledEmbeddings(const onmt::Model<float>& model, const std::string& scope)
     : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
@@ -109,7 +109,7 @@ private:
 class Dense
 {
 public:
-  Dense(const onmt::Model& model, const std::string& scope)
+  Dense(const onmt::Model<float>& model, const std::string& scope)
     : _gemm_op(1, 1, true, false, true)
     , _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias")) {
@@ -134,7 +134,7 @@ private:
 class LayerNorm
 {
 public:
-  LayerNorm(const onmt::Model& model, const std::string& scope)
+  LayerNorm(const onmt::Model<float>& model, const std::string& scope)
     : _beta(model.get_variable(scope + "/beta"))
     , _gamma(model.get_variable(scope + "/gamma")) {
   }
@@ -154,7 +154,7 @@ private:
 class TransformerFeedForward
 {
 public:
-  TransformerFeedForward(const onmt::Model& model,
+  TransformerFeedForward(const onmt::Model<float>& model,
                          const std::string& scope)
     : _layer_norm(model, scope + "/LayerNorm")
     , _ff1(model, scope + "/conv1d")
@@ -222,7 +222,7 @@ private:
 class MultiHeadAttention
 {
 public:
-  MultiHeadAttention(const onmt::Model& model,
+  MultiHeadAttention(const onmt::Model<float>& model,
                      const std::string& scope,
                      size_t num_heads)
     : _layer_norm(model, scope + "/LayerNorm")
@@ -292,7 +292,7 @@ private:
   onmt::StorageView<float> _splits;
 
 public:
-  TransformerSelfAttention(const onmt::Model& model,
+  TransformerSelfAttention(const onmt::Model<float>& model,
                            const std::string& scope,
                            size_t num_heads)
     : MultiHeadAttention(model, scope, num_heads)
@@ -372,7 +372,7 @@ private:
   onmt::StorageView<float> _splits;
 
 public:
-  TransformerAttention(const onmt::Model& model,
+  TransformerAttention(const onmt::Model<float>& model,
                        const std::string& scope,
                        size_t num_heads)
     : MultiHeadAttention(model, scope, num_heads)
@@ -427,7 +427,7 @@ public:
 class TransformerEncoderLayer
 {
 public:
-  TransformerEncoderLayer(const onmt::Model& model,
+  TransformerEncoderLayer(const onmt::Model<float>& model,
                           const std::string& scope)
     : _self_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
@@ -447,7 +447,7 @@ private:
 class TransformerDecoderLayer
 {
 public:
-  TransformerDecoderLayer(const onmt::Model& model,
+  TransformerDecoderLayer(const onmt::Model<float>& model,
                           const std::string& scope)
     : _self_attention(model, scope + "/masked_multi_head", 8)
     , _encoder_attention(model, scope + "/multi_head", 8)
@@ -480,7 +480,7 @@ template <typename TransformerLayer>
 class TransformerStack
 {
 public:
-  TransformerStack(const onmt::Model& model, const std::string& scope)
+  TransformerStack(const onmt::Model<float>& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
     , _position_encoder()
     , _output_norm(model, scope + "/LayerNorm") {
@@ -503,7 +503,7 @@ protected:
 class TransformerEncoder : public TransformerStack<TransformerEncoderLayer>
 {
 public:
-  TransformerEncoder(const onmt::Model& model, const std::string& scope)
+  TransformerEncoder(const onmt::Model<float>& model, const std::string& scope)
     : TransformerStack(model, scope) {
   }
 
@@ -565,7 +565,7 @@ static void remove_batch(onmt::StorageView<size_t>& s, const std::vector<bool>& 
 class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
 {
 public:
-  TransformerDecoder(const onmt::Model& model, const std::string& scope)
+  TransformerDecoder(const onmt::Model<float>& model, const std::string& scope)
     : TransformerStack(model, scope)
     , _proj(model, scope + "/dense") {
     _state.cache.resize(_layers.size() * 4);
@@ -699,7 +699,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
 int main(int argc, char* argv[]) {
   vmlSetMode(VML_EP);
 
-  onmt::Model model("/home/klein/dev/ctransformer/model.bin");
+  onmt::Model<float> model("/home/klein/dev/ctransformer/model.bin");
   onmt::Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
 
   TransformerEncoder encoder(model, "transformer/encoder");
