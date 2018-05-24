@@ -290,5 +290,41 @@ namespace onmt {
       int _axis;
     };
 
+    class Quantize {
+    public:
+      Quantize(float scale = 1, float shift = 0)
+        : _scale(scale)
+        , _shift(shift) {
+      }
+
+      template <typename In, typename Out>
+      void operator()(const StorageView<In>& x, StorageView<Out>& y) const {
+        y.resize_as(x);
+        compute::quantize(x.data(), y.data(), x.size(), _scale, _shift);
+      }
+
+    private:
+      float _scale;
+      float _shift;
+    };
+
+    class Unquantize {
+    public:
+      Unquantize(float scale = 1, float shift = 0)
+        : _scale(scale)
+        , _shift(shift) {
+      }
+
+      template <typename In, typename Out>
+      void operator()(const StorageView<In>& x, StorageView<Out>& y) const {
+        y.resize_as(x);
+        compute::unquantize(x.data(), y.data(), x.size(), _scale, _shift);
+      }
+
+    private:
+      float _scale;
+      float _shift;
+    };
+
   }
 }

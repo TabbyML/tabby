@@ -171,7 +171,7 @@ namespace onmt {
 
     template <typename U>
     StorageView& resize_as(const StorageView<U>& other) {
-      return resize(other._shape);
+      return resize(other.shape());
     }
 
     StorageView& assign(const StorageView& other) {
