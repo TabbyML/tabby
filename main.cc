@@ -14,19 +14,15 @@
 #include "ops.h"
 #include "compute.h"
 
+template <typename DataType, typename OutType = DataType>
 class ScaledEmbeddings
 {
 public:
-  ScaledEmbeddings(const onmt::Model<float>& model, const std::string& scope)
+  ScaledEmbeddings(const onmt::Model<DataType>& model, const std::string& scope)
     : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
-  onmt::StorageView<float>& operator()(const onmt::StorageView<size_t>& ids) {
-    _gather_op(_embeddings, ids, _output);
-    size_t embedding_size = output_depth();
-    onmt::compute::mul(static_cast<float>(sqrt(embedding_size)), _output.data(), _output.size());
-    return _output;
-  }
+  onmt::StorageView<OutType>& operator()(const onmt::StorageView<size_t>& ids);
 
   size_t output_depth() const {
     return _embeddings.dim(-1);
@@ -34,9 +30,29 @@ public:
 
 private:
   onmt::ops::Gather _gather_op;
-  const onmt::StorageView<float>& _embeddings;
-  onmt::StorageView<float> _output;
+  const onmt::StorageView<DataType>& _embeddings;
+  onmt::StorageView<DataType> _gathered;
+  onmt::StorageView<OutType> _output;
 };
+
+template<>
+onmt::StorageView<float>&
+ScaledEmbeddings<float>::operator()(const onmt::StorageView<size_t>& ids) {
+  _gather_op(_embeddings, ids, _output);
+  size_t embedding_size = output_depth();
+  onmt::compute::mul(static_cast<float>(sqrt(embedding_size)), _output.data(), _output.size());
+  return _output;
+}
+
+template<>
+onmt::StorageView<float>&
+ScaledEmbeddings<int16_t, float>::operator()(const onmt::StorageView<size_t>& ids) {
+  _gather_op(_embeddings, ids, _gathered);
+  onmt::ops::Unquantize(1000)(_gathered, _output);
+  size_t embedding_size = output_depth();
+  onmt::compute::mul(static_cast<float>(sqrt(embedding_size)), _output.data(), _output.size());
+  return _output;
+}
 
 class PositionEncoder
 {
@@ -492,7 +508,7 @@ public:
   }
 
 protected:
-  ScaledEmbeddings _scaled_embeddings;
+  ScaledEmbeddings<float> _scaled_embeddings;
   PositionEncoder _position_encoder;
   LayerNorm _output_norm;
   std::vector<TransformerLayer> _layers;
