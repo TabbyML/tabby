@@ -62,6 +62,28 @@ TEST(OpTest, Gather) {
   expect_storage_eq(output, expected);
 }
 
+TEST(OpTest, Gemm) {
+  StorageView<float> a({4, 4}, {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+  StorageView<float> b(a);
+  StorageView<float> c({4, 4}, 2);
+  StorageView<float> y;
+  StorageView<float> expected({4, 4}, {3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3});
+  ops::Gemm op(1.0, 1.0, false, false, false);
+  op(a, b, &c, y);
+  expect_storage_eq(y, expected);
+};
+
+TEST(OpTest, GemmInt16) {
+  StorageView<int16_t> a({64, 64}, 1);
+  StorageView<int16_t> b(a);
+  StorageView<int32_t> c({64, 64}, 2);
+  StorageView<int32_t> y;
+  StorageView<int32_t> expected({64, 64}, 130);
+  ops::Gemm op(2.0, 1.0, false, false, true);
+  op(a, b, &c, y);
+  expect_storage_eq(y, expected);
+};
+
 TEST(OpTest, Quantize) {
   const float scale = 100;
   const float shift = 5;

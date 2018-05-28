@@ -292,8 +292,6 @@ namespace onmt {
               int32_t* c) {
       assert(transpose_a == false);
       assert(transpose_b == true);
-      assert(alpha == 1);
-      assert(beta == 0);
 
       const __m256i * A = reinterpret_cast<const __m256i*>(a);
       const __m256i * B = reinterpret_cast<const __m256i*>(b);
@@ -352,10 +350,10 @@ namespace onmt {
           int32_t * C3 = c + (i+2)*num_B_rows + j;
           int32_t * C4 = c + (i+3)*num_B_rows + j;
 
-          *C1 = _mm_cvtsi128_si32(sum1_128);
-          *C2 = _mm_cvtsi128_si32(sum2_128);
-          *C3 = _mm_cvtsi128_si32(sum3_128);
-          *C4 = _mm_cvtsi128_si32(sum4_128);
+          *C1 = beta * *C1 + alpha * _mm_cvtsi128_si32(sum1_128);
+          *C2 = beta * *C2 + alpha * _mm_cvtsi128_si32(sum2_128);
+          *C3 = beta * *C3 + alpha * _mm_cvtsi128_si32(sum3_128);
+          *C4 = beta * *C4 + alpha * _mm_cvtsi128_si32(sum4_128);
         }
       }
       // finalize the last rows
@@ -388,9 +386,9 @@ namespace onmt {
           int32_t * C1 = c + (i+0)*num_B_rows + j;
           int32_t * C2 = c + (i+1)*num_B_rows + j;
           int32_t * C3 = c + (i+2)*num_B_rows + j;
-          *C1 = _mm_cvtsi128_si32(sum1_128);
-          *C2 = _mm_cvtsi128_si32(sum2_128);
-          *C3 = _mm_cvtsi128_si32(sum3_128);
+          *C1 = beta * *C1 + alpha * _mm_cvtsi128_si32(sum1_128);
+          *C2 = beta * *C2 + alpha * _mm_cvtsi128_si32(sum2_128);
+          *C3 = beta * *C3 + alpha * _mm_cvtsi128_si32(sum3_128);
         }
       }
       break;
@@ -415,8 +413,8 @@ namespace onmt {
           __m128i sum2_128 = _mm256i_sum8(sum2);
           int32_t * C1 = c + (i+0)*num_B_rows + j;
           int32_t * C2 = c + (i+1)*num_B_rows + j;
-          *C1 = _mm_cvtsi128_si32(sum1_128);
-          *C2 = _mm_cvtsi128_si32(sum2_128);
+          *C1 = beta * *C1 + alpha * _mm_cvtsi128_si32(sum1_128);
+          *C2 = beta * *C2 + alpha * _mm_cvtsi128_si32(sum2_128);
         }
       }
       break;
@@ -435,7 +433,7 @@ namespace onmt {
           }
           __m128i sum1_128 = _mm256i_sum8(sum1);
           int32_t * C1 = c + (i+0)*num_B_rows + j;
-          *C1 = _mm_cvtsi128_si32(sum1_128);
+          *C1 = beta * *C1 + alpha * _mm_cvtsi128_si32(sum1_128);
         }
       }
       break;
