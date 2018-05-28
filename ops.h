@@ -234,6 +234,24 @@ namespace onmt {
       }
     };
 
+    class Cos {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y.resize_as(x);
+        compute::cos(x.data(), y.data(), x.size());
+      }
+    };
+
+    class Sin {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y.resize_as(x);
+        compute::sin(x.data(), y.data(), x.size());
+      }
+    };
+
     class Add {
     public:
       template <typename T>

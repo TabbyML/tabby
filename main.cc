@@ -95,13 +95,11 @@ private:
       }
     }
 
-    onmt::StorageView<float> sin_encoding(scaled_time.shape());
-    onmt::StorageView<float> cos_encoding(scaled_time.shape());
+    onmt::StorageView<float> sin_encoding;
+    onmt::StorageView<float> cos_encoding;
 
-    vsSin(scaled_time.size(), scaled_time.data(), sin_encoding.data());
-    vsCos(scaled_time.size(), scaled_time.data(), cos_encoding.data());
-
-    _cached_encodings.resize({max_time, depth});
+    onmt::ops::Sin()(scaled_time, sin_encoding);
+    onmt::ops::Cos()(scaled_time, cos_encoding);
     onmt::ops::Concat(-1)({&sin_encoding, &cos_encoding}, _cached_encodings);
   }
 };
