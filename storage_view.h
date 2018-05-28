@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include <cassert>
 #include <ostream>
 #include <stdexcept>
@@ -17,6 +15,16 @@ using Shape = std::vector<size_t>;
 
 namespace onmt {
 
+  // The `StorageView` class is a light wrapper around an allocated buffer to give
+  // it a sense of shape.
+  //
+  // 1. it can be resized, reshaped, copied, and assigned
+  // 2. it can view an existing buffer to avoid memory copy
+  // 3. the buffer can be of any type and casting is supported
+  // 4. allocation is aligned by default to 64 bytes: wasted space is minimal and it
+  //    is required when working with intrinsics up to AVX512
+  //
+  // It does not use a std::vector because of 2. and 4..
   template <typename T>
   class StorageView
   {
