@@ -72,6 +72,18 @@ namespace onmt {
         y[i] *= x[i];
     }
 
+    template <typename T>
+    void mul(const T* a, const T* b, T* c, size_t size) {
+      for (size_t i = 0; i < size; ++i)
+        c[i] = a[i] * b[i];
+    }
+
+    template <typename T>
+    void inv(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i)
+        y[i] = static_cast<T>(1) / x[i];
+    }
+
     template <typename In, typename Out>
     void quantize(const In* x, Out* y, size_t size, In scale, In shift) {
       for (size_t i = 0; i < size; ++i)
@@ -84,6 +96,22 @@ namespace onmt {
         y[i] = (static_cast<Out>(x[i]) - shift) / scale;
     }
 
+    template <typename T>
+    void relu(T* x, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        if (x[i] < static_cast<T>(0))
+          x[i] = static_cast<T>(0);
+      }
+    }
+
+    template <typename T>
+    void relu(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = x[i] > 0 ? x[i] : static_cast<T>(0);
+      }
+    }
+
+
     // Functions without generic implementation.
     template <typename T>
     void pow(const T* x, T* y, T power, size_t size);
@@ -93,6 +121,8 @@ namespace onmt {
     void cos(const T* x, T* y, size_t size);
     template <typename T>
     void sin(const T* x, T* y, size_t size);
+    template <typename T>
+    void tanh(const T* x, T* y, size_t size);
     template <typename In, typename Out>
     void gemm(const In* a, const In* b,
               bool transpose_a, bool transpose_b,
@@ -143,11 +173,19 @@ namespace onmt {
       vsMul(size, y, x, y);
     }
     template<>
+    void mul(const float* a, const float* b, float* c, size_t size) {
+      vsMul(size, a, b, c);
+    }
+    template<>
+    void inv(const float* x, float* y, size_t size) {
+      vsInv(size, x, y);
+    }
+    template<>
     void pow(const float* x, float *y, float power, size_t size) {
       vsPowx(size, x, power, y);
     }
     template<>
-    void exp(const float* x, float*y, size_t size) {
+    void exp(const float* x, float* y, size_t size) {
       vsExp(size, x, y);
     }
     template<>
@@ -157,6 +195,10 @@ namespace onmt {
     template<>
     void sin(const float* x, float* y, size_t size) {
       vsSin(size, x, y);
+    }
+    template<>
+    void tanh(const float* x, float* y, size_t size) {
+      vsTanh(size, x, y);
     }
 
     template<>

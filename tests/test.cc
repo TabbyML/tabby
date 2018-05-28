@@ -19,57 +19,62 @@ static void assert_shape_eq(const StorageView<T>& s, const std::vector<size_t>& 
   }
 }
 
+template <typename T>
+static void expect_storage_eq(const StorageView<T>& a, const StorageView<T>& b) {
+  assert_shape_eq(b, a.shape());
+  expect_array_eq(a.data(), b.data(), a.size());
+}
+
+
 TEST(OpTest, ConcatBatch) {
   StorageView<float> a({2, 2}, 1);
   StorageView<float> b({1, 2}, 2);
-  StorageView<float> c;
-
-  std::vector<float> y = { 1, 1,
-                           1, 1,
-                           2, 2 };
-
-  ops::Concat(0)({&a, &b}, c);
-
-  assert_shape_eq(c, {3, 2});
-  expect_array_eq(c.data(), y.data(), y.size());
+  StorageView<float> c({3, 2}, {1, 1, 1, 1, 2, 2});
+  StorageView<float> x;
+  ops::Concat(0)({&a, &b}, x);
+  expect_storage_eq(x, c);
 }
 
 TEST(OpTest, ConcatTime) {
-  std::vector<float> a_flat = { 1, 1,
-                                2, 2,
-                                3, 3,
-                                4, 4 };
-  std::vector<float> b_flat = { 5, 5,
-                                6, 6 };
-  std::vector<float> y = { 1, 1,
-                           2, 2,
-                           5, 5,
-                           3, 3,
-                           4, 4,
-                           6, 6 };
-
-  StorageView<float> a(a_flat.data(), {2, 2, 2});
-  StorageView<float> b(b_flat.data(), {2, 1, 2});
-  StorageView<float> c;
-
-  ops::Concat(1)({&a, &b}, c);
-
-  assert_shape_eq(c, {2, 3, 2});
-  expect_array_eq(c.data(), y.data(), y.size());
+  StorageView<float> a({2, 2, 2}, {1, 1, 2, 2, 3, 3, 4, 4});
+  StorageView<float> b({2, 1, 2}, {5, 5, 6, 6});
+  StorageView<float> c({2, 3, 2}, { 1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6 });
+  StorageView<float> x;
+  ops::Concat(1)({&a, &b}, x);
+  expect_storage_eq(x, c);
 }
 
 TEST(OpTest, ConcatDepth) {
   StorageView<float> a({2, 1}, 1);
   StorageView<float> b({2, 2}, 2);
-  StorageView<float> c;
+  StorageView<float> c({2, 3}, {1, 2, 2, 1, 2, 2});
+  StorageView<float> x;
+  ops::Concat(-1)({&a, &b}, x);
+  expect_storage_eq(x, c);
+}
 
-  std::vector<float> y = { 1, 2, 2,
-                           1, 2, 2 };
+TEST(OpTest, Gather) {
+  StorageView<float> data({4, 2}, {1, 1, 2, 2, 3, 3, 4, 4});
+  StorageView<size_t> ids({2}, {1, 3});
+  StorageView<float> expected({2, 2}, {2, 2, 4, 4});
+  StorageView<float> output;
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
 
-  ops::Concat(-1)({&a, &b}, c);
-
-  assert_shape_eq(c, {2, 3});
-  expect_array_eq(c.data(), y.data(), y.size());
+TEST(OpTest, Quantize) {
+  const float scale = 100;
+  const float shift = 5;
+  StorageView<float> input({4}, {0.1f, -0.5f, 2.0f, 0.0f});
+  StorageView<int16_t> expected({4}, {15, -45, 205, 5});
+  StorageView<int16_t> output;
+  StorageView<float> reverse;
+  ops::Quantize quantize_op(scale, shift);
+  ops::Unquantize unquantize_op(scale, shift);
+  quantize_op(input, output);
+  expect_storage_eq(output, expected);
+  unquantize_op(output, reverse);
+  expect_storage_eq(reverse, input);
 }
 
 int main(int argc, char *argv[]) {

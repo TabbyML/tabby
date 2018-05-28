@@ -226,22 +226,89 @@ namespace onmt {
       }
     };
 
+    class Identity {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y = x;
+      }
+    };
+
+    class Add {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& a, T b, StorageView<T>& c) const {
+        c = a;
+        compute::add(b, c.data(), c.size());
+      }
+
+      template <typename T>
+      void operator()(const StorageView<T>& a, const StorageView<T>& b, StorageView<T>& c) const {
+        c = a;
+        compute::add(b.data(), c.data(), c.size());
+      }
+    };
+
+    class Mul {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& a, T b, StorageView<T>& c) const {
+        c = a;
+        compute::mul(b, c.data(), c.size());
+      }
+
+      template <typename T>
+      void operator()(const StorageView<T>& a, const StorageView<T>& b, StorageView<T>& c) const {
+        c.resize_as(a);
+        compute::mul(a.data(), b.data(), c.data(), a.size());
+      }
+    };
+
+    class Reshape {
+    public:
+      template <typename T>
+      void operator()(StorageView<T>& data, const std::vector<size_t>& shape) const {
+        data.reshape(shape);
+      }
+      template <typename T>
+      void operator()(const StorageView<T>& data, const std::vector<size_t>& shape, StorageView<T>& reshaped) const {
+        reshaped = data;
+        reshaped.reshape(shape);
+      }
+    };
+
     class ReLU {
     public:
       template <typename T>
       void operator()(StorageView<T>& x) const {
-        for (size_t i = 0; i < x.size(); ++i) {
-          if (x[i] < static_cast<T>(0))
-            x[i] = static_cast<T>(0);
-        }
+        compute::relu(x.data(), x.size());
       }
 
       template <typename T>
       void operator()(const StorageView<T>& x, StorageView<T>& y) const {
         y.resize_as(x);
-        for (size_t i = 0; i < x.size(); ++i) {
-          y[i] = x[i] > 0 ? x[i] : static_cast<T>(0);
-        }
+        compute::relu(x.data(), y.data(), x.size());
+      }
+    };
+
+    class Tanh {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y.resize_as(x);
+        compute::tanh(x.data(), y.data(), x.size());
+      }
+    };
+
+    class Sigmoid {
+    public:
+      template <typename T>
+      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+        y = x;
+        compute::mul(-1, y.data(), y.size());
+        compute::exp(y.data(), y.data(), y.size());
+        compute::add(1, y.data(), y.size());
+        compute::inv(y.data(), y.data(), y.size());
       }
     };
 

@@ -29,6 +29,11 @@ namespace onmt {
       fill(init);
     }
 
+    StorageView(const Shape& shape, const std::vector<T>& init) {
+      resize(shape);
+      copy_from(init.data(), init.size());
+    }
+
     StorageView(T* data, const Shape& shape) {
       assign(data, shape);
     }
@@ -214,6 +219,12 @@ namespace onmt {
     StorageView& copy_from(const StorageView& other) {
       assert(_size == other._size);
       compute::copy(other._data, _data, other._size);
+      return *this;
+    }
+
+    StorageView& copy_from(const T* data, size_t size) {
+      assert(_size == size);
+      compute::copy(data, _data, size);
       return *this;
     }
 
