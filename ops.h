@@ -410,5 +410,39 @@ namespace onmt {
       float _shift;
     };
 
+    class TopK {
+    public:
+      TopK(size_t k, int axis = -1)
+        : _k(k)
+        , _axis(axis) {
+        if (axis != -1)
+          throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
+      }
+
+      template <typename T, typename I>
+      void operator()(const StorageView<T>& x,
+                      StorageView<T>& values,
+                      StorageView<I>& indices) const {
+        size_t depth = x.dim(-1);
+        size_t batch_size = x.size() / depth;
+        StorageView<size_t> tmp({depth});
+        values.resize({batch_size, _k});
+        indices.resize({batch_size, _k});
+        for (size_t i = 0; i < batch_size; ++i) {
+          const T* input = x.data() + (i * depth);
+          compute::topk(input, tmp.data(), _k, depth);
+          T* val = values.data() + (i * _k);
+          I* ind = indices.data() + (i * _k);
+          compute::copy(tmp.data(), ind, _k);
+          for (size_t j = 0; j < _k; ++j)
+            val[j] = input[ind[j]];
+        }
+      }
+
+    private:
+      size_t _k;
+      int _axis;
+    };
+
   }
 }

@@ -35,6 +35,17 @@ namespace onmt {
       return array[max_element(array, size)];
     }
 
+    template <typename T, typename I>
+    void topk(const T* x, I* indices, size_t k, size_t size) {
+      const auto comp = [&x](I i1, I i2) {
+        return x[i1] > x[i2];
+      };
+      for (I i = 0; i < static_cast<I>(size); ++i)
+        indices[i] = i;
+      std::nth_element(indices, indices + k, indices + size, comp);
+      std::sort(indices, indices + k, comp);
+    }
+
     template <typename T>
     void add(T a, T* y, size_t size) {
       for (size_t i = 0; i < size; ++i)

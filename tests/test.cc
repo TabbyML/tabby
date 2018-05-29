@@ -99,6 +99,19 @@ TEST(OpTest, Quantize) {
   expect_storage_eq(reverse, input);
 }
 
+TEST(OpTest, TopK) {
+  const int k = 3;
+  StorageView<float> input({2, 6}, {0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0});
+  StorageView<float> expected_values({2, 3}, {2.0, 0.6, 0.2, 1.1, 1.0, 0.3});
+  StorageView<size_t> expected_indices({2, 3}, {2, 5, 4, 1, 0, 3});
+  StorageView<float> values;
+  StorageView<size_t> indices;
+  ops::TopK op(k);
+  op(input, values, indices);
+  expect_storage_eq(values, expected_values);
+  expect_storage_eq(indices, expected_indices);
+}
+
 int main(int argc, char *argv[]) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
