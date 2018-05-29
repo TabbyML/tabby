@@ -4,7 +4,10 @@ find_package(GTest)
 if (GTEST_FOUND)
   find_package(Threads)
 
-  add_executable(onmt_test test.cc)
+  add_executable(onmt_test
+    ../compute_mkl.cc
+    ../compute_simd.cc
+    test.cc)
   target_include_directories(onmt_test PUBLIC
     ${GTEST_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}

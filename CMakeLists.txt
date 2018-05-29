@@ -34,6 +34,8 @@ set(MKL_LIBRARIES
   dl
   )
 add_executable(main
+  compute_mkl.cc
+  compute_simd.cc
   main.cc
   )
 add_executable(benchmark

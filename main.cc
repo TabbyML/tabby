@@ -14,7 +14,7 @@
 #include "ops.h"
 #include "compute.h"
 
-template <typename DataType, typename OutType = DataType>
+template <typename DataType>
 class ScaledEmbeddings
 {
 public:
@@ -22,7 +22,7 @@ public:
     : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
-  onmt::StorageView<OutType>& operator()(const onmt::StorageView<size_t>& ids);
+  onmt::StorageView<float>& operator()(const onmt::StorageView<size_t>& ids);
 
   size_t output_depth() const {
     return _embeddings.dim(-1);
@@ -32,7 +32,7 @@ private:
   onmt::ops::Gather _gather_op;
   const onmt::StorageView<DataType>& _embeddings;
   onmt::StorageView<DataType> _gathered;
-  onmt::StorageView<OutType> _output;
+  onmt::StorageView<float> _output;
 };
 
 template<>
@@ -46,7 +46,7 @@ ScaledEmbeddings<float>::operator()(const onmt::StorageView<size_t>& ids) {
 
 template<>
 onmt::StorageView<float>&
-ScaledEmbeddings<int16_t, float>::operator()(const onmt::StorageView<size_t>& ids) {
+ScaledEmbeddings<int16_t>::operator()(const onmt::StorageView<size_t>& ids) {
   _gather_op(_embeddings, ids, _gathered);
   onmt::ops::Unquantize(1000)(_gathered, _output);
   size_t embedding_size = output_depth();
