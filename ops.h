@@ -14,9 +14,17 @@ namespace onmt {
         : _axis(axis) {
       }
 
+      void operator()(const std::vector<StorageView*>& inputs,
+                      StorageView& output) const {
+        TYPE_DISPATCH(output.dtype(), compute<T>(inputs, output));
+      }
+
+    private:
+      int _axis;
+
       template <typename T>
-      void operator()(const std::vector<StorageView<T>*>& inputs,
-                      StorageView<T>& output) const {
+      void compute(const std::vector<StorageView*>& inputs,
+                   StorageView& output) const {
         size_t rank = inputs.front()->rank();
         size_t axis = _axis < 0 ? rank + _axis : _axis;
         size_t concat_dims = 0;
@@ -37,32 +45,38 @@ namespace onmt {
           for (size_t i = axis; i < x->rank(); ++i)
             copy_dim *= x->dim(i);
           for (size_t i = 0; i < iter_dim; ++i) {
-            compute::copy(x->data() + i * copy_dim,
-                          output.data() + offset + i * concat_dims * output.stride(axis),
+            compute::copy(x->data<T>() + i * copy_dim,
+                          output.data<T>() + offset + i * concat_dims * output.stride(axis),
                           copy_dim);
           }
           offset += copy_dim;
         }
       }
-
-    private:
-      int _axis;
     };
 
     class Transpose {
     public:
+      void operator()(StorageView& x) const {
+        TYPE_DISPATCH(x.dtype(), compute<T>(x));
+      }
+
+      void operator()(const StorageView& x, StorageView& y) {
+        TYPE_DISPATCH(x.dtype(), compute<T>(x, y));
+      }
+
+    private:
       template <typename T>
-      void operator()(StorageView<T>& x) const {
+      void compute(StorageView& x) const {
         size_t depth = x.dim(-1);
         size_t batch_size = x.size() / depth;
-        compute::transpose_2d_inplace(x.data(), batch_size, depth);
+        compute::transpose_2d_inplace(x.data<T>(), batch_size, depth);
       }
 
       template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+      void compute(const StorageView& x, StorageView& y) const {
         size_t depth = x.dim(-1);
         size_t batch_size = x.size() / depth;
-        compute::transpose_2d(x.data(), batch_size, depth, y.data());
+        compute::transpose_2d(x.data<T>(), batch_size, depth, y.data<T>());
       }
     };
 
@@ -73,8 +87,7 @@ namespace onmt {
         std::sort(_axes.begin(), _axes.end());
       }
 
-      template <typename T>
-      void operator()(StorageView<T>& data) const {
+      void operator()(StorageView& data) const {
         Shape new_shape;
         for (size_t i = 0, j = 0; i < data.rank(); ++i) {
           if (i == _axes[j]) {
@@ -90,28 +103,50 @@ namespace onmt {
       std::vector<size_t> _axes;
     };
 
+    class Reshape {
+    public:
+      void operator()(StorageView& data, const std::vector<size_t>& shape) const {
+        data.reshape(shape);
+      }
+
+      void operator()(const StorageView& data,
+                      const std::vector<size_t>& shape,
+                      StorageView& reshaped) const {
+        reshaped = data;
+        reshaped.reshape(shape);
+      }
+    };
+
     class LayerNorm {
     public:
+      void operator()(const StorageView& beta,
+                      const StorageView& gamma,
+                      const StorageView& input,
+                      StorageView& output) const {
+        compute<float>(beta, gamma, input, output);
+      }
+
+    private:
       template <typename T>
-      void operator()(const StorageView<T>& beta,
-                      const StorageView<T>& gamma,
-                      const StorageView<T>& input,
-                      StorageView<T>& output) const {
+      void compute(const StorageView& beta,
+                   const StorageView& gamma,
+                   const StorageView& input,
+                   StorageView& output) const {
         size_t depth = input.dim(-1);
         size_t batch_size = input.size() / depth;
-        StorageView<float> tmp({depth});
+        StorageView tmp({depth}, input.dtype());
         output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
-          const T* x = input.index({i});
-          T* y = output.index({i});
-          T mean = compute::mean(x, depth);
+          const auto* x = input.index<T>({i});
+          auto* y = output.index<T>({i});
+          auto mean = compute::mean(x, depth);
           compute::copy(x, y, depth);
           compute::sub(mean, y, depth);
-          compute::pow(y, tmp.data(), static_cast<T>(2), depth);
-          T variance = compute::mean(tmp.data(), depth);
+          compute::pow(y, tmp.data<T>(), static_cast<T>(2), depth);
+          auto variance = compute::mean(tmp.data<T>(), depth);
           compute::mul(static_cast<T>(1.0 / sqrt(variance + EPSILON)), y, depth);
-          compute::mul(gamma.data(), y, depth);
-          compute::add(beta.data(), y, depth);
+          compute::mul(gamma.data<T>(), y, depth);
+          compute::add(beta.data<T>(), y, depth);
         }
       }
     };
@@ -126,11 +161,26 @@ namespace onmt {
         , _trans_b(trans_b) {
       }
 
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& a,
-                      const StorageView<In>& b,
-                      const StorageView<Out>* c,
-                      StorageView<Out>& y) const {
+      void operator()(const StorageView& a,
+                      const StorageView& b,
+                      const StorageView* c,
+                      StorageView& y) const {
+        switch (a.dtype()) {
+        case DataType::DT_INT16:
+          return compute<int16_t, int32_t>(a, b, c, y);
+        case DataType::DT_FLOAT:
+          return compute<float>(a, b, c, y);
+        default:
+          throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
+        }
+      }
+
+    private:
+      template <typename In, typename Out = In>
+      void compute(const StorageView& a,
+                   const StorageView& b,
+                   const StorageView* c,
+                   StorageView& y) const {
         size_t k = a.dim(_trans_a ? -2 : -1);
         size_t n = b.dim(_trans_b ? -2 : -1);
         size_t m = a.size() / k; // Collapse leading dimensions.
@@ -147,21 +197,20 @@ namespace onmt {
           if (_broadcast_c) {
             assert(c->size() == n);
             for (size_t i = 0; i < m; ++i)
-              compute::copy(c->data(), y.index({i}), n);
+              compute::copy(c->data<Out>(), y.index<Out>({i}), n);
           } else {
             assert(c->size() == y.size());
-            compute::copy(c->data(), y.data(), y.size());
+            compute::copy(c->data<Out>(), y.data<Out>(), y.size());
           }
         }
 
-        compute::gemm(a.data(), b.data(),
+        compute::gemm(a.data<In>(), b.data<In>(),
                       _trans_a, _trans_b,
                       m, n, k,
                       static_cast<In>(_alpha), static_cast<Out>(_beta),
-                      y.data());
+                      y.data<Out>());
       }
 
-    private:
       float _alpha;
       float _beta;
       bool _broadcast_c;
@@ -171,19 +220,34 @@ namespace onmt {
 
     class MatMul {
     public:
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& a,
-                      const StorageView<In>& b,
-                      StorageView<Out>& y) const {
+      void operator()(const StorageView& a,
+                      const StorageView& b,
+                      bool transpose_a,
+                      bool transpose_b,
+                      StorageView& y) const {
+        switch (a.dtype()) {
+        case DataType::DT_INT16:
+          return compute<int16_t, int32_t>(a, b, transpose_a, transpose_b, y);
+        case DataType::DT_FLOAT:
+          return compute<float>(a, b, transpose_a, transpose_b, y);
+        default:
+          throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
+        }
+      }
+
+      void operator()(const StorageView& a,
+                      const StorageView& b,
+                      StorageView& y) const {
         operator()(a, b, false, false, y);
       }
 
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& a,
-                      const StorageView<In>& b,
-                      bool transpose_a,
-                      bool transpose_b,
-                      StorageView<Out>& y) const {
+    private:
+      template <typename In, typename Out = In>
+      void compute(const StorageView& a,
+                   const StorageView& b,
+                   bool transpose_a,
+                   bool transpose_b,
+                   StorageView& y) const {
         size_t m, n, k;
 
         if (transpose_a) {
@@ -211,140 +275,168 @@ namespace onmt {
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;
           y.resize(output_shape);
-          compute::gemm_batch(a.data(), b.data(),
+          compute::gemm_batch(a.data<In>(), b.data<In>(),
                               transpose_a, transpose_b,
                               batch_size, m, n, k,
-                              alpha, beta, y.data());
+                              alpha, beta, y.data<Out>());
         } else {
           y.resize({m, n});
-          compute::gemm(a.data(), b.data(),
+          compute::gemm(a.data<In>(), b.data<In>(),
                         transpose_a, transpose_b,
                         m, n, k,
-                        alpha, beta, y.data());
+                        alpha, beta, y.data<Out>());
         }
       }
     };
 
+
     class Identity {
     public:
-      template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+      void operator()(const StorageView& x, StorageView& y) const {
         y = x;
-      }
-    };
-
-    class Cos {
-    public:
-      template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
-        y.resize_as(x);
-        compute::cos(x.data(), y.data(), x.size());
-      }
-    };
-
-    class Sin {
-    public:
-      template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
-        y.resize_as(x);
-        compute::sin(x.data(), y.data(), x.size());
-      }
-    };
-
-    class Add {
-    public:
-      template <typename T>
-      void operator()(const StorageView<T>& a, T b, StorageView<T>& c) const {
-        c = a;
-        compute::add(b, c.data(), c.size());
-      }
-
-      template <typename T>
-      void operator()(const StorageView<T>& a, const StorageView<T>& b, StorageView<T>& c) const {
-        c = a;
-        compute::add(b.data(), c.data(), c.size());
-      }
-    };
-
-    class Mul {
-    public:
-      template <typename T>
-      void operator()(const StorageView<T>& a, T b, StorageView<T>& c) const {
-        c = a;
-        compute::mul(b, c.data(), c.size());
-      }
-
-      template <typename T>
-      void operator()(const StorageView<T>& a, const StorageView<T>& b, StorageView<T>& c) const {
-        c.resize_as(a);
-        compute::mul(a.data(), b.data(), c.data(), a.size());
-      }
-    };
-
-    class Reshape {
-    public:
-      template <typename T>
-      void operator()(StorageView<T>& data, const std::vector<size_t>& shape) const {
-        data.reshape(shape);
-      }
-      template <typename T>
-      void operator()(const StorageView<T>& data, const std::vector<size_t>& shape, StorageView<T>& reshaped) const {
-        reshaped = data;
-        reshaped.reshape(shape);
       }
     };
 
     class ReLU {
     public:
+      void operator()(StorageView& x) const {
+        TYPE_DISPATCH(x.dtype(), compute<T>(x));
+      }
+
+      void operator()(const StorageView& x, StorageView& y) const {
+        TYPE_DISPATCH(x.dtype(), compute<T>(x, y));
+      }
+
+    private:
       template <typename T>
-      void operator()(StorageView<T>& x) const {
-        compute::relu(x.data(), x.size());
+      void compute(StorageView& x) const {
+        compute::relu(x.data<T>(), x.size());
       }
 
       template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+      void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        compute::relu(x.data(), y.data(), x.size());
+        compute::relu(x.data<T>(), y.data<T>(), x.size());
       }
     };
 
     class Tanh {
     public:
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float>(x, y);
+      }
+
+    private:
       template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+      void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        compute::tanh(x.data(), y.data(), x.size());
+        compute::tanh(x.data<T>(), y.data<T>(), x.size());
       }
     };
 
     class Sigmoid {
     public:
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float>(x, y);
+      }
+
+    private:
       template <typename T>
-      void operator()(const StorageView<T>& x, StorageView<T>& y) const {
+      void compute(const StorageView& x, StorageView& y) const {
         y = x;
-        compute::mul(-1, y.data(), y.size());
-        compute::exp(y.data(), y.data(), y.size());
-        compute::add(1, y.data(), y.size());
-        compute::inv(y.data(), y.data(), y.size());
+        compute::mul(static_cast<T>(-1), y.data<T>(), y.size());
+        compute::exp(y.data<T>(), y.data<T>(), y.size());
+        compute::add(static_cast<T>(1), y.data<T>(), y.size());
+        compute::inv(y.data<T>(), y.data<T>(), y.size());
       }
     };
 
     class SoftMax {
     public:
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& input, StorageView<Out>& output) const {
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float>(x, y);
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& input, StorageView& output) const {
         size_t depth = input.dim(-1);
         size_t batch_size = input.size() / depth;
         output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
-          const In* x = input.data() + (i * depth);
-          Out* y = output.data() + (i * depth);
-          In max = compute::max(x, depth);
+          const auto* x = input.data<T>() + (i * depth);
+          auto* y = output.data<T>() + (i * depth);
+          auto max = compute::max(x, depth);
           compute::copy(x, y, depth);
           compute::sub(max, y, depth);
           compute::exp(y, y, depth);
-          Out sum = compute::sum(y, depth);
+          auto sum = compute::sum(y, depth);
           compute::mul(1.f / (sum + EPSILON), y, depth);
+        }
+      }
+    };
+
+    class Cos {
+    public:
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float>(x, y);
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& x, StorageView& y) const {
+        y.resize_as(x);
+        compute::cos(x.data<T>(), y.data<T>(), x.size());
+      }
+    };
+
+    class Sin {
+    public:
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float>(x, y);
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& x, StorageView& y) const {
+        y.resize_as(x);
+        compute::sin(x.data<T>(), y.data<T>(), x.size());
+      }
+    };
+
+    class Add {
+    public:
+      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const {
+        TYPE_DISPATCH(a.dtype(), compute<T>(a, b, c));
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
+        c = a;
+        if (b.size() == 1) {
+          compute::add(b.data<T>()[0], c.data<T>(), c.size());
+        } else {
+          compute::add(b.data<T>(), c.data<T>(), c.size());
+        }
+      }
+    };
+
+    class Mul {
+    public:
+      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const {
+        TYPE_DISPATCH(a.dtype(), compute<T>(a, b, c));
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
+        c.resize_as(a);
+        if (b.size() == 1) {
+          c = a;
+          compute::mul(b.data<T>()[0], c.data<T>(), c.size());
+        } else {
+          compute::mul(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
         }
       }
     };
@@ -356,22 +448,27 @@ namespace onmt {
         if (axis != 0)
           throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
-      template <typename T>
-      void operator()(const StorageView<T>& data,
-                      const StorageView<size_t>& input,
-                      StorageView<T>& output) const {
-        size_t batch_size = input.dim(0);
-        size_t depth = data.dim(-1);
-        output.resize({batch_size, depth});
-        for (size_t i = 0; i < batch_size; ++i) {
-          const T* src = data.index({input[i]});
-          T* dst = output.index({i});
-          compute::copy(src, dst, depth);
-        }
+
+      void operator()(const StorageView& data, const StorageView& input, StorageView& output) const {
+        compute<float, int32_t>(data, input, output);
       }
 
     private:
       int _axis;
+
+      template <typename DataType, typename IndexType>
+      void compute(const StorageView& data, const StorageView& input, StorageView& output) const {
+        size_t batch_size = input.dim(0);
+        size_t depth = data.dim(-1);
+        output.resize({batch_size, depth});
+        for (size_t i = 0; i < batch_size; ++i) {
+          size_t index = input.data<IndexType>()[i];
+          const auto* src = data.index<DataType>({index});
+          auto* dst = output.index<DataType>({i});
+          compute::copy(src, dst, depth);
+        }
+      }
+
     };
 
     class Quantize {
@@ -381,15 +478,20 @@ namespace onmt {
         , _shift(shift) {
       }
 
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& x, StorageView<Out>& y) const {
-        y.resize_as(x);
-        compute::quantize(x.data(), y.data(), x.size(), _scale, _shift);
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<float, int16_t>(x, y);
       }
 
     private:
       float _scale;
       float _shift;
+
+      template <typename In, typename Out>
+      void compute(const StorageView& x, StorageView& y) const {
+        y.resize_as(x);
+        compute::quantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
+      }
+
     };
 
     class Unquantize {
@@ -399,15 +501,20 @@ namespace onmt {
         , _shift(shift) {
       }
 
-      template <typename In, typename Out>
-      void operator()(const StorageView<In>& x, StorageView<Out>& y) const {
-        y.resize_as(x);
-        compute::unquantize(x.data(), y.data(), x.size(), _scale, _shift);
+      void operator()(const StorageView& x, StorageView& y) const {
+        compute<int16_t, float>(x, y);
       }
 
     private:
       float _scale;
       float _shift;
+
+      template <typename In, typename Out>
+      void compute(const StorageView& x, StorageView& y) const {
+        y.resize_as(x);
+        compute::unquantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
+      }
+
     };
 
     class TopK {
@@ -419,29 +526,34 @@ namespace onmt {
           throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
       }
 
-      template <typename T, typename I>
-      void operator()(const StorageView<T>& x,
-                      StorageView<T>& values,
-                      StorageView<I>& indices) const {
-        size_t depth = x.dim(-1);
-        size_t batch_size = x.size() / depth;
-        StorageView<size_t> tmp({depth});
-        values.resize({batch_size, _k});
-        indices.resize({batch_size, _k});
-        for (size_t i = 0; i < batch_size; ++i) {
-          const T* input = x.data() + (i * depth);
-          compute::topk(input, tmp.data(), _k, depth);
-          T* val = values.data() + (i * _k);
-          I* ind = indices.data() + (i * _k);
-          compute::copy(tmp.data(), ind, _k);
-          for (size_t j = 0; j < _k; ++j)
-            val[j] = input[ind[j]];
-        }
+      void operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
+        compute<float, int32_t>(x, values, indices);
       }
 
     private:
       size_t _k;
       int _axis;
+
+      template <typename DataType, typename IndexType>
+      void compute(const StorageView& x,
+                   StorageView& values,
+                   StorageView& indices) const {
+        size_t depth = x.dim(-1);
+        size_t batch_size = x.size() / depth;
+        StorageView tmp({depth}, indices.dtype());
+        values.resize({batch_size, _k});
+        indices.resize({batch_size, _k});
+        for (size_t i = 0; i < batch_size; ++i) {
+          const auto* input = x.data<DataType>() + (i * depth);
+          compute::topk(input, tmp.data<IndexType>(), _k, depth);
+          auto* val = values.data<DataType>() + (i * _k);
+          auto* ind = indices.data<IndexType>() + (i * _k);
+          compute::copy(tmp.data<IndexType>(), ind, _k);
+          for (size_t j = 0; j < _k; ++j)
+            val[j] = input[ind[j]];
+        }
+      }
+
     };
 
   }

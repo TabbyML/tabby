@@ -12,73 +12,81 @@ static void expect_array_eq(const T* x, const T* y, size_t n) {
 }
 
 template <typename T>
-static void assert_shape_eq(const StorageView<T>& s, const std::vector<size_t>& shape) {
-  ASSERT_EQ(s.rank(), shape.size());
-  for (size_t i = 0; i < shape.size(); ++i) {
-    ASSERT_EQ(s.dim(i), shape[i]) << "Value mismatch for dimension " << i;
+static void assert_vector_eq(const std::vector<T>& got, const std::vector<T>& expected) {
+  ASSERT_EQ(got.size(), expected.size());
+  for (size_t i = 0; i < got.size(); ++i) {
+    ASSERT_EQ(got[i], expected[i]) << "Value mismatch for dimension " << i;
   }
 }
 
-template <typename T>
-static void expect_storage_eq(const StorageView<T>& a, const StorageView<T>& b) {
-  assert_shape_eq(b, a.shape());
-  expect_array_eq(a.data(), b.data(), a.size());
+static void expect_storage_eq(const StorageView& got, const StorageView& expected) {
+  ASSERT_EQ(got.dtype(), expected.dtype());
+  assert_vector_eq(got.shape(), expected.shape());
+  TYPE_DISPATCH(got.dtype(), expect_array_eq(got.data<T>(), expected.data<T>(), got.size()));
 }
 
+TEST(OpTest, AddFloat) {
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4});
+  StorageView b({4}, std::vector<float>{2, 3, 4, 5});
+  StorageView expected({4}, std::vector<float>{3, 5, 7, 9});
+  StorageView c;
+  ops::Add()(a, b, c);
+  expect_storage_eq(c, expected);
+}
 
 TEST(OpTest, ConcatBatch) {
-  StorageView<float> a({2, 2}, 1);
-  StorageView<float> b({1, 2}, 2);
-  StorageView<float> c({3, 2}, {1, 1, 1, 1, 2, 2});
-  StorageView<float> x;
+  StorageView a({2, 2}, 1.f);
+  StorageView b({1, 2}, 2.f);
+  StorageView c({3, 2}, std::vector<float>{1, 1, 1, 1, 2, 2});
+  StorageView x;
   ops::Concat(0)({&a, &b}, x);
   expect_storage_eq(x, c);
 }
 
 TEST(OpTest, ConcatTime) {
-  StorageView<float> a({2, 2, 2}, {1, 1, 2, 2, 3, 3, 4, 4});
-  StorageView<float> b({2, 1, 2}, {5, 5, 6, 6});
-  StorageView<float> c({2, 3, 2}, { 1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6 });
-  StorageView<float> x;
+  StorageView a({2, 2, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  StorageView b({2, 1, 2}, std::vector<float>{5, 5, 6, 6});
+  StorageView c({2, 3, 2}, std::vector<float>{1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6});
+  StorageView x;
   ops::Concat(1)({&a, &b}, x);
   expect_storage_eq(x, c);
 }
 
 TEST(OpTest, ConcatDepth) {
-  StorageView<float> a({2, 1}, 1);
-  StorageView<float> b({2, 2}, 2);
-  StorageView<float> c({2, 3}, {1, 2, 2, 1, 2, 2});
-  StorageView<float> x;
+  StorageView a({2, 1}, 1.f);
+  StorageView b({2, 2}, 2.f);
+  StorageView c({2, 3}, std::vector<float>{1, 2, 2, 1, 2, 2});
+  StorageView x;
   ops::Concat(-1)({&a, &b}, x);
   expect_storage_eq(x, c);
 }
 
 TEST(OpTest, Gather) {
-  StorageView<float> data({4, 2}, {1, 1, 2, 2, 3, 3, 4, 4});
-  StorageView<size_t> ids({2}, {1, 3});
-  StorageView<float> expected({2, 2}, {2, 2, 4, 4});
-  StorageView<float> output;
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView expected({2, 2}, std::vector<float>{2, 2, 4, 4});
+  StorageView output;
   ops::Gather(0)(data, ids, output);
   expect_storage_eq(output, expected);
 }
 
 TEST(OpTest, Gemm) {
-  StorageView<float> a({4, 4}, {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
-  StorageView<float> b(a);
-  StorageView<float> c({4, 4}, 2);
-  StorageView<float> y;
-  StorageView<float> expected({4, 4}, {3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3});
+  StorageView a({4, 4}, std::vector<float>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
+  StorageView b(a);
+  StorageView c({4, 4}, 2.f);
+  StorageView y;
+  StorageView expected({4, 4}, std::vector<float>{3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3});
   ops::Gemm op(1.0, 1.0, false, false, false);
   op(a, b, &c, y);
   expect_storage_eq(y, expected);
 };
 
 TEST(OpTest, GemmInt16) {
-  StorageView<int16_t> a({64, 64}, 1);
-  StorageView<int16_t> b(a);
-  StorageView<int32_t> c({64, 64}, 2);
-  StorageView<int32_t> y;
-  StorageView<int32_t> expected({64, 64}, 130);
+  StorageView a({64, 64}, static_cast<int16_t>(1));
+  StorageView b(a);
+  StorageView c({64, 64}, static_cast<int32_t>(2));
+  StorageView y(c.dtype());
+  StorageView expected({64, 64}, static_cast<int32_t>(130));
   ops::Gemm op(2.0, 1.0, false, false, true);
   op(a, b, &c, y);
   expect_storage_eq(y, expected);
@@ -87,10 +95,10 @@ TEST(OpTest, GemmInt16) {
 TEST(OpTest, Quantize) {
   const float scale = 100;
   const float shift = 5;
-  StorageView<float> input({4}, {0.1f, -0.5f, 2.0f, 0.0f});
-  StorageView<int16_t> expected({4}, {15, -45, 205, 5});
-  StorageView<int16_t> output;
-  StorageView<float> reverse;
+  StorageView input({4}, std::vector<float>{0.1f, -0.5f, 2.0f, 0.0f});
+  StorageView expected({4}, std::vector<int16_t>{15, -45, 205, 5});
+  StorageView output(expected.dtype());
+  StorageView reverse(input.dtype());
   ops::Quantize quantize_op(scale, shift);
   ops::Unquantize unquantize_op(scale, shift);
   quantize_op(input, output);
@@ -101,11 +109,11 @@ TEST(OpTest, Quantize) {
 
 TEST(OpTest, TopK) {
   const int k = 3;
-  StorageView<float> input({2, 6}, {0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0});
-  StorageView<float> expected_values({2, 3}, {2.0, 0.6, 0.2, 1.1, 1.0, 0.3});
-  StorageView<size_t> expected_indices({2, 3}, {2, 5, 4, 1, 0, 3});
-  StorageView<float> values;
-  StorageView<size_t> indices;
+  StorageView input({2, 6}, std::vector<float>{0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0});
+  StorageView expected_values({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3});
+  StorageView expected_indices({2, 3}, std::vector<int32_t>{2, 5, 4, 1, 0, 3});
+  StorageView values(expected_values.dtype());
+  StorageView indices(expected_indices.dtype());
   ops::TopK op(k);
   op(input, values, indices);
   expect_storage_eq(values, expected_values);

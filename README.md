@@ -8,14 +8,14 @@ The `StorageView` class is a light wrapper around an allocated buffer to give it
 
 * It can be resized, reshaped, copied, or assigned
 * It can view an existing buffer to avoid memory copy
-* The buffer can be of any type and casting is supported
+* The buffer can be of any type
 * Allocation is aligned by default to 64 bytes: wasted space is minimal and it is required when working with intrinsics up to AVX512
 
 ## `ops.h`
 
 This file defines operations as close as possible to the ONNX specs.
 
-* The inputs/outputs are templated `StorageView` instances.
+* The public `operator()` method handles type dispatch to the private templated method
 
 ## `compute.h`
 

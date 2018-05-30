@@ -33,21 +33,24 @@ set(MKL_LIBRARIES
   m
   dl
   )
+
 add_executable(main
   compute_mkl.cc
   compute_simd.cc
   main.cc
   )
-add_executable(benchmark
-  benchmark.cc
-  )
-add_executable(tensor_demo tensor_demo.cc)
 target_link_libraries(main
   ${MKL_LIBRARIES}
   )
-target_link_libraries(benchmark
-  ${MKL_LIBRARIES}
-  )
+
+# add_executable(benchmark
+#   benchmark.cc
+#   )
+# target_link_libraries(benchmark
+#   ${MKL_LIBRARIES}
+#   )
+
+add_executable(tensor_demo tensor_demo.cc)
 target_link_libraries(tensor_demo
   ${MKL_LIBRARIES}
   )
