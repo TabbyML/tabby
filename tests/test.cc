@@ -61,6 +61,21 @@ TEST(OpTest, ConcatDepth) {
   expect_storage_eq(x, c);
 }
 
+TEST(OpTest, Squeeze) {
+  StorageView x({2, 1, 3}, DataType::DT_FLOAT);
+  ops::Squeeze({1})(x);
+  assert_vector_eq(x.shape(), {2, 3});
+  EXPECT_THROW(ops::Squeeze({1})(x), std::invalid_argument);
+}
+
+TEST(OpTest, Unsqueeze) {
+  StorageView x({2, 3}, DataType::DT_FLOAT);
+  ops::Unsqueeze({1})(x);
+  assert_vector_eq(x.shape(), {2, 1, 3});
+  ops::Unsqueeze({0})(x);
+  assert_vector_eq(x.shape(), {1, 2, 1, 3});
+}
+
 TEST(OpTest, Gather) {
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
   StorageView ids({2}, std::vector<int32_t>{1, 3});

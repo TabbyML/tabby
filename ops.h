@@ -103,6 +103,30 @@ namespace onmt {
       std::vector<size_t> _axes;
     };
 
+    class Squeeze {
+    public:
+      Squeeze(const std::vector<size_t>& axes)
+        : _axes(axes) {
+        std::sort(_axes.begin(), _axes.end());
+      }
+
+      void operator()(StorageView& data) const {
+        Shape new_shape;
+        for (size_t i = 0, j = 0; i < data.rank(); ++i) {
+          if (i == _axes[j]) {
+            if (data.dim(i) != 1)
+              throw std::invalid_argument("can't squeeze dimension greater than 1");
+          } else {
+            new_shape.push_back(data.dim(i));
+          }
+        }
+        data.reshape(new_shape);
+      }
+
+    private:
+      std::vector<size_t> _axes;
+    };
+
     class Reshape {
     public:
       void operator()(StorageView& data, const std::vector<size_t>& shape) const {
