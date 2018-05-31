@@ -146,7 +146,7 @@ namespace onmt {
 
     StorageView& reserve(size_t size) {
       release();
-      size_t required_bytes;
+      size_t required_bytes = 0;
       TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
       size_t buffer_space = required_bytes + ALIGNMENT;
       _buffer = malloc(buffer_space);

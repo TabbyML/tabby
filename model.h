@@ -46,7 +46,7 @@ namespace onmt {
           shape[k] = static_cast<size_t>(dimensions[k]);
         }
 
-        StorageView* view;
+        StorageView* view = nullptr;
 
         if (data_width == 4) {
           view = new StorageView(reinterpret_cast<float*>(data), shape);
