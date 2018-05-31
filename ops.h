@@ -123,7 +123,7 @@ namespace onmt {
       void operator()(StorageView& data) const {
         Shape new_shape;
         for (size_t i = 0, j = 0; i < data.rank(); ++i) {
-          if (i == _axes[j]) {
+          if (j < _axes.size() && i == _axes[j]) {
             ++j;
             new_shape.push_back(1);
           }
@@ -146,9 +146,10 @@ namespace onmt {
       void operator()(StorageView& data) const {
         Shape new_shape;
         for (size_t i = 0, j = 0; i < data.rank(); ++i) {
-          if (i == _axes[j]) {
+          if (j < _axes.size() && i == _axes[j]) {
             if (data.dim(i) != 1)
               throw std::invalid_argument("can't squeeze dimension greater than 1");
+            ++j;
           } else {
             new_shape.push_back(data.dim(i));
           }
