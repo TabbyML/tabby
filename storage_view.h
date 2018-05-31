@@ -15,9 +15,6 @@ using Shape = std::vector<size_t>;
 
 namespace onmt {
 
-// #define DATA_PTR(storage_view)
-//   TYPE_DISPATCH(storage_view.type(), storage_view.data<T>())
-
   // The `StorageView` class is a light wrapper around an allocated buffer to give
   // it a sense of shape.
   //
@@ -104,26 +101,26 @@ namespace onmt {
       return data<T>() + offset;
     }
 
-    // template <typename T>
-    // T& operator[](size_t index) {
-    //   return const_cast<T&>(static_cast<const StorageView&>(*this).operator[][index]);
-    // }
+    template <typename T>
+    T& at(size_t index) {
+      return const_cast<T&>(static_cast<const StorageView&>(*this).at<T>(index));
+    }
 
-    // template <typename T>
-    // const T& operator[](size_t index) const {
-    //   assert(index < _size);
-    //   return data<T>()[index];
-    // }
+    template <typename T>
+    const T& at(size_t index) const {
+      assert(index < _size);
+      return data<T>()[index];
+    }
 
-    // template <typename T>
-    // T& operator[](const std::vector<size_t>& indices) {
-    //   return index<T>(indices)[0];
-    // }
+    template <typename T>
+    T& at(const std::vector<size_t>& indices) {
+      return index<T>(indices)[0];
+    }
 
-    // template <typename T>
-    // const T& operator[](const std::vector<size_t>& indices) const {
-    //   return index<T>(indices)[0];
-    // }
+    template <typename T>
+    const T& at(const std::vector<size_t>& indices) const {
+      return index<T>(indices)[0];
+    }
 
     size_t reserved_memory() const {
       size_t buffer_size;
@@ -287,19 +284,6 @@ namespace onmt {
       compute::copy(data, this->data<T>(), size);
       return *this;
     }
-
-    // void cast_to(StorageView& other) const {
-    //   other.resize(_shape);
-    //   for (size_t i = 0; i < _size; ++i)
-    //     other[i] = static_cast<U>(_data[i]);
-    // }
-
-    // template <typename U>
-    // StorageView<U> cast() const {
-    //   StorageView<U> other;
-    //   cast_to(other);
-    //   return other;
-    // }
 
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
