@@ -244,37 +244,39 @@ namespace onmt {
 
     class MatMul {
     public:
+      MatMul()
+        : _trans_a(false)
+        , _trans_b(false) {
+      }
+      MatMul(bool trans_a, bool trans_b)
+        : _trans_a(trans_a)
+        , _trans_b(trans_b) {
+      }
+
       void operator()(const StorageView& a,
                       const StorageView& b,
-                      bool transpose_a,
-                      bool transpose_b,
                       StorageView& y) const {
         switch (a.dtype()) {
         case DataType::DT_INT16:
-          return compute<int16_t, int32_t>(a, b, transpose_a, transpose_b, y);
+          return compute<int16_t, int32_t>(a, b, y);
         case DataType::DT_FLOAT:
-          return compute<float>(a, b, transpose_a, transpose_b, y);
+          return compute<float>(a, b, y);
         default:
           throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
         }
       }
 
-      void operator()(const StorageView& a,
-                      const StorageView& b,
-                      StorageView& y) const {
-        operator()(a, b, false, false, y);
-      }
-
     private:
+      bool _trans_a;
+      bool _trans_b;
+
       template <typename In, typename Out = In>
       void compute(const StorageView& a,
                    const StorageView& b,
-                   bool transpose_a,
-                   bool transpose_b,
                    StorageView& y) const {
         size_t m, n, k;
 
-        if (transpose_a) {
+        if (_trans_a) {
           m = a.dim(-1);
           k = a.dim(-2);
         } else {
@@ -282,7 +284,7 @@ namespace onmt {
           k = a.dim(-1);
         }
 
-        if (transpose_b) {
+        if (_trans_b) {
           n = b.dim(-2);
           assert(k == b.dim(-1));
         } else {
@@ -300,13 +302,13 @@ namespace onmt {
           output_shape[output_shape.size() - 2] = m;
           y.resize(output_shape);
           compute::gemm_batch(a.data<In>(), b.data<In>(),
-                              transpose_a, transpose_b,
+                              _trans_a, _trans_b,
                               batch_size, m, n, k,
                               alpha, beta, y.data<Out>());
         } else {
           y.resize({m, n});
           compute::gemm(a.data<In>(), b.data<In>(),
-                        transpose_a, transpose_b,
+                        _trans_a, _trans_b,
                         m, n, k,
                         alpha, beta, y.data<Out>());
         }

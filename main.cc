@@ -200,7 +200,7 @@ public:
     size_t queries_time = queries.dim(2);
     size_t memory_time = keys.dim(2);
 
-    onmt::ops::MatMul()(queries, keys, false, true, _dot);
+    onmt::ops::MatMul(false, true)(queries, keys, _dot);
 
     if (batch_size > 1) {
       for (size_t b = 0; b < batch_size; ++b) {
