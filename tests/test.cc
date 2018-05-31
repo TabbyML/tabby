@@ -92,7 +92,7 @@ TEST(OpTest, Gemm) {
   StorageView y;
   StorageView expected({4, 4}, std::vector<float>{3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3});
   ops::Gemm op(1.0, 1.0, false, false, false);
-  op(a, b, &c, y);
+  op(a, b, c, y);
   expect_storage_eq(y, expected);
 };
 
@@ -103,7 +103,7 @@ TEST(OpTest, GemmInt16) {
   StorageView y(c.dtype());
   StorageView expected({64, 64}, static_cast<int32_t>(130));
   ops::Gemm op(2.0, 1.0, false, false, true);
-  op(a, b, &c, y);
+  op(a, b, c, y);
   expect_storage_eq(y, expected);
 };
 

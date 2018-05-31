@@ -187,7 +187,7 @@ namespace onmt {
 
       void operator()(const StorageView& a,
                       const StorageView& b,
-                      const StorageView* c,
+                      const StorageView& c,
                       StorageView& y) const {
         switch (a.dtype()) {
         case DataType::DT_INT16:
@@ -203,7 +203,7 @@ namespace onmt {
       template <typename In, typename Out = In>
       void compute(const StorageView& a,
                    const StorageView& b,
-                   const StorageView* c,
+                   const StorageView& c,
                    StorageView& y) const {
         size_t k = a.dim(_trans_a ? -2 : -1);
         size_t n = b.dim(_trans_b ? -2 : -1);
@@ -217,14 +217,14 @@ namespace onmt {
         y.resize(output_shape);
 
         if (_beta != 0.f) {
-          assert(c != nullptr);
+          assert(!c.empty());
           if (_broadcast_c) {
-            assert(c->size() == n);
+            assert(c.size() == n);
             for (size_t i = 0; i < m; ++i)
-              compute::copy(c->data<Out>(), y.index<Out>({i}), n);
+              compute::copy(c.data<Out>(), y.index<Out>({i}), n);
           } else {
-            assert(c->size() == y.size());
-            compute::copy(c->data<Out>(), y.data<Out>(), y.size());
+            assert(c.size() == y.size());
+            compute::copy(c.data<Out>(), y.data<Out>(), y.size());
           }
         }
 

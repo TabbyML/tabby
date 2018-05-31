@@ -123,7 +123,7 @@ public:
   }
 
   onmt::StorageView& operator()(const onmt::StorageView& input) {
-    _gemm_op(input, _weight, &_bias, _output);
+    _gemm_op(input, _weight, _bias, _output);
     return _output;
   }
 
