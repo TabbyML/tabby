@@ -102,17 +102,24 @@ TEST(OpTest, Transpose3D) {
 
 TEST(OpTest, Squeeze) {
   StorageView x({2, 1, 3}, DataType::DT_FLOAT);
-  ops::Squeeze({1})(x);
-  assert_vector_eq(x.shape(), {2, 3});
-  EXPECT_THROW(ops::Squeeze({1})(x), std::invalid_argument);
+  StorageView y;
+  ops::Squeeze({1})(x, y);
+  assert_vector_eq(y.shape(), {2, 3});
+  EXPECT_EQ(y.data<float>(), x.data<float>());
+  y.release();
+  EXPECT_THROW(ops::Squeeze({0})(x, y), std::invalid_argument);
 }
 
 TEST(OpTest, Unsqueeze) {
   StorageView x({2, 3}, DataType::DT_FLOAT);
-  ops::Unsqueeze({1})(x);
-  assert_vector_eq(x.shape(), {2, 1, 3});
-  ops::Unsqueeze({0})(x);
-  assert_vector_eq(x.shape(), {1, 2, 1, 3});
+  StorageView y;
+  ops::Unsqueeze({1})(x, y);
+  assert_vector_eq(y.shape(), {2, 1, 3});
+  EXPECT_EQ(y.data<float>(), x.data<float>());
+  StorageView z;
+  ops::Unsqueeze({0})(y, z);
+  assert_vector_eq(z.shape(), {1, 2, 1, 3});
+  EXPECT_EQ(z.data<float>(), y.data<float>());
 }
 
 TEST(OpTest, Gather) {

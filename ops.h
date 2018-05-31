@@ -120,7 +120,7 @@ namespace onmt {
         std::sort(_axes.begin(), _axes.end());
       }
 
-      void operator()(StorageView& data) const {
+      void operator()(const StorageView& data, StorageView& expanded) const {
         Shape new_shape;
         for (size_t i = 0, j = 0; i < data.rank(); ++i) {
           if (j < _axes.size() && i == _axes[j]) {
@@ -129,7 +129,8 @@ namespace onmt {
           }
           new_shape.push_back(data.dim(i));
         }
-        data.reshape(new_shape);
+        expanded.shallow_copy(const_cast<StorageView&>(data));
+        expanded.reshape(new_shape);
       }
 
     private:
@@ -143,7 +144,7 @@ namespace onmt {
         std::sort(_axes.begin(), _axes.end());
       }
 
-      void operator()(StorageView& data) const {
+      void operator()(const StorageView& data, StorageView& squeezed) const {
         Shape new_shape;
         for (size_t i = 0, j = 0; i < data.rank(); ++i) {
           if (j < _axes.size() && i == _axes[j]) {
@@ -154,7 +155,8 @@ namespace onmt {
             new_shape.push_back(data.dim(i));
           }
         }
-        data.reshape(new_shape);
+        squeezed.shallow_copy(const_cast<StorageView&>(data));
+        squeezed.reshape(new_shape);
       }
 
     private:
