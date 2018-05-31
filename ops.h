@@ -8,12 +8,52 @@
 namespace onmt {
   namespace ops {
 
-    class Concat {
+    class Op {
+    public:
+      virtual ~Op() = default;
+      virtual void operator()(std::vector<StorageView*>& inputs,
+                              std::vector<StorageView*>& outputs) const = 0;
+    };
+
+    class UnaryOp : public Op {
+    public:
+      virtual void operator()(std::vector<StorageView*>& inputs,
+                              std::vector<StorageView*>& outputs) const override {
+        operator()(*inputs[0], *outputs[0]);
+      }
+      virtual void operator()(const StorageView&, StorageView&) const = 0;
+    };
+    class BinaryOp : public Op {
+    public:
+      virtual void operator()(std::vector<StorageView*>& inputs,
+                              std::vector<StorageView*>& outputs) const override {
+        operator()(*inputs[0], *inputs[1], *outputs[0]);
+      }
+      virtual void operator()(const StorageView&, const StorageView&, StorageView&) const = 0;
+    };
+    class TernaryOp : public Op {
+    public:
+      virtual void operator()(std::vector<StorageView*>& inputs,
+                              std::vector<StorageView*>& outputs) const override {
+        operator()(*inputs[0], *inputs[1], *inputs[2], *outputs[0]);
+      }
+      virtual void operator()(const StorageView&,
+                              const StorageView&,
+                              const StorageView&,
+                              StorageView&) const = 0;
+    };
+
+
+    class Concat : public Op {
     public:
       Concat(int axis)
         : _axis(axis) {
       }
 
+      void operator()(std::vector<StorageView*>& inputs,
+                      std::vector<StorageView*>& outputs) const override {
+        operator()(inputs, *outputs[0]);
+      }
       void operator()(const std::vector<StorageView*>& inputs,
                       StorageView& output) const {
         TYPE_DISPATCH(output.dtype(), compute<T>(inputs, output));
@@ -54,14 +94,14 @@ namespace onmt {
       }
     };
 
-    class Transpose {
+    class Transpose : public UnaryOp {
     public:
       Transpose() = default;
       Transpose(const std::vector<size_t>& perm)
         : _perm(perm) {
       }
 
-      void operator()(const StorageView& x, StorageView& y) {
+      void operator()(const StorageView& x, StorageView& y) const override {
         if (x.rank() == 1) {
           y = x;
           return;
@@ -113,71 +153,88 @@ namespace onmt {
       }
     };
 
-    class Unsqueeze {
+    class Unsqueeze : public UnaryOp {
     public:
       Unsqueeze(const std::vector<size_t>& axes)
         : _axes(axes) {
         std::sort(_axes.begin(), _axes.end());
       }
 
-      void operator()(const StorageView& data, StorageView& expanded) const {
-        Shape new_shape;
-        for (size_t i = 0, j = 0; i < data.rank(); ++i) {
-          if (j < _axes.size() && i == _axes[j]) {
-            ++j;
-            new_shape.push_back(1);
-          }
-          new_shape.push_back(data.dim(i));
-        }
+      void operator()(StorageView& data) const {
+        data.reshape(transform_shape(data.shape()));
+      }
+      void operator()(const StorageView& data, StorageView& expanded) const override {
         expanded.shallow_copy(const_cast<StorageView&>(data));
-        expanded.reshape(new_shape);
+        expanded.reshape(transform_shape(data.shape()));
       }
 
     private:
       std::vector<size_t> _axes;
+
+      Shape transform_shape(const Shape& shape) const {
+        Shape new_shape;
+        for (size_t i = 0, j = 0; i < shape.size(); ++i) {
+          if (j < _axes.size() && i == _axes[j]) {
+            ++j;
+            new_shape.push_back(1);
+          }
+          new_shape.push_back(shape[i]);
+        }
+        return new_shape;
+      }
     };
 
-    class Squeeze {
+    class Squeeze : public UnaryOp {
     public:
       Squeeze(const std::vector<size_t>& axes)
         : _axes(axes) {
         std::sort(_axes.begin(), _axes.end());
       }
 
-      void operator()(const StorageView& data, StorageView& squeezed) const {
-        Shape new_shape;
-        for (size_t i = 0, j = 0; i < data.rank(); ++i) {
-          if (j < _axes.size() && i == _axes[j]) {
-            if (data.dim(i) != 1)
-              throw std::invalid_argument("can't squeeze dimension greater than 1");
-            ++j;
-          } else {
-            new_shape.push_back(data.dim(i));
-          }
-        }
+      void operator()(StorageView& data) const {
+        data.reshape(transform_shape(data.shape()));
+      }
+      void operator()(const StorageView& data, StorageView& squeezed) const override {
         squeezed.shallow_copy(const_cast<StorageView&>(data));
-        squeezed.reshape(new_shape);
+        squeezed.reshape(transform_shape(data.shape()));
       }
 
     private:
       std::vector<size_t> _axes;
+
+      Shape transform_shape(const Shape& shape) const {
+        Shape new_shape;
+        for (size_t i = 0, j = 0; i < shape.size(); ++i) {
+          if (j < _axes.size() && i == _axes[j]) {
+            if (shape[i] != 1)
+              throw std::invalid_argument("can't squeeze dimension greater than 1");
+            ++j;
+          } else {
+            new_shape.push_back(shape[i]);
+          }
+        }
+        return new_shape;
+      }
+
     };
 
     class Reshape {
     public:
-      void operator()(StorageView& data, const std::vector<size_t>& shape) const {
-        data.reshape(shape);
+      void operator()(StorageView& data, const StorageView& shape) const {
+        data.reshape(std::vector<size_t>(shape.data<int32_t>(),
+                                         shape.data<int32_t>() + shape.size()));
       }
 
       void operator()(const StorageView& data,
-                      const std::vector<size_t>& shape,
+                      const StorageView& shape,
                       StorageView& reshaped) const {
         reshaped = data;
-        reshaped.reshape(shape);
+        reshaped.reshape(std::vector<size_t>(shape.data<int32_t>(),
+                                             shape.data<int32_t>() + shape.size()));
       }
     };
 
-    class LayerNorm {
+    class LayerNorm : public TernaryOp {
     public:
       void operator()(const StorageView& beta,
                       const StorageView& gamma,
@@ -211,7 +268,7 @@ namespace onmt {
       }
     };
 
-    class Gemm {
+    class Gemm : public TernaryOp {
     public:
       Gemm(float alpha, float beta, bool broadcast_c, bool trans_a, bool trans_b)
         : _alpha(alpha)
@@ -278,7 +335,7 @@ namespace onmt {
       bool _trans_b;
     };
 
-    class MatMul {
+    class MatMul : public BinaryOp {
     public:
       MatMul()
         : _trans_a(false)
@@ -352,20 +409,19 @@ namespace onmt {
     };
 
 
-    class Identity {
+    class Identity : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         y = x;
       }
     };
 
-    class ReLU {
+    class ReLU : public UnaryOp {
     public:
       void operator()(StorageView& x) const {
         TYPE_DISPATCH(x.dtype(), compute<T>(x));
       }
-
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         TYPE_DISPATCH(x.dtype(), compute<T>(x, y));
       }
 
@@ -382,9 +438,9 @@ namespace onmt {
       }
     };
 
-    class Tanh {
+    class Tanh : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         compute<float>(x, y);
       }
 
@@ -396,9 +452,9 @@ namespace onmt {
       }
     };
 
-    class Sigmoid {
+    class Sigmoid : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         compute<float>(x, y);
       }
 
@@ -413,9 +469,9 @@ namespace onmt {
       }
     };
 
-    class SoftMax {
+    class SoftMax : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         compute<float>(x, y);
       }
 
@@ -438,7 +494,7 @@ namespace onmt {
       }
     };
 
-    class Cos {
+    class Cos : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const {
         compute<float>(x, y);
@@ -452,7 +508,7 @@ namespace onmt {
       }
     };
 
-    class Sin {
+    class Sin : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const {
         compute<float>(x, y);
@@ -466,9 +522,9 @@ namespace onmt {
       }
     };
 
-    class Add {
+    class Add : public BinaryOp {
     public:
-      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const {
+      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const override {
         TYPE_DISPATCH(a.dtype(), compute<T>(a, b, c));
       }
 
@@ -484,9 +540,9 @@ namespace onmt {
       }
     };
 
-    class Mul {
+    class Mul : public BinaryOp {
     public:
-      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const {
+      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const override {
         TYPE_DISPATCH(a.dtype(), compute<T>(a, b, c));
       }
 
@@ -503,7 +559,7 @@ namespace onmt {
       }
     };
 
-    class Gather {
+    class Gather : public BinaryOp {
     public:
       Gather(int axis = 0)
         : _axis(axis) {
@@ -511,7 +567,9 @@ namespace onmt {
           throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
 
-      void operator()(const StorageView& data, const StorageView& input, StorageView& output) const {
+      void operator()(const StorageView& data,
+                      const StorageView& input,
+                      StorageView& output) const override {
         compute<float, int32_t>(data, input, output);
       }
 
@@ -533,14 +591,14 @@ namespace onmt {
 
     };
 
-    class Quantize {
+    class Quantize : public UnaryOp {
     public:
       Quantize(float scale = 1, float shift = 0)
         : _scale(scale)
         , _shift(shift) {
       }
 
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         compute<float, int16_t>(x, y);
       }
 
@@ -556,14 +614,14 @@ namespace onmt {
 
     };
 
-    class Unquantize {
+    class Unquantize : public UnaryOp {
     public:
       Unquantize(float scale = 1, float shift = 0)
         : _scale(scale)
         , _shift(shift) {
       }
 
-      void operator()(const StorageView& x, StorageView& y) const {
+      void operator()(const StorageView& x, StorageView& y) const override {
         compute<int16_t, float>(x, y);
       }
 
@@ -579,13 +637,18 @@ namespace onmt {
 
     };
 
-    class TopK {
+    class TopK : public Op {
     public:
       TopK(size_t k, int axis = -1)
         : _k(k)
         , _axis(axis) {
         if (axis != -1)
           throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
+      }
+
+      void operator()(std::vector<StorageView*>& inputs,
+                      std::vector<StorageView*>& outputs) const override {
+        operator()(*inputs[0], *outputs[0], *outputs[1]);
       }
 
       void operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
