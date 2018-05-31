@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <unsupported/Eigen/CXX11/Tensor>
+
 namespace onmt {
   namespace compute {
 
@@ -115,6 +117,32 @@ namespace onmt {
       }
     }
 
+    template <typename T>
+    void transpose_2d(const T* a, size_t rows, size_t cols, T* b) {
+      static const std::vector<long> perm{1, 0};
+      Eigen::TensorMap<Eigen::Tensor<const T, 2, Eigen::RowMajor>> a_map(a, rows, cols);
+      Eigen::TensorMap<Eigen::Tensor<T, 2, Eigen::RowMajor>> b_map(b, cols, rows);
+      b_map = a_map.shuffle(perm);
+    }
+
+    template <typename T, typename I>
+    void transpose_3d(const T* a, const I* dims, const I* perm, T* b) {
+      Eigen::TensorMap<Eigen::Tensor<const T, 3, Eigen::RowMajor>> a_map(
+        a, dims[0], dims[1], dims[2]);
+      Eigen::TensorMap<Eigen::Tensor<T, 3, Eigen::RowMajor>> b_map(
+        b, dims[perm[0]], dims[perm[1]], dims[perm[2]]);
+      b_map = a_map.shuffle(perm);
+    }
+
+    template <typename T, typename I>
+    void transpose_4d(const T* a, const I* dims, const I* perm, T* b) {
+      Eigen::TensorMap<Eigen::Tensor<const T, 4, Eigen::RowMajor>> a_map(
+        a, dims[0], dims[1], dims[2], dims[3]);
+      Eigen::TensorMap<Eigen::Tensor<T, 4, Eigen::RowMajor>> b_map(
+        b, dims[perm[0]], dims[perm[1]], dims[perm[2]], dims[perm[3]]);
+      b_map = a_map.shuffle(perm);
+    }
+
     // Functions without generic implementation.
     template <typename T>
     void pow(const T* x, T* y, T power, size_t size);
@@ -126,11 +154,6 @@ namespace onmt {
     void sin(const T* x, T* y, size_t size);
     template <typename T>
     void tanh(const T* x, T* y, size_t size);
-
-    template <typename T>
-    void transpose_2d_inplace(T* a, size_t rows, size_t cols);
-    template <typename T>
-    void transpose_2d(const T* a, size_t rows, size_t cols, T* b);
 
     template <typename In, typename Out>
     void gemm(const In* a, const In* b,

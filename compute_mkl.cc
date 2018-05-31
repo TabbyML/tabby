@@ -67,11 +67,6 @@ namespace onmt {
     }
 
     template<>
-    void transpose_2d_inplace(float* a, size_t rows, size_t cols) {
-      mkl_simatcopy('R', 'T', rows, cols, 1.0, a, cols, rows);
-    }
-
-    template<>
     void transpose_2d(const float* a, size_t rows, size_t cols, float* b) {
       mkl_somatcopy('R', 'T', rows, cols, 1.0, a, cols, b, rows);
     }

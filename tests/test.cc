@@ -61,6 +61,45 @@ TEST(OpTest, ConcatDepth) {
   expect_storage_eq(x, c);
 }
 
+TEST(OpTest, Transpose1D) {
+  StorageView x({4}, std::vector<float>{1, 2, 3, 4});
+  StorageView y;
+  ops::Transpose()(x, y);
+  expect_storage_eq(y, x);
+}
+
+TEST(OpTest, Transpose2D) {
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView expected({2, 4}, std::vector<float>{1, 3, 5, 7, 2, 4, 6, 8});
+  StorageView y;
+  ops::Transpose()(x, y);
+  expect_storage_eq(y, expected);
+  y.release();
+  ops::Transpose({1, 0})(x, y);
+  expect_storage_eq(y, expected);
+  y.release();
+  ops::Transpose({0, 1})(x, y);
+  expect_storage_eq(y, x);
+}
+
+TEST(OpTest, Transpose2DInt16) {
+  StorageView x({4, 2}, std::vector<int16_t>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView expected({2, 4}, std::vector<int16_t>{1, 3, 5, 7, 2, 4, 6, 8});
+  StorageView y(x.dtype());
+  ops::Transpose()(x, y);
+  expect_storage_eq(y, expected);
+}
+
+TEST(OpTest, Transpose3D) {
+  StorageView x({3, 2, 3},
+                std::vector<float>{1, 2, 3, 1, 2, 3, 4, 5, 6, 1, 2, 3, 7, 8, 9, 1, 2, 3});
+  StorageView expected({2, 3, 3},
+                       std::vector<float>{1, 4, 7, 2, 5, 8, 3, 6, 9, 1, 1, 1, 2, 2, 2, 3, 3, 3});
+  StorageView y(x.dtype());
+  ops::Transpose({1, 2, 0})(x, y);
+  expect_storage_eq(y, expected);
+}
+
 TEST(OpTest, Squeeze) {
   StorageView x({2, 1, 3}, DataType::DT_FLOAT);
   ops::Squeeze({1})(x);
