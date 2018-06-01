@@ -167,10 +167,37 @@ TEST(OpTest, Unsqueeze) {
   EXPECT_EQ(z.data<float>(), y.data<float>());
 }
 
-TEST(OpTest, Gather) {
+TEST(OpTest, GatherData1D) {
+  StorageView data({4}, std::vector<float>{1, 2, 3, 4});
+  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView expected({2}, std::vector<float>{2, 4});
+  StorageView output;
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST(OpTest, GatherData1DIndex2D) {
+  StorageView data({4}, std::vector<float>{1, 2, 3, 4});
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 1, 1, 2, 0});
+  StorageView expected({2, 3}, std::vector<float>{2, 4, 2, 2, 3, 1});
+  StorageView output;
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST(OpTest, GatherData2D) {
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
   StorageView ids({2}, std::vector<int32_t>{1, 3});
   StorageView expected({2, 2}, std::vector<float>{2, 2, 4, 4});
+  StorageView output;
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST(OpTest, GatherData2DIndex2D) {
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0});
+  StorageView expected({2, 3, 2}, std::vector<float>{2, 2, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1});
   StorageView output;
   ops::Gather(0)(data, ids, output);
   expect_storage_eq(output, expected);

@@ -621,25 +621,37 @@ namespace onmt {
           throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
 
+      void operator()(StorageView& data, const StorageView& input) const {
+        StorageView clone(data);
+        operator()(clone, input, data);
+      }
+
       void operator()(const StorageView& data,
                       const StorageView& input,
                       StorageView& output) const override {
-        compute<float, int32_t>(data, input, output);
+        TYPE_DISPATCH(data.dtype(), compute<T>(data, input, output));
       }
 
     private:
       int _axis;
 
-      template <typename DataType, typename IndexType>
+      template <typename DataType, typename IndexType = int32_t>
       void compute(const StorageView& data, const StorageView& input, StorageView& output) const {
-        size_t batch_size = input.dim(0);
-        size_t depth = data.dim(-1);
-        output.resize({batch_size, depth});
-        for (size_t i = 0; i < batch_size; ++i) {
-          size_t index = input.data<IndexType>()[i];
-          const auto* src = data.index<DataType>({index});
-          auto* dst = output.index<DataType>({i});
-          compute::copy(src, dst, depth);
+        Shape output_shape(input.shape());
+        if (data.rank() == 1) {
+          output.resize(output_shape);
+          for (size_t i = 0; i < input.size(); ++i)
+            output.at<DataType>(i) = data.at<DataType>(input.at<IndexType>(i));
+        } else {
+          size_t depth = data.dim(-1);
+          output_shape.push_back(depth);
+          output.resize(output_shape);
+          for (size_t i = 0; i < input.size(); ++i) {
+            size_t index = input.data<IndexType>()[i];
+            const auto* src = data.index<DataType>({index});
+            auto* dst = output.data<DataType>() + i * depth;
+            compute::copy(src, dst, depth);
+          }
         }
       }
 
