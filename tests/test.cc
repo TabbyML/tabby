@@ -194,6 +194,15 @@ TEST(OpTest, GatherData2D) {
   expect_storage_eq(output, expected);
 }
 
+TEST(OpTest, GatherData3D) {
+  StorageView data({2, 3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
+  StorageView ids({2}, std::vector<int32_t>{1, 1});
+  StorageView expected({2, 3, 2}, std::vector<float>{7, 8, 9, 10, 11, 12, 7, 8, 9, 10, 11, 12});
+  StorageView output;
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
 TEST(OpTest, GatherData2DIndex2D) {
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
   StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0});
