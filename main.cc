@@ -296,7 +296,9 @@ class TransformerSelfAttention : public MultiHeadAttention
 private:
   Dense _linear_in;
   Dense _linear_out;
-  onmt::StorageView _splits;
+  onmt::StorageView _queries_proj;
+  onmt::StorageView _keys_proj;
+  onmt::StorageView _values_proj;
 
 public:
   TransformerSelfAttention(const onmt::Model& model,
@@ -311,30 +313,29 @@ public:
                                 const onmt::StorageView& queries_lengths,
                                 onmt::StorageView* cached_keys = nullptr,
                                 onmt::StorageView* cached_values = nullptr,
-                                       ssize_t step = 0) {
+                                ssize_t step = 0) {
     const onmt::StorageView& normed_queries = _layer_norm(queries);
     const onmt::StorageView& fused_proj = _linear_in(normed_queries);
 
-    _splits.resize_as(fused_proj);
-    std::vector<float*> splits = split_in_depth(fused_proj.data<float>(),
-                                                fused_proj.dim(0), fused_proj.dim(1),
-                                                3, _splits.data<float>());
-
-    size_t split_depth = fused_proj.dim(1) / 3;
-    onmt::StorageView queries_proj(splits[0], {fused_proj.dim(0), split_depth});
-    onmt::StorageView keys_proj(splits[1], {fused_proj.dim(0), split_depth});
-    onmt::StorageView values_proj(splits[2], {fused_proj.dim(0), split_depth});
+    std::vector<onmt::StorageView*> split_proj{&_queries_proj, &_keys_proj, &_values_proj};
+    onmt::ops::Split(-1)(fused_proj, split_proj);
     onmt::StorageView values_lengths(queries_lengths);
 
+    onmt::StorageView keys_proj;
+    onmt::StorageView values_proj;
+
     if (step >= 0 && cached_keys != nullptr) {
-      cache_proj(step, keys_proj, *cached_keys);
-      cache_proj(step, values_proj, *cached_values);
+      cache_proj(step, _keys_proj, *cached_keys);
+      cache_proj(step, _values_proj, *cached_values);
       keys_proj.shallow_copy(*cached_keys);
       values_proj.shallow_copy(*cached_values);
       values_lengths.fill(static_cast<int32_t>(step + 1));
+    } else {
+      keys_proj.shallow_copy(_keys_proj);
+      values_proj.shallow_copy(_values_proj);
     }
 
-    const onmt::StorageView& attention_output = compute_attention(queries_proj,
+    const onmt::StorageView& attention_output = compute_attention(_queries_proj,
                                                                   keys_proj,
                                                                   values_proj,
                                                                   queries_lengths,
@@ -376,7 +377,8 @@ private:
   Dense _linear_query;
   Dense _linear_memory;
   Dense _linear_out;
-  onmt::StorageView _splits;
+  onmt::StorageView _keys_proj;
+  onmt::StorageView _values_proj;
 
 public:
   TransformerAttention(const onmt::Model& model,
@@ -395,33 +397,26 @@ public:
                                 onmt::StorageView* cached_keys = nullptr,
                                 onmt::StorageView* cached_values = nullptr,
                                 ssize_t step = -1) {
-    size_t depth = _linear_query.output_depth();
-
     const onmt::StorageView& normed_queries = _layer_norm(queries);
     const onmt::StorageView& queries_proj = _linear_query(normed_queries);
-    onmt::StorageView keys_proj;
-    onmt::StorageView values_proj;
 
     if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
-      keys_proj.shallow_copy(*cached_keys);
-      values_proj.shallow_copy(*cached_values);
+      _keys_proj.shallow_copy(*cached_keys);
+      _values_proj.shallow_copy(*cached_values);
     } else {
       const onmt::StorageView& memory_proj = _linear_memory(memory);
-      _splits.resize_as(memory_proj);
-      std::vector<float*> splits = split_in_depth(memory_proj.data<float>(),
-                                                  memory_proj.dim(0), memory_proj.dim(1),
-                                                  2, _splits.data<float>());
-      keys_proj.assign(splits[0], {memory_proj.dim(0), depth});
-      values_proj.assign(splits[1], {memory_proj.dim(0), depth});
+
+      std::vector<onmt::StorageView*> split_proj{&_keys_proj, &_values_proj};
+      onmt::ops::Split(-1)(memory_proj, split_proj);
       if (cached_keys != nullptr) {
-        *cached_keys = keys_proj;
-        *cached_values = values_proj;
+        *cached_keys = _keys_proj;
+        *cached_values = _values_proj;
       }
     }
 
     const onmt::StorageView& attention_output = compute_attention(queries_proj,
-                                                                  keys_proj,
-                                                                  values_proj,
+                                                                  _keys_proj,
+                                                                  _values_proj,
                                                                   queries_lengths,
                                                                   memory_lengths);
 
@@ -707,8 +702,6 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
 }
 
 int main(int argc, char* argv[]) {
-  vmlSetMode(VML_EP);
-
   onmt::Model model("/home/klein/dev/ctransformer/model.bin");
   onmt::Vocabulary vocabulary("/home/klein/data/wmt-ende/wmtende.vocab");
 

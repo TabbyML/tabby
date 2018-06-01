@@ -34,31 +34,76 @@ TEST(OpTest, AddFloat) {
   expect_storage_eq(c, expected);
 }
 
-TEST(OpTest, ConcatBatch) {
-  StorageView a({2, 2}, 1.f);
-  StorageView b({1, 2}, 2.f);
-  StorageView c({3, 2}, std::vector<float>{1, 1, 1, 1, 2, 2});
+TEST(OpTest, ConcatSplitBatch) {
+  StorageView a({2, 2}, std::vector<float>{1, 2, 3, 4});
+  StorageView b({1, 2}, std::vector<float>{5, 6});
+  StorageView c({3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6});
   StorageView x;
   ops::Concat(0)({&a, &b}, x);
   expect_storage_eq(x, c);
+  StorageView y, z;
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(0, {2, 1})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
 }
 
-TEST(OpTest, ConcatTime) {
+TEST(OpTest, ConcatSplitTime) {
   StorageView a({2, 2, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
   StorageView b({2, 1, 2}, std::vector<float>{5, 5, 6, 6});
   StorageView c({2, 3, 2}, std::vector<float>{1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6});
   StorageView x;
   ops::Concat(1)({&a, &b}, x);
   expect_storage_eq(x, c);
+  StorageView y, z;
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(1, {2, 1})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
 }
 
-TEST(OpTest, ConcatDepth) {
-  StorageView a({2, 1}, 1.f);
-  StorageView b({2, 2}, 2.f);
-  StorageView c({2, 3}, std::vector<float>{1, 2, 2, 1, 2, 2});
+TEST(OpTest, ConcatSplitDepth) {
+  StorageView a({2, 1}, std::vector<float>{1, 4});
+  StorageView b({2, 2}, std::vector<float>{2, 3, 5, 6});
+  StorageView c({2, 3}, std::vector<float>{1, 2, 3, 4, 5, 6});
   StorageView x;
   ops::Concat(-1)({&a, &b}, x);
   expect_storage_eq(x, c);
+  StorageView y, z;
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(-1, {1, 2})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+}
+
+TEST(OpTest, ConcatSplitDepth3) {
+  StorageView a({2, 2}, std::vector<float>{1, 2, 6, 7});
+  StorageView b({2, 1}, std::vector<float>{3, 8});
+  StorageView c({2, 2}, std::vector<float>{4, 5, 9, 10});
+  StorageView d({2, 5}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+  StorageView x;
+  ops::Concat(-1)({&a, &b, &c}, x);
+  expect_storage_eq(x, d);
+  StorageView y, z, w;
+  std::vector<StorageView*> out{&y, &z, &w};
+  ops::Split(-1, {2, 1, 2})(d, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+  expect_storage_eq(w, c);
+}
+
+TEST(OpTest, ConcatSplitDepthEqualParts) {
+  StorageView a({2, 2}, std::vector<float>{1, 2, 5, 6});
+  StorageView b({2, 2}, std::vector<float>{3, 4, 7, 8});
+  StorageView c({2, 4}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView x;
+  ops::Concat(-1)({&a, &b}, x);
+  expect_storage_eq(x, c);
+  StorageView y, z;
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(-1)(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
 }
 
 TEST(OpTest, Transpose1D) {

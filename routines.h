@@ -1,32 +1,7 @@
 #pragma once
 
-#include <mkl.h>
-
 #include "compute.h"
 #include "storage_view.h"
-
-std::vector<float*> split_in_depth(const float* input,
-                                   size_t batch_size,
-                                   size_t depth,
-                                   size_t num_splits,
-                                   float* output) {
-  mkl_somatcopy('R', 'T', batch_size, depth, 1.0 /* alpha */, input, depth, output, batch_size);
-
-  size_t split_size = depth / num_splits;
-  for (size_t i = 0; i < num_splits; ++i) {
-    float* a = output + (i * split_size * batch_size);
-    mkl_simatcopy('R', 'T',
-                  split_size, batch_size,
-                  1.0 /* alpha */, a,
-                  batch_size, split_size);
-  }
-
-  std::vector<float*> splits(num_splits);
-  for (unsigned i = 0; i < num_splits; ++i) {
-    splits[i] = output + (i * batch_size * split_size);
-  }
-  return splits;
-}
 
 static void pad_sequences(const onmt::StorageView& flattened,
                           const onmt::StorageView& lengths,
