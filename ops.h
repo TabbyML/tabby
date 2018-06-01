@@ -140,7 +140,7 @@ namespace onmt {
       void compute(const StorageView& x, const std::vector<size_t>& perm, StorageView& y) const {
         if (x.rank() == 2) {
           y.resize({x.dim(1), x.dim(0)});
-          compute::transpose_2d(x.data<T>(), x.dim(0), x.dim(1), y.data<T>());
+          compute::transpose_2d(x.data<T>(), x.shape().data(), y.data<T>());
         } else if (x.rank() == 3) {
           y.resize({x.dim(perm[0]), x.dim(perm[1]), x.dim(perm[2])});
           compute::transpose_3d(x.data<T>(), x.shape().data(), perm.data(), y.data<T>());

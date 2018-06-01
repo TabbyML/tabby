@@ -66,8 +66,10 @@ namespace onmt {
       vsTanh(size, x, y);
     }
 
-    template<>
-    void transpose_2d(const float* a, size_t rows, size_t cols, float* b) {
+    template <typename IndexType>
+    void transpose_2d(const float* a, const IndexType* dims, float* b) {
+      auto rows = dims[0];
+      auto cols = dims[1];
       mkl_somatcopy('R', 'T', rows, cols, 1.0, a, cols, b, rows);
     }
 

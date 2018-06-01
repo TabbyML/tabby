@@ -117,28 +117,49 @@ namespace onmt {
       }
     }
 
-    template <typename T>
-    void transpose_2d(const T* a, size_t rows, size_t cols, T* b) {
-      static const std::vector<long> perm{1, 0};
-      Eigen::TensorMap<Eigen::Tensor<const T, 2, Eigen::RowMajor>> a_map(a, rows, cols);
-      Eigen::TensorMap<Eigen::Tensor<T, 2, Eigen::RowMajor>> b_map(b, cols, rows);
+    template <typename IndexType, int NDIMS>
+    static Eigen::DSizes<Eigen::DenseIndex, NDIMS> as_dsizes(const IndexType* x) {
+      Eigen::DSizes<Eigen::DenseIndex, NDIMS> dsizes;
+      for (int d = 0; d < NDIMS; ++d)
+        dsizes[d] = static_cast<Eigen::DenseIndex>(x[d]);
+      return dsizes;
+    }
+
+    template <typename DataType, typename IndexType>
+    void transpose_2d(const DataType* a, const IndexType* dimensions, DataType* b) {
+      static const Eigen::DSizes<Eigen::DenseIndex, 2> perm(1, 0);
+      auto dims = as_dsizes<IndexType, 2>(dimensions);
+      Eigen::TensorMap<Eigen::Tensor<const DataType, 2, Eigen::RowMajor>> a_map(
+        a, dims[0], dims[1]);
+      Eigen::TensorMap<Eigen::Tensor<DataType, 2, Eigen::RowMajor>> b_map(
+        b, dims[1], dims[0]);
       b_map = a_map.shuffle(perm);
     }
 
-    template <typename T, typename I>
-    void transpose_3d(const T* a, const I* dims, const I* perm, T* b) {
-      Eigen::TensorMap<Eigen::Tensor<const T, 3, Eigen::RowMajor>> a_map(
+    template <typename DataType, typename IndexType>
+    void transpose_3d(const DataType* a,
+                      const IndexType* dimensions,
+                      const IndexType* permutations,
+                      DataType* b) {
+      auto dims = as_dsizes<IndexType, 3>(dimensions);
+      auto perm = as_dsizes<IndexType, 3>(permutations);
+      Eigen::TensorMap<Eigen::Tensor<const DataType, 3, Eigen::RowMajor>> a_map(
         a, dims[0], dims[1], dims[2]);
-      Eigen::TensorMap<Eigen::Tensor<T, 3, Eigen::RowMajor>> b_map(
+      Eigen::TensorMap<Eigen::Tensor<DataType, 3, Eigen::RowMajor>> b_map(
         b, dims[perm[0]], dims[perm[1]], dims[perm[2]]);
       b_map = a_map.shuffle(perm);
     }
 
-    template <typename T, typename I>
-    void transpose_4d(const T* a, const I* dims, const I* perm, T* b) {
-      Eigen::TensorMap<Eigen::Tensor<const T, 4, Eigen::RowMajor>> a_map(
+    template <typename DataType, typename IndexType>
+    void transpose_4d(const DataType* a,
+                      const IndexType* dimensions,
+                      const IndexType* permutations,
+                      DataType* b) {
+      auto dims = as_dsizes<IndexType, 4>(dimensions);
+      auto perm = as_dsizes<IndexType, 4>(permutations);
+      Eigen::TensorMap<Eigen::Tensor<const DataType, 4, Eigen::RowMajor>> a_map(
         a, dims[0], dims[1], dims[2], dims[3]);
-      Eigen::TensorMap<Eigen::Tensor<T, 4, Eigen::RowMajor>> b_map(
+      Eigen::TensorMap<Eigen::Tensor<DataType, 4, Eigen::RowMajor>> b_map(
         b, dims[perm[0]], dims[perm[1]], dims[perm[2]], dims[perm[3]]);
       b_map = a_map.shuffle(perm);
     }
