@@ -11,13 +11,13 @@ namespace onmt {
     class Op {
     public:
       virtual ~Op() = default;
-      virtual void operator()(std::vector<StorageView*>& inputs,
+      virtual void operator()(const std::vector<StorageView*>& inputs,
                               std::vector<StorageView*>& outputs) const = 0;
     };
 
     class UnaryOp : public Op {
     public:
-      virtual void operator()(std::vector<StorageView*>& inputs,
+      virtual void operator()(const std::vector<StorageView*>& inputs,
                               std::vector<StorageView*>& outputs) const override {
         operator()(*inputs[0], *outputs[0]);
       }
@@ -25,7 +25,7 @@ namespace onmt {
     };
     class BinaryOp : public Op {
     public:
-      virtual void operator()(std::vector<StorageView*>& inputs,
+      virtual void operator()(const std::vector<StorageView*>& inputs,
                               std::vector<StorageView*>& outputs) const override {
         operator()(*inputs[0], *inputs[1], *outputs[0]);
       }
@@ -33,7 +33,7 @@ namespace onmt {
     };
     class TernaryOp : public Op {
     public:
-      virtual void operator()(std::vector<StorageView*>& inputs,
+      virtual void operator()(const std::vector<StorageView*>& inputs,
                               std::vector<StorageView*>& outputs) const override {
         operator()(*inputs[0], *inputs[1], *inputs[2], *outputs[0]);
       }
@@ -50,7 +50,7 @@ namespace onmt {
         : _axis(axis) {
       }
 
-      void operator()(std::vector<StorageView*>& inputs,
+      void operator()(const std::vector<StorageView*>& inputs,
                       std::vector<StorageView*>& outputs) const override {
         operator()(inputs, *outputs[0]);
       }
@@ -646,7 +646,7 @@ namespace onmt {
           throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
       }
 
-      void operator()(std::vector<StorageView*>& inputs,
+      void operator()(const std::vector<StorageView*>& inputs,
                       std::vector<StorageView*>& outputs) const override {
         operator()(*inputs[0], *outputs[0], *outputs[1]);
       }
