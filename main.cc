@@ -52,36 +52,29 @@ class PositionEncoder
 public:
   onmt::StorageView& operator()(const onmt::StorageView& input,
                                 const onmt::StorageView& lengths) {
-    assert(input.rank() == 2);
-    size_t batch_size = lengths.dim(0);
-    size_t depth = input.dim(1);
+    assert(input.rank() == 3);
+    size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    _output.resize_as(input);
-    onmt::compute::copy(input.data<float>(), _output.data<float>(), input.size());
-    const auto* x = _cached_encodings.data<float>();
-    size_t offset = 0;
-    for (size_t i = 0; i < batch_size; ++i) {
-      const auto length = lengths.data<int32_t>()[i];
-      auto* y = _output.index<float>({offset});
-      onmt::compute::add(x, y, length * depth);
-      offset += length;
+    _output = input;
+    for (size_t i = 0; i < lengths.dim(0); ++i) {
+      const auto length = lengths.at<int32_t>(i);
+      onmt::compute::add(_cached_encodings.data<float>(),
+                         _output.index<float>({i}),
+                         length * depth);
     }
     return _output;
   }
 
   onmt::StorageView& operator()(const onmt::StorageView& input, size_t index) {
-    assert(input.rank() == 2);
-    size_t batch_size = input.dim(0);
-    size_t depth = input.dim(1);
+    size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    _output.resize_as(input);
-    onmt::compute::copy(input.data<float>(), _output.data<float>(), input.size());
-    const auto* x = _cached_encodings.index<float>({index});
-    for (size_t i = 0; i < batch_size; ++i) {
-      auto* y = _output.index<float>({i});
-      onmt::compute::add(x, y, depth);
+    _output = input;
+    for (size_t i = 0; i < input.dim(0); ++i) {
+      onmt::compute::add(_cached_encodings.index<float>({index}),
+                         _output.index<float>({i}),
+                         depth);
     }
     return _output;
   }
@@ -237,8 +230,8 @@ public:
   }
 
   void split_heads(const onmt::StorageView& x, onmt::StorageView& y) {
-    assert(x.rank() == 3);
-    onmt::StorageView z(const_cast<float*>(x.data<float>()), {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
+    onmt::StorageView z(const_cast<float*>(x.data<float>()),
+                        {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
     swap_middle_dims(z, y);
   }
 
@@ -254,13 +247,9 @@ public:
                                        const onmt::StorageView& values_lengths) {
     size_t dk = queries.dim(-1) / _num_heads;
 
-    pad_sequences(queries, queries_lengths, _padded_queries);
-    pad_sequences(keys, values_lengths, _padded_keys);
-    pad_sequences(values, values_lengths, _padded_values);
-
-    split_heads(_padded_queries, _split_queries);
-    split_heads(_padded_keys, _split_keys);
-    split_heads(_padded_values, _split_values);
+    split_heads(queries, _split_queries);
+    split_heads(keys, _split_keys);
+    split_heads(values, _split_values);
 
     onmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)), _split_queries.data<float>(), _split_queries.size());
 
@@ -269,12 +258,8 @@ public:
                                                   _split_values,
                                                   values_lengths);
 
-    onmt::StorageView& combined = _padded_queries;
-    combine_heads(context, combined);
-
-    onmt::StorageView& combined_pruned = _padded_keys;
-    unpad_sequences(combined, queries_lengths, combined_pruned);
-    return combined_pruned;
+    combine_heads(context, _combined);
+    return _combined;
   }
 
 protected:
@@ -283,12 +268,10 @@ protected:
 private:
   size_t _num_heads;
   DotProductAttention _attention;
-  onmt::StorageView _padded_queries;
-  onmt::StorageView _padded_keys;
-  onmt::StorageView _padded_values;
   onmt::StorageView _split_queries;
   onmt::StorageView _split_keys;
   onmt::StorageView _split_values;
+  onmt::StorageView _combined;
 };
 
 class TransformerSelfAttention : public MultiHeadAttention
@@ -316,11 +299,9 @@ public:
                                 ssize_t step = 0) {
     const onmt::StorageView& normed_queries = _layer_norm(queries);
     const onmt::StorageView& fused_proj = _linear_in(normed_queries);
+    onmt::ops::Split(-1)(fused_proj, _queries_proj, _keys_proj, _values_proj);
 
-    std::vector<onmt::StorageView*> split_proj{&_queries_proj, &_keys_proj, &_values_proj};
-    onmt::ops::Split(-1)(fused_proj, split_proj);
     onmt::StorageView values_lengths(queries_lengths);
-
     onmt::StorageView keys_proj;
     onmt::StorageView values_proj;
 
@@ -346,26 +327,13 @@ public:
     return output;
   }
 
-  static void cache_proj(ssize_t step, const onmt::StorageView& proj, onmt::StorageView& cache) {
-    assert(proj.rank() == 2);
+  static void cache_proj(ssize_t step, onmt::StorageView& proj, onmt::StorageView& cache) {
     if (step == 0) {
       cache = proj;
-      return;
-    }
-    assert(cache.rank() == 2);
-    size_t batch_size = proj.dim(0);
-    size_t depth = proj.dim(1);
-    static onmt::StorageView tmp;
-    tmp = cache;
-    cache.grow(0, batch_size);
-    const auto* src = tmp.data<float>();
-    auto* dst = cache.data<float>();
-    for (size_t i = 0; i < batch_size; ++i) {
-      onmt::compute::copy(src, dst, step * depth);
-      src += step * depth;
-      dst += step * depth;
-      onmt::compute::copy(proj.index<float>({i}), dst, depth);
-      dst += depth;
+    } else {
+      static onmt::StorageView tmp;
+      tmp = cache;
+      onmt::ops::Concat(1)({&tmp, &proj}, cache);
     }
   }
 
@@ -405,9 +373,7 @@ public:
       _values_proj.shallow_copy(*cached_values);
     } else {
       const onmt::StorageView& memory_proj = _linear_memory(memory);
-
-      std::vector<onmt::StorageView*> split_proj{&_keys_proj, &_values_proj};
-      onmt::ops::Split(-1)(memory_proj, split_proj);
+      onmt::ops::Split(-1)(memory_proj, _keys_proj, _values_proj);
       if (cached_keys != nullptr) {
         *cached_keys = _keys_proj;
         *cached_values = _values_proj;
@@ -521,78 +487,65 @@ public:
   }
 };
 
-struct TransformerDecoderState {
-  TransformerDecoderState()
-    : memory_lengths(onmt::DataType::DT_INT32) {
+class DecoderState {
+public:
+  virtual ~DecoderState() = default;
+  DecoderState() {
+    add("memory", onmt::DataType::DT_FLOAT);
+    add("memory_lengths", onmt::DataType::DT_INT32);
   }
-  onmt::StorageView memory;
-  onmt::StorageView memory_lengths;
-  std::vector<onmt::StorageView> cache;
+
+  void reset(const onmt::StorageView& memory,
+             const onmt::StorageView& memory_lengths) {
+    get("memory") = memory;
+    get("memory_lengths") = memory_lengths;
+  }
+
+  void gather(const onmt::StorageView& indices) {
+    static const onmt::ops::Gather gather_op;
+    for (auto& pair : _states) {
+      gather_op(pair.second, indices);
+    }
+  }
+
+  onmt::StorageView& get(const std::string& name) {
+    return _states.at(name);
+  }
+
+protected:
+  std::unordered_map<std::string, onmt::StorageView> _states;
+
+  void add(const std::string& name, onmt::DataType dtype = onmt::DataType::DT_FLOAT) {
+    _states.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(name),
+                    std::forward_as_tuple(dtype));
+  }
 };
 
-static void remove_batch(onmt::StorageView& s,
-                         const onmt::StorageView& lengths,
-                         const std::vector<bool>& finished) {
-  assert(s.rank() == 2);
-  static onmt::StorageView tmp;
-  tmp = s;
-  size_t batch_size = lengths.dim(0);
-  size_t depth = s.dim(1);
-  const auto* src = tmp.data<float>();
-  auto* dst = s.data<float>();
-  size_t cum_length = 0;
-  for (size_t i = 0; i < batch_size; ++i) {
-    const auto length = lengths.data<int32_t>()[i];
-    const auto count = length * depth;
-    if (!finished[i]) {
-      onmt::compute::copy(src, dst, count);
-      dst += count;
-      cum_length += length;
+class TransformerDecoderState : public DecoderState {
+public:
+  TransformerDecoderState(size_t num_layers)
+    : DecoderState() {
+    for (size_t i = 0; i < num_layers; ++i) {
+      add("self_keys_" + std::to_string(i));
+      add("self_values_" + std::to_string(i));
+      add("memory_keys_" + std::to_string(i));
+      add("memory_values_" + std::to_string(i));
     }
-    src += count;
   }
-  s.resize(0, cum_length);
-}
-
-static void remove_batch(onmt::StorageView& s, const std::vector<bool>& finished) {
-  assert(s.rank() == 1);
-  size_t write_index = 0;
-  size_t read_index = 0;
-  auto* s_buf = s.data<int32_t>();
-  while (read_index < s.dim(0)) {
-    if (!finished[read_index])
-      s_buf[write_index++] = s_buf[read_index];
-    read_index++;
-  }
-  s.resize(0, write_index);
-}
+};
 
 class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
 {
 public:
   TransformerDecoder(const onmt::Model& model, const std::string& scope)
     : TransformerStack(model, scope)
-    , _proj(model, scope + "/dense") {
-    _state.cache.resize(_layers.size() * 4);
+    , _proj(model, scope + "/dense")
+    , _state(_layers.size()) {
   }
 
-  void reset_state(const onmt::StorageView& memory,
-                   const onmt::StorageView& memory_lengths) {
-    _state.memory = memory;
-    _state.memory_lengths = memory_lengths;
-  }
-
-  void prune_batch(size_t step, const std::vector<bool>& ids) {
-    size_t batch_size = _state.memory_lengths.dim(0);
-    onmt::StorageView step_lengths({batch_size}, static_cast<int32_t>(step + 1));
-    for (size_t l = 0; l < _layers.size(); ++l) {
-      remove_batch(_state.cache[0 + l * 4], step_lengths, ids);
-      remove_batch(_state.cache[1 + l * 4], step_lengths, ids);
-      remove_batch(_state.cache[2 + l * 4], _state.memory_lengths, ids);
-      remove_batch(_state.cache[3 + l * 4], _state.memory_lengths, ids);
-    }
-    remove_batch(_state.memory, _state.memory_lengths, ids);
-    remove_batch(_state.memory_lengths, ids);
+  DecoderState& get_state() {
+    return _state;
   }
 
   onmt::StorageView& operator()(size_t step, const onmt::StorageView& ids) {
@@ -606,12 +559,12 @@ public:
       x = &_layers[l](step,
                       *x,
                       query_lengths,
-                      _state.memory,
-                      _state.memory_lengths,
-                      _state.cache[0 + l * 4],
-                      _state.cache[1 + l * 4],
-                      _state.cache[2 + l * 4],
-                      _state.cache[3 + l * 4]);
+                      _state.get("memory"),
+                      _state.get("memory_lengths"),
+                      _state.get("self_keys_" + std::to_string(l)),
+                      _state.get("self_values_" + std::to_string(l)),
+                      _state.get("memory_keys_" + std::to_string(l)),
+                      _state.get("memory_values_" + std::to_string(l)));
     }
     const auto& normed = _output_norm(*x);
     return _proj(normed);
@@ -626,33 +579,29 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
                const onmt::Vocabulary& vocabulary,
                TransformerEncoder& encoder,
                TransformerDecoder& decoder) {
-  onmt::StorageView lengths({input_tokens.size()}, onmt::DataType::DT_INT32);
-  size_t total_length = 0;
-  for (size_t i = 0; i < input_tokens.size(); ++i) {
+  size_t batch_size = input_tokens.size();
+  size_t max_length = 0;
+  onmt::StorageView lengths({batch_size}, onmt::DataType::DT_INT32);
+  for (size_t i = 0; i < batch_size; ++i) {
     const size_t length = input_tokens[i].size();
-    lengths.data<int32_t>()[i] = length;
-    total_length += length;
+    lengths.at<int32_t>(i) = length;
+    max_length = std::max(max_length, length);
   }
 
-  onmt::StorageView ids({total_length}, onmt::DataType::DT_INT32);
-  size_t offset = 0;
-  for (const auto& tokens : input_tokens) {
-    for (const auto& token : tokens) {
-      ids.data<int32_t>()[offset] = vocabulary.to_id(token);
-      offset += 1;
+  onmt::StorageView ids({batch_size, max_length}, onmt::DataType::DT_INT32);
+  for (size_t i = 0; i < batch_size; ++i) {
+    for (size_t t = 0; t < input_tokens[i].size(); ++t) {
+      ids.at<int32_t>({i, t}) = vocabulary.to_id(input_tokens[i][t]);
     }
   }
 
-  // for (auto id : ids)
-  //   std::cout << id << std::endl;
-
-  size_t batch_size = lengths.size();
   const auto& encoded = encoder(ids, lengths);
 
-  decoder.reset_state(encoded, lengths);
+  decoder.get_state().reset(encoded, lengths);
 
-  onmt::StorageView sample_from({batch_size}, static_cast<int32_t>(vocabulary.to_id("<s>")));
+  onmt::StorageView sample_from({batch_size, 1}, static_cast<int32_t>(vocabulary.to_id("<s>")));
   onmt::StorageView probs({batch_size, vocabulary.size()});
+  onmt::StorageView alive({batch_size}, onmt::DataType::DT_INT32);
   std::vector<std::vector<size_t> > sampled_ids(batch_size);
   std::vector<bool> finished(batch_size, false);
   std::vector<size_t> batch_offset(batch_size);
@@ -666,6 +615,7 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
 
     std::vector<bool> finished_batch(logits.dim(0), false);
     bool one_finished = false;
+    size_t count_alive = 0;
     for (size_t i = 0; i < logits.dim(0); ++i) {
       size_t best = onmt::compute::max_element(probs.index<float>({i}), vocabulary.size());
       size_t batch_id = batch_offset[i];
@@ -676,20 +626,26 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
       } else {
         sample_from.data<int32_t>()[i] = best;
         sampled_ids[batch_id].push_back(best);
+        ++count_alive;
       }
     }
 
+    if (count_alive == 0)
+      break;
+
     if (one_finished) {
-      remove_batch(sample_from, finished_batch);
-      if (sample_from.empty())
-        break;
-      decoder.prune_batch(step, finished_batch);
+      alive.resize({count_alive});
       size_t write_index = 0;
       size_t read_index = 0;
       for (; read_index < finished_batch.size(); ++read_index) {
-        if (!finished_batch[read_index])
-          batch_offset[write_index++] = batch_offset[read_index];
+        if (!finished_batch[read_index]) {
+          batch_offset[write_index] = batch_offset[read_index];
+          alive.at<int32_t>(write_index) = read_index;
+          ++write_index;
+        }
       }
+      onmt::ops::Gather()(sample_from, alive);
+      decoder.get_state().gather(alive);
     }
   }
 
