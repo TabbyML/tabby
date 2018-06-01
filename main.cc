@@ -13,6 +13,8 @@
 #include "storage_view.h"
 #include "ops.h"
 #include "compute.h"
+#include "encoder.h"
+#include "decoder.h"
 
 class ScaledEmbeddings
 {
@@ -444,11 +446,10 @@ private:
   TransformerFeedForward _ff;
 };
 
-template <typename TransformerLayer>
-class TransformerStack
+class TransformerEncoder : public onmt::Encoder
 {
 public:
-  TransformerStack(const onmt::Model& model, const std::string& scope)
+  TransformerEncoder(const onmt::Model& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
     , _position_encoder()
     , _output_norm(model, scope + "/LayerNorm") {
@@ -461,22 +462,8 @@ public:
     }
   }
 
-protected:
-  ScaledEmbeddings _scaled_embeddings;
-  PositionEncoder _position_encoder;
-  LayerNorm _output_norm;
-  std::vector<TransformerLayer> _layers;
-};
-
-class TransformerEncoder : public TransformerStack<TransformerEncoderLayer>
-{
-public:
-  TransformerEncoder(const onmt::Model& model, const std::string& scope)
-    : TransformerStack(model, scope) {
-  }
-
-  onmt::StorageView& operator()(const onmt::StorageView& ids,
-                                const onmt::StorageView& lengths) {
+  onmt::StorageView& encode(const onmt::StorageView& ids,
+                            const onmt::StorageView& lengths) override {
     const auto& embeddings = _scaled_embeddings(ids);
     const auto& input = _position_encoder(embeddings, lengths);
     const auto* x = &input;
@@ -485,44 +472,15 @@ public:
     }
     return _output_norm(*x);
   }
+
+private:
+  ScaledEmbeddings _scaled_embeddings;
+  PositionEncoder _position_encoder;
+  LayerNorm _output_norm;
+  std::vector<TransformerEncoderLayer> _layers;
 };
 
-class DecoderState {
-public:
-  virtual ~DecoderState() = default;
-  DecoderState() {
-    add("memory", onmt::DataType::DT_FLOAT);
-    add("memory_lengths", onmt::DataType::DT_INT32);
-  }
-
-  void reset(const onmt::StorageView& memory,
-             const onmt::StorageView& memory_lengths) {
-    get("memory") = memory;
-    get("memory_lengths") = memory_lengths;
-  }
-
-  void gather(const onmt::StorageView& indices) {
-    static const onmt::ops::Gather gather_op;
-    for (auto& pair : _states) {
-      gather_op(pair.second, indices);
-    }
-  }
-
-  onmt::StorageView& get(const std::string& name) {
-    return _states.at(name);
-  }
-
-protected:
-  std::unordered_map<std::string, onmt::StorageView> _states;
-
-  void add(const std::string& name, onmt::DataType dtype = onmt::DataType::DT_FLOAT) {
-    _states.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(name),
-                    std::forward_as_tuple(dtype));
-  }
-};
-
-class TransformerDecoderState : public DecoderState {
+class TransformerDecoderState : public onmt::DecoderState {
 public:
   TransformerDecoderState(size_t num_layers)
     : DecoderState() {
@@ -535,20 +493,25 @@ public:
   }
 };
 
-class TransformerDecoder : public TransformerStack<TransformerDecoderLayer>
+class TransformerDecoder : public onmt::Decoder
 {
 public:
   TransformerDecoder(const onmt::Model& model, const std::string& scope)
-    : TransformerStack(model, scope)
-    , _proj(model, scope + "/dense")
-    , _state(_layers.size()) {
+    : _scaled_embeddings(model, scope)
+    , _position_encoder()
+    , _output_norm(model, scope + "/LayerNorm")
+    , _proj(model, scope + "/dense") {
+    for (size_t l = 0;; ++l) {
+      try {
+        _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
+      } catch (std::exception&) {
+        break;
+      }
+    }
+    _state.reset(new TransformerDecoderState(_layers.size()));
   }
 
-  DecoderState& get_state() {
-    return _state;
-  }
-
-  onmt::StorageView& operator()(size_t step, const onmt::StorageView& ids) {
+  onmt::StorageView& logits(size_t step, const onmt::StorageView& ids) override {
     size_t batch_size = ids.dim(0);
     const auto& embeddings = _scaled_embeddings(ids);
     const auto& input = _position_encoder(embeddings, step);
@@ -559,26 +522,29 @@ public:
       x = &_layers[l](step,
                       *x,
                       query_lengths,
-                      _state.get("memory"),
-                      _state.get("memory_lengths"),
-                      _state.get("self_keys_" + std::to_string(l)),
-                      _state.get("self_values_" + std::to_string(l)),
-                      _state.get("memory_keys_" + std::to_string(l)),
-                      _state.get("memory_values_" + std::to_string(l)));
+                      _state->get("memory"),
+                      _state->get("memory_lengths"),
+                      _state->get("self_keys_" + std::to_string(l)),
+                      _state->get("self_values_" + std::to_string(l)),
+                      _state->get("memory_keys_" + std::to_string(l)),
+                      _state->get("memory_values_" + std::to_string(l)));
     }
     const auto& normed = _output_norm(*x);
     return _proj(normed);
   }
 
 private:
+  ScaledEmbeddings _scaled_embeddings;
+  PositionEncoder _position_encoder;
+  LayerNorm _output_norm;
+  std::vector<TransformerDecoderLayer> _layers;
   Dense _proj;
-  TransformerDecoderState _state;
 };
 
 void translate(const std::vector<std::vector<std::string> >& input_tokens,
                const onmt::Vocabulary& vocabulary,
-               TransformerEncoder& encoder,
-               TransformerDecoder& decoder) {
+               onmt::Encoder& encoder,
+               onmt::Decoder& decoder) {
   size_t batch_size = input_tokens.size();
   size_t max_length = 0;
   onmt::StorageView lengths({batch_size}, onmt::DataType::DT_INT32);
@@ -595,59 +561,13 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
     }
   }
 
-  const auto& encoded = encoder(ids, lengths);
-
-  decoder.get_state().reset(encoded, lengths);
+  const auto& encoded = encoder.encode(ids, lengths);
 
   onmt::StorageView sample_from({batch_size, 1}, static_cast<int32_t>(vocabulary.to_id("<s>")));
-  onmt::StorageView probs({batch_size, vocabulary.size()});
-  onmt::StorageView alive({batch_size}, onmt::DataType::DT_INT32);
   std::vector<std::vector<size_t> > sampled_ids(batch_size);
-  std::vector<bool> finished(batch_size, false);
-  std::vector<size_t> batch_offset(batch_size);
-  for (size_t i = 0; i < batch_offset.size(); ++i)
-    batch_offset[i] = i;
-  size_t max_steps = 200;
 
-  for (size_t step = 0; step < max_steps; ++step) {
-    const auto& logits = decoder(step, sample_from);
-    onmt::ops::SoftMax()(logits, probs);
-
-    std::vector<bool> finished_batch(logits.dim(0), false);
-    bool one_finished = false;
-    size_t count_alive = 0;
-    for (size_t i = 0; i < logits.dim(0); ++i) {
-      size_t best = onmt::compute::max_element(probs.index<float>({i}), vocabulary.size());
-      size_t batch_id = batch_offset[i];
-      if (best == 2) {
-        finished[batch_id] = true;
-        finished_batch[i] = true;
-        one_finished = true;
-      } else {
-        sample_from.data<int32_t>()[i] = best;
-        sampled_ids[batch_id].push_back(best);
-        ++count_alive;
-      }
-    }
-
-    if (count_alive == 0)
-      break;
-
-    if (one_finished) {
-      alive.resize({count_alive});
-      size_t write_index = 0;
-      size_t read_index = 0;
-      for (; read_index < finished_batch.size(); ++read_index) {
-        if (!finished_batch[read_index]) {
-          batch_offset[write_index] = batch_offset[read_index];
-          alive.at<int32_t>(write_index) = read_index;
-          ++write_index;
-        }
-      }
-      onmt::ops::Gather()(sample_from, alive);
-      decoder.get_state().gather(alive);
-    }
-  }
+  decoder.get_state().reset(encoded, lengths);
+  onmt::greedy_decoding(decoder, sample_from, 2, vocabulary.size(), 200, sampled_ids);
 
   for (size_t i = 0; i < batch_size; ++i) {
     for (auto id : sampled_ids[i]) {
