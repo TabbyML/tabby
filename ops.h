@@ -531,11 +531,12 @@ namespace onmt {
     private:
       template <typename T>
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
-        c = a;
         if (b.size() == 1) {
+          c = a;
           compute::add(b.data<T>()[0], c.data<T>(), c.size());
         } else {
-          compute::add(b.data<T>(), c.data<T>(), c.size());
+          c.resize_as(a);
+          compute::add(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
         }
       }
     };
@@ -549,11 +550,11 @@ namespace onmt {
     private:
       template <typename T>
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
-        c.resize_as(a);
         if (b.size() == 1) {
           c = a;
           compute::mul(b.data<T>()[0], c.data<T>(), c.size());
         } else {
+          c.resize_as(a);
           compute::mul(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
         }
       }
