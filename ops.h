@@ -641,17 +641,12 @@ namespace onmt {
         for (size_t i = 1; i < data.rank(); ++i)
           output_shape.push_back(data.dim(i));
         output.resize(output_shape);
-        if (data.rank() == 1) {
-          for (size_t i = 0; i < input.size(); ++i)
-            output.at<DataType>(i) = data.at<DataType>(input.at<IndexType>(i));
-        } else {
-          size_t copy_dim = data.stride(0);
-          for (size_t i = 0; i < input.size(); ++i) {
-            size_t index = input.data<IndexType>()[i];
-            const auto* src = data.index<DataType>({index});
-            auto* dst = output.data<DataType>() + i * copy_dim;
-            compute::copy(src, dst, copy_dim);
-          }
+        size_t copy_dim = data.stride(0);
+        for (size_t i = 0; i < input.size(); ++i) {
+          size_t index = input.data<IndexType>()[i];
+          const auto* src = data.index<DataType>({index});
+          auto* dst = output.data<DataType>() + i * copy_dim;
+          compute::copy(src, dst, copy_dim);
         }
       }
 
