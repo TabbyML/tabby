@@ -368,7 +368,6 @@ namespace onmt {
 
         Shape output_shape(a.shape());
         output_shape[output_shape.size() - 1] = n;
-        output_shape[output_shape.size() - 2] = m;
         y.resize(output_shape);
 
         if (_beta != 0.f) {
