@@ -307,8 +307,8 @@ namespace onmt {
         StorageView tmp({depth}, input.dtype());
         output.resize_as(input);
         for (size_t i = 0; i < batch_size; ++i) {
-          const auto* x = input.index<T>({i});
-          auto* y = output.index<T>({i});
+          const auto* x = input.data<T>() + i * depth;
+          auto* y = output.data<T>() + i * depth;
           auto mean = compute::mean(x, depth);
           compute::copy(x, y, depth);
           compute::sub(mean, y, depth);
@@ -367,7 +367,7 @@ namespace onmt {
           if (_broadcast_c) {
             assert(c.size() == n);
             for (size_t i = 0; i < m; ++i)
-              compute::copy(c.data<Out>(), y.index<Out>({i}), n);
+              compute::copy(c.data<Out>(), y.data<Out>() + i * n, n);
           } else {
             assert(c.size() == y.size());
             compute::copy(c.data<Out>(), y.data<Out>(), y.size());
