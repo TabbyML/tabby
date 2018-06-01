@@ -108,6 +108,15 @@ namespace onmt {
                       std::vector<StorageView*>& outputs) const override {
         operator()(*inputs[0], outputs);
       }
+      void operator()(const StorageView& input, StorageView& output1, StorageView& output2) const {
+        std::vector<StorageView*> outputs{&output1, &output2};
+        operator()(input, outputs);
+      }
+      void operator()(const StorageView& input,
+                      StorageView& output1, StorageView& output2, StorageView& output3) const {
+        std::vector<StorageView*> outputs{&output1, &output2, &output3};
+        operator()(input, outputs);
+      }
       void operator()(const StorageView& input,
                       std::vector<StorageView*>& outputs) const {
         TYPE_DISPATCH(input.dtype(), compute<T>(input, outputs));
