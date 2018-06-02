@@ -7,7 +7,7 @@
 #include <tmmintrin.h>
 #include <xmmintrin.h>
 
-namespace onmt {
+namespace opennmt {
   namespace compute {
 
 #ifdef __AVX2__

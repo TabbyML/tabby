@@ -5,7 +5,7 @@
 
 #define EPSILON 0.000001f
 
-namespace onmt {
+namespace opennmt {
   namespace ops {
 
     class Op {

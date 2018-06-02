@@ -2,7 +2,7 @@
 
 #include "ops.h"
 
-using namespace onmt;
+using namespace opennmt;
 
 template <typename T>
 static void expect_array_eq(const T* x, const T* y, size_t n) {
@@ -142,6 +142,16 @@ TEST(OpTest, Transpose3D) {
                        std::vector<float>{1, 4, 7, 2, 5, 8, 3, 6, 9, 1, 1, 1, 2, 2, 2, 3, 3, 3});
   StorageView y(x.dtype());
   ops::Transpose({1, 2, 0})(x, y);
+  expect_storage_eq(y, expected);
+}
+
+TEST(OpTest, Transpose3DReverse) {
+  StorageView x({3, 2, 3},
+                std::vector<float>{1, 2, 3, 1, 2, 3, 4, 5, 6, 1, 2, 3, 7, 8, 9, 1, 2, 3});
+  StorageView expected({3, 2, 3},
+                       std::vector<float>{1, 4, 7, 1, 1, 1, 2, 5, 8, 2, 2, 2, 3, 6, 9, 3, 3, 3});
+  StorageView y(x.dtype());
+  ops::Transpose()(x, y);
   expect_storage_eq(y, expected);
 }
 

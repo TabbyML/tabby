@@ -6,7 +6,7 @@
 
 #include "storage_view.h"
 
-namespace onmt {
+namespace opennmt {
 
   template <typename T>
   T consume(std::ifstream& in) {

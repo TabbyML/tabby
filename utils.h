@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace onmt
+namespace opennmt
 {
 
   inline void *align( std::size_t alignment, std::size_t size,

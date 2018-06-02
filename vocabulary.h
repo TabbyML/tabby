@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace onmt {
+namespace opennmt {
 
   class Vocabulary
   {

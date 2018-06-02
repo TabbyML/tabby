@@ -2,7 +2,7 @@
 
 #include <mkl.h>
 
-namespace onmt {
+namespace opennmt {
   namespace compute {
 
     // Intel MKL specialization for standard float.

@@ -13,7 +13,7 @@
 
 using Shape = std::vector<size_t>;
 
-namespace onmt {
+namespace opennmt {
 
   // The `StorageView` class is a light wrapper around an allocated buffer to give
   // it a sense of shape.
@@ -327,7 +327,7 @@ namespace onmt {
   };
 
 
-  std::ostream& operator<<(std::ostream& os, const onmt::StorageView& storage) {
+  std::ostream& operator<<(std::ostream& os, const opennmt::StorageView& storage) {
     TYPE_DISPATCH(
       storage.dtype(),
       if (storage.size() < 7) {

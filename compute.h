@@ -3,9 +3,8 @@
 #include <algorithm>
 
 #include <Eigen/Dense>
-#include <unsupported/Eigen/CXX11/Tensor>
 
-namespace onmt {
+namespace opennmt {
   namespace compute {
 
     template <typename T>
@@ -124,51 +123,68 @@ namespace onmt {
       }
     }
 
-    template <typename IndexType, int NDIMS>
-    static Eigen::DSizes<Eigen::DenseIndex, NDIMS> as_dsizes(const IndexType* x) {
-      Eigen::DSizes<Eigen::DenseIndex, NDIMS> dsizes;
-      for (int d = 0; d < NDIMS; ++d)
-        dsizes[d] = static_cast<Eigen::DenseIndex>(x[d]);
-      return dsizes;
-    }
-
     template <typename DataType, typename IndexType>
-    void transpose_2d(const DataType* a, const IndexType* dimensions, DataType* b) {
-      static const Eigen::DSizes<Eigen::DenseIndex, 2> perm(1, 0);
-      auto dims = as_dsizes<IndexType, 2>(dimensions);
-      Eigen::TensorMap<Eigen::Tensor<const DataType, 2, Eigen::RowMajor>> a_map(
-        a, dims[0], dims[1]);
-      Eigen::TensorMap<Eigen::Tensor<DataType, 2, Eigen::RowMajor>> b_map(
-        b, dims[1], dims[0]);
-      b_map = a_map.shuffle(perm);
+    void transpose_2d(const DataType* a, const IndexType* dims, DataType* b) {
+      for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+        for (size_t i1 = 0; i1 < dims[1]; ++i1) {
+          b[i1 * dims[0] + i0] = a[i0 * dims[1] + i1];
+        }
+      }
     }
 
     template <typename DataType, typename IndexType>
     void transpose_3d(const DataType* a,
-                      const IndexType* dimensions,
-                      const IndexType* permutations,
+                      const IndexType* dims,
+                      const IndexType* perm,
                       DataType* b) {
-      auto dims = as_dsizes<IndexType, 3>(dimensions);
-      auto perm = as_dsizes<IndexType, 3>(permutations);
-      Eigen::TensorMap<Eigen::Tensor<const DataType, 3, Eigen::RowMajor>> a_map(
-        a, dims[0], dims[1], dims[2]);
-      Eigen::TensorMap<Eigen::Tensor<DataType, 3, Eigen::RowMajor>> b_map(
-        b, dims[perm[0]], dims[perm[1]], dims[perm[2]]);
-      b_map = a_map.shuffle(perm);
+      size_t perm_ind[3];
+      for (size_t i = 0; i < 3; ++i)
+        perm_ind[perm[i]] = i;
+      size_t a_stride[3] = {dims[1] * dims[2], dims[2], 1};
+      size_t b_stride[3] = {dims[perm[1]] * dims[perm[2]], dims[perm[2]], 1};
+      size_t perm_b_stride[3] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
+                                 b_stride[perm_ind[2]]};
+
+      for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+        for (size_t i1 = 0; i1 < dims[1]; ++i1) {
+          for (size_t i2 = 0; i2 < dims[2]; ++i2) {
+            const size_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
+                                i2 * perm_b_stride[2]);
+            const size_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
+                                i2 * a_stride[2]);
+            b[b_i] = a[a_i];
+          }
+        }
+      }
     }
 
     template <typename DataType, typename IndexType>
     void transpose_4d(const DataType* a,
-                      const IndexType* dimensions,
-                      const IndexType* permutations,
+                      const IndexType* dims,
+                      const IndexType* perm,
                       DataType* b) {
-      auto dims = as_dsizes<IndexType, 4>(dimensions);
-      auto perm = as_dsizes<IndexType, 4>(permutations);
-      Eigen::TensorMap<Eigen::Tensor<const DataType, 4, Eigen::RowMajor>> a_map(
-        a, dims[0], dims[1], dims[2], dims[3]);
-      Eigen::TensorMap<Eigen::Tensor<DataType, 4, Eigen::RowMajor>> b_map(
-        b, dims[perm[0]], dims[perm[1]], dims[perm[2]], dims[perm[3]]);
-      b_map = a_map.shuffle(perm);
+      size_t perm_ind[4];
+      for (size_t i = 0; i < 4; ++i)
+        perm_ind[perm[i]] = i;
+      size_t a_stride[4] = {dims[1] * dims[2] * dims[3], dims[2] * dims[3], dims[3], 1};
+      size_t b_stride[4] = {dims[perm[1]] * dims[perm[2]] * dims[perm[3]],
+                            dims[perm[2]] * dims[perm[3]], dims[perm[3]], 1};
+      size_t perm_b_stride[4] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
+                                 b_stride[perm_ind[2]], b_stride[perm_ind[3]]};
+
+      for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+        for (size_t i1 = 0; i1 < dims[1]; ++i1) {
+          for (size_t i2 = 0; i2 < dims[2]; ++i2) {
+            for (size_t i3 = 0; i3 < dims[3]; ++i3) {
+              const size_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
+                                  i2 * perm_b_stride[2] + i3 * perm_b_stride[3]);
+              const size_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
+                                  i2 * a_stride[2] + i3 * a_stride[3]);
+              b[b_i] = a[a_i];
+            }
+          }
+        }
+      }
     }
 
     template <typename T>

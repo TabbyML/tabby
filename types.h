@@ -2,7 +2,7 @@
 
 #include <map>
 
-namespace onmt {
+namespace opennmt {
 
   enum class DataType {
     DT_FLOAT,

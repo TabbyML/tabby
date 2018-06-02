@@ -4,38 +4,38 @@
 
 #include "ops.h"
 
-namespace onmt {
+namespace opennmt {
 
   class DecoderState {
   public:
     virtual ~DecoderState() = default;
 
     DecoderState() {
-      add("memory", onmt::DataType::DT_FLOAT);
-      add("memory_lengths", onmt::DataType::DT_INT32);
+      add("memory", DataType::DT_FLOAT);
+      add("memory_lengths", DataType::DT_INT32);
     }
 
-    void reset(const onmt::StorageView& memory,
-               const onmt::StorageView& memory_lengths) {
+    void reset(const StorageView& memory,
+               const StorageView& memory_lengths) {
       get("memory") = memory;
       get("memory_lengths") = memory_lengths;
     }
 
-    void gather(const onmt::StorageView& indices) {
-      static const onmt::ops::Gather gather_op;
+    void gather(const StorageView& indices) {
+      static const ops::Gather gather_op;
       for (auto& pair : _states) {
         gather_op(pair.second, indices);
       }
     }
 
-    onmt::StorageView& get(const std::string& name) {
+    StorageView& get(const std::string& name) {
       return _states.at(name);
     }
 
   protected:
-    std::unordered_map<std::string, onmt::StorageView> _states;
+    std::unordered_map<std::string, StorageView> _states;
 
-    void add(const std::string& name, onmt::DataType dtype = onmt::DataType::DT_FLOAT) {
+    void add(const std::string& name, DataType dtype = DataType::DT_FLOAT) {
       _states.emplace(std::piecewise_construct,
                       std::forward_as_tuple(name),
                       std::forward_as_tuple(dtype));
@@ -50,7 +50,7 @@ namespace onmt {
       return *_state;
     }
 
-    virtual onmt::StorageView& logits(size_t step, const onmt::StorageView& ids) = 0;
+    virtual StorageView& logits(size_t step, const StorageView& ids) = 0;
 
   protected:
     std::unique_ptr<DecoderState> _state;
@@ -58,15 +58,15 @@ namespace onmt {
 
 
   void greedy_decoding(Decoder& decoder,
-                       onmt::StorageView& sample_from,
+                       StorageView& sample_from,
                        size_t end_token,
                        size_t vocabulary_size,
                        size_t max_steps,
                        std::vector<std::vector<size_t> >& sampled_ids) {
     size_t batch_size = sample_from.dim(0);
 
-    onmt::StorageView probs({batch_size, vocabulary_size});
-    onmt::StorageView alive({batch_size}, onmt::DataType::DT_INT32);
+    StorageView probs({batch_size, vocabulary_size});
+    StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
     for (size_t i = 0; i < batch_offset.size(); ++i)
@@ -75,13 +75,13 @@ namespace onmt {
 
     for (size_t step = 0; step < max_steps; ++step) {
       const auto& logits = decoder.logits(step, sample_from);
-      onmt::ops::SoftMax()(logits, probs);
+      ops::SoftMax()(logits, probs);
 
       std::vector<bool> finished_batch(logits.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = onmt::compute::max_element(probs.index<float>({i}), vocabulary_size);
+        size_t best = compute::max_element(probs.index<float>({i}), vocabulary_size);
         size_t batch_id = batch_offset[i];
         if (best == end_token) {
           finished[batch_id] = true;
@@ -108,7 +108,7 @@ namespace onmt {
             ++write_index;
           }
         }
-        onmt::ops::Gather()(sample_from, alive);
+        ops::Gather()(sample_from, alive);
         decoder.get_state().gather(alive);
       }
     }
