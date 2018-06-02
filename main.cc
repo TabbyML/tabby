@@ -32,8 +32,8 @@ public:
       opennmt::ops::Unquantize(1000)(_gathered, _output);
     }
     opennmt::compute::mul(static_cast<float>(sqrt(embedding_size)),
-                       _output.data<float>(),
-                       _output.size());
+                          _output.data<float>(),
+                          _output.size());
     return _output;
   }
 
@@ -52,7 +52,7 @@ class PositionEncoder
 {
 public:
   opennmt::StorageView& operator()(const opennmt::StorageView& input,
-                                const opennmt::StorageView& lengths) {
+                                   const opennmt::StorageView& lengths) {
     assert(input.rank() == 3);
     size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
@@ -61,8 +61,8 @@ public:
     for (size_t i = 0; i < lengths.dim(0); ++i) {
       const auto length = lengths.at<int32_t>(i);
       opennmt::compute::add(_cached_encodings.data<float>(),
-                         _output.index<float>({i}),
-                         length * depth);
+                            _output.index<float>({i}),
+                            length * depth);
     }
     return _output;
   }
@@ -74,8 +74,8 @@ public:
     _output = input;
     for (size_t i = 0; i < input.dim(0); ++i) {
       opennmt::compute::add(_cached_encodings.index<float>({index}),
-                         _output.index<float>({i}),
-                         depth);
+                            _output.index<float>({i}),
+                            depth);
     }
     return _output;
   }
@@ -182,9 +182,9 @@ class DotProductAttention
 public:
 
   opennmt::StorageView& operator()(const opennmt::StorageView& queries,
-                                const opennmt::StorageView& keys,
-                                const opennmt::StorageView& values,
-                                const opennmt::StorageView& values_lengths) {
+                                   const opennmt::StorageView& keys,
+                                   const opennmt::StorageView& values,
+                                   const opennmt::StorageView& values_lengths) {
     assert(queries.rank() == 4);
     assert(keys.rank() == 4);
     assert(values.rank() == 4);
@@ -233,7 +233,7 @@ public:
 
   void split_heads(const opennmt::StorageView& x, opennmt::StorageView& y) {
     opennmt::StorageView z(const_cast<float*>(x.data<float>()),
-                        {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
+                           {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
     _transpose_op(z, y);
   }
 
@@ -243,10 +243,10 @@ public:
   }
 
   opennmt::StorageView& compute_attention(const opennmt::StorageView& queries,
-                                       const opennmt::StorageView& keys,
-                                       const opennmt::StorageView& values,
-                                       const opennmt::StorageView& queries_lengths,
-                                       const opennmt::StorageView& values_lengths) {
+                                          const opennmt::StorageView& keys,
+                                          const opennmt::StorageView& values,
+                                          const opennmt::StorageView& queries_lengths,
+                                          const opennmt::StorageView& values_lengths) {
     size_t dk = queries.dim(-1) / _num_heads;
 
     split_heads(queries, _split_queries);
@@ -256,9 +256,9 @@ public:
     opennmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)), _split_queries.data<float>(), _split_queries.size());
 
     const opennmt::StorageView& context = _attention(_split_queries,
-                                                  _split_keys,
-                                                  _split_values,
-                                                  values_lengths);
+                                                     _split_keys,
+                                                     _split_values,
+                                                     values_lengths);
 
     combine_heads(context, _combined);
     return _combined;
@@ -296,10 +296,10 @@ public:
   }
 
   opennmt::StorageView& operator()(const opennmt::StorageView& queries,
-                                const opennmt::StorageView& queries_lengths,
-                                opennmt::StorageView* cached_keys = nullptr,
-                                opennmt::StorageView* cached_values = nullptr,
-                                ssize_t step = 0) {
+                                   const opennmt::StorageView& queries_lengths,
+                                   opennmt::StorageView* cached_keys = nullptr,
+                                   opennmt::StorageView* cached_values = nullptr,
+                                   ssize_t step = 0) {
     const opennmt::StorageView& normed_queries = _layer_norm(queries);
     const opennmt::StorageView& fused_proj = _linear_in(normed_queries);
     opennmt::ops::Split(-1)(fused_proj, _queries_proj, _keys_proj, _values_proj);
@@ -320,10 +320,10 @@ public:
     }
 
     const opennmt::StorageView& attention_output = compute_attention(_queries_proj,
-                                                                  keys_proj,
-                                                                  values_proj,
-                                                                  queries_lengths,
-                                                                  values_lengths);
+                                                                     keys_proj,
+                                                                     values_proj,
+                                                                     queries_lengths,
+                                                                     values_lengths);
 
     opennmt::StorageView& output = _linear_out(attention_output);
     opennmt::compute::add(queries.data<float>(), output.data<float>(), queries.size());
@@ -362,12 +362,12 @@ public:
   }
 
   opennmt::StorageView& operator()(const opennmt::StorageView& queries,
-                                const opennmt::StorageView& queries_lengths,
-                                const opennmt::StorageView& memory,
-                                const opennmt::StorageView& memory_lengths,
-                                opennmt::StorageView* cached_keys = nullptr,
-                                opennmt::StorageView* cached_values = nullptr,
-                                ssize_t step = -1) {
+                                   const opennmt::StorageView& queries_lengths,
+                                   const opennmt::StorageView& memory,
+                                   const opennmt::StorageView& memory_lengths,
+                                   opennmt::StorageView* cached_keys = nullptr,
+                                   opennmt::StorageView* cached_values = nullptr,
+                                   ssize_t step = -1) {
     const opennmt::StorageView& normed_queries = _layer_norm(queries);
     const opennmt::StorageView& queries_proj = _linear_query(normed_queries);
 
@@ -384,10 +384,10 @@ public:
     }
 
     const opennmt::StorageView& attention_output = compute_attention(queries_proj,
-                                                                  _keys_proj,
-                                                                  _values_proj,
-                                                                  queries_lengths,
-                                                                  memory_lengths);
+                                                                     _keys_proj,
+                                                                     _values_proj,
+                                                                     queries_lengths,
+                                                                     memory_lengths);
 
     opennmt::StorageView& output = _linear_out(attention_output);
     opennmt::compute::add(queries.data<float>(), output.data<float>(), queries.size());
@@ -405,7 +405,7 @@ public:
   }
 
   opennmt::StorageView& operator()(const opennmt::StorageView& input,
-                                const opennmt::StorageView& lengths) {
+                                   const opennmt::StorageView& lengths) {
     const auto& context = _self_attention(input, lengths);
     return _ff(context);
   }
@@ -426,14 +426,14 @@ public:
   }
 
   opennmt::StorageView& operator()(size_t step,
-                                const opennmt::StorageView& input,
-                                const opennmt::StorageView& input_lengths,
-                                const opennmt::StorageView& memory,
-                                const opennmt::StorageView& memory_lengths,
-                                opennmt::StorageView& cached_self_attn_keys,
-                                opennmt::StorageView& cached_self_attn_values,
-                                opennmt::StorageView& cached_attn_keys,
-                                opennmt::StorageView& cached_attn_values) {
+                                   const opennmt::StorageView& input,
+                                   const opennmt::StorageView& input_lengths,
+                                   const opennmt::StorageView& memory,
+                                   const opennmt::StorageView& memory_lengths,
+                                   opennmt::StorageView& cached_self_attn_keys,
+                                   opennmt::StorageView& cached_self_attn_values,
+                                   opennmt::StorageView& cached_attn_keys,
+                                   opennmt::StorageView& cached_attn_values) {
     const auto& encoded = _self_attention(
       input, input_lengths, &cached_self_attn_keys, &cached_self_attn_values, step);
     const auto& context = _encoder_attention(
@@ -464,7 +464,7 @@ public:
   }
 
   opennmt::StorageView& encode(const opennmt::StorageView& ids,
-                            const opennmt::StorageView& lengths) override {
+                               const opennmt::StorageView& lengths) override {
     const auto& embeddings = _scaled_embeddings(ids);
     const auto& input = _position_encoder(embeddings, lengths);
     const auto* x = &input;
