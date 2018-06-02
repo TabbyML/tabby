@@ -5,7 +5,7 @@ set(MKL_DNN_ROOT /home/klein/dev/ctransformer/mkl-dnn/install)
 set(MKL_ROOT /opt/intel/mkl)
 set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -mavx2 -Wall")
 # find_package(Boost)
@@ -34,13 +34,21 @@ set(MKL_LIBRARIES
   dl
   )
 
-add_executable(main
+add_executable(main_mkl
   compute_mkl.cc
   compute_simd.cc
   main.cc
   )
-target_link_libraries(main
+target_link_libraries(main_mkl
   ${MKL_LIBRARIES}
+  )
+
+add_executable(main
+  compute_simd.cc
+  main.cc
+  )
+target_link_libraries(main
+  #${MKL_LIBRARIES}
   )
 
 # add_executable(benchmark

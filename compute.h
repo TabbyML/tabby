@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <Eigen/Dense>
 #include <unsupported/Eigen/CXX11/Tensor>
 
 namespace onmt {
@@ -170,17 +171,40 @@ namespace onmt {
       b_map = a_map.shuffle(perm);
     }
 
-    // Functions without generic implementation.
     template <typename T>
-    void pow(const T* x, T* y, T power, size_t size);
+    void pow(const T* x, T* y, T power, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = static_cast<T>(std::pow(static_cast<float>(x[i]), static_cast<float>(power)));
+      }
+    }
+
     template <typename T>
-    void exp(const T* x, T* y, size_t size);
+    void exp(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = static_cast<T>(std::exp(x[i]));
+      }
+    }
+
     template <typename T>
-    void cos(const T* x, T* y, size_t size);
+    void cos(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = static_cast<T>(std::cos(x[i]));
+      }
+    }
+
     template <typename T>
-    void sin(const T* x, T* y, size_t size);
+    void sin(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = static_cast<T>(std::sin(x[i]));
+      }
+    }
+
     template <typename T>
-    void tanh(const T* x, T* y, size_t size);
+    void tanh(const T* x, T* y, size_t size) {
+      for (size_t i = 0; i < size; ++i) {
+        y[i] = static_cast<T>(std::tanh(x[i]));
+      }
+    }
 
     template <typename In, typename Out>
     void gemm(const In* a, const In* b,
@@ -188,6 +212,33 @@ namespace onmt {
               size_t m, size_t n, size_t k,
               In alpha, Out beta,
               Out* c);
+
+    template <typename T>
+    void gemm(const T* a, const T* b,
+              bool transpose_a, bool transpose_b,
+              size_t m, size_t n, size_t k,
+              T alpha, T beta,
+              T* c) {
+      Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> a_map(
+        const_cast<T*>(a), transpose_a ? k : m, transpose_a ? m : k);
+      Eigen::Map<const Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> b_map(
+        const_cast<T*>(b), transpose_b ? n : k, transpose_b ? k : n);
+      Eigen::Map<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> c_map(
+        c, m, n);
+
+      c_map *= beta;
+
+      if (transpose_a && transpose_b) {
+        c_map.noalias() += alpha * a_map.transpose() * b_map.transpose();
+      } else if (transpose_a) {
+        c_map.noalias() += alpha * a_map.transpose() * b_map;
+      } else if (transpose_b) {
+        c_map.noalias() += alpha * a_map * b_map.transpose();
+      } else {
+        c_map.noalias() += alpha * a_map * b_map;
+      }
+    }
+
     template <typename In, typename Out>
     void gemm_batch(const In* a, const In* b,
                     bool transpose_a, bool transpose_b,
