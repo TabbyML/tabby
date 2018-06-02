@@ -1,7 +1,7 @@
 #pragma once
 
 #include "compute.h"
-#include "storage_view.h"
+#include "opennmt/storage_view.h"
 
 #define EPSILON 0.000001f
 

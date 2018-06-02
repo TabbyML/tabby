@@ -8,13 +8,12 @@
 #include <chrono>
 
 #include "opennmt/vocabulary.h"
+#include "opennmt/encoder.h"
+#include "opennmt/decoder.h"
 
 #include "model.h"
-#include "storage_view.h"
 #include "ops.h"
 #include "compute.h"
-#include "encoder.h"
-#include "decoder.h"
 
 class ScaledEmbeddings
 {

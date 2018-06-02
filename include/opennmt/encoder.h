@@ -1,6 +1,6 @@
 #pragma once
 
-#include "storage_view.h"
+#include "opennmt/storage_view.h"
 
 namespace opennmt {
 

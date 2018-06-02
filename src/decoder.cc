@@ -1,60 +1,36 @@
-#pragma once
-
-#include <memory>
+#include "opennmt/decoder.h"
 
 #include "ops.h"
 
 namespace opennmt {
 
-  class DecoderState {
-  public:
-    virtual ~DecoderState() = default;
+  DecoderState::DecoderState() {
+    add("memory", DataType::DT_FLOAT);
+    add("memory_lengths", DataType::DT_INT32);
+  }
 
-    DecoderState() {
-      add("memory", DataType::DT_FLOAT);
-      add("memory_lengths", DataType::DT_INT32);
+  void DecoderState::reset(const StorageView& memory,
+                           const StorageView& memory_lengths) {
+    get("memory") = memory;
+    get("memory_lengths") = memory_lengths;
+  }
+
+  void DecoderState::gather(const StorageView& indices) {
+    static const ops::Gather gather_op;
+    for (auto& pair : _states) {
+      gather_op(pair.second, indices);
     }
+  }
 
-    void reset(const StorageView& memory,
-               const StorageView& memory_lengths) {
-      get("memory") = memory;
-      get("memory_lengths") = memory_lengths;
-    }
+  StorageView& DecoderState::get(const std::string& name) {
+    return _states.at(name);
+  }
 
-    void gather(const StorageView& indices) {
-      static const ops::Gather gather_op;
-      for (auto& pair : _states) {
-        gather_op(pair.second, indices);
-      }
-    }
-
-    StorageView& get(const std::string& name) {
-      return _states.at(name);
-    }
-
-  protected:
-    std::unordered_map<std::string, StorageView> _states;
-
-    void add(const std::string& name, DataType dtype = DataType::DT_FLOAT) {
-      _states.emplace(std::piecewise_construct,
-                      std::forward_as_tuple(name),
-                      std::forward_as_tuple(dtype));
-    }
-  };
-
-  class Decoder {
-  public:
-    virtual ~Decoder() = default;
-
-    DecoderState& get_state() {
-      return *_state;
-    }
-
-    virtual StorageView& logits(size_t step, const StorageView& ids) = 0;
-
-  protected:
-    std::unique_ptr<DecoderState> _state;
-  };
+  void DecoderState::add(const std::string& name, DataType dtype) {
+    _states.emplace(std::piecewise_construct,
+                    std::forward_as_tuple(name),
+                    std::forward_as_tuple(dtype));
+  }
 
 
   void greedy_decoding(Decoder& decoder,

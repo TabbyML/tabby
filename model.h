@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 
-#include "storage_view.h"
+#include "opennmt/storage_view.h"
 
 namespace opennmt {
 

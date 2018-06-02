@@ -16,6 +16,7 @@ include_directories(
   ${MKL_ROOT}/include
   ${EIGEN_ROOT}
   #${TBB_ROOT}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   /home/klein/dev/ctransformer/gemmlowp/public
   )
@@ -36,7 +37,8 @@ set(MKL_LIBRARIES
   dl
   )
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME} SHARED
+  src/decoder.cc
   src/vocabulary.cc
   )
 

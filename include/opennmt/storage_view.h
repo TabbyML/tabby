@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "compute.h"
-#include "utils.h"
-#include "types.h"
+#include "opennmt/utils.h"
+#include "opennmt/types.h"
 
 #define ALIGNMENT 64
 
