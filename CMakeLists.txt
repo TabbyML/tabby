@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
+project(opennmt)
 
 set(CMAKE_CXX_STANDARD 11)
 set(MKL_DNN_ROOT /home/klein/dev/ctransformer/mkl-dnn/install)
@@ -15,6 +16,7 @@ include_directories(
   ${MKL_ROOT}/include
   ${EIGEN_ROOT}
   #${TBB_ROOT}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
   /home/klein/dev/ctransformer/gemmlowp/public
   )
 link_directories(
@@ -34,6 +36,10 @@ set(MKL_LIBRARIES
   dl
   )
 
+add_library(${PROJECT_NAME}
+  src/vocabulary.cc
+  )
+
 add_executable(main_mkl
   compute_mkl.cc
   compute_simd.cc
@@ -41,6 +47,7 @@ add_executable(main_mkl
   )
 target_link_libraries(main_mkl
   ${MKL_LIBRARIES}
+  ${PROJECT_NAME}
   )
 
 add_executable(main
@@ -49,6 +56,7 @@ add_executable(main
   )
 target_link_libraries(main
   #${MKL_LIBRARIES}
+  ${PROJECT_NAME}
   )
 
 # add_executable(benchmark

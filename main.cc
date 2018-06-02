@@ -7,8 +7,9 @@
 #include <unordered_map>
 #include <chrono>
 
+#include "opennmt/vocabulary.h"
+
 #include "model.h"
-#include "vocabulary.h"
 #include "storage_view.h"
 #include "ops.h"
 #include "compute.h"
