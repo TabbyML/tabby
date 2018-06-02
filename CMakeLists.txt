@@ -39,6 +39,7 @@ set(MKL_LIBRARIES
 
 add_library(${PROJECT_NAME} SHARED
   src/decoder.cc
+  src/storage_view.cc
   src/vocabulary.cc
   )
 
@@ -71,6 +72,7 @@ target_link_libraries(main
 add_executable(tensor_demo tensor_demo.cc)
 target_link_libraries(tensor_demo
   ${MKL_LIBRARIES}
+  ${PROJECT_NAME}
   )
 
 add_subdirectory(tests)

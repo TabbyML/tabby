@@ -16,6 +16,7 @@ if (GTEST_FOUND)
     ${GTEST_BOTH_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${MKL_LIBRARIES} # TODO: link to own library
+    ${PROJECT_NAME}
     )
 
   add_executable(onmt_test
@@ -28,6 +29,7 @@ if (GTEST_FOUND)
   target_link_libraries(onmt_test
     ${GTEST_BOTH_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
+    ${PROJECT_NAME}
     )
 
   #add_test(TokenizerTest onmt_tokenizer_test "${CMAKE_CURRENT_LIST_DIR}/data/")

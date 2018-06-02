@@ -2,14 +2,11 @@
 
 #include <cassert>
 #include <ostream>
-#include <stdexcept>
 #include <vector>
 
-#include "compute.h"
-#include "opennmt/utils.h"
 #include "opennmt/types.h"
 
-#define ALIGNMENT 64
+#include "compute.h"
 
 using Shape = std::vector<size_t>;
 
@@ -26,15 +23,10 @@ namespace opennmt {
   class StorageView
   {
   public:
-    StorageView(DataType type = DataType::DT_FLOAT)
-      : _dtype(type) {
-    }
-
-    StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT)
-      : _dtype(type) {
-      resize(shape);
-      TYPE_DISPATCH(type, fill(T()));
-    }
+    StorageView(DataType type = DataType::DT_FLOAT);
+    StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT);
+    StorageView(const StorageView& other);
+    StorageView(StorageView&& other);
 
     template <typename T>
     StorageView(const Shape& shape, T init = T())
@@ -56,23 +48,35 @@ namespace opennmt {
       assign(data, shape);
     }
 
-    StorageView(const StorageView& other)
-      : _dtype(other._dtype) {
-      assign(other);
-    }
+    ~StorageView();
 
-    StorageView(StorageView&& other)
-      : _dtype(other._dtype) {
-      assign(std::move(other));
-    }
+    DataType dtype() const;
+    size_t reserved_memory() const;
+    StorageView& clear();
+    StorageView& release();
+    StorageView& reserve(size_t size);
+    size_t rank() const;
+    const Shape& shape() const;
+    size_t dim(ssize_t dim) const;
+    size_t stride(ssize_t dim) const;
+    size_t size() const;
+    bool empty() const;
 
-    ~StorageView() {
-      release();
-    }
+    StorageView& reshape(const Shape& new_shape);
 
-    DataType dtype() const {
-      return _dtype;
-    }
+    StorageView& resize_as(const StorageView& other);
+    StorageView& resize(const Shape& new_shape);
+    StorageView& resize(size_t dim, size_t new_size);
+    StorageView& grow(size_t dim, size_t size);
+    StorageView& shrink(size_t dim, size_t size);
+
+    StorageView& operator=(const StorageView& other);
+    StorageView& operator=(StorageView&& other);
+    StorageView& assign(const StorageView& other);
+    StorageView& assign(StorageView&& other);
+
+    StorageView& shallow_copy(StorageView& other);
+    StorageView& deep_copy(const StorageView& other);
 
     template <typename T>
     T* data() {
@@ -122,121 +126,6 @@ namespace opennmt {
       return index<T>(indices)[0];
     }
 
-    size_t reserved_memory() const {
-      size_t buffer_size;
-      TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
-      return buffer_size;
-    }
-
-    StorageView& clear() {
-      _size = 0;
-      _shape.clear();
-      _strides.clear();
-      return *this;
-    }
-
-    StorageView& release() {
-      if (_own_data && _buffer != nullptr)
-        free(_buffer);
-      _data = nullptr;
-      _buffer = nullptr;
-      _allocated_size = 0;
-      return clear();
-    }
-
-    StorageView& reserve(size_t size) {
-      release();
-      size_t required_bytes = 0;
-      TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-      size_t buffer_space = required_bytes + ALIGNMENT;
-      _buffer = malloc(buffer_space);
-      _data = _buffer;
-      align(ALIGNMENT, required_bytes, _data, buffer_space);
-      assert(_data != nullptr);
-      _own_data = true;
-      _allocated_size = size;
-      return *this;
-    }
-
-    size_t rank() const {
-      return _shape.size();
-    }
-
-    const Shape& shape() const {
-      return _shape;
-    }
-
-    size_t dim(ssize_t dim) const {
-      if (dim < 0)
-        dim = _shape.size() + dim;
-      return _shape[dim];
-    }
-
-    size_t stride(ssize_t dim) const {
-      if (dim < 0)
-        dim = _shape.size() + dim;
-      return _strides[dim];
-    }
-
-    size_t size() const {
-      return _size;
-    }
-
-    bool empty() const {
-      return _size == 0;
-    }
-
-    StorageView& reshape(const Shape& new_shape) {
-      assert(_size == size(new_shape));
-      _shape = new_shape;
-      _strides = strides(new_shape);
-      return *this;
-    }
-
-    StorageView& resize(const Shape& new_shape) {
-      if (new_shape.empty())
-        return clear();
-      size_t new_size = size(new_shape);
-      if (new_size > _allocated_size)
-        reserve(new_size);
-      _size = new_size;
-      return reshape(new_shape);
-    }
-
-    StorageView& resize(size_t dim, size_t new_size) {
-      Shape new_shape(_shape);
-      new_shape[dim] = new_size;
-      return resize(new_shape);
-    }
-
-    StorageView& grow(size_t dim, size_t size) {
-      return resize(dim, _shape[dim] + size);
-    }
-
-    StorageView& shrink(size_t dim, size_t size) {
-      return resize(dim, _shape[dim] - size);
-    }
-
-    StorageView& resize_as(const StorageView& other) {
-      return resize(other.shape());
-    }
-
-    StorageView& assign(const StorageView& other) {
-      resize_as(other);
-      return copy_from(other);
-    }
-
-    StorageView& assign(StorageView&& other) {
-      assert(other._dtype == _dtype);
-      std::swap(_data, other._data);
-      std::swap(_own_data, other._own_data);
-      std::swap(_allocated_size, other._allocated_size);
-      std::swap(_size, other._size);
-      std::swap(_shape, other._shape);
-      std::swap(_strides, other._strides);
-      return *this;
-    }
-
     template <typename T>
     StorageView& assign(T* data, const Shape& shape) {
       assert(DataTypeToEnum<T>::value == _dtype);
@@ -248,23 +137,6 @@ namespace opennmt {
       return reshape(shape);
     }
 
-    StorageView& operator=(const StorageView& other) {
-      return assign(other);
-    }
-
-    StorageView& operator=(StorageView&& other) {
-      return assign(std::move(other));
-    }
-
-    StorageView& shallow_copy(StorageView& other) {
-      TYPE_DISPATCH(_dtype, assign(other.data<T>(), other._shape));
-      return *this;
-    }
-
-    StorageView& deep_copy(const StorageView& other) {
-      return assign(other);
-    }
-
     template <typename T>
     StorageView& fill(T value) {
       assert(DataTypeToEnum<T>::value == _dtype);
@@ -272,10 +144,7 @@ namespace opennmt {
       return *this;
     }
 
-    StorageView& copy_from(const StorageView& other) {
-      TYPE_DISPATCH(other._dtype, copy_from(other.data<T>(), other._size));
-      return *this;
-    }
+    StorageView& copy_from(const StorageView& other);
 
     template <typename T>
     StorageView& copy_from(const T* data, size_t size) {
@@ -297,61 +166,10 @@ namespace opennmt {
     Shape _shape;
     std::vector<size_t> _strides;
 
-    static size_t size(const Shape& shape) {
-      if (shape.empty())
-        return 0;
-      size_t size = 1;
-      for (auto dim : shape)
-        size *= dim;
-      return size;
-    }
-
-    static size_t stride(const Shape& shape, size_t dim) {
-      if (shape.empty())
-        return 0;
-      size_t stride = 1;
-      for (size_t i = shape.size() - 1; i > dim; --i)
-        stride *= shape[i];
-      return stride;
-    }
-
-    static std::vector<size_t> strides(const Shape& shape) {
-      if (shape.empty())
-        return std::vector<size_t>();
-      std::vector<size_t> strides(shape.size(), 1);
-      for (size_t d = 0; d < strides.size() - 1; ++d)
-        strides[d] = stride(shape, d);
-      return strides;
-    }
+    static size_t size(const Shape& shape);
+    static size_t stride(const Shape& shape, size_t dim);
+    static std::vector<size_t> strides(const Shape& shape);
 
   };
-
-
-  std::ostream& operator<<(std::ostream& os, const opennmt::StorageView& storage) {
-    TYPE_DISPATCH(
-      storage.dtype(),
-      if (storage.size() < 7) {
-        for (size_t i = 0; i < storage.size(); ++i) {
-          os << ' ' << storage.data<T>()[i];
-        }
-      } else {
-        os << " " << storage.data<T>()[0]
-           << " " << storage.data<T>()[1]
-           << " " << storage.data<T>()[2]
-           << " ..."
-           << " " << storage.data<T>()[storage.size() - 3]
-           << " " << storage.data<T>()[storage.size() - 2]
-           << " " << storage.data<T>()[storage.size() - 1];
-      }
-      os << std::endl);
-    os << '[' << dtype_name(storage.dtype()) << " storage viewed as ";
-    for (size_t i = 0; i < storage.rank(); ++i) {
-      if (i > 0)
-        os << 'x';
-      os << storage.dim(i);
-    }
-    os << ']';
-    return os;
-  }
 
 }
