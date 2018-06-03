@@ -24,21 +24,17 @@ public:
   }
 
   opennmt::StorageView& operator()(const opennmt::StorageView& ids) {
-    size_t embedding_size = output_depth();
     if (_embeddings.dtype() == opennmt::DataType::DT_FLOAT) {
       _gather_op(_embeddings, ids, _output);
     } else {
       _gather_op(_embeddings, ids, _gathered);
       opennmt::ops::Unquantize(1000)(_gathered, _output);
     }
+    const size_t embedding_size = _embeddings.dim(-1);
     opennmt::compute::mul(static_cast<float>(sqrt(embedding_size)),
                           _output.data<float>(),
                           _output.size());
     return _output;
-  }
-
-  size_t output_depth() const {
-    return _embeddings.dim(-1);
   }
 
 private:
@@ -119,10 +115,6 @@ public:
   opennmt::StorageView& operator()(const opennmt::StorageView& input) {
     _gemm_op(input, _weight, _bias, _output);
     return _output;
-  }
-
-  size_t output_depth() const {
-    return _weight.dim(-2);
   }
 
 private:
@@ -247,13 +239,14 @@ public:
                                           const opennmt::StorageView& values,
                                           const opennmt::StorageView& queries_lengths,
                                           const opennmt::StorageView& values_lengths) {
-    size_t dk = queries.dim(-1) / _num_heads;
-
     split_heads(queries, _split_queries);
     split_heads(keys, _split_keys);
     split_heads(values, _split_values);
 
-    opennmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)), _split_queries.data<float>(), _split_queries.size());
+    const size_t dk = queries.dim(-1) / _num_heads;
+    opennmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)),
+                          _split_queries.data<float>(),
+                          _split_queries.size());
 
     const opennmt::StorageView& context = _attention(_split_queries,
                                                      _split_keys,

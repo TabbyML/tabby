@@ -35,7 +35,7 @@ namespace opennmt {
   }
 
   size_t StorageView::reserved_memory() const {
-    size_t buffer_size;
+    size_t buffer_size = 0;
     TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
     return buffer_size;
   }
