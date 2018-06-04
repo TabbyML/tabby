@@ -73,6 +73,12 @@ namespace opennmt {
     }
 
     template <typename T>
+    void sub(const T* a, const T* b, T* c, size_t size) {
+      for (size_t i = 0; i < size; ++i)
+        c[i] = a[i] - b[i];
+    }
+
+    template <typename T>
     void mul(T a, T* y, size_t size) {
       for (size_t i = 0; i < size; ++i)
         y[i] *= a;

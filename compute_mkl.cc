@@ -27,6 +27,11 @@ namespace opennmt {
     }
 
     template<>
+    void sub(const float* a, const float* b, float* c, size_t size) {
+      vsSub(size, a, b, c);
+    }
+
+    template<>
     void mul(float a, float* y, size_t size) {
       cblas_sscal(size, a, y, 1);
     }
