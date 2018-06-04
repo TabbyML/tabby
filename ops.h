@@ -172,18 +172,42 @@ namespace opennmt {
         assert(repeats.size() == input.rank());
 
         Shape output_shape(input.shape());
+        size_t last_repeated_dim = 0;
         for (size_t i = 0; i < output_shape.size(); ++i) {
           const size_t repeat_dim = repeats.at<int32_t>(i);
-          assert(repeat_dim == 1 || i == 0);
-          output_shape[i] *= repeat_dim;
+          if (repeat_dim != 1) {
+            last_repeated_dim = i;
+            output_shape[i] *= repeat_dim;
+          }
         }
 
         output.resize(output_shape);
 
-        // TODO: support other dims.
-        const size_t repeat_dim_0 = repeats.at<int32_t>(0);
-        for (size_t i = 0; i < repeat_dim_0; ++i) {
-          compute::copy(input.data<T>(), output.data<T>() + i * input.size(), input.size());
+        size_t copied = 0;
+        for (ssize_t i = last_repeated_dim; i >= 0; --i) {
+          const size_t axis = i;
+          const size_t repeat_dim = repeats.at<int32_t>(axis);
+          size_t iter_dim = 1;
+          size_t copy_dim = 1;
+          for (size_t k = 0; k < axis; ++k)
+            iter_dim *= input.dim(k);
+          for (size_t k = axis; k < input.rank(); ++k)
+            copy_dim *= input.dim(k);
+          if (axis == last_repeated_dim) {
+            for (size_t j = 0; j < iter_dim; ++j) {
+              for (size_t r = 0; r < repeat_dim; ++r) {
+                compute::copy(input.data<T>() + j * copy_dim,
+                              output.data<T>() + copied, copy_dim);
+                copied += copy_dim;
+              }
+            }
+          } else {
+            for (size_t r = 1; r < repeat_dim; ++r) {
+              compute::copy(output.data<T>(),
+                            output.data<T>() + r * copied, copied);
+            }
+            copied *= repeat_dim;
+          }
         }
       }
     };

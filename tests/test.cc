@@ -106,7 +106,7 @@ TEST(OpTest, ConcatSplitDepthEqualParts) {
   expect_storage_eq(z, b);
 }
 
-TEST(OpTest, TileBatch) {
+TEST(OpTest, TileFirstDim) {
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
   StorageView repeats({2}, std::vector<int32_t>{2, 1});
   StorageView expected_output({4, 2}, std::vector<float>{1, 2, 3, 4, 1, 2, 3, 4});
@@ -115,7 +115,7 @@ TEST(OpTest, TileBatch) {
   expect_storage_eq(output, expected_output);
 }
 
-TEST(OpTest, DISABLED_TileDepth) {
+TEST(OpTest, TileLastDim) {
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
   StorageView repeats({2}, std::vector<int32_t>{1, 2});
   StorageView expected_output({2, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4});
@@ -124,10 +124,19 @@ TEST(OpTest, DISABLED_TileDepth) {
   expect_storage_eq(output, expected_output);
 }
 
-TEST(OpTest, DISABLED_TileBatchAndDepth) {
+TEST(OpTest, TileAll2D) {
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
   StorageView repeats({2}, std::vector<int32_t>{2, 2});
   StorageView expected_output({4, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4, 1, 2, 1, 2, 3, 4, 3, 4});
+  StorageView output;
+  ops::Tile()(input, repeats, output);
+  expect_storage_eq(output, expected_output);
+}
+
+TEST(OpTest, TileMiddleDim) {
+  StorageView input({2, 1, 3}, std::vector<float>{1, 2, 3, 4, 5, 6});
+  StorageView repeats({3}, std::vector<int32_t>{1, 3, 1});
+  StorageView expected_output({2, 3, 3}, std::vector<float>{1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 6, 4, 5, 6, 4, 5, 6});
   StorageView output;
   ops::Tile()(input, repeats, output);
   expect_storage_eq(output, expected_output);
