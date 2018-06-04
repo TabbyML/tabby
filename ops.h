@@ -174,7 +174,7 @@ namespace opennmt {
         Shape output_shape(input.shape());
         for (size_t i = 0; i < output_shape.size(); ++i) {
           const size_t repeat_dim = repeats.at<int32_t>(i);
-          assert(repeat_dim == 1 || i = 0);
+          assert(repeat_dim == 1 || i == 0);
           output_shape[i] *= repeat_dim;
         }
 
