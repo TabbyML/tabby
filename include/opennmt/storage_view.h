@@ -48,6 +48,13 @@ namespace opennmt {
       assign(data, shape);
     }
 
+    template <typename T>
+    StorageView(T scalar)
+      : _dtype(DataTypeToEnum<T>::value) {
+      resize({1});
+      fill(scalar);
+    }
+
     ~StorageView();
 
     DataType dtype() const;
@@ -60,6 +67,7 @@ namespace opennmt {
     size_t dim(ssize_t dim) const;
     size_t stride(ssize_t dim) const;
     size_t size() const;
+    bool is_scalar() const;
     bool empty() const;
 
     StorageView& reshape(const Shape& new_shape);

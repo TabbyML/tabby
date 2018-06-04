@@ -94,6 +94,10 @@ namespace opennmt {
     return _size;
   }
 
+  bool StorageView::is_scalar() const {
+    return rank() == 1 && _size == 1;
+  }
+
   bool StorageView::empty() const {
     return _size == 0;
   }

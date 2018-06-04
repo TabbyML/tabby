@@ -625,7 +625,7 @@ namespace opennmt {
     private:
       template <typename T>
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
-        if (b.size() == 1) {
+        if (b.is_scalar()) {
           c = a;
           compute::add(b.data<T>()[0], c.data<T>(), c.size());
         } else {
@@ -644,7 +644,7 @@ namespace opennmt {
     private:
       template <typename T>
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
-        if (b.size() == 1) {
+        if (b.is_scalar()) {
           c = a;
           compute::sub(b.data<T>()[0], c.data<T>(), c.size());
         } else {
@@ -663,7 +663,7 @@ namespace opennmt {
     private:
       template <typename T>
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
-        if (b.size() == 1) {
+        if (b.is_scalar()) {
           c = a;
           compute::mul(b.data<T>()[0], c.data<T>(), c.size());
         } else {
