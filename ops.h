@@ -705,11 +705,6 @@ namespace opennmt {
           throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
 
-      void operator()(StorageView& data, const StorageView& input) const {
-        StorageView clone(data);
-        operator()(clone, input, data);
-      }
-
       void operator()(const StorageView& data,
                       const StorageView& input,
                       StorageView& output) const override {

@@ -485,6 +485,15 @@ public:
       add("memory_values_" + std::to_string(i));
     }
   }
+
+  void reset(const opennmt::StorageView& memory,
+             const opennmt::StorageView& memory_lengths) override {
+    opennmt::DecoderState::reset(memory, memory_lengths);
+    for (auto& pair : _states) {
+      if (pair.first != "memory" and pair.first != "memory_lengths")
+        pair.second.clear();
+    }
+  }
 };
 
 class TransformerDecoder : public opennmt::Decoder
@@ -538,7 +547,8 @@ private:
 void translate(const std::vector<std::vector<std::string> >& input_tokens,
                const opennmt::Vocabulary& vocabulary,
                opennmt::Encoder& encoder,
-               opennmt::Decoder& decoder) {
+               opennmt::Decoder& decoder,
+               size_t beam_size) {
   size_t batch_size = input_tokens.size();
   size_t max_length = 0;
   opennmt::StorageView lengths({batch_size}, opennmt::DataType::DT_INT32);
@@ -558,10 +568,13 @@ void translate(const std::vector<std::vector<std::string> >& input_tokens,
   const auto& encoded = encoder.encode(ids, lengths);
 
   opennmt::StorageView sample_from({batch_size, 1}, static_cast<int32_t>(vocabulary.to_id("<s>")));
-  std::vector<std::vector<size_t> > sampled_ids(batch_size);
+  std::vector<std::vector<size_t>> sampled_ids;
 
   decoder.get_state().reset(encoded, lengths);
-  opennmt::greedy_decoding(decoder, sample_from, 2, vocabulary.size(), 200, sampled_ids);
+  if (beam_size == 1)
+    opennmt::greedy_decoding(decoder, sample_from, 2, vocabulary.size(), 200, sampled_ids);
+  else
+    opennmt::beam_search(decoder, sample_from, 2, 5, 0.6, vocabulary.size(), 200, sampled_ids);
 
   for (size_t i = 0; i < batch_size; ++i) {
     for (auto id : sampled_ids[i]) {
@@ -578,11 +591,12 @@ int main(int argc, char* argv[]) {
   TransformerEncoder encoder(model, "transformer/encoder");
   TransformerDecoder decoder(model, "transformer/decoder");
 
-  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en.200");
+  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en");
   std::vector<std::vector<std::string> > input_tokens;
   std::string line;
 
   size_t max_batch_size = argc > 1 ? std::stoi(argv[1]) : 1;
+  size_t beam_size = argc > 2 ? std::stoi(argv[2]) : 1;
   size_t num_tokens = 0;
 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -607,13 +621,13 @@ int main(int argc, char* argv[]) {
     num_tokens += input_tokens.back().size();
 
     if (input_tokens.size() == max_batch_size) {
-      translate(input_tokens, vocabulary, encoder, decoder);
+      translate(input_tokens, vocabulary, encoder, decoder, beam_size);
       input_tokens.clear();
     }
   }
 
   if (!input_tokens.empty()) {
-    translate(input_tokens, vocabulary, encoder, decoder);
+    translate(input_tokens, vocabulary, encoder, decoder, beam_size);
   }
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();

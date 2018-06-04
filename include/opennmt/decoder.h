@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <ostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,10 +14,12 @@ namespace opennmt {
   public:
     DecoderState();
     virtual ~DecoderState() = default;
-    void reset(const StorageView& memory,
-               const StorageView& memory_lengths);
-    void gather(const StorageView& indices);
+    virtual void reset(const StorageView& memory,
+                       const StorageView& memory_lengths);
+    std::unordered_map<std::string, StorageView>& get();
     StorageView& get(const std::string& name);
+
+    friend std::ostream& operator<<(std::ostream& os, const DecoderState& decoder_state);
 
   protected:
     std::unordered_map<std::string, StorageView> _states;
@@ -44,4 +47,12 @@ namespace opennmt {
                        size_t vocabulary_size,
                        size_t max_steps,
                        std::vector<std::vector<size_t> >& sampled_ids);
+  void beam_search(Decoder& decoder,
+                   StorageView& sample_from,
+                   size_t end_token,
+                   size_t beam_size,
+                   size_t length_penalty,
+                   size_t vocabulary_size,
+                   size_t max_steps,
+                   std::vector<std::vector<size_t>>& sampled_ids);
 }
