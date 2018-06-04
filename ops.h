@@ -156,6 +156,38 @@ namespace opennmt {
 
     };
 
+    class Tile : public BinaryOp {
+    public:
+      void operator()(const StorageView& input,
+                      const StorageView& repeats,
+                      StorageView& output) const override {
+        TYPE_DISPATCH(input.dtype(), compute<T>(input, repeats, output));
+      }
+
+    private:
+      template <typename T>
+      void compute(const StorageView& input,
+                   const StorageView& repeats,
+                   StorageView& output) const {
+        assert(repeats.size() == input.rank());
+
+        Shape output_shape(input.shape());
+        for (size_t i = 0; i < output_shape.size(); ++i) {
+          const size_t repeat_dim = repeats.at<int32_t>(i);
+          assert(repeat_dim == 1 || i = 0);
+          output_shape[i] *= repeat_dim;
+        }
+
+        output.resize(output_shape);
+
+        // TODO: support other dims.
+        const size_t repeat_dim_0 = repeats.at<int32_t>(0);
+        for (size_t i = 0; i < repeat_dim_0; ++i) {
+          compute::copy(input.data<T>(), output.data<T>() + i * input.size(), input.size());
+        }
+      }
+    };
+
     class Transpose : public UnaryOp {
     public:
       Transpose() = default;
@@ -282,6 +314,7 @@ namespace opennmt {
 
     class Reshape {
     public:
+      // TODO: support -1 dimension.
       void operator()(StorageView& data, const StorageView& shape) const {
         data.reshape(std::vector<size_t>(shape.data<int32_t>(),
                                          shape.data<int32_t>() + shape.size()));

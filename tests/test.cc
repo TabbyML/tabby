@@ -106,6 +106,33 @@ TEST(OpTest, ConcatSplitDepthEqualParts) {
   expect_storage_eq(z, b);
 }
 
+TEST(OpTest, TileBatch) {
+  StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
+  StorageView repeats({2}, std::vector<int32_t>{2, 1});
+  StorageView expected_output({4, 2}, std::vector<float>{1, 2, 3, 4, 1, 2, 3, 4});
+  StorageView output;
+  ops::Tile()(input, repeats, output);
+  expect_storage_eq(output, expected_output);
+}
+
+TEST(OpTest, DISABLED_TileDepth) {
+  StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
+  StorageView repeats({2}, std::vector<int32_t>{1, 2});
+  StorageView expected_output({2, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4});
+  StorageView output;
+  ops::Tile()(input, repeats, output);
+  expect_storage_eq(output, expected_output);
+}
+
+TEST(OpTest, DISABLED_TileBatchAndDepth) {
+  StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
+  StorageView repeats({2}, std::vector<int32_t>{2, 2});
+  StorageView expected_output({4, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4, 1, 2, 1, 2, 3, 4, 3, 4});
+  StorageView output;
+  ops::Tile()(input, repeats, output);
+  expect_storage_eq(output, expected_output);
+}
+
 TEST(OpTest, Transpose1D) {
   StorageView x({4}, std::vector<float>{1, 2, 3, 4});
   StorageView y;
