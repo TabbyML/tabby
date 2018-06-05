@@ -1,9 +1,9 @@
-#include "compute.h"
+#include "opennmt/primitives/primitives.h"
 
 #include <mkl.h>
 
 namespace opennmt {
-  namespace compute {
+  namespace primitives {
 
     // Intel MKL specialization for standard float.
     template<>

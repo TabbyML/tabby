@@ -17,13 +17,13 @@ namespace opennmt {
     private:
       template <typename T>
       void compute(StorageView& x) const {
-        compute::relu(x.data<T>(), x.size());
+        primitives::relu(x.data<T>(), x.size());
       }
 
       template <typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        compute::relu(x.data<T>(), y.data<T>(), x.size());
+        primitives::relu(x.data<T>(), y.data<T>(), x.size());
       }
     };
 

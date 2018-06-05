@@ -38,10 +38,10 @@ namespace opennmt {
         indices.resize({batch_size, _k});
         for (size_t i = 0; i < batch_size; ++i) {
           const auto* input = x.data<DataType>() + (i * depth);
-          compute::topk(input, tmp.data<IndexType>(), _k, depth);
+          primitives::topk(input, tmp.data<IndexType>(), _k, depth);
           auto* val = values.data<DataType>() + (i * _k);
           auto* ind = indices.data<IndexType>() + (i * _k);
-          compute::copy(tmp.data<IndexType>(), ind, _k);
+          primitives::copy(tmp.data<IndexType>(), ind, _k);
           for (size_t j = 0; j < _k; ++j)
             val[j] = input[ind[j]];
         }

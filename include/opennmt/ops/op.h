@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "opennmt/storage_view.h"
-#include "compute.h"
+#include "opennmt/primitives/primitives.h"
 
 namespace opennmt {
   namespace ops {

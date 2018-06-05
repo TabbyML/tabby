@@ -16,10 +16,10 @@ namespace opennmt {
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
         if (b.is_scalar()) {
           c = a;
-          compute::add(b.data<T>()[0], c.data<T>(), c.size());
+          primitives::add(b.data<T>()[0], c.data<T>(), c.size());
         } else {
           c.resize_as(a);
-          compute::add(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
+          primitives::add(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
         }
       }
     };

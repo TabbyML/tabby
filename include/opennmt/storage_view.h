@@ -5,8 +5,7 @@
 #include <vector>
 
 #include "opennmt/types.h"
-
-#include "compute.h"
+#include "opennmt/primitives/primitives.h"
 
 using Shape = std::vector<size_t>;
 
@@ -148,7 +147,7 @@ namespace opennmt {
     template <typename T>
     StorageView& fill(T value) {
       assert(DataTypeToEnum<T>::value == _dtype);
-      compute::fill(data<T>(), value, _size);
+      primitives::fill(data<T>(), value, _size);
       return *this;
     }
 
@@ -158,7 +157,7 @@ namespace opennmt {
     StorageView& copy_from(const T* data, size_t size) {
       assert(DataTypeToEnum<T>::value == _dtype);
       assert(size == _size);
-      compute::copy(data, this->data<T>(), size);
+      primitives::copy(data, this->data<T>(), size);
       return *this;
     }
 

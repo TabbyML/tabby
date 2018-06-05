@@ -20,12 +20,12 @@ namespace opennmt {
         for (size_t i = 0; i < batch_size; ++i) {
           const auto* x = input.data<T>() + (i * depth);
           auto* y = output.data<T>() + (i * depth);
-          auto max = compute::max(x, depth);
-          compute::copy(x, y, depth);
-          compute::sub(max, y, depth);
-          compute::exp(y, y, depth);
-          auto sum = compute::sum(y, depth);
-          compute::mul(1.f / (sum + EPSILON), y, depth);
+          auto max = primitives::max(x, depth);
+          primitives::copy(x, y, depth);
+          primitives::sub(max, y, depth);
+          primitives::exp(y, y, depth);
+          auto sum = primitives::sum(y, depth);
+          primitives::mul(1.f / (sum + EPSILON), y, depth);
         }
       }
     };

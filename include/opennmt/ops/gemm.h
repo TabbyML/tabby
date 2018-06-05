@@ -50,18 +50,18 @@ namespace opennmt {
           if (_broadcast_c) {
             assert(c.size() == n);
             for (size_t i = 0; i < m; ++i)
-              compute::copy(c.data<Out>(), y.data<Out>() + i * n, n);
+              primitives::copy(c.data<Out>(), y.data<Out>() + i * n, n);
           } else {
             assert(c.size() == y.size());
-            compute::copy(c.data<Out>(), y.data<Out>(), y.size());
+            primitives::copy(c.data<Out>(), y.data<Out>(), y.size());
           }
         }
 
-        compute::gemm(a.data<In>(), b.data<In>(),
-                      _trans_a, _trans_b,
-                      m, n, k,
-                      static_cast<In>(_alpha), static_cast<Out>(_beta),
-                      y.data<Out>());
+        primitives::gemm(a.data<In>(), b.data<In>(),
+                         _trans_a, _trans_b,
+                         m, n, k,
+                         static_cast<In>(_alpha), static_cast<Out>(_beta),
+                         y.data<Out>());
       }
 
       float _alpha;

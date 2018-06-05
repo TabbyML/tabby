@@ -64,16 +64,16 @@ namespace opennmt {
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;
           y.resize(output_shape);
-          compute::gemm_batch(a.data<In>(), b.data<In>(),
-                              _trans_a, _trans_b,
-                              batch_size, m, n, k,
-                              alpha, beta, y.data<Out>());
+          primitives::gemm_batch(a.data<In>(), b.data<In>(),
+                                 _trans_a, _trans_b,
+                                 batch_size, m, n, k,
+                                 alpha, beta, y.data<Out>());
         } else {
           y.resize({m, n});
-          compute::gemm(a.data<In>(), b.data<In>(),
-                        _trans_a, _trans_b,
-                        m, n, k,
-                        alpha, beta, y.data<Out>());
+          primitives::gemm(a.data<In>(), b.data<In>(),
+                           _trans_a, _trans_b,
+                           m, n, k,
+                           alpha, beta, y.data<Out>());
         }
       }
     };

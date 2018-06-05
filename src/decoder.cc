@@ -76,7 +76,7 @@ namespace opennmt {
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = compute::max_element(probs.index<float>({i}), vocabulary_size);
+        size_t best = primitives::max_element(probs.index<float>({i}), vocabulary_size);
         size_t batch_id = batch_offset[i];
         if (best == end_token) {
           finished[batch_id] = true;
@@ -119,11 +119,11 @@ namespace opennmt {
     for (size_t i = 0; i < batch_size; ++i) {
       const auto* src = logits.data<T>() + i * depth;
       auto* dst = log_probs.data<T>() + i * depth;
-      compute::exp(src, dst, depth);
-      T sumexp = compute::sum(dst, depth);
+      primitives::exp(src, dst, depth);
+      T sumexp = primitives::sum(dst, depth);
       T logsumexp = std::log(sumexp);
-      compute::copy(src, dst, depth);
-      compute::sub(logsumexp, dst, depth);
+      primitives::copy(src, dst, depth);
+      primitives::sub(logsumexp, dst, depth);
     }
   }
 
@@ -133,7 +133,7 @@ namespace opennmt {
     size_t depth = log_probs.dim(-1);
     size_t batch_size = log_probs.size() / depth;
     for (size_t i = 0; i < batch_size; ++i) {
-      compute::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
+      primitives::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
     }
   }
 
@@ -199,7 +199,7 @@ namespace opennmt {
       float length_penalty_weight = 1.0;
       if (length_penalty != 0) {
         length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
-        compute::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size());
+        primitives::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size());
       }
 
       // Flatten the probs into a list of candidates.
@@ -210,7 +210,7 @@ namespace opennmt {
 
       // Recover the true log probs if length penalty was applied.
       if (length_penalty != 0)
-        compute::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
+        primitives::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
 
       // Unflatten the ids.
       topk_ids.reshape({batch_size * beam_size, 1});

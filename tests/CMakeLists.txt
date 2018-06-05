@@ -5,8 +5,8 @@ if (GTEST_FOUND)
   find_package(Threads)
 
   add_executable(onmt_test_mkl
-    ../compute_mkl.cc
-    ../compute_simd.cc
+    ../src/primitives/mkl_primitives.cc
+    ../src/primitives/simd_primitives.cc
     ops_test.cc
     test.cc)
   target_include_directories(onmt_test_mkl PUBLIC
@@ -21,7 +21,7 @@ if (GTEST_FOUND)
     )
 
   add_executable(onmt_test
-    ../compute_simd.cc
+    ../src/primitives/simd_primitives.cc
     ops_test.cc
     test.cc)
   target_include_directories(onmt_test PUBLIC

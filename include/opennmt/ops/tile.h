@@ -45,15 +45,15 @@ namespace opennmt {
           if (axis == last_repeated_dim) {
             for (size_t j = 0; j < iter_dim; ++j) {
               for (size_t r = 0; r < repeat_dim; ++r) {
-                compute::copy(input.data<T>() + j * copy_dim,
-                              output.data<T>() + copied, copy_dim);
+                primitives::copy(input.data<T>() + j * copy_dim,
+                                 output.data<T>() + copied, copy_dim);
                 copied += copy_dim;
               }
             }
           } else {
             for (size_t r = 1; r < repeat_dim; ++r) {
-              compute::copy(output.data<T>(),
-                            output.data<T>() + r * copied, copied);
+              primitives::copy(output.data<T>(),
+                               output.data<T>() + r * copied, copied);
             }
             copied *= repeat_dim;
           }

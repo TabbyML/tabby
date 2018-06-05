@@ -57,9 +57,9 @@ namespace opennmt {
           for (size_t i = axis; i < x.rank(); ++i)
             copy_dim *= x.dim(i);
           for (size_t i = 0; i < iter_dim; ++i) {
-            compute::copy(input.data<T>() + offset + i * input.dim(axis) * input.stride(axis),
-                          x.data<T>() + i * copy_dim,
-                          copy_dim);
+            primitives::copy(input.data<T>() + offset + i * input.dim(axis) * input.stride(axis),
+                             x.data<T>() + i * copy_dim,
+                             copy_dim);
           }
           offset += copy_dim;
         }

@@ -13,7 +13,6 @@
 #include "opennmt/ops/ops.h"
 
 #include "model.h"
-#include "compute.h"
 
 class ScaledEmbeddings
 {
@@ -31,9 +30,9 @@ public:
       opennmt::ops::Unquantize(1000)(_gathered, _output);
     }
     const size_t embedding_size = _embeddings.dim(-1);
-    opennmt::compute::mul(static_cast<float>(sqrt(embedding_size)),
-                          _output.data<float>(),
-                          _output.size());
+    opennmt::primitives::mul(static_cast<float>(sqrt(embedding_size)),
+                             _output.data<float>(),
+                             _output.size());
     return _output;
   }
 
@@ -56,9 +55,9 @@ public:
     _output = input;
     for (size_t i = 0; i < lengths.dim(0); ++i) {
       const auto length = lengths.at<int32_t>(i);
-      opennmt::compute::add(_cached_encodings.data<float>(),
-                            _output.index<float>({i}),
-                            length * depth);
+      opennmt::primitives::add(_cached_encodings.data<float>(),
+                               _output.index<float>({i}),
+                               length * depth);
     }
     return _output;
   }
@@ -69,9 +68,9 @@ public:
       precompute_position_encoding(_max_cached_time, depth);
     _output = input;
     for (size_t i = 0; i < input.dim(0); ++i) {
-      opennmt::compute::add(_cached_encodings.index<float>({index}),
-                            _output.index<float>({i}),
-                            depth);
+      opennmt::primitives::add(_cached_encodings.index<float>({index}),
+                               _output.index<float>({i}),
+                               depth);
     }
     return _output;
   }
@@ -159,7 +158,7 @@ public:
     opennmt::StorageView& inner = _ff1(normed);
     opennmt::ops::ReLU()(inner);
     opennmt::StorageView& outer = _ff2(inner);
-    opennmt::compute::add(input.data<float>(), outer.data<float>(), input.size());
+    opennmt::primitives::add(input.data<float>(), outer.data<float>(), input.size());
     return outer;
   }
 
@@ -196,7 +195,7 @@ public:
         for (size_t h = 0; h < num_heads; ++h) {
           for (size_t i = 0; i < queries_time; ++i) {
             auto* x = _dot.index<float>({b, h, i});
-            opennmt::compute::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
+            opennmt::primitives::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
           }
         }
       }
@@ -244,9 +243,9 @@ public:
     split_heads(values, _split_values);
 
     const size_t dk = queries.dim(-1) / _num_heads;
-    opennmt::compute::mul(static_cast<float>(1.0 / sqrt(dk)),
-                          _split_queries.data<float>(),
-                          _split_queries.size());
+    opennmt::primitives::mul(static_cast<float>(1.0 / sqrt(dk)),
+                             _split_queries.data<float>(),
+                             _split_queries.size());
 
     const opennmt::StorageView& context = _attention(_split_queries,
                                                      _split_keys,
@@ -319,7 +318,7 @@ public:
                                                                      values_lengths);
 
     opennmt::StorageView& output = _linear_out(attention_output);
-    opennmt::compute::add(queries.data<float>(), output.data<float>(), queries.size());
+    opennmt::primitives::add(queries.data<float>(), output.data<float>(), queries.size());
     return output;
   }
 
@@ -383,7 +382,7 @@ public:
                                                                      memory_lengths);
 
     opennmt::StorageView& output = _linear_out(attention_output);
-    opennmt::compute::add(queries.data<float>(), output.data<float>(), queries.size());
+    opennmt::primitives::add(queries.data<float>(), output.data<float>(), queries.size());
     return output;
   }
 };

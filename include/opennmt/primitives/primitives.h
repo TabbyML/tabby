@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 
 namespace opennmt {
-  namespace compute {
+  namespace primitives {
 
     template <typename T>
     void fill(T* x, T a, size_t size) {

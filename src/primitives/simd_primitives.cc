@@ -1,4 +1,4 @@
-#include "compute.h"
+#include "opennmt/primitives/primitives.h"
 
 #include <cassert>
 
@@ -8,7 +8,7 @@
 #include <xmmintrin.h>
 
 namespace opennmt {
-  namespace compute {
+  namespace primitives {
 
 #ifdef __AVX2__
     /* horizontal i32 add on __m256 - returns m128i register */

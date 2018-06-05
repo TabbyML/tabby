@@ -8,7 +8,7 @@ set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
 set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
 set(CMAKE_BUILD_TYPE Release)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -mavx2 -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -march=native -Wall")
 # find_package(Boost)
 include_directories(
   # ${Boost_INCLUDE_DIRS}
@@ -44,8 +44,8 @@ add_library(${PROJECT_NAME} SHARED
   )
 
 add_executable(main_mkl
-  compute_mkl.cc
-  compute_simd.cc
+  src/primitives/mkl_primitives.cc
+  src/primitives/simd_primitives.cc
   main.cc
   )
 target_link_libraries(main_mkl
@@ -54,24 +54,11 @@ target_link_libraries(main_mkl
   )
 
 add_executable(main
-  compute_simd.cc
+  src/primitives/simd_primitives.cc
   main.cc
   )
 target_link_libraries(main
   #${MKL_LIBRARIES}
-  ${PROJECT_NAME}
-  )
-
-# add_executable(benchmark
-#   benchmark.cc
-#   )
-# target_link_libraries(benchmark
-#   ${MKL_LIBRARIES}
-#   )
-
-add_executable(tensor_demo tensor_demo.cc)
-target_link_libraries(tensor_demo
-  ${MKL_LIBRARIES}
   ${PROJECT_NAME}
   )
 

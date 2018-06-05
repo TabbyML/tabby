@@ -23,7 +23,7 @@ namespace opennmt {
       template <typename In, typename Out>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        compute::unquantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
+        primitives::unquantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
       }
 
     };
