@@ -40,6 +40,7 @@ set(LIBRARIES "")
 find_package(MKL)
 
 if (MKL_FOUND)
+  add_definitions(-DINTEL_MKL)
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
   list(APPEND SOURCES src/primitives/mkl_primitives.cc)
   list(APPEND LIBRARIES ${MKL_LIBRARIES})

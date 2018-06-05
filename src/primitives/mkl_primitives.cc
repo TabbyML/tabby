@@ -1,6 +1,4 @@
-#include "opennmt/primitives/primitives.h"
-
-#include <mkl.h>
+#include "opennmt/primitives/mkl_primitives.h"
 
 namespace opennmt {
   namespace primitives {
@@ -74,13 +72,6 @@ namespace opennmt {
     template<>
     void tanh(const float* x, float* y, size_t size) {
       vsTanh(size, x, y);
-    }
-
-    template <typename IndexType>
-    void transpose_2d(const float* a, const IndexType* dims, float* b) {
-      auto rows = dims[0];
-      auto cols = dims[1];
-      mkl_somatcopy('R', 'T', rows, cols, 1.0, a, cols, b, rows);
     }
 
     template<>
