@@ -4,35 +4,15 @@ find_package(GTest)
 if (GTEST_FOUND)
   find_package(Threads)
 
-  add_executable(onmt_test_mkl
-    ../src/primitives/mkl_primitives.cc
-    ../src/primitives/simd_primitives.cc
+  add_executable(opennmt_test
     ops_test.cc
     test.cc)
-  target_include_directories(onmt_test_mkl PUBLIC
+  target_include_directories(opennmt_test PUBLIC
     ${GTEST_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
     )
-  target_link_libraries(onmt_test_mkl
-    ${GTEST_BOTH_LIBRARIES}
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${MKL_LIBRARIES} # TODO: link to own library
-    ${PROJECT_NAME}
-    )
-
-  add_executable(onmt_test
-    ../src/primitives/simd_primitives.cc
-    ops_test.cc
-    test.cc)
-  target_include_directories(onmt_test PUBLIC
-    ${GTEST_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}
-    )
-  target_link_libraries(onmt_test
+  target_link_libraries(opennmt_test
     ${GTEST_BOTH_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     ${PROJECT_NAME}
     )
-
-  #add_test(TokenizerTest onmt_tokenizer_test "${CMAKE_CURRENT_LIST_DIR}/data/")
 endif()

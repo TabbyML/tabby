@@ -1,65 +1,64 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1.0)
 project(opennmt)
 
+option(LIB_ONLY "Do not compile clients" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
 set(CMAKE_CXX_STANDARD 11)
-set(MKL_DNN_ROOT /home/klein/dev/ctransformer/mkl-dnn/install)
-set(MKL_ROOT /opt/intel/mkl)
-set(TBB_ROOT /home/klein/downloads/tbb2018_20180312oss)
-set(EIGEN_ROOT /home/klein/dev/ctransformer/eigen)
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMKL_ILP64 -m64 -march=native -Wall")
-# find_package(Boost)
-include_directories(
-  # ${Boost_INCLUDE_DIRS}
-  #${MKL_DNN_ROOT}/include
-  ${MKL_ROOT}/include
-  ${EIGEN_ROOT}
-  #${TBB_ROOT}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}
+if(MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+endif()
+
+if (EIGEN_ROOT)
+  set(ENV{EIGEN3_ROOT} ${EIGEN_ROOT})
+endif()
+if (EIGEN3_ROOT)
+  set(ENV{EIGEN3_ROOT} ${EIGEN3_ROOT})
+endif()
+
+find_package(Eigen3 3.3 REQUIRED)
+
+set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  /home/klein/dev/ctransformer/gemmlowp/public
+  ${EIGEN3_INCLUDE_DIR}
   )
-link_directories(
-  #${MKL_DNN_ROOT}/lib
-  ${MKL_ROOT}/lib/intel64
-  #${TBB_ROOT}/lib/intel64/gcc4.7/
-  )
-#add_definitions(-DEIGEN_USE_MKL_ALL)
-set(MKL_LIBRARIES
-  mkl_intel_ilp64
-  mkl_gnu_thread
-  mkl_core
-  gomp
-  #mkldnn
-  pthread
-  m
-  dl
-  )
-
-add_library(${PROJECT_NAME} SHARED
+set(SOURCES
   src/decoder.cc
   src/storage_view.cc
   src/vocabulary.cc
-  )
-
-add_executable(main_mkl
-  src/primitives/mkl_primitives.cc
   src/primitives/simd_primitives.cc
-  main.cc
   )
-target_link_libraries(main_mkl
-  ${MKL_LIBRARIES}
-  ${PROJECT_NAME}
-  )
+set(LIBRARIES "")
 
-add_executable(main
-  src/primitives/simd_primitives.cc
-  main.cc
-  )
-target_link_libraries(main
-  #${MKL_LIBRARIES}
-  ${PROJECT_NAME}
-  )
+find_package(MKL)
+
+if (MKL_FOUND)
+  list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
+  list(APPEND SOURCES src/primitives/mkl_primitives.cc)
+  list(APPEND LIBRARIES ${MKL_LIBRARIES})
+endif()
+
+add_library(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
 
 add_subdirectory(tests)
+
+if (NOT LIB_ONLY)
+  add_subdirectory(cli)
+endif()
+
+install(
+  TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib/
+  LIBRARY DESTINATION lib/
+  )
+install(
+  DIRECTORY include/opennmt
+  DESTINATION include
+  FILES_MATCHING PATTERN "*.h*"
+  )
