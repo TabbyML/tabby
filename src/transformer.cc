@@ -301,7 +301,7 @@ namespace opennmt {
     if (step == 0) {
       cache = proj;
     } else {
-      static StorageView tmp;
+      static thread_local StorageView tmp;
       tmp = cache;
       ops::Concat(1)({&tmp, &proj}, cache);
     }
