@@ -28,15 +28,17 @@ namespace opennmt {
     }
 
     const auto& encoded = encoder.encode(ids, lengths);
-
-    StorageView sample_from({batch_size, 1}, static_cast<int32_t>(vocabulary.to_id("<s>")));
-    std::vector<std::vector<size_t>> sampled_ids;
-
     decoder.get_state().reset(encoded, lengths);
+
+    size_t start_token = vocabulary.to_id("<s>");
+    size_t end_token = vocabulary.to_id("</s>");
+
+    StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
+    std::vector<std::vector<size_t>> sampled_ids;
     if (beam_size == 1)
-      greedy_decoding(decoder, sample_from, 2, vocabulary.size(), 200, sampled_ids);
+      greedy_decoding(decoder, sample_from, end_token, vocabulary.size(), 200, sampled_ids);
     else
-      beam_search(decoder, sample_from, 2, 5, 0.6, vocabulary.size(), 200, sampled_ids);
+      beam_search(decoder, sample_from, end_token, beam_size, 0.6, vocabulary.size(), 200, sampled_ids);
 
     for (size_t i = 0; i < batch_size; ++i) {
       for (auto id : sampled_ids[i]) {
