@@ -4,8 +4,8 @@
 #include <ostream>
 #include <vector>
 
-#include "opennmt/types.h"
-#include "opennmt/primitives/primitives.h"
+#include "types.h"
+#include "primitives/primitives.h"
 
 using Shape = std::vector<size_t>;
 

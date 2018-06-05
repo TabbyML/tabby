@@ -1,6 +1,6 @@
 #pragma once
 
-#include "opennmt/ops/op.h"
+#include "op.h"
 
 #define EPSILON 0.000001f
 

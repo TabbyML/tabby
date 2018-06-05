@@ -28,9 +28,12 @@ set(INCLUDE_DIRECTORIES
   )
 set(SOURCES
   src/decoder.cc
-  src/storage_view.cc
-  src/vocabulary.cc
+  src/decoder.cc
   src/primitives/simd_primitives.cc
+  src/storage_view.cc
+  src/transformer.cc
+  src/translator.cc
+  src/vocabulary.cc
   )
 set(LIBRARIES "")
 
@@ -43,7 +46,7 @@ if (MKL_FOUND)
 endif()
 
 add_library(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
 
 add_subdirectory(tests)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "opennmt/ops/op.h"
+#include "op.h"
 
 namespace opennmt {
   namespace ops {
