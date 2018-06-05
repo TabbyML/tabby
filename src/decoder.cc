@@ -1,6 +1,6 @@
 #include "opennmt/decoder.h"
 
-#include "ops.h"
+#include "opennmt/ops/ops.h"
 
 namespace opennmt {
 

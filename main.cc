@@ -10,9 +10,9 @@
 #include "opennmt/vocabulary.h"
 #include "opennmt/encoder.h"
 #include "opennmt/decoder.h"
+#include "opennmt/ops/ops.h"
 
 #include "model.h"
-#include "ops.h"
 #include "compute.h"
 
 class ScaledEmbeddings

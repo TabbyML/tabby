@@ -7,6 +7,7 @@ if (GTEST_FOUND)
   add_executable(onmt_test_mkl
     ../compute_mkl.cc
     ../compute_simd.cc
+    ops_test.cc
     test.cc)
   target_include_directories(onmt_test_mkl PUBLIC
     ${GTEST_INCLUDE_DIRS}
@@ -21,6 +22,7 @@ if (GTEST_FOUND)
 
   add_executable(onmt_test
     ../compute_simd.cc
+    ops_test.cc
     test.cc)
   target_include_directories(onmt_test PUBLIC
     ${GTEST_INCLUDE_DIRS}
