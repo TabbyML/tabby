@@ -41,6 +41,13 @@ namespace opennmt {
               size_t m, size_t n, size_t k,
               float alpha, float beta,
               float* c);
+    template<>
+    void gemm_batch(const float* a, const float* b,
+                    bool transpose_a, bool transpose_b,
+                    size_t batch_size,
+                    size_t m, size_t n, size_t k,
+                    float alpha, float beta,
+                    float* c);
 
     template <typename IndexType>
     void transpose_2d(const float* a, const IndexType* dims, float* b) {
