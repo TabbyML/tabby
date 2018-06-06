@@ -5,6 +5,7 @@ if (GTEST_FOUND)
   find_package(Threads)
 
   add_executable(opennmt_test
+    storage_view_test.cc
     ops_test.cc
     test.cc)
   target_include_directories(opennmt_test PUBLIC

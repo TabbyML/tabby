@@ -21,7 +21,7 @@ void assert_vector_eq(const std::vector<T>& got, const std::vector<T>& expected)
   }
 }
 
-void expect_storage_eq(const StorageView& got, const StorageView& expected) {
+inline void expect_storage_eq(const StorageView& got, const StorageView& expected) {
   ASSERT_EQ(got.dtype(), expected.dtype());
   assert_vector_eq(got.shape(), expected.shape());
   TYPE_DISPATCH(got.dtype(), expect_array_eq(got.data<T>(), expected.data<T>(), got.size()));

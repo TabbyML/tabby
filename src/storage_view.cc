@@ -145,6 +145,7 @@ namespace opennmt {
   StorageView& StorageView::assign(StorageView&& other) {
     assert(other._dtype == _dtype);
     std::swap(_data, other._data);
+    std::swap(_buffer, other._buffer);
     std::swap(_own_data, other._own_data);
     std::swap(_allocated_size, other._allocated_size);
     std::swap(_size, other._size);
@@ -227,6 +228,10 @@ namespace opennmt {
     }
     os << ']';
     return os;
+  }
+
+  void swap(StorageView& a, StorageView& b) {
+    a.assign(std::move(b));
   }
 
 }

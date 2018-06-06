@@ -161,6 +161,7 @@ namespace opennmt {
       return *this;
     }
 
+    friend void swap(StorageView& a, StorageView& b);
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
   protected:
