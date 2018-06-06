@@ -67,17 +67,11 @@ namespace opennmt {
 
 
   ScaledEmbeddings::ScaledEmbeddings(const Model& model, const std::string& scope)
-    : _embeddings(model.get_variable(scope + "/w_embs"))
-    , _gathered(_embeddings.dtype()) {
+    : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
   StorageView& ScaledEmbeddings::operator()(const StorageView& ids) {
-    if (_embeddings.dtype() == DataType::DT_FLOAT) {
-      _gather_op(_embeddings, ids, _output);
-    } else {
-      _gather_op(_embeddings, ids, _gathered);
-      ops::Unquantize(1000)(_gathered, _output);
-    }
+    _gather_op(_embeddings, ids, _output);
     const size_t embedding_size = _embeddings.dim(-1);
     primitives::mul(static_cast<float>(sqrt(embedding_size)),
                     _output.data<float>(),
@@ -136,17 +130,37 @@ namespace opennmt {
     ops::Concat(-1)({&sin_encoding, &cos_encoding}, _cached_encodings);
   }
 
+  static StorageView unquantize_weights(const StorageView& quantized_weights) {
+    StorageView weights;
+    ops::Unquantize(1000)(quantized_weights, weights);
+    return weights;
+  }
 
   Dense::Dense(const Model& model, const std::string& scope)
-    : _gemm_op(1, 1, true, false, true)
-    , _weight(model.get_variable(scope + "/kernel"))
+    : _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias")) {
   }
 
   StorageView& Dense::operator()(const StorageView& input) {
-    _gemm_op(input, _weight, _bias, _output);
+    if (_weight.dtype() == DataType::DT_FLOAT) {
+      static const ops::Gemm gemm_op(1, 1, true, false, true);
+      gemm_op(input, _weight, _bias, _output);
+    } else {
+      static const ops::Gemm gemm_op(1, 0, false, false, true);
+      static const ops::Quantize quantize_op(1000);
+      static const ops::Unquantize unquantize_op(1000 * 1000);
+      static thread_local StorageView quantized_input(_weight.dtype());
+      static thread_local StorageView quantized_output(DataType::DT_INT32);
+      quantize_op(input, quantized_input);
+      gemm_op(quantized_input, _weight, _bias, quantized_output);
+      unquantize_op(quantized_output, _output);
+      size_t output_depth = _bias.size();
+      for (size_t i = 0; i < _output.size() / output_depth; ++i)
+        primitives::add(_bias.data<float>(), _output.data<float>() + i * output_depth, output_depth);
+    }
     return _output;
   }
+
 
   LayerNorm::LayerNorm(const Model& model, const std::string& scope)
     : _beta(model.get_variable(scope + "/beta"))

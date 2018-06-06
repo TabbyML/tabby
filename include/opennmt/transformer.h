@@ -26,7 +26,6 @@ namespace opennmt {
   private:
     ops::Gather _gather_op;
     const StorageView& _embeddings;
-    StorageView _gathered;
     StorageView _output;
   };
 
@@ -48,7 +47,6 @@ namespace opennmt {
     Dense(const Model& model, const std::string& scope);
     StorageView& operator()(const StorageView& input);
   private:
-    ops::Gemm _gemm_op;
     const StorageView& _weight;
     const StorageView& _bias;
     StorageView _output;

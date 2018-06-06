@@ -13,7 +13,7 @@ namespace opennmt {
       }
 
       void operator()(const StorageView& x, StorageView& y) const override {
-        compute<int16_t, float>(x, y);
+        TYPE_DISPATCH(x.dtype(), SINGLE_ARG(compute<T, float>(x, y)));
       }
 
     private:
