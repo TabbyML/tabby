@@ -18,7 +18,9 @@ namespace opennmt {
     return data;
   }
 
-  Model::Model(const std::string& path) {
+  TransformerModel::TransformerModel(const std::string& path,
+                                     const std::string& vocabulary_path)
+    : _shared_vocabulary(vocabulary_path) {
     std::ifstream model(path, std::ios_base::in | std::ios_base::binary);
     if (!model.is_open())
       throw std::runtime_error("failed to load the model " + path);
@@ -58,15 +60,31 @@ namespace opennmt {
     }
   }
 
-  const StorageView& Model::get_variable(const std::string& scope) const {
+  const StorageView& TransformerModel::get_variable(const std::string& scope) const {
     auto it = _variable_index.lower_bound(scope);
     if (it->first.find(scope) == std::string::npos)
       throw std::out_of_range("no variable found in scope '" + scope + "'");
     return it->second;
   }
 
+  const Vocabulary& TransformerModel::get_source_vocabulary() const {
+    return _shared_vocabulary;
+  }
 
-  ScaledEmbeddings::ScaledEmbeddings(const Model& model, const std::string& scope)
+  const Vocabulary& TransformerModel::get_target_vocabulary() const {
+    return _shared_vocabulary;
+  }
+
+  std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
+    return std::unique_ptr<Encoder>(new TransformerEncoder(*this, "transformer/encoder"));
+  }
+
+  std::unique_ptr<Decoder> TransformerModel::make_decoder() const {
+    return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "transformer/decoder"));
+  }
+
+
+  ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
     : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
@@ -136,7 +154,7 @@ namespace opennmt {
     return weights;
   }
 
-  Dense::Dense(const Model& model, const std::string& scope)
+  Dense::Dense(const TransformerModel& model, const std::string& scope)
     : _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias")) {
   }
@@ -162,7 +180,7 @@ namespace opennmt {
   }
 
 
-  LayerNorm::LayerNorm(const Model& model, const std::string& scope)
+  LayerNorm::LayerNorm(const TransformerModel& model, const std::string& scope)
     : _beta(model.get_variable(scope + "/beta"))
     , _gamma(model.get_variable(scope + "/gamma")) {
   }
@@ -173,7 +191,7 @@ namespace opennmt {
   }
 
 
-  TransformerFeedForward::TransformerFeedForward(const Model& model,
+  TransformerFeedForward::TransformerFeedForward(const TransformerModel& model,
                                                  const std::string& scope)
     : _layer_norm(model, scope + "/LayerNorm")
     , _ff1(model, scope + "/conv1d")
@@ -225,7 +243,7 @@ namespace opennmt {
   }
 
 
-  MultiHeadAttention::MultiHeadAttention(const Model& model,
+  MultiHeadAttention::MultiHeadAttention(const TransformerModel& model,
                                          const std::string& scope,
                                          size_t num_heads)
     : _layer_norm(model, scope + "/LayerNorm")
@@ -268,7 +286,7 @@ namespace opennmt {
   }
 
 
-  TransformerSelfAttention::TransformerSelfAttention(const Model& model,
+  TransformerSelfAttention::TransformerSelfAttention(const TransformerModel& model,
                                                      const std::string& scope,
                                                      size_t num_heads)
     : MultiHeadAttention(model, scope, num_heads)
@@ -322,7 +340,7 @@ namespace opennmt {
   }
 
 
-  TransformerAttention::TransformerAttention(const Model& model,
+  TransformerAttention::TransformerAttention(const TransformerModel& model,
                                              const std::string& scope,
                                              size_t num_heads)
     : MultiHeadAttention(model, scope, num_heads)
@@ -365,7 +383,7 @@ namespace opennmt {
   }
 
 
-  TransformerEncoderLayer::TransformerEncoderLayer(const Model& model,
+  TransformerEncoderLayer::TransformerEncoderLayer(const TransformerModel& model,
                                                    const std::string& scope)
     : _self_attention(model, scope + "/multi_head", 8)
     , _ff(model, scope + "/ffn") {
@@ -378,7 +396,7 @@ namespace opennmt {
   }
 
 
-  TransformerDecoderLayer::TransformerDecoderLayer(const Model& model,
+  TransformerDecoderLayer::TransformerDecoderLayer(const TransformerModel& model,
                                                    const std::string& scope)
     : _self_attention(model, scope + "/masked_multi_head", 8)
     , _encoder_attention(model, scope + "/multi_head", 8)
@@ -402,7 +420,7 @@ namespace opennmt {
   }
 
 
-  TransformerEncoder::TransformerEncoder(const Model& model, const std::string& scope)
+  TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
     , _position_encoder()
     , _output_norm(model, scope + "/LayerNorm") {
@@ -446,7 +464,7 @@ namespace opennmt {
   }
 
 
-  TransformerDecoder::TransformerDecoder(const Model& model, const std::string& scope)
+  TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
     : _scaled_embeddings(model, scope)
     , _position_encoder()
     , _output_norm(model, scope + "/LayerNorm")

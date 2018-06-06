@@ -105,10 +105,10 @@ namespace opennmt {
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
                    size_t end_token,
-                   size_t beam_size,
-                   size_t length_penalty,
                    size_t vocabulary_size,
                    size_t max_steps,
+                   size_t beam_size,
+                   float length_penalty,
                    std::vector<std::vector<size_t>>& sampled_ids) {
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;

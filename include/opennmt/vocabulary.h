@@ -11,7 +11,7 @@ namespace opennmt {
   public:
     static const std::string unk_token;
 
-    Vocabulary(const char* path);
+    Vocabulary(const std::string& path);
 
     const std::string& to_token(size_t id) const;
     size_t to_id(const std::string& token) const;

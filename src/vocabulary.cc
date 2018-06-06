@@ -6,16 +6,17 @@ namespace opennmt {
 
   const std::string Vocabulary::unk_token = "<unk>";
 
-  Vocabulary::Vocabulary(const char* path) {
+  Vocabulary::Vocabulary(const std::string& path) {
     std::ifstream in(path);
     std::string line;
     while (std::getline(in, line)) {
       _token_to_id.emplace(line, _id_to_token.size());
       _id_to_token.push_back(line);
     }
-    _token_to_id.emplace(unk_token, _id_to_token.size());
-    _id_to_token.push_back(unk_token);
-
+    if (_token_to_id.count(unk_token) == 0) {
+      _token_to_id.emplace(unk_token, _id_to_token.size());
+      _id_to_token.push_back(unk_token);
+    }
   }
 
   const std::string& Vocabulary::to_token(size_t id) const {

@@ -2,26 +2,31 @@
 
 #include <map>
 
-#include "decoder.h"
-#include "encoder.h"
+#include "model.h"
 #include "ops/ops.h"
 #include "storage_view.h"
 
 namespace opennmt {
 
-  class Model
+  class TransformerModel : public Model
   {
   public:
-    Model(const std::string& path);
+    TransformerModel(const std::string& path,
+                     const std::string& vocabulary_path);
     const StorageView& get_variable(const std::string& scope) const;
+    const Vocabulary& get_source_vocabulary() const override;
+    const Vocabulary& get_target_vocabulary() const override;
+    std::unique_ptr<Encoder> make_encoder() const override;
+    std::unique_ptr<Decoder> make_decoder() const override;
   private:
     std::map<std::string, StorageView> _variable_index;
+    Vocabulary _shared_vocabulary;
   };
 
   class ScaledEmbeddings
   {
   public:
-    ScaledEmbeddings(const Model& model, const std::string& scope);
+    ScaledEmbeddings(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(const StorageView& ids);
   private:
     ops::Gather _gather_op;
@@ -44,7 +49,7 @@ namespace opennmt {
   class Dense
   {
   public:
-    Dense(const Model& model, const std::string& scope);
+    Dense(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(const StorageView& input);
   private:
     const StorageView& _weight;
@@ -55,7 +60,7 @@ namespace opennmt {
   class LayerNorm
   {
   public:
-    LayerNorm(const Model& model, const std::string& scope);
+    LayerNorm(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(const StorageView& input);
   private:
     ops::LayerNorm _norm_op;
@@ -67,7 +72,7 @@ namespace opennmt {
   class TransformerFeedForward
   {
   public:
-    TransformerFeedForward(const Model& model, const std::string& scope);
+    TransformerFeedForward(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(const StorageView& input);
   private:
     LayerNorm _layer_norm;
@@ -90,7 +95,7 @@ namespace opennmt {
   class MultiHeadAttention
   {
   public:
-    MultiHeadAttention(const Model& model, const std::string& scope, size_t num_heads);
+    MultiHeadAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
     StorageView& compute_attention(const StorageView& queries,
                                    const StorageView& keys,
                                    const StorageView& values,
@@ -113,7 +118,7 @@ namespace opennmt {
   class TransformerSelfAttention : public MultiHeadAttention
   {
   public:
-    TransformerSelfAttention(const Model& model, const std::string& scope, size_t num_heads);
+    TransformerSelfAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
     StorageView& operator()(const StorageView& queries,
                             const StorageView& queries_lengths,
                             StorageView* cached_keys = nullptr,
@@ -131,7 +136,7 @@ namespace opennmt {
   class TransformerAttention : public MultiHeadAttention
   {
   public:
-    TransformerAttention(const Model& model,
+    TransformerAttention(const TransformerModel& model,
                          const std::string& scope,
                          size_t num_heads);
     StorageView& operator()(const StorageView& queries,
@@ -152,7 +157,7 @@ namespace opennmt {
   class TransformerEncoderLayer
   {
   public:
-    TransformerEncoderLayer(const Model& model, const std::string& scope);
+    TransformerEncoderLayer(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(const StorageView& input,
                             const StorageView& lengths);
   private:
@@ -163,7 +168,7 @@ namespace opennmt {
   class TransformerDecoderLayer
   {
   public:
-    TransformerDecoderLayer(const Model& model, const std::string& scope);
+    TransformerDecoderLayer(const TransformerModel& model, const std::string& scope);
     StorageView& operator()(size_t step,
                             const StorageView& input,
                             const StorageView& input_lengths,
@@ -182,7 +187,7 @@ namespace opennmt {
   class TransformerEncoder : public Encoder
   {
   public:
-    TransformerEncoder(const Model& model, const std::string& scope);
+    TransformerEncoder(const TransformerModel& model, const std::string& scope);
     StorageView& encode(const StorageView& ids,
                         const StorageView& lengths) override;
   private:
@@ -202,7 +207,7 @@ namespace opennmt {
   class TransformerDecoder : public Decoder
   {
   public:
-    TransformerDecoder(const Model& model, const std::string& scope);
+    TransformerDecoder(const TransformerModel& model, const std::string& scope);
     StorageView& logits(size_t step, const StorageView& ids) override;
   private:
     ScaledEmbeddings _scaled_embeddings;
