@@ -5,8 +5,9 @@
 #include "opennmt/translator.h"
 #include "opennmt/transformer.h"
 
-static void translate(opennmt::Translator& translator,
-                      const std::vector<std::vector<std::string>>& batch_tokens) {
+static size_t translate(opennmt::Translator& translator,
+                        const std::vector<std::vector<std::string>>& batch_tokens) {
+  size_t num_tokens = 0;
   auto result = translator.translate_batch(batch_tokens);
   for (size_t i = 0; i < result.size(); ++i) {
     for (size_t t = 0; t < result[i].size(); ++t) {
@@ -15,7 +16,33 @@ static void translate(opennmt::Translator& translator,
       std::cout << result[i][t];
     }
     std::cout << std::endl;
+    num_tokens += result[i].size();
   }
+  return num_tokens;
+}
+
+static std::vector<std::vector<std::string>> read_batch(std::istream& in, size_t max_batch_size) {
+  std::vector<std::vector<std::string>> batch;
+  std::string line;
+  while (batch.size() < max_batch_size && std::getline(in, line)) {
+    batch.emplace_back();
+    std::string token;
+    for (size_t i = 0; i < line.length(); ++i) {
+      if (line[i] == ' ') {
+        if (!token.empty()) {
+          batch.back().push_back(token);
+          token.clear();
+        }
+      } else {
+        token += line[i];
+      }
+    }
+    if (!token.empty()) {
+      batch.back().push_back(token);
+      token.clear();
+    }
+  }
+  return batch;
 }
 
 int main(int argc, char* argv[]) {
@@ -34,33 +61,11 @@ int main(int argc, char* argv[]) {
 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-  while (std::getline(text_file, line)) {
-    input_tokens.emplace_back();
-    std::string token;
-    for (size_t i = 0; i < line.length(); ++i) {
-      if (line[i] == ' ') {
-        if (!token.empty()) {
-          input_tokens.back().push_back(token);
-          token.clear();
-        }
-      } else {
-        token += line[i];
-      }
-    }
-    if (!token.empty()) {
-      input_tokens.back().push_back(token);
-      token.clear();
-    }
-    num_tokens += input_tokens.back().size();
-
-    if (input_tokens.size() == max_batch_size) {
-      translate(translator, input_tokens);
-      input_tokens.clear();
-    }
-  }
-
-  if (!input_tokens.empty()) {
-    translate(translator, input_tokens);
+  while (true) {
+    auto batch = read_batch(text_file, max_batch_size);
+    if (batch.empty())
+      break;
+    num_tokens += translate(translator, batch);
   }
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
