@@ -156,13 +156,24 @@ namespace opennmt {
 
   Dense::Dense(const TransformerModel& model, const std::string& scope)
     : _weight(model.get_variable(scope + "/kernel"))
-    , _bias(model.get_variable(scope + "/bias")) {
+    , _bias(model.get_variable(scope + "/bias"))
+    , _partial_weight(_weight.dtype())
+    , _partial_bias(_bias.dtype()) {
   }
 
-  StorageView& Dense::operator()(const StorageView& input) {
+  StorageView& Dense::operator()(const StorageView& input, const StorageView* index) {
+    const StorageView* weight = &_weight;
+    const StorageView* bias = &_bias;
+    if (index && !index->empty()) {
+      ops::Gather()(_weight, *index, _partial_weight);
+      ops::Gather()(_bias, *index, _partial_bias);
+      weight = &_partial_weight;
+      bias = &_partial_bias;
+    }
+
     if (_weight.dtype() == DataType::DT_FLOAT) {
       static const ops::Gemm gemm_op(1, 1, true, false, true);
-      gemm_op(input, _weight, _bias, _output);
+      gemm_op(input, *weight, *bias, _output);
     } else {
       static const ops::Gemm gemm_op(1, 0, false, false, true);
       static const ops::Quantize quantize_op(1000);
@@ -170,11 +181,11 @@ namespace opennmt {
       static thread_local StorageView quantized_input(_weight.dtype());
       static thread_local StorageView quantized_output(DataType::DT_INT32);
       quantize_op(input, quantized_input);
-      gemm_op(quantized_input, _weight, _bias, quantized_output);
+      gemm_op(quantized_input, *weight, *bias, quantized_output);
       unquantize_op(quantized_output, _output);
-      size_t output_depth = _bias.size();
+      size_t output_depth = bias->size();
       for (size_t i = 0; i < _output.size() / output_depth; ++i)
-        primitives::add(_bias.data<float>(), _output.data<float>() + i * output_depth, output_depth);
+        primitives::add(bias->data<float>(), _output.data<float>() + i * output_depth, output_depth);
     }
     return _output;
   }
@@ -479,7 +490,9 @@ namespace opennmt {
     _state.reset(new TransformerDecoderState(_layers.size()));
   }
 
-  StorageView& TransformerDecoder::logits(size_t step, const StorageView& ids) {
+  StorageView& TransformerDecoder::logits(size_t step,
+                                          const StorageView& ids,
+                                          const StorageView& candidates) {
     size_t batch_size = ids.dim(0);
     const auto& embeddings = _scaled_embeddings(ids);
     const auto& input = _position_encoder(embeddings, step);
@@ -498,7 +511,7 @@ namespace opennmt {
                       _state->get("memory_values_" + std::to_string(l)));
     }
     const auto& normed = _output_norm(*x);
-    return _proj(normed);
+    return _proj(normed, &candidates);
   }
 
 }

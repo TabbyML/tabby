@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "model.h"
+#include "vocabulary_map.h"
 
 namespace opennmt {
 
@@ -12,7 +13,8 @@ namespace opennmt {
     Translator(const Model& model,
                size_t max_decoding_steps,
                size_t beam_size,
-               float length_penalty);
+               float length_penalty,
+               const std::string& vocabulary_map);
     Translator(const Translator& other);
 
     std::vector<std::string>
@@ -23,6 +25,7 @@ namespace opennmt {
 
   private:
     const Model& _model;
+    std::shared_ptr<VocabularyMap> _vocabulary_map;
     std::unique_ptr<Encoder> _encoder;
     std::unique_ptr<Decoder> _decoder;
     size_t _max_decoding_steps;

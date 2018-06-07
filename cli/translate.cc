@@ -22,10 +22,10 @@ int main(int argc, char* argv[]) {
   size_t max_batch_size = argc > 1 ? std::stoi(argv[1]) : 1;
   size_t beam_size = argc > 2 ? std::stoi(argv[2]) : 1;
 
-  std::string model_path = "/home/klein/dev/ctransformer/model_quantized.bin";
+  std::string model_path = "/home/klein/dev/ctransformer/model.bin";
   std::string vocabulary_path = "/home/klein/data/wmt-ende/wmtende.vocab";
   opennmt::TransformerModel model(model_path, vocabulary_path);
-  opennmt::Translator translator(model, 200, beam_size, 0.6);
+  opennmt::Translator translator(model, 200, beam_size, 0.6, "");
 
   std::ifstream text_file("/home/klein/data/wmt-ende/valid.en.500");
   std::vector<std::vector<std::string> > input_tokens;

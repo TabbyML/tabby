@@ -36,6 +36,7 @@ set(SOURCES
   src/transformer.cc
   src/translator.cc
   src/vocabulary.cc
+  src/vocabulary_map.cc
   )
 set(LIBRARIES "")
 

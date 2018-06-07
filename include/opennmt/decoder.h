@@ -34,7 +34,9 @@ namespace opennmt {
       return *_state;
     }
 
-    virtual StorageView& logits(size_t step, const StorageView& ids) = 0;
+    virtual StorageView& logits(size_t step,
+                                const StorageView& ids,
+                                const StorageView& candidates) = 0;
 
   protected:
     std::unique_ptr<DecoderState> _state;
@@ -43,14 +45,14 @@ namespace opennmt {
 
   void greedy_decoding(Decoder& decoder,
                        StorageView& sample_from,
+                       StorageView& candidates,
                        size_t end_token,
-                       size_t vocabulary_size,
                        size_t max_steps,
                        std::vector<std::vector<size_t> >& sampled_ids);
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
+                   StorageView& candidates,
                    size_t end_token,
-                   size_t vocabulary_size,
                    size_t max_steps,
                    size_t beam_size,
                    float length_penalty,

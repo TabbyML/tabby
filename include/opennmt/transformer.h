@@ -50,10 +50,12 @@ namespace opennmt {
   {
   public:
     Dense(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& input);
+    StorageView& operator()(const StorageView& input, const StorageView* index = nullptr);
   private:
     const StorageView& _weight;
     const StorageView& _bias;
+    StorageView _partial_weight;
+    StorageView _partial_bias;
     StorageView _output;
   };
 
@@ -208,7 +210,9 @@ namespace opennmt {
   {
   public:
     TransformerDecoder(const TransformerModel& model, const std::string& scope);
-    StorageView& logits(size_t step, const StorageView& ids) override;
+    StorageView& logits(size_t step,
+                        const StorageView& ids,
+                        const StorageView& candidates) override;
   private:
     ScaledEmbeddings _scaled_embeddings;
     PositionEncoder _position_encoder;

@@ -104,8 +104,8 @@ namespace opennmt {
 
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
+                   StorageView& candidates,
                    size_t end_token,
-                   size_t vocabulary_size,
                    size_t max_steps,
                    size_t beam_size,
                    float length_penalty,
@@ -134,7 +134,8 @@ namespace opennmt {
 
     for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
-      const auto& logits = decoder.logits(step, topk_ids);
+      const auto& logits = decoder.logits(step, topk_ids, candidates);
+      size_t vocabulary_size = logits.dim(-1);
       log_probs_from_logits(logits, log_probs);
 
       // Multiply by the current beam log probs.
@@ -174,10 +175,14 @@ namespace opennmt {
       std::vector<bool> finished(cur_batch_size, false);
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
-        const auto pred_id = topk_ids.at<int32_t>({i, 0});
+        auto pred_id = topk_ids.at<int32_t>({i, 0});
+        if (!candidates.empty())
+          pred_id = candidates.at<int32_t>(pred_id);
         if (pred_id == static_cast<int32_t>(end_token) || step + 1 == max_steps) {
           for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
-            const size_t id = alive_seq.at<int32_t>({i * beam_size, t});
+            size_t id = alive_seq.at<int32_t>({i * beam_size, t});
+            if (!candidates.empty())
+              id = candidates.at<int32_t>(id);
             if (id == end_token)
               break;
             sampled_ids[batch_offset[i]].push_back(id);
@@ -227,8 +232,8 @@ namespace opennmt {
 
   void greedy_decoding(Decoder& decoder,
                        StorageView& sample_from,
+                       StorageView& candidates,
                        size_t end_token,
-                       size_t vocabulary_size,
                        size_t max_steps,
                        std::vector<std::vector<size_t> >& sampled_ids) {
     size_t batch_size = sample_from.dim(0);
@@ -236,7 +241,7 @@ namespace opennmt {
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
 
-    StorageView probs({batch_size, vocabulary_size});
+    StorageView probs;
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
@@ -245,14 +250,17 @@ namespace opennmt {
     sampled_ids.resize(batch_size);
 
     for (size_t step = 0; step < max_steps; ++step) {
-      const auto& logits = decoder.logits(step, sample_from);
+      const auto& logits = decoder.logits(step, sample_from, candidates);
       ops::SoftMax()(logits, probs);
 
       std::vector<bool> finished_batch(logits.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = primitives::max_element(probs.index<float>({i}), vocabulary_size);
+        size_t best = primitives::max_element(probs.index<float>({i}), probs.dim(-1));
+        size_t true_id = best;
+        if (!candidates.empty())
+          true_id = candidates.at<int32_t>(best);
         size_t batch_id = batch_offset[i];
         if (best == end_token) {
           finished[batch_id] = true;
@@ -260,7 +268,7 @@ namespace opennmt {
           one_finished = true;
         } else {
           sample_from.at<int32_t>(i) = best;
-          sampled_ids[batch_id].push_back(best);
+          sampled_ids[batch_id].push_back(true_id);
           ++count_alive;
         }
       }
