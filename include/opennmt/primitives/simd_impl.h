@@ -1,6 +1,6 @@
 #pragma once
 
-#include "generic_primitives.h"
+#include "generic.h"
 
 namespace opennmt {
   namespace primitives {

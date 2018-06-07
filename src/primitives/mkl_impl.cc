@@ -1,4 +1,4 @@
-#include "opennmt/primitives/mkl_primitives.h"
+#include "opennmt/primitives/mkl_impl.h"
 
 namespace opennmt {
   namespace primitives {

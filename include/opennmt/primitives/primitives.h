@@ -1,8 +1,8 @@
 #pragma once
 
-#include "generic_primitives.h"
-#include "simd_primitives.h"
+#include "generic.h"
+#include "simd_impl.h"
 
 #ifdef INTEL_MKL
-#  include "mkl_primitives.h"
+#  include "mkl_impl.h"
 #endif
