@@ -13,6 +13,8 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math")
+
 if (EIGEN_ROOT)
   set(ENV{EIGEN3_ROOT} ${EIGEN_ROOT})
 endif()
