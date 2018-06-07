@@ -9,11 +9,20 @@ namespace opennmt {
                          size_t beam_size,
                          float length_penalty)
     : _model(model)
-    , _encoder(model.make_encoder())
-    , _decoder(model.make_decoder())
+    , _encoder(_model.make_encoder())
+    , _decoder(_model.make_decoder())
     , _max_decoding_steps(max_decoding_steps)
     , _beam_size(beam_size)
     , _length_penalty(length_penalty) {
+  }
+
+  Translator::Translator(const Translator& other)
+    : _model(other._model)
+    , _encoder(_model.make_encoder())
+    , _decoder(_model.make_decoder())
+    , _max_decoding_steps(other._max_decoding_steps)
+    , _beam_size(other._beam_size)
+    , _length_penalty(other._length_penalty) {
   }
 
   std::vector<std::string>

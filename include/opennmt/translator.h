@@ -13,6 +13,7 @@ namespace opennmt {
                size_t max_decoding_steps,
                size_t beam_size,
                float length_penalty);
+    Translator(const Translator& other);
 
     std::vector<std::string>
     translate(const std::vector<std::string>& tokens);
