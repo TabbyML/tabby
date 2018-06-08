@@ -41,10 +41,8 @@ namespace opennmt {
       const auto comp = [&x](I i1, I i2) {
         return x[i1] > x[i2];
       };
-      for (I i = 0; i < static_cast<I>(size); ++i)
-        indices[i] = i;
-      std::nth_element(indices, indices + k, indices + size, comp);
-      std::sort(indices, indices + k, comp);
+      std::iota(indices, indices + size, 0);
+      std::partial_sort(indices, indices + k, indices + size, comp);
     }
 
     template <typename T>
