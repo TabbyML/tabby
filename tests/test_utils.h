@@ -13,6 +13,13 @@ void expect_array_eq(const T* x, const T* y, size_t n) {
   }
 }
 
+template<>
+inline void expect_array_eq(const float* x, const float* y, size_t n) {
+  for (size_t i = 0; i < n; ++i) {
+    EXPECT_FLOAT_EQ(x[i], y[i]) << "Value mismatch at index " << i;
+  }
+}
+
 template <typename T>
 void assert_vector_eq(const std::vector<T>& got, const std::vector<T>& expected) {
   ASSERT_EQ(got.size(), expected.size());
