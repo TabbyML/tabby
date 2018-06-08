@@ -163,10 +163,12 @@ namespace opennmt {
       topk_ids.reshape({cur_batch_size, beam_size});
       gather_indices.resize({cur_batch_size, beam_size});
       for (size_t i = 0; i < topk_ids.size(); ++i) {
-        const auto flat_id = topk_ids.at<int32_t>(i);
-        const auto beam_id = flat_id / vocabulary_size;
-        const auto word_id = flat_id % vocabulary_size;
-        const auto batch_id = i / beam_size;
+        auto flat_id = topk_ids.at<int32_t>(i);
+        auto beam_id = flat_id / vocabulary_size;
+        auto word_id = flat_id % vocabulary_size;
+        auto batch_id = i / beam_size;
+        if (!candidates.empty())
+          word_id = candidates.at<int32_t>(word_id);
         topk_ids.at<int32_t>(i) = word_id;
         gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
       }
@@ -176,13 +178,9 @@ namespace opennmt {
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
         auto pred_id = topk_ids.at<int32_t>({i, 0});
-        if (!candidates.empty())
-          pred_id = candidates.at<int32_t>(pred_id);
         if (pred_id == static_cast<int32_t>(end_token) || step + 1 == max_steps) {
           for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
             size_t id = alive_seq.at<int32_t>({i * beam_size, t});
-            if (!candidates.empty())
-              id = candidates.at<int32_t>(id);
             if (id == end_token)
               break;
             sampled_ids[batch_offset[i]].push_back(id);
@@ -262,12 +260,12 @@ namespace opennmt {
         if (!candidates.empty())
           true_id = candidates.at<int32_t>(best);
         size_t batch_id = batch_offset[i];
-        if (best == end_token) {
+        if (true_id == end_token) {
           finished[batch_id] = true;
           finished_batch[i] = true;
           one_finished = true;
         } else {
-          sample_from.at<int32_t>(i) = best;
+          sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id].push_back(true_id);
           ++count_alive;
         }

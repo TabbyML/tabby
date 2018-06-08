@@ -117,12 +117,13 @@ int main(int argc, char* argv[]) {
   size_t max_batch_size = argc > 1 ? std::stoi(argv[1]) : 1;
   size_t beam_size = argc > 2 ? std::stoi(argv[2]) : 1;
   size_t inter_threads = argc > 3 ? std::stoi(argv[3]) : 1;
-  std::string model_path = argc > 4 ? argv[4] : "/home/klein/dev/ctransformer/model.bin";
+  std::string model_path = argc > 4 ? argv[4] : "/home/klein/dev/ctransformer/ende_transformer.bin";
+  std::string vmap = argc > 5 ? argv[5] : "";
   std::string vocabulary_path = "/home/klein/data/wmt-ende/wmtende.vocab";
   opennmt::TransformerModel model(model_path, vocabulary_path);
 
   std::vector<opennmt::Translator> translator_pool;
-  translator_pool.emplace_back(model, 200, beam_size, 0.6, "");
+  translator_pool.emplace_back(model, 200, beam_size, 0.6, vmap);
   for (size_t i = 1; i < inter_threads; ++i) {
     translator_pool.emplace_back(translator_pool.front());
   }
