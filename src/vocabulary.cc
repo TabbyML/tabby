@@ -8,6 +8,8 @@ namespace opennmt {
 
   Vocabulary::Vocabulary(const std::string& path) {
     std::ifstream in(path);
+    if (!in.is_open())
+      throw std::invalid_argument("Unable to open the vocabulary file `" + path + "`");
     std::string line;
     while (std::getline(in, line)) {
       _token_to_id.emplace(line, _id_to_token.size());
