@@ -103,7 +103,6 @@ namespace opennmt {
     StorageView& compute_attention(const StorageView& queries,
                                    const StorageView& keys,
                                    const StorageView& values,
-                                   const StorageView& queries_lengths,
                                    const StorageView& values_lengths);
   protected:
     LayerNorm _layer_norm;
@@ -144,7 +143,6 @@ namespace opennmt {
                          const std::string& scope,
                          size_t num_heads);
     StorageView& operator()(const StorageView& queries,
-                            const StorageView& queries_lengths,
                             const StorageView& memory,
                             const StorageView& memory_lengths,
                             StorageView* cached_keys = nullptr,

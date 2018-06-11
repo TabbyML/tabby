@@ -150,12 +150,6 @@ namespace opennmt {
     ops::Concat(-1)({&sin_encoding, &cos_encoding}, _cached_encodings);
   }
 
-  static StorageView unquantize_weights(const StorageView& quantized_weights) {
-    StorageView weights;
-    ops::Unquantize(1000)(quantized_weights, weights);
-    return weights;
-  }
-
   Dense::Dense(const TransformerModel& model, const std::string& scope)
     : _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias"))
@@ -278,7 +272,6 @@ namespace opennmt {
   StorageView& MultiHeadAttention::compute_attention(const StorageView& queries,
                                                      const StorageView& keys,
                                                      const StorageView& values,
-                                                     const StorageView& queries_lengths,
                                                      const StorageView& values_lengths) {
     split_heads(queries, _split_queries);
     split_heads(keys, _split_keys);
@@ -334,7 +327,6 @@ namespace opennmt {
     const StorageView& attention_output = compute_attention(_queries_proj,
                                                             keys_proj,
                                                             values_proj,
-                                                            queries_lengths,
                                                             values_lengths);
 
     StorageView& output = _linear_out(attention_output);
@@ -363,7 +355,6 @@ namespace opennmt {
   }
 
   StorageView& TransformerAttention::operator()(const StorageView& queries,
-                                                const StorageView& queries_lengths,
                                                 const StorageView& memory,
                                                 const StorageView& memory_lengths,
                                                 StorageView* cached_keys,
@@ -387,7 +378,6 @@ namespace opennmt {
     const StorageView& attention_output = compute_attention(queries_proj,
                                                             _keys_proj,
                                                             _values_proj,
-                                                            queries_lengths,
                                                             memory_lengths);
 
     StorageView& output = _linear_out(attention_output);
@@ -428,7 +418,7 @@ namespace opennmt {
     const auto& encoded = _self_attention(
       input, input_lengths, &cached_self_attn_keys, &cached_self_attn_values, step);
     const auto& context = _encoder_attention(
-      encoded, input_lengths, memory, memory_lengths, &cached_attn_keys, &cached_attn_values, step);
+      encoded, memory, memory_lengths, &cached_attn_keys, &cached_attn_values, step);
     return _ff(context);
   }
 

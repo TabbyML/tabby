@@ -18,7 +18,7 @@ namespace opennmt {
     {DataType::DT_INT32, "int32"}
   };
 
-  static const std::string& dtype_name(DataType type) {
+  inline const std::string& dtype_name(DataType type) {
     return dtype_names.at(type);
   }
 
