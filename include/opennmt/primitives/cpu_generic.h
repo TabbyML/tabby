@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <numeric>
+
 #include <Eigen/Dense>
 
 namespace opennmt {

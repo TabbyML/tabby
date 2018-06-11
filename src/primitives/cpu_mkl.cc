@@ -1,5 +1,7 @@
 #include "opennmt/primitives/cpu_mkl.h"
 
+#include <vector>
+
 namespace opennmt {
   namespace primitives {
 
