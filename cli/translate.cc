@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
     ("vocab_mapping", po::value<std::string>()->default_value(""), "path to a vocabulary mapping table")
     ("batch_size", po::value<size_t>()->default_value(30), "batch size")
     ("beam_size", po::value<size_t>()->default_value(5), "beam size")
-    ("length_penalty", po::value<float>()->default_value(0), "length penalty")
+    ("length_penalty", po::value<float>()->default_value(0.6), "length penalty")
     ("max_sent_length", po::value<size_t>()->default_value(250), "maximum sentence length to produce")
     ("log_throughput", po::bool_switch()->default_value(false), "log average tokens per second")
     ("inter_threads", po::value<size_t>()->default_value(1), "number of inter batch threads")
