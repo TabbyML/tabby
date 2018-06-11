@@ -47,6 +47,8 @@ public:
     : _file(path)
     , _in(_file)
     , _batch_id(0) {
+    if (!_file.is_open())
+      throw std::invalid_argument("Unable to open file " + path);
   }
   ConcurrentReader(std::istream& in)
     : _in(in)
