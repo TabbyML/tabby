@@ -1,8 +1,8 @@
 #pragma once
 
-#include "generic.h"
-#include "simd_impl.h"
+#include "cpu_generic.h"
+#include "cpu_simd.h"
 
-#ifdef INTEL_MKL
-#  include "mkl_impl.h"
+#ifdef WITH_MKL
+#  include "cpu_mkl.h"
 #endif

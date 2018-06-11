@@ -32,7 +32,7 @@ set(SOURCES
   src/decoder.cc
   src/decoder.cc
   src/model.cc
-  src/primitives/simd_impl.cc
+  src/primitives/cpu_simd.cc
   src/storage_view.cc
   src/transformer.cc
   src/translator.cc
@@ -44,9 +44,9 @@ set(LIBRARIES "")
 find_package(MKL)
 
 if (MKL_FOUND)
-  add_definitions(-DINTEL_MKL)
+  add_definitions(-DWITH_MKL)
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
-  list(APPEND SOURCES src/primitives/mkl_impl.cc)
+  list(APPEND SOURCES src/primitives/cpu_mkl.cc)
   list(APPEND LIBRARIES ${MKL_LIBRARIES})
 endif()
 

@@ -1,4 +1,4 @@
-#include "opennmt/primitives/simd_impl.h"
+#include "opennmt/primitives/cpu_simd.h"
 
 #include <cassert>
 

@@ -23,7 +23,7 @@ namespace opennmt
   }
 
   inline void set_num_threads(size_t num_threads) {
-#ifdef INTEL_MKL
+#ifdef WITH_MKL
     mkl_set_num_threads(num_threads);
 #endif
   }

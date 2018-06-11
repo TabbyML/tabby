@@ -2,7 +2,7 @@
 
 #include <mkl.h>
 
-#include "generic.h"
+#include "cpu_generic.h"
 
 namespace opennmt {
   namespace primitives {
