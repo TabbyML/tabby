@@ -12,7 +12,8 @@ namespace opennmt {
   {
   public:
     TransformerModel(const std::string& path,
-                     const std::string& vocabulary_path);
+                     const std::string& source_vocabulary_path,
+                     const std::string& target_vocabulary_path);
     const StorageView& get_variable(const std::string& scope) const;
     const Vocabulary& get_source_vocabulary() const override;
     const Vocabulary& get_target_vocabulary() const override;
@@ -20,7 +21,8 @@ namespace opennmt {
     std::unique_ptr<Decoder> make_decoder() const override;
   private:
     std::map<std::string, StorageView> _variable_index;
-    Vocabulary _shared_vocabulary;
+    Vocabulary _source_vocabulary;
+    Vocabulary _target_vocabulary;
   };
 
   class ScaledEmbeddings

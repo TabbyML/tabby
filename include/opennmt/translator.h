@@ -10,7 +10,7 @@ namespace opennmt {
 
   class Translator {
   public:
-    Translator(const Model& model,
+    Translator(const std::shared_ptr<Model>& model,
                size_t max_decoding_steps,
                size_t beam_size,
                float length_penalty,
@@ -24,7 +24,7 @@ namespace opennmt {
     translate_batch(const std::vector<std::vector<std::string>>& tokens);
 
   private:
-    const Model& _model;
+    const std::shared_ptr<Model> _model;
     std::shared_ptr<VocabularyMap> _vocabulary_map;
     std::unique_ptr<Encoder> _encoder;
     std::unique_ptr<Decoder> _decoder;

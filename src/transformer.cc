@@ -19,8 +19,10 @@ namespace opennmt {
   }
 
   TransformerModel::TransformerModel(const std::string& path,
-                                     const std::string& vocabulary_path)
-    : _shared_vocabulary(vocabulary_path) {
+                                     const std::string& source_vocabulary_path,
+                                     const std::string& target_vocabulary_path)
+    : _source_vocabulary(source_vocabulary_path)
+    , _target_vocabulary(target_vocabulary_path) {
     std::ifstream model(path, std::ios_base::in | std::ios_base::binary);
     if (!model.is_open())
       throw std::runtime_error("failed to load the model " + path);
@@ -68,11 +70,11 @@ namespace opennmt {
   }
 
   const Vocabulary& TransformerModel::get_source_vocabulary() const {
-    return _shared_vocabulary;
+    return _source_vocabulary;
   }
 
   const Vocabulary& TransformerModel::get_target_vocabulary() const {
-    return _shared_vocabulary;
+    return _source_vocabulary;
   }
 
   std::unique_ptr<Encoder> TransformerModel::make_encoder() const {

@@ -4,26 +4,26 @@
 
 namespace opennmt {
 
-  Translator::Translator(const Model& model,
+  Translator::Translator(const std::shared_ptr<Model>& model,
                          size_t max_decoding_steps,
                          size_t beam_size,
                          float length_penalty,
                          const std::string& vocabulary_map)
     : _model(model)
-    , _encoder(_model.make_encoder())
-    , _decoder(_model.make_decoder())
+    , _encoder(_model->make_encoder())
+    , _decoder(_model->make_decoder())
     , _max_decoding_steps(max_decoding_steps)
     , _beam_size(beam_size)
     , _length_penalty(length_penalty) {
     if (!vocabulary_map.empty())
-      _vocabulary_map.reset(new VocabularyMap(vocabulary_map, _model.get_target_vocabulary()));
+      _vocabulary_map.reset(new VocabularyMap(vocabulary_map, _model->get_target_vocabulary()));
   }
 
   Translator::Translator(const Translator& other)
     : _model(other._model)
     , _vocabulary_map(other._vocabulary_map)
-    , _encoder(_model.make_encoder())
-    , _decoder(_model.make_decoder())
+    , _encoder(_model->make_encoder())
+    , _decoder(_model->make_decoder())
     , _max_decoding_steps(other._max_decoding_steps)
     , _beam_size(other._beam_size)
     , _length_penalty(other._length_penalty) {
@@ -53,7 +53,7 @@ namespace opennmt {
     for (size_t i = 0; i < batch_size; ++i) {
       for (size_t t = 0; t < batch_tokens[i].size(); ++t) {
         const std::string& token = batch_tokens[i][t];
-        ids.at<int32_t>({i, t}) = _model.get_source_vocabulary().to_id(token);
+        ids.at<int32_t>({i, t}) = _model->get_source_vocabulary().to_id(token);
       }
     }
 
@@ -73,8 +73,8 @@ namespace opennmt {
     }
 
     // Decode.
-    size_t start_token = _model.get_target_vocabulary().to_id("<s>");
-    size_t end_token = _model.get_target_vocabulary().to_id("</s>");
+    size_t start_token = _model->get_target_vocabulary().to_id("<s>");
+    size_t end_token = _model->get_target_vocabulary().to_id("</s>");
     StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
     std::vector<std::vector<size_t>> sampled_ids;
     if (_beam_size == 1)
@@ -99,7 +99,7 @@ namespace opennmt {
     for (size_t i = 0; i < batch_size; ++i) {
       result[i].reserve(sampled_ids[i].size());
       for (auto id : sampled_ids[i]) {
-        result[i].push_back(_model.get_target_vocabulary().to_token(id));
+        result[i].push_back(_model->get_target_vocabulary().to_token(id));
       }
     }
     return result;

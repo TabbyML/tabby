@@ -120,7 +120,10 @@ int main(int argc, char* argv[]) {
   std::string model_path = argc > 4 ? argv[4] : "/home/klein/dev/ctransformer/ende_transformer.bin";
   std::string vmap = argc > 5 ? argv[5] : "";
   std::string vocabulary_path = "/home/klein/data/wmt-ende/wmtende.vocab";
-  opennmt::TransformerModel model(model_path, vocabulary_path);
+  auto model = opennmt::ModelFactory::load(opennmt::ModelType::Transformer,
+                                           model_path,
+                                           vocabulary_path,
+                                           vocabulary_path);
 
   std::vector<opennmt::Translator> translator_pool;
   translator_pool.emplace_back(model, 200, beam_size, 0.6, vmap);

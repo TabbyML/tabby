@@ -31,6 +31,7 @@ set(INCLUDE_DIRECTORIES
 set(SOURCES
   src/decoder.cc
   src/decoder.cc
+  src/model.cc
   src/primitives/simd_impl.cc
   src/storage_view.cc
   src/transformer.cc

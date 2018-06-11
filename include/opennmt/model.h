@@ -19,4 +19,18 @@ namespace opennmt {
     virtual std::unique_ptr<Decoder> make_decoder() const = 0;
   };
 
+
+  enum class ModelType {
+    Transformer
+  };
+
+
+  class ModelFactory {
+  public:
+    static std::shared_ptr<Model> load(ModelType type,
+                                       const std::string& path,
+                                       const std::string& source_vocabulary_path,
+                                       const std::string& target_vocabulary_path);
+  };
+
 }
