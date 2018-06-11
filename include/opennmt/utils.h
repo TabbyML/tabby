@@ -3,6 +3,10 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifdef INTEL_MKL
+#  include <mkl.h>
+#endif
+
 namespace opennmt
 {
 
@@ -16,6 +20,12 @@ namespace opennmt
     if ( space < size + padding ) return nullptr;
     space -= padding;
     return ptr = reinterpret_cast< void * >( aligned );
+  }
+
+  inline void set_num_threads(size_t num_threads) {
+#ifdef INTEL_MKL
+    mkl_set_num_threads(num_threads);
+#endif
   }
 
 }

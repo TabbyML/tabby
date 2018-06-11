@@ -4,8 +4,12 @@
 #include <iostream>
 #include <thread>
 
+#include <boost/program_options.hpp>
+
 #include "opennmt/translator.h"
-#include "opennmt/transformer.h"
+#include "opennmt/utils.h"
+
+namespace po = boost::program_options;
 
 struct Batch {
   std::vector<std::vector<std::string>> tokens;
@@ -39,6 +43,11 @@ std::ostream& operator<<(std::ostream& os, const Batch& batch) {
 
 class ConcurrentReader {
 public:
+  ConcurrentReader(const std::string& path)
+    : _file(path)
+    , _in(_file)
+    , _batch_id(0) {
+  }
   ConcurrentReader(std::istream& in)
     : _in(in)
     , _batch_id(0) {
@@ -75,12 +84,18 @@ public:
 
 private:
   std::mutex _mutex;
+  std::ifstream _file;
   std::istream& _in;
   size_t _batch_id;
 };
 
 class ConcurrentWriter {
 public:
+  ConcurrentWriter(const std::string& path)
+    : _file(path)
+    , _out(_file)
+    , _last_batch_id(0) {
+  }
   ConcurrentWriter(std::ostream& out)
     : _out(out)
     , _last_batch_id(0) {
@@ -108,33 +123,77 @@ public:
 
 private:
   std::mutex _mutex;
+  std::ofstream _file;
   std::ostream& _out;
   size_t _last_batch_id;
   std::map<size_t, Batch> _pending_batches;
 };
 
 int main(int argc, char* argv[]) {
-  size_t max_batch_size = argc > 1 ? std::stoi(argv[1]) : 1;
-  size_t beam_size = argc > 2 ? std::stoi(argv[2]) : 1;
-  size_t inter_threads = argc > 3 ? std::stoi(argv[3]) : 1;
-  std::string model_path = argc > 4 ? argv[4] : "/home/klein/dev/ctransformer/ende_transformer.bin";
-  std::string vmap = argc > 5 ? argv[5] : "";
-  std::string vocabulary_path = "/home/klein/data/wmt-ende/wmtende.vocab";
+  po::options_description desc("OpenNMT translator");
+  desc.add_options()
+    ("help", "display available options")
+    ("model", po::value<std::string>(), "path to the model")
+    ("src_vocab", po::value<std::string>(), "path to the source vocabulary")
+    ("tgt_vocab", po::value<std::string>(), "path to the target vocabulary")
+    ("src", po::value<std::string>(), "path to the file to translate (read from the standard input if not set)")
+    ("tgt", po::value<std::string>(), "path to the output file (write to the standard output if not set")
+    ("vocab_mapping", po::value<std::string>()->default_value(""), "path to a vocabulary mapping table")
+    ("batch_size", po::value<size_t>()->default_value(30), "batch size")
+    ("beam_size", po::value<size_t>()->default_value(5), "beam size")
+    ("length_penalty", po::value<float>()->default_value(0), "length penalty")
+    ("max_sent_length", po::value<size_t>()->default_value(250), "maximum sentence length to produce")
+    ("log_throughput", po::bool_switch()->default_value(false), "log average tokens per second")
+    ("inter_threads", po::value<size_t>()->default_value(1), "number of inter batch threads")
+    ("intra_threads", po::value<size_t>()->default_value(0), "number of intra batch threads (set to 0 to use an automatic value)")
+    ;
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(argc, argv, desc), vm);
+  po::notify(vm);
+
+  if (vm.count("help")) {
+    std::cerr << desc << std::endl;
+    return 1;
+  }
+  if (!vm.count("model")) {
+    std::cerr << "missing model" << std::endl;
+    return 1;
+  }
+
+  size_t inter_threads = vm["inter_threads"].as<size_t>();
+  size_t intra_threads = vm["intra_threads"].as<size_t>();
+  if (intra_threads > 0) {
+    opennmt::set_num_threads(intra_threads);
+  }
+
   auto model = opennmt::ModelFactory::load(opennmt::ModelType::Transformer,
-                                           model_path,
-                                           vocabulary_path,
-                                           vocabulary_path);
+                                           vm["model"].as<std::string>(),
+                                           vm["src_vocab"].as<std::string>(),
+                                           vm["tgt_vocab"].as<std::string>());
 
   std::vector<opennmt::Translator> translator_pool;
-  translator_pool.emplace_back(model, 200, beam_size, 0.6, vmap);
+  translator_pool.emplace_back(model,
+                               vm["max_sent_length"].as<size_t>(),
+                               vm["beam_size"].as<size_t>(),
+                               vm["length_penalty"].as<float>(),
+                               vm["vocab_mapping"].as<std::string>());
   for (size_t i = 1; i < inter_threads; ++i) {
     translator_pool.emplace_back(translator_pool.front());
   }
 
-  std::ifstream text_file("/home/klein/data/wmt-ende/valid.en.500");
-  ConcurrentReader reader(text_file);
-  ConcurrentWriter writer(std::cout);
+  std::unique_ptr<ConcurrentReader> reader;
+  std::unique_ptr<ConcurrentWriter> writer;
+  if (vm.count("src"))
+    reader.reset(new ConcurrentReader(vm["src"].as<std::string>()));
+  else
+    reader.reset(new ConcurrentReader(std::cin));
+  if (vm.count("tgt"))
+    writer.reset(new ConcurrentWriter(vm["tgt"].as<std::string>()));
+  else
+    writer.reset(new ConcurrentWriter(std::cout));
 
+  size_t max_batch_size = vm["batch_size"].as<size_t>();
   std::vector<std::future<size_t>> futures;
 
   std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
@@ -158,7 +217,7 @@ int main(int argc, char* argv[]) {
                    }
                    return num_tokens;
                  },
-                 &reader, &writer, &translator));
+                 reader.get(), writer.get(), &translator));
   }
 
   size_t num_tokens = 0;
@@ -168,7 +227,10 @@ int main(int argc, char* argv[]) {
   }
 
   std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-  std::cerr << static_cast<double>(num_tokens) / static_cast<double>(duration / 1000) << std::endl;
+  if (vm["log_throughput"].as<bool>()) {
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    std::cerr << static_cast<double>(num_tokens) / static_cast<double>(duration / 1000) << std::endl;
+  }
+
   return 0;
 }
