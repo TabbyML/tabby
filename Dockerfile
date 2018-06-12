@@ -41,7 +41,7 @@ RUN mkdir build && \
     cmake -DEIGEN_ROOT=/root/eigen -DCMAKE_INSTALL_PREFIX=/root/ctranslate \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8 .. && \
-    make -j4 && \
+    VERBOSE=1 make -j4 && \
     make install
 
 WORKDIR /root
