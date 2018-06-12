@@ -30,10 +30,6 @@ namespace opennmt {
     template<>
     void exp(const float* x, float* y, size_t size);
     template<>
-    void cos(const float* x, float* y, size_t size);
-    template<>
-    void sin(const float* x, float* y, size_t size);
-    template<>
     void tanh(const float* x, float* y, size_t size);
     template<>
     void gemm(const float* a, const float* b,

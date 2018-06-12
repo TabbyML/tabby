@@ -62,16 +62,6 @@ namespace opennmt {
     }
 
     template<>
-    void cos(const float* x, float* y, size_t size) {
-      vsCos(size, x, y);
-    }
-
-    template<>
-    void sin(const float* x, float* y, size_t size) {
-      vsSin(size, x, y);
-    }
-
-    template<>
     void tanh(const float* x, float* y, size_t size) {
       vsTanh(size, x, y);
     }

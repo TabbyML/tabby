@@ -15,6 +15,13 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math")
 
+if (NOT MKLML_ROOT)
+  message(FATAL_ERROR "MKLML_ROOT must be defined")
+endif()
+
+add_definitions(-DWITH_MKL)
+link_directories(${MKLML_ROOT}/lib)
+
 if (EIGEN_ROOT)
   set(ENV{EIGEN3_ROOT} ${EIGEN_ROOT})
 endif()
@@ -23,15 +30,18 @@ if (EIGEN3_ROOT)
 endif()
 
 find_package(Eigen3 3.3 REQUIRED)
+find_package(Threads)
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${EIGEN3_INCLUDE_DIR}
+  ${MKLML_ROOT}/include
   )
 set(SOURCES
   src/decoder.cc
   src/decoder.cc
   src/model.cc
+  src/primitives/cpu_mkl.cc
   src/primitives/cpu_simd.cc
   src/storage_view.cc
   src/transformer.cc
@@ -39,16 +49,11 @@ set(SOURCES
   src/vocabulary.cc
   src/vocabulary_map.cc
   )
-set(LIBRARIES "")
-
-find_package(MKL)
-
-if (MKL_FOUND)
-  add_definitions(-DWITH_MKL)
-  list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
-  list(APPEND SOURCES src/primitives/cpu_mkl.cc)
-  list(APPEND LIBRARIES ${MKL_LIBRARIES})
-endif()
+set(LIBRARIES
+  ${CMAKE_THREAD_LIBS_INIT}
+  mklml_intel
+  iomp5
+  )
 
 add_library(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
