@@ -90,43 +90,44 @@ namespace opennmt {
     : _embeddings(model.get_variable(scope + "/w_embs")) {
   }
 
-  StorageView& ScaledEmbeddings::operator()(const StorageView& ids) {
-    _gather_op(_embeddings, ids, _output);
+  void ScaledEmbeddings::operator()(const StorageView& ids,
+                                    StorageView& output) {
+    _gather_op(_embeddings, ids, output);
     const size_t embedding_size = _embeddings.dim(-1);
     primitives::mul(static_cast<float>(sqrt(embedding_size)),
-                    _output.data<float>(),
-                    _output.size());
-    return _output;
+                    output.data<float>(),
+                    output.size());
   }
 
 
-  StorageView& PositionEncoder::operator()(const StorageView& input,
-                                           const StorageView& lengths) {
+  void PositionEncoder::operator()(const StorageView& input,
+                                   const StorageView& lengths,
+                                   StorageView& output) {
     assert(input.rank() == 3);
     size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    _output = input;
+    output = input;
     for (size_t i = 0; i < lengths.dim(0); ++i) {
       const auto length = lengths.at<int32_t>(i);
       primitives::add(_cached_encodings.data<float>(),
-                      _output.index<float>({i}),
+                      output.index<float>({i}),
                       length * depth);
     }
-    return _output;
   }
 
-  StorageView& PositionEncoder::operator()(const StorageView& input, size_t index) {
+  void PositionEncoder::operator()(const StorageView& input,
+                                   size_t index,
+                                   StorageView& output) {
     size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    _output = input;
+    output = input;
     for (size_t i = 0; i < input.dim(0); ++i) {
       primitives::add(_cached_encodings.index<float>({index}),
-                      _output.index<float>({i}),
+                      output.index<float>({i}),
                       depth);
     }
-    return _output;
   }
 
   void PositionEncoder::precompute_position_encoding(size_t max_time, size_t depth) {
@@ -157,7 +158,9 @@ namespace opennmt {
     , _partial_bias(_bias.dtype()) {
   }
 
-  StorageView& Dense::operator()(const StorageView& input, const StorageView* index) {
+  void Dense::operator()(const StorageView& input,
+                         StorageView& output,
+                         const StorageView* index) {
     const StorageView* weight = &_weight;
     const StorageView* bias = &_bias;
     if (index && !index->empty()) {
@@ -169,7 +172,7 @@ namespace opennmt {
 
     if (_weight.dtype() == DataType::DT_FLOAT) {
       static const ops::Gemm gemm_op(1, 1, true, false, true);
-      gemm_op(input, *weight, *bias, _output);
+      gemm_op(input, *weight, *bias, output);
     } else {
       static const ops::Gemm gemm_op(1, 0, false, false, true);
       static const ops::Quantize quantize_op(1000);
@@ -178,12 +181,11 @@ namespace opennmt {
       static thread_local StorageView quantized_output(DataType::DT_INT32);
       quantize_op(input, quantized_input);
       gemm_op(quantized_input, *weight, *bias, quantized_output);
-      unquantize_op(quantized_output, _output);
+      unquantize_op(quantized_output, output);
       size_t output_depth = bias->size();
-      for (size_t i = 0; i < _output.size() / output_depth; ++i)
-        primitives::add(bias->data<float>(), _output.data<float>() + i * output_depth, output_depth);
+      for (size_t i = 0; i < output.size() / output_depth; ++i)
+        primitives::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
     }
-    return _output;
   }
 
 
@@ -192,9 +194,8 @@ namespace opennmt {
     , _gamma(model.get_variable(scope + "/gamma")) {
   }
 
-  StorageView& LayerNorm::operator()(const StorageView& input) {
-    _norm_op(_beta, _gamma, input, _output);
-    return _output;
+  void LayerNorm::operator()(const StorageView& input, StorageView& output) {
+    _norm_op(_beta, _gamma, input, output);
   }
 
 
@@ -205,20 +206,21 @@ namespace opennmt {
     , _ff2(model, scope + "/conv1d_1") {
   }
 
-  StorageView& TransformerFeedForward::operator()(const StorageView& input) {
-    const StorageView& normed = _layer_norm(input);
-    StorageView& inner = _ff1(normed);
+  void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) {
+    static thread_local StorageView inner;
+    _layer_norm(input, output);
+    _ff1(output, inner);
     ops::ReLU()(inner);
-    StorageView& outer = _ff2(inner);
-    primitives::add(input.data<float>(), outer.data<float>(), input.size());
-    return outer;
+    _ff2(inner, output);
+    primitives::add(input.data<float>(), output.data<float>(), input.size());
   }
 
 
-  StorageView& DotProductAttention::operator()(const StorageView& queries,
-                                               const StorageView& keys,
-                                               const StorageView& values,
-                                               const StorageView& values_lengths) {
+  void DotProductAttention::operator()(const StorageView& queries,
+                                       const StorageView& keys,
+                                       const StorageView& values,
+                                       const StorageView& values_lengths,
+                                       StorageView& output) {
     assert(queries.rank() == 4);
     assert(keys.rank() == 4);
     assert(values.rank() == 4);
@@ -228,7 +230,7 @@ namespace opennmt {
     size_t queries_time = queries.dim(2);
     size_t memory_time = keys.dim(2);
 
-    ops::MatMul(false, true)(queries, keys, _dot);
+    ops::MatMul(false, true)(queries, keys, output);
 
     if (batch_size > 1) {
       for (size_t b = 0; b < batch_size; ++b) {
@@ -237,16 +239,16 @@ namespace opennmt {
           continue;
         for (size_t h = 0; h < num_heads; ++h) {
           for (size_t i = 0; i < queries_time; ++i) {
-            auto* x = _dot.index<float>({b, h, i});
+            auto* x = output.index<float>({b, h, i});
             primitives::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
           }
         }
       }
     }
 
-    ops::SoftMax()(_dot, _attn);
-    ops::MatMul()(_attn, values, _dot);
-    return _dot;
+    static thread_local StorageView attn;
+    ops::SoftMax()(output, attn);
+    ops::MatMul()(attn, values, output);
   }
 
 
@@ -269,26 +271,31 @@ namespace opennmt {
     y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
   }
 
-  StorageView& MultiHeadAttention::compute_attention(const StorageView& queries,
-                                                     const StorageView& keys,
-                                                     const StorageView& values,
-                                                     const StorageView& values_lengths) {
-    split_heads(queries, _split_queries);
-    split_heads(keys, _split_keys);
-    split_heads(values, _split_values);
+  void MultiHeadAttention::compute_attention(const StorageView& queries,
+                                             const StorageView& keys,
+                                             const StorageView& values,
+                                             const StorageView& values_lengths,
+                                             StorageView& output) {
+    static thread_local StorageView split_queries;
+    static thread_local StorageView split_keys;
+    static thread_local StorageView split_values;
+
+    split_heads(queries, split_queries);
+    split_heads(keys, split_keys);
+    split_heads(values, split_values);
 
     const size_t dk = queries.dim(-1) / _num_heads;
     primitives::mul(static_cast<float>(1.0 / sqrt(dk)),
-                    _split_queries.data<float>(),
-                    _split_queries.size());
+                    split_queries.data<float>(),
+                    split_queries.size());
 
-    const StorageView& context = _attention(_split_queries,
-                                            _split_keys,
-                                            _split_values,
-                                            values_lengths);
-
-    combine_heads(context, _combined);
-    return _combined;
+    static thread_local StorageView context;
+    _attention(split_queries,
+               split_keys,
+               split_values,
+               values_lengths,
+               context);
+    combine_heads(context, output);
   }
 
 
@@ -300,38 +307,46 @@ namespace opennmt {
     , _linear_out(model, scope + "/conv1d_1") {
   }
 
-  StorageView& TransformerSelfAttention::operator()(const StorageView& queries,
-                                                    const StorageView& queries_lengths,
-                                                    StorageView* cached_keys,
-                                                    StorageView* cached_values,
-                                                    ssize_t step) {
-    const StorageView& normed_queries = _layer_norm(queries);
-    const StorageView& fused_proj = _linear_in(normed_queries);
-    ops::Split(-1)(fused_proj, _queries_proj, _keys_proj, _values_proj);
+  void TransformerSelfAttention::operator()(const StorageView& queries,
+                                            const StorageView& queries_lengths,
+                                            StorageView& output,
+                                            StorageView* cached_keys,
+                                            StorageView* cached_values,
+                                            ssize_t step) {
+    static thread_local StorageView normed_queries;
+    static thread_local StorageView fused_proj;
+    static thread_local StorageView queries_proj;
+    static thread_local StorageView keys_proj;
+    static thread_local StorageView values_proj;
+
+    _layer_norm(queries, normed_queries);
+    _linear_in(normed_queries, fused_proj);
+    ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
 
     StorageView values_lengths(queries_lengths);
-    StorageView keys_proj;
-    StorageView values_proj;
+    StorageView true_keys_proj;
+    StorageView true_values_proj;
 
     if (step >= 0 && cached_keys != nullptr) {
-      cache_proj(step, _keys_proj, *cached_keys);
-      cache_proj(step, _values_proj, *cached_values);
-      keys_proj.shallow_copy(*cached_keys);
-      values_proj.shallow_copy(*cached_values);
+      cache_proj(step, keys_proj, *cached_keys);
+      cache_proj(step, values_proj, *cached_values);
+      true_keys_proj.shallow_copy(*cached_keys);
+      true_values_proj.shallow_copy(*cached_values);
       values_lengths.fill(static_cast<int32_t>(step + 1));
     } else {
-      keys_proj.shallow_copy(_keys_proj);
-      values_proj.shallow_copy(_values_proj);
+      true_keys_proj.shallow_copy(keys_proj);
+      true_values_proj.shallow_copy(values_proj);
     }
 
-    const StorageView& attention_output = compute_attention(_queries_proj,
-                                                            keys_proj,
-                                                            values_proj,
-                                                            values_lengths);
+    static thread_local StorageView context;
+    compute_attention(queries_proj,
+                      true_keys_proj,
+                      true_values_proj,
+                      values_lengths,
+                      context);
 
-    StorageView& output = _linear_out(attention_output);
+    _linear_out(context, output);
     primitives::add(queries.data<float>(), output.data<float>(), queries.size());
-    return output;
   }
 
   void TransformerSelfAttention::cache_proj(ssize_t step, StorageView& proj, StorageView& cache) {
@@ -354,35 +369,43 @@ namespace opennmt {
     , _linear_out(model, scope + "/conv1d_2") {
   }
 
-  StorageView& TransformerAttention::operator()(const StorageView& queries,
-                                                const StorageView& memory,
-                                                const StorageView& memory_lengths,
-                                                StorageView* cached_keys,
-                                                StorageView* cached_values,
-                                                ssize_t step) {
-    const StorageView& normed_queries = _layer_norm(queries);
-    const StorageView& queries_proj = _linear_query(normed_queries);
+  void TransformerAttention::operator()(const StorageView& queries,
+                                        const StorageView& memory,
+                                        const StorageView& memory_lengths,
+                                        StorageView& output,
+                                        StorageView* cached_keys,
+                                        StorageView* cached_values,
+                                        ssize_t step) {
+    static thread_local StorageView normed_queries;
+    static thread_local StorageView memory_proj;
+    static thread_local StorageView queries_proj;
+    static thread_local StorageView keys_proj;
+    static thread_local StorageView values_proj;
+
+    _layer_norm(queries, normed_queries);
+    _linear_query(normed_queries, queries_proj);
 
     if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
-      _keys_proj.shallow_copy(*cached_keys);
-      _values_proj.shallow_copy(*cached_values);
+      keys_proj.shallow_copy(*cached_keys);
+      values_proj.shallow_copy(*cached_values);
     } else {
-      const StorageView& memory_proj = _linear_memory(memory);
-      ops::Split(-1)(memory_proj, _keys_proj, _values_proj);
+      _linear_memory(memory, memory_proj);
+      ops::Split(-1)(memory_proj, keys_proj, values_proj);
       if (cached_keys != nullptr) {
-        *cached_keys = _keys_proj;
-        *cached_values = _values_proj;
+        *cached_keys = keys_proj;
+        *cached_values = values_proj;
       }
     }
 
-    const StorageView& attention_output = compute_attention(queries_proj,
-                                                            _keys_proj,
-                                                            _values_proj,
-                                                            memory_lengths);
+    static thread_local StorageView context;
+    compute_attention(queries_proj,
+                      keys_proj,
+                      values_proj,
+                      memory_lengths,
+                      context);
 
-    StorageView& output = _linear_out(attention_output);
+    _linear_out(context, output);
     primitives::add(queries.data<float>(), output.data<float>(), queries.size());
-    return output;
   }
 
 
@@ -392,10 +415,12 @@ namespace opennmt {
     , _ff(model, scope + "/ffn") {
   }
 
-  StorageView& TransformerEncoderLayer::operator()(const StorageView& input,
-                                                   const StorageView& lengths) {
-    const auto& context = _self_attention(input, lengths);
-    return _ff(context);
+  void TransformerEncoderLayer::operator()(const StorageView& input,
+                                           const StorageView& lengths,
+                                           StorageView& output) {
+    static thread_local StorageView context;
+    _self_attention(input, lengths, context);
+    _ff(context, output);
   }
 
 
@@ -406,20 +431,22 @@ namespace opennmt {
     , _ff(model, scope + "/ffn") {
   }
 
-  StorageView& TransformerDecoderLayer::operator()(size_t step,
-                                                   const StorageView& input,
-                                                   const StorageView& input_lengths,
-                                                   const StorageView& memory,
-                                                   const StorageView& memory_lengths,
-                                                   StorageView& cached_self_attn_keys,
-                                                   StorageView& cached_self_attn_values,
-                                                   StorageView& cached_attn_keys,
-                                                   StorageView& cached_attn_values) {
-    const auto& encoded = _self_attention(
-      input, input_lengths, &cached_self_attn_keys, &cached_self_attn_values, step);
-    const auto& context = _encoder_attention(
-      encoded, memory, memory_lengths, &cached_attn_keys, &cached_attn_values, step);
-    return _ff(context);
+  void TransformerDecoderLayer::operator()(size_t step,
+                                           const StorageView& input,
+                                           const StorageView& input_lengths,
+                                           const StorageView& memory,
+                                           const StorageView& memory_lengths,
+                                           StorageView& cached_self_attn_keys,
+                                           StorageView& cached_self_attn_values,
+                                           StorageView& cached_attn_keys,
+                                           StorageView& cached_attn_values,
+                                           StorageView& output) {
+    static thread_local StorageView context;
+    _self_attention(input, input_lengths, output,
+                    &cached_self_attn_keys, &cached_self_attn_values, step);
+    _encoder_attention(output, memory, memory_lengths, context,
+                       &cached_attn_keys, &cached_attn_values, step);
+    return _ff(context, output);
   }
 
 
@@ -436,14 +463,19 @@ namespace opennmt {
     }
   }
 
-  StorageView& TransformerEncoder::encode(const StorageView& ids, const StorageView& lengths) {
-    const auto& embeddings = _scaled_embeddings(ids);
-    const auto& input = _position_encoder(embeddings, lengths);
-    const auto* x = &input;
+  void TransformerEncoder::encode(const StorageView& ids,
+                                  const StorageView& lengths,
+                                  StorageView& output) {
+    static thread_local StorageView embeddings;
+    static thread_local StorageView layer_in;
+    static thread_local StorageView layer_out;
+    _scaled_embeddings(ids, embeddings);
+    _position_encoder(embeddings, lengths, layer_in);
     for (auto& layer : _layers) {
-      x = &layer(*x, lengths);
+      layer(layer_in, lengths, layer_out);
+      std::swap(layer_in, layer_out);
     }
-    return _output_norm(*x);
+    _output_norm(layer_in, output);
   }
 
 
@@ -482,28 +514,34 @@ namespace opennmt {
     _state.reset(new TransformerDecoderState(_layers.size()));
   }
 
-  StorageView& TransformerDecoder::logits(size_t step,
-                                          const StorageView& ids,
-                                          const StorageView& candidates) {
+  void TransformerDecoder::logits(size_t step,
+                                  const StorageView& ids,
+                                  const StorageView& candidates,
+                                  StorageView& output) {
+    static thread_local StorageView embeddings;
+    static thread_local StorageView layer_in;
+    static thread_local StorageView layer_out;
+
     size_t batch_size = ids.dim(0);
-    const auto& embeddings = _scaled_embeddings(ids);
-    const auto& input = _position_encoder(embeddings, step);
+    _scaled_embeddings(ids, embeddings);
+    _position_encoder(embeddings, step, layer_in);
     StorageView query_lengths({batch_size}, static_cast<int32_t>(1));
 
-    const auto* x = &input;
     for (size_t l = 0; l < _layers.size(); ++l) {
-      x = &_layers[l](step,
-                      *x,
-                      query_lengths,
-                      _state->get("memory"),
-                      _state->get("memory_lengths"),
-                      _state->get("self_keys_" + std::to_string(l)),
-                      _state->get("self_values_" + std::to_string(l)),
-                      _state->get("memory_keys_" + std::to_string(l)),
-                      _state->get("memory_values_" + std::to_string(l)));
+      _layers[l](step,
+                 layer_in,
+                 query_lengths,
+                 _state->get("memory"),
+                 _state->get("memory_lengths"),
+                 _state->get("self_keys_" + std::to_string(l)),
+                 _state->get("self_values_" + std::to_string(l)),
+                 _state->get("memory_keys_" + std::to_string(l)),
+                 _state->get("memory_values_" + std::to_string(l)),
+                 layer_out);
+      std::swap(layer_in, layer_out);
     }
-    const auto& normed = _output_norm(*x);
-    return _proj(normed, &candidates);
+    _output_norm(layer_in, layer_out);
+    _proj(layer_out, output, &candidates);
   }
 
 }

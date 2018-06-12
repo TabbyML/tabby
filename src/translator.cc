@@ -58,7 +58,8 @@ namespace opennmt {
     }
 
     // Encode sequence.
-    const auto& encoded = _encoder->encode(ids, lengths);
+    static thread_local StorageView encoded;
+    _encoder->encode(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.
     _decoder->get_state().reset(encoded, lengths);

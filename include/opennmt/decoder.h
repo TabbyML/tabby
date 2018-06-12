@@ -34,9 +34,10 @@ namespace opennmt {
       return *_state;
     }
 
-    virtual StorageView& logits(size_t step,
-                                const StorageView& ids,
-                                const StorageView& candidates) = 0;
+    virtual void logits(size_t step,
+                        const StorageView& ids,
+                        const StorageView& candidates,
+                        StorageView& output) = 0;
 
   protected:
     std::unique_ptr<DecoderState> _state;

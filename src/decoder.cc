@@ -118,7 +118,8 @@ namespace opennmt {
     expand_to_beam_size(decoder.get_state(), beam_size);
     expand_to_beam_size(alive_seq, beam_size);
 
-    StorageView log_probs;
+    static thread_local StorageView log_probs;
+    static thread_local StorageView logits;
     StorageView gather_indices(DataType::DT_INT32);
     StorageView topk_ids(alive_seq);
     StorageView topk_log_probs({beam_size}, std::numeric_limits<float>::lowest());
@@ -134,7 +135,7 @@ namespace opennmt {
 
     for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
-      const auto& logits = decoder.logits(step, topk_ids, candidates);
+      decoder.logits(step, topk_ids, candidates, logits);
       size_t vocabulary_size = logits.dim(-1);
       log_probs_from_logits(logits, log_probs);
 
@@ -239,7 +240,8 @@ namespace opennmt {
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
 
-    StorageView probs;
+    static thread_local StorageView probs;
+    static thread_local StorageView logits;
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
@@ -248,7 +250,7 @@ namespace opennmt {
     sampled_ids.resize(batch_size);
 
     for (size_t step = 0; step < max_steps; ++step) {
-      const auto& logits = decoder.logits(step, sample_from, candidates);
+      decoder.logits(step, sample_from, candidates, logits);
       ops::SoftMax()(logits, probs);
 
       std::vector<bool> finished_batch(logits.dim(0), false);

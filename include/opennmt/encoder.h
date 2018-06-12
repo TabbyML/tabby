@@ -8,8 +8,9 @@ namespace opennmt {
   public:
     virtual ~Encoder() = default;
 
-    virtual StorageView& encode(const StorageView& ids,
-                                const StorageView& lengths) = 0;
+    virtual void encode(const StorageView& ids,
+                        const StorageView& lengths,
+                        StorageView& output) = 0;
   };
 
 }

@@ -29,22 +29,20 @@ namespace opennmt {
   {
   public:
     ScaledEmbeddings(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& ids);
+    void operator()(const StorageView& ids, StorageView& output);
   private:
     ops::Gather _gather_op;
     const StorageView& _embeddings;
-    StorageView _output;
   };
 
   class PositionEncoder
   {
   public:
-    StorageView& operator()(const StorageView& input, const StorageView& lengths);
-    StorageView& operator()(const StorageView& input, size_t index);
+    void operator()(const StorageView& input, const StorageView& lengths, StorageView& output);
+    void operator()(const StorageView& input, size_t index, StorageView& output);
   private:
     size_t _max_cached_time = 500;
     StorageView _cached_encodings;
-    StorageView _output;
     void precompute_position_encoding(size_t max_time, size_t depth);
   };
 
@@ -52,32 +50,32 @@ namespace opennmt {
   {
   public:
     Dense(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& input, const StorageView* index = nullptr);
+    void operator()(const StorageView& input,
+                    StorageView& output,
+                    const StorageView* index = nullptr);
   private:
     const StorageView& _weight;
     const StorageView& _bias;
     StorageView _partial_weight;
     StorageView _partial_bias;
-    StorageView _output;
   };
 
   class LayerNorm
   {
   public:
     LayerNorm(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& input);
+    void operator()(const StorageView& input, StorageView& output);
   private:
     ops::LayerNorm _norm_op;
     const StorageView& _beta;
     const StorageView& _gamma;
-    StorageView _output;
   };
 
   class TransformerFeedForward
   {
   public:
     TransformerFeedForward(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& input);
+    void operator()(const StorageView& input, StorageView& output);
   private:
     LayerNorm _layer_norm;
     Dense _ff1;
@@ -87,33 +85,28 @@ namespace opennmt {
   class DotProductAttention
   {
   public:
-    StorageView& operator()(const StorageView& queries,
-                            const StorageView& keys,
-                            const StorageView& values,
-                            const StorageView& values_lengths);
-  private:
-    StorageView _dot;
-    StorageView _attn;
+    void operator()(const StorageView& queries,
+                    const StorageView& keys,
+                    const StorageView& values,
+                    const StorageView& values_lengths,
+                    StorageView& output);
   };
 
   class MultiHeadAttention
   {
   public:
     MultiHeadAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
-    StorageView& compute_attention(const StorageView& queries,
-                                   const StorageView& keys,
-                                   const StorageView& values,
-                                   const StorageView& values_lengths);
+    void compute_attention(const StorageView& queries,
+                           const StorageView& keys,
+                           const StorageView& values,
+                           const StorageView& values_lengths,
+                           StorageView& output);
   protected:
     LayerNorm _layer_norm;
   private:
     size_t _num_heads;
     DotProductAttention _attention;
     ops::Transpose _transpose_op;
-    StorageView _split_queries;
-    StorageView _split_keys;
-    StorageView _split_values;
-    StorageView _combined;
     void split_heads(const StorageView& x, StorageView& y);
     void combine_heads(const StorageView& x, StorageView& y);
   };
@@ -122,17 +115,15 @@ namespace opennmt {
   {
   public:
     TransformerSelfAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
-    StorageView& operator()(const StorageView& queries,
-                            const StorageView& queries_lengths,
-                            StorageView* cached_keys = nullptr,
-                            StorageView* cached_values = nullptr,
-                            ssize_t step = 0);
+    void operator()(const StorageView& queries,
+                    const StorageView& queries_lengths,
+                    StorageView& output,
+                    StorageView* cached_keys = nullptr,
+                    StorageView* cached_values = nullptr,
+                    ssize_t step = 0);
   private:
     Dense _linear_in;
     Dense _linear_out;
-    StorageView _queries_proj;
-    StorageView _keys_proj;
-    StorageView _values_proj;
     static void cache_proj(ssize_t step, StorageView& proj, StorageView& cache);
   };
 
@@ -142,12 +133,13 @@ namespace opennmt {
     TransformerAttention(const TransformerModel& model,
                          const std::string& scope,
                          size_t num_heads);
-    StorageView& operator()(const StorageView& queries,
-                            const StorageView& memory,
-                            const StorageView& memory_lengths,
-                            StorageView* cached_keys = nullptr,
-                            StorageView* cached_values = nullptr,
-                            ssize_t step = -1);
+    void operator()(const StorageView& queries,
+                    const StorageView& memory,
+                    const StorageView& memory_lengths,
+                    StorageView& output,
+                    StorageView* cached_keys = nullptr,
+                    StorageView* cached_values = nullptr,
+                    ssize_t step = -1);
   private:
     Dense _linear_query;
     Dense _linear_memory;
@@ -160,8 +152,9 @@ namespace opennmt {
   {
   public:
     TransformerEncoderLayer(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(const StorageView& input,
-                            const StorageView& lengths);
+    void operator()(const StorageView& input,
+                    const StorageView& lengths,
+                    StorageView& output);
   private:
     TransformerSelfAttention _self_attention;
     TransformerFeedForward _ff;
@@ -171,15 +164,16 @@ namespace opennmt {
   {
   public:
     TransformerDecoderLayer(const TransformerModel& model, const std::string& scope);
-    StorageView& operator()(size_t step,
-                            const StorageView& input,
-                            const StorageView& input_lengths,
-                            const StorageView& memory,
-                            const StorageView& memory_lengths,
-                            StorageView& cached_self_attn_keys,
-                            StorageView& cached_self_attn_values,
-                            StorageView& cached_attn_keys,
-                            StorageView& cached_attn_values);
+    void operator()(size_t step,
+                    const StorageView& input,
+                    const StorageView& input_lengths,
+                    const StorageView& memory,
+                    const StorageView& memory_lengths,
+                    StorageView& cached_self_attn_keys,
+                    StorageView& cached_self_attn_values,
+                    StorageView& cached_attn_keys,
+                    StorageView& cached_attn_values,
+                    StorageView& output);
   private:
     TransformerSelfAttention _self_attention;
     TransformerAttention _encoder_attention;
@@ -190,8 +184,9 @@ namespace opennmt {
   {
   public:
     TransformerEncoder(const TransformerModel& model, const std::string& scope);
-    StorageView& encode(const StorageView& ids,
-                        const StorageView& lengths) override;
+    void encode(const StorageView& ids,
+                const StorageView& lengths,
+                StorageView& output) override;
   private:
     ScaledEmbeddings _scaled_embeddings;
     PositionEncoder _position_encoder;
@@ -210,9 +205,10 @@ namespace opennmt {
   {
   public:
     TransformerDecoder(const TransformerModel& model, const std::string& scope);
-    StorageView& logits(size_t step,
-                        const StorageView& ids,
-                        const StorageView& candidates) override;
+    void logits(size_t step,
+                const StorageView& ids,
+                const StorageView& candidates,
+                StorageView& output) override;
   private:
     ScaledEmbeddings _scaled_embeddings;
     PositionEncoder _position_encoder;
