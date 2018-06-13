@@ -1,6 +1,6 @@
 #include "opennmt/storage_view.h"
 
-#include "opennmt/utils.h"
+#include <mkl.h>
 
 #define ALIGNMENT 64
 
@@ -48,10 +48,9 @@ namespace opennmt {
   }
 
   StorageView& StorageView::release() {
-    if (_own_data && _buffer != nullptr)
-      free(_buffer);
+    if (_own_data && _data != nullptr)
+      mkl_free(_data);
     _data = nullptr;
-    _buffer = nullptr;
     _allocated_size = 0;
     return clear();
   }
@@ -60,10 +59,7 @@ namespace opennmt {
     release();
     size_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-    size_t buffer_space = required_bytes + ALIGNMENT;
-    _buffer = malloc(buffer_space);
-    _data = _buffer;
-    align(ALIGNMENT, required_bytes, _data, buffer_space);
+    _data = mkl_malloc(required_bytes, ALIGNMENT);
     assert(_data != nullptr);
     _own_data = true;
     _allocated_size = size;
@@ -145,7 +141,6 @@ namespace opennmt {
   StorageView& StorageView::assign(StorageView&& other) {
     assert(other._dtype == _dtype);
     std::swap(_data, other._data);
-    std::swap(_buffer, other._buffer);
     std::swap(_own_data, other._own_data);
     std::swap(_allocated_size, other._allocated_size);
     std::swap(_size, other._size);

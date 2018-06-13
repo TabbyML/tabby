@@ -167,7 +167,6 @@ namespace opennmt {
   protected:
     DataType _dtype = DataType::DT_FLOAT;
     void* _data = nullptr;
-    void* _buffer = nullptr;
     bool _own_data = true;
     size_t _allocated_size = 0;
     size_t _size = 0;
