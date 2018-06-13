@@ -5,7 +5,6 @@ option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall")
@@ -22,19 +21,10 @@ endif()
 add_definitions(-DWITH_MKL)
 link_directories(${MKLML_ROOT}/lib)
 
-if (EIGEN_ROOT)
-  set(ENV{EIGEN3_ROOT} ${EIGEN_ROOT})
-endif()
-if (EIGEN3_ROOT)
-  set(ENV{EIGEN3_ROOT} ${EIGEN3_ROOT})
-endif()
-
-find_package(Eigen3 3.3 REQUIRED)
 find_package(Threads)
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${EIGEN3_INCLUDE_DIR}
   ${MKLML_ROOT}/include
   )
 set(SOURCES
