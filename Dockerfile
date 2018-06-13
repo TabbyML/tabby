@@ -8,7 +8,6 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
-        cpio \
         g++-8 \
         gcc-8 \
         libboost-program-options-dev \
