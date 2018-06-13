@@ -38,6 +38,12 @@ namespace opennmt {
               float alpha, float beta,
               float* c);
     template<>
+    void gemm(const int16_t* a, const int16_t* b,
+              bool transpose_a, bool transpose_b,
+              size_t m, size_t n, size_t k,
+              int16_t alpha, int32_t beta,
+              int32_t* c);
+    template<>
     void gemm_batch(const float* a, const float* b,
                     bool transpose_a, bool transpose_b,
                     size_t batch_size,

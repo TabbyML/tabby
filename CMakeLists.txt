@@ -42,7 +42,6 @@ set(SOURCES
   src/decoder.cc
   src/model.cc
   src/primitives/cpu_mkl.cc
-  src/primitives/cpu_simd.cc
   src/storage_view.cc
   src/transformer.cc
   src/translator.cc

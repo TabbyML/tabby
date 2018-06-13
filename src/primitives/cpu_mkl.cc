@@ -92,6 +92,38 @@ namespace opennmt {
     }
 
     template<>
+    void gemm(const int16_t* a, const int16_t* b,
+              bool transpose_a, bool transpose_b,
+              size_t m, size_t n, size_t k,
+              int16_t alpha, int32_t beta,
+              int32_t* c) {
+      MKL_INT lda = transpose_a ? m : k;
+      MKL_INT ldb = transpose_b ? k : n;
+      MKL_INT ldc = n;
+
+      MKL_INT m_ = m;
+      MKL_INT n_ = n;
+      MKL_INT k_ = k;
+
+      CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
+      CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
+      CBLAS_OFFSET offsetc = CblasFixOffset;
+
+      MKL_INT16 oa = 0;
+      MKL_INT16 ob = 0;
+      MKL_INT32 oc = 0;
+
+      cblas_gemm_s16s16s32(CblasRowMajor,
+                           trans_a, trans_b,
+                           offsetc, m_, n_, k_,
+                           static_cast<float>(alpha),
+                           reinterpret_cast<const MKL_INT16*>(a), lda, oa,
+                           reinterpret_cast<const MKL_INT16*>(b), ldb, ob,
+                           static_cast<float>(beta),
+                           reinterpret_cast<MKL_INT32*>(c), ldc, &oc);
+    }
+
+    template<>
     void gemm_batch(const float* a, const float* b,
                     bool transpose_a, bool transpose_b,
                     size_t batch_size,
