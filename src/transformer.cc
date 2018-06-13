@@ -92,7 +92,14 @@ namespace opennmt {
 
   void ScaledEmbeddings::operator()(const StorageView& ids,
                                     StorageView& output) {
-    _gather_op(_embeddings, ids, output);
+    if (_embeddings.dtype() == DataType::DT_INT16) {
+      static const ops::Unquantize unquantize_op(1000);
+      static thread_local StorageView gathered(_embeddings.dtype());
+      _gather_op(_embeddings, ids, gathered);
+      unquantize_op(gathered, output);
+    } else {
+      _gather_op(_embeddings, ids, output);
+    }
     const size_t embedding_size = _embeddings.dim(-1);
     primitives::mul(static_cast<float>(sqrt(embedding_size)),
                     output.data<float>(),
