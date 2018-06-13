@@ -165,9 +165,7 @@ int main(int argc, char* argv[]) {
 
   size_t inter_threads = vm["inter_threads"].as<size_t>();
   size_t intra_threads = vm["intra_threads"].as<size_t>();
-  if (intra_threads > 0) {
-    opennmt::set_num_threads(intra_threads);
-  }
+  opennmt::init(intra_threads);
 
   auto model = opennmt::ModelFactory::load(opennmt::ModelType::Transformer,
                                            vm["model"].as<std::string>(),

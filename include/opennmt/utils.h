@@ -22,9 +22,11 @@ namespace opennmt
     return ptr = reinterpret_cast< void * >( aligned );
   }
 
-  inline void set_num_threads(size_t num_threads) {
+  inline void init(size_t num_threads) {
 #ifdef WITH_MKL
-    mkl_set_num_threads(num_threads);
+    vmlSetMode(VML_EP);
+    if (num_threads > 0)
+      mkl_set_num_threads(num_threads);
 #endif
   }
 
