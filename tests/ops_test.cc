@@ -10,6 +10,14 @@ TEST(OpTest, AddFloat) {
   expect_storage_eq(c, expected);
 }
 
+TEST(OpTest, ConcatEmpty) {
+  StorageView a({2, 1, 2}, std::vector<float>{1, 2, 3, 4});
+  StorageView b({2, 0, 2});
+  StorageView x;
+  ops::Concat(1)({&a, &b}, x);
+  expect_storage_eq(x, a);
+}
+
 TEST(OpTest, ConcatSplitBatch) {
   StorageView a({2, 2}, std::vector<float>{1, 2, 3, 4});
   StorageView b({1, 2}, std::vector<float>{5, 6});

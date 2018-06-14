@@ -14,3 +14,12 @@ TEST(StorageViewTest, Swap) {
   expect_storage_eq(a, expected_a);
   expect_storage_eq(b, expected_b);
 }
+
+TEST(StorageViewTest, ZeroDim) {
+  StorageView a({2, 0, 2});
+  EXPECT_EQ(a.size(), 0);
+  EXPECT_EQ(a.rank(), 3);
+  EXPECT_EQ(a.dim(0), 2);
+  EXPECT_EQ(a.dim(1), 0);
+  EXPECT_EQ(a.dim(2), 2);
+}

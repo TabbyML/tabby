@@ -30,6 +30,7 @@ namespace opennmt {
         size_t axis = _axis < 0 ? rank + _axis : _axis;
         size_t concat_dims = 0;
         for (const auto& x : inputs) {
+          assert(x->rank() == rank);
           concat_dims += x->dim(axis);
         }
 
@@ -45,6 +46,8 @@ namespace opennmt {
             iter_dim *= x->dim(i);
           for (size_t i = axis; i < x->rank(); ++i)
             copy_dim *= x->dim(i);
+          if (copy_dim == 0)
+            continue;
           for (size_t i = 0; i < iter_dim; ++i) {
             primitives::copy(x->data<T>() + i * copy_dim,
                              output.data<T>() + offset + i * concat_dims * output.stride(axis),
