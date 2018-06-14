@@ -4,15 +4,12 @@
 
 namespace opennmt {
 
-  std::shared_ptr<Model> ModelFactory::load(ModelType type,
-                                            const std::string& path,
-                                            const std::string& source_vocabulary_path,
-                                            const std::string& target_vocabulary_path) {
+  std::shared_ptr<Model> ModelFactory::load(ModelType type, const std::string& path) {
     Model* model = nullptr;
 
     switch (type) {
     case ModelType::Transformer:
-      model = new TransformerModel(path, source_vocabulary_path, target_vocabulary_path);
+      model = new TransformerModel(path);
       break;
     }
 

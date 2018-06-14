@@ -136,8 +136,6 @@ int main(int argc, char* argv[]) {
   desc.add_options()
     ("help", "display available options")
     ("model", po::value<std::string>(), "path to the model")
-    ("src_vocab", po::value<std::string>(), "path to the source vocabulary")
-    ("tgt_vocab", po::value<std::string>(), "path to the target vocabulary")
     ("src", po::value<std::string>(), "path to the file to translate (read from the standard input if not set)")
     ("tgt", po::value<std::string>(), "path to the output file (write to the standard output if not set")
     ("vocab_mapping", po::value<std::string>()->default_value(""), "path to a vocabulary mapping table")
@@ -168,9 +166,7 @@ int main(int argc, char* argv[]) {
   opennmt::init(intra_threads);
 
   auto model = opennmt::ModelFactory::load(opennmt::ModelType::Transformer,
-                                           vm["model"].as<std::string>(),
-                                           vm["src_vocab"].as<std::string>(),
-                                           vm["tgt_vocab"].as<std::string>());
+                                           vm["model"].as<std::string>());
 
   std::vector<opennmt::Translator> translator_pool;
   translator_pool.emplace_back(model,

@@ -18,14 +18,13 @@ namespace opennmt {
     return data;
   }
 
-  TransformerModel::TransformerModel(const std::string& path,
-                                     const std::string& source_vocabulary_path,
-                                     const std::string& target_vocabulary_path)
-    : _source_vocabulary(source_vocabulary_path)
-    , _target_vocabulary(target_vocabulary_path) {
-    std::ifstream model(path, std::ios_base::in | std::ios_base::binary);
+  TransformerModel::TransformerModel(const std::string& path)
+    : _source_vocabulary(path + "/source_vocabulary.txt")
+    , _target_vocabulary(path + "/target_vocabulary.txt") {
+    std::string model_path = path + "/model.bin";
+    std::ifstream model(model_path, std::ios_base::in | std::ios_base::binary);
     if (!model.is_open())
-      throw std::runtime_error("failed to load the model " + path);
+      throw std::runtime_error("failed to load the model " + model_path);
 
     auto num_variables = consume<uint32_t>(model);
 

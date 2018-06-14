@@ -11,9 +11,7 @@ namespace opennmt {
   class TransformerModel : public Model
   {
   public:
-    TransformerModel(const std::string& path,
-                     const std::string& source_vocabulary_path,
-                     const std::string& target_vocabulary_path);
+    TransformerModel(const std::string& path);
     const StorageView& get_variable(const std::string& scope) const;
     const Vocabulary& get_source_vocabulary() const override;
     const Vocabulary& get_target_vocabulary() const override;
