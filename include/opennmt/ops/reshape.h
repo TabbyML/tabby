@@ -5,7 +5,7 @@
 namespace opennmt {
   namespace ops {
 
-    class Reshape {
+    class Reshape : public BinaryOp {
     public:
       // TODO: support -1 dimension.
       void operator()(StorageView& data, const StorageView& shape) const {
@@ -15,7 +15,7 @@ namespace opennmt {
 
       void operator()(const StorageView& data,
                       const StorageView& shape,
-                      StorageView& reshaped) const {
+                      StorageView& reshaped) const override {
         reshaped = data;
         reshaped.reshape(std::vector<size_t>(shape.data<int32_t>(),
                                              shape.data<int32_t>() + shape.size()));
