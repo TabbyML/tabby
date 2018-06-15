@@ -27,6 +27,7 @@ namespace opennmt {
 
   class ModelFactory {
   public:
+    static std::shared_ptr<Model> load(const std::string& type, const std::string& path);
     static std::shared_ptr<Model> load(ModelType type, const std::string& path);
   };
 
