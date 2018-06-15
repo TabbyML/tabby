@@ -11,6 +11,8 @@ RUN apt-get update && \
         g++-8 \
         gcc-8 \
         libboost-program-options-dev \
+        libboost-python-dev \
+        python-setuptools \
         wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -35,9 +37,13 @@ RUN mkdir build && \
     VERBOSE=1 make -j4 && \
     make install
 
+WORKDIR /root/ctranslate-dev/python
+RUN CTRANSLATE_ROOT=/root/ctranslate python setup.py bdist_egg
+
 WORKDIR /root
 RUN cp -r /root/mklml/lib/libiomp5.so /root/ctranslate/lib && \
-    cp -r /root/mklml/lib/libmklml_intel.so /root/ctranslate/lib
+    cp -r /root/mklml/lib/libmklml_intel.so /root/ctranslate/lib && \
+    cp /root/ctranslate-dev/python/dist/ctranslate-0.1.0-py2.7-linux-x86_64.egg /root/ctranslate
 
 FROM ubuntu:16.04
 
@@ -47,12 +53,16 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         libstdc++6 \
-        libboost-program-options1.58.0 && \
+        libboost-program-options1.58.0 \
+        libboost-python1.58.0 \
+        python-setuptools && \
     apt-get autoremove -y software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/ctranslate /root/ctranslate
+
+RUN easy_install /root/ctranslate/ctranslate-0.1.0-py2.7-linux-x86_64.egg
 
 WORKDIR /root
 

@@ -3,5 +3,6 @@
 !cli
 !cmake
 !include
+!python
 !src
 !tests
