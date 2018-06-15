@@ -2,6 +2,7 @@
 #include <boost/python/stl_iterator.hpp>
 
 #include <opennmt/translator.h>
+#include <opennmt/utils.h>
 
 namespace py = boost::python;
 
@@ -18,10 +19,15 @@ public:
                   beam_size,
                   length_penalty,
                   "") {
+    opennmt::init(4);
   }
 
   TranslatorWrapper shallow_copy() {
     return TranslatorWrapper(*this);
+  }
+
+  void set_intra_threads(int n) {
+    opennmt::set_num_threads(n);
   }
 
   py::list translate_batch(const py::object& tokens) {
@@ -63,6 +69,7 @@ BOOST_PYTHON_MODULE(translator)
          py::arg("beam_size")=2,
          py::arg("length_penalty")=0.6)))
     .def("translate_batch", &TranslatorWrapper::translate_batch)
+    .def("set_intra_threads", &TranslatorWrapper::set_intra_threads)
     .def("__copy__", &TranslatorWrapper::shallow_copy)
     ;
 }

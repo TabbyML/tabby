@@ -27,5 +27,6 @@ setup(
     name="ctranslate",
     version="0.1.0",
     packages=["ctranslate"],
-    ext_modules=[ctranslate_module]
+    ext_modules=[ctranslate_module],
+    install_requires=["tensorflow==1.8.0"]
 )
