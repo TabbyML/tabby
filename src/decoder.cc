@@ -4,12 +4,12 @@
 
 namespace opennmt {
 
+  // Convenience functions to gather "in-place" (actually uses a temporary).
   static void gather(StorageView& input, const StorageView& indices) {
     static const ops::Gather gather_op;
     StorageView input_clone(input);
     gather_op(input_clone, indices, input);
   }
-
   static void gather(DecoderState& state, const StorageView& indices) {
     for (auto& pair : state.get()) {
       gather(pair.second, indices);
@@ -51,6 +51,7 @@ namespace opennmt {
 
   template <typename T = float>
   static void log_probs_from_logits(const StorageView& logits, StorageView& log_probs) {
+    // TODO: implement the operator ReduceLogSumExp.
     log_probs.resize_as(logits);
 
     size_t depth = logits.dim(-1);
@@ -273,9 +274,11 @@ namespace opennmt {
         }
       }
 
+      // No more sentences are alive, stop here.
       if (count_alive == 0)
         break;
 
+      // Remove finished sentences from the execution.
       if (one_finished) {
         alive.resize({count_alive});
         size_t write_index = 0;

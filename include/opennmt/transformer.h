@@ -1,5 +1,8 @@
 #pragma once
 
+// This file defines the execution engine for a Transformer model trained with OpenNMT-tf
+// and exported with the python/ctranslate/convert_model.py tool.
+
 #include <map>
 
 #include "model.h"

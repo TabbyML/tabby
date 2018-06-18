@@ -22,8 +22,8 @@ namespace opennmt {
   Translator::Translator(const Translator& other)
     : _model(other._model)
     , _vocabulary_map(other._vocabulary_map)
-    , _encoder(_model->make_encoder())
-    , _decoder(_model->make_decoder())
+    , _encoder(_model->make_encoder())  // Makes a new graph to ensure thread safety.
+    , _decoder(_model->make_decoder())  // Same here.
     , _max_decoding_steps(other._max_decoding_steps)
     , _beam_size(other._beam_size)
     , _length_penalty(other._length_penalty) {

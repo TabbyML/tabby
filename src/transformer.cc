@@ -42,14 +42,15 @@ namespace opennmt {
         shape[k] = static_cast<size_t>(dimensions[k]);
       }
 
+      // View the read buffer.
       StorageView* view = nullptr;
-
       if (data_width == 4) {
-        view = new StorageView(reinterpret_cast<float*>(data), shape);
+        view = new StorageView(shape, reinterpret_cast<float*>(data));
       } else if (data_width == 2) {
-        view = new StorageView(reinterpret_cast<int16_t*>(data), shape);
+        view = new StorageView(shape, reinterpret_cast<int16_t*>(data));
       }
 
+      // We use the copy constructor so that the storage owns aligned data.
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),
                               std::forward_as_tuple(*view));
@@ -267,8 +268,8 @@ namespace opennmt {
   }
 
   void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) {
-    StorageView z(const_cast<float*>(x.data<float>()),
-                  {x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
+    StorageView z({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads},
+                  const_cast<float*>(x.data<float>()));
     _transpose_op(z, y);
   }
 

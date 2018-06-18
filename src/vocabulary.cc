@@ -15,6 +15,7 @@ namespace opennmt {
       _token_to_id.emplace(line, _id_to_token.size());
       _id_to_token.push_back(line);
     }
+    // Append the unknown token if not found in the vocabulary file.
     if (_token_to_id.count(unk_token) == 0) {
       _token_to_id.emplace(unk_token, _id_to_token.size());
       _id_to_token.push_back(unk_token);

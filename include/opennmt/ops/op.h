@@ -8,13 +8,18 @@
 namespace opennmt {
   namespace ops {
 
+    // Base class for operators.
     class Op {
     public:
       virtual ~Op() = default;
+
+      // Shared interface for graph execution.
       virtual void operator()(const std::vector<StorageView*>& inputs,
                               std::vector<StorageView*>& outputs) const = 0;
     };
 
+
+    // Base classes for common N-ary operators.
     class UnaryOp : public Op {
     public:
       virtual void operator()(const std::vector<StorageView*>& inputs,
@@ -23,6 +28,7 @@ namespace opennmt {
       }
       virtual void operator()(const StorageView&, StorageView&) const = 0;
     };
+
     class BinaryOp : public Op {
     public:
       virtual void operator()(const std::vector<StorageView*>& inputs,
@@ -31,6 +37,7 @@ namespace opennmt {
       }
       virtual void operator()(const StorageView&, const StorageView&, StorageView&) const = 0;
     };
+
     class TernaryOp : public Op {
     public:
       virtual void operator()(const std::vector<StorageView*>& inputs,

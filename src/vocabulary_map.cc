@@ -52,6 +52,7 @@ namespace opennmt {
                                      std::set<size_t>& candidates) const {
     candidates.insert(_static_ids.begin(), _static_ids.end());
 
+    // The field marked by the empty string are common tokens that are always candidates.
     auto it = _map_rules[0].find("");
     if (it != _map_rules[0].end()) {
       for (const auto& v : it->second)

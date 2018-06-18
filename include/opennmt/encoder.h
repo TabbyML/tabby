@@ -4,6 +4,7 @@
 
 namespace opennmt {
 
+  // Base class for encoders.
   class Encoder {
   public:
     virtual ~Encoder() = default;

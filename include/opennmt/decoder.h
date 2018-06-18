@@ -10,6 +10,7 @@
 
 namespace opennmt {
 
+  // Base class for storing decoder states as a string to StorageView map.
   class DecoderState {
   public:
     DecoderState();
@@ -26,6 +27,7 @@ namespace opennmt {
     void add(const std::string& name, DataType dtype = DataType::DT_FLOAT);
   };
 
+  // Base class for decoders.
   class Decoder {
   public:
     virtual ~Decoder() = default;

@@ -1,5 +1,11 @@
 #pragma once
 
+// This file lists supported storage types and statically associates enum entries
+// with the true types.
+//
+// The implemented approach comes from:
+// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.h
+
 #include <map>
 
 namespace opennmt {

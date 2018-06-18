@@ -7,6 +7,8 @@
 namespace opennmt {
   namespace primitives {
 
+    // MKL specializations.
+
     template<>
     void copy(const float* x, float* y, size_t size);
     template<>

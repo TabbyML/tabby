@@ -11,21 +11,18 @@ using Shape = std::vector<size_t>;
 
 namespace opennmt {
 
-  // The `StorageView` class is a light wrapper around an allocated buffer to give
-  // it a sense of shape.
+  // This class is a light wrapper around an allocated buffer which adds shape information.
   //
-  // 1. it can be resized, reshaped, copied, and assigned
-  // 2. it can view an existing buffer to avoid memory copy
-  // 3. the buffer can be of any type and casting is supported
-  // 4. allocation is aligned by default to 64 bytes: wasted space is minimal and it
-  //    is required when working with intrinsics up to AVX512
+  // 1. it can be resized, reshaped, copied, and assigned;
+  // 2. it can view an existing buffer to avoid memory copy;
+  // 3. the buffer can be of any type and uses dynamic type dispatch (to allow collections
+  //    of heterogeneous storages);
+  // 4. allocation is aligned by default to 64 bytes.
   class StorageView
   {
   public:
     StorageView(DataType type = DataType::DT_FLOAT);
     StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT);
-    StorageView(const StorageView& other);
-    StorageView(StorageView&& other);
 
     template <typename T>
     StorageView(const Shape& shape, T init = T())
@@ -35,32 +32,44 @@ namespace opennmt {
     }
 
     template <typename T>
-    StorageView(const Shape& shape, const std::vector<T>& init)
-      : _dtype(DataTypeToEnum<T>::value) {
-      resize(shape);
-      copy_from(init.data(), init.size());
-    }
-
-    template <typename T>
-    StorageView(T* data, const Shape& shape)
-      : _dtype(DataTypeToEnum<T>::value) {
-      assign(data, shape);
-    }
-
-    template <typename T>
     StorageView(T scalar)
       : _dtype(DataTypeToEnum<T>::value) {
       resize({1});
       fill(scalar);
     }
 
+    // Create from a std::vector (copy).
+    template <typename T>
+    StorageView(const Shape& shape, const std::vector<T>& init)
+      : _dtype(DataTypeToEnum<T>::value) {
+      resize(shape);
+      copy_from(init.data(), init.size());
+    }
+
+    // Create from a buffer (no copy).
+    template <typename T>
+    StorageView(const Shape& shape, T* data)
+      : _dtype(DataTypeToEnum<T>::value) {
+      assign(data, shape);
+    }
+
+    // Copy constructor.
+    StorageView(const StorageView& other);
+    // Move constructor (swap of each attribute).
+    StorageView(StorageView&& other);
     ~StorageView();
 
+    // Actual storage type.
     DataType dtype() const;
+    // Allocated memory size.
     size_t reserved_memory() const;
+    // Clears the content (memory is still reserved).
     StorageView& clear();
+    // Releases the memory.
     StorageView& release();
+    // Reserves this size (data are discarded).
     StorageView& reserve(size_t size);
+
     size_t rank() const;
     const Shape& shape() const;
     size_t dim(ssize_t dim) const;
@@ -77,6 +86,7 @@ namespace opennmt {
     StorageView& grow(size_t dim, size_t size);
     StorageView& shrink(size_t dim, size_t size);
 
+    // Assignment operators.
     StorageView& operator=(const StorageView& other);
     StorageView& operator=(StorageView&& other);
     StorageView& assign(const StorageView& other);

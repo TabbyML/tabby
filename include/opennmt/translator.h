@@ -8,6 +8,9 @@
 
 namespace opennmt {
 
+  // This class holds all information required to translate from a model. Copying
+  // a Translator instance does not duplicate the model data and the copy can
+  // be safely executed in parallel.
   class Translator {
   public:
     Translator(const std::shared_ptr<Model>& model,

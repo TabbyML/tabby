@@ -201,6 +201,7 @@ namespace opennmt {
   std::ostream& operator<<(std::ostream& os, const StorageView& storage) {
     TYPE_DISPATCH(
       storage.dtype(),
+      // Do not spam output stream for large storages.
       if (storage.size() < 7) {
         for (size_t i = 0; i < storage.size(); ++i) {
           os << ' ' << storage.data<T>()[i];

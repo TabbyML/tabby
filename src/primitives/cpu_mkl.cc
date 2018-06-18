@@ -5,15 +5,14 @@
 namespace opennmt {
   namespace primitives {
 
-    // Intel MKL specialization for standard float.
     template<>
     void copy(const float* x, float* y, size_t size) {
-      cblas_scopy(size, x, 1, y, 1);
+      cblas_scopy(size, x, 1 /* incx */, y, 1 /* incy */);
     }
 
     template<>
     void add(float a, float* y, size_t size) {
-      cblas_saxpy(size, 1.0, &a, 0, y, 1);
+      cblas_saxpy(size, 1.0 /* a */, &a, 0 /* incx */, y, 1 /* incy */);
     }
 
     template<>
@@ -33,7 +32,7 @@ namespace opennmt {
 
     template<>
     void mul(float a, float* y, size_t size) {
-      cblas_sscal(size, a, y, 1);
+      cblas_sscal(size, a, y, 1 /* incx */);
     }
 
     template<>

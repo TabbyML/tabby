@@ -6,6 +6,7 @@
 
 namespace opennmt {
 
+  // Implements an standard indexed vocabulary
   class Vocabulary
   {
   public:

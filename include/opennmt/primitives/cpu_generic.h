@@ -7,6 +7,8 @@
 namespace opennmt {
   namespace primitives {
 
+    // Generic primitives relying on the STL.
+
     template <typename T>
     void fill(T* x, T a, size_t size) {
       std::fill_n(x, size, a);

@@ -1,5 +1,7 @@
 #pragma once
 
+// Operators following ONNX specifications.
+
 #include "add.h"
 #include "concat.h"
 #include "cos.h"

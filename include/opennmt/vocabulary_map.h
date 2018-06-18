@@ -9,6 +9,12 @@
 
 namespace opennmt {
 
+  // This class loads a vocabulary mapping model, a text file associating n-grams
+  // with list of possible target candidates:
+  //
+  //    <n-gram> \t candidate1 candidate2 ... candidateN
+  //
+  // and provides methods to map input tokens to possible target tokens.
   class VocabularyMap {
   public:
     VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary);
