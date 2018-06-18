@@ -25,7 +25,7 @@ RUN wget https://github.com/intel/mkl-dnn/releases/download/v0.14/mklml_lnx_2018
     mv mklml_lnx_2018.0.3.20180406 mklml
 
 ARG CXX_FLAGS
-ENV CXX_FLAGS=${CXX_FLAGS:--mavx2}
+ENV CXX_FLAGS=${CXX_FLAGS:--mavx}
 
 COPY . ctranslate-dev
 WORKDIR /root/ctranslate-dev
