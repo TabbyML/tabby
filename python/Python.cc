@@ -6,6 +6,10 @@
 
 namespace py = boost::python;
 
+void set_intra_threads(int n) {
+  opennmt::set_num_threads(n);
+}
+
 class TranslatorWrapper
 {
 public:
@@ -24,10 +28,6 @@ public:
 
   TranslatorWrapper shallow_copy() {
     return TranslatorWrapper(*this);
-  }
-
-  void set_intra_threads(int n) {
-    opennmt::set_num_threads(n);
   }
 
   py::list translate_batch(const py::object& tokens) {
@@ -62,14 +62,14 @@ private:
 
 BOOST_PYTHON_MODULE(translator)
 {
+  py::def("set_intra_threads", &set_intra_threads);
   py::class_<TranslatorWrapper>(
       "Translator",
       py::init<std::string, std::string, size_t, size_t, float>(
-        (py::arg("max_decoding_steps")=200,
-         py::arg("beam_size")=2,
+        (py::arg("max_decoding_steps")=250,
+         py::arg("beam_size")=4,
          py::arg("length_penalty")=0.6)))
     .def("translate_batch", &TranslatorWrapper::translate_batch)
-    .def("set_intra_threads", &TranslatorWrapper::set_intra_threads)
     .def("__copy__", &TranslatorWrapper::shallow_copy)
     ;
 }
