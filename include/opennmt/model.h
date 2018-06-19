@@ -21,6 +21,8 @@ namespace opennmt {
     // data (i.e. the weights).
     virtual std::unique_ptr<Encoder> make_encoder() const = 0;
     virtual std::unique_ptr<Decoder> make_decoder() const = 0;
+
+    static StorageView load_data(const Shape& shape, size_t data_width, void* data);
   };
 
 

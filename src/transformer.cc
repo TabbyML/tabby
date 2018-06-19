@@ -42,20 +42,13 @@ namespace opennmt {
         shape[k] = static_cast<size_t>(dimensions[k]);
       }
 
-      // View the read buffer.
-      StorageView* view = nullptr;
-      if (data_width == 4) {
-        view = new StorageView(shape, reinterpret_cast<float*>(data));
-      } else if (data_width == 2) {
-        view = new StorageView(shape, reinterpret_cast<int16_t*>(data));
-      }
+      StorageView variable = Model::load_data(shape, data_width, data);
 
       // We use the copy constructor so that the storage owns aligned data.
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),
-                              std::forward_as_tuple(*view));
+                              std::forward_as_tuple(variable));
 
-      delete view;
       delete [] name;
       delete [] dimensions;
       delete [] data;

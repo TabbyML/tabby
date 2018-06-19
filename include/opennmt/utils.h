@@ -12,4 +12,7 @@ namespace opennmt {
   // Sets the global number of threads to use.
   void set_num_threads(size_t num_threads);
 
+  // Check AVX2 support at runtime.
+  bool support_avx2();
+
 }
