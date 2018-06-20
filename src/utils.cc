@@ -2,9 +2,6 @@
 
 #ifdef WITH_MKL
 #  include <mkl.h>
-extern "C" {
-  int mkl_serv_cbwr_get_auto_branch();
-}
 #endif
 
 namespace opennmt {
@@ -25,7 +22,7 @@ namespace opennmt {
   }
 
   bool support_avx2() {
-    return mkl_serv_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
+    return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
   }
 
 }

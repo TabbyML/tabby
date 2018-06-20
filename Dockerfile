@@ -8,6 +8,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
+        cpio \
         g++-8 \
         gcc-8 \
         libboost-program-options-dev \
@@ -19,19 +20,23 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-RUN wget https://github.com/intel/mkl-dnn/releases/download/v0.14/mklml_lnx_2018.0.3.20180406.tgz && \
-    tar xf mklml_lnx_2018.0.3.20180406.tgz && \
-    rm mklml_lnx_2018.0.3.20180406.tgz && \
-    mv mklml_lnx_2018.0.3.20180406 mklml
+RUN wget http://registrationcenter-download.intel.com/akdlm/irc_nas/tec/13005/l_mkl_2018.3.222.tgz
+RUN tar xf l_mkl_2018.3.222.tgz && \
+    rm l_mkl_2018.3.222.tgz && \
+    cd l_mkl_2018.3.222 && \
+    sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
+    sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
+    ./install.sh -s silent.cfg
+
+COPY . ctranslate-dev
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
 
-COPY . ctranslate-dev
 WORKDIR /root/ctranslate-dev
 RUN mkdir build && \
     cd build && \
-    cmake -DMKLML_ROOT=/root/mklml -DCMAKE_INSTALL_PREFIX=/root/ctranslate \
+    cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8 .. && \
     VERBOSE=1 make -j4 && \
@@ -42,8 +47,7 @@ RUN pip --no-cache-dir install setuptools wheel
 RUN CTRANSLATE_ROOT=/root/ctranslate python setup.py bdist_wheel
 
 WORKDIR /root
-RUN cp -r /root/mklml/lib/libiomp5.so /root/ctranslate/lib && \
-    cp -r /root/mklml/lib/libmklml_intel.so /root/ctranslate/lib && \
+RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate/lib && \
     cp /root/ctranslate-dev/python/dist/*whl /root/ctranslate
 
 FROM ubuntu:16.04

@@ -4,28 +4,68 @@ project(opennmt)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-set(CMAKE_CXX_STANDARD 11)
+set(INTEL_ROOT /opt/intel)
+set(MKL_ROOT ${INTEL_ROOT}/mkl)
+set(MKL_SMALL_LIBRARY_NAME mkl_small)
 
+# Set Release build type by default to get sane performance.
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+
+# Set CXX flags.
+set(CMAKE_CXX_STANDARD 11)
 if(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall")
 else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 endif()
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math")
-
-if (NOT MKLML_ROOT)
-  message(FATAL_ERROR "MKLML_ROOT must be defined")
-endif()
-
-add_definitions(-DWITH_MKL)
-link_directories(${MKLML_ROOT}/lib)
 
 find_package(Threads)
 
+add_definitions(-DWITH_MKL)
+
+# Find MKL includes.
+find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)
+if(MKL_INCLUDE_DIR)
+  message(STATUS "Found MKL include directory: ${MKL_INCLUDE_DIR}")
+else()
+  message(FATAL_ERROR "MKL include directory not found")
+endif()
+
+# Find Intel libraries.
+find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
+if(INTEL_LIBRARY_DIR)
+  message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
+else()
+  message(FATAL_ERROR "Intel library directory not found")
+endif()
+
+# Generate custom MKL library.
+execute_process(
+  COMMAND make
+    libintel64
+    name=${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}
+    export=${CMAKE_CURRENT_SOURCE_DIR}/mkl_symbol_list
+  WORKING_DIRECTORY ${MKL_ROOT}/tools/builder
+  OUTPUT_QUIET
+  )
+
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}.so)
+  message(STATUS "Generated small MKL library lib${MKL_SMALL_LIBRARY_NAME}.so")
+else()
+  message(FATAL_ERROR "An error occured when generating the MKL small library")
+endif()
+
+link_directories(
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${INTEL_LIBRARY_DIR}
+  )
+
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${MKLML_ROOT}/include
+  ${MKL_INCLUDE_DIR}
   )
 set(SOURCES
   src/decoder.cc
@@ -41,7 +81,7 @@ set(SOURCES
   )
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
-  mklml_intel
+  ${MKL_SMALL_LIBRARY_NAME}
   iomp5
   )
 
@@ -59,6 +99,10 @@ install(
   TARGETS ${PROJECT_NAME}
   ARCHIVE DESTINATION lib/
   LIBRARY DESTINATION lib/
+  )
+install(
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}.so
+  DESTINATION lib/
   )
 install(
   DIRECTORY include/opennmt
