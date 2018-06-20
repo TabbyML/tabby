@@ -24,8 +24,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math")
 
 find_package(Threads)
 
-add_definitions(-DWITH_MKL)
-
 # Find MKL includes.
 find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)
 if(MKL_INCLUDE_DIR)
