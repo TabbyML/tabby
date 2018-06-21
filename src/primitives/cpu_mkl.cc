@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <mkl.h>
+
 namespace opennmt {
   namespace primitives {
 
@@ -63,6 +65,13 @@ namespace opennmt {
     template<>
     void tanh(const float* x, float* y, size_t size) {
       vsTanh(size, x, y);
+    }
+
+    template<>
+    void transpose_2d(const float* a, const size_t* dims, float* b) {
+      auto rows = dims[0];
+      auto cols = dims[1];
+      mkl_somatcopy('R', 'T', rows, cols, 1.0, a, cols, b, rows);
     }
 
     template<>
