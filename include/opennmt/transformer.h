@@ -104,12 +104,12 @@ namespace opennmt {
                            StorageView& output);
   protected:
     LayerNorm _layer_norm;
+    void split_heads(const StorageView& x, StorageView& y);
+    void combine_heads(const StorageView& x, StorageView& y);
   private:
     size_t _num_heads;
     DotProductAttention _attention;
     ops::Transpose _transpose_op;
-    void split_heads(const StorageView& x, StorageView& y);
-    void combine_heads(const StorageView& x, StorageView& y);
   };
 
   class TransformerSelfAttention : public MultiHeadAttention

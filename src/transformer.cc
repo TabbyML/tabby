@@ -272,17 +272,12 @@ namespace opennmt {
   }
 
   void MultiHeadAttention::compute_attention(const StorageView& queries,
-                                             const StorageView& keys,
-                                             const StorageView& values,
+                                             const StorageView& split_keys,
+                                             const StorageView& split_values,
                                              const StorageView& values_lengths,
                                              StorageView& output) {
     static thread_local StorageView split_queries;
-    static thread_local StorageView split_keys;
-    static thread_local StorageView split_values;
-
     split_heads(queries, split_queries);
-    split_heads(keys, split_keys);
-    split_heads(values, split_values);
 
     const size_t dk = queries.dim(-1) / _num_heads;
     primitives::mul(static_cast<float>(1.0 / sqrt(dk)),
@@ -318,24 +313,29 @@ namespace opennmt {
     static thread_local StorageView queries_proj;
     static thread_local StorageView keys_proj;
     static thread_local StorageView values_proj;
+    static thread_local StorageView split_keys_proj;
+    static thread_local StorageView split_values_proj;
 
     _layer_norm(queries, normed_queries);
     _linear_in(normed_queries, fused_proj);
     ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
+
+    split_heads(keys_proj, split_keys_proj);
+    split_heads(values_proj, split_values_proj);
 
     StorageView values_lengths(queries_lengths);
     StorageView true_keys_proj;
     StorageView true_values_proj;
 
     if (step >= 0 && cached_keys != nullptr) {
-      cache_proj(step, keys_proj, *cached_keys);
-      cache_proj(step, values_proj, *cached_values);
+      cache_proj(step, split_keys_proj, *cached_keys);
+      cache_proj(step, split_values_proj, *cached_values);
       true_keys_proj.shallow_copy(*cached_keys);
       true_values_proj.shallow_copy(*cached_values);
       values_lengths.fill(static_cast<int32_t>(step + 1));
     } else {
-      true_keys_proj.shallow_copy(keys_proj);
-      true_values_proj.shallow_copy(values_proj);
+      true_keys_proj.shallow_copy(split_keys_proj);
+      true_values_proj.shallow_copy(split_values_proj);
     }
 
     static thread_local StorageView context;
@@ -355,7 +355,7 @@ namespace opennmt {
     } else {
       static thread_local StorageView tmp;
       tmp = cache;
-      ops::Concat(1)({&tmp, &proj}, cache);
+      ops::Concat(2)({&tmp, &proj}, cache);
     }
   }
 
@@ -381,26 +381,30 @@ namespace opennmt {
     static thread_local StorageView queries_proj;
     static thread_local StorageView keys_proj;
     static thread_local StorageView values_proj;
+    static thread_local StorageView split_keys_proj;
+    static thread_local StorageView split_values_proj;
 
     _layer_norm(queries, normed_queries);
     _linear_query(normed_queries, queries_proj);
 
     if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
-      keys_proj.shallow_copy(*cached_keys);
-      values_proj.shallow_copy(*cached_values);
+      split_keys_proj.shallow_copy(*cached_keys);
+      split_values_proj.shallow_copy(*cached_values);
     } else {
       _linear_memory(memory, memory_proj);
       ops::Split(-1)(memory_proj, keys_proj, values_proj);
+      split_heads(keys_proj, split_keys_proj);
+      split_heads(values_proj, split_values_proj);
       if (cached_keys != nullptr) {
-        *cached_keys = keys_proj;
-        *cached_values = values_proj;
+        *cached_keys = split_keys_proj;
+        *cached_values = split_values_proj;
       }
     }
 
     static thread_local StorageView context;
     compute_attention(queries_proj,
-                      keys_proj,
-                      values_proj,
+                      split_keys_proj,
+                      split_values_proj,
                       memory_lengths,
                       context);
 
