@@ -35,8 +35,10 @@ namespace opennmt {
           return !work_queue.empty() || end_requested;
       });
 
-      if (end_requested)
+      if (end_requested) {
+        lock.unlock();
         break;
+      }
 
       auto work_def = std::move(work_queue.front());
       work_queue.pop();
