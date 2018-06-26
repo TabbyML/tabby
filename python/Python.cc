@@ -1,14 +1,22 @@
 #include <boost/python.hpp>
 #include <boost/python/stl_iterator.hpp>
 
-#include <opennmt/translator.h>
+#include <opennmt/translator_pool.h>
 #include <opennmt/utils.h>
 
 namespace py = boost::python;
 
-void set_intra_threads(int n) {
-  opennmt::set_num_threads(n);
-}
+class GILReleaser {
+public:
+  GILReleaser()
+    : _save_state(PyEval_SaveThread()) {
+  }
+  ~GILReleaser() {
+    PyEval_RestoreThread(_save_state);
+  }
+private:
+  PyThreadState* _save_state;
+};
 
 class TranslatorWrapper
 {
@@ -17,17 +25,16 @@ public:
                     const std::string& model_type,
                     size_t max_decoding_steps,
                     size_t beam_size,
-                    float length_penalty)
-    : _translator(opennmt::ModelFactory::load(model_type, model_path),
-                  max_decoding_steps,
-                  beam_size,
-                  length_penalty,
-                  "") {
-    opennmt::init(4);
-  }
-
-  TranslatorWrapper shallow_copy() {
-    return TranslatorWrapper(*this);
+                    float length_penalty,
+                    size_t inter_threads,
+                    size_t intra_threads)
+    : _translator_pool(inter_threads,
+                       opennmt::ModelFactory::load(model_type, model_path),
+                       max_decoding_steps,
+                       beam_size,
+                       length_penalty,
+                       "") {
+    opennmt::init(intra_threads);
   }
 
   py::list translate_batch(const py::object& tokens) {
@@ -38,11 +45,11 @@ public:
 
     for (auto it = py::stl_input_iterator<py::list>(tokens);
          it != py::stl_input_iterator<py::list>(); it++) {
-      tokens_vec.push_back(std::vector<std::string>(py::stl_input_iterator<std::string>(*it),
-                                                    py::stl_input_iterator<std::string>()));
+      tokens_vec.emplace_back(py::stl_input_iterator<std::string>(*it),
+                              py::stl_input_iterator<std::string>());
     }
 
-    auto result_vec = _translator.translate_batch(tokens_vec);
+    auto result_vec = translate(tokens_vec);
 
     py::list result;
     for (size_t i = 0; i < result_vec.size(); i++) {
@@ -57,19 +64,28 @@ public:
   }
 
 private:
-  opennmt::Translator _translator;
+  std::vector<std::vector<std::string>>
+  translate(const std::vector<std::vector<std::string>>& input) {
+    GILReleaser releaser;
+    auto future = _translator_pool.post(input);
+    future.wait();
+    return future.get();
+  }
+
+  opennmt::TranslatorPool _translator_pool;
 };
 
 BOOST_PYTHON_MODULE(translator)
 {
-  py::def("set_intra_threads", &set_intra_threads);
-  py::class_<TranslatorWrapper>(
+  PyEval_InitThreads();
+  py::class_<TranslatorWrapper, boost::noncopyable>(
       "Translator",
-      py::init<std::string, std::string, size_t, size_t, float>(
+      py::init<std::string, std::string, size_t, size_t, float, size_t, size_t>(
         (py::arg("max_decoding_steps")=250,
          py::arg("beam_size")=4,
-         py::arg("length_penalty")=0.6)))
+         py::arg("length_penalty")=0.6,
+         py::arg("inter_threads")=1,
+         py::arg("intra_threads")=4)))
     .def("translate_batch", &TranslatorWrapper::translate_batch)
-    .def("__copy__", &TranslatorWrapper::shallow_copy)
     ;
 }
