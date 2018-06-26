@@ -73,6 +73,7 @@ set(SOURCES
   src/storage_view.cc
   src/transformer.cc
   src/translator.cc
+  src/translator_pool.cc
   src/utils.cc
   src/vocabulary.cc
   src/vocabulary_map.cc
