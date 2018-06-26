@@ -1,16 +1,10 @@
 FROM ubuntu:16.04 as builder
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
-    add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get update && \
-    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         cpio \
-        g++-8 \
-        gcc-8 \
         libboost-program-options-dev \
         libboost-python-dev \
         python-pip \
@@ -37,8 +31,7 @@ WORKDIR /root/ctranslate-dev
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
-          -DCMAKE_C_COMPILER=gcc-8 -DCMAKE_CXX_COMPILER=g++-8 .. && \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
 
@@ -53,15 +46,10 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate/lib && \
 FROM ubuntu:16.04
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends software-properties-common && \
-    add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get update && \
     apt-get install -y --no-install-recommends \
-        libstdc++6 \
         libboost-program-options1.58.0 \
         libboost-python1.58.0 \
         python-pip && \
-    apt-get autoremove -y software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
