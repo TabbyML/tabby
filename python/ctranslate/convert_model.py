@@ -7,8 +7,11 @@ import six
 import tensorflow as tf
 import numpy as np
 
+_BINARY_VERSION = 1
+
 def _serialize_variables(output_dir, names, variables, quantization):
     with open(os.path.join(output_dir, "model.bin"), "wb") as model:
+        model.write(struct.pack("I", _BINARY_VERSION))
         model.write(struct.pack("I", len(variables)))
         for name, value in zip(names, variables):
             if "kernel" in name:
