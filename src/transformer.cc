@@ -68,7 +68,7 @@ namespace opennmt {
   }
 
   const Vocabulary& TransformerModel::get_target_vocabulary() const {
-    return _source_vocabulary;
+    return _target_vocabulary;
   }
 
   std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
