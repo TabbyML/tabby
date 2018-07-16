@@ -13,7 +13,6 @@ namespace opennmt {
   // Base class for storing decoder states as a string to StorageView map.
   class DecoderState {
   public:
-    DecoderState();
     virtual ~DecoderState() = default;
     virtual void reset(const StorageView& memory,
                        const StorageView& memory_lengths);
@@ -24,7 +23,7 @@ namespace opennmt {
 
   protected:
     std::unordered_map<std::string, StorageView> _states;
-    void add(const std::string& name, DataType dtype = DataType::DT_FLOAT);
+    void reset_state(const std::string& name, const StorageView& state);
   };
 
   // Base class for decoders.

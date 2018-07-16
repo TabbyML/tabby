@@ -17,15 +17,10 @@ namespace opennmt {
   }
 
 
-  DecoderState::DecoderState() {
-    add("memory", DataType::DT_FLOAT);
-    add("memory_lengths", DataType::DT_INT32);
-  }
-
   void DecoderState::reset(const StorageView& memory,
                            const StorageView& memory_lengths) {
-    get("memory") = memory;
-    get("memory_lengths") = memory_lengths;
+    reset_state("memory", memory);
+    reset_state("memory_lengths", memory_lengths);
   }
 
   std::unordered_map<std::string, StorageView>& DecoderState::get() {
@@ -36,10 +31,15 @@ namespace opennmt {
     return _states.at(name);
   }
 
-  void DecoderState::add(const std::string& name, DataType dtype) {
-    _states.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(name),
-                    std::forward_as_tuple(dtype));
+  void DecoderState::reset_state(const std::string& name, const StorageView& state) {
+    auto it = _states.find(name);
+    if (it == _states.end()) {
+      _states.emplace(std::piecewise_construct,
+                      std::forward_as_tuple(name),
+                      std::forward_as_tuple(state));
+    } else {
+      it->second = state;
+    }
   }
 
   std::ostream& operator<<(std::ostream& os, const DecoderState& decoder_state) {

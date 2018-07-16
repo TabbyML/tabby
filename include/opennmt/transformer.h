@@ -200,6 +200,8 @@ namespace opennmt {
     TransformerDecoderState(size_t num_layers);
     void reset(const StorageView& memory,
                const StorageView& memory_lengths) override;
+  private:
+    size_t _num_layers;
   };
 
   class TransformerDecoder : public Decoder

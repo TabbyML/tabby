@@ -479,21 +479,18 @@ namespace opennmt {
 
 
   TransformerDecoderState::TransformerDecoderState(size_t num_layers)
-    : DecoderState() {
-    for (size_t i = 0; i < num_layers; ++i) {
-      add("self_keys_" + std::to_string(i));
-      add("self_values_" + std::to_string(i));
-      add("memory_keys_" + std::to_string(i));
-      add("memory_values_" + std::to_string(i));
-    }
+    : _num_layers(num_layers) {
   }
 
   void TransformerDecoderState::reset(const StorageView& memory,
                                       const StorageView& memory_lengths) {
     DecoderState::reset(memory, memory_lengths);
-    for (auto& pair : _states) {
-      if (pair.first != "memory" && pair.first != "memory_lengths")
-        pair.second.clear();
+    static const StorageView empty_cache;
+    for (size_t i = 0; i < _num_layers; ++i) {
+      reset_state("self_keys_" + std::to_string(i), empty_cache);
+      reset_state("self_values_" + std::to_string(i), empty_cache);
+      reset_state("memory_keys_" + std::to_string(i), empty_cache);
+      reset_state("memory_values_" + std::to_string(i), empty_cache);
     }
   }
 
