@@ -350,7 +350,7 @@ namespace opennmt {
       cache = proj;
     } else {
       static thread_local StorageView tmp;
-      tmp = cache;
+      tmp = std::move(cache);
       ops::Concat(2)({&tmp, &proj}, cache);
     }
   }

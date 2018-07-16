@@ -7,7 +7,7 @@ namespace opennmt {
   // Convenience functions to gather "in-place" (actually uses a temporary).
   static void gather(StorageView& input, const StorageView& indices) {
     static const ops::Gather gather_op;
-    StorageView input_clone(input);
+    StorageView input_clone(std::move(input));
     gather_op(input_clone, indices, input);
   }
   static void gather(DecoderState& state, const StorageView& indices) {
@@ -80,7 +80,7 @@ namespace opennmt {
 
   static void tile(StorageView& input, const StorageView& repeats) {
     static const ops::Tile tile_op;
-    StorageView input_clone(input);
+    StorageView input_clone(std::move(input));
     tile_op(input_clone, repeats, input);
   }
 
