@@ -59,7 +59,7 @@ namespace opennmt {
 
     template<>
     void exp(const float* x, float* y, size_t size) {
-      vsExp(size, x, y);
+      vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
     }
 
     template<>
