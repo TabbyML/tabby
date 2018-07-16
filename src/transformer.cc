@@ -101,32 +101,28 @@ namespace opennmt {
   }
 
 
-  void PositionEncoder::operator()(const StorageView& input,
-                                   const StorageView& lengths,
-                                   StorageView& output) {
+  void PositionEncoder::operator()(StorageView& input,
+                                   const StorageView& lengths) {
     assert(input.rank() == 3);
     size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    output = input;
     for (size_t i = 0; i < lengths.dim(0); ++i) {
       const auto length = lengths.at<int32_t>(i);
       primitives::add(_cached_encodings.data<float>(),
-                      output.index<float>({i}),
+                      input.index<float>({i}),
                       length * depth);
     }
   }
 
-  void PositionEncoder::operator()(const StorageView& input,
-                                   size_t index,
-                                   StorageView& output) {
+  void PositionEncoder::operator()(StorageView& input,
+                                   size_t index) {
     size_t depth = input.dim(-1);
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
-    output = input;
     for (size_t i = 0; i < input.dim(0); ++i) {
       primitives::add(_cached_encodings.index<float>({index}),
-                      output.index<float>({i}),
+                      input.index<float>({i}),
                       depth);
     }
   }
@@ -470,11 +466,10 @@ namespace opennmt {
   void TransformerEncoder::encode(const StorageView& ids,
                                   const StorageView& lengths,
                                   StorageView& output) {
-    static thread_local StorageView embeddings;
     static thread_local StorageView layer_in;
     static thread_local StorageView layer_out;
-    _scaled_embeddings(ids, embeddings);
-    _position_encoder(embeddings, lengths, layer_in);
+    _scaled_embeddings(ids, layer_in);
+    _position_encoder(layer_in, lengths);
     for (auto& layer : _layers) {
       layer(layer_in, lengths, layer_out);
       std::swap(layer_in, layer_out);
@@ -522,13 +517,12 @@ namespace opennmt {
                                   const StorageView& ids,
                                   const StorageView& candidates,
                                   StorageView& output) {
-    static thread_local StorageView embeddings;
     static thread_local StorageView layer_in;
     static thread_local StorageView layer_out;
 
     size_t batch_size = ids.dim(0);
-    _scaled_embeddings(ids, embeddings);
-    _position_encoder(embeddings, step, layer_in);
+    _scaled_embeddings(ids, layer_in);
+    _position_encoder(layer_in, step);
     StorageView query_lengths({batch_size}, static_cast<int32_t>(1));
 
     for (size_t l = 0; l < _layers.size(); ++l) {

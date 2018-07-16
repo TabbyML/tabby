@@ -39,8 +39,8 @@ namespace opennmt {
   class PositionEncoder
   {
   public:
-    void operator()(const StorageView& input, const StorageView& lengths, StorageView& output);
-    void operator()(const StorageView& input, size_t index, StorageView& output);
+    void operator()(StorageView& input, const StorageView& lengths);
+    void operator()(StorageView& input, size_t index);
   private:
     size_t _max_cached_time = 500;
     StorageView _cached_encodings;
