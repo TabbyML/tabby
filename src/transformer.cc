@@ -171,11 +171,10 @@ namespace opennmt {
       bias = &_partial_bias;
     }
 
+    static const ops::Gemm gemm_op(1, 0, false, false, true);
     if (_weight.dtype() == DataType::DT_FLOAT) {
-      static const ops::Gemm gemm_op(1, 1, true, false, true);
       gemm_op(input, *weight, *bias, output);
     } else {
-      static const ops::Gemm gemm_op(1, 0, false, false, true);
       static const ops::Quantize quantize_op(1000);
       static const ops::Unquantize unquantize_op(1000 * 1000);
       static thread_local StorageView quantized_input(_weight.dtype());
@@ -183,12 +182,12 @@ namespace opennmt {
       quantize_op(input, quantized_input);
       gemm_op(quantized_input, *weight, *bias, quantized_output);
       unquantize_op(quantized_output, output);
-      size_t output_depth = bias->size();
-      for (size_t i = 0; i < output.size() / output_depth; ++i)
-        primitives::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
     }
-  }
 
+    size_t output_depth = bias->size();
+    for (size_t i = 0; i < output.size() / output_depth; ++i)
+      primitives::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
+  }
 
   LayerNorm::LayerNorm(const TransformerModel& model, const std::string& scope)
     : _beta(model.get_variable(scope + "/beta"))
