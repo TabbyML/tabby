@@ -492,7 +492,7 @@ namespace opennmt {
                                       const StorageView& memory_lengths) {
     DecoderState::reset(memory, memory_lengths);
     for (auto& pair : _states) {
-      if (pair.first != "memory" and pair.first != "memory_lengths")
+      if (pair.first != "memory" && pair.first != "memory_lengths")
         pair.second.clear();
     }
   }
