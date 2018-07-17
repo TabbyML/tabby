@@ -241,7 +241,7 @@ namespace opennmt {
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
 
-    static thread_local StorageView probs;
+    static thread_local StorageView log_probs;
     static thread_local StorageView logits;
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
@@ -252,13 +252,13 @@ namespace opennmt {
 
     for (size_t step = 0; step < max_steps; ++step) {
       decoder.logits(step, sample_from, candidates, logits);
-      ops::SoftMax()(logits, probs);
+      log_probs_from_logits(logits, log_probs);
 
       std::vector<bool> finished_batch(logits.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = primitives::max_element(probs.index<float>({i}), probs.dim(-1));
+        size_t best = primitives::max_element(log_probs.index<float>({i}), log_probs.dim(-1));
         size_t true_id = best;
         if (!candidates.empty())
           true_id = candidates.at<int32_t>(best);
