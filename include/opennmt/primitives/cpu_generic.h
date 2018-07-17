@@ -9,11 +9,18 @@ namespace opennmt {
 
     // Generic primitives relying on the STL.
 
-    template <typename T, typename Function>
-    void unary_transform(const T* x, T* y, size_t size, Function func) {
+    template <typename T1, typename T2, typename Function>
+    void unary_transform(const T1* x, T2* y, size_t size, Function func) {
       for (size_t i = 0; i < size; ++i)
         y[i] = func(x[i]);
     }
+
+    template <typename T1, typename T2, typename Function>
+    void binary_transform(const T1* a, const T1* b, T2* c, size_t size, Function func) {
+      for (size_t i = 0; i < size; ++i)
+        c[i] = func(a[i], b[i]);
+    }
+
 
     template <typename T>
     void fill(T* x, T a, size_t size) {
@@ -56,20 +63,19 @@ namespace opennmt {
 
     template <typename T>
     void add(T a, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] += a;
+      unary_transform(y, y, size, [&a](const T& v) { return v + a; });
     }
 
     template <typename T>
     void add(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] += x[i];
+      return add(x, y, y, size);
     }
 
     template <typename T>
     void add(const T* a, const T* b, T* c, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        c[i] = a[i] + b[i];
+      binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
+        return v1 + v2;
+      });
     }
 
     template <typename T>
@@ -80,59 +86,57 @@ namespace opennmt {
 
     template <typename T>
     void sub(const T* a, const T* b, T* c, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        c[i] = a[i] - b[i];
+      binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
+        return v1 - v2;
+      });
     }
 
     template <typename T>
     void mul(T a, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] *= a;
+      unary_transform(y, y, size, [&a](const T& v) { return v * a; });
     }
 
     template <typename T>
     void mul(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] *= x[i];
+      return mul(x, y, y, size);
     }
 
     template <typename T>
     void mul(const T* a, const T* b, T* c, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        c[i] = a[i] * b[i];
+      binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
+        return v1 * v2;
+      });
     }
 
     template <typename T>
     void inv(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] = static_cast<T>(1) / x[i];
+      unary_transform(x, y, size, [](const T& v) { return static_cast<T>(1) / v; });
     }
 
     template <typename In, typename Out>
     void quantize(const In* x, Out* y, size_t size, In scale, In shift) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] = static_cast<Out>(x[i] * scale + shift);
+      unary_transform(x, y, size, [&scale, &shift](const In& v) {
+        return static_cast<Out>(v * scale + shift);
+      });
     }
 
     template <typename In, typename Out>
     void unquantize(const In* x, Out* y, size_t size, Out scale, Out shift) {
-      for (size_t i = 0; i < size; ++i)
-        y[i] = (static_cast<Out>(x[i]) - shift) / scale;
-    }
-
-    template <typename T>
-    void relu(T* x, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        if (x[i] < static_cast<T>(0))
-          x[i] = static_cast<T>(0);
-      }
+      unary_transform(x, y, size, [&scale, &shift](const In& v) {
+        return (static_cast<Out>(v) - shift) / scale;
+      });
     }
 
     template <typename T>
     void relu(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = x[i] > 0 ? x[i] : static_cast<T>(0);
-      }
+      unary_transform(x, y, size, [](const T& v) {
+        return v > 0 ? v : static_cast<T>(0);
+      });
+    }
+
+    template <typename T>
+    void relu(T* x, size_t size) {
+      return relu(x, x, size);
     }
 
     template <typename DataType, typename IndexType>
@@ -201,37 +205,29 @@ namespace opennmt {
 
     template <typename T>
     void pow(const T* x, T* y, T power, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = static_cast<T>(std::pow(static_cast<float>(x[i]), static_cast<float>(power)));
-      }
+      unary_transform(x, y, size, [&power](const T& v) {
+        return static_cast<T>(std::pow(static_cast<float>(v), static_cast<float>(power)));
+      });
     }
 
     template <typename T>
     void exp(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = static_cast<T>(std::exp(x[i]));
-      }
+      unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::exp(v)); });
     }
 
     template <typename T>
     void cos(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = static_cast<T>(std::cos(x[i]));
-      }
+      unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::cos(v)); });
     }
 
     template <typename T>
     void sin(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = static_cast<T>(std::sin(x[i]));
-      }
+      unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::sin(v)); });
     }
 
     template <typename T>
     void tanh(const T* x, T* y, size_t size) {
-      for (size_t i = 0; i < size; ++i) {
-        y[i] = static_cast<T>(std::tanh(x[i]));
-      }
+      unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::tanh(v)); });
     }
 
     template <typename In, typename Out>
