@@ -62,13 +62,8 @@ namespace opennmt {
     }
 
     template <typename T>
-    void add(T a, T* y, size_t size) {
-      unary_transform(y, y, size, [&a](const T& v) { return v + a; });
-    }
-
-    template <typename T>
-    void add(const T* x, T* y, size_t size) {
-      return add(x, y, y, size);
+    void add(T a, const T* x, T* y, size_t size) {
+      unary_transform(x, y, size, [&a](const T& v) { return v + a; });
     }
 
     template <typename T>
@@ -79,9 +74,13 @@ namespace opennmt {
     }
 
     template <typename T>
-    void sub(T a, T* y, size_t size) {
-      T a_rev = -a;
-      add(a_rev, y, size);
+    void add(T a, T* y, size_t size) {
+      add(a, y, y, size);
+    }
+
+    template <typename T>
+    void add(const T* x, T* y, size_t size) {
+      add(x, y, y, size);
     }
 
     template <typename T>
@@ -92,13 +91,19 @@ namespace opennmt {
     }
 
     template <typename T>
-    void mul(T a, T* y, size_t size) {
-      unary_transform(y, y, size, [&a](const T& v) { return v * a; });
+    void sub(T a, const T* x, T* y, size_t size) {
+      T a_rev = -a;
+      add(a_rev, x, y, size);
     }
 
     template <typename T>
-    void mul(const T* x, T* y, size_t size) {
-      return mul(x, y, y, size);
+    void sub(T a, T* y, size_t size) {
+      sub(a, y, y, size);
+    }
+
+    template <typename T>
+    void mul(T a, const T* x, T* y, size_t size) {
+      unary_transform(x, y, size, [&a](const T& v) { return v * a; });
     }
 
     template <typename T>
@@ -106,6 +111,16 @@ namespace opennmt {
       binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
         return v1 * v2;
       });
+    }
+
+    template <typename T>
+    void mul(T a, T* y, size_t size) {
+      mul(a, y, y, size);
+    }
+
+    template <typename T>
+    void mul(const T* x, T* y, size_t size) {
+      mul(x, y, y, size);
     }
 
     template <typename T>
@@ -136,7 +151,7 @@ namespace opennmt {
 
     template <typename T>
     void relu(T* x, size_t size) {
-      return relu(x, x, size);
+      relu(x, x, size);
     }
 
     template <typename DataType, typename IndexType>

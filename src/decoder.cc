@@ -62,8 +62,7 @@ namespace opennmt {
       auto* dst = log_probs.data<T>() + i * depth;
       primitives::exp(src, dst, depth);
       T logsumexp = std::log(primitives::sum(dst, depth));
-      primitives::unary_transform(src, dst, depth,
-                                  [&logsumexp](const T& v) { return v - logsumexp; });
+      primitives::sub(logsumexp, src, dst, depth);
     }
   }
 
