@@ -49,16 +49,15 @@ namespace opennmt {
 
     template <typename T>
     T max(const T* array, size_t size) {
-      return array[max_element(array, size)];
+      return *std::max_element(array, array + size);
     }
 
     template <typename T, typename I>
     void topk(const T* x, I* indices, size_t k, size_t size) {
-      const auto comp = [&x](I i1, I i2) {
-        return x[i1] > x[i2];
-      };
       std::iota(indices, indices + size, 0);
-      std::partial_sort(indices, indices + k, indices + size, comp);
+      std::partial_sort(indices, indices + k, indices + size, [&x](I i1, I i2) {
+        return x[i1] > x[i2];
+      });
     }
 
     template <typename T>
