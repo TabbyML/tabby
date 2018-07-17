@@ -10,8 +10,6 @@ namespace opennmt {
     template<>
     void copy(const float* x, float* y, size_t size);
     template<>
-    void add(float a, float* y, size_t size);
-    template<>
     void add(const float* x, float* y, size_t size);
     template<>
     void add(const float* a, const float* b, float* c, size_t size);

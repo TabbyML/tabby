@@ -13,11 +13,6 @@ namespace opennmt {
     }
 
     template<>
-    void add(float a, float* y, size_t size) {
-      cblas_saxpy(size, 1.0 /* a */, &a, 0 /* incx */, y, 1 /* incy */);
-    }
-
-    template<>
     void add(const float* x, float* y, size_t size) {
       cblas_saxpy(size, 1.0 /* a */, x, 1 /* incx */, y, 1 /* incy */);
     }
