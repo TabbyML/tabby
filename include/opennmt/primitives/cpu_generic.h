@@ -9,6 +9,12 @@ namespace opennmt {
 
     // Generic primitives relying on the STL.
 
+    template <typename T, typename Function>
+    void unary_transform(const T* x, T* y, size_t size, Function func) {
+      for (size_t i = 0; i < size; ++i)
+        y[i] = func(x[i]);
+    }
+
     template <typename T>
     void fill(T* x, T a, size_t size) {
       std::fill_n(x, size, a);
