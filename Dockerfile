@@ -56,7 +56,7 @@ RUN apt-get update && \
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
 
 RUN pip --no-cache-dir install setuptools
-RUN pip --no-cache-dir install /root/ctranslate2/ctranslate2-0.1.0-cp27-cp27mu-linux_x86_64.whl
+RUN pip --no-cache-dir install /root/ctranslate2/*.whl
 
 WORKDIR /root
 
