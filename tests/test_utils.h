@@ -2,9 +2,9 @@
 
 #include <gtest/gtest.h>
 
-#include "opennmt/storage_view.h"
+#include "ctranslate2/storage_view.h"
 
-using namespace opennmt;
+using namespace ctranslate2;
 
 template <typename T>
 void expect_array_eq(const T* x, const T* y, size_t n) {

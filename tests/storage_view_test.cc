@@ -1,5 +1,5 @@
 #include "test_utils.h"
-#include "opennmt/storage_view.h"
+#include "ctranslate2/storage_view.h"
 
 TEST(StorageViewTest, Swap) {
   StorageView a({4}, std::vector<float>{1, 2, 3, 4});

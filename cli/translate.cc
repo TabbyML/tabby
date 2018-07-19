@@ -4,8 +4,8 @@
 
 #include <boost/program_options.hpp>
 
-#include <opennmt/translator_pool.h>
-#include <opennmt/utils.h>
+#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/utils.h>
 
 namespace po = boost::program_options;
 
@@ -41,17 +41,17 @@ int main(int argc, char* argv[]) {
 
   size_t inter_threads = vm["inter_threads"].as<size_t>();
   size_t intra_threads = vm["intra_threads"].as<size_t>();
-  opennmt::init(intra_threads);
+  ctranslate2::init(intra_threads);
 
-  auto model = opennmt::ModelFactory::load(opennmt::ModelType::Transformer,
-                                           vm["model"].as<std::string>());
+  auto model = ctranslate2::ModelFactory::load(ctranslate2::ModelType::Transformer,
+                                               vm["model"].as<std::string>());
 
-  opennmt::TranslatorPool translator_pool(inter_threads,
-                                          model,
-                                          vm["max_sent_length"].as<size_t>(),
-                                          vm["beam_size"].as<size_t>(),
-                                          vm["length_penalty"].as<float>(),
-                                          vm["vocab_mapping"].as<std::string>());
+  ctranslate2::TranslatorPool translator_pool(inter_threads,
+                                              model,
+                                              vm["max_sent_length"].as<size_t>(),
+                                              vm["beam_size"].as<size_t>(),
+                                              vm["length_penalty"].as<float>(),
+                                              vm["vocab_mapping"].as<std::string>());
 
   std::istream* in = vm.count("src") ? new std::ifstream(vm["src"].as<std::string>()) : &std::cin;
   std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;

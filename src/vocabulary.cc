@@ -1,8 +1,8 @@
-#include "opennmt/vocabulary.h"
+#include "ctranslate2/vocabulary.h"
 
 #include <fstream>
 
-namespace opennmt {
+namespace ctranslate2 {
 
   const std::string Vocabulary::unk_token = "<unk>";
 

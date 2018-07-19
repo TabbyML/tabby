@@ -1,8 +1,8 @@
 #include <boost/python.hpp>
 #include <boost/python/stl_iterator.hpp>
 
-#include <opennmt/translator_pool.h>
-#include <opennmt/utils.h>
+#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/utils.h>
 
 namespace py = boost::python;
 
@@ -29,12 +29,12 @@ public:
                     size_t inter_threads,
                     size_t intra_threads)
     : _translator_pool(inter_threads,
-                       opennmt::ModelFactory::load(model_type, model_path),
+                       ctranslate2::ModelFactory::load(model_type, model_path),
                        max_decoding_steps,
                        beam_size,
                        length_penalty,
                        "") {
-    opennmt::init(intra_threads);
+    ctranslate2::init(intra_threads);
   }
 
   py::list translate_batch(const py::object& tokens) {
@@ -72,7 +72,7 @@ private:
     return future.get();
   }
 
-  opennmt::TranslatorPool _translator_pool;
+  ctranslate2::TranslatorPool _translator_pool;
 };
 
 BOOST_PYTHON_MODULE(translator)

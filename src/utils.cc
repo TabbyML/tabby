@@ -1,8 +1,8 @@
-#include "opennmt/utils.h"
+#include "ctranslate2/utils.h"
 
 #include <mkl.h>
 
-namespace opennmt {
+namespace ctranslate2 {
 
   void init(size_t num_threads) {
     // Set "enhanced performance" VML mode (see

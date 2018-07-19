@@ -1,5 +1,5 @@
 #include "test_utils.h"
-#include "opennmt/ops/ops.h"
+#include "ctranslate2/ops/ops.h"
 
 TEST(OpTest, AddFloat) {
   StorageView a({4}, std::vector<float>{1, 2, 3, 4});

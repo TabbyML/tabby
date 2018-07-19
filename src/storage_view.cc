@@ -1,10 +1,10 @@
-#include "opennmt/storage_view.h"
+#include "ctranslate2/storage_view.h"
 
 #include <mkl.h>
 
 #define ALIGNMENT 64
 
-namespace opennmt {
+namespace ctranslate2 {
 
   StorageView::StorageView(DataType type)
     : _dtype(type) {

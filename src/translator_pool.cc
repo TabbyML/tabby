@@ -1,6 +1,6 @@
-#include "opennmt/translator_pool.h"
+#include "ctranslate2/translator_pool.h"
 
-namespace opennmt {
+namespace ctranslate2 {
 
   TranslatorPool::~TranslatorPool() {
     {

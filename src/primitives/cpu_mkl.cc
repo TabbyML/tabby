@@ -1,10 +1,10 @@
-#include "opennmt/primitives/cpu_mkl.h"
+#include "ctranslate2/primitives/cpu_mkl.h"
 
 #include <vector>
 
 #include <mkl.h>
 
-namespace opennmt {
+namespace ctranslate2 {
   namespace primitives {
 
     template<>

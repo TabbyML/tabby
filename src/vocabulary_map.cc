@@ -1,8 +1,8 @@
-#include "opennmt/vocabulary_map.h"
+#include "ctranslate2/vocabulary_map.h"
 
 #include <fstream>
 
-namespace opennmt {
+namespace ctranslate2 {
 
   VocabularyMap::VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary) {
     std::ifstream map_file(map_path);

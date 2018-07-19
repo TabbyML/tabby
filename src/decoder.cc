@@ -1,8 +1,8 @@
-#include "opennmt/decoder.h"
+#include "ctranslate2/decoder.h"
 
-#include "opennmt/ops/ops.h"
+#include "ctranslate2/ops/ops.h"
 
-namespace opennmt {
+namespace ctranslate2 {
 
   // Convenience functions to gather "in-place" (actually uses a temporary).
   static void gather(StorageView& input, const StorageView& indices) {

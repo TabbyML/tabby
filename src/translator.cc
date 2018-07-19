@@ -1,8 +1,8 @@
-#include "opennmt/translator.h"
+#include "ctranslate2/translator.h"
 
-#include "opennmt/storage_view.h"
+#include "ctranslate2/storage_view.h"
 
-namespace opennmt {
+namespace ctranslate2 {
 
   Translator::Translator(const std::shared_ptr<Model>& model,
                          size_t max_decoding_steps,

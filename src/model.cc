@@ -1,9 +1,9 @@
-#include "opennmt/model.h"
+#include "ctranslate2/model.h"
 
-#include "opennmt/transformer.h"
-#include "opennmt/utils.h"
+#include "ctranslate2/transformer.h"
+#include "ctranslate2/utils.h"
 
-namespace opennmt {
+namespace ctranslate2 {
 
   StorageView Model::load_data(const Shape& shape, size_t data_width, void* data) {
     if (data_width == 4) {

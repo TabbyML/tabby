@@ -1,8 +1,8 @@
-#include "opennmt/transformer.h"
+#include "ctranslate2/transformer.h"
 
 #include <fstream>
 
-namespace opennmt {
+namespace ctranslate2 {
 
   template <typename T>
   T consume(std::ifstream& in) {

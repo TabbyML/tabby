@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1.0)
-project(opennmt)
+project(ctranslate2)
 
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
@@ -104,7 +104,7 @@ install(
   DESTINATION lib/
   )
 install(
-  DIRECTORY include/opennmt
+  DIRECTORY include/ctranslate2
   DESTINATION include
   FILES_MATCHING PATTERN "*.h*"
   )
