@@ -32,7 +32,7 @@ namespace ctranslate2 {
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
       _cv.wait(lock, [&work_queue, &end_requested]{
-          return !work_queue.empty() || end_requested;
+        return !work_queue.empty() || end_requested;
       });
 
       if (end_requested) {
