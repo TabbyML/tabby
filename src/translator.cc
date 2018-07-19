@@ -67,8 +67,7 @@ namespace ctranslate2 {
     // If set, extract the subset of candidates to generate.
     StorageView candidates(DataType::DT_INT32);
     if (_vocabulary_map) {
-      std::vector<int32_t> candidates_vec =
-        _vocabulary_map->get_batch_candidates<int32_t>(batch_tokens);
+      auto candidates_vec = _vocabulary_map->get_candidates<int32_t>(batch_tokens);
       candidates.resize({candidates_vec.size()});
       candidates.copy_from(candidates_vec.data(), candidates_vec.size());
     }

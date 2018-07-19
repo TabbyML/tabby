@@ -9,11 +9,6 @@ namespace ctranslate2 {
     if (!map_file.is_open())
       throw std::invalid_argument("Unable to open dictionary vocab mapping file `" + map_path + "`");
 
-    _static_ids.insert(vocabulary.to_id("<unk>"));
-    _static_ids.insert(vocabulary.to_id("<s>"));
-    _static_ids.insert(vocabulary.to_id("</s>"));
-    _static_ids.insert(vocabulary.to_id("<blank>"));
-
     std::string line;
     while (std::getline(map_file, line)) {
       std::string token;
@@ -46,36 +41,16 @@ namespace ctranslate2 {
 
       _map_rules[ngram - 1][key] = values;
     }
-  }
 
-  void VocabularyMap::get_candidates(const std::vector<std::string>& tokens,
-                                     std::set<size_t>& candidates) const {
-    candidates.insert(_static_ids.begin(), _static_ids.end());
+    _fixed_candidates.insert(vocabulary.to_id("<unk>"));
+    _fixed_candidates.insert(vocabulary.to_id("<s>"));
+    _fixed_candidates.insert(vocabulary.to_id("</s>"));
+    _fixed_candidates.insert(vocabulary.to_id("<blank>"));
 
     // The field marked by the empty string are common tokens that are always candidates.
     auto it = _map_rules[0].find("");
-    if (it != _map_rules[0].end()) {
-      for (const auto& v : it->second)
-        candidates.insert(v);
-    }
-
-    for (size_t i = 0; i < tokens.size(); i++) {
-      std::string token = tokens[i];
-      size_t h = 0;
-      do {
-        if (h > 0) {
-          if (i + h >= tokens.size())
-            break;
-          token += " " + tokens[i + h];
-        }
-        auto it = _map_rules[h].find(token);
-        if (it != _map_rules[h].end()) {
-          for (const auto& v : it->second)
-            candidates.insert(v);
-        }
-        h++;
-      } while (h < _map_rules.size());
-    }
+    if (it != _map_rules[0].end())
+      _fixed_candidates.insert(it->second.begin(), it->second.end());
   }
 
 }
