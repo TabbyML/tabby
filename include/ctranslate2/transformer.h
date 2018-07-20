@@ -20,10 +20,12 @@ namespace ctranslate2 {
     const Vocabulary& get_target_vocabulary() const override;
     std::unique_ptr<Encoder> make_encoder() const override;
     std::unique_ptr<Decoder> make_decoder() const override;
+    size_t version() const;
   private:
     std::map<std::string, StorageView> _variable_index;
     Vocabulary _source_vocabulary;
     Vocabulary _target_vocabulary;
+    size_t _version;
   };
 
   class ScaledEmbeddings

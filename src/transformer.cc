@@ -26,7 +26,7 @@ namespace ctranslate2 {
     if (!model.is_open())
       throw std::runtime_error("failed to load the model " + model_path);
 
-    consume<uint32_t>(model); // Version
+    _version = consume<uint32_t>(model);
     auto num_variables = consume<uint32_t>(model);
 
     for (uint32_t i = 0; i < num_variables; ++i) {
@@ -77,6 +77,10 @@ namespace ctranslate2 {
 
   std::unique_ptr<Decoder> TransformerModel::make_decoder() const {
     return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "transformer/decoder"));
+  }
+
+  size_t TransformerModel::version() const {
+    return _version;
   }
 
 
