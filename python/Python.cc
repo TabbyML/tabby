@@ -27,15 +27,13 @@ public:
                     size_t beam_size,
                     float length_penalty,
                     const std::string& vocab_mapping,
-                    size_t inter_threads,
-                    size_t intra_threads)
-    : _translator_pool(inter_threads,
+                    size_t thread_pool_size)
+    : _translator_pool(thread_pool_size,
                        ctranslate2::ModelFactory::load(model_type, model_path),
                        max_decoding_steps,
                        beam_size,
                        length_penalty,
                        vocab_mapping) {
-    ctranslate2::init(intra_threads);
   }
 
   py::list translate_batch(const py::object& tokens) {
@@ -79,15 +77,15 @@ private:
 BOOST_PYTHON_MODULE(translator)
 {
   PyEval_InitThreads();
+  py::def("initialize", &ctranslate2::init);
   py::class_<TranslatorWrapper, boost::noncopyable>(
       "Translator",
-      py::init<std::string, std::string, size_t, size_t, float, std::string, size_t, size_t>(
+      py::init<std::string, std::string, size_t, size_t, float, std::string, size_t>(
         (py::arg("max_decoding_steps")=250,
          py::arg("beam_size")=4,
          py::arg("length_penalty")=0.6,
          py::arg("vocab_mapping")="",
-         py::arg("inter_threads")=1,
-         py::arg("intra_threads")=4)))
+         py::arg("thread_pool_size")=1)))
     .def("translate_batch", &TranslatorWrapper::translate_batch)
     ;
 }
