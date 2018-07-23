@@ -57,8 +57,10 @@ int main(int argc, char* argv[]) {
   std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;
   size_t num_tokens = 0;
 
-  auto preprocess = [](const std::string& line) {
-    std::vector<std::string> tokens;
+  auto reader = [](std::istream& in, std::vector<std::string>& tokens) {
+    std::string line;
+    if (!std::getline(in, line))
+      return false;
     std::string token;
     for (size_t i = 0; i < line.length(); ++i) {
       if (line[i] == ' ') {
@@ -72,26 +74,26 @@ int main(int argc, char* argv[]) {
     }
     if (!token.empty())
       tokens.emplace_back(std::move(token));
-    return tokens;
+    return true;
   };
 
-  auto postprocess = [&num_tokens](const std::vector<std::string>& tokens) {
+  auto writer = [&num_tokens](std::ostream& out, const ctranslate2::TranslationResult& result) {
+    const auto& tokens = result.output();
     num_tokens += tokens.size();
-    std::string line;
     for (size_t i = 0; i < tokens.size(); ++i) {
       if (i > 0)
-        line += ' ';
-      line += tokens[i];
+        out << ' ';
+      out << tokens[i];
     }
-    return line;
+    out << std::endl;
   };
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  translator_pool.consume_text_stream(*in,
-                                      *out,
-                                      vm["batch_size"].as<size_t>(),
-                                      preprocess,
-                                      postprocess);
+  translator_pool.consume_stream(*in,
+                                 *out,
+                                 vm["batch_size"].as<size_t>(),
+                                 reader,
+                                 writer);
   auto t2 = std::chrono::high_resolution_clock::now();
 
   if (vm["log_throughput"].as<bool>()) {

@@ -28,30 +28,31 @@ namespace ctranslate2 {
 
     std::future<TranslationOutput> post(const TranslationInput& batch_tokens);
 
-    template <typename Preprocessor, typename Postprocessor>
-    void consume_text_stream(std::istream& in,
-                             std::ostream& out,
-                             size_t max_batch_size,
-                             Preprocessor& preprocess,
-                             Postprocessor& postprocess) {
+    template <typename Reader, typename Writer>
+    void consume_stream(std::istream& in,
+                        std::ostream& out,
+                        size_t max_batch_size,
+                        Reader& reader,
+                        Writer& writer) {
       std::queue<std::future<TranslationOutput>> futures;
 
-      auto pop_results = [&futures, &out, &postprocess](bool blocking) {
+      auto pop_results = [&futures, &out, &writer](bool blocking) {
         static const auto zero_sec = std::chrono::seconds(0);
         while (!futures.empty()
                && (blocking
                    || futures.front().wait_for(zero_sec) == std::future_status::ready)) {
           for (const auto& result : futures.front().get())
-            out << postprocess(result.output()) << std::endl;
+            writer(out, result);
           futures.pop();
         }
       };
 
       TranslationInput batch_tokens;
-      std::string line;
+      std::vector<std::string> tokens;
 
-      while (std::getline(in, line)) {
-        batch_tokens.emplace_back(preprocess(line));
+      while (reader(in, tokens)) {
+        batch_tokens.push_back(tokens);
+        tokens.clear();
         if (batch_tokens.size() == max_batch_size) {
           futures.emplace(post(batch_tokens));
           batch_tokens.clear();
