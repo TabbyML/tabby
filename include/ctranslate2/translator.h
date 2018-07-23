@@ -10,7 +10,7 @@
 namespace ctranslate2 {
 
   struct TranslationOptions {
-    size_t beam_size;
+    size_t beam_size = 2;
     size_t num_hypotheses = 1;
     size_t max_decoding_steps = 250;
     float length_penalty = 0;
