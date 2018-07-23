@@ -12,7 +12,7 @@
 namespace ctranslate2 {
 
   using TranslationInput = std::vector<std::vector<std::string>>;
-  using TranslationOutput = std::vector<std::vector<std::string>>;
+  using TranslationOutput = std::vector<TranslationResult>;
 
   class TranslatorPool {
   public:
@@ -42,7 +42,7 @@ namespace ctranslate2 {
                && (blocking
                    || futures.front().wait_for(zero_sec) == std::future_status::ready)) {
           for (const auto& result : futures.front().get())
-            out << postprocess(result) << std::endl;
+            out << postprocess(result.output()) << std::endl;
           futures.pop();
         }
       };

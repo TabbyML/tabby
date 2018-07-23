@@ -48,27 +48,24 @@ public:
                               py::stl_input_iterator<std::string>());
     }
 
-    auto result_vec = translate(tokens_vec);
+    auto results = translate(tokens_vec);
 
-    py::list result;
-    for (size_t i = 0; i < result_vec.size(); i++) {
+    py::list py_results;
+    for (auto& result : results) {
       py::list temp;
-      for (size_t t = 0; t < result_vec[i].size(); t++) {
-        temp.append(result_vec[i][t]);
-      }
-      result.append(temp);
+      for (const auto& token : result.output())
+        temp.append(token);
+      py_results.append(temp);
     }
 
-    return result;
+    return py_results;
   }
 
 private:
-  std::vector<std::vector<std::string>>
+  std::vector<ctranslate2::TranslationResult>
   translate(const std::vector<std::vector<std::string>>& input) {
     GILReleaser releaser;
-    auto future = _translator_pool.post(input);
-    future.wait();
-    return future.get();
+    return _translator_pool.post(input).get();
   }
 
   ctranslate2::TranslatorPool _translator_pool;

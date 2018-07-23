@@ -29,13 +29,13 @@ namespace ctranslate2 {
     , _length_penalty(other._length_penalty) {
   }
 
-  std::vector<std::string>
+  TranslationResult
   Translator::translate(const std::vector<std::string>& tokens) {
     std::vector<std::vector<std::string>> batch_tokens(1, tokens);
     return translate_batch(batch_tokens)[0];
   }
 
-  std::vector<std::vector<std::string>>
+  std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens) {
     size_t batch_size = batch_tokens.size();
 
@@ -98,15 +98,12 @@ namespace ctranslate2 {
                   sampled_ids,
                   scores);
 
-    // Build result.
-    std::vector<std::vector<std::string>> result(batch_size);
-    for (size_t i = 0; i < batch_size; ++i) {
-      result[i].reserve(sampled_ids[i][0].size());
-      for (auto id : sampled_ids[i][0]) {
-        result[i].push_back(_model->get_target_vocabulary().to_token(id));
-      }
-    }
-    return result;
+    // Build results.
+    std::vector<TranslationResult> results;
+    results.reserve(batch_size);
+    for (size_t i = 0; i < batch_size; ++i)
+      results.emplace_back(sampled_ids[i], scores[i], _model->get_target_vocabulary());
+    return results;
   }
 
 }

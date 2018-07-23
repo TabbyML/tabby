@@ -5,6 +5,7 @@
 
 #include "model.h"
 #include "vocabulary_map.h"
+#include "translation_result.h"
 
 namespace ctranslate2 {
 
@@ -20,10 +21,10 @@ namespace ctranslate2 {
                const std::string& vocabulary_map);
     Translator(const Translator& other);
 
-    std::vector<std::string>
+    TranslationResult
     translate(const std::vector<std::string>& tokens);
 
-    std::vector<std::vector<std::string>>
+    std::vector<TranslationResult>
     translate_batch(const std::vector<std::vector<std::string>>& tokens);
 
   private:

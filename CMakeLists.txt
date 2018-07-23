@@ -72,6 +72,7 @@ set(SOURCES
   src/primitives/cpu_mkl.cc
   src/storage_view.cc
   src/transformer.cc
+  src/translation_result.cc
   src/translator.cc
   src/translator_pool.cc
   src/utils.cc
