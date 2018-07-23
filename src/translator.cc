@@ -76,7 +76,7 @@ namespace ctranslate2 {
     size_t start_token = _model->get_target_vocabulary().to_id("<s>");
     size_t end_token = _model->get_target_vocabulary().to_id("</s>");
     StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
-    std::vector<std::vector<size_t>> sampled_ids;
+    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
     if (_beam_size == 1)
       greedy_decoding(*_decoder,
                       sample_from,
@@ -91,14 +91,15 @@ namespace ctranslate2 {
                   end_token,
                   _max_decoding_steps,
                   _beam_size,
+                  1,
                   _length_penalty,
                   sampled_ids);
 
     // Build result.
     std::vector<std::vector<std::string>> result(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
-      result[i].reserve(sampled_ids[i].size());
-      for (auto id : sampled_ids[i]) {
+      result[i].reserve(sampled_ids[i][0].size());
+      for (auto id : sampled_ids[i][0]) {
         result[i].push_back(_model->get_target_vocabulary().to_token(id));
       }
     }

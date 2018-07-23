@@ -107,8 +107,9 @@ namespace ctranslate2 {
                    size_t end_token,
                    size_t max_steps,
                    size_t beam_size,
+                   size_t num_hypotheses,
                    float length_penalty,
-                   std::vector<std::vector<size_t>>& sampled_ids) {
+                   std::vector<std::vector<std::vector<size_t>>>& sampled_ids) {
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
     const ops::TopK topk_op(beam_size);
@@ -125,12 +126,14 @@ namespace ctranslate2 {
     topk_log_probs.at<float>(0) = 0;
     tile(topk_log_probs, StorageView({1}, static_cast<int32_t>(batch_size)));
 
-    std::vector<size_t> batch_offset(batch_size);
-    for (size_t i = 0; i < batch_offset.size(); ++i)
-      batch_offset[i] = i;
-
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
+
+    std::vector<size_t> batch_offset(batch_size);
+    for (size_t i = 0; i < batch_size; ++i) {
+      batch_offset[i] = i;
+      sampled_ids[i].resize(num_hypotheses);
+    }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
@@ -177,16 +180,18 @@ namespace ctranslate2 {
       std::vector<bool> finished(cur_batch_size, false);
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
-        auto pred_id = topk_ids.at<int32_t>({i, 0});
-        if (pred_id == static_cast<int32_t>(end_token) || step + 1 == max_steps) {
-          for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
-            size_t id = alive_seq.at<int32_t>({i * beam_size, t});
-            if (id == end_token)
-              break;
-            sampled_ids[batch_offset[i]].push_back(id);
-          }
+        auto top_beam_pred_id = topk_ids.at<int32_t>({i, 0});
+        if (top_beam_pred_id == static_cast<int32_t>(end_token) || step + 1 == max_steps) {
           ++finished_count;
           finished[i] = true;
+          for (size_t k = 0; k < num_hypotheses; ++k) {
+            for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
+              size_t id = alive_seq.at<int32_t>({i * beam_size + k, t});
+              if (id == end_token)
+                break;
+              sampled_ids[batch_offset[i]][k].push_back(id);
+            }
+          }
         }
       }
 
@@ -231,7 +236,7 @@ namespace ctranslate2 {
                        StorageView& candidates,
                        size_t end_token,
                        size_t max_steps,
-                       std::vector<std::vector<size_t> >& sampled_ids) {
+                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids) {
     size_t batch_size = sample_from.dim(0);
 
     sampled_ids.clear();
@@ -242,9 +247,10 @@ namespace ctranslate2 {
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
-    for (size_t i = 0; i < batch_offset.size(); ++i)
+    for (size_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-    sampled_ids.resize(batch_size);
+      sampled_ids[i].resize(1);
+    }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       decoder.logits(step, sample_from, candidates, logits);
@@ -265,7 +271,7 @@ namespace ctranslate2 {
           one_finished = true;
         } else {
           sample_from.at<int32_t>(i) = true_id;
-          sampled_ids[batch_id].push_back(true_id);
+          sampled_ids[batch_id][0].push_back(true_id);
           ++count_alive;
         }
       }

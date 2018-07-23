@@ -50,13 +50,14 @@ namespace ctranslate2 {
                        StorageView& candidates,
                        size_t end_token,
                        size_t max_steps,
-                       std::vector<std::vector<size_t> >& sampled_ids);
+                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids);
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
                    StorageView& candidates,
                    size_t end_token,
                    size_t max_steps,
                    size_t beam_size,
+                   size_t num_hypotheses,
                    float length_penalty,
-                   std::vector<std::vector<size_t>>& sampled_ids);
+                   std::vector<std::vector<std::vector<size_t>>>& sampled_ids);
 }
