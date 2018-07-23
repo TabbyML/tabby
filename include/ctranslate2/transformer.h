@@ -147,8 +147,6 @@ namespace ctranslate2 {
     Dense _linear_query;
     Dense _linear_memory;
     Dense _linear_out;
-    StorageView _keys_proj;
-    StorageView _values_proj;
   };
 
   class TransformerEncoderLayer
