@@ -19,6 +19,8 @@ int main(int argc, char* argv[]) {
     ("vocab_mapping", po::value<std::string>()->default_value(""), "path to a vocabulary mapping table")
     ("batch_size", po::value<size_t>()->default_value(30), "batch size")
     ("beam_size", po::value<size_t>()->default_value(5), "beam size")
+    ("n_best", po::value<size_t>()->default_value(1), "n-best list")
+    ("with_score", po::bool_switch()->default_value(false), "display translation score")
     ("length_penalty", po::value<float>()->default_value(0.6), "length penalty")
     ("max_sent_length", po::value<size_t>()->default_value(250), "maximum sentence length to produce")
     ("log_throughput", po::bool_switch()->default_value(false), "log average tokens per second")
@@ -48,13 +50,17 @@ int main(int argc, char* argv[]) {
 
   ctranslate2::TranslatorPool translator_pool(inter_threads,
                                               model,
-                                              vm["max_sent_length"].as<size_t>(),
-                                              vm["beam_size"].as<size_t>(),
-                                              vm["length_penalty"].as<float>(),
                                               vm["vocab_mapping"].as<std::string>());
+
+  auto options = ctranslate2::TranslationOptions();
+  options.beam_size = vm["beam_size"].as<size_t>();
+  options.length_penalty = vm["length_penalty"].as<float>();
+  options.max_decoding_steps = vm["max_sent_length"].as<size_t>();
+  options.num_hypotheses = vm["n_best"].as<size_t>();
 
   std::istream* in = vm.count("src") ? new std::ifstream(vm["src"].as<std::string>()) : &std::cin;
   std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;
+  bool with_score = vm["with_score"].as<bool>();
   size_t num_tokens = 0;
 
   auto reader = [](std::istream& in, std::vector<std::string>& tokens) {
@@ -77,21 +83,28 @@ int main(int argc, char* argv[]) {
     return true;
   };
 
-  auto writer = [&num_tokens](std::ostream& out, const ctranslate2::TranslationResult& result) {
-    const auto& tokens = result.output();
-    num_tokens += tokens.size();
-    for (size_t i = 0; i < tokens.size(); ++i) {
-      if (i > 0)
-        out << ' ';
-      out << tokens[i];
+  auto writer = [&num_tokens, &options, &with_score](std::ostream& out,
+                                                     const ctranslate2::TranslationResult& result) {
+    const auto& hypotheses = result.hypotheses();
+    const auto& scores = result.scores();
+    num_tokens += hypotheses[0].size();
+    for (size_t n = 0; n < hypotheses.size(); ++n) {
+      if (with_score)
+        out << scores[n] << " ||| ";
+      for (size_t i = 0; i < hypotheses[n].size(); ++i) {
+        if (i > 0)
+          out << ' ';
+        out << hypotheses[n][i];
+      }
+      out << std::endl;
     }
-    out << std::endl;
   };
 
   auto t1 = std::chrono::high_resolution_clock::now();
   translator_pool.consume_stream(*in,
                                  *out,
                                  vm["batch_size"].as<size_t>(),
+                                 options,
                                  reader,
                                  writer);
   auto t2 = std::chrono::high_resolution_clock::now();

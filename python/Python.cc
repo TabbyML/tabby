@@ -23,20 +23,18 @@ class TranslatorWrapper
 public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& model_type,
-                    size_t max_decoding_steps,
-                    size_t beam_size,
-                    float length_penalty,
                     const std::string& vocab_mapping,
                     size_t thread_pool_size)
     : _translator_pool(thread_pool_size,
                        ctranslate2::ModelFactory::load(model_type, model_path),
-                       max_decoding_steps,
-                       beam_size,
-                       length_penalty,
                        vocab_mapping) {
   }
 
-  py::list translate_batch(const py::object& tokens) {
+  py::list translate_batch(const py::object& tokens,
+                           size_t beam_size,
+                           size_t num_hypotheses,
+                           float length_penalty,
+                           size_t max_decoding_steps) {
     if (tokens == py::object())
       return py::list();
 
@@ -48,7 +46,18 @@ public:
                               py::stl_input_iterator<std::string>());
     }
 
-    auto results = translate(tokens_vec);
+    auto options = ctranslate2::TranslationOptions();
+    options.beam_size = beam_size;
+    options.length_penalty = length_penalty;
+    options.max_decoding_steps = max_decoding_steps;
+    options.num_hypotheses = num_hypotheses;
+
+    std::vector<ctranslate2::TranslationResult> results;
+
+    {
+      GILReleaser releaser;
+      results = std::move(_translator_pool.post(tokens_vec, options).get());
+    }
 
     py::list py_results;
     for (auto& result : results) {
@@ -62,12 +71,6 @@ public:
   }
 
 private:
-  std::vector<ctranslate2::TranslationResult>
-  translate(const std::vector<std::vector<std::string>>& input) {
-    GILReleaser releaser;
-    return _translator_pool.post(input).get();
-  }
-
   ctranslate2::TranslatorPool _translator_pool;
 };
 
@@ -76,13 +79,14 @@ BOOST_PYTHON_MODULE(translator)
   PyEval_InitThreads();
   py::def("initialize", &ctranslate2::init);
   py::class_<TranslatorWrapper, boost::noncopyable>(
-      "Translator",
-      py::init<std::string, std::string, size_t, size_t, float, std::string, size_t>(
-        (py::arg("max_decoding_steps")=250,
-         py::arg("beam_size")=4,
-         py::arg("length_penalty")=0.6,
-         py::arg("vocab_mapping")="",
-         py::arg("thread_pool_size")=1)))
-    .def("translate_batch", &TranslatorWrapper::translate_batch)
+    "Translator",
+    py::init<std::string, std::string, std::string, size_t>(
+      (py::arg("vocab_mapping")="",
+       py::arg("thread_pool_size")=1)))
+    .def("translate_batch", &TranslatorWrapper::translate_batch,
+         (py::arg("beam_size")=4,
+          py::arg("num_hypotheses")=1,
+          py::arg("length_penalty")=0.6,
+          py::arg("max_decoding_steps")=250))
     ;
 }

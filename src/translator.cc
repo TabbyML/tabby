@@ -5,16 +5,10 @@
 namespace ctranslate2 {
 
   Translator::Translator(const std::shared_ptr<Model>& model,
-                         size_t max_decoding_steps,
-                         size_t beam_size,
-                         float length_penalty,
                          const std::string& vocabulary_map)
     : _model(model)
     , _encoder(_model->make_encoder())
-    , _decoder(_model->make_decoder())
-    , _max_decoding_steps(max_decoding_steps)
-    , _beam_size(beam_size)
-    , _length_penalty(length_penalty) {
+    , _decoder(_model->make_decoder()) {
     if (!vocabulary_map.empty())
       _vocabulary_map.reset(new VocabularyMap(vocabulary_map, _model->get_target_vocabulary()));
   }
@@ -23,20 +17,23 @@ namespace ctranslate2 {
     : _model(other._model)
     , _vocabulary_map(other._vocabulary_map)
     , _encoder(_model->make_encoder())  // Makes a new graph to ensure thread safety.
-    , _decoder(_model->make_decoder())  // Same here.
-    , _max_decoding_steps(other._max_decoding_steps)
-    , _beam_size(other._beam_size)
-    , _length_penalty(other._length_penalty) {
+    , _decoder(_model->make_decoder()) { // Same here.
   }
 
   TranslationResult
-  Translator::translate(const std::vector<std::string>& tokens) {
+  Translator::translate(const std::vector<std::string>& tokens,
+                        const TranslationOptions& options) {
     std::vector<std::vector<std::string>> batch_tokens(1, tokens);
-    return translate_batch(batch_tokens)[0];
+    return translate_batch(batch_tokens, options)[0];
   }
 
   std::vector<TranslationResult>
-  Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens) {
+  Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
+                              const TranslationOptions& options) {
+    // Check options.
+    if (options.num_hypotheses > options.beam_size)
+      throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
+
     size_t batch_size = batch_tokens.size();
 
     // Record lengths and maximum length.
@@ -78,12 +75,12 @@ namespace ctranslate2 {
     StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
     std::vector<std::vector<std::vector<size_t>>> sampled_ids;
     std::vector<std::vector<float>> scores;
-    if (_beam_size == 1)
+    if (options.beam_size == 1)
       greedy_decoding(*_decoder,
                       sample_from,
                       candidates,
                       end_token,
-                      _max_decoding_steps,
+                      options.max_decoding_steps,
                       sampled_ids,
                       scores);
     else
@@ -91,10 +88,10 @@ namespace ctranslate2 {
                   sample_from,
                   candidates,
                   end_token,
-                  _max_decoding_steps,
-                  _beam_size,
-                  1,
-                  _length_penalty,
+                  options.max_decoding_steps,
+                  options.beam_size,
+                  options.num_hypotheses,
+                  options.length_penalty,
                   sampled_ids,
                   scores);
 
