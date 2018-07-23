@@ -132,7 +132,7 @@ namespace ctranslate2 {
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
 
-    for (size_t step = 0; step < max_steps; ++step) {
+    for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
       decoder.logits(step, topk_ids, candidates, logits);
       size_t vocabulary_size = logits.dim(-1);
@@ -185,8 +185,6 @@ namespace ctranslate2 {
               break;
             sampled_ids[batch_offset[i]].push_back(id);
           }
-          if (step + 1 == max_steps)
-            sampled_ids[batch_offset[i]].push_back(pred_id);
           ++finished_count;
           finished[i] = true;
         }
@@ -248,7 +246,7 @@ namespace ctranslate2 {
       batch_offset[i] = i;
     sampled_ids.resize(batch_size);
 
-    for (size_t step = 0; step < max_steps; ++step) {
+    for (size_t step = 0; step < max_steps + 1; ++step) {
       decoder.logits(step, sample_from, candidates, logits);
       log_probs_from_logits(logits, log_probs);
 
@@ -261,7 +259,7 @@ namespace ctranslate2 {
         if (!candidates.empty())
           true_id = candidates.at<int32_t>(best);
         size_t batch_id = batch_offset[i];
-        if (true_id == end_token) {
+        if (true_id == end_token || step + 1 == max_steps) {
           finished[batch_id] = true;
           finished_batch[i] = true;
           one_finished = true;
