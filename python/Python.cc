@@ -18,6 +18,10 @@ private:
   PyThreadState* _save_state;
 };
 
+static void initialize(size_t mkl_num_threads) {
+  ctranslate2::init(mkl_num_threads);
+}
+
 class TranslatorWrapper
 {
 public:
@@ -77,7 +81,7 @@ private:
 BOOST_PYTHON_MODULE(translator)
 {
   PyEval_InitThreads();
-  py::def("initialize", &ctranslate2::init);
+  py::def("initialize", initialize, (py::arg("mkl_num_threads")=4));
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
     py::init<std::string, std::string, std::string, size_t>(
