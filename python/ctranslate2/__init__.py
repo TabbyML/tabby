@@ -1,2 +1,2 @@
 from ctranslate2.translator import Translator
-from ctranslate2 import initialize
+from ctranslate2.translator import initialize
