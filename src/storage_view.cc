@@ -140,12 +140,7 @@ namespace ctranslate2 {
 
   StorageView& StorageView::assign(StorageView&& other) {
     assert(other._dtype == _dtype);
-    std::swap(_data, other._data);
-    std::swap(_own_data, other._own_data);
-    std::swap(_allocated_size, other._allocated_size);
-    std::swap(_size, other._size);
-    std::swap(_shape, other._shape);
-    std::swap(_strides, other._strides);
+    swap(*this, other);
     return *this;
   }
 
@@ -227,7 +222,13 @@ namespace ctranslate2 {
   }
 
   void swap(StorageView& a, StorageView& b) {
-    a.assign(std::move(b));
+    std::swap(a._dtype, b._dtype);
+    std::swap(a._data, b._data);
+    std::swap(a._own_data, b._own_data);
+    std::swap(a._allocated_size, b._allocated_size);
+    std::swap(a._size, b._size);
+    std::swap(a._shape, b._shape);
+    std::swap(a._strides, b._strides);
   }
 
 }
