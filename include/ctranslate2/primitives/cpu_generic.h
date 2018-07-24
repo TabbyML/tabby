@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <numeric>
 
 #include "primitives.h"
@@ -10,14 +11,12 @@ namespace ctranslate2 {
 
   template <typename T1, typename T2, typename Function>
   void unary_transform(const T1* x, T2* y, size_t size, Function func) {
-    for (size_t i = 0; i < size; ++i)
-      y[i] = func(x[i]);
+    std::transform(x, x + size, y, func);
   }
 
   template <typename T1, typename T2, typename Function>
   void binary_transform(const T1* a, const T1* b, T2* c, size_t size, Function func) {
-    for (size_t i = 0; i < size; ++i)
-      c[i] = func(a[i], b[i]);
+    std::transform(a, a + size, b, c, func);
   }
 
 
@@ -69,17 +68,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::add(const T* a, const T* b, T* c, size_t size) {
-    binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
-      return v1 + v2;
-    });
+    binary_transform(a, b, c, size, std::plus<T>());
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, size_t size) {
-    binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
-      return v1 - v2;
-    });
+    binary_transform(a, b, c, size, std::minus<T>());
   }
 
   template<>
@@ -91,9 +86,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::mul(const T* a, const T* b, T* c, size_t size) {
-    binary_transform(a, b, c, size, [](const T& v1, const T& v2) {
-      return v1 * v2;
-    });
+    binary_transform(a, b, c, size, std::multiplies<T>());
   }
 
   template<>
