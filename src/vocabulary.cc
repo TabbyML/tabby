@@ -4,7 +4,10 @@
 
 namespace ctranslate2 {
 
+  const std::string Vocabulary::pad_token = "<blank>";
   const std::string Vocabulary::unk_token = "<unk>";
+  const std::string Vocabulary::bos_token = "<s>";
+  const std::string Vocabulary::eos_token = "</s>";
 
   Vocabulary::Vocabulary(const std::string& path) {
     std::ifstream in(path);

@@ -10,7 +10,10 @@ namespace ctranslate2 {
   class Vocabulary
   {
   public:
+    static const std::string pad_token;
     static const std::string unk_token;
+    static const std::string bos_token;
+    static const std::string eos_token;
 
     Vocabulary(const std::string& path);
 
