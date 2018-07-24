@@ -34,6 +34,11 @@ namespace ctranslate2 {
     if (options.num_hypotheses > options.beam_size)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
 
+    const auto& source_vocab = _model->get_source_vocabulary();
+    const auto& target_vocab = _model->get_target_vocabulary();
+    auto& encoder = *_encoder;
+    auto& decoder = *_decoder;
+
     size_t batch_size = batch_tokens.size();
 
     // Record lengths and maximum length.
@@ -50,16 +55,16 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       for (size_t t = 0; t < batch_tokens[i].size(); ++t) {
         const std::string& token = batch_tokens[i][t];
-        ids.at<int32_t>({i, t}) = _model->get_source_vocabulary().to_id(token);
+        ids.at<int32_t>({i, t}) = source_vocab.to_id(token);
       }
     }
 
     // Encode sequence.
     static thread_local StorageView encoded;
-    _encoder->encode(ids, lengths, encoded);
+    encoder.encode(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.
-    _decoder->get_state().reset(encoded, lengths);
+    decoder.get_state().reset(encoded, lengths);
 
     // If set, extract the subset of candidates to generate.
     StorageView candidates(DataType::DT_INT32);
@@ -70,13 +75,13 @@ namespace ctranslate2 {
     }
 
     // Decode.
-    size_t start_token = _model->get_target_vocabulary().to_id("<s>");
-    size_t end_token = _model->get_target_vocabulary().to_id("</s>");
+    size_t start_token = target_vocab.to_id("<s>");
+    size_t end_token = target_vocab.to_id("</s>");
     StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
     std::vector<std::vector<std::vector<size_t>>> sampled_ids;
     std::vector<std::vector<float>> scores;
     if (options.beam_size == 1)
-      greedy_decoding(*_decoder,
+      greedy_decoding(decoder,
                       sample_from,
                       candidates,
                       end_token,
@@ -84,7 +89,7 @@ namespace ctranslate2 {
                       sampled_ids,
                       scores);
     else
-      beam_search(*_decoder,
+      beam_search(decoder,
                   sample_from,
                   candidates,
                   end_token,
@@ -99,7 +104,7 @@ namespace ctranslate2 {
     std::vector<TranslationResult> results;
     results.reserve(batch_size);
     for (size_t i = 0; i < batch_size; ++i)
-      results.emplace_back(sampled_ids[i], scores[i], _model->get_target_vocabulary());
+      results.emplace_back(sampled_ids[i], scores[i], target_vocab);
     return results;
   }
 
