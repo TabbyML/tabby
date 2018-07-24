@@ -77,7 +77,7 @@ namespace ctranslate2 {
     // Decode.
     size_t start_token = target_vocab.to_id("<s>");
     size_t end_token = target_vocab.to_id("</s>");
-    StorageView sample_from({batch_size, 1}, static_cast<int32_t>(start_token));
+    StorageView sample_from({batch_size}, static_cast<int32_t>(start_token));
     std::vector<std::vector<std::vector<size_t>>> sampled_ids;
     std::vector<std::vector<float>> scores;
     if (options.beam_size == 1)

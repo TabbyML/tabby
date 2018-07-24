@@ -115,6 +115,7 @@ namespace ctranslate2 {
     size_t cur_batch_size = batch_size;
     const ops::TopK topk_op(beam_size);
     StorageView alive_seq(sample_from);
+    alive_seq.reshape({batch_size, 1});
 
     expand_to_beam_size(decoder.get_state(), beam_size);
     expand_to_beam_size(alive_seq, beam_size);
@@ -247,6 +248,7 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
     size_t batch_size = sample_from.dim(0);
+    sample_from.reshape({batch_size, 1});
 
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
