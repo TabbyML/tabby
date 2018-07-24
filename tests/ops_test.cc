@@ -242,17 +242,6 @@ TEST(OpTest, GatherData2DIndex2D) {
   expect_storage_eq(output, expected);
 }
 
-TEST(OpTest, Gemm) {
-  StorageView a({4, 4}, std::vector<float>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1});
-  StorageView b(a);
-  StorageView c({4, 4}, 2.f);
-  StorageView y;
-  StorageView expected({4, 4}, std::vector<float>{3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3});
-  ops::Gemm op(1.0, 1.0, false, false, false);
-  op(a, b, c, y);
-  expect_storage_eq(y, expected);
-};
-
 TEST(OpTest, GemmInt16) {
   StorageView a({64, 64}, static_cast<int16_t>(1));
   StorageView b(a);
@@ -291,3 +280,27 @@ TEST(OpTest, TopK) {
   expect_storage_eq(values, expected_values);
   expect_storage_eq(indices, expected_indices);
 }
+
+
+class OpDeviceTest : public ::testing::TestWithParam<Device> {
+};
+
+
+TEST_P(OpDeviceTest, Gemm) {
+  Device device = GetParam();
+  StorageView a(
+    {4, 4}, std::vector<float>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}, device);
+  StorageView b(a);
+  StorageView c({4, 4}, 2.f, device);
+  StorageView y(c.dtype(), device);
+  StorageView expected(
+    {4, 4}, std::vector<float>{3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3}, device);
+  ops::Gemm op(1.0, 1.0, false, false, false);
+  op(a, b, c, y);
+  expect_storage_eq(y, expected);
+};
+
+INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
+#ifdef WITH_CUDA
+INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
+#endif

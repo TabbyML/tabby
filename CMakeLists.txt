@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(ctranslate2)
 
+option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
@@ -85,8 +86,21 @@ set(LIBRARIES
   iomp5
   )
 
-add_library(${PROJECT_NAME} ${SOURCES})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBRARIES})
+if (WITH_CUDA)
+  find_package(CUDA 8.0 REQUIRED)
+  add_definitions(-DWITH_CUDA)
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+  cuda_include_directories(${INCLUDE_DIRECTORIES})
+  cuda_add_library(${PROJECT_NAME}
+    ${SOURCES}
+    src/primitives/gpu_cuda.cu
+    )
+  cuda_add_cublas_to_target(${PROJECT_NAME})
+else()
+  add_library(${PROJECT_NAME} ${SOURCES})
+endif()
+
+target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
 
 add_subdirectory(tests)

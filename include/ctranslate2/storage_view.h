@@ -47,7 +47,12 @@ namespace ctranslate2 {
       : _dtype(DataTypeToEnum<T>::value)
       , _device(device) {
       resize(shape);
-      copy_from(init.data(), init.size());
+#ifdef WITH_CUDA
+      if (device == Device::CUDA)
+        cross_device_primitives<Device::CPU, Device::CUDA>::copy(init.data(), data<T>(), _size);
+      else
+#endif
+        copy_from(init.data(), init.size());
     }
 
     // Create from a buffer (no copy).
@@ -66,6 +71,7 @@ namespace ctranslate2 {
 
     // Device management.
     Device device() const;
+    StorageView to(Device D) const;
 
     // Actual storage type.
     DataType dtype() const;

@@ -39,6 +39,27 @@ namespace ctranslate2 {
     return _device;
   }
 
+  StorageView StorageView::to(Device device) const {
+#ifdef WITH_CUDA
+    if (device == _device)
+      return *this;
+    StorageView device_copy(_shape, _dtype, device);
+    if (device == Device::CUDA) {
+      TYPE_DISPATCH(_dtype,
+                    (cross_device_primitives<Device::CPU, Device::CUDA>::copy(
+                      data<T>(), device_copy.data<T>(), _size)));
+    } else {
+      TYPE_DISPATCH(_dtype,
+                    (cross_device_primitives<Device::CUDA, Device::CPU>::copy(
+                      data<T>(), device_copy.data<T>(), _size)));
+    }
+    return device_copy;
+#else
+    device = device;
+    return *this;
+#endif
+  }
+
   DataType StorageView::dtype() const {
     return _dtype;
   }
@@ -224,7 +245,10 @@ namespace ctranslate2 {
         }
         os << std::endl);
     }
-    os << '[' << dtype_name(storage.dtype()) << " storage viewed as ";
+    os << '[';
+    if (storage.device() == Device::CUDA)
+      os << "CUDA ";
+    os << dtype_name(storage.dtype()) << " storage viewed as ";
     for (size_t i = 0; i < storage.rank(); ++i) {
       if (i > 0)
         os << 'x';

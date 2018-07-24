@@ -21,16 +21,17 @@ namespace ctranslate2 {
                       StorageView& y) const {
         switch (a.dtype()) {
         case DataType::DT_INT16:
-          return compute<int16_t, int32_t>(a, b, c, y);
+          return compute<Device::CPU, int16_t, int32_t>(a, b, c, y);
         case DataType::DT_FLOAT:
-          return compute<float>(a, b, c, y);
+          DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, c, y)));
+          break;
         default:
           throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
         }
       }
 
     private:
-      template <typename In, typename Out = In>
+      template <Device D, typename In, typename Out = In>
       void compute(const StorageView& a,
                    const StorageView& b,
                    const StorageView& c,
@@ -50,18 +51,18 @@ namespace ctranslate2 {
           if (_broadcast_c) {
             assert(c.size() == n);
             for (size_t i = 0; i < m; ++i)
-              primitives<>::copy(c.data<Out>(), y.data<Out>() + i * n, n);
+              primitives<D>::copy(c.data<Out>(), y.data<Out>() + i * n, n);
           } else {
             assert(c.size() == y.size());
-            primitives<>::copy(c.data<Out>(), y.data<Out>(), y.size());
+            primitives<D>::copy(c.data<Out>(), y.data<Out>(), y.size());
           }
         }
 
-        primitives<>::gemm(a.data<In>(), b.data<In>(),
-                           _trans_a, _trans_b,
-                           m, n, k,
-                           static_cast<In>(_alpha), static_cast<Out>(_beta),
-                           y.data<Out>());
+        primitives<D>::gemm(a.data<In>(), b.data<In>(),
+                            _trans_a, _trans_b,
+                            m, n, k,
+                            static_cast<In>(_alpha), static_cast<Out>(_beta),
+                            y.data<Out>());
       }
 
       float _alpha;
