@@ -10,7 +10,7 @@
 namespace po = boost::program_options;
 
 int main(int argc, char* argv[]) {
-  po::options_description desc("OpenNMT translator");
+  po::options_description desc("CTranslate2 translation client");
   desc.add_options()
     ("help", "display available options")
     ("model", po::value<std::string>(),
