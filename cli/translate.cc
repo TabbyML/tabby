@@ -13,19 +13,32 @@ int main(int argc, char* argv[]) {
   po::options_description desc("OpenNMT translator");
   desc.add_options()
     ("help", "display available options")
-    ("model", po::value<std::string>(), "path to the model")
-    ("src", po::value<std::string>(), "path to the file to translate (read from the standard input if not set)")
-    ("tgt", po::value<std::string>(), "path to the output file (write to the standard output if not set")
-    ("vocab_mapping", po::value<std::string>()->default_value(""), "path to a vocabulary mapping table")
-    ("batch_size", po::value<size_t>()->default_value(30), "batch size")
-    ("beam_size", po::value<size_t>()->default_value(5), "beam size")
-    ("n_best", po::value<size_t>()->default_value(1), "n-best list")
-    ("with_score", po::bool_switch()->default_value(false), "display translation score")
-    ("length_penalty", po::value<float>()->default_value(0.6), "length penalty")
-    ("max_sent_length", po::value<size_t>()->default_value(250), "maximum sentence length to produce")
-    ("log_throughput", po::bool_switch()->default_value(false), "log average tokens per second")
-    ("inter_threads", po::value<size_t>()->default_value(1), "number of inter batch threads")
-    ("intra_threads", po::value<size_t>()->default_value(0), "number of intra batch threads (set to 0 to use an automatic value)")
+    ("model", po::value<std::string>(),
+     "path to the model")
+    ("src", po::value<std::string>(),
+     "path to the file to translate (read from the standard input if not set)")
+    ("tgt", po::value<std::string>(),
+     "path to the output file (write to the standard output if not set")
+    ("vocab_mapping", po::value<std::string>()->default_value(""),
+     "path to a vocabulary mapping table (see http://gitlab/Lingdev_Team_SSA/vmap)")
+    ("batch_size", po::value<size_t>()->default_value(30),
+     "batch size")
+    ("beam_size", po::value<size_t>()->default_value(5),
+     "beam size")
+    ("n_best", po::value<size_t>()->default_value(1),
+     "n-best list")
+    ("with_score", po::bool_switch()->default_value(false),
+     "display translation score")
+    ("length_penalty", po::value<float>()->default_value(0.6),
+     "length penalty")
+    ("max_sent_length", po::value<size_t>()->default_value(250),
+     "maximum sentence length to produce")
+    ("log_throughput", po::bool_switch()->default_value(false),
+     "log average tokens per second")
+    ("inter_threads", po::value<size_t>()->default_value(1),
+     "number of parallel translations")
+    ("intra_threads", po::value<size_t>()->default_value(0),
+     "number of threads for Intel® MKL (set to 0 to use an automatic value)")
     ;
 
   po::variables_map vm;
