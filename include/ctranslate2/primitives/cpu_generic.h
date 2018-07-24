@@ -41,7 +41,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   size_t primitives<Device::CPU>::max_element(const T* array, size_t size) {
-    return std::max_element(array, array + size) - array;
+    return std::distance(array, std::max_element(array, array + size));
   }
 
   template<>
@@ -54,7 +54,7 @@ namespace ctranslate2 {
   template <typename T, typename I>
   void primitives<Device::CPU>::topk(const T* x, I* indices, size_t k, size_t size) {
     std::iota(indices, indices + size, 0);
-    std::partial_sort(indices, indices + k, indices + size, [&x](I i1, I i2) {
+    std::partial_sort(indices, indices + k, indices + size, [&x](const I& i1, const I& i2) {
       return x[i1] > x[i2];
     });
   }
