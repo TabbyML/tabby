@@ -99,9 +99,9 @@ namespace ctranslate2 {
       _gather_op(_embeddings, ids, output);
     }
     const size_t embedding_size = _embeddings.dim(-1);
-    primitives::mul(static_cast<float>(sqrt(embedding_size)),
-                    output.data<float>(),
-                    output.size());
+    primitives<>::mul(static_cast<float>(sqrt(embedding_size)),
+                      output.data<float>(),
+                      output.size());
   }
 
 
@@ -113,9 +113,9 @@ namespace ctranslate2 {
       precompute_position_encoding(_max_cached_time, depth);
     for (size_t i = 0; i < lengths.dim(0); ++i) {
       const auto length = lengths.at<int32_t>(i);
-      primitives::add(_cached_encodings.data<float>(),
-                      input.index<float>({i}),
-                      length * depth);
+      primitives<>::add(_cached_encodings.data<float>(),
+                        input.index<float>({i}),
+                        length * depth);
     }
   }
 
@@ -125,9 +125,9 @@ namespace ctranslate2 {
     if (_cached_encodings.empty())
       precompute_position_encoding(_max_cached_time, depth);
     for (size_t i = 0; i < input.dim(0); ++i) {
-      primitives::add(_cached_encodings.index<float>({index}),
-                      input.index<float>({i}),
-                      depth);
+      primitives<>::add(_cached_encodings.index<float>({index}),
+                        input.index<float>({i}),
+                        depth);
     }
   }
 
@@ -186,7 +186,7 @@ namespace ctranslate2 {
 
     size_t output_depth = bias->size();
     for (size_t i = 0; i < output.size() / output_depth; ++i)
-      primitives::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
+      primitives<>::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
   }
 
   LayerNorm::LayerNorm(const TransformerModel& model, const std::string& scope)
@@ -212,7 +212,7 @@ namespace ctranslate2 {
     _ff1(output, inner);
     ops::ReLU()(inner);
     _ff2(inner, output);
-    primitives::add(input.data<float>(), output.data<float>(), input.size());
+    primitives<>::add(input.data<float>(), output.data<float>(), input.size());
   }
 
 
@@ -240,7 +240,7 @@ namespace ctranslate2 {
         for (size_t h = 0; h < num_heads; ++h) {
           for (size_t i = 0; i < queries_time; ++i) {
             auto* x = output.index<float>({b, h, i});
-            primitives::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
+            primitives<>::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
           }
         }
       }
@@ -280,9 +280,9 @@ namespace ctranslate2 {
     split_heads(queries, split_queries);
 
     const size_t dk = queries.dim(-1) / _num_heads;
-    primitives::mul(static_cast<float>(1.0 / sqrt(dk)),
-                    split_queries.data<float>(),
-                    split_queries.size());
+    primitives<>::mul(static_cast<float>(1.0 / sqrt(dk)),
+                      split_queries.data<float>(),
+                      split_queries.size());
 
     static thread_local StorageView context;
     _attention(split_queries,
@@ -346,7 +346,7 @@ namespace ctranslate2 {
                       context);
 
     _linear_out(context, output);
-    primitives::add(queries.data<float>(), output.data<float>(), queries.size());
+    primitives<>::add(queries.data<float>(), output.data<float>(), queries.size());
   }
 
   void TransformerSelfAttention::cache_proj(ssize_t step, StorageView& proj, StorageView& cache) {
@@ -409,7 +409,7 @@ namespace ctranslate2 {
                       context);
 
     _linear_out(context, output);
-    primitives::add(queries.data<float>(), output.data<float>(), queries.size());
+    primitives<>::add(queries.data<float>(), output.data<float>(), queries.size());
   }
 
 

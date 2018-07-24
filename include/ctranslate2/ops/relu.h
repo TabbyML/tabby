@@ -17,13 +17,13 @@ namespace ctranslate2 {
     private:
       template <typename T>
       void compute(StorageView& x) const {
-        primitives::relu(x.data<T>(), x.size());
+        primitives<>::relu(x.data<T>(), x.size());
       }
 
       template <typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        primitives::relu(x.data<T>(), y.data<T>(), x.size());
+        primitives<>::relu(x.data<T>(), y.data<T>(), x.size());
       }
     };
 

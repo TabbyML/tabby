@@ -15,7 +15,7 @@ namespace ctranslate2 {
       template <typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        primitives::sin(x.data<T>(), y.data<T>(), x.size());
+        primitives<>::sin(x.data<T>(), y.data<T>(), x.size());
       }
     };
 

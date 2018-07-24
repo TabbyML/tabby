@@ -23,7 +23,7 @@ namespace ctranslate2 {
       template <typename In, typename Out>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        primitives::quantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
+        primitives<>::quantize(x.data<In>(), y.data<Out>(), x.size(), _scale, _shift);
       }
 
     };

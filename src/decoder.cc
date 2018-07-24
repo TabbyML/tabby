@@ -60,9 +60,9 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       const auto* src = logits.data<T>() + i * depth;
       auto* dst = log_probs.data<T>() + i * depth;
-      primitives::exp(src, dst, depth);
-      T logsumexp = std::log(primitives::sum(dst, depth));
-      primitives::sub(logsumexp, src, dst, depth);
+      primitives<>::exp(src, dst, depth);
+      T logsumexp = std::log(primitives<>::sum(dst, depth));
+      primitives<>::sub(logsumexp, src, dst, depth);
     }
   }
 
@@ -72,7 +72,7 @@ namespace ctranslate2 {
     size_t depth = log_probs.dim(-1);
     size_t batch_size = log_probs.size() / depth;
     for (size_t i = 0; i < batch_size; ++i) {
-      primitives::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
+      primitives<>::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
     }
   }
 
@@ -153,7 +153,7 @@ namespace ctranslate2 {
       float length_penalty_weight = 1.0;
       if (length_penalty != 0) {
         length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
-        primitives::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size());
+        primitives<>::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size());
       }
 
       // Flatten the probs into a list of candidates.
@@ -164,7 +164,7 @@ namespace ctranslate2 {
 
       // Recover the true log probs if length penalty was applied.
       if (length_penalty != 0)
-        primitives::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
+        primitives<>::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
 
       // Unflatten the ids.
       topk_log_probs.reshape({cur_batch_size, beam_size});
@@ -274,7 +274,7 @@ namespace ctranslate2 {
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = primitives::max_element(log_probs.index<float>({i}), log_probs.dim(-1));
+        size_t best = primitives<>::max_element(log_probs.index<float>({i}), log_probs.dim(-1));
         size_t true_id = best;
         if (!candidates.empty())
           true_id = candidates.at<int32_t>(best);

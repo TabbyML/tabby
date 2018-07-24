@@ -15,10 +15,10 @@ namespace ctranslate2 {
       template <typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y = x;
-        primitives::mul(static_cast<T>(-1), y.data<T>(), y.size());
-        primitives::exp(y.data<T>(), y.data<T>(), y.size());
-        primitives::add(static_cast<T>(1), y.data<T>(), y.size());
-        primitives::inv(y.data<T>(), y.data<T>(), y.size());
+        primitives<>::mul(static_cast<T>(-1), y.data<T>(), y.size());
+        primitives<>::exp(y.data<T>(), y.data<T>(), y.size());
+        primitives<>::add(static_cast<T>(1), y.data<T>(), y.size());
+        primitives<>::inv(y.data<T>(), y.data<T>(), y.size());
       }
     };
 

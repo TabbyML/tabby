@@ -16,10 +16,10 @@ namespace ctranslate2 {
       void compute(const StorageView& a, const StorageView& b, StorageView& c) const {
         if (b.is_scalar()) {
           c = a;
-          primitives::mul(b.data<T>()[0], c.data<T>(), c.size());
+          primitives<>::mul(b.data<T>()[0], c.data<T>(), c.size());
         } else {
           c.resize_as(a);
-          primitives::mul(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
+          primitives<>::mul(a.data<T>(), b.data<T>(), c.data<T>(), c.size());
         }
       }
     };

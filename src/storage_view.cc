@@ -1,33 +1,42 @@
 #include "ctranslate2/storage_view.h"
 
-#include <mkl.h>
-
-#define ALIGNMENT 64
-
 namespace ctranslate2 {
 
-  StorageView::StorageView(DataType type)
-    : _dtype(type) {
+  StorageView::StorageView(DataType type, Device device)
+    : _dtype(type)
+    , _device(device) {
   }
 
-  StorageView::StorageView(const Shape& shape, DataType type)
-    : _dtype(type) {
+  StorageView::StorageView(Device device, DataType type)
+    : _dtype(type)
+    , _device(device) {
+  }
+
+  StorageView::StorageView(const Shape& shape, DataType type, Device device)
+    : _dtype(type)
+    , _device(device) {
     resize(shape);
     TYPE_DISPATCH(type, fill(T()));
   }
 
   StorageView::StorageView(const StorageView& other)
-    : _dtype(other._dtype) {
+    : _dtype(other._dtype)
+    , _device(other._device) {
     assign(other);
   }
 
   StorageView::StorageView(StorageView&& other)
-    : _dtype(other._dtype) {
+    : _dtype(other._dtype)
+    , _device(other._device) {
     assign(std::move(other));
   }
 
   StorageView::~StorageView() {
     release();
+  }
+
+  Device StorageView::device() const {
+    return _device;
   }
 
   DataType StorageView::dtype() const {
@@ -48,8 +57,9 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::release() {
-    if (_own_data && _data != nullptr)
-      mkl_free(_data);
+    if (_own_data && _data != nullptr) {
+      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data));
+    }
     _data = nullptr;
     _allocated_size = 0;
     return clear();
@@ -59,7 +69,7 @@ namespace ctranslate2 {
     release();
     size_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-    _data = mkl_malloc(required_bytes, ALIGNMENT);
+    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes));
     assert(_data != nullptr);
     _own_data = true;
     _allocated_size = size;
@@ -140,6 +150,7 @@ namespace ctranslate2 {
 
   StorageView& StorageView::assign(StorageView&& other) {
     assert(other._dtype == _dtype);
+    assert(other._device == _device);
     swap(*this, other);
     return *this;
   }
@@ -194,23 +205,25 @@ namespace ctranslate2 {
   }
 
   std::ostream& operator<<(std::ostream& os, const StorageView& storage) {
-    TYPE_DISPATCH(
-      storage.dtype(),
-      // Do not spam output stream for large storages.
-      if (storage.size() < 7) {
-        for (size_t i = 0; i < storage.size(); ++i) {
-          os << ' ' << storage.data<T>()[i];
+    if (storage.device() == Device::CPU) {
+      TYPE_DISPATCH(
+        storage.dtype(),
+        // Do not spam output stream for large storages.
+        if (storage.size() < 7) {
+          for (size_t i = 0; i < storage.size(); ++i) {
+            os << ' ' << storage.data<T>()[i];
+          }
+        } else {
+          os << " " << storage.data<T>()[0]
+             << " " << storage.data<T>()[1]
+             << " " << storage.data<T>()[2]
+             << " ..."
+             << " " << storage.data<T>()[storage.size() - 3]
+             << " " << storage.data<T>()[storage.size() - 2]
+             << " " << storage.data<T>()[storage.size() - 1];
         }
-      } else {
-        os << " " << storage.data<T>()[0]
-           << " " << storage.data<T>()[1]
-           << " " << storage.data<T>()[2]
-           << " ..."
-           << " " << storage.data<T>()[storage.size() - 3]
-           << " " << storage.data<T>()[storage.size() - 2]
-           << " " << storage.data<T>()[storage.size() - 1];
-      }
-      os << std::endl);
+        os << std::endl);
+    }
     os << '[' << dtype_name(storage.dtype()) << " storage viewed as ";
     for (size_t i = 0; i < storage.rank(); ++i) {
       if (i > 0)
@@ -223,6 +236,7 @@ namespace ctranslate2 {
 
   void swap(StorageView& a, StorageView& b) {
     std::swap(a._dtype, b._dtype);
+    std::swap(a._device, b._device);
     std::swap(a._data, b._data);
     std::swap(a._own_data, b._own_data);
     std::swap(a._allocated_size, b._allocated_size);

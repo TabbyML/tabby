@@ -33,7 +33,7 @@ namespace ctranslate2 {
           size_t index = input.data<IndexType>()[i];
           const auto* src = data.index<DataType>({index});
           auto* dst = output.data<DataType>() + i * copy_dim;
-          primitives::copy(src, dst, copy_dim);
+          primitives<>::copy(src, dst, copy_dim);
         }
       }
 

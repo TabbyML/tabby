@@ -21,35 +21,40 @@ namespace ctranslate2 {
   class StorageView
   {
   public:
-    StorageView(DataType type = DataType::DT_FLOAT);
-    StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT);
+    StorageView(DataType type = DataType::DT_FLOAT, Device device = Device::CPU);
+    StorageView(Device device, DataType type = DataType::DT_FLOAT);
+    StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT, Device device = Device::CPU);
 
     template <typename T>
-    StorageView(const Shape& shape, T init = T())
-      : _dtype(DataTypeToEnum<T>::value) {
+    StorageView(const Shape& shape, T init = T(), Device device = Device::CPU)
+      : _dtype(DataTypeToEnum<T>::value)
+      , _device(device) {
       resize(shape);
       fill(init);
     }
 
     template <typename T>
-    StorageView(T scalar)
-      : _dtype(DataTypeToEnum<T>::value) {
+    StorageView(T scalar, Device device = Device::CPU)
+      : _dtype(DataTypeToEnum<T>::value)
+      , _device(device) {
       resize({1});
       fill(scalar);
     }
 
     // Create from a std::vector (copy).
     template <typename T>
-    StorageView(const Shape& shape, const std::vector<T>& init)
-      : _dtype(DataTypeToEnum<T>::value) {
+    StorageView(const Shape& shape, const std::vector<T>& init, Device device = Device::CPU)
+      : _dtype(DataTypeToEnum<T>::value)
+      , _device(device) {
       resize(shape);
       copy_from(init.data(), init.size());
     }
 
     // Create from a buffer (no copy).
     template <typename T>
-    StorageView(const Shape& shape, T* data)
-      : _dtype(DataTypeToEnum<T>::value) {
+    StorageView(const Shape& shape, T* data, Device device = Device::CPU)
+      : _dtype(DataTypeToEnum<T>::value)
+      , _device(device) {
       assign(data, shape);
     }
 
@@ -58,6 +63,9 @@ namespace ctranslate2 {
     // Move constructor (swap of each attribute).
     StorageView(StorageView&& other);
     ~StorageView();
+
+    // Device management.
+    Device device() const;
 
     // Actual storage type.
     DataType dtype() const;
@@ -157,7 +165,7 @@ namespace ctranslate2 {
     template <typename T>
     StorageView& fill(T value) {
       assert(DataTypeToEnum<T>::value == _dtype);
-      primitives::fill(data<T>(), value, _size);
+      DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
       return *this;
     }
 
@@ -167,7 +175,7 @@ namespace ctranslate2 {
     StorageView& copy_from(const T* data, size_t size) {
       assert(DataTypeToEnum<T>::value == _dtype);
       assert(size == _size);
-      primitives::copy(data, this->data<T>(), size);
+      DEVICE_DISPATCH(_device, primitives<D>::copy(data, this->data<T>(), size));
       return *this;
     }
 
@@ -176,6 +184,7 @@ namespace ctranslate2 {
 
   protected:
     DataType _dtype = DataType::DT_FLOAT;
+    Device _device = Device::CPU;
     void* _data = nullptr;
     bool _own_data = true;
     size_t _allocated_size = 0;

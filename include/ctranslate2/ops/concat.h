@@ -49,9 +49,9 @@ namespace ctranslate2 {
           if (copy_dim == 0)
             continue;
           for (size_t i = 0; i < iter_dim; ++i) {
-            primitives::copy(x->data<T>() + i * copy_dim,
-                             output.data<T>() + offset + i * concat_dims * output.stride(axis),
-                             copy_dim);
+            primitives<>::copy(x->data<T>() + i * copy_dim,
+                               output.data<T>() + offset + i * concat_dims * output.stride(axis),
+                               copy_dim);
           }
           offset += copy_dim;
         }
