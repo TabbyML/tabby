@@ -28,5 +28,5 @@ setup(
     version="0.1.0",
     packages=["ctranslate2"],
     ext_modules=[ctranslate2_module],
-    install_requires=["tensorflow==1.8.0"]
+    install_requires=[]
 )
