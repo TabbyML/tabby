@@ -47,12 +47,13 @@ namespace ctranslate2 {
       : _dtype(DataTypeToEnum<T>::value)
       , _device(device) {
       resize(shape);
-#ifdef WITH_CUDA
-      if (device == Device::CUDA)
-        cross_device_primitives<Device::CPU, Device::CUDA>::copy(init.data(), data<T>(), _size);
-      else
-#endif
+      if (device != Device::CPU) {
+        DEVICE_DISPATCH(device,
+                        (cross_device_primitives<Device::CPU, D>::copy(
+                          init.data(), data<T>(), _size)));
+      } else {
         copy_from(init.data(), init.size());
+      }
     }
 
     // Create from a buffer (no copy).

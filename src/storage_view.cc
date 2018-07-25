@@ -40,7 +40,7 @@ namespace ctranslate2 {
   }
 
   StorageView StorageView::to(Device device) const {
-#ifdef WITH_CUDA
+#ifdef WITH_CUDA  // TODO: remove this CUDA specific guard.
     if (device == _device)
       return *this;
     StorageView device_copy(_shape, _dtype, device);
