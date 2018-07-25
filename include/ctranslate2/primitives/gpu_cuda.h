@@ -17,6 +17,36 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::copy(const T* x, T* y, size_t size);
 
   template<>
+  template <typename T>
+  T primitives<Device::CUDA>::sum(const T* array, size_t size);
+  template<>
+  template <typename T>
+  size_t primitives<Device::CUDA>::max_element(const T* array, size_t size);
+  template<>
+  template <typename T>
+  T primitives<Device::CUDA>::max(const T* array, size_t size);
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size);
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::add(const T* a, const T* b, T* c, size_t size);
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, size_t size);
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::mul(T a, const T* x, T* y, size_t size);
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::mul(const T* a, const T* b, T* c, size_t size);
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size);
+
+  template<>
   template<>
   void primitives<Device::CUDA>::gemm(const float* a, const float* b,
                                       bool transpose_a, bool transpose_b,
@@ -32,6 +62,10 @@ namespace ctranslate2 {
                                             size_t m, size_t n, size_t k,
                                             float alpha, float beta,
                                             float* c);
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::exp(const float* x, float* y, size_t size);
 
   template<>
   template <typename T>

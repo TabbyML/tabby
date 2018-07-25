@@ -77,6 +77,16 @@ namespace ctranslate2 {
     return handle;
   }
 
+  template <typename T, typename UnaryFunction>
+  void unary_transform(const T* x, T* y, size_t size, UnaryFunction op) {
+    thrust::transform(thrust::cuda::par.on(get_cuda_stream()), x, x + size, y, op);
+  }
+
+  template <typename T, typename BinaryFunction>
+  void binary_transform(const T* a, const T* b, T* c, size_t size, BinaryFunction op) {
+    thrust::transform(thrust::cuda::par.on(get_cuda_stream()), a, a + size, b, c, op);
+  }
+
 
   template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
@@ -101,6 +111,69 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::copy(const T* x, T* y, size_t size) {
     CUDA_CHECK(cudaMemcpyAsync(y, x, size * sizeof (T),
                                cudaMemcpyDeviceToDevice, get_cuda_stream()));
+  }
+
+  template<>
+  template <typename T>
+  T primitives<Device::CUDA>::sum(const T* array, size_t size) {
+    return thrust::reduce(thrust::cuda::par.on(get_cuda_stream()), array, array + size);
+  }
+
+  template<>
+  template <typename T>
+  size_t primitives<Device::CUDA>::max_element(const T* array, size_t size) {
+    const auto* max = thrust::max_element(thrust::cuda::par.on(get_cuda_stream()),
+                                          array, array + size);
+    return static_cast<size_t>(max - array);
+  }
+
+  template<>
+  template <typename T>
+  T primitives<Device::CUDA>::max(const T* array, size_t size) {
+    thrust::device_ptr<const T> array_ptr(array);
+    return *thrust::max_element(thrust::cuda::par.on(get_cuda_stream()),
+                                array_ptr, array_ptr + size);
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size) {
+    unary_transform(x, y, size, thrust::placeholders::_1 + a);
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::add(const T* a, const T* b, T* c, size_t size) {
+    binary_transform(a, b, c, size, thrust::plus<T>());
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::sub(const T* a, const T* b, T* c, size_t size) {
+    binary_transform(a, b, c, size, thrust::minus<T>());
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::mul(T a, const T* x, T* y, size_t size) {
+    unary_transform(x, y, size, thrust::placeholders::_1 * a);
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::mul(const T* a, const T* b, T* c, size_t size) {
+    binary_transform(a, b, c, size, thrust::multiplies<T>());
+  }
+
+  struct relu_func : public thrust::unary_function<float, float> {
+    __host__ __device__
+    float operator()(float x) { return fmaxf(x, 0); }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size) {
+    unary_transform(x, y, size, relu_func());
   }
 
   template<>
@@ -192,6 +265,17 @@ namespace ctranslate2 {
                                     batch_size));
   }
 
+  struct exp_func : public thrust::unary_function<float, float> {
+    __host__ __device__
+    float operator()(float x) { return expf(x); }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::exp(const float* x, float* y, size_t size) {
+    unary_transform(x, y, size, exp_func());
+  }
+
 
   template<>
   template <typename T>
@@ -210,6 +294,22 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::fill(T* x, T a, size_t size);               \
   template void                                                         \
   primitives<Device::CUDA>::copy<T>(const T* x, T* y, size_t size);     \
+  template T                                                            \
+  primitives<Device::CUDA>::sum(const T* array, size_t size);           \
+  template size_t                                                       \
+  primitives<Device::CUDA>::max_element(const T* array, size_t size);   \
+  template T                                                            \
+  primitives<Device::CUDA>::max(const T* array, size_t size);           \
+  template void                                                         \
+  primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size);    \
+  template void                                                         \
+  primitives<Device::CUDA>::add(const T* a, const T* b, T* c, size_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::sub(const T* a, const T* b, T* c, size_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::mul(T a, const T* x, T* y, size_t size);    \
+  template void                                                         \
+  primitives<Device::CUDA>::mul(const T* a, const T* b, T* c, size_t size); \
   template void                                                         \
   cross_device_primitives<Device::CPU, Device::CUDA>::copy<T>(const T*, T*, size_t); \
   template void                                                         \
