@@ -105,12 +105,6 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::copy(const float* x, float* y, size_t size) {
-    CUBLAS_CHECK(cublasScopy(get_cublas_handle(), size, x, 1 /* incx */, y, 1 /* incy */));
-  }
-
-  template<>
-  template<>
   void primitives<Device::CUDA>::gemm(const float* a, const float* b,
                                       bool transpose_a, bool transpose_b,
                                       size_t m, size_t n, size_t k,
