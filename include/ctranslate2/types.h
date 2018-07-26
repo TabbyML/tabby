@@ -85,4 +85,10 @@ namespace ctranslate2 {
     TYPE_CASE(int32_t, SINGLE_ARG(STMTS))           \
   }
 
+#define DECLARE_ALL_TYPES(FUNC)                 \
+  FUNC(float)                                   \
+  FUNC(int8_t)                                  \
+  FUNC(int16_t)                                 \
+  FUNC(int32_t)                                 \
+
 }

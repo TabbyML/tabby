@@ -4,6 +4,7 @@
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 
+#include "ctranslate2/types.h"
 #include "ctranslate2/cuda/utils.h"
 
 namespace ctranslate2 {
@@ -271,9 +272,6 @@ namespace ctranslate2 {
   template void                                                         \
   cross_device_primitives<Device::CUDA, Device::CPU>::copy<T>(const T*, T*, size_t);
 
-  DECLARE_IMPL(signed char)
-  DECLARE_IMPL(float)
-  DECLARE_IMPL(int)
-  DECLARE_IMPL(short)
+  DECLARE_ALL_TYPES(DECLARE_IMPL)
 
 }
