@@ -34,6 +34,7 @@ set(SOURCES
   src/decoder.cc
   src/decoder.cc
   src/model.cc
+  src/ops/gather.cc
   src/storage_view.cc
   src/transformer.cc
   src/translation_result.cc
@@ -102,8 +103,9 @@ if (WITH_CUDA)
   cuda_include_directories(${INCLUDE_DIRECTORIES})
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
-    src/primitives/gpu_cuda.cu
     src/cuda/utils.cc
+    src/primitives/gpu_cuda.cu
+    src/ops/gather_gpu.cu
     )
   cuda_add_cublas_to_target(${PROJECT_NAME})
 else()
