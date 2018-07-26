@@ -6,7 +6,7 @@
 #include <numeric>
 #include <vector>
 
-#include "primitives.h"
+#include "primitives_decl.h"
 
 namespace ctranslate2 {
 
