@@ -134,19 +134,6 @@ TEST(OpTest, Quantize) {
   expect_storage_eq(reverse, input);
 }
 
-TEST(OpTest, TopK) {
-  const int k = 3;
-  StorageView input({2, 6}, std::vector<float>{0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0});
-  StorageView expected_values({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3});
-  StorageView expected_indices({2, 3}, std::vector<int32_t>{2, 5, 4, 1, 0, 3});
-  StorageView values(expected_values.dtype());
-  StorageView indices(expected_indices.dtype());
-  ops::TopK op(k);
-  op(input, values, indices);
-  expect_storage_eq(values, expected_values);
-  expect_storage_eq(indices, expected_indices);
-}
-
 
 class OpDeviceTest : public ::testing::TestWithParam<Device> {
 };
@@ -357,6 +344,20 @@ TEST_P(OpDeviceTest, Gemm) {
   op(a, b, c, y);
   expect_storage_eq(y, expected);
 };
+
+TEST_P(OpDeviceTest, TopK) {
+  Device device = GetParam();
+  const int k = 3;
+  StorageView input({2, 6}, std::vector<float>{0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0}, device);
+  StorageView expected_values({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3}, device);
+  StorageView expected_indices({2, 3}, std::vector<int32_t>{2, 5, 4, 1, 0, 3}, device);
+  StorageView values(expected_values.dtype(), device);
+  StorageView indices(expected_indices.dtype(), device);
+  ops::TopK op(k);
+  op(input, values, indices);
+  expect_storage_eq(values, expected_values);
+  expect_storage_eq(indices, expected_indices);
+}
 
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 #ifdef WITH_CUDA
