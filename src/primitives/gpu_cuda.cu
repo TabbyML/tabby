@@ -59,7 +59,7 @@ namespace ctranslate2 {
     static thread_local cudaStream_t stream;
     static thread_local bool initialized = false;
     if (!initialized) {
-      CUDA_CHECK(cudaStreamCreate(&stream));
+      CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
       initialized = true;
     }
     return stream;
