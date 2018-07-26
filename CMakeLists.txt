@@ -83,6 +83,7 @@ if(WITH_MKL)
     message(FATAL_ERROR "An error occured when generating the MKL small library")
   endif()
 
+  add_definitions(-DWITH_MKL)
   list(APPEND SOURCES src/primitives/cpu_mkl.cc)
   list(APPEND LINK_DIRECTORIES ${INTEL_LIBRARY_DIR})
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
