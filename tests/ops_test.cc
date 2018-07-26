@@ -1,95 +1,6 @@
 #include "test_utils.h"
 #include "ctranslate2/ops/ops.h"
 
-TEST(OpTest, AddFloat) {
-  StorageView a({4}, std::vector<float>{1, 2, 3, 4});
-  StorageView b({4}, std::vector<float>{2, 3, 4, 5});
-  StorageView expected({4}, std::vector<float>{3, 5, 7, 9});
-  StorageView c;
-  ops::Add()(a, b, c);
-  expect_storage_eq(c, expected);
-}
-
-TEST(OpTest, ConcatEmpty) {
-  StorageView a({2, 1, 2}, std::vector<float>{1, 2, 3, 4});
-  StorageView b({2, 0, 2});
-  StorageView x;
-  ops::Concat(1)({&a, &b}, x);
-  expect_storage_eq(x, a);
-}
-
-TEST(OpTest, ConcatSplitBatch) {
-  StorageView a({2, 2}, std::vector<float>{1, 2, 3, 4});
-  StorageView b({1, 2}, std::vector<float>{5, 6});
-  StorageView c({3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6});
-  StorageView x;
-  ops::Concat(0)({&a, &b}, x);
-  expect_storage_eq(x, c);
-  StorageView y, z;
-  std::vector<StorageView*> out{&y, &z};
-  ops::Split(0, {2, 1})(c, out);
-  expect_storage_eq(y, a);
-  expect_storage_eq(z, b);
-}
-
-TEST(OpTest, ConcatSplitTime) {
-  StorageView a({2, 2, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
-  StorageView b({2, 1, 2}, std::vector<float>{5, 5, 6, 6});
-  StorageView c({2, 3, 2}, std::vector<float>{1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6});
-  StorageView x;
-  ops::Concat(1)({&a, &b}, x);
-  expect_storage_eq(x, c);
-  StorageView y, z;
-  std::vector<StorageView*> out{&y, &z};
-  ops::Split(1, {2, 1})(c, out);
-  expect_storage_eq(y, a);
-  expect_storage_eq(z, b);
-}
-
-TEST(OpTest, ConcatSplitDepth) {
-  StorageView a({2, 1}, std::vector<float>{1, 4});
-  StorageView b({2, 2}, std::vector<float>{2, 3, 5, 6});
-  StorageView c({2, 3}, std::vector<float>{1, 2, 3, 4, 5, 6});
-  StorageView x;
-  ops::Concat(-1)({&a, &b}, x);
-  expect_storage_eq(x, c);
-  StorageView y, z;
-  std::vector<StorageView*> out{&y, &z};
-  ops::Split(-1, {1, 2})(c, out);
-  expect_storage_eq(y, a);
-  expect_storage_eq(z, b);
-}
-
-TEST(OpTest, ConcatSplitDepth3) {
-  StorageView a({2, 2}, std::vector<float>{1, 2, 6, 7});
-  StorageView b({2, 1}, std::vector<float>{3, 8});
-  StorageView c({2, 2}, std::vector<float>{4, 5, 9, 10});
-  StorageView d({2, 5}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
-  StorageView x;
-  ops::Concat(-1)({&a, &b, &c}, x);
-  expect_storage_eq(x, d);
-  StorageView y, z, w;
-  std::vector<StorageView*> out{&y, &z, &w};
-  ops::Split(-1, {2, 1, 2})(d, out);
-  expect_storage_eq(y, a);
-  expect_storage_eq(z, b);
-  expect_storage_eq(w, c);
-}
-
-TEST(OpTest, ConcatSplitDepthEqualParts) {
-  StorageView a({2, 2}, std::vector<float>{1, 2, 5, 6});
-  StorageView b({2, 2}, std::vector<float>{3, 4, 7, 8});
-  StorageView c({2, 4}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
-  StorageView x;
-  ops::Concat(-1)({&a, &b}, x);
-  expect_storage_eq(x, c);
-  StorageView y, z;
-  std::vector<StorageView*> out{&y, &z};
-  ops::Split(-1)(c, out);
-  expect_storage_eq(y, a);
-  expect_storage_eq(z, b);
-}
-
 TEST(OpTest, TileFirstDim) {
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4});
   StorageView repeats({2}, std::vector<int32_t>{2, 1});
@@ -197,51 +108,6 @@ TEST(OpTest, Unsqueeze) {
   EXPECT_EQ(z.data<float>(), y.data<float>());
 }
 
-TEST(OpTest, GatherData1D) {
-  StorageView data({4}, std::vector<float>{1, 2, 3, 4});
-  StorageView ids({2}, std::vector<int32_t>{1, 3});
-  StorageView expected({2}, std::vector<float>{2, 4});
-  StorageView output;
-  ops::Gather(0)(data, ids, output);
-  expect_storage_eq(output, expected);
-}
-
-TEST(OpTest, GatherData1DIndex2D) {
-  StorageView data({4}, std::vector<float>{1, 2, 3, 4});
-  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 1, 1, 2, 0});
-  StorageView expected({2, 3}, std::vector<float>{2, 4, 2, 2, 3, 1});
-  StorageView output;
-  ops::Gather(0)(data, ids, output);
-  expect_storage_eq(output, expected);
-}
-
-TEST(OpTest, GatherData2D) {
-  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
-  StorageView ids({2}, std::vector<int32_t>{1, 3});
-  StorageView expected({2, 2}, std::vector<float>{2, 2, 4, 4});
-  StorageView output;
-  ops::Gather(0)(data, ids, output);
-  expect_storage_eq(output, expected);
-}
-
-TEST(OpTest, GatherData3D) {
-  StorageView data({2, 3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12});
-  StorageView ids({2}, std::vector<int32_t>{1, 1});
-  StorageView expected({2, 3, 2}, std::vector<float>{7, 8, 9, 10, 11, 12, 7, 8, 9, 10, 11, 12});
-  StorageView output;
-  ops::Gather(0)(data, ids, output);
-  expect_storage_eq(output, expected);
-}
-
-TEST(OpTest, GatherData2DIndex2D) {
-  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
-  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0});
-  StorageView expected({2, 3, 2}, std::vector<float>{2, 2, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1});
-  StorageView output;
-  ops::Gather(0)(data, ids, output);
-  expect_storage_eq(output, expected);
-}
-
 TEST(OpTest, GemmInt16) {
   StorageView a({64, 64}, static_cast<int16_t>(1));
   StorageView b(a);
@@ -285,6 +151,198 @@ TEST(OpTest, TopK) {
 class OpDeviceTest : public ::testing::TestWithParam<Device> {
 };
 
+
+TEST_P(OpDeviceTest, Add) {
+  Device device = GetParam();
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b({4}, std::vector<float>{2, 3, 4, 5}, device);
+  StorageView expected({4}, std::vector<float>{3, 5, 7, 9}, device);
+  StorageView c(a.device());
+  ops::Add()(a, b, c);
+  expect_storage_eq(c, expected);
+}
+
+TEST_P(OpDeviceTest, AddScalar) {
+  Device device = GetParam();
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b(static_cast<float>(3));
+  StorageView expected({4}, std::vector<float>{4, 5, 6, 7}, device);
+  StorageView c(a.device());
+  ops::Add()(a, b, c);
+  expect_storage_eq(c, expected);
+}
+
+TEST_P(OpDeviceTest, Mul) {
+  Device device = GetParam();
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b({4}, std::vector<float>{2, 3, 4, 5}, device);
+  StorageView expected({4}, std::vector<float>{2, 6, 12, 20}, device);
+  StorageView c(a.device());
+  ops::Mul()(a, b, c);
+  expect_storage_eq(c, expected);
+}
+
+TEST_P(OpDeviceTest, MulScalar) {
+  Device device = GetParam();
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b(static_cast<float>(3));
+  StorageView expected({4}, std::vector<float>{3, 6, 9, 12}, device);
+  StorageView c(a.device());
+  ops::Mul()(a, b, c);
+  expect_storage_eq(c, expected);
+}
+
+TEST_P(OpDeviceTest, Sub) {
+  Device device = GetParam();
+  StorageView a({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b({4}, std::vector<float>{2, 3, 4, 5}, device);
+  StorageView expected({4}, std::vector<float>{-1, -1, -1, -1}, device);
+  StorageView c(a.device());
+  ops::Sub()(a, b, c);
+  expect_storage_eq(c, expected);
+}
+
+TEST_P(OpDeviceTest, ConcatEmpty) {
+  Device device = GetParam();
+  StorageView a({2, 1, 2}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b({2, 0, 2}, DataType::DT_FLOAT, device);
+  StorageView x(device);
+  ops::Concat(1)({&a, &b}, x);
+  expect_storage_eq(x, a);
+}
+
+TEST_P(OpDeviceTest, ConcatSplitBatch) {
+  Device device = GetParam();
+  StorageView a({2, 2}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView b({1, 2}, std::vector<float>{5, 6}, device);
+  StorageView c({3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6}, device);
+  StorageView x(device);
+  ops::Concat(0)({&a, &b}, x);
+  expect_storage_eq(x, c);
+  StorageView y(device);
+  StorageView z(device);
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(0, {2, 1})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+}
+
+TEST_P(OpDeviceTest, ConcatSplitTime) {
+  Device device = GetParam();
+  StorageView a({2, 2, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4}, device);
+  StorageView b({2, 1, 2}, std::vector<float>{5, 5, 6, 6}, device);
+  StorageView c({2, 3, 2}, std::vector<float>{1, 1, 2, 2, 5, 5, 3, 3, 4, 4, 6, 6}, device);
+  StorageView x(device);
+  ops::Concat(1)({&a, &b}, x);
+  expect_storage_eq(x, c);
+  StorageView y(device);
+  StorageView z(device);
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(1, {2, 1})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+}
+
+TEST_P(OpDeviceTest, ConcatSplitDepth) {
+  Device device = GetParam();
+  StorageView a({2, 1}, std::vector<float>{1, 4}, device);
+  StorageView b({2, 2}, std::vector<float>{2, 3, 5, 6}, device);
+  StorageView c({2, 3}, std::vector<float>{1, 2, 3, 4, 5, 6}, device);
+  StorageView x(device);
+  ops::Concat(-1)({&a, &b}, x);
+  expect_storage_eq(x, c);
+  StorageView y(device);
+  StorageView z(device);
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(-1, {1, 2})(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+}
+
+TEST_P(OpDeviceTest, ConcatSplitDepth3) {
+  Device device = GetParam();
+  StorageView a({2, 2}, std::vector<float>{1, 2, 6, 7}, device);
+  StorageView b({2, 1}, std::vector<float>{3, 8}, device);
+  StorageView c({2, 2}, std::vector<float>{4, 5, 9, 10}, device);
+  StorageView d({2, 5}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}, device);
+  StorageView x(device);
+  ops::Concat(-1)({&a, &b, &c}, x);
+  expect_storage_eq(x, d);
+  StorageView w(device);
+  StorageView y(device);
+  StorageView z(device);
+  std::vector<StorageView*> out{&w, &y, &z};
+  ops::Split(-1, {2, 1, 2})(d, out);
+  expect_storage_eq(w, a);
+  expect_storage_eq(y, b);
+  expect_storage_eq(z, c);
+}
+
+TEST_P(OpDeviceTest, ConcatSplitDepthEqualParts) {
+  Device device = GetParam();
+  StorageView a({2, 2}, std::vector<float>{1, 2, 5, 6}, device);
+  StorageView b({2, 2}, std::vector<float>{3, 4, 7, 8}, device);
+  StorageView c({2, 4}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
+  StorageView x(device);
+  ops::Concat(-1)({&a, &b}, x);
+  expect_storage_eq(x, c);
+  StorageView y(device);
+  StorageView z(device);
+  std::vector<StorageView*> out{&y, &z};
+  ops::Split(-1)(c, out);
+  expect_storage_eq(y, a);
+  expect_storage_eq(z, b);
+}
+
+TEST_P(OpDeviceTest, GatherData1D) {
+  Device device = GetParam();
+  StorageView data({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView expected({2}, std::vector<float>{2, 4}, device);
+  StorageView output(device);
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST_P(OpDeviceTest, GatherData1DIndex2D) {
+  Device device = GetParam();
+  StorageView data({4}, std::vector<float>{1, 2, 3, 4}, device);
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 1, 1, 2, 0});
+  StorageView expected({2, 3}, std::vector<float>{2, 4, 2, 2, 3, 1}, device);
+  StorageView output(device);
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST_P(OpDeviceTest, GatherData2D) {
+  Device device = GetParam();
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4}, device);
+  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView expected({2, 2}, std::vector<float>{2, 2, 4, 4}, device);
+  StorageView output(device);
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST_P(OpDeviceTest, GatherData3D) {
+  Device device = GetParam();
+  StorageView data({2, 3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, device);
+  StorageView ids({2}, std::vector<int32_t>{1, 1});
+  StorageView expected({2, 3, 2}, std::vector<float>{7, 8, 9, 10, 11, 12, 7, 8, 9, 10, 11, 12}, device);
+  StorageView output(device);
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
+TEST_P(OpDeviceTest, GatherData2DIndex2D) {
+  Device device = GetParam();
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4}, device);
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0});
+  StorageView expected({2, 3, 2}, std::vector<float>{2, 2, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1}, device);
+  StorageView output(device);
+  ops::Gather(0)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
 
 TEST_P(OpDeviceTest, Gemm) {
   Device device = GetParam();

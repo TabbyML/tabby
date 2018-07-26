@@ -17,13 +17,14 @@ namespace ctranslate2 {
       }
       void operator()(const std::vector<StorageView*>& inputs,
                       StorageView& output) const {
-        TYPE_DISPATCH(output.dtype(), compute<T>(inputs, output));
+        DEVICE_DISPATCH(output.device(),
+                        TYPE_DISPATCH(output.dtype(), (compute<D, T>(inputs, output))));
       }
 
     private:
       int _axis;
 
-      template <typename T>
+      template <Device D, typename T>
       void compute(const std::vector<StorageView*>& inputs,
                    StorageView& output) const {
         size_t rank = inputs.front()->rank();
@@ -49,9 +50,9 @@ namespace ctranslate2 {
           if (copy_dim == 0)
             continue;
           for (size_t i = 0; i < iter_dim; ++i) {
-            primitives<>::copy(x->data<T>() + i * copy_dim,
-                               output.data<T>() + offset + i * concat_dims * output.stride(axis),
-                               copy_dim);
+            primitives<D>::copy(x->data<T>() + i * copy_dim,
+                                output.data<T>() + offset + i * concat_dims * output.stride(axis),
+                                copy_dim);
           }
           offset += copy_dim;
         }
