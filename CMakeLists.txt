@@ -103,6 +103,7 @@ if (WITH_CUDA)
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/primitives/gpu_cuda.cu
+    src/cuda/utils.cc
     )
   cuda_add_cublas_to_target(${PROJECT_NAME})
 else()
