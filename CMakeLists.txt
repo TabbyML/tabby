@@ -22,6 +22,8 @@ else()
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 
+find_package(Threads)
+
 set(LINK_DIRECTORIES
   ${CMAKE_CURRENT_BINARY_DIR}
   )
@@ -44,8 +46,6 @@ set(SOURCES
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
   )
-
-find_package(Threads)
 
 if(WITH_MKL)
   set(MKL_ROOT ${INTEL_ROOT}/mkl)
