@@ -36,6 +36,7 @@ namespace ctranslate2 {
   private:
     ops::Gather _gather_op;
     const StorageView& _embeddings;
+    const StorageView _scale;
   };
 
   class PositionEncoder

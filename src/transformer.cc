@@ -85,7 +85,8 @@ namespace ctranslate2 {
 
 
   ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
-    : _embeddings(model.get_variable(scope + "/w_embs")) {
+    : _embeddings(model.get_variable(scope + "/w_embs"))
+    , _scale(static_cast<float>(sqrt(_embeddings.dim(-1)))) {
   }
 
   void ScaledEmbeddings::operator()(const StorageView& ids,
@@ -98,10 +99,7 @@ namespace ctranslate2 {
     } else {
       _gather_op(_embeddings, ids, output);
     }
-    const size_t embedding_size = _embeddings.dim(-1);
-    primitives<>::mul(static_cast<float>(sqrt(embedding_size)),
-                      output.data<float>(),
-                      output.size());
+    ops::Mul()(output, _scale, output);
   }
 
 
@@ -212,7 +210,7 @@ namespace ctranslate2 {
     _ff1(output, inner);
     ops::ReLU()(inner);
     _ff2(inner, output);
-    primitives<>::add(input.data<float>(), output.data<float>(), input.size());
+    ops::Add()(input, output, output);
   }
 
 
@@ -280,9 +278,8 @@ namespace ctranslate2 {
     split_heads(queries, split_queries);
 
     const size_t dk = queries.dim(-1) / _num_heads;
-    primitives<>::mul(static_cast<float>(1.0 / sqrt(dk)),
-                      split_queries.data<float>(),
-                      split_queries.size());
+    const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
+    ops::Mul()(split_queries, scale, split_queries);
 
     static thread_local StorageView context;
     _attention(split_queries,
@@ -346,7 +343,7 @@ namespace ctranslate2 {
                       context);
 
     _linear_out(context, output);
-    primitives<>::add(queries.data<float>(), output.data<float>(), queries.size());
+    ops::Add()(queries, output, output);
   }
 
   void TransformerSelfAttention::cache_proj(ssize_t step, StorageView& proj, StorageView& cache) {
@@ -409,7 +406,7 @@ namespace ctranslate2 {
                       context);
 
     _linear_out(context, output);
-    primitives<>::add(queries.data<float>(), output.data<float>(), queries.size());
+    ops::Add()(queries, output, output);
   }
 
 
