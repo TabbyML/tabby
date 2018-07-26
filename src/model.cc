@@ -10,9 +10,12 @@ namespace ctranslate2 {
       return StorageView(shape, reinterpret_cast<float*>(data));
     } else if (data_width == 2) {
       StorageView s_data(shape, reinterpret_cast<int16_t*>(data));
+#ifdef WITH_MKL
       if (support_avx2())
         return s_data;
-      else {
+      else
+#endif
+      {
         // int16 GEMM is not optimized prior AVX2 so fallback to float.
         static const ops::Unquantize unquantize_op(1000);
         StorageView s_data_cast;

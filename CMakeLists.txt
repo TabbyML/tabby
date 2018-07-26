@@ -1,13 +1,12 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(ctranslate2)
 
+option(WITH_MKL "Compile with Intel MKL backend" ON)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-set(INTEL_ROOT /opt/intel)
-set(MKL_ROOT ${INTEL_ROOT}/mkl)
-set(MKL_SMALL_LIBRARY_NAME mkl_small)
+set(INTEL_ROOT /opt/intel CACHE FILEPATH "Path to Intel root directory")
 
 # Set Release build type by default to get sane performance.
 if(NOT CMAKE_BUILD_TYPE)
@@ -23,54 +22,16 @@ else()
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
 
-find_package(Threads)
-
-# Find MKL includes.
-find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)
-if(MKL_INCLUDE_DIR)
-  message(STATUS "Found MKL include directory: ${MKL_INCLUDE_DIR}")
-else()
-  message(FATAL_ERROR "MKL include directory not found")
-endif()
-
-# Find Intel libraries.
-find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
-if(INTEL_LIBRARY_DIR)
-  message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
-else()
-  message(FATAL_ERROR "Intel library directory not found")
-endif()
-
-# Generate custom MKL library.
-execute_process(
-  COMMAND make
-    libintel64
-    name=${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}
-    export=${CMAKE_CURRENT_SOURCE_DIR}/mkl_symbol_list
-  WORKING_DIRECTORY ${MKL_ROOT}/tools/builder
-  OUTPUT_QUIET
-  )
-
-if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}.so)
-  message(STATUS "Generated small MKL library lib${MKL_SMALL_LIBRARY_NAME}.so")
-else()
-  message(FATAL_ERROR "An error occured when generating the MKL small library")
-endif()
-
-link_directories(
+set(LINK_DIRECTORIES
   ${CMAKE_CURRENT_BINARY_DIR}
-  ${INTEL_LIBRARY_DIR}
   )
-
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${MKL_INCLUDE_DIR}
   )
 set(SOURCES
   src/decoder.cc
   src/decoder.cc
   src/model.cc
-  src/primitives/cpu_mkl.cc
   src/storage_view.cc
   src/transformer.cc
   src/translation_result.cc
@@ -82,9 +43,56 @@ set(SOURCES
   )
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
-  ${MKL_SMALL_LIBRARY_NAME}
-  iomp5
   )
+
+find_package(Threads)
+
+if(WITH_MKL)
+  set(MKL_ROOT ${INTEL_ROOT}/mkl)
+  set(MKL_SMALL_LIBRARY_NAME mkl_small)
+
+  # Find MKL includes.
+  find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)
+  if(MKL_INCLUDE_DIR)
+    message(STATUS "Found MKL include directory: ${MKL_INCLUDE_DIR}")
+  else()
+    message(FATAL_ERROR "MKL include directory not found")
+  endif()
+
+  # Find Intel libraries.
+  find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
+  if(INTEL_LIBRARY_DIR)
+    message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
+  else()
+    message(FATAL_ERROR "Intel library directory not found")
+  endif()
+
+  # Generate custom MKL library.
+  execute_process(
+    COMMAND make
+    libintel64
+    name=${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}
+    export=${CMAKE_CURRENT_SOURCE_DIR}/mkl_symbol_list
+    WORKING_DIRECTORY ${MKL_ROOT}/tools/builder
+    OUTPUT_QUIET
+    )
+
+  if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/lib${MKL_SMALL_LIBRARY_NAME}.so)
+    message(STATUS "Generated small MKL library lib${MKL_SMALL_LIBRARY_NAME}.so")
+  else()
+    message(FATAL_ERROR "An error occured when generating the MKL small library")
+  endif()
+
+  list(APPEND SOURCES src/primitives/cpu_mkl.cc)
+  list(APPEND LINK_DIRECTORIES ${INTEL_LIBRARY_DIR})
+  list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
+  list(APPEND LIBRARIES
+    ${MKL_SMALL_LIBRARY_NAME}
+    iomp5
+    )
+endif()
+
+link_directories(${LINK_DIRECTORIES})
 
 if (WITH_CUDA)
   find_package(CUDA 8.0 REQUIRED)
