@@ -52,15 +52,14 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    static void sub(T a, T* y, size_t size) {
-      T a_rev = -a;
-      add(a_rev, y, size);
-    }
-
-    template <typename T>
     static void sub(T a, const T* x, T* y, size_t size) {
       T a_rev = -a;
       add(a_rev, x, y, size);
+    }
+
+    template <typename T>
+    static void sub(T a, T* y, size_t size) {
+      sub(a, y, y, size);
     }
 
     template <typename T>
