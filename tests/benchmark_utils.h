@@ -4,15 +4,24 @@
 #include <iostream>
 #include <vector>
 
+#ifdef WITH_CUDA
+#  include <cuda_runtime.h>
+#  define SYNCHRONIZE cudaDeviceSynchronize()
+#else
+#  define SYNCHRONIZE do {} while (false)
+#endif
+
 #define BENCHMARK(fun_call, samples)                                    \
   do {                                                                  \
     std::cerr << "benchmarking "#fun_call << std::endl;                 \
     for (size_t i = 0; i < 10; ++i)                                     \
       fun_call;                                                         \
+    SYNCHRONIZE;                                                        \
     std::chrono::high_resolution_clock::time_point t1 =                 \
       std::chrono::high_resolution_clock::now();                        \
     for (size_t i = 0; i < static_cast<size_t>(samples); ++i)           \
       fun_call;                                                         \
+    SYNCHRONIZE;                                                        \
     std::chrono::high_resolution_clock::time_point t2 =                 \
       std::chrono::high_resolution_clock::now();                        \
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count(); \
