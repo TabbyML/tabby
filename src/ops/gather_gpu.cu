@@ -13,10 +13,8 @@ namespace ctranslate2 {
                          StorageView& output) const {
       static thread_local StorageView map(input.dtype(), Device::CPU);
       static thread_local StorageView map_device(input.dtype(), Device::CUDA);
-      if (map.size() < output.size()) {
-        map.resize({output.size()});
-        map_device.resize({output.size()});
-      }
+      map.resize({output.size()});
+      map_device.resize({output.size()});
 
       auto* map_raw = map.data<int32_t>();
       auto* map_device_raw = map_device.data<int32_t>();
