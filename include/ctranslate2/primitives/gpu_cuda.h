@@ -85,6 +85,9 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CUDA>::exp(const float* x, float* y, size_t size);
+  template<>
+  template<>
+  void primitives<Device::CUDA>::pow(const float* x, float* y, float power, size_t size);
 
   template<>
   template <typename T>
