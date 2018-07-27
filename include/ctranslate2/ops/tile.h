@@ -10,11 +10,12 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView& repeats,
                       StorageView& output) const override {
-        TYPE_DISPATCH(input.dtype(), compute<T>(input, repeats, output));
+        DEVICE_DISPATCH(input.device(),
+                        TYPE_DISPATCH(input.dtype(), (compute<D, T>(input, repeats, output))));
       }
 
     private:
-      template <typename T>
+      template <Device D, typename T>
       void compute(const StorageView& input,
                    const StorageView& repeats,
                    StorageView& output) const {
@@ -45,15 +46,15 @@ namespace ctranslate2 {
           if (axis == last_repeated_dim) {
             for (size_t j = 0; j < iter_dim; ++j) {
               for (size_t r = 0; r < repeat_dim; ++r) {
-                primitives<>::copy(input.data<T>() + j * copy_dim,
-                                   output.data<T>() + copied, copy_dim);
+                primitives<D>::copy(input.data<T>() + j * copy_dim,
+                                    output.data<T>() + copied, copy_dim);
                 copied += copy_dim;
               }
             }
           } else {
             for (size_t r = 1; r < repeat_dim; ++r) {
-              primitives<>::copy(output.data<T>(),
-                                 output.data<T>() + r * copied, copied);
+              primitives<D>::copy(output.data<T>(),
+                                  output.data<T>() + r * copied, copied);
             }
             copied *= repeat_dim;
           }
