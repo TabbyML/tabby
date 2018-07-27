@@ -17,3 +17,10 @@ if (GTEST_FOUND)
     ${PROJECT_NAME}
     )
 endif()
+
+add_executable(benchmark_ops
+  benchmark_ops.cc
+  )
+target_link_libraries(benchmark_ops
+  ${PROJECT_NAME}
+  )
