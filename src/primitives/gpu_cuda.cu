@@ -19,6 +19,16 @@ namespace ctranslate2 {
     thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()), a, a + size, b, c, op);
   }
 
+  // perm_fun is a functor that takes the index in the permuted iterator and
+  // return the index in the original iterator.
+  template <typename T, typename PermFunction>
+  void permute(const T* x, T* y, size_t size, PermFunction perm_fun) {
+    auto ind_it = thrust::counting_iterator<size_t>(0);
+    auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
+    auto perm_it = thrust::make_permutation_iterator(x, perm_ind_it);
+    thrust::copy_n(thrust::cuda::par.on(cuda::get_cuda_stream()), perm_it, size, y);
+  }
+
 
   template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
@@ -129,6 +139,101 @@ namespace ctranslate2 {
   template<>
   void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size) {
     unary_transform(x, y, size, relu_func());
+  }
+
+  template <typename T>
+  struct perm_indices_2d : public thrust::unary_function<T, T> {
+    T _rows, _cols;
+    perm_indices_2d(T rows, T cols)
+      : _rows(rows)
+      , _cols(cols) {
+    }
+    __host__ __device__
+    T operator()(const T& i) const {
+      const T i0 = i / _rows;
+      const T i1 = i % _rows;
+      return i1 * _cols + i0;
+    }
+  };
+
+  template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_2d(const DataType* a, const IndexType* dims, DataType* b) {
+    permute(a, b, dims[0] * dims[1], perm_indices_2d<IndexType>(dims[0], dims[1]));
+  }
+
+  template <typename T>
+  struct perm_indices_3d : public thrust::unary_function<T, T> {
+    T _a_ps0, _a_ps1, _a_ps2; // Permuted strides of the original array.
+    T _b_d0, _b_d1, _b_d2;    // Dimension of the permutated array.
+    T _b_s0, _b_s1, _b_s2;    // Strides of the permutated array.
+    perm_indices_3d(const T* dims, const T* perm) {
+      const size_t a_stride[3] = {dims[1] * dims[2], dims[2], 1};
+      _a_ps0 = a_stride[perm[0]];
+      _a_ps1 = a_stride[perm[1]];
+      _a_ps2 = a_stride[perm[2]];
+      _b_d0 = dims[perm[0]];
+      _b_d1 = dims[perm[1]];
+      _b_d2 = dims[perm[2]];
+      _b_s0 = _b_d1 * _b_d2;
+      _b_s1 = _b_d2;
+      _b_s2 = 1;
+    }
+    __host__ __device__
+    T operator()(const T& i) const {
+      const T i0 = i / _b_s0;
+      const T i1 = i / _b_s1 % _b_d1;
+      const T i2 = i % _b_d2;
+      return i0 * _a_ps0 + i1 * _a_ps1 + i2 * _a_ps2;
+    }
+  };
+
+  template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_3d(const DataType* a,
+                                              const IndexType* dims,
+                                              const IndexType* perm,
+                                              DataType* b) {
+    permute(a, b, dims[0] * dims[1] * dims[2], perm_indices_3d<IndexType>(dims, perm));
+  }
+
+  template <typename T>
+  struct perm_indices_4d : public thrust::unary_function<T, T> {
+    T _a_ps0, _a_ps1, _a_ps2, _a_ps3; // Permuted strides of the original array.
+    T _b_d0, _b_d1, _b_d2, _b_d3;    // Dimension of the permutated array.
+    T _b_s0, _b_s1, _b_s2, _b_s3;    // Strides of the permutated array.
+    perm_indices_4d(const T* dims, const T* perm) {
+      const size_t a_stride[4] = {dims[1] * dims[2] * dims[3], dims[2] * dims[3], dims[3], 1};
+      _a_ps0 = a_stride[perm[0]];
+      _a_ps1 = a_stride[perm[1]];
+      _a_ps2 = a_stride[perm[2]];
+      _a_ps3 = a_stride[perm[3]];
+      _b_d0 = dims[perm[0]];
+      _b_d1 = dims[perm[1]];
+      _b_d2 = dims[perm[2]];
+      _b_d3 = dims[perm[3]];
+      _b_s0 = _b_d1 * _b_d2 * _b_d3;
+      _b_s1 = _b_d2 * _b_d3;
+      _b_s2 = _b_d3;
+      _b_s3 = 1;
+    }
+    __host__ __device__
+    T operator()(const T& i) const {
+      const T i0 = i / _b_s0;
+      const T i1 = i / _b_s1 % _b_d1;
+      const T i2 = i / _b_s2 % _b_d2;
+      const T i3 = i % _b_d3;
+      return i0 * _a_ps0 + i1 * _a_ps1 + i2 * _a_ps2 * i3 * _a_ps3;
+    }
+  };
+
+  template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_4d(const DataType* a,
+                                              const IndexType* dims,
+                                              const IndexType* perm,
+                                              DataType* b) {
+    permute(a, b, dims[0] * dims[1] * dims[2] * dims[3], perm_indices_4d<IndexType>(dims, perm));
   }
 
   template<>
@@ -267,6 +372,18 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::mul(T a, const T* x, T* y, size_t size);    \
   template void                                                         \
   primitives<Device::CUDA>::mul(const T* a, const T* b, T* c, size_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::transpose_2d(const T* a, const size_t* dims, T* b); \
+  template void                                                         \
+  primitives<Device::CUDA>::transpose_3d(const T* a,                    \
+                                         const size_t* dims,            \
+                                         const size_t* perm,            \
+                                         T* b);                         \
+  template void                                                         \
+  primitives<Device::CUDA>::transpose_4d(const T* a,                    \
+                                         const size_t* dims,            \
+                                         const size_t* perm,            \
+                                         T* b);                         \
   template void                                                         \
   cross_device_primitives<Device::CPU, Device::CUDA>::copy<T>(const T*, T*, size_t); \
   template void                                                         \

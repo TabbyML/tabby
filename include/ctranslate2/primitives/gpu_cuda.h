@@ -50,6 +50,22 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size);
 
   template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_2d(const DataType* a, const IndexType* dims, DataType* b);
+  template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_3d(const DataType* a,
+                                              const IndexType* dims,
+                                              const IndexType* perm,
+                                              DataType* b);
+  template<>
+  template <typename DataType, typename IndexType>
+  void primitives<Device::CUDA>::transpose_4d(const DataType* a,
+                                              const IndexType* dims,
+                                              const IndexType* perm,
+                                              DataType* b);
+
+  template<>
   template<>
   void primitives<Device::CUDA>::gemm(const float* a, const float* b,
                                       bool transpose_a, bool transpose_b,
