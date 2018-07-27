@@ -223,7 +223,7 @@ namespace ctranslate2 {
       const T i1 = i / _b_s1 % _b_d1;
       const T i2 = i / _b_s2 % _b_d2;
       const T i3 = i % _b_d3;
-      return i0 * _a_ps0 + i1 * _a_ps1 + i2 * _a_ps2 * i3 * _a_ps3;
+      return i0 * _a_ps0 + i1 * _a_ps1 + i2 * _a_ps2 + i3 * _a_ps3;
     }
   };
 
