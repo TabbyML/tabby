@@ -8,22 +8,22 @@ namespace ctranslate2 {
     class ReLU : public UnaryOp {
     public:
       void operator()(StorageView& x) const {
-        TYPE_DISPATCH(x.dtype(), compute<T>(x));
+        DEVICE_DISPATCH(x.device(), (compute<D, float>(x)));
       }
       void operator()(const StorageView& x, StorageView& y) const override {
-        TYPE_DISPATCH(x.dtype(), compute<T>(x, y));
+        DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
       }
 
     private:
-      template <typename T>
+      template <Device D, typename T>
       void compute(StorageView& x) const {
-        primitives<>::relu(x.data<T>(), x.size());
+        primitives<D>::relu(x.data<T>(), x.size());
       }
 
-      template <typename T>
+      template <Device D, typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        primitives<>::relu(x.data<T>(), y.data<T>(), x.size());
+        primitives<D>::relu(x.data<T>(), y.data<T>(), x.size());
       }
     };
 

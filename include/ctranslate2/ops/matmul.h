@@ -21,9 +21,10 @@ namespace ctranslate2 {
                       StorageView& y) const {
         switch (a.dtype()) {
         case DataType::DT_INT16:
-          return compute<int16_t, int32_t>(a, b, y);
+          return compute<Device::CPU, int16_t, int32_t>(a, b, y);
         case DataType::DT_FLOAT:
-          return compute<float>(a, b, y);
+          DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
+          break;
         default:
           throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
         }
@@ -33,7 +34,7 @@ namespace ctranslate2 {
       bool _trans_a;
       bool _trans_b;
 
-      template <typename In, typename Out = In>
+      template <Device D, typename In, typename Out = In>
       void compute(const StorageView& a,
                    const StorageView& b,
                    StorageView& y) const {
@@ -64,16 +65,16 @@ namespace ctranslate2 {
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;
           y.resize(output_shape);
-          primitives<>::gemm_batch(a.data<In>(), b.data<In>(),
-                                   _trans_a, _trans_b,
-                                   batch_size, m, n, k,
-                                   alpha, beta, y.data<Out>());
+          primitives<D>::gemm_batch(a.data<In>(), b.data<In>(),
+                                    _trans_a, _trans_b,
+                                    batch_size, m, n, k,
+                                    alpha, beta, y.data<Out>());
         } else {
           y.resize({m, n});
-          primitives<>::gemm(a.data<In>(), b.data<In>(),
-                             _trans_a, _trans_b,
-                             m, n, k,
-                             alpha, beta, y.data<Out>());
+          primitives<D>::gemm(a.data<In>(), b.data<In>(),
+                              _trans_a, _trans_b,
+                              m, n, k,
+                              alpha, beta, y.data<Out>());
         }
       }
     };
