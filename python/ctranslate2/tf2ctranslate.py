@@ -34,10 +34,12 @@ def _copy_asset(export_dir, filepath, destination):
     shutil.copy(os.path.join(six.b(export_dir), b"assets", os.path.basename(filepath)),
                 destination)
 
-def convert_checkpoint(checkpoint_dir, output_dir, src_vocab, tgt_vocab, quantization="int16"):
+def convert_checkpoint(checkpoint_dir, output_dir, src_vocab, tgt_vocab, vmap=None, quantization="int16"):
     os.makedirs(output_dir)
     shutil.copy(src_vocab, os.path.join(output_dir, "source_vocabulary.txt"))
     shutil.copy(tgt_vocab, os.path.join(output_dir, "target_vocabulary.txt"))
+    if vmap is not None:
+        shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
     excludes_pattern = ["optim", "words_per_sec", "global_step"]
     reader = tf.train.load_checkpoint(checkpoint_dir)
     variable_map = reader.get_variable_to_shape_map()
@@ -46,7 +48,7 @@ def convert_checkpoint(checkpoint_dir, output_dir, src_vocab, tgt_vocab, quantiz
     variables = [reader.get_tensor(name) for name in names]
     _serialize_variables(output_dir, names, variables, quantization)
 
-def convert_saved_model(export_dir, output_dir, quantization="int16"):
+def convert_saved_model(export_dir, output_dir, vmap=None, quantization="int16"):
     os.makedirs(output_dir)
     with tf.Session() as sess:
         meta_graph = tf.saved_model.loader.load(sess, ["serve"], export_dir)
@@ -56,6 +58,8 @@ def convert_saved_model(export_dir, output_dir, quantization="int16"):
     names = [tensor.name for tensor in tensors]
     _copy_asset(export_dir, assets[0], os.path.join(output_dir, "source_vocabulary.txt"))
     _copy_asset(export_dir, assets[1], os.path.join(output_dir, "target_vocabulary.txt"))
+    if vmap is not None:
+        shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
     _serialize_variables(output_dir, names, variables, quantization)
 
 if __name__ == '__main__':
@@ -70,6 +74,8 @@ if __name__ == '__main__':
                         help="Source vocabulary file (required if converting a checkpoint).")
     parser.add_argument("--tgt_vocab", default=None,
                         help="Target vocabulary file (required if converting a checkpoint).")
+    parser.add_argument("--vocab_mapping", default=None,
+                        help="Vocabulary mapping file (optional).")
     parser.add_argument("--quantization", default="none", choices=["none", "int16"],
                         help="Weight quantization type.")
     parser.add_argument("--force", action="store_true",
@@ -88,7 +94,9 @@ if __name__ == '__main__':
             raise ValueError("vocabularies must be defined for checkpoint conversion")
         convert_checkpoint(args.model_dir, args.output_dir,
                            args.src_vocab, args.tgt_vocab,
+                           vmap=args.vocab_mapping,
                            quantization=args.quantization)
     else:
         convert_saved_model(args.model_dir, args.output_dir,
+                            vmap=args.vocab_mapping,
                             quantization=args.quantization)

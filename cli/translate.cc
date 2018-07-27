@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
      "path to the file to translate (read from the standard input if not set)")
     ("tgt", po::value<std::string>(),
      "path to the output file (write to the standard output if not set")
-    ("vocab_mapping", po::value<std::string>()->default_value(""),
-     "path to a vocabulary mapping table (see http://gitlab/Lingdev_Team_SSA/vmap)")
+    ("use_vmap", po::bool_switch()->default_value(false),
+     "use the vocabulary map included in the model to restrict the target candidates")
     ("batch_size", po::value<size_t>()->default_value(30),
      "batch size")
     ("beam_size", po::value<size_t>()->default_value(5),
@@ -61,15 +61,14 @@ int main(int argc, char* argv[]) {
   auto model = ctranslate2::ModelFactory::load(ctranslate2::ModelType::Transformer,
                                                vm["model"].as<std::string>());
 
-  ctranslate2::TranslatorPool translator_pool(inter_threads,
-                                              model,
-                                              vm["vocab_mapping"].as<std::string>());
+  ctranslate2::TranslatorPool translator_pool(inter_threads, model);
 
   auto options = ctranslate2::TranslationOptions();
   options.beam_size = vm["beam_size"].as<size_t>();
   options.length_penalty = vm["length_penalty"].as<float>();
   options.max_decoding_steps = vm["max_sent_length"].as<size_t>();
   options.num_hypotheses = vm["n_best"].as<size_t>();
+  options.use_vmap = vm["use_vmap"].as<bool>();
 
   std::istream* in = vm.count("src") ? new std::ifstream(vm["src"].as<std::string>()) : &std::cin;
   std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;

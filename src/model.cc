@@ -5,6 +5,24 @@
 
 namespace ctranslate2 {
 
+  Model::Model(const std::string& path)
+    : _source_vocabulary(path + "/source_vocabulary.txt")
+    , _target_vocabulary(path + "/target_vocabulary.txt")
+    , _vocabulary_map(path + "/vmap.txt", _target_vocabulary) {
+  }
+
+  const Vocabulary& Model::get_source_vocabulary() const {
+    return _source_vocabulary;
+  }
+
+  const Vocabulary& Model::get_target_vocabulary() const {
+    return _target_vocabulary;
+  }
+
+  const VocabularyMap& Model::get_vocabulary_map() const {
+    return _vocabulary_map;
+  }
+
   StorageView Model::load_data(const Shape& shape, size_t data_width, void* data) {
     if (data_width == 4) {
       return StorageView(shape, reinterpret_cast<float*>(data));

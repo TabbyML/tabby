@@ -19,8 +19,7 @@ namespace ctranslate2 {
   }
 
   TransformerModel::TransformerModel(const std::string& path)
-    : _source_vocabulary(path + "/source_vocabulary.txt")
-    , _target_vocabulary(path + "/target_vocabulary.txt") {
+    : Model(path) {
     std::string model_path = path + "/model.bin";
     std::ifstream model(model_path, std::ios_base::in | std::ios_base::binary);
     if (!model.is_open())
@@ -61,14 +60,6 @@ namespace ctranslate2 {
     if (it->first.find(scope) == std::string::npos)
       throw std::out_of_range("no variable found in scope '" + scope + "'");
     return it->second;
-  }
-
-  const Vocabulary& TransformerModel::get_source_vocabulary() const {
-    return _source_vocabulary;
-  }
-
-  const Vocabulary& TransformerModel::get_target_vocabulary() const {
-    return _target_vocabulary;
   }
 
   std::unique_ptr<Encoder> TransformerModel::make_encoder() const {

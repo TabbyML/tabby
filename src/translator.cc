@@ -4,18 +4,14 @@
 
 namespace ctranslate2 {
 
-  Translator::Translator(const std::shared_ptr<Model>& model,
-                         const std::string& vocabulary_map)
+  Translator::Translator(const std::shared_ptr<Model>& model)
     : _model(model)
     , _encoder(_model->make_encoder())
     , _decoder(_model->make_decoder()) {
-    if (!vocabulary_map.empty())
-      _vocabulary_map.reset(new VocabularyMap(vocabulary_map, _model->get_target_vocabulary()));
   }
 
   Translator::Translator(const Translator& other)
     : _model(other._model)
-    , _vocabulary_map(other._vocabulary_map)
     , _encoder(_model->make_encoder())  // Makes a new graph to ensure thread safety.
     , _decoder(_model->make_decoder()) { // Same here.
   }
@@ -36,6 +32,7 @@ namespace ctranslate2 {
 
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
+    const auto& vocab_map = _model->get_vocabulary_map();
     auto& encoder = *_encoder;
     auto& decoder = *_decoder;
 
@@ -68,8 +65,8 @@ namespace ctranslate2 {
 
     // If set, extract the subset of candidates to generate.
     StorageView candidates(DataType::DT_INT32);
-    if (_vocabulary_map) {
-      auto candidates_vec = _vocabulary_map->get_candidates<int32_t>(batch_tokens);
+    if (options.use_vmap && !vocab_map.empty()) {
+      auto candidates_vec = vocab_map.get_candidates<int32_t>(batch_tokens);
       candidates.resize({candidates_vec.size()});
       candidates.copy_from(candidates_vec.data(), candidates_vec.size());
     }

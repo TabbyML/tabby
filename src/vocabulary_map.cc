@@ -7,7 +7,7 @@ namespace ctranslate2 {
   VocabularyMap::VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary) {
     std::ifstream map_file(map_path);
     if (!map_file.is_open())
-      throw std::invalid_argument("Unable to open dictionary vocab mapping file `" + map_path + "`");
+      return;
 
     std::string line;
     while (std::getline(map_file, line)) {
@@ -51,6 +51,10 @@ namespace ctranslate2 {
     auto it = _map_rules[0].find("");
     if (it != _map_rules[0].end())
       _fixed_candidates.insert(it->second.begin(), it->second.end());
+  }
+
+  bool VocabularyMap::empty() const {
+    return _map_rules.empty();
   }
 
 }

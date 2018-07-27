@@ -19,6 +19,8 @@ namespace ctranslate2 {
   public:
     VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary);
 
+    bool empty() const;
+
     template <typename T>
     std::vector<T>
     get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const {
