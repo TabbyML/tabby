@@ -1,36 +1,42 @@
 #include "ctranslate2/ops/gather.h"
 
 #include <thrust/gather.h>
+#include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
 
 #include "ctranslate2/cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {
 
+    struct map_id : public thrust::unary_function<int32_t, int32_t> {
+      const int32_t* _offsets;
+      int32_t _stride;
+      map_id(const int32_t* offsets, int32_t stride)
+        : _offsets(offsets)
+        , _stride(stride) {
+      }
+      __host__ __device__
+      int32_t operator()(const int32_t& i) const {
+        int32_t row = i / _stride;
+        int32_t col = i % _stride;
+        return _offsets[row] * _stride + col;
+      }
+    };
+
     template <Device D, typename T>
     void Gather::compute(const StorageView& data,
                          const StorageView& input,
                          StorageView& output) const {
-      static thread_local StorageView map(input.dtype(), Device::CPU);
-      static thread_local StorageView map_device(input.dtype(), Device::CUDA);
-      map.resize({output.size()});
-      map_device.resize({output.size()});
+      static thread_local StorageView input_device(DataType::DT_INT32, Device::CUDA);
+      input_device = input;
 
-      auto* map_raw = map.data<int32_t>();
-      auto* map_device_raw = map_device.data<int32_t>();
-
-      size_t copy_dim = data.stride(0);
-      size_t map_size = map.size();
-
-      for (size_t i = 0; i < input.size(); ++i) {
-        size_t index = input.data<int32_t>()[i];
-        size_t map_offset = i * copy_dim;
-        std::iota(map_raw + map_offset, map_raw + map_offset + copy_dim, index * copy_dim);
-      }
-
-      cross_device_primitives<Device::CPU, Device::CUDA>::copy(map_raw, map_device_raw, map_size);
-      thrust::gather(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                     map_device_raw, map_device_raw + map_size, data.data<T>(), output.data<T>());
+      auto gather_ids = thrust::make_transform_iterator(
+        thrust::counting_iterator<size_t>(0),
+        map_id(input_device.data<int32_t>(), data.stride(0)));
+      thrust::gather(
+        thrust::cuda::par.on(cuda::get_cuda_stream()),
+        gather_ids, gather_ids + output.size(), data.data<T>(), output.data<T>());
     }
 
 #define DECLARE_IMPL(T)                                                 \
