@@ -40,24 +40,8 @@ namespace ctranslate2 {
   }
 
   StorageView StorageView::to(Device device) const {
-#ifdef WITH_CUDA  // TODO: remove this CUDA specific guard.
-    if (device == _device)
-      return *this;
     StorageView device_copy(_shape, _dtype, device);
-    if (device == Device::CUDA) {
-      TYPE_DISPATCH(_dtype,
-                    (cross_device_primitives<Device::CPU, Device::CUDA>::copy(
-                      data<T>(), device_copy.data<T>(), _size)));
-    } else {
-      TYPE_DISPATCH(_dtype,
-                    (cross_device_primitives<Device::CUDA, Device::CPU>::copy(
-                      data<T>(), device_copy.data<T>(), _size)));
-    }
-    return device_copy;
-#else
-    device = device;
-    return *this;
-#endif
+    return device_copy.copy_from(*this);
   }
 
   DataType StorageView::dtype() const {
@@ -194,7 +178,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::copy_from(const StorageView& other) {
-    TYPE_DISPATCH(other._dtype, copy_from(other.data<T>(), other._size));
+    TYPE_DISPATCH(other._dtype, copy_from(other.data<T>(), other._size, other._device));
     return *this;
   }
 

@@ -47,13 +47,7 @@ namespace ctranslate2 {
       : _dtype(DataTypeToEnum<T>::value)
       , _device(device) {
       resize(shape);
-      if (device != Device::CPU) {
-        DEVICE_DISPATCH(device,
-                        (cross_device_primitives<Device::CPU, D>::copy(
-                          init.data(), data<T>(), _size)));
-      } else {
-        copy_from(init.data(), init.size());
-      }
+      copy_from(init.data(), init.size(), Device::CPU);
     }
 
     // Create from a buffer (no copy).
@@ -179,10 +173,20 @@ namespace ctranslate2 {
     StorageView& copy_from(const StorageView& other);
 
     template <typename T>
-    StorageView& copy_from(const T* data, size_t size) {
+    StorageView& copy_from(const T* data, size_t size, Device device) {
       assert(DataTypeToEnum<T>::value == _dtype);
       assert(size == _size);
-      DEVICE_DISPATCH(_device, primitives<D>::copy(data, this->data<T>(), size));
+#ifdef WITH_CUDA  // TODO: remove this CUDA specific guard.
+      if (device != _device) {
+        if (device == Device::CUDA)
+          cross_device_primitives<Device::CUDA, Device::CPU>::copy(data, this->data<T>(), size);
+        else
+          cross_device_primitives<Device::CPU, Device::CUDA>::copy(data, this->data<T>(), size);
+      } else
+#endif
+      {
+        DEVICE_DISPATCH(_device, primitives<D>::copy(data, this->data<T>(), size));
+      }
       return *this;
     }
 

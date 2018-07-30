@@ -68,7 +68,7 @@ namespace ctranslate2 {
     if (options.use_vmap && !vocab_map.empty()) {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(batch_tokens);
       candidates.resize({candidates_vec.size()});
-      candidates.copy_from(candidates_vec.data(), candidates_vec.size());
+      candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
     }
 
     // Decode.
