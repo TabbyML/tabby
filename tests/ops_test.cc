@@ -367,6 +367,34 @@ TEST_P(OpDeviceTest, TopK) {
   expect_storage_eq(indices, expected_indices);
 }
 
+TEST_P(OpDeviceTest, SoftMax) {
+  Device device = GetParam();
+  StorageView x({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0}, device);
+  StorageView expected({2, 5}, std::vector<float>{
+      0.032035, 0.785904, 0.129909, 0.013025, 0.039128,
+      0.760941, 0.207381, 0.009342, 0.001544, 0.020792}, device);
+  StorageView y(x.device());
+  ops::SoftMax()(x, y);
+  expect_storage_eq(y, expected, 1e-4);
+}
+
+TEST_P(OpDeviceTest, LayerNorm) {
+  Device device = GetParam();
+  StorageView gamma({5}, std::vector<float>{0.2, 2.1, 1.1, -0.6, 0.7}, device);
+  StorageView beta({5}, std::vector<float>{-6.6, -5.7, 0.01, 2.0, 0}, device);
+  StorageView x({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0}, device);
+  StorageView expected({2, 5}, std::vector<float>{
+      -6.710264, -2.107929, 0.492053, 2.712477, -0.286970,
+      -6.319339, -3.988876, -0.637330, 2.841982, -0.158437}, device);
+  StorageView y(x.device());
+  ops::LayerNorm()(beta, gamma, x, y);
+  expect_storage_eq(y, expected, 1e-4);
+}
+
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 #ifdef WITH_CUDA
 INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
