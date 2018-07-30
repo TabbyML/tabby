@@ -14,6 +14,13 @@ void benchmark_gather(Device device) {
   BENCHMARK(gather_op(data, input, output), 100000);
 }
 
+void benchmark_transpose(Device device) {
+  StorageView x({64, 48, 512}, DataType::DT_FLOAT, device);
+  StorageView y(device);
+  const ops::Transpose transpose_op({2, 1, 0});
+  BENCHMARK(transpose_op(x, y), 1000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device" << std::endl;
@@ -25,7 +32,8 @@ int main(int argc, char* argv[]) {
 
   if (op == "gather")
     benchmark_gather(device);
-
+  if (op == "transpose")
+    benchmark_transpose(device);
 
   return 0;
 }
