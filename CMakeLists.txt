@@ -35,6 +35,8 @@ set(SOURCES
   src/decoder.cc
   src/model.cc
   src/ops/gather.cc
+  src/ops/layer_norm.cc
+  src/ops/softmax.cc
   src/storage_view.cc
   src/transformer.cc
   src/translation_result.cc
@@ -106,6 +108,8 @@ if (WITH_CUDA)
     src/cuda/utils.cc
     src/primitives/gpu_cuda.cu
     src/ops/gather_gpu.cu
+    src/ops/layer_norm_gpu.cu
+    src/ops/softmax_gpu.cu
     )
   cuda_add_cublas_to_target(${PROJECT_NAME})
 else()
