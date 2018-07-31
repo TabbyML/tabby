@@ -112,6 +112,29 @@ namespace ctranslate2 {
     binary_transform(a, b, c, size, thrust::plus<T>());
   }
 
+  template <typename T>
+  struct repeat_vec : thrust::unary_function<T, T> {
+    T _size;
+    repeat_vec(T size)
+      : _size(size) {
+    }
+    __host__ __device__
+    T operator()(const T& i) {
+      return i % _size;
+    }
+  };
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::add_batch_broadcast(const T* a, const T* b, T* c,
+                                                     size_t a_size, size_t b_size) {
+    auto repeat_it = thrust::make_permutation_iterator(
+      a, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
+                                         repeat_vec<size_t>(a_size)));
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      repeat_it, repeat_it + b_size, b, c, thrust::plus<T>());
+  }
+
   template<>
   template <typename T>
   void primitives<Device::CUDA>::sub(const T* a, const T* b, T* c, size_t size) {
@@ -381,6 +404,9 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size);    \
   template void                                                         \
   primitives<Device::CUDA>::add(const T* a, const T* b, T* c, size_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::add_batch_broadcast(const T* a, const T* b, \
+                                                T* c, size_t a_size, size_t b_size); \
   template void                                                         \
   primitives<Device::CUDA>::sub(const T* a, const T* b, T* c, size_t size); \
   template void                                                         \

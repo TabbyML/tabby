@@ -37,6 +37,10 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::add(const T* a, const T* b, T* c, size_t size);
   template<>
   template <typename T>
+  void primitives<Device::CUDA>::add_batch_broadcast(const T* a, const T* b, T* c,
+                                                     size_t a_size, size_t b_size);
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, size_t size);
   template<>
   template <typename T>

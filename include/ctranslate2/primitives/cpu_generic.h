@@ -85,6 +85,17 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::add_batch_broadcast(const T* a, const T* b, T* c,
+                                                    size_t a_size, size_t b_size) {
+    size_t iter_size = b_size / a_size;
+    for (size_t i = 0; i < iter_size; ++i) {
+      size_t offset = i * a_size;
+      add(a, b + offset, c + offset, a_size);
+    }
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, size_t size) {
     binary_transform(a, b, c, size, std::minus<T>());
   }
