@@ -21,6 +21,15 @@ void benchmark_transpose(Device device) {
   BENCHMARK(transpose_op(x, y), 1000);
 }
 
+void benchmark_split(Device device) {
+  StorageView x({64, 512*3}, DataType::DT_FLOAT, device);
+  StorageView a(device);
+  StorageView b(device);
+  StorageView c(device);
+  const ops::Split split_op(-1);
+  BENCHMARK(split_op(x, a, b, c), 10000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device" << std::endl;
@@ -32,8 +41,10 @@ int main(int argc, char* argv[]) {
 
   if (op == "gather")
     benchmark_gather(device);
-  if (op == "transpose")
+  else if (op == "transpose")
     benchmark_transpose(device);
+  else if (op == "split")
+    benchmark_split(device);
 
   return 0;
 }
