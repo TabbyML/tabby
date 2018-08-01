@@ -1,11 +1,24 @@
 #pragma once
 
+#include <stdexcept>
+#include <string>
+
 namespace ctranslate2 {
 
   enum class Device {
     CPU,
     CUDA
   };
+
+  inline Device str_to_device(const std::string& device) {
+#ifdef WITH_CUDA
+    if (device == "cuda")
+      return Device::CUDA;
+#endif
+    if (device == "cpu")
+      return Device::CPU;
+    throw std::invalid_argument("unsupported device " + device);
+  }
 
 #define UNSUPPORTED_DEVICE_CASE(DEVICE)                       \
   case DEVICE: {                                              \

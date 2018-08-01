@@ -39,6 +39,8 @@ int main(int argc, char* argv[]) {
      "number of parallel translations")
     ("intra_threads", po::value<size_t>()->default_value(0),
      "number of threads for Intel® MKL (set to 0 to use an automatic value)")
+    ("device", po::value<std::string>()->default_value("cpu"),
+     "device to use")
     ;
 
   po::variables_map vm;
@@ -58,8 +60,10 @@ int main(int argc, char* argv[]) {
   size_t intra_threads = vm["intra_threads"].as<size_t>();
   ctranslate2::init(intra_threads);
 
-  auto model = ctranslate2::ModelFactory::load(ctranslate2::ModelType::Transformer,
-                                               vm["model"].as<std::string>());
+  auto model = ctranslate2::ModelFactory::load(
+    ctranslate2::ModelType::Transformer,
+    vm["model"].as<std::string>(),
+    ctranslate2::str_to_device(vm["device"].as<std::string>()));
 
   ctranslate2::TranslatorPool translator_pool(inter_threads, model);
 

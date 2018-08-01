@@ -14,7 +14,7 @@ namespace ctranslate2 {
   class TransformerModel : public Model
   {
   public:
-    TransformerModel(const std::string& path);
+    TransformerModel(const std::string& path, Device device);
     const StorageView& get_variable(const std::string& scope) const;
     std::unique_ptr<Encoder> make_encoder() const override;
     std::unique_ptr<Decoder> make_decoder() const override;
@@ -38,12 +38,9 @@ namespace ctranslate2 {
   class PositionEncoder
   {
   public:
-    void operator()(StorageView& input, const StorageView& lengths);
-    void operator()(StorageView& input, size_t index);
+    void operator()(StorageView& input, size_t index = 0);
   private:
-    size_t _max_cached_time = 500;
-    StorageView _cached_encodings;
-    void precompute_position_encoding(size_t max_time, size_t depth);
+    static const StorageView& get_position_encoding(size_t depth, Device device);
   };
 
   class Dense
@@ -88,7 +85,7 @@ namespace ctranslate2 {
     void operator()(const StorageView& queries,
                     const StorageView& keys,
                     const StorageView& values,
-                    const StorageView& values_lengths,
+                    const StorageView* values_lengths,
                     StorageView& output);
   };
 
@@ -99,7 +96,7 @@ namespace ctranslate2 {
     void compute_attention(const StorageView& queries,
                            const StorageView& keys,
                            const StorageView& values,
-                           const StorageView& values_lengths,
+                           const StorageView* values_lengths,
                            StorageView& output);
   protected:
     LayerNorm _layer_norm;
@@ -194,7 +191,7 @@ namespace ctranslate2 {
 
   class TransformerDecoderState : public DecoderState {
   public:
-    TransformerDecoderState(size_t num_layers);
+    TransformerDecoderState(size_t num_layers, Device device);
     void reset(const StorageView& memory,
                const StorageView& memory_lengths) override;
   private:

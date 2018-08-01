@@ -17,6 +17,10 @@ namespace ctranslate2 {
   }
 
 
+  DecoderState::DecoderState(Device device)
+    : _device(device) {
+  }
+
   void DecoderState::reset(const StorageView& memory,
                            const StorageView& memory_lengths) {
     reset_state("memory", memory);
@@ -29,6 +33,10 @@ namespace ctranslate2 {
 
   StorageView& DecoderState::get(const std::string& name) {
     return _states.at(name);
+  }
+
+  Device DecoderState::device() const {
+    return _device;
   }
 
   void DecoderState::reset_state(const std::string& name, const StorageView& state) {
@@ -49,7 +57,7 @@ namespace ctranslate2 {
   }
 
 
-  template <typename T = float>
+  template <Device D, typename T = float>
   static void log_probs_from_logits(const StorageView& logits, StorageView& log_probs) {
     // TODO: implement the operator ReduceLogSumExp.
     log_probs.resize_as(logits);
@@ -60,19 +68,19 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       const auto* src = logits.data<T>() + i * depth;
       auto* dst = log_probs.data<T>() + i * depth;
-      primitives<>::exp(src, dst, depth);
-      T logsumexp = std::log(primitives<>::sum(dst, depth));
-      primitives<>::sub(logsumexp, src, dst, depth);
+      primitives<D>::exp(src, dst, depth);
+      T logsumexp = std::log(primitives<D>::sum(dst, depth));
+      primitives<D>::sub(logsumexp, src, dst, depth);
     }
   }
 
-  template <typename T = float>
+  template <Device D, typename T = float>
   static void multiply_beam_probabilities(StorageView& log_probs,
                                           const StorageView& alive_log_probs) {
     size_t depth = log_probs.dim(-1);
     size_t batch_size = log_probs.size() / depth;
     for (size_t i = 0; i < batch_size; ++i) {
-      primitives<>::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
+      primitives<D>::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
     }
   }
 
@@ -120,8 +128,6 @@ namespace ctranslate2 {
     expand_to_beam_size(decoder.get_state(), beam_size);
     expand_to_beam_size(alive_seq, beam_size);
 
-    static thread_local StorageView log_probs;
-    static thread_local StorageView logits;
     StorageView gather_indices(DataType::DT_INT32);
     StorageView topk_ids(alive_seq);
     StorageView topk_log_probs({beam_size}, std::numeric_limits<float>::lowest());
@@ -140,27 +146,35 @@ namespace ctranslate2 {
       scores[i].resize(num_hypotheses);
     }
 
+    static thread_local StorageView log_probs(decoder.get_state().device());
+    static thread_local StorageView logits(decoder.get_state().device());
+    static thread_local StorageView topk_ids_device(decoder.get_state().device(), topk_ids.dtype());
+    static thread_local StorageView topk_log_probs_device(decoder.get_state().device());
+
     for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
       decoder.logits(step, topk_ids, candidates, logits);
       size_t vocabulary_size = logits.dim(-1);
-      log_probs_from_logits(logits, log_probs);
+      DEVICE_DISPATCH(logits.device(), log_probs_from_logits<D>(logits, log_probs));
 
       // Multiply by the current beam log probs.
-      multiply_beam_probabilities(log_probs, topk_log_probs);
+      DEVICE_DISPATCH(log_probs.device(), multiply_beam_probabilities<D>(log_probs, topk_log_probs));
 
       // Penalize by the length, if enabled.
       float length_penalty_weight = 1.0;
       if (length_penalty != 0) {
         length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
-        primitives<>::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size());
+        DEVICE_DISPATCH(log_probs.device(), primitives<D>::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size()));
       }
 
       // Flatten the probs into a list of candidates.
       log_probs.reshape({cur_batch_size, beam_size * vocabulary_size});
 
       // TopK candidates.
-      topk_op(log_probs, topk_log_probs, topk_ids);
+      topk_op(log_probs, topk_log_probs_device, topk_ids_device);
+
+      topk_log_probs = topk_log_probs_device.to(Device::CPU);
+      topk_ids = topk_ids_device.to(Device::CPU);
 
       // Recover the true log probs if length penalty was applied.
       if (length_penalty != 0)
@@ -255,8 +269,8 @@ namespace ctranslate2 {
     scores.clear();
     scores.resize(batch_size);
 
-    static thread_local StorageView log_probs;
-    static thread_local StorageView logits;
+    static thread_local StorageView log_probs(decoder.get_state().device());
+    static thread_local StorageView logits(decoder.get_state().device());
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
@@ -268,13 +282,16 @@ namespace ctranslate2 {
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       decoder.logits(step, sample_from, candidates, logits);
-      log_probs_from_logits(logits, log_probs);
+      DEVICE_DISPATCH(logits.device(), log_probs_from_logits<D>(logits, log_probs));
 
       std::vector<bool> finished_batch(logits.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < logits.dim(0); ++i) {
-        size_t best = primitives<>::max_element(log_probs.index<float>({i}), log_probs.dim(-1));
+        size_t best = 0;
+        DEVICE_DISPATCH(log_probs.device(),
+                        best = primitives<D>::max_element(log_probs.index<float>({i}),
+                                                          log_probs.dim(-1)));
         size_t true_id = best;
         if (!candidates.empty())
           true_id = candidates.at<int32_t>(best);
@@ -287,7 +304,7 @@ namespace ctranslate2 {
         } else {
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
-          scores[batch_id][0] += log_probs.at<float>({i, 0, best});
+          scores[batch_id][0] += log_probs.scalar_at<float>({i, 0, best});
           ++count_alive;
         }
       }

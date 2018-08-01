@@ -13,15 +13,18 @@ namespace ctranslate2 {
   // Base class for storing decoder states as a string to StorageView map.
   class DecoderState {
   public:
+    DecoderState(Device device);
     virtual ~DecoderState() = default;
     virtual void reset(const StorageView& memory,
                        const StorageView& memory_lengths);
     std::unordered_map<std::string, StorageView>& get();
     StorageView& get(const std::string& name);
+    Device device() const;
 
     friend std::ostream& operator<<(std::ostream& os, const DecoderState& decoder_state);
 
   protected:
+    Device _device;
     std::unordered_map<std::string, StorageView> _states;
     void reset_state(const std::string& name, const StorageView& state);
   };

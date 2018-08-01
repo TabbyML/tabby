@@ -18,8 +18,8 @@ namespace ctranslate2 {
     return data;
   }
 
-  TransformerModel::TransformerModel(const std::string& path)
-    : Model(path) {
+  TransformerModel::TransformerModel(const std::string& path, Device device)
+    : Model(path, device) {
     std::string model_path = path + "/model.bin";
     std::ifstream model(model_path, std::ios_base::in | std::ios_base::binary);
     if (!model.is_open())
@@ -42,12 +42,9 @@ namespace ctranslate2 {
         shape[k] = static_cast<size_t>(dimensions[k]);
       }
 
-      StorageView variable = Model::load_data(shape, data_width, data);
-
-      // We use the copy constructor so that the storage owns aligned data.
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),
-                              std::forward_as_tuple(variable));
+                              std::forward_as_tuple(load_data(shape, data_width, data)));
 
       delete [] name;
       delete [] dimensions;
@@ -94,58 +91,53 @@ namespace ctranslate2 {
   }
 
 
-  void PositionEncoder::operator()(StorageView& input,
-                                   const StorageView& lengths) {
-    assert(input.rank() == 3);
-    size_t depth = input.dim(-1);
-    if (_cached_encodings.empty())
-      precompute_position_encoding(_max_cached_time, depth);
-    for (size_t i = 0; i < lengths.dim(0); ++i) {
-      const auto length = lengths.at<int32_t>(i);
-      primitives<>::add(_cached_encodings.data<float>(),
-                        input.index<float>({i}),
-                        length * depth);
-    }
+  void PositionEncoder::operator()(StorageView& input, size_t index) {
+    const size_t max_time = input.dim(1);
+    const size_t depth = input.dim(-1);
+    const StorageView& encodings = get_position_encoding(depth, input.device());
+    DEVICE_DISPATCH(input.device(),
+                    primitives<D>::add_batch_broadcast(encodings.data<float>() + index * depth,
+                                                       input.data<float>(),
+                                                       max_time * depth,
+                                                       input.size()));
   }
 
-  void PositionEncoder::operator()(StorageView& input,
-                                   size_t index) {
-    size_t depth = input.dim(-1);
-    if (_cached_encodings.empty())
-      precompute_position_encoding(_max_cached_time, depth);
-    for (size_t i = 0; i < input.dim(0); ++i) {
-      primitives<>::add(_cached_encodings.index<float>({index}),
-                        input.index<float>({i}),
-                        depth);
-    }
-  }
+  const StorageView& PositionEncoder::get_position_encoding(size_t depth, Device device) {
+    static const size_t max_time = 500;
+    static thread_local StorageView position_encoding(device);
 
-  void PositionEncoder::precompute_position_encoding(size_t max_time, size_t depth) {
-    float log_timescale_increment = log(10000) / (depth / 2 - 1);
-    StorageView timescales({depth / 2}, -log_timescale_increment);
-    for (size_t i = 0; i < timescales.size(); ++i)
-      timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
+    if (position_encoding.empty()) {
+      float log_timescale_increment = log(10000) / (depth / 2 - 1);
+      StorageView timescales({depth / 2}, -log_timescale_increment);
+      for (size_t i = 0; i < timescales.size(); ++i)
+        timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
 
-    StorageView scaled_time({max_time, depth / 2});
-    for (size_t i = 0; i < scaled_time.dim(0); ++i) {
-      for (size_t j = 0; j < scaled_time.dim(1); ++j) {
-        *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
+      StorageView scaled_time({max_time, depth / 2});
+      for (size_t i = 0; i < scaled_time.dim(0); ++i) {
+        for (size_t j = 0; j < scaled_time.dim(1); ++j) {
+          *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
+        }
       }
+
+      StorageView sin_encoding;
+      StorageView cos_encoding;
+
+      ops::Sin()(scaled_time, sin_encoding);
+      ops::Cos()(scaled_time, cos_encoding);
+
+      StorageView cache;
+      ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
+      position_encoding = cache.to(device);
     }
 
-    StorageView sin_encoding;
-    StorageView cos_encoding;
-
-    ops::Sin()(scaled_time, sin_encoding);
-    ops::Cos()(scaled_time, cos_encoding);
-    ops::Concat(-1)({&sin_encoding, &cos_encoding}, _cached_encodings);
+    return position_encoding;
   }
 
   Dense::Dense(const TransformerModel& model, const std::string& scope)
     : _weight(model.get_variable(scope + "/kernel"))
     , _bias(model.get_variable(scope + "/bias"))
-    , _partial_weight(_weight.dtype())
-    , _partial_bias(_bias.dtype()) {
+    , _partial_weight(_weight.device(), _weight.dtype())
+    , _partial_bias(_bias.device(), _bias.dtype()) {
   }
 
   void Dense::operator()(const StorageView& input,
@@ -173,9 +165,11 @@ namespace ctranslate2 {
       unquantize_op(quantized_output, output);
     }
 
-    size_t output_depth = bias->size();
-    for (size_t i = 0; i < output.size() / output_depth; ++i)
-      primitives<>::add(bias->data<float>(), output.data<float>() + i * output_depth, output_depth);
+    DEVICE_DISPATCH(output.device(),
+                    primitives<D>::add_batch_broadcast(bias->data<float>(),
+                                                       output.data<float>(),
+                                                       bias->size(),
+                                                       output.size()));
   }
 
   LayerNorm::LayerNorm(const TransformerModel& model, const std::string& scope)
@@ -196,7 +190,7 @@ namespace ctranslate2 {
   }
 
   void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) {
-    static thread_local StorageView inner;
+    static thread_local StorageView inner(input.device());
     _layer_norm(input, output);
     _ff1(output, inner);
     ops::ReLU()(inner);
@@ -208,7 +202,7 @@ namespace ctranslate2 {
   void DotProductAttention::operator()(const StorageView& queries,
                                        const StorageView& keys,
                                        const StorageView& values,
-                                       const StorageView& values_lengths,
+                                       const StorageView* values_lengths,
                                        StorageView& output) {
     assert(queries.rank() == 4);
     assert(keys.rank() == 4);
@@ -221,21 +215,27 @@ namespace ctranslate2 {
 
     ops::MatMul(false, true)(queries, keys, output);
 
-    if (batch_size > 1) {
+    if (values_lengths && batch_size > 1) {
+      static thread_local StorageView output_host;
+      output_host = output;
       for (size_t b = 0; b < batch_size; ++b) {
-        const size_t length = values_lengths.data<int32_t>()[b];
+        const size_t length = values_lengths->data<int32_t>()[b];
         if (length == memory_time)
           continue;
         for (size_t h = 0; h < num_heads; ++h) {
           for (size_t i = 0; i < queries_time; ++i) {
-            auto* x = output.index<float>({b, h, i});
-            primitives<>::fill(x + length, std::numeric_limits<float>::lowest(), memory_time - length);
+            auto* x = output_host.index<float>({b, h, i});
+            DEVICE_DISPATCH(output_host.device(),
+                            primitives<D>::fill(x + length,
+                                                std::numeric_limits<float>::lowest(),
+                                                memory_time - length));
           }
         }
       }
+      output = output_host;
     }
 
-    static thread_local StorageView attn;
+    static thread_local StorageView attn(values.device());
     ops::SoftMax()(output, attn);
     ops::MatMul()(attn, values, output);
   }
@@ -251,7 +251,7 @@ namespace ctranslate2 {
 
   void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) {
     StorageView z({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads},
-                  const_cast<float*>(x.data<float>()));
+                  const_cast<float*>(x.data<float>()), x.device());
     _transpose_op(z, y);
   }
 
@@ -263,16 +263,17 @@ namespace ctranslate2 {
   void MultiHeadAttention::compute_attention(const StorageView& queries,
                                              const StorageView& split_keys,
                                              const StorageView& split_values,
-                                             const StorageView& values_lengths,
+                                             const StorageView* values_lengths,
                                              StorageView& output) {
-    static thread_local StorageView split_queries;
+    Device device = queries.device();
+    static thread_local StorageView split_queries(device);
     split_heads(queries, split_queries);
 
     const size_t dk = queries.dim(-1) / _num_heads;
     const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
     ops::Mul()(split_queries, scale, split_queries);
 
-    static thread_local StorageView context;
+    static thread_local StorageView context(device);
     _attention(split_queries,
                split_keys,
                split_values,
@@ -296,13 +297,14 @@ namespace ctranslate2 {
                                             StorageView* cached_keys,
                                             StorageView* cached_values,
                                             ssize_t step) {
-    static thread_local StorageView normed_queries;
-    static thread_local StorageView fused_proj;
-    static thread_local StorageView queries_proj;
-    static thread_local StorageView keys_proj;
-    static thread_local StorageView values_proj;
-    static thread_local StorageView split_keys_proj;
-    static thread_local StorageView split_values_proj;
+    Device device = queries.device();
+    static thread_local StorageView normed_queries(device);
+    static thread_local StorageView fused_proj(device);
+    static thread_local StorageView queries_proj(device);
+    static thread_local StorageView keys_proj(device);
+    static thread_local StorageView values_proj(device);
+    static thread_local StorageView split_keys_proj(device);
+    static thread_local StorageView split_values_proj(device);
 
     _layer_norm(queries, normed_queries);
     _linear_in(normed_queries, fused_proj);
@@ -311,22 +313,22 @@ namespace ctranslate2 {
     split_heads(keys_proj, split_keys_proj);
     split_heads(values_proj, split_values_proj);
 
-    StorageView values_lengths(queries_lengths);
-    StorageView true_keys_proj;
-    StorageView true_values_proj;
+    const StorageView* values_lengths = nullptr;
+    StorageView true_keys_proj(device);
+    StorageView true_values_proj(device);
 
     if (step >= 0 && cached_keys != nullptr) {
       cache_proj(step, split_keys_proj, *cached_keys);
       cache_proj(step, split_values_proj, *cached_values);
       true_keys_proj.shallow_copy(*cached_keys);
       true_values_proj.shallow_copy(*cached_values);
-      values_lengths.fill(static_cast<int32_t>(step + 1));
     } else {
       true_keys_proj.shallow_copy(split_keys_proj);
       true_values_proj.shallow_copy(split_values_proj);
+      values_lengths = &queries_lengths;
     }
 
-    static thread_local StorageView context;
+    static thread_local StorageView context(device);
     compute_attention(queries_proj,
                       true_keys_proj,
                       true_values_proj,
@@ -341,7 +343,7 @@ namespace ctranslate2 {
     if (step == 0) {
       cache = proj;
     } else {
-      static thread_local StorageView tmp;
+      static thread_local StorageView tmp(proj.device());
       tmp = std::move(cache);
       ops::Concat(2)({&tmp, &proj}, cache);
     }
@@ -364,13 +366,14 @@ namespace ctranslate2 {
                                         StorageView* cached_keys,
                                         StorageView* cached_values,
                                         ssize_t step) {
-    static thread_local StorageView normed_queries;
-    static thread_local StorageView memory_proj;
-    static thread_local StorageView queries_proj;
-    static thread_local StorageView keys_proj;
-    static thread_local StorageView values_proj;
-    static thread_local StorageView split_keys_proj;
-    static thread_local StorageView split_values_proj;
+    Device device = queries.device();
+    static thread_local StorageView normed_queries(device);
+    static thread_local StorageView memory_proj(device);
+    static thread_local StorageView queries_proj(device);
+    static thread_local StorageView keys_proj(device);
+    static thread_local StorageView values_proj(device);
+    static thread_local StorageView split_keys_proj(device);
+    static thread_local StorageView split_values_proj(device);
 
     _layer_norm(queries, normed_queries);
     _linear_query(normed_queries, queries_proj);
@@ -389,11 +392,11 @@ namespace ctranslate2 {
       }
     }
 
-    static thread_local StorageView context;
+    static thread_local StorageView context(device);
     compute_attention(queries_proj,
                       split_keys_proj,
                       split_values_proj,
-                      memory_lengths,
+                      &memory_lengths,
                       context);
 
     _linear_out(context, output);
@@ -410,7 +413,7 @@ namespace ctranslate2 {
   void TransformerEncoderLayer::operator()(const StorageView& input,
                                            const StorageView& lengths,
                                            StorageView& output) {
-    static thread_local StorageView context;
+    static thread_local StorageView context(input.device());
     _self_attention(input, lengths, context);
     _ff(context, output);
   }
@@ -433,7 +436,7 @@ namespace ctranslate2 {
                                            StorageView& cached_attn_keys,
                                            StorageView& cached_attn_values,
                                            StorageView& output) {
-    static thread_local StorageView context;
+    static thread_local StorageView context(input.device());
     _self_attention(input, input_lengths, output,
                     &cached_self_attn_keys, &cached_self_attn_values, step);
     _encoder_attention(output, memory, memory_lengths, context,
@@ -458,10 +461,11 @@ namespace ctranslate2 {
   void TransformerEncoder::encode(const StorageView& ids,
                                   const StorageView& lengths,
                                   StorageView& output) {
-    static thread_local StorageView layer_in;
-    static thread_local StorageView layer_out;
+    static thread_local StorageView layer_in(output.device());
+    static thread_local StorageView layer_out(output.device());
     _scaled_embeddings(ids, layer_in);
-    _position_encoder(layer_in, lengths);
+    _position_encoder(layer_in);
+
     for (auto& layer : _layers) {
       layer(layer_in, lengths, layer_out);
       std::swap(layer_in, layer_out);
@@ -470,14 +474,15 @@ namespace ctranslate2 {
   }
 
 
-  TransformerDecoderState::TransformerDecoderState(size_t num_layers)
-    : _num_layers(num_layers) {
+  TransformerDecoderState::TransformerDecoderState(size_t num_layers, Device device)
+    : DecoderState(device)
+    , _num_layers(num_layers) {
   }
 
   void TransformerDecoderState::reset(const StorageView& memory,
                                       const StorageView& memory_lengths) {
     DecoderState::reset(memory, memory_lengths);
-    static const StorageView empty_cache;
+    static const StorageView empty_cache(memory.device());
     for (size_t i = 0; i < _num_layers; ++i) {
       reset_state("self_keys_" + std::to_string(i), empty_cache);
       reset_state("self_values_" + std::to_string(i), empty_cache);
@@ -499,15 +504,15 @@ namespace ctranslate2 {
         break;
       }
     }
-    _state.reset(new TransformerDecoderState(_layers.size()));
+    _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
   }
 
   void TransformerDecoder::logits(size_t step,
                                   const StorageView& ids,
                                   const StorageView& candidates,
                                   StorageView& output) {
-    static thread_local StorageView layer_in;
-    static thread_local StorageView layer_out;
+    static thread_local StorageView layer_in(output.device());
+    static thread_local StorageView layer_out(output.device());
 
     size_t batch_size = ids.dim(0);
     _scaled_embeddings(ids, layer_in);

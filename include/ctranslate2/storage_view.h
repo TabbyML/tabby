@@ -154,7 +154,7 @@ namespace ctranslate2 {
 
     template <typename T>
     T scalar_at(const std::vector<size_t>& indices) const {
-      T scalar;
+      T scalar = T();
       DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
       return scalar;
     }
@@ -192,7 +192,7 @@ namespace ctranslate2 {
       } else
 #endif
       {
-        DEVICE_DISPATCH(_device, primitives<D>::copy(data, this->data<T>(), size));
+        DEVICE_DISPATCH(device, primitives<D>::copy(data, this->data<T>(), size));
       }
       return *this;
     }
