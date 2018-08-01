@@ -11,6 +11,9 @@ namespace ctranslate2 {
     static void free_data(void* data);
 
     template <typename T>
+    static T deref(const T* x, size_t index);
+
+    template <typename T>
     static void fill(T* x, T a, size_t size);
 
     template <typename T>

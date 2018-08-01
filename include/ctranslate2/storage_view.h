@@ -153,6 +153,13 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    T scalar_at(const std::vector<size_t>& indices) const {
+      T scalar;
+      DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
+      return scalar;
+    }
+
+    template <typename T>
     StorageView& assign(T* data, const Shape& shape) {
       assert(DataTypeToEnum<T>::value == _dtype);
       release();

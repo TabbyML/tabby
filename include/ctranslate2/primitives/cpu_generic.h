@@ -20,6 +20,11 @@ namespace ctranslate2 {
     std::transform(a, a + size, b, c, func);
   }
 
+  template<>
+  template <typename T>
+  T primitives<Device::CPU>::deref(const T* x, size_t index) {
+    return x[index];
+  }
 
   template<>
   template <typename T>

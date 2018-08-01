@@ -72,9 +72,9 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, size_t size) {
-    thrust::device_ptr<const T> array_ptr(array);
-    return *thrust::max_element(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                                array_ptr, array_ptr + size);
+    const auto* max = thrust::max_element(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                                          array, array + size);
+    return deref(max, 0);
   }
 
   template<>
