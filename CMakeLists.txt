@@ -32,7 +32,6 @@ set(INCLUDE_DIRECTORIES
   )
 set(SOURCES
   src/decoder.cc
-  src/decoder.cc
   src/models/model.cc
   src/models/transformer.cc
   src/ops/concat.cc
