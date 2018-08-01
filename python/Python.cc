@@ -30,9 +30,9 @@ public:
                     const std::string& device,
                     size_t thread_pool_size)
     : _translator_pool(thread_pool_size,
-                       ctranslate2::ModelFactory::load(model_type,
-                                                       model_path,
-                                                       ctranslate2::str_to_device(device))) {
+                       ctranslate2::models::ModelFactory::load(model_type,
+                                                               model_path,
+                                                               ctranslate2::str_to_device(device))) {
   }
 
   py::list translate_batch(const py::object& tokens,

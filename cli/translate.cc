@@ -60,8 +60,8 @@ int main(int argc, char* argv[]) {
   size_t intra_threads = vm["intra_threads"].as<size_t>();
   ctranslate2::init(intra_threads);
 
-  auto model = ctranslate2::ModelFactory::load(
-    ctranslate2::ModelType::Transformer,
+  auto model = ctranslate2::models::ModelFactory::load(
+    ctranslate2::models::ModelType::Transformer,
     vm["model"].as<std::string>(),
     ctranslate2::str_to_device(vm["device"].as<std::string>()));
 

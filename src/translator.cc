@@ -4,7 +4,7 @@
 
 namespace ctranslate2 {
 
-  Translator::Translator(const std::shared_ptr<Model>& model)
+  Translator::Translator(const std::shared_ptr<models::Model>& model)
     : _model(model)
     , _encoder(_model->make_encoder())
     , _decoder(_model->make_decoder()) {

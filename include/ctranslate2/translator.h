@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "model.h"
+#include "models/model.h"
 #include "translation_result.h"
 
 namespace ctranslate2 {
@@ -21,7 +21,7 @@ namespace ctranslate2 {
   // be safely executed in parallel.
   class Translator {
   public:
-    Translator(const std::shared_ptr<Model>& model);
+    Translator(const std::shared_ptr<models::Model>& model);
     Translator(const Translator& other);
 
     TranslationResult
@@ -33,7 +33,7 @@ namespace ctranslate2 {
                     const TranslationOptions& options);
 
   private:
-    const std::shared_ptr<Model> _model;
+    const std::shared_ptr<models::Model> _model;
     std::unique_ptr<Encoder> _encoder;
     std::unique_ptr<Decoder> _decoder;
   };

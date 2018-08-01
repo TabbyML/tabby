@@ -33,14 +33,14 @@ set(INCLUDE_DIRECTORIES
 set(SOURCES
   src/decoder.cc
   src/decoder.cc
-  src/model.cc
+  src/models/model.cc
+  src/models/transformer.cc
   src/ops/concat.cc
   src/ops/gather.cc
   src/ops/layer_norm.cc
   src/ops/softmax.cc
   src/ops/split.cc
   src/storage_view.cc
-  src/transformer.cc
   src/translation_result.cc
   src/translator.cc
   src/translator_pool.cc
