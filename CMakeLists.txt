@@ -39,6 +39,7 @@ set(SOURCES
   src/ops/layer_norm.cc
   src/ops/softmax.cc
   src/ops/split.cc
+  src/ops/topk.cc
   src/storage_view.cc
   src/translation_result.cc
   src/translator.cc
@@ -113,6 +114,7 @@ if (WITH_CUDA)
     src/ops/layer_norm_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/split_gpu.cu
+    src/ops/topk_gpu.cu
     )
   cuda_add_cublas_to_target(${PROJECT_NAME})
 else()

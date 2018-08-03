@@ -20,6 +20,9 @@ namespace ctranslate2 {
       }
 
       void operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
+        size_t batch_size = x.size() / x.dim(-1);
+        values.resize({batch_size, _k});
+        indices.resize({batch_size, _k});
         DEVICE_DISPATCH(x.device(),
                         TYPE_DISPATCH(x.dtype(), (compute<D, T, int32_t>(x, values, indices))));
       }
@@ -31,18 +34,7 @@ namespace ctranslate2 {
       template <Device D, typename DataType, typename IndexType>
       void compute(const StorageView& x,
                    StorageView& values,
-                   StorageView& indices) const {
-        size_t depth = x.dim(-1);
-        size_t batch_size = x.size() / depth;
-        values.resize({batch_size, _k});
-        indices.resize({batch_size, _k});
-        for (size_t i = 0; i < batch_size; ++i) {
-          const auto* input = x.data<DataType>() + (i * depth);
-          auto* val = values.data<DataType>() + (i * _k);
-          auto* ind = indices.data<IndexType>() + (i * _k);
-          primitives<D>::topk(input, val, ind, _k, depth);
-        }
-      }
+                   StorageView& indices) const;
 
     };
 
