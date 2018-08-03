@@ -17,10 +17,6 @@ namespace ctranslate2 {
   }
 
 
-  DecoderState::DecoderState(Device device)
-    : _device(device) {
-  }
-
   void DecoderState::reset(const StorageView& memory,
                            const StorageView& memory_lengths) {
     reset_state("memory", memory);
@@ -33,10 +29,6 @@ namespace ctranslate2 {
 
   StorageView& DecoderState::get(const std::string& name) {
     return _states.at(name);
-  }
-
-  Device DecoderState::device() const {
-    return _device;
   }
 
   void DecoderState::reset_state(const std::string& name, const StorageView& state) {
@@ -119,6 +111,7 @@ namespace ctranslate2 {
                    float length_penalty,
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores) {
+    Device device = decoder.get_state().get("memory").device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
     const ops::TopK topk_op(beam_size);
@@ -146,10 +139,10 @@ namespace ctranslate2 {
       scores[i].resize(num_hypotheses);
     }
 
-    static thread_local StorageView log_probs(decoder.get_state().device());
-    static thread_local StorageView logits(decoder.get_state().device());
-    static thread_local StorageView topk_ids_device(decoder.get_state().device(), topk_ids.dtype());
-    static thread_local StorageView topk_log_probs_device(decoder.get_state().device());
+    static thread_local StorageView log_probs(device);
+    static thread_local StorageView logits(device);
+    static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
+    static thread_local StorageView topk_log_probs_device(device);
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
@@ -261,6 +254,7 @@ namespace ctranslate2 {
                        size_t max_steps,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
+    Device device = decoder.get_state().get("memory").device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
 
@@ -269,8 +263,8 @@ namespace ctranslate2 {
     scores.clear();
     scores.resize(batch_size);
 
-    static thread_local StorageView log_probs(decoder.get_state().device());
-    static thread_local StorageView logits(decoder.get_state().device());
+    static thread_local StorageView log_probs(device);
+    static thread_local StorageView logits(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);

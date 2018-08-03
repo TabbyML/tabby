@@ -193,7 +193,7 @@ namespace ctranslate2 {
 
     class TransformerDecoderState : public DecoderState {
     public:
-      TransformerDecoderState(size_t num_layers, Device device);
+      TransformerDecoderState(size_t num_layers);
       void reset(const StorageView& memory,
                  const StorageView& memory_lengths) override;
     private:

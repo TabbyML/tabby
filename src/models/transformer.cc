@@ -475,9 +475,8 @@ namespace ctranslate2 {
     }
 
 
-    TransformerDecoderState::TransformerDecoderState(size_t num_layers, Device device)
-      : DecoderState(device)
-      , _num_layers(num_layers) {
+    TransformerDecoderState::TransformerDecoderState(size_t num_layers)
+      : _num_layers(num_layers) {
     }
 
     void TransformerDecoderState::reset(const StorageView& memory,
@@ -505,7 +504,7 @@ namespace ctranslate2 {
           break;
         }
       }
-      _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
+      _state.reset(new TransformerDecoderState(_layers.size()));
     }
 
     void TransformerDecoder::logits(size_t step,
