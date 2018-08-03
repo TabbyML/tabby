@@ -67,7 +67,7 @@ public:
     }
 
     py::list py_results;
-    for (auto& result : results) {
+    for (const auto& result : results) {
       py::list temp;
       for (const auto& token : result.output())
         temp.append(token);
