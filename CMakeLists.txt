@@ -109,11 +109,10 @@ if (WITH_CUDA)
     ${SOURCES}
     src/cuda/utils.cc
     src/primitives/gpu_cuda.cu
-    src/ops/concat_gpu.cu
+    src/ops/concat_split_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/layer_norm_gpu.cu
     src/ops/softmax_gpu.cu
-    src/ops/split_gpu.cu
     src/ops/topk_gpu.cu
     )
   cuda_add_cublas_to_target(${PROJECT_NAME})
