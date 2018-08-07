@@ -119,6 +119,17 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c,
+                                                    size_t a_size, size_t b_size) {
+    size_t iter_size = b_size / a_size;
+    for (size_t i = 0; i < iter_size; ++i) {
+      size_t offset = i * a_size;
+      mul(a, b + offset, c + offset, a_size);
+    }
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::inv(const T* x, T* y, size_t size) {
     unary_transform(x, y, size, [](const T& v) { return static_cast<T>(1) / v; });
   }

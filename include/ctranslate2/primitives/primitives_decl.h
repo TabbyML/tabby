@@ -83,6 +83,14 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    static void mul_batch_broadcast(const T* a, const T* b, T* c, size_t a_size, size_t b_size);
+
+    template <typename T>
+    static void mul_batch_broadcast(const T* x, T* y, size_t x_size, size_t y_size) {
+      mul_batch_broadcast(x, y, y, x_size, y_size);
+    }
+
+    template <typename T>
     static void mul(const T* a, const T* b, T* c, size_t size);
 
     template <typename T>

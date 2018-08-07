@@ -153,6 +153,17 @@ namespace ctranslate2 {
     binary_transform(a, b, c, size, thrust::multiplies<T>());
   }
 
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, T* c,
+                                                     size_t a_size, size_t b_size) {
+    auto repeat_it = thrust::make_permutation_iterator(
+      a, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
+                                         repeat_vec<size_t>(a_size)));
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      repeat_it, repeat_it + b_size, b, c, thrust::multiplies<T>());
+  }
+
   struct relu_func : public thrust::unary_function<float, float> {
     __host__ __device__
     float operator()(float x) { return fmaxf(x, 0); }
@@ -413,6 +424,9 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::mul(T a, const T* x, T* y, size_t size);    \
   template void                                                         \
   primitives<Device::CUDA>::mul(const T* a, const T* b, T* c, size_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, \
+                                                T* c, size_t a_size, size_t b_size); \
   template void                                                         \
   primitives<Device::CUDA>::transpose_2d(const T* a, const size_t* dims, T* b); \
   template void                                                         \
