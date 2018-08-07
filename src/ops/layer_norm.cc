@@ -14,7 +14,6 @@ namespace ctranslate2 {
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
       tmp.resize({depth});
-      output.resize_as(input);
       for (size_t i = 0; i < batch_size; ++i) {
         const auto* x = input.data<T>() + i * depth;
         auto* y = output.data<T>() + i * depth;

@@ -12,6 +12,7 @@ namespace ctranslate2 {
                       const StorageView& gamma,
                       const StorageView& input,
                       StorageView& output) const {
+        output.resize_as(input);
         DEVICE_DISPATCH(input.device(), (compute<D, float>(beta, gamma, input, output)));
       }
 

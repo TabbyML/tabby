@@ -30,6 +30,19 @@ void benchmark_split(Device device) {
   BENCHMARK(split_op(x, a, b, c), 10000);
 }
 
+void benchmark_layer_norm(Device device) {
+  std::vector<float> gamma_ = rand_vector(512);
+  std::vector<float> beta_ = rand_vector(512);
+  std::vector<float> x_ = rand_vector(100 * 512);
+
+  StorageView gamma({512}, gamma_, device);
+  StorageView beta({512}, beta_, device);
+  StorageView x({100, 512}, x_, device);
+  StorageView y(x.device());
+  const ops::LayerNorm layer_norm_op;
+  BENCHMARK(layer_norm_op(beta, gamma, x, y), 10000);
+}
+
 void benchmark_softmax(Device device) {
   std::vector<float> x_ = rand_vector(100 * 512);
   StorageView x({100, 512}, x_, device);
@@ -53,6 +66,8 @@ int main(int argc, char* argv[]) {
     benchmark_transpose(device);
   else if (op == "split")
     benchmark_split(device);
+  else if (op == "layer_norm")
+    benchmark_layer_norm(device);
   else if (op == "softmax")
     benchmark_softmax(device);
 
