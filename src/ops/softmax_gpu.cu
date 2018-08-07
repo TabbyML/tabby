@@ -21,8 +21,8 @@ namespace ctranslate2 {
                                              CUDNN_TENSOR_NCHW,
                                              CUDNN_DATA_FLOAT,
                                              batch_size,
-                                             1 /* c */, 1 /* h */,
-                                             depth));
+                                             depth,
+                                             1 /* h */, 1 /* w */));
 
       T alpha = 1;
       T beta = 0;
