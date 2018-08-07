@@ -241,6 +241,12 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::log(const T* x, T* y, size_t size) {
+    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::log(v)); });
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::cos(const T* x, T* y, size_t size) {
     unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::cos(v)); });
   }

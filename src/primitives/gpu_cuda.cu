@@ -370,6 +370,17 @@ namespace ctranslate2 {
     unary_transform(x, y, size, exp_func());
   }
 
+  struct log_func : public thrust::unary_function<float, float> {
+    __host__ __device__
+    float operator()(float x) { return logf(x); }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::log(const float* x, float* y, size_t size) {
+    unary_transform(x, y, size, log_func());
+  }
+
   struct pow_func : public thrust::unary_function<float, float> {
     float _power;
     pow_func(float power)

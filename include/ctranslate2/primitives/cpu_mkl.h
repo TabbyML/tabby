@@ -39,6 +39,9 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::exp(const float* x, float* y, size_t size);
   template<>
   template<>
+  void primitives<Device::CPU>::log(const float* x, float* y, size_t size);
+  template<>
+  template<>
   void primitives<Device::CPU>::tanh(const float* x, float* y, size_t size);
 
   template<>

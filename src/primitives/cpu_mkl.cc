@@ -68,6 +68,12 @@ namespace ctranslate2 {
 
   template<>
   template<>
+  void primitives<Device::CPU>::log(const float* x, float* y, size_t size) {
+    vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
+  }
+
+  template<>
+  template<>
   void primitives<Device::CPU>::tanh(const float* x, float* y, size_t size) {
     vsTanh(size, x, y);
   }

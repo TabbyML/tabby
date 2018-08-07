@@ -137,6 +137,9 @@ namespace ctranslate2 {
     static void exp(const T* x, T* y, size_t size);
 
     template <typename T>
+    static void log(const T* x, T* y, size_t size);
+
+    template <typename T>
     static void cos(const T* x, T* y, size_t size);
 
     template <typename T>

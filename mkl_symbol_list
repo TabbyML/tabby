@@ -13,6 +13,7 @@ vmlSetMode
 vsAdd
 vsExp
 vsInv
+vsLn
 vsMul
 vsPowx
 vsSub
