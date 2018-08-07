@@ -1,12 +1,14 @@
 #include "ctranslate2/ops/softmax.h"
+#include "ctranslate2/ops/log_softmax.h"
 
 #include "ctranslate2/cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {
 
-    template <Device D, typename T>
-    void SoftMax::compute(const StorageView& input, StorageView& output) const {
+    static void cudnn_softmax(const StorageView& input,
+                              StorageView& output,
+                              cudnnSoftmaxAlgorithm_t algorithm) {
       static thread_local cudnnTensorDescriptor_t tensor_desc;
       static thread_local bool tensor_desc_init = false;
 
@@ -24,23 +26,36 @@ namespace ctranslate2 {
                                              depth,
                                              1 /* h */, 1 /* w */));
 
-      T alpha = 1;
-      T beta = 0;
+      float alpha = 1;
+      float beta = 0;
       CUDNN_CHECK(cudnnSoftmaxForward(cuda::get_cudnn_handle(),
-                                      CUDNN_SOFTMAX_ACCURATE,
+                                      algorithm,
                                       CUDNN_SOFTMAX_MODE_INSTANCE,
                                       &alpha,
                                       tensor_desc,
-                                      input.data<T>(),
+                                      input.data<float>(),
                                       &beta,
                                       tensor_desc,
-                                      output.data<T>()));
+                                      output.data<float>()));
     }
 
-#define DECLARE_IMPL(T)                                         \
-    template void                                               \
-    SoftMax::compute<Device::CUDA, T>(const StorageView& input, \
-                                      StorageView& output) const;
+    template <Device D, typename T>
+    void SoftMax::compute(const StorageView& input, StorageView& output) const {
+      cudnn_softmax(input, output, CUDNN_SOFTMAX_ACCURATE);
+    }
+
+    template <Device D, typename T>
+    void LogSoftMax::compute(const StorageView& input, StorageView& output) const {
+      cudnn_softmax(input, output, CUDNN_SOFTMAX_LOG);
+    }
+
+#define DECLARE_IMPL(T)                                                 \
+    template void                                                       \
+    SoftMax::compute<Device::CUDA, T>(const StorageView& input,         \
+                                      StorageView& output) const;       \
+    template void                                                       \
+    LogSoftMax::compute<Device::CUDA, T>(const StorageView& input,      \
+                                         StorageView& output) const;
 
     DECLARE_IMPL(float)
 

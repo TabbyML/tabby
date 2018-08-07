@@ -380,6 +380,19 @@ TEST_P(OpDeviceTest, SoftMax) {
   expect_storage_eq(y, expected, 1e-4);
 }
 
+TEST_P(OpDeviceTest, LogSoftMax) {
+  Device device = GetParam();
+  StorageView x({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0}, device);
+  StorageView expected({2, 5}, std::vector<float>{
+      -3.440921, -0.240921, -2.040921, -4.340921, -3.240921,
+      -0.273199, -1.573199, -4.673199, -6.473199, -3.873199}, device);
+  StorageView y(x.device());
+  ops::LogSoftMax()(x, y);
+  expect_storage_eq(y, expected, 1e-4);
+}
+
 TEST_P(OpDeviceTest, LayerNorm) {
   Device device = GetParam();
   StorageView gamma({5}, std::vector<float>{0.2, 2.1, 1.1, -0.6, 0.7}, device);
