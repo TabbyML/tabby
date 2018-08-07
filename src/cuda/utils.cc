@@ -50,6 +50,14 @@ namespace ctranslate2 {
                                  + "' at " + file + ":" + std::to_string(line));
     }
 
+    void cudnn_assert(cudnnStatus_t code, const std::string& file, int line)
+    {
+      if (code != CUDNN_STATUS_SUCCESS)
+        throw std::runtime_error("cuDNN failed with error '"
+                                 + std::string(cudnnGetErrorString(code))
+                                 + "' at " + file + ":" + std::to_string(line));
+    }
+
     cudaStream_t& get_cuda_stream() {
       // Use one CUDA stream per host thread.
       static thread_local cudaStream_t stream;
@@ -68,6 +76,18 @@ namespace ctranslate2 {
       if (!initialized) {
         CUBLAS_CHECK(cublasCreate(&handle));
         CUBLAS_CHECK(cublasSetStream(handle, get_cuda_stream()));
+        initialized = true;
+      }
+      return handle;
+    }
+
+    cudnnHandle_t& get_cudnn_handle() {
+      // Use one cuDNN handle per host thread.
+      static thread_local cudnnHandle_t handle;
+      static thread_local bool initialized = false;
+      if (!initialized) {
+        CUDNN_CHECK(cudnnCreate(&handle));
+        CUDNN_CHECK(cudnnSetStream(handle, get_cuda_stream()));
         initialized = true;
       }
       return handle;

@@ -30,6 +30,14 @@ void benchmark_split(Device device) {
   BENCHMARK(split_op(x, a, b, c), 10000);
 }
 
+void benchmark_softmax(Device device) {
+  std::vector<float> x_ = rand_vector(100 * 512);
+  StorageView x({100, 512}, x_, device);
+  StorageView y(x.device());
+  const ops::SoftMax softmax_op;
+  BENCHMARK(softmax_op(x, y), 10000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device" << std::endl;
@@ -45,6 +53,8 @@ int main(int argc, char* argv[]) {
     benchmark_transpose(device);
   else if (op == "split")
     benchmark_split(device);
+  else if (op == "softmax")
+    benchmark_softmax(device);
 
   return 0;
 }

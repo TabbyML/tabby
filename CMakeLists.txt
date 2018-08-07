@@ -104,6 +104,15 @@ if (WITH_CUDA)
   find_package(CUDA 8.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+
+  find_path(CUDNN_LIBRARY_DIR libcudnn.so ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+  if(CUDNN_LIBRARY_DIR)
+    message(STATUS "Found cuDNN library directory: ${CUDNN_LIBRARY_DIR}")
+  else()
+    message(FATAL_ERROR "cuDNN library directory not found")
+  endif()
+  link_directories(${CUDNN_LIBRARY_DIR})
+
   cuda_include_directories(${INCLUDE_DIRECTORIES})
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
@@ -115,7 +124,10 @@ if (WITH_CUDA)
     src/ops/softmax_gpu.cu
     src/ops/topk_gpu.cu
     )
-  cuda_add_cublas_to_target(${PROJECT_NAME})
+  list(APPEND LIBRARIES
+    ${CUDA_CUBLAS_LIBRARIES}
+    cudnn
+    )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})
 endif()

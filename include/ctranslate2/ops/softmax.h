@@ -9,6 +9,7 @@ namespace ctranslate2 {
     public:
       using UnaryOp::operator();
       void operator()(const StorageView& x, StorageView& y) const override {
+        y.resize_as(x);
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
       }
 

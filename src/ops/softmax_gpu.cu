@@ -1,17 +1,40 @@
 #include "ctranslate2/ops/softmax.h"
 
+#include "ctranslate2/cuda/utils.h"
+
 namespace ctranslate2 {
   namespace ops {
 
     template <Device D, typename T>
     void SoftMax::compute(const StorageView& input, StorageView& output) const {
-      // TODO: GPU impl.
+      static thread_local cudnnTensorDescriptor_t tensor_desc;
+      static thread_local bool tensor_desc_init = false;
 
-      static thread_local StorageView input_host;
-      static thread_local StorageView output_host;
-      input_host = input;
-      compute<Device::CPU, float>(input_host, output_host);
-      output = output_host;
+      if (!tensor_desc_init) {
+        CUDNN_CHECK(cudnnCreateTensorDescriptor(&tensor_desc));
+        tensor_desc_init = true;
+      }
+
+      size_t depth = input.dim(-1);
+      size_t batch_size = input.size() / depth;
+      CUDNN_CHECK(cudnnSetTensor4dDescriptor(tensor_desc,
+                                             CUDNN_TENSOR_NCHW,
+                                             CUDNN_DATA_FLOAT,
+                                             batch_size,
+                                             1 /* c */, 1 /* h */,
+                                             depth));
+
+      T alpha = 1;
+      T beta = 0;
+      CUDNN_CHECK(cudnnSoftmaxForward(cuda::get_cudnn_handle(),
+                                      CUDNN_SOFTMAX_ACCURATE,
+                                      CUDNN_SOFTMAX_MODE_INSTANCE,
+                                      &alpha,
+                                      tensor_desc,
+                                      input.data<T>(),
+                                      &beta,
+                                      tensor_desc,
+                                      output.data<T>()));
     }
 
 #define DECLARE_IMPL(T)                                         \
