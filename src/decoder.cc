@@ -50,23 +50,6 @@ namespace ctranslate2 {
 
 
   template <Device D, typename T = float>
-  static void log_probs_from_logits(const StorageView& logits, StorageView& log_probs) {
-    // TODO: implement the operator ReduceLogSumExp.
-    log_probs.resize_as(logits);
-
-    size_t depth = logits.dim(-1);
-    size_t batch_size = logits.size() / depth;
-
-    for (size_t i = 0; i < batch_size; ++i) {
-      const auto* src = logits.data<T>() + i * depth;
-      auto* dst = log_probs.data<T>() + i * depth;
-      primitives<D>::exp(src, dst, depth);
-      T logsumexp = std::log(primitives<D>::sum(dst, depth));
-      primitives<D>::sub(logsumexp, src, dst, depth);
-    }
-  }
-
-  template <Device D, typename T = float>
   static void multiply_beam_probabilities(StorageView& log_probs,
                                           const StorageView& alive_log_probs) {
     size_t depth = log_probs.dim(-1);
@@ -147,8 +130,9 @@ namespace ctranslate2 {
     for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
       decoder.logits(step, topk_ids, candidates, logits);
+      ops::LogSoftMax()(logits, log_probs);
+
       size_t vocabulary_size = logits.dim(-1);
-      DEVICE_DISPATCH(logits.device(), log_probs_from_logits<D>(logits, log_probs));
 
       // Multiply by the current beam log probs.
       DEVICE_DISPATCH(log_probs.device(), multiply_beam_probabilities<D>(log_probs, topk_log_probs));
@@ -276,7 +260,7 @@ namespace ctranslate2 {
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       decoder.logits(step, sample_from, candidates, logits);
-      DEVICE_DISPATCH(logits.device(), log_probs_from_logits<D>(logits, log_probs));
+      ops::LogSoftMax()(logits, log_probs);
 
       std::vector<bool> finished_batch(logits.dim(0), false);
       bool one_finished = false;
