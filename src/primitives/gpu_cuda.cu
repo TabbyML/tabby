@@ -310,53 +310,22 @@ namespace ctranslate2 {
     const int ldb = transpose_b ? k : n;
     const int ldc = n;
 
+    const long long int stridea = m * k;
+    const long long int strideb = k * n;
+    const long long int stridec = m * n;
+
     const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
     const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
 
-    const float** a_array = new const float*[batch_size];
-    const float** b_array = new const float*[batch_size];
-    float** c_array = new float*[batch_size];
-
-    for (size_t i = 0; i < batch_size; ++i) {
-      a_array[i] = a + (i * m * k);
-      b_array[i] = b + (i * k * n);
-      c_array[i] = c + (i * m * n);
-    }
-
-    static thread_local const float** a_array_device = nullptr;
-    static thread_local const float** b_array_device = nullptr;
-    static thread_local float** c_array_device = nullptr;
-    static thread_local size_t alloc_size = 0;
-
-    const size_t array_size = batch_size * sizeof (float*);
-
-    if (array_size > alloc_size) {
-      CUDA_CHECK(cudaFree(a_array_device));
-      CUDA_CHECK(cudaFree(b_array_device));
-      CUDA_CHECK(cudaFree(c_array_device));
-      CUDA_CHECK(cudaMalloc(&a_array_device, array_size));
-      CUDA_CHECK(cudaMalloc(&b_array_device, array_size));
-      CUDA_CHECK(cudaMalloc(&c_array_device, array_size));
-      alloc_size = array_size;
-    }
-
-    cross_device_primitives<Device::CPU, Device::CUDA>::copy(a_array, a_array_device, batch_size);
-    cross_device_primitives<Device::CPU, Device::CUDA>::copy(b_array, b_array_device, batch_size);
-    cross_device_primitives<Device::CPU, Device::CUDA>::copy(c_array, c_array_device, batch_size);
-
-    delete [] a_array;
-    delete [] b_array;
-    delete [] c_array;
-
-    CUBLAS_CHECK(cublasSgemmBatched(cuda::get_cublas_handle(),
-                                    transb, transa,
-                                    n, m, k,
-                                    &alpha,
-                                    b_array_device, ldb,
-                                    a_array_device, lda,
-                                    &beta,
-                                    c_array_device, ldc,
-                                    batch_size));
+    CUBLAS_CHECK(cublasSgemmStridedBatched(cuda::get_cublas_handle(),
+                                           transb, transa,
+                                           n, m, k,
+                                           &alpha,
+                                           b, ldb, strideb,
+                                           a, lda, stridea,
+                                           &beta,
+                                           c, ldc, stridec,
+                                           batch_size));
   }
 
   struct exp_func : public thrust::unary_function<float, float> {
