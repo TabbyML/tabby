@@ -105,7 +105,10 @@ if (WITH_CUDA)
   add_definitions(-DWITH_CUDA)
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 
-  find_path(CUDNN_LIBRARY_DIR libcudnn.so ${CUDA_TOOLKIT_ROOT_DIR}/lib64)
+  find_path(CUDNN_LIBRARY_DIR libcudnn.so
+    ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+    /usr/lib/x86_64-linux-gnu
+    )
   if(CUDNN_LIBRARY_DIR)
     message(STATUS "Found cuDNN library directory: ${CUDNN_LIBRARY_DIR}")
   else()
