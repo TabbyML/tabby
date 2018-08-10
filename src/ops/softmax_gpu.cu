@@ -9,16 +9,11 @@ namespace ctranslate2 {
     static void cudnn_softmax(const StorageView& input,
                               StorageView& output,
                               cudnnSoftmaxAlgorithm_t algorithm) {
-      static thread_local cudnnTensorDescriptor_t tensor_desc;
-      static thread_local bool tensor_desc_init = false;
-
-      if (!tensor_desc_init) {
-        CUDNN_CHECK(cudnnCreateTensorDescriptor(&tensor_desc));
-        tensor_desc_init = true;
-      }
-
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
+
+      cudnnTensorDescriptor_t tensor_desc;
+      CUDNN_CHECK(cudnnCreateTensorDescriptor(&tensor_desc));
       CUDNN_CHECK(cudnnSetTensor4dDescriptor(tensor_desc,
                                              CUDNN_TENSOR_NCHW,
                                              CUDNN_DATA_FLOAT,
@@ -37,6 +32,7 @@ namespace ctranslate2 {
                                       &beta,
                                       tensor_desc,
                                       output.data<float>()));
+      CUDNN_CHECK(cudnnDestroyTensorDescriptor(tensor_desc));
     }
 
     template <Device D, typename T>

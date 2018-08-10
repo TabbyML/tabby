@@ -10,22 +10,11 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      static thread_local cudnnTensorDescriptor_t input_desc;
-      static thread_local cudnnTensorDescriptor_t scale_bias_desc;
-      static thread_local bool desc_init = false;
-
-      if (!desc_init) {
-        CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_desc));
-        CUDNN_CHECK(cudnnCreateTensorDescriptor(&scale_bias_desc));
-        desc_init = true;
-      }
-
       static thread_local StorageView bias_cudnn(input.device());
       static thread_local StorageView scale_cudnn(input.device());
 
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
-
       T one = 1;
       T zero = 0;
 
@@ -34,6 +23,11 @@ namespace ctranslate2 {
         bias_cudnn.resize({batch_size}).fill(zero);
       }
 
+      cudnnTensorDescriptor_t input_desc;
+      cudnnTensorDescriptor_t scale_bias_desc;
+      cudnnBatchNormMode_t bn_mode = CUDNN_BATCHNORM_SPATIAL;
+      CUDNN_CHECK(cudnnCreateTensorDescriptor(&input_desc));
+      CUDNN_CHECK(cudnnCreateTensorDescriptor(&scale_bias_desc));
       CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_desc,
                                              CUDNN_TENSOR_NCHW,
                                              CUDNN_DATA_FLOAT,
@@ -41,11 +35,8 @@ namespace ctranslate2 {
                                              batch_size,
                                              depth,
                                              1 /* w */));
-
-      cudnnBatchNormMode_t bn_mode = CUDNN_BATCHNORM_SPATIAL;
       CUDNN_CHECK(cudnnDeriveBNTensorDescriptor(scale_bias_desc, input_desc, bn_mode));
 
-      double exponential_average_factor = 0;
       CUDNN_CHECK(cudnnBatchNormalizationForwardTraining(cuda::get_cudnn_handle(),
                                                          bn_mode,
                                                          &one,
@@ -57,12 +48,15 @@ namespace ctranslate2 {
                                                          scale_bias_desc,
                                                          scale_cudnn.data<T>(),
                                                          bias_cudnn.data<T>(),
-                                                         exponential_average_factor,
+                                                         0 /* exponentialAverageFactor */,
                                                          nullptr,
                                                          nullptr,
                                                          CUDNN_BN_MIN_EPSILON,
                                                          nullptr,
                                                          nullptr));
+
+      CUDNN_CHECK(cudnnDestroyTensorDescriptor(input_desc));
+      CUDNN_CHECK(cudnnDestroyTensorDescriptor(scale_bias_desc));
 
       primitives<D>::mul_batch_broadcast(gamma.data<T>(), output.data<T>(), depth, output.size());
       primitives<D>::add_batch_broadcast(beta.data<T>(), output.data<T>(), depth, output.size());
