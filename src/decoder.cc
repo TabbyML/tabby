@@ -5,14 +5,20 @@
 namespace ctranslate2 {
 
   // Convenience functions to gather "in-place" (actually uses a temporary).
-  static void gather(StorageView& input, const StorageView& indices) {
+  static void gather(StorageView& input, const StorageView& indices, StorageView* cache = nullptr) {
     static const ops::Gather gather_op;
-    StorageView input_clone(std::move(input));
-    gather_op(input_clone, indices, input);
+    if (cache == nullptr) {
+      StorageView input_clone(std::move(input));
+      gather_op(input_clone, indices, input);
+    } else {
+      gather_op(input, indices, *cache);
+      std::swap(input, *cache);
+    }
   }
   static void gather(DecoderState& state, const StorageView& indices) {
+    auto& cache = state.get_cache();
     for (auto& pair : state.get()) {
-      gather(pair.second, indices);
+      gather(pair.second, indices, &cache.at(pair.first));
     }
   }
 
@@ -26,6 +32,9 @@ namespace ctranslate2 {
   std::unordered_map<std::string, StorageView>& DecoderState::get() {
     return _states;
   }
+  std::unordered_map<std::string, StorageView>& DecoderState::get_cache() {
+    return _cache;
+  }
 
   StorageView& DecoderState::get(const std::string& name) {
     return _states.at(name);
@@ -37,6 +46,9 @@ namespace ctranslate2 {
       _states.emplace(std::piecewise_construct,
                       std::forward_as_tuple(name),
                       std::forward_as_tuple(state));
+      _cache.emplace(std::piecewise_construct,
+                     std::forward_as_tuple(name),
+                     std::forward_as_tuple(state.device(), state.dtype()));
     } else {
       it->second = state;
     }
@@ -59,28 +71,36 @@ namespace ctranslate2 {
     }
   }
 
-  static void tile(StorageView& input, const StorageView& repeats) {
+  static void tile(StorageView& input, const StorageView& repeats, StorageView* cache = nullptr) {
     static const ops::Tile tile_op;
-    StorageView input_clone(std::move(input));
-    tile_op(input_clone, repeats, input);
+    if (cache == nullptr) {
+      StorageView input_clone(std::move(input));
+      tile_op(input_clone, repeats, input);
+    } else {
+      tile_op(input, repeats, *cache);
+      std::swap(input, *cache);
+    }
   }
 
-  static void expand_to_beam_size(StorageView& input, size_t beam_size) {
+  static void expand_to_beam_size(StorageView& input,
+                                  size_t beam_size,
+                                  StorageView* cache = nullptr) {
     Shape original_shape(input.shape());
     Shape tile_shape(input.shape());
     tile_shape.insert(std::next(tile_shape.begin()), 1);
     input.reshape(tile_shape);
     StorageView repeats({input.rank()}, static_cast<int32_t>(1));
     repeats.at<int32_t>(1) = beam_size;
-    tile(input, repeats);
+    tile(input, repeats, cache);
     original_shape[0] *= beam_size;
     input.reshape(original_shape);
   }
 
   static void expand_to_beam_size(DecoderState& state, size_t beam_size) {
+    auto& cache = state.get_cache();
     for (auto& pair : state.get()) {
       if (!pair.second.empty())
-        expand_to_beam_size(pair.second, beam_size);
+        expand_to_beam_size(pair.second, beam_size, &cache.at(pair.first));
     }
   }
 
