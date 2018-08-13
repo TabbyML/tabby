@@ -29,7 +29,7 @@ namespace ctranslate2 {
                          const StorageView& input,
                          StorageView& output) const {
       static thread_local StorageView input_device(DataType::DT_INT32, Device::CUDA);
-      input_device = input;
+      input_device.copy_from(input);
 
       auto gather_ids = thrust::make_transform_iterator(
         thrust::counting_iterator<size_t>(0),

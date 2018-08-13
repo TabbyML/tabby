@@ -218,7 +218,7 @@ namespace ctranslate2 {
 
       if (values_lengths && batch_size > 1) {
         static thread_local StorageView output_host;
-        output_host = output;
+        output_host.copy_from(output);
         for (size_t b = 0; b < batch_size; ++b) {
           const size_t length = values_lengths->data<int32_t>()[b];
           if (length == memory_time)
@@ -233,7 +233,7 @@ namespace ctranslate2 {
             }
           }
         }
-        output = output_host;
+        output.copy_from(output_host);
       }
 
       static thread_local StorageView attn(values.device());

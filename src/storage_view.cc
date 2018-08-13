@@ -48,6 +48,21 @@ namespace ctranslate2 {
     return _dtype;
   }
 
+  void StorageView::assert_dtype(DataType dtype) const {
+    if (_dtype != dtype)
+      throw std::invalid_argument("type error: storage is not of type " + dtype_name(_dtype));
+  }
+
+  void StorageView::assert_device(Device device) const {
+    if (_device != device)
+      throw std::invalid_argument("device error: storage is not on device " + device_to_str(device));
+  }
+
+  void StorageView::assert_compatible(DataType dtype, Device device) const {
+    assert_dtype(dtype);
+    assert_device(device);
+  }
+
   size_t StorageView::reserved_memory() const {
     size_t buffer_size = 0;
     TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
@@ -75,7 +90,8 @@ namespace ctranslate2 {
     size_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
     DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes));
-    assert(_data != nullptr);
+    if (_data == nullptr)
+      throw std::runtime_error("reserve: failed to allocated memory");
     _own_data = true;
     _allocated_size = size;
     return *this;
@@ -114,7 +130,8 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
-    assert(_size == size(new_shape));
+    if (_size != size(new_shape))
+      throw std::invalid_argument("reshape: new shape is incompatible with current size");
     _shape = new_shape;
     _strides = strides(new_shape);
     return *this;
@@ -149,13 +166,13 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::assign(const StorageView& other) {
+    assert_compatible(other._dtype, other._device);
     resize_as(other);
     return copy_from(other);
   }
 
   StorageView& StorageView::assign(StorageView&& other) {
-    assert(other._dtype == _dtype);
-    assert(other._device == _device);
+    assert_compatible(other._dtype, other._device);
     swap(*this, other);
     return *this;
   }
@@ -169,6 +186,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::shallow_copy(StorageView& other) {
+    assert_device(other._device);
     TYPE_DISPATCH(_dtype, assign(other.data<T>(), other._shape));
     return *this;
   }
@@ -178,6 +196,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::copy_from(const StorageView& other) {
+    resize_as(other);
     TYPE_DISPATCH(other._dtype, copy_from(other.data<T>(), other._size, other._device));
     return *this;
   }

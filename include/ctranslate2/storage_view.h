@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cassert>
 #include <ostream>
 #include <vector>
 
@@ -70,6 +69,11 @@ namespace ctranslate2 {
 
     // Actual storage type.
     DataType dtype() const;
+
+    void assert_dtype(DataType dtype) const;
+    void assert_device(Device device) const;
+    void assert_compatible(DataType dtype, Device device) const;
+
     // Allocated memory size.
     size_t reserved_memory() const;
     // Clears the content (memory is still reserved).
@@ -106,13 +110,13 @@ namespace ctranslate2 {
 
     template <typename T>
     T* data() {
-      assert(DataTypeToEnum<T>::value == _dtype);
+      assert_dtype(DataTypeToEnum<T>::value);
       return reinterpret_cast<T*>(_data);
     }
 
     template <typename T>
     const T* data() const {
-      assert(DataTypeToEnum<T>::value == _dtype);
+      assert_dtype(DataTypeToEnum<T>::value);
       return reinterpret_cast<const T*>(_data);
     }
 
@@ -123,11 +127,12 @@ namespace ctranslate2 {
 
     template <typename T>
     const T* index(const std::vector<size_t>& indices) const {
-      assert(DataTypeToEnum<T>::value == _dtype);
+      assert_dtype(DataTypeToEnum<T>::value);
       size_t offset = 0;
       for (size_t i = 0; i < indices.size(); ++i)
         offset += indices[i] * _strides[i];
-      assert(offset < _size);
+      if (offset >= _size)
+        throw std::invalid_argument("index: computed index is out of bounds");
       return data<T>() + offset;
     }
 
@@ -138,7 +143,8 @@ namespace ctranslate2 {
 
     template <typename T>
     const T& at(size_t index) const {
-      assert(index < _size);
+      if (index >= _size)
+        throw std::invalid_argument("at: index is out of bounds");
       return data<T>()[index];
     }
 
@@ -161,7 +167,7 @@ namespace ctranslate2 {
 
     template <typename T>
     StorageView& assign(T* data, const Shape& shape) {
-      assert(DataTypeToEnum<T>::value == _dtype);
+      assert_dtype(DataTypeToEnum<T>::value);
       release();
       _data = static_cast<void*>(data);
       _own_data = false;
@@ -172,7 +178,7 @@ namespace ctranslate2 {
 
     template <typename T>
     StorageView& fill(T value) {
-      assert(DataTypeToEnum<T>::value == _dtype);
+      assert_dtype(DataTypeToEnum<T>::value);
       DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
       return *this;
     }
@@ -181,8 +187,9 @@ namespace ctranslate2 {
 
     template <typename T>
     StorageView& copy_from(const T* data, size_t size, Device device) {
-      assert(DataTypeToEnum<T>::value == _dtype);
-      assert(size == _size);
+      assert_dtype(DataTypeToEnum<T>::value);
+      if (size != _size)
+        throw std::invalid_argument("copy_from: size mismatch");
 #ifdef WITH_CUDA  // TODO: remove this CUDA specific guard.
       if (device != _device) {
         if (device == Device::CUDA)

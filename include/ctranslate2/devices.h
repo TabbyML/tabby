@@ -20,6 +20,16 @@ namespace ctranslate2 {
     throw std::invalid_argument("unsupported device " + device);
   }
 
+  inline std::string device_to_str(Device device) {
+    switch (device) {
+    case Device::CUDA:
+      return "CUDA";
+    case Device::CPU:
+      return "CPU";
+    }
+    return "";
+  }
+
 #define UNSUPPORTED_DEVICE_CASE(DEVICE)                       \
   case DEVICE: {                                              \
     throw std::runtime_error("unsupported device " #DEVICE);  \
