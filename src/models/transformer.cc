@@ -507,10 +507,10 @@ namespace ctranslate2 {
       _state.reset(new TransformerDecoderState(_layers.size()));
     }
 
-    void TransformerDecoder::logits(size_t step,
-                                    const StorageView& ids,
-                                    const StorageView& candidates,
-                                    StorageView& output) {
+    void TransformerDecoder::log_probs(size_t step,
+                                       const StorageView& ids,
+                                       const StorageView& candidates,
+                                       StorageView& output) {
       static thread_local StorageView layer_in(output.device());
       static thread_local StorageView layer_out(output.device());
 
@@ -533,7 +533,10 @@ namespace ctranslate2 {
         std::swap(layer_in, layer_out);
       }
       _output_norm(layer_in, layer_out);
-      _proj(layer_out, output, &candidates);
+
+      static thread_local StorageView logits(output.device());
+      _proj(layer_out, logits, &candidates);
+      ops::LogSoftMax()(logits, output);
     }
 
   }

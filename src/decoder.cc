@@ -143,16 +143,14 @@ namespace ctranslate2 {
     }
 
     static thread_local StorageView log_probs(device);
-    static thread_local StorageView logits(device);
     static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
     static thread_local StorageView topk_log_probs_device(device);
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
       // Compute log probs for the current step.
-      decoder.logits(step, topk_ids, candidates, logits);
-      ops::LogSoftMax()(logits, log_probs);
+      decoder.log_probs(step, topk_ids, candidates, log_probs);
 
-      size_t vocabulary_size = logits.dim(-1);
+      size_t vocabulary_size = log_probs.dim(-1);
 
       // Multiply by the current beam log probs.
       DEVICE_DISPATCH(log_probs.device(), multiply_beam_probabilities<D>(log_probs, topk_log_probs));
@@ -268,7 +266,6 @@ namespace ctranslate2 {
     scores.resize(batch_size);
 
     static thread_local StorageView log_probs(device);
-    static thread_local StorageView logits(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
@@ -279,13 +276,12 @@ namespace ctranslate2 {
     }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
-      decoder.logits(step, sample_from, candidates, logits);
-      ops::LogSoftMax()(logits, log_probs);
+      decoder.log_probs(step, sample_from, candidates, log_probs);
 
-      std::vector<bool> finished_batch(logits.dim(0), false);
+      std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
-      for (size_t i = 0; i < logits.dim(0); ++i) {
+      for (size_t i = 0; i < log_probs.dim(0); ++i) {
         size_t best = 0;
         DEVICE_DISPATCH(log_probs.device(),
                         best = primitives<D>::max_element(log_probs.index<float>({i}),

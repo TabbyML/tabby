@@ -204,10 +204,10 @@ namespace ctranslate2 {
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
-      void logits(size_t step,
-                  const StorageView& ids,
-                  const StorageView& candidates,
-                  StorageView& output) override;
+      void log_probs(size_t step,
+                     const StorageView& ids,
+                     const StorageView& candidates,
+                     StorageView& output) override;
     private:
       ScaledEmbeddings _scaled_embeddings;
       PositionEncoder _position_encoder;
