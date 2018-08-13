@@ -229,29 +229,27 @@ namespace ctranslate2 {
   }
 
   std::ostream& operator<<(std::ostream& os, const StorageView& storage) {
-    if (storage.device() == Device::CPU) {
-      TYPE_DISPATCH(
-        storage.dtype(),
-        // Do not spam output stream for large storages.
-        if (storage.size() < 7) {
-          for (size_t i = 0; i < storage.size(); ++i) {
-            os << ' ' << storage.data<T>()[i];
-          }
-        } else {
-          os << " " << storage.data<T>()[0]
-             << " " << storage.data<T>()[1]
-             << " " << storage.data<T>()[2]
-             << " ..."
-             << " " << storage.data<T>()[storage.size() - 3]
-             << " " << storage.data<T>()[storage.size() - 2]
-             << " " << storage.data<T>()[storage.size() - 1];
+    StorageView printable(storage.dtype());
+    printable.copy_from(storage);
+    TYPE_DISPATCH(
+      printable.dtype(),
+      // Do not spam output stream for large storages.
+      if (printable.size() < 7) {
+        for (size_t i = 0; i < printable.size(); ++i) {
+          os << ' ' << printable.data<T>()[i];
         }
-        os << std::endl);
-    }
-    os << '[';
-    if (storage.device() == Device::CUDA)
-      os << "CUDA ";
-    os << dtype_name(storage.dtype()) << " storage viewed as ";
+      } else {
+        os << " " << printable.data<T>()[0]
+           << " " << printable.data<T>()[1]
+           << " " << printable.data<T>()[2]
+           << " ..."
+           << " " << printable.data<T>()[printable.size() - 3]
+           << " " << printable.data<T>()[printable.size() - 2]
+           << " " << printable.data<T>()[printable.size() - 1];
+      }
+      os << std::endl);
+    os << "[" << device_to_str(storage.device())
+       << " " << dtype_name(storage.dtype()) << " storage viewed as ";
     for (size_t i = 0; i < storage.rank(); ++i) {
       if (i > 0)
         os << 'x';
