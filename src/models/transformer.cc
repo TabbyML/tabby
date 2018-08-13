@@ -293,7 +293,7 @@ namespace ctranslate2 {
     }
 
     void TransformerSelfAttention::operator()(const StorageView& queries,
-                                              const StorageView& queries_lengths,
+                                              const StorageView* queries_lengths,
                                               StorageView& output,
                                               StorageView* cached_keys,
                                               StorageView* cached_values,
@@ -326,7 +326,7 @@ namespace ctranslate2 {
       } else {
         true_keys_proj.shallow_copy(split_keys_proj);
         true_values_proj.shallow_copy(split_values_proj);
-        values_lengths = &queries_lengths;
+        values_lengths = queries_lengths;
       }
 
       static thread_local StorageView context(device);
@@ -415,7 +415,7 @@ namespace ctranslate2 {
                                              const StorageView& lengths,
                                              StorageView& output) {
       static thread_local StorageView context(input.device());
-      _self_attention(input, lengths, context);
+      _self_attention(input, &lengths, context);
       _ff(context, output);
     }
 
@@ -429,7 +429,6 @@ namespace ctranslate2 {
 
     void TransformerDecoderLayer::operator()(size_t step,
                                              const StorageView& input,
-                                             const StorageView& input_lengths,
                                              const StorageView& memory,
                                              const StorageView& memory_lengths,
                                              StorageView& cached_self_attn_keys,
@@ -438,7 +437,7 @@ namespace ctranslate2 {
                                              StorageView& cached_attn_values,
                                              StorageView& output) {
       static thread_local StorageView context(input.device());
-      _self_attention(input, input_lengths, output,
+      _self_attention(input, nullptr, output,
                       &cached_self_attn_keys, &cached_self_attn_values, step);
       _encoder_attention(output, memory, memory_lengths, context,
                          &cached_attn_keys, &cached_attn_values, step);
@@ -514,15 +513,12 @@ namespace ctranslate2 {
       static thread_local StorageView layer_in(output.device());
       static thread_local StorageView layer_out(output.device());
 
-      size_t batch_size = ids.dim(0);
       _scaled_embeddings(ids, layer_in);
       _position_encoder(layer_in, step);
-      StorageView query_lengths({batch_size}, static_cast<int32_t>(1));
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         _layers[l](step,
                    layer_in,
-                   query_lengths,
                    _state->get("memory"),
                    _state->get("memory_lengths"),
                    _state->get("self_keys_" + std::to_string(l)),

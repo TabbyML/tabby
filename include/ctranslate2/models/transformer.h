@@ -115,7 +115,7 @@ namespace ctranslate2 {
     public:
       TransformerSelfAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
       void operator()(const StorageView& queries,
-                      const StorageView& queries_lengths,
+                      const StorageView* queries_lengths,
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
                       StorageView* cached_values = nullptr,
@@ -163,7 +163,6 @@ namespace ctranslate2 {
       TransformerDecoderLayer(const TransformerModel& model, const std::string& scope);
       void operator()(size_t step,
                       const StorageView& input,
-                      const StorageView& input_lengths,
                       const StorageView& memory,
                       const StorageView& memory_lengths,
                       StorageView& cached_self_attn_keys,
