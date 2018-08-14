@@ -379,14 +379,19 @@ namespace ctranslate2 {
       _layer_norm(queries, normed_queries);
       _linear_query(normed_queries, queries_proj);
 
+      StorageView final_keys(device);
+      StorageView final_values(device);
+
       if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
-        split_keys_proj.shallow_copy(*cached_keys);
-        split_values_proj.shallow_copy(*cached_values);
+        final_keys.shallow_copy(*cached_keys);
+        final_values.shallow_copy(*cached_values);
       } else {
         _linear_memory(memory, memory_proj);
         ops::Split(-1)(memory_proj, keys_proj, values_proj);
         split_heads(keys_proj, split_keys_proj);
         split_heads(values_proj, split_values_proj);
+        final_keys.shallow_copy(split_keys_proj);
+        final_values.shallow_copy(split_values_proj);
         if (cached_keys != nullptr) {
           *cached_keys = split_keys_proj;
           *cached_values = split_values_proj;
@@ -395,8 +400,8 @@ namespace ctranslate2 {
 
       static thread_local StorageView context(device);
       compute_attention(queries_proj,
-                        split_keys_proj,
-                        split_values_proj,
+                        final_keys,
+                        final_values,
                         &memory_lengths,
                         context);
 
