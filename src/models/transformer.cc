@@ -194,7 +194,7 @@ namespace ctranslate2 {
       static thread_local StorageView inner(input.device());
       _layer_norm(input, output);
       _ff1(output, inner);
-      ops::ReLU()(inner);
+      ops::ReLU()(inner, inner);
       _ff2(inner, output);
       ops::Add()(input, output, output);
     }
