@@ -245,9 +245,95 @@ namespace ctranslate2 {
     MultiHeadAttention::MultiHeadAttention(const TransformerModel& model,
                                            const std::string& scope,
                                            size_t num_heads)
-      : _layer_norm(model, scope + "/LayerNorm")
-      , _num_heads(num_heads)
+      : _num_heads(num_heads)
+      , _layer_norm(model, scope + "/LayerNorm")
       , _transpose_op({0, 2, 1, 3}) {
+      for (size_t i = 0;; ++i) {
+        try {
+          _linear.emplace_back(model, scope + "/conv1d" + (i > 0 ? "_" + std::to_string(i) : ""));
+        } catch (std::exception&) {
+          break;
+        }
+      }
+    }
+
+    void MultiHeadAttention::operator()(const StorageView& queries,
+                                        const StorageView* memory,
+                                        const StorageView* memory_lengths,
+                                        StorageView& output,
+                                        StorageView* cached_keys,
+                                        StorageView* cached_values,
+                                        int step) {
+      Device device = queries.device();
+
+      static thread_local StorageView normed_queries(device);
+      _layer_norm(queries, normed_queries);
+
+      static thread_local StorageView fused_proj(device);
+      _linear[0](normed_queries, fused_proj);
+
+      static thread_local StorageView queries_proj(device);
+      static thread_local StorageView keys_proj(device);
+      static thread_local StorageView values_proj(device);
+      static thread_local StorageView split_queries(device);
+      static thread_local StorageView split_keys(device);
+      static thread_local StorageView split_values(device);
+
+      StorageView final_queries(device);
+      StorageView final_keys(device);
+      StorageView final_values(device);
+
+      if (memory) {
+        split_heads(fused_proj, split_queries);
+        final_queries.shallow_copy(split_queries);
+        if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
+          final_keys.shallow_copy(*cached_keys);
+          final_values.shallow_copy(*cached_values);
+        } else {
+          _linear[1](*memory, fused_proj);
+          ops::Split(-1)(fused_proj, keys_proj, values_proj);
+          split_heads(keys_proj, split_keys);
+          split_heads(values_proj, split_values);
+          final_keys.shallow_copy(split_keys);
+          final_values.shallow_copy(split_values);
+          if (cached_keys != nullptr) {
+            *cached_keys = split_keys;
+            *cached_values = split_values;
+          }
+        }
+      } else {
+        ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
+        split_heads(queries_proj, split_queries);
+        split_heads(keys_proj, split_keys);
+        split_heads(values_proj, split_values);
+        final_queries.shallow_copy(split_queries);
+        if (step >= 0 && cached_keys != nullptr) {
+          cache_proj(step, split_keys, *cached_keys);
+          cache_proj(step, split_values, *cached_values);
+          final_keys.shallow_copy(*cached_keys);
+          final_values.shallow_copy(*cached_values);
+        } else {
+          final_keys.shallow_copy(split_keys);
+          final_values.shallow_copy(split_values);
+        }
+      }
+
+      const size_t dk = queries.dim(-1) / _num_heads;
+      const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
+      ops::Mul()(final_queries, scale, final_queries);
+
+      StorageView& context = queries_proj;  // Reuse storage.
+      _attention(final_queries,
+                 final_keys,
+                 final_values,
+                 memory_lengths,
+                 context);
+
+      StorageView& combined = values_proj;  // Reuse storage.
+      combine_heads(context, combined);
+
+      _linear.back()(combined, output);
+      ops::Add()(queries, output, output);
     }
 
     void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) {
@@ -261,86 +347,7 @@ namespace ctranslate2 {
       y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
     }
 
-    void MultiHeadAttention::compute_attention(const StorageView& queries,
-                                               const StorageView& split_keys,
-                                               const StorageView& split_values,
-                                               const StorageView* values_lengths,
-                                               StorageView& output) {
-      Device device = queries.device();
-      static thread_local StorageView split_queries(device);
-      split_heads(queries, split_queries);
-
-      const size_t dk = queries.dim(-1) / _num_heads;
-      const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
-      ops::Mul()(split_queries, scale, split_queries);
-
-      static thread_local StorageView context(device);
-      _attention(split_queries,
-                 split_keys,
-                 split_values,
-                 values_lengths,
-                 context);
-      combine_heads(context, output);
-    }
-
-
-    TransformerSelfAttention::TransformerSelfAttention(const TransformerModel& model,
-                                                       const std::string& scope,
-                                                       size_t num_heads)
-      : MultiHeadAttention(model, scope, num_heads)
-      , _linear_in(model, scope + "/conv1d")
-      , _linear_out(model, scope + "/conv1d_1") {
-    }
-
-    void TransformerSelfAttention::operator()(const StorageView& queries,
-                                              const StorageView* queries_lengths,
-                                              StorageView& output,
-                                              StorageView* cached_keys,
-                                              StorageView* cached_values,
-                                              ssize_t step) {
-      Device device = queries.device();
-      static thread_local StorageView normed_queries(device);
-      static thread_local StorageView fused_proj(device);
-      static thread_local StorageView queries_proj(device);
-      static thread_local StorageView keys_proj(device);
-      static thread_local StorageView values_proj(device);
-      static thread_local StorageView split_keys_proj(device);
-      static thread_local StorageView split_values_proj(device);
-
-      _layer_norm(queries, normed_queries);
-      _linear_in(normed_queries, fused_proj);
-      ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
-
-      split_heads(keys_proj, split_keys_proj);
-      split_heads(values_proj, split_values_proj);
-
-      const StorageView* values_lengths = nullptr;
-      StorageView true_keys_proj(device);
-      StorageView true_values_proj(device);
-
-      if (step >= 0 && cached_keys != nullptr) {
-        cache_proj(step, split_keys_proj, *cached_keys);
-        cache_proj(step, split_values_proj, *cached_values);
-        true_keys_proj.shallow_copy(*cached_keys);
-        true_values_proj.shallow_copy(*cached_values);
-      } else {
-        true_keys_proj.shallow_copy(split_keys_proj);
-        true_values_proj.shallow_copy(split_values_proj);
-        values_lengths = queries_lengths;
-      }
-
-      static thread_local StorageView context(device);
-      compute_attention(queries_proj,
-                        true_keys_proj,
-                        true_values_proj,
-                        values_lengths,
-                        context);
-
-      _linear_out(context, output);
-      ops::Add()(queries, output, output);
-    }
-
-    void TransformerSelfAttention::cache_proj(ssize_t step, StorageView& proj, StorageView& cache) {
+    void MultiHeadAttention::cache_proj(int step, StorageView& proj, StorageView& cache) {
       if (step == 0) {
         cache = proj;
       } else {
@@ -348,65 +355,6 @@ namespace ctranslate2 {
         tmp = std::move(cache);
         ops::Concat(2)({&tmp, &proj}, cache);
       }
-    }
-
-
-    TransformerAttention::TransformerAttention(const TransformerModel& model,
-                                               const std::string& scope,
-                                               size_t num_heads)
-      : MultiHeadAttention(model, scope, num_heads)
-      , _linear_query(model, scope + "/conv1d")
-      , _linear_memory(model, scope + "/conv1d_1")
-      , _linear_out(model, scope + "/conv1d_2") {
-    }
-
-    void TransformerAttention::operator()(const StorageView& queries,
-                                          const StorageView& memory,
-                                          const StorageView& memory_lengths,
-                                          StorageView& output,
-                                          StorageView* cached_keys,
-                                          StorageView* cached_values,
-                                          ssize_t step) {
-      Device device = queries.device();
-      static thread_local StorageView normed_queries(device);
-      static thread_local StorageView memory_proj(device);
-      static thread_local StorageView queries_proj(device);
-      static thread_local StorageView keys_proj(device);
-      static thread_local StorageView values_proj(device);
-      static thread_local StorageView split_keys_proj(device);
-      static thread_local StorageView split_values_proj(device);
-
-      _layer_norm(queries, normed_queries);
-      _linear_query(normed_queries, queries_proj);
-
-      StorageView final_keys(device);
-      StorageView final_values(device);
-
-      if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
-        final_keys.shallow_copy(*cached_keys);
-        final_values.shallow_copy(*cached_values);
-      } else {
-        _linear_memory(memory, memory_proj);
-        ops::Split(-1)(memory_proj, keys_proj, values_proj);
-        split_heads(keys_proj, split_keys_proj);
-        split_heads(values_proj, split_values_proj);
-        final_keys.shallow_copy(split_keys_proj);
-        final_values.shallow_copy(split_values_proj);
-        if (cached_keys != nullptr) {
-          *cached_keys = split_keys_proj;
-          *cached_values = split_values_proj;
-        }
-      }
-
-      static thread_local StorageView context(device);
-      compute_attention(queries_proj,
-                        final_keys,
-                        final_values,
-                        &memory_lengths,
-                        context);
-
-      _linear_out(context, output);
-      ops::Add()(queries, output, output);
     }
 
 
@@ -420,7 +368,7 @@ namespace ctranslate2 {
                                              const StorageView& lengths,
                                              StorageView& output) {
       static thread_local StorageView context(input.device());
-      _self_attention(input, &lengths, context);
+      _self_attention(input, nullptr, &lengths, context);
       _ff(context, output);
     }
 
@@ -442,9 +390,9 @@ namespace ctranslate2 {
                                              StorageView& cached_attn_values,
                                              StorageView& output) {
       static thread_local StorageView context(input.device());
-      _self_attention(input, nullptr, output,
+      _self_attention(input, nullptr, nullptr, output,
                       &cached_self_attn_keys, &cached_self_attn_values, step);
-      _encoder_attention(output, memory, memory_lengths, context,
+      _encoder_attention(output, &memory, &memory_lengths, context,
                          &cached_attn_keys, &cached_attn_values, step);
       return _ff(context, output);
     }

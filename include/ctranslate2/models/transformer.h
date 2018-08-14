@@ -94,55 +94,26 @@ namespace ctranslate2 {
     class MultiHeadAttention
     {
     public:
-      MultiHeadAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
-      void compute_attention(const StorageView& queries,
-                             const StorageView& keys,
-                             const StorageView& values,
-                             const StorageView* values_lengths,
-                             StorageView& output);
-    protected:
-      LayerNorm _layer_norm;
-      void split_heads(const StorageView& x, StorageView& y);
-      void combine_heads(const StorageView& x, StorageView& y);
+      MultiHeadAttention(const TransformerModel& model,
+                         const std::string& scope,
+                         size_t num_heads);
+      void operator()(const StorageView& queries,
+                      const StorageView* memory,
+                      const StorageView* memory_lengths,
+                      StorageView& output,
+                      StorageView* cached_keys = nullptr,
+                      StorageView* cached_values = nullptr,
+                      int step = -1);
     private:
       size_t _num_heads;
+      std::vector<Dense> _linear;
+      LayerNorm _layer_norm;
       DotProductAttention _attention;
       ops::Transpose _transpose_op;
-    };
 
-    class TransformerSelfAttention : public MultiHeadAttention
-    {
-    public:
-      TransformerSelfAttention(const TransformerModel& model, const std::string& scope, size_t num_heads);
-      void operator()(const StorageView& queries,
-                      const StorageView* queries_lengths,
-                      StorageView& output,
-                      StorageView* cached_keys = nullptr,
-                      StorageView* cached_values = nullptr,
-                      ssize_t step = 0);
-    private:
-      Dense _linear_in;
-      Dense _linear_out;
-      static void cache_proj(ssize_t step, StorageView& proj, StorageView& cache);
-    };
-
-    class TransformerAttention : public MultiHeadAttention
-    {
-    public:
-      TransformerAttention(const TransformerModel& model,
-                           const std::string& scope,
-                           size_t num_heads);
-      void operator()(const StorageView& queries,
-                      const StorageView& memory,
-                      const StorageView& memory_lengths,
-                      StorageView& output,
-                      StorageView* cached_keys = nullptr,
-                      StorageView* cached_values = nullptr,
-                      ssize_t step = -1);
-    private:
-      Dense _linear_query;
-      Dense _linear_memory;
-      Dense _linear_out;
+      void split_heads(const StorageView& x, StorageView& y);
+      void combine_heads(const StorageView& x, StorageView& y);
+      static void cache_proj(int step, StorageView& proj, StorageView& cache);
     };
 
     class TransformerEncoderLayer
@@ -153,7 +124,7 @@ namespace ctranslate2 {
                       const StorageView& lengths,
                       StorageView& output);
     private:
-      TransformerSelfAttention _self_attention;
+      MultiHeadAttention _self_attention;
       TransformerFeedForward _ff;
     };
 
@@ -171,8 +142,8 @@ namespace ctranslate2 {
                       StorageView& cached_attn_values,
                       StorageView& output);
     private:
-      TransformerSelfAttention _self_attention;
-      TransformerAttention _encoder_attention;
+      MultiHeadAttention _self_attention;
+      MultiHeadAttention _encoder_attention;
       TransformerFeedForward _ff;
     };
 
