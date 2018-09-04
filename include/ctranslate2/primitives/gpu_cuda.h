@@ -13,7 +13,7 @@ namespace ctranslate2 {
   template <typename T>
   T primitives<Device::CUDA>::deref(const T* x, size_t index) {
     T val = T();
-    cross_device_primitives<Device::CUDA, Device::CPU>::copy(x + index, &val, sizeof (T));
+    cross_device_primitives<Device::CUDA, Device::CPU>::copy(x + index, &val, 1);
     return val;
   }
 
