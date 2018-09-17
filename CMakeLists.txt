@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.7)
 project(ctranslate2)
 
 option(WITH_MKL "Compile with Intel MKL backend" ON)
@@ -15,12 +15,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
 set(CMAKE_CXX_STANDARD 11)
-if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Wall")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
 
 find_package(Threads)
 
@@ -104,6 +99,13 @@ if (WITH_CUDA)
   find_package(CUDA 8.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+
+  if(NOT CUDA_ARCH_LIST)
+    set(CUDA_ARCH_LIST "Auto")
+  endif()
+
+  cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
+  list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 
   find_path(CUDNN_LIBRARY_DIR libcudnn.so
     ${CUDA_TOOLKIT_ROOT_DIR}/lib64
