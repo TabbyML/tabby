@@ -17,8 +17,8 @@ namespace ctranslate2 {
     virtual void reset(const StorageView& memory,
                        const StorageView& memory_lengths);
     std::unordered_map<std::string, StorageView>& get();
-    std::unordered_map<std::string, StorageView>& get_cache();
     StorageView& get(const std::string& name);
+    StorageView* get_cache(const std::string& name);
 
     friend std::ostream& operator<<(std::ostream& os, const DecoderState& decoder_state);
 

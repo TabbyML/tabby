@@ -16,9 +16,8 @@ namespace ctranslate2 {
     }
   }
   static void gather(DecoderState& state, const StorageView& indices) {
-    auto& cache = state.get_cache();
     for (auto& pair : state.get()) {
-      gather(pair.second, indices, &cache.at(pair.first));
+      gather(pair.second, indices, state.get_cache(pair.first));
     }
   }
 
@@ -32,12 +31,15 @@ namespace ctranslate2 {
   std::unordered_map<std::string, StorageView>& DecoderState::get() {
     return _states;
   }
-  std::unordered_map<std::string, StorageView>& DecoderState::get_cache() {
-    return _cache;
-  }
 
   StorageView& DecoderState::get(const std::string& name) {
     return _states.at(name);
+  }
+  StorageView* DecoderState::get_cache(const std::string& name) {
+    auto it = _cache.find(name);
+    if (it == _cache.end())
+      return nullptr;
+    return &it->second;
   }
 
   void DecoderState::reset_state(const std::string& name, const StorageView& state) {
@@ -46,9 +48,11 @@ namespace ctranslate2 {
       _states.emplace(std::piecewise_construct,
                       std::forward_as_tuple(name),
                       std::forward_as_tuple(state));
-      _cache.emplace(std::piecewise_construct,
-                     std::forward_as_tuple(name),
-                     std::forward_as_tuple(state.device(), state.dtype()));
+      if (state.device() != Device::CPU) {
+        _cache.emplace(std::piecewise_construct,
+                       std::forward_as_tuple(name),
+                       std::forward_as_tuple(state.device(), state.dtype()));
+      }
     } else {
       it->second = state;
     }
@@ -97,10 +101,9 @@ namespace ctranslate2 {
   }
 
   static void expand_to_beam_size(DecoderState& state, size_t beam_size) {
-    auto& cache = state.get_cache();
     for (auto& pair : state.get()) {
       if (!pair.second.empty())
-        expand_to_beam_size(pair.second, beam_size, &cache.at(pair.first));
+        expand_to_beam_size(pair.second, beam_size, state.get_cache(pair.first));
     }
   }
 
