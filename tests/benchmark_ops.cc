@@ -51,6 +51,18 @@ void benchmark_softmax(Device device) {
   BENCHMARK(softmax_op(x, y), 10000);
 }
 
+void benchmark_topk(Device device) {
+  const size_t k = 4;
+  const size_t batch_size = 8;
+  const size_t vocab_size = 32000;
+  std::vector<float> x = rand_vector(batch_size * k * vocab_size);
+  StorageView input({batch_size, k * vocab_size}, x, device);
+  StorageView values(input.dtype(), device);
+  StorageView indices(DataType::DT_INT32,  device);
+  const ops::TopK op(k);
+  BENCHMARK(op(input, values, indices), 10000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device" << std::endl;
@@ -70,6 +82,8 @@ int main(int argc, char* argv[]) {
     benchmark_layer_norm(device);
   else if (op == "softmax")
     benchmark_softmax(device);
+  else if (op == "topk")
+    benchmark_topk(device);
 
   return 0;
 }
