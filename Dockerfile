@@ -1,4 +1,4 @@
-FROM {{BUILD_IMAGE}} as builder
+FROM ubuntu:16.04 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -30,17 +30,12 @@ COPY . ctranslate2-dev
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
-ARG CUDA_NVCC_FLAGS
-ENV CUDA_NVCC_FLAGS=${CUDA_NVCC_FLAGS:-"-Xfatbin -compress-all"}
-ARG CUDA_ARCH_LIST
-ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 
 WORKDIR /root/ctranslate2-dev
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DWITH_CUDA={{WITH_CUDA}} \
-          -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
 
@@ -52,7 +47,7 @@ WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
-FROM {{RUNTIME_IMAGE}}
+FROM ubuntu:16.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
