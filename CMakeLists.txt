@@ -107,6 +107,8 @@ if (WITH_CUDA)
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 
+  message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
+
   find_path(CUDNN_LIBRARY_DIR libcudnn.so
     ${CUDA_TOOLKIT_ROOT_DIR}/lib64
     /usr/lib/x86_64-linux-gnu
