@@ -5,9 +5,18 @@ CTranslate2 is a fast C++ inference engine for OpenNMT models. It currently focu
 ## Requirements
 
 * C++11
-* CMake
-* Intel® MKL 2018
+* CMake (>= 3.7)
+* Intel® MKL (>= 2018)
+
+When compiling with `-DLIB_ONLY=OFF` (default) or the Python bindings:
+
 * Boost
+
+When compiling with `-DWITH_CUDA=ON`:
+
+* CUDA (>= 8.0)
+* cuDNN (>= 7.1)
+* TensorRT (>= 4.0)
 
 ## Compiling
 
@@ -15,6 +24,22 @@ CTranslate2 is a fast C++ inference engine for OpenNMT models. It currently focu
 mkdir build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j4
+```
+
+## Building Docker images
+
+### CPU-only
+
+```bash
+docker build -t systran/ctranslate2:v0.5.0 -f Dockerfile .
+```
+
+### Full
+
+```bash
+# 1. Download TensorRT 4.0 and place the .tar.gz into deps/.
+# 2. Build the image:
+docker build -t systran/ctranslate2_gpu:v0.5.0 -f Dockerfile.cuda .
 ```
 
 ## Using
