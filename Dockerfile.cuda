@@ -53,7 +53,8 @@ RUN mkdir build && \
 
 WORKDIR /root/ctranslate2-dev/python
 RUN pip --no-cache-dir install setuptools wheel
-RUN CFLAGS="-DWITH_CUDA=ON" CTRANSLATE_ROOT=/root/ctranslate2 python setup.py bdist_wheel
+RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE_ROOT=/root/ctranslate2 \
+    python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
