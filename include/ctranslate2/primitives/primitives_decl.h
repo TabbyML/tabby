@@ -33,9 +33,6 @@ namespace ctranslate2 {
     template <typename T>
     static T max(const T* array, size_t size);
 
-    template <typename T, typename I>
-    static void topk(const T* x, T* values, I* indices, size_t k, size_t size);
-
     template <typename T>
     static void add(T a, const T* x, T* y, size_t size);
 
