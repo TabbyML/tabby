@@ -78,29 +78,6 @@ namespace ctranslate2 {
   }
 
   template<>
-  template <typename T, typename I>
-  void primitives<Device::CUDA>::topk(const T* x, T* val, I* ind, size_t k, size_t size) {
-    static thread_local T* keys = nullptr;
-    static thread_local I* values = nullptr;
-    static thread_local size_t alloc_size = 0;
-
-    if (size > alloc_size) {
-      CUDA_CHECK(cudaFree(keys));
-      CUDA_CHECK(cudaMalloc(&keys, size * sizeof (T)));
-      CUDA_CHECK(cudaFree(values));
-      CUDA_CHECK(cudaMalloc(&values, size * sizeof (I)));
-      alloc_size = size;
-    }
-
-    copy(x, keys, size);
-    thrust::sequence(thrust::cuda::par.on(cuda::get_cuda_stream()), values, values + size);
-    thrust::sort_by_key(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                        keys, keys + size, values, thrust::greater<T>());
-    copy(keys, val, k);
-    copy(values, ind, k);
-  }
-
-  template<>
   template <typename T>
   void primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size) {
     unary_transform(x, y, size, thrust::placeholders::_1 + a);
@@ -389,8 +366,6 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::max_element(const T* array, size_t size);   \
   template T                                                            \
   primitives<Device::CUDA>::max(const T* array, size_t size);           \
-  template void                                                         \
-  primitives<Device::CUDA>::topk(const T* x, T* values, int* indices, size_t k, size_t size); \
   template void                                                         \
   primitives<Device::CUDA>::add(T a, const T* x, T* y, size_t size);    \
   template void                                                         \

@@ -118,7 +118,19 @@ if (WITH_CUDA)
   endif()
   link_directories(${CUDNN_LIBRARY_DIR})
 
-  cuda_include_directories(${INCLUDE_DIRECTORIES})
+  find_library(TENSORRT_LIBRARY NAMES nvinfer)
+  find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h)
+  if(NOT TENSORRT_LIBRARY OR NOT TENSORRT_INCLUDE_DIR)
+    message(FATAL_ERROR "TensorRT not found")
+  else()
+    message(STATUS "Found TensorRT library: ${TENSORRT_LIBRARY}")
+    message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
+  endif()
+
+  cuda_include_directories(
+    ${INCLUDE_DIRECTORIES}
+    ${TENSORRT_INCLUDE_DIR}
+    )
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/utils.cc
@@ -131,6 +143,7 @@ if (WITH_CUDA)
     )
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
+    ${TENSORRT_LIBRARY}
     cudnn
     )
 else()

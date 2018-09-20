@@ -4,7 +4,6 @@
 #include <cmath>
 #include <functional>
 #include <numeric>
-#include <vector>
 
 #include "primitives_decl.h"
 
@@ -54,26 +53,6 @@ namespace ctranslate2 {
   template <typename T>
   T primitives<Device::CPU>::max(const T* array, size_t size) {
     return *std::max_element(array, array + size);
-  }
-
-  template<>
-  template <typename T, typename I>
-  void primitives<Device::CPU>::topk(const T* x, T* values, I* indices, size_t k, size_t size) {
-    static thread_local std::vector<I> full_indices;
-    if (size > full_indices.size())
-      full_indices.resize(size);
-
-    I* full_indices_raw = full_indices.data();
-    std::iota(full_indices_raw, full_indices_raw + size, 0);
-    std::partial_sort(full_indices_raw, full_indices_raw + k, full_indices_raw + size,
-                      [&x](const I& i1, const I& i2) {
-                        return x[i1] > x[i2];
-                      });
-
-    for (size_t i = 0; i < k; ++i) {
-      indices[i] = full_indices_raw[i];
-      values[i] = x[indices[i]];
-    }
   }
 
   template<>

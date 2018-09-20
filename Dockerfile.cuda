@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04 as builder
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -28,6 +28,13 @@ ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
 COPY . ctranslate2-dev
 
+WORKDIR /root/ctranslate2-dev
+ENV TENSORRT_VERSION=4.0
+RUN tar xf deps/TensorRT-${TENSORRT_VERSION}.*.tar.gz && \
+    cd TensorRT-${TENSORRT_VERSION}.* && \
+    cp lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
+    cp include/* /usr/include/x86_64-linux-gnu/
+
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
 ARG CUDA_NVCC_FLAGS
@@ -52,7 +59,7 @@ WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
-FROM nvidia/cuda:9.1-cudnn7-runtime-ubuntu16.04
+FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -63,6 +70,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libnvinfer.so* /usr/lib/x86_64-linux-gnu/
 
 RUN pip --no-cache-dir install setuptools
 RUN pip --no-cache-dir install /root/ctranslate2/*.whl

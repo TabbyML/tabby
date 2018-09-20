@@ -2,6 +2,7 @@
 !CMakeLists.txt
 !cli
 !cmake
+!deps
 !include
 !mkl_symbol_list
 !python

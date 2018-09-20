@@ -33,9 +33,6 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, size_t size);
-  template<>
-  template <typename T, typename I>
-  void primitives<Device::CUDA>::topk(const T* x, T* values, I* indices, size_t k, size_t size);
 
   template<>
   template <typename T>
