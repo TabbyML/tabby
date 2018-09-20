@@ -60,7 +60,7 @@ void benchmark_topk(Device device) {
   StorageView values(input.dtype(), device);
   StorageView indices(DataType::DT_INT32,  device);
   const ops::TopK op(k);
-  BENCHMARK(op(input, values, indices), 10000);
+  BENCHMARK(op(input, values, indices), 2000);
 }
 
 int main(int argc, char* argv[]) {
