@@ -23,7 +23,7 @@ namespace ctranslate2 {
                                             StorageView& values,        \
                                             StorageView& indices) const;
 
-    DECLARE_ALL_TYPES(DECLARE_IMPL)
+    DECLARE_IMPL(float)
 
   }
 }

@@ -24,7 +24,7 @@ namespace ctranslate2 {
         values.resize({batch_size, _k});
         indices.resize({batch_size, _k});
         DEVICE_DISPATCH(x.device(),
-                        TYPE_DISPATCH(x.dtype(), (compute<D, T, int32_t>(x, values, indices))));
+                        (compute<D, float, int32_t>(x, values, indices)));
       }
 
     private:
