@@ -7,12 +7,10 @@
 
 #include "ctranslate2/cuda/utils.h"
 
-using namespace nvinfer1;
-
 namespace ctranslate2 {
   namespace ops {
 
-    class Logger : public ILogger {
+    class Logger : public nvinfer1::ILogger {
       void log(Severity severity, const char* msg) override {
         // suppress info-level messages
         if (severity != Severity::kINFO)
@@ -22,15 +20,14 @@ namespace ctranslate2 {
 
     class TopKLayer {
     public:
-      TopKLayer(IBuilder* builder, int k, int depth)
+      TopKLayer(nvinfer1::IBuilder* builder, int k, int depth)
         : _depth(depth) {
         _network = builder->createNetwork();
-        ITensor* data = _network->addInput("x",
-                                           nvinfer1::DataType::kFLOAT,
-                                           Dims{1, {depth}, {DimensionType::kCHANNEL}});
-        ITopKLayer* topk = _network->addTopK(*data, TopKOperation::kMAX, k, 1);
-        ITensor* values_t = topk->getOutput(0);
-        ITensor* indices_t = topk->getOutput(1);
+        nvinfer1::Dims input_dim{1, {depth}, {nvinfer1::DimensionType::kCHANNEL}};
+        nvinfer1::ITensor* input = _network->addInput("x", nvinfer1::DataType::kFLOAT, input_dim);
+        nvinfer1::ITopKLayer* topk = _network->addTopK(*input, nvinfer1::TopKOperation::kMAX, k, 1);
+        nvinfer1::ITensor* values_t = topk->getOutput(0);
+        nvinfer1::ITensor* indices_t = topk->getOutput(1);
         _network->markOutput(*values_t);
         _network->markOutput(*indices_t);
         values_t->setName("values");
@@ -45,7 +42,7 @@ namespace ctranslate2 {
         _engine->destroy();
       }
 
-      IExecutionContext* get_execution_context() {
+      nvinfer1::IExecutionContext* get_execution_context() {
         return _execution_context;
       }
 
@@ -55,9 +52,9 @@ namespace ctranslate2 {
 
     private:
       int _depth;
-      INetworkDefinition* _network;
-      ICudaEngine* _engine;
-      IExecutionContext* _execution_context;
+      nvinfer1::INetworkDefinition* _network;
+      nvinfer1::ICudaEngine* _engine;
+      nvinfer1::IExecutionContext* _execution_context;
     };
 
     static int max_batch_size = 512;
@@ -66,9 +63,9 @@ namespace ctranslate2 {
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
-      static thread_local IBuilder* builder = nullptr;
+      static thread_local nvinfer1::IBuilder* builder = nullptr;
       if (!builder) {
-        builder = createInferBuilder(g_logger);
+        builder = nvinfer1::createInferBuilder(g_logger);
         builder->setMaxBatchSize(max_batch_size);
         builder->setMaxWorkspaceSize(1 << 30);
       }
