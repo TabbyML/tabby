@@ -10,25 +10,8 @@ namespace ctranslate2 {
     CUDA
   };
 
-  inline Device str_to_device(const std::string& device) {
-#ifdef WITH_CUDA
-    if (device == "cuda")
-      return Device::CUDA;
-#endif
-    if (device == "cpu")
-      return Device::CPU;
-    throw std::invalid_argument("unsupported device " + device);
-  }
-
-  inline std::string device_to_str(Device device) {
-    switch (device) {
-    case Device::CUDA:
-      return "CUDA";
-    case Device::CPU:
-      return "CPU";
-    }
-    return "";
-  }
+  Device str_to_device(const std::string& device);
+  std::string device_to_str(Device device);
 
 #define UNSUPPORTED_DEVICE_CASE(DEVICE)                       \
   case DEVICE: {                                              \

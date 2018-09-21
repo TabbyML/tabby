@@ -12,9 +12,7 @@ namespace ctranslate2 {
   // Sets the global number of threads to use.
   void set_num_threads(size_t num_threads);
 
-#ifdef WITH_MKL
   // Check AVX2 support at runtime.
   bool support_avx2();
-#endif
 
 }
