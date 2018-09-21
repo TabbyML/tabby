@@ -34,7 +34,7 @@ RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
 ENV TENSORRT_VERSION=4.0
 RUN tar xf deps/TensorRT-${TENSORRT_VERSION}.*.tar.gz && \
     cd TensorRT-${TENSORRT_VERSION}.* && \
-    cp lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
+    cp -P lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
     cp include/* /usr/include/x86_64-linux-gnu/ && \
     cd .. && \
     rm -r TensorRT-${TENSORRT_VERSION}.*
@@ -61,6 +61,7 @@ RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE_ROOT=/root/ctranslate2 \
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
+    cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
@@ -74,7 +75,6 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libnvinfer.so* /usr/lib/x86_64-linux-gnu/
 
 RUN pip --no-cache-dir install setuptools
 RUN pip --no-cache-dir install /root/ctranslate2/*.whl
