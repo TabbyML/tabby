@@ -28,17 +28,13 @@ make -j4
 
 ## Building Docker images
 
-### CPU-only
+The Docker files require the following dependencies in the `deps/` directory:
+
+1. [Intel® MKL](https://software.intel.com/en-us/mkl/choose-download/linux)
+2. [TensorRT](https://developer.nvidia.com/tensorrt)
 
 ```bash
 docker build -t systran/ctranslate2:v0.5.0 -f Dockerfile .
-```
-
-### Full
-
-```bash
-# 1. Download TensorRT 4.0 and place the .tar.gz into deps/.
-# 2. Build the image:
 docker build -t systran/ctranslate2_gpu:v0.5.0 -f Dockerfile.cuda .
 ```
 

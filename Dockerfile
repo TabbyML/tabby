@@ -13,14 +13,6 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-RUN wget http://registrationcenter-download.intel.com/akdlm/irc_nas/tec/13005/l_mkl_2018.3.222.tgz
-RUN tar xf l_mkl_2018.3.222.tgz && \
-    rm l_mkl_2018.3.222.tgz && \
-    cd l_mkl_2018.3.222 && \
-    sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
-    sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
-    ./install.sh -s silent.cfg
-
 RUN wget https://cmake.org/files/v3.12/cmake-3.12.2-Linux-x86_64.tar.gz
 RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
@@ -28,10 +20,20 @@ ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
 COPY . ctranslate2-dev
 
+WORKDIR /root/ctranslate2-dev
+
+ENV MKL_VERSION=2019.0
+RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
+    cd l_mkl_${MKL_VERSION}.* && \
+    sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
+    sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
+    ./install.sh -s silent.cfg && \
+    cd .. && \
+    rm -r l_mkl_${MKL_VERSION}.*
+
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
 
-WORKDIR /root/ctranslate2-dev
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
