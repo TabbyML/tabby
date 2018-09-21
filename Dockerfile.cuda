@@ -64,13 +64,16 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
-FROM nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04
+FROM nvidia/cuda:9.0-base-ubuntu16.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        cuda-cublas-9-0=9.0.176.4-1 \
         libboost-program-options1.58.0 \
         libboost-python1.58.0 \
+        libcudnn7=7.3.0.29-1+cuda9.0 \
         python-pip && \
+    apt-mark hold libcudnn7 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
