@@ -6,7 +6,7 @@ CTranslate2 is a fast C++ inference engine for OpenNMT models. It currently focu
 
 * C++11
 * CMake (>= 3.7)
-* Intel® MKL (>= 2018)
+* Intel MKL (>= 2018)
 
 When compiling with `-DLIB_ONLY=OFF` (default) or the Python bindings:
 
@@ -30,7 +30,7 @@ make -j4
 
 The Docker files require the following dependencies in the `deps/` directory:
 
-1. [Intel® MKL](https://software.intel.com/en-us/mkl/choose-download/linux)
+1. [Intel MKL](https://software.intel.com/en-us/mkl/choose-download/linux)
 2. [TensorRT](https://developer.nvidia.com/tensorrt)
 
 ```bash
