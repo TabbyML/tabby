@@ -58,7 +58,7 @@ namespace ctranslate2 {
                                  + "' at " + file + ":" + std::to_string(line));
     }
 
-    cudaStream_t& get_cuda_stream() {
+    cudaStream_t get_cuda_stream() {
       // Use one CUDA stream per host thread.
       static thread_local cudaStream_t stream;
       static thread_local bool initialized = false;
@@ -69,7 +69,7 @@ namespace ctranslate2 {
       return stream;
     }
 
-    cublasHandle_t& get_cublas_handle() {
+    cublasHandle_t get_cublas_handle() {
       // Use one cuBLAS handle per host thread.
       static thread_local cublasHandle_t handle;
       static thread_local bool initialized = false;
@@ -81,7 +81,7 @@ namespace ctranslate2 {
       return handle;
     }
 
-    cudnnHandle_t& get_cudnn_handle() {
+    cudnnHandle_t get_cudnn_handle() {
       // Use one cuDNN handle per host thread.
       static thread_local cudnnHandle_t handle;
       static thread_local bool initialized = false;

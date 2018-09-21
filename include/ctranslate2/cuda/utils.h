@@ -17,9 +17,9 @@ namespace ctranslate2 {
     void cublas_assert(cublasStatus_t status, const std::string& file, int line);
     void cudnn_assert(cudnnStatus_t status, const std::string& file, int line);
 
-    cudaStream_t& get_cuda_stream();
-    cublasHandle_t& get_cublas_handle();
-    cudnnHandle_t& get_cudnn_handle();
+    cudaStream_t get_cuda_stream();
+    cublasHandle_t get_cublas_handle();
+    cudnnHandle_t get_cudnn_handle();
 
   }
 }
