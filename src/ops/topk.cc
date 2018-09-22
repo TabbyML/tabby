@@ -21,8 +21,10 @@ namespace ctranslate2 {
         const auto* input = x.data<DataType>() + (i * depth);
         auto* val = values.data<DataType>() + (i * _k);
         auto* ind = indices.data<IndexType>() + (i * _k);
-        std::iota(full_indices.begin(), full_indices.end(), 0);
-        std::partial_sort(full_indices.begin(), full_indices.begin() + _k, full_indices.end(),
+        std::iota(full_indices.begin(), full_indices.begin() + depth, 0);
+        std::partial_sort(full_indices.begin(),
+                          full_indices.begin() + _k,
+                          full_indices.begin() + depth,
                           [&input](const IndexType& i1, const IndexType& i2) {
                             return input[i1] > input[i2];
                           });

@@ -367,6 +367,26 @@ TEST_P(OpDeviceTest, TopK) {
   expect_storage_eq(indices, expected_indices);
 }
 
+TEST_P(OpDeviceTest, TopKVariableDepth) {
+  Device device = GetParam();
+  const int k = 3;
+  ops::TopK op(k);
+  StorageView input({2, 6}, std::vector<float>{0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0}, device);
+  StorageView expected_values({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3}, device);
+  StorageView expected_indices({2, 3}, std::vector<int32_t>{2, 5, 4, 1, 0, 3}, device);
+  StorageView values(expected_values.dtype(), device);
+  StorageView indices(expected_indices.dtype(), device);
+  op(input, values, indices);
+  expect_storage_eq(values, expected_values);
+  expect_storage_eq(indices, expected_indices);
+  StorageView input2({2, 4}, std::vector<float>{0.1, 2.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3}, device);
+  StorageView expected_values2({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3}, device);
+  StorageView expected_indices2({2, 3}, std::vector<int32_t>{1, 3, 2, 1, 0, 3}, device);
+  op(input2, values, indices);
+  expect_storage_eq(values, expected_values2);
+  expect_storage_eq(indices, expected_indices2);
+}
+
 TEST_P(OpDeviceTest, SoftMax) {
   Device device = GetParam();
   StorageView x({2, 5}, std::vector<float>{
