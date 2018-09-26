@@ -36,6 +36,7 @@ set(SOURCES
   src/ops/softmax.cc
   src/ops/split.cc
   src/ops/topk.cc
+  src/primitives/cpu_generic.cc
   src/storage_view.cc
   src/translation_result.cc
   src/translator.cc

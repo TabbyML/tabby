@@ -2,6 +2,8 @@
 
 #ifdef WITH_MKL
 #  include <mkl.h>
+#else
+#  include <stdexcept>
 #endif
 
 namespace ctranslate2 {
