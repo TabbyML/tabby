@@ -76,53 +76,13 @@ int main(int argc, char* argv[]) {
 
   std::istream* in = vm.count("src") ? new std::ifstream(vm["src"].as<std::string>()) : &std::cin;
   std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;
-  bool with_score = vm["with_score"].as<bool>();
-  size_t num_tokens = 0;
-
-  auto reader = [](std::istream& in, std::vector<std::string>& tokens) {
-    std::string line;
-    if (!std::getline(in, line))
-      return false;
-    std::string token;
-    for (size_t i = 0; i < line.length(); ++i) {
-      if (line[i] == ' ') {
-        if (!token.empty()) {
-          tokens.emplace_back(std::move(token));
-          token.clear();
-        }
-      } else {
-        token += line[i];
-      }
-    }
-    if (!token.empty())
-      tokens.emplace_back(std::move(token));
-    return true;
-  };
-
-  auto writer = [&num_tokens, &options, &with_score](std::ostream& out,
-                                                     const ctranslate2::TranslationResult& result) {
-    const auto& hypotheses = result.hypotheses();
-    const auto& scores = result.scores();
-    num_tokens += hypotheses[0].size();
-    for (size_t n = 0; n < hypotheses.size(); ++n) {
-      if (with_score)
-        out << scores[n] << " ||| ";
-      for (size_t i = 0; i < hypotheses[n].size(); ++i) {
-        if (i > 0)
-          out << ' ';
-        out << hypotheses[n][i];
-      }
-      out << std::endl;
-    }
-  };
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  translator_pool.consume_stream(*in,
-                                 *out,
-                                 vm["batch_size"].as<size_t>(),
-                                 options,
-                                 reader,
-                                 writer);
+  auto num_tokens = translator_pool.consume_text_file(*in,
+                                                      *out,
+                                                      vm["batch_size"].as<size_t>(),
+                                                      options,
+                                                      vm["with_score"].as<bool>());
   auto t2 = std::chrono::high_resolution_clock::now();
 
   if (vm["log_throughput"].as<bool>()) {

@@ -67,6 +67,17 @@ namespace ctranslate2 {
       pop_results(true /* blocking */);
     }
 
+    size_t consume_text_file(const std::string& in_file,
+                             const std::string& out_file,
+                             size_t max_batch_size,
+                             const TranslationOptions& options,
+                             bool with_scores = false);
+    size_t consume_text_file(std::istream& in,
+                             std::ostream& out,
+                             size_t max_batch_size,
+                             const TranslationOptions& options,
+                             bool with_scores = false);
+
   private:
     void work_loop(Translator& translator);
 
