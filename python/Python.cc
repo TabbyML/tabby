@@ -35,6 +35,26 @@ public:
                                                                ctranslate2::str_to_device(device))) {
   }
 
+  void translate_file(const std::string& in_file,
+                      const std::string& out_file,
+                      size_t max_batch_size,
+                      size_t beam_size,
+                      size_t num_hypotheses,
+                      float length_penalty,
+                      size_t max_decoding_steps,
+                      bool use_vmap,
+                      bool with_scores) {
+    auto options = ctranslate2::TranslationOptions();
+    options.beam_size = beam_size;
+    options.length_penalty = length_penalty;
+    options.max_decoding_steps = max_decoding_steps;
+    options.num_hypotheses = num_hypotheses;
+    options.use_vmap = use_vmap;
+
+    GILReleaser releaser;
+    _translator_pool.consume_text_file(in_file, out_file, max_batch_size, options, with_scores);
+  }
+
   py::list translate_batch(const py::object& tokens,
                            size_t beam_size,
                            size_t num_hypotheses,
@@ -96,5 +116,12 @@ BOOST_PYTHON_MODULE(translator)
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_steps")=250,
           py::arg("use_vmap")=false))
+    .def("translate_file", &TranslatorWrapper::translate_file,
+         (py::arg("beam_size")=4,
+          py::arg("num_hypotheses")=1,
+          py::arg("length_penalty")=0.6,
+          py::arg("max_decoding_steps")=250,
+          py::arg("use_vmap")=false,
+          py::arg("with_scores")=false))
     ;
 }
