@@ -63,7 +63,11 @@ namespace ctranslate2 {
                                            const TranslationOptions& options,
                                            bool with_scores) {
     std::ifstream in(in_file);
+    if (!in.is_open())
+      throw std::runtime_error("failed to open input file " + in_file);
     std::ofstream out(out_file);
+    if (!out.is_open())
+      throw std::runtime_error("failed to open output file " + out_file);
     return consume_text_file(in, out, max_batch_size, options, with_scores);
   }
 

@@ -56,7 +56,7 @@ namespace ctranslate2 {
                                               Device device) {
       if (type == "transformer")
         return load(ModelType::Transformer, path, device);
-      return nullptr;
+      throw std::invalid_argument("invalid model type " + type);
     }
 
     std::shared_ptr<Model> ModelFactory::load(ModelType type,
