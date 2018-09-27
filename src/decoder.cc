@@ -207,14 +207,11 @@ namespace ctranslate2 {
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
         size_t batch_id = batch_offset[i];
-        bool batch_finished = false;
+        bool batch_finished = (topk_ids.at<int32_t>({i, 0}) == static_cast<int32_t>(end_token)
+                               || step + 1 == max_steps);
 
         for (size_t k = 0; k < beam_size; ++k) {
-          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
-              || step + 1 == max_steps) {
-            if (k == 0)
-              batch_finished = true;
-
+          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token) || batch_finished) {
             float score = topk_log_probs.at<float>({i, k});
             // Save the finished hypothesis only if it is still a candidate.
             if (hypotheses[batch_id].size() < num_hypotheses
