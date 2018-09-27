@@ -143,6 +143,8 @@ namespace ctranslate2 {
     std::vector<size_t> batch_offset(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
+      sampled_ids[i].reserve(num_hypotheses);
+      scores[i].reserve(num_hypotheses);
     }
 
     static thread_local StorageView log_probs(device);
