@@ -88,10 +88,14 @@ public:
 
     py::list py_results;
     for (const auto& result : results) {
-      py::list temp;
-      for (const auto& token : result.output())
-        temp.append(token);
-      py_results.append(temp);
+      py::list batch;
+      for (size_t i = 0; i < result.num_hypotheses(); ++i) {
+        py::list hyp;
+        for (const auto& token : result.hypotheses()[i])
+          hyp.append(token);
+        batch.append(py::make_tuple(result.scores()[i], hyp));
+      }
+      py_results.append(batch);
     }
 
     return py_results;
