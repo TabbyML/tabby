@@ -215,21 +215,24 @@ namespace ctranslate2 {
             if (k == 0)
               batch_finished = true;
 
-            // Save the finished hypothesis.
             float score = topk_log_probs.at<float>({i, k});
-            std::vector<size_t> hypothesis;
-            hypothesis.reserve(alive_seq.dim(-1));
-            for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
-              size_t id = alive_seq.at<int32_t>({i, k, t});
-              if (id == end_token)
-                break;
-              hypothesis.push_back(id);
-            }
+            // Save the finished hypothesis only if it is still a candidate.
+            if (hypotheses[batch_id].size() < num_hypotheses
+                || -score < hypotheses[batch_id].rbegin()->first) {
+              std::vector<size_t> hypothesis;
+              hypothesis.reserve(alive_seq.dim(-1));
+              for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
+                size_t id = alive_seq.at<int32_t>({i, k, t});
+                if (id == end_token)
+                  break;
+                hypothesis.push_back(id);
+              }
 
-            // Use -score as the key to iterate the map from best to worst.
-            hypotheses[batch_id].emplace(std::piecewise_construct,
-                                         std::forward_as_tuple(-score),
-                                         std::forward_as_tuple(std::move(hypothesis)));
+              // Use -score as the key to iterate the map from best to worst.
+              hypotheses[batch_id].emplace(std::piecewise_construct,
+                                           std::forward_as_tuple(-score),
+                                           std::forward_as_tuple(std::move(hypothesis)));
+            }
           }
         }
 
