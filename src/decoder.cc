@@ -133,6 +133,8 @@ namespace ctranslate2 {
     topk_log_probs.at<float>(0) = 0;
     tile(topk_log_probs, StorageView({1}, static_cast<int32_t>(batch_size)));
 
+    std::vector<std::map<float, std::vector<size_t>>> hypotheses;
+    hypotheses.resize(batch_size);
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
     scores.clear();
@@ -141,15 +143,13 @@ namespace ctranslate2 {
     std::vector<size_t> batch_offset(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-      sampled_ids[i].resize(num_hypotheses);
-      scores[i].resize(num_hypotheses);
     }
 
     static thread_local StorageView log_probs(device);
     static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
     static thread_local StorageView topk_log_probs_device(device);
 
-    for (size_t step = 0; step < max_steps + 1; ++step) {
+    for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
       decoder.log_probs(step, topk_ids, candidates, log_probs);
 
@@ -179,9 +179,7 @@ namespace ctranslate2 {
         primitives<>::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
 
       // Unflatten the ids.
-      topk_log_probs.reshape({cur_batch_size, beam_size});
-      topk_ids.reshape({cur_batch_size, beam_size});
-      gather_indices.resize({cur_batch_size, beam_size});
+      gather_indices.resize({cur_batch_size * beam_size});
       for (size_t i = 0; i < topk_ids.size(); ++i) {
         auto flat_id = topk_ids.at<int32_t>(i);
         auto beam_id = flat_id / vocabulary_size;
@@ -193,26 +191,58 @@ namespace ctranslate2 {
         gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
       }
 
-      // Check if some sentences are finished.
+      // Append last prediction.
+      gather(alive_seq, gather_indices);
+      alive_seq.reshape({cur_batch_size, beam_size, alive_seq.dim(-1)});
+      topk_ids.reshape({cur_batch_size, beam_size, 1});
+      StorageView cur_alive_seq(std::move(alive_seq));
+      ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
+      topk_log_probs.reshape({cur_batch_size, beam_size});
+      topk_ids.reshape({cur_batch_size, beam_size});
+
+      // Check if some hypotheses are finished.
       std::vector<bool> finished(cur_batch_size, false);
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
-        auto top_beam_pred_id = topk_ids.at<int32_t>({i, 0});
-        if (top_beam_pred_id == static_cast<int32_t>(end_token) || step + 1 == max_steps) {
-          ++finished_count;
-          finished[i] = true;
-          size_t batch_id = batch_offset[i];
-          for (size_t k = 0; k < num_hypotheses; ++k) {
-            size_t hyp_length = 0;
+        size_t batch_id = batch_offset[i];
+        bool batch_finished = false;
+
+        for (size_t k = 0; k < beam_size; ++k) {
+          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
+              || step + 1 == max_steps) {
+            if (k == 0)
+              batch_finished = true;
+
+            // Save the finished hypothesis.
+            float score = topk_log_probs.at<float>({i, k});
+            std::vector<size_t> hypothesis;
+            hypothesis.reserve(alive_seq.dim(-1));
             for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
-              size_t id = alive_seq.at<int32_t>({i * beam_size + k, t});
+              size_t id = alive_seq.at<int32_t>({i, k, t});
               if (id == end_token)
                 break;
-              sampled_ids[batch_id][k].push_back(id);
-              ++hyp_length;
+              hypothesis.push_back(id);
             }
-            scores[batch_id][k] = topk_log_probs.at<float>({i, k}) / hyp_length;
+
+            // Use -score as the key to iterate the map from best to worst.
+            hypotheses[batch_id].emplace(std::piecewise_construct,
+                                         std::forward_as_tuple(-score),
+                                         std::forward_as_tuple(std::move(hypothesis)));
           }
+        }
+
+        if (batch_finished) {
+          ++finished_count;
+          finished[i] = true;
+
+          // Return the "num_hypotheses" best hypotheses.
+          for (const auto& pair : hypotheses[batch_id]) {
+            if (sampled_ids[batch_id].size() >= num_hypotheses)
+              break;
+            sampled_ids[batch_id].emplace_back(std::move(pair.second));
+            scores[batch_id].push_back(-pair.first / pair.second.size());
+          }
+          hypotheses[batch_id].clear();
         }
       }
 
@@ -222,6 +252,7 @@ namespace ctranslate2 {
 
       // If some sentences finished on this step, ignore them for the next step.
       if (finished_count > 0) {
+        gather_indices.reshape({cur_batch_size, beam_size});  // Reshape to gather on batch dim.
         cur_batch_size -= finished_count;
         StorageView keep_batches({cur_batch_size}, DataType::DT_INT32);
         size_t write_index = 0;
@@ -235,20 +266,17 @@ namespace ctranslate2 {
         }
         gather(topk_ids, keep_batches);
         gather(topk_log_probs, keep_batches);
+        gather(alive_seq, keep_batches);
         gather(gather_indices, keep_batches);
+        gather_indices.reshape({cur_batch_size * beam_size});  // Reshape back to the flat repr.
       }
 
       topk_ids.reshape({cur_batch_size * beam_size, 1});
       topk_log_probs.reshape({cur_batch_size * beam_size});
-      gather_indices.reshape({cur_batch_size * beam_size});
+      alive_seq.reshape({cur_batch_size * beam_size, alive_seq.dim(-1)});
 
-      // Reorder hypotheses and states.
-      gather(alive_seq, gather_indices);
+      // Reorder states.
       gather(decoder.get_state(), gather_indices);
-
-      // Append last prediction.
-      StorageView cur_alive_seq(alive_seq);
-      ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
     }
   }
 
