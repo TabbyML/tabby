@@ -1,5 +1,9 @@
 #include "ctranslate2/devices.h"
 
+#ifdef WITH_CUDA
+#  include "ctranslate2/cuda/utils.h"
+#endif
+
 namespace ctranslate2 {
 
   Device str_to_device(const std::string& device) {
@@ -9,6 +13,12 @@ namespace ctranslate2 {
 #endif
     if (device == "cpu" || device == "CPU")
       return Device::CPU;
+    if (device == "auto" || device == "AUTO")
+#ifdef WITH_CUDA
+      return cuda::get_gpu_count() > 0 ? Device::CUDA : Device::CPU;
+#else
+      return Device::CPU;
+#endif
     throw std::invalid_argument("unsupported device " + device);
   }
 

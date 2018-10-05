@@ -21,5 +21,7 @@ namespace ctranslate2 {
     cublasHandle_t get_cublas_handle();
     cudnnHandle_t get_cudnn_handle();
 
+    int get_gpu_count();
+
   }
 }
