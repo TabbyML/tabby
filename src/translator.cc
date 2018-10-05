@@ -105,4 +105,8 @@ namespace ctranslate2 {
     return results;
   }
 
+  Device Translator::device() const {
+    return _model->device();
+  }
+
 }

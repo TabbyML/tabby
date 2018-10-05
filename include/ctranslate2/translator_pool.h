@@ -19,6 +19,8 @@ namespace ctranslate2 {
     template <typename... Args>
     TranslatorPool(size_t num_replicas, Args&&... args) {
       _translator_pool.emplace_back(std::forward<Args>(args)...);
+      if (_translator_pool.back().device() == Device::CUDA)
+        num_replicas = 1;
       for (size_t i = 1; i < num_replicas; ++i)
         _translator_pool.emplace_back(_translator_pool.front());
       for (auto& translator : _translator_pool)

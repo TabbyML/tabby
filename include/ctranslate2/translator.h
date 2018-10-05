@@ -32,6 +32,8 @@ namespace ctranslate2 {
     translate_batch(const std::vector<std::vector<std::string>>& tokens,
                     const TranslationOptions& options);
 
+    Device device() const;
+
   private:
     const std::shared_ptr<models::Model> _model;
     std::unique_ptr<Encoder> _encoder;
