@@ -242,7 +242,7 @@ namespace ctranslate2 {
             if (sampled_ids[batch_id].size() >= num_hypotheses)
               break;
             sampled_ids[batch_id].emplace_back(std::move(pair.second));
-            scores[batch_id].push_back(-pair.first / pair.second.size());
+            scores[batch_id].push_back(-pair.first);
           }
           hypotheses[batch_id].clear();
         }
