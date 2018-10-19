@@ -15,7 +15,7 @@ namespace ctranslate2 {
       return Device::CPU;
     if (device == "auto" || device == "AUTO")
 #ifdef WITH_CUDA
-      return cuda::get_gpu_count() > 0 ? Device::CUDA : Device::CPU;
+      return cuda::has_gpu() ? Device::CUDA : Device::CPU;
 #else
       return Device::CPU;
 #endif

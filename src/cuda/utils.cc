@@ -101,5 +101,9 @@ namespace ctranslate2 {
       return gpu_count;
     }
 
+    bool has_gpu() {
+      return get_gpu_count() > 0;
+    }
+
   }
 }

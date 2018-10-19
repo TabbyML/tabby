@@ -22,6 +22,7 @@ namespace ctranslate2 {
     cudnnHandle_t get_cudnn_handle();
 
     int get_gpu_count();
+    bool has_gpu();
 
   }
 }
