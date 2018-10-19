@@ -74,8 +74,18 @@ int main(int argc, char* argv[]) {
   options.num_hypotheses = vm["n_best"].as<size_t>();
   options.use_vmap = vm["use_vmap"].as<bool>();
 
-  std::istream* in = vm.count("src") ? new std::ifstream(vm["src"].as<std::string>()) : &std::cin;
-  std::ostream* out = vm.count("tgt") ? new std::ofstream(vm["tgt"].as<std::string>()) : &std::cout;
+  std::istream* in = &std::cin;
+  std::ostream* out = &std::cout;
+  if (vm.count("src")) {
+    auto path = vm["src"].as<std::string>();
+    auto src_file = new std::ifstream(path);
+    if (!src_file->is_open())
+      throw std::runtime_error("Unable to open input file " + path);
+    in = src_file;
+  }
+  if (vm.count("tgt")) {
+    out = new std::ofstream(vm["tgt"].as<std::string>());
+  }
 
   auto t1 = std::chrono::high_resolution_clock::now();
   auto num_tokens = translator_pool.consume_text_file(*in,
