@@ -66,12 +66,13 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
 
 FROM nvidia/cuda:9.0-base-ubuntu16.04
 
+ENV CUDNN_VERSION=7.3.1.20
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-9-0=9.0.176.4-1 \
         libboost-program-options1.58.0 \
         libboost-python1.58.0 \
-        libcudnn7=7.3.0.29-1+cuda9.0 \
+        libcudnn7=${CUDNN_VERSION}-1+cuda9.0 \
         python-pip && \
     apt-mark hold libcudnn7 && \
     apt-get clean && \
