@@ -98,7 +98,6 @@ namespace ctranslate2 {
       cudaError_t status = cudaGetDeviceCount(&gpu_count);
       if (status != cudaSuccess)
         return 0;
-      CUDA_CHECK(status);
       return gpu_count;
     }
 
