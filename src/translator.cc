@@ -40,31 +40,35 @@ namespace ctranslate2 {
 
     // Record lengths and maximum length.
     size_t max_length = 0;
-    StorageView lengths({batch_size}, DataType::DT_INT32);
+    StorageView lengths_host({batch_size}, DataType::DT_INT32);
     for (size_t i = 0; i < batch_size; ++i) {
       const size_t length = batch_tokens[i].size();
-      lengths.at<int32_t>(i) = length;
+      lengths_host.at<int32_t>(i) = length;
       max_length = std::max(max_length, length);
     }
 
     // Convert tokens to ids.
-    StorageView ids({batch_size, max_length}, DataType::DT_INT32);
+    StorageView ids_host({batch_size, max_length}, DataType::DT_INT32);
     for (size_t i = 0; i < batch_size; ++i) {
       for (size_t t = 0; t < batch_tokens[i].size(); ++t) {
         const std::string& token = batch_tokens[i][t];
-        ids.at<int32_t>({i, t}) = source_vocab.to_id(token);
+        ids_host.at<int32_t>({i, t}) = source_vocab.to_id(token);
       }
     }
 
+    auto device = _model->device();
+    StorageView ids = ids_host.to(device);
+    StorageView lengths = lengths_host.to(device);
+
     // Encode sequence.
-    static thread_local StorageView encoded(_model->device());
+    static thread_local StorageView encoded(device);
     encoder.encode(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.
     decoder.get_state().reset(encoded, lengths);
 
     // If set, extract the subset of candidates to generate.
-    StorageView candidates(DataType::DT_INT32);
+    StorageView candidates(DataType::DT_INT32, device);
     if (options.use_vmap && !vocab_map.empty()) {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(batch_tokens);
       candidates.resize({candidates_vec.size()});

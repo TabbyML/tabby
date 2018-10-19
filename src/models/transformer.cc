@@ -218,9 +218,11 @@ namespace ctranslate2 {
 
       if (values_lengths && batch_size > 1) {
         static thread_local StorageView output_host;
+        static thread_local StorageView lengths_host(DataType::DT_INT32);
         output_host.copy_from(output);
+        lengths_host.copy_from(*values_lengths);
         for (size_t b = 0; b < batch_size; ++b) {
-          const size_t length = values_lengths->data<int32_t>()[b];
+          const size_t length = lengths_host.data<int32_t>()[b];
           if (length == memory_time)
             continue;
           for (size_t h = 0; h < num_heads; ++h) {

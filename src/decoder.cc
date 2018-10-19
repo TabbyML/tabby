@@ -150,10 +150,11 @@ namespace ctranslate2 {
     static thread_local StorageView log_probs(device);
     static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
     static thread_local StorageView topk_log_probs_device(device);
+    static thread_local StorageView gather_indices_device(device, DataType::DT_INT32);
 
     for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
-      decoder.log_probs(step, topk_ids, candidates, log_probs);
+      decoder.log_probs(step, topk_ids.to(device), candidates, log_probs);
 
       size_t vocabulary_size = log_probs.dim(-1);
 
@@ -188,7 +189,7 @@ namespace ctranslate2 {
         auto word_id = flat_id % vocabulary_size;
         auto batch_id = i / beam_size;
         if (!candidates.empty())
-          word_id = candidates.at<int32_t>(word_id);
+          word_id = candidates.scalar_at<int32_t>({word_id});
         topk_ids.at<int32_t>(i) = word_id;
         gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
       }
@@ -278,7 +279,8 @@ namespace ctranslate2 {
       alive_seq.reshape({cur_batch_size * beam_size, alive_seq.dim(-1)});
 
       // Reorder states.
-      gather(decoder.get_state(), gather_indices);
+      gather_indices_device.copy_from(gather_indices);
+      gather(decoder.get_state(), gather_indices_device);
     }
   }
 
@@ -309,7 +311,7 @@ namespace ctranslate2 {
     }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
-      decoder.log_probs(step, sample_from, candidates, log_probs);
+      decoder.log_probs(step, sample_from.to(device), candidates, log_probs);
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
@@ -321,7 +323,7 @@ namespace ctranslate2 {
                                                           log_probs.dim(-1)));
         size_t true_id = best;
         if (!candidates.empty())
-          true_id = candidates.at<int32_t>(best);
+          true_id = candidates.scalar_at<int32_t>({best});
         size_t batch_id = batch_offset[i];
         if (true_id == end_token || step + 1 == max_steps) {
           finished[batch_id] = true;
@@ -353,7 +355,7 @@ namespace ctranslate2 {
           }
         }
         gather(sample_from, alive);
-        gather(decoder.get_state(), alive);
+        gather(decoder.get_state(), alive.to(device));
       }
     }
   }

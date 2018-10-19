@@ -246,7 +246,7 @@ TEST_P(OpDeviceTest, ConcatSplitDepthEqualParts) {
 TEST_P(OpDeviceTest, GatherData1D) {
   Device device = GetParam();
   StorageView data({4}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView ids({2}, std::vector<int32_t>{1, 3}, device);
   StorageView expected({2}, std::vector<float>{2, 4}, device);
   StorageView output(device);
   ops::Gather(0)(data, ids, output);
@@ -256,7 +256,7 @@ TEST_P(OpDeviceTest, GatherData1D) {
 TEST_P(OpDeviceTest, GatherData1DIndex2D) {
   Device device = GetParam();
   StorageView data({4}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 1, 1, 2, 0});
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 1, 1, 2, 0}, device);
   StorageView expected({2, 3}, std::vector<float>{2, 4, 2, 2, 3, 1}, device);
   StorageView output(device);
   ops::Gather(0)(data, ids, output);
@@ -266,7 +266,7 @@ TEST_P(OpDeviceTest, GatherData1DIndex2D) {
 TEST_P(OpDeviceTest, GatherData2D) {
   Device device = GetParam();
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4}, device);
-  StorageView ids({2}, std::vector<int32_t>{1, 3});
+  StorageView ids({2}, std::vector<int32_t>{1, 3}, device);
   StorageView expected({2, 2}, std::vector<float>{2, 2, 4, 4}, device);
   StorageView output(device);
   ops::Gather(0)(data, ids, output);
@@ -276,7 +276,7 @@ TEST_P(OpDeviceTest, GatherData2D) {
 TEST_P(OpDeviceTest, GatherData3D) {
   Device device = GetParam();
   StorageView data({2, 3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, device);
-  StorageView ids({2}, std::vector<int32_t>{1, 1});
+  StorageView ids({2}, std::vector<int32_t>{1, 1}, device);
   StorageView expected({2, 3, 2}, std::vector<float>{7, 8, 9, 10, 11, 12, 7, 8, 9, 10, 11, 12}, device);
   StorageView output(device);
   ops::Gather(0)(data, ids, output);
@@ -286,7 +286,7 @@ TEST_P(OpDeviceTest, GatherData3D) {
 TEST_P(OpDeviceTest, GatherData2DIndex2D) {
   Device device = GetParam();
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4}, device);
-  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0});
+  StorageView ids({2, 3}, std::vector<int32_t>{1, 3, 3, 2, 1, 0}, device);
   StorageView expected({2, 3, 2}, std::vector<float>{2, 2, 4, 4, 4, 4, 3, 3, 2, 2, 1, 1}, device);
   StorageView output(device);
   ops::Gather(0)(data, ids, output);

@@ -28,12 +28,9 @@ namespace ctranslate2 {
     void Gather::compute(const StorageView& data,
                          const StorageView& input,
                          StorageView& output) const {
-      static thread_local StorageView input_device(DataType::DT_INT32, Device::CUDA);
-      input_device.copy_from(input);
-
       auto gather_ids = thrust::make_transform_iterator(
         thrust::counting_iterator<size_t>(0),
-        map_id(input_device.data<int32_t>(), data.stride(0)));
+        map_id(input.data<int32_t>(), data.stride(0)));
       thrust::gather(
         thrust::cuda::par.on(cuda::get_cuda_stream()),
         gather_ids, gather_ids + output.size(), data.data<T>(), output.data<T>());
