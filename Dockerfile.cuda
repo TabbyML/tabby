@@ -32,7 +32,8 @@ RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
     rm -r l_mkl_${MKL_VERSION}.*
 
 ENV TENSORRT_VERSION=4.0
-RUN tar xf deps/TensorRT-${TENSORRT_VERSION}.*.tar.gz && \
+ENV TENSORRT_CUDA_VERSION=9.0
+RUN tar xf deps/TensorRT-${TENSORRT_VERSION}.*cuda-${TENSORRT_CUDA_VERSION}*.tar.gz && \
     cd TensorRT-${TENSORRT_VERSION}.* && \
     cp -P lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
     cp include/* /usr/include/x86_64-linux-gnu/ && \
