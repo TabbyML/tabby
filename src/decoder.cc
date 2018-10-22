@@ -140,6 +140,7 @@ namespace ctranslate2 {
     scores.clear();
     scores.resize(batch_size);
 
+    std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
@@ -208,11 +209,11 @@ namespace ctranslate2 {
       size_t finished_count = 0;
       for (size_t i = 0; i < cur_batch_size; ++i) {
         size_t batch_id = batch_offset[i];
-        bool batch_finished = (topk_ids.at<int32_t>({i, 0}) == static_cast<int32_t>(end_token)
-                               || step + 1 == max_steps);
-
         for (size_t k = 0; k < beam_size; ++k) {
-          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token) || batch_finished) {
+          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
+              || step + 1 == max_steps) {
+            if (k == 0)
+              top_beam_finished[i] = true;
             float score = topk_log_probs.at<float>({i, k});
             // Save the finished hypothesis only if it is still a candidate.
             if (hypotheses[batch_id].size() < num_hypotheses
@@ -234,7 +235,7 @@ namespace ctranslate2 {
           }
         }
 
-        if (batch_finished) {
+        if (top_beam_finished[i] && hypotheses[batch_id].size() >= num_hypotheses) {
           ++finished_count;
           finished[i] = true;
 
@@ -263,6 +264,7 @@ namespace ctranslate2 {
         for (; read_index < finished.size(); ++read_index) {
           if (!finished[read_index]) {
             keep_batches.at<int32_t>(write_index) = read_index;
+            top_beam_finished[write_index] = top_beam_finished[read_index];
             batch_offset[write_index] = batch_offset[read_index];
             ++write_index;
           }
