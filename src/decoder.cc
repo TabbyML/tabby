@@ -215,6 +215,8 @@ namespace ctranslate2 {
             if (k == 0)
               top_beam_finished[i] = true;
             float score = topk_log_probs.at<float>({i, k});
+            // Prevent this beam from advancing in the next step.
+            topk_log_probs.at<float>({i, k}) = -1e10;
             // Save the finished hypothesis only if it is still a candidate.
             if (hypotheses[batch_id].size() < num_hypotheses
                 || -score < hypotheses[batch_id].rbegin()->first) {
