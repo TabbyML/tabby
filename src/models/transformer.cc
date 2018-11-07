@@ -429,14 +429,13 @@ namespace ctranslate2 {
     }
 
 
-    TransformerDecoderState::TransformerDecoderState(size_t num_layers)
-      : _num_layers(num_layers) {
+    TransformerDecoderState::TransformerDecoderState(size_t num_layers, Device device)
+      : _num_layers(num_layers)
+      , _device(device) {
     }
 
-    void TransformerDecoderState::reset(const StorageView& memory,
-                                        const StorageView& memory_lengths) {
-      DecoderState::reset(memory, memory_lengths);
-      static const StorageView empty_cache(memory.device());
+    void TransformerDecoderState::reset() {
+      static const StorageView empty_cache(_device);
       for (size_t i = 0; i < _num_layers; ++i) {
         reset_state("self_keys_" + std::to_string(i), empty_cache);
         reset_state("self_values_" + std::to_string(i), empty_cache);
@@ -458,12 +457,14 @@ namespace ctranslate2 {
           break;
         }
       }
-      _state.reset(new TransformerDecoderState(_layers.size()));
+      _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
     }
 
     void TransformerDecoder::log_probs(size_t step,
                                        const StorageView& ids,
                                        const StorageView& candidates,
+                                       const StorageView& memory,
+                                       const StorageView& memory_lengths,
                                        StorageView& output) {
       static thread_local StorageView layer_in(output.device());
       static thread_local StorageView layer_out(output.device());
@@ -474,8 +475,8 @@ namespace ctranslate2 {
       for (size_t l = 0; l < _layers.size(); ++l) {
         _layers[l](step,
                    layer_in,
-                   _state->get("memory"),
-                   _state->get("memory_lengths"),
+                   memory,
+                   memory_lengths,
                    _state->get("self_keys_" + std::to_string(l)),
                    _state->get("self_values_" + std::to_string(l)),
                    _state->get("memory_keys_" + std::to_string(l)),

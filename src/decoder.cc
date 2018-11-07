@@ -22,10 +22,8 @@ namespace ctranslate2 {
   }
 
 
-  void DecoderState::reset(const StorageView& memory,
-                           const StorageView& memory_lengths) {
-    reset_state("memory", memory);
-    reset_state("memory_lengths", memory_lengths);
+  void DecoderState::reset() {
+    return;
   }
 
   std::unordered_map<std::string, StorageView>& DecoderState::get() {
@@ -110,6 +108,8 @@ namespace ctranslate2 {
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
                    StorageView& candidates,
+                   const StorageView& memory,
+                   const StorageView& memory_lengths,
                    size_t end_token,
                    size_t max_steps,
                    size_t beam_size,
@@ -117,7 +117,7 @@ namespace ctranslate2 {
                    float length_penalty,
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores) {
-    Device device = decoder.get_state().get("memory").device();
+    Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
     const ops::TopK topk_op(beam_size);
@@ -126,6 +126,11 @@ namespace ctranslate2 {
 
     expand_to_beam_size(decoder.get_state(), beam_size);
     expand_to_beam_size(alive_seq, beam_size);
+
+    StorageView tiled_memory(memory);
+    StorageView tiled_memory_lengths(memory_lengths);
+    expand_to_beam_size(tiled_memory, beam_size);
+    expand_to_beam_size(tiled_memory_lengths, beam_size);
 
     StorageView gather_indices(DataType::DT_INT32);
     StorageView topk_ids(alive_seq);
@@ -155,7 +160,12 @@ namespace ctranslate2 {
 
     for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
-      decoder.log_probs(step, topk_ids.to(device), candidates, log_probs);
+      decoder.log_probs(step,
+                        topk_ids.to(device),
+                        candidates,
+                        tiled_memory,
+                        tiled_memory_lengths,
+                        log_probs);
 
       size_t vocabulary_size = log_probs.dim(-1);
 
@@ -258,7 +268,10 @@ namespace ctranslate2 {
 
       // If some sentences finished on this step, ignore them for the next step.
       if (finished_count > 0) {
-        gather_indices.reshape({cur_batch_size, beam_size});  // Reshape to gather on batch dim.
+        // Reshape to gather on batch dim.
+        gather_indices.reshape({cur_batch_size, beam_size});
+        tiled_memory.reshape({cur_batch_size, beam_size, tiled_memory.dim(1), tiled_memory.dim(2)});
+        tiled_memory_lengths.reshape({cur_batch_size, beam_size});
         cur_batch_size -= finished_count;
         StorageView keep_batches({cur_batch_size}, DataType::DT_INT32);
         size_t write_index = 0;
@@ -275,7 +288,13 @@ namespace ctranslate2 {
         gather(topk_log_probs, keep_batches);
         gather(alive_seq, keep_batches);
         gather(gather_indices, keep_batches);
-        gather_indices.reshape({cur_batch_size * beam_size});  // Reshape back to the flat repr.
+        auto keep_batches_device = keep_batches.to(device);
+        gather(tiled_memory, keep_batches_device);
+        gather(tiled_memory_lengths, keep_batches_device);
+        // Reshape back to the flat repr.
+        gather_indices.reshape({cur_batch_size * beam_size});
+        tiled_memory.reshape({cur_batch_size * beam_size, tiled_memory.dim(2), tiled_memory.dim(3)});
+        tiled_memory_lengths.reshape({cur_batch_size * beam_size});
       }
 
       topk_ids.reshape({cur_batch_size * beam_size, 1});
@@ -291,11 +310,13 @@ namespace ctranslate2 {
   void greedy_decoding(Decoder& decoder,
                        StorageView& sample_from,
                        StorageView& candidates,
+                       const StorageView& memory,
+                       const StorageView& memory_lengths,
                        size_t end_token,
                        size_t max_steps,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
-    Device device = decoder.get_state().get("memory").device();
+    Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
 
@@ -303,6 +324,9 @@ namespace ctranslate2 {
     sampled_ids.resize(batch_size);
     scores.clear();
     scores.resize(batch_size);
+
+    StorageView alive_memory(memory);
+    StorageView alive_memory_lengths(memory_lengths);
 
     static thread_local StorageView log_probs(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
@@ -315,7 +339,12 @@ namespace ctranslate2 {
     }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
-      decoder.log_probs(step, sample_from.to(device), candidates, log_probs);
+      decoder.log_probs(step,
+                        sample_from.to(device),
+                        candidates,
+                        alive_memory,
+                        alive_memory_lengths,
+                        log_probs);
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
@@ -359,7 +388,10 @@ namespace ctranslate2 {
           }
         }
         gather(sample_from, alive);
-        gather(decoder.get_state(), alive.to(device));
+        auto alive_device = alive.to(device);
+        gather(decoder.get_state(), alive_device);
+        gather(alive_memory, alive_device);
+        gather(alive_memory_lengths, alive_device);
       }
     }
   }

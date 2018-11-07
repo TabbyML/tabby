@@ -65,7 +65,7 @@ namespace ctranslate2 {
     encoder.encode(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.
-    decoder.get_state().reset(encoded, lengths);
+    decoder.get_state().reset();
 
     // If set, extract the subset of candidates to generate.
     StorageView candidates(DataType::DT_INT32, device);
@@ -85,6 +85,8 @@ namespace ctranslate2 {
       greedy_decoding(decoder,
                       sample_from,
                       candidates,
+                      encoded,
+                      lengths,
                       end_token,
                       options.max_decoding_steps,
                       sampled_ids,
@@ -93,6 +95,8 @@ namespace ctranslate2 {
       beam_search(decoder,
                   sample_from,
                   candidates,
+                  encoded,
+                  lengths,
                   end_token,
                   options.max_decoding_steps,
                   options.beam_size,

@@ -163,11 +163,11 @@ namespace ctranslate2 {
 
     class TransformerDecoderState : public DecoderState {
     public:
-      TransformerDecoderState(size_t num_layers);
-      void reset(const StorageView& memory,
-                 const StorageView& memory_lengths) override;
+      TransformerDecoderState(size_t num_layers, Device device);
+      void reset() override;
     private:
       size_t _num_layers;
+      Device _device;
     };
 
     class TransformerDecoder : public Decoder
@@ -177,6 +177,8 @@ namespace ctranslate2 {
       void log_probs(size_t step,
                      const StorageView& ids,
                      const StorageView& candidates,
+                     const StorageView& memory,
+                     const StorageView& memory_lengths,
                      StorageView& output) override;
     private:
       ScaledEmbeddings _scaled_embeddings;

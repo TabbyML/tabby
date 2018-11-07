@@ -14,8 +14,7 @@ namespace ctranslate2 {
   class DecoderState {
   public:
     virtual ~DecoderState() = default;
-    virtual void reset(const StorageView& memory,
-                       const StorageView& memory_lengths);
+    virtual void reset();
     std::unordered_map<std::string, StorageView>& get();
     StorageView& get(const std::string& name);
     StorageView* get_cache(const std::string& name);
@@ -40,6 +39,8 @@ namespace ctranslate2 {
     virtual void log_probs(size_t step,
                            const StorageView& ids,
                            const StorageView& candidates,
+                           const StorageView& memory,
+                           const StorageView& memory_lengths,
                            StorageView& output) = 0;
 
   protected:
@@ -50,6 +51,8 @@ namespace ctranslate2 {
   void greedy_decoding(Decoder& decoder,
                        StorageView& sample_from,
                        StorageView& candidates,
+                       const StorageView& memory,
+                       const StorageView& memory_lengths,
                        size_t end_token,
                        size_t max_steps,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
@@ -57,6 +60,8 @@ namespace ctranslate2 {
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
                    StorageView& candidates,
+                   const StorageView& memory,
+                   const StorageView& memory_lengths,
                    size_t end_token,
                    size_t max_steps,
                    size_t beam_size,
