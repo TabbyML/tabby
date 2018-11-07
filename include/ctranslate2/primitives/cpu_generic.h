@@ -30,6 +30,13 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::fill(T* x, T a, size_t size) {
     std::fill_n(x, size, a);
   }
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::strided_fill(T* x, T a, size_t inc_x, size_t size) {
+    for (size_t i = 0, j = 0; i < size; i++, j += inc_x) {
+      x[j] = a;
+    }
+  }
 
   template<>
   template <typename T>

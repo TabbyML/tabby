@@ -42,12 +42,14 @@ public:
                       size_t num_hypotheses,
                       float length_penalty,
                       size_t max_decoding_steps,
+                      size_t min_decoding_length,
                       bool use_vmap,
                       bool with_scores) {
     auto options = ctranslate2::TranslationOptions();
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
     options.max_decoding_steps = max_decoding_steps;
+    options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
     options.use_vmap = use_vmap;
 
@@ -60,6 +62,7 @@ public:
                            size_t num_hypotheses,
                            float length_penalty,
                            size_t max_decoding_steps,
+                           size_t min_decoding_length,
                            bool use_vmap) {
     if (tokens == py::object())
       return py::list();
@@ -76,6 +79,7 @@ public:
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
     options.max_decoding_steps = max_decoding_steps;
+    options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
     options.use_vmap = use_vmap;
 
@@ -119,12 +123,14 @@ BOOST_PYTHON_MODULE(translator)
           py::arg("num_hypotheses")=1,
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_steps")=250,
+          py::arg("min_decoding_length")=1,
           py::arg("use_vmap")=false))
     .def("translate_file", &TranslatorWrapper::translate_file,
          (py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_steps")=250,
+          py::arg("min_decoding_length")=1,
           py::arg("use_vmap")=false,
           py::arg("with_scores")=false))
     ;

@@ -105,6 +105,14 @@ namespace ctranslate2 {
     }
   }
 
+  static void penalize_token(StorageView& log_probs, size_t token) {
+    DEVICE_DISPATCH(log_probs.device(),
+                    primitives<D>::strided_fill(log_probs.data<float>() + token,
+                                                static_cast<float>(-1e10),
+                                                log_probs.dim(-1),
+                                                log_probs.dim(0)));
+  }
+
   void beam_search(Decoder& decoder,
                    StorageView& sample_from,
                    StorageView& candidates,
@@ -112,6 +120,7 @@ namespace ctranslate2 {
                    const StorageView& memory_lengths,
                    size_t end_token,
                    size_t max_steps,
+                   size_t min_steps,
                    size_t beam_size,
                    size_t num_hypotheses,
                    float length_penalty,
@@ -178,6 +187,10 @@ namespace ctranslate2 {
         length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
         DEVICE_DISPATCH(log_probs.device(), primitives<D>::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size()));
       }
+
+      // Penalize end_token, if configured.
+      if (step < min_steps)
+        penalize_token(log_probs, end_token);
 
       // Flatten the probs into a list of candidates.
       log_probs.reshape({cur_batch_size, beam_size * vocabulary_size});
@@ -314,6 +327,7 @@ namespace ctranslate2 {
                        const StorageView& memory_lengths,
                        size_t end_token,
                        size_t max_steps,
+                       size_t min_steps,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
     Device device = memory.device();
@@ -345,6 +359,10 @@ namespace ctranslate2 {
                         alive_memory,
                         alive_memory_lengths,
                         log_probs);
+
+      // Penalize end_token, if configured.
+      if (step < min_steps)
+        penalize_token(log_probs, end_token);
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;

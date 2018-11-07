@@ -33,6 +33,8 @@ int main(int argc, char* argv[]) {
      "length penalty")
     ("max_sent_length", po::value<size_t>()->default_value(250),
      "maximum sentence length to produce")
+    ("min_sent_length", po::value<size_t>()->default_value(1),
+     "minimum sentence length to produce")
     ("log_throughput", po::bool_switch()->default_value(false),
      "log average tokens per second")
     ("inter_threads", po::value<size_t>()->default_value(1),
@@ -71,6 +73,7 @@ int main(int argc, char* argv[]) {
   options.beam_size = vm["beam_size"].as<size_t>();
   options.length_penalty = vm["length_penalty"].as<float>();
   options.max_decoding_steps = vm["max_sent_length"].as<size_t>();
+  options.min_decoding_length = vm["min_sent_length"].as<size_t>();
   options.num_hypotheses = vm["n_best"].as<size_t>();
   options.use_vmap = vm["use_vmap"].as<bool>();
 

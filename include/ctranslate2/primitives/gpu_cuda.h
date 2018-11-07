@@ -22,6 +22,9 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::fill(T* x, T a, size_t size);
   template<>
   template <typename T>
+  void primitives<Device::CUDA>::strided_fill(T* x, T a, size_t inc_x, size_t size);
+  template<>
+  template <typename T>
   void primitives<Device::CUDA>::copy(const T* x, T* y, size_t size);
 
   template<>
