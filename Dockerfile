@@ -22,7 +22,7 @@ COPY . ctranslate2-dev
 
 WORKDIR /root/ctranslate2-dev
 
-ENV MKL_VERSION=2019.0
+ENV MKL_VERSION=2019.1
 RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
     cd l_mkl_${MKL_VERSION}.* && \
     sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
