@@ -1,11 +1,14 @@
-FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04 as builder
+FROM nvidia/cuda:9.0-devel-ubuntu16.04 as builder
 
+ENV CUDNN_VERSION=7.3.1.20
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cpio \
         libboost-program-options-dev \
         libboost-python-dev \
+        libcudnn7=$CUDNN_VERSION-1+cuda9.0 \
+        libcudnn7-dev=$CUDNN_VERSION-1+cuda9.0 \
         python-pip \
         wget && \
     apt-get clean && \
