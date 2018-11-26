@@ -102,8 +102,7 @@ namespace ctranslate2 {
                       const StorageView* memory_lengths,
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
-                      StorageView* cached_values = nullptr,
-                      int step = -1);
+                      StorageView* cached_values = nullptr);
     private:
       size_t _num_heads;
       std::vector<Dense> _linear;
@@ -113,7 +112,7 @@ namespace ctranslate2 {
 
       void split_heads(const StorageView& x, StorageView& y);
       void combine_heads(const StorageView& x, StorageView& y);
-      static void cache_proj(int step, StorageView& proj, StorageView& cache);
+      static void cache_proj(StorageView& proj, StorageView& cache);
     };
 
     class TransformerEncoderLayer
@@ -132,8 +131,7 @@ namespace ctranslate2 {
     {
     public:
       TransformerDecoderLayer(const TransformerModel& model, const std::string& scope);
-      void operator()(size_t step,
-                      const StorageView& input,
+      void operator()(const StorageView& input,
                       const StorageView& memory,
                       const StorageView& memory_lengths,
                       StorageView& cached_self_attn_keys,

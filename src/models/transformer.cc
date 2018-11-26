@@ -267,8 +267,7 @@ namespace ctranslate2 {
                                         const StorageView* memory_lengths,
                                         StorageView& output,
                                         StorageView* cached_keys,
-                                        StorageView* cached_values,
-                                        int step) {
+                                        StorageView* cached_values) {
       Device device = queries.device();
 
       static thread_local StorageView normed_queries(device);
@@ -291,7 +290,7 @@ namespace ctranslate2 {
       if (memory) {
         split_heads(fused_proj, split_queries);
         final_queries.shallow_copy(split_queries);
-        if (step > 0 && cached_keys != nullptr && !cached_keys->empty()) {
+        if (cached_keys != nullptr && !cached_keys->empty()) {
           final_keys.shallow_copy(*cached_keys);
           final_values.shallow_copy(*cached_values);
         } else {
@@ -312,9 +311,9 @@ namespace ctranslate2 {
         split_heads(keys_proj, split_keys);
         split_heads(values_proj, split_values);
         final_queries.shallow_copy(split_queries);
-        if (step >= 0 && cached_keys != nullptr) {
-          cache_proj(step, split_keys, *cached_keys);
-          cache_proj(step, split_values, *cached_values);
+        if (cached_keys != nullptr) {
+          cache_proj(split_keys, *cached_keys);
+          cache_proj(split_values, *cached_values);
           final_keys.shallow_copy(*cached_keys);
           final_values.shallow_copy(*cached_values);
         } else {
@@ -352,8 +351,8 @@ namespace ctranslate2 {
       y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
     }
 
-    void MultiHeadAttention::cache_proj(int step, StorageView& proj, StorageView& cache) {
-      if (step == 0) {
+    void MultiHeadAttention::cache_proj(StorageView& proj, StorageView& cache) {
+      if (cache.empty()) {
         cache = proj;
       } else {
         static thread_local StorageView tmp(proj.device());
@@ -385,8 +384,7 @@ namespace ctranslate2 {
       , _ff(model, scope + "/ffn") {
     }
 
-    void TransformerDecoderLayer::operator()(size_t step,
-                                             const StorageView& input,
+    void TransformerDecoderLayer::operator()(const StorageView& input,
                                              const StorageView& memory,
                                              const StorageView& memory_lengths,
                                              StorageView& cached_self_attn_keys,
@@ -396,9 +394,9 @@ namespace ctranslate2 {
                                              StorageView& output) {
       static thread_local StorageView context(input.device());
       _self_attention(input, nullptr, nullptr, output,
-                      &cached_self_attn_keys, &cached_self_attn_values, step);
+                      &cached_self_attn_keys, &cached_self_attn_values);
       _encoder_attention(output, &memory, &memory_lengths, context,
-                         &cached_attn_keys, &cached_attn_values, step);
+                         &cached_attn_keys, &cached_attn_values);
       return _ff(context, output);
     }
 
@@ -476,8 +474,7 @@ namespace ctranslate2 {
       _position_encoder(layer_in, step);
 
       for (size_t l = 0; l < _layers.size(); ++l) {
-        _layers[l](step,
-                   layer_in,
+        _layers[l](layer_in,
                    memory,
                    memory_lengths,
                    _state->get("self_keys_" + std::to_string(l)),
