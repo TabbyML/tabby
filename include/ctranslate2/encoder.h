@@ -9,9 +9,9 @@ namespace ctranslate2 {
   public:
     virtual ~Encoder() = default;
 
-    virtual void encode(const StorageView& ids,
-                        const StorageView& lengths,
-                        StorageView& output) = 0;
+    virtual void operator()(const StorageView& ids,
+                            const StorageView& lengths,
+                            StorageView& output) = 0;
   };
 
 }

@@ -62,7 +62,7 @@ namespace ctranslate2 {
 
     // Encode sequence.
     static thread_local StorageView encoded(device);
-    encoder.encode(ids, lengths, encoded);
+    encoder(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.
     decoder.get_state().reset();

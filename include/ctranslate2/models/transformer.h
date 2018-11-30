@@ -149,9 +149,9 @@ namespace ctranslate2 {
     {
     public:
       TransformerEncoder(const TransformerModel& model, const std::string& scope);
-      void encode(const StorageView& ids,
-                  const StorageView& lengths,
-                  StorageView& output) override;
+      void operator()(const StorageView& ids,
+                      const StorageView& lengths,
+                      StorageView& output) override;
     private:
       ScaledEmbeddings _scaled_embeddings;
       PositionEncoder _position_encoder;
@@ -172,12 +172,12 @@ namespace ctranslate2 {
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
-      void log_probs(size_t step,
-                     const StorageView& ids,
-                     const StorageView& candidates,
-                     const StorageView& memory,
-                     const StorageView& memory_lengths,
-                     StorageView& output) override;
+      void operator()(size_t step,
+                      const StorageView& ids,
+                      const StorageView& candidates,
+                      const StorageView& memory,
+                      const StorageView& memory_lengths,
+                      StorageView& logits) override;
     private:
       ScaledEmbeddings _scaled_embeddings;
       PositionEncoder _position_encoder;

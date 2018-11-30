@@ -36,12 +36,12 @@ namespace ctranslate2 {
       return *_state;
     }
 
-    virtual void log_probs(size_t step,
-                           const StorageView& ids,
-                           const StorageView& candidates,
-                           const StorageView& memory,
-                           const StorageView& memory_lengths,
-                           StorageView& output) = 0;
+    virtual void operator()(size_t step,
+                            const StorageView& ids,
+                            const StorageView& candidates,
+                            const StorageView& memory,
+                            const StorageView& memory_lengths,
+                            StorageView& logits) = 0;
 
   protected:
     std::unique_ptr<DecoderState> _state;

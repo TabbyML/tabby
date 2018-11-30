@@ -162,6 +162,7 @@ namespace ctranslate2 {
       scores[i].reserve(num_hypotheses);
     }
 
+    static thread_local StorageView logits(device);
     static thread_local StorageView log_probs(device);
     static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
     static thread_local StorageView topk_log_probs_device(device);
@@ -169,12 +170,13 @@ namespace ctranslate2 {
 
     for (size_t step = 0; step < max_steps; ++step) {
       // Compute log probs for the current step.
-      decoder.log_probs(step,
-                        topk_ids.to(device),
-                        candidates,
-                        tiled_memory,
-                        tiled_memory_lengths,
-                        log_probs);
+      decoder(step,
+              topk_ids.to(device),
+              candidates,
+              tiled_memory,
+              tiled_memory_lengths,
+              logits);
+      ops::LogSoftMax()(logits, log_probs);
 
       size_t vocabulary_size = log_probs.dim(-1);
 
@@ -342,6 +344,7 @@ namespace ctranslate2 {
     StorageView alive_memory(memory);
     StorageView alive_memory_lengths(memory_lengths);
 
+    static thread_local StorageView logits(device);
     static thread_local StorageView log_probs(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
@@ -353,12 +356,13 @@ namespace ctranslate2 {
     }
 
     for (size_t step = 0; step < max_steps + 1; ++step) {
-      decoder.log_probs(step,
-                        sample_from.to(device),
-                        candidates,
-                        alive_memory,
-                        alive_memory_lengths,
-                        log_probs);
+      decoder(step,
+              sample_from.to(device),
+              candidates,
+              alive_memory,
+              alive_memory_lengths,
+              logits);
+      ops::LogSoftMax()(logits, log_probs);
 
       // Penalize end_token, if configured.
       if (step < min_steps)

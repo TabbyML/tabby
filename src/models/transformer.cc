@@ -414,9 +414,9 @@ namespace ctranslate2 {
       }
     }
 
-    void TransformerEncoder::encode(const StorageView& ids,
-                                    const StorageView& lengths,
-                                    StorageView& output) {
+    void TransformerEncoder::operator()(const StorageView& ids,
+                                        const StorageView& lengths,
+                                        StorageView& output) {
       static thread_local StorageView layer_in(output.device());
       static thread_local StorageView layer_out(output.device());
       _scaled_embeddings(ids, layer_in);
@@ -461,12 +461,12 @@ namespace ctranslate2 {
       _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
     }
 
-    void TransformerDecoder::log_probs(size_t step,
-                                       const StorageView& ids,
-                                       const StorageView& candidates,
-                                       const StorageView& memory,
-                                       const StorageView& memory_lengths,
-                                       StorageView& output) {
+    void TransformerDecoder::operator()(size_t step,
+                                        const StorageView& ids,
+                                        const StorageView& candidates,
+                                        const StorageView& memory,
+                                        const StorageView& memory_lengths,
+                                        StorageView& output) {
       static thread_local StorageView layer_in(output.device());
       static thread_local StorageView layer_out(output.device());
 
@@ -486,9 +486,7 @@ namespace ctranslate2 {
       }
       _output_norm(layer_in, layer_out);
 
-      static thread_local StorageView logits(output.device());
-      _proj(layer_out, logits, &candidates);
-      ops::LogSoftMax()(logits, output);
+      _proj(layer_out, output, &candidates);
     }
 
   }
