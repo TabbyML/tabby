@@ -108,6 +108,7 @@ namespace ctranslate2 {
     private:
       size_t _num_heads;
       std::vector<Dense> _linear;
+      bool _fused_proj;
       LayerNorm _layer_norm;
       DotProductAttention _attention;
       ops::Transpose _transpose_op;
