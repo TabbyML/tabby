@@ -27,6 +27,8 @@ namespace ctranslate2 {
         throw std::runtime_error("failed to load the model " + model_path);
 
       _version = consume<uint32_t>(model);
+      if (_version > 1)
+        throw std::runtime_error("unsupported model version " + std::to_string(_version));
       auto num_variables = consume<uint32_t>(model);
 
       for (uint32_t i = 0; i < num_variables; ++i) {
