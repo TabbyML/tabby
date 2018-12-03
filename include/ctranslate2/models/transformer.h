@@ -40,9 +40,11 @@ namespace ctranslate2 {
     class PositionEncoder
     {
     public:
+      PositionEncoder(const TransformerModel& model, const std::string& scope);
       void operator()(StorageView& input, size_t index = 0);
     private:
-      static const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device);
+      const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device) const;
+      const StorageView* encoding;
     };
 
     class Dense

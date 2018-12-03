@@ -92,6 +92,14 @@ namespace ctranslate2 {
     }
 
 
+    PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope) {
+      try {
+        encoding = &model.get_variable(scope + "/pe");
+      } catch (std::out_of_range&) {
+        encoding = nullptr;
+      }
+    }
+
     void PositionEncoder::operator()(StorageView& input, size_t index) {
       const size_t max_time = input.dim(1);
       const size_t depth = input.dim(-1);
@@ -103,7 +111,12 @@ namespace ctranslate2 {
                                                          input.size()));
     }
 
-    const StorageView& PositionEncoder::get_position_encoding(size_t max_time, size_t depth, Device device) {
+    const StorageView& PositionEncoder::get_position_encoding(size_t max_time,
+                                                              size_t depth,
+                                                              Device device) const {
+      if (encoding)
+        return *encoding;
+
       static const size_t default_max_time = 500;
       static thread_local StorageView position_encoding(device);
 
@@ -403,7 +416,7 @@ namespace ctranslate2 {
 
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
       : _scaled_embeddings(model, scope)
-      , _position_encoder()
+      , _position_encoder(model, scope)
       , _output_norm(model, scope + "/LayerNorm") {
       for (size_t l = 0;; ++l) {
         try {
@@ -448,7 +461,7 @@ namespace ctranslate2 {
 
     TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
       : _scaled_embeddings(model, scope)
-      , _position_encoder()
+      , _position_encoder(model, scope)
       , _output_norm(model, scope + "/LayerNorm")
       , _proj(model, scope + "/dense") {
       for (size_t l = 0;; ++l) {
