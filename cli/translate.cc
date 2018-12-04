@@ -63,7 +63,6 @@ int main(int argc, char* argv[]) {
   ctranslate2::init(intra_threads);
 
   auto model = ctranslate2::models::ModelFactory::load(
-    ctranslate2::models::ModelType::Transformer,
     vm["model"].as<std::string>(),
     ctranslate2::str_to_device(vm["device"].as<std::string>()));
 

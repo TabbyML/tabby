@@ -159,6 +159,13 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    T as_scalar() const {
+      if (!is_scalar())
+        throw std::invalid_argument("not a scalar");
+      return scalar_at<T>({0});
+    }
+
+    template <typename T>
     T scalar_at(const std::vector<size_t>& indices) const {
       T scalar = T();
       DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));

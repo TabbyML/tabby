@@ -1,9 +1,6 @@
 #pragma once
 
-// This file defines the execution engine for a Transformer model trained with OpenNMT-tf
-// and exported with the python/ctranslate/convert_model.py tool.
-
-#include <map>
+// This file defines the execution engine for a TransformerSpec model.
 
 #include "ctranslate2/ops/ops.h"
 #include "ctranslate2/storage_view.h"
@@ -16,14 +13,11 @@ namespace ctranslate2 {
     class TransformerModel : public Model
     {
     public:
-      TransformerModel(const std::string& path, Device device);
-      const StorageView& get_variable(const std::string& scope) const;
+      TransformerModel(const std::string& path, size_t spec_revision, Device device);
+      size_t current_spec_revision() const override;
+      void register_variable(const std::string& name, StorageView& variable) override;
       std::unique_ptr<Encoder> make_encoder() const override;
       std::unique_ptr<Decoder> make_decoder() const override;
-      size_t version() const;
-    private:
-      std::map<std::string, StorageView> _variable_index;
-      size_t _version;
     };
 
     class ScaledEmbeddings
@@ -34,15 +28,18 @@ namespace ctranslate2 {
     private:
       ops::Gather _gather_op;
       const StorageView& _embeddings;
+      const StorageView* _qscale;
       const StorageView _scale;
     };
 
     class PositionEncoder
     {
     public:
+      PositionEncoder(const TransformerModel& model, const std::string& scope);
       void operator()(StorageView& input, size_t index = 0);
     private:
-      static const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device);
+      const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device) const;
+      const StorageView* _encoding;
     };
 
     class Dense
@@ -54,6 +51,7 @@ namespace ctranslate2 {
                       const StorageView* index = nullptr);
     private:
       const StorageView& _weight;
+      const StorageView* _qscale;
       const StorageView& _bias;
       StorageView _partial_weight;
       StorageView _partial_bias;
@@ -106,6 +104,7 @@ namespace ctranslate2 {
     private:
       size_t _num_heads;
       std::vector<Dense> _linear;
+      bool _fused_proj;
       LayerNorm _layer_norm;
       DotProductAttention _attention;
       ops::Transpose _transpose_op;
