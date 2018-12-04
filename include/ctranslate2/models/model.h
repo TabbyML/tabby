@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 
 #include "ctranslate2/vocabulary.h"
@@ -13,13 +14,22 @@ namespace ctranslate2 {
     // Base class for models.
     class Model {
     public:
-      Model(const std::string& path, Device device);
+      Model(const std::string& path, size_t spec_revision, Device device);
       virtual ~Model() = default;
+      virtual size_t current_spec_revision() const;
 
       Device device() const;
       const Vocabulary& get_source_vocabulary() const;
       const Vocabulary& get_target_vocabulary() const;
       const VocabularyMap& get_vocabulary_map() const;
+
+      const StorageView* get_variable_if_exists(const std::string& scope) const;
+      const StorageView& get_variable(const std::string& scope) const;
+
+      // Models can override these methods to execute some transformations if needed
+      // (e.g. a variable name changed in a newer spec revision).
+      virtual void register_variable(const std::string& name, StorageView& variable);
+      virtual void finalize();
 
       // Makes new graph to execute this model. Graphs returned by these function
       // should support being executed in parallel without duplicating the model
@@ -32,25 +42,17 @@ namespace ctranslate2 {
       const Vocabulary _source_vocabulary;
       const Vocabulary _target_vocabulary;
       const VocabularyMap _vocabulary_map;
-
-      StorageView load_data(const Shape& shape, size_t data_width, void* data) const;
+      std::map<std::string, StorageView> _variable_index;
+      size_t _spec_revision;
     };
 
 
-    enum class ModelType {
-      Transformer
-    };
-
+    static const size_t current_binary_version = 2;
 
     // Model factory from a path.
     class ModelFactory {
     public:
-      static std::shared_ptr<Model> load(const std::string& type,
-                                         const std::string& path,
-                                         Device device);
-      static std::shared_ptr<Model> load(ModelType type,
-                                         const std::string& path,
-                                         Device device);
+      static std::shared_ptr<Model> load(const std::string& path, Device device);
     };
 
   }

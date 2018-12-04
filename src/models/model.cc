@@ -1,16 +1,48 @@
 #include "ctranslate2/models/model.h"
 
+#include <fstream>
+
 #include "ctranslate2/models/transformer.h"
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
   namespace models {
 
-    Model::Model(const std::string& path, Device device)
+    template <typename T>
+    T consume(std::istream& in) {
+      T val;
+      in.read(reinterpret_cast<char*>(&val), sizeof (T));
+      return val;
+    }
+
+    template <typename T>
+    T* consume(std::istream& in, size_t n) {
+      if (n == 0)
+        return nullptr;
+      T* data = new T[n];
+      in.read(reinterpret_cast<char*>(data), n * sizeof (T));
+      return data;
+    }
+
+    static std::string consume_string(std::istream& in) {
+      auto str_length = consume<uint16_t>(in);
+      auto c_str = consume<char>(in, str_length);
+      std::string str(c_str);
+      delete [] c_str;
+      return str;
+    }
+
+
+    Model::Model(const std::string& path, size_t spec_revision, Device device)
       : _device(device)
       , _source_vocabulary(path + "/source_vocabulary.txt")
       , _target_vocabulary(path + "/target_vocabulary.txt")
-      , _vocabulary_map(path + "/vmap.txt", _target_vocabulary) {
+      , _vocabulary_map(path + "/vmap.txt", _target_vocabulary)
+      , _spec_revision(spec_revision) {
+    }
+
+    size_t Model::current_spec_revision() const {
+      return 1;
     }
 
     Device Model::device() const {
@@ -29,13 +61,39 @@ namespace ctranslate2 {
       return _vocabulary_map;
     }
 
-    StorageView Model::load_data(const Shape& shape, size_t data_width, void* data) const {
+    const StorageView* Model::get_variable_if_exists(const std::string& scope) const {
+      auto it = _variable_index.lower_bound(scope);
+      if (it->first.find(scope) == std::string::npos)
+        return nullptr;
+      return &it->second;
+    }
+
+    const StorageView& Model::get_variable(const std::string& scope) const {
+      const auto* var = get_variable_if_exists(scope);
+      if (var == nullptr)
+        throw std::out_of_range("no variable found in scope '" + scope + "'");
+      return *var;
+    }
+
+    void Model::register_variable(const std::string& name, StorageView& variable) {
+      _variable_index.emplace(std::piecewise_construct,
+                              std::forward_as_tuple(name),
+                              std::forward_as_tuple(std::move(variable)));
+    }
+
+    void Model::finalize() {
+    }
+
+    static StorageView load_storage(void* data,
+                                    size_t data_width,
+                                    const Shape& shape,
+                                    Device device) {
       if (data_width == 4) {
-        return StorageView(shape, reinterpret_cast<float*>(data)).to(_device);
+        return StorageView(shape, reinterpret_cast<float*>(data)).to(device);
       } else if (data_width == 2) {
         StorageView s_data(shape, reinterpret_cast<int16_t*>(data));
 #ifdef WITH_MKL
-        if (_device == Device::CPU && support_avx2())
+        if (device == Device::CPU && support_avx2())
           return s_data.to(Device::CPU);
         else
 #endif
@@ -44,32 +102,76 @@ namespace ctranslate2 {
           static const ops::Unquantize unquantize_op(1000);
           StorageView s_data_cast;
           unquantize_op(s_data, s_data_cast);
-          return s_data_cast.to(_device);
+          return s_data_cast.to(device);
         }
       }
 
       throw std::runtime_error("unsupported data type");
     }
 
-    std::shared_ptr<Model> ModelFactory::load(const std::string& type,
-                                              const std::string& path,
-                                              Device device) {
-      if (type == "transformer")
-        return load(ModelType::Transformer, path, device);
-      throw std::invalid_argument("invalid model type " + type);
-    }
+    std::shared_ptr<Model> ModelFactory::load(const std::string& path, Device device) {
+      std::string model_path = path + "/model.bin";
+      std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
+      if (!model_file.is_open())
+        throw std::runtime_error("failed to load the model " + model_path);
 
-    std::shared_ptr<Model> ModelFactory::load(ModelType type,
-                                              const std::string& path,
-                                              Device device) {
-      Model* model = nullptr;
+      auto binary_version = consume<uint32_t>(model_file);
+      if (binary_version > current_binary_version)
+        throw std::runtime_error("unsupported model version "
+                                 + std::to_string(binary_version)
+                                 + " (latest version supported: "
+                                 + std::to_string(current_binary_version)
+                                 + ")");
 
-      switch (type) {
-      case ModelType::Transformer:
-        model = new TransformerModel(path, device);
-        break;
+      std::string spec;
+      size_t spec_revision;
+      if (binary_version >= 2) {
+        spec = consume_string(model_file);
+        spec_revision = consume<uint32_t>(model_file);
+      } else {
+        spec = "TransformerSpec";
+        spec_revision = 1;
       }
 
+      Model* model = nullptr;
+      if (spec == "TransformerSpec")
+        model = new TransformerModel(path, spec_revision, device);
+      else
+        throw std::invalid_argument("Unsupported model spec " + spec);
+
+      if (spec_revision > model->current_spec_revision())
+        throw std::invalid_argument("unsupported " + spec + " revision "
+                                    + std::to_string(spec_revision)
+                                    + " (latest revision supported: "
+                                    + std::to_string(model->current_spec_revision())
+                                    + ")");
+
+      auto num_variables = consume<uint32_t>(model_file);
+      for (uint32_t i = 0; i < num_variables; ++i) {
+        auto name = consume_string(model_file);
+        auto rank = consume<uint8_t>(model_file);
+        auto dimensions = consume<uint32_t>(model_file, rank);
+        auto data_width = consume<uint8_t>(model_file);
+        auto data_size = consume<uint32_t>(model_file);
+        auto data = consume<char>(model_file, data_size * data_width);
+
+        std::vector<size_t> shape(std::max(static_cast<int>(rank), 1));
+        if (rank == 0) {
+          shape[0] = 1;
+        } else {
+          for (unsigned int k = 0; k < rank; k++) {
+            shape[k] = static_cast<size_t>(dimensions[k]);
+          }
+        }
+
+        auto storage = load_storage(data, data_width, shape, device);
+        model->register_variable(name, storage);
+
+        delete [] dimensions;
+        delete [] data;
+      }
+
+      model->finalize();
       return std::shared_ptr<Model>(model);
     }
 

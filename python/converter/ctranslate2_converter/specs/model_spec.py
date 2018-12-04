@@ -29,6 +29,10 @@ def visit_spec(spec, fn, scope=""):
 class LayerSpec(object):
     """Layer specification."""
 
+    @property
+    def revision(self):
+        return 1
+
     def validate(self):
         """Checks that required variables are set to a value."""
         def _is_defined(spec, name, value):

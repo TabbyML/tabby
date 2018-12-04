@@ -51,7 +51,7 @@ class Converter(object):
             spec.quantize(quantization)
         if vmap is not None:
             shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
-        self._serialize_variables(output_dir, spec.variables())
+        _serialize_model(spec, output_dir)
         self._save_vocabulary(src_vocab, os.path.join(output_dir, "source_vocabulary.txt"))
         self._save_vocabulary(tgt_vocab, os.path.join(output_dir, "target_vocabulary.txt"))
         return output_dir
@@ -64,18 +64,25 @@ class Converter(object):
     def _save_vocabulary(self, vocab, destination):
         raise NotImplementedError()
 
-    def _serialize_variables(self, output_dir, variables):
-        with open(os.path.join(output_dir, "model.bin"), "wb") as model:
-            model.write(struct.pack("I", _BINARY_VERSION))
-            model.write(struct.pack("I", len(variables)))
-            for name, value in six.iteritems(variables):
-                print("Saving %s %s [%s]" % (name, value.shape, value.dtype))
-                model.write(struct.pack("H", len(name) + 1))
-                model.write(six.b(name))
-                model.write(struct.pack('B', 0))
-                model.write(struct.pack("B", len(value.shape)))
-                for dim in value.shape:
-                    model.write(struct.pack("I", dim))
-                model.write(struct.pack("B", value.dtype.itemsize))
-                model.write(struct.pack("I", value.size))
-                model.write(value.tobytes())
+
+def _serialize_string(model, string):
+    model.write(struct.pack("H", len(string) + 1))
+    model.write(six.b(string))
+    model.write(struct.pack('B', 0))
+
+def _serialize_model(spec, output_dir):
+    variables = spec.variables()
+    with open(os.path.join(output_dir, "model.bin"), "wb") as model:
+        model.write(struct.pack("I", _BINARY_VERSION))
+        _serialize_string(model, spec.__class__.__name__)
+        model.write(struct.pack("I", spec.revision))
+        model.write(struct.pack("I", len(variables)))
+        for name, value in six.iteritems(variables):
+            print("Saving %s %s [%s]" % (name, value.shape, value.dtype))
+            _serialize_string(model, name)
+            model.write(struct.pack("B", len(value.shape)))
+            for dim in value.shape:
+                model.write(struct.pack("I", dim))
+            model.write(struct.pack("B", value.dtype.itemsize))
+            model.write(struct.pack("I", value.size))
+            model.write(value.tobytes())

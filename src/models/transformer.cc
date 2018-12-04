@@ -1,25 +1,7 @@
 #include "ctranslate2/models/transformer.h"
 
-#include <fstream>
-
 namespace ctranslate2 {
   namespace models {
-
-    template <typename T>
-    T consume(std::ifstream& in) {
-      T val;
-      in.read(reinterpret_cast<char*>(&val), sizeof (T));
-      return val;
-    }
-
-    template <typename T>
-    T* consume(std::ifstream& in, size_t n) {
-      if (n == 0)
-        return nullptr;
-      T* data = new T[n];
-      in.read(reinterpret_cast<char*>(data), n * sizeof (T));
-      return data;
-    }
 
     static bool replace(std::string& str, const std::string& from, const std::string& to) {
       size_t start_pos = str.find(from);
@@ -48,61 +30,19 @@ namespace ctranslate2 {
       return name;
     }
 
-    TransformerModel::TransformerModel(const std::string& path, Device device)
-      : Model(path, device) {
-      std::string model_path = path + "/model.bin";
-      std::ifstream model(model_path, std::ios_base::in | std::ios_base::binary);
-      if (!model.is_open())
-        throw std::runtime_error("failed to load the model " + model_path);
-
-      _version = consume<uint32_t>(model);
-      if (_version > 2)
-        throw std::runtime_error("unsupported model version " + std::to_string(_version));
-      auto num_variables = consume<uint32_t>(model);
-
-      for (uint32_t i = 0; i < num_variables; ++i) {
-        auto name_length = consume<uint16_t>(model);
-        auto name = consume<char>(model, name_length);
-        std::string name_str(name);
-        if (_version == 1)
-          name_str = map_v1_variable_name(name_str);
-        auto rank = consume<uint8_t>(model);
-        auto dimensions = consume<uint32_t>(model, rank);
-        auto data_width = consume<uint8_t>(model);
-        auto data_size = consume<uint32_t>(model);
-        auto data = consume<char>(model, data_size * data_width);
-
-        std::vector<size_t> shape(std::max(static_cast<int>(rank), 1));
-        if (rank == 0) {
-          shape[0] = 1;
-        } else {
-          for (unsigned int k = 0; k < rank; k++) {
-            shape[k] = static_cast<size_t>(dimensions[k]);
-          }
-        }
-
-        _variable_index.emplace(std::piecewise_construct,
-                                std::forward_as_tuple(name_str),
-                                std::forward_as_tuple(load_data(shape, data_width, data)));
-
-        delete [] name;
-        delete [] dimensions;
-        delete [] data;
-      }
+    TransformerModel::TransformerModel(const std::string& path, size_t spec_revision, Device device)
+      : Model(path, spec_revision, device) {
     }
 
-    const StorageView* TransformerModel::try_variable(const std::string& scope) const {
-      auto it = _variable_index.lower_bound(scope);
-      if (it->first.find(scope) == std::string::npos)
-        return nullptr;
-      return &it->second;
+    size_t TransformerModel::current_spec_revision() const {
+      return 2;
     }
 
-    const StorageView& TransformerModel::get_variable(const std::string& scope) const {
-      const auto* var = try_variable(scope);
-      if (var == nullptr)
-        throw std::out_of_range("no variable found in scope '" + scope + "'");
-      return *var;
+    void TransformerModel::register_variable(const std::string& name, StorageView& variable) {
+      std::string var_name = name;
+      if (_spec_revision == 1)
+        var_name = map_v1_variable_name(name);
+      Model::register_variable(var_name, variable);
     }
 
     std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
@@ -113,14 +53,10 @@ namespace ctranslate2 {
       return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "decoder"));
     }
 
-    size_t TransformerModel::version() const {
-      return _version;
-    }
-
 
     ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
       : _embeddings(model.get_variable(scope + "/weight"))
-      , _qscale(model.try_variable(scope + "/weight_scale"))
+      , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _scale(static_cast<float>(sqrt(_embeddings.dim(-1)))) {
     }
 
@@ -199,7 +135,7 @@ namespace ctranslate2 {
 
     Dense::Dense(const TransformerModel& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
-      , _qscale(model.try_variable(scope + "/weight_scale"))
+      , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _bias(model.get_variable(scope + "/bias"))
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_bias.device(), _bias.dtype()) {

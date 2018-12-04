@@ -8,6 +8,10 @@ class TransformerSpec(model_spec.LayerSpec):
         self.encoder = TransformerEncoderSpec(num_layers, fused_projections=fused_projections)
         self.decoder = TransformerDecoderSpec(num_layers, fused_projections=fused_projections)
 
+    @property
+    def revision(self):
+        return 2
+
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers, fused_projections=False):
         self.embeddings = EmbeddingsSpec()

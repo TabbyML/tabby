@@ -3,8 +3,6 @@
 // This file defines the execution engine for a Transformer model trained with OpenNMT-tf
 // and exported with the python/ctranslate/convert_model.py tool.
 
-#include <map>
-
 #include "ctranslate2/ops/ops.h"
 #include "ctranslate2/storage_view.h"
 
@@ -16,15 +14,11 @@ namespace ctranslate2 {
     class TransformerModel : public Model
     {
     public:
-      TransformerModel(const std::string& path, Device device);
-      const StorageView* try_variable(const std::string& scope) const;
-      const StorageView& get_variable(const std::string& scope) const;
+      TransformerModel(const std::string& path, size_t spec_revision, Device device);
+      size_t current_spec_revision() const override;
+      void register_variable(const std::string& name, StorageView& variable) override;
       std::unique_ptr<Encoder> make_encoder() const override;
       std::unique_ptr<Decoder> make_decoder() const override;
-      size_t version() const;
-    private:
-      std::map<std::string, StorageView> _variable_index;
-      size_t _version;
     };
 
     class ScaledEmbeddings
