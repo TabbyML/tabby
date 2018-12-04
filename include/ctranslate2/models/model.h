@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 
 #include "ctranslate2/vocabulary.h"
@@ -23,8 +23,8 @@ namespace ctranslate2 {
       const Vocabulary& get_target_vocabulary() const;
       const VocabularyMap& get_vocabulary_map() const;
 
-      const StorageView* get_variable_if_exists(const std::string& scope) const;
-      const StorageView& get_variable(const std::string& scope) const;
+      const StorageView* get_variable_if_exists(const std::string& name) const;
+      const StorageView& get_variable(const std::string& name) const;
 
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
@@ -42,7 +42,7 @@ namespace ctranslate2 {
       const Vocabulary _source_vocabulary;
       const Vocabulary _target_vocabulary;
       const VocabularyMap _vocabulary_map;
-      std::map<std::string, StorageView> _variable_index;
+      std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
     };
 

@@ -61,17 +61,17 @@ namespace ctranslate2 {
       return _vocabulary_map;
     }
 
-    const StorageView* Model::get_variable_if_exists(const std::string& scope) const {
-      auto it = _variable_index.lower_bound(scope);
-      if (it->first.find(scope) == std::string::npos)
+    const StorageView* Model::get_variable_if_exists(const std::string& name) const {
+      auto it = _variable_index.find(name);
+      if (it == _variable_index.end())
         return nullptr;
       return &it->second;
     }
 
-    const StorageView& Model::get_variable(const std::string& scope) const {
-      const auto* var = get_variable_if_exists(scope);
+    const StorageView& Model::get_variable(const std::string& name) const {
+      const auto* var = get_variable_if_exists(name);
       if (var == nullptr)
-        throw std::out_of_range("no variable found in scope '" + scope + "'");
+        throw std::out_of_range("variable " + name + " not found");
       return *var;
     }
 
