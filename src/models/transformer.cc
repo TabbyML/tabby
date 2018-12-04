@@ -14,6 +14,8 @@ namespace ctranslate2 {
 
     template <typename T>
     T* consume(std::ifstream& in, size_t n) {
+      if (n == 0)
+        return nullptr;
       T* data = new T[n];
       in.read(reinterpret_cast<char*>(data), n * sizeof (T));
       return data;
@@ -70,9 +72,13 @@ namespace ctranslate2 {
         auto data_size = consume<uint32_t>(model);
         auto data = consume<char>(model, data_size * data_width);
 
-        std::vector<size_t> shape(rank);
-        for (unsigned int k = 0; k < rank; k++) {
-          shape[k] = static_cast<size_t>(dimensions[k]);
+        std::vector<size_t> shape(std::max(static_cast<int>(rank), 1));
+        if (rank == 0) {
+          shape[0] = 1;
+        } else {
+          for (unsigned int k = 0; k < rank; k++) {
+            shape[k] = static_cast<size_t>(dimensions[k]);
+          }
         }
 
         _variable_index.emplace(std::piecewise_construct,
@@ -85,11 +91,18 @@ namespace ctranslate2 {
       }
     }
 
-    const StorageView& TransformerModel::get_variable(const std::string& scope) const {
+    const StorageView* TransformerModel::try_variable(const std::string& scope) const {
       auto it = _variable_index.lower_bound(scope);
       if (it->first.find(scope) == std::string::npos)
+        return nullptr;
+      return &it->second;
+    }
+
+    const StorageView& TransformerModel::get_variable(const std::string& scope) const {
+      const auto* var = try_variable(scope);
+      if (var == nullptr)
         throw std::out_of_range("no variable found in scope '" + scope + "'");
-      return it->second;
+      return *var;
     }
 
     std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
@@ -107,13 +120,15 @@ namespace ctranslate2 {
 
     ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
       : _embeddings(model.get_variable(scope + "/weight"))
+      , _qscale(model.try_variable(scope + "/weight_scale"))
       , _scale(static_cast<float>(sqrt(_embeddings.dim(-1)))) {
     }
 
     void ScaledEmbeddings::operator()(const StorageView& ids,
                                       StorageView& output) {
       if (_embeddings.dtype() == DataType::DT_INT16) {
-        static const ops::Unquantize unquantize_op(1000);
+        float scale = _qscale ? _qscale->as_scalar<float>() : 1000;
+        static const ops::Unquantize unquantize_op(scale);
         static thread_local StorageView gathered(_embeddings.dtype());
         _gather_op(_embeddings, ids, gathered);
         unquantize_op(gathered, output);
@@ -184,6 +199,7 @@ namespace ctranslate2 {
 
     Dense::Dense(const TransformerModel& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
+      , _qscale(model.try_variable(scope + "/weight_scale"))
       , _bias(model.get_variable(scope + "/bias"))
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_bias.device(), _bias.dtype()) {
@@ -205,8 +221,9 @@ namespace ctranslate2 {
       if (_weight.dtype() == DataType::DT_FLOAT) {
         gemm_op(input, *weight, *bias, output);
       } else {
-        static const ops::Quantize quantize_op(1000);
-        static const ops::Unquantize unquantize_op(1000 * 1000);
+        float scale = _qscale ? _qscale->as_scalar<float>() : 1000;
+        static const ops::Quantize quantize_op(scale);
+        static const ops::Unquantize unquantize_op(scale * scale);
         static thread_local StorageView quantized_input(_weight.dtype());
         static thread_local StorageView quantized_output(DataType::DT_INT32);
         quantize_op(input, quantized_input);

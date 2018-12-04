@@ -16,7 +16,7 @@ def _join_scope(scope, name):
 
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
-    for name, value in six.iteritems(spec.__dict__):
+    for name, value in list(six.iteritems(spec.__dict__)):
         if isinstance(value, list):
             for i, elem in enumerate(value):
                 visit_spec(elem, fn, scope=_join_scope(scope, "%s_%d" % (name, i)))
@@ -51,8 +51,10 @@ class LayerSpec(object):
         def _quantize(spec, name, value):
             if "weight" in name:
                 if quantization == "int16":
-                    value *= 1000
+                    scale = np.dtype(value.dtype).type(1000)
+                    value *= scale
                     value = value.astype(np.int16)
+                    setattr(spec, "weight_scale", scale)
                     setattr(spec, "weight", value)
         self.visit(_quantize)
 

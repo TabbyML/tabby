@@ -17,6 +17,7 @@ namespace ctranslate2 {
     {
     public:
       TransformerModel(const std::string& path, Device device);
+      const StorageView* try_variable(const std::string& scope) const;
       const StorageView& get_variable(const std::string& scope) const;
       std::unique_ptr<Encoder> make_encoder() const override;
       std::unique_ptr<Decoder> make_decoder() const override;
@@ -34,6 +35,7 @@ namespace ctranslate2 {
     private:
       ops::Gather _gather_op;
       const StorageView& _embeddings;
+      const StorageView* _qscale;
       const StorageView _scale;
     };
 
@@ -56,6 +58,7 @@ namespace ctranslate2 {
                       const StorageView* index = nullptr);
     private:
       const StorageView& _weight;
+      const StorageView* _qscale;
       const StorageView& _bias;
       StorageView _partial_weight;
       StorageView _partial_bias;
