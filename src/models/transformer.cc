@@ -19,6 +19,33 @@ namespace ctranslate2 {
       return data;
     }
 
+    static bool replace(std::string& str, const std::string& from, const std::string& to) {
+      size_t start_pos = str.find(from);
+      if (start_pos == std::string::npos)
+        return false;
+      str.replace(start_pos, from.length(), to);
+      return true;
+    }
+
+    static std::string map_v1_variable_name(std::string name) {
+      // V1 variable names were simply the names defined by OpenNMT-tf.
+      replace(name, "transformer/", "");
+      replace(name, ":0", "");
+      replace(name, "w_embs", "embeddings/weight");
+      replace(name, "kernel", "weight");
+      replace(name, "LayerNorm", "layer_norm");
+      replace(name, "dense", "projection");
+      replace(name, "conv1d_", "linear_");
+      replace(name, "conv1d", "linear_0");
+      if (name.find("encoder") != std::string::npos) {
+        replace(name, "multi_head", "self_attention");
+      } else {
+        replace(name, "masked_multi_head", "self_attention");
+        replace(name, "multi_head", "attention");
+      }
+      return name;
+    }
+
     TransformerModel::TransformerModel(const std::string& path, Device device)
       : Model(path, device) {
       std::string model_path = path + "/model.bin";
@@ -27,13 +54,16 @@ namespace ctranslate2 {
         throw std::runtime_error("failed to load the model " + model_path);
 
       _version = consume<uint32_t>(model);
-      if (_version > 1)
+      if (_version > 2)
         throw std::runtime_error("unsupported model version " + std::to_string(_version));
       auto num_variables = consume<uint32_t>(model);
 
       for (uint32_t i = 0; i < num_variables; ++i) {
         auto name_length = consume<uint16_t>(model);
         auto name = consume<char>(model, name_length);
+        std::string name_str(name);
+        if (_version == 1)
+          name_str = map_v1_variable_name(name_str);
         auto rank = consume<uint8_t>(model);
         auto dimensions = consume<uint32_t>(model, rank);
         auto data_width = consume<uint8_t>(model);
@@ -46,7 +76,7 @@ namespace ctranslate2 {
         }
 
         _variable_index.emplace(std::piecewise_construct,
-                                std::forward_as_tuple(name),
+                                std::forward_as_tuple(name_str),
                                 std::forward_as_tuple(load_data(shape, data_width, data)));
 
         delete [] name;
@@ -63,11 +93,11 @@ namespace ctranslate2 {
     }
 
     std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
-      return std::unique_ptr<Encoder>(new TransformerEncoder(*this, "transformer/encoder"));
+      return std::unique_ptr<Encoder>(new TransformerEncoder(*this, "encoder"));
     }
 
     std::unique_ptr<Decoder> TransformerModel::make_decoder() const {
-      return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "transformer/decoder"));
+      return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "decoder"));
     }
 
     size_t TransformerModel::version() const {
@@ -76,7 +106,7 @@ namespace ctranslate2 {
 
 
     ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
-      : _embeddings(model.get_variable(scope + "/w_embs"))
+      : _embeddings(model.get_variable(scope + "/weight"))
       , _scale(static_cast<float>(sqrt(_embeddings.dim(-1)))) {
     }
 
@@ -96,7 +126,7 @@ namespace ctranslate2 {
 
     PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope) {
       try {
-        encoding = &model.get_variable(scope + "/pe");
+        encoding = &model.get_variable(scope + "/encodings");
       } catch (std::out_of_range&) {
         encoding = nullptr;
       }
@@ -153,7 +183,7 @@ namespace ctranslate2 {
     }
 
     Dense::Dense(const TransformerModel& model, const std::string& scope)
-      : _weight(model.get_variable(scope + "/kernel"))
+      : _weight(model.get_variable(scope + "/weight"))
       , _bias(model.get_variable(scope + "/bias"))
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_bias.device(), _bias.dtype()) {
@@ -203,9 +233,9 @@ namespace ctranslate2 {
 
     TransformerFeedForward::TransformerFeedForward(const TransformerModel& model,
                                                    const std::string& scope)
-      : _layer_norm(model, scope + "/LayerNorm")
-      , _ff1(model, scope + "/conv1d")
-      , _ff2(model, scope + "/conv1d_1") {
+      : _layer_norm(model, scope + "/layer_norm")
+      , _ff1(model, scope + "/linear_0")
+      , _ff2(model, scope + "/linear_1") {
     }
 
     void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) {
@@ -266,11 +296,11 @@ namespace ctranslate2 {
                                            const std::string& scope,
                                            size_t num_heads)
       : _num_heads(num_heads)
-      , _layer_norm(model, scope + "/LayerNorm")
+      , _layer_norm(model, scope + "/layer_norm")
       , _transpose_op({0, 2, 1, 3}) {
       for (size_t i = 0;; ++i) {
         try {
-          _linear.emplace_back(model, scope + "/conv1d" + (i > 0 ? "_" + std::to_string(i) : ""));
+          _linear.emplace_back(model, scope + "/linear_" + std::to_string(i));
         } catch (std::exception&) {
           if (i == 0)
             throw;
@@ -395,7 +425,7 @@ namespace ctranslate2 {
 
     TransformerEncoderLayer::TransformerEncoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/multi_head", 8)
+      : _self_attention(model, scope + "/self_attention", 8)
       , _ff(model, scope + "/ffn") {
     }
 
@@ -410,8 +440,8 @@ namespace ctranslate2 {
 
     TransformerDecoderLayer::TransformerDecoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/masked_multi_head", 8)
-      , _encoder_attention(model, scope + "/multi_head", 8)
+      : _self_attention(model, scope + "/self_attention", 8)
+      , _encoder_attention(model, scope + "/attention", 8)
       , _ff(model, scope + "/ffn") {
     }
 
@@ -433,9 +463,9 @@ namespace ctranslate2 {
 
 
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
-      : _scaled_embeddings(model, scope)
-      , _position_encoder(model, scope)
-      , _output_norm(model, scope + "/LayerNorm") {
+      : _scaled_embeddings(model, scope + "/embeddings")
+      , _position_encoder(model, scope + "/position_encodings")
+      , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
         try {
           _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
@@ -481,10 +511,10 @@ namespace ctranslate2 {
 
 
     TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
-      : _scaled_embeddings(model, scope)
-      , _position_encoder(model, scope)
-      , _output_norm(model, scope + "/LayerNorm")
-      , _proj(model, scope + "/dense") {
+      : _scaled_embeddings(model, scope + "/embeddings")
+      , _position_encoder(model, scope + "/position_encodings")
+      , _output_norm(model, scope + "/layer_norm")
+      , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
         try {
           _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));

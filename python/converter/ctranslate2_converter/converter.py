@@ -9,7 +9,7 @@ import struct
 import numpy as np
 
 
-_BINARY_VERSION = 1
+_BINARY_VERSION = 2
 
 
 @six.add_metaclass(abc.ABCMeta)

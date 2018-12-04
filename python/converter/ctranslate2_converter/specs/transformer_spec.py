@@ -56,8 +56,8 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
 class FeedForwardSpec(model_spec.LayerSpec):
     def __init__(self):
         self.layer_norm = LayerNormSpec()
+        self.linear_0 = LinearSpec()
         self.linear_1 = LinearSpec()
-        self.linear_2 = LinearSpec()
 
 class LayerNormSpec(model_spec.LayerSpec):
     def __init__(self):

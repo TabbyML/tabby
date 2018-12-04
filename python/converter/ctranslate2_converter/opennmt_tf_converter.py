@@ -85,8 +85,8 @@ def set_transformer_decoder_layer(spec, variables, scope):
 
 def set_ffn(spec, variables, scope):
     set_layer_norm(spec.layer_norm, variables, "%s/LayerNorm" % scope)
-    set_linear(spec.linear_1, variables, "%s/conv1d" % scope)
-    set_linear(spec.linear_2, variables, "%s/conv1d_1" % scope)
+    set_linear(spec.linear_0, variables, "%s/conv1d" % scope)
+    set_linear(spec.linear_1, variables, "%s/conv1d_1" % scope)
 
 def set_multi_head_attention(spec, variables, scope, self_attention=False):
     set_layer_norm(spec.layer_norm, variables, "%s/LayerNorm" % scope)
