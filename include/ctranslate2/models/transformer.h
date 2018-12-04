@@ -1,7 +1,6 @@
 #pragma once
 
-// This file defines the execution engine for a Transformer model trained with OpenNMT-tf
-// and exported with the python/ctranslate/convert_model.py tool.
+// This file defines the execution engine for a TransformerSpec model.
 
 #include "ctranslate2/ops/ops.h"
 #include "ctranslate2/storage_view.h"
