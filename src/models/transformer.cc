@@ -272,7 +272,10 @@ namespace ctranslate2 {
         try {
           _linear.emplace_back(model, scope + "/conv1d" + (i > 0 ? "_" + std::to_string(i) : ""));
         } catch (std::exception&) {
-          break;
+          if (i == 0)
+            throw;
+          else
+            break;
         }
       }
       _fused_proj = _linear.size() < 4;
@@ -437,7 +440,10 @@ namespace ctranslate2 {
         try {
           _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
         } catch (std::exception&) {
-          break;
+          if (l == 0)
+            throw;
+          else
+            break;
         }
       }
     }
@@ -483,7 +489,10 @@ namespace ctranslate2 {
         try {
           _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
         } catch (std::exception&) {
-          break;
+          if (l == 0)
+            throw;
+          else
+            break;
         }
       }
       _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
