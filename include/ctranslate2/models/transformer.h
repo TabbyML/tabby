@@ -39,7 +39,7 @@ namespace ctranslate2 {
       void operator()(StorageView& input, size_t index = 0);
     private:
       const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device) const;
-      const StorageView* encoding;
+      const StorageView* _encoding;
     };
 
     class Dense

@@ -75,12 +75,8 @@ namespace ctranslate2 {
     }
 
 
-    PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope) {
-      try {
-        encoding = &model.get_variable(scope + "/encodings");
-      } catch (std::out_of_range&) {
-        encoding = nullptr;
-      }
+    PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope)
+      : _encoding(model.get_variable_if_exists(scope + "/encodings")) {
     }
 
     void PositionEncoder::operator()(StorageView& input, size_t index) {
@@ -97,8 +93,8 @@ namespace ctranslate2 {
     const StorageView& PositionEncoder::get_position_encoding(size_t max_time,
                                                               size_t depth,
                                                               Device device) const {
-      if (encoding)
-        return *encoding;
+      if (_encoding)
+        return *_encoding;
 
       static const size_t default_max_time = 500;
       static thread_local StorageView position_encoding(device);
