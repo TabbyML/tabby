@@ -3,6 +3,7 @@ that do not load a computation graph. The model converter should make sure that
 each required variable of the specification is set.
 """
 
+import struct
 import six
 import numpy as np
 
@@ -65,3 +66,27 @@ class LayerSpec(object):
     def visit(self, fn):
         """Recursively visits this layer and its children."""
         visit_spec(self, fn)
+
+    def serialize(self, path):
+        """Serializes this specification."""
+        variables = self.variables()
+        with open(path, "wb") as model:
+
+            def _write_string(string):
+                model.write(struct.pack("H", len(string) + 1))
+                model.write(six.b(string))
+                model.write(struct.pack('B', 0))
+
+            model.write(struct.pack("I", 2))  # Binary version.
+            _write_string(self.__class__.__name__)
+            model.write(struct.pack("I", self.revision))
+            model.write(struct.pack("I", len(variables)))
+            for name, value in six.iteritems(variables):
+                print("Saving %s %s [%s]" % (name, value.shape, value.dtype))
+                _write_string(name)
+                model.write(struct.pack("B", len(value.shape)))
+                for dim in value.shape:
+                    model.write(struct.pack("I", dim))
+                model.write(struct.pack("B", value.dtype.itemsize))
+                model.write(struct.pack("I", value.size))
+                model.write(value.tobytes())
