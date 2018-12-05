@@ -96,7 +96,7 @@ namespace ctranslate2 {
           swap(variable, variable_cast);
         }
 
-        if (variable.device() != _device) {
+        if (!variable.is_scalar() && variable.device() != _device) {
           // Move variable on device.
           StorageView variable_device = variable.to(_device);
           swap(variable, variable_device);
