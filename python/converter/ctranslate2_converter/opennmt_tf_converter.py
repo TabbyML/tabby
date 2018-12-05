@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from ctranslate2_converter.converter import Converter
-from ctranslate2_converter.specs import transformer_spec
+from ctranslate2_converter.specs import catalog
 
 
 def load_model(model_dir, src_vocab=None, tgt_vocab=None):
@@ -37,27 +37,25 @@ class OpenNMTTFConverter(Converter):
         self._src_vocab = src_vocab
         self._tgt_vocab = tgt_vocab
 
-    def _load(self, model_type):
+    def _load(self, spec_class):
         variables, src_vocab, tgt_vocab = load_model(
             self._model_dir,
             src_vocab=self._src_vocab,
             tgt_vocab=self._tgt_vocab)
-        if model_type == "transformer":
-            spec = make_transformer_spec(variables)
+        if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
+            spec = spec_class(fused_projections=True)
+            set_transformer_spec(spec, variables)
         else:
-            raise ValueError("Unsupported model type %s" % model_type)
+            raise NotImplementedError()
         return spec, src_vocab, tgt_vocab
 
     def _save_vocabulary(self, vocab, destination):
         shutil.copy(vocab, destination)
 
 
-def make_transformer_spec(variables):
-    # TODO: detect number of layers.
-    spec = transformer_spec.TransformerSpec(6, fused_projections=True)
+def set_transformer_spec(spec, variables):
     set_transformer_encoder(spec.encoder, variables)
     set_transformer_decoder(spec.decoder, variables)
-    return spec
 
 def set_transformer_encoder(spec, variables):
     set_layer_norm(spec.layer_norm, variables, "transformer/encoder/LayerNorm")

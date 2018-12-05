@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from ctranslate2_converter.converter import Converter
-from ctranslate2_converter.specs import transformer_spec
+from ctranslate2_converter.specs import catalog
 
 
 class OpenNMTPyConverter(Converter):
@@ -19,26 +19,23 @@ class OpenNMTPyConverter(Converter):
                 output_file.write(word)
                 output_file.write("\n")
 
-    def _load(self, model_type):
+    def _load(self, spec_class):
         checkpoint = torch.load(self._model_path)
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"]["0.bias"]
-        if model_type == "transformer":
-            spec = make_transformer_spec(variables)
+        if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
+            spec = spec_class()
+            set_transformer_spec(spec, variables)
         else:
-            raise ValueError("Unsupported model type %s" % model_type)
+            raise NotImplementedError()
         vocab = checkpoint["vocab"]
         return spec, vocab[0][1], vocab[1][1]
 
 
-
-def make_transformer_spec(variables):
-    # TODO: detect number of layers.
-    spec = transformer_spec.TransformerSpec(6)
+def set_transformer_spec(spec, variables):
     set_transformer_encoder(spec.encoder, variables)
     set_transformer_decoder(spec.decoder, variables)
-    return spec
 
 def set_transformer_encoder(spec, variables):
     set_layer_norm(spec.layer_norm, variables, "encoder.layer_norm")

@@ -30,8 +30,16 @@ namespace ctranslate2 {
       return name;
     }
 
-    TransformerModel::TransformerModel(const std::string& path, size_t spec_revision, Device device)
-      : Model(path, spec_revision, device) {
+    TransformerModel::TransformerModel(const std::string& path,
+                                       size_t spec_revision,
+                                       Device device,
+                                       size_t num_heads)
+      : Model(path, spec_revision, device)
+      , _num_heads(num_heads) {
+    }
+
+    size_t TransformerModel::num_heads() const {
+      return _num_heads;
     }
 
     size_t TransformerModel::current_spec_revision() const {
@@ -51,6 +59,19 @@ namespace ctranslate2 {
 
     std::unique_ptr<Decoder> TransformerModel::make_decoder() const {
       return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "decoder"));
+    }
+
+
+    TransformerBaseModel::TransformerBaseModel(const std::string& path,
+                                               size_t spec_revision,
+                                               Device device)
+      : TransformerModel(path, spec_revision, device, 8) {
+    }
+
+    TransformerBigModel::TransformerBigModel(const std::string& path,
+                                             size_t spec_revision,
+                                             Device device)
+      : TransformerModel(path, spec_revision, device, 16) {
     }
 
 
@@ -241,10 +262,8 @@ namespace ctranslate2 {
     }
 
 
-    MultiHeadAttention::MultiHeadAttention(const TransformerModel& model,
-                                           const std::string& scope,
-                                           size_t num_heads)
-      : _num_heads(num_heads)
+    MultiHeadAttention::MultiHeadAttention(const TransformerModel& model, const std::string& scope)
+      : _num_heads(model.num_heads())
       , _layer_norm(model, scope + "/layer_norm")
       , _transpose_op({0, 2, 1, 3}) {
       for (size_t i = 0;; ++i) {
@@ -374,7 +393,7 @@ namespace ctranslate2 {
 
     TransformerEncoderLayer::TransformerEncoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/self_attention", 8)
+      : _self_attention(model, scope + "/self_attention")
       , _ff(model, scope + "/ffn") {
     }
 
@@ -389,8 +408,8 @@ namespace ctranslate2 {
 
     TransformerDecoderLayer::TransformerDecoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/self_attention", 8)
-      , _encoder_attention(model, scope + "/attention", 8)
+      : _self_attention(model, scope + "/self_attention")
+      , _encoder_attention(model, scope + "/attention")
       , _ff(model, scope + "/ffn") {
     }
 

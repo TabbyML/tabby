@@ -13,11 +13,27 @@ namespace ctranslate2 {
     class TransformerModel : public Model
     {
     public:
-      TransformerModel(const std::string& path, size_t spec_revision, Device device);
+      TransformerModel(const std::string& path,
+                       size_t spec_revision,
+                       Device device,
+                       size_t num_heads);
+      size_t num_heads() const;
       size_t current_spec_revision() const override;
       void register_variable(const std::string& name, StorageView& variable) override;
       std::unique_ptr<Encoder> make_encoder() const override;
       std::unique_ptr<Decoder> make_decoder() const override;
+    protected:
+      size_t _num_heads;
+    };
+
+    class TransformerBaseModel : public TransformerModel {
+    public:
+      TransformerBaseModel(const std::string& path, size_t spec_revision, Device device);
+    };
+
+    class TransformerBigModel : public TransformerModel {
+    public:
+      TransformerBigModel(const std::string& path, size_t spec_revision, Device device);
     };
 
     class ScaledEmbeddings
@@ -92,9 +108,7 @@ namespace ctranslate2 {
     class MultiHeadAttention
     {
     public:
-      MultiHeadAttention(const TransformerModel& model,
-                         const std::string& scope,
-                         size_t num_heads);
+      MultiHeadAttention(const TransformerModel& model, const std::string& scope);
       void operator()(const StorageView& queries,
                       const StorageView* memory,
                       const StorageView* memory_lengths,

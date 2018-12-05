@@ -129,13 +129,14 @@ namespace ctranslate2 {
         spec = consume_string(model_file);
         spec_revision = consume<uint32_t>(model_file);
       } else {
-        spec = "TransformerSpec";
         spec_revision = 1;
       }
 
       Model* model = nullptr;
-      if (spec == "TransformerSpec")
-        model = new TransformerModel(path, spec_revision, device);
+      if (spec.empty() || spec == "TransformerBase")
+        model = new TransformerBaseModel(path, spec_revision, device);
+      else if (spec == "TransformerBig")
+        model = new TransformerBigModel(path, spec_revision, device);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
 
