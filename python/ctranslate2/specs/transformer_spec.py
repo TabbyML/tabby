@@ -1,6 +1,6 @@
 """Declares specification of the Transformer model."""
 
-from ctranslate2_converter.specs import model_spec
+from ctranslate2.specs import model_spec
 
 
 class TransformerSpec(model_spec.LayerSpec):

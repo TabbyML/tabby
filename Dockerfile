@@ -41,14 +41,14 @@ RUN mkdir build && \
     VERBOSE=1 make -j4 && \
     make install
 
-WORKDIR /root/ctranslate2-dev/python/translator
+WORKDIR /root/ctranslate2-dev/python
 RUN pip --no-cache-dir install setuptools wheel
 RUN CFLAGS="-DWITH_MKL=ON" CTRANSLATE_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp /root/ctranslate2-dev/python/translator/dist/*whl /root/ctranslate2
+    cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM ubuntu:16.04
 

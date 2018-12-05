@@ -6,7 +6,7 @@ import os
 import shutil
 import six
 
-from ctranslate2_converter.specs import catalog
+from ctranslate2.specs import catalog
 
 
 def _list_specs():

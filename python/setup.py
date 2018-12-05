@@ -1,6 +1,6 @@
 import os
 
-from setuptools import setup, Extension
+from setuptools import setup, find_packages, Extension
 
 
 include_dirs = []
@@ -26,7 +26,7 @@ ctranslate2_module = Extension(
 setup(
     name="ctranslate2",
     version="0.1.0",
-    packages=["ctranslate2"],
+    packages=find_packages(),
     ext_modules=[ctranslate2_module],
     install_requires=[]
 )

@@ -1,6 +1,6 @@
 """Catalog of model specifications."""
 
-from ctranslate2_converter.specs import transformer_spec
+from ctranslate2.specs import transformer_spec
 
 
 class TransformerBase(transformer_spec.TransformerSpec):

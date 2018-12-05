@@ -5,8 +5,8 @@ import six
 import numpy as np
 import tensorflow as tf
 
-from ctranslate2_converter.converter import Converter
-from ctranslate2_converter.specs import catalog
+from ctranslate2.converters.converter import Converter
+from ctranslate2.specs import catalog
 
 
 def load_model(model_dir, src_vocab=None, tgt_vocab=None):
@@ -108,7 +108,7 @@ def set_embeddings(spec, variables, scope):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--model_dir", required=True,
-                        help="Model directory.")
+                        help="Model directory (a checkpoint directory or a SavedModel bundle).")
     parser.add_argument("--src_vocab", default=None,
                         help="Source vocabulary file (required if converting a checkpoint).")
     parser.add_argument("--tgt_vocab", default=None,

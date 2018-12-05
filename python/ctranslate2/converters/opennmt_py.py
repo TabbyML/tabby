@@ -2,8 +2,8 @@ import argparse
 import torch
 import numpy as np
 
-from ctranslate2_converter.converter import Converter
-from ctranslate2_converter.specs import catalog
+from ctranslate2.converters.converter import Converter
+from ctranslate2.specs import catalog
 
 
 class OpenNMTPyConverter(Converter):
