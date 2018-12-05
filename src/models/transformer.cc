@@ -84,11 +84,9 @@ namespace ctranslate2 {
     void ScaledEmbeddings::operator()(const StorageView& ids,
                                       StorageView& output) {
       if (_embeddings.dtype() == DataType::DT_INT16) {
-        float scale = _qscale ? _qscale->as_scalar<float>() : 1000;
-        static const ops::Unquantize unquantize_op(scale);
         static thread_local StorageView gathered(_embeddings.dtype());
         _gather_op(_embeddings, ids, gathered);
-        unquantize_op(gathered, output);
+        ops::Unquantize()(gathered, *_qscale, output);
       } else {
         _gather_op(_embeddings, ids, output);
       }
@@ -174,14 +172,12 @@ namespace ctranslate2 {
       if (_weight.dtype() == DataType::DT_FLOAT) {
         gemm_op(input, *weight, *bias, output);
       } else {
-        float scale = _qscale ? _qscale->as_scalar<float>() : 1000;
-        static const ops::Quantize quantize_op(scale);
-        static const ops::Unquantize unquantize_op(scale * scale);
         static thread_local StorageView quantized_input(_weight.dtype());
         static thread_local StorageView quantized_output(DataType::DT_INT32);
-        quantize_op(input, quantized_input);
+        StorageView squared_scale(_qscale->as_scalar<float>() * _qscale->as_scalar<float>());
+        ops::Quantize()(input, *_qscale, quantized_input);
         gemm_op(quantized_input, *weight, *bias, quantized_output);
-        unquantize_op(quantized_output, output);
+        ops::Unquantize()(quantized_output, squared_scale, output);
       }
 
       DEVICE_DISPATCH(output.device(),

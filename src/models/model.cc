@@ -87,13 +87,22 @@ namespace ctranslate2 {
         const auto& name = pair.first;
         auto& variable = pair.second;
 
-        // Cast int16 back to float on GPU or when AVX2 is not supported.
-        if (variable.dtype() == DataType::DT_INT16 && (_device == Device::CUDA || !support_avx2())) {
-          const auto* scale = get_variable_if_exists(name + "_scale");
-          const ops::Unquantize unquantize_op(scale ? scale->as_scalar<float>() : 1000);
-          StorageView variable_cast;
-          unquantize_op(variable, variable_cast);
-          swap(variable, variable_cast);
+        if (variable.dtype() == DataType::DT_INT16) {
+          std::string scale_name = name + "_scale";
+          const auto* scale = get_variable_if_exists(scale_name);
+          if (scale == nullptr) {
+            // Compatibility with models without a saved scale.
+            StorageView compat_scale(static_cast<float>(1000));
+            Model::register_variable(scale_name, compat_scale);
+            scale = get_variable_if_exists(scale_name);
+          }
+
+          // Cast int16 back to float on GPU or when AVX2 is not supported.
+          if (_device == Device::CUDA || !support_avx2()) {
+            StorageView variable_cast;
+            ops::Unquantize()(variable, *scale, variable_cast);
+            swap(variable, variable_cast);
+          }
         }
 
         if (!variable.is_scalar() && variable.device() != _device) {

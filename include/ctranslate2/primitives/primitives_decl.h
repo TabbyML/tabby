@@ -101,10 +101,10 @@ namespace ctranslate2 {
     static void inv(const T* x, T* y, size_t size);
 
     template <typename In, typename Out>
-    static void quantize(const In* x, Out* y, size_t size, In scale, In shift);
+    static void quantize(const In* x, Out* y, size_t size, In scale);
 
     template <typename In, typename Out>
-    static void unquantize(const In* x, Out* y, size_t size, Out scale, Out shift);
+    static void unquantize(const In* x, Out* y, size_t size, Out scale);
 
     template <typename T>
     static void relu(const T* x, T* y, size_t size);

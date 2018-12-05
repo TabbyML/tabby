@@ -42,17 +42,14 @@ TEST(OpTest, GemmInt16) {
 };
 
 TEST(OpTest, Quantize) {
-  const float scale = 100;
-  const float shift = 5;
+  const StorageView scale(static_cast<float>(100));
   StorageView input({4}, std::vector<float>{0.1f, -0.5f, 2.0f, 0.0f});
-  StorageView expected({4}, std::vector<int16_t>{15, -45, 205, 5});
+  StorageView expected({4}, std::vector<int16_t>{10, -50, 200, 0});
   StorageView output(expected.dtype());
   StorageView reverse(input.dtype());
-  ops::Quantize quantize_op(scale, shift);
-  ops::Unquantize unquantize_op(scale, shift);
-  quantize_op(input, output);
+  ops::Quantize()(input, scale, output);
   expect_storage_eq(output, expected);
-  unquantize_op(output, reverse);
+  ops::Unquantize()(output, scale, reverse);
   expect_storage_eq(reverse, input);
 }
 

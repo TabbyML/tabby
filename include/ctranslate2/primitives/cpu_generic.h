@@ -122,17 +122,17 @@ namespace ctranslate2 {
 
   template<>
   template <typename In, typename Out>
-  void primitives<Device::CPU>::quantize(const In* x, Out* y, size_t size, In scale, In shift) {
-    unary_transform(x, y, size, [&scale, &shift](const In& v) {
-      return static_cast<Out>(v * scale + shift);
+  void primitives<Device::CPU>::quantize(const In* x, Out* y, size_t size, In scale) {
+    unary_transform(x, y, size, [&scale](const In& v) {
+      return static_cast<Out>(v * scale);
     });
   }
 
   template<>
   template <typename In, typename Out>
-  void primitives<Device::CPU>::unquantize(const In* x, Out* y, size_t size, Out scale, Out shift) {
-    unary_transform(x, y, size, [&scale, &shift](const In& v) {
-      return (static_cast<Out>(v) - shift) / scale;
+  void primitives<Device::CPU>::unquantize(const In* x, Out* y, size_t size, Out scale) {
+    unary_transform(x, y, size, [&scale](const In& v) {
+      return static_cast<Out>(v) / scale;
     });
   }
 
