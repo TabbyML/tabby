@@ -82,31 +82,43 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
-    }
+      // Finalize variables: possibly cast to a supported type and move to the target device.
+      for (auto& pair : _variable_index) {
+        const auto& name = pair.first;
+        auto& variable = pair.second;
 
-    static StorageView load_storage(void* data,
-                                    size_t data_width,
-                                    const Shape& shape,
-                                    Device device) {
-      if (data_width == 4) {
-        return StorageView(shape, reinterpret_cast<float*>(data)).to(device);
-      } else if (data_width == 2) {
-        StorageView s_data(shape, reinterpret_cast<int16_t*>(data));
-#ifdef WITH_MKL
-        if (device == Device::CPU && support_avx2())
-          return s_data.to(Device::CPU);
-        else
-#endif
-        {
-          // int16 GEMM is not optimized prior AVX2 so fallback to float.
-          static const ops::Unquantize unquantize_op(1000);
-          StorageView s_data_cast;
-          unquantize_op(s_data, s_data_cast);
-          return s_data_cast.to(device);
+        // Cast int16 back to float on GPU or when AVX2 is not supported.
+        if (variable.dtype() == DataType::DT_INT16 && (_device == Device::CUDA || !support_avx2())) {
+          const auto* scale = get_variable_if_exists(name + "_scale");
+          const ops::Unquantize unquantize_op(scale ? scale->as_scalar<float>() : 1000);
+          StorageView variable_cast;
+          unquantize_op(variable, variable_cast);
+          swap(variable, variable_cast);
+        }
+
+        if (variable.device() != _device) {
+          // Move variable on device.
+          StorageView variable_device = variable.to(_device);
+          swap(variable, variable_device);
         }
       }
+    }
 
-      throw std::runtime_error("unsupported data type");
+    static StorageView load_storage(void* data, size_t data_width, const Shape& shape) {
+      std::unique_ptr<StorageView> view;  // No copy view.
+
+      if (data_width == 4) {
+        view.reset(new StorageView(shape, reinterpret_cast<float*>(data)));
+      } else if (data_width == 2) {
+        view.reset(new StorageView(shape, reinterpret_cast<int16_t*>(data)));
+      } else if (data_width == 1) {
+        view.reset(new StorageView(shape, reinterpret_cast<int8_t*>(data)));
+      } else {
+        throw std::runtime_error("unsupported data type");
+      }
+
+      // Return a copy so that the storage owns and aligns the data.
+      return StorageView(*view);
     }
 
     std::shared_ptr<Model> ModelFactory::load(const std::string& path, Device device) {
@@ -165,7 +177,7 @@ namespace ctranslate2 {
           }
         }
 
-        auto storage = load_storage(data, data_width, shape, device);
+        auto storage = load_storage(data, data_width, shape);
         model->register_variable(name, storage);
 
         delete [] dimensions;
