@@ -151,7 +151,7 @@ namespace ctranslate2 {
     static void gemm(const In* a, const In* b,
                      bool transpose_a, bool transpose_b,
                      size_t m, size_t n, size_t k,
-                     In alpha, Out beta,
+                     float alpha, float beta,
                      Out* c);
 
     template <typename In, typename Out>

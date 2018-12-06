@@ -61,7 +61,7 @@ namespace ctranslate2 {
         primitives<D>::gemm(a.data<In>(), b.data<In>(),
                             _trans_a, _trans_b,
                             m, n, k,
-                            static_cast<In>(_alpha), static_cast<Out>(_beta),
+                            _alpha, _beta,
                             y.data<Out>());
       }
 

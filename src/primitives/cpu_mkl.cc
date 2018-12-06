@@ -117,7 +117,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::gemm(const int16_t* a, const int16_t* b,
                                      bool transpose_a, bool transpose_b,
                                      size_t m, size_t n, size_t k,
-                                     int16_t alpha, int32_t beta,
+                                     float alpha, float beta,
                                      int32_t* c) {
     MKL_INT lda = transpose_a ? m : k;
     MKL_INT ldb = transpose_b ? k : n;
@@ -138,10 +138,10 @@ namespace ctranslate2 {
     cblas_gemm_s16s16s32(CblasRowMajor,
                          trans_a, trans_b,
                          offsetc, m_, n_, k_,
-                         static_cast<float>(alpha),
+                         alpha,
                          reinterpret_cast<const MKL_INT16*>(a), lda, oa,
                          reinterpret_cast<const MKL_INT16*>(b), ldb, ob,
-                         static_cast<float>(beta),
+                         beta,
                          reinterpret_cast<MKL_INT32*>(c), ldc, &oc);
   }
 
