@@ -1,5 +1,7 @@
 #include "ctranslate2/storage_view.h"
 
+#define PRINT_MAX_VALUES 6
+
 namespace ctranslate2 {
 
   StorageView::StorageView(DataType type, Device device)
@@ -228,24 +230,33 @@ namespace ctranslate2 {
     return strides;
   }
 
+  template <typename T>
+  std::ostream& print_value(std::ostream& os, const T& val) {
+    os << val;
+    return os;
+  }
+
+  template<>
+  std::ostream& print_value(std::ostream& os, const int8_t& val) {
+    os << static_cast<int32_t>(val);
+    return os;
+  }
+
   std::ostream& operator<<(std::ostream& os, const StorageView& storage) {
     StorageView printable(storage.dtype());
     printable.copy_from(storage);
     TYPE_DISPATCH(
       printable.dtype(),
-      // Do not spam output stream for large storages.
-      if (printable.size() < 7) {
-        for (size_t i = 0; i < printable.size(); ++i) {
-          os << ' ' << printable.data<T>()[i];
-        }
-      } else {
-        os << " " << printable.data<T>()[0]
-           << " " << printable.data<T>()[1]
-           << " " << printable.data<T>()[2]
-           << " ..."
-           << " " << printable.data<T>()[printable.size() - 3]
-           << " " << printable.data<T>()[printable.size() - 2]
-           << " " << printable.data<T>()[printable.size() - 1];
+      const auto* values = printable.data<T>();
+      for (size_t i = 0; i < PRINT_MAX_VALUES / 2; ++i) {
+        os << ' ';
+        print_value(os, values[i]);
+      }
+      if (printable.size() > PRINT_MAX_VALUES)
+        os << " ...";
+      for (size_t i = printable.size() - (PRINT_MAX_VALUES / 2); i < printable.size(); ++i) {
+        os << ' ';
+        print_value(os, values[i]);
       }
       os << std::endl);
     os << "[" << device_to_str(storage.device())
