@@ -283,6 +283,36 @@ namespace ctranslate2 {
 
   template<>
   template<>
+  void primitives<Device::CUDA>::gemm(const int8_t* a, const int8_t* b,
+                                      bool transpose_a, bool transpose_b,
+                                      size_t m, size_t n, size_t k,
+                                      float alpha, float beta,
+                                      int32_t* c) {
+    const int lda = transpose_a ? m : k;
+    const int ldb = transpose_b ? k : n;
+    const int ldc = n;
+
+    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
+    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
+
+    int32_t alpha_i = alpha;
+    int32_t beta_i = beta;
+
+    // cuBLAS assumes column-major storage, so swap a and b accordingly.
+    CUBLAS_CHECK(cublasGemmEx(cuda::get_cublas_handle(),
+                              transb, transa,
+                              n, m, k,
+                              &alpha_i,
+                              b, CUDA_R_8I, ldb,
+                              a, CUDA_R_8I, lda,
+                              &beta_i,
+                              c, CUDA_R_32I, ldc,
+                              CUDA_R_32I,
+                              CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+  }
+
+  template<>
+  template<>
   void primitives<Device::CUDA>::gemm_batch(const float* a, const float* b,
                                             bool transpose_a, bool transpose_b,
                                             size_t batch_size,
