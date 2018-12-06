@@ -97,6 +97,11 @@ int main(int argc, char* argv[]) {
                                                       vm["with_score"].as<bool>());
   auto t2 = std::chrono::high_resolution_clock::now();
 
+  if (in != &std::cin)
+    delete in;
+  if (out != &std::cout)
+    delete out;
+
   if (vm["log_throughput"].as<bool>()) {
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
     std::cerr << static_cast<double>(num_tokens) / static_cast<double>(duration / 1000) << std::endl;
