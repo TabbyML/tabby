@@ -21,27 +21,34 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
-COPY . ctranslate2-dev
-
-WORKDIR /root/ctranslate2-dev
-
 ENV MKL_VERSION=2019.1
-RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
-    cd l_mkl_${MKL_VERSION}.* && \
+COPY deps/l_mkl_${MKL_VERSION}.*.tgz .
+RUN tar xf l_mkl_*.tgz && \
+    cd l_mkl_* && \
     sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
     sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
     ./install.sh -s silent.cfg && \
     cd .. && \
-    rm -r l_mkl_${MKL_VERSION}.*
+    rm -r l_mkl_*
 
 ENV TENSORRT_VERSION=5.0
 ENV TENSORRT_CUDA_VERSION=10.0
-RUN tar xf deps/TensorRT-${TENSORRT_VERSION}.*cuda-${TENSORRT_CUDA_VERSION}*.tar.gz && \
-    cd TensorRT-${TENSORRT_VERSION}.* && \
+COPY deps/TensorRT-${TENSORRT_VERSION}.*cuda-${TENSORRT_CUDA_VERSION}*.tar.gz .
+RUN tar xf TensorRT-*.tar.gz && \
+    cd TensorRT-* && \
     cp -P lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
     cp include/* /usr/include/x86_64-linux-gnu/ && \
     cd .. && \
-    rm -r TensorRT-${TENSORRT_VERSION}.*
+    rm -r TensorRT-*
+
+WORKDIR /root/ctranslate2-dev
+
+COPY mkl_symbol_list .
+COPY cli cli
+COPY include include
+COPY src src
+COPY tests tests
+COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
@@ -57,6 +64,8 @@ RUN mkdir build && \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 && \
     make install
+
+COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN pip --no-cache-dir install setuptools wheel

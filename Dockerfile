@@ -18,18 +18,24 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
-COPY . ctranslate2-dev
-
-WORKDIR /root/ctranslate2-dev
-
 ENV MKL_VERSION=2019.1
-RUN tar xf deps/l_mkl_${MKL_VERSION}.*.tgz && \
-    cd l_mkl_${MKL_VERSION}.* && \
+COPY deps/l_mkl_${MKL_VERSION}.*.tgz .
+RUN tar xf l_mkl_*.tgz && \
+    cd l_mkl_* && \
     sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
     sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
     ./install.sh -s silent.cfg && \
     cd .. && \
-    rm -r l_mkl_${MKL_VERSION}.*
+    rm -r l_mkl_*
+
+WORKDIR /root/ctranslate2-dev
+
+COPY mkl_symbol_list .
+COPY cli cli
+COPY include include
+COPY src src
+COPY tests tests
+COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
@@ -40,6 +46,8 @@ RUN mkdir build && \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
+
+COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN pip --no-cache-dir install setuptools wheel
