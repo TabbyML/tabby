@@ -18,8 +18,8 @@ def load_model(model_dir, src_vocab=None, tgt_vocab=None):
             variables = sess.run(
                 {variable.op.name:variable for variable in tf.trainable_variables()})
             assets = sess.run(tf.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
-        src_vocab = os.path.join(model_dir, "assets", os.path.basename(assets[0]))
-        tgt_vocab = os.path.join(model_dir, "assets", os.path.basename(assets[1]))
+        src_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[0]))
+        tgt_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[1]))
     else:
         if src_vocab is None or tgt_vocab is None:
             raise ValueError("vocabularies must be passed as argument when converting checkpoint")
