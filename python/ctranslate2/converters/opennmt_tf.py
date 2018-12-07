@@ -12,7 +12,8 @@ from ctranslate2.specs import catalog
 def load_model(model_dir, src_vocab=None, tgt_vocab=None):
     """Loads variables and vocabularies from a TensorFlow checkpoint or SavedModel."""
     if tf.saved_model.maybe_saved_model_directory(model_dir):
-        with tf.Session() as sess:
+        config = tf.ConfigProto(device_count={'GPU': 0})
+        with tf.Session(config=config) as sess:
             meta_graph = tf.saved_model.loader.load(sess, ["serve"], model_dir)
             variables = sess.run(
                 {variable.op.name:variable for variable in tf.trainable_variables()})
