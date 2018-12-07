@@ -85,7 +85,7 @@ class LayerSpec(object):
             _write_string(self.__class__.__name__)
             model.write(struct.pack("I", self.revision))
             model.write(struct.pack("I", len(variables)))
-            for name, value in six.iteritems(variables):
+            for name, value in sorted(six.iteritems(variables), key=lambda x: x[0]):
                 print("Saving %s %s [%s]" % (name, value.shape, value.dtype))
                 _write_string(name)
                 model.write(struct.pack("B", len(value.shape)))
