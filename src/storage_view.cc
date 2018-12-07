@@ -248,7 +248,7 @@ namespace ctranslate2 {
     TYPE_DISPATCH(
       printable.dtype(),
       const auto* values = printable.data<T>();
-      for (size_t i = 0; i < PRINT_MAX_VALUES / 2; ++i) {
+      for (size_t i = 0; i < PRINT_MAX_VALUES / 2 && i < printable.size(); ++i) {
         os << ' ';
         print_value(os, values[i]);
       }
