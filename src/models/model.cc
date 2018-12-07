@@ -82,6 +82,12 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
+      // If not supported or optimized, promote int16 variables back to float32.
+      bool support_int16 = false;
+#ifdef WITH_MKL
+      support_int16 = _device == Device::CPU && support_avx2();
+#endif
+
       // Finalize variables: possibly cast to a supported type and move to the target device.
       for (auto& pair : _variable_index) {
         const auto& name = pair.first;
@@ -97,8 +103,7 @@ namespace ctranslate2 {
             scale = get_variable_if_exists(scale_name);
           }
 
-          // Cast int16 back to float on GPU or when AVX2 is not supported.
-          if (_device == Device::CUDA || !support_avx2()) {
+          if (!support_int16) {
             StorageView variable_cast;
             ops::Unquantize()(variable, *scale, variable_cast);
             swap(variable, variable_cast);
