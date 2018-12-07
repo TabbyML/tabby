@@ -59,8 +59,12 @@ class LayerSpec(object):
                     scale = np.dtype(value.dtype).type(1000)
                     value *= scale
                     value = value.astype(np.int16)
-                    setattr(spec, "weight_scale", scale)
-                    setattr(spec, "weight", value)
+                elif quantization == "int8":
+                    scale = 127.0 / np.amax(np.absolute(value), axis=1)
+                    value *= np.expand_dims(scale, 1)
+                    value = value.astype(np.int8)
+                setattr(spec, "weight_scale", scale)
+                setattr(spec, "weight", value)
         self.visit(_quantize)
 
     def visit(self, fn):

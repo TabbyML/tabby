@@ -82,36 +82,64 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
-      // If not supported or optimized, promote int16 variables back to float32.
+      bool support_int8 = false;
       bool support_int16 = false;
 #ifdef WITH_MKL
       support_int16 = _device == Device::CPU && support_avx2();
 #endif
 
-      // Finalize variables: possibly cast to a supported type and move to the target device.
+      static const StorageView default_int16_scale(static_cast<float>(1000));
+      std::vector<std::string> variables_to_remove;
+
+      // First pass to possibly cast to a supported type.
       for (auto& pair : _variable_index) {
         const auto& name = pair.first;
         auto& variable = pair.second;
 
-        if (variable.dtype() == DataType::DT_INT16) {
+        bool is_int8 = variable.dtype() == DataType::DT_INT8;
+        bool is_int16 = variable.dtype() == DataType::DT_INT16;
+
+        if (is_int8 || is_int16) {
+          StorageView* scale = nullptr;
           std::string scale_name = name + "_scale";
-          const auto* scale = get_variable_if_exists(scale_name);
-          if (scale == nullptr) {
-            // Compatibility with models without a saved scale.
-            StorageView compat_scale(static_cast<float>(1000));
+          auto scale_it = _variable_index.find(scale_name);
+          if (scale_it != _variable_index.end())
+            scale = &scale_it->second;
+
+          // Compatibility with int16 models without a saved scale.
+          if (is_int16 && scale == nullptr) {
+            StorageView compat_scale(default_int16_scale);
             Model::register_variable(scale_name, compat_scale);
-            scale = get_variable_if_exists(scale_name);
+            scale = &_variable_index.at(scale_name);
           }
 
-          if (!support_int16) {
-            StorageView variable_cast;
-            ops::Unquantize()(variable, *scale, variable_cast);
-            swap(variable, variable_cast);
+          // If quantized variables are not supported, fallback to float32.
+          if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
+            StorageView variable_float;
+            ops::Unquantize()(variable, *scale, variable_float);
+            swap(variable, variable_float);
+
+            // However, if int16 is supported and we came from int8, quantize to int16.
+            if (is_int8 && support_int16) {
+              *scale = default_int16_scale;
+              StorageView variable_int16(DataType::DT_INT16);
+              ops::Quantize()(variable, *scale, variable_int16);
+              swap(variable, variable_int16);
+            } else {
+              variables_to_remove.emplace_back(std::move(scale_name));
+            }
           }
         }
+      }
 
+      // Remove no longer needed variables.
+      for (const auto& name : variables_to_remove)
+        _variable_index.erase(name);
+
+      // Second pass to move variables on the target device.
+      for (auto& pair : _variable_index) {
+        auto& variable = pair.second;
         if (!variable.is_scalar() && variable.device() != _device) {
-          // Move variable on device.
           StorageView variable_device = variable.to(_device);
           swap(variable, variable_device);
         }
