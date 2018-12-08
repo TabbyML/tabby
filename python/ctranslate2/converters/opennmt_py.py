@@ -13,14 +13,14 @@ class OpenNMTPyConverter(Converter):
         self._model_path = model_path
 
     def _save_vocabulary(self, vocab, output_path):
-        with open(output_path, "w") as output_file:
+        with open(output_path, "wb") as output_file:
             for word in vocab.itos:
                 word = word.encode("utf-8")
                 output_file.write(word)
-                output_file.write("\n")
+                output_file.write(b"\n")
 
     def _load(self, spec_class):
-        checkpoint = torch.load(self._model_path)
+        checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"]["0.bias"]
@@ -95,7 +95,7 @@ def set_position_encodings(spec, variables, scope):
 
 
 def _get_variable(variables, name):
-    return variables[name].cpu().numpy()
+    return variables[name].numpy()
 
 
 
