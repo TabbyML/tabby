@@ -20,10 +20,12 @@ namespace ctranslate2 {
                       const StorageView& c,
                       StorageView& y) const {
         switch (a.dtype()) {
+#ifdef WITH_CUDA
         case DataType::DT_INT8:
           if (a.device() != Device::CUDA)
             throw std::invalid_argument("INT8 GEMM is only supported on CUDA");
           return compute<Device::CUDA, int8_t, int32_t>(a, b, c, y);
+#endif
         case DataType::DT_INT16:
           if (a.device() != Device::CPU)
             throw std::invalid_argument("INT16 GEMM is only supported on CPU");
