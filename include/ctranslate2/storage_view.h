@@ -130,7 +130,7 @@ namespace ctranslate2 {
       assert_dtype(DataTypeToEnum<T>::value);
       size_t offset = 0;
       for (size_t i = 0; i < indices.size(); ++i)
-        offset += indices[i] * _strides[i];
+        offset += indices[i] * stride(i);
       if (offset >= _size)
         throw std::invalid_argument("index: computed index is out of bounds");
       return data<T>() + offset;
@@ -222,11 +222,9 @@ namespace ctranslate2 {
     size_t _allocated_size = 0;
     size_t _size = 0;
     Shape _shape;
-    std::vector<size_t> _strides;
 
     static size_t size(const Shape& shape);
     static size_t stride(const Shape& shape, size_t dim);
-    static std::vector<size_t> strides(const Shape& shape);
 
   };
 

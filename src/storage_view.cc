@@ -74,7 +74,6 @@ namespace ctranslate2 {
   StorageView& StorageView::clear() {
     _size = 0;
     _shape.clear();
-    _strides.clear();
     return *this;
   }
 
@@ -116,7 +115,7 @@ namespace ctranslate2 {
   size_t StorageView::stride(ssize_t dim) const {
     if (dim < 0)
       dim = _shape.size() + dim;
-    return _strides[dim];
+    return stride(_shape, dim);
   }
 
   size_t StorageView::size() const {
@@ -135,7 +134,6 @@ namespace ctranslate2 {
     if (_size != size(new_shape))
       throw std::invalid_argument("reshape: new shape is incompatible with current size");
     _shape = new_shape;
-    _strides = strides(new_shape);
     return *this;
   }
 
@@ -220,15 +218,6 @@ namespace ctranslate2 {
     return stride;
   }
 
-  std::vector<size_t> StorageView::strides(const Shape& shape) {
-    if (shape.empty())
-      return std::vector<size_t>();
-    std::vector<size_t> strides(shape.size(), 1);
-    for (size_t d = 0; d < strides.size() - 1; ++d)
-      strides[d] = stride(shape, d);
-    return strides;
-  }
-
   template <typename T>
   std::ostream& print_value(std::ostream& os, const T& val) {
     os << val;
@@ -277,7 +266,6 @@ namespace ctranslate2 {
     std::swap(a._allocated_size, b._allocated_size);
     std::swap(a._size, b._size);
     std::swap(a._shape, b._shape);
-    std::swap(a._strides, b._strides);
   }
 
 }
