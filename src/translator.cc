@@ -88,7 +88,7 @@ namespace ctranslate2 {
                       encoded,
                       lengths,
                       end_token,
-                      options.max_decoding_steps,
+                      options.max_decoding_length,
                       options.min_decoding_length,
                       sampled_ids,
                       scores);
@@ -99,7 +99,7 @@ namespace ctranslate2 {
                   encoded,
                   lengths,
                   end_token,
-                  options.max_decoding_steps,
+                  options.max_decoding_length,
                   options.min_decoding_length,
                   options.beam_size,
                   options.num_hypotheses,

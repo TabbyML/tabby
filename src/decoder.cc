@@ -119,8 +119,8 @@ namespace ctranslate2 {
                    const StorageView& memory,
                    const StorageView& memory_lengths,
                    size_t end_token,
-                   size_t max_steps,
-                   size_t min_steps,
+                   size_t max_length,
+                   size_t min_length,
                    size_t beam_size,
                    size_t num_hypotheses,
                    float length_penalty,
@@ -168,7 +168,7 @@ namespace ctranslate2 {
     static thread_local StorageView topk_log_probs_device(device);
     static thread_local StorageView gather_indices_device(device, DataType::DT_INT32);
 
-    for (size_t step = 0; step < max_steps; ++step) {
+    for (size_t step = 0; step < max_length; ++step) {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
@@ -191,7 +191,7 @@ namespace ctranslate2 {
       }
 
       // Penalize end_token, if configured.
-      if (step < min_steps)
+      if (step < min_length)
         penalize_token(log_probs, end_token);
 
       // Flatten the probs into a list of candidates.
@@ -236,7 +236,7 @@ namespace ctranslate2 {
         size_t batch_id = batch_offset[i];
         for (size_t k = 0; k < beam_size; ++k) {
           if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
-              || step + 1 == max_steps) {
+              || step + 1 == max_length) {
             if (k == 0)
               top_beam_finished[i] = true;
             float score = topk_log_probs.at<float>({i, k});
@@ -328,8 +328,8 @@ namespace ctranslate2 {
                        const StorageView& memory,
                        const StorageView& memory_lengths,
                        size_t end_token,
-                       size_t max_steps,
-                       size_t min_steps,
+                       size_t max_length,
+                       size_t min_length,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
     Device device = memory.device();
@@ -355,7 +355,7 @@ namespace ctranslate2 {
       scores[i].resize(1);
     }
 
-    for (size_t step = 0; step < max_steps + 1; ++step) {
+    for (size_t step = 0; step < max_length; ++step) {
       decoder(step,
               sample_from.to(device),
               candidates,
@@ -365,7 +365,7 @@ namespace ctranslate2 {
       ops::LogSoftMax()(logits, log_probs);
 
       // Penalize end_token, if configured.
-      if (step < min_steps)
+      if (step < min_length)
         penalize_token(log_probs, end_token);
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
@@ -380,11 +380,10 @@ namespace ctranslate2 {
         if (!candidates.empty())
           true_id = candidates.scalar_at<int32_t>({best});
         size_t batch_id = batch_offset[i];
-        if (true_id == end_token || step + 1 == max_steps) {
+        if (true_id == end_token) {
           finished[batch_id] = true;
           finished_batch[i] = true;
           one_finished = true;
-          scores[batch_id][0] /= step;
         } else {
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
