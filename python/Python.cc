@@ -66,6 +66,7 @@ public:
       return py::list();
 
     std::vector<std::vector<std::string>> tokens_vec;
+    tokens_vec.reserve(py::len(tokens));
 
     for (auto it = py::stl_input_iterator<py::list>(tokens);
          it != py::stl_input_iterator<py::list>(); it++) {
