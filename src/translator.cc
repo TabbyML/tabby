@@ -26,15 +26,19 @@ namespace ctranslate2 {
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
                               const TranslationOptions& options) {
-    // Check options.
-    if (options.num_hypotheses > options.beam_size)
-      throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
-
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();
     auto& encoder = *_encoder;
     auto& decoder = *_decoder;
+
+    // Check options.
+    if (options.num_hypotheses > options.beam_size)
+      throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
+    if (options.use_vmap && vocab_map.empty())
+      throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
+    if (options.min_decoding_length > options.max_decoding_length)
+      throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
 
     size_t batch_size = batch_tokens.size();
 
