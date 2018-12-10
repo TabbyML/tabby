@@ -169,7 +169,6 @@ namespace ctranslate2 {
 
   StorageView& StorageView::assign(const StorageView& other) {
     assert_compatible(other._dtype, other._device);
-    resize_as(other);
     return copy_from(other);
   }
 
