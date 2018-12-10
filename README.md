@@ -10,11 +10,37 @@ The project currently provides converters for Transformer models trained with Op
 
 ## Benchmark
 
-*TODO*
+This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same English-German Transformer model.
+
+* Test file: `sacrebleu -t wmt14 -l en-de --echo src` (2737 lines)
+* BLEU signature: `BLEU+case.mixed+lang.en-de+numrefs.1+smooth.exp+test.wmt14+tok.13a+version.1.2.12`
+* Translation options:
+  * batch size: 32
+  * beam size: 4
+
+### CPU
+
+| Model               | Size  | Time  | BLEU |
+| ------------------- | ----- | ----  | ---- |
+| OpenNMT-py          | 542MB | 519 s | 26.8 |
+| CTranslate2         | 392MB | 288 s | 26.8 |
+| + *int16*           | 207MB | 266 s | 26.8 |
+| + *vmap*            | 219MB | 216 s | 26.7 |
+
+(Measured on a *Intel(R) Core(TM) i7-6700K* CPU and 4 threads.)
+
+### GPU
+
+| Model               | Size  | Time | BLEU |
+| ------------------- | ----- | ---- | ---- |
+| OpenNMT-py          | 542MB | 92 s | 26.8 |
+| CTranslate2         | 392MB | 31 s | 26.8 |
+
+(Measured on a *p3.2xlarge* EC2 instance.)
 
 ## Converting models
 
-A model conversion step is required to transform trained models into the CTranslate2 representation (see available converters in `python/ctranslate2/converters`). To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with INT16 quantization:
+A model conversion step is required to transform trained models into the CTranslate2 representation (see available converters in `python/ctranslate2/converters`). To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
 
 ### OpenNMT-tf
 
