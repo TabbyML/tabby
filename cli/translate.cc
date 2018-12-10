@@ -12,37 +12,37 @@ namespace po = boost::program_options;
 int main(int argc, char* argv[]) {
   po::options_description desc("CTranslate2 translation client");
   desc.add_options()
-    ("help", "display available options")
+    ("help", "Display available options.")
     ("model", po::value<std::string>(),
-     "path to the model")
+     "Path to the CTranslate2 model directory.")
     ("src", po::value<std::string>(),
-     "path to the file to translate (read from the standard input if not set)")
+     "Path to the file to translate (read from the standard input if not set).")
     ("tgt", po::value<std::string>(),
-     "path to the output file (write to the standard output if not set")
+     "Path to the output file (write to the standard output if not set.")
     ("use_vmap", po::bool_switch()->default_value(false),
-     "use the vocabulary map included in the model to restrict the target candidates")
+     "Use the vocabulary map included in the model to restrict the target candidates.")
     ("batch_size", po::value<size_t>()->default_value(30),
-     "batch size")
+     "Number of sentences to forward into the model at once.")
     ("beam_size", po::value<size_t>()->default_value(5),
-     "beam size")
+     "Beam search size (set 1 for greedy decoding).")
     ("n_best", po::value<size_t>()->default_value(1),
-     "n-best list")
+     "Also output the n-best hypotheses.")
     ("with_score", po::bool_switch()->default_value(false),
-     "display translation score")
+     "Also output translation scores.")
     ("length_penalty", po::value<float>()->default_value(0.6),
-     "length penalty")
+     "Length penalty to apply during beam search")
     ("max_sent_length", po::value<size_t>()->default_value(250),
-     "maximum sentence length to produce")
+     "Maximum sentence length to produce.")
     ("min_sent_length", po::value<size_t>()->default_value(1),
-     "minimum sentence length to produce")
+     "Minimum sentence length to produce.")
     ("log_throughput", po::bool_switch()->default_value(false),
-     "log average tokens per second")
+     "Log average tokens per second at the end of the translation.")
     ("inter_threads", po::value<size_t>()->default_value(1),
-     "number of parallel translations")
+     "Maximum number of translations to run in parallel.")
     ("intra_threads", po::value<size_t>()->default_value(0),
-     "number of threads for Intel® MKL (set to 0 to use an automatic value)")
+     "Number of threads for Intel® MKL (set to 0 to use an automatic value).")
     ("device", po::value<std::string>()->default_value("cpu"),
-     "device to use")
+     "Device to use (can be cpu, cuda, auto).")
     ;
 
   po::variables_map vm;
