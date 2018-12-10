@@ -4,9 +4,9 @@ from ctranslate2.specs import transformer_spec
 
 
 class TransformerBase(transformer_spec.TransformerSpec):
-    def __init__(self, fused_projections=False):
-        super(TransformerBase, self).__init__(6, fused_projections=fused_projections)
+    def __init__(self):
+        super(TransformerBase, self).__init__(6)
 
 class TransformerBig(transformer_spec.TransformerSpec):
-    def __init__(self, fused_projections=False):
-        super(TransformerBig, self).__init__(6, fused_projections=fused_projections)
+    def __init__(self):
+        super(TransformerBig, self).__init__(6)

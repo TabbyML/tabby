@@ -44,7 +44,7 @@ class OpenNMTTFConverter(Converter):
             src_vocab=self._src_vocab,
             tgt_vocab=self._tgt_vocab)
         if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
-            spec = spec_class(fused_projections=True)
+            spec = spec_class()
             set_transformer_spec(spec, variables)
         else:
             raise NotImplementedError()

@@ -4,57 +4,48 @@ from ctranslate2.specs import model_spec
 
 
 class TransformerSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, fused_projections=False):
-        self.encoder = TransformerEncoderSpec(num_layers, fused_projections=fused_projections)
-        self.decoder = TransformerDecoderSpec(num_layers, fused_projections=fused_projections)
+    def __init__(self, num_layers):
+        self.encoder = TransformerEncoderSpec(num_layers)
+        self.decoder = TransformerDecoderSpec(num_layers)
 
     @property
     def revision(self):
         return 2
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, fused_projections=False):
+    def __init__(self, num_layers):
         self.embeddings = EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
         self.layer_norm = LayerNormSpec()
-        self.layer = [
-            TransformerEncoderLayerSpec(fused_projections=fused_projections)
-            for _ in range(num_layers)]
+        self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, fused_projections=False):
+    def __init__(self, num_layers):
         self.embeddings = EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
         self.layer_norm = LayerNormSpec()
         self.projection = LinearSpec()
         self.layer = [
-            TransformerDecoderLayerSpec(fused_projections=fused_projections)
-            for _ in range(num_layers)]
+            TransformerDecoderLayerSpec() for _ in range(num_layers)]
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self, fused_projections=False):
-        self.self_attention = MultiHeadAttentionSpec(
-            fused_projections=fused_projections, self_attention=True)
+    def __init__(self):
+        self.self_attention = MultiHeadAttentionSpec(self_attention=True)
         self.ffn = FeedForwardSpec()
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self, fused_projections=False):
-        self.self_attention = MultiHeadAttentionSpec(
-            fused_projections=fused_projections, self_attention=True)
-        self.attention = MultiHeadAttentionSpec(
-            fused_projections=fused_projections)
+    def __init__(self):
+        self.self_attention = MultiHeadAttentionSpec(self_attention=True)
+        self.attention = MultiHeadAttentionSpec()
         self.ffn = FeedForwardSpec()
 
 class MultiHeadAttentionSpec(model_spec.LayerSpec):
-    def __init__(self, fused_projections=False, self_attention=False):
+    def __init__(self, self_attention=False):
         self.layer_norm = LayerNormSpec()
-        if fused_projections:
-            if self_attention:
-                num_projections = 2
-            else:
-                num_projections = 3
+        if self_attention:
+            num_projections = 2
         else:
-            num_projections = 4
+            num_projections = 3
         self.linear = [LinearSpec() for _ in range(num_projections)]
 
 class FeedForwardSpec(model_spec.LayerSpec):

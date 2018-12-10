@@ -272,7 +272,6 @@ namespace ctranslate2 {
             break;
         }
       }
-      _fused_proj = _linear.size() < 4;
     }
 
     void MultiHeadAttention::operator()(const StorageView& queries,
@@ -307,13 +306,8 @@ namespace ctranslate2 {
           final_keys.shallow_copy(*cached_keys);
           final_values.shallow_copy(*cached_values);
         } else {
-          if (_fused_proj) {
-            _linear[1](*memory, fused_proj);
-            ops::Split(-1)(fused_proj, keys_proj, values_proj);
-          } else {
-            _linear[1](*memory, keys_proj);
-            _linear[2](*memory, values_proj);
-          }
+          _linear[1](*memory, fused_proj);
+          ops::Split(-1)(fused_proj, keys_proj, values_proj);
           split_heads(keys_proj, split_keys);
           split_heads(values_proj, split_values);
           final_keys.shallow_copy(split_keys);
@@ -324,15 +318,8 @@ namespace ctranslate2 {
           }
         }
       } else {
-        if (_fused_proj) {
-          ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
-          split_heads(queries_proj, split_queries);
-        }
-        else {
-          split_heads(fused_proj, split_queries);
-          _linear[1](normed_queries, keys_proj);
-          _linear[2](normed_queries, values_proj);
-        }
+        ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
+        split_heads(queries_proj, split_queries);
         split_heads(keys_proj, split_keys);
         split_heads(values_proj, split_values);
         final_queries.shallow_copy(split_queries);

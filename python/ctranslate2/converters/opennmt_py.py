@@ -3,7 +3,7 @@ import torch
 import numpy as np
 
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import catalog
+from ctranslate2.specs import catalog, transformer_spec
 
 
 class OpenNMTPyConverter(Converter):
@@ -58,12 +58,14 @@ def set_transformer_decoder(spec, variables):
 
 def set_transformer_encoder_layer(spec, variables, scope):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
-    set_multi_head_attention(spec.self_attention, variables, "%s.self_attn" % scope)
+    set_multi_head_attention(
+        spec.self_attention, variables, "%s.self_attn" % scope, self_attention=True)
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm" % scope)
 
 def set_transformer_decoder_layer(spec, variables, scope):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
-    set_multi_head_attention(spec.self_attention, variables, "%s.self_attn" % scope)
+    set_multi_head_attention(
+        spec.self_attention, variables, "%s.self_attn" % scope, self_attention=True)
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm_1" % scope)
     set_multi_head_attention(spec.attention, variables, "%s.context_attn" % scope)
     set_layer_norm(spec.attention.layer_norm, variables, "%s.layer_norm_2" % scope)
@@ -73,11 +75,20 @@ def set_ffn(spec, variables, scope):
     set_linear(spec.linear_0, variables, "%s.w_1" % scope)
     set_linear(spec.linear_1, variables, "%s.w_2" % scope)
 
-def set_multi_head_attention(spec, variables, scope):
-    set_linear(spec.linear[0], variables, "%s.linear_query" % scope)
-    set_linear(spec.linear[1], variables, "%s.linear_keys" % scope)
-    set_linear(spec.linear[2], variables, "%s.linear_values" % scope)
-    set_linear(spec.linear[3], variables, "%s.final_linear" % scope)
+def set_multi_head_attention(spec, variables, scope, self_attention=False):
+    if self_attention:
+        split_layers = [transformer_spec.LinearSpec() for _ in range(3)]
+        set_linear(split_layers[0], variables, "%s.linear_query" % scope)
+        set_linear(split_layers[1], variables, "%s.linear_keys" % scope)
+        set_linear(split_layers[2], variables, "%s.linear_values" % scope)
+        _fuse_linear(spec.linear[0], split_layers)
+    else:
+        set_linear(spec.linear[0], variables, "%s.linear_query" % scope)
+        split_layers = [transformer_spec.LinearSpec() for _ in range(2)]
+        set_linear(split_layers[0], variables, "%s.linear_keys" % scope)
+        set_linear(split_layers[1], variables, "%s.linear_values" % scope)
+        _fuse_linear(spec.linear[1], split_layers)
+    set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
 
 def set_layer_norm(spec, variables, scope):
     spec.gamma = _get_variable(variables, "%s.a_2" % scope)
@@ -93,6 +104,10 @@ def set_embeddings(spec, variables, scope):
 def set_position_encodings(spec, variables, scope):
     spec.encodings = np.squeeze(_get_variable(variables, "%s.pe" % scope))
 
+
+def _fuse_linear(spec, layers):
+    spec.weight = np.concatenate([layer.weight for layer in layers])
+    spec.bias = np.concatenate([layer.bias for layer in layers])
 
 def _get_variable(variables, name):
     return variables[name].numpy()
