@@ -42,7 +42,7 @@ RUN tar xf TensorRT-*.tar.gz && \
     rm -r TensorRT-*
 
 ENV CUB_VERSION=1.8.0
-ENV CUB_ROOT=/root/cuda
+ENV CUB_ROOT=/root/cub
 RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
     tar xf v${CUB_VERSION}.tar.gz && \
     mv cub-${CUB_VERSION} ${CUB_ROOT} && \
