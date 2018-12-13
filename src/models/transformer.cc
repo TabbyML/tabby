@@ -295,23 +295,16 @@ namespace ctranslate2 {
       StorageView split_keys(device);
       StorageView split_values(device);
 
-      StorageView final_queries(device);
-      StorageView final_keys(device);
-      StorageView final_values(device);
-
       if (memory) {
         split_heads(fused_proj, split_queries);
-        final_queries.shallow_copy(split_queries);
         if (cached_keys != nullptr && !cached_keys->empty()) {
-          final_keys.shallow_copy(*cached_keys);
-          final_values.shallow_copy(*cached_values);
+          split_keys.shallow_copy(*cached_keys);
+          split_values.shallow_copy(*cached_values);
         } else {
           _linear[1](*memory, fused_proj);
           ops::Split(-1)(fused_proj, keys_proj, values_proj);
           split_heads(keys_proj, split_keys);
           split_heads(values_proj, split_values);
-          final_keys.shallow_copy(split_keys);
-          final_values.shallow_copy(split_values);
           if (cached_keys != nullptr) {
             *cached_keys = split_keys;
             *cached_values = split_values;
@@ -322,26 +315,22 @@ namespace ctranslate2 {
         split_heads(queries_proj, split_queries);
         split_heads(keys_proj, split_keys);
         split_heads(values_proj, split_values);
-        final_queries.shallow_copy(split_queries);
         if (cached_keys != nullptr) {
           cache_proj(split_keys, *cached_keys);
           cache_proj(split_values, *cached_values);
-          final_keys.shallow_copy(*cached_keys);
-          final_values.shallow_copy(*cached_values);
-        } else {
-          final_keys.shallow_copy(split_keys);
-          final_values.shallow_copy(split_values);
+          split_keys.shallow_copy(*cached_keys);
+          split_values.shallow_copy(*cached_values);
         }
       }
 
       const size_t dk = queries.dim(-1) / _num_heads;
       const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
-      ops::Mul()(final_queries, scale, final_queries);
+      ops::Mul()(split_queries, scale, split_queries);
 
       StorageView& context = queries_proj;  // Reuse storage.
-      _attention(final_queries,
-                 final_keys,
-                 final_values,
+      _attention(split_queries,
+                 split_keys,
+                 split_values,
                  memory_lengths,
                  context);
 
