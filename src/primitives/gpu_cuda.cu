@@ -31,7 +31,9 @@ namespace ctranslate2 {
   }
 
 
-  static cub::CachingDeviceAllocator allocator;
+  // See https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html.
+  // Default arguments + increase max cached bytes to 20MB - 1B.
+  static cub::CachingDeviceAllocator allocator(8, 3, 7, 20 * (1 << 20) - 1);
 
   template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
