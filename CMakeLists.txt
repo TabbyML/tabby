@@ -131,9 +131,17 @@ if (WITH_CUDA)
     message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
   endif()
 
+  find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh)
+  if(NOT CUB_INCLUDE_DIR)
+    message(FATAL_ERROR "CUB library not found")
+  else()
+    message(STATUS "Found CUB include directory: ${CUB_INCLUDE_DIR}")
+  endif()
+
   cuda_include_directories(
     ${INCLUDE_DIRECTORIES}
     ${TENSORRT_INCLUDE_DIR}
+    ${CUB_INCLUDE_DIR}
     )
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}

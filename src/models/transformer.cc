@@ -84,7 +84,7 @@ namespace ctranslate2 {
     void ScaledEmbeddings::operator()(const StorageView& ids,
                                       StorageView& output) {
       if (_embeddings.dtype() == DataType::DT_INT16) {
-        static thread_local StorageView gathered(_embeddings.dtype());
+        StorageView gathered(_embeddings.dtype());
         _gather_op(_embeddings, ids, gathered);
         ops::Unquantize()(gathered, *_qscale, output);
       } else {
@@ -172,8 +172,8 @@ namespace ctranslate2 {
       if (_weight.dtype() == DataType::DT_FLOAT) {
         gemm_op(input, *weight, *bias, output);
       } else {
-        static thread_local StorageView quantized_input(_weight.dtype());
-        static thread_local StorageView quantized_output(DataType::DT_INT32);
+        StorageView quantized_input(_weight.dtype());
+        StorageView quantized_output(DataType::DT_INT32);
         StorageView squared_scale(_qscale->as_scalar<float>() * _qscale->as_scalar<float>());
         ops::Quantize()(input, *_qscale, quantized_input);
         gemm_op(quantized_input, *weight, *bias, quantized_output);
@@ -205,7 +205,7 @@ namespace ctranslate2 {
     }
 
     void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) {
-      static thread_local StorageView inner(input.device());
+      StorageView inner(input.device());
       _layer_norm(input, output);
       _ff1(output, inner);
       ops::ReLU()(inner, inner);
@@ -231,8 +231,8 @@ namespace ctranslate2 {
       ops::MatMul(false, true)(queries, keys, output);
 
       if (values_lengths && batch_size > 1) {
-        static thread_local StorageView output_host;
-        static thread_local StorageView lengths_host(DataType::DT_INT32);
+        StorageView output_host;
+        StorageView lengths_host(DataType::DT_INT32);
         output_host.copy_from(output);
         lengths_host.copy_from(*values_lengths);
         for (size_t b = 0; b < batch_size; ++b) {
@@ -252,7 +252,7 @@ namespace ctranslate2 {
         output.copy_from(output_host);
       }
 
-      static thread_local StorageView attn(values.device());
+      StorageView attn(values.device());
       ops::SoftMax()(output, attn);
       ops::MatMul()(attn, values, output);
     }
@@ -282,18 +282,18 @@ namespace ctranslate2 {
                                         StorageView* cached_values) {
       Device device = queries.device();
 
-      static thread_local StorageView normed_queries(device);
+      StorageView normed_queries(device);
       _layer_norm(queries, normed_queries);
 
-      static thread_local StorageView fused_proj(device);
+      StorageView fused_proj(device);
       _linear[0](normed_queries, fused_proj);
 
-      static thread_local StorageView queries_proj(device);
-      static thread_local StorageView keys_proj(device);
-      static thread_local StorageView values_proj(device);
-      static thread_local StorageView split_queries(device);
-      static thread_local StorageView split_keys(device);
-      static thread_local StorageView split_values(device);
+      StorageView queries_proj(device);
+      StorageView keys_proj(device);
+      StorageView values_proj(device);
+      StorageView split_queries(device);
+      StorageView split_keys(device);
+      StorageView split_values(device);
 
       StorageView final_queries(device);
       StorageView final_keys(device);
@@ -367,7 +367,7 @@ namespace ctranslate2 {
       if (cache.empty()) {
         cache = proj;
       } else {
-        static thread_local StorageView tmp(proj.device());
+        StorageView tmp(proj.device());
         tmp = std::move(cache);
         ops::Concat(2)({&tmp, &proj}, cache);
       }
@@ -383,7 +383,7 @@ namespace ctranslate2 {
     void TransformerEncoderLayer::operator()(const StorageView& input,
                                              const StorageView& lengths,
                                              StorageView& output) {
-      static thread_local StorageView context(input.device());
+      StorageView context(input.device());
       _self_attention(input, nullptr, &lengths, context);
       _ff(context, output);
     }
@@ -404,7 +404,7 @@ namespace ctranslate2 {
                                              StorageView& cached_attn_keys,
                                              StorageView& cached_attn_values,
                                              StorageView& output) {
-      static thread_local StorageView context(input.device());
+      StorageView context(input.device());
       _self_attention(input, nullptr, nullptr, output,
                       &cached_self_attn_keys, &cached_self_attn_values);
       _encoder_attention(output, &memory, &memory_lengths, context,
@@ -432,8 +432,8 @@ namespace ctranslate2 {
     void TransformerEncoder::operator()(const StorageView& ids,
                                         const StorageView& lengths,
                                         StorageView& output) {
-      static thread_local StorageView layer_in(output.device());
-      static thread_local StorageView layer_out(output.device());
+      StorageView layer_in(output.device());
+      StorageView layer_out(output.device());
       _scaled_embeddings(ids, layer_in);
       _position_encoder(layer_in);
 
@@ -485,8 +485,8 @@ namespace ctranslate2 {
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
                                         StorageView& output) {
-      static thread_local StorageView layer_in(output.device());
-      static thread_local StorageView layer_out(output.device());
+      StorageView layer_in(output.device());
+      StorageView layer_out(output.device());
 
       _scaled_embeddings(ids, layer_in);
       _position_encoder(layer_in, step);

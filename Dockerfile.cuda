@@ -41,6 +41,14 @@ RUN tar xf TensorRT-*.tar.gz && \
     cd .. && \
     rm -r TensorRT-*
 
+ENV CUB_VERSION=1.8.0
+ENV CUB_ROOT=/root/cuda
+RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
+    tar xf v${CUB_VERSION}.tar.gz && \
+    mv cub-${CUB_VERSION} ${CUB_ROOT} && \
+    rm v${CUB_VERSION}.tar.gz
+RUN ls
+
 WORKDIR /root/ctranslate2-dev
 
 COPY mkl_symbol_list .
@@ -60,6 +68,7 @@ ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
+          -DCMAKE_PREFIX_PATH=${CUB_ROOT} \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DWITH_CUDA=ON \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 && \

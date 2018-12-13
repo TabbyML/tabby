@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
+#include <cub/util_allocator.cuh>
 
 #include "ctranslate2/types.h"
 #include "ctranslate2/cuda/utils.h"
@@ -30,16 +31,18 @@ namespace ctranslate2 {
   }
 
 
+  static cub::CachingDeviceAllocator allocator;
+
   template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
     void* data = nullptr;
-    CUDA_CHECK(cudaMalloc(&data, size));
+    CUDA_CHECK(allocator.DeviceAllocate(&data, size, cuda::get_cuda_stream()));
     return data;
   }
 
   template<>
   void primitives<Device::CUDA>::free_data(void* data) {
-    CUDA_CHECK(cudaFree(data));
+    CUDA_CHECK(allocator.DeviceFree(data));
   }
 
   template<>

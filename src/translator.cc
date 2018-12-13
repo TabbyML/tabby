@@ -65,7 +65,7 @@ namespace ctranslate2 {
     StorageView lengths = lengths_host.to(device);
 
     // Encode sequence.
-    static thread_local StorageView encoded(device);
+    StorageView encoded(device);
     encoder(ids, lengths, encoded);
 
     // Reset decoder states based on the encoder outputs.

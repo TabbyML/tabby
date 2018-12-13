@@ -162,11 +162,11 @@ namespace ctranslate2 {
       scores[i].reserve(num_hypotheses);
     }
 
-    static thread_local StorageView logits(device);
-    static thread_local StorageView log_probs(device);
-    static thread_local StorageView topk_ids_device(device, topk_ids.dtype());
-    static thread_local StorageView topk_log_probs_device(device);
-    static thread_local StorageView gather_indices_device(device, DataType::DT_INT32);
+    StorageView logits(device);
+    StorageView log_probs(device);
+    StorageView topk_ids_device(device, topk_ids.dtype());
+    StorageView topk_log_probs_device(device);
+    StorageView gather_indices_device(device, DataType::DT_INT32);
 
     for (size_t step = 0; step < max_length; ++step) {
       // Compute log probs for the current step.
@@ -344,8 +344,8 @@ namespace ctranslate2 {
     StorageView alive_memory(memory);
     StorageView alive_memory_lengths(memory_lengths);
 
-    static thread_local StorageView logits(device);
-    static thread_local StorageView log_probs(device);
+    StorageView logits(device);
+    StorageView log_probs(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);

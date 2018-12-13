@@ -11,7 +11,7 @@ namespace ctranslate2 {
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
-      static thread_local std::vector<IndexType> full_indices;
+      std::vector<IndexType> full_indices;
       size_t depth = x.dim(-1);
       size_t batch_size = x.size() / depth;
       if (depth > full_indices.size())

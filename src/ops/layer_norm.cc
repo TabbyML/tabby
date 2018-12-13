@@ -10,7 +10,7 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      static thread_local StorageView tmp(input.device(), input.dtype());
+      StorageView tmp(input.device(), input.dtype());
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
       tmp.resize({depth});

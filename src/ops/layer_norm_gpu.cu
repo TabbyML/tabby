@@ -10,18 +10,15 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      static thread_local StorageView bias_cudnn(input.device());
-      static thread_local StorageView scale_cudnn(input.device());
-
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
       T one = 1;
       T zero = 0;
 
-      if (batch_size > scale_cudnn.size()) {
-        scale_cudnn.resize({batch_size}).fill(one);
-        bias_cudnn.resize({batch_size}).fill(zero);
-      }
+      StorageView bias_cudnn(input.device());
+      StorageView scale_cudnn(input.device());
+      scale_cudnn.resize({batch_size}).fill(one);
+      bias_cudnn.resize({batch_size}).fill(zero);
 
       cudnnTensorDescriptor_t input_desc;
       cudnnTensorDescriptor_t scale_bias_desc;
