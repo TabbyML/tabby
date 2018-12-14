@@ -202,7 +202,8 @@ CTranslate2 addresses these issues in several ways:
 The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees:
 
 * Converted models
-* Python modules:
+* Python symbols:
+  * `ctranslate2.initialize`
   * `ctranslate2.Translator`
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
@@ -241,7 +242,6 @@ There are many ways to make this project better and faster. See the open issues 
 
 * INT8 quantization for CPU and GPU
 * Support of running ONNX graphs
-* More configurable memory cache
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
