@@ -23,10 +23,22 @@ namespace ctranslate2 {
   }
 
   TranslationResult
+  Translator::translate(const std::vector<std::string>& tokens) {
+    TranslationOptions options;
+    return translate(tokens, options);
+  }
+
+  TranslationResult
   Translator::translate(const std::vector<std::string>& tokens,
                         const TranslationOptions& options) {
     std::vector<std::vector<std::string>> batch_tokens(1, tokens);
     return translate_batch(batch_tokens, options)[0];
+  }
+
+  std::vector<TranslationResult>
+  Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens) {
+    TranslationOptions options;
+    return translate_batch(batch_tokens, options);
   }
 
   std::vector<TranslationResult>

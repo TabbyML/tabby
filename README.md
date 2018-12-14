@@ -129,13 +129,14 @@ int main() {
   std::vector<std::string> output;
 
   ctranslate2::Translator translator("ende_ctranslate2", ctranslate2::Device::CUDA);
-  ctranslate2::TranslationOptions options;
-  ctranslate2::TranslationResult result = translator.translate(input, options);
+  ctranslate2::TranslationResult result = translator.translate(input);
 
   output = result.output();
   return 0;
 }
 ```
+
+*See the [class definition](include/ctranslate2/translator.h) for more advanced usage.*
 
 ## Benchmark
 
