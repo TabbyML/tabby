@@ -8,7 +8,7 @@
 
 namespace ctranslate2 {
 
-  void init(size_t num_threads) {
+  void initialize(size_t num_threads) {
 #ifdef WITH_MKL
     // Set "enhanced performance" VML mode (see
     // https://software.intel.com/en-us/mkl-developer-reference-c-vm-data-types-accuracy-modes-and-performance-tips)
