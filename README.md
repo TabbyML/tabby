@@ -70,7 +70,6 @@ The converters support model quantization which is a way to reduce the model siz
 | ----------------- | ------------- | ---------------- | ----- |
 | int8              | int16         | float            | float |
 | int16             | int16         | float            | float |
-| float             | float         | float            | float |
 
 ## Translating
 
