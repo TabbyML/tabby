@@ -122,16 +122,18 @@ del t  # Release translator resources.
 ### With the C++ API
 
 ```cpp
+#include <iostream>
 #include <ctranslate2/translator.h>
 
-int main() {
-  std::vector<std::string> input{"Hello", "world", "!"};
-  std::vector<std::string> output;
+int main(int, char* argv[]) {
+  std::string model_dir = argv[1];
 
-  ctranslate2::Translator translator("ende_ctranslate2", ctranslate2::Device::CUDA);
-  ctranslate2::TranslationResult result = translator.translate(input);
+  ctranslate2::Translator translator(model_dir, ctranslate2::Device::CPU);
+  ctranslate2::TranslationResult result = translator.translate({"Hello", "world", "!"});
 
-  output = result.output();
+  for (const auto& token : result.output())
+    std::cout << token << ' ';
+  std::cout << std::endl;
   return 0;
 }
 ```
