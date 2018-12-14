@@ -428,7 +428,7 @@ namespace ctranslate2 {
 
       for (auto& layer : _layers) {
         layer(layer_in, lengths, layer_out);
-        std::swap(layer_in, layer_out);
+        swap(layer_in, layer_out);
       }
       _output_norm(layer_in, output);
     }
@@ -489,7 +489,7 @@ namespace ctranslate2 {
                    _state->get("memory_keys_" + std::to_string(l)),
                    _state->get("memory_values_" + std::to_string(l)),
                    layer_out);
-        std::swap(layer_in, layer_out);
+        swap(layer_in, layer_out);
       }
       _output_norm(layer_in, layer_out);
 

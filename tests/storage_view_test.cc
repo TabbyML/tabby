@@ -8,7 +8,7 @@ TEST(StorageViewTest, Swap) {
   StorageView expected_b(a);
   const auto* a_data = a.data<float>();
   const auto* b_data = b.data<float>();
-  std::swap(a, b);
+  swap(a, b);
   EXPECT_EQ(a.data<float>(), b_data);
   EXPECT_EQ(b.data<float>(), a_data);
   expect_storage_eq(a, expected_a);
