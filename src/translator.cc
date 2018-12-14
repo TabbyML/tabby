@@ -4,6 +4,12 @@
 
 namespace ctranslate2 {
 
+  Translator::Translator(const std::string& model_dir, Device device)
+    : _model(models::ModelFactory::load(model_dir, device))
+    , _encoder(_model->make_encoder())
+    , _decoder(_model->make_decoder()) {
+  }
+
   Translator::Translator(const std::shared_ptr<models::Model>& model)
     : _model(model)
     , _encoder(_model->make_encoder())
