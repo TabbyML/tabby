@@ -2,45 +2,29 @@
 
 CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution. It is:
 
-* **fast**, up to 2x times faster than an already competitive OpenNMT-py translation;
+* **fast**, up to [2 times faster](#benchmark) than an already competitive OpenNMT-py translation;
 * **portable**, no architecture-specific flags are required during the compilation;
-* **lightweight**, the CPU library takes about 30MB with its dependencies.
+* **lightweight**, the CPU library takes about 30MB on disk with its dependencies and requires [2 times less memory](#benchmark) than OpenNMT-py during translation.
 
-The project currently provides converters for Transformer models trained with OpenNMT-tf and OpenNMT-py and exposes translation APIs in Python and C++.
+CTranslate2 uses the following libraries for acceleration:
 
-## Benchmark
+* [Intel MKL](https://software.intel.com/en-us/mkl)
+* [cuBLAS](https://developer.nvidia.com/cublas)
+* [TensorRT](https://developer.nvidia.com/tensorrt)
+* [CUB](https://nvlabs.github.io/cub/)
 
-This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same English-German Transformer model.
-
-* Test file: `sacrebleu -t wmt14 -l en-de --echo src` (2737 lines)
-* BLEU signature: `BLEU+case.mixed+lang.en-de+numrefs.1+smooth.exp+test.wmt14+tok.13a+version.1.2.12`
-* Translation options:
-  * batch size: 32
-  * beam size: 4
-
-### CPU
-
-| Model               | Size  | Time  | BLEU |
-| ------------------- | ----- | ----  | ---- |
-| OpenNMT-py          | 542MB | 519 s | 26.8 |
-| CTranslate2         | 392MB | 288 s | 26.8 |
-| + *int16*           | 207MB | 266 s | 26.8 |
-| + *vmap*            | 219MB | 216 s | 26.7 |
-
-(Measured on a *Intel(R) Core(TM) i7-6700K* CPU and 4 threads.)
-
-### GPU
-
-| Model               | Size  | Time | BLEU |
-| ------------------- | ----- | ---- | ---- |
-| OpenNMT-py          | 542MB | 92 s | 26.8 |
-| CTranslate2         | 392MB | 31 s | 26.8 |
-
-(Measured on a *p3.2xlarge* EC2 instance.)
+The project exposes [translation APIs](#translating) in Python and C++.
 
 ## Converting models
 
-A model conversion step is required to transform trained models into the CTranslate2 representation (see available converters in `python/ctranslate2/converters`). To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
+A model conversion step is required to transform trained models into the CTranslate2 representation. The following frameworks and models are currently supported:
+
+|     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_tf.py) |
+| --- | --- | --- |
+| TransformerBase | Yes | Yes |
+| TransformerBig  | Yes | Yes |
+
+To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
 
 ### OpenNMT-tf
 
@@ -142,12 +126,10 @@ del t  # Release translator resources.
 #include <ctranslate2/translator.h>
 
 int main() {
-  auto model = ctranslate2::models::ModelFactory::load("ende_ctranslate2", ctranslate2::Device::CUDA);
-
   std::vector<std::string> input{"Hello", "world", "!"};
   std::vector<std::string> output;
 
-  ctranslate2::Translator translator(model);
+  ctranslate2::Translator translator("ende_ctranslate2", ctranslate2::Device::CUDA);
   ctranslate2::TranslationOptions options;
   ctranslate2::TranslationResult result = translator.translate(input, options);
 
@@ -155,6 +137,36 @@ int main() {
   return 0;
 }
 ```
+
+## Benchmark
+
+This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same English-German Transformer model.
+
+* Test file: `sacrebleu -t wmt14 -l en-de --echo src` (2737 lines)
+* BLEU signature: `BLEU+case.mixed+lang.en-de+numrefs.1+smooth.exp+test.wmt14+tok.13a+version.1.2.12`
+* Translation options:
+  * batch size: 32
+  * beam size: 4
+
+### CPU
+
+| Model               | Size  | Time  | Memory | BLEU |
+| ------------------- | ----- | ----  | -----  | ---- |
+| OpenNMT-py          | 542MB | 519 s | 1.3GB  | 26.8 |
+| CTranslate2         | 392MB | 288 s | 0.8GB  | 26.8 |
+| + *int16*           | 207MB | 266 s | 0.7GB  | 26.8 |
+| + *vmap*            | 219MB | 216 s | 0.6GB  | 26.7 |
+
+(Measured on a *Intel(R) Core(TM) i7-6700K* CPU and 4 threads, memory usage is approximated and rounded to the nearest 0.1GB.)
+
+### GPU
+
+| Model               | Size  | Time | BLEU |
+| ------------------- | ----- | ---- | ---- |
+| OpenNMT-py          | 542MB | 92 s | 26.8 |
+| CTranslate2         | 392MB | 31 s | 26.8 |
+
+(Measured on a *p3.2xlarge* EC2 instance.)
 
 ## Building
 
