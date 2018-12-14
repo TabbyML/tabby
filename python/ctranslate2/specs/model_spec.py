@@ -58,6 +58,7 @@ class LayerSpec(object):
                 if quantization == "int16":
                     scale = np.dtype(value.dtype).type(1000)
                     value *= scale
+                    value = np.clip(value, np.iinfo(np.int16).min, np.iinfo(np.int16).max)
                     value = value.astype(np.int16)
                 elif quantization == "int8":
                     scale = 127.0 / np.amax(np.absolute(value), axis=1)
