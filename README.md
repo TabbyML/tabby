@@ -19,7 +19,7 @@ The project exposes [translation APIs](#translating) in Python and C++.
 
 A model conversion step is required to transform trained models into the CTranslate2 representation. The following frameworks and models are currently supported:
 
-|     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_tf.py) |
+|     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
 | --- | --- | --- |
 | TransformerBase | Yes | Yes |
 | TransformerBig  | Yes | Yes |
