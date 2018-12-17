@@ -19,7 +19,7 @@ private:
 };
 
 static void initialize(size_t mkl_num_threads) {
-  ctranslate2::init(mkl_num_threads);
+  ctranslate2::initialize(mkl_num_threads);
 }
 
 class TranslatorWrapper
