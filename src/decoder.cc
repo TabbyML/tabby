@@ -47,16 +47,6 @@ namespace ctranslate2 {
   }
 
 
-  template <Device D, typename T = float>
-  static void multiply_beam_probabilities(StorageView& log_probs,
-                                          const StorageView& alive_log_probs) {
-    size_t depth = log_probs.dim(-1);
-    size_t batch_size = log_probs.size() / depth;
-    for (size_t i = 0; i < batch_size; ++i) {
-      primitives<D>::add(alive_log_probs.at<T>(i), log_probs.data<T>() + i * depth, depth);
-    }
-  }
-
   static void tile(StorageView& input, const StorageView& repeats) {
     static const ops::Tile tile_op;
     StorageView input_clone(std::move(input));
@@ -158,7 +148,11 @@ namespace ctranslate2 {
       size_t vocabulary_size = log_probs.dim(-1);
 
       // Multiply by the current beam log probs.
-      DEVICE_DISPATCH(log_probs.device(), multiply_beam_probabilities<D>(log_probs, topk_log_probs));
+      DEVICE_DISPATCH(log_probs.device(),
+                      primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<float>(),
+                                                         log_probs.data<float>(),
+                                                         topk_log_probs.size(),
+                                                         log_probs.size()));
 
       // Penalize by the length, if enabled.
       float length_penalty_weight = 1.0;

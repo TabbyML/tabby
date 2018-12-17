@@ -87,6 +87,18 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::add_depth_broadcast(const T* a, const T* b, T* c,
+                                                    size_t a_size, size_t b_size) {
+    size_t iter_size = a_size;
+    size_t depth = b_size / a_size;
+    for (size_t i = 0; i < iter_size; ++i) {
+      size_t offset = i * depth;
+      add(a[i], b + offset, c + offset, depth);
+    }
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, size_t size) {
     binary_transform(a, b, c, size, std::minus<T>());
   }

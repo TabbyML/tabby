@@ -60,6 +60,14 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    static void add_depth_broadcast(const T* a, const T* b, T* c, size_t a_size, size_t b_size);
+
+    template <typename T>
+    static void add_depth_broadcast(const T* x, T* y, size_t x_size, size_t y_size) {
+      add_depth_broadcast(x, y, y, x_size, y_size);
+    }
+
+    template <typename T>
     static void sub(T a, const T* x, T* y, size_t size) {
       T a_rev = -a;
       add(a_rev, x, y, size);
