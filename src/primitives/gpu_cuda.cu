@@ -20,6 +20,15 @@ namespace ctranslate2 {
     thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()), a, a + size, b, c, op);
   }
 
+  template <typename T, typename BinaryFunction, typename IndexFunction>
+  void binary_transform(const T* a, const T* b, T* c, size_t size,
+                        BinaryFunction op, IndexFunction index_a) {
+    auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), index_a);
+    auto a_it = thrust::make_permutation_iterator(a, index_it);
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      a_it, a_it + size, b, c, op);
+  }
+
   // perm_fun is a functor that takes the index in the permuted iterator and
   // return the index in the original iterator.
   template <typename T, typename PermFunction>
@@ -129,22 +138,14 @@ namespace ctranslate2 {
   template <typename T>
   void primitives<Device::CUDA>::add_batch_broadcast(const T* a, const T* b, T* c,
                                                      size_t a_size, size_t b_size) {
-    auto repeat_it = thrust::make_permutation_iterator(
-      a, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
-                                         repeat_vec<size_t>(a_size)));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                      repeat_it, repeat_it + b_size, b, c, thrust::plus<T>());
+    binary_transform(a, b, c, b_size, thrust::plus<T>(), repeat_vec<size_t>(a_size));
   }
 
   template<>
   template <typename T>
   void primitives<Device::CUDA>::add_depth_broadcast(const T* a, const T* b, T* c,
                                                      size_t a_size, size_t b_size) {
-    auto repeat_it = thrust::make_permutation_iterator(
-      a, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
-                                         repeat_vec_depth<size_t>(b_size / a_size)));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                      repeat_it, repeat_it + b_size, b, c, thrust::plus<T>());
+    binary_transform(a, b, c, b_size, thrust::plus<T>(), repeat_vec_depth<size_t>(b_size / a_size));
   }
 
   template<>
@@ -169,11 +170,7 @@ namespace ctranslate2 {
   template <typename T>
   void primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, T* c,
                                                      size_t a_size, size_t b_size) {
-    auto repeat_it = thrust::make_permutation_iterator(
-      a, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
-                                         repeat_vec<size_t>(a_size)));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                      repeat_it, repeat_it + b_size, b, c, thrust::multiplies<T>());
+    binary_transform(a, b, c, b_size, thrust::multiplies<T>(), repeat_vec<size_t>(a_size));
   }
 
   struct relu_func : public thrust::unary_function<float, float> {
