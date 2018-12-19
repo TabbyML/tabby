@@ -281,19 +281,16 @@ namespace ctranslate2 {
                                         StorageView* cached_keys,
                                         StorageView* cached_values) {
       Device device = queries.device();
-
-      StorageView normed_queries(device);
-      _layer_norm(queries, normed_queries);
-
       StorageView fused_proj(device);
-      _linear[0](normed_queries, fused_proj);
-
       StorageView queries_proj(device);
       StorageView keys_proj(device);
       StorageView values_proj(device);
       StorageView split_queries(device);
       StorageView split_keys(device);
       StorageView split_values(device);
+
+      _layer_norm(queries, queries_proj);
+      _linear[0](queries_proj, fused_proj);
 
       if (memory) {
         split_heads(fused_proj, split_queries);
