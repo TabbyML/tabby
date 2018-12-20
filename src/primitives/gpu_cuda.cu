@@ -56,6 +56,11 @@ namespace ctranslate2 {
   }
 
   template<>
+  void primitives<Device::CUDA>::clear_cache() {
+    CUDA_CHECK(allocator.FreeAllCached());
+  }
+
+  template<>
   template <typename T>
   void primitives<Device::CUDA>::fill(T* x, T a, size_t size) {
     thrust::fill_n(thrust::cuda::par.on(cuda::get_cuda_stream()), x, size, a);

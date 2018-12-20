@@ -12,6 +12,10 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::free_data(void* data) {
     free(data);
   }
+
+  template<>
+  void primitives<Device::CPU>::clear_cache() {
+  }
 #endif
 
 }

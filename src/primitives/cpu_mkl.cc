@@ -19,6 +19,11 @@ namespace ctranslate2 {
   }
 
   template<>
+  void primitives<Device::CPU>::clear_cache() {
+    mkl_free_buffers();
+  }
+
+  template<>
   template<>
   void primitives<Device::CPU>::copy(const float* x, float* y, size_t size) {
     cblas_scopy(size, x, 1 /* incx */, y, 1 /* incy */);

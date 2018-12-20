@@ -6,6 +6,7 @@ cblas_sgemm_batch
 cblas_sscal
 mkl_cbwr_get_auto_branch
 mkl_free
+mkl_free_buffers
 mkl_malloc
 mkl_set_num_threads
 mkl_somatcopy

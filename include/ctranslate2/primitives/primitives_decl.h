@@ -9,6 +9,7 @@ namespace ctranslate2 {
 
     static void* alloc_data(size_t size);
     static void free_data(void* data);
+    static void clear_cache();
 
     template <typename T>
     static T deref(const T* x, size_t index);
