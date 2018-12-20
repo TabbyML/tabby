@@ -431,24 +431,9 @@ namespace ctranslate2 {
     }
 
 
-    TransformerDecoderState::TransformerDecoderState(size_t num_layers, Device device)
-      : _num_layers(num_layers)
-      , _device(device) {
-    }
-
-    void TransformerDecoderState::reset() {
-      static const StorageView empty_cache(_device);
-      for (size_t i = 0; i < _num_layers; ++i) {
-        reset_state("self_keys_" + std::to_string(i), empty_cache);
-        reset_state("self_values_" + std::to_string(i), empty_cache);
-        reset_state("memory_keys_" + std::to_string(i), empty_cache);
-        reset_state("memory_values_" + std::to_string(i), empty_cache);
-      }
-    }
-
-
     TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
-      : _scaled_embeddings(model, scope + "/embeddings")
+      : Decoder(model.device())
+      , _scaled_embeddings(model, scope + "/embeddings")
       , _position_encoder(model, scope + "/position_encodings")
       , _output_norm(model, scope + "/layer_norm")
       , _proj(model, scope + "/projection") {
@@ -462,7 +447,17 @@ namespace ctranslate2 {
             break;
         }
       }
-      _state.reset(new TransformerDecoderState(_layers.size(), model.device()));
+    }
+
+    DecoderState TransformerDecoder::initial_state() const {
+      DecoderState state;
+      for (size_t i = 0; i < _layers.size(); ++i) {
+        state.emplace("self_keys_" + std::to_string(i), StorageView(_device));
+        state.emplace("self_values_" + std::to_string(i), StorageView(_device));
+        state.emplace("memory_keys_" + std::to_string(i), StorageView(_device));
+        state.emplace("memory_values_" + std::to_string(i), StorageView(_device));
+      }
+      return state;
     }
 
     void TransformerDecoder::operator()(size_t step,
@@ -470,6 +465,7 @@ namespace ctranslate2 {
                                         const StorageView& candidates,
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
+                                        DecoderState& state,
                                         StorageView& output) {
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());
@@ -481,10 +477,10 @@ namespace ctranslate2 {
         _layers[l](layer_in,
                    memory,
                    memory_lengths,
-                   _state->get("self_keys_" + std::to_string(l)),
-                   _state->get("self_values_" + std::to_string(l)),
-                   _state->get("memory_keys_" + std::to_string(l)),
-                   _state->get("memory_values_" + std::to_string(l)),
+                   state.at("self_keys_" + std::to_string(l)),
+                   state.at("self_values_" + std::to_string(l)),
+                   state.at("memory_keys_" + std::to_string(l)),
+                   state.at("memory_values_" + std::to_string(l)),
                    layer_out);
         swap(layer_in, layer_out);
       }

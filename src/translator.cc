@@ -86,9 +86,6 @@ namespace ctranslate2 {
     StorageView encoded(device);
     encoder(ids, lengths, encoded);
 
-    // Reset decoder states based on the encoder outputs.
-    decoder.get_state().reset();
-
     // If set, extract the subset of candidates to generate.
     StorageView candidates(DataType::DT_INT32, device);
     if (options.use_vmap && !vocab_map.empty()) {

@@ -11,41 +11,10 @@ namespace ctranslate2 {
     gather_op(input_clone, indices, input);
   }
   static void gather(DecoderState& state, const StorageView& indices) {
-    for (auto& pair : state.get()) {
+    for (auto& pair : state) {
       gather(pair.second, indices);
     }
   }
-
-
-  void DecoderState::reset() {
-    return;
-  }
-
-  std::unordered_map<std::string, StorageView>& DecoderState::get() {
-    return _states;
-  }
-
-  StorageView& DecoderState::get(const std::string& name) {
-    return _states.at(name);
-  }
-
-  void DecoderState::reset_state(const std::string& name, const StorageView& state) {
-    auto it = _states.find(name);
-    if (it == _states.end()) {
-      _states.emplace(std::piecewise_construct,
-                      std::forward_as_tuple(name),
-                      std::forward_as_tuple(state));
-    } else {
-      it->second = state;
-    }
-  }
-
-  std::ostream& operator<<(std::ostream& os, const DecoderState& decoder_state) {
-    for (auto& pair : decoder_state._states)
-      os << pair.first << " => " << pair.second << std::endl;
-    return os;
-  }
-
 
   static void tile(StorageView& input, const StorageView& repeats) {
     static const ops::Tile tile_op;
@@ -66,7 +35,7 @@ namespace ctranslate2 {
   }
 
   static void expand_to_beam_size(DecoderState& state, size_t beam_size) {
-    for (auto& pair : state.get()) {
+    for (auto& pair : state) {
       if (!pair.second.empty())
         expand_to_beam_size(pair.second, beam_size);
     }
@@ -78,6 +47,11 @@ namespace ctranslate2 {
                                                 static_cast<float>(-1e10),
                                                 log_probs.dim(-1),
                                                 log_probs.dim(0)));
+  }
+
+
+  Decoder::Decoder(Device device)
+    : _device(device) {
   }
 
   void beam_search(Decoder& decoder,
@@ -93,6 +67,7 @@ namespace ctranslate2 {
                    float length_penalty,
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores) {
+    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
@@ -100,7 +75,7 @@ namespace ctranslate2 {
     StorageView alive_seq(sample_from);
     alive_seq.reshape({batch_size, 1});
 
-    expand_to_beam_size(decoder.get_state(), beam_size);
+    expand_to_beam_size(state, beam_size);
     expand_to_beam_size(alive_seq, beam_size);
 
     StorageView tiled_memory(memory);
@@ -142,6 +117,7 @@ namespace ctranslate2 {
               candidates,
               tiled_memory,
               tiled_memory_lengths,
+              state,
               logits);
       ops::LogSoftMax()(logits, log_probs);
 
@@ -289,7 +265,7 @@ namespace ctranslate2 {
 
       // Reorder states.
       gather_indices_device.copy_from(gather_indices);
-      gather(decoder.get_state(), gather_indices_device);
+      gather(state, gather_indices_device);
     }
   }
 
@@ -303,6 +279,7 @@ namespace ctranslate2 {
                        size_t min_length,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores) {
+    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
@@ -332,6 +309,7 @@ namespace ctranslate2 {
               candidates,
               alive_memory,
               alive_memory_lengths,
+              state,
               logits);
       ops::LogSoftMax()(logits, log_probs);
 
@@ -381,7 +359,7 @@ namespace ctranslate2 {
         }
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
-        gather(decoder.get_state(), alive_device);
+        gather(state, alive_device);
         gather(alive_memory, alive_device);
         gather(alive_memory_lengths, alive_device);
       }

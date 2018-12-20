@@ -171,24 +171,17 @@ namespace ctranslate2 {
       std::vector<TransformerEncoderLayer> _layers;
     };
 
-    class TransformerDecoderState : public DecoderState {
-    public:
-      TransformerDecoderState(size_t num_layers, Device device);
-      void reset() override;
-    private:
-      size_t _num_layers;
-      Device _device;
-    };
-
     class TransformerDecoder : public Decoder
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
+      DecoderState initial_state() const override;
       void operator()(size_t step,
                       const StorageView& ids,
                       const StorageView& candidates,
                       const StorageView& memory,
                       const StorageView& memory_lengths,
+                      DecoderState& state,
                       StorageView& logits) override;
     private:
       ScaledEmbeddings _scaled_embeddings;
