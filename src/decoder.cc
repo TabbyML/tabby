@@ -303,6 +303,11 @@ namespace ctranslate2 {
       scores[i].resize(1);
     }
 
+    StorageView best_ids( DataType::DT_INT32);
+    StorageView best_ids_device(device, DataType::DT_INT32);
+    StorageView best_probs;
+    StorageView best_probs_device(device);
+
     for (size_t step = 0; step < max_length; ++step) {
       decoder(step,
               sample_from.to(device),
@@ -317,17 +322,17 @@ namespace ctranslate2 {
       if (step < min_length)
         penalize_token(log_probs, end_token);
 
+      ops::TopK(1)(log_probs, best_probs_device, best_ids_device);
+      best_probs.copy_from(best_probs_device);
+      best_ids.copy_from(best_ids_device);
+
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
       size_t count_alive = 0;
       for (size_t i = 0; i < log_probs.dim(0); ++i) {
-        size_t best = 0;
-        DEVICE_DISPATCH(log_probs.device(),
-                        best = primitives<D>::max_element(log_probs.index<float>({i}),
-                                                          log_probs.dim(-1)));
-        size_t true_id = best;
+        size_t true_id = best_ids.scalar_at<int32_t>({i});
         if (!candidates.empty())
-          true_id = candidates.scalar_at<int32_t>({best});
+          true_id = candidates.scalar_at<int32_t>({true_id});
         size_t batch_id = batch_offset[i];
         if (true_id == end_token) {
           finished[batch_id] = true;
@@ -336,7 +341,7 @@ namespace ctranslate2 {
         } else {
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
-          scores[batch_id][0] += log_probs.scalar_at<float>({i, 0, best});
+          scores[batch_id][0] += best_probs.scalar_at<float>({i});
           ++count_alive;
         }
       }
