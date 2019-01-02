@@ -11,6 +11,13 @@ static std::string path_to_test_name(::testing::TestParamInfo<std::string> param
   return name;
 }
 
+static std::string beam_to_test_name(::testing::TestParamInfo<size_t> param_info) {
+  if (param_info.param == 1)
+    return "GreedySearch";
+  else
+    return "BeamSearch";
+}
+
 
 // Test that we can load and translate with different versions of the same model.
 class ModelVariantTest : public ::testing::TestWithParam<std::string> {
@@ -34,3 +41,44 @@ INSTANTIATE_TEST_CASE_P(
     "v2/aren-transliteration-i16",
     "v2/aren-transliteration-i8"),
   path_to_test_name);
+
+
+class SearchVariantTest : public ::testing::TestWithParam<size_t> {
+};
+
+TEST_P(SearchVariantTest, SetMaxDecodingLength) {
+  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.max_decoding_length = 3;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+  EXPECT_EQ(result.output().size(), options.max_decoding_length);
+}
+
+TEST_P(SearchVariantTest, SetMinDecodingLength) {
+  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.min_decoding_length = 8;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+  EXPECT_EQ(result.output().size(), options.min_decoding_length);
+}
+
+TEST_P(SearchVariantTest, ReturnAllHypotheses) {
+  auto beam_size = GetParam();
+  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.num_hypotheses = beam_size;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+  EXPECT_EQ(result.num_hypotheses(), beam_size);
+}
+
+INSTANTIATE_TEST_CASE_P(
+  TranslatorTest,
+  SearchVariantTest,
+  ::testing::Values(1, 4),
+  beam_to_test_name);
