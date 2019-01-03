@@ -17,7 +17,7 @@ _maybe_add_library_root("CTRANSLATE")
 
 ctranslate2_module = Extension(
     "ctranslate2.translator",
-    sources=["Python.cc"],
+    sources=["translator.cc"],
     extra_compile_args=["-std=c++11"],
     include_dirs=include_dirs,
     library_dirs=library_dirs,
