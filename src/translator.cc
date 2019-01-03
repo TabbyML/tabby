@@ -4,22 +4,25 @@
 
 namespace ctranslate2 {
 
-  Translator::Translator(const std::string& model_dir, Device device)
-    : _model(models::ModelFactory::load(model_dir, device))
-    , _encoder(_model->make_encoder())
-    , _decoder(_model->make_decoder()) {
+  Translator::Translator(const std::string& model_dir, Device device, int device_index)
+    : _model(models::ModelFactory::load(model_dir, device, device_index)) {
+    make_graph();
   }
 
   Translator::Translator(const std::shared_ptr<models::Model>& model)
-    : _model(model)
-    , _encoder(_model->make_encoder())
-    , _decoder(_model->make_decoder()) {
+    : _model(model) {
+    make_graph();
   }
 
   Translator::Translator(const Translator& other)
-    : _model(other._model)
-    , _encoder(_model->make_encoder())  // Makes a new graph to ensure thread safety.
-    , _decoder(_model->make_decoder()) { // Same here.
+    : _model(other._model) {
+    make_graph();
+  }
+
+  void Translator::make_graph() {
+    _model->use_model_device();
+    _encoder = _model->make_encoder();
+    _decoder = _model->make_decoder();
   }
 
   TranslationResult
@@ -78,6 +81,7 @@ namespace ctranslate2 {
       }
     }
 
+    _model->use_model_device();
     auto device = _model->device();
     StorageView ids = ids_host.to(device);
     StorageView lengths = lengths_host.to(device);

@@ -32,9 +32,8 @@ namespace ctranslate2 {
 
     TransformerModel::TransformerModel(const std::string& path,
                                        size_t spec_revision,
-                                       Device device,
                                        size_t num_heads)
-      : Model(path, spec_revision, device)
+      : Model(path, spec_revision)
       , _num_heads(num_heads) {
     }
 
@@ -62,16 +61,12 @@ namespace ctranslate2 {
     }
 
 
-    TransformerBaseModel::TransformerBaseModel(const std::string& path,
-                                               size_t spec_revision,
-                                               Device device)
-      : TransformerModel(path, spec_revision, device, 8) {
+    TransformerBaseModel::TransformerBaseModel(const std::string& path, size_t spec_revision)
+      : TransformerModel(path, spec_revision, 8) {
     }
 
-    TransformerBigModel::TransformerBigModel(const std::string& path,
-                                             size_t spec_revision,
-                                             Device device)
-      : TransformerModel(path, spec_revision, device, 16) {
+    TransformerBigModel::TransformerBigModel(const std::string& path, size_t spec_revision)
+      : TransformerModel(path, spec_revision, 16) {
     }
 
 

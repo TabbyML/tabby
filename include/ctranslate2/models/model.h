@@ -14,11 +14,14 @@ namespace ctranslate2 {
     // Base class for models.
     class Model {
     public:
-      Model(const std::string& path, size_t spec_revision, Device device);
+      Model(const std::string& path, size_t spec_revision);
       virtual ~Model() = default;
       virtual size_t current_spec_revision() const;
 
       Device device() const;
+      void set_device(Device type, int index = 0);
+      void use_model_device() const;
+
       const Vocabulary& get_source_vocabulary() const;
       const Vocabulary& get_target_vocabulary() const;
       const VocabularyMap& get_vocabulary_map() const;
@@ -39,6 +42,7 @@ namespace ctranslate2 {
 
     protected:
       Device _device;
+      int _device_index;
       const Vocabulary _source_vocabulary;
       const Vocabulary _target_vocabulary;
       const VocabularyMap _vocabulary_map;
@@ -52,7 +56,9 @@ namespace ctranslate2 {
     // Model factory from a path.
     class ModelFactory {
     public:
-      static std::shared_ptr<Model> load(const std::string& path, Device device);
+      static std::shared_ptr<Model> load(const std::string& path,
+                                         Device device,
+                                         int device_index = 0);
     };
 
   }

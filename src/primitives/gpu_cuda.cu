@@ -44,6 +44,11 @@ namespace ctranslate2 {
   static cub::CachingDeviceAllocator allocator(4, 4, 12, 100 * (1 << 20));
 
   template<>
+  void primitives<Device::CUDA>::set_device(int index) {
+    CUDA_CHECK(cudaSetDevice(index));
+  }
+
+  template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
     void* data = nullptr;
     CUDA_CHECK(allocator.DeviceAllocate(&data, size, cuda::get_cuda_stream()));

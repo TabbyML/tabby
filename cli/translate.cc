@@ -43,6 +43,8 @@ int main(int argc, char* argv[]) {
      "Number of threads for Intel® MKL (set to 0 to use an automatic value).")
     ("device", po::value<std::string>()->default_value("cpu"),
      "Device to use (can be cpu, cuda, auto).")
+    ("device_index", po::value<int>()->default_value(0),
+     "Index of the device to use.")
     ;
 
   po::variables_map vm;
@@ -64,7 +66,8 @@ int main(int argc, char* argv[]) {
 
   auto model = ctranslate2::models::ModelFactory::load(
     vm["model"].as<std::string>(),
-    ctranslate2::str_to_device(vm["device"].as<std::string>()));
+    ctranslate2::str_to_device(vm["device"].as<std::string>()),
+    vm["device_index"].as<int>());
 
   ctranslate2::TranslatorPool translator_pool(inter_threads, model);
 

@@ -22,7 +22,7 @@ namespace ctranslate2 {
   // be safely executed in parallel.
   class Translator {
   public:
-    Translator(const std::string& model_dir, Device device);
+    Translator(const std::string& model_dir, Device device, int device_index = 0);
     Translator(const std::shared_ptr<models::Model>& model);
     Translator(const Translator& other);
 
@@ -41,6 +41,8 @@ namespace ctranslate2 {
     Device device() const;
 
   private:
+    void make_graph();
+
     const std::shared_ptr<models::Model> _model;
     std::unique_ptr<Encoder> _encoder;
     std::unique_ptr<Decoder> _decoder;

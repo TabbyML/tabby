@@ -27,10 +27,12 @@ class TranslatorWrapper
 public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
+                    int device_index,
                     size_t thread_pool_size)
     : _translator_pool(thread_pool_size,
                        ctranslate2::models::ModelFactory::load(model_path,
-                                                               ctranslate2::str_to_device(device))) {
+                                                               ctranslate2::str_to_device(device),
+                                                               device_index)) {
   }
 
   void translate_file(const std::string& in_file,
@@ -114,8 +116,9 @@ BOOST_PYTHON_MODULE(translator)
   py::def("initialize", initialize, (py::arg("mkl_num_threads")=4));
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
-    py::init<std::string, std::string, size_t>(
+    py::init<std::string, std::string, int, size_t>(
       (py::arg("device")="cpu",
+       py::arg("device_index")=0,
        py::arg("thread_pool_size")=1)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          (py::arg("beam_size")=4,

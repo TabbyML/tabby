@@ -13,10 +13,7 @@ namespace ctranslate2 {
     class TransformerModel : public Model
     {
     public:
-      TransformerModel(const std::string& path,
-                       size_t spec_revision,
-                       Device device,
-                       size_t num_heads);
+      TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads);
       size_t num_heads() const;
       size_t current_spec_revision() const override;
       void register_variable(const std::string& name, StorageView& variable) override;
@@ -28,12 +25,12 @@ namespace ctranslate2 {
 
     class TransformerBaseModel : public TransformerModel {
     public:
-      TransformerBaseModel(const std::string& path, size_t spec_revision, Device device);
+      TransformerBaseModel(const std::string& path, size_t spec_revision);
     };
 
     class TransformerBigModel : public TransformerModel {
     public:
-      TransformerBigModel(const std::string& path, size_t spec_revision, Device device);
+      TransformerBigModel(const std::string& path, size_t spec_revision);
     };
 
     class ScaledEmbeddings

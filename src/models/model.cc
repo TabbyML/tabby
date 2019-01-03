@@ -33,9 +33,8 @@ namespace ctranslate2 {
     }
 
 
-    Model::Model(const std::string& path, size_t spec_revision, Device device)
-      : _device(device)
-      , _source_vocabulary(path + "/source_vocabulary.txt")
+    Model::Model(const std::string& path, size_t spec_revision)
+      : _source_vocabulary(path + "/source_vocabulary.txt")
       , _target_vocabulary(path + "/target_vocabulary.txt")
       , _vocabulary_map(path + "/vmap.txt", _target_vocabulary)
       , _spec_revision(spec_revision) {
@@ -47,6 +46,15 @@ namespace ctranslate2 {
 
     Device Model::device() const {
       return _device;
+    }
+
+    void Model::set_device(Device type, int index) {
+      _device = type;
+      _device_index = index;
+    }
+
+    void Model::use_model_device() const {
+      DEVICE_DISPATCH(_device, primitives<D>::set_device(_device_index));
     }
 
     const Vocabulary& Model::get_source_vocabulary() const {
@@ -163,7 +171,9 @@ namespace ctranslate2 {
       return StorageView(*view);
     }
 
-    std::shared_ptr<Model> ModelFactory::load(const std::string& path, Device device) {
+    std::shared_ptr<Model> ModelFactory::load(const std::string& path,
+                                              Device device,
+                                              int device_index) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
@@ -188,11 +198,14 @@ namespace ctranslate2 {
 
       Model* model = nullptr;
       if (spec.empty() || spec == "TransformerBase")
-        model = new TransformerBaseModel(path, spec_revision, device);
+        model = new TransformerBaseModel(path, spec_revision);
       else if (spec == "TransformerBig")
-        model = new TransformerBigModel(path, spec_revision, device);
+        model = new TransformerBigModel(path, spec_revision);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
+
+      model->set_device(device, device_index);
+      model->use_model_device();
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "
