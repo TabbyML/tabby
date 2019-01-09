@@ -16,10 +16,11 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T* consume(std::istream& in, size_t n) {
+    T* consume(std::istream& in, size_t n, T* data = nullptr) {
       if (n == 0)
         return nullptr;
-      T* data = new T[n];
+      if (data == nullptr)
+        data = new T[n];
       in.read(reinterpret_cast<char*>(data), n * sizeof (T));
       return data;
     }
@@ -154,23 +155,6 @@ namespace ctranslate2 {
       }
     }
 
-    static StorageView load_storage(void* data, size_t data_width, const Shape& shape) {
-      std::unique_ptr<StorageView> view;  // No copy view.
-
-      if (data_width == 4) {
-        view.reset(new StorageView(shape, reinterpret_cast<float*>(data)));
-      } else if (data_width == 2) {
-        view.reset(new StorageView(shape, reinterpret_cast<int16_t*>(data)));
-      } else if (data_width == 1) {
-        view.reset(new StorageView(shape, reinterpret_cast<int8_t*>(data)));
-      } else {
-        throw std::runtime_error("unsupported data type");
-      }
-
-      // Return a copy so that the storage owns and aligns the data.
-      return StorageView(*view);
-    }
-
     std::shared_ptr<Model> ModelFactory::load(const std::string& path,
                                               Device device,
                                               int device_index) {
@@ -221,9 +205,8 @@ namespace ctranslate2 {
         auto dimensions = consume<uint32_t>(model_file, rank);
         auto data_width = consume<uint8_t>(model_file);
         auto data_size = consume<uint32_t>(model_file);
-        auto data = consume<char>(model_file, data_size * data_width);
 
-        std::vector<size_t> shape(std::max(static_cast<int>(rank), 1));
+        Shape shape(std::max(static_cast<int>(rank), 1));
         if (rank == 0) {
           shape[0] = 1;
         } else {
@@ -232,11 +215,26 @@ namespace ctranslate2 {
           }
         }
 
-        auto storage = load_storage(data, data_width, shape);
-        model->register_variable(name, storage);
+        DataType dtype;
+        switch (data_width) {
+        case 4:
+          dtype = DataType::DT_FLOAT;
+          break;
+        case 2:
+          dtype = DataType::DT_INT16;
+          break;
+        case 1:
+          dtype = DataType::DT_INT8;
+          break;
+        default:
+          throw std::runtime_error("unsupported data type");
+        }
+
+        StorageView variable(shape, dtype);
+        consume<char>(model_file, data_size * data_width, static_cast<char*>(variable.buffer()));
+        model->register_variable(name, variable);
 
         delete [] dimensions;
-        delete [] data;
       }
 
       model->finalize();

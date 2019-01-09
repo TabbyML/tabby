@@ -108,6 +108,8 @@ namespace ctranslate2 {
     StorageView& shallow_copy(StorageView& other);
     StorageView& deep_copy(const StorageView& other);
 
+    void* buffer();
+
     template <typename T>
     T* data() {
       assert_dtype(DataTypeToEnum<T>::value);
