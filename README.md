@@ -1,19 +1,28 @@
 # CTranslate2
 
-CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution. It is:
+CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution.
 
-* **fast**, up to [2 times faster](#benchmark) than an already competitive OpenNMT-py translation;
-* **portable**, no architecture-specific flags are required during the compilation;
-* **lightweight**, the CPU library takes about 30MB on disk with its dependencies and requires [2 times less memory](#benchmark) than OpenNMT-py during translation.
+## Features
+
+* **fast execution**<br/>translations aim to be fast, especially on CPU.
+* **parallel translation**<br/>translations can be run efficiently in parallel without duplicating the model data in memory.
+* **dynamic memory usage**<br/>the memory usage changes dynamically depending on the request size.
+* **portable binary**<br/>the compilation does not require a target instruction set, the dispatch is done at runtime.
+* **ligthweight on disk**<br/>the CPU library takes about 30MB on disk with its dependencies and models can be compressed below 100MB with minimal accuracy loss.
+* **easy to use translation APIs**<br/>the project exposes [translation APIs](#translating) in Python and C++.
+
+Some of these features are difficult to support in standard deep learning frameworks and are the motivation for this project.
+
+## Dependencies
 
 CTranslate2 uses the following libraries for acceleration:
 
-* [Intel MKL](https://software.intel.com/en-us/mkl)
-* [cuBLAS](https://developer.nvidia.com/cublas)
-* [TensorRT](https://developer.nvidia.com/tensorrt)
-* [CUB](https://nvlabs.github.io/cub/)
-
-The project exposes [translation APIs](#translating) in Python and C++.
+* CPU
+  * [Intel MKL](https://software.intel.com/en-us/mkl)
+* GPU
+  * [cuBLAS](https://developer.nvidia.com/cublas)
+  * [TensorRT](https://developer.nvidia.com/tensorrt)
+  * [CUB](https://nvlabs.github.io/cub/)
 
 ## Converting models
 
@@ -97,27 +106,16 @@ nvidia-docker run -it --rm -v $PWD/my_data:/data \
 
 ```python
 from ctranslate2 import translator
+t = translator.Translator("my_data/ende_ctranslate2/")
 
-translator.initialize(4)  # Number of MKL threads.
+input_tokens = ["Hello", "world", "!"]
+result = t.translate_batch([input_tokens])
+score, output_tokens = result[0][0]
 
-t = translator.Translator(
-    model_path: str      # Path to the CTranslate2 model directory.
-    device="cpu",        # Can be "cpu", "cuda", or "auto".
-    thread_pool_size=2)  # Number of concurrent translations.
-
-output = t.translate_batch(
-    tokens: list,            # A list of list of string.
-    beam_size=4,             # Beam size.
-    num_hypotheses=1,        # Number of hypotheses to return.
-    length_penalty=0.6,      # Length penalty constant.
-    max_decoding_steps=250,  # Maximum decoding steps.
-    min_decoding_length=1,   # Minimum prediction length (EOS excluded).
-    use_vmap=False)          # Use the VMAP saved in this model.
-
-# output is a 2D list [batch x num_hypotheses] containing tuples of (score, tokens).
-
-del t  # Release translator resources.
+print(output_tokens)
 ```
+
+*See the [Python reference](python/README.md) for more advanced usage.*
 
 ### With the C++ API
 
@@ -125,10 +123,8 @@ del t  # Release translator resources.
 #include <iostream>
 #include <ctranslate2/translator.h>
 
-int main(int, char* argv[]) {
-  std::string model_dir = argv[1];
-
-  ctranslate2::Translator translator(model_dir, ctranslate2::Device::CPU);
+int main() {
+  ctranslate2::Translator translator("my_data/ende_ctranslate2/", ctranslate2::Device::CPU);
   ctranslate2::TranslationResult result = translator.translate({"Hello", "world", "!"});
 
   for (const auto& token : result.output())
@@ -138,7 +134,7 @@ int main(int, char* argv[]) {
 }
 ```
 
-*See the [class definition](include/ctranslate2/translator.h) for more advanced usage.*
+*See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
 ## Benchmark
 

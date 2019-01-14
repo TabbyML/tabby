@@ -1,0 +1,37 @@
+## API
+
+```python
+from ctranslate2 import translator
+
+translator.initialize(4)     # Number of MKL threads.
+
+t = translator.Translator(
+    model_path: str          # Path to the CTranslate2 model directory.
+    device="cpu",            # Can be "cpu", "cuda", or "auto".
+    device_index=0,          # The index of the device to place this translator on.
+    thread_pool_size=1)      # Number of concurrent translations.
+
+# output is a 2D list [batch x num_hypotheses] containing tuples of (score, tokens).
+output = t.translate_batch(
+    tokens: list,            # A list of list of string.
+    beam_size=4,             # Beam size.
+    num_hypotheses=1,        # Number of hypotheses to return.
+    length_penalty=0.6,      # Length penalty constant.
+    max_decoding_length=250, # Maximum prediction length.
+    min_decoding_length=1,   # Minimum prediction length.
+    use_vmap=False)          # Use the VMAP saved in this model.
+
+t.translate_file(
+    input_path: str,         # Input file.
+    output_path: str,        # Output file.
+    max_batch_size: int,     # Maximum batch size to translate.
+    beam_size=4,             # Beam size.
+    num_hypotheses=1,        # Number of hypotheses to output.
+    length_penalty=0.6,      # Length penalty constant.
+    max_decoding_length=250, # Maximum prediction length.
+    min_decoding_length=1,   # Minimum prediction length.
+    use_vmap=False,          # Use the VMAP saved in this model.
+    with_scores=False)       # Also output predictions scores.
+
+del t                        # Release the translator resources.
+```

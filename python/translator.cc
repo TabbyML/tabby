@@ -117,18 +117,23 @@ BOOST_PYTHON_MODULE(translator)
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
     py::init<std::string, std::string, int, size_t>(
-      (py::arg("device")="cpu",
+      (py::arg("model_path"),
+       py::arg("device")="cpu",
        py::arg("device_index")=0,
        py::arg("thread_pool_size")=1)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,
-         (py::arg("beam_size")=4,
+         (py::arg("tokens"),
+          py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_length")=250,
           py::arg("min_decoding_length")=1,
           py::arg("use_vmap")=false))
     .def("translate_file", &TranslatorWrapper::translate_file,
-         (py::arg("beam_size")=4,
+         (py::arg("input_path"),
+          py::arg("output_path"),
+          py::arg("max_batch_size"),
+          py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_length")=250,
