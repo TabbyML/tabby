@@ -2,8 +2,7 @@
 
 // This file defines the execution engine for a TransformerSpec model.
 
-#include "ctranslate2/ops/ops.h"
-#include "ctranslate2/storage_view.h"
+#include "ctranslate2/layers/layers.h"
 
 #include "model.h"
 
@@ -55,41 +54,15 @@ namespace ctranslate2 {
       const StorageView* _encoding;
     };
 
-    class Dense
-    {
-    public:
-      Dense(const TransformerModel& model, const std::string& scope);
-      void operator()(const StorageView& input,
-                      StorageView& output,
-                      const StorageView* index = nullptr);
-    private:
-      const StorageView& _weight;
-      const StorageView* _qscale;
-      const StorageView& _bias;
-      StorageView _partial_weight;
-      StorageView _partial_bias;
-    };
-
-    class LayerNorm
-    {
-    public:
-      LayerNorm(const TransformerModel& model, const std::string& scope);
-      void operator()(const StorageView& input, StorageView& output);
-    private:
-      ops::LayerNorm _norm_op;
-      const StorageView& _beta;
-      const StorageView& _gamma;
-    };
-
     class TransformerFeedForward
     {
     public:
       TransformerFeedForward(const TransformerModel& model, const std::string& scope);
       void operator()(const StorageView& input, StorageView& output);
     private:
-      LayerNorm _layer_norm;
-      Dense _ff1;
-      Dense _ff2;
+      layers::LayerNorm _layer_norm;
+      layers::Dense _ff1;
+      layers::Dense _ff2;
     };
 
     class DotProductAttention
@@ -114,8 +87,8 @@ namespace ctranslate2 {
                       StorageView* cached_values = nullptr);
     private:
       size_t _num_heads;
-      std::vector<Dense> _linear;
-      LayerNorm _layer_norm;
+      std::vector<layers::Dense> _linear;
+      layers::LayerNorm _layer_norm;
       DotProductAttention _attention;
       ops::Transpose _transpose_op;
 
@@ -164,7 +137,7 @@ namespace ctranslate2 {
     private:
       ScaledEmbeddings _scaled_embeddings;
       PositionEncoder _position_encoder;
-      LayerNorm _output_norm;
+      layers::LayerNorm _output_norm;
       std::vector<TransformerEncoderLayer> _layers;
     };
 
@@ -183,9 +156,9 @@ namespace ctranslate2 {
     private:
       ScaledEmbeddings _scaled_embeddings;
       PositionEncoder _position_encoder;
-      LayerNorm _output_norm;
+      layers::LayerNorm _output_norm;
       std::vector<TransformerDecoderLayer> _layers;
-      Dense _proj;
+      layers::Dense _proj;
     };
 
   }
