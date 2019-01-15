@@ -6,6 +6,17 @@
 namespace ctranslate2 {
   namespace layers {
 
+    class Embeddings
+    {
+    public:
+      Embeddings(const models::Model& model, const std::string& scope);
+      void operator()(const StorageView& ids, StorageView& output);
+    private:
+      ops::Gather _gather_op;
+      const StorageView& _embeddings;
+      const StorageView* _qscale;
+    };
+
     class Dense
     {
     public:

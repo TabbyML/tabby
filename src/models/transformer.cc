@@ -70,25 +70,6 @@ namespace ctranslate2 {
     }
 
 
-    ScaledEmbeddings::ScaledEmbeddings(const TransformerModel& model, const std::string& scope)
-      : _embeddings(model.get_variable(scope + "/weight"))
-      , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
-      , _scale(static_cast<float>(sqrt(_embeddings.dim(-1)))) {
-    }
-
-    void ScaledEmbeddings::operator()(const StorageView& ids,
-                                      StorageView& output) {
-      if (_embeddings.dtype() == DataType::DT_INT16) {
-        StorageView gathered(_embeddings.dtype());
-        _gather_op(_embeddings, ids, gathered);
-        ops::Unquantize()(gathered, *_qscale, output);
-      } else {
-        _gather_op(_embeddings, ids, output);
-      }
-      ops::Mul()(output, _scale, output);
-    }
-
-
     PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope)
       : _encoding(model.get_variable_if_exists(scope + "/encodings")) {
     }
@@ -347,7 +328,7 @@ namespace ctranslate2 {
 
 
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
-      : _scaled_embeddings(model, scope + "/embeddings")
+      : _embeddings(model, scope + "/embeddings")
       , _position_encoder(model, scope + "/position_encodings")
       , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
@@ -367,7 +348,8 @@ namespace ctranslate2 {
                                         StorageView& output) {
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());
-      _scaled_embeddings(ids, layer_in);
+      _embeddings(ids, layer_in);
+      ops::Mul()(layer_in, StorageView(static_cast<float>(sqrt(layer_in.dim(-1)))), layer_in);
       _position_encoder(layer_in);
 
       for (auto& layer : _layers) {
@@ -380,7 +362,7 @@ namespace ctranslate2 {
 
     TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
       : Decoder(model.device())
-      , _scaled_embeddings(model, scope + "/embeddings")
+      , _embeddings(model, scope + "/embeddings")
       , _position_encoder(model, scope + "/position_encodings")
       , _output_norm(model, scope + "/layer_norm")
       , _proj(model, scope + "/projection") {
@@ -417,7 +399,8 @@ namespace ctranslate2 {
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());
 
-      _scaled_embeddings(ids, layer_in);
+      _embeddings(ids, layer_in);
+      ops::Mul()(layer_in, StorageView(static_cast<float>(sqrt(layer_in.dim(-1)))), layer_in);
       _position_encoder(layer_in, step);
 
       for (size_t l = 0; l < _layers.size(); ++l) {

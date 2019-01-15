@@ -32,18 +32,6 @@ namespace ctranslate2 {
       TransformerBigModel(const std::string& path, size_t spec_revision);
     };
 
-    class ScaledEmbeddings
-    {
-    public:
-      ScaledEmbeddings(const TransformerModel& model, const std::string& scope);
-      void operator()(const StorageView& ids, StorageView& output);
-    private:
-      ops::Gather _gather_op;
-      const StorageView& _embeddings;
-      const StorageView* _qscale;
-      const StorageView _scale;
-    };
-
     class PositionEncoder
     {
     public:
@@ -135,7 +123,7 @@ namespace ctranslate2 {
                       const StorageView& lengths,
                       StorageView& output) override;
     private:
-      ScaledEmbeddings _scaled_embeddings;
+      layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;
       layers::LayerNorm _output_norm;
       std::vector<TransformerEncoderLayer> _layers;
@@ -154,7 +142,7 @@ namespace ctranslate2 {
                       DecoderState& state,
                       StorageView& logits) override;
     private:
-      ScaledEmbeddings _scaled_embeddings;
+      layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;
       layers::LayerNorm _output_norm;
       std::vector<TransformerDecoderLayer> _layers;

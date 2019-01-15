@@ -3,6 +3,23 @@
 namespace ctranslate2 {
   namespace layers {
 
+    Embeddings::Embeddings(const models::Model& model, const std::string& scope)
+      : _embeddings(model.get_variable(scope + "/weight"))
+      , _qscale(model.get_variable_if_exists(scope + "/weight_scale")) {
+    }
+
+    void Embeddings::operator()(const StorageView& ids,
+                                StorageView& output) {
+      if (_embeddings.dtype() == DataType::DT_INT16) {
+        StorageView gathered(_embeddings.dtype());
+        _gather_op(_embeddings, ids, gathered);
+        ops::Unquantize()(gathered, *_qscale, output);
+      } else {
+        _gather_op(_embeddings, ids, output);
+      }
+    }
+
+
     Dense::Dense(const models::Model& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
       , _bias(model.get_variable(scope + "/bias"))
