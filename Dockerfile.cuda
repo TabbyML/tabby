@@ -47,7 +47,6 @@ RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
     tar xf v${CUB_VERSION}.tar.gz && \
     mv cub-${CUB_VERSION} ${CUB_ROOT} && \
     rm v${CUB_VERSION}.tar.gz
-RUN ls
 
 WORKDIR /root/ctranslate2-dev
 
