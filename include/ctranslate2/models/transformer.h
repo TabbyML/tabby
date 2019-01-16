@@ -53,38 +53,6 @@ namespace ctranslate2 {
       layers::Dense _ff2;
     };
 
-    class DotProductAttention
-    {
-    public:
-      void operator()(const StorageView& queries,
-                      const StorageView& keys,
-                      const StorageView& values,
-                      const StorageView* values_lengths,
-                      StorageView& output);
-    };
-
-    class MultiHeadAttention
-    {
-    public:
-      MultiHeadAttention(const TransformerModel& model, const std::string& scope);
-      void operator()(const StorageView& queries,
-                      const StorageView* memory,
-                      const StorageView* memory_lengths,
-                      StorageView& output,
-                      StorageView* cached_keys = nullptr,
-                      StorageView* cached_values = nullptr);
-    private:
-      size_t _num_heads;
-      std::vector<layers::Dense> _linear;
-      layers::LayerNorm _layer_norm;
-      DotProductAttention _attention;
-      ops::Transpose _transpose_op;
-
-      void split_heads(const StorageView& x, StorageView& y);
-      void combine_heads(const StorageView& x, StorageView& y);
-      static void cache_proj(StorageView& proj, StorageView& cache);
-    };
-
     class TransformerEncoderLayer
     {
     public:
@@ -93,7 +61,7 @@ namespace ctranslate2 {
                       const StorageView& lengths,
                       StorageView& output);
     private:
-      MultiHeadAttention _self_attention;
+      layers::MultiHeadAttention _self_attention;
       TransformerFeedForward _ff;
     };
 
@@ -110,8 +78,8 @@ namespace ctranslate2 {
                       StorageView& cached_attn_values,
                       StorageView& output);
     private:
-      MultiHeadAttention _self_attention;
-      MultiHeadAttention _encoder_attention;
+      layers::MultiHeadAttention _self_attention;
+      layers::MultiHeadAttention _encoder_attention;
       TransformerFeedForward _ff;
     };
 
