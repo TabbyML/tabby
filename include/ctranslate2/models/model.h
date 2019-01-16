@@ -5,8 +5,8 @@
 
 #include "ctranslate2/vocabulary.h"
 #include "ctranslate2/vocabulary_map.h"
-#include "ctranslate2/encoder.h"
-#include "ctranslate2/decoder.h"
+#include "ctranslate2/layers/encoder.h"
+#include "ctranslate2/layers/decoder.h"
 
 namespace ctranslate2 {
   namespace models {
@@ -37,8 +37,8 @@ namespace ctranslate2 {
       // Makes new graph to execute this model. Graphs returned by these function
       // should support being executed in parallel without duplicating the model
       // data (i.e. the weights).
-      virtual std::unique_ptr<Encoder> make_encoder() const = 0;
-      virtual std::unique_ptr<Decoder> make_decoder() const = 0;
+      virtual std::unique_ptr<layers::Encoder> make_encoder() const = 0;
+      virtual std::unique_ptr<layers::Decoder> make_decoder() const = 0;
 
     protected:
       Device _device;

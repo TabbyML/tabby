@@ -16,8 +16,8 @@ namespace ctranslate2 {
       size_t num_heads() const;
       size_t current_spec_revision() const override;
       void register_variable(const std::string& name, StorageView& variable) override;
-      std::unique_ptr<Encoder> make_encoder() const override;
-      std::unique_ptr<Decoder> make_decoder() const override;
+      std::unique_ptr<layers::Encoder> make_encoder() const override;
+      std::unique_ptr<layers::Decoder> make_decoder() const override;
     protected:
       size_t _num_heads;
     };
@@ -83,7 +83,7 @@ namespace ctranslate2 {
       TransformerFeedForward _ff;
     };
 
-    class TransformerEncoder : public Encoder
+    class TransformerEncoder : public layers::Encoder
     {
     public:
       TransformerEncoder(const TransformerModel& model, const std::string& scope);
@@ -97,17 +97,17 @@ namespace ctranslate2 {
       std::vector<TransformerEncoderLayer> _layers;
     };
 
-    class TransformerDecoder : public Decoder
+    class TransformerDecoder : public layers::Decoder
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
-      DecoderState initial_state() const override;
+      layers::DecoderState initial_state() const override;
       void operator()(size_t step,
                       const StorageView& ids,
                       const StorageView& candidates,
                       const StorageView& memory,
                       const StorageView& memory_lengths,
-                      DecoderState& state,
+                      layers::DecoderState& state,
                       StorageView& logits) override;
     private:
       layers::Embeddings _embeddings;

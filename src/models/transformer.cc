@@ -52,12 +52,12 @@ namespace ctranslate2 {
       Model::register_variable(var_name, variable);
     }
 
-    std::unique_ptr<Encoder> TransformerModel::make_encoder() const {
-      return std::unique_ptr<Encoder>(new TransformerEncoder(*this, "encoder"));
+    std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
+      return std::unique_ptr<layers::Encoder>(new TransformerEncoder(*this, "encoder"));
     }
 
-    std::unique_ptr<Decoder> TransformerModel::make_decoder() const {
-      return std::unique_ptr<Decoder>(new TransformerDecoder(*this, "decoder"));
+    std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {
+      return std::unique_ptr<layers::Decoder>(new TransformerDecoder(*this, "decoder"));
     }
 
 
@@ -232,8 +232,8 @@ namespace ctranslate2 {
       }
     }
 
-    DecoderState TransformerDecoder::initial_state() const {
-      DecoderState state;
+    layers::DecoderState TransformerDecoder::initial_state() const {
+      layers::DecoderState state;
       for (size_t i = 0; i < _layers.size(); ++i) {
         state.emplace("self_keys_" + std::to_string(i), StorageView(_device));
         state.emplace("self_values_" + std::to_string(i), StorageView(_device));
@@ -248,7 +248,7 @@ namespace ctranslate2 {
                                         const StorageView& candidates,
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
-                                        DecoderState& state,
+                                        layers::DecoderState& state,
                                         StorageView& output) {
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());

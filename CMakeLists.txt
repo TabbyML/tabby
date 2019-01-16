@@ -26,9 +26,9 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   )
 set(SOURCES
-  src/decoder.cc
   src/devices.cc
   src/layers/attention.cc
+  src/layers/decoder.cc
   src/layers/common.cc
   src/models/model.cc
   src/models/transformer.cc

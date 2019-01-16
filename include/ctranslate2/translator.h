@@ -44,8 +44,8 @@ namespace ctranslate2 {
     void make_graph();
 
     const std::shared_ptr<models::Model> _model;
-    std::unique_ptr<Encoder> _encoder;
-    std::unique_ptr<Decoder> _decoder;
+    std::unique_ptr<layers::Encoder> _encoder;
+    std::unique_ptr<layers::Decoder> _decoder;
   };
 
 }

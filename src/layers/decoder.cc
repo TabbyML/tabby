@@ -1,8 +1,16 @@
-#include "ctranslate2/decoder.h"
+#include "ctranslate2/layers/decoder.h"
 
 #include "ctranslate2/ops/ops.h"
 
 namespace ctranslate2 {
+
+  namespace layers {
+
+    Decoder::Decoder(Device device)
+      : _device(device) {
+    }
+
+  }
 
   // Convenience functions to gather "in-place" (actually uses a temporary).
   static void gather(StorageView& input, const StorageView& indices) {
@@ -10,7 +18,7 @@ namespace ctranslate2 {
     StorageView input_clone(std::move(input));
     gather_op(input_clone, indices, input);
   }
-  static void gather(DecoderState& state, const StorageView& indices) {
+  static void gather(layers::DecoderState& state, const StorageView& indices) {
     for (auto& pair : state) {
       gather(pair.second, indices);
     }
@@ -34,7 +42,7 @@ namespace ctranslate2 {
     input.reshape(original_shape);
   }
 
-  static void expand_to_beam_size(DecoderState& state, size_t beam_size) {
+  static void expand_to_beam_size(layers::DecoderState& state, size_t beam_size) {
     for (auto& pair : state) {
       if (!pair.second.empty())
         expand_to_beam_size(pair.second, beam_size);
@@ -49,12 +57,7 @@ namespace ctranslate2 {
                                                 log_probs.dim(0)));
   }
 
-
-  Decoder::Decoder(Device device)
-    : _device(device) {
-  }
-
-  void beam_search(Decoder& decoder,
+  void beam_search(layers::Decoder& decoder,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,
@@ -269,7 +272,7 @@ namespace ctranslate2 {
     }
   }
 
-  void greedy_decoding(Decoder& decoder,
+  void greedy_decoding(layers::Decoder& decoder,
                        StorageView& sample_from,
                        StorageView& candidates,
                        const StorageView& memory,
