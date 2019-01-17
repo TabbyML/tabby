@@ -11,7 +11,10 @@ t = translator.Translator(
     device_index=0,          # The index of the device to place this translator on.
     thread_pool_size=1)      # Number of concurrent translations.
 
-# output is a 2D list [batch x num_hypotheses] containing tuples of (score, tokens).
+# output is a 2D list [batch x num_hypotheses] containing dict with keys:
+# * "score"
+# * "tokens"
+# * "attention" (if return_attention is set to True)
 output = t.translate_batch(
     tokens: list,            # A list of list of string.
     beam_size=4,             # Beam size.
@@ -19,7 +22,8 @@ output = t.translate_batch(
     length_penalty=0.6,      # Length penalty constant.
     max_decoding_length=250, # Maximum prediction length.
     min_decoding_length=1,   # Minimum prediction length.
-    use_vmap=False)          # Use the VMAP saved in this model.
+    use_vmap=False,          # Use the VMAP saved in this model.
+    return_attention=False)  # Also return the attention vectors.
 
 t.translate_file(
     input_path: str,         # Input file.

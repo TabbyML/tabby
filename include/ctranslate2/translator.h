@@ -15,6 +15,7 @@ namespace ctranslate2 {
     size_t min_decoding_length = 1;
     float length_penalty = 0;
     bool use_vmap = false;
+    bool return_attention = false;
   };
 
   // This class holds all information required to translate from a model. Copying

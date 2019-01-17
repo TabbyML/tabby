@@ -104,6 +104,8 @@ namespace ctranslate2 {
     StorageView sample_from({batch_size}, static_cast<int32_t>(start_token));
     std::vector<std::vector<std::vector<size_t>>> sampled_ids;
     std::vector<std::vector<float>> scores;
+    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
+    auto* attention_ptr = options.return_attention ? &attention : nullptr;
     if (options.beam_size == 1)
       greedy_decoding(decoder,
                       sample_from,
@@ -114,7 +116,8 @@ namespace ctranslate2 {
                       options.max_decoding_length,
                       options.min_decoding_length,
                       sampled_ids,
-                      scores);
+                      scores,
+                      attention_ptr);
     else
       beam_search(decoder,
                   sample_from,
@@ -128,13 +131,16 @@ namespace ctranslate2 {
                   options.num_hypotheses,
                   options.length_penalty,
                   sampled_ids,
-                  scores);
+                  scores,
+                  attention_ptr);
 
     // Build results.
     std::vector<TranslationResult> results;
     results.reserve(batch_size);
-    for (size_t i = 0; i < batch_size; ++i)
-      results.emplace_back(sampled_ids[i], scores[i], target_vocab);
+    for (size_t i = 0; i < batch_size; ++i) {
+      const auto* attn = i < attention.size() ? &attention[i] : nullptr;
+      results.emplace_back(sampled_ids[i], scores[i], target_vocab, attn);
+    }
     return results;
   }
 

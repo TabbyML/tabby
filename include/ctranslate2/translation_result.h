@@ -11,9 +11,11 @@ namespace ctranslate2 {
   public:
     TranslationResult(const std::vector<std::vector<size_t>>& hypotheses,
                       const std::vector<float>& scores,
-                      const Vocabulary& vocabulary);
+                      const Vocabulary& vocabulary,
+                      const std::vector<std::vector<std::vector<float>>>* attention);
     TranslationResult(const std::vector<std::vector<std::string>>& hypotheses,
-                      const std::vector<float>& scores);
+                      const std::vector<float>& scores,
+                      const std::vector<std::vector<std::vector<float>>>* attention);
 
     const std::vector<std::string>& output() const;
     float score() const;
@@ -22,9 +24,13 @@ namespace ctranslate2 {
     const std::vector<std::vector<std::string>>& hypotheses() const;
     const std::vector<float>& scores() const;
 
+    const std::vector<std::vector<std::vector<float>>>& attention() const;
+    bool has_attention() const;
+
   private:
     std::vector<std::vector<std::string>> _hypotheses;
     std::vector<float> _scores;
+    std::vector<std::vector<std::vector<float>>> _attention;
   };
 
 }

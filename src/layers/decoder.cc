@@ -69,7 +69,8 @@ namespace ctranslate2 {
                    size_t num_hypotheses,
                    float length_penalty,
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                   std::vector<std::vector<float>>& scores) {
+                   std::vector<std::vector<float>>& scores,
+                   std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
     auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -92,12 +93,17 @@ namespace ctranslate2 {
     topk_log_probs.at<float>(0) = 0;
     tile(topk_log_probs, StorageView({1}, static_cast<int32_t>(batch_size)));
 
-    std::vector<std::map<float, std::vector<size_t>>> hypotheses;
+    using Result = std::pair<std::vector<size_t>, std::vector<std::vector<float>>>;
+    std::vector<std::map<float, Result>> hypotheses;
     hypotheses.resize(batch_size);
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
     scores.clear();
     scores.resize(batch_size);
+    if (attention) {
+      attention->clear();
+      attention->resize(batch_size);
+    }
 
     std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<size_t> batch_offset(batch_size);
@@ -105,6 +111,8 @@ namespace ctranslate2 {
       batch_offset[i] = i;
       sampled_ids[i].reserve(num_hypotheses);
       scores[i].reserve(num_hypotheses);
+      if (attention)
+        (*attention)[i].reserve(num_hypotheses);
     }
 
     StorageView logits(device);
@@ -112,6 +120,10 @@ namespace ctranslate2 {
     StorageView topk_ids_device(device, topk_ids.dtype());
     StorageView topk_log_probs_device(device);
     StorageView gather_indices_device(device, DataType::DT_INT32);
+
+    StorageView alive_attention;
+    StorageView attention_step;
+    StorageView attention_step_device(device);
 
     for (size_t step = 0; step < max_length; ++step) {
       // Compute log probs for the current step.
@@ -121,7 +133,8 @@ namespace ctranslate2 {
               tiled_memory,
               tiled_memory_lengths,
               state,
-              logits);
+              logits,
+              attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 
       size_t vocabulary_size = log_probs.dim(-1);
@@ -152,6 +165,8 @@ namespace ctranslate2 {
 
       topk_log_probs = topk_log_probs_device.to(Device::CPU);
       topk_ids = topk_ids_device.to(Device::CPU);
+      if (attention)
+        attention_step.copy_from(attention_step_device);
 
       // Recover the true log probs if length penalty was applied.
       if (length_penalty != 0)
@@ -178,6 +193,19 @@ namespace ctranslate2 {
       ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
       topk_log_probs.reshape({cur_batch_size, beam_size});
       topk_ids.reshape({cur_batch_size, beam_size});
+      if (attention) {
+        if (alive_attention.empty())
+          alive_attention = attention_step;
+        else {
+          gather(alive_attention, gather_indices);
+          StorageView cur_alive_attention(std::move(alive_attention));
+          ops::Concat(1)({&cur_alive_attention, &attention_step}, alive_attention);
+        }
+        alive_attention.reshape({cur_batch_size,
+                                 beam_size,
+                                 alive_attention.dim(1),
+                                 alive_attention.dim(2)});
+      }
 
       // Check if some hypotheses are finished.
       std::vector<bool> finished(cur_batch_size, false);
@@ -196,18 +224,27 @@ namespace ctranslate2 {
             if (hypotheses[batch_id].size() < num_hypotheses
                 || -score < hypotheses[batch_id].rbegin()->first) {
               std::vector<size_t> hypothesis;
-              hypothesis.reserve(alive_seq.dim(-1));
-              for (size_t t = 1; t < alive_seq.dim(-1); ++t) {
+              std::vector<std::vector<float>> attn;
+              size_t max_time = alive_seq.dim(-1);
+              hypothesis.reserve(max_time);
+              if (attention)
+                attn.reserve(max_time);
+              for (size_t t = 1; t < max_time; ++t) {
                 size_t id = alive_seq.at<int32_t>({i, k, t});
                 if (id == end_token)
                   break;
                 hypothesis.push_back(id);
+                if (attention) {
+                  const auto* attn_vec = alive_attention.index<float>({i, k, t});
+                  attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
+                }
               }
 
               // Use -score as the key to iterate the map from best to worst.
               hypotheses[batch_id].emplace(std::piecewise_construct,
                                            std::forward_as_tuple(-score),
-                                           std::forward_as_tuple(std::move(hypothesis)));
+                                           std::forward_as_tuple(std::move(hypothesis),
+                                                                 std::move(attn)));
             }
           }
         }
@@ -217,11 +254,14 @@ namespace ctranslate2 {
           finished[i] = true;
 
           // Return the "num_hypotheses" best hypotheses.
-          for (const auto& pair : hypotheses[batch_id]) {
+          for (auto& pair : hypotheses[batch_id]) {
             if (sampled_ids[batch_id].size() >= num_hypotheses)
               break;
-            sampled_ids[batch_id].emplace_back(std::move(pair.second));
             scores[batch_id].push_back(-pair.first);
+            sampled_ids[batch_id].emplace_back(std::move(pair.second.first));
+            if (attention) {
+              (*attention)[batch_id].emplace_back(std::move(pair.second.second));
+            }
           }
           hypotheses[batch_id].clear();
         }
@@ -252,6 +292,8 @@ namespace ctranslate2 {
         gather(topk_ids, keep_batches);
         gather(topk_log_probs, keep_batches);
         gather(alive_seq, keep_batches);
+        if (attention)
+          gather(alive_attention, keep_batches);
         gather(gather_indices, keep_batches);
         auto keep_batches_device = keep_batches.to(device);
         gather(tiled_memory, keep_batches_device);
@@ -265,6 +307,11 @@ namespace ctranslate2 {
       topk_ids.reshape({cur_batch_size * beam_size, 1});
       topk_log_probs.reshape({cur_batch_size * beam_size});
       alive_seq.reshape({cur_batch_size * beam_size, alive_seq.dim(-1)});
+      if (attention)
+        alive_attention.reshape({cur_batch_size * beam_size,
+                                 alive_attention.dim(2),
+                                 alive_attention.dim(3)});
+
 
       // Reorder states.
       gather_indices_device.copy_from(gather_indices);
@@ -281,7 +328,8 @@ namespace ctranslate2 {
                        size_t max_length,
                        size_t min_length,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                       std::vector<std::vector<float>>& scores) {
+                       std::vector<std::vector<float>>& scores,
+                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
     auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -291,6 +339,10 @@ namespace ctranslate2 {
     sampled_ids.resize(batch_size);
     scores.clear();
     scores.resize(batch_size);
+    if (attention) {
+      attention->clear();
+      attention->resize(batch_size);
+    }
 
     StorageView alive_memory(memory);
     StorageView alive_memory_lengths(memory_lengths);
@@ -304,12 +356,16 @@ namespace ctranslate2 {
       batch_offset[i] = i;
       sampled_ids[i].resize(1);
       scores[i].resize(1);
+      if (attention)
+        (*attention)[i].resize(1);
     }
 
     StorageView best_ids( DataType::DT_INT32);
     StorageView best_ids_device(device, DataType::DT_INT32);
     StorageView best_probs;
     StorageView best_probs_device(device);
+    StorageView attention_step;
+    StorageView attention_step_device(device);
 
     for (size_t step = 0; step < max_length; ++step) {
       decoder(step,
@@ -318,7 +374,8 @@ namespace ctranslate2 {
               alive_memory,
               alive_memory_lengths,
               state,
-              logits);
+              logits,
+              attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 
       // Penalize end_token, if configured.
@@ -328,6 +385,8 @@ namespace ctranslate2 {
       ops::TopK(1)(log_probs, best_probs_device, best_ids_device);
       best_probs.copy_from(best_probs_device);
       best_ids.copy_from(best_ids_device);
+      if (attention)
+        attention_step.copy_from(attention_step_device);
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
@@ -346,6 +405,10 @@ namespace ctranslate2 {
           sampled_ids[batch_id][0].push_back(true_id);
           scores[batch_id][0] += best_probs.scalar_at<float>({i});
           ++count_alive;
+        }
+        if (attention && step > 0) {
+          const auto* attn = attention_step.index<float>({i});
+          (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));
         }
       }
 

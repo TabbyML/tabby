@@ -18,6 +18,14 @@ private:
   PyThreadState* _save_state;
 };
 
+template<class T>
+py::list std_vector_to_py_list(const std::vector<T>& v) {
+  py::list l;
+  for (const auto& x : v)
+    l.append(x);
+  return l;
+}
+
 static void initialize(size_t mkl_num_threads) {
   ctranslate2::initialize(mkl_num_threads);
 }
@@ -63,7 +71,8 @@ public:
                            float length_penalty,
                            size_t max_decoding_length,
                            size_t min_decoding_length,
-                           bool use_vmap) {
+                           bool use_vmap,
+                           bool return_attention) {
     if (tokens == py::object())
       return py::list();
 
@@ -83,6 +92,7 @@ public:
     options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
     options.use_vmap = use_vmap;
+    options.return_attention = return_attention;
 
     std::vector<ctranslate2::TranslationResult> results;
 
@@ -95,10 +105,16 @@ public:
     for (const auto& result : results) {
       py::list batch;
       for (size_t i = 0; i < result.num_hypotheses(); ++i) {
-        py::list hyp;
-        for (const auto& token : result.hypotheses()[i])
-          hyp.append(token);
-        batch.append(py::make_tuple(result.scores()[i], hyp));
+        py::dict hyp;
+        hyp["score"] = result.scores()[i];
+        hyp["tokens"] = std_vector_to_py_list(result.hypotheses()[i]);
+        if (result.has_attention()) {
+          py::list attn;
+          for (const auto& attn_vector : result.attention()[i])
+            attn.append(std_vector_to_py_list(attn_vector));
+          hyp["attention"] = attn;
+        }
+        batch.append(hyp);
       }
       py_results.append(batch);
     }
@@ -128,7 +144,8 @@ BOOST_PYTHON_MODULE(translator)
           py::arg("length_penalty")=0.6,
           py::arg("max_decoding_length")=250,
           py::arg("min_decoding_length")=1,
-          py::arg("use_vmap")=false))
+          py::arg("use_vmap")=false,
+          py::arg("return_attention")=false))
     .def("translate_file", &TranslatorWrapper::translate_file,
          (py::arg("input_path"),
           py::arg("output_path"),
