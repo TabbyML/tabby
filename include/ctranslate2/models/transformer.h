@@ -76,7 +76,8 @@ namespace ctranslate2 {
                       StorageView& cached_self_attn_values,
                       StorageView& cached_attn_keys,
                       StorageView& cached_attn_values,
-                      StorageView& output);
+                      StorageView& output,
+                      StorageView* attention = nullptr);
     private:
       layers::MultiHeadAttention _self_attention;
       layers::MultiHeadAttention _encoder_attention;
@@ -108,7 +109,8 @@ namespace ctranslate2 {
                       const StorageView& memory,
                       const StorageView& memory_lengths,
                       layers::DecoderState& state,
-                      StorageView& logits) override;
+                      StorageView& logits,
+                      StorageView* attention = nullptr) override;
     private:
       layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;

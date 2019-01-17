@@ -7,7 +7,8 @@ namespace ctranslate2 {
                                          const StorageView& keys,
                                          const StorageView& values,
                                          const StorageView* values_lengths,
-                                         StorageView& output) {
+                                         StorageView& output,
+                                         StorageView* attention) {
       assert(queries.rank() == 4);
       assert(keys.rank() == 4);
       assert(values.rank() == 4);
@@ -43,6 +44,13 @@ namespace ctranslate2 {
 
       StorageView attn(values.device());
       ops::SoftMax()(output, attn);
+      if (attention != nullptr) {
+        // Transpose attn to make first head data contiguous.
+        ops::Transpose({1, 0, 2, 3})(attn, output);
+        attention->resize({attn.dim(0), attn.dim(2), attn.dim(3)});
+        attention->copy_from(output.data<float>(), attention->size(), attention->device());
+      }
+
       ops::MatMul()(attn, values, output);
     }
 
@@ -70,7 +78,8 @@ namespace ctranslate2 {
                                         const StorageView* memory_lengths,
                                         StorageView& output,
                                         StorageView* cached_keys,
-                                        StorageView* cached_values) {
+                                        StorageView* cached_values,
+                                        StorageView* attention) {
       Device device = queries.device();
       StorageView fused_proj(device);
       StorageView queries_proj(device);
@@ -120,7 +129,8 @@ namespace ctranslate2 {
                  split_keys,
                  split_values,
                  memory_lengths,
-                 context);
+                 context,
+                 attention);
 
       StorageView& combined = values_proj;  // Reuse storage.
       combine_heads(context, combined);

@@ -12,7 +12,8 @@ namespace ctranslate2 {
                       const StorageView& keys,
                       const StorageView& values,
                       const StorageView* values_lengths,
-                      StorageView& output);
+                      StorageView& output,
+                      StorageView* attention = nullptr);
     };
 
     class MultiHeadAttention
@@ -24,7 +25,8 @@ namespace ctranslate2 {
                       const StorageView* memory_lengths,
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
-                      StorageView* cached_values = nullptr);
+                      StorageView* cached_values = nullptr,
+                      StorageView* attention = nullptr);
     private:
       size_t _num_heads;
       std::vector<Dense> _linear;

@@ -26,7 +26,8 @@ namespace ctranslate2 {
                               const StorageView& memory,
                               const StorageView& memory_lengths,
                               DecoderState& state,
-                              StorageView& logits) = 0;
+                              StorageView& logits,
+                              StorageView* attention = nullptr) = 0;
 
     protected:
       Device _device;

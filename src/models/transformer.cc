@@ -171,12 +171,13 @@ namespace ctranslate2 {
                                              StorageView& cached_self_attn_values,
                                              StorageView& cached_attn_keys,
                                              StorageView& cached_attn_values,
-                                             StorageView& output) {
+                                             StorageView& output,
+                                             StorageView* attention) {
       StorageView context(input.device());
       _self_attention(input, nullptr, nullptr, output,
                       &cached_self_attn_keys, &cached_self_attn_values);
       _encoder_attention(output, &memory, &memory_lengths, context,
-                         &cached_attn_keys, &cached_attn_values);
+                         &cached_attn_keys, &cached_attn_values, attention);
       return _ff(context, output);
     }
 
@@ -249,7 +250,8 @@ namespace ctranslate2 {
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
                                         layers::DecoderState& state,
-                                        StorageView& output) {
+                                        StorageView& output,
+                                        StorageView* attention) {
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());
 
@@ -265,7 +267,8 @@ namespace ctranslate2 {
                    state.at("self_values_" + std::to_string(l)),
                    state.at("memory_keys_" + std::to_string(l)),
                    state.at("memory_values_" + std::to_string(l)),
-                   layer_out);
+                   layer_out,
+                   l + 1 == _layers.size() ? attention : nullptr);
         swap(layer_in, layer_out);
       }
       _output_norm(layer_in, layer_out);
