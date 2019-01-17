@@ -110,9 +110,8 @@ t = translator.Translator("my_data/ende_ctranslate2/")
 
 input_tokens = ["Hello", "world", "!"]
 result = t.translate_batch([input_tokens])
-score, output_tokens = result[0][0]
 
-print(output_tokens)
+print(result[0][0])
 ```
 
 *See the [Python reference](python/README.md) for more advanced usage.*
