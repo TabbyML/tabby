@@ -183,6 +183,107 @@ namespace ctranslate2 {
     binary_transform(a, b, c, b_size, thrust::multiplies<T>(), repeat_vec<size_t>(a_size));
   }
 
+  struct absolute_maximum_func : public thrust::binary_function<float, float, float> {
+    __host__ __device__
+    float operator()(float a, float b) {
+      return fmaxf(fabsf(a), fabsf(b));
+    }
+  };
+
+  template <typename T>
+  struct quantize_func : public thrust::binary_function<float, float, T> {
+    __host__ __device__
+    T operator()(float scale, float x) {
+      return static_cast<T>(x * scale);
+    }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::quantize_batch(const float* x, float* scales, int8_t* qx,
+                                                size_t batch_size, size_t depth) {
+    size_t size = batch_size * depth;
+
+    // Assign 1 key per batch.
+    auto keys_it = thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
+                                                   repeat_vec_depth<int>(depth));
+
+    // scales = reduce_max(x, axis=1)
+    thrust::reduce_by_key(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                          keys_it, keys_it + size,
+                          x,
+                          reinterpret_cast<int*>(qx),  // Reuse qx for keys_output.
+                          scales,
+                          thrust::equal_to<int>(),
+                          absolute_maximum_func());
+
+    // scales = 127 / scales
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      scales, scales + batch_size,
+                      scales,
+                      static_cast<float>(127) / thrust::placeholders::_1);
+
+    // qx = x * expand_dims(scales, 1)
+    auto repeat_it = thrust::make_permutation_iterator(
+      scales, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
+                                              repeat_vec_depth<int>(depth)));
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      repeat_it, repeat_it + size, x, qx, quantize_func<int8_t>());
+  }
+
+  template <typename T>
+  struct unquantize_func : public thrust::binary_function<float, T, float> {
+    __device__
+    float operator()(float scale, T x) {
+      return __fdividef(static_cast<float>(x), scale);
+    }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::unquantize_batch(const int8_t* x, const float* scale, float* y,
+                                                  size_t x_size, size_t scale_size) {
+    auto repeat_it = thrust::make_permutation_iterator(
+      scale, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
+                                             repeat_vec_depth<int>(x_size / scale_size)));
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      repeat_it, repeat_it + x_size, x, y, unquantize_func<int8_t>());
+  }
+
+  struct rescale_func : public thrust::binary_function<int32_t, thrust::tuple<float, float>, float> {
+    __device__
+    float operator()(int32_t x, const thrust::tuple<float, float>& scales) {
+      return __fdividef(__int2float_rn(x), (thrust::get<0>(scales) * thrust::get<1>(scales)));
+    }
+  };
+
+  template<>
+  void primitives<Device::CUDA>::rescale_output(const int32_t* x,
+                                                const float* input_scales,
+                                                const float* weight_scales,
+                                                float* y,
+                                                size_t batch_size,
+                                                size_t depth) {
+    size_t size = batch_size * depth;
+
+    // y = x / (expand_dims(input_scales, 1) * expand_dims(weight_scales, 0)
+    auto input_scales_it = thrust::make_permutation_iterator(
+      input_scales,
+      thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
+                                      repeat_vec_depth<int>(depth)));
+    auto weight_scales_it = thrust::make_permutation_iterator(
+      weight_scales,
+      thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
+                                      repeat_vec<int>(depth)));
+
+    auto scales_it = thrust::make_zip_iterator(thrust::make_tuple(input_scales_it, weight_scales_it));
+    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+                      x, x + size,
+                      scales_it,
+                      y,
+                      rescale_func());
+  }
+
   struct relu_func : public thrust::unary_function<float, float> {
     __host__ __device__
     float operator()(float x) { return fmaxf(x, 0); }

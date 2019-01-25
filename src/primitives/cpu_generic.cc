@@ -18,4 +18,19 @@ namespace ctranslate2 {
   }
 #endif
 
+  template<>
+  void primitives<Device::CPU>::rescale_output(const int32_t* x,
+                                               const float* input_scales,
+                                               const float* weight_scales,
+                                               float* y,
+                                               size_t batch_size,
+                                               size_t depth) {
+    for (size_t i = 0; i < batch_size; ++i) {
+      for (size_t j = 0; j < depth; ++j) {
+        const auto index = j + i * depth;
+        y[index] = static_cast<float>(x[index]) / (input_scales[i] * weight_scales[j]);
+      }
+    }
+  }
+
 }

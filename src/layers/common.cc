@@ -14,6 +14,20 @@ namespace ctranslate2 {
         StorageView gathered(_embeddings.dtype());
         _gather_op(_embeddings, ids, gathered);
         ops::Unquantize()(gathered, *_qscale, output);
+      } else if (_embeddings.dtype() == DataType::DT_INT8) {
+        const auto device = output.device();
+        StorageView gathered(_embeddings.dtype(), device);
+        StorageView scale(_qscale->dtype(), device);
+        _gather_op(_embeddings, ids, gathered);
+        _gather_op(*_qscale, ids, scale);
+        output.resize_as(gathered);
+        DEVICE_DISPATCH(
+          device,
+          primitives<D>::unquantize_batch(gathered.data<int8_t>(),
+                                          scale.data<float>(),
+                                          output.data<float>(),
+                                          gathered.size(),
+                                          scale.size()));
       } else {
         _gather_op(_embeddings, ids, output);
       }
@@ -50,15 +64,39 @@ namespace ctranslate2 {
       }
 
       static const ops::Gemm gemm_op(1, 0, false, false, true);
-      if (_weight.dtype() == DataType::DT_FLOAT) {
-        gemm_op(input, *weight, *bias, output);
-      } else {
+      if (_weight.dtype() == DataType::DT_INT16) {
         StorageView quantized_input(_weight.dtype());
         StorageView quantized_output(DataType::DT_INT32);
         StorageView squared_scale(_qscale->as_scalar<float>() * _qscale->as_scalar<float>());
         ops::Quantize()(input, *_qscale, quantized_input);
         gemm_op(quantized_input, *weight, *bias, quantized_output);
         ops::Unquantize()(quantized_output, squared_scale, output);
+      } else if (_weight.dtype() == DataType::DT_INT8) {
+        const auto device = input.device();
+        StorageView qinput(_weight.dtype(), device);
+        StorageView qinput_scale(_qscale->dtype(), device);
+        StorageView qoutput(DataType::DT_INT32, device);
+        size_t depth = input.dim(-1);
+        size_t batch_size = input.size() / depth;
+        qinput.resize_as(input);
+        qinput_scale.resize({batch_size});
+        DEVICE_DISPATCH(
+          device,
+          primitives<D>::quantize_batch(input.data<float>(),
+                                        qinput_scale.data<float>(),
+                                        qinput.data<int8_t>(),
+                                        batch_size, depth));
+        gemm_op(qinput, *weight, *bias, qoutput);
+        output.resize_as(qoutput);
+        DEVICE_DISPATCH(
+          device,
+          primitives<D>::rescale_output(qoutput.data<int32_t>(),
+                                        qinput_scale.data<float>(),
+                                        _qscale->data<float>(),
+                                        output.data<float>(),
+                                        batch_size, qoutput.dim(-1)));
+      } else {
+        gemm_op(input, *weight, *bias, output);
       }
 
       DEVICE_DISPATCH(output.device(),

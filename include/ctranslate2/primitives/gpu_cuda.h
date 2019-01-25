@@ -68,6 +68,22 @@ namespace ctranslate2 {
                                                      size_t a_size, size_t b_size);
 
   template<>
+  template <typename T>
+  void primitives<Device::CUDA>::quantize_batch(const float* x, float* scales, T* qx,
+                                                size_t batch_size, size_t depth);
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::unquantize_batch(const T* x, const float* scale, float* y,
+                                                  size_t x_size, size_t scale_size);
+  template<>
+  void primitives<Device::CUDA>::rescale_output(const int32_t* x,
+                                                const float* input_scales,
+                                                const float* weight_scales,
+                                                float* y,
+                                                size_t batch_size,
+                                                size_t depth);
+
+  template<>
   template<>
   void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size);
 

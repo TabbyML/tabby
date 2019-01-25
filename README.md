@@ -4,7 +4,8 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework, especially on CPU which is one of the main motivation for this project.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework, especially on CPU which is one of the main target of this project.
+* **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Portable binary**<br/>The compilation does not require a target instruction set, the dispatch is done at runtime.
@@ -29,6 +30,7 @@ CTranslate2 uses the following libraries for acceleration:
 
 * CPU
   * [Intel MKL](https://software.intel.com/en-us/mkl)
+  * [Intel MKL-DNN](https://github.com/intel/mkl-dnn)
 * GPU
   * [cuBLAS](https://developer.nvidia.com/cublas)
   * [TensorRT](https://developer.nvidia.com/tensorrt)
@@ -83,12 +85,18 @@ See the existing converters implementation which could be used as a template.
 
 ### Quantization
 
-The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table document the actual types used during the model execution:
+The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type        | CPU with AVX2 | CPU without AVX2 | GPU   |
-| ----------------- | ------------- | ---------------- | ----- |
-| int8              | int16         | float            | float |
-| int16             | int16         | float            | float |
+| Model type | Env. flag          | GPU   | CPU (AVX512) | CPU (AVX2) | CPU (older) |
+| ---------- | ------------------ | ----- | ------------ | ---------- | ----------  |
+| int16      |                    | float | int16        | int16      | float       |
+| int8       |                    | float | int16        | int16      | float       |
+| int8       | `CT2_FORCE_INT8=1` | int8  | int8         | int16      | float       |
+
+**Notes:**
+
+* int8 currently requires a flag as it is slower in most cases and considered a work in progress
+* only GEMM-based layers and embeddings are currently quantized
 
 ## Translating
 
@@ -246,7 +254,7 @@ We are actively looking to ease this assumption by supporting ONNX as model part
 
 There are many ways to make this project better and faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
 
-* INT8 quantization for CPU and GPU
+* Better support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
 
 ### What is the difference between `intra_threads` and `inter_threads`?
