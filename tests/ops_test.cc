@@ -350,6 +350,32 @@ TEST_P(OpDeviceTest, Gemm) {
   expect_storage_eq(y, expected);
 };
 
+TEST_P(OpDeviceTest, GemmInt8) {
+  Device device = GetParam();
+  StorageView a({3, 8}, std::vector<int8_t>{
+      55, 114, 57, -86, 96, -70, -24, -59,
+      -30, 50, 69, 74, 59, 9, -115, 10,
+      -2, 9, 61, -124, 124, -90, 98, 105}, device);
+  StorageView b({8, 4}, std::vector<int8_t>{
+      87, 63, -104, 119,
+      16, 97, -82, -22,
+      -66, -54, -50, -21,
+      -93, -122, 124, -126,
+      -56, 127, 79, -82,
+      -94, -118, 55, 7,
+      -60, 85, 23, 88,
+      -90, -126, -127, 99}, device);
+  StorageView c;
+  StorageView y(DataType::DT_INT32, device);
+  StorageView expected({3, 4}, std::vector<int32_t>{
+      18799, 47783, -17907, -2639,
+      -11396, -14398, 5987, -29348,
+      -6338, 34049, -25191, 22128}, device);
+  ops::Gemm op(1.0, 0.0, false, false, false);
+  op(a, b, c, y);
+  expect_storage_eq(y, expected);
+};
+
 TEST_P(OpDeviceTest, TopK) {
   Device device = GetParam();
   const int k = 3;
@@ -428,31 +454,5 @@ TEST_P(OpDeviceTest, LayerNorm) {
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 #ifdef WITH_CUDA
 INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
-
-TEST(OpTestCuda, GemmInt8) {
-  Device device = Device::CUDA;
-  StorageView a({3, 8}, std::vector<int8_t>{
-      55, 114, 57, -86, 96, -70, -24, -59,
-      -30, 50, 69, 74, 59, 9, -115, 10,
-      -2, 9, 61, -124, 124, -90, 98, 105}, device);
-  StorageView b({8, 4}, std::vector<int8_t>{
-      87, 63, -104, 119,
-      16, 97, -82, -22,
-      -66, -54, -50, -21,
-      -93, -122, 124, -126,
-      -56, 127, 79, -82,
-      -94, -118, 55, 7,
-      -60, 85, 23, 88,
-      -90, -126, -127, 99}, device);
-  StorageView c;
-  StorageView y(DataType::DT_INT32, device);
-  StorageView expected({3, 4}, std::vector<int32_t>{
-      18799, 47783, -17907, -2639,
-      -11396, -14398, 5987, -29348,
-      -6338, 34049, -25191, 22128}, device);
-  ops::Gemm op(1.0, 0.0, false, false, false);
-  op(a, b, c, y);
-  expect_storage_eq(y, expected);
-};
 
 #endif

@@ -3,6 +3,11 @@
 #include <vector>
 
 #include <mkl.h>
+#ifdef WITH_MKLDNN
+#  include <mkldnn.hpp>
+#else
+#  include <stdexcept>
+#endif
 
 #define ALIGNMENT 64
 
@@ -148,6 +153,45 @@ namespace ctranslate2 {
                          reinterpret_cast<const MKL_INT16*>(b), ldb, ob,
                          beta,
                          reinterpret_cast<MKL_INT32*>(c), ldc, &oc);
+  }
+
+  template<>
+  template<>
+  void primitives<Device::CPU>::gemm(const int8_t* a, const int8_t* b,
+                                     bool transpose_a, bool transpose_b,
+                                     size_t m, size_t n, size_t k,
+                                     float alpha, float beta,
+                                     int32_t* c) {
+#ifdef WITH_MKLDNN
+    int lda = transpose_a ? m : k;
+    int ldb = transpose_b ? k : n;
+    int ldc = n;
+
+    int m_ = m;
+    int n_ = n;
+    int k_ = k;
+
+    const char* transa = transpose_a ? "T" : "N";
+    const char* transb = transpose_b ? "T" : "N";
+    const char* offsetc = "F";
+
+    int8_t ao = 0;
+    int8_t bo = 0;
+    int32_t co = 0;
+
+    // mkldnn assumes column-major storage, so swap a and b accordingly.
+    mkldnn::error::wrap_c_api(
+      mkldnn_gemm_s8s8s32(transb, transa, offsetc,
+                          &n_, &m_, &k_,
+                          &alpha,
+                          b, &ldb, &bo,
+                          a, &lda, &ao,
+                          &beta,
+                          c, &ldc, &co),
+      "mkldnn_gemm_s8s8s32 returned with an error");
+#else
+    throw std::runtime_error("INT8 GEMM not implemented for CPU");
+#endif
   }
 
   template<>

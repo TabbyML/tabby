@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(ctranslate2)
 
 option(WITH_MKL "Compile with Intel MKL backend" ON)
+option(WITH_MKLDNN "Compile with Intel MKL-DNN (requires MKL)" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
@@ -95,6 +96,28 @@ if(WITH_MKL)
     ${MKL_SMALL_LIBRARY_NAME}
     iomp5
     )
+
+  if(WITH_MKLDNN)
+    find_path(MKLDNN_INCLUDE_DIR mkldnn.hpp)
+    if(MKLDNN_INCLUDE_DIR)
+      message(STATUS "Found MKL-DNN include directory: ${MKLDNN_INCLUDE_DIR}")
+    else()
+      message(FATAL_ERROR "MKL-DNN include directory not found")
+    endif()
+
+    find_library(MKLDNN_LIBRARY mkldnn)
+    if(MKLDNN_LIBRARY)
+      message(STATUS "Found MKL-DNN library: ${MKLDNN_LIBRARY}")
+    else()
+      message(FATAL_ERROR "MKL-DNN library not found")
+    endif()
+
+    add_definitions(-DWITH_MKLDNN)
+    list(APPEND INCLUDE_DIRECTORIES ${MKLDNN_INCLUDE_DIR})
+    list(APPEND LIBRARIES ${MKLDNN_LIBRARY})
+  endif()
+elseif(WITH_MKLDNN)
+  message(FATAL_ERROR "Building with MKL-DNN requires MKL")
 endif()
 
 link_directories(${LINK_DIRECTORIES})

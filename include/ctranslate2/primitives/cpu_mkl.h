@@ -65,6 +65,14 @@ namespace ctranslate2 {
 
   template<>
   template<>
+  void primitives<Device::CPU>::gemm(const int8_t* a, const int8_t* b,
+                                     bool transpose_a, bool transpose_b,
+                                     size_t m, size_t n, size_t k,
+                                     float alpha, float beta,
+                                     int32_t* c);
+
+  template<>
+  template<>
   void primitives<Device::CPU>::gemm_batch(const float* a, const float* b,
                                            bool transpose_a, bool transpose_b,
                                            size_t batch_size,
