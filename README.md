@@ -2,16 +2,26 @@
 
 CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution.
 
-## Features
+## Key features
 
-* **fast execution**<br/>translations aim to be fast, especially on CPU.
-* **parallel translation**<br/>translations can be run efficiently in parallel without duplicating the model data in memory.
-* **dynamic memory usage**<br/>the memory usage changes dynamically depending on the request size.
-* **portable binary**<br/>the compilation does not require a target instruction set, the dispatch is done at runtime.
-* **ligthweight on disk**<br/>the CPU library takes about 30MB on disk with its dependencies and models can be compressed below 100MB with minimal accuracy loss.
-* **easy to use translation APIs**<br/>the project exposes [translation APIs](#translating) in Python and C++.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework, especially on CPU which is one of the main motivation for this project.
+* **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
+* **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
+* **Portable binary**<br/>The compilation does not require a target instruction set, the dispatch is done at runtime.
+* **Ligthweight on disk**<br/>The CPU library takes about 30MB on disk with its dependencies and models can be compressed below 100MB with minimal accuracy loss. A full featured GPU Docker image requires less than 800MB.
+* **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
-Some of these features are difficult to support in standard deep learning frameworks and are the motivation for this project.
+Some of these features are difficult to achieve in standard deep learning frameworks and are the motivation for this project.
+
+### Supported decoding options
+
+The translation API supports several decoding options:
+
+* decoding with greedy or beam search
+* constraining the decoding length
+* returning multiple translation hypotheses
+* returning attention vectors
+* approximating the generation using a pre-compiled [vocabulary map](##how-can-i-generate-a-vocabulary-mapping-file)
 
 ## Dependencies
 
@@ -196,7 +206,7 @@ CTranslate2 addresses these issues in several ways:
 
 ### What is the state of this project?
 
-The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees:
+The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees (enforced after the 1.0 release):
 
 * Converted models
 * Python symbols:
@@ -221,10 +231,12 @@ Here are some scenarios where this project could be used:
 * You want to accelarate standard translation models for production usage, especially on CPUs.
 * You need to embed translation models in an existing application without adding large dependencies.
 * You need portable binaries that automatically dispatch the execution to the best instruction set.
+* Your application requires custom threading and memory usage control.
 
 However, you should probably **not** use this project when:
 
 * You want to train custom architectures not covered by this project.
+* You see no value in the key features listed at the top of this document.
 * Your only validation metric is the BLEU score.
 
 ### What are the known limitations?
@@ -245,16 +257,16 @@ There are many ways to make this project better and faster. See the open issues 
 * `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency for CPU translation.
 * `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput.
 
-The total number of threads launched by the process is summarized by this formula:
+The total number of computing threads launched by the process is summarized by this formula:
 
 ```text
-num_threads = inter_threads * min(intra_threads, num_cores)
+num_threads = inter_threads * min(intra_threads, num_physical_cores)
 ```
 
 Some notes about `inter_threads`:
 
 * On GPU, this value is forced to 1 as the code is not yet synchronization-free
-* Increasing this value also increases the memory usage as internal buffers has to be separate
+* Increasing this value also increases the memory usage as some internal buffers are duplicated for thread safety
 
 ### Do you provide a translation server?
 
