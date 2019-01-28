@@ -30,9 +30,11 @@ namespace ctranslate2 {
     return future;
   }
 
-  void TranslatorPool::work_loop(Translator& translator) {
+  void TranslatorPool::work_loop(Translator& translator, size_t intra_threads) {
     auto& work_queue = _work;
     auto& end_requested = _request_end;
+
+    translator.set_num_threads(intra_threads);
 
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);

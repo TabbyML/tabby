@@ -62,14 +62,13 @@ int main(int argc, char* argv[]) {
 
   size_t inter_threads = vm["inter_threads"].as<size_t>();
   size_t intra_threads = vm["intra_threads"].as<size_t>();
-  ctranslate2::initialize(intra_threads);
 
   auto model = ctranslate2::models::ModelFactory::load(
     vm["model"].as<std::string>(),
     ctranslate2::str_to_device(vm["device"].as<std::string>()),
     vm["device_index"].as<int>());
 
-  ctranslate2::TranslatorPool translator_pool(inter_threads, model);
+  ctranslate2::TranslatorPool translator_pool(inter_threads, intra_threads, model);
 
   auto options = ctranslate2::TranslationOptions();
   options.beam_size = vm["beam_size"].as<size_t>();

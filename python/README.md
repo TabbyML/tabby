@@ -3,13 +3,12 @@
 ```python
 from ctranslate2 import translator
 
-translator.initialize(4)     # Number of MKL threads.
-
 t = translator.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # Can be "cpu", "cuda", or "auto".
     device_index=0,          # The index of the device to place this translator on.
-    thread_pool_size=1)      # Number of concurrent translations.
+    inter_threads=1,         # Maximum number of concurrent translations.
+    intra_threads=4)         # Threads to use per translation.
 
 # output is a 2D list [batch x num_hypotheses] containing dict with keys:
 # * "score"

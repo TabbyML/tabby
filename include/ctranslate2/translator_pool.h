@@ -17,14 +17,17 @@ namespace ctranslate2 {
   class TranslatorPool {
   public:
     template <typename... Args>
-    TranslatorPool(size_t num_replicas, Args&&... args) {
+    TranslatorPool(size_t num_replicas, size_t num_threads_per_replica, Args&&... args) {
       _translator_pool.emplace_back(std::forward<Args>(args)...);
       if (_translator_pool.back().device() == Device::CUDA)
         num_replicas = 1;
       for (size_t i = 1; i < num_replicas; ++i)
         _translator_pool.emplace_back(_translator_pool.front());
       for (auto& translator : _translator_pool)
-        _workers.emplace_back(&TranslatorPool::work_loop, this, std::ref(translator));
+        _workers.emplace_back(&TranslatorPool::work_loop,
+                              this,
+                              std::ref(translator),
+                              num_threads_per_replica);
     }
     ~TranslatorPool();
 
@@ -81,7 +84,7 @@ namespace ctranslate2 {
                              bool with_scores = false);
 
   private:
-    void work_loop(Translator& translator);
+    void work_loop(Translator& translator, size_t intra_threads);
 
     std::queue<std::pair<std::promise<TranslationOutput>,
                          std::pair<TranslationInput, TranslationOptions>>> _work;

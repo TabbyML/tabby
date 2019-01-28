@@ -26,18 +26,16 @@ py::list std_vector_to_py_list(const std::vector<T>& v) {
   return l;
 }
 
-static void initialize(size_t mkl_num_threads) {
-  ctranslate2::initialize(mkl_num_threads);
-}
-
 class TranslatorWrapper
 {
 public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
                     int device_index,
-                    size_t thread_pool_size)
-    : _translator_pool(thread_pool_size,
+                    size_t inter_threads,
+                    size_t intra_threads)
+    : _translator_pool(inter_threads,
+                       intra_threads,
                        ctranslate2::models::ModelFactory::load(model_path,
                                                                ctranslate2::str_to_device(device),
                                                                device_index)) {
@@ -129,14 +127,14 @@ private:
 BOOST_PYTHON_MODULE(translator)
 {
   PyEval_InitThreads();
-  py::def("initialize", initialize, (py::arg("mkl_num_threads")=4));
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
     py::init<std::string, std::string, int, size_t>(
       (py::arg("model_path"),
        py::arg("device")="cpu",
        py::arg("device_index")=0,
-       py::arg("thread_pool_size")=1)))
+       py::arg("inter_threads")=1,
+       py::arg("intra_threads")=4)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          (py::arg("tokens"),
           py::arg("beam_size")=4,
