@@ -16,7 +16,7 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math -fopenmp")
 
 find_package(Threads)
 

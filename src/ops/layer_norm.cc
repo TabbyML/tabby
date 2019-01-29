@@ -10,17 +10,18 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      StorageView tmp(input.device(), input.dtype());
       size_t depth = input.dim(-1);
       size_t batch_size = input.size() / depth;
-      tmp.resize({depth});
+      StorageView tmp({batch_size, depth}, input.dtype(), input.device());
+      #pragma omp parallel for
       for (size_t i = 0; i < batch_size; ++i) {
         const auto* x = input.data<T>() + i * depth;
         auto* y = output.data<T>() + i * depth;
+        auto* t = tmp.data<T>() + i * depth;
         auto mean = primitives<>::mean(x, depth);
         primitives<>::sub(mean, x, y, depth);
-        primitives<>::pow(y, tmp.data<T>(), static_cast<T>(2), depth);
-        auto variance = primitives<>::mean(tmp.data<T>(), depth);
+        primitives<>::pow(y, t, static_cast<T>(2), depth);
+        auto variance = primitives<>::mean(t, depth);
         primitives<>::mul(static_cast<T>(1.0 / sqrt(variance + EPSILON)), y, depth);
         primitives<>::mul(gamma.data<T>(), y, depth);
         primitives<>::add(beta.data<T>(), y, depth);
