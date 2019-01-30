@@ -1,3 +1,5 @@
+#include <omp.h>
+
 #include "benchmark_utils.h"
 
 #include "ctranslate2/ops/ops.h"
@@ -15,9 +17,9 @@ void benchmark_gather(Device device) {
 }
 
 void benchmark_transpose(Device device) {
-  StorageView x({64, 48, 512}, DataType::DT_FLOAT, device);
+  StorageView x({64, 48, 8, 64}, DataType::DT_FLOAT, device);
   StorageView y(device);
-  const ops::Transpose transpose_op({2, 1, 0});
+  const ops::Transpose transpose_op({0, 2, 1, 3});
   BENCHMARK(transpose_op(x, y), 1000);
 }
 
@@ -86,6 +88,8 @@ int main(int argc, char* argv[]) {
     dtype = DataType::DT_INT16;
   else if (dtype_str == "int8")
     dtype = DataType::DT_INT8;
+
+  omp_set_num_threads(4);
 
   if (op == "gather")
     benchmark_gather(device);

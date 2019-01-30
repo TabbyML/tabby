@@ -159,6 +159,7 @@ namespace ctranslate2 {
   template<>
   template <typename DataType, typename IndexType>
   void primitives<Device::CPU>::transpose_2d(const DataType* a, const IndexType* dims, DataType* b) {
+    #pragma omp parallel for
     for (size_t i0 = 0; i0 < dims[0]; ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         b[i1 * dims[0] + i0] = a[i0 * dims[1] + i1];
@@ -180,6 +181,7 @@ namespace ctranslate2 {
     size_t perm_b_stride[3] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
                                b_stride[perm_ind[2]]};
 
+    #pragma omp parallel for
     for (size_t i0 = 0; i0 < dims[0]; ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         for (size_t i2 = 0; i2 < dims[2]; ++i2) {
@@ -208,6 +210,7 @@ namespace ctranslate2 {
     size_t perm_b_stride[4] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
                                b_stride[perm_ind[2]], b_stride[perm_ind[3]]};
 
+    #pragma omp parallel for
     for (size_t i0 = 0; i0 < dims[0]; ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         for (size_t i2 = 0; i2 < dims[2]; ++i2) {
