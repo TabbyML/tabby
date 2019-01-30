@@ -63,14 +63,29 @@ void benchmark_topk(Device device) {
   BENCHMARK(op(input, values, indices), 2000);
 }
 
+void benchmark_gemm(Device device, DataType dtype) {
+  DataType output_dtype = dtype != DataType::DT_FLOAT ? DataType::DT_INT32 : dtype;
+  StorageView a({32 * 32, 512}, dtype, device);
+  StorageView b({2048, 512}, dtype, device);
+  StorageView c(output_dtype, device);
+  const ops::Gemm gemm_op(1, 0, false, false, true);
+  BENCHMARK(gemm_op(a, b, c, c), 1000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
-    std::cerr << "usage: " << argv[0] << " op device" << std::endl;
+    std::cerr << "usage: " << argv[0] << " op device [dtype]" << std::endl;
     return 1;
   }
 
   std::string op = argv[1];
   Device device = std::string(argv[2]) == "cuda" ? Device::CUDA : Device::CPU;
+  std::string dtype_str = argc > 3 ? argv[3] : "float";
+  DataType dtype = DataType::DT_FLOAT;
+  if (dtype_str == "int16")
+    dtype = DataType::DT_INT16;
+  else if (dtype_str == "int8")
+    dtype = DataType::DT_INT8;
 
   if (op == "gather")
     benchmark_gather(device);
@@ -84,6 +99,8 @@ int main(int argc, char* argv[]) {
     benchmark_softmax(device);
   else if (op == "topk")
     benchmark_topk(device);
+  else if (op == "gemm")
+    benchmark_gemm(device, dtype);
 
   return 0;
 }
