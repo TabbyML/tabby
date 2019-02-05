@@ -56,8 +56,8 @@ namespace ctranslate2 {
           assert(k == b.dim(-2));
         }
 
-        In alpha = 1;
-        Out beta = 0;
+        float alpha = 1;
+        float beta = 0;
 
         if (m * k != a.size()) {
           size_t batch_size = a.size() / (m * k);
