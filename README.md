@@ -124,7 +124,7 @@ result = t.translate_batch([input_tokens])
 print(result[0][0])
 ```
 
-*See the [Python reference](python/README.md) for more advanced usage.*
+*See the [Python reference](docs/python.md) for more advanced usage.*
 
 ### With the C++ API
 
