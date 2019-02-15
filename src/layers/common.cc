@@ -28,14 +28,23 @@ namespace ctranslate2 {
       , _partial_bias(_bias.device(), _bias.dtype()) {
     }
 
-    void Dense::operator()(const StorageView& input,
-                           StorageView& output,
-                           const StorageView* index) {
-      const StorageView* weight = &_weight;
-      const StorageView* bias = &_bias;
-      if (index && !index->empty()) {
-        ops::Gather()(_weight, *index, _partial_weight);
-        ops::Gather()(_bias, *index, _partial_bias);
+    void Dense::mask_weights(const StorageView& index) {
+      ops::Gather()(_weight, index, _partial_weight);
+      ops::Gather()(_bias, index, _partial_bias);
+    }
+
+    void Dense::reset_mask() {
+      _partial_weight.clear();
+      _partial_bias.clear();
+    }
+
+    void Dense::operator()(const StorageView& input, StorageView& output) {
+      const StorageView* weight = nullptr;
+      const StorageView* bias = nullptr;
+      if (_partial_weight.empty()) {
+        weight = &_weight;
+        bias = &_bias;
+      } else {
         weight = &_partial_weight;
         bias = &_partial_bias;
       }

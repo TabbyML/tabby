@@ -129,7 +129,6 @@ namespace ctranslate2 {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
-              candidates,
               tiled_memory,
               tiled_memory_lengths,
               state,
@@ -370,7 +369,6 @@ namespace ctranslate2 {
     for (size_t step = 0; step < max_length; ++step) {
       decoder(step,
               sample_from.to(device),
-              candidates,
               alive_memory,
               alive_memory_lengths,
               state,

@@ -21,9 +21,9 @@ namespace ctranslate2 {
     {
     public:
       Dense(const models::Model& model, const std::string& scope);
-      void operator()(const StorageView& input,
-                      StorageView& output,
-                      const StorageView* index = nullptr);
+      void operator()(const StorageView& input, StorageView& output);
+      void mask_weights(const StorageView& index);
+      void reset_mask();
     private:
       const StorageView& _weight;
       const StorageView& _bias;

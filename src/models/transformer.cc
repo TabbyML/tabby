@@ -233,6 +233,13 @@ namespace ctranslate2 {
       }
     }
 
+    void TransformerDecoder::reduce_vocab(const StorageView& ids) {
+      if (!ids.empty())
+        _proj.mask_weights(ids);
+      else
+        _proj.reset_mask();
+    }
+
     layers::DecoderState TransformerDecoder::initial_state() const {
       layers::DecoderState state;
       for (size_t i = 0; i < _layers.size(); ++i) {
@@ -246,7 +253,6 @@ namespace ctranslate2 {
 
     void TransformerDecoder::operator()(size_t step,
                                         const StorageView& ids,
-                                        const StorageView& candidates,
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
                                         layers::DecoderState& state,
@@ -273,7 +279,7 @@ namespace ctranslate2 {
       }
       _output_norm(layer_in, layer_out);
 
-      _proj(layer_out, output, &candidates);
+      _proj(layer_out, output);
     }
 
   }

@@ -19,10 +19,10 @@ namespace ctranslate2 {
       Decoder(Device device);
       virtual ~Decoder() = default;
 
+      virtual void reduce_vocab(const StorageView&) {}
       virtual DecoderState initial_state() const = 0;
       virtual void operator()(size_t step,
                               const StorageView& ids,
-                              const StorageView& candidates,
                               const StorageView& memory,
                               const StorageView& memory_lengths,
                               DecoderState& state,

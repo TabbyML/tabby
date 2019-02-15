@@ -108,6 +108,8 @@ namespace ctranslate2 {
       candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
     }
 
+    decoder.reduce_vocab(candidates);
+
     // Decode.
     size_t start_token = target_vocab.to_id(Vocabulary::bos_token);
     size_t end_token = target_vocab.to_id(Vocabulary::eos_token);

@@ -102,10 +102,10 @@ namespace ctranslate2 {
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
+      void reduce_vocab(const StorageView& ids);
       layers::DecoderState initial_state() const override;
       void operator()(size_t step,
                       const StorageView& ids,
-                      const StorageView& candidates,
                       const StorageView& memory,
                       const StorageView& memory_lengths,
                       layers::DecoderState& state,
