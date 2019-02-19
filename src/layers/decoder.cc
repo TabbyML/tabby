@@ -71,6 +71,7 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    decoder.reduce_vocab(candidates);
     auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -329,6 +330,7 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    decoder.reduce_vocab(candidates);
     auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
