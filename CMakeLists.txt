@@ -27,6 +27,7 @@ set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   )
 set(SOURCES
+  src/decoding.cc
   src/devices.cc
   src/layers/attention.cc
   src/layers/decoder.cc

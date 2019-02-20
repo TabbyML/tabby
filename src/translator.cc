@@ -4,7 +4,7 @@
 #  include <omp.h>
 #endif
 
-#include "ctranslate2/storage_view.h"
+#include "ctranslate2/decoding.h"
 
 namespace ctranslate2 {
 

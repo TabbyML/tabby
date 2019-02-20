@@ -1,10 +1,7 @@
 #pragma once
 
-#include <memory>
-#include <ostream>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "ctranslate2/storage_view.h"
 
@@ -34,31 +31,4 @@ namespace ctranslate2 {
     };
 
   }
-
-
-  void greedy_decoding(layers::Decoder& decoder,
-                       StorageView& sample_from,
-                       StorageView& candidates,
-                       const StorageView& memory,
-                       const StorageView& memory_lengths,
-                       size_t end_token,
-                       size_t max_length,
-                       size_t min_length,
-                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                       std::vector<std::vector<float>>& scores,
-                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr);
-  void beam_search(layers::Decoder& decoder,
-                   StorageView& sample_from,
-                   StorageView& candidates,
-                   const StorageView& memory,
-                   const StorageView& memory_lengths,
-                   size_t end_token,
-                   size_t max_length,
-                   size_t min_length,
-                   size_t beam_size,
-                   size_t num_hypotheses,
-                   float length_penalty,
-                   std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                   std::vector<std::vector<float>>& scores,
-                   std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr);
 }
