@@ -5,7 +5,7 @@ RUN apt-get update && \
         build-essential \
         cpio \
         libboost-program-options-dev \
-        libboost-python-dev \
+        python-dev \
         python-pip \
         wget && \
     apt-get clean && \
@@ -50,8 +50,8 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
-RUN pip --no-cache-dir install setuptools wheel
-RUN CFLAGS="-DWITH_MKL=ON" CTRANSLATE_ROOT=/root/ctranslate2 \
+RUN pip --no-cache-dir install setuptools wheel pybind11
+RUN CFLAGS="-DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
@@ -63,14 +63,11 @@ FROM ubuntu:16.04
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libboost-program-options1.58.0 \
-        libboost-python1.58.0 \
         python-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
-
-RUN pip --no-cache-dir install setuptools
 RUN pip --no-cache-dir install /root/ctranslate2/*.whl
 
 WORKDIR /root
