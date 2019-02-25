@@ -18,7 +18,7 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
-ENV MKL_VERSION=2019.1
+ENV MKL_VERSION=2019.2
 COPY deps/l_mkl_${MKL_VERSION}.*.tgz .
 RUN tar xf l_mkl_*.tgz && \
     cd l_mkl_* && \
