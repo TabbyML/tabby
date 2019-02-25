@@ -180,7 +180,6 @@ This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same Eng
 To build the Docker images, some external dependencies need to be downloaded separately and placed in the `deps/` directory:
 
 1. [Intel MKL](https://software.intel.com/en-us/mkl/choose-download/linux)
-2. [TensorRT](https://developer.nvidia.com/tensorrt)
 
 ```bash
 docker build -t systran/ctranslate2 -f Dockerfile .

@@ -1,6 +1,7 @@
 FROM nvidia/cuda:10.0-devel-ubuntu16.04 as builder
 
 ENV CUDNN_VERSION=7.5.0.56
+ENV TENSORRT_VERSION=5.0.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -9,8 +10,12 @@ RUN apt-get update && \
         libboost-python-dev \
         libcudnn7=$CUDNN_VERSION-1+cuda10.0 \
         libcudnn7-dev=$CUDNN_VERSION-1+cuda10.0 \
+        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 \
         python-pip \
         wget && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libnvinfer-dev=$TENSORRT_VERSION-1+cuda10.0 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -30,16 +35,6 @@ RUN tar xf l_mkl_*.tgz && \
     ./install.sh -s silent.cfg && \
     cd .. && \
     rm -r l_mkl_*
-
-ENV TENSORRT_VERSION=5.0
-ENV TENSORRT_CUDA_VERSION=10.0
-COPY deps/TensorRT-${TENSORRT_VERSION}.*cuda-${TENSORRT_CUDA_VERSION}*.tar.gz .
-RUN tar xf TensorRT-*.tar.gz && \
-    cd TensorRT-* && \
-    cp -P lib/libnvinfer.so* /usr/lib/x86_64-linux-gnu/ && \
-    cp include/* /usr/include/x86_64-linux-gnu/ && \
-    cd .. && \
-    rm -r TensorRT-*
 
 ENV CUB_VERSION=1.8.0
 ENV CUB_ROOT=/root/cub
@@ -82,20 +77,26 @@ RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE_ROOT=/root/ctranslate2 \
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM nvidia/cuda:10.0-base-ubuntu16.04
 
 ENV CUDNN_VERSION=7.5.0.56
+ENV TENSORRT_VERSION=5.0.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-10-0=10.0.130-1 \
         libboost-program-options1.58.0 \
         libboost-python1.58.0 \
         libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
+        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 \
         python-pip && \
     apt-mark hold libcudnn7 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libnvinfer5=$TENSORRT_VERSION-1+cuda10.0 && \
+    apt-get remove -y \
+        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
