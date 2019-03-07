@@ -64,6 +64,15 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  T primitives<Device::CPU>::amax(const T* array, size_t size) {
+    return std::abs(*std::max_element(array, array + size,
+                                      [](const T& a, const T& b){
+                                        return std::abs(a) < std::abs(b);
+                                      }));
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::add(T a, const T* x, T* y, size_t size) {
     unary_transform(x, y, size, [&a](const T& v) { return v + a; });
   }
@@ -146,6 +155,29 @@ namespace ctranslate2 {
     unary_transform(x, y, size, [&scale](const In& v) {
       return static_cast<Out>(v) / scale;
     });
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::quantize_batch(const float* x, float* scales, T* qx,
+                                               size_t batch_size, size_t depth) {
+    for (size_t i = 0; i < batch_size; ++i) {
+      const float* row = x + i * depth;
+      T* qrow = qx + i * depth;
+      scales[i] = static_cast<float>(std::numeric_limits<T>::max()) / amax(row, depth);
+      quantize(row, qrow, depth, scales[i]);
+    }
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::unquantize_batch(const T* x, const float* scale, float* y,
+                                                 size_t x_size, size_t scale_size) {
+    size_t depth = x_size / scale_size;
+    for (size_t i = 0; i < scale_size; ++i) {
+      const auto offset = i * depth;
+      unquantize(x + offset, y + offset, depth, scale[i]);
+    }
   }
 
   template<>

@@ -1,8 +1,11 @@
 #pragma once
 
+#include "devices.h"
+
 namespace ctranslate2 {
 
-  // Check AVX2 support at runtime.
-  bool support_avx2();
+  // Check feature support.
+  bool mayiuse_int16(Device device);
+  bool mayiuse_int8(Device device);
 
 }

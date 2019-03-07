@@ -39,6 +39,8 @@ namespace ctranslate2 {
 
     template <typename T>
     static T max(const T* array, size_t size);
+    template <typename T>
+    static T amax(const T* array, size_t size);
 
     template <typename T>
     static void add(T a, const T* x, T* y, size_t size);
@@ -118,6 +120,21 @@ namespace ctranslate2 {
 
     template <typename In, typename Out>
     static void unquantize(const In* x, Out* y, size_t size, Out scale);
+
+    template <typename T>
+    static void quantize_batch(const float* x, float* scales, T* qx,
+                               size_t batch_size, size_t depth);
+
+    template <typename T>
+    static void unquantize_batch(const T* x, const float* scale, float* y,
+                                 size_t x_size, size_t scale_size);
+
+    static void rescale_output(const int32_t* x,
+                               const float* input_scales,
+                               const float* weigh_scales,
+                               float* y,
+                               size_t batch_size,
+                               size_t depth);
 
     template <typename T>
     static void relu(const T* x, T* y, size_t size);

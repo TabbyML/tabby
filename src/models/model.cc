@@ -91,11 +91,8 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
-      bool support_int8 = false;
-      bool support_int16 = false;
-#ifdef WITH_MKL
-      support_int16 = _device == Device::CPU && support_avx2();
-#endif
+      bool support_int8 = mayiuse_int8(_device);
+      bool support_int16 = mayiuse_int16(_device);
 
       static const StorageView default_int16_scale(static_cast<float>(1000));
       std::vector<std::string> variables_to_remove;

@@ -6,6 +6,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         cpio \
+        git \
         libboost-program-options-dev \
         libcudnn7=$CUDNN_VERSION-1+cuda10.0 \
         libcudnn7-dev=$CUDNN_VERSION-1+cuda10.0 \
@@ -36,6 +37,18 @@ RUN tar xf l_mkl_*.tgz && \
     cd .. && \
     rm -r l_mkl_*
 
+ENV MKLDNN_ROOT=/root/mkl-dnn
+ENV MKLDNN_REVISION=7de193ce9a4f1a302a93d0d30bd9a940646ffd95
+RUN git clone https://github.com/intel/mkl-dnn mkl-dnn-git && \
+    cd mkl-dnn-git && \
+    git checkout ${MKLDNN_REVISION} && \
+    mkdir build && cd build && \
+    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DCMAKE_PREFIX_PATH=/opt/intel/lib/intel64 \
+          -DARCH_OPT_FLAGS="" -DMKLDNN_THREADING=OMP:INTEL \
+          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
+    make -j4 && make install && \
+    cd ../.. && rm -r mkl-dnn-git
+
 ENV CUB_VERSION=1.8.0
 ENV CUB_ROOT=/root/cub
 RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
@@ -62,8 +75,9 @@ ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
-          -DCMAKE_PREFIX_PATH=${CUB_ROOT} \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" -DWITH_CUDA=ON \
+          -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT}" \
+          -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 && \
     make install
@@ -77,6 +91,7 @@ RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
+    cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM nvidia/cuda:10.0-base-ubuntu16.04

@@ -20,19 +20,12 @@ namespace ctranslate2 {
         if (scale.is_scalar())
           primitives<>::unquantize(x.data<In>(), y.data<Out>(), x.size(), scale.as_scalar<Out>());
         else {
-          size_t depth = x.dim(-1);
-          size_t batch_size = x.size() / depth;
-
+          size_t batch_size = x.size() / x.dim(-1);
           const auto* scale_data = scale.data<Out>();
           const auto* x_data = x.data<In>();
           auto* y_data = y.data<Out>();
           if (scale.size() == batch_size) {  // Per-batch scale.
-            for (size_t b = 0; b < batch_size; ++b) {
-              for (size_t i = 0; i < depth; ++i) {
-                size_t index = b * depth + i;
-                y_data[index] = static_cast<Out>(x_data[index]) / scale_data[b];
-              }
-            }
+            primitives<>::unquantize_batch(x_data, scale_data, y_data, x.size(), scale.size());
           } else {
             throw std::invalid_argument("unsupported quantization scale shape");
           }
