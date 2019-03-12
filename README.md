@@ -200,7 +200,7 @@ Other APIs are expected to evolve to increase efficiency, genericity, and model 
 Here are some scenarios where this project could be used:
 
 * You want to accelarate standard translation models for production usage, especially on CPUs.
-* You need to embed translation models in an existing application without adding large dependencies.
+* You need to embed translation models in an existing application without adding complex dependencies.
 * You need portable binaries that automatically dispatch the execution to the best instruction set.
 * Your application requires custom threading and memory usage control.
 
@@ -208,7 +208,6 @@ However, you should probably **not** use this project when:
 
 * You want to train custom architectures not covered by this project.
 * You see no value in the key features listed at the top of this document.
-* Your only validation metric is the BLEU score.
 
 ### What are the known limitations?
 
