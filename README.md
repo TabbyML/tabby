@@ -185,10 +185,6 @@ This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same Eng
 
 ## Building
 
-To build the Docker images, some external dependencies need to be downloaded separately and placed in the `deps/` directory:
-
-1. [Intel MKL](https://software.intel.com/en-us/mkl/choose-download/linux)
-
 ```bash
 docker build -t systran/ctranslate2 -f Dockerfile .
 docker build -t systran/ctranslate2_gpu -f Dockerfile.cuda .

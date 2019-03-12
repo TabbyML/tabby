@@ -4,8 +4,9 @@ ENV CUDNN_VERSION=7.5.0.56
 ENV TENSORRT_VERSION=5.0.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        apt-transport-https \
         build-essential \
-        cpio \
+        ca-certificates \
         git \
         libboost-program-options-dev \
         libcudnn7=$CUDNN_VERSION-1+cuda10.0 \
@@ -27,15 +28,18 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
-ENV MKL_VERSION=2019.2
-COPY deps/l_mkl_${MKL_VERSION}.*.tgz .
-RUN tar xf l_mkl_*.tgz && \
-    cd l_mkl_* && \
-    sed -i 's/ACCEPT_EULA=decline/ACCEPT_EULA=accept/g' silent.cfg && \
-    sed -i 's/ARCH_SELECTED=ALL/ARCH_SELECTED=INTEL64/g' silent.cfg && \
-    ./install.sh -s silent.cfg && \
-    cd .. && \
-    rm -r l_mkl_*
+ENV MKL_VERSION=2019
+ENV MKL_UPDATE=3
+ENV MKL_BUILD=062
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
+    rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
+    echo "deb https://apt.repos.intel.com/mkl all main" > /etc/apt/sources.list.d/intel-mkl.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE.$MKL_BUILD && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ENV MKLDNN_ROOT=/root/mkl-dnn
 ENV MKLDNN_REVISION=7de193ce9a4f1a302a93d0d30bd9a940646ffd95
