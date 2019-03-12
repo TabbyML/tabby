@@ -153,36 +153,6 @@ int main() {
 
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
-## Benchmark
-
-This benchmark compares standard OpenNMT-py and CTranslate2 runs on the same English-German Transformer model.
-
-* Test file: `sacrebleu -t wmt14 -l en-de --echo src` (2737 lines)
-* BLEU signature: `BLEU+case.mixed+lang.en-de+numrefs.1+smooth.exp+test.wmt14+tok.13a+version.1.2.12`
-* Translation options:
-  * batch size: 32
-  * beam size: 4
-
-### CPU
-
-| Model               | Size  | Time  | Memory | BLEU |
-| ------------------- | ----- | ----  | -----  | ---- |
-| OpenNMT-py          | 542MB | 519 s | 1.3GB  | 26.8 |
-| CTranslate2         | 392MB | 288 s | 0.8GB  | 26.8 |
-| + *int16*           | 207MB | 266 s | 0.7GB  | 26.8 |
-| + *vmap*            | 219MB | 216 s | 0.6GB  | 26.7 |
-
-(Measured on a *Intel(R) Core(TM) i7-6700K* CPU and 4 threads, memory usage is approximated and rounded to the nearest 0.1GB.)
-
-### GPU
-
-| Model               | Size  | Time | BLEU |
-| ------------------- | ----- | ---- | ---- |
-| OpenNMT-py          | 542MB | 92 s | 26.8 |
-| CTranslate2         | 392MB | 31 s | 26.8 |
-
-(Measured on a *p3.2xlarge* EC2 instance.)
-
 ## Building
 
 ```bash
