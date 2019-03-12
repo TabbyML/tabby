@@ -100,13 +100,18 @@ The converters support model quantization which is a way to reduce the model siz
 * int8 currently requires a flag as it is slower in most cases and considered a work in progress
 * only GEMM-based layers and embeddings are currently quantized
 
+## Building
+
+```bash
+docker build -t systran/ctranslate2 -f Dockerfile .
+docker build -t systran/ctranslate2_gpu -f Dockerfile.cuda .
+```
+
+For complete compilation instructions, see the *Dockerfiles*.
+
 ## Translating
 
 Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
-
-```bash
-docker pull systran/ctranslate2_gpu:latest
-```
 
 The library has several entrypoints which are briefly introduced below:
 
@@ -154,15 +159,6 @@ int main() {
 ```
 
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
-
-## Building
-
-```bash
-docker build -t systran/ctranslate2 -f Dockerfile .
-docker build -t systran/ctranslate2_gpu -f Dockerfile.cuda .
-```
-
-For complete compilation instructions, see the *Dockerfiles*.
 
 ## FAQ
 
