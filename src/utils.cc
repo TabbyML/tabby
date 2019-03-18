@@ -24,7 +24,7 @@ namespace ctranslate2 {
       return true;
     else {
 #if defined(WITH_MKL) && defined(WITH_MKLDNN)
-      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX512;
+      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
 #else
       return false;
 #endif

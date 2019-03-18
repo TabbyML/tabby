@@ -55,7 +55,7 @@ set(LIBRARIES
 
 if(WITH_MKL)
   set(MKL_ROOT ${INTEL_ROOT}/mkl)
-  set(MKL_SMALL_LIBRARY_NAME mkl_small)
+  set(MKL_SMALL_LIBRARY_NAME mklml_intel)
 
   # Find MKL includes.
   find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)

@@ -34,14 +34,15 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     rm -rf /var/lib/apt/lists/*
 
 ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_REVISION=7de193ce9a4f1a302a93d0d30bd9a940646ffd95
+ENV MKLDNN_REVISION=e35877d25f0d1d652ade669c2efa066c0d15c0d9
 RUN git clone https://github.com/intel/mkl-dnn mkl-dnn-git && \
     cd mkl-dnn-git && \
     git checkout ${MKLDNN_REVISION} && \
+    cd scripts && ./prepare_mkl.sh && cd .. && \
     mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DCMAKE_PREFIX_PATH=/opt/intel/lib/intel64 \
-          -DARCH_OPT_FLAGS="" -DMKLDNN_THREADING=OMP:INTEL \
-          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
+    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} \
+          -DMKLDNN_ARCH_OPT_FLAGS="" -DMKLDNN_USE_MKL=ML -DMKLDNN_THREADING=OMP:INTEL \
+          -DMKLDNN_BUILD_TESTS=OFF -DMKLDNN_BUILD_EXAMPLES=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-git
 

@@ -9,7 +9,7 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Portable binary**<br/>The compilation does not require a target instruction set, the dispatch is done at runtime.
-* **Ligthweight on disk**<br/>The CPU library takes about 30MB on disk with its dependencies and models can be compressed below 100MB with minimal accuracy loss. A full featured GPU Docker image requires less than 800MB.
+* **Ligthweight on disk**<br/>Models can be compressed below 100MB with minimal accuracy loss. A full featured GPU Docker image requires about 800MB.
 * **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
 Some of these features are difficult to achieve in standard deep learning frameworks and are the motivation for this project.
@@ -89,11 +89,11 @@ See the existing converters implementation which could be used as a template.
 
 The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type | Env. flag          | GPU   | CPU (AVX512) | CPU (AVX2) | CPU (older) |
-| ---------- | ------------------ | ----- | ------------ | ---------- | ----------  |
-| int16      |                    | float | int16        | int16      | float       |
-| int8       |                    | float | int16        | int16      | float       |
-| int8       | `CT2_FORCE_INT8=1` | int8  | int8         | int16      | float       |
+| Model type | Env. flag          | GPU   | CPU (AVX2) | CPU (older) |
+| ---------- | ------------------ | ----- | ---------- | ----------  |
+| int16      |                    | float | int16      | float       |
+| int8       |                    | float | int16      | float       |
+| int8       | `CT2_FORCE_INT8=1` | int8  | int8       | float       |
 
 **Notes:**
 
