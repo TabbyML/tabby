@@ -105,7 +105,6 @@ ENV TENSORRT_VERSION=5.0.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-10-0=10.0.130-1 \
-        libboost-program-options1.58.0 \
         libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
         nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 \
         python-pip && \
