@@ -25,6 +25,7 @@ namespace ctranslate2 {
                                                float* y,
                                                size_t batch_size,
                                                size_t depth) {
+    #pragma omp parallel for
     for (size_t i = 0; i < batch_size; ++i) {
       for (size_t j = 0; j < depth; ++j) {
         const auto index = j + i * depth;
