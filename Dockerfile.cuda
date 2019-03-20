@@ -113,7 +113,11 @@ RUN apt-get update && \
     apt-get remove -y \
         nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvonnxparser* && \
+    rm /usr/lib/x86_64-linux-gnu/libnvparsers*
 
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
 RUN pip --no-cache-dir install /root/ctranslate2/*.whl
