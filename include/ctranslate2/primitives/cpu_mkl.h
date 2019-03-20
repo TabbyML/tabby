@@ -10,6 +10,8 @@ namespace ctranslate2 {
   void* primitives<Device::CPU>::alloc_data(size_t size);
   template<>
   void primitives<Device::CPU>::free_data(void* data);
+  template<>
+  void primitives<Device::CPU>::clear_cache();
 
   template<>
   template<>

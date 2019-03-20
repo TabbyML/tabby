@@ -10,6 +10,8 @@ namespace ctranslate2 {
   void* primitives<Device::CUDA>::alloc_data(size_t size);
   template<>
   void primitives<Device::CUDA>::free_data(void* data);
+  template<>
+  void primitives<Device::CUDA>::clear_cache();
 
   template<>
   template <typename T>
