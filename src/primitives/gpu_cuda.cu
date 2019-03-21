@@ -75,7 +75,7 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::strided_fill(T* x, T a, size_t inc_x, size_t size) {
     auto it = thrust::make_permutation_iterator(
       x, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
-                                              thrust::placeholders::_1 * inc_x));
+                                         thrust::placeholders::_1 * inc_x));
     thrust::fill_n(thrust::cuda::par.on(cuda::get_cuda_stream()), it, size, a);
   }
 
