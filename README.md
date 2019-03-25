@@ -89,15 +89,13 @@ See the existing converters implementation which could be used as a template.
 
 The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type | Env. flag          | GPU   | CPU (AVX2) | CPU (older) |
-| ---------- | ------------------ | ----- | ---------- | ----------  |
-| int16      |                    | float | int16      | float       |
-| int8       |                    | float | int16      | float       |
-| int8       | `CT2_FORCE_INT8=1` | int8  | int8       | float       |
+| Model type | GPU   | CPU (AVX2) | CPU (older) |
+| ---------- | ----- | ---------- | ----------  |
+| int16      | float | int16      | float       |
+| int8       | int8  | int8       | float       |
 
 **Notes:**
 
-* int8 currently requires a flag as it is slower in most cases and considered a work in progress
 * only GEMM-based layers and embeddings are currently quantized
 
 ## Building
