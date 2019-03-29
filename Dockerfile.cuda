@@ -1,20 +1,18 @@
 FROM nvidia/cuda:10.0-devel-ubuntu16.04 as builder
 
 ENV CUDNN_VERSION=7.5.0.56
-ENV TENSORRT_VERSION=5.0.2
+ENV TENSORRT_VERSION=5.1.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
         libboost-program-options-dev \
         libcudnn7=$CUDNN_VERSION-1+cuda10.0 \
         libcudnn7-dev=$CUDNN_VERSION-1+cuda10.0 \
-        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 \
+        libnvinfer5=$TENSORRT_VERSION-1+cuda10.0 \
+        libnvinfer-dev=$TENSORRT_VERSION-1+cuda10.0 \
         python-dev \
         python-pip \
         wget && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libnvinfer-dev=$TENSORRT_VERSION-1+cuda10.0 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -99,19 +97,14 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
 FROM nvidia/cuda:10.0-base-ubuntu16.04
 
 ENV CUDNN_VERSION=7.5.0.56
-ENV TENSORRT_VERSION=5.0.2
+ENV TENSORRT_VERSION=5.1.2
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-10-0=10.0.130-1 \
         libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
-        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 \
+        libnvinfer5=${TENSORRT_VERSION}-1+cuda10.0 \
         python-pip && \
-    apt-mark hold libcudnn7 && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libnvinfer5=$TENSORRT_VERSION-1+cuda10.0 && \
-    apt-get remove -y \
-        nvinfer-runtime-trt-repo-ubuntu1604-$TENSORRT_VERSION-ga-cuda10.0 && \
+    apt-mark hold libcudnn7 libnvinfer5 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
