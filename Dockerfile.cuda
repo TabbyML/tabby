@@ -1,7 +1,7 @@
 FROM nvidia/cuda:10.0-devel-ubuntu16.04 as builder
 
 ENV CUDNN_VERSION=7.5.1.10
-ENV TENSORRT_VERSION=5.1.2
+ENV TENSORRT_VERSION=5.1.5
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -97,7 +97,7 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
 FROM nvidia/cuda:10.0-base-ubuntu16.04
 
 ENV CUDNN_VERSION=7.5.1.10
-ENV TENSORRT_VERSION=5.1.2
+ENV TENSORRT_VERSION=5.1.5
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-10-0=10.0.130-1 \
