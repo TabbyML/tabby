@@ -163,13 +163,13 @@ namespace ctranslate2 {
                                      float alpha, float beta,
                                      int32_t* c) {
 #ifdef WITH_MKLDNN
-    mkldnn_dim_t lda = transpose_a ? m : k;
-    mkldnn_dim_t ldb = transpose_b ? k : n;
-    mkldnn_dim_t ldc = n;
+    int lda = transpose_a ? m : k;
+    int ldb = transpose_b ? k : n;
+    int ldc = n;
 
-    mkldnn_dim_t m_ = m;
-    mkldnn_dim_t n_ = n;
-    mkldnn_dim_t k_ = k;
+    int m_ = m;
+    int n_ = n;
+    int k_ = k;
 
     const char* transa = transpose_a ? "T" : "N";
     const char* transb = transpose_b ? "T" : "N";

@@ -33,9 +33,9 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     rm -rf /var/lib/apt/lists/*
 
 ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_VERSION=e35877d25f0d1d652ade669c2efa066c0d15c0d9
-RUN wget https://github.com/intel/mkl-dnn/archive/$MKLDNN_VERSION.tar.gz && \
-    tar xf $MKLDNN_VERSION.tar.gz && rm $MKLDNN_VERSION.tar.gz && \
+ENV MKLDNN_VERSION=0.19
+RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
+    tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \
     cd scripts && ./prepare_mkl.sh && cd .. && \
     mkdir build && cd build && \
