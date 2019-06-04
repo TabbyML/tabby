@@ -40,8 +40,8 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     cd scripts && ./prepare_mkl.sh && cd .. && \
     mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} \
-          -DMKLDNN_ARCH_OPT_FLAGS="" -DMKLDNN_USE_MKL=ML -DMKLDNN_THREADING=OMP:INTEL \
-          -DMKLDNN_BUILD_TESTS=OFF -DMKLDNN_BUILD_EXAMPLES=OFF .. && \
+          -DARCH_OPT_FLAGS="" -DMKLDNN_USE_MKL=ML -DMKLDNN_THREADING=OMP:INTEL \
+          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
 
