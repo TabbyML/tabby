@@ -6,7 +6,7 @@ RUN apt-get update && \
         build-essential \
         ca-certificates \
         libboost-program-options-dev \
-        python-dev \
+        libboost-python-dev \
         python-pip \
         wget && \
     apt-get clean && \
@@ -68,13 +68,14 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
-RUN pip --no-cache-dir install setuptools wheel pybind11
+RUN pip --no-cache-dir install setuptools wheel
 RUN CFLAGS="-DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
+    cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM ubuntu:16.04
