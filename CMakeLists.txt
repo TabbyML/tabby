@@ -124,7 +124,7 @@ endif()
 link_directories(${LINK_DIRECTORIES})
 
 if (WITH_CUDA)
-  find_package(CUDA 8.0 REQUIRED)
+  find_package(CUDA 10.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
 
