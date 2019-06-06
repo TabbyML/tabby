@@ -51,6 +51,7 @@ namespace ctranslate2 {
       ~TopKLayer() {
         _network->destroy();
         _engine->destroy();
+        _execution_context->destroy();
       }
 
       nvinfer1::IExecutionContext* get_execution_context() {
