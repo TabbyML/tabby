@@ -18,6 +18,17 @@ namespace ctranslate2 {
       }
     } g_logger;
 
+    class Allocator : public nvinfer1::IGpuAllocator {
+      void* allocate(uint64_t size, uint64_t, uint32_t) override {
+        return primitives<Device::CUDA>::alloc_data(size);
+      }
+
+      void free(void* memory) override {
+        primitives<Device::CUDA>::free_data(memory);
+      }
+
+    } g_allocator;
+
     class TopKLayer {
     public:
       TopKLayer(nvinfer1::IBuilder* builder, int k, int depth)
@@ -68,6 +79,7 @@ namespace ctranslate2 {
         builder = nvinfer1::createInferBuilder(g_logger);
         builder->setMaxBatchSize(max_batch_size);
         builder->setMaxWorkspaceSize(1 << 30);
+        builder->setGpuAllocator(&g_allocator);
       }
 
       int depth = x.dim(-1);
