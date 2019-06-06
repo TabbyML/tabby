@@ -101,7 +101,7 @@ ENV CUDNN_VERSION=7.6.0.64
 ENV TENSORRT_VERSION=5.1.5
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        cuda-cublas-10-0=10.0.130-1 \
+        cuda-cublas-$CUDA_PKG_VERSION \
         libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
         libnvinfer5=${TENSORRT_VERSION}-1+cuda10.0 \
         python-pip && \
