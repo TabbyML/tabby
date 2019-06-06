@@ -1,6 +1,9 @@
 #include "ctranslate2/cuda/utils.h"
 
+#include <iostream>
 #include <stdexcept>
+
+#include "ctranslate2/primitives/gpu_cuda.h"
 
 namespace ctranslate2 {
   namespace cuda {
@@ -103,6 +106,77 @@ namespace ctranslate2 {
 
     bool has_gpu() {
       return get_gpu_count() > 0;
+    }
+
+    class Logger : public nvinfer1::ILogger {
+      void log(Severity severity, const char* msg) override {
+        // suppress info-level messages
+        if (severity != Severity::kINFO)
+          std::cerr << msg << std::endl;
+      }
+    } g_logger;
+
+    class Allocator : public nvinfer1::IGpuAllocator {
+      void* allocate(uint64_t size, uint64_t, uint32_t) override {
+        return primitives<Device::CUDA>::alloc_data(size);
+      }
+
+      void free(void* memory) override {
+        primitives<Device::CUDA>::free_data(memory);
+      }
+
+    } g_allocator;
+
+    static int max_batch_size = 512;
+
+    static nvinfer1::IBuilder* get_trt_builder() {
+      static thread_local nvinfer1::IBuilder* builder = nullptr;
+      if (!builder) {
+        builder = nvinfer1::createInferBuilder(g_logger);
+        builder->setMaxBatchSize(max_batch_size);
+        builder->setMaxWorkspaceSize(1 << 30);
+        builder->setGpuAllocator(&g_allocator);
+      }
+      return builder;
+    }
+
+    TensorRTLayer::~TensorRTLayer() {
+      clear();
+    }
+
+    void TensorRTLayer::build(bool force) {
+      if (!_network || force) {
+        clear();
+        auto builder = get_trt_builder();
+        _network = builder->createNetwork();
+        build_network(_network);
+        _engine = builder->buildCudaEngine(*_network);
+        _execution_context = _engine->createExecutionContext();
+      }
+    }
+
+    void TensorRTLayer::clear() {
+      if (_network) {
+        _network->destroy();
+        _network = nullptr;
+      }
+      if (_engine) {
+        _engine->destroy();
+        _engine = nullptr;
+      }
+      if (_execution_context) {
+        _execution_context->destroy();
+        _execution_context = nullptr;
+      }
+    }
+
+    void TensorRTLayer::run(int batch_size, void** bindings) {
+      if (batch_size > max_batch_size)
+        throw std::runtime_error("Maximum batch size supported by the TensorRT engine is "
+                                 + std::to_string(max_batch_size) + ", but got "
+                                 + std::to_string(batch_size));
+      build();
+      _execution_context->enqueue(batch_size, bindings, get_cuda_stream(), nullptr);
     }
 
   }

@@ -164,9 +164,9 @@ if (WITH_CUDA)
     message(STATUS "Found CUB include directory: ${CUB_INCLUDE_DIR}")
   endif()
 
+  list(APPEND INCLUDE_DIRECTORIES ${TENSORRT_INCLUDE_DIR})
   cuda_include_directories(
     ${INCLUDE_DIRECTORIES}
-    ${TENSORRT_INCLUDE_DIR}
     ${CUB_INCLUDE_DIR}
     )
   cuda_add_library(${PROJECT_NAME}
