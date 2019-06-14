@@ -240,15 +240,22 @@ namespace ctranslate2 {
     TYPE_DISPATCH(
       printable.dtype(),
       const auto* values = printable.data<T>();
-      for (size_t i = 0; i < PRINT_MAX_VALUES / 2 && i < printable.size(); ++i) {
-        os << ' ';
-        print_value(os, values[i]);
+      if (printable.size() <= PRINT_MAX_VALUES) {
+        for (size_t i = 0; i < printable.size(); ++i) {
+          os << ' ';
+          print_value(os, values[i]);
+        }
       }
-      if (printable.size() > PRINT_MAX_VALUES)
+      else {
+        for (size_t i = 0; i < PRINT_MAX_VALUES / 2; ++i) {
+          os << ' ';
+          print_value(os, values[i]);
+        }
         os << " ...";
-      for (size_t i = printable.size() - (PRINT_MAX_VALUES / 2); i < printable.size(); ++i) {
-        os << ' ';
-        print_value(os, values[i]);
+        for (size_t i = printable.size() - (PRINT_MAX_VALUES / 2); i < printable.size(); ++i) {
+          os << ' ';
+          print_value(os, values[i]);
+        }
       }
       os << std::endl);
     os << "[" << device_to_str(storage.device())
