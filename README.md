@@ -111,18 +111,15 @@ For complete compilation instructions, see the *Dockerfiles*.
 
 Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
 
-The library has several entrypoints which are briefly introduced below:
+The library has several entrypoints which are briefly introduced below. The examples use the English-German model downloaded in [Converting models](#converting-models) which requires a SentencePiece tokenization.
 
 ### With the translation client
 
 ```bash
-nvidia-docker run -it --rm -v $PWD/my_data:/data \
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data \
     --entrypoint /root/ctranslate2/bin/translate \
     systran/ctranslate2_gpu:latest \
-    --model /data/ende_ctranslate2 \
-    --src /data/newstest2014.en \
-    --batch_size 32 \
-    --beam_size 2
+    --model /data/ende_ctranslate2
 ```
 
 ### With the Python API
@@ -131,7 +128,7 @@ nvidia-docker run -it --rm -v $PWD/my_data:/data \
 from ctranslate2 import translator
 t = translator.Translator("my_data/ende_ctranslate2/")
 
-input_tokens = ["Hello", "world", "!"]
+input_tokens = ["▁H", "ello", "▁world", "!"]
 result = t.translate_batch([input_tokens])
 
 print(result[0][0])
@@ -147,7 +144,7 @@ print(result[0][0])
 
 int main() {
   ctranslate2::Translator translator("my_data/ende_ctranslate2/", ctranslate2::Device::CPU);
-  ctranslate2::TranslationResult result = translator.translate({"Hello", "world", "!"});
+  ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
 
   for (const auto& token : result.output())
     std::cout << token << ' ';
