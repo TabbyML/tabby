@@ -21,6 +21,7 @@ namespace ctranslate2 {
       ops::MatMul(false, true)(queries, keys, output);
 
       if (values_lengths && batch_size > 1) {
+        // TODO: support masking on GPU.
         StorageView output_host;
         StorageView lengths_host(DataType::DT_INT32);
         output_host.copy_from(output);
