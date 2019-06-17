@@ -198,6 +198,10 @@ namespace ctranslate2 {
     return _data;
   }
 
+  const void* StorageView::buffer() const {
+    return _data;
+  }
+
   StorageView& StorageView::copy_from(const StorageView& other) {
     resize_as(other);
     TYPE_DISPATCH(other._dtype, copy_from(other.data<T>(), other._size, other._device));

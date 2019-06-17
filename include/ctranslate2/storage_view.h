@@ -109,6 +109,7 @@ namespace ctranslate2 {
     StorageView& deep_copy(const StorageView& other);
 
     void* buffer();
+    const void* buffer() const;
 
     template <typename T>
     T* data() {
