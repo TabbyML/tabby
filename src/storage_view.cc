@@ -204,6 +204,25 @@ namespace ctranslate2 {
     return *this;
   }
 
+  template <typename T>
+  StorageView& StorageView::copy_from(const T* data, size_t size, Device device) {
+    assert_dtype(DataTypeToEnum<T>::value);
+    if (size != _size)
+      throw std::invalid_argument("copy_from: size mismatch");
+#ifdef WITH_CUDA
+    if (device != _device) {
+      if (device == Device::CUDA)
+        cross_device_primitives<Device::CUDA, Device::CPU>::copy(data, this->data<T>(), size);
+      else
+        cross_device_primitives<Device::CPU, Device::CUDA>::copy(data, this->data<T>(), size);
+    } else
+#endif
+    {
+      DEVICE_DISPATCH(device, primitives<D>::copy(data, this->data<T>(), size));
+    }
+    return *this;
+  }
+
   size_t StorageView::size(const Shape& shape) {
     if (shape.empty())
       return 0;
@@ -278,5 +297,11 @@ namespace ctranslate2 {
     std::swap(a._size, b._size);
     std::swap(a._shape, b._shape);
   }
+
+#define DECLARE_IMPL(T)                                                 \
+  template StorageView&                                                 \
+  StorageView::copy_from(const T* data, size_t size, Device device);
+
+  DECLARE_ALL_TYPES(DECLARE_IMPL)
 
 }

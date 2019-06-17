@@ -195,23 +195,7 @@ namespace ctranslate2 {
     StorageView& copy_from(const StorageView& other);
 
     template <typename T>
-    StorageView& copy_from(const T* data, size_t size, Device device) {
-      assert_dtype(DataTypeToEnum<T>::value);
-      if (size != _size)
-        throw std::invalid_argument("copy_from: size mismatch");
-#ifdef WITH_CUDA  // TODO: remove this CUDA specific guard.
-      if (device != _device) {
-        if (device == Device::CUDA)
-          cross_device_primitives<Device::CUDA, Device::CPU>::copy(data, this->data<T>(), size);
-        else
-          cross_device_primitives<Device::CPU, Device::CUDA>::copy(data, this->data<T>(), size);
-      } else
-#endif
-      {
-        DEVICE_DISPATCH(device, primitives<D>::copy(data, this->data<T>(), size));
-      }
-      return *this;
-    }
+    StorageView& copy_from(const T* data, size_t size, Device device);
 
     friend void swap(StorageView& a, StorageView& b);
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
