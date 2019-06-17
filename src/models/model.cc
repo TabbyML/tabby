@@ -160,6 +160,7 @@ namespace ctranslate2 {
       if (!model_file.is_open())
         throw std::runtime_error("failed to load the model " + model_path);
 
+      // See the model serialization in python/ctranslate2/specs/model_spec.py.
       auto binary_version = consume<uint32_t>(model_file);
       if (binary_version > current_binary_version)
         throw std::runtime_error("unsupported model version "
