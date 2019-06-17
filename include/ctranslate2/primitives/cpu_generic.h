@@ -9,6 +9,9 @@
 
 namespace ctranslate2 {
 
+  // TODO: move implementation to a source file and use explicit specialization similar
+  // to CUDA primitives.
+
   template <typename T1, typename T2, typename Function>
   void unary_transform(const T1* x, T2* y, size_t size, Function func) {
     std::transform(x, x + size, y, func);
