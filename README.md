@@ -116,11 +116,11 @@ The library has several entrypoints which are briefly introduced below. The exam
 ### With the translation client
 
 ```bash
-echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data \
-    --entrypoint /root/ctranslate2/bin/translate \
-    systran/ctranslate2_gpu:latest \
-    --model /data/ende_ctranslate2
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data
+    systran/ctranslate2 --model /data/ende_ctranslate2
 ```
+
+*See `docker run --rm systran/ctranslate2 --help` for additional options.*
 
 ### With the Python API
 

@@ -119,3 +119,5 @@ RUN pip --no-cache-dir install /root/ctranslate2/*.whl
 WORKDIR /root
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/ctranslate2/lib
+
+ENTRYPOINT ["/root/ctranslate2/bin/translate"]
