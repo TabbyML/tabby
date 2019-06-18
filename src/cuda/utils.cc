@@ -140,6 +140,14 @@ namespace ctranslate2 {
       return builder;
     }
 
+    bool has_fast_fp16() {
+      return get_trt_builder()->platformHasFastFp16();
+    }
+
+    bool has_fast_int8() {
+      return get_trt_builder()->platformHasFastInt8();
+    }
+
     TensorRTLayer::~TensorRTLayer() {
       clear();
     }

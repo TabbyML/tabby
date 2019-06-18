@@ -4,25 +4,35 @@
 #  include <mkl.h>
 #endif
 
+#ifdef WITH_CUDA
+#  include "ctranslate2/cuda/utils.h"
+#endif
+
 namespace ctranslate2 {
 
   bool mayiuse_int16(Device device) {
+    switch (device) {
 #ifdef WITH_MKL
-    return device == Device::CPU && mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
-#else
-    return false;
+    case Device::CPU:
+      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
 #endif
+    default:
+      return false;
+    }
   }
 
   bool mayiuse_int8(Device device) {
-    if (device == Device::CUDA)
-      return true;
-    else {
-#if defined(WITH_MKL) && defined(WITH_MKLDNN)
-      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
-#else
-      return false;
+    switch (device) {
+#ifdef WITH_CUDA
+    case Device::CUDA:
+      return cuda::has_fast_int8();
 #endif
+#if defined(WITH_MKL) && defined(WITH_MKLDNN)
+    case Device::CPU:
+      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
+#endif
+    default:
+      return false;
     }
   }
 
