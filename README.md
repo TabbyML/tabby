@@ -223,7 +223,7 @@ There are many ways to make this project better and faster. See the open issues 
 The total number of computing threads launched by the process is summarized by this formula:
 
 ```text
-num_threads = inter_threads * min(intra_threads, num_physical_cores)
+num_threads = inter_threads * intra_threads
 ```
 
 Some notes about `inter_threads`:
