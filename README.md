@@ -116,7 +116,7 @@ The library has several entrypoints which are briefly introduced below. The exam
 ### With the translation client
 
 ```bash
-echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data \
     systran/ctranslate2 --model /data/ende_ctranslate2
 ```
 
