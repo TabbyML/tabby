@@ -148,7 +148,10 @@ namespace ctranslate2 {
   template <typename In, typename Out>
   void primitives<Device::CPU>::quantize(const In* x, Out* y, size_t size, In scale) {
     unary_transform(x, y, size, [&scale](const In& v) {
-      return static_cast<Out>(v * scale);
+      return static_cast<Out>(
+        std::max(
+          std::min(v * scale, static_cast<In>(std::numeric_limits<Out>::max())),
+          static_cast<In>(std::numeric_limits<Out>::lowest())));
     });
   }
 
