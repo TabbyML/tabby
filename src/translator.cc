@@ -31,7 +31,8 @@ namespace ctranslate2 {
 
   void Translator::set_num_threads(size_t num_threads) const {
 #ifdef WITH_MKL
-    omp_set_num_threads(num_threads);
+    if (num_threads != 0)
+      omp_set_num_threads(num_threads);
 #endif
   }
 

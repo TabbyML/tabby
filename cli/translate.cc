@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     ("inter_threads", po::value<size_t>()->default_value(1),
      "Maximum number of translations to run in parallel.")
     ("intra_threads", po::value<size_t>()->default_value(0),
-     "Number of threads for Intel® MKL (set to 0 to use an automatic value).")
+     "Number of OpenMP threads (set to 0 to use the default value).")
     ("device", po::value<std::string>()->default_value("cpu"),
      "Device to use (can be cpu, cuda, auto).")
     ("device_index", po::value<int>()->default_value(0),
