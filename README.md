@@ -116,7 +116,7 @@ The library has several entrypoints which are briefly introduced below. The exam
 ### With the translation client
 
 ```bash
-echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data \
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
     systran/ctranslate2 --model /data/ende_ctranslate2
 ```
 
@@ -126,7 +126,7 @@ echo "▁H ello ▁world !" | docker run -i --rm -v $PWD/my_data:/data \
 
 ```python
 from ctranslate2 import translator
-t = translator.Translator("my_data/ende_ctranslate2/")
+t = translator.Translator("ende_ctranslate2/")
 
 input_tokens = ["▁H", "ello", "▁world", "!"]
 result = t.translate_batch([input_tokens])
@@ -143,7 +143,7 @@ print(result[0][0])
 #include <ctranslate2/translator.h>
 
 int main() {
-  ctranslate2::Translator translator("my_data/ende_ctranslate2/", ctranslate2::Device::CPU);
+  ctranslate2::Translator translator("ende_ctranslate2/", ctranslate2::Device::CPU);
   ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
 
   for (const auto& token : result.output())
