@@ -5,6 +5,8 @@ import six
 import numpy as np
 import tensorflow as tf
 
+from tensorflow.contrib.seq2seq.python.ops import beam_search_ops  # Force kernel loading.
+
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import catalog
 
