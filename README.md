@@ -58,7 +58,7 @@ wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k.tar.gz
 tar xf averaged-ende-export500k.tar.gz
 
 python -m ctranslate2.converters.opennmt_tf \
-    --model_dir averaged-ende-export500k/1539080952/ \
+    --model_dir averaged-ende-export500k/1554540232/ \
     --output_dir ende_ctranslate2 \
     --model_spec TransformerBase \
     --quantization int16
