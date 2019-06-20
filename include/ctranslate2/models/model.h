@@ -28,6 +28,7 @@ namespace ctranslate2 {
 
       const StorageView* get_variable_if_exists(const std::string& name) const;
       const StorageView& get_variable(const std::string& name) const;
+      const std::unordered_map<std::string, StorageView>& get_variables() const;
 
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).

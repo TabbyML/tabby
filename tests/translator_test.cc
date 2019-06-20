@@ -4,8 +4,9 @@
 
 extern std::string g_data_dir;
 
-static std::string path_to_test_name(::testing::TestParamInfo<std::string> param_info) {
-  std::string name = param_info.param;
+static std::string
+path_to_test_name(::testing::TestParamInfo<std::pair<std::string, DataType>> param_info) {
+  std::string name = param_info.param.first;
   std::replace(name.begin(), name.end(), '/', '_');
   std::replace(name.begin(), name.end(), '-', '_');
   return name;
@@ -18,13 +19,37 @@ static std::string beam_to_test_name(::testing::TestParamInfo<size_t> param_info
     return "BeamSearch";
 }
 
+static bool endswith(const std::string& str, const std::string& part) {
+  return str.size() >= part.size() && str.substr(str.size() - part.size()) == part;
+}
+
+static void check_weights_dtype(const std::unordered_map<std::string, StorageView>& variables,
+                                DataType expected_dtype) {
+  for (const auto& variable : variables) {
+    const auto& name = variable.first;
+    const auto& value = variable.second;
+    if (endswith(name, "weight")) {
+      EXPECT_EQ(value.dtype(), expected_dtype) << "Expected type " << dtype_name(expected_dtype)
+                                               << " for weight " << name << ", got "
+                                               << dtype_name(value.dtype()) << " instead";
+    }
+  }
+}
+
 
 // Test that we can load and translate with different versions of the same model.
-class ModelVariantTest : public ::testing::TestWithParam<std::string> {
+class ModelVariantTest : public ::testing::TestWithParam<std::pair<std::string, DataType>> {
 };
 
 TEST_P(ModelVariantTest, Transliteration) {
-  Translator translator(g_data_dir + "/models/" + GetParam(), Device::CPU);
+  auto params = GetParam();
+  const std::string& model_path = params.first;
+  DataType expected_dtype = params.second;
+
+  auto model = models::ModelFactory::load(g_data_dir + "/models/" + model_path, Device::CPU);
+  check_weights_dtype(model->get_variables(), expected_dtype);
+
+  Translator translator(model);
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
   auto result = translator.translate(input);
@@ -35,11 +60,11 @@ INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   ModelVariantTest,
   ::testing::Values(
-    "v1/aren-transliteration",
-    "v1/aren-transliteration-i16",
-    "v2/aren-transliteration",
-    "v2/aren-transliteration-i16",
-    "v2/aren-transliteration-i8"),
+    std::make_pair("v1/aren-transliteration", DataType::DT_FLOAT),
+    std::make_pair("v1/aren-transliteration-i16", DataType::DT_INT16),
+    std::make_pair("v2/aren-transliteration", DataType::DT_FLOAT),
+    std::make_pair("v2/aren-transliteration-i16", DataType::DT_INT16),
+    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)),
   path_to_test_name);
 
 

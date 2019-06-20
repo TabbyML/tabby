@@ -84,6 +84,10 @@ namespace ctranslate2 {
       return *var;
     }
 
+    const std::unordered_map<std::string, StorageView>& Model::get_variables() const {
+      return _variable_index;
+    }
+
     void Model::register_variable(const std::string& name, StorageView& variable) {
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),
