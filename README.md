@@ -38,6 +38,60 @@ CTranslate2 uses the following libraries for acceleration:
   * [cuBLAS](https://developer.nvidia.com/cublas)
   * [cuDNN](https://developer.nvidia.com/cudnn)
 
+## Build CTranslate2 binary
+
+The minimum require for building CTranslate2 binary is `Intel MKL` & `libboost-program-options-dev`.
+
+### Install MKL:
+
+
+Use the following instructions to install MKL:
+
+```bash
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+
+apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+
+sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+
+sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+
+sudo apt-get update
+
+sudo apt-get install intel-mkl-2018.2-046
+```
+
+Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
+
+### Install libboost-program-options-dev:
+
+```bash
+sudo apt-get install libboost-program-options-dev
+```
+
+### Compile:
+
+Under the project root then launch the following commands:
+```bash
+cmake -G 'Unix Makefile' .
+
+make
+```
+
+## Test compiled binary
+
+The binary `translate` will be generated in directory `cli` under project root.
+Go into this directory then launch the following command to test:
+
+```bash
+echo "▁H ello ▁world !" | ./translate --model ../python/ende_ctranslate2/
+```
+The result `▁Hallo ▁Welt !` should be display.
+
+Notes:
+
+* Before you test it, you should get your model by following **Converting models** instructions.
+
 ## Converting models
 
 A model conversion step is required to transform trained models into the CTranslate2 representation. The following frameworks and models are currently supported:
