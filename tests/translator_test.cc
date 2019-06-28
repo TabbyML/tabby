@@ -64,7 +64,12 @@ INSTANTIATE_TEST_CASE_P(
     std::make_pair("v1/aren-transliteration-i16", DataType::DT_INT16),
     std::make_pair("v2/aren-transliteration", DataType::DT_FLOAT),
     std::make_pair("v2/aren-transliteration-i16", DataType::DT_INT16),
-    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)),
+#ifdef WITH_MKLDNN
+    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)
+#else
+    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT16)
+#endif
+    ),
   path_to_test_name);
 
 
