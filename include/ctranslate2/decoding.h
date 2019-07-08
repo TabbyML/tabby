@@ -5,6 +5,7 @@
 namespace ctranslate2 {
 
   void greedy_decoding(layers::Decoder& decoder,
+                       layers::DecoderState& state,
                        StorageView& sample_from,
                        StorageView& candidates,
                        const StorageView& memory,
@@ -17,6 +18,7 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr);
 
   void beam_search(layers::Decoder& decoder,
+                   layers::DecoderState& state,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,

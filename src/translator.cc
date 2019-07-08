@@ -107,6 +107,7 @@ namespace ctranslate2 {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(batch_tokens);
       candidates.resize({candidates_vec.size()});
       candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
+      decoder.reduce_vocab(candidates);
     }
 
     // Decode.
@@ -117,8 +118,10 @@ namespace ctranslate2 {
     std::vector<std::vector<float>> scores;
     std::vector<std::vector<std::vector<std::vector<float>>>> attention;
     auto* attention_ptr = options.return_attention ? &attention : nullptr;
+    auto state = decoder.initial_state();
     if (options.beam_size == 1)
       greedy_decoding(decoder,
+                      state,
                       sample_from,
                       candidates,
                       encoded,
@@ -131,6 +134,7 @@ namespace ctranslate2 {
                       attention_ptr);
     else
       beam_search(decoder,
+                  state,
                   sample_from,
                   candidates,
                   encoded,

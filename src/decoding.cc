@@ -50,6 +50,7 @@ namespace ctranslate2 {
   }
 
   void beam_search(layers::Decoder& decoder,
+                   layers::DecoderState& state,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,
@@ -63,8 +64,6 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    decoder.reduce_vocab(candidates);
-    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
@@ -312,6 +311,7 @@ namespace ctranslate2 {
   }
 
   void greedy_decoding(layers::Decoder& decoder,
+                       layers::DecoderState& state,
                        StorageView& sample_from,
                        StorageView& candidates,
                        const StorageView& memory,
@@ -322,8 +322,6 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    decoder.reduce_vocab(candidates);
-    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
