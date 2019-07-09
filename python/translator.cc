@@ -25,6 +25,19 @@ py::list std_vector_to_py_list(const std::vector<T>& v) {
   return l;
 }
 
+static std::vector<std::vector<std::string>> batch_to_vector(const py::object& l) {
+  std::vector<std::vector<std::string>> v;
+  if (l == py::object())
+    return v;
+  v.reserve(py::len(l));
+  for (auto it = py::stl_input_iterator<py::list>(l);
+       it != py::stl_input_iterator<py::list>(); it++) {
+    v.emplace_back(py::stl_input_iterator<std::string>(*it),
+                   py::stl_input_iterator<std::string>());
+  }
+  return v;
+}
+
 class TranslatorWrapper
 {
 public:
@@ -62,7 +75,8 @@ public:
     _translator_pool.consume_text_file(in_file, out_file, max_batch_size, options, with_scores);
   }
 
-  py::list translate_batch(const py::object& tokens,
+  py::list translate_batch(const py::object& source,
+                           const py::object& target_prefix,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -70,17 +84,8 @@ public:
                            size_t min_decoding_length,
                            bool use_vmap,
                            bool return_attention) {
-    if (tokens == py::object())
+    if (source == py::object())
       return py::list();
-
-    std::vector<std::vector<std::string>> tokens_vec;
-    tokens_vec.reserve(py::len(tokens));
-
-    for (auto it = py::stl_input_iterator<py::list>(tokens);
-         it != py::stl_input_iterator<py::list>(); it++) {
-      tokens_vec.emplace_back(py::stl_input_iterator<std::string>(*it),
-                              py::stl_input_iterator<std::string>());
-    }
 
     auto options = ctranslate2::TranslationOptions();
     options.beam_size = beam_size;
@@ -95,7 +100,10 @@ public:
 
     {
       GILReleaser releaser;
-      results = std::move(_translator_pool.post(tokens_vec, options).get());
+      auto future = _translator_pool.post(batch_to_vector(source),
+                                          batch_to_vector(target_prefix),
+                                          options);
+      results = future.get();
     }
 
     py::list py_results;
@@ -135,7 +143,8 @@ BOOST_PYTHON_MODULE(translator)
        py::arg("inter_threads")=1,
        py::arg("intra_threads")=4)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,
-         (py::arg("tokens"),
+         (py::arg("source"),
+          py::arg("target_prefix")=py::object(),
           py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
           py::arg("length_penalty")=0.6,
