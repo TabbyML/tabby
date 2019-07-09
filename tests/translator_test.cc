@@ -107,6 +107,18 @@ TEST_P(SearchVariantTest, ReturnAllHypotheses) {
   EXPECT_EQ(result.num_hypotheses(), beam_size);
 }
 
+TEST_P(SearchVariantTest, TranslateWithPrefix) {
+  auto beam_size = GetParam();
+  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  std::vector<std::string> prefix = {"a", "t", "z"};
+  std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
+  auto result = translator.translate_with_prefix(input, prefix, options);
+  EXPECT_EQ(result.output(), expected);
+}
+
 INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   SearchVariantTest,

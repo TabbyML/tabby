@@ -41,6 +41,20 @@ namespace ctranslate2 {
     translate_batch(const std::vector<std::vector<std::string>>& tokens,
                     const TranslationOptions& options);
 
+    TranslationResult
+    translate_with_prefix(const std::vector<std::string>& source,
+                          const std::vector<std::string>& target_prefix,
+                          const TranslationOptions& options);
+    std::vector<TranslationResult>
+    translate_with_prefix(const std::vector<std::vector<std::string>>& source,
+                          const std::vector<std::vector<std::string>>& target_prefix,
+                          const TranslationOptions& options);
+
+    std::vector<TranslationResult>
+    translate(const std::vector<std::vector<std::string>>& source,
+              const std::vector<std::vector<std::string>>* target_prefix,
+              const TranslationOptions& options);
+
     Device device() const;
 
   private:
