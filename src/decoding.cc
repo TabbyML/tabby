@@ -65,6 +65,7 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
@@ -118,7 +119,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = start_step; step < max_length; ++step) {
+    for (size_t step = start_step; step < max_step; ++step) {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
@@ -206,7 +207,7 @@ namespace ctranslate2 {
         size_t batch_id = batch_offset[i];
         for (size_t k = 0; k < beam_size; ++k) {
           if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
-              || step + 1 == max_length) {
+              || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
             float score = topk_log_probs.at<float>({i, k});
@@ -324,6 +325,7 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
@@ -360,7 +362,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = start_step; step < max_length; ++step) {
+    for (size_t step = start_step; step < max_step; ++step) {
       decoder(step,
               sample_from.to(device),
               alive_memory,
