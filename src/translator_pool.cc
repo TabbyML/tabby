@@ -24,13 +24,17 @@ namespace ctranslate2 {
                                                       const TranslationInput& target_prefix,
                                                       const TranslationOptions& options) {
     std::future<TranslationOutput> future;
+    TranslationJob job;
+    job.source = source;
+    job.target_prefix = target_prefix;
+    job.options = options;
 
     {
       std::lock_guard<std::mutex> lock(_mutex);
       _work.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(),
-                    std::forward_as_tuple(source, target_prefix, options));
-      future = std::move(_work.back().first.get_future());
+                    std::forward_as_tuple(std::move(job)),
+                    std::forward_as_tuple());
+      future = _work.back().second.get_future();
     }
 
     _cv.notify_one();
@@ -58,12 +62,11 @@ namespace ctranslate2 {
       work_queue.pop();
       lock.unlock();
 
-      auto& promise = work_def.first;
-      auto& work = work_def.second;
-      auto& source = std::get<0>(work);
-      auto& target_prefix = std::get<1>(work);
-      auto& options = std::get<2>(work);
-      promise.set_value(translator.translate_with_prefix(source, target_prefix, options));
+      auto& job = work_def.first;
+      auto& promise = work_def.second;
+      promise.set_value(translator.translate_with_prefix(job.source,
+                                                         job.target_prefix,
+                                                         job.options));
     }
   }
 
