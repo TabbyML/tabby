@@ -53,8 +53,8 @@ namespace ctranslate2 {
 
       auto& promise = work_def.first;
       auto& work = work_def.second;
-      auto& input = work.first;
-      auto& options = work.second;
+      auto& input = std::get<0>(work);
+      auto& options = std::get<1>(work);
       promise.set_value(translator.translate_batch(input, options));
     }
   }

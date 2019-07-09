@@ -87,7 +87,7 @@ namespace ctranslate2 {
     void work_loop(Translator& translator, size_t intra_threads);
 
     std::queue<std::pair<std::promise<TranslationOutput>,
-                         std::pair<TranslationInput, TranslationOptions>>> _work;
+                         std::tuple<TranslationInput, TranslationOptions>>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translator_pool;
     std::mutex _mutex;
