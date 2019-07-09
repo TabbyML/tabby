@@ -50,11 +50,6 @@ namespace ctranslate2 {
                           const std::vector<std::vector<std::string>>& target_prefix,
                           const TranslationOptions& options);
 
-    std::vector<TranslationResult>
-    translate(const std::vector<std::vector<std::string>>& source,
-              const std::vector<std::vector<std::string>>* target_prefix,
-              const TranslationOptions& options);
-
     Device device() const;
 
   private:

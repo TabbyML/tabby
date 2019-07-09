@@ -31,7 +31,10 @@ namespace ctranslate2 {
     }
     ~TranslatorPool();
 
-    std::future<TranslationOutput> post(const TranslationInput& batch_tokens,
+    std::future<TranslationOutput> post(const TranslationInput& source,
+                                        const TranslationOptions& options);
+    std::future<TranslationOutput> post(const TranslationInput& source,
+                                        const TranslationInput& target_prefix,
                                         const TranslationOptions& options);
 
     template <typename Reader, typename Writer>
@@ -86,8 +89,10 @@ namespace ctranslate2 {
   private:
     void work_loop(Translator& translator, size_t intra_threads);
 
-    std::queue<std::pair<std::promise<TranslationOutput>,
-                         std::tuple<TranslationInput, TranslationOptions>>> _work;
+    std::queue<
+      std::pair<
+        std::promise<TranslationOutput>,
+        std::tuple<TranslationInput, TranslationInput, TranslationOptions>>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translator_pool;
     std::mutex _mutex;

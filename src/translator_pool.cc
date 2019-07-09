@@ -14,7 +14,14 @@ namespace ctranslate2 {
       worker.join();
   }
 
-  std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& batch_tokens,
+  std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
+                                                      const TranslationOptions& options) {
+    TranslationInput target_prefix;
+    return post(source, target_prefix, options);
+  }
+
+  std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
+                                                      const TranslationInput& target_prefix,
                                                       const TranslationOptions& options) {
     std::future<TranslationOutput> future;
 
@@ -22,7 +29,7 @@ namespace ctranslate2 {
       std::lock_guard<std::mutex> lock(_mutex);
       _work.emplace(std::piecewise_construct,
                     std::forward_as_tuple(),
-                    std::forward_as_tuple(batch_tokens, options));
+                    std::forward_as_tuple(source, target_prefix, options));
       future = std::move(_work.back().first.get_future());
     }
 
@@ -53,9 +60,10 @@ namespace ctranslate2 {
 
       auto& promise = work_def.first;
       auto& work = work_def.second;
-      auto& input = std::get<0>(work);
-      auto& options = std::get<1>(work);
-      promise.set_value(translator.translate_batch(input, options));
+      auto& source = std::get<0>(work);
+      auto& target_prefix = std::get<1>(work);
+      auto& options = std::get<2>(work);
+      promise.set_value(translator.translate_with_prefix(source, target_prefix, options));
     }
   }
 
