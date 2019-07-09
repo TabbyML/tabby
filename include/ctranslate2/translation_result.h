@@ -3,16 +3,10 @@
 #include <string>
 #include <vector>
 
-#include "vocabulary.h"
-
 namespace ctranslate2 {
 
   class TranslationResult {
   public:
-    TranslationResult(const std::vector<std::vector<size_t>>& hypotheses,
-                      const std::vector<float>& scores,
-                      const Vocabulary& vocabulary,
-                      const std::vector<std::vector<std::vector<float>>>* attention);
     TranslationResult(const std::vector<std::vector<std::string>>& hypotheses,
                       const std::vector<float>& scores,
                       const std::vector<std::vector<std::vector<float>>>* attention);

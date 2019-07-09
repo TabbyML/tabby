@@ -2,21 +2,6 @@
 
 namespace ctranslate2 {
 
-  TranslationResult::TranslationResult(const std::vector<std::vector<size_t>>& hypotheses,
-                                       const std::vector<float>& scores,
-                                       const Vocabulary& vocabulary,
-                                       const std::vector<std::vector<std::vector<float>>>* attention)
-    :_scores(scores) {
-    _hypotheses.resize(hypotheses.size());
-    for (size_t i = 0; i < hypotheses.size(); ++i) {
-      _hypotheses[i].reserve(hypotheses[i].size());
-      for (auto id : hypotheses[i])
-        _hypotheses[i].push_back(vocabulary.to_token(id));
-    }
-    if (attention)
-      _attention = *attention;
-  }
-
   TranslationResult::TranslationResult(const std::vector<std::vector<std::string>>& hypotheses,
                                        const std::vector<float>& scores,
                                        const std::vector<std::vector<std::vector<float>>>* attention)

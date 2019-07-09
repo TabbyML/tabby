@@ -50,10 +50,12 @@ namespace ctranslate2 {
   }
 
   void beam_search(layers::Decoder& decoder,
+                   layers::DecoderState& state,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,
                    const StorageView& memory_lengths,
+                   size_t start_step,
                    size_t end_token,
                    size_t max_length,
                    size_t min_length,
@@ -63,8 +65,6 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    decoder.reduce_vocab(candidates);
-    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     size_t cur_batch_size = batch_size;
@@ -118,7 +118,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = 0; step < max_length; ++step) {
+    for (size_t step = start_step; step < max_length; ++step) {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
@@ -312,18 +312,18 @@ namespace ctranslate2 {
   }
 
   void greedy_decoding(layers::Decoder& decoder,
+                       layers::DecoderState& state,
                        StorageView& sample_from,
                        StorageView& candidates,
                        const StorageView& memory,
                        const StorageView& memory_lengths,
+                       size_t start_step,
                        size_t end_token,
                        size_t max_length,
                        size_t min_length,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    decoder.reduce_vocab(candidates);
-    auto state = decoder.initial_state();
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
@@ -360,7 +360,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = 0; step < max_length; ++step) {
+    for (size_t step = start_step; step < max_length; ++step) {
       decoder(step,
               sample_from.to(device),
               alive_memory,
