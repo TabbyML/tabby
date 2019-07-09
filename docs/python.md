@@ -17,7 +17,8 @@ t = translator.Translator(
 # * "tokens"
 # * "attention" (if return_attention is set to True)
 output = t.translate_batch(
-    tokens: list,            # A list of list of string.
+    source: list,            # A list of list of string.
+    target_prefix=None,      # An optional list of list of string.
     beam_size=4,             # Beam size.
     num_hypotheses=1,        # Number of hypotheses to return.
     length_penalty=0.6,      # Length penalty constant.

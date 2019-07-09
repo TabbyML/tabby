@@ -86,7 +86,8 @@ namespace ctranslate2 {
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
                               const TranslationOptions& options) {
-    return translate(batch_tokens, nullptr, options);
+    std::vector<std::vector<std::string>> target_prefix;
+    return translate_with_prefix(batch_tokens, target_prefix, options);
   }
 
   TranslationResult
@@ -95,20 +96,13 @@ namespace ctranslate2 {
                                     const TranslationOptions& options) {
     std::vector<std::vector<std::string>> batch_source(1, source);
     std::vector<std::vector<std::string>> batch_target_prefix(1, target_prefix);
-    return translate(batch_source, &batch_target_prefix, options)[0];
+    return translate_with_prefix(batch_source, batch_target_prefix, options)[0];
   }
 
   std::vector<TranslationResult>
   Translator::translate_with_prefix(const std::vector<std::vector<std::string>>& source,
                                     const std::vector<std::vector<std::string>>& target_prefix,
                                     const TranslationOptions& options) {
-    return translate(source, &target_prefix, options);
-  }
-
-  std::vector<TranslationResult>
-  Translator::translate(const std::vector<std::vector<std::string>>& source,
-                        const std::vector<std::vector<std::string>>* target_prefix,
-                        const TranslationOptions& options) {
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();
@@ -116,6 +110,7 @@ namespace ctranslate2 {
     auto& decoder = *_decoder;
 
     size_t batch_size = source.size();
+    bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
     if (options.num_hypotheses > options.beam_size)
@@ -124,17 +119,17 @@ namespace ctranslate2 {
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-    if (target_prefix) {
+    if (with_prefix) {
       if (options.return_attention)
         throw std::invalid_argument(
           "Prefixed translation currently does not support returning attention vectors");
       if (batch_size > 1)
         throw std::invalid_argument(
           "Prefixed translation currently does not support batch inputs");
-      if (target_prefix->size() != batch_size)
+      if (target_prefix.size() != batch_size)
         throw std::invalid_argument("Batch size mismatch: got "
                                     + std::to_string(batch_size) + " for source and "
-                                    + std::to_string(target_prefix->size()) + " for target prefix");
+                                    + std::to_string(target_prefix.size()) + " for target prefix");
     }
 
     _model->use_model_device();
@@ -169,15 +164,15 @@ namespace ctranslate2 {
     auto state = decoder.initial_state();
 
     // Forward target prefix, if set (only batch_size = 1 for now).
-    if (target_prefix) {
+    if (with_prefix) {
       // TODO: Forward all timesteps at once.
-      start_step = target_prefix->front().size();
+      start_step = target_prefix.front().size();
       StorageView logits(device);
-      for (size_t i = 0; i < target_prefix->front().size(); ++i) {
+      for (size_t i = 0; i < target_prefix.front().size(); ++i) {
         auto input = sample_from.to(device);
         input.reshape({batch_size, 1});
         decoder(i, input, encoded, lengths, state, logits);
-        auto next_id = target_vocab.to_id(target_prefix->front()[i]);
+        auto next_id = target_vocab.to_id(target_prefix.front()[i]);
         sample_from.at<int32_t>(0) = next_id;
       }
     }
@@ -222,8 +217,8 @@ namespace ctranslate2 {
       size_t num_hypotheses = sampled_ids[i].size();
       hypotheses.resize(num_hypotheses);
       for (size_t h = 0; h < num_hypotheses; ++h) {
-        if (target_prefix)
-          hypotheses[h] = target_prefix->at(i);
+        if (with_prefix)
+          hypotheses[h] = target_prefix[i];
         for (auto id : sampled_ids[i][h])
           hypotheses[h].push_back(target_vocab.to_token(id));
       }
