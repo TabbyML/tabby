@@ -76,8 +76,12 @@ INSTANTIATE_TEST_CASE_P(
 class SearchVariantTest : public ::testing::TestWithParam<size_t> {
 };
 
+static Translator default_translator() {
+  return Translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+}
+
 TEST_P(SearchVariantTest, SetMaxDecodingLength) {
-  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  Translator translator = default_translator();
   TranslationOptions options;
   options.beam_size = GetParam();
   options.max_decoding_length = 3;
@@ -87,7 +91,7 @@ TEST_P(SearchVariantTest, SetMaxDecodingLength) {
 }
 
 TEST_P(SearchVariantTest, SetMinDecodingLength) {
-  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  Translator translator = default_translator();
   TranslationOptions options;
   options.beam_size = GetParam();
   options.min_decoding_length = 8;
@@ -98,7 +102,7 @@ TEST_P(SearchVariantTest, SetMinDecodingLength) {
 
 TEST_P(SearchVariantTest, ReturnAllHypotheses) {
   auto beam_size = GetParam();
-  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  Translator translator = default_translator();
   TranslationOptions options;
   options.beam_size = beam_size;
   options.num_hypotheses = beam_size;
@@ -108,10 +112,9 @@ TEST_P(SearchVariantTest, ReturnAllHypotheses) {
 }
 
 TEST_P(SearchVariantTest, TranslateWithPrefix) {
-  auto beam_size = GetParam();
-  Translator translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+  Translator translator = default_translator();
   TranslationOptions options;
-  options.beam_size = beam_size;
+  options.beam_size = GetParam();
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> prefix = {"a", "t", "z"};
   std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
