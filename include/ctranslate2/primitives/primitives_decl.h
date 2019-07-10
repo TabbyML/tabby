@@ -11,6 +11,10 @@ namespace ctranslate2 {
       device = device;
     }
 
+    static int get_device() {
+      return 0;
+    }
+
     static void* alloc_data(size_t size);
     static void free_data(void* data);
     static void clear_cache();

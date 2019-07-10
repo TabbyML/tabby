@@ -49,6 +49,13 @@ namespace ctranslate2 {
   }
 
   template<>
+  int primitives<Device::CUDA>::get_device() {
+    int index;
+    CUDA_CHECK(cudaGetDevice(&index));
+    return index;
+  }
+
+  template<>
   void* primitives<Device::CUDA>::alloc_data(size_t size) {
     void* data = nullptr;
     CUDA_CHECK(allocator.DeviceAllocate(&data, size, cuda::get_cuda_stream()));
