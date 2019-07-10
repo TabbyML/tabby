@@ -111,6 +111,22 @@ TEST_P(SearchVariantTest, ReturnAllHypotheses) {
   EXPECT_EQ(result.num_hypotheses(), beam_size);
 }
 
+TEST_P(SearchVariantTest, ReturnAttention) {
+  auto beam_size = GetParam();
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.num_hypotheses = beam_size;
+  options.return_attention = true;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+  ASSERT_TRUE(result.has_attention());
+  const auto& attention = result.attention();
+  EXPECT_EQ(attention.size(), beam_size);
+  EXPECT_EQ(attention[0].size(), 6);
+  EXPECT_EQ(attention[0][0].size(), 6);
+}
+
 TEST_P(SearchVariantTest, TranslateWithPrefix) {
   Translator translator = default_translator();
   TranslationOptions options;

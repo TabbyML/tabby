@@ -228,7 +228,7 @@ namespace ctranslate2 {
                   break;
                 hypothesis.push_back(id);
                 if (attention) {
-                  const auto* attn_vec = alive_attention.index<float>({i, k, t});
+                  const auto* attn_vec = alive_attention.index<float>({i, k, t - 1});
                   attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
                 }
               }
@@ -399,10 +399,10 @@ namespace ctranslate2 {
           sampled_ids[batch_id][0].push_back(true_id);
           scores[batch_id][0] += best_probs.scalar_at<float>({i});
           ++count_alive;
-        }
-        if (attention && step > 0) {
-          const auto* attn = attention_step.index<float>({i});
-          (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));
+          if (attention) {
+            const auto* attn = attention_step.index<float>({i});
+            (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));
+          }
         }
       }
 
