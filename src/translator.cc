@@ -149,8 +149,8 @@ namespace ctranslate2 {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(source);
       candidates.resize({candidates_vec.size()});
       candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
-      decoder.reduce_vocab(candidates);
     }
+    decoder.reduce_vocab(candidates);
 
     // Decode.
     size_t start_step = 0;
