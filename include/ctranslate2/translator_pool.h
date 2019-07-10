@@ -14,12 +14,6 @@ namespace ctranslate2 {
   using TranslationInput = std::vector<std::vector<std::string>>;
   using TranslationOutput = std::vector<TranslationResult>;
 
-  struct TranslationJob {
-    TranslationInput source;
-    TranslationInput target_prefix;
-    TranslationOptions options;
-  };
-
   class TranslatorPool {
   public:
     template <typename... Args>
@@ -93,6 +87,12 @@ namespace ctranslate2 {
                              bool with_scores = false);
 
   private:
+    struct TranslationJob {
+      TranslationInput source;
+      TranslationInput target_prefix;
+      TranslationOptions options;
+    };
+
     void work_loop(Translator& translator, size_t intra_threads);
 
     std::queue<std::pair<TranslationJob, std::promise<TranslationOutput>>> _work;
