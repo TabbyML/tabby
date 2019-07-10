@@ -25,7 +25,8 @@ namespace ctranslate2 {
       return data;
     }
 
-    static std::string consume_string(std::istream& in) {
+    template<>
+    std::string consume(std::istream& in) {
       auto str_length = consume<uint16_t>(in);
       auto c_str = consume<char>(in, str_length);
       std::string str(c_str);
@@ -176,7 +177,7 @@ namespace ctranslate2 {
       std::string spec;
       size_t spec_revision;
       if (binary_version >= 2) {
-        spec = consume_string(model_file);
+        spec = consume<std::string>(model_file);
         spec_revision = consume<uint32_t>(model_file);
       } else {
         spec_revision = 1;
@@ -202,7 +203,7 @@ namespace ctranslate2 {
 
       auto num_variables = consume<uint32_t>(model_file);
       for (uint32_t i = 0; i < num_variables; ++i) {
-        auto name = consume_string(model_file);
+        auto name = consume<std::string>(model_file);
         auto rank = consume<uint8_t>(model_file);
         auto dimensions = consume<uint32_t>(model_file, rank);
         auto data_width = consume<uint8_t>(model_file);
