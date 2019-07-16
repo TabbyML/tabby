@@ -37,17 +37,15 @@ ENV MKLDNN_VERSION=0.19
 RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \
-    cd scripts && ./prepare_mkl.sh && cd .. && \
     mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} \
-          -DARCH_OPT_FLAGS="" -DMKLDNN_USE_MKL=ML -DMKLDNN_THREADING=OMP:INTEL \
-          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
+    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DMKLDNN_LIBRARY_TYPE=STATIC \
+          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
+          -DARCH_OPT_FLAGS="" -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
 
 WORKDIR /root/ctranslate2-dev
 
-COPY mkl_symbol_list .
 COPY cli cli
 COPY include include
 COPY src src
@@ -74,7 +72,6 @@ RUN CFLAGS="-DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
