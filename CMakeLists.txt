@@ -16,9 +16,11 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
 
 find_package(Threads)
+find_package(OpenMP REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 set(LINK_DIRECTORIES
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -51,6 +53,7 @@ set(SOURCES
   )
 set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
+  gomp
   )
 
 if(WITH_MKL)
@@ -78,9 +81,8 @@ if(WITH_MKL)
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
   list(APPEND LIBRARIES
     ${MKL_ROOT}/lib/intel64/libmkl_intel_lp64.a
-    ${MKL_ROOT}/lib/intel64/libmkl_intel_thread.a
+    ${MKL_ROOT}/lib/intel64/libmkl_gnu_thread.a
     ${MKL_ROOT}/lib/intel64/libmkl_core.a
-    iomp5
     )
 
   if(WITH_MKLDNN)

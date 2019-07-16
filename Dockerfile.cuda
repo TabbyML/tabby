@@ -43,7 +43,7 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \
     mkdir build && cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DMKLDNN_LIBRARY_TYPE=STATIC \
-          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
+          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP \
           -DARCH_OPT_FLAGS="" -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
@@ -88,7 +88,7 @@ RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
+RUN cp -P /usr/lib/x86_64-linux-gnu/libgomp*.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
