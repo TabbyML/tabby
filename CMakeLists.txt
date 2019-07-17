@@ -50,6 +50,7 @@ set(SOURCES
   src/vocabulary_map.cc
   )
 set(LIBRARIES
+  ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
   )
 
