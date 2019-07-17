@@ -179,12 +179,8 @@ Notes:
 
 
 ### Docker
-```bash
-docker build -t systran/ctranslate2 -f Dockerfile .
-docker build -t systran/ctranslate2_gpu -f Dockerfile.cuda .
-```
 
-For complete compilation instructions, see the *Dockerfiles*.
+See the `docker/` directory.
 
 ## Translating
 

@@ -16,9 +16,13 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
 
 find_package(Threads)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  add_compile_options(${OpenMP_CXX_FLAGS})
+endif()
 
 set(LINK_DIRECTORIES
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -50,6 +54,7 @@ set(SOURCES
   src/vocabulary_map.cc
   )
 set(LIBRARIES
+  ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
   )
 
@@ -127,6 +132,9 @@ if (WITH_CUDA)
   find_package(CUDA 10.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+  if(OpenMP_CXX_FOUND)
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}")
+  endif()
 
   if(NOT CUDA_ARCH_LIST)
     set(CUDA_ARCH_LIST "Auto")
