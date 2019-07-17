@@ -1,20 +1,14 @@
-FROM nvidia/cuda:10.0-devel-ubuntu16.04 as builder
+FROM nvidia/cuda:10.0-devel-centos7 as builder
 
-ENV CUDNN_VERSION=7.6.1.34
-ENV TENSORRT_VERSION=5.1.5
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        libboost-program-options-dev \
-        libboost-python-dev \
-        libcudnn7=$CUDNN_VERSION-1+cuda10.0 \
-        libcudnn7-dev=$CUDNN_VERSION-1+cuda10.0 \
-        libnvinfer5=$TENSORRT_VERSION-1+cuda10.0 \
-        libnvinfer-dev=$TENSORRT_VERSION-1+cuda10.0 \
-        python-pip \
+RUN yum install -y \
+        boost-static \
+        gcc \
+        gcc-c++ \
+        make \
+        python \
+        python-devel \
         wget && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/cache/yum/*
 
 WORKDIR /root
 
@@ -26,15 +20,10 @@ ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 ENV MKL_VERSION=2019
 ENV MKL_UPDATE=4
 ENV MKL_BUILD=070
-RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
-    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    echo "deb https://apt.repos.intel.com/mkl all main" > /etc/apt/sources.list.d/intel-mkl.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE.$MKL_BUILD && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+RUN yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.repo && \
+    rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+    yum install -y intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
+    rm -rf /var/cache/yum/*
 
 ENV MKLDNN_ROOT=/root/mkl-dnn
 ENV MKLDNN_VERSION=0.19
@@ -48,6 +37,23 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
           -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
+
+ENV CUDNN_VERSION_SHORT=7.6.1
+ENV CUDNN_VERSION=${CUDNN_VERSION_SHORT}.34
+RUN curl -fsSL http://developer.download.nvidia.com/compute/redist/cudnn/v${CUDNN_VERSION_SHORT}/cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -O && \
+    tar --no-same-owner -xzf cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -C /usr/local && \
+    rm cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz
+
+ENV TENSORRT_ROOT=/root/TensorRT
+COPY deps/TensorRT-* /root/
+RUN tar -xzf TensorRT-* && \
+    rm TensorRT-*.tar.gz && \
+    mv TensorRT-* ${TENSORRT_ROOT} && \
+    rm ${TENSORRT_ROOT}/lib/*.a && \
+    rm ${TENSORRT_ROOT}/lib/libnvcaffe_parser* && \
+    rm ${TENSORRT_ROOT}/lib/libnvinfer_plugin* && \
+    rm ${TENSORRT_ROOT}/lib/libnvonnxparser* && \
+    rm ${TENSORRT_ROOT}/lib/libnvparsers*
 
 ENV CUB_VERSION=1.8.0
 ENV CUB_ROOT=/root/cub
@@ -75,7 +81,7 @@ ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
-          -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT}" \
+          -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT};${TENSORRT_ROOT}" \
           -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
@@ -85,35 +91,27 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 RUN pip --no-cache-dir install setuptools wheel
 RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
-    cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
+    cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib && \
+    cp -P /usr/lib64/libboost_python*.so* /root/ctranslate2/lib && \
+    cp -P /usr/local/cuda/lib*/libcudnn.so* /root/ctranslate2/lib && \
+    cp -P /root/TensorRT/lib*/*.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
-FROM nvidia/cuda:10.0-base-ubuntu16.04
+FROM nvidia/cuda:10.0-base-centos7
 
-ENV CUDNN_VERSION=7.6.1.34
-ENV TENSORRT_VERSION=5.1.5
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        cuda-cublas-$CUDA_PKG_VERSION \
-        libcudnn7=${CUDNN_VERSION}-1+cuda10.0 \
-        libnvinfer5=${TENSORRT_VERSION}-1+cuda10.0 \
-        python-pip && \
-    apt-mark hold libcudnn7 libnvinfer5 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvcaffe_parser* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvinfer_plugin* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvonnxparser* && \
-    rm /usr/lib/x86_64-linux-gnu/libnvparsers*
+RUN yum install -y \
+        cuda-cublas-$CUDA_PKG_VERSION && \
+    rm -rf /var/cache/yum/*
 
 COPY --from=builder /root/ctranslate2 /root/ctranslate2
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 RUN pip --no-cache-dir install /root/ctranslate2/*.whl
 
 WORKDIR /root
