@@ -86,11 +86,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /root/ctranslate2 /root/ctranslate2
-RUN pip --no-cache-dir install /root/ctranslate2/*.whl
+COPY --from=builder /root/ctranslate2 /opt/ctranslate2
+RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
 
-WORKDIR /root
+WORKDIR /opt
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/ctranslate2/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ctranslate2/lib
 
-ENTRYPOINT ["/root/ctranslate2/bin/translate"]
+ENTRYPOINT ["/opt/ctranslate2/bin/translate"]

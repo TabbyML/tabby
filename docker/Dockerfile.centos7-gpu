@@ -110,12 +110,12 @@ RUN yum install -y \
         cuda-cublas-$CUDA_PKG_VERSION && \
     rm -rf /var/cache/yum/*
 
-COPY --from=builder /root/ctranslate2 /root/ctranslate2
+COPY --from=builder /root/ctranslate2 /opt/ctranslate2
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
-RUN pip --no-cache-dir install /root/ctranslate2/*.whl
+RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
 
-WORKDIR /root
+WORKDIR /opt
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/ctranslate2/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ctranslate2/lib
 
-ENTRYPOINT ["/root/ctranslate2/bin/translate"]
+ENTRYPOINT ["/opt/ctranslate2/bin/translate"]

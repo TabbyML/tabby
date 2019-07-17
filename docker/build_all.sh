@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+
+set -e
 
 VERSION=${1:-latest}
 PUSH=${2:-0}
