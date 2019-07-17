@@ -3,6 +3,7 @@
 !cli
 !cmake
 !include
+!mkl_symbol_list
 !python
 !src
 !tests
