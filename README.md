@@ -180,12 +180,7 @@ Notes:
 
 ### Docker
 
-```bash
-docker build -t systran/ctranslate2:latest -f docker/Dockerfile.ubuntu16 .
-docker build -t systran/ctranslate2:latest-gpu -f docker/Dockerfile.ubuntu16-gpu .
-```
-
-For complete compilation instructions, see the *Dockerfiles*.
+See the `docker/` directory.
 
 ## Translating
 
