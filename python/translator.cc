@@ -97,12 +97,12 @@ public:
     options.return_attention = return_attention;
 
     std::vector<ctranslate2::TranslationResult> results;
+    auto future = _translator_pool.post(batch_to_vector(source),
+                                        batch_to_vector(target_prefix),
+                                        options);
 
     {
       GILReleaser releaser;
-      auto future = _translator_pool.post(batch_to_vector(source),
-                                          batch_to_vector(target_prefix),
-                                          options);
       results = future.get();
     }
 
