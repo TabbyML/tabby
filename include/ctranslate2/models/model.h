@@ -20,7 +20,7 @@ namespace ctranslate2 {
 
       Device device() const;
       void set_device(Device type, int index = 0);
-      void use_model_device() const;
+      ScopedDeviceSetter get_scoped_device_setter() const;
 
       const Vocabulary& get_source_vocabulary() const;
       const Vocabulary& get_target_vocabulary() const;

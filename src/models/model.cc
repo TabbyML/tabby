@@ -55,8 +55,8 @@ namespace ctranslate2 {
       _device_index = index;
     }
 
-    void Model::use_model_device() const {
-      DEVICE_DISPATCH(_device, primitives<D>::set_device(_device_index));
+    ScopedDeviceSetter Model::get_scoped_device_setter() const {
+      return ScopedDeviceSetter(_device, _device_index);
     }
 
     const Vocabulary& Model::get_source_vocabulary() const {
@@ -148,6 +148,8 @@ namespace ctranslate2 {
         _variable_index.erase(name);
 
       // Second pass to move variables on the target device.
+      auto scoped_device_setter = get_scoped_device_setter();
+
       for (auto& pair : _variable_index) {
         auto& variable = pair.second;
         if (!variable.is_scalar() && variable.device() != _device) {
@@ -192,7 +194,6 @@ namespace ctranslate2 {
         throw std::invalid_argument("Unsupported model spec " + spec);
 
       model->set_device(device, device_index);
-      model->use_model_device();
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "

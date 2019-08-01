@@ -4,6 +4,8 @@
 #  include "ctranslate2/cuda/utils.h"
 #endif
 
+#include "ctranslate2/primitives/primitives.h"
+
 namespace ctranslate2 {
 
   Device str_to_device(const std::string& device) {
@@ -30,6 +32,16 @@ namespace ctranslate2 {
       return "CPU";
     }
     return "";
+  }
+
+  ScopedDeviceSetter::ScopedDeviceSetter(Device device, int index)
+    : _device(device) {
+    DEVICE_DISPATCH(_device, _prev_index = primitives<D>::get_device());
+    DEVICE_DISPATCH(_device, primitives<D>::set_device(index));
+  }
+
+  ScopedDeviceSetter::~ScopedDeviceSetter() {
+    DEVICE_DISPATCH(_device, primitives<D>::set_device(_prev_index));
   }
 
 }

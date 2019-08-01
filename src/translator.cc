@@ -52,7 +52,7 @@ namespace ctranslate2 {
   }
 
   void Translator::make_graph() {
-    _model->use_model_device();
+    auto scoped_device_setter = _model->get_scoped_device_setter();
     _encoder = _model->make_encoder();
     _decoder = _model->make_decoder();
   }
@@ -132,7 +132,7 @@ namespace ctranslate2 {
                                     + std::to_string(target_prefix.size()) + " for target prefix");
     }
 
-    _model->use_model_device();
+    auto scoped_device_setter = _model->get_scoped_device_setter();
     auto device = _model->device();
 
     auto inputs = make_inputs(source, source_vocab, device);
