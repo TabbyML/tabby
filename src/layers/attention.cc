@@ -109,8 +109,9 @@ namespace ctranslate2 {
     }
 
     void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) {
-      StorageView z({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads},
-                    const_cast<float*>(x.data<float>()), x.device());
+      const StorageView z({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads},
+                          const_cast<float*>(x.data<float>()),
+                          x.device());
       _transpose_op(z, y);
     }
 
