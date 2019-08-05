@@ -57,18 +57,12 @@ namespace ctranslate2 {
       }
 
       static const ops::Gemm gemm_op(1, 0, false, false, true);
-      if (_weight.dtype() == DataType::DT_INT16) {
-        StorageView quantized_input(_weight.dtype());
-        StorageView quantized_output(DataType::DT_INT32);
-        ops::QuantizeINT16()(input, *_qscale, quantized_input);
-        gemm_op(quantized_input, *weight, *bias, quantized_output);
-        ops::Dequantize()(quantized_output, *_qscale, *_qscale, output);
-      } else if (_weight.dtype() == DataType::DT_INT8) {
+      if (_weight.dtype() == DataType::DT_INT16 || _weight.dtype() == DataType::DT_INT8) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::DT_INT32, device);
-        ops::QuantizeINT8()(input, qinput, qinput_scale);
+        ops::Quantize()(input, qinput, qinput_scale);
         gemm_op(qinput, *weight, *bias, qoutput);
         ops::Dequantize()(qoutput, qinput_scale, *_qscale, output);
       } else {

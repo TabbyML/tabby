@@ -99,7 +99,6 @@ namespace ctranslate2 {
       bool support_int8 = mayiuse_int8(_device);
       bool support_int16 = mayiuse_int16(_device);
 
-      static const StorageView default_int16_scale(static_cast<float>(1000));
       std::vector<std::string> variables_to_remove;
 
       // First pass to possibly cast to a supported type.
@@ -119,7 +118,7 @@ namespace ctranslate2 {
 
           // Compatibility with int16 models without a saved scale.
           if (is_int16 && scale == nullptr) {
-            StorageView compat_scale(default_int16_scale);
+            StorageView compat_scale(ops::Quantize::default_int16_scale);
             Model::register_variable(scale_name, compat_scale);
             scale = &_variable_index.at(scale_name);
           }
@@ -132,9 +131,8 @@ namespace ctranslate2 {
 
             // However, if int16 is supported and we came from int8, quantize to int16.
             if (is_int8 && support_int16) {
-              *scale = default_int16_scale;
               StorageView variable_int16(DataType::DT_INT16);
-              ops::QuantizeINT16()(variable, *scale, variable_int16);
+              ops::Quantize()(variable, variable_int16, *scale);
               swap(variable, variable_int16);
             } else {
               variables_to_remove.emplace_back(std::move(scale_name));

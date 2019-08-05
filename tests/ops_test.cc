@@ -42,12 +42,12 @@ TEST(OpTest, GemmInt16) {
 };
 
 TEST(OpTest, QuantizeINT16) {
-  const StorageView scale(static_cast<float>(100));
+  StorageView scale;
   StorageView input({4}, std::vector<float>{0.1f, -0.5f, 2.0f, 0.0f});
-  StorageView expected({4}, std::vector<int16_t>{10, -50, 200, 0});
+  StorageView expected({4}, std::vector<int16_t>{100, -500, 2000, 0});
   StorageView output(expected.dtype());
   StorageView reverse(input.dtype());
-  ops::QuantizeINT16()(input, scale, output);
+  ops::Quantize()(input, output, scale);
   expect_storage_eq(output, expected);
   ops::Dequantize()(output, scale, reverse);
   expect_storage_eq(reverse, input);
@@ -476,7 +476,7 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
   StorageView qa(DataType::DT_INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 6.047619}, device);
   StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 30, 127, -18, 0});
-  ops::QuantizeINT8()(a, qa, scale);
+  ops::Quantize()(a, qa, scale);
   expect_storage_eq(scale, expected_scale);
   expect_storage_eq(qa, expected_qa);
 }
