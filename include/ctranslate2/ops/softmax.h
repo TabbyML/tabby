@@ -7,7 +7,12 @@ namespace ctranslate2 {
 
     class SoftMax : public UnaryOp {
     public:
+      SoftMax(bool log = false)
+        : _log(log) {
+      }
+
       using UnaryOp::operator();
+
       void operator()(const StorageView& x, StorageView& y) const override {
         operator()(x, nullptr, y);
       }
@@ -24,6 +29,16 @@ namespace ctranslate2 {
     private:
       template <Device D, typename T>
       void compute(const StorageView& input, const StorageView* lengths, StorageView& output) const;
+
+      bool _log;
+    };
+
+
+    class LogSoftMax : public SoftMax {
+    public:
+      LogSoftMax()
+        : SoftMax(/*log=*/true) {
+      }
     };
 
   }

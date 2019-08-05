@@ -1,16 +1,14 @@
 #include "ctranslate2/ops/softmax.h"
-#include "ctranslate2/ops/log_softmax.h"
 
 #define EPSILON 0.000001f
 
 namespace ctranslate2 {
   namespace ops {
 
-    template <typename T>
-    static void softmax(const StorageView& input,
-                        const StorageView* lengths,
-                        StorageView& output,
-                        bool log) {
+    template <Device D, typename T>
+    void SoftMax::compute(const StorageView& input,
+                          const StorageView* lengths,
+                          StorageView& output) const {
       size_t total_depth = input.dim(-1);
       size_t batch_size = input.size() / total_depth;
       #pragma omp parallel for
@@ -28,36 +26,18 @@ namespace ctranslate2 {
         primitives<>::sub(max, x, y, depth);
         primitives<>::exp(y, y, depth);
         auto sum = primitives<>::sum(y, depth);
-        if (log)
+        if (_log)
           primitives<>::sub(std::log(sum) + max, x, y, depth);
         else
           primitives<>::mul(1.f / (sum + EPSILON), y, depth);
       }
     }
 
-    template <Device D, typename T>
-    void SoftMax::compute(const StorageView& input,
-                          const StorageView* lengths,
-                          StorageView& output) const {
-      softmax<T>(input, lengths, output, false /* log */);
-    }
-
-    template <Device D, typename T>
-    void LogSoftMax::compute(const StorageView& input,
-                             const StorageView* lengths,
-                             StorageView& output) const {
-      softmax<T>(input, lengths, output, true /* log */);
-    }
-
 #define DECLARE_IMPL(T)                                                 \
     template void                                                       \
     SoftMax::compute<Device::CPU, T>(const StorageView& input,          \
                                      const StorageView* lengths,        \
-                                     StorageView& output) const;        \
-    template void                                                       \
-    LogSoftMax::compute<Device::CPU, T>(const StorageView& input,       \
-                                        const StorageView* lengths,     \
-                                        StorageView& output) const;
+                                     StorageView& output) const;
 
     DECLARE_IMPL(float)
 

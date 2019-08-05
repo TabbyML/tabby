@@ -9,7 +9,6 @@
 #include "gemm.h"
 #include "identity.h"
 #include "layer_norm.h"
-#include "log_softmax.h"
 #include "matmul.h"
 #include "mul.h"
 #include "quantize.h"
