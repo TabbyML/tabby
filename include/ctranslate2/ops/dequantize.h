@@ -8,27 +8,57 @@ namespace ctranslate2 {
     class Dequantize : public BinaryOp {
     public:
       void operator()(const StorageView& x, const StorageView& scale, StorageView& y) const override {
-        TYPE_DISPATCH(x.dtype(), (compute<T, float>(x, scale, y)));
+        y.resize_as(x);
+        if (x.dtype() == DataType::DT_INT16) {
+          if (x.device() != Device::CPU)
+            throw std::invalid_argument("INT16 dequantization is only supported on CPU");
+          if (!scale.is_scalar())
+            throw std::invalid_argument("INT16 quantization scale should be a scalar value");
+
+          primitives<Device::CPU>::unquantize(x.data<int16_t>(),
+                                              y.data<float>(),
+                                              x.size(),
+                                              scale.as_scalar<float>());
+        } else if (x.dtype() == DataType::DT_INT8) {
+          auto batch_size = x.size() / x.dim(-1);
+          if (scale.size() != batch_size)
+            throw std::invalid_argument("INT8 dequantization expects per-batch scales");
+
+          DEVICE_DISPATCH(
+            x.device(),
+            primitives<D>::unquantize_batch(x.data<int8_t>(),
+                                            scale.data<float>(),
+                                            y.data<float>(),
+                                            x.size(),
+                                            scale.size()));
+        } else {
+          throw std::invalid_argument("invalid data type");
+        }
       }
 
-    private:
-      template <typename In, typename Out>
-      void compute(const StorageView& x, const StorageView& scale, StorageView& y) const {
-        if (x.device() == Device::CUDA)
-          throw std::invalid_argument("Dequantize op is only defined on CPU for now");
-        y.resize_as(x);
-        if (scale.is_scalar())
-          primitives<>::unquantize(x.data<In>(), y.data<Out>(), x.size(), scale.as_scalar<Out>());
-        else {
-          size_t batch_size = x.size() / x.dim(-1);
-          const auto* scale_data = scale.data<Out>();
-          const auto* x_data = x.data<In>();
-          auto* y_data = y.data<Out>();
-          if (scale.size() == batch_size) {  // Per-batch scale.
-            primitives<>::unquantize_batch(x_data, scale_data, y_data, x.size(), scale.size());
-          } else {
-            throw std::invalid_argument("unsupported quantization scale shape");
-          }
+      void operator()(const StorageView& gemm_output,
+                      const StorageView& input_scale,
+                      const StorageView& weight_scale,
+                      StorageView& output) const {
+        output.resize_as(gemm_output);
+        if (input_scale.is_scalar() && weight_scale.is_scalar()) {
+          if (gemm_output.device() != Device::CPU)
+            throw std::invalid_argument("unsupported quantization scales");
+          auto scale = input_scale.as_scalar<float>() * weight_scale.as_scalar<float>();
+          primitives<Device::CPU>::unquantize(gemm_output.data<int32_t>(),
+                                              output.data<float>(),
+                                              gemm_output.size(),
+                                              scale);
+        } else {
+          DEVICE_DISPATCH(
+            gemm_output.device(),
+            primitives<D>::rescale_output(gemm_output.data<int32_t>(),
+                                          input_scale.data<float>(),
+                                          weight_scale.data<float>(),
+                                          output.data<float>(),
+                                          input_scale.size(),
+                                          gemm_output.dim(-1)));
+
         }
       }
 
