@@ -78,14 +78,7 @@ namespace ctranslate2 {
         StorageView qoutput(DataType::DT_INT32, device);
         size_t depth = input.dim(-1);
         size_t batch_size = input.size() / depth;
-        qinput.resize_as(input);
-        qinput_scale.resize({batch_size});
-        DEVICE_DISPATCH(
-          device,
-          primitives<D>::quantize_batch(input.data<float>(),
-                                        qinput_scale.data<float>(),
-                                        qinput.data<int8_t>(),
-                                        batch_size, depth));
+        ops::QuantizeINT8()(input, qinput, qinput_scale);
         gemm_op(qinput, *weight, *bias, qoutput);
         output.resize_as(qoutput);
         DEVICE_DISPATCH(
