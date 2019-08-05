@@ -127,7 +127,7 @@ namespace ctranslate2 {
           // If quantized variables are not supported, fallback to float32.
           if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
             StorageView variable_float;
-            ops::Unquantize()(variable, *scale, variable_float);
+            ops::Dequantize()(variable, *scale, variable_float);
             swap(variable, variable_float);
 
             // However, if int16 is supported and we came from int8, quantize to int16.

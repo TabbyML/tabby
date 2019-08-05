@@ -49,7 +49,7 @@ TEST(OpTest, QuantizeINT16) {
   StorageView reverse(input.dtype());
   ops::QuantizeINT16()(input, scale, output);
   expect_storage_eq(output, expected);
-  ops::Unquantize()(output, scale, reverse);
+  ops::Dequantize()(output, scale, reverse);
   expect_storage_eq(reverse, input);
 }
 

@@ -5,7 +5,7 @@
 namespace ctranslate2 {
   namespace ops {
 
-    class Unquantize : public BinaryOp {
+    class Dequantize : public BinaryOp {
     public:
       void operator()(const StorageView& x, const StorageView& scale, StorageView& y) const override {
         TYPE_DISPATCH(x.dtype(), (compute<T, float>(x, scale, y)));
@@ -15,7 +15,7 @@ namespace ctranslate2 {
       template <typename In, typename Out>
       void compute(const StorageView& x, const StorageView& scale, StorageView& y) const {
         if (x.device() == Device::CUDA)
-          throw std::invalid_argument("Unquantize op is only defined on CPU for now");
+          throw std::invalid_argument("Dequantize op is only defined on CPU for now");
         y.resize_as(x);
         if (scale.is_scalar())
           primitives<>::unquantize(x.data<In>(), y.data<Out>(), x.size(), scale.as_scalar<Out>());

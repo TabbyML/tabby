@@ -13,7 +13,7 @@ namespace ctranslate2 {
       if (_embeddings.dtype() == DataType::DT_INT16) {
         StorageView gathered(_embeddings.dtype());
         _gather_op(_embeddings, ids, gathered);
-        ops::Unquantize()(gathered, *_qscale, output);
+        ops::Dequantize()(gathered, *_qscale, output);
       } else if (_embeddings.dtype() == DataType::DT_INT8) {
         const auto device = output.device();
         StorageView gathered(_embeddings.dtype(), device);
@@ -70,7 +70,7 @@ namespace ctranslate2 {
         StorageView squared_scale(_qscale->as_scalar<float>() * _qscale->as_scalar<float>());
         ops::QuantizeINT16()(input, *_qscale, quantized_input);
         gemm_op(quantized_input, *weight, *bias, quantized_output);
-        ops::Unquantize()(quantized_output, squared_scale, output);
+        ops::Dequantize()(quantized_output, squared_scale, output);
       } else if (_weight.dtype() == DataType::DT_INT8) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
