@@ -9,42 +9,10 @@ namespace ctranslate2 {
                                          const StorageView* values_lengths,
                                          StorageView& output,
                                          StorageView* attention) {
-      assert(queries.rank() == 4);
-      assert(keys.rank() == 4);
-      assert(values.rank() == 4);
-
-      size_t batch_size = queries.dim(0);
-      size_t num_heads = queries.dim(1);
-      size_t queries_time = queries.dim(2);
-      size_t memory_time = keys.dim(2);
-
       ops::MatMul(false, true)(queries, keys, output);
 
-      if (values_lengths && batch_size > 1) {
-        // TODO: support masking on GPU.
-        StorageView output_host;
-        StorageView lengths_host(DataType::DT_INT32);
-        output_host.copy_from(output);
-        lengths_host.copy_from(*values_lengths);
-        for (size_t b = 0; b < batch_size; ++b) {
-          const size_t length = lengths_host.data<int32_t>()[b];
-          if (length == memory_time)
-            continue;
-          for (size_t h = 0; h < num_heads; ++h) {
-            for (size_t i = 0; i < queries_time; ++i) {
-              auto* x = output_host.index<float>({b, h, i});
-              DEVICE_DISPATCH(output_host.device(),
-                              primitives<D>::fill(x + length,
-                                                  std::numeric_limits<float>::lowest(),
-                                                  memory_time - length));
-            }
-          }
-        }
-        output.copy_from(output_host);
-      }
-
       StorageView attn(values.device());
-      ops::SoftMax()(output, attn);
+      ops::SoftMax()(output, values_lengths, attn);
       if (attention != nullptr) {
         // Transpose attn to make first head data contiguous.
         ops::Transpose({1, 0, 2, 3})(attn, output);
