@@ -24,5 +24,5 @@
 #include "tile.h"
 #include "topk.h"
 #include "transpose.h"
-#include "unquantize.h"
+#include "dequantize.h"
 #include "unsqueeze.h"
