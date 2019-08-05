@@ -5,22 +5,21 @@
 namespace ctranslate2 {
   namespace ops {
 
-    class Quantize : public BinaryOp {
+    // INT16 quantization simply rescales by a constant and casts input data.
+    class QuantizeINT16 : public BinaryOp {
     public:
       void operator()(const StorageView& x, const StorageView& scale, StorageView& y) const override {
-        TYPE_DISPATCH(y.dtype(), (compute<float, T>(x, scale, y)));
-      }
+        if (x.device() != Device::CPU)
+          throw std::invalid_argument("INT16 quantization is only supported on CPU");
+        if (!scale.is_scalar())
+          throw std::invalid_argument("INT16 quantization scale should be a scalar value");
 
-    private:
-      template <typename In, typename Out>
-      void compute(const StorageView& x, const StorageView& scale, StorageView& y) const {
         y.resize_as(x);
-        if (scale.is_scalar())
-          primitives<>::quantize(x.data<In>(), y.data<Out>(), x.size(), scale.as_scalar<In>());
-        else
-          throw std::invalid_argument("unsupported non scalar quantization scale");
+        primitives<Device::CPU>::quantize(x.data<float>(),
+                                          y.data<int16_t>(),
+                                          x.size(),
+                                          scale.as_scalar<float>());
       }
-
     };
 
   }

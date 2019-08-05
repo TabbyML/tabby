@@ -68,7 +68,7 @@ namespace ctranslate2 {
         StorageView quantized_input(_weight.dtype());
         StorageView quantized_output(DataType::DT_INT32);
         StorageView squared_scale(_qscale->as_scalar<float>() * _qscale->as_scalar<float>());
-        ops::Quantize()(input, *_qscale, quantized_input);
+        ops::QuantizeINT16()(input, *_qscale, quantized_input);
         gemm_op(quantized_input, *weight, *bias, quantized_output);
         ops::Unquantize()(quantized_output, squared_scale, output);
       } else if (_weight.dtype() == DataType::DT_INT8) {

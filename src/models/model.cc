@@ -134,7 +134,7 @@ namespace ctranslate2 {
             if (is_int8 && support_int16) {
               *scale = default_int16_scale;
               StorageView variable_int16(DataType::DT_INT16);
-              ops::Quantize()(variable, *scale, variable_int16);
+              ops::QuantizeINT16()(variable, *scale, variable_int16);
               swap(variable, variable_int16);
             } else {
               variables_to_remove.emplace_back(std::move(scale_name));
