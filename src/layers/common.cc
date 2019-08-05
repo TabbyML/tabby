@@ -10,17 +10,17 @@ namespace ctranslate2 {
 
     void Embeddings::operator()(const StorageView& ids,
                                 StorageView& output) {
-      if (_embeddings.dtype() == DataType::DT_INT16) {
-        StorageView gathered(_embeddings.dtype());
-        _gather_op(_embeddings, ids, gathered);
-        ops::Dequantize()(gathered, *_qscale, output);
-      } else if (_embeddings.dtype() == DataType::DT_INT8) {
+      if (_embeddings.dtype() == DataType::DT_INT16 || _embeddings.dtype() == DataType::DT_INT8) {
         const auto device = output.device();
         StorageView gathered(_embeddings.dtype(), device);
-        StorageView scale(_qscale->dtype(), device);
         _gather_op(_embeddings, ids, gathered);
-        _gather_op(*_qscale, ids, scale);
-        ops::Dequantize()(gathered, scale, output);
+        if (_qscale->is_scalar())
+          ops::Dequantize()(gathered, *_qscale, output);
+        else {
+          StorageView scale(_qscale->dtype(), device);
+          _gather_op(*_qscale, ids, scale);
+          ops::Dequantize()(gathered, scale, output);
+        }
       } else {
         _gather_op(_embeddings, ids, output);
       }
