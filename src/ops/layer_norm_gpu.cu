@@ -15,10 +15,8 @@ namespace ctranslate2 {
       T one = 1;
       T zero = 0;
 
-      StorageView bias_cudnn(input.device());
-      StorageView scale_cudnn(input.device());
-      scale_cudnn.resize({batch_size}).fill(one);
-      bias_cudnn.resize({batch_size}).fill(zero);
+      StorageView bias_cudnn({batch_size}, zero, input.device());
+      StorageView scale_cudnn({batch_size}, one, input.device());
 
       cudnnTensorDescriptor_t input_desc;
       cudnnTensorDescriptor_t scale_bias_desc;
