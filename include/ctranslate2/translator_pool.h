@@ -14,11 +14,15 @@ namespace ctranslate2 {
   using TranslationInput = std::vector<std::vector<std::string>>;
   using TranslationOutput = std::vector<TranslationResult>;
 
+  // A pool of Translators running in parallel.
   class TranslatorPool {
   public:
+    // "args" are forwarded to the Translator constructor.
     template <typename... Args>
     TranslatorPool(size_t num_replicas, size_t num_threads_per_replica, Args&&... args) {
       _translator_pool.emplace_back(std::forward<Args>(args)...);
+      // On GPU, we don't benefit much from running in parallel. Even though the code is
+      // using separate streams for each thread, there is still some synchronization points.
       if (_translator_pool.back().device() == Device::CUDA)
         num_replicas = 1;
       for (size_t i = 1; i < num_replicas; ++i)
@@ -31,12 +35,16 @@ namespace ctranslate2 {
     }
     ~TranslatorPool();
 
+    // Run a translation job asynchronously.
     std::future<TranslationOutput> post(const TranslationInput& source,
                                         const TranslationOptions& options);
     std::future<TranslationOutput> post(const TranslationInput& source,
                                         const TranslationInput& target_prefix,
                                         const TranslationOptions& options);
 
+    // Translate a stream in parallel.
+    // Results will be written in order as they are available so the stream content is
+    // never stored fully in memory.
     template <typename Reader, typename Writer>
     void consume_stream(std::istream& in,
                         std::ostream& out,
@@ -75,6 +83,9 @@ namespace ctranslate2 {
       pop_results(true /* blocking */);
     }
 
+    // Translate a file in parallel.
+    // These are wrappers around consume_stream that set the appropriate reader and writer.
+    // The returned value is the total number of produced tokens.
     size_t consume_text_file(const std::string& in_file,
                              const std::string& out_file,
                              size_t max_batch_size,

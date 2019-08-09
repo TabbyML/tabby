@@ -165,7 +165,8 @@ namespace ctranslate2 {
 
     // Forward target prefix, if set (only batch_size = 1 for now).
     if (with_prefix) {
-      // TODO: Forward all timesteps at once.
+      // TODO: Forward all timesteps at once. This requires supporting the masking
+      // of future steps.
       start_step = target_prefix.front().size();
       StorageView logits(device);
       for (size_t i = 0; i < target_prefix.front().size(); ++i) {

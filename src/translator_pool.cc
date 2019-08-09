@@ -9,7 +9,7 @@ namespace ctranslate2 {
       std::lock_guard<std::mutex> lock(_mutex);
       _request_end = true;
     }
-    _cv.notify_all();
+    _cv.notify_all();  // Request all workers to end their loop.
     for (auto& worker : _workers)
       worker.join();
   }
@@ -45,6 +45,8 @@ namespace ctranslate2 {
     auto& work_queue = _work;
     auto& end_requested = _request_end;
 
+    // set_num_threads is called here because it sets the number of OpenMP threads for
+    // the current thread.
     translator.set_num_threads(intra_threads);
 
     while (true) {
