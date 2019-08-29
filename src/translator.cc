@@ -179,19 +179,19 @@ namespace ctranslate2 {
     }
 
     if (options.beam_size == 1)
-      greedy_decoding(decoder,
-                      state,
-                      sample_from,
-                      candidates,
-                      encoded,
-                      lengths,
-                      start_step,
-                      end_token,
-                      options.max_decoding_length,
-                      options.min_decoding_length,
-                      sampled_ids,
-                      scores,
-                      attention_ptr);
+      greedy_search(decoder,
+                    state,
+                    sample_from,
+                    candidates,
+                    encoded,
+                    lengths,
+                    start_step,
+                    end_token,
+                    options.max_decoding_length,
+                    options.min_decoding_length,
+                    sampled_ids,
+                    scores,
+                    attention_ptr);
     else
       beam_search(decoder,
                   state,

@@ -312,19 +312,19 @@ namespace ctranslate2 {
     }
   }
 
-  void greedy_decoding(layers::Decoder& decoder,
-                       layers::DecoderState& state,
-                       StorageView& sample_from,
-                       StorageView& candidates,
-                       const StorageView& memory,
-                       const StorageView& memory_lengths,
-                       size_t start_step,
-                       size_t end_token,
-                       size_t max_length,
-                       size_t min_length,
-                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                       std::vector<std::vector<float>>& scores,
-                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+  void greedy_search(layers::Decoder& decoder,
+                     layers::DecoderState& state,
+                     StorageView& sample_from,
+                     StorageView& candidates,
+                     const StorageView& memory,
+                     const StorageView& memory_lengths,
+                     size_t start_step,
+                     size_t end_token,
+                     size_t max_length,
+                     size_t min_length,
+                     std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
+                     std::vector<std::vector<float>>& scores,
+                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
