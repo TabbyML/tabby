@@ -167,12 +167,13 @@ namespace ctranslate2 {
     if (with_prefix) {
       // TODO: Forward all timesteps at once. This requires supporting the masking
       // of future steps.
-      start_step = target_prefix.front().size();
-      for (size_t i = 0; i < target_prefix.front().size(); ++i) {
+      const auto& prefix = target_prefix.front();
+      start_step = prefix.size();
+      for (size_t i = 0; i < start_step; ++i) {
         auto input = sample_from.to(device);
         input.reshape({batch_size, 1});
         decoder(i, input, encoded, lengths, state);
-        auto next_id = target_vocab.to_id(target_prefix.front()[i]);
+        auto next_id = target_vocab.to_id(prefix[i]);
         sample_from.at<int32_t>(0) = next_id;
       }
     }
