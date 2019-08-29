@@ -256,10 +256,10 @@ namespace ctranslate2 {
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,
                                         layers::DecoderState& state,
-                                        StorageView& output,
+                                        StorageView* logits,
                                         StorageView* attention) {
-      StorageView layer_in(output.device());
-      StorageView layer_out(output.device());
+      StorageView layer_in(ids.device());
+      StorageView layer_out(ids.device());
 
       _embeddings(ids, layer_in);
       ops::Mul()(layer_in, StorageView(static_cast<float>(sqrt(layer_in.dim(-1)))), layer_in);
@@ -277,9 +277,11 @@ namespace ctranslate2 {
                    l + 1 == _layers.size() ? attention : nullptr);
         swap(layer_in, layer_out);
       }
-      _output_norm(layer_in, layer_out);
 
-      _proj(layer_out, output);
+      if (logits) {
+        _output_norm(layer_in, layer_out);
+        _proj(layer_out, *logits);
+      }
     }
 
   }

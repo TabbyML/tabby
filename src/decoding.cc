@@ -126,7 +126,7 @@ namespace ctranslate2 {
               tiled_memory,
               tiled_memory_lengths,
               state,
-              logits,
+              &logits,
               attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 
@@ -368,7 +368,7 @@ namespace ctranslate2 {
               alive_memory,
               alive_memory_lengths,
               state,
-              logits,
+              &logits,
               attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 

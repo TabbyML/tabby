@@ -23,7 +23,7 @@ namespace ctranslate2 {
                               const StorageView& memory,
                               const StorageView& memory_lengths,
                               DecoderState& state,
-                              StorageView& logits,
+                              StorageView* logits = nullptr,
                               StorageView* attention = nullptr) = 0;
 
     protected:

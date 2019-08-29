@@ -109,7 +109,7 @@ namespace ctranslate2 {
                       const StorageView& memory,
                       const StorageView& memory_lengths,
                       layers::DecoderState& state,
-                      StorageView& logits,
+                      StorageView* logits = nullptr,
                       StorageView* attention = nullptr) override;
     private:
       layers::Embeddings _embeddings;
