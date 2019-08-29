@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Build latest:
+# ./build_all.sh
+#
+# Build and push version X.Y.Z:
+# ./build_all.sh X.Y.Z 1
 
 set -e
 
