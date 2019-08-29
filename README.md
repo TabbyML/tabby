@@ -8,8 +8,8 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 * **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Portable binary**<br/>The compilation does not require a target instruction set, the dispatch is done at runtime.
-* **Ligthweight on disk**<br/>Models can be compressed below 100MB with minimal accuracy loss. A full featured GPU Docker image requires about 800MB.
+* **Automatic instruction set dispatch**<br/>When using Intel MKL, the dispatch to the optimal instruction set is done at runtime.
+* **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
 * **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
 Some of these features are difficult to achieve in standard deep learning frameworks and are the motivation for this project.
@@ -19,6 +19,7 @@ Some of these features are difficult to achieve in standard deep learning framew
 The translation API supports several decoding options:
 
 * decoding with greedy or beam search
+* translating with a target prefix
 * constraining the decoding length
 * returning multiple translation hypotheses
 * returning attention vectors
@@ -37,7 +38,6 @@ CTranslate2 uses the following libraries for acceleration:
   * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html)
   * [cuBLAS](https://developer.nvidia.com/cublas)
   * [cuDNN](https://developer.nvidia.com/cudnn)
-
 
 ## Converting models
 
@@ -101,27 +101,24 @@ The converters support model quantization which is a way to reduce the model siz
 
 ## Building
 
+### Docker
 
-### Binary
+See the `docker/` directory.
 
-The minimum requirements for building CTranslate2 binary are `Intel MKL` & `libboost-program-options-dev`.
+### Binaries (Ubuntu)
+
+The minimum requirements for building CTranslate2 binary are `Intel MKL` and `libboost-program-options-dev`.
 
 ***Install MKL:***
-
 
 Use the following instructions to install MKL:
 
 ```bash
 wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-
 apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-
 sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-
 sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
-
 sudo apt-get update
-
 sudo apt-get install intel-mkl-2019.4-070
 ```
 
@@ -142,23 +139,17 @@ Download [GTest 1.8.1 release](https://github.com/google/googletest/releases/tag
 
 ```bash
 cmake -G 'Unix Makefile' .
-
 sudo make install
-
 sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
-
 sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
-
 ```
-
-
 
 ***Compile:***
 
 Under the project root then launch the following commands:
+
 ```bash
 cmake -G 'Unix Makefile' .
-
 make
 ```
 
@@ -170,17 +161,10 @@ Go into this directory then launch the following command to test:
 ```bash
 echo "▁H ello ▁world !" | ./translate --model ../python/ende_ctranslate2/
 ```
+
 The result `▁Hallo ▁Welt !` should be display.
 
-Notes:
-
-* Before you test it, you should get your model by following **Converting models** instructions.
-
-
-
-### Docker
-
-See the `docker/` directory.
+Note: Before you test it, you should get your model by following **Converting models** instructions.
 
 ## Translating
 
