@@ -38,8 +38,8 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
 
-ENV CUDNN_VERSION_SHORT=7.6.2
-ENV CUDNN_VERSION=${CUDNN_VERSION_SHORT}.24
+ENV CUDNN_VERSION_SHORT=7.6.3
+ENV CUDNN_VERSION=${CUDNN_VERSION_SHORT}.30
 RUN curl -fsSL http://developer.download.nvidia.com/compute/redist/cudnn/v${CUDNN_VERSION_SHORT}/cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -O && \
     tar --no-same-owner -xzf cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -C /usr/local && \
     rm cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz
