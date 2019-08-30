@@ -13,7 +13,8 @@ namespace ctranslate2 {
                       const StorageView& values,
                       const StorageView* values_lengths,
                       StorageView& output,
-                      StorageView* attention = nullptr);
+                      StorageView* attention = nullptr,
+                      float queries_scale = 1);
     };
 
     class MultiHeadAttention

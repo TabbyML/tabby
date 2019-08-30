@@ -7,13 +7,10 @@ namespace ctranslate2 {
 
     class MatMul : public BinaryOp {
     public:
-      MatMul()
-        : _trans_a(false)
-        , _trans_b(false) {
-      }
-      MatMul(bool trans_a, bool trans_b)
+      MatMul(bool trans_a = false, bool trans_b = false, float alpha = 1)
         : _trans_a(trans_a)
-        , _trans_b(trans_b) {
+        , _trans_b(trans_b)
+        , _alpha(alpha) {
       }
 
       void operator()(const StorageView& a,
@@ -33,6 +30,7 @@ namespace ctranslate2 {
     private:
       bool _trans_a;
       bool _trans_b;
+      float _alpha;
 
       template <Device D, typename In, typename Out = In>
       void compute(const StorageView& a,
@@ -56,7 +54,6 @@ namespace ctranslate2 {
           assert(k == b.dim(-2));
         }
 
-        float alpha = 1;
         float beta = 0;
 
         if (m * k != a.size()) {
@@ -68,13 +65,13 @@ namespace ctranslate2 {
           primitives<D>::gemm_batch(a.data<In>(), b.data<In>(),
                                     _trans_a, _trans_b,
                                     batch_size, m, n, k,
-                                    alpha, beta, y.data<Out>());
+                                    _alpha, beta, y.data<Out>());
         } else {
           y.resize({m, n});
           primitives<D>::gemm(a.data<In>(), b.data<In>(),
                               _trans_a, _trans_b,
                               m, n, k,
-                              alpha, beta, y.data<Out>());
+                              _alpha, beta, y.data<Out>());
         }
       }
     };

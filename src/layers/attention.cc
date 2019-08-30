@@ -8,8 +8,9 @@ namespace ctranslate2 {
                                          const StorageView& values,
                                          const StorageView* values_lengths,
                                          StorageView& output,
-                                         StorageView* attention) {
-      ops::MatMul(false, true)(queries, keys, output);
+                                         StorageView* attention,
+                                         float queries_scale) {
+      ops::MatMul(false, true, queries_scale)(queries, keys, output);
 
       StorageView attn(values.device());
       ops::SoftMax()(output, values_lengths, attn);
@@ -90,8 +91,7 @@ namespace ctranslate2 {
       }
 
       const size_t dk = queries.dim(-1) / _num_heads;
-      const StorageView scale(static_cast<float>(1.0 / sqrt(dk)));
-      ops::Mul()(split_queries, scale, split_queries);
+      const float queries_scale = 1.0 / sqrt(dk);
 
       StorageView& context = queries_proj;  // Reuse storage.
       _attention(split_queries,
@@ -99,7 +99,8 @@ namespace ctranslate2 {
                  split_values,
                  memory_lengths,
                  context,
-                 attention);
+                 attention,
+                 queries_scale);
 
       StorageView& combined = values_proj;  // Reuse storage.
       combine_heads(context, combined);
