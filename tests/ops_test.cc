@@ -30,6 +30,16 @@ TEST(OpTest, Unsqueeze) {
   EXPECT_EQ(z.data<float>(), y.data<float>());
 }
 
+TEST(OpTest, SplitNoCopyInvalidArgument) {
+  try {
+    ops::Split(1, /*no_copy=*/true);
+    FAIL() << "Expected invalid argument exception";
+  } catch (std::invalid_argument&) {
+  } catch (...) {
+    FAIL() << "Expected invalid argument exception";
+  }
+}
+
 TEST(OpTest, GemmInt16) {
   StorageView a({64, 64}, static_cast<int16_t>(1));
   StorageView b(a);
@@ -238,6 +248,30 @@ TEST_P(OpDeviceTest, ConcatSplitDepthEqualParts) {
   ops::Split(-1)(c, out);
   expect_storage_eq(y, a);
   expect_storage_eq(z, b);
+}
+
+TEST_P(OpDeviceTest, SplitNoCopy) {
+  Device device = GetParam();
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
+  StorageView y(device);
+  StorageView z(device);
+  ops::Split(0, std::vector<int>{3, 1}, /*no_copy=*/true)(x, y, z);
+  assert_vector_eq(y.shape(), Shape{3, 2});
+  assert_vector_eq(z.shape(), Shape{1, 2});
+  EXPECT_EQ(y.data<float>(), x.data<float>());
+  EXPECT_EQ(z.data<float>(), x.data<float>() + 3 * 2);
+}
+
+TEST_P(OpDeviceTest, SplitNoCopyEqualParts) {
+  Device device = GetParam();
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
+  StorageView y(device);
+  StorageView z(device);
+  ops::Split(0, /*no_copy=*/true)(x, y, z);
+  assert_vector_eq(y.shape(), Shape{2, 2});
+  assert_vector_eq(z.shape(), Shape{2, 2});
+  EXPECT_EQ(y.data<float>(), x.data<float>());
+  EXPECT_EQ(z.data<float>(), x.data<float>() + 4);
 }
 
 TEST_P(OpDeviceTest, GatherData1D) {
