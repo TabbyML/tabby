@@ -186,7 +186,7 @@ namespace ctranslate2 {
 
   StorageView& StorageView::shallow_copy(StorageView& other) {
     assert_device(other._device);
-    TYPE_DISPATCH(_dtype, assign(other.data<T>(), other._shape));
+    TYPE_DISPATCH(_dtype, view(other.data<T>(), other._shape));
     return *this;
   }
 

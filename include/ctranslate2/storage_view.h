@@ -54,7 +54,7 @@ namespace ctranslate2 {
     StorageView(const Shape& shape, T* data, Device device = Device::CPU)
       : _dtype(DataTypeToEnum<T>::value)
       , _device(device) {
-      assign(data, shape);
+      view(data, shape);
     }
 
     // Copy constructor.
@@ -176,7 +176,7 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    StorageView& assign(T* data, const Shape& shape) {
+    StorageView& view(T* data, const Shape& shape) {
       assert_dtype(DataTypeToEnum<T>::value);
       release();
       _data = static_cast<void*>(data);
