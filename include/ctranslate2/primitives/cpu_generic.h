@@ -69,7 +69,7 @@ namespace ctranslate2 {
   template <typename T>
   T primitives<Device::CPU>::amax(const T* array, size_t size) {
     return std::abs(*std::max_element(array, array + size,
-                                      [](const T& a, const T& b){
+                                      [](T a, T b){
                                         return std::abs(a) < std::abs(b);
                                       }));
   }
@@ -77,7 +77,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::add(T a, const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [&a](const T& v) { return v + a; });
+    unary_transform(x, y, size, [&a](T v) { return v + a; });
   }
 
   template<>
@@ -118,7 +118,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::mul(T a, const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [&a](const T& v) { return v * a; });
+    unary_transform(x, y, size, [&a](T v) { return v * a; });
   }
 
   template<>
@@ -141,13 +141,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::inv(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(1) / v; });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(1) / v; });
   }
 
   template<>
   template <typename In, typename Out>
   void primitives<Device::CPU>::quantize(const In* x, Out* y, size_t size, In scale) {
-    unary_transform(x, y, size, [&scale](const In& v) {
+    unary_transform(x, y, size, [&scale](In v) {
       return static_cast<Out>(
         std::max(
           std::min(v * scale, static_cast<In>(std::numeric_limits<Out>::max())),
@@ -158,7 +158,7 @@ namespace ctranslate2 {
   template<>
   template <typename In, typename Out>
   void primitives<Device::CPU>::unquantize(const In* x, Out* y, size_t size, Out scale) {
-    unary_transform(x, y, size, [&scale](const In& v) {
+    unary_transform(x, y, size, [&scale](In v) {
       return static_cast<Out>(v) / scale;
     });
   }
@@ -191,7 +191,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::relu(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) {
+    unary_transform(x, y, size, [](T v) {
       return v > 0 ? v : static_cast<T>(0);
     });
   }
@@ -269,7 +269,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::pow(const T* x, T* y, T power, size_t size) {
-    unary_transform(x, y, size, [&power](const T& v) {
+    unary_transform(x, y, size, [&power](T v) {
       return static_cast<T>(std::pow(static_cast<float>(v), static_cast<float>(power)));
     });
   }
@@ -277,31 +277,31 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::exp(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::exp(v)); });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::exp(v)); });
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::log(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::log(v)); });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::log(v)); });
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::cos(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::cos(v)); });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::cos(v)); });
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::sin(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::sin(v)); });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::sin(v)); });
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::tanh(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](const T& v) { return static_cast<T>(std::tanh(v)); });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::tanh(v)); });
   }
 
 }
