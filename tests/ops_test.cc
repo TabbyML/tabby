@@ -31,13 +31,25 @@ TEST(OpTest, Unsqueeze) {
 }
 
 TEST(OpTest, SplitNoCopyInvalidArgument) {
-  try {
-    ops::Split(1, /*no_copy=*/true);
-    FAIL() << "Expected invalid argument exception";
-  } catch (std::invalid_argument&) {
-  } catch (...) {
-    FAIL() << "Expected invalid argument exception";
-  }
+  ASSERT_RAISES(ops::Split(1, /*no_copy=*/true), std::invalid_argument);
+}
+
+TEST(OpDeviceTest, SplitInvalidSize) {
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView a, b;
+  ASSERT_RAISES(ops::Split(0, std::vector<int>{3, 2})(x, a, b), std::invalid_argument);
+}
+
+TEST(OpDeviceTest, SplitInvalidNumSplits) {
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView a, b, c;
+  ASSERT_RAISES(ops::Split(0, std::vector<int>{3, 1})(x, a, b, c), std::invalid_argument);
+}
+
+TEST(OpDeviceTest, SplitInvalidNumOutputs) {
+  StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
+  StorageView a, b, c;
+  ASSERT_RAISES(ops::Split(0)(x, a, b, c), std::invalid_argument);
 }
 
 TEST(OpTest, GemmInt16) {

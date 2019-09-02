@@ -6,6 +6,17 @@
 
 using namespace ctranslate2;
 
+#define ASSERT_RAISES(STMT, EXCEPT)                     \
+  do {                                                  \
+    try {                                               \
+      STMT;                                             \
+      FAIL() << "Expected "#EXCEPT" exception";         \
+    } catch (EXCEPT&) {                                 \
+    } catch (...) {                                     \
+      FAIL() << "Expected "#EXCEPT" exception";         \
+    }                                                   \
+  } while (false)
+
 template <typename T>
 void expect_array_eq(const T* x, const T* y, size_t n, T abs_diff = 0) {
   for (size_t i = 0; i < n; ++i) {
