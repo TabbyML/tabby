@@ -5,6 +5,13 @@
 
 namespace ctranslate2 {
 
+  enum class ComputeType {
+    CT_NONE,
+    CT_FLOAT,
+    CT_INT8,
+    CT_INT16
+  };
+
   enum class Device {
     CPU,
     CUDA

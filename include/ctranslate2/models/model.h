@@ -33,6 +33,7 @@ namespace ctranslate2 {
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);
+      StorageView* getScale(const std::string& scale_name, DataType dataType);
       virtual void finalize();
 
       // Makes new graph to execute this model. Graphs returned by these function
@@ -49,6 +50,7 @@ namespace ctranslate2 {
       const VocabularyMap _vocabulary_map;
       std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
+      ComputeType _computeType = ComputeType::CT_NONE;
     };
 
 
