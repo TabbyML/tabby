@@ -84,7 +84,7 @@ public:
                            size_t min_decoding_length,
                            bool use_vmap,
                            bool return_attention) {
-    if (source == py::object())
+    if (source == py::object() || py::len(source) == 0)
       return py::list();
 
     auto options = ctranslate2::TranslationOptions();
