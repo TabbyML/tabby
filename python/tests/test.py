@@ -4,6 +4,8 @@ import os
 import pytest
 
 from ctranslate2 import Translator
+from ctranslate2.converters.opennmt_tf import OpenNMTTFConverter
+from ctranslate2.specs.transformer_spec import TransformerSpec
 
 
 _TEST_DATA_DIR = os.path.join(
@@ -81,3 +83,23 @@ def test_return_attention():
     attention = output[0][0]["attention"]
     assert len(attention) == 6  # Target length.
     assert len(attention[0]) == 6  # Source length.
+
+@pytest.mark.skipif(
+    not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
+    reason="Data files are not available")
+@pytest.mark.parametrize(
+    "model_path,src_vocab,tgt_vocab",
+    [("v1/savedmodel", None, None),
+     ("v1/checkpoint", "ar.vocab", "en.vocab")])
+def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab):
+    model_path = os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all", model_path)
+    if src_vocab is not None:
+        src_vocab = os.path.join(model_path, src_vocab)
+    if tgt_vocab is not None:
+        tgt_vocab = os.path.join(model_path, tgt_vocab)
+    converter = OpenNMTTFConverter(model_path, src_vocab=src_vocab, tgt_vocab=tgt_vocab)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, "TransformerBase")
+    translator = Translator(output_dir)
+    output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]

@@ -25,5 +25,7 @@ job0:
     - cd python
     - CTRANSLATE2_ROOT=$PWD/../install CFLAGS="-DWITH_MKL=ON" python setup.py bdist_wheel
     - pip install dist/*.whl
-    - pip install pytest
+    - pip install -r tests/requirements.txt
+    - wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
+    - tar xf *.tar.gz -C ../tests/data/models/
     - LD_LIBRARY_PATH="$PWD/../install/lib;/opt/intel/lib/intel64" pytest tests/test.py
