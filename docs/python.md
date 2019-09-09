@@ -3,9 +3,9 @@
 ## API
 
 ```python
-from ctranslate2 import translator
+import ctranslate2
 
-t = translator.Translator(
+t = ctranslate2.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # Can be "cpu", "cuda", or "auto".
     device_index=0,          # The index of the device to place this translator on.
