@@ -4,7 +4,7 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework, especially on CPU which is one of the main target of this project.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 3x faster](#benchmarks) than OpenNMT-py.
 * **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
@@ -223,6 +223,76 @@ Then follow the CTranslate2 [build instructions](#building) again to produce the
 ```bash
 ./tests/ctranslate2_test ../tests/data
 ```
+
+## Benchmarks
+
+We compare OpenNMT-py and CTranslate2 on the [English-German base Transformer model](http://opennmt.net/Models-py/#translation).
+
+### Model size
+
+| | Model size |
+| --- | --- |
+| CTranslate2 (int8) | 110MB |
+| CTranslate2 (int16) | 197MB |
+| CTranslate2 (float) | 374MB |
+| OpenNMT-py | 542MB |
+
+CTranslate2 models are generally lighter and can go as low as 100MB when quantized to int8. This also results in a fast loading time and noticeable lower memory usage during runtime.
+
+### Speed
+
+We translate the test set *newstest2014* and report:
+
+* the number of target tokens generated per second (higher is better)
+* the BLEU score of the detokenized output (higher is better)
+
+Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32. Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.
+
+#### GPU
+
+Configuration:
+
+* **GPU:** NVIDIA Tesla V100
+* **CUDA:** 10.0
+* **Driver:** 410.48
+
+| | Tokens/s | BLEU |
+| --- | --- | --- |
+| CTranslate2 0.16.4 | 3077.89 | 26.69 |
+| CTranslate2 0.16.4 (int8) | 1822.21 | 26.79 |
+| OpenNMT-py 0.9.2 | 980.44 | 26.69 |
+
+*Note on int8: it is slower as the runtime overhead of int8<->float conversions is presently too high. However, it results in a much lower memory usage and also acts as a regularizer (hence the higher BLEU score in this case).*
+
+#### CPU
+
+Configuration:
+
+* **CPU:** Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz (with AVX2)
+* **Number of threads:** 4 "intra threads", 1 "inter threads" ([what's the difference?](#what-is-the-difference-between-intra_threads-and-inter_threads))
+
+| | Tokens/s | BLEU |
+| --- | --- | --- |
+| CTranslate2 0.16.4 (int16 + vmap) | 419.47 | 26.63 |
+| CTranslate2 0.16.4 (int8) | 339.455 | 26.69 |
+| CTranslate2 0.16.4 (int16) | 339.429 | 26.68 |
+| CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
+| OpenNMT-py 0.9.2 | 241.92 | 26.69 |
+
+*Note on quantization: higher performance gains over float are expected with lower beam size and/or intra threads.*
+
+We are also interested in comparing the performance of a minimal run: single thread, single example in the batch, and greedy search. This could be a possible setting in a constrained environment.
+
+| | Tokens/s |
+| --- | --- |
+| CTranslate2 0.16.4 (int8) | 133.182 |
+| CTranslate2 0.16.4 (int16) | 130.426 |
+| CTranslate2 0.16.4 (float) | 112.657 |
+| OpenNMT-py 0.9.2 | 80.88 |
+
+### Memory usage
+
+We don't have numbers comparing memory usage yet. However, past experiments showed that CTranslate2 usually requires up to 2x less memory than OpenNMT-py.
 
 ## FAQ
 
