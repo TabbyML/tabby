@@ -107,9 +107,11 @@ See the `docker/` directory.
 
 ### Binaries (Ubuntu)
 
-The minimum requirements for building CTranslate2 binary are `Intel MKL` and `libboost-program-options-dev`.
+The minimum requirements for building CTranslate2 binaries are Intel MKL and `libboost-program-options-dev`.
 
-***Install MKL:***
+**Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.centos7-gpu) is defined.
+
+#### Install MKL
 
 Use the following instructions to install MKL:
 
@@ -119,52 +121,36 @@ apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
 sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
 sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
 sudo apt-get update
-sudo apt-get install intel-mkl-2019.4-070
+sudo apt-get install intel-mkl-64bit-2019.4-070
 ```
 
 Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
 
-***Install libboost-program-options-dev:***
+#### Install libboost-program-options-dev
 
 ```bash
 sudo apt-get install libboost-program-options-dev
 ```
 
-***Install GTest (optional):***
-
-GTest is necessary when you want to compile the unit tests as well. You can skip this step if you don't need to run the unit tests.
-
-Download [GTest 1.8.1 release](https://github.com/google/googletest/releases/tag/release-1.8.1), unzip into an empty folder. Go under the root folder (where there's `CMakeList.txt`), then run the following commands:
-
-
-```bash
-cmake -G 'Unix Makefile' .
-sudo make install
-sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
-sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
-```
-
-***Compile:***
+#### Compile
 
 Under the project root then launch the following commands:
 
 ```bash
-cmake -G 'Unix Makefile' .
-make
+mkdir build && cd build
+cmake ..
+make -j4
 ```
 
-***Test compiled binary:***
-
-The binary `translate` will be generated in directory `cli` under project root.
-Go into this directory then launch the following command to test:
+The binary `translate` will be generated in the directory `cli`:
 
 ```bash
-echo "▁H ello ▁world !" | ./translate --model ../python/ende_ctranslate2/
+echo "▁H ello ▁world !" | ./cli/translate --model ../python/ende_ctranslate2/
 ```
 
 The result `▁Hallo ▁Welt !` should be display.
 
-Note: Before you test it, you should get your model by following **Converting models** instructions.
+**Note:** Before running the command, you should get your model by following the [Converting models](#converting-models) section.
 
 ## Translating
 
@@ -214,6 +200,30 @@ int main() {
 
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
+## Testing
+
+### C++
+
+Google Test is used to run the C++ tests:
+
+1. Download the [latest release](https://github.com/google/googletest/releases/tag/release-1.8.1)
+2. Unzip into an empty folder
+3. Go under the decompressed folder (where `CMakeLists.txt` is located)
+4. Run the following commands:
+
+```bash
+cmake .
+sudo make install
+sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
+sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
+```
+
+Then follow the CTranslate2 [build instructions](#building) again to produce the test executable `tests/ctranslate2_test`. The binary expects the path to the test data as argument:
+
+```bash
+./tests/ctranslate2_test ../tests/data
+```
+
 ## FAQ
 
 ### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
@@ -252,9 +262,10 @@ Other APIs are expected to evolve to increase efficiency, genericity, and model 
 Here are some scenarios where this project could be used:
 
 * You want to accelarate standard translation models for production usage, especially on CPUs.
-* You need to embed translation models in an existing application without adding complex dependencies.
+* You need to embed translation models in an existing C++ application.
 * You need portable binaries that automatically dispatch the execution to the best instruction set.
 * Your application requires custom threading and memory usage control.
+* You want to reduce the model size on disk and/or memory.
 
 However, you should probably **not** use this project when:
 
@@ -276,8 +287,8 @@ There are many ways to make this project better and faster. See the open issues 
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency for CPU translation.
-* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput.
+* `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency.
+* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety)
 
 The total number of computing threads launched by the process is summarized by this formula:
 
@@ -285,10 +296,7 @@ The total number of computing threads launched by the process is summarized by t
 num_threads = inter_threads * intra_threads
 ```
 
-Some notes about `inter_threads`:
-
-* On GPU, this value is forced to 1 as the code is not yet synchronization-free
-* Increasing this value also increases the memory usage as some internal buffers are duplicated for thread safety
+Note that these options are only defined for CPU translation. In particular, `inter_threads` is forced to 1 when executing on GPU.
 
 ### Do you provide a translation server?
 
