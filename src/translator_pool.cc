@@ -68,9 +68,9 @@ namespace ctranslate2 {
 
       auto& job = work_def.first;
       auto& promise = work_def.second;
-      promise.set_value(translator.translate_with_prefix(job.source,
-                                                         job.target_prefix,
-                                                         job.options));
+      promise.set_value(translator.translate_batch_with_prefix(job.source,
+                                                               job.target_prefix,
+                                                               job.options));
     }
   }
 

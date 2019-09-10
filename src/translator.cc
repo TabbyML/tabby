@@ -66,6 +66,15 @@ namespace ctranslate2 {
     return translate_batch(batch_tokens, options)[0];
   }
 
+  TranslationResult
+  Translator::translate_with_prefix(const std::vector<std::string>& source,
+                                    const std::vector<std::string>& target_prefix,
+                                    const TranslationOptions& options) {
+    std::vector<std::vector<std::string>> batch_source(1, source);
+    std::vector<std::vector<std::string>> batch_target_prefix(1, target_prefix);
+    return translate_batch_with_prefix(batch_source, batch_target_prefix, options)[0];
+  }
+
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens) {
     TranslationOptions options;
@@ -76,22 +85,13 @@ namespace ctranslate2 {
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
                               const TranslationOptions& options) {
     std::vector<std::vector<std::string>> target_prefix;
-    return translate_with_prefix(batch_tokens, target_prefix, options);
-  }
-
-  TranslationResult
-  Translator::translate_with_prefix(const std::vector<std::string>& source,
-                                    const std::vector<std::string>& target_prefix,
-                                    const TranslationOptions& options) {
-    std::vector<std::vector<std::string>> batch_source(1, source);
-    std::vector<std::vector<std::string>> batch_target_prefix(1, target_prefix);
-    return translate_with_prefix(batch_source, batch_target_prefix, options)[0];
+    return translate_batch_with_prefix(batch_tokens, target_prefix, options);
   }
 
   std::vector<TranslationResult>
-  Translator::translate_with_prefix(const std::vector<std::vector<std::string>>& source,
-                                    const std::vector<std::vector<std::string>>& target_prefix,
-                                    const TranslationOptions& options) {
+  Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
+                                          const std::vector<std::vector<std::string>>& target_prefix,
+                                          const TranslationOptions& options) {
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();
