@@ -105,7 +105,7 @@ See the existing converters implementation which could be used as a template.
 
 ## Translating
 
-Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
+Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized.
 
 ```bash
 docker pull opennmt/ctranslate2:latest-ubuntu16
@@ -157,7 +157,7 @@ int main() {
 
 ## Building
 
-### Docker
+### Docker images
 
 See the `docker/` directory.
 
@@ -306,7 +306,7 @@ We don't have numbers comparing memory usage yet. However, past experiments show
 
 ### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
 
-The original *CTranslate* project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
+The original CTranslate project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
 
 * a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits
 * a direct reliance on Eigen, which introduces heavy templating and a limited GPU support
