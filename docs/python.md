@@ -21,7 +21,7 @@ output_dir = converter.convert(
 ```python
 import ctranslate2
 
-t = ctranslate2.Translator(
+translator = ctranslate2.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # Can be "cpu", "cuda", or "auto".
     device_index=0,          # The index of the device to place this translator on.
@@ -32,7 +32,7 @@ t = ctranslate2.Translator(
 # * "score"
 # * "tokens"
 # * "attention" (if return_attention is set to True)
-output = t.translate_batch(
+output = translator.translate_batch(
     source: list,            # A list of list of string.
     target_prefix=None,      # An optional list of list of string.
     beam_size=4,             # Beam size.
@@ -43,7 +43,7 @@ output = t.translate_batch(
     use_vmap=False,          # Use the VMAP saved in this model.
     return_attention=False)  # Also return the attention vectors.
 
-t.translate_file(
+translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to translate.
@@ -55,5 +55,5 @@ t.translate_file(
     use_vmap=False,          # Use the VMAP saved in this model.
     with_scores=False)       # Also output predictions scores.
 
-del t                        # Release the translator resources.
+del translator               # Release the translator resources.
 ```
