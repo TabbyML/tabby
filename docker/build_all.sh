@@ -10,14 +10,22 @@ set -e
 
 VERSION=${1:-latest}
 PUSH=${2:-0}
+IMAGE=systran/ctranslate2
 
 build()
 {
     PLAT=$1
-    IMAGE=systran/ctranslate2:$VERSION-$PLAT
-    docker build -t $IMAGE -f docker/Dockerfile.$PLAT .
+    LATEST=$IMAGE:latest-$PLAT
+    TAGGED=$IMAGE:$VERSION-$PLAT
+    docker build -t $LATEST -f docker/Dockerfile.$PLAT .
     if [ $PUSH -eq 1 ]; then
-        docker push $IMAGE
+        docker push $LATEST
+    fi
+    if [ "$TAGGED" != "$LATEST" ]; then
+        docker tag $LATEST $TAGGED
+        if [ $PUSH -eq 1 ]; then
+            docker push $TAGGED
+        fi
     fi
 }
 
