@@ -1,6 +1,6 @@
 # CTranslate2
 
-CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution.
+CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
 
 ## Key features
 
@@ -12,14 +12,14 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 * **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
 * **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
-Some of these features are difficult to achieve in standard deep learning frameworks and are the motivation for this project.
+Some of these features are difficult to achieve with standard deep learning frameworks and are the motivation for this project.
 
 ### Supported decoding options
 
 The translation API supports several decoding options:
 
 * decoding with greedy or beam search
-* translating with a target prefix
+* translating with a known target prefix
 * constraining the decoding length
 * returning multiple translation hypotheses
 * returning attention vectors
@@ -41,12 +41,16 @@ CTranslate2 uses the following libraries for acceleration:
 
 ## Converting models
 
-A model conversion step is required to transform trained models into the CTranslate2 representation. The following frameworks and models are currently supported:
+The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models in a simple binary format.
+
+The following frameworks and models are currently supported:
 
 |     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
 | --- | --- | --- |
 | TransformerBase | Yes | Yes |
 | TransformerBig  | Yes | Yes |
+
+If you are using a model that is not listed above, consider opening an issue to discuss possible future integration.
 
 To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
 
@@ -80,12 +84,6 @@ python -m ctranslate2.converters.opennmt_py \
     --quantization int16
 ```
 
-### Adding converters
-
-Each converter should populate a model specification with trained weights coming from an existing model. The model specification declares the variable names and layout expected by the CTranslate2 core engine.
-
-See the existing converters implementation which could be used as a template.
-
 ### Quantization
 
 The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
@@ -99,6 +97,64 @@ The converters support model quantization which is a way to reduce the model siz
 
 * only GEMM-based layers and embeddings are currently quantized
 
+### Adding converters
+
+Each converter should populate a model specification with trained weights coming from an existing model. The model specification declares the variable names and layout expected by the CTranslate2 core engine.
+
+See the existing converters implementation which could be used as a template.
+
+## Translating
+
+Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
+
+```bash
+docker pull opennmt/ctranslate2:latest-ubuntu16
+```
+
+The library has several entrypoints which are briefly introduced below. The examples use the English-German model prepared in [Converting models](#converting-models). This model requires a SentencePiece tokenization.
+
+### With the translation client
+
+```bash
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
+    opennmt/ctranslate2:latest-ubuntu16 --model /data/ende_ctranslate2
+```
+
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu16 --help` for additional options.*
+
+### With the Python API
+
+```python
+from ctranslate2 import translator
+t = translator.Translator("ende_ctranslate2/")
+
+input_tokens = ["▁H", "ello", "▁world", "!"]
+result = t.translate_batch([input_tokens])
+
+print(result[0][0])
+```
+
+*See the [Python reference](docs/python.md) for more advanced usage.*
+
+### With the C++ API
+
+```cpp
+#include <iostream>
+#include <ctranslate2/translator.h>
+
+int main() {
+  ctranslate2::Translator translator("ende_ctranslate2/", ctranslate2::Device::CPU);
+  ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
+
+  for (const auto& token : result.output())
+    std::cout << token << ' ';
+  std::cout << std::endl;
+  return 0;
+}
+```
+
+*See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
+
 ## Building
 
 ### Docker
@@ -107,7 +163,7 @@ See the `docker/` directory.
 
 ### Binaries (Ubuntu)
 
-The minimum requirements for building CTranslate2 binaries are Intel MKL and `libboost-program-options-dev`.
+The minimum requirements for building CTranslate2 binaries are Intel MKL and the Boost `program_options` module. The instructions below assume an Ubuntu system.
 
 **Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.centos7-gpu) is defined.
 
@@ -151,54 +207,6 @@ echo "▁H ello ▁world !" | ./cli/translate --model ../python/ende_ctranslate2
 The result `▁Hallo ▁Welt !` should be display.
 
 **Note:** Before running the command, you should get your model by following the [Converting models](#converting-models) section.
-
-## Translating
-
-Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
-
-The library has several entrypoints which are briefly introduced below. The examples use the English-German model downloaded in [Converting models](#converting-models) which requires a SentencePiece tokenization.
-
-### With the translation client
-
-```bash
-echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    systran/ctranslate2 --model /data/ende_ctranslate2
-```
-
-*See `docker run --rm systran/ctranslate2 --help` for additional options.*
-
-### With the Python API
-
-```python
-from ctranslate2 import translator
-t = translator.Translator("ende_ctranslate2/")
-
-input_tokens = ["▁H", "ello", "▁world", "!"]
-result = t.translate_batch([input_tokens])
-
-print(result[0][0])
-```
-
-*See the [Python reference](docs/python.md) for more advanced usage.*
-
-### With the C++ API
-
-```cpp
-#include <iostream>
-#include <ctranslate2/translator.h>
-
-int main() {
-  ctranslate2::Translator translator("ende_ctranslate2/", ctranslate2::Device::CPU);
-  ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
-
-  for (const auto& token : result.output())
-    std::cout << token << ' ';
-  std::cout << std::endl;
-  return 0;
-}
-```
-
-*See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
 ## Testing
 
