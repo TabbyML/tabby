@@ -27,9 +27,6 @@ namespace ctranslate2 {
     Translator(const std::shared_ptr<models::Model>& model);
     Translator(const Translator& other);
 
-    // Sets the number of OpenMP threads for the active thread.
-    void set_num_threads(size_t num_threads) const;
-
     TranslationResult
     translate(const std::vector<std::string>& tokens);
     TranslationResult

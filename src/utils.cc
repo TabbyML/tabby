@@ -2,6 +2,7 @@
 
 #ifdef WITH_MKL
 #  include <mkl.h>
+#  include <omp.h>
 #endif
 
 #ifdef WITH_CUDA
@@ -34,6 +35,13 @@ namespace ctranslate2 {
     default:
       return false;
     }
+  }
+
+  void set_num_threads(size_t num_threads) {
+#ifdef WITH_MKL
+    if (num_threads != 0)
+      omp_set_num_threads(num_threads);
+#endif
   }
 
 }

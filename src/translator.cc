@@ -1,9 +1,5 @@
 #include "ctranslate2/translator.h"
 
-#ifdef WITH_MKL
-#  include <omp.h>
-#endif
-
 #include "ctranslate2/decoding.h"
 
 namespace ctranslate2 {
@@ -55,13 +51,6 @@ namespace ctranslate2 {
     auto scoped_device_setter = _model->get_scoped_device_setter();
     _encoder = _model->make_encoder();
     _decoder = _model->make_decoder();
-  }
-
-  void Translator::set_num_threads(size_t num_threads) const {
-#ifdef WITH_MKL
-    if (num_threads != 0)
-      omp_set_num_threads(num_threads);
-#endif
   }
 
   TranslationResult

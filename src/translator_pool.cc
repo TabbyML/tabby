@@ -2,6 +2,8 @@
 
 #include <fstream>
 
+#include "ctranslate2/utils.h"
+
 namespace ctranslate2 {
 
   TranslatorPool::~TranslatorPool() {
@@ -47,7 +49,7 @@ namespace ctranslate2 {
 
     // set_num_threads is called here because it sets the number of OpenMP threads for
     // the current thread.
-    translator.set_num_threads(intra_threads);
+    set_num_threads(intra_threads);
 
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
