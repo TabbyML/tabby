@@ -5,7 +5,6 @@ each required variable of the specification is set.
 
 import struct
 import six
-import numpy as np
 
 OPTIONAL = "optional"
 

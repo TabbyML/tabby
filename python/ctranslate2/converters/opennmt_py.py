@@ -1,6 +1,4 @@
 import argparse
-import torch
-import numpy as np
 
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import catalog, transformer_spec
@@ -20,6 +18,7 @@ class OpenNMTPyConverter(Converter):
                 output_file.write(b"\n")
 
     def _load(self, spec_class):
+        import torch
         checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
@@ -102,10 +101,11 @@ def set_embeddings(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
 
 def set_position_encodings(spec, variables, scope):
-    spec.encodings = np.squeeze(_get_variable(variables, "%s.pe" % scope))
+    spec.encodings = _get_variable(variables, "%s.pe" % scope).squeeze()
 
 
 def _fuse_linear(spec, layers):
+    import numpy as np
     spec.weight = np.concatenate([layer.weight for layer in layers])
     spec.bias = np.concatenate([layer.bias for layer in layers])
 

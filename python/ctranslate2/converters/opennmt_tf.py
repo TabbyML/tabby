@@ -2,10 +2,6 @@ import argparse
 import shutil
 import os
 import six
-import numpy as np
-import tensorflow as tf
-
-from tensorflow.contrib.seq2seq.python.ops import beam_search_ops  # Force kernel loading.
 
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import catalog
@@ -13,6 +9,9 @@ from ctranslate2.specs import catalog
 
 def load_model(model_dir, src_vocab=None, tgt_vocab=None):
     """Loads variables and vocabularies from a TensorFlow checkpoint or SavedModel."""
+    import tensorflow as tf
+    from tensorflow.contrib.seq2seq.python.ops import beam_search_ops  # Force kernel loading.
+
     if tf.saved_model.loader.maybe_saved_model_directory(model_dir):
         config = tf.ConfigProto(device_count={'GPU': 0})
         with tf.Session(config=config) as sess:
@@ -101,7 +100,7 @@ def set_layer_norm(spec, variables, scope):
     spec.beta = variables["%s/beta" % scope]
 
 def set_linear(spec, variables, scope):
-    spec.weight = np.transpose(np.squeeze(variables["%s/kernel" % scope]))
+    spec.weight = variables["%s/kernel" % scope].squeeze().transpose()
     spec.bias = variables["%s/bias" % scope]
 
 def set_embeddings(spec, variables, scope):
