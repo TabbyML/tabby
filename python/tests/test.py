@@ -3,9 +3,7 @@
 import os
 import pytest
 
-from ctranslate2 import Translator
-from ctranslate2.converters.opennmt_tf import OpenNMTTFConverter
-from ctranslate2.specs.transformer_spec import TransformerSpec
+import ctranslate2
 
 
 _TEST_DATA_DIR = os.path.join(
@@ -15,12 +13,12 @@ _TEST_DATA_DIR = os.path.join(
 
 def _get_transliterator():
     model_path = os.path.join(_TEST_DATA_DIR, "models", "v2", "aren-transliteration")
-    return Translator(model_path)
+    return ctranslate2.Translator(model_path)
 
 
 def test_invalid_model_path():
     with pytest.raises(RuntimeError):
-        Translator("xxx")
+        ctranslate2.Translator("xxx")
 
 def test_batch_translation():
     translator = _get_transliterator()
@@ -88,18 +86,19 @@ def test_return_attention():
     not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
     reason="Data files are not available")
 @pytest.mark.parametrize(
-    "model_path,src_vocab,tgt_vocab",
-    [("v1/savedmodel", None, None),
-     ("v1/checkpoint", "ar.vocab", "en.vocab")])
-def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab):
+    "model_path,src_vocab,tgt_vocab,model_spec",
+    [("v1/savedmodel", None, None, "TransformerBase"),
+     ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase())])
+def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, model_spec):
     model_path = os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all", model_path)
     if src_vocab is not None:
         src_vocab = os.path.join(model_path, src_vocab)
     if tgt_vocab is not None:
         tgt_vocab = os.path.join(model_path, tgt_vocab)
-    converter = OpenNMTTFConverter(model_path, src_vocab=src_vocab, tgt_vocab=tgt_vocab)
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        model_path, src_vocab=src_vocab, tgt_vocab=tgt_vocab)
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, "TransformerBase")
-    translator = Translator(output_dir)
+    converter.convert(output_dir, model_spec)
+    translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]

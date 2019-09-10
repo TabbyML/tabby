@@ -17,19 +17,18 @@ class OpenNMTPyConverter(Converter):
                 output_file.write(word)
                 output_file.write(b"\n")
 
-    def _load(self, spec_class):
+    def _load(self, model_spec):
         import torch
         checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"]["0.bias"]
-        if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
-            spec = spec_class()
-            set_transformer_spec(spec, variables)
+        if isinstance(model_spec, (catalog.TransformerBase, catalog.TransformerBig)):
+            set_transformer_spec(model_spec, variables)
         else:
             raise NotImplementedError()
         vocab = checkpoint["vocab"]
-        return spec, vocab[0][1], vocab[1][1]
+        return vocab[0][1], vocab[1][1]
 
 
 def set_transformer_spec(spec, variables):

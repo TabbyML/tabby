@@ -1,6 +1,22 @@
 # Python
 
-## API
+## Model conversion API
+
+```python
+import ctranslate2
+
+converter = ctranslate2.converters.OpenNMTPyConverter(
+    model_path: str)         # Path to the OpenNMT-py model.
+
+output_dir = converter.convert(
+    output_dir: str,         # Path to the output directory.
+    model_spec: LayerSpec,   # A model specification instance from ctranslate2.specs.
+    vmap=None,               # Path to a vocabulary mapping file.
+    quantization=None,       # Weights quantization, can be "int8" or "int16".
+    force=False)             # Override output_dir if it exists.
+```
+
+## Translation API
 
 ```python
 import ctranslate2

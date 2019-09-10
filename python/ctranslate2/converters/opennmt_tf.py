@@ -39,17 +39,16 @@ class OpenNMTTFConverter(Converter):
         self._src_vocab = src_vocab
         self._tgt_vocab = tgt_vocab
 
-    def _load(self, spec_class):
+    def _load(self, model_spec):
         variables, src_vocab, tgt_vocab = load_model(
             self._model_dir,
             src_vocab=self._src_vocab,
             tgt_vocab=self._tgt_vocab)
-        if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
-            spec = spec_class()
-            set_transformer_spec(spec, variables)
+        if isinstance(model_spec, (catalog.TransformerBase, catalog.TransformerBig)):
+            set_transformer_spec(model_spec, variables)
         else:
             raise NotImplementedError()
-        return spec, src_vocab, tgt_vocab
+        return src_vocab, tgt_vocab
 
     def _save_vocabulary(self, vocab, destination):
         shutil.copy(vocab, destination)
