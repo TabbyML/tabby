@@ -32,20 +32,25 @@ namespace ctranslate2 {
       , _bias(model.get_variable(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _partial_weight(_weight.device(), _weight.dtype())
-      , _partial_bias(_bias.device(), _bias.dtype()) {
+      , _partial_bias(_bias.device(), _bias.dtype())
+      , _partial_qscale(_weight.device()) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
       ops::Gather()(_weight, index, _partial_weight);
       ops::Gather()(_bias, index, _partial_bias);
+      if (_qscale && !_qscale->is_scalar())
+        ops::Gather()(*_qscale, index, _partial_qscale);
     }
 
     void Dense::reset_mask() {
       _partial_weight.clear();
       _partial_bias.clear();
+      _partial_qscale.clear();
     }
 
     void Dense::operator()(const StorageView& input, StorageView& output) {
+      const StorageView* qscale = _partial_qscale.empty() ? _qscale : &_partial_qscale;
       const StorageView* weight = nullptr;
       const StorageView* bias = nullptr;
       if (_partial_weight.empty()) {
@@ -64,7 +69,7 @@ namespace ctranslate2 {
         StorageView qoutput(DataType::DT_INT32, device);
         ops::Quantize()(input, qinput, qinput_scale);
         gemm_op(qinput, *weight, *bias, qoutput);
-        ops::Dequantize()(qoutput, qinput_scale, *_qscale, output);
+        ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
       } else {
         gemm_op(input, *weight, *bias, output);
       }

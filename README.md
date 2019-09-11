@@ -281,6 +281,7 @@ Configuration:
 
 | | Tokens/s | BLEU |
 | --- | --- | --- |
+| CTranslate2 0.16.4 (int8 + vmap) | 444.56 | 26.59 |
 | CTranslate2 0.16.4 (int16 + vmap) | 419.47 | 26.63 |
 | CTranslate2 0.16.4 (int8) | 349.433 | 26.84 |
 | CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
