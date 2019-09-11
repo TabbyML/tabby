@@ -46,9 +46,9 @@ The core CTranslate2 implementation is framework agnostic. The framework specifi
 The following frameworks and models are currently supported:
 
 |     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
-| --- | --- | --- |
-| TransformerBase | Yes | Yes |
-| TransformerBig  | Yes | Yes |
+| --- | :---: | :---: |
+| TransformerBase | ✓ | ✓ |
+| TransformerBig  | ✓ | ✓ |
 
 If you are using a model that is not listed above, consider opening an issue to discuss possible future integration.
 
