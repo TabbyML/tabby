@@ -121,8 +121,24 @@ sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources
 sudo apt-get update
 sudo apt-get install intel-mkl-2019.4-070
 ```
-
 Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
+
+***Install MKL-DNN (optional):***
+
+- Download MKL-DNN, compile it and install it
+
+```bash
+git clone https://github.com/intel/mkl-dnn.git
+cd mkl-dnn
+cmake -G 'Unix Makefiles' .
+sudo make install
+```
+
+- Activate int8 support for your CTranslate
+
+Open `CMakeLists.txt` to turn on the support of MKL-DNN: `option(WITH_MKLDNN "Compile with Intel MKL-DNN (requires MKL)" ON)`
+Remove `CMakeCache.txt` to make sure your modification will be taken into account. Regenerate the makefile then recompile your CTranslate - now int8 is supported by your CPU.
+
 
 ***Install libboost-program-options-dev:***
 
@@ -138,7 +154,7 @@ Download [GTest 1.8.1 release](https://github.com/google/googletest/releases/tag
 
 
 ```bash
-cmake -G 'Unix Makefile' .
+cmake -G 'Unix Makefiles' .
 sudo make install
 sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
 sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
@@ -149,7 +165,7 @@ sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
 Under the project root then launch the following commands:
 
 ```bash
-cmake -G 'Unix Makefile' .
+cmake -G 'Unix Makefiles' .
 make
 ```
 

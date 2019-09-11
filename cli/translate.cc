@@ -15,6 +15,8 @@ int main(int argc, char* argv[]) {
     ("help", "Display available options.")
     ("model", po::value<std::string>(),
      "Path to the CTranslate2 model directory.")
+    ("compute_type", po::value<std::string>()->default_value("none"),
+     "Force the model type as \"float\", \"int16\" or \"int8\"")
     ("src", po::value<std::string>(),
      "Path to the file to translate (read from the standard input if not set).")
     ("tgt", po::value<std::string>(),
@@ -66,6 +68,7 @@ int main(int argc, char* argv[]) {
   auto model = ctranslate2::models::ModelFactory::load(
     vm["model"].as<std::string>(),
     ctranslate2::str_to_device(vm["device"].as<std::string>()),
+    vm["compute_type"].as<std::string>(),
     vm["device_index"].as<int>());
 
   ctranslate2::TranslatorPool translator_pool(inter_threads, intra_threads, model);

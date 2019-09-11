@@ -55,6 +55,10 @@ namespace ctranslate2 {
       _device_index = index;
     }
 
+    void Model::set_computType(ComputeType type) {
+      _computeType = type;
+    }
+
     ScopedDeviceSetter Model::get_scoped_device_setter() const {
       return ScopedDeviceSetter(_device, _device_index);
     }
@@ -152,7 +156,7 @@ namespace ctranslate2 {
                 StorageView variable_int16(DataType::DT_INT16);
                 ops::Quantize()(variable, variable_int16, *scale);
                 swap(variable, variable_int16);
-              } else {
+              } else { // is_int16 or !support_int16
                 variables_to_remove.emplace_back(std::move(scale_name));
               }
             }
@@ -225,7 +229,9 @@ namespace ctranslate2 {
 
     std::shared_ptr<Model> ModelFactory::load(const std::string& path,
                                               Device device,
-                                              int device_index) {
+                                              std::string computeType,
+                                              int device_index
+                                              ) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
@@ -258,6 +264,18 @@ namespace ctranslate2 {
         throw std::invalid_argument("Unsupported model spec " + spec);
 
       model->set_device(device, device_index);
+
+      ComputeType t = ComputeType::CT_NONE;
+      if (computeType == "int8")
+        t = ComputeType::CT_INT8;
+      else if (computeType == "int16")
+        t = ComputeType::CT_INT16;
+      else if (computeType == "float")
+        t = ComputeType::CT_FLOAT;
+      //else
+        //t = ComputeType::CT_NONE;
+
+      model->set_computType(t);
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "

@@ -20,6 +20,7 @@ namespace ctranslate2 {
 
       Device device() const;
       void set_device(Device type, int index = 0);
+      void set_computType(ComputeType type);
       ScopedDeviceSetter get_scoped_device_setter() const;
 
       const Vocabulary& get_source_vocabulary() const;
@@ -61,6 +62,7 @@ namespace ctranslate2 {
     public:
       static std::shared_ptr<Model> load(const std::string& path,
                                          Device device,
+                                         std::string computeType,
                                          int device_index = 0);
     };
 

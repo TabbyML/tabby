@@ -37,7 +37,7 @@ namespace ctranslate2 {
 
 
   Translator::Translator(const std::string& model_dir, Device device, int device_index)
-    : _model(models::ModelFactory::load(model_dir, device, device_index)) {
+    : _model(models::ModelFactory::load(model_dir, device, "", device_index)) {
     make_graph();
   }
 
