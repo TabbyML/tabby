@@ -288,8 +288,6 @@ Configuration:
 | CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
 
-*Note on quantization: higher performance gains over float are expected with lower beam size and/or intra threads.*
-
 We are also interested in comparing the performance of a minimal run: single thread, single example in the batch, and greedy search. This could be a possible setting in a constrained environment.
 
 | | Tokens/s |
