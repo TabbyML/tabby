@@ -282,8 +282,8 @@ Configuration:
 | | Tokens/s | BLEU |
 | --- | --- | --- |
 | CTranslate2 0.16.4 (int16 + vmap) | 419.47 | 26.63 |
-| CTranslate2 0.16.4 (int8) | 339.46 | 26.69 |
-| CTranslate2 0.16.4 (int16) | 339.43 | 26.68 |
+| CTranslate2 0.16.4 (int8) | 349.433 | 26.84 |
+| CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
 | CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
 
@@ -293,8 +293,8 @@ We are also interested in comparing the performance of a minimal run: single thr
 
 | | Tokens/s |
 | --- | --- |
-| CTranslate2 0.16.4 (int8) | 133.18 |
-| CTranslate2 0.16.4 (int16) | 130.43 |
+| CTranslate2 0.16.4 (int16) | 131.81 |
+| CTranslate2 0.16.4 (int8) | 129.09 |
 | CTranslate2 0.16.4 (float) | 112.66 |
 | OpenNMT-py 0.9.2 | 80.88 |
 
