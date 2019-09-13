@@ -106,14 +106,17 @@ namespace ctranslate2 {
       scale = &scale_it->second;
 
       // Compatibility with int16 models without a saved scale.
-      if (dataType == DataType::DT_INT16 && scale == nullptr) {
-        StorageView compat_scale(ops::Quantize::default_int16_scale);
-        Model::register_variable(scale_name, compat_scale);
-        scale = &_variable_index.at(scale_name);
+      if (scale == nullptr) {
+        if (dataType == DataType::DT_INT16) {
+          StorageView compat_scale(ops::Quantize::default_int16_scale);
+          Model::register_variable(scale_name, compat_scale);
+          scale = &_variable_index.at(scale_name);
+        }
       }
 
-      if (!scale)
+      if (!scale) {
         throw std::string("Model data is uncompatible. scale is NULL.");
+      }
 
       return scale;
     }
@@ -133,6 +136,7 @@ namespace ctranslate2 {
 
         bool is_int8 = variable.dtype() == DataType::DT_INT8;
         bool is_int16 = variable.dtype() == DataType::DT_INT16;
+        bool is_float = variable.dtype() == DataType::DT_FLOAT;
 
         // Make sure CPU supports the demanded type
         if ((_computeType == ComputeType::CT_INT8) && (!support_int8)) {
@@ -163,7 +167,6 @@ namespace ctranslate2 {
           }
         }
         else {
-
           if (_computeType == ComputeType::CT_FLOAT) {
             if (is_int8 || is_int16) {
               StorageView *scale = getScale(scale_name, variable.dtype());
@@ -173,7 +176,6 @@ namespace ctranslate2 {
               ops::Dequantize()(variable, *scale, variable_float);
               swap(variable, variable_float);
             }
-
           } else if (_computeType == ComputeType::CT_INT8) {
             if (is_int8) {
               // nothing to do
@@ -189,8 +191,15 @@ namespace ctranslate2 {
               StorageView variable_int8(DataType::DT_INT8);
               ops::Quantize()(variable, variable_int8, *scale);
               swap(variable, variable_int8);
-            }
 
+            } else if (is_float) {
+              StorageView scale(DataType::DT_FLOAT);
+
+              // from float32 to int8
+              StorageView variable_int8(DataType::DT_INT8);
+              ops::Quantize()(variable, variable_int8, scale);
+              swap(variable, variable_int8);
+            }
           } else if (_computeType == ComputeType::CT_INT16) {
             if (is_int16) {
               // nothing to do
@@ -205,6 +214,13 @@ namespace ctranslate2 {
               // from float32 to int16
               StorageView variable_int16(DataType::DT_INT16);
               ops::Quantize()(variable, variable_int16, *scale);
+              swap(variable, variable_int16);
+            } else if (is_float) {
+              StorageView scale(DataType::DT_FLOAT);
+
+              // from float32 to int16
+              StorageView variable_int16(DataType::DT_INT16);
+              ops::Quantize()(variable, variable_int16, scale);
               swap(variable, variable_int16);
             }
           }
