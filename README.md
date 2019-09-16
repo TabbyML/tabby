@@ -234,7 +234,7 @@ Then follow the CTranslate2 [build instructions](#building) again to produce the
 
 ## Benchmarks
 
-We compare OpenNMT-py and CTranslate2 on the [English-German base Transformer model](http://opennmt.net/Models-py/#translation).
+We compare CTranslate2 with OpenNMT-py and OpenNMT-tf on their pretrained English-German Transformer models (available on the [website](http://opennmt.net/)). **For this benchmark, CTranslate2 models are using the weights of the OpenNMT-py model.**
 
 ### Model size
 
@@ -242,6 +242,7 @@ We compare OpenNMT-py and CTranslate2 on the [English-German base Transformer mo
 | --- | --- |
 | CTranslate2 (int8) | 110MB |
 | CTranslate2 (int16) | 197MB |
+| OpenNMT-tf | 367MB |
 | CTranslate2 (float) | 374MB |
 | OpenNMT-py | 542MB |
 
@@ -254,7 +255,7 @@ We translate the test set *newstest2014* and report:
 * the number of target tokens generated per second (higher is better)
 * the BLEU score of the detokenized output (higher is better)
 
-Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32. Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.
+Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32. **Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
 
 #### GPU
 
@@ -268,9 +269,8 @@ Configuration:
 | --- | --- | --- |
 | CTranslate2 0.16.4 | 3077.89 | 26.69 |
 | CTranslate2 0.16.4 (int8) | 1822.21 | 26.79 |
+| OpenNMT-tf 1.25.0 | 1338.26 | 26.90 |
 | OpenNMT-py 0.9.2 | 980.44 | 26.69 |
-
-*Note on int8: it is slower as the runtime overhead of int8<->float conversions is presently too high. However, it results in a much lower memory usage and also acts as a regularizer (hence the higher BLEU score in this case).*
 
 #### CPU
 
@@ -287,15 +287,14 @@ Configuration:
 | CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
 | CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
+| OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
 
-We are also interested in comparing the performance of a minimal run: single thread, single example in the batch, and greedy search. This could be a possible setting in a constrained environment.
+#### Comments
 
-| | Tokens/s |
-| --- | --- |
-| CTranslate2 0.16.4 (int16) | 131.81 |
-| CTranslate2 0.16.4 (int8) | 129.09 |
-| CTranslate2 0.16.4 (float) | 112.66 |
-| OpenNMT-py 0.9.2 | 80.88 |
+* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is very benefitial on CPU.
+* On GPU, int8 quantization is generally slower as the runtime overhead of int8<->float conversions is presently too high compared to the actual computation.
+* On CPU, performance gains of quantized runs can be greater depending on settings such as the number of threads, batch size, beam size, etc.
+* In addition to possible performance gains, quantization results in a much lower memory usage and can also act as a regularizer (hence the higher BLEU score in some cases).
 
 ### Memory usage
 
