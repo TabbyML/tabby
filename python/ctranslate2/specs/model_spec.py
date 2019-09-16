@@ -52,6 +52,7 @@ class LayerSpec(object):
 
     def quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
+        import numpy as np
         def _quantize(spec, name, value):
             if "weight" in name:
                 if quantization == "int16":
