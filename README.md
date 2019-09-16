@@ -287,11 +287,13 @@ Configuration:
 | CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
 | CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
-| OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
+| OpenNMT-tf 1.25.0 | 119.34 (\*) | 26.90 |
+
+(\*) with AVX (while CTranslate2 and OpenNMT-py dispatch at runtime to AVX2)
 
 #### Comments
 
-* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is very benefitial on CPU.
+* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is benefitial on CPU.
 * On GPU, int8 quantization is generally slower as the runtime overhead of int8<->float conversions is presently too high compared to the actual computation.
 * On CPU, performance gains of quantized runs can be greater depending on settings such as the number of threads, batch size, beam size, etc.
 * In addition to possible performance gains, quantization results in a much lower memory usage and can also act as a regularizer (hence the higher BLEU score in some cases).
