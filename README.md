@@ -255,7 +255,9 @@ We translate the test set *newstest2014* and report:
 * the number of target tokens generated per second (higher is better)
 * the BLEU score of the detokenized output (higher is better)
 
-Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32. **Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
+Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32.
+
+**Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
 
 #### GPU
 
@@ -287,13 +289,11 @@ Configuration:
 | CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
 | CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
-| OpenNMT-tf 1.25.0 | 119.34 (\*) | 26.90 |
-
-(\*) with AVX (while CTranslate2 and OpenNMT-py dispatch at runtime to AVX2)
+| OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
 
 #### Comments
 
-* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is benefitial on CPU.
+* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is especially benefitial on CPU.
 * On GPU, int8 quantization is generally slower as the runtime overhead of int8<->float conversions is presently too high compared to the actual computation.
 * On CPU, performance gains of quantized runs can be greater depending on settings such as the number of threads, batch size, beam size, etc.
 * In addition to possible performance gains, quantization results in a much lower memory usage and can also act as a regularizer (hence the higher BLEU score in some cases).
