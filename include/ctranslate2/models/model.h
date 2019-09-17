@@ -34,7 +34,7 @@ namespace ctranslate2 {
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);
-      StorageView* getScale(const std::string& scale_name, DataType dataType);
+      StorageView* get_scale(const std::string& scale_name, DataType dataType);
       virtual void finalize();
 
       // Makes new graph to execute this model. Graphs returned by these function
@@ -51,7 +51,9 @@ namespace ctranslate2 {
       const VocabularyMap _vocabulary_map;
       std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
-      ComputeType _computeType = ComputeType::CT_NONE;
+      ComputeType _computeType = ComputeType::DEFAULT;
+
+      void convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::basic_string<char>, StorageView>& variable_pair, std::vector<std::string>& variables_to_remove);
     };
 
 
@@ -62,8 +64,8 @@ namespace ctranslate2 {
     public:
       static std::shared_ptr<Model> load(const std::string& path,
                                          Device device,
-                                         std::string computeType,
-                                         int device_index = 0);
+                                         int device_index = 0,
+                                         ComputeType computeType = ComputeType::DEFAULT);
     };
 
   }

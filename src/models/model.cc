@@ -99,7 +99,7 @@ namespace ctranslate2 {
                               std::forward_as_tuple(std::move(variable)));
     }
 
-    StorageView* Model::getScale(const std::string& scale_name, DataType dataType) {
+    StorageView* Model::get_scale(const std::string& scale_name, DataType dataType) {
       StorageView *scale = nullptr;
       auto scale_it = _variable_index.find(scale_name);
       if (scale_it != _variable_index.end())
@@ -115,10 +115,80 @@ namespace ctranslate2 {
       }
 
       if (!scale) {
-        throw std::string("Model data is uncompatible. scale is NULL.");
+        throw std::invalid_argument("Model data is uncompatible. scale is NULL.");
       }
 
       return scale;
+    }
+
+    void Model::convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::basic_string<char>, StorageView>& variable_pair, std::vector<std::string>& variables_to_remove) {
+      const auto& name = variable_pair.first;
+      auto& variable = variable_pair.second;
+
+      bool is_int8 = variable.dtype() == DataType::DT_INT8;
+      bool is_int16 = variable.dtype() == DataType::DT_INT16;
+      bool is_float = variable.dtype() == DataType::DT_FLOAT;
+
+      std::string scale_name = name + "_scale";
+      if (_computeType == ComputeType::DEFAULT) {
+        if (is_int8 || is_int16) {
+          StorageView *scale = get_scale(scale_name, variable.dtype());
+
+          // If quantized variables are not supported, fallback to float32.
+          if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
+            StorageView variable_float;
+            ops::Dequantize()(variable, *scale, variable_float);
+            swap(variable, variable_float);
+
+            // However, if int16 is supported and we came from int8, quantize to int16.
+            if (is_int8 && support_int16) {
+              StorageView variable_int16(DataType::DT_INT16);
+              ops::Quantize()(variable, variable_int16, *scale);
+              swap(variable, variable_int16);
+            } else { // is_int16 or !support_int16
+              variables_to_remove.emplace_back(std::move(scale_name));
+            }
+          }
+        }
+      } else if (_computeType == ComputeType::FLOAT) {
+        if (is_float) {
+          // do nothing
+        } else { // is_int8 || is_int16
+          StorageView* scale = get_scale(scale_name, variable.dtype());
+
+          // fallback to float32
+          StorageView variable_float;
+          ops::Dequantize()(variable, *scale, variable_float);
+          swap(variable, variable_float);
+        }
+
+      } else if ((_computeType == ComputeType::INT16 && is_int16) ||
+                (_computeType == ComputeType::INT8 && is_int8)) {
+        // do nothing
+      } else {
+        if (is_float) {
+          StorageView scale(DataType::DT_FLOAT);
+
+          // from float32 to int16
+          StorageView variable_int(_computeType == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
+          ops::Quantize()(variable, variable_int, scale);
+          swap(variable, variable_int);
+
+        } else { // DataType::DT_INT8 or DataType::DT_INT16
+
+          StorageView *scale = get_scale(scale_name, variable.dtype());
+
+          // from int8 to float32 firstly
+          StorageView variable_float;
+          ops::Dequantize()(variable, *scale, variable_float);
+          swap(variable, variable_float);
+
+          // from float to int
+          StorageView variable_int(_computeType == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
+          ops::Quantize()(variable, variable_int, *scale);
+          swap(variable, variable_int);
+        }
+      }
     }
 
     void Model::finalize() {
@@ -128,103 +198,17 @@ namespace ctranslate2 {
       std::vector<std::string> variables_to_remove;
 
       // First pass to possibly cast to a supported type.
-      for (auto& pair : _variable_index) {
-        const auto& name = pair.first;
-        auto& variable = pair.second;
+      for (auto& vpair : _variable_index) {
 
-        std::string scale_name = name + "_scale";
-
-        bool is_int8 = variable.dtype() == DataType::DT_INT8;
-        bool is_int16 = variable.dtype() == DataType::DT_INT16;
-        bool is_float = variable.dtype() == DataType::DT_FLOAT;
 
         // Make sure CPU supports the demanded type
-        if ((_computeType == ComputeType::CT_INT8) && (!support_int8)) {
-          throw std::string("demanded compute type is int8, but CPU doesn't support int8");
-        } else if ((_computeType == ComputeType::CT_INT16) && (!support_int16)) {
-          throw std::string("demanded compute type is int16, but CPU doesn't support int16");
+        if ((_computeType == ComputeType::INT8) && (!support_int8)) {
+          throw std::invalid_argument("Demanded compute type is int8, but device doesn't support efficient int8 computation.");
+        } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
+          throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
         }
 
-        if (_computeType == ComputeType::CT_NONE) {
-          if (is_int8 || is_int16) {
-            StorageView *scale = getScale(scale_name, variable.dtype());
-
-            // If quantized variables are not supported, fallback to float32.
-            if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
-              StorageView variable_float;
-              ops::Dequantize()(variable, *scale, variable_float);
-              swap(variable, variable_float);
-
-              // However, if int16 is supported and we came from int8, quantize to int16.
-              if (is_int8 && support_int16) {
-                StorageView variable_int16(DataType::DT_INT16);
-                ops::Quantize()(variable, variable_int16, *scale);
-                swap(variable, variable_int16);
-              } else { // is_int16 or !support_int16
-                variables_to_remove.emplace_back(std::move(scale_name));
-              }
-            }
-          }
-        }
-        else {
-          if (_computeType == ComputeType::CT_FLOAT) {
-            if (is_int8 || is_int16) {
-              StorageView *scale = getScale(scale_name, variable.dtype());
-
-              // fallback to float32
-              StorageView variable_float;
-              ops::Dequantize()(variable, *scale, variable_float);
-              swap(variable, variable_float);
-            }
-          } else if (_computeType == ComputeType::CT_INT8) {
-            if (is_int8) {
-              // nothing to do
-            } else if (is_int16) {
-              StorageView *scale = getScale(scale_name, variable.dtype());
-
-              // from int16 to float32
-              StorageView variable_float;
-              ops::Dequantize()(variable, *scale, variable_float);
-              swap(variable, variable_float);
-
-              // from float32 to int8
-              StorageView variable_int8(DataType::DT_INT8);
-              ops::Quantize()(variable, variable_int8, *scale);
-              swap(variable, variable_int8);
-
-            } else if (is_float) {
-              StorageView scale(DataType::DT_FLOAT);
-
-              // from float32 to int8
-              StorageView variable_int8(DataType::DT_INT8);
-              ops::Quantize()(variable, variable_int8, scale);
-              swap(variable, variable_int8);
-            }
-          } else if (_computeType == ComputeType::CT_INT16) {
-            if (is_int16) {
-              // nothing to do
-            } else if (is_int8) {
-              StorageView *scale = getScale(scale_name, variable.dtype());
-
-              // from int8 to float32 firstly
-              StorageView variable_float;
-              ops::Dequantize()(variable, *scale, variable_float);
-              swap(variable, variable_float);
-
-              // from float32 to int16
-              StorageView variable_int16(DataType::DT_INT16);
-              ops::Quantize()(variable, variable_int16, *scale);
-              swap(variable, variable_int16);
-            } else if (is_float) {
-              StorageView scale(DataType::DT_FLOAT);
-
-              // from float32 to int16
-              StorageView variable_int16(DataType::DT_INT16);
-              ops::Quantize()(variable, variable_int16, scale);
-              swap(variable, variable_int16);
-            }
-          }
-        }
+        convert_data_if_need(support_int8, support_int16, vpair, variables_to_remove);
       }
 
       // Remove no longer needed variables.
@@ -245,8 +229,8 @@ namespace ctranslate2 {
 
     std::shared_ptr<Model> ModelFactory::load(const std::string& path,
                                               Device device,
-                                              std::string computeType,
-                                              int device_index
+                                              int device_index,
+                                              ComputeType computeType
                                               ) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
@@ -280,18 +264,7 @@ namespace ctranslate2 {
         throw std::invalid_argument("Unsupported model spec " + spec);
 
       model->set_device(device, device_index);
-
-      ComputeType t = ComputeType::CT_NONE;
-      if (computeType == "int8")
-        t = ComputeType::CT_INT8;
-      else if (computeType == "int16")
-        t = ComputeType::CT_INT16;
-      else if (computeType == "float")
-        t = ComputeType::CT_FLOAT;
-      //else
-        //t = ComputeType::CT_NONE;
-
-      model->set_computType(t);
+      model->set_computType(computeType);
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "

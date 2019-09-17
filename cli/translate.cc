@@ -6,6 +6,7 @@
 
 #include <ctranslate2/translator_pool.h>
 #include <ctranslate2/utils.h>
+#include <ctranslate2/devices.h>
 
 namespace po = boost::program_options;
 
@@ -65,11 +66,24 @@ int main(int argc, char* argv[]) {
   size_t inter_threads = vm["inter_threads"].as<size_t>();
   size_t intra_threads = vm["intra_threads"].as<size_t>();
 
+  std::string ct_string = vm["compute_type"].as<std::string>();
+
+  ctranslate2::ComputeType ct = ctranslate2::ComputeType::DEFAULT;
+
+  if (ct_string == "int8")
+    ct = ctranslate2::ComputeType::INT8;
+  else if (ct_string == "int16")
+    ct = ctranslate2::ComputeType::INT16;
+  else if (ct_string == "float")
+    ct = ctranslate2::ComputeType::FLOAT;
+  //else
+  //ct = ctranslate2::ComputeType::DEFAULT;
+
   auto model = ctranslate2::models::ModelFactory::load(
     vm["model"].as<std::string>(),
     ctranslate2::str_to_device(vm["device"].as<std::string>()),
-    vm["compute_type"].as<std::string>(),
-    vm["device_index"].as<int>());
+    vm["device_index"].as<int>(),
+    ct);
 
   ctranslate2::TranslatorPool translator_pool(inter_threads, intra_threads, model);
 
