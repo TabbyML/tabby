@@ -88,7 +88,9 @@ def test_return_attention():
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [("v1/savedmodel", None, None, "TransformerBase"),
-     ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase())])
+     ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
+     ("v2/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
+    ])
 def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, model_spec):
     model_path = os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all", model_path)
     if src_vocab is not None:
