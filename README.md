@@ -39,6 +39,8 @@ CTranslate2 uses the following libraries for acceleration:
   * [cuBLAS](https://developer.nvidia.com/cublas) (with CUDA>=10.0)
   * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
+A minimal installation requires at least Intel MKL. Intel MKL-DNN and GPU libraries are optional.
+
 ## Converting models
 
 The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models in a simple binary format.
