@@ -1,10 +1,10 @@
 # CTranslate2
 
-CTranslate2 is a custom inference engine for neural machine translation models supporting both CPU and GPU execution.
+CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework, especially on CPU which is one of the main target of this project.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 3x faster](#benchmarks) than OpenNMT-py.
 * **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
@@ -12,14 +12,14 @@ CTranslate2 is a custom inference engine for neural machine translation models s
 * **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
 * **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
-Some of these features are difficult to achieve in standard deep learning frameworks and are the motivation for this project.
+Some of these features are difficult to achieve with standard deep learning frameworks and are the motivation for this project.
 
 ### Supported decoding options
 
 The translation API supports several decoding options:
 
 * decoding with greedy or beam search
-* translating with a target prefix
+* translating with a known target prefix
 * constraining the decoding length
 * returning multiple translation hypotheses
 * returning attention vectors
@@ -41,12 +41,16 @@ CTranslate2 uses the following libraries for acceleration:
 
 ## Converting models
 
-A model conversion step is required to transform trained models into the CTranslate2 representation. The following frameworks and models are currently supported:
+The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models in a simple binary format.
+
+The following frameworks and models are currently supported:
 
 |     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
-| --- | --- | --- |
-| TransformerBase | Yes | Yes |
-| TransformerBig  | Yes | Yes |
+| --- | :---: | :---: |
+| TransformerBase | ✓ | ✓ |
+| TransformerBig  | ✓ | ✓ |
+
+If you are using a model that is not listed above, consider opening an issue to discuss possible future integration.
 
 To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
 
@@ -80,12 +84,6 @@ python -m ctranslate2.converters.opennmt_py \
     --quantization int16
 ```
 
-### Adding converters
-
-Each converter should populate a model specification with trained weights coming from an existing model. The model specification declares the variable names and layout expected by the CTranslate2 core engine.
-
-See the existing converters implementation which could be used as a template.
-
 ### Quantization
 
 The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
@@ -99,103 +97,30 @@ The converters support model quantization which is a way to reduce the model siz
 
 * only GEMM-based layers and embeddings are currently quantized
 
-## Building
+### Adding converters
 
-### Docker
+Each converter should populate a model specification with trained weights coming from an existing model. The model specification declares the variable names and layout expected by the CTranslate2 core engine.
 
-See the `docker/` directory.
-
-### Binaries (Ubuntu)
-
-The minimum requirements for building CTranslate2 binary are `Intel MKL` and `libboost-program-options-dev`.
-
-***Install MKL:***
-
-Use the following instructions to install MKL:
-
-```bash
-wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
-sudo apt-get update
-sudo apt-get install intel-mkl-2019.4-070
-```
-Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
-
-***Install MKL-DNN (optional):***
-
-- Download MKL-DNN, compile it and install it
-
-```bash
-git clone https://github.com/intel/mkl-dnn.git
-cd mkl-dnn
-cmake -G 'Unix Makefiles' .
-sudo make install
-```
-
-- Activate int8 support for your CTranslate
-
-Open `CMakeLists.txt` to turn on the support of MKL-DNN: `option(WITH_MKLDNN "Compile with Intel MKL-DNN (requires MKL)" ON)`
-Remove `CMakeCache.txt` to make sure your modification will be taken into account. Regenerate the makefile then recompile your CTranslate - now int8 is supported by your CPU.
-
-
-***Install libboost-program-options-dev:***
-
-```bash
-sudo apt-get install libboost-program-options-dev
-```
-
-***Install GTest (optional):***
-
-GTest is necessary when you want to compile the unit tests as well. You can skip this step if you don't need to run the unit tests.
-
-Download [GTest 1.8.1 release](https://github.com/google/googletest/releases/tag/release-1.8.1), unzip into an empty folder. Go under the root folder (where there's `CMakeList.txt`), then run the following commands:
-
-
-```bash
-cmake -G 'Unix Makefiles' .
-sudo make install
-sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
-sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
-```
-
-***Compile:***
-
-Under the project root then launch the following commands:
-
-```bash
-cmake -G 'Unix Makefiles' .
-make
-```
-
-***Test compiled binary:***
-
-The binary `translate` will be generated in directory `cli` under project root.
-Go into this directory then launch the following command to test:
-
-```bash
-echo "▁H ello ▁world !" | ./translate --model ../python/ende_ctranslate2/
-```
-
-The result `▁Hallo ▁Welt !` should be display.
-
-Note: Before you test it, you should get your model by following **Converting models** instructions.
+See the existing converters implementation which could be used as a template.
 
 ## Translating
 
-Docker images are currently the recommended way to use the project as they embeds all dependencies and are optimized.
+Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized.
 
-The library has several entrypoints which are briefly introduced below. The examples use the English-German model downloaded in [Converting models](#converting-models) which requires a SentencePiece tokenization.
+```bash
+docker pull opennmt/ctranslate2:latest-ubuntu16
+```
+
+The library has several entrypoints which are briefly introduced below. The examples use the English-German model prepared in [Converting models](#converting-models). This model requires a SentencePiece tokenization.
 
 ### With the translation client
 
 ```bash
 echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    systran/ctranslate2 --model /data/ende_ctranslate2
+    opennmt/ctranslate2:latest-ubuntu16 --model /data/ende_ctranslate2
 ```
 
-*See `docker run --rm systran/ctranslate2 --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu16 --help` for additional options.*
 
 ### With the Python API
 
@@ -230,11 +155,157 @@ int main() {
 
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
+## Building
+
+### Docker images
+
+See the `docker/` directory.
+
+### Binaries (Ubuntu)
+
+The minimum requirements for building CTranslate2 binaries are Intel MKL and the Boost `program_options` module. The instructions below assume an Ubuntu system.
+
+**Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.centos7-gpu) is defined.
+
+#### Install MKL
+
+Use the following instructions to install MKL:
+
+```bash
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+sudo apt-get update
+sudo apt-get install intel-mkl-64bit-2019.4-070
+```
+
+Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
+
+#### Install libboost-program-options-dev
+
+```bash
+sudo apt-get install libboost-program-options-dev
+```
+
+#### Compile
+
+Under the project root then launch the following commands:
+
+```bash
+mkdir build && cd build
+cmake ..
+make -j4
+```
+
+The binary `translate` will be generated in the directory `cli`:
+
+```bash
+echo "▁H ello ▁world !" | ./cli/translate --model ../python/ende_ctranslate2/
+```
+
+The result `▁Hallo ▁Welt !` should be display.
+
+**Note:** Before running the command, you should get your model by following the [Converting models](#converting-models) section.
+
+## Testing
+
+### C++
+
+Google Test is used to run the C++ tests:
+
+1. Download the [latest release](https://github.com/google/googletest/releases/tag/release-1.8.1)
+2. Unzip into an empty folder
+3. Go under the decompressed folder (where `CMakeLists.txt` is located)
+4. Run the following commands:
+
+```bash
+cmake .
+sudo make install
+sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
+sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
+```
+
+Then follow the CTranslate2 [build instructions](#building) again to produce the test executable `tests/ctranslate2_test`. The binary expects the path to the test data as argument:
+
+```bash
+./tests/ctranslate2_test ../tests/data
+```
+
+## Benchmarks
+
+We compare OpenNMT-py and CTranslate2 on the [English-German base Transformer model](http://opennmt.net/Models-py/#translation).
+
+### Model size
+
+| | Model size |
+| --- | --- |
+| CTranslate2 (int8) | 110MB |
+| CTranslate2 (int16) | 197MB |
+| CTranslate2 (float) | 374MB |
+| OpenNMT-py | 542MB |
+
+CTranslate2 models are generally lighter and can go as low as 100MB when quantized to int8. This also results in a fast loading time and noticeable lower memory usage during runtime.
+
+### Speed
+
+We translate the test set *newstest2014* and report:
+
+* the number of target tokens generated per second (higher is better)
+* the BLEU score of the detokenized output (higher is better)
+
+Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32. Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.
+
+#### GPU
+
+Configuration:
+
+* **GPU:** NVIDIA Tesla V100
+* **CUDA:** 10.0
+* **Driver:** 410.48
+
+| | Tokens/s | BLEU |
+| --- | --- | --- |
+| CTranslate2 0.16.4 | 3077.89 | 26.69 |
+| CTranslate2 0.16.4 (int8) | 1822.21 | 26.79 |
+| OpenNMT-py 0.9.2 | 980.44 | 26.69 |
+
+*Note on int8: it is slower as the runtime overhead of int8<->float conversions is presently too high. However, it results in a much lower memory usage and also acts as a regularizer (hence the higher BLEU score in this case).*
+
+#### CPU
+
+Configuration:
+
+* **CPU:** Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz (with AVX2)
+* **Number of threads:** 4 "intra threads", 1 "inter threads" ([what's the difference?](#what-is-the-difference-between-intra_threads-and-inter_threads))
+
+| | Tokens/s | BLEU |
+| --- | --- | --- |
+| CTranslate2 0.16.4 (int8 + vmap) | 444.56 | 26.59 |
+| CTranslate2 0.16.4 (int16 + vmap) | 419.47 | 26.63 |
+| CTranslate2 0.16.4 (int8) | 349.433 | 26.84 |
+| CTranslate2 0.16.4 (int16) | 339.45 | 26.68 |
+| CTranslate2 0.16.4 (float) | 335.34 | 26.69 |
+| OpenNMT-py 0.9.2 | 241.92 | 26.69 |
+
+We are also interested in comparing the performance of a minimal run: single thread, single example in the batch, and greedy search. This could be a possible setting in a constrained environment.
+
+| | Tokens/s |
+| --- | --- |
+| CTranslate2 0.16.4 (int16) | 131.81 |
+| CTranslate2 0.16.4 (int8) | 129.09 |
+| CTranslate2 0.16.4 (float) | 112.66 |
+| OpenNMT-py 0.9.2 | 80.88 |
+
+### Memory usage
+
+We don't have numbers comparing memory usage yet. However, past experiments showed that CTranslate2 usually requires up to 2x less memory than OpenNMT-py.
+
 ## FAQ
 
 ### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
 
-The original *CTranslate* project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
+The original CTranslate project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
 
 * a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits
 * a direct reliance on Eigen, which introduces heavy templating and a limited GPU support
@@ -268,9 +339,10 @@ Other APIs are expected to evolve to increase efficiency, genericity, and model 
 Here are some scenarios where this project could be used:
 
 * You want to accelarate standard translation models for production usage, especially on CPUs.
-* You need to embed translation models in an existing application without adding complex dependencies.
+* You need to embed translation models in an existing C++ application.
 * You need portable binaries that automatically dispatch the execution to the best instruction set.
 * Your application requires custom threading and memory usage control.
+* You want to reduce the model size on disk and/or memory.
 
 However, you should probably **not** use this project when:
 
@@ -292,8 +364,8 @@ There are many ways to make this project better and faster. See the open issues 
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency for CPU translation.
-* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput.
+* `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency.
+* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety)
 
 The total number of computing threads launched by the process is summarized by this formula:
 
@@ -301,10 +373,7 @@ The total number of computing threads launched by the process is summarized by t
 num_threads = inter_threads * intra_threads
 ```
 
-Some notes about `inter_threads`:
-
-* On GPU, this value is forced to 1 as the code is not yet synchronization-free
-* Increasing this value also increases the memory usage as some internal buffers are duplicated for thread safety
+Note that these options are only defined for CPU translation. In particular, `inter_threads` is forced to 1 when executing on GPU.
 
 ### Do you provide a translation server?
 

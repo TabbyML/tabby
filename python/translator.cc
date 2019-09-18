@@ -140,6 +140,7 @@ BOOST_PYTHON_MODULE(translator)
       (py::arg("model_path"),
        py::arg("device")="cpu",
        py::arg("device_index")=0,
+       py::arg("compute_type")="default",
        py::arg("inter_threads")=1,
        py::arg("intra_threads")=4)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,
