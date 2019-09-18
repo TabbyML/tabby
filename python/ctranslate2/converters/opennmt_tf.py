@@ -16,16 +16,24 @@ def load_model(model_dir, src_vocab=None, tgt_vocab=None):
     except ImportError:
         pass
 
-    version = 1
+    model_version = 1
+    tf_version = int(tf.version.VERSION[0])
     if tf.saved_model.contains_saved_model(model_dir):
-        config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
-        with tf.compat.v1.Session(config=config) as sess:
-            meta_graph = tf.compat.v1.saved_model.loader.load(sess, ["serve"], model_dir)
-            variables = sess.run(
-                {variable.op.name:variable for variable in tf.compat.v1.trainable_variables()})
-            assets = sess.run(tf.compat.v1.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
-        src_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[0]))
-        tgt_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[1]))
+        if tf_version == 2:
+            raise NotImplementedError("Converting SavedModel with TensorFlow 2.0 is "
+                                      "currently not implemented")
+        elif tf_version == 1:
+            config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
+            with tf.compat.v1.Graph().as_default():
+                with tf.compat.v1.Session(config=config) as sess:
+                    meta_graph = tf.compat.v1.saved_model.loader.load(sess, ["serve"], model_dir)
+                    variables = sess.run(
+                        {variable.op.name:variable for variable in tf.compat.v1.global_variables()})
+                    assets = sess.run(tf.compat.v1.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
+            src_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[0]))
+            tgt_vocab = os.path.join(six.b(model_dir), b"assets", os.path.basename(assets[1]))
+        else:
+            raise ValueError("Unsupported TensorFlow version %d" % tf_version)
     else:
         if src_vocab is None or tgt_vocab is None:
             raise ValueError("vocabularies must be passed as argument when converting checkpoint")
@@ -35,11 +43,11 @@ def load_model(model_dir, src_vocab=None, tgt_vocab=None):
             name:reader.get_tensor(name)
             for name in six.iterkeys(reader.get_variable_to_shape_map())}
         if os.path.basename(checkpoint).startswith("ckpt"):
-            version = 2
+            model_version = 2
             variables = {
                 name.replace("/.ATTRIBUTES/VARIABLE_VALUE", ""):value
                 for name, value in six.iteritems(variables)}
-    return version, variables, src_vocab, tgt_vocab
+    return model_version, variables, src_vocab, tgt_vocab
 
 
 class OpenNMTTFConverter(Converter):
