@@ -10,7 +10,7 @@ set -e
 
 VERSION=${1:-latest}
 PUSH=${2:-0}
-IMAGE=systran/ctranslate2
+IMAGE=opennmt/ctranslate2
 
 build()
 {
