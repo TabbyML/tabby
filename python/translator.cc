@@ -138,7 +138,7 @@ BOOST_PYTHON_MODULE(translator)
   PyEval_InitThreads();
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
-    py::init<std::string, std::string, int, size_t, size_t>(
+    py::init<std::string, std::string, int, std::string, size_t, size_t>(
       (py::arg("model_path"),
        py::arg("device")="cpu",
        py::arg("device_index")=0,
