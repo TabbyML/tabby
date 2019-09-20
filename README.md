@@ -340,7 +340,7 @@ The code has been generously tested in production settings so people can rely on
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
 * C++ symbols:
-  * `ctranslate2::ModelFactory`
+  * `ctranslate2::models::Model`
   * `ctranslate2::TranslationOptions`
   * `ctranslate2::TranslationResult`
   * `ctranslate2::Translator`

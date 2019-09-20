@@ -49,10 +49,10 @@ public:
                     size_t intra_threads)
     : _translator_pool(inter_threads,
                        intra_threads,
-                       ctranslate2::models::ModelFactory::load(model_path,
-                                                               device,
-                                                               device_index,
-                                                               compute_type)) {
+                       ctranslate2::models::Model::load(model_path,
+                                                        device,
+                                                        device_index,
+                                                        compute_type)) {
   }
 
   void translate_file(const std::string& in_file,
