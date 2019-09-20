@@ -44,13 +44,15 @@ public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
                     int device_index,
+                    const std::string& compute_type,
                     size_t inter_threads,
                     size_t intra_threads)
     : _translator_pool(inter_threads,
                        intra_threads,
                        ctranslate2::models::ModelFactory::load(model_path,
-                                                               ctranslate2::str_to_device(device),
-                                                               device_index)) {
+                                                               device,
+                                                               device_index,
+                                                               compute_type)) {
   }
 
   void translate_file(const std::string& in_file,
@@ -136,10 +138,11 @@ BOOST_PYTHON_MODULE(translator)
   PyEval_InitThreads();
   py::class_<TranslatorWrapper, boost::noncopyable>(
     "Translator",
-    py::init<std::string, std::string, int, size_t, size_t>(
+    py::init<std::string, std::string, int, std::string, size_t, size_t>(
       (py::arg("model_path"),
        py::arg("device")="cpu",
        py::arg("device_index")=0,
+       py::arg("compute_type")="default",
        py::arg("inter_threads")=1,
        py::arg("intra_threads")=4)))
     .def("translate_batch", &TranslatorWrapper::translate_batch,

@@ -20,6 +20,7 @@ namespace ctranslate2 {
 
       Device device() const;
       void set_device(Device type, int index = 0);
+      void set_computType(ComputeType type);
       ScopedDeviceSetter get_scoped_device_setter() const;
 
       const Vocabulary& get_source_vocabulary() const;
@@ -33,6 +34,7 @@ namespace ctranslate2 {
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);
+      StorageView* get_scale(const std::string& scale_name, DataType dataType);
       virtual void finalize();
 
       // Makes new graph to execute this model. Graphs returned by these function
@@ -49,6 +51,9 @@ namespace ctranslate2 {
       const VocabularyMap _vocabulary_map;
       std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
+      ComputeType _computeType = ComputeType::DEFAULT;
+
+      void convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::string, StorageView>& variable_pair, std::vector<std::pair<std::string, StorageView>>& variables_to_add, std::vector<std::string>& variables_to_remove);
     };
 
 
@@ -58,8 +63,14 @@ namespace ctranslate2 {
     class ModelFactory {
     public:
       static std::shared_ptr<Model> load(const std::string& path,
+                                         const std::string& device,
+                                         int device_index = 0,
+                                         const std::string& computeType = "default");
+
+      static std::shared_ptr<Model> load(const std::string& path,
                                          Device device,
-                                         int device_index = 0);
+                                         int device_index = 0,
+                                         ComputeType computeType = ComputeType::DEFAULT);
     };
 
   }

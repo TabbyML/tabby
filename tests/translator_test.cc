@@ -45,15 +45,26 @@ TEST_P(ModelVariantTest, Transliteration) {
   auto params = GetParam();
   const std::string& model_path = params.first;
   DataType expected_dtype = params.second;
-
-  auto model = models::ModelFactory::load(g_data_dir + "/models/" + model_path, Device::CPU);
-  check_weights_dtype(model->get_variables(), expected_dtype);
-
-  Translator translator(model);
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
-  auto result = translator.translate(input);
-  EXPECT_EQ(result.output(), expected);
+
+  std::vector<std::pair<ComputeType, DataType>> type_params;
+  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::DEFAULT, expected_dtype));
+  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::FLOAT, DataType::DT_FLOAT));
+  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT16, DataType::DT_INT16));
+
+#ifdef WITH_MKLDNN
+  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT8, DataType::DT_INT8));
+#endif
+
+  for (const auto& t : type_params) {
+    // compute type: none
+    auto model = models::ModelFactory::load(g_data_dir + "/models/" + model_path, Device::CPU, 0, t.first);
+    check_weights_dtype(model->get_variables(), t.second);
+    Translator translator(model);
+    auto result = translator.translate(input);
+    EXPECT_EQ(result.output(), expected);
+  }
 }
 
 INSTANTIATE_TEST_CASE_P(

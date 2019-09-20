@@ -8,6 +8,13 @@
 
 namespace ctranslate2 {
 
+  ComputeType str_to_compute_type(const std::string& compute_type) {
+    if (compute_type == "int8") return ctranslate2::ComputeType::INT8;
+    if (compute_type == "int16") return  ctranslate2::ComputeType::INT16;
+    if (compute_type == "float") return ctranslate2::ComputeType::FLOAT;
+    return ComputeType::DEFAULT;
+  }
+
   Device str_to_device(const std::string& device) {
 #ifdef WITH_CUDA
     if (device == "cuda" || device == "CUDA")

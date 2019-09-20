@@ -30,6 +30,7 @@ translator = ctranslate2.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # Can be "cpu", "cuda", or "auto".
     device_index=0,          # The index of the device to place this translator on.
+    compute_type="default"   # The final data type to convert. Can be "default", "int8", "int16" and "float"
     inter_threads=1,         # Maximum number of concurrent translations.
     intra_threads=4)         # Threads to use per translation.
 

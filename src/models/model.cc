@@ -55,6 +55,10 @@ namespace ctranslate2 {
       _device_index = index;
     }
 
+    void Model::set_computType(ComputeType type) {
+      _computeType = type;
+    }
+
     ScopedDeviceSetter Model::get_scoped_device_setter() const {
       return ScopedDeviceSetter(_device, _device_index);
     }
@@ -95,33 +99,40 @@ namespace ctranslate2 {
                               std::forward_as_tuple(std::move(variable)));
     }
 
-    void Model::finalize() {
-      bool support_int8 = mayiuse_int8(_device);
-      bool support_int16 = mayiuse_int16(_device);
+    StorageView* Model::get_scale(const std::string& scale_name, DataType dataType) {
+      StorageView *scale = nullptr;
+      auto scale_it = _variable_index.find(scale_name);
+      if (scale_it != _variable_index.end())
+      scale = &scale_it->second;
 
-      std::vector<std::string> variables_to_remove;
+      // Compatibility with int16 models without a saved scale.
+      if (scale == nullptr) {
+        if (dataType == DataType::DT_INT16) {
+          StorageView compat_scale(ops::Quantize::default_int16_scale);
+          Model::register_variable(scale_name, compat_scale);
+          scale = &_variable_index.at(scale_name);
+        }
+      }
 
-      // First pass to possibly cast to a supported type.
-      for (auto& pair : _variable_index) {
-        const auto& name = pair.first;
-        auto& variable = pair.second;
+      if (!scale) {
+        throw std::invalid_argument("Model data is uncompatible. scale is NULL.");
+      }
 
-        bool is_int8 = variable.dtype() == DataType::DT_INT8;
-        bool is_int16 = variable.dtype() == DataType::DT_INT16;
+      return scale;
+    }
 
+    void Model::convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::string, StorageView>& variable_pair, std::vector<std::pair<std::string, StorageView>>& variables_to_add, std::vector<std::string>& variables_to_remove) {
+      const auto& name = variable_pair.first;
+      auto& variable = variable_pair.second;
+
+      bool is_int8 = variable.dtype() == DataType::DT_INT8;
+      bool is_int16 = variable.dtype() == DataType::DT_INT16;
+      bool is_float = variable.dtype() == DataType::DT_FLOAT;
+
+      std::string scale_name = name + "_scale";
+      if (_computeType == ComputeType::DEFAULT) {
         if (is_int8 || is_int16) {
-          StorageView* scale = nullptr;
-          std::string scale_name = name + "_scale";
-          auto scale_it = _variable_index.find(scale_name);
-          if (scale_it != _variable_index.end())
-            scale = &scale_it->second;
-
-          // Compatibility with int16 models without a saved scale.
-          if (is_int16 && scale == nullptr) {
-            StorageView compat_scale(ops::Quantize::default_int16_scale);
-            Model::register_variable(scale_name, compat_scale);
-            scale = &_variable_index.at(scale_name);
-          }
+          StorageView *scale = get_scale(scale_name, variable.dtype());
 
           // If quantized variables are not supported, fallback to float32.
           if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
@@ -134,16 +145,88 @@ namespace ctranslate2 {
               StorageView variable_int16(DataType::DT_INT16);
               ops::Quantize()(variable, variable_int16, *scale);
               swap(variable, variable_int16);
-            } else {
+            } else { // is_int16 or !support_int16
               variables_to_remove.emplace_back(std::move(scale_name));
             }
           }
+        }
+      } else if (_computeType == ComputeType::FLOAT) {
+
+        if (is_float) {
+          // do nothing
+        } else { // is_int8 || is_int16
+          StorageView* scale = get_scale(scale_name, variable.dtype());
+
+          // fallback to float32
+          StorageView variable_float;
+          ops::Dequantize()(variable, *scale, variable_float);
+          swap(variable, variable_float);
+        }
+
+      } else if ((_computeType == ComputeType::INT16 && is_int16) ||
+                (_computeType == ComputeType::INT8 && is_int8)) {
+        // Make & register a scale if the scale is absent
+        get_scale(scale_name, variable.dtype());
+
+      } else {
+        if (is_float) {
+
+          StorageView scale(DataType::DT_FLOAT);
+
+          // from float32 to int16
+          StorageView variable_int(_computeType == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
+          ops::Quantize()(variable, variable_int, scale);
+          swap(variable, variable_int);
+
+          variables_to_add.emplace_back(make_pair(scale_name, scale));
+
+        } else { // DataType::DT_INT8 or DataType::DT_INT16
+          StorageView *scale = get_scale(scale_name, variable.dtype());
+
+          // from int8 to float32 firstly
+          StorageView variable_float;
+          ops::Dequantize()(variable, *scale, variable_float);
+          swap(variable, variable_float);
+
+          // from float to int
+          StorageView variable_int(_computeType == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
+          ops::Quantize()(variable, variable_int, *scale);
+          swap(variable, variable_int);
+        }
+      }
+    }
+
+    void Model::finalize() {
+      bool support_int8 = mayiuse_int8(_device);
+      bool support_int16 = mayiuse_int16(_device);
+
+      std::vector<std::string> variables_to_remove;
+      std::vector<std::pair<std::string, StorageView>> variables_to_add;
+
+      // Make sure CPU supports the demanded type
+      if ((_computeType == ComputeType::INT8) && (!support_int8)) {
+        throw std::invalid_argument("Demanded compute type is int8, but device doesn't support efficient int8 computation.");
+      } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
+        throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
+      }
+
+      for (auto& vpair : _variable_index) {
+        // only name contains "weight" (but not "weight_scale") will be treated
+        if (vpair.first.find("weight_scale") == std::string::npos && vpair.first.find("weight") != std::string::npos) {
+          convert_data_if_need(support_int8, support_int16, vpair, variables_to_add, variables_to_remove);
         }
       }
 
       // Remove no longer needed variables.
       for (const auto& name : variables_to_remove)
         _variable_index.erase(name);
+
+      // Add needed variables.
+      for (const auto& vpair : variables_to_add) {
+        _variable_index.emplace(std::piecewise_construct,
+                                std::forward_as_tuple(vpair.first),
+                                std::forward_as_tuple(vpair.second));
+      }
 
       // Second pass to move variables on the target device.
       auto scoped_device_setter = get_scoped_device_setter();
@@ -158,8 +241,18 @@ namespace ctranslate2 {
     }
 
     std::shared_ptr<Model> ModelFactory::load(const std::string& path,
+                                              const std::string& device,
+                                              int device_index,
+                                              const std::string& computeType) {
+
+      return load(path, str_to_device(device), device_index, str_to_compute_type(computeType));
+    }
+
+    std::shared_ptr<Model> ModelFactory::load(const std::string& path,
                                               Device device,
-                                              int device_index) {
+                                              int device_index,
+                                              ComputeType computeType
+                                              ) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
@@ -192,6 +285,7 @@ namespace ctranslate2 {
         throw std::invalid_argument("Unsupported model spec " + spec);
 
       model->set_device(device, device_index);
+      model->set_computType(computeType);
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "
