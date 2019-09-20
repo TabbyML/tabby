@@ -12,6 +12,8 @@ namespace ctranslate2 {
     INT16
   };
 
+  ComputeType str_to_compute_type(const std::string& compute_type);
+
   enum class Device {
     CPU,
     CUDA

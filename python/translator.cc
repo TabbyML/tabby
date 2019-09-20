@@ -44,13 +44,15 @@ public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
                     int device_index,
+                    const std::string& compute_type,
                     size_t inter_threads,
                     size_t intra_threads)
     : _translator_pool(inter_threads,
                        intra_threads,
                        ctranslate2::models::ModelFactory::load(model_path,
-                                                               ctranslate2::str_to_device(device),
-                                                               device_index)) {
+                                                               device,
+                                                               device_index,
+                                                               compute_type)) {
   }
 
   void translate_file(const std::string& in_file,

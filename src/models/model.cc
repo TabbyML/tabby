@@ -241,6 +241,14 @@ namespace ctranslate2 {
     }
 
     std::shared_ptr<Model> ModelFactory::load(const std::string& path,
+                                              const std::string& device,
+                                              int device_index,
+                                              const std::string& computeType) {
+
+      return load(path, str_to_device(device), device_index, str_to_compute_type(computeType));
+    }
+
+    std::shared_ptr<Model> ModelFactory::load(const std::string& path,
                                               Device device,
                                               int device_index,
                                               ComputeType computeType
