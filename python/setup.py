@@ -28,5 +28,7 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     ext_modules=[ctranslate2_module],
-    install_requires=[]
+    install_requires=[
+        "six",
+    ]
 )

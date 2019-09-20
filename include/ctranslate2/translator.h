@@ -27,29 +27,25 @@ namespace ctranslate2 {
     Translator(const std::shared_ptr<models::Model>& model);
     Translator(const Translator& other);
 
-    // Sets the number of OpenMP threads for the active thread.
-    void set_num_threads(size_t num_threads) const;
-
     TranslationResult
     translate(const std::vector<std::string>& tokens);
     TranslationResult
     translate(const std::vector<std::string>& tokens,
               const TranslationOptions& options);
+    TranslationResult
+    translate_with_prefix(const std::vector<std::string>& source,
+                          const std::vector<std::string>& target_prefix,
+                          const TranslationOptions& options);
 
     std::vector<TranslationResult>
     translate_batch(const std::vector<std::vector<std::string>>& tokens);
     std::vector<TranslationResult>
     translate_batch(const std::vector<std::vector<std::string>>& tokens,
                     const TranslationOptions& options);
-
-    TranslationResult
-    translate_with_prefix(const std::vector<std::string>& source,
-                          const std::vector<std::string>& target_prefix,
-                          const TranslationOptions& options);
     std::vector<TranslationResult>
-    translate_with_prefix(const std::vector<std::vector<std::string>>& source,
-                          const std::vector<std::vector<std::string>>& target_prefix,
-                          const TranslationOptions& options);
+    translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
+                                const std::vector<std::vector<std::string>>& target_prefix,
+                                const TranslationOptions& options);
 
     Device device() const;
 

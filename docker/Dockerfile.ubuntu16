@@ -20,8 +20,8 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
 ENV MKL_VERSION=2019
-ENV MKL_UPDATE=4
-ENV MKL_BUILD=070
+ENV MKL_UPDATE=5
+ENV MKL_BUILD=075
 RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
     apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
     rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
@@ -33,7 +33,7 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     rm -rf /var/lib/apt/lists/*
 
 ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_VERSION=0.20.1
+ENV MKLDNN_VERSION=0.21
 RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \

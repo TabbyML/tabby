@@ -1,7 +1,6 @@
 import argparse
-import torch
-import numpy as np
 
+from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import catalog, transformer_spec
 
@@ -19,18 +18,18 @@ class OpenNMTPyConverter(Converter):
                 output_file.write(word)
                 output_file.write(b"\n")
 
-    def _load(self, spec_class):
+    def _load(self, model_spec):
+        import torch
         checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"]["0.bias"]
-        if spec_class in (catalog.TransformerBase, catalog.TransformerBig):
-            spec = spec_class()
-            set_transformer_spec(spec, variables)
+        if isinstance(model_spec, (catalog.TransformerBase, catalog.TransformerBig)):
+            set_transformer_spec(model_spec, variables)
         else:
             raise NotImplementedError()
         vocab = checkpoint["vocab"]
-        return spec, vocab[0][1], vocab[1][1]
+        return vocab[0][1], vocab[1][1]
 
 
 def set_transformer_spec(spec, variables):
@@ -81,13 +80,13 @@ def set_multi_head_attention(spec, variables, scope, self_attention=False):
         set_linear(split_layers[0], variables, "%s.linear_query" % scope)
         set_linear(split_layers[1], variables, "%s.linear_keys" % scope)
         set_linear(split_layers[2], variables, "%s.linear_values" % scope)
-        _fuse_linear(spec.linear[0], split_layers)
+        utils.fuse_linear(spec.linear[0], split_layers)
     else:
         set_linear(spec.linear[0], variables, "%s.linear_query" % scope)
         split_layers = [transformer_spec.LinearSpec() for _ in range(2)]
         set_linear(split_layers[0], variables, "%s.linear_keys" % scope)
         set_linear(split_layers[1], variables, "%s.linear_values" % scope)
-        _fuse_linear(spec.linear[1], split_layers)
+        utils.fuse_linear(spec.linear[1], split_layers)
     set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
 
 def set_layer_norm(spec, variables, scope):
@@ -102,12 +101,9 @@ def set_embeddings(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
 
 def set_position_encodings(spec, variables, scope):
-    spec.encodings = np.squeeze(_get_variable(variables, "%s.pe" % scope))
+    spec.encodings = _get_variable(variables, "%s.pe" % scope).squeeze()
 
 
-def _fuse_linear(spec, layers):
-    spec.weight = np.concatenate([layer.weight for layer in layers])
-    spec.bias = np.concatenate([layer.bias for layer in layers])
 
 def _get_variable(variables, name):
     return variables[name].numpy()

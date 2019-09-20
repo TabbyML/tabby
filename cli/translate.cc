@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
      "Also output the n-best hypotheses.")
     ("with_score", po::bool_switch()->default_value(false),
      "Also output translation scores.")
-    ("length_penalty", po::value<float>()->default_value(0.6),
+    ("length_penalty", po::value<float>()->default_value(0),
      "Length penalty to apply during beam search")
     ("max_sent_length", po::value<size_t>()->default_value(250),
      "Maximum sentence length to produce.")

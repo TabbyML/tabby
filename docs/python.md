@@ -1,11 +1,32 @@
 # Python
 
-## API
+## Model conversion API
 
 ```python
-from ctranslate2 import translator
+import ctranslate2
 
-t = translator.Translator(
+converter = ctranslate2.converters.OpenNMTTFConverter(
+    model_path: str,         # Path to a OpenNMT-tf checkpoint or SavedModel.
+    src_vocab=None,          # Path to the source vocabulary (required for checkpoints).
+    tgt_vocab=None)          # Path to the target vocabulary (required for checkpoints).
+
+converter = ctranslate2.converters.OpenNMTPyConverter(
+    model_path: str)         # Path to the OpenNMT-py model.
+
+output_dir = converter.convert(
+    output_dir: str,         # Path to the output directory.
+    model_spec: LayerSpec,   # A model specification instance from ctranslate2.specs.
+    vmap=None,               # Path to a vocabulary mapping file.
+    quantization=None,       # Weights quantization, can be "int8" or "int16".
+    force=False)             # Override output_dir if it exists.
+```
+
+## Translation API
+
+```python
+import ctranslate2
+
+translator = ctranslate2.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # Can be "cpu", "cuda", or "auto".
     device_index=0,          # The index of the device to place this translator on.
@@ -17,7 +38,7 @@ t = translator.Translator(
 # * "score"
 # * "tokens"
 # * "attention" (if return_attention is set to True)
-output = t.translate_batch(
+output = translator.translate_batch(
     source: list,            # A list of list of string.
     target_prefix=None,      # An optional list of list of string.
     beam_size=4,             # Beam size.
@@ -28,7 +49,7 @@ output = t.translate_batch(
     use_vmap=False,          # Use the VMAP saved in this model.
     return_attention=False)  # Also return the attention vectors.
 
-t.translate_file(
+translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to translate.
@@ -40,5 +61,5 @@ t.translate_file(
     use_vmap=False,          # Use the VMAP saved in this model.
     with_scores=False)       # Also output predictions scores.
 
-del t                        # Release the translator resources.
+del translator               # Release the translator resources.
 ```

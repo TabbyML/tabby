@@ -20,6 +20,7 @@ namespace ctranslate2 {
           if (x.device() != Device::CPU)
             throw std::invalid_argument("INT16 quantization is only supported on CPU");
           // INT16 quantization simply rescales by a constant and casts input data.
+          // TODO: possibly compute an adaptive scale similar to what is done in model_spec.py
           scale = default_int16_scale;
           primitives<Device::CPU>::quantize(x.data<float>(),
                                             y.data<int16_t>(),

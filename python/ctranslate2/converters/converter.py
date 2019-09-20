@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import abc
 import inspect
 import os
@@ -10,8 +8,8 @@ from ctranslate2.specs import catalog
 
 
 def _list_specs():
-  return {symbol:getattr(catalog, symbol) for symbol in dir(catalog)
-          if inspect.isclass(getattr(catalog, symbol)) and not symbol.startswith("_")}
+    return {symbol:getattr(catalog, symbol) for symbol in dir(catalog)
+            if inspect.isclass(getattr(catalog, symbol)) and not symbol.startswith("_")}
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -47,15 +45,17 @@ class Converter(object):
             else:
                 shutil.rmtree(output_dir)
         os.makedirs(output_dir)
-        spec_class = _list_specs()[model_spec]
+        if isinstance(model_spec, six.string_types):
+          spec_class = _list_specs()[model_spec]
+          model_spec = spec_class()
         try:
-            spec, src_vocab, tgt_vocab = self._load(spec_class)
+            src_vocab, tgt_vocab = self._load(model_spec)
         except NotImplementedError:
             raise NotImplementedError("This converter does not support the model %s" % model_spec)
-        spec.validate()
+        model_spec.validate()
         if quantization is not None:
-            spec.quantize(quantization)
-        spec.serialize(os.path.join(output_dir, "model.bin"))
+            model_spec.quantize(quantization)
+        model_spec.serialize(os.path.join(output_dir, "model.bin"))
         if vmap is not None:
             shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
         self._save_vocabulary(src_vocab, os.path.join(output_dir, "source_vocabulary.txt"))
@@ -63,7 +63,7 @@ class Converter(object):
         return output_dir
 
     @abc.abstractmethod
-    def _load(self, model_type):
+    def _load(self, model_spec):
         raise NotImplementedError()
 
     @abc.abstractmethod

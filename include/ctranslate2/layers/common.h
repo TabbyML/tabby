@@ -30,6 +30,7 @@ namespace ctranslate2 {
       const StorageView* _qscale;
       StorageView _partial_weight;
       StorageView _partial_bias;
+      StorageView _partial_qscale;
     };
 
     class LayerNorm

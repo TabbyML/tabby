@@ -86,7 +86,7 @@ public:
                            size_t min_decoding_length,
                            bool use_vmap,
                            bool return_attention) {
-    if (source == py::object())
+    if (source == py::object() || py::len(source) == 0)
       return py::list();
 
     auto options = ctranslate2::TranslationOptions();
@@ -150,7 +150,7 @@ BOOST_PYTHON_MODULE(translator)
           py::arg("target_prefix")=py::object(),
           py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
-          py::arg("length_penalty")=0.6,
+          py::arg("length_penalty")=0,
           py::arg("max_decoding_length")=250,
           py::arg("min_decoding_length")=1,
           py::arg("use_vmap")=false,
@@ -161,7 +161,7 @@ BOOST_PYTHON_MODULE(translator)
           py::arg("max_batch_size"),
           py::arg("beam_size")=4,
           py::arg("num_hypotheses")=1,
-          py::arg("length_penalty")=0.6,
+          py::arg("length_penalty")=0,
           py::arg("max_decoding_length")=250,
           py::arg("min_decoding_length")=1,
           py::arg("use_vmap")=false,

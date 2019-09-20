@@ -83,6 +83,7 @@ namespace ctranslate2 {
 
     StorageView gather_indices(DataType::DT_INT32);
     StorageView topk_ids(alive_seq);
+    StorageView topk_scores;
     StorageView topk_log_probs({beam_size}, std::numeric_limits<float>::lowest());
     topk_log_probs.at<float>(0) = 0;
     tile(topk_log_probs, StorageView({1}, static_cast<int32_t>(batch_size)));
@@ -112,7 +113,7 @@ namespace ctranslate2 {
     StorageView logits(device);
     StorageView log_probs(device);
     StorageView topk_ids_device(device, topk_ids.dtype());
-    StorageView topk_log_probs_device(device);
+    StorageView topk_scores_device(device);
     StorageView gather_indices_device(device, DataType::DT_INT32);
 
     StorageView alive_attention;
@@ -143,7 +144,7 @@ namespace ctranslate2 {
       float length_penalty_weight = 1.0;
       if (length_penalty != 0) {
         length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
-        DEVICE_DISPATCH(log_probs.device(), primitives<D>::mul(1.f / length_penalty_weight, log_probs.data<float>(), log_probs.size()));
+        ops::Mul()(log_probs, StorageView(1.f / length_penalty_weight), log_probs);
       }
 
       // Penalize end_token, if configured.
@@ -154,16 +155,17 @@ namespace ctranslate2 {
       log_probs.reshape({cur_batch_size, beam_size * vocabulary_size});
 
       // TopK candidates.
-      topk_op(log_probs, topk_log_probs_device, topk_ids_device);
+      topk_op(log_probs, topk_scores_device, topk_ids_device);
 
-      topk_log_probs = topk_log_probs_device.to(Device::CPU);
+      topk_scores = topk_scores_device.to(Device::CPU);
       topk_ids = topk_ids_device.to(Device::CPU);
       if (attention)
         attention_step.copy_from(attention_step_device);
 
+      topk_log_probs = topk_scores;
       // Recover the true log probs if length penalty was applied.
       if (length_penalty != 0)
-        primitives<>::mul(length_penalty_weight, topk_log_probs.data<float>(), topk_log_probs.size());
+        ops::Mul()(topk_log_probs, StorageView(length_penalty_weight), topk_log_probs);
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * beam_size});
@@ -185,6 +187,7 @@ namespace ctranslate2 {
       StorageView cur_alive_seq(std::move(alive_seq));
       ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
       topk_log_probs.reshape({cur_batch_size, beam_size});
+      topk_scores.reshape({cur_batch_size, beam_size});
       topk_ids.reshape({cur_batch_size, beam_size});
       if (attention) {
         if (alive_attention.empty())
@@ -210,7 +213,7 @@ namespace ctranslate2 {
               || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
-            float score = topk_log_probs.at<float>({i, k});
+            float score = topk_scores.at<float>({i, k});
             // Prevent this beam from advancing in the next step.
             topk_log_probs.at<float>({i, k}) = -1e10;
             // Save the finished hypothesis only if it is still a candidate.

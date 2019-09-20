@@ -2,16 +2,15 @@ job0:
   image: ubuntu:18.04
   script:
     - apt-get update
-    - apt-get install -y cmake g++ wget gnupg
+    - apt-get install -y cmake g++ wget gnupg python-pip libboost-program-options-dev libboost-python-dev
     - export CXX=/usr/bin/g++
     - mkdir build
     - cd build
     - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
     - apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
     - sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
-    - apt-get install -y libboost-program-options-dev
     - apt-get update
-    - apt-get install -y intel-mkl-2019.4-070
+    - apt-get install -y intel-mkl-64bit-2019.5-075
     - wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz
     - tar xvzf release-1.8.1.tar.gz
     - cd googletest-release-1.8.1
@@ -20,41 +19,13 @@ job0:
     - ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
     - ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
     - cd ../..
-    - cmake -G 'Unix Makefiles' .
-    - make -j
+    - cmake -G 'Unix Makefiles' -DCMAKE_INSTALL_PREFIX=$PWD/install .
+    - make -j2 install
     - ./tests/ctranslate2_test ./tests/data/
-
-job1:
-  image: ubuntu:16.04
-  script:
-    - apt-get update
-    - apt-get install -y build-essential
-    - apt-get install -y wget gnupg
-    - export CXX=/usr/bin/g++
-    - mkdir build
-    - cd build
-    - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-    - apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-    - sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
-    - apt-get install -y libboost-program-options-dev
-    - apt-get install -y apt-transport-https
-    - apt-get update
-    - apt-get install -y intel-mkl-2019.4-070
-    - wget https://github.com/google/googletest/archive/release-1.8.1.tar.gz
-    - tar xvzf release-1.8.1.tar.gz
-    - cd googletest-release-1.8.1
-    - wget https://cmake.org/files/v3.14/cmake-3.14.5.tar.gz
-    - tar -xzvf cmake-3.14.5.tar.gz
-    - cd cmake-3.14.5
-    - ./bootstrap
-    - make -j4
-    - make install
-    - cd ..
-    - cmake -G 'Unix Makefiles' .
-    - make install
-    - ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
-    - ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
-    - cd ../..
-    - cmake -G 'Unix Makefiles' .
-    - make -j
-    - ./tests/ctranslate2_test ./tests/data/
+    - cd python
+    - CTRANSLATE2_ROOT=$PWD/../install CFLAGS="-DWITH_MKL=ON" python setup.py bdist_wheel
+    - pip install dist/*.whl
+    - pip install -r tests/requirements.txt
+    - wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
+    - tar xf *.tar.gz -C ../tests/data/models/
+    - LD_LIBRARY_PATH="$PWD/../install/lib;/opt/intel/lib/intel64" pytest tests/test.py
