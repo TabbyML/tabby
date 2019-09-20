@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     ("help", "Display available options.")
     ("model", po::value<std::string>(),
      "Path to the CTranslate2 model directory.")
-    ("compute_type", po::value<std::string>()->default_value("none"),
+    ("compute_type", po::value<std::string>()->default_value("default"),
      "Force the model type as \"float\", \"int16\" or \"int8\"")
     ("src", po::value<std::string>(),
      "Path to the file to translate (read from the standard input if not set).")
