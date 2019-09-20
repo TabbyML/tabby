@@ -53,7 +53,7 @@ namespace ctranslate2 {
       size_t _spec_revision;
       ComputeType _computeType = ComputeType::DEFAULT;
 
-      void convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::basic_string<char>, StorageView>& variable_pair, std::vector<std::string>& variables_to_remove);
+      void convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::string, StorageView>& variable_pair, std::vector<std::pair<std::string, StorageView>>& variables_to_add, std::vector<std::string>& variables_to_remove);
     };
 
 

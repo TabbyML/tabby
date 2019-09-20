@@ -121,7 +121,7 @@ namespace ctranslate2 {
       return scale;
     }
 
-    void Model::convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::basic_string<char>, StorageView>& variable_pair, std::vector<std::string>& variables_to_remove) {
+    void Model::convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::string, StorageView>& variable_pair, std::vector<std::pair<std::string, StorageView>>& variables_to_add, std::vector<std::string>& variables_to_remove) {
       const auto& name = variable_pair.first;
       auto& variable = variable_pair.second;
 
@@ -151,6 +151,7 @@ namespace ctranslate2 {
           }
         }
       } else if (_computeType == ComputeType::FLOAT) {
+
         if (is_float) {
           // do nothing
         } else { // is_int8 || is_int16
@@ -164,9 +165,12 @@ namespace ctranslate2 {
 
       } else if ((_computeType == ComputeType::INT16 && is_int16) ||
                 (_computeType == ComputeType::INT8 && is_int8)) {
-        // do nothing
+        // Make & register a scale if the scale is absent
+        get_scale(scale_name, variable.dtype());
+
       } else {
         if (is_float) {
+
           StorageView scale(DataType::DT_FLOAT);
 
           // from float32 to int16
@@ -174,8 +178,9 @@ namespace ctranslate2 {
           ops::Quantize()(variable, variable_int, scale);
           swap(variable, variable_int);
 
-        } else { // DataType::DT_INT8 or DataType::DT_INT16
+          variables_to_add.emplace_back(make_pair(scale_name, scale));
 
+        } else { // DataType::DT_INT8 or DataType::DT_INT16
           StorageView *scale = get_scale(scale_name, variable.dtype());
 
           // from int8 to float32 firstly
@@ -196,24 +201,32 @@ namespace ctranslate2 {
       bool support_int16 = mayiuse_int16(_device);
 
       std::vector<std::string> variables_to_remove;
+      std::vector<std::pair<std::string, StorageView>> variables_to_add;
 
-      // First pass to possibly cast to a supported type.
+      // Make sure CPU supports the demanded type
+      if ((_computeType == ComputeType::INT8) && (!support_int8)) {
+        throw std::invalid_argument("Demanded compute type is int8, but device doesn't support efficient int8 computation.");
+      } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
+        throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
+      }
+
       for (auto& vpair : _variable_index) {
-
-
-        // Make sure CPU supports the demanded type
-        if ((_computeType == ComputeType::INT8) && (!support_int8)) {
-          throw std::invalid_argument("Demanded compute type is int8, but device doesn't support efficient int8 computation.");
-        } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
-          throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
+        // only name contains "weight" (but not "weight_scale") will be treated
+        if (vpair.first.find("weight_scale") == std::string::npos && vpair.first.find("weight") != std::string::npos) {
+          convert_data_if_need(support_int8, support_int16, vpair, variables_to_add, variables_to_remove);
         }
-
-        convert_data_if_need(support_int8, support_int16, vpair, variables_to_remove);
       }
 
       // Remove no longer needed variables.
       for (const auto& name : variables_to_remove)
         _variable_index.erase(name);
+
+      // Add needed variables.
+      for (const auto& vpair : variables_to_add) {
+        _variable_index.emplace(std::piecewise_construct,
+                                std::forward_as_tuple(vpair.first),
+                                std::forward_as_tuple(vpair.second));
+      }
 
       // Second pass to move variables on the target device.
       auto scoped_device_setter = get_scoped_device_setter();
