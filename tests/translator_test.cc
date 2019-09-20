@@ -59,7 +59,7 @@ TEST_P(ModelVariantTest, Transliteration) {
 
   for (const auto& t : type_params) {
     // compute type: none
-    auto model = models::ModelFactory::load(g_data_dir + "/models/" + model_path, Device::CPU, 0, t.first);
+    auto model = models::Model::load(g_data_dir + "/models/" + model_path, Device::CPU, 0, t.first);
     check_weights_dtype(model->get_variables(), t.second);
     Translator translator(model);
     auto result = translator.translate(input);

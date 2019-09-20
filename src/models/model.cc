@@ -240,19 +240,18 @@ namespace ctranslate2 {
       }
     }
 
-    std::shared_ptr<Model> ModelFactory::load(const std::string& path,
-                                              const std::string& device,
-                                              int device_index,
-                                              const std::string& computeType) {
+    std::shared_ptr<Model> Model::load(const std::string& path,
+                                       const std::string& device,
+                                       int device_index,
+                                       const std::string& computeType) {
 
       return load(path, str_to_device(device), device_index, str_to_compute_type(computeType));
     }
 
-    std::shared_ptr<Model> ModelFactory::load(const std::string& path,
-                                              Device device,
-                                              int device_index,
-                                              ComputeType computeType
-                                              ) {
+    std::shared_ptr<Model> Model::load(const std::string& path,
+                                       Device device,
+                                       int device_index,
+                                       ComputeType computeType) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
