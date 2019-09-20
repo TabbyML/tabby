@@ -107,34 +107,45 @@ See the existing converters implementation which could be used as a template.
 
 ## Translating
 
-Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized.
+Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized. The GPU image supports both CPU and GPU execution:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu16
+docker pull opennmt/ctranslate2:latest-centos7-gpu
 ```
 
 The library has several entrypoints which are briefly introduced below. The examples use the English-German model prepared in [Converting models](#converting-models). This model requires a SentencePiece tokenization.
 
 ### With the translation client
 
+#### CPU
+
 ```bash
 echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu16 --model /data/ende_ctranslate2
+    opennmt/ctranslate2:latest-centos7-gpu --model /data/ende_ctranslate2
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-ubuntu16 --help` for additional options.*
+#### GPU
+
+```bash
+echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
+    opennmt/ctranslate2:latest-centos7-gpu --model /data/ende_ctranslate2 --device cuda
+```
+
+*See `docker run --rm opennmt/ctranslate2:latest-centos7-gpu --help` for additional options.*
 
 ### With the Python API
 
 ```python
-from ctranslate2 import translator
-t = translator.Translator("ende_ctranslate2/")
+import ctranslate2
+translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 
 input_tokens = ["▁H", "ello", "▁world", "!"]
-result = t.translate_batch([input_tokens])
+result = translator.translate_batch([input_tokens])
 
 print(result[0][0])
 ```
+
+The `ctranslate2` Python package is already installed in the Docker images.
 
 *See the [Python reference](docs/python.md) for more advanced usage.*
 
