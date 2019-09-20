@@ -56,7 +56,9 @@ class LayerSpec(object):
         def _quantize(spec, name, value):
             if "weight" in name:
                 if quantization == "int16":
-                    scale = np.dtype(value.dtype).type(1000)
+                    # Represent the value with 10 bits so the multiplication is 20 bits
+                    # and 12 bits are left for accumulation.
+                    scale = np.dtype(value.dtype).type(2**10 / np.amax(np.absolute(value)))
                     value *= scale
                     value = np.clip(value, np.iinfo(np.int16).min, np.iinfo(np.int16).max)
                     value = value.astype(np.int16)
