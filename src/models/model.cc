@@ -121,10 +121,13 @@ namespace ctranslate2 {
       return scale;
     }
 
-    void Model::convert_data_if_need(bool support_int8, bool support_int16, std::pair<const std::string, StorageView>& variable_pair, std::vector<std::pair<std::string, StorageView>>& variables_to_add, std::vector<std::string>& variables_to_remove) {
-      const auto& name = variable_pair.first;
-      auto& variable = variable_pair.second;
-
+    void
+    Model::convert_data_if_need(bool support_int8,
+                                bool support_int16,
+                                const std::string& name,
+                                StorageView& variable,
+                                std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                                std::vector<std::string>& variables_to_remove) {
       bool is_int8 = variable.dtype() == DataType::DT_INT8;
       bool is_int16 = variable.dtype() == DataType::DT_INT16;
       bool is_float = variable.dtype() == DataType::DT_FLOAT;
@@ -214,10 +217,19 @@ namespace ctranslate2 {
         throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
       }
 
-      for (auto& vpair : _variable_index) {
+      for (auto& variable_pair : _variable_index) {
+        const auto& name = variable_pair.first;
+        auto& variable = variable_pair.second;
+
         // only name contains "weight" (but not "weight_scale") will be treated
-        if (vpair.first.find("weight_scale") == std::string::npos && vpair.first.find("weight") != std::string::npos) {
-          convert_data_if_need(support_int8, support_int16, vpair, variables_to_add, variables_to_remove);
+        if (name.find("weight_scale") == std::string::npos
+            && name.find("weight") != std::string::npos) {
+          convert_data_if_need(support_int8,
+                               support_int16,
+                               name,
+                               variable,
+                               variables_to_add,
+                               variables_to_remove);
         }
       }
 
