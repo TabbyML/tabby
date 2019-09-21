@@ -238,10 +238,10 @@ namespace ctranslate2 {
         _variable_index.erase(name);
 
       // Add needed variables.
-      for (const auto& vpair : variables_to_add) {
+      for (auto& variable_pair : variables_to_add) {
         _variable_index.emplace(std::piecewise_construct,
-                                std::forward_as_tuple(vpair.first),
-                                std::forward_as_tuple(vpair.second));
+                                std::forward_as_tuple(std::move(variable_pair.first)),
+                                std::forward_as_tuple(std::move(variable_pair.second)));
       }
 
       // Second pass to move variables on the target device.
