@@ -177,7 +177,13 @@ int main() {
 
 ### Docker images
 
-See the `docker/` directory.
+The Docker images are self contained and build the code from the active directory. The `build` command should be run from the project root directory, e.g.:
+
+```bash
+docker build -t opennmt/ctranslate2:latest-ubuntu16 -f docker/Dockerfile.ubuntu16 .
+```
+
+See the `docker/` directory for available images.
 
 ### Binaries (Ubuntu)
 
