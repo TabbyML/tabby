@@ -7,7 +7,19 @@ namespace ctranslate2 {
 
     class Quantize : public Op {
     public:
+      enum class ScaleType {
+        GLOBAL,
+        PER_LAYER,
+        PER_BATCH
+      };
+
       static const StorageView default_int16_scale;
+
+      Quantize(ScaleType int16_scale_type = ScaleType::GLOBAL)
+        : _int16_scale_type(int16_scale_type) {
+        if (int16_scale_type != ScaleType::GLOBAL && int16_scale_type != ScaleType::PER_LAYER)
+          throw std::invalid_argument("INT16 quantization only supports GLOBAL and PER_LAYER scales");
+      }
 
       void operator()(const std::vector<StorageView*>& inputs,
                       std::vector<StorageView*>& outputs) const override {
@@ -20,8 +32,14 @@ namespace ctranslate2 {
           if (x.device() != Device::CPU)
             throw std::invalid_argument("INT16 quantization is only supported on CPU");
           // INT16 quantization simply rescales by a constant and casts input data.
-          // TODO: possibly compute an adaptive scale similar to what is done in model_spec.py
-          scale = default_int16_scale;
+          if (_int16_scale_type == ScaleType::GLOBAL)
+            scale = default_int16_scale;
+          else if (_int16_scale_type == ScaleType::PER_LAYER) {
+            // The idea is to use 10 bits for the input so that the multiplication is 20
+            // bits which gives 12 bits left for accumulation.
+            auto max = primitives<Device::CPU>::amax(x.data<float>(), x.size());
+            scale = StorageView(static_cast<float>(1 << 10) / max);
+          }
           primitives<Device::CPU>::quantize(x.data<float>(),
                                             y.data<int16_t>(),
                                             x.size(),
@@ -43,6 +61,9 @@ namespace ctranslate2 {
           throw std::invalid_argument("invalid data type");
         }
       }
+
+    private:
+      ScaleType _int16_scale_type;
     };
 
   }

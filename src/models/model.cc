@@ -129,6 +129,10 @@ namespace ctranslate2 {
       bool is_int16 = variable.dtype() == DataType::DT_INT16;
       bool is_float = variable.dtype() == DataType::DT_FLOAT;
 
+      // Use the same quantization logic as in model_spec.py.
+      const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER);
+      const ops::Dequantize dequantize_op;
+
       std::string scale_name = name + "_scale";
       if (_computeType == ComputeType::DEFAULT) {
         if (is_int8 || is_int16) {
@@ -137,13 +141,13 @@ namespace ctranslate2 {
           // If quantized variables are not supported, fallback to float32.
           if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
             StorageView variable_float;
-            ops::Dequantize()(variable, *scale, variable_float);
+            dequantize_op(variable, *scale, variable_float);
             swap(variable, variable_float);
 
             // However, if int16 is supported and we came from int8, quantize to int16.
             if (is_int8 && support_int16) {
               StorageView variable_int16(DataType::DT_INT16);
-              ops::Quantize()(variable, variable_int16, *scale);
+              quantize_op(variable, variable_int16, *scale);
               swap(variable, variable_int16);
             } else { // is_int16 or !support_int16
               variables_to_remove.emplace_back(std::move(scale_name));
@@ -159,7 +163,7 @@ namespace ctranslate2 {
 
           // fallback to float32
           StorageView variable_float;
-          ops::Dequantize()(variable, *scale, variable_float);
+          dequantize_op(variable, *scale, variable_float);
           swap(variable, variable_float);
         }
 
@@ -175,7 +179,7 @@ namespace ctranslate2 {
 
           // from float32 to int16
           StorageView variable_int(_computeType == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
-          ops::Quantize()(variable, variable_int, scale);
+          quantize_op(variable, variable_int, scale);
           swap(variable, variable_int);
 
           variables_to_add.emplace_back(make_pair(scale_name, scale));
@@ -185,12 +189,12 @@ namespace ctranslate2 {
 
           // from int8 to float32 firstly
           StorageView variable_float;
-          ops::Dequantize()(variable, *scale, variable_float);
+          dequantize_op(variable, *scale, variable_float);
           swap(variable, variable_float);
 
           // from float to int
           StorageView variable_int(_computeType == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
-          ops::Quantize()(variable, variable_int, *scale);
+          quantize_op(variable, variable_int, *scale);
           swap(variable, variable_int);
         }
       }
