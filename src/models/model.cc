@@ -34,6 +34,11 @@ namespace ctranslate2 {
       return str;
     }
 
+    static bool endswith(const std::string& str, const std::string& suffix) {
+      return (str.size() >= suffix.size() &&
+              str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0);
+    }
+
 
     Model::Model(const std::string& path, size_t spec_revision)
       : _source_vocabulary(path + "/source_vocabulary.txt")
@@ -221,9 +226,8 @@ namespace ctranslate2 {
         const auto& name = variable_pair.first;
         auto& variable = variable_pair.second;
 
-        // only name contains "weight" (but not "weight_scale") will be treated
-        if (name.find("weight_scale") == std::string::npos
-            && name.find("weight") != std::string::npos) {
+        // Only process "weight" variables.
+        if (endswith(name, "weight")) {
           convert_data_if_need(support_int8,
                                support_int16,
                                name,
