@@ -64,7 +64,7 @@ cd python/
 wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k.tar.gz
 tar xf averaged-ende-export500k.tar.gz
 
-python -m ctranslate2.converters.opennmt_tf \
+python -m ctranslate2.bin.opennmt_tf_converter \
     --model_dir averaged-ende-export500k/1554540232/ \
     --output_dir ende_ctranslate2 \
     --model_spec TransformerBase
@@ -78,7 +78,7 @@ cd python/
 wget https://s3.amazonaws.com/opennmt-models/transformer-ende-wmt-pyOnmt.tar.gz
 tar xf transformer-ende-wmt-pyOnmt.tar.gz
 
-python -m ctranslate2.converters.opennmt_py \
+python -m ctranslate2.bin.opennmt_py_converter \
     --model_path averaged-10-epoch.pt \
     --output_dir ende_ctranslate2 \
     --model_spec TransformerBase

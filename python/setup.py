@@ -26,9 +26,15 @@ ctranslate2_module = Extension(
 setup(
     name="ctranslate2",
     version="0.1.0",
-    packages=find_packages(),
+    packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
     install_requires=[
         "six",
-    ]
+    ],
+    entry_points={
+        "console_scripts": [
+            "ct2-opennmt-py-converter=ctranslate2.bin.opennmt_py_converter:main",
+            "ct2-opennmt-tf-converter=ctranslate2.bin.opennmt_tf_converter:main",
+        ],
+    }
 )

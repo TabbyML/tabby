@@ -1,4 +1,3 @@
-import argparse
 import shutil
 import os
 import six
@@ -183,19 +182,3 @@ def set_embeddings(spec, variables, scope, version=1):
     else:
         name = "w_embs"
     spec.weight = variables["%s/%s" % (scope, name)]
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--model_dir", required=True,
-                        help="Model directory (a checkpoint directory or a SavedModel bundle).")
-    parser.add_argument("--src_vocab", default=None,
-                        help="Source vocabulary file (required if converting a checkpoint).")
-    parser.add_argument("--tgt_vocab", default=None,
-                        help="Target vocabulary file (required if converting a checkpoint).")
-    Converter.declare_arguments(parser)
-    args = parser.parse_args()
-    OpenNMTTFConverter(
-        args.model_dir,
-        src_vocab=args.src_vocab,
-        tgt_vocab=args.tgt_vocab).convert_from_args(args)
