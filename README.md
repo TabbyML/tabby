@@ -54,7 +54,7 @@ The following frameworks and models are currently supported:
 
 If you are using a model that is not listed above, consider opening an issue to discuss possible future integration.
 
-To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models with int16 quantization:
+To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models:
 
 ### OpenNMT-tf
 
@@ -67,8 +67,7 @@ tar xf averaged-ende-export500k.tar.gz
 python -m ctranslate2.converters.opennmt_tf \
     --model_dir averaged-ende-export500k/1554540232/ \
     --output_dir ende_ctranslate2 \
-    --model_spec TransformerBase \
-    --quantization int16
+    --model_spec TransformerBase
 ```
 
 ### OpenNMT-py
@@ -82,18 +81,24 @@ tar xf transformer-ende-wmt-pyOnmt.tar.gz
 python -m ctranslate2.converters.opennmt_py \
     --model_path averaged-10-epoch.pt \
     --output_dir ende_ctranslate2 \
-    --model_spec TransformerBase \
-    --quantization int16
+    --model_spec TransformerBase
 ```
 
 ### Quantization
 
-The converters support model quantization which is a way to reduce the model size and accelerate its execution. However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
+The converters support model quantization which is a way to reduce the model size and accelerate its execution. The `--quantization` option accepts the following values:
+
+* `int8`
+* `int16`
+
+However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
 | Model type | GPU   | CPU (AVX2) | CPU (older) |
 | ---------- | ----- | ---------- | ----------  |
 | int16      | float | int16      | float       |
 | int8       | int8  | int8       | float       |
+
+Quantization can also be configured later when starting a translation instance. See the `compute_type` argument on translation clients.
 
 **Notes:**
 
