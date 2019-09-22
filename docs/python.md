@@ -43,7 +43,7 @@ output = translator.translate_batch(
     target_prefix=None,      # An optional list of list of string.
     beam_size=4,             # Beam size.
     num_hypotheses=1,        # Number of hypotheses to return.
-    length_penalty=0.6,      # Length penalty constant.
+    length_penalty=0,        # Length penalty constant.
     max_decoding_length=250, # Maximum prediction length.
     min_decoding_length=1,   # Minimum prediction length.
     use_vmap=False,          # Use the VMAP saved in this model.
@@ -55,7 +55,7 @@ translator.translate_file(
     max_batch_size: int,     # Maximum batch size to translate.
     beam_size=4,             # Beam size.
     num_hypotheses=1,        # Number of hypotheses to output.
-    length_penalty=0.6,      # Length penalty constant.
+    length_penalty=0,        # Length penalty constant.
     max_decoding_length=250, # Maximum prediction length.
     min_decoding_length=1,   # Minimum prediction length.
     use_vmap=False,          # Use the VMAP saved in this model.
