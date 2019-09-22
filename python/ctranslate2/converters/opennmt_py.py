@@ -88,8 +88,13 @@ def set_multi_head_attention(spec, variables, scope, self_attention=False):
     set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
 
 def set_layer_norm(spec, variables, scope):
-    spec.gamma = _get_variable(variables, "%s.a_2" % scope)
-    spec.beta = _get_variable(variables, "%s.b_2" % scope)
+    try:
+        spec.gamma = _get_variable(variables, "%s.weight" % scope)
+        spec.beta = _get_variable(variables, "%s.bias" % scope)
+    except:
+        # Compatibility with older models using a custom LayerNorm module.
+        spec.gamma = _get_variable(variables, "%s.a_2" % scope)
+        spec.beta = _get_variable(variables, "%s.b_2" % scope)
 
 def set_linear(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
