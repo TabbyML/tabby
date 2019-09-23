@@ -110,8 +110,7 @@ namespace ctranslate2 {
 
     class Logger : public nvinfer1::ILogger {
       void log(Severity severity, const char* msg) override {
-        // suppress info-level messages
-        if (severity != Severity::kINFO)
+        if (static_cast<int>(severity) < static_cast<int>(Severity::kINFO))
           std::cerr << msg << std::endl;
       }
     } g_logger;
