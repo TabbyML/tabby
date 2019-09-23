@@ -10,17 +10,41 @@ from ctranslate2.specs import catalog, transformer_spec
 def load_model(model_path, src_vocab=None, tgt_vocab=None):
     """Loads variables and vocabularies from a TensorFlow checkpoint or SavedModel."""
     import tensorflow as tf
-    try:
-        from tensorflow.contrib.seq2seq.python.ops import beam_search_ops  # Force kernel loading.
-    except ImportError:
-        pass
+
+    def _extract_variables(structure, scope=""):
+        from tensorflow.python.training.tracking import tracking
+        variables = {}
+        if isinstance(structure, tf.Variable):
+            variables[scope] = structure
+        elif isinstance(structure, list):
+            for i, value in enumerate(structure):
+                variables.update(_extract_variables(value, scope="%s/%d" % (scope, i)))
+        elif isinstance(structure, tracking.AutoTrackable):
+            for key, value in six.iteritems(structure.__dict__):
+                if key.startswith("_") or key == "keras_api":
+                    continue
+                variables.update(_extract_variables(
+                    value, scope="%s/%s" % (scope, key) if scope else key))
+        return variables
 
     model_version = 1
     tf_version = int(tf.version.VERSION[0])
+
+    # Force beam search kernel loading.
+    if tf_version == 1:
+        from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
+    elif tf_version == 2:
+        from tensorflow_addons.seq2seq import beam_search_decoder
+    else:
+        raise ValueError("Unsupported TensorFlow version %d" % tf_version)
+
     if tf.saved_model.contains_saved_model(model_path):
         if tf_version == 2:
-            raise NotImplementedError("Converting SavedModel with TensorFlow 2.0 is "
-                                      "currently not implemented")
+            model_version = 2
+            imported = tf.saved_model.load(model_path)
+            variables = {
+                "model/%s" % scope:variable.numpy()
+                for scope, variable in six.iteritems(_extract_variables(imported))}
         elif tf_version == 1:
             config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
             with tf.compat.v1.Graph().as_default():
@@ -31,8 +55,6 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
                     assets = sess.run(tf.compat.v1.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
             src_vocab = os.path.join(six.b(model_path), b"assets", os.path.basename(assets[0]))
             tgt_vocab = os.path.join(six.b(model_path), b"assets", os.path.basename(assets[1]))
-        else:
-            raise ValueError("Unsupported TensorFlow version %d" % tf_version)
     else:
         if src_vocab is None or tgt_vocab is None:
             raise ValueError("vocabularies must be passed as argument when converting checkpoint")
