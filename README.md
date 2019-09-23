@@ -365,7 +365,6 @@ Here are some scenarios where this project could be used:
 
 * You want to accelarate standard translation models for production usage, especially on CPUs.
 * You need to embed translation models in an existing C++ application.
-* You need portable binaries that automatically dispatch the execution to the best instruction set.
 * Your application requires custom threading and memory usage control.
 * You want to reduce the model size on disk and/or memory.
 
