@@ -343,9 +343,10 @@ CTranslate2 addresses these issues in several ways:
 
 ### What is the state of this project?
 
-The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees (enforced after the 1.0 release):
+The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees:
 
 * Converted models
+* Python converters options
 * Python symbols:
   * `ctranslate2.Translator`
   * `ctranslate2.converters.OpenNMTPyConverter`
@@ -356,6 +357,7 @@ The code has been generously tested in production settings so people can rely on
   * `ctranslate2::TranslationResult`
   * `ctranslate2::Translator`
   * `ctranslate2::TranslatorPool`
+* C++ translation client options
 
 Other APIs are expected to evolve to increase efficiency, genericity, and model support.
 
