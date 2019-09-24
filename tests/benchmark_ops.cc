@@ -74,6 +74,14 @@ void benchmark_gemm(Device device, DataType dtype) {
   BENCHMARK(gemm_op(a, b, c, c), 1000);
 }
 
+void benchmark_quantize(Device device, DataType dtype) {
+  StorageView x({32, 512}, rand_vector(32 * 512), device);
+  StorageView y(dtype, device);
+  StorageView scale(DataType::DT_FLOAT, device);
+  const ops::Quantize quantize_op;
+  BENCHMARK(quantize_op(x, y, scale), 10000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device [dtype]" << std::endl;
@@ -105,6 +113,8 @@ int main(int argc, char* argv[]) {
     benchmark_topk(device);
   else if (op == "gemm")
     benchmark_gemm(device, dtype);
+  else if (op == "quantize")
+    benchmark_quantize(device, dtype);
 
   return 0;
 }
