@@ -210,7 +210,6 @@ namespace ctranslate2 {
   };
 
   template<>
-  template<>
   void primitives<Device::CUDA>::quantize_batch(const float* x, float* scales, int8_t* qx,
                                                 size_t batch_size, size_t depth) {
     size_t size = batch_size * depth;

@@ -165,20 +165,6 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  void primitives<Device::CPU>::quantize_batch(const float* x, float* scales, T* qx,
-                                               size_t batch_size, size_t depth) {
-    #pragma omp parallel for
-    for (size_t i = 0; i < batch_size; ++i) {
-      const float* row = x + i * depth;
-      T* qrow = qx + i * depth;
-      auto scale = static_cast<float>(std::numeric_limits<T>::max()) / amax(row, depth);
-      unary_transform(row, qrow, depth, [scale](float v) { return static_cast<T>(v * scale); });
-      scales[i] = scale;
-    }
-  }
-
-  template<>
-  template <typename T>
   void primitives<Device::CPU>::unquantize_batch(const T* x, const float* scale, float* y,
                                                  size_t x_size, size_t scale_size) {
     size_t depth = x_size / scale_size;
