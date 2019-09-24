@@ -171,8 +171,9 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       const float* row = x + i * depth;
       T* qrow = qx + i * depth;
-      scales[i] = static_cast<float>(std::numeric_limits<T>::max()) / amax(row, depth);
-      quantize(row, qrow, depth, scales[i]);
+      auto scale = static_cast<float>(std::numeric_limits<T>::max()) / amax(row, depth);
+      unary_transform(row, qrow, depth, [scale](float v) { return static_cast<T>(v * scale); });
+      scales[i] = scale;
     }
   }
 
