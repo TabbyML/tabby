@@ -29,16 +29,17 @@ namespace ctranslate2 {
 
     Dense::Dense(const models::Model& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
-      , _bias(model.get_variable(scope + "/bias"))
+      , _bias(model.get_variable_if_exists(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _partial_weight(_weight.device(), _weight.dtype())
-      , _partial_bias(_bias.device(), _bias.dtype())
+      , _partial_bias(_weight.device(), DataType::DT_FLOAT)
       , _partial_qscale(_weight.device()) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
       ops::Gather()(_weight, index, _partial_weight);
-      ops::Gather()(_bias, index, _partial_bias);
+      if (_bias)
+        ops::Gather()(*_bias, index, _partial_bias);
       if (_qscale && !_qscale->is_scalar())
         ops::Gather()(*_qscale, index, _partial_qscale);
     }
@@ -51,15 +52,8 @@ namespace ctranslate2 {
 
     void Dense::operator()(const StorageView& input, StorageView& output) {
       const StorageView* qscale = _partial_qscale.empty() ? _qscale : &_partial_qscale;
-      const StorageView* weight = nullptr;
-      const StorageView* bias = nullptr;
-      if (_partial_weight.empty()) {
-        weight = &_weight;
-        bias = &_bias;
-      } else {
-        weight = &_partial_weight;
-        bias = &_partial_bias;
-      }
+      const StorageView* weight = _partial_weight.empty() ? &_weight : &_partial_weight;
+      const StorageView* bias = _partial_bias.empty() ? _bias : &_partial_bias;
 
       static const ops::Gemm gemm_op(1, 0, false, false, true);
       if (_weight.dtype() == DataType::DT_INT16 || _weight.dtype() == DataType::DT_INT8) {
@@ -74,11 +68,13 @@ namespace ctranslate2 {
         gemm_op(input, *weight, *bias, output);
       }
 
-      DEVICE_DISPATCH(output.device(),
-                      primitives<D>::add_batch_broadcast(bias->data<float>(),
-                                                         output.data<float>(),
-                                                         bias->size(),
-                                                         output.size()));
+      if (bias) {
+        DEVICE_DISPATCH(output.device(),
+                        primitives<D>::add_batch_broadcast(bias->data<float>(),
+                                                           output.data<float>(),
+                                                           bias->size(),
+                                                           output.size()));
+      }
     }
 
 

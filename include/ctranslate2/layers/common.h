@@ -26,7 +26,7 @@ namespace ctranslate2 {
       void reset_mask();
     private:
       const StorageView& _weight;
-      const StorageView& _bias;
+      const StorageView* _bias;
       const StorageView* _qscale;
       StorageView _partial_weight;
       StorageView _partial_bias;
