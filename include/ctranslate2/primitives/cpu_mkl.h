@@ -16,6 +16,9 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::copy(const float* x, float* y, size_t size);
+  template<>
+  template<>
+  float primitives<Device::CPU>::amax(const float* x, size_t size);
 
   template<>
   template<>

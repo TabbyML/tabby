@@ -36,6 +36,12 @@ namespace ctranslate2 {
 
   template<>
   template<>
+  float primitives<Device::CPU>::amax(const float* x, size_t size) {
+    return std::abs(x[cblas_isamax(size, x, /*incx=*/1)]);
+  }
+
+  template<>
+  template<>
   void primitives<Device::CPU>::add(const float* a, const float* b, float* c, size_t size) {
     vsAdd(size, a, b, c);
   }

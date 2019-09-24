@@ -3,6 +3,7 @@ cblas_gemm_s8u8s32
 cblas_gemm_s8u8s32_compute
 cblas_gemm_s8u8s32_pack
 cblas_gemm_s8u8s32_pack_get_size
+cblas_isamax
 cblas_sasum
 cblas_saxpy
 cblas_scopy
