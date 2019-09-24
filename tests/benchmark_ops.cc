@@ -82,6 +82,15 @@ void benchmark_quantize(Device device, DataType dtype) {
   BENCHMARK(quantize_op(x, y, scale), 10000);
 }
 
+void benchmark_dequantize(Device device) {
+  StorageView x({32, 1536}, DataType::DT_INT32, device);
+  StorageView input_scale({32}, DataType::DT_FLOAT, device);
+  StorageView weight_scale({1536}, DataType::DT_FLOAT, device);
+  StorageView y(device);
+  const ops::Dequantize dequantize_op;
+  BENCHMARK(dequantize_op(x, input_scale, weight_scale, y), 100000);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device [dtype]" << std::endl;
@@ -115,6 +124,8 @@ int main(int argc, char* argv[]) {
     benchmark_gemm(device, dtype);
   else if (op == "quantize")
     benchmark_quantize(device, dtype);
+  else if (op == "dequantize")
+    benchmark_dequantize(device);
 
   return 0;
 }
