@@ -10,7 +10,7 @@ namespace ctranslate2 {
       enum class ScaleType {
         GLOBAL,
         PER_LAYER,
-        PER_BATCH
+        PER_ROW
       };
 
       static const StorageView default_int16_scale;
