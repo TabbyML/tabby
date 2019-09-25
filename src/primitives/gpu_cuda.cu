@@ -10,14 +10,31 @@
 
 namespace ctranslate2 {
 
+  class thrust_custom_allocator {
+  public:
+    typedef char value_type;
+
+    value_type* allocate(std::ptrdiff_t num_bytes) {
+      return reinterpret_cast<value_type*>(primitives<Device::CUDA>::alloc_data(num_bytes));
+    }
+
+    void deallocate(value_type* p, size_t) {
+      return primitives<Device::CUDA>::free_data(p);
+    }
+  };
+
+  static thrust_custom_allocator custom_allocator;
+
+#define EXECUTION_POLICY thrust::cuda::par(custom_allocator).on(cuda::get_cuda_stream())
+
   template <typename T, typename UnaryFunction>
   void unary_transform(const T* x, T* y, size_t size, UnaryFunction op) {
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()), x, x + size, y, op);
+    thrust::transform(EXECUTION_POLICY, x, x + size, y, op);
   }
 
   template <typename T, typename BinaryFunction>
   void binary_transform(const T* a, const T* b, T* c, size_t size, BinaryFunction op) {
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()), a, a + size, b, c, op);
+    thrust::transform(EXECUTION_POLICY, a, a + size, b, c, op);
   }
 
   template <typename T, typename BinaryFunction, typename IndexFunction>
@@ -25,8 +42,7 @@ namespace ctranslate2 {
                         BinaryFunction op, IndexFunction index_a) {
     auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), index_a);
     auto a_it = thrust::make_permutation_iterator(a, index_it);
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                      a_it, a_it + size, b, c, op);
+    thrust::transform(EXECUTION_POLICY, a_it, a_it + size, b, c, op);
   }
 
   // perm_fun is a functor that takes the index in the permuted iterator and
@@ -36,7 +52,7 @@ namespace ctranslate2 {
     auto ind_it = thrust::counting_iterator<size_t>(0);
     auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
     auto perm_it = thrust::make_permutation_iterator(x, perm_ind_it);
-    thrust::copy_n(thrust::cuda::par.on(cuda::get_cuda_stream()), perm_it, size, y);
+    thrust::copy_n(EXECUTION_POLICY, perm_it, size, y);
   }
 
 
@@ -79,7 +95,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CUDA>::fill(T* x, T a, size_t size) {
-    thrust::fill_n(thrust::cuda::par.on(cuda::get_cuda_stream()), x, size, a);
+    thrust::fill_n(EXECUTION_POLICY, x, size, a);
   }
   template<>
   template <typename T>
@@ -87,7 +103,7 @@ namespace ctranslate2 {
     auto it = thrust::make_permutation_iterator(
       x, thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0),
                                          thrust::placeholders::_1 * inc_x));
-    thrust::fill_n(thrust::cuda::par.on(cuda::get_cuda_stream()), it, size, a);
+    thrust::fill_n(EXECUTION_POLICY, it, size, a);
   }
 
   template<>
@@ -100,22 +116,20 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::sum(const T* array, size_t size) {
-    return thrust::reduce(thrust::cuda::par.on(cuda::get_cuda_stream()), array, array + size);
+    return thrust::reduce(EXECUTION_POLICY, array, array + size);
   }
 
   template<>
   template <typename T>
   size_t primitives<Device::CUDA>::max_element(const T* array, size_t size) {
-    const auto* max = thrust::max_element(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                                          array, array + size);
+    const auto* max = thrust::max_element(EXECUTION_POLICY, array, array + size);
     return static_cast<size_t>(max - array);
   }
 
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, size_t size) {
-    const auto* max = thrust::max_element(thrust::cuda::par.on(cuda::get_cuda_stream()),
-                                          array, array + size);
+    const auto* max = thrust::max_element(EXECUTION_POLICY, array, array + size);
     return deref(max, 0);
   }
 
@@ -219,7 +233,7 @@ namespace ctranslate2 {
                                                    repeat_vec_depth<int>(depth));
 
     // scales = reduce_max(x, axis=1)
-    thrust::reduce_by_key(thrust::cuda::par.on(cuda::get_cuda_stream()),
+    thrust::reduce_by_key(EXECUTION_POLICY,
                           keys_it, keys_it + size,
                           x,
                           reinterpret_cast<int*>(qx),  // Reuse qx for keys_output.
@@ -228,7 +242,7 @@ namespace ctranslate2 {
                           absolute_maximum_func());
 
     // scales = 127 / scales
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+    thrust::transform(EXECUTION_POLICY,
                       scales, scales + batch_size,
                       scales,
                       static_cast<float>(127) / thrust::placeholders::_1);
@@ -237,7 +251,7 @@ namespace ctranslate2 {
     auto repeat_it = thrust::make_permutation_iterator(
       scales, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
                                               repeat_vec_depth<int>(depth)));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+    thrust::transform(EXECUTION_POLICY,
                       repeat_it, repeat_it + size, x, qx, quantize_func<int8_t>());
   }
 
@@ -256,7 +270,7 @@ namespace ctranslate2 {
     auto repeat_it = thrust::make_permutation_iterator(
       scale, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
                                              repeat_vec_depth<int>(x_size / scale_size)));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+    thrust::transform(EXECUTION_POLICY,
                       repeat_it, repeat_it + x_size, x, y, unquantize_func<int8_t>());
   }
 
@@ -287,7 +301,7 @@ namespace ctranslate2 {
                                       repeat_vec<int>(depth)));
 
     auto scales_it = thrust::make_zip_iterator(thrust::make_tuple(input_scales_it, weight_scales_it));
-    thrust::transform(thrust::cuda::par.on(cuda::get_cuda_stream()),
+    thrust::transform(EXECUTION_POLICY,
                       x, x + size,
                       scales_it,
                       y,
