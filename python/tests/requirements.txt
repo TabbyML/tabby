@@ -1,2 +1,3 @@
+git+https://github.com/pltrdy/OpenNMT-py.git@to_pip
 pytest
 tensorflow==1.14.0

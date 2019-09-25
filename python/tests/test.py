@@ -92,7 +92,8 @@ def test_return_attention():
      ("v2/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
     ])
 def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, model_spec):
-    model_path = os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all", model_path)
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", model_path)
     if src_vocab is not None:
         src_vocab = os.path.join(model_path, src_vocab)
     if tgt_vocab is not None:
@@ -101,6 +102,19 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
         model_path, src_vocab=src_vocab, tgt_vocab=tgt_vocab)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, model_spec)
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+@pytest.mark.skipif(
+    not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
+    reason="Data files are not available")
+def test_opennmt_py_model_conversion(tmpdir):
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_py", "aren_7000.pt")
+    converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, ctranslate2.specs.TransformerBase())
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]

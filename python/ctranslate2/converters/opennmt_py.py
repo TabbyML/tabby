@@ -27,7 +27,11 @@ class OpenNMTPyConverter(Converter):
         else:
             raise NotImplementedError()
         vocab = checkpoint["vocab"]
-        return vocab[0][1], vocab[1][1]
+        if isinstance(vocab, dict) and "src" in vocab:
+            return vocab["src"].fields[0][1].vocab, vocab["tgt"].fields[0][1].vocab
+        else:
+            # Compatibility with older models.
+            return vocab[0][1], vocab[1][1]
 
 
 def set_transformer_spec(spec, variables):
