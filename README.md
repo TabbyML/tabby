@@ -43,7 +43,7 @@ A minimal installation requires at least Intel MKL. Intel MKL-DNN and GPU librar
 
 ## Converting models
 
-The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models in a simple binary format.
+The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models into a simple binary format.
 
 The following frameworks and models are currently supported:
 
@@ -52,7 +52,7 @@ The following frameworks and models are currently supported:
 | TransformerBase | ✓ | ✓ |
 | TransformerBig  | ✓ | ✓ |
 
-If you are using a model that is not listed above, consider opening an issue to discuss possible future integration.
+If you are using a model that is not listed above, consider opening an issue to discuss future integration.
 
 To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models:
 
@@ -191,9 +191,9 @@ The minimum requirements for building CTranslate2 binaries are Intel MKL and the
 
 **Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.centos7-gpu) is defined.
 
-#### Install MKL
+#### Install Intel MKL
 
-Use the following instructions to install MKL:
+Use the following instructions to install Intel MKL:
 
 ```bash
 wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
@@ -204,7 +204,7 @@ sudo apt-get update
 sudo apt-get install intel-mkl-64bit-2019.5-075
 ```
 
-Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more detail.
+Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more details.
 
 #### Install libboost-program-options-dev
 
@@ -214,7 +214,7 @@ sudo apt-get install libboost-program-options-dev
 
 #### Compile
 
-Under the project root then launch the following commands:
+Under the project root, run the following commands:
 
 ```bash
 mkdir build && cd build
@@ -228,7 +228,7 @@ The binary `translate` will be generated in the directory `cli`:
 echo "▁H ello ▁world !" | ./cli/translate --model ../python/ende_ctranslate2/
 ```
 
-The result `▁Hallo ▁Welt !` should be display.
+The result `▁Hallo ▁Welt !` should be displayed.
 
 **Note:** Before running the command, you should get your model by following the [Converting models](#converting-models) section.
 
