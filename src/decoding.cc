@@ -17,7 +17,7 @@ namespace ctranslate2 {
   }
 
   static void tile(StorageView& input, const StorageView& repeats) {
-    static const ops::Tile tile_op;
+    static const ops::Tile tile_op{};
     StorageView input_clone(std::move(input));
     tile_op(input_clone, repeats, input);
   }

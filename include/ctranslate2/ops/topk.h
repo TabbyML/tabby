@@ -8,8 +8,7 @@ namespace ctranslate2 {
     class TopK : public Op {
     public:
       TopK(size_t k, int axis = -1)
-        : _k(k)
-        , _axis(axis) {
+        : _k(k) {
         if (axis != -1)
           throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
       }
@@ -29,7 +28,6 @@ namespace ctranslate2 {
 
     private:
       size_t _k;
-      int _axis;
 
       template <Device D, typename DataType, typename IndexType>
       void compute(const StorageView& x,

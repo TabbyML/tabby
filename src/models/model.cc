@@ -139,7 +139,7 @@ namespace ctranslate2 {
 
       // Use the same quantization logic as in model_spec.py.
       const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER);
-      const ops::Dequantize dequantize_op;
+      const ops::Dequantize dequantize_op{};
 
       std::string scale_name = name + "_scale";
       if (_computeType == ComputeType::DEFAULT) {

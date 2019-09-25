@@ -7,8 +7,7 @@ namespace ctranslate2 {
 
     class Gather : public BinaryOp {
     public:
-      Gather(int axis = 0)
-        : _axis(axis) {
+      Gather(int axis = 0) {
         if (axis != 0)
           throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
       }
@@ -26,8 +25,6 @@ namespace ctranslate2 {
       }
 
     private:
-      int _axis;
-
       template <Device D, typename T>
       void compute(const StorageView& data, const StorageView& input, StorageView& output) const;
 

@@ -7,8 +7,7 @@ namespace ctranslate2 {
   template <Device D = Device::CPU>
   struct primitives {
 
-    static void set_device(int device) {
-      device = device;
+    static void set_device(int) {
     }
 
     static int get_device() {

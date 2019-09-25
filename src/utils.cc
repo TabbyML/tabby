@@ -2,6 +2,9 @@
 
 #ifdef WITH_MKL
 #  include <mkl.h>
+#endif
+
+#ifdef _OPENMP
 #  include <omp.h>
 #endif
 
@@ -38,7 +41,7 @@ namespace ctranslate2 {
   }
 
   void set_num_threads(size_t num_threads) {
-#ifdef WITH_MKL
+#ifdef _OPENMP
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
 #endif

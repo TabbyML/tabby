@@ -1,8 +1,7 @@
-#include <omp.h>
-
 #include "benchmark_utils.h"
 
 #include "ctranslate2/ops/ops.h"
+#include "ctranslate2/utils.h"
 
 using namespace ctranslate2;
 
@@ -41,7 +40,7 @@ void benchmark_layer_norm(Device device) {
   StorageView beta({512}, beta_, device);
   StorageView x({100, 512}, x_, device);
   StorageView y(x.device());
-  const ops::LayerNorm layer_norm_op;
+  const ops::LayerNorm layer_norm_op{};
   BENCHMARK(layer_norm_op(beta, gamma, x, y), 10000);
 }
 
@@ -49,7 +48,7 @@ void benchmark_softmax(Device device) {
   std::vector<float> x_ = rand_vector(100 * 512);
   StorageView x({100, 512}, x_, device);
   StorageView y(x.device());
-  const ops::SoftMax softmax_op;
+  const ops::SoftMax softmax_op{};
   BENCHMARK(softmax_op(x, y), 10000);
 }
 
@@ -87,7 +86,7 @@ void benchmark_dequantize(Device device) {
   StorageView input_scale({32}, DataType::DT_FLOAT, device);
   StorageView weight_scale({1536}, DataType::DT_FLOAT, device);
   StorageView y(device);
-  const ops::Dequantize dequantize_op;
+  const ops::Dequantize dequantize_op{};
   BENCHMARK(dequantize_op(x, input_scale, weight_scale, y), 100000);
 }
 
@@ -106,7 +105,7 @@ int main(int argc, char* argv[]) {
   else if (dtype_str == "int8")
     dtype = DataType::DT_INT8;
 
-  omp_set_num_threads(4);
+  ctranslate2::set_num_threads(4);
 
   if (op == "gather")
     benchmark_gather(device);
