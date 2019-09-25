@@ -93,11 +93,11 @@ RUN CFLAGS="-DWITH_CUDA=ON -DWITH_MKL=ON" CTRANSLATE2_ROOT=/root/ctranslate2 \
     python setup.py bdist_wheel
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib && \
-    cp -P /usr/lib64/libboost_python*.so* /root/ctranslate2/lib && \
-    cp -P /usr/local/cuda/lib*/libcudnn.so* /root/ctranslate2/lib && \
-    cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib && \
+RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
+    cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib64 && \
+    cp -P /usr/lib64/libboost_python*.so* /root/ctranslate2/lib64 && \
+    cp -P /usr/local/cuda/lib*/libcudnn.so* /root/ctranslate2/lib64 && \
+    cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64 && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM nvidia/cuda:10.0-base-centos7
@@ -112,6 +112,6 @@ RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
 
 WORKDIR /opt
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ctranslate2/lib
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ctranslate2/lib64
 
 ENTRYPOINT ["/opt/ctranslate2/bin/translate"]

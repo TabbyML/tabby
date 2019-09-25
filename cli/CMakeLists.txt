@@ -11,5 +11,5 @@ target_link_libraries(translate PRIVATE
 
 install(
   TARGETS translate
-  DESTINATION bin/
+  DESTINATION ${CMAKE_INSTALL_BINDIR}
   )
