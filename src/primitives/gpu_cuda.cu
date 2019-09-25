@@ -37,8 +37,8 @@ namespace ctranslate2 {
     thrust::transform(EXECUTION_POLICY, a, a + size, b, c, op);
   }
 
-  template <typename T, typename BinaryFunction, typename IndexFunction>
-  void binary_transform(const T* a, const T* b, T* c, size_t size,
+  template <typename T1, typename T2, typename T3, typename BinaryFunction, typename IndexFunction>
+  void binary_transform(const T1* a, const T2* b, T3* c, size_t size,
                         BinaryFunction op, IndexFunction index_a) {
     auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<size_t>(0), index_a);
     auto a_it = thrust::make_permutation_iterator(a, index_it);
@@ -248,11 +248,9 @@ namespace ctranslate2 {
                       static_cast<float>(127) / thrust::placeholders::_1);
 
     // qx = x * expand_dims(scales, 1)
-    auto repeat_it = thrust::make_permutation_iterator(
-      scales, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
-                                              repeat_vec_depth<int>(depth)));
-    thrust::transform(EXECUTION_POLICY,
-                      repeat_it, repeat_it + size, x, qx, quantize_func<int8_t>());
+    binary_transform(scales, x, qx, size,
+                     quantize_func<int8_t>(),
+                     repeat_vec_depth<size_t>(depth));
   }
 
   template <typename T>
@@ -267,11 +265,9 @@ namespace ctranslate2 {
   template<>
   void primitives<Device::CUDA>::unquantize_batch(const int8_t* x, const float* scale, float* y,
                                                   size_t x_size, size_t scale_size) {
-    auto repeat_it = thrust::make_permutation_iterator(
-      scale, thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
-                                             repeat_vec_depth<int>(x_size / scale_size)));
-    thrust::transform(EXECUTION_POLICY,
-                      repeat_it, repeat_it + x_size, x, y, unquantize_func<int8_t>());
+    binary_transform(scale, x, y, x_size,
+                     unquantize_func<int8_t>(),
+                     repeat_vec_depth<size_t>(x_size / scale_size));
   }
 
   struct rescale_func : public thrust::binary_function<int32_t, thrust::tuple<float, float>, float> {
