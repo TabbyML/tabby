@@ -5,6 +5,7 @@ each required variable of the specification is set.
 
 import struct
 import six
+import numpy as np
 
 OPTIONAL = "optional"
 
@@ -13,6 +14,9 @@ def _join_scope(scope, name):
     if not scope:
         return name
     return "%s/%s" % (scope, name)
+
+def _split_scope(scope):
+    return scope.split("/")
 
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
@@ -34,11 +38,15 @@ class LayerSpec(object):
         return 1
 
     def validate(self):
-        """Checks that required variables are set to a value."""
-        def _is_defined(spec, name, value):
+        """Checks that required variables are set to a valid value."""
+        def _check(spec, name, value):
             if value is None:
                 raise ValueError("Missing value for attribute %s" % name)
-        self.visit(_is_defined)
+            # Promote float16 to float32 as it is currently an unsupported type.
+            if isinstance(value, np.ndarray) and value.dtype == np.float16:
+                attr_name = _split_scope(name)[-1]
+                setattr(spec, attr_name, value.astype(np.float32))
+        self.visit(_check)
 
     def variables(self, prefix=""):
         """Returns a dict mapping variables name to value."""
@@ -52,7 +60,6 @@ class LayerSpec(object):
 
     def quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
-        import numpy as np
         def _quantize(spec, name, value):
             if "weight" in name:
                 if quantization == "int16":

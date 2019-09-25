@@ -2,8 +2,11 @@
 
 import os
 import pytest
+import numpy as np
 
 import ctranslate2
+
+from ctranslate2.specs.model_spec import OPTIONAL
 
 
 _TEST_DATA_DIR = os.path.join(
@@ -118,3 +121,25 @@ def test_opennmt_py_model_conversion(tmpdir):
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+def test_layer_spec_fp16():
+
+    class SubSpec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.a = np.zeros([5], dtype=np.float16)
+
+    class Spec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.a = np.zeros([5], dtype=np.float32)
+            self.b = np.zeros([5], dtype=np.float16)
+            self.c = np.zeros([5], dtype=np.int32)
+            self.d = OPTIONAL
+            self.e = SubSpec()
+
+    spec = Spec()
+    spec.validate()
+    assert spec.a.dtype == np.float32
+    assert spec.b.dtype == np.float32
+    assert spec.c.dtype == np.int32
+    assert spec.d == OPTIONAL
+    assert spec.e.a.dtype == np.float32
