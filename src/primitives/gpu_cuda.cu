@@ -233,7 +233,7 @@ namespace ctranslate2 {
     auto keys_it = thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
                                                    repeat_vec_depth<int>(depth));
 
-    // scales = 127 / reduce_max(x, axis=1)
+    // scales = 127.0 / reduce_max(abs(x), axis=1)
     THRUST_CALL(thrust::reduce_by_key,
                 keys_it, keys_it + size,
                 x,
