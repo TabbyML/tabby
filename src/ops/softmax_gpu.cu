@@ -50,14 +50,13 @@ namespace ctranslate2 {
         auto* masked_data = masked_input.data<float>();
 
         // Copy input but replace out of range positions with -inf.
-        thrust::replace_copy_if(
-          thrust::cuda::par.on(cuda::get_cuda_stream()),
-          data,
-          data + input.size(),
-          thrust::counting_iterator<int32_t>(0),
-          masked_data,
-          mask_func(lengths->data<int32_t>(), lengths->dim(0), batch_size, depth),
-          std::numeric_limits<float>::lowest());
+        THRUST_CALL(thrust::replace_copy_if,
+                    data,
+                    data + input.size(),
+                    thrust::counting_iterator<int32_t>(0),
+                    masked_data,
+                    mask_func(lengths->data<int32_t>(), lengths->dim(0), batch_size, depth),
+                    std::numeric_limits<float>::lowest());
 
         data = masked_data;
       }

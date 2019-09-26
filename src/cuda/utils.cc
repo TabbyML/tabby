@@ -108,6 +108,20 @@ namespace ctranslate2 {
       return get_gpu_count() > 0;
     }
 
+    ThrustAllocator::value_type* ThrustAllocator::allocate(std::ptrdiff_t num_bytes) {
+      return reinterpret_cast<ThrustAllocator::value_type*>(
+        primitives<Device::CUDA>::alloc_data(num_bytes));
+    }
+
+    void ThrustAllocator::deallocate(ThrustAllocator::value_type* p, size_t) {
+      return primitives<Device::CUDA>::free_data(p);
+    }
+
+    ThrustAllocator& get_thrust_allocator() {
+      static ThrustAllocator thrust_allocator;
+      return thrust_allocator;
+    }
+
     class Logger : public nvinfer1::ILogger {
       void log(Severity severity, const char* msg) override {
         if (static_cast<int>(severity) < static_cast<int>(Severity::kINFO))

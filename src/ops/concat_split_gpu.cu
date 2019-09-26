@@ -66,9 +66,8 @@ namespace ctranslate2 {
           auto map_ids = thrust::make_transform_iterator(
             thrust::counting_iterator<size_t>(0),
             depth_select<int32_t>(offset, x->dim(-1), output.dim(-1)));
-          thrust::scatter(
-            thrust::cuda::par.on(cuda::get_cuda_stream()),
-            x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
+          THRUST_CALL(thrust::scatter,
+                      x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
           offset += x->dim(-1);
         } else {
           size_t outer_dim = 1;
@@ -77,9 +76,8 @@ namespace ctranslate2 {
           auto map_ids = thrust::make_transform_iterator(
             thrust::counting_iterator<size_t>(0),
             inner_dim_select<int32_t>(offset, x->dim(axis), outer_dim, output.dim(axis)));
-          thrust::scatter(
-            thrust::cuda::par.on(cuda::get_cuda_stream()),
-            x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
+          THRUST_CALL(thrust::scatter,
+                      x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
           offset += x->dim(axis);
         }
       }
@@ -99,9 +97,8 @@ namespace ctranslate2 {
           auto gather_ids = thrust::make_transform_iterator(
             thrust::counting_iterator<size_t>(0),
             depth_select<int32_t>(offset, x.dim(-1), input.dim(-1)));
-          thrust::gather(
-            thrust::cuda::par.on(cuda::get_cuda_stream()),
-            gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
+          THRUST_CALL(thrust::gather,
+                      gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
           offset += x.dim(-1);
         } else { // Inner dim.
           size_t outer_dim = 1;
@@ -110,9 +107,8 @@ namespace ctranslate2 {
           auto gather_ids = thrust::make_transform_iterator(
             thrust::counting_iterator<size_t>(0),
             inner_dim_select<int32_t>(offset, x.dim(axis), outer_dim, input.dim(axis)));
-          thrust::gather(
-            thrust::cuda::par.on(cuda::get_cuda_stream()),
-            gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
+          THRUST_CALL(thrust::gather,
+                      gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
           offset += x.dim(axis);
         }
       }

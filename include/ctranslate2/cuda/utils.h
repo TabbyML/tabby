@@ -14,6 +14,13 @@ namespace ctranslate2 {
 #define CUBLAS_CHECK(ans) { ctranslate2::cuda::cublas_assert((ans), __FILE__, __LINE__); }
 #define CUDNN_CHECK(ans) { ctranslate2::cuda::cudnn_assert((ans), __FILE__, __LINE__); }
 
+// Default execution policy for Thrust.
+#define THRUST_EXECUTION_POLICY thrust::cuda::par(ctranslate2::cuda::get_thrust_allocator()) \
+    .on(ctranslate2::cuda::get_cuda_stream())
+
+// Convenience macro to call Thrust functions with the default execution policy.
+#define THRUST_CALL(FUN, ...) FUN(THRUST_EXECUTION_POLICY, __VA_ARGS__)
+
     void cuda_assert(cudaError_t code, const std::string& file, int line);
     void cublas_assert(cublasStatus_t status, const std::string& file, int line);
     void cudnn_assert(cudnnStatus_t status, const std::string& file, int line);
@@ -26,6 +33,16 @@ namespace ctranslate2 {
     bool has_gpu();
     bool has_fast_fp16();
     bool has_fast_int8();
+
+    // Custom allocator for Thrust.
+    class ThrustAllocator {
+    public:
+      typedef char value_type;
+      value_type* allocate(std::ptrdiff_t num_bytes);
+      void deallocate(value_type* p, size_t);
+    };
+
+    ThrustAllocator& get_thrust_allocator();
 
     class TensorRTLayer {
     public:

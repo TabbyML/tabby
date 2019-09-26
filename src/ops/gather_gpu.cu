@@ -31,9 +31,8 @@ namespace ctranslate2 {
       auto gather_ids = thrust::make_transform_iterator(
         thrust::counting_iterator<size_t>(0),
         map_id(input.data<int32_t>(), data.stride(0)));
-      thrust::gather(
-        thrust::cuda::par.on(cuda::get_cuda_stream()),
-        gather_ids, gather_ids + output.size(), data.data<T>(), output.data<T>());
+      THRUST_CALL(thrust::gather,
+                  gather_ids, gather_ids + output.size(), data.data<T>(), output.data<T>());
     }
 
 #define DECLARE_IMPL(T)                                                 \
