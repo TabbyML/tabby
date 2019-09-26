@@ -3,6 +3,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
+#include <thrust/iterator/discard_iterator.h>
 #include <cub/util_allocator.cuh>
 
 #include "ctranslate2/types.h"
@@ -236,7 +237,7 @@ namespace ctranslate2 {
     thrust::reduce_by_key(EXECUTION_POLICY,
                           keys_it, keys_it + size,
                           x,
-                          reinterpret_cast<int*>(qx),  // Reuse qx for keys_output.
+                          thrust::make_discard_iterator(),
                           scales,
                           thrust::equal_to<int>(),
                           absolute_maximum_func());
