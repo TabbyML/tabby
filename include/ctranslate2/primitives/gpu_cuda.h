@@ -70,6 +70,10 @@ namespace ctranslate2 {
   template <typename T>
   void primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, T* c,
                                                      size_t a_size, size_t b_size);
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::mul_and_add_batch_broadcast(const T* x, const T* w, const T* b,
+                                                             T* y, size_t x_size, size_t wb_size);
 
   template<>
   void primitives<Device::CUDA>::quantize_batch(const float* x, float* scales, int8_t* qx,

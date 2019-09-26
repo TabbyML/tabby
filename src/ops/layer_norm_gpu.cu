@@ -53,8 +53,13 @@ namespace ctranslate2 {
       CUDNN_CHECK(cudnnDestroyTensorDescriptor(input_desc));
       CUDNN_CHECK(cudnnDestroyTensorDescriptor(scale_bias_desc));
 
-      primitives<D>::mul_batch_broadcast(gamma.data<T>(), output.data<T>(), depth, output.size());
-      primitives<D>::add_batch_broadcast(beta.data<T>(), output.data<T>(), depth, output.size());
+      // output = output * gamma + beta
+      primitives<D>::mul_and_add_batch_broadcast(output.data<T>(),
+                                                 gamma.data<T>(),
+                                                 beta.data<T>(),
+                                                 output.data<T>(),
+                                                 output.size(),
+                                                 depth);
     }
 
 #define DECLARE_IMPL(T)                                                 \
