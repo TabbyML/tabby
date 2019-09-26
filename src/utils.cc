@@ -14,11 +14,23 @@
 
 namespace ctranslate2 {
 
+#ifdef WITH_MKL
+  static bool mkl_has_fast_int_gemm() {
+#  if __INTEL_MKL__ > 2019 || (__INTEL_MKL__ == 2019 && __INTEL_MKL_UPDATE__ >= 5)
+    // Intel MKL 2019.5 added optimized integers GEMM for SSE4.2 and AVX (in addition to
+    // the existing AVX2 and AVX512), so it is virtually optimized for all target platforms.
+    return true;
+#  else
+    return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
+#  endif
+  }
+#endif
+
   bool mayiuse_int16(Device device) {
     switch (device) {
 #ifdef WITH_MKL
     case Device::CPU:
-      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
+      return mkl_has_fast_int_gemm();
 #endif
     default:
       return false;
@@ -33,7 +45,8 @@ namespace ctranslate2 {
 #endif
 #if defined(WITH_MKL) && defined(WITH_MKLDNN)
     case Device::CPU:
-      return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
+      // Assume MKL-DNN was compiled against MKL otherwise it would only support AVX512.
+      return mkl_has_fast_int_gemm();
 #endif
     default:
       return false;

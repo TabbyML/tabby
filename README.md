@@ -30,7 +30,7 @@ The translation API supports several decoding options:
 CTranslate2 uses the following libraries for acceleration:
 
 * CPU
-  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019)
+  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
   * [Intel MKL-DNN](https://github.com/intel/mkl-dnn) (>=0.20,<1.0)
 * GPU
   * [CUB](https://nvlabs.github.io/cub/) (>=1.8.0)
@@ -93,10 +93,10 @@ The converters support model quantization which is a way to reduce the model siz
 
 However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type | GPU   | CPU (AVX2) | CPU (older) |
-| ---------- | ----- | ---------- | ----------  |
-| int16      | float | int16      | float       |
-| int8       | int8  | int8       | float       |
+| Model type | GPU   | CPU   |
+| ---------- | ----- | ----- |
+| int16      | float | int16 |
+| int8       | int8  | int8  |
 
 Quantization can also be configured later when starting a translation instance. See the `compute_type` argument on translation clients.
 
