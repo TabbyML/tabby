@@ -4,6 +4,7 @@
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
 #include <thrust/iterator/discard_iterator.h>
+#include <thrust/iterator/transform_output_iterator.h>
 #include <cub/util_allocator.cuh>
 
 #include "ctranslate2/types.h"
@@ -233,20 +234,15 @@ namespace ctranslate2 {
     auto keys_it = thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
                                                    repeat_vec_depth<int>(depth));
 
-    // scales = reduce_max(x, axis=1)
+    // scales = 127 / reduce_max(x, axis=1)
     thrust::reduce_by_key(EXECUTION_POLICY,
                           keys_it, keys_it + size,
                           x,
                           thrust::make_discard_iterator(),
-                          scales,
+                          thrust::make_transform_output_iterator(
+                            scales, static_cast<float>(127) / thrust::placeholders::_1),
                           thrust::equal_to<int>(),
                           absolute_maximum_func());
-
-    // scales = 127 / scales
-    thrust::transform(EXECUTION_POLICY,
-                      scales, scales + batch_size,
-                      scales,
-                      static_cast<float>(127) / thrust::placeholders::_1);
 
     // qx = x * expand_dims(scales, 1)
     binary_transform(scales, x, qx, size,
