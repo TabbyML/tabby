@@ -60,5 +60,19 @@ namespace ctranslate2 {
       nvinfer1::IExecutionContext* _execution_context = nullptr;
     };
 
+    // Statically assiocate cudnnDataType_t with a C++ type.
+    template <class T>
+    struct TypeToCUDNNType {};
+
+#define MATCH_CUDNN_DATA_TYPE(TYPE, CUDNN_DATA_TYPE)            \
+    template<>                                                  \
+    struct TypeToCUDNNType<TYPE> {                              \
+      static constexpr cudnnDataType_t value = CUDNN_DATA_TYPE; \
+    }
+
+    MATCH_CUDNN_DATA_TYPE(float, CUDNN_DATA_FLOAT);
+    MATCH_CUDNN_DATA_TYPE(int8_t, CUDNN_DATA_INT8);
+    MATCH_CUDNN_DATA_TYPE(int32_t, CUDNN_DATA_INT32);
+
   }
 }

@@ -65,7 +65,7 @@ namespace ctranslate2 {
       CUDNN_CHECK(cudnnCreateTensorDescriptor(&tensor_desc));
       CUDNN_CHECK(cudnnSetTensor4dDescriptor(tensor_desc,
                                              CUDNN_TENSOR_NCHW,
-                                             CUDNN_DATA_FLOAT,
+                                             cuda::TypeToCUDNNType<T>::value,
                                              batch_size,
                                              depth,
                                              1 /* h */, 1 /* w */));

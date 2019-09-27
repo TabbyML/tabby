@@ -25,7 +25,7 @@ namespace ctranslate2 {
       CUDNN_CHECK(cudnnCreateTensorDescriptor(&scale_bias_desc));
       CUDNN_CHECK(cudnnSetTensor4dDescriptor(input_desc,
                                              CUDNN_TENSOR_NCHW,
-                                             CUDNN_DATA_FLOAT,
+                                             cuda::TypeToCUDNNType<T>::value,
                                              1 /* n */,
                                              batch_size,
                                              depth,
