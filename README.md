@@ -2,6 +2,17 @@
 
 CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
 
+**Table of contents**
+
+1. [Key features](#key-features)
+2. [Dependencies](#dependencies)
+3. [Converting models](#converting-models)
+4. [Translating](#translating)
+5. [Building](#building)
+6. [Testing](#testing)
+7. [Benchmarks](#benchmarks)
+8. [Frequently asked questions](#frequently-asked-questions)
+
 ## Key features
 
 * **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 3x faster](#benchmarks) than OpenNMT-py.
@@ -56,7 +67,7 @@ If you are using a model that is not listed above, consider opening an issue to 
 
 To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models:
 
-### OpenNMT-tf
+**OpenNMT-tf**
 
 ```bash
 cd python/
@@ -70,7 +81,7 @@ python -m ctranslate2.bin.opennmt_tf_converter \
     --model_spec TransformerBase
 ```
 
-### OpenNMT-py
+**OpenNMT-py**
 
 ```bash
 cd python/
@@ -326,7 +337,7 @@ Configuration:
 
 We don't have numbers comparing memory usage yet. However, past experiments showed that CTranslate2 usually requires up to 2x less memory than OpenNMT-py.
 
-## FAQ
+## Frequently asked questions
 
 ### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
 
