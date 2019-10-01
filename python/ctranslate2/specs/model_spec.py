@@ -5,7 +5,6 @@ each required variable of the specification is set.
 
 import struct
 import six
-import numpy as np
 
 OPTIONAL = "optional"
 
@@ -39,6 +38,7 @@ class LayerSpec(object):
 
     def validate(self):
         """Checks that required variables are set to a valid value."""
+        import numpy as np
         def _check(spec, name, value):
             if value is None:
                 raise ValueError("Missing value for attribute %s" % name)
@@ -60,6 +60,7 @@ class LayerSpec(object):
 
     def quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
+        import numpy as np
         def _quantize(spec, name, value):
             if "weight" in name:
                 if quantization == "int16":
