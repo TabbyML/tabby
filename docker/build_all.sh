@@ -17,7 +17,7 @@ build()
     PLAT=$1
     LATEST=$IMAGE:latest-$PLAT
     TAGGED=$IMAGE:$VERSION-$PLAT
-    docker build -t $LATEST -f docker/Dockerfile.$PLAT .
+    docker build --no-cache -t $LATEST -f docker/Dockerfile.$PLAT .
     if [ $PUSH -eq 1 ]; then
         docker push $LATEST
     fi
