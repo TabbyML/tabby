@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/OpenNMT/CTranslate2.svg?branch=master)](https://travis-ci.com/OpenNMT/CTranslate2)
+
 # CTranslate2
 
 CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.

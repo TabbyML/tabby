@@ -109,9 +109,17 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
+
+try:
+    import onmt
+    opennmt_py_is_available = True
+except ImportError:
+    opennmt_py_is_available = False
+
 @pytest.mark.skipif(
-    not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
-    reason="Data files are not available")
+    not opennmt_py_is_available
+    or not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
+    reason="OpenNMT-py or data files are not available")
 def test_opennmt_py_model_conversion(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_py", "aren_7000.pt")
