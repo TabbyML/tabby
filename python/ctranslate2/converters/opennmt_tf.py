@@ -159,14 +159,31 @@ def set_transformer_spec(spec, variables):
 
 def set_transformer_encoder(spec, variables):
     set_layer_norm(spec.layer_norm, variables, "transformer/encoder/LayerNorm")
-    set_embeddings(spec.embeddings, variables, "transformer/encoder")
+    try:
+        set_embeddings(spec.embeddings, variables, "transformer/encoder")
+    except KeyError:
+        # Try shared embeddings scope instead.
+        set_embeddings(spec.embeddings, variables, "transformer/shared_embeddings")
     for i, layer in enumerate(spec.layer):
         set_transformer_encoder_layer(layer, variables, "transformer/encoder/layer_%d" % i)
 
 def set_transformer_decoder(spec, variables):
-    set_linear(spec.projection, variables, "transformer/decoder/dense")
+    try:
+        embeddings_name = set_embeddings(spec.embeddings, variables, "transformer/decoder")
+    except KeyError:
+        # Try shared embeddings scope instead.
+        embeddings_name = set_embeddings(spec.embeddings, variables, "transformer/shared_embeddings")
+    try:
+        set_linear(spec.projection, variables, "transformer/decoder/dense")
+    except KeyError:
+        # Try reusing the target embeddings.
+        set_linear(
+            spec.projection,
+            variables,
+            "transformer",
+            weight_name=embeddings_name,
+            transpose=False)
     set_layer_norm(spec.layer_norm, variables, "transformer/decoder/LayerNorm")
-    set_embeddings(spec.embeddings, variables, "transformer/decoder")
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer(layer, variables, "transformer/decoder/layer_%d" % i)
 
@@ -197,8 +214,12 @@ def set_layer_norm(spec, variables, scope):
     spec.gamma = variables["%s/gamma" % scope]
     spec.beta = variables["%s/beta" % scope]
 
-def set_linear(spec, variables, scope):
-    spec.weight = variables["%s/kernel" % scope].squeeze().transpose()
+def set_linear(spec, variables, scope, weight_name=None, transpose=True):
+    if weight_name is None:
+        weight_name = "%s/kernel" % scope
+    spec.weight = variables[weight_name].squeeze()
+    if transpose:
+        spec.weight = spec.weight.transpose()
     spec.bias = variables["%s/bias" % scope]
 
 def set_embeddings(spec, variables, scope, version=1):
@@ -206,4 +227,6 @@ def set_embeddings(spec, variables, scope, version=1):
         name = "embedding"
     else:
         name = "w_embs"
-    spec.weight = variables["%s/%s" % (scope, name)]
+    variable_name = "%s/%s" % (scope, name)
+    spec.weight = variables[variable_name]
+    return variable_name
