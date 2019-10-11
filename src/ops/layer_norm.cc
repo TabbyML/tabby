@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/layer_norm.h"
 
+#include <cmath>
+
 #define EPSILON 0.000001f
 
 namespace ctranslate2 {

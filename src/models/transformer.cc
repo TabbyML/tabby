@@ -1,5 +1,7 @@
 #include "ctranslate2/models/transformer.h"
 
+#include <cmath>
+
 namespace ctranslate2 {
   namespace models {
 

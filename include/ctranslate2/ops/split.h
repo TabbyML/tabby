@@ -1,5 +1,8 @@
 #pragma once
 
+#include <numeric>
+#include <stdexcept>
+
 #include "op.h"
 
 namespace ctranslate2 {

@@ -1,4 +1,4 @@
-#include "ctranslate2/primitives/gpu_cuda.h"
+#include "ctranslate2/primitives/primitives.h"
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
@@ -75,6 +75,14 @@ namespace ctranslate2 {
   template<>
   void primitives<Device::CUDA>::clear_cache() {
     CUDA_CHECK(allocator.FreeAllCached());
+  }
+
+  template<>
+  template <typename T>
+  T primitives<Device::CUDA>::deref(const T* x, size_t index) {
+    T val = T();
+    cross_device_primitives<Device::CUDA, Device::CPU>::copy(x + index, &val, 1);
+    return val;
   }
 
   template<>
@@ -545,6 +553,8 @@ namespace ctranslate2 {
   }
 
 #define DECLARE_IMPL(T)                                                 \
+  template T                                                            \
+  primitives<Device::CUDA>::deref(const T* x, size_t index);            \
   template void                                                         \
   primitives<Device::CUDA>::fill(T* x, T a, size_t size);               \
   template void                                                         \

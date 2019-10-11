@@ -17,8 +17,6 @@ namespace ctranslate2 {
                       const StorageView& b,
                       StorageView& y) const {
         switch (a.dtype()) {
-        case DataType::DT_INT16:
-          return compute<Device::CPU, int16_t, int32_t>(a, b, y);
         case DataType::DT_FLOAT:
           DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
           break;

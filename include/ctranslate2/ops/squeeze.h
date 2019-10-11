@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "op.h"
 
 namespace ctranslate2 {

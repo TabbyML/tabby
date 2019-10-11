@@ -3,7 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "ctranslate2/primitives/gpu_cuda.h"
+#include "ctranslate2/primitives/primitives.h"
 
 namespace ctranslate2 {
   namespace cuda {

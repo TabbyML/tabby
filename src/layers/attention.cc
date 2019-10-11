@@ -1,5 +1,7 @@
 #include "ctranslate2/layers/attention.h"
 
+#include <cmath>
+
 namespace ctranslate2 {
   namespace layers {
 
