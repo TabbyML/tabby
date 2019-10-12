@@ -7,9 +7,7 @@ namespace ctranslate2 {
 
     class Sub : public BinaryOp {
     public:
-      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const override {
-        DEVICE_DISPATCH(a.device(), TYPE_DISPATCH(a.dtype(), (compute<D, T>(a, b, c))));
-      }
+      void operator()(const StorageView& a, const StorageView& b, StorageView& c) const override;
 
     private:
       template <Device D, typename T>

@@ -3,6 +3,22 @@
 namespace ctranslate2 {
   namespace ops {
 
+    Gather::Gather(int axis) {
+      if (axis != 0)
+        throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
+    }
+
+    void Gather::operator()(const StorageView& data,
+                            const StorageView& input,
+                            StorageView& output) const {
+      Shape output_shape(input.shape());
+      for (size_t i = 1; i < data.rank(); ++i)
+        output_shape.push_back(data.dim(i));
+      output.resize(output_shape);
+      DEVICE_DISPATCH(data.device(),
+                      TYPE_DISPATCH(data.dtype(), (compute<D, T>(data, input, output))));
+    }
+
     template <Device D, typename T>
     void Gather::compute(const StorageView& data,
                          const StorageView& input,

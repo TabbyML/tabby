@@ -7,6 +7,14 @@
 namespace ctranslate2 {
   namespace ops {
 
+    void LayerNorm::operator()(const StorageView& beta,
+                               const StorageView& gamma,
+                               const StorageView& input,
+                               StorageView& output) const {
+      output.resize_as(input);
+      DEVICE_DISPATCH(input.device(), (compute<D, float>(beta, gamma, input, output)));
+    }
+
     template <Device D, typename T>
     void LayerNorm::compute(const StorageView& beta,
                             const StorageView& gamma,

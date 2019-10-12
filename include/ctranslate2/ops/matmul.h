@@ -7,23 +7,10 @@ namespace ctranslate2 {
 
     class MatMul : public BinaryOp {
     public:
-      MatMul(bool trans_a = false, bool trans_b = false, float alpha = 1)
-        : _trans_a(trans_a)
-        , _trans_b(trans_b)
-        , _alpha(alpha) {
-      }
-
+      MatMul(bool trans_a = false, bool trans_b = false, float alpha = 1);
       void operator()(const StorageView& a,
                       const StorageView& b,
-                      StorageView& y) const {
-        switch (a.dtype()) {
-        case DataType::DT_FLOAT:
-          DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
-          break;
-        default:
-          throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
-        }
-      }
+                      StorageView& y) const;
 
     private:
       bool _trans_a;

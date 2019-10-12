@@ -209,6 +209,20 @@ namespace ctranslate2 {
   }
 
   template <typename T>
+  T StorageView::scalar_at(const std::vector<size_t>& indices) const {
+    T scalar = T();
+    DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
+    return scalar;
+  }
+
+  template <typename T>
+  StorageView& StorageView::fill(T value) {
+    assert_dtype(DataTypeToEnum<T>::value);
+    DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
+    return *this;
+  }
+
+  template <typename T>
   StorageView& StorageView::copy_from(const T* data, size_t size, Device device) {
     assert_dtype(DataTypeToEnum<T>::value);
     if (size != _size)
@@ -303,6 +317,9 @@ namespace ctranslate2 {
   }
 
 #define DECLARE_IMPL(T)                                                 \
+  template T                                                            \
+  StorageView::scalar_at(const std::vector<size_t>& indices) const;     \
+  template StorageView& StorageView::fill(T value);                     \
   template StorageView&                                                 \
   StorageView::copy_from(const T* data, size_t size, Device device);
 

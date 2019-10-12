@@ -46,6 +46,8 @@ namespace ctranslate2 {
   }
 
 #define SINGLE_ARG(...) __VA_ARGS__
+
+// TODO: Move this macro out of public headers.
 #ifndef WITH_CUDA
 #  define DEVICE_DISPATCH(DEVICE, STMTS)                \
   switch (DEVICE) {                                     \

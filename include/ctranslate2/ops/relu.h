@@ -7,9 +7,7 @@ namespace ctranslate2 {
 
     class ReLU : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const override {
-        DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
-      }
+      void operator()(const StorageView& x, StorageView& y) const override;
 
     private:
       template <Device D, typename T>

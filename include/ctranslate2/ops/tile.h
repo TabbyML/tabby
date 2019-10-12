@@ -9,10 +9,7 @@ namespace ctranslate2 {
     public:
       void operator()(const StorageView& input,
                       const StorageView& repeats,
-                      StorageView& output) const override {
-        DEVICE_DISPATCH(input.device(),
-                        TYPE_DISPATCH(input.dtype(), (compute<D, T>(input, repeats, output))));
-      }
+                      StorageView& output) const override;
 
     private:
       template <Device D, typename T>

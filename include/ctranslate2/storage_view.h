@@ -169,11 +169,7 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T scalar_at(const std::vector<size_t>& indices) const {
-      T scalar = T();
-      DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
-      return scalar;
-    }
+    T scalar_at(const std::vector<size_t>& indices) const;
 
     template <typename T>
     StorageView& view(T* data, const Shape& shape) {
@@ -187,11 +183,7 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    StorageView& fill(T value) {
-      assert_dtype(DataTypeToEnum<T>::value);
-      DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
-      return *this;
-    }
+    StorageView& fill(T value);
 
     StorageView& copy_from(const StorageView& other);
 
