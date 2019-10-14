@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "device_dispatch.h"
+
 #define EPSILON 0.000001f
 
 namespace ctranslate2 {

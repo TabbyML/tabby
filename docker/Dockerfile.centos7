@@ -63,8 +63,7 @@ COPY python python
 WORKDIR /root/ctranslate2-dev/python
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
 RUN pip --no-cache-dir install setuptools wheel
-RUN CTRANSLATE2_ROOT=/root/ctranslate2 \
-    python setup.py bdist_wheel
+RUN CTRANSLATE2_ROOT=/root/ctranslate2 python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \

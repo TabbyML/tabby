@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/add.h"
 
+#include "device_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

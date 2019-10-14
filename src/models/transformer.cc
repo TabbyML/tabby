@@ -2,6 +2,8 @@
 
 #include <cmath>
 
+#include "device_dispatch.h"
+
 namespace ctranslate2 {
   namespace models {
 

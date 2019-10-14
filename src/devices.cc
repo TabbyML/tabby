@@ -5,6 +5,7 @@
 #endif
 
 #include "ctranslate2/primitives/primitives.h"
+#include "device_dispatch.h"
 
 namespace ctranslate2 {
 

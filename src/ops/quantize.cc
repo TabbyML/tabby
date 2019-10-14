@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/quantize.h"
 
+#include "device_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

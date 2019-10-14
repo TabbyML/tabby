@@ -4,6 +4,8 @@
 #include <numeric>
 #include <vector>
 
+#include "device_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

@@ -1,7 +1,8 @@
 #include "ctranslate2/ops/split.h"
 
 #include <numeric>
-#include <stdexcept>
+
+#include "device_dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {

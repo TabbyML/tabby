@@ -29,6 +29,7 @@ set(LINK_DIRECTORIES
   )
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
 set(SOURCES
   src/decoding.cc
