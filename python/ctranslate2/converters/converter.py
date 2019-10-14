@@ -1,4 +1,5 @@
 import abc
+import filecmp
 import inspect
 import os
 import shutil
@@ -58,8 +59,14 @@ class Converter(object):
         model_spec.serialize(os.path.join(output_dir, "model.bin"))
         if vmap is not None:
             shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
-        self._save_vocabulary(src_vocab, os.path.join(output_dir, "source_vocabulary.txt"))
-        self._save_vocabulary(tgt_vocab, os.path.join(output_dir, "target_vocabulary.txt"))
+        src_vocab_path = os.path.join(output_dir, "source_vocabulary.txt")
+        tgt_vocab_path = os.path.join(output_dir, "target_vocabulary.txt")
+        self._save_vocabulary(src_vocab, src_vocab_path)
+        self._save_vocabulary(tgt_vocab, tgt_vocab_path)
+        # For shared vocabularies, keep a single file in the model directory.
+        if filecmp.cmp(src_vocab_path, tgt_vocab_path, shallow=False):
+            os.remove(tgt_vocab_path)
+            os.rename(src_vocab_path, os.path.join(output_dir, "shared_vocabulary.txt"))
         return output_dir
 
     @abc.abstractmethod

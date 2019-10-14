@@ -60,9 +60,10 @@ namespace ctranslate2 {
 
       Device _device;
       int _device_index;
-      const Vocabulary _source_vocabulary;
-      const Vocabulary _target_vocabulary;
-      const VocabularyMap _vocabulary_map;
+      std::unique_ptr<const Vocabulary> _source_vocabulary;
+      std::unique_ptr<const Vocabulary> _target_vocabulary;
+      std::unique_ptr<const Vocabulary> _shared_vocabulary;
+      std::unique_ptr<const VocabularyMap> _vocabulary_map;
       std::unordered_map<std::string, StorageView> _variable_index;
       std::unordered_map<std::string, std::string> _variable_alias;
       size_t _spec_revision;
