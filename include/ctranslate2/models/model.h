@@ -11,7 +11,7 @@
 namespace ctranslate2 {
   namespace models {
 
-    static const size_t current_binary_version = 2;
+    static const size_t current_binary_version = 3;
 
     // Base class for models.
     class Model {
@@ -51,6 +51,7 @@ namespace ctranslate2 {
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);
+      virtual void register_variable_alias(const std::string& alias, const std::string& variable_name);
       virtual void finalize();
       StorageView* get_scale(const std::string& scale_name, DataType dataType);
 
@@ -63,6 +64,7 @@ namespace ctranslate2 {
       const Vocabulary _target_vocabulary;
       const VocabularyMap _vocabulary_map;
       std::unordered_map<std::string, StorageView> _variable_index;
+      std::unordered_map<std::string, std::string> _variable_alias;
       size_t _spec_revision;
       ComputeType _computeType = ComputeType::DEFAULT;
 

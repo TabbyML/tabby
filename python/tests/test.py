@@ -130,11 +130,11 @@ def test_opennmt_py_model_conversion(tmpdir):
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
-def test_layer_spec_fp16():
+def test_layer_spec_validate():
 
     class SubSpec(ctranslate2.specs.LayerSpec):
         def __init__(self):
-            self.a = np.zeros([5], dtype=np.float16)
+            self.a = np.ones([5], dtype=np.float16)
 
     class Spec(ctranslate2.specs.LayerSpec):
         def __init__(self):
@@ -147,7 +147,7 @@ def test_layer_spec_fp16():
     spec = Spec()
     spec.validate()
     assert spec.a.dtype == np.float32
-    assert spec.b.dtype == np.float32
+    assert spec.b == "a"
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float32

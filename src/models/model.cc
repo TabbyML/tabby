@@ -81,7 +81,9 @@ namespace ctranslate2 {
     }
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
-      auto it = _variable_index.find(name);
+      auto alias_it = _variable_alias.find(name);
+      auto variable_name = alias_it != _variable_alias.end() ? alias_it->second : name;
+      auto it = _variable_index.find(variable_name);
       if (it == _variable_index.end())
         return nullptr;
       return &it->second;
@@ -102,6 +104,13 @@ namespace ctranslate2 {
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),
                               std::forward_as_tuple(std::move(variable)));
+    }
+
+    void Model::register_variable_alias(const std::string& alias,
+                                        const std::string& variable_name) {
+      _variable_alias.emplace(alias, variable_name);
+      // Also alias the quantization scale that could be associated to variable_name.
+      _variable_alias.emplace(alias + "_scale", variable_name + "_scale");
     }
 
     StorageView* Model::get_scale(const std::string& scale_name, DataType dataType) {
@@ -350,6 +359,15 @@ namespace ctranslate2 {
         model->register_variable(name, variable);
 
         delete [] dimensions;
+      }
+
+      if (binary_version >= 3) {
+        auto num_aliases = consume<uint32_t>(model_file);
+        for (uint32_t i = 0; i < num_aliases; ++i) {
+          auto alias = consume<std::string>(model_file);
+          auto variable_name = consume<std::string>(model_file);
+          model->register_variable_alias(alias, variable_name);
+        }
       }
 
       model->finalize();

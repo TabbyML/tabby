@@ -17,6 +17,11 @@ def _join_scope(scope, name):
 def _split_scope(scope):
     return scope.split("/")
 
+def _parent_scope(scope):
+    keys = _split_scope(scope)
+    scope, attr = keys[:-1], keys[-1]
+    return "/".join(scope), attr
+
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
     for name, value in list(six.iteritems(spec.__dict__)):
@@ -27,6 +32,14 @@ def visit_spec(spec, fn, scope=""):
             visit_spec(value, fn, scope=_join_scope(scope, name))
         else:
             fn(spec, _join_scope(scope, name), value)
+
+def index_spec(spec, index):
+    if not index:
+        return spec
+    keys = _split_scope(index)
+    for key in keys:
+        spec = getattr(spec, key)
+    return spec
 
 
 class LayerSpec(object):
@@ -47,22 +60,46 @@ class LayerSpec(object):
                 attr_name = _split_scope(name)[-1]
                 setattr(spec, attr_name, value.astype(np.float32))
         self.visit(_check)
+        self._alias_variables()
 
-    def variables(self, prefix=""):
-        """Returns a dict mapping variables name to value."""
+    def variables(self, prefix="", ordered=False):
+        """Returns a dict mapping variables name to value. If ordered is True,
+        returns an ordered list of (name, value) pairs instead.
+        """
         var = {}
         def _register_var(spec, name, value):
             if isinstance(value, six.string_types) and value == OPTIONAL:
                 return
             var[_join_scope(prefix, name)] = value
         self.visit(_register_var)
+        if ordered:
+            return list(sorted(six.iteritems(var), key=lambda x: x[0]))
         return var
+
+    def _alias_variables(self):
+        """Find duplicate variables in spec and create aliases."""
+        import numpy as np
+        # When a variable is duplicated, keep the version that comes first in
+        # the alphabetical order and alias the others.
+        variables = self.variables(ordered=True)
+        for name, value in reversed(variables):
+            for other_name, other_value in variables:
+                if name == other_name:
+                    break
+                # Because variables can be transformed on load (e.g. transposed),
+                # we use an element-wise equality check.
+                if value.dtype == other_value.dtype and np.array_equal(value, other_value):
+                    # Replace variable value by the alias name.
+                    scope, attr_name = _parent_scope(name)
+                    spec = index_spec(self, scope)
+                    setattr(spec, attr_name, other_name)
+                    break
 
     def quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
         import numpy as np
         def _quantize(spec, name, value):
-            if "weight" in name:
+            if "weight" in name and isinstance(value, np.ndarray):
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
@@ -84,7 +121,14 @@ class LayerSpec(object):
 
     def serialize(self, path):
         """Serializes this specification."""
-        variables = self.variables()
+        variables = []
+        aliases = []
+        for variable in self.variables(ordered=True):
+            if isinstance(variable[1], six.string_types):
+                aliases.append(variable)
+            else:
+                variables.append(variable)
+
         with open(path, "wb") as model:
 
             def _write_string(string):
@@ -92,11 +136,11 @@ class LayerSpec(object):
                 model.write(six.b(string))
                 model.write(struct.pack('B', 0))
 
-            model.write(struct.pack("I", 2))  # Binary version.
+            model.write(struct.pack("I", 3))  # Binary version.
             _write_string(self.__class__.__name__)
             model.write(struct.pack("I", self.revision))
             model.write(struct.pack("I", len(variables)))
-            for name, value in sorted(six.iteritems(variables), key=lambda x: x[0]):
+            for name, value in variables:
                 _write_string(name)
                 model.write(struct.pack("B", len(value.shape)))
                 for dim in value.shape:
@@ -104,3 +148,7 @@ class LayerSpec(object):
                 model.write(struct.pack("B", value.dtype.itemsize))
                 model.write(struct.pack("I", value.size))
                 model.write(value.tobytes())
+            model.write(struct.pack("I", len(aliases)))
+            for alias, variable_name in aliases:
+                _write_string(alias)
+                _write_string(variable_name)
