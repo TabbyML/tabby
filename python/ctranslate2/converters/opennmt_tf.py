@@ -101,20 +101,38 @@ class OpenNMTTFConverter(Converter):
 
 
 def set_transformer_spec_v2(spec, variables):
-    set_transformer_encoder_v2(spec.encoder, variables, "model/encoder")
-    set_transformer_decoder_v2(spec.decoder, variables, "model/decoder")
     set_embeddings(
         spec.encoder.embeddings, variables, "model/examples_inputter/features_inputter", version=2)
-    set_embeddings(
-        spec.decoder.embeddings, variables, "model/examples_inputter/labels_inputter", version=2)
+    try:
+        target_embedding_name = set_embeddings(
+            spec.decoder.embeddings,
+            variables,
+            "model/examples_inputter/labels_inputter",
+            version=2)
+    except KeyError:
+        target_embedding_name = set_embeddings(
+            spec.decoder.embeddings,
+            variables,
+            "model/examples_inputter/features_inputter",
+            version=2)
+    set_transformer_encoder_v2(spec.encoder, variables, "model/encoder")
+    set_transformer_decoder_v2(spec.decoder, variables, "model/decoder", target_embedding_name)
 
 def set_transformer_encoder_v2(spec, variables, scope):
     set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
         set_transformer_encoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
 
-def set_transformer_decoder_v2(spec, variables, scope):
-    set_linear(spec.projection, variables, "%s/output_layer" % scope)
+def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name):
+    try:
+        set_linear(spec.projection, variables, "%s/output_layer" % scope)
+    except KeyError:
+        set_linear(
+            spec.projection,
+            variables,
+            "%s/output_layer" % scope,
+            weight_name=target_embedding_name,
+            transpose=False)
     set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
