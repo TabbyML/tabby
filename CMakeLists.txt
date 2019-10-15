@@ -8,6 +8,7 @@ option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 set(INTEL_ROOT /opt/intel CACHE FILEPATH "Path to Intel root directory")
+set(OPENMP_RUNTIME "INTEL" CACHE STRING "OpenMP runtime")
 
 # Set Release build type by default to get sane performance.
 if(NOT CMAKE_BUILD_TYPE)
@@ -75,6 +76,22 @@ set(LIBRARIES
   ${CMAKE_THREAD_LIBS_INIT}
   )
 
+if(OPENMP_RUNTIME STREQUAL "INTEL")
+  # Find Intel libraries.
+  find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
+  if(INTEL_LIBRARY_DIR)
+    message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
+  else()
+    message(FATAL_ERROR "Intel library directory not found")
+  endif()
+
+  list(APPEND LINK_DIRECTORIES ${INTEL_LIBRARY_DIR})
+  list(APPEND LIBRARIES iomp5)
+  message(STATUS "Using OpenMP: ${INTEL_LIBRARY_DIR}/libiomp5.so")
+else()
+  message(FATAL_ERROR "Invalid OpenMP runtime ${OPENMP_RUNTIME}")
+endif()
+
 if(WITH_MKL)
   set(MKL_ROOT ${INTEL_ROOT}/mkl)
   set(MKL_SMALL_LIBRARY_NAME mklml_intel)
@@ -85,14 +102,6 @@ if(WITH_MKL)
     message(STATUS "Found MKL include directory: ${MKL_INCLUDE_DIR}")
   else()
     message(FATAL_ERROR "MKL include directory not found")
-  endif()
-
-  # Find Intel libraries.
-  find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
-  if(INTEL_LIBRARY_DIR)
-    message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
-  else()
-    message(FATAL_ERROR "Intel library directory not found")
   endif()
 
   # Generate custom MKL library.
@@ -112,12 +121,8 @@ if(WITH_MKL)
   endif()
 
   add_definitions(-DWITH_MKL)
-  list(APPEND LINK_DIRECTORIES ${INTEL_LIBRARY_DIR})
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
-  list(APPEND LIBRARIES
-    ${MKL_SMALL_LIBRARY_NAME}
-    iomp5
-    )
+  list(APPEND LIBRARIES ${MKL_SMALL_LIBRARY_NAME})
 
   if(WITH_MKLDNN)
     find_path(MKLDNN_INCLUDE_DIR mkldnn.hpp)
