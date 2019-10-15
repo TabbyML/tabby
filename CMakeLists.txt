@@ -25,9 +25,6 @@ if(OpenMP_CXX_FOUND)
   add_compile_options(${OpenMP_CXX_FLAGS})
 endif()
 
-set(LINK_DIRECTORIES
-  ${CMAKE_CURRENT_BINARY_DIR}
-  )
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -78,16 +75,13 @@ set(LIBRARIES
 
 if(OPENMP_RUNTIME STREQUAL "INTEL")
   # Find Intel libraries.
-  find_path(INTEL_LIBRARY_DIR libiomp5.so ${INTEL_ROOT}/lib/intel64)
-  if(INTEL_LIBRARY_DIR)
-    message(STATUS "Found Intel library directory: ${INTEL_LIBRARY_DIR}")
+  find_library(IOMP5_LIBRARY iomp5 ${INTEL_ROOT}/lib/intel64)
+  if(IOMP5_LIBRARY)
+    list(APPEND LIBRARIES ${IOMP5_LIBRARY})
+    message(STATUS "Using OpenMP: ${IOMP5_LIBRARY}")
   else()
-    message(FATAL_ERROR "Intel library directory not found")
+    message(FATAL_ERROR "Intel OpenMP runtime libiomp5 not found")
   endif()
-
-  list(APPEND LINK_DIRECTORIES ${INTEL_LIBRARY_DIR})
-  list(APPEND LIBRARIES iomp5)
-  message(STATUS "Using OpenMP: ${INTEL_LIBRARY_DIR}/libiomp5.so")
 elseif(OPENMP_RUNTIME STREQUAL "COMP")
   if(OpenMP_CXX_FOUND)
     list(APPEND LIBRARIES ${OpenMP_CXX_LIBRARIES})
@@ -111,8 +105,9 @@ if(WITH_MKL)
   endif()
 
   # Find MKL libraries.
-  find_path(MKL_LIBRARY_DIR libmkl_core.a ${MKL_ROOT}/lib/intel64)
-  if(MKL_LIBRARY_DIR)
+  find_library(MKL_CORE_LIBRARY mkl_core ${MKL_ROOT}/lib/intel64)
+  if(MKL_CORE_LIBRARY)
+    get_filename_component(MKL_LIBRARY_DIR ${MKL_CORE_LIBRARY} DIRECTORY)
     message(STATUS "Found MKL library directory: ${MKL_LIBRARY_DIR}")
   else()
     message(FATAL_ERROR "MKL library directory not found")
@@ -155,8 +150,6 @@ elseif(WITH_MKLDNN)
   message(FATAL_ERROR "Building with MKL-DNN requires MKL")
 endif()
 
-link_directories(${LINK_DIRECTORIES})
-
 if (WITH_CUDA)
   find_package(CUDA 10.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
@@ -174,16 +167,15 @@ if (WITH_CUDA)
 
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
-  find_path(CUDNN_LIBRARY_DIR libcudnn.so
+  find_library(CUDNN_LIBRARY cudnn
     ${CUDA_TOOLKIT_ROOT_DIR}/lib64
     /usr/lib/x86_64-linux-gnu
     )
-  if(CUDNN_LIBRARY_DIR)
-    message(STATUS "Found cuDNN library directory: ${CUDNN_LIBRARY_DIR}")
+  if(CUDNN_LIBRARY)
+    message(STATUS "Found cuDNN library: ${CUDNN_LIBRARY}")
   else()
-    message(FATAL_ERROR "cuDNN library directory not found")
+    message(FATAL_ERROR "cuDNN library not found")
   endif()
-  link_directories(${CUDNN_LIBRARY_DIR})
 
   find_library(TENSORRT_LIBRARY NAMES nvinfer)
   find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h)
@@ -218,8 +210,8 @@ if (WITH_CUDA)
     )
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
+    ${CUDNN_LIBRARY}
     ${TENSORRT_LIBRARY}
-    cudnn
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})
