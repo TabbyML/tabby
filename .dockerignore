@@ -4,7 +4,6 @@
 !cmake
 !deps
 !include
-!mkl_symbol_list
 !python
 !src
 !tests

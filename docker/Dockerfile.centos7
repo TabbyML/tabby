@@ -30,17 +30,15 @@ ENV MKLDNN_VERSION=0.21
 RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \
-    cd scripts && ./prepare_mkl.sh && cd .. && \
     mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} \
-          -DARCH_OPT_FLAGS="" -DMKLDNN_USE_MKL=ML -DMKLDNN_THREADING=OMP:INTEL \
+    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DARCH_OPT_FLAGS="" \
+          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
           -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
 
 WORKDIR /root/ctranslate2-dev
 
-COPY mkl_symbol_list .
 COPY cli cli
 COPY include include
 COPY src src
