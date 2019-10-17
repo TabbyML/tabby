@@ -49,7 +49,7 @@ CTranslate2 uses the following libraries for acceleration:
   * [CUB](https://nvlabs.github.io/cub/) (>=1.8.0)
   * [TensorRT](https://developer.nvidia.com/tensorrt) (==5.*)
   * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (with CUDA>=10.0)
-  * [cuBLAS](https://developer.nvidia.com/cublas) (with CUDA>=10.0)
+  * [cuBLAS](https://developer.nvidia.com/cublas) (==1.9.3, included in CUDA 10.0)
   * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
 A minimal installation requires at least Intel MKL. Intel MKL-DNN and GPU libraries are optional.

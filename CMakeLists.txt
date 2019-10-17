@@ -192,10 +192,20 @@ if (WITH_CUDA)
     message(STATUS "Found CUB include directory: ${CUB_INCLUDE_DIR}")
   endif()
 
+  find_path(THRUST_INCLUDE_DIR
+    NAMES thrust/device_vector.h
+    HINTS ${CUDA_TOOLKIT_ROOT_DIR}/include)
+  if(NOT THRUST_INCLUDE_DIR)
+    message(FATAL_ERROR "Thrust library not found")
+  else()
+    message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
+  endif()
+
   list(APPEND INCLUDE_DIRECTORIES ${TENSORRT_INCLUDE_DIR})
   cuda_include_directories(
     ${INCLUDE_DIRECTORIES}
     ${CUB_INCLUDE_DIR}
+    ${THRUST_INCLUDE_DIR}
     )
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
