@@ -1,6 +1,6 @@
 #include "ctranslate2/storage_view.h"
 
-#include "device_dispatch.h"
+#include "./device_dispatch.h"
 
 #define PRINT_MAX_VALUES 6
 

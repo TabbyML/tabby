@@ -1,6 +1,6 @@
 #include "ctranslate2/layers/common.h"
 
-#include "device_dispatch.h"
+#include "../device_dispatch.h"
 
 namespace ctranslate2 {
   namespace layers {
