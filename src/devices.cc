@@ -1,7 +1,7 @@
 #include "ctranslate2/devices.h"
 
 #ifdef WITH_CUDA
-#  include "ctranslate2/cuda/utils.h"
+#  include "./cuda/utils.h"
 #endif
 
 #include "ctranslate2/primitives/primitives.h"

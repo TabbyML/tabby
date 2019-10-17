@@ -8,7 +8,7 @@
 #include <cub/util_allocator.cuh>
 
 #include "ctranslate2/types.h"
-#include "ctranslate2/cuda/utils.h"
+#include "../cuda/utils.h"
 
 namespace ctranslate2 {
 

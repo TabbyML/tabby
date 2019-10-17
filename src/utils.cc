@@ -9,7 +9,7 @@
 #endif
 
 #ifdef WITH_CUDA
-#  include "ctranslate2/cuda/utils.h"
+#  include "./cuda/utils.h"
 #endif
 
 namespace ctranslate2 {

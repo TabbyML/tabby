@@ -1,6 +1,6 @@
 #include "ctranslate2/ops/layer_norm.h"
 
-#include "ctranslate2/cuda/utils.h"
+#include "../cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {

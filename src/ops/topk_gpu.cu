@@ -1,6 +1,6 @@
 #include "ctranslate2/ops/topk.h"
 
-#include "ctranslate2/cuda/utils.h"
+#include "../cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {

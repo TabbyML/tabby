@@ -6,7 +6,7 @@
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/scatter.h>
 
-#include "ctranslate2/cuda/utils.h"
+#include "../cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {
