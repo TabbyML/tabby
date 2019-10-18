@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v1.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.1.0) (2019-10-18)
+
+### New features
+
+* New Docker images: `latest-ubuntu16-gpu`, `latest-ubuntu18`, `latest-ubuntu18-gpu`
+* Support OpenNMT-tf Transformer models with shared embeddings
+* Update to TensorRT 6
+* Make OpenMP runtime configurable
+
+### Fixes and improvements
+
+* Reduce the size of models with shared weights on disk and in memory
+* Shared words vocabulary is no longer duplicated on disk and in memory
+* Improve performance of translation with a vocabulary map on GPU
+* Statically link against Intel MKL
+* Remove some implementation details from public headers
+
 ## [v1.0.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.0.1) (2019-10-08)
 
 ### Fixes and improvements
