@@ -140,14 +140,10 @@ namespace ctranslate2 {
 
     } g_allocator;
 
-    static int max_batch_size = 512;
-
     static nvinfer1::IBuilder* get_trt_builder() {
       static thread_local nvinfer1::IBuilder* builder = nullptr;
       if (!builder) {
         builder = nvinfer1::createInferBuilder(g_logger);
-        builder->setMaxBatchSize(max_batch_size);
-        builder->setMaxWorkspaceSize(1 << 30);
         builder->setGpuAllocator(&g_allocator);
       }
       return builder;
@@ -162,42 +158,34 @@ namespace ctranslate2 {
     }
 
     TensorRTLayer::~TensorRTLayer() {
-      clear();
-    }
-
-    void TensorRTLayer::build(bool force) {
-      if (!_network || force) {
-        clear();
-        auto builder = get_trt_builder();
-        _network = builder->createNetwork();
-        build_network(_network);
-        _engine = builder->buildCudaEngine(*_network);
-        _execution_context = _engine->createExecutionContext();
-      }
-    }
-
-    void TensorRTLayer::clear() {
-      if (_network) {
-        _network->destroy();
-        _network = nullptr;
-      }
-      if (_engine) {
-        _engine->destroy();
-        _engine = nullptr;
-      }
       if (_execution_context) {
         _execution_context->destroy();
-        _execution_context = nullptr;
+        _network->destroy();
+        _engine->destroy();
+        _builder_config->destroy();
       }
     }
 
-    void TensorRTLayer::run(int batch_size, void** bindings) {
-      if (batch_size > max_batch_size)
-        throw std::runtime_error("Maximum batch size supported by the TensorRT engine is "
-                                 + std::to_string(max_batch_size) + ", but got "
-                                 + std::to_string(batch_size));
-      build();
-      _execution_context->enqueue(batch_size, bindings, get_cuda_stream(), nullptr);
+    void TensorRTLayer::build() {
+      auto builder = get_trt_builder();
+      _network = builder->createNetworkV2(
+        1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
+      build_network(_network);
+      auto profile = builder->createOptimizationProfile();
+      set_optimization_profile(profile);
+      _builder_config = builder->createBuilderConfig();
+      _builder_config->setMaxWorkspaceSize(1 << 30);
+      _builder_config->addOptimizationProfile(profile);
+      _engine = builder->buildEngineWithConfig(*_network, *_builder_config);
+      _execution_context = _engine->createExecutionContext();
+    }
+
+    void TensorRTLayer::run(void** bindings, const std::vector<nvinfer1::Dims>& input_dims) {
+      if (!_execution_context)
+        build();
+      for (size_t i = 0; i < input_dims.size(); ++i)
+        _execution_context->setBindingDimensions(i, input_dims[i]);
+      _execution_context->enqueueV2(bindings, get_cuda_stream(), nullptr);
     }
 
   }

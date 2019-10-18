@@ -1,8 +1,8 @@
 ARG UBUNTU_VERSION=18.04
 FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu${UBUNTU_VERSION} as builder
 
-ENV TENSORRT_MAJOR_VERSION=5
-ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.1.5
+ENV TENSORRT_MAJOR_VERSION=6
+ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.0.1
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \

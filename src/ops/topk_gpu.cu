@@ -9,17 +9,15 @@ namespace ctranslate2 {
     public:
       TopKLayer(int k)
         : _k(k)
-        , _depth(0) {
+        , _first_depth(0) {
       }
 
       void operator()(const StorageView& x, StorageView& values, StorageView& indices) {
         int depth = x.dim(-1);
         int batch_size = x.size() / depth;
 
-        if (depth != _depth) {
-          _depth = depth;
-          build(/*force=*/true);
-        }
+        if (_first_depth == 0)
+          _first_depth = depth;
 
         void* bindings[3] = {
           const_cast<float*>(x.data<float>()),
@@ -27,14 +25,15 @@ namespace ctranslate2 {
           indices.data<int32_t>()
         };
 
-        run(batch_size, bindings);
+        run(bindings, {nvinfer1::Dims2(batch_size, depth)});
       }
 
     protected:
       void build_network(nvinfer1::INetworkDefinition* network) override {
-        nvinfer1::Dims input_dim{1, {_depth}, {nvinfer1::DimensionType::kCHANNEL}};
-        nvinfer1::ITensor* input = network->addInput("x", nvinfer1::DataType::kFLOAT, input_dim);
-        nvinfer1::ITopKLayer* topk = network->addTopK(*input, nvinfer1::TopKOperation::kMAX, _k, 1);
+        nvinfer1::ITensor* input = network->addInput("x",
+                                                     nvinfer1::DataType::kFLOAT,
+                                                     nvinfer1::Dims2(-1, -1));
+        nvinfer1::ITopKLayer* topk = network->addTopK(*input, nvinfer1::TopKOperation::kMAX, _k, 2);
         nvinfer1::ITensor* values_t = topk->getOutput(0);
         nvinfer1::ITensor* indices_t = topk->getOutput(1);
         network->markOutput(*values_t);
@@ -44,9 +43,23 @@ namespace ctranslate2 {
         indices_t->setType(nvinfer1::DataType::kINT32);
       }
 
+      void set_optimization_profile(nvinfer1::IOptimizationProfile* profile) override {
+        // Optimize for the first seen depth which covers the standard use case
+        // of running TopK over a static vocabulary size.
+        profile->setDimensions("x",
+                               nvinfer1::OptProfileSelector::kMIN,
+                               nvinfer1::Dims2(1, _first_depth));
+        profile->setDimensions("x",
+                               nvinfer1::OptProfileSelector::kOPT,
+                               nvinfer1::Dims2(64, _first_depth));
+        profile->setDimensions("x",
+                               nvinfer1::OptProfileSelector::kMAX,
+                               nvinfer1::Dims2(1024, _first_depth));
+      }
+
     private:
       int _k;
-      int _depth;
+      int _first_depth;
     };
 
     template <Device D, typename DataType, typename IndexType>

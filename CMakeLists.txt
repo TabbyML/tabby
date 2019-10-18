@@ -185,6 +185,10 @@ if (WITH_CUDA)
     message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
   endif()
 
+  # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+
   find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh)
   if(NOT CUB_INCLUDE_DIR)
     message(FATAL_ERROR "CUB library not found")
@@ -201,11 +205,8 @@ if (WITH_CUDA)
     message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
   endif()
 
-  list(APPEND INCLUDE_DIRECTORIES ${TENSORRT_INCLUDE_DIR})
   cuda_include_directories(
-    ${INCLUDE_DIRECTORIES}
     ${CUB_INCLUDE_DIR}
-    ${THRUST_INCLUDE_DIR}
     )
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}

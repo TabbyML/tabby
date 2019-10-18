@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
@@ -49,15 +50,18 @@ namespace ctranslate2 {
       virtual ~TensorRTLayer();
 
     protected:
+      void run(void** bindings, const std::vector<nvinfer1::Dims>& input_dims);
+
+      // These methods are called on the first call to run().
       virtual void build_network(nvinfer1::INetworkDefinition* network) = 0;
-      void run(int batch_size, void** bindings);
-      void build(bool force = false);
-      void clear();
+      virtual void set_optimization_profile(nvinfer1::IOptimizationProfile* profile) = 0;
 
     private:
+      void build();
       nvinfer1::INetworkDefinition* _network = nullptr;
       nvinfer1::ICudaEngine* _engine = nullptr;
       nvinfer1::IExecutionContext* _execution_context = nullptr;
+      nvinfer1::IBuilderConfig* _builder_config = nullptr;
     };
 
     // Statically assiocate cudnnDataType_t with a C++ type.
