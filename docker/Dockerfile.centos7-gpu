@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.0-devel-centos7 as builder
+FROM nvidia/cuda:10.0-cudnn7-devel-centos7 as builder
 
 RUN yum install -y \
         boost-static \
@@ -36,12 +36,6 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
           -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
-
-ENV CUDNN_VERSION_SHORT=7.6.4
-ENV CUDNN_VERSION=${CUDNN_VERSION_SHORT}.38
-RUN curl -fsSL http://developer.download.nvidia.com/compute/redist/cudnn/v${CUDNN_VERSION_SHORT}/cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -O && \
-    tar --no-same-owner -xzf cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz -C /usr/local && \
-    rm cudnn-10.0-linux-x64-v${CUDNN_VERSION}.tgz
 
 ENV TENSORRT_MAJOR_VERSION=5
 ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.1.5
@@ -93,7 +87,7 @@ WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
     cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib64 && \
     cp -P /usr/lib64/libboost_python*.so* /root/ctranslate2/lib64 && \
-    cp -P /usr/local/cuda/lib*/libcudnn.so* /root/ctranslate2/lib64 && \
+    cp -P /usr/local/cuda/lib64/libcudnn.so* /root/ctranslate2/lib64 && \
     cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64 && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 

@@ -128,7 +128,7 @@ See the existing converters implementation which could be used as a template.
 Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized. The GPU image supports both CPU and GPU execution:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-centos7-gpu
+docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
 ```
 
 The library has several entrypoints which are briefly introduced below. The examples use the English-German model prepared in [Converting models](#converting-models). This model requires a SentencePiece tokenization.
@@ -139,17 +139,17 @@ The library has several entrypoints which are briefly introduced below. The exam
 
 ```bash
 echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-centos7-gpu --model /data/ende_ctranslate2
+    opennmt/ctranslate2:latest-ubuntu18-gpu --model /data/ende_ctranslate2
 ```
 
 #### GPU
 
 ```bash
 echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-centos7-gpu --model /data/ende_ctranslate2 --device cuda
+    opennmt/ctranslate2:latest-ubuntu18-gpu --model /data/ende_ctranslate2 --device cuda
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-centos7-gpu --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-gpu --help` for additional options.*
 
 ### With the Python API
 
@@ -193,7 +193,7 @@ int main() {
 The Docker images are self contained and build the code from the active directory. The `build` command should be run from the project root directory, e.g.:
 
 ```bash
-docker build -t opennmt/ctranslate2:latest-ubuntu16 -f docker/Dockerfile.ubuntu16 .
+docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
 ```
 
 See the `docker/` directory for available images.
@@ -202,7 +202,7 @@ See the `docker/` directory for available images.
 
 The minimum requirements for building CTranslate2 binaries are Intel MKL and the Boost `program_options` module. The instructions below assume an Ubuntu system.
 
-**Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.centos7-gpu) is defined.
+**Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
 
 #### Install Intel MKL
 

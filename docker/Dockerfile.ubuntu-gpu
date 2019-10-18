@@ -1,4 +1,8 @@
-FROM ubuntu:16.04 as builder
+ARG UBUNTU_VERSION=18.04
+FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu${UBUNTU_VERSION} as builder
+
+ENV TENSORRT_MAJOR_VERSION=5
+ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.1.5
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -8,6 +12,10 @@ RUN apt-get update && \
         libboost-program-options-dev \
         libboost-python-dev \
         python-pip \
+        gnupg2 \
+        curl \
+        libnvinfer${TENSORRT_MAJOR_VERSION}=${TENSORRT_VERSION}-1+cuda10.0 \
+        libnvinfer-dev=${TENSORRT_VERSION}-1+cuda10.0 \
         wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -44,6 +52,13 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     make -j4 && make install && \
     cd ../.. && rm -r mkl-dnn-*
 
+ENV CUB_VERSION=1.8.0
+ENV CUB_ROOT=/root/cub
+RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
+    tar xf v${CUB_VERSION}.tar.gz && \
+    mv cub-${CUB_VERSION} ${CUB_ROOT} && \
+    rm v${CUB_VERSION}.tar.gz
+
 WORKDIR /root/ctranslate2-dev
 
 COPY cli cli
@@ -54,12 +69,18 @@ COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
+ARG CUDA_NVCC_FLAGS
+ENV CUDA_NVCC_FLAGS=${CUDA_NVCC_FLAGS:-"-Xfatbin -compress-all"}
+ARG CUDA_ARCH_LIST
+ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
-          -DCMAKE_PREFIX_PATH=${MKLDNN_ROOT} -DWITH_MKLDNN=ON \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
+          -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT}" \
+          -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
+          -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 && \
     make install
 
@@ -73,12 +94,15 @@ WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
+    cp -P /usr/lib/x86_64-linux-gnu/libcudnn.so* /root/ctranslate2/lib && \
+    cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
-FROM ubuntu:16.04
+FROM nvidia/cuda:10.0-base-ubuntu${UBUNTU_VERSION}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        cuda-cublas-$CUDA_PKG_VERSION \
         python-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
