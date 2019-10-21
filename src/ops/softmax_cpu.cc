@@ -14,7 +14,7 @@ namespace ctranslate2 {
       size_t total_depth = input.dim(-1);
       size_t batch_size = input.size() / total_depth;
       #pragma omp parallel for
-      for (size_t i = 0; i < batch_size; ++i) {
+      for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
         const auto* x = input.data<T>() + (i * total_depth);
         auto* y = output.data<T>() + (i * total_depth);
         size_t depth = total_depth;

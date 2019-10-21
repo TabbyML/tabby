@@ -16,7 +16,7 @@ namespace ctranslate2 {
       size_t batch_size = input.size() / depth;
       StorageView tmp({batch_size, depth}, input.dtype(), input.device());
       #pragma omp parallel for
-      for (size_t i = 0; i < batch_size; ++i) {
+      for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
         const auto* x = input.data<T>() + i * depth;
         auto* y = output.data<T>() + i * depth;
         auto* t = tmp.data<T>() + i * depth;

@@ -67,6 +67,12 @@ TEST_P(ModelVariantTest, Transliteration) {
   }
 }
 
+#ifdef WITH_MKLDNN
+DataType i8_test_dtype = DataType::DT_INT8;
+#else
+DataType i8_test_dtype = DataType::DT_INT16;
+#endif
+
 INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   ModelVariantTest,
@@ -75,11 +81,7 @@ INSTANTIATE_TEST_CASE_P(
     std::make_pair("v1/aren-transliteration-i16", DataType::DT_INT16),
     std::make_pair("v2/aren-transliteration", DataType::DT_FLOAT),
     std::make_pair("v2/aren-transliteration-i16", DataType::DT_INT16),
-#ifdef WITH_MKLDNN
-    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)
-#else
-    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT16)
-#endif
+    std::make_pair("v2/aren-transliteration-i8", i8_test_dtype)
     ),
   path_to_test_name);
 

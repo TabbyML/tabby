@@ -31,7 +31,8 @@ namespace ctranslate2 {
         output.resize(output_shape);
 
         size_t copied = 0;
-        for (ssize_t i = last_repeated_dim; i >= 0; --i) {
+        size_t i = last_repeated_dim;
+        do {
           const size_t axis = i;
           const size_t repeat_dim = repeats.at<int32_t>(axis);
           size_t iter_dim = 1;
@@ -55,7 +56,7 @@ namespace ctranslate2 {
             }
             copied *= repeat_dim;
           }
-        }
+        } while (i-- > 0);
       }
     };
 

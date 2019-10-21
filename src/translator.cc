@@ -1,5 +1,7 @@
 #include "ctranslate2/translator.h"
 
+#include <algorithm>
+
 #include "ctranslate2/decoding.h"
 
 namespace ctranslate2 {

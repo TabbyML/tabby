@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.7)
+
+# Set policy for setting the MSVC runtime library for static MSVC builds
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
 project(ctranslate2)
 
 option(WITH_MKL "Compile with Intel MKL backend" ON)
@@ -7,7 +13,17 @@ option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-set(INTEL_ROOT /opt/intel CACHE FILEPATH "Path to Intel root directory")
+if(DEFINED ENV{INTELROOT})
+  set(INTEL_ROOT_DEFAULT $ENV{INTELROOT})
+elseif(DEFINED ENV{MKLROOT})
+  set(INTEL_ROOT_DEFAULT $ENV{MKLROOT}/..)
+elseif(WIN32)
+  set(ProgramFilesx86 "ProgramFiles(x86)")
+  set(INTEL_ROOT_DEFAULT $ENV{${ProgramFilesx86}}/IntelSWTools/compilers_and_libraries/windows)
+else()
+  set(INTEL_ROOT_DEFAULT "/opt/intel")
+endif()
+set(INTEL_ROOT ${INTEL_ROOT_DEFAULT} CACHE FILEPATH "Path to Intel root directory")
 set(OPENMP_RUNTIME "INTEL" CACHE STRING "OpenMP runtime (INTEL, COMP)")
 
 # Set Release build type by default to get sane performance.
@@ -17,7 +33,20 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
+
+if(MSVC)
+  if(BUILD_SHARED_LIBS)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  else()
+    if(CMAKE_VERSION VERSION_LESS "3.15.0")
+      message(FATAL_ERROR "Use CMake 3.15 or later when setting BUILD_SHARED_LIBS to OFF")
+    endif()
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ffast-math")
+endif()
 
 find_package(Threads)
 find_package(OpenMP)
@@ -74,7 +103,7 @@ set(LIBRARIES
 
 if(OPENMP_RUNTIME STREQUAL "INTEL")
   # Find Intel libraries.
-  find_library(IOMP5_LIBRARY iomp5 ${INTEL_ROOT}/lib/intel64)
+  find_library(IOMP5_LIBRARY iomp5 libiomp5md HINTS ${INTEL_ROOT}/lib/intel64 ${INTEL_ROOT}/compiler/lib/intel64)
   if(IOMP5_LIBRARY)
     list(APPEND LIBRARIES ${IOMP5_LIBRARY})
     message(STATUS "Using OpenMP: ${IOMP5_LIBRARY}")
@@ -93,10 +122,11 @@ else()
 endif()
 
 if(WITH_MKL)
-  set(MKL_ROOT ${INTEL_ROOT}/mkl)
+  find_path(MKL_ROOT include/mkl.h PATHS $ENV{MKLROOT} ${INTEL_ROOT}/mkl
+                                   DOC "Path to MKL root directory")
 
   # Find MKL includes.
-  find_path(MKL_INCLUDE_DIR mkl.h ${MKL_ROOT}/include/)
+  find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_ROOT}/include/)
   if(MKL_INCLUDE_DIR)
     message(STATUS "Found MKL include directory: ${MKL_INCLUDE_DIR}")
   else()
@@ -104,7 +134,7 @@ if(WITH_MKL)
   endif()
 
   # Find MKL libraries.
-  find_library(MKL_CORE_LIBRARY mkl_core ${MKL_ROOT}/lib/intel64)
+  find_library(MKL_CORE_LIBRARY NAMES mkl_core PATHS ${MKL_ROOT}/lib/intel64)
   if(MKL_CORE_LIBRARY)
     get_filename_component(MKL_LIBRARY_DIR ${MKL_CORE_LIBRARY} DIRECTORY)
     message(STATUS "Found MKL library directory: ${MKL_LIBRARY_DIR}")
@@ -112,19 +142,39 @@ if(WITH_MKL)
     message(FATAL_ERROR "MKL library directory not found")
   endif()
 
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
   add_definitions(-DWITH_MKL -DMKL_ILP64)
-  set(MKL_LIBRARIES
-    ${MKL_LIBRARY_DIR}/libmkl_core.a
-    ${MKL_LIBRARY_DIR}/libmkl_intel_ilp64.a
-    )
+  if(WIN32)
+    set(MKL_LIBRARIES
+      ${MKL_LIBRARY_DIR}/mkl_core.lib
+      ${MKL_LIBRARY_DIR}/mkl_intel_ilp64.lib
+      )
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64")
+    set(MKL_LIBRARIES
+      ${MKL_LIBRARY_DIR}/libmkl_core.a
+      ${MKL_LIBRARY_DIR}/libmkl_intel_ilp64.a
+      )
+  endif()
+  
   if(OPENMP_RUNTIME STREQUAL "INTEL")
-    list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/libmkl_intel_thread.a)
+    if(WIN32)
+      list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/mkl_intel_thread.lib)
+    else()
+      list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/libmkl_intel_thread.a)
+    endif()
   elseif(OPENMP_RUNTIME STREQUAL "COMP")
-    list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/libmkl_gnu_thread.a)
+    if(WIN32)
+      message(FATAL_ERROR "Building with MKL requires Intel OpenMP")
+    else()
+      list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/libmkl_gnu_thread.a)
+    endif()
   endif()
   list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
-  list(APPEND LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+  if(WIN32)
+    list(APPEND LIBRARIES ${MKL_LIBRARIES})
+  else()
+    list(APPEND LIBRARIES -Wl,--start-group ${MKL_LIBRARIES} -Wl,--end-group)
+  endif()
 
   if(WITH_MKLDNN)
     find_path(MKLDNN_INCLUDE_DIR mkldnn.hpp)
@@ -152,7 +202,15 @@ endif()
 if (WITH_CUDA)
   find_package(CUDA 10.0 REQUIRED)
   add_definitions(-DWITH_CUDA)
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+  if(MSVC)
+    if(BUILD_SHARED_LIBS)
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MD$<$<CONFIG:Debug>:d>")
+    else()
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MT$<$<CONFIG:Debug>:d>")
+    endif()
+  else()
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+  endif()
   if(OpenMP_CXX_FOUND)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}")
   endif()
@@ -164,10 +222,9 @@ if (WITH_CUDA)
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 
-  message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
-
   find_library(CUDNN_LIBRARY cudnn
     ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+    ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64
     /usr/lib/x86_64-linux-gnu
     )
   if(CUDNN_LIBRARY)
@@ -185,9 +242,13 @@ if (WITH_CUDA)
     message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
   endif()
 
-  # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+  if(NOT MSVC)
+    # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+  endif()
+  
+  message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
   find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh)
   if(NOT CUB_INCLUDE_DIR)
@@ -205,8 +266,13 @@ if (WITH_CUDA)
     message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
   endif()
 
+  include_directories(
+    ${TENSORRT_INCLUDE_DIR}
+  )
+
   cuda_include_directories(
     ${CUB_INCLUDE_DIR}
+    ${THRUST_INCLUDE_DIR}
     )
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}

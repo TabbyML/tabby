@@ -15,7 +15,7 @@ namespace ctranslate2 {
       StorageView full_indices({batch_size, depth}, indices.dtype());
 
       #pragma omp parallel for
-      for (size_t i = 0; i < batch_size; ++i) {
+      for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
         const auto* input = x.data<DataType>() + (i * depth);
         auto* ids = full_indices.data<IndexType>() + (i * depth);
         auto* val = values.data<DataType>() + (i * _k);

@@ -200,8 +200,8 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
   template<>
   template<>
-  void primitives<Device::CPU>::mul(float a, float* y, size_t size) {
-    cblas_sscal(size, a, y, 1 /* incx */);
+  void primitives<Device::CPU>::mul(float a, const float* x, float* y, size_t size) {
+    cblas_saxpby(size, a, x, 1 /* incx */, 0 /* b */, y, 1 /* incy */);
   }
 #endif
 
@@ -269,7 +269,7 @@ namespace ctranslate2 {
                                                  size_t x_size, size_t scale_size) {
     size_t depth = x_size / scale_size;
     #pragma omp parallel for
-    for (size_t i = 0; i < scale_size; ++i) {
+    for (long long i = 0; i < static_cast<long long>(scale_size); ++i) {
       const auto offset = i * depth;
       unquantize(x + offset, y + offset, depth, scale[i]);
     }
@@ -279,7 +279,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::quantize_batch(const float* x, float* scales, int8_t* qx,
                                                size_t batch_size, size_t depth) {
     #pragma omp parallel for
-    for (size_t i = 0; i < batch_size; ++i) {
+    for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
       const float* row = x + i * depth;
       int8_t* qrow = qx + i * depth;
       auto scale = static_cast<float>(std::numeric_limits<int8_t>::max()) / amax(row, depth);
@@ -296,7 +296,7 @@ namespace ctranslate2 {
                                                size_t batch_size,
                                                size_t depth) {
     #pragma omp parallel for
-    for (size_t i = 0; i < batch_size; ++i) {
+    for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
       for (size_t j = 0; j < depth; ++j) {
         const auto index = j + i * depth;
         y[index] = static_cast<float>(x[index]) / (input_scales[i] * weight_scales[j]);
@@ -386,7 +386,7 @@ namespace ctranslate2 {
   template <typename DataType, typename IndexType>
   void primitives<Device::CPU>::transpose_2d(const DataType* a, const IndexType* dims, DataType* b) {
     #pragma omp parallel for
-    for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+    for (long long i0 = 0; i0 < static_cast<long long>(dims[0]); ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         b[i1 * dims[0] + i0] = a[i0 * dims[1] + i1];
       }
@@ -418,7 +418,7 @@ namespace ctranslate2 {
                                b_stride[perm_ind[2]]};
 
     #pragma omp parallel for
-    for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+    for (long long i0 = 0; i0 < static_cast<long long>(dims[0]); ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         for (size_t i2 = 0; i2 < dims[2]; ++i2) {
           const size_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
@@ -447,7 +447,7 @@ namespace ctranslate2 {
                                b_stride[perm_ind[2]], b_stride[perm_ind[3]]};
 
     #pragma omp parallel for
-    for (size_t i0 = 0; i0 < dims[0]; ++i0) {
+    for (long long i0 = 0; i0 < static_cast<long long>(dims[0]); ++i0) {
       for (size_t i1 = 0; i1 < dims[1]; ++i1) {
         for (size_t i2 = 0; i2 < dims[2]; ++i2) {
           for (size_t i3 = 0; i3 < dims[3]; ++i3) {
