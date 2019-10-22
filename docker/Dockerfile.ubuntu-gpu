@@ -13,7 +13,6 @@ RUN apt-get update && \
         libboost-python-dev \
         python-pip \
         gnupg2 \
-        curl \
         libnvinfer${TENSORRT_MAJOR_VERSION}=${TENSORRT_VERSION}-1+cuda10.0 \
         libnvinfer-dev=${TENSORRT_VERSION}-1+cuda10.0 \
         wget && \
