@@ -6,7 +6,7 @@
 // The implemented approach comes from:
 // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.h
 
-#include <map>
+#include <string>
 
 namespace ctranslate2 {
 
@@ -17,16 +17,7 @@ namespace ctranslate2 {
     DT_INT32
   };
 
-  static const std::map<DataType, std::string> dtype_names = {
-    {DataType::DT_FLOAT, "float"},
-    {DataType::DT_INT8, "int8"},
-    {DataType::DT_INT16, "int16"},
-    {DataType::DT_INT32, "int32"}
-  };
-
-  inline const std::string& dtype_name(DataType type) {
-    return dtype_names.at(type);
-  }
+  const std::string& dtype_name(DataType type);
 
   // Validates type T for whether it is a supported DataType.
   template <class T>

@@ -92,6 +92,7 @@ set(SOURCES
   src/translation_result.cc
   src/translator.cc
   src/translator_pool.cc
+  src/types.cc
   src/utils.cc
   src/vocabulary.cc
   src/vocabulary_map.cc

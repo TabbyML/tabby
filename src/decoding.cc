@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <limits>
+#include <map>
 
 #include "ctranslate2/ops/ops.h"
 #include "./device_dispatch.h"
