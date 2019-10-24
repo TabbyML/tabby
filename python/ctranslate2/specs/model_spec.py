@@ -38,7 +38,11 @@ def index_spec(spec, index):
         return spec
     keys = _split_scope(index)
     for key in keys:
-        spec = getattr(spec, key)
+        try:
+            spec = getattr(spec, key)
+        except AttributeError:
+            attr, index = key.rsplit("_", 1)
+            spec = getattr(spec, attr)[int(index)]
     return spec
 
 

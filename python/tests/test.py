@@ -6,7 +6,8 @@ import numpy as np
 
 import ctranslate2
 
-from ctranslate2.specs.model_spec import OPTIONAL
+from ctranslate2.specs.model_spec import OPTIONAL, index_spec
+from ctranslate2.specs import transformer_spec
 
 
 _TEST_DATA_DIR = os.path.join(
@@ -151,3 +152,12 @@ def test_layer_spec_validate():
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float32
+
+def test_index_spec():
+    spec = ctranslate2.specs.TransformerBase()
+    assert isinstance(
+        index_spec(spec, "encoder/layer_5"),
+        transformer_spec.TransformerEncoderLayerSpec)
+    assert isinstance(
+        index_spec(spec, "encoder/layer_5/ffn"),
+        transformer_spec.FeedForwardSpec)
