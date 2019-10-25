@@ -153,17 +153,14 @@ echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
 
 ### With the Python API
 
-```python
-import ctranslate2
-translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
-
-input_tokens = ["▁H", "ello", "▁world", "!"]
-result = translator.translate_batch([input_tokens])
-
-print(result[0][0])
+```bash
+docker run -it --rm -v $PWD:/data --entrypoint python opennmt/ctranslate2:latest-ubuntu18
 ```
-
-The `ctranslate2` Python package is already installed in the Docker images.
+```python
+>>> import ctranslate2
+>>> translator = ctranslate2.Translator("/data/ende_ctranslate2/", device="cpu")
+>>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+```
 
 *See the [Python reference](docs/python.md) for more advanced usage.*
 
