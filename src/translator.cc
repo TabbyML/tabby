@@ -6,31 +6,47 @@
 
 namespace ctranslate2 {
 
+  static std::vector<size_t>
+  tokens_to_ids(const std::vector<std::string>& tokens,
+                const Vocabulary& vocab) {
+    std::vector<size_t> ids;
+    ids.reserve(tokens.size());
+    for (const auto& token : tokens)
+      ids.push_back(vocab.to_id(token));
+    return ids;
+  }
+
+  static std::vector<std::vector<size_t>>
+  tokens_to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+                const Vocabulary& vocab) {
+    std::vector<std::vector<size_t>> batch_ids;
+    batch_ids.reserve(batch_tokens.size());
+    for (const auto& tokens : batch_tokens)
+      batch_ids.emplace_back(tokens_to_ids(tokens, vocab));
+    return batch_ids;
+  }
+
   static std::pair<StorageView, StorageView>
-  make_inputs(const std::vector<std::vector<std::string>>& tokens,
-              const Vocabulary& vocab,
-              Device device) {
-    size_t batch_size = tokens.size();
+  make_inputs(const std::vector<std::vector<size_t>>& ids, Device device) {
+    size_t batch_size = ids.size();
 
     // Record lengths and maximum length.
     size_t max_length = 0;
     StorageView lengths({batch_size}, DataType::DT_INT32);
     for (size_t i = 0; i < batch_size; ++i) {
-      const size_t length = tokens[i].size();
+      const size_t length = ids[i].size();
       lengths.at<int32_t>(i) = length;
       max_length = std::max(max_length, length);
     }
 
-    // Convert tokens to ids.
-    StorageView ids({batch_size, max_length}, DataType::DT_INT32);
+    // Make 2D input.
+    StorageView input({batch_size, max_length}, DataType::DT_INT32);
     for (size_t i = 0; i < batch_size; ++i) {
-      for (size_t t = 0; t < tokens[i].size(); ++t) {
-        const std::string& token = tokens[i][t];
-        ids.at<int32_t>({i, t}) = vocab.to_id(token);
-      }
+      for (size_t t = 0; t < ids[i].size(); ++t)
+        input.at<int32_t>({i, t}) = ids[i][t];
     }
 
-    return std::make_pair(ids.to(device), lengths.to(device));
+    return std::make_pair(input.to(device), lengths.to(device));
   }
 
 
@@ -126,7 +142,8 @@ namespace ctranslate2 {
     auto scoped_device_setter = _model->get_scoped_device_setter();
     auto device = _model->device();
 
-    auto inputs = make_inputs(source, source_vocab, device);
+    auto source_ids = tokens_to_ids(source, source_vocab);
+    auto inputs = make_inputs(source_ids, device);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
 
@@ -159,13 +176,13 @@ namespace ctranslate2 {
       // TODO: Forward all timesteps at once. This requires supporting the masking
       // of future steps.
       const auto& prefix = target_prefix.front();
+      auto prefix_ids = tokens_to_ids(prefix, target_vocab);
       start_step = prefix.size();
       for (size_t i = 0; i < start_step; ++i) {
         auto input = sample_from.to(device);
         input.reshape({batch_size, 1});
         decoder(i, input, encoded, lengths, state);
-        auto next_id = target_vocab.to_id(prefix[i]);
-        sample_from.at<int32_t>(0) = next_id;
+        sample_from.at<int32_t>(0) = prefix_ids[i];
       }
     }
 
