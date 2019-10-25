@@ -8,7 +8,7 @@
 namespace ctranslate2 {
   namespace cuda {
 
-    static std::string cublasGetStatusString(cublasStatus_t status)
+    std::string cublasGetStatusString(cublasStatus_t status)
     {
       switch (status)
       {
@@ -35,30 +35,6 @@ namespace ctranslate2 {
       default:
         return "UNKNOWN";
       }
-    }
-
-    void cuda_assert(cudaError_t code, const std::string& file, int line)
-    {
-      if (code != cudaSuccess)
-        throw std::runtime_error("CUDA failed with error '"
-                                 + std::string(cudaGetErrorString(code))
-                                 + "' at " + file + ":" + std::to_string(line));
-    }
-
-    void cublas_assert(cublasStatus_t status, const std::string& file, int line)
-    {
-      if (status != CUBLAS_STATUS_SUCCESS)
-        throw std::runtime_error("cuBLAS failed with status '"
-                                 + cublasGetStatusString(status)
-                                 + "' at " + file + ":" + std::to_string(line));
-    }
-
-    void cudnn_assert(cudnnStatus_t code, const std::string& file, int line)
-    {
-      if (code != CUDNN_STATUS_SUCCESS)
-        throw std::runtime_error("cuDNN failed with error '"
-                                 + std::string(cudnnGetErrorString(code))
-                                 + "' at " + file + ":" + std::to_string(line));
     }
 
     cudaStream_t get_cuda_stream() {

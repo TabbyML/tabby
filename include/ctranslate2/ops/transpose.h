@@ -26,7 +26,8 @@ namespace ctranslate2 {
           y.resize({x.dim(perm[0]), x.dim(perm[1]), x.dim(perm[2]), x.dim(perm[3])});
           primitives<D>::transpose_4d(x.data<T>(), x.shape().data(), perm.data(), y.data<T>());
         } else {
-          throw std::invalid_argument("unsupported rank for transposition");
+          throw std::invalid_argument("Transpose: rank " + std::to_string(x.rank())
+                                      + " is not supported, supported ranks are: 2, 3, 4");
         }
       }
     };

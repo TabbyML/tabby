@@ -51,7 +51,8 @@ namespace ctranslate2 {
                                         batch_size,
                                         depth));
       } else {
-        throw std::invalid_argument("invalid data type");
+        throw std::invalid_argument("Quantize: invalid quantized type " + dtype_name(y.dtype())
+                                    + ", expected int8 or int16");
       }
     }
 

@@ -31,7 +31,8 @@ namespace ctranslate2 {
                                           x.size(),
                                           scale.size()));
       } else {
-        throw std::invalid_argument("invalid data type");
+        throw std::invalid_argument("Dequantize: invalid quantized type " + dtype_name(x.dtype())
+                                    + ", expected int8 or int16");
       }
     }
 

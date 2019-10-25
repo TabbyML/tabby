@@ -10,4 +10,9 @@ namespace ctranslate2 {
 
   void set_num_threads(size_t num_threads);
 
+#define THROW_EXCEPTION(EXCEPTION, MESSAGE)                             \
+  throw EXCEPTION(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + MESSAGE)
+#define THROW_RUNTIME_ERROR(MESSAGE) THROW_EXCEPTION(std::runtime_error, MESSAGE)
+#define THROW_INVALID_ARGUMENT(MESSAGE) THROW_EXCEPTION(std::invalid_argument, MESSAGE)
+
 }

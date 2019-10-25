@@ -52,21 +52,6 @@ namespace ctranslate2 {
     return _dtype;
   }
 
-  void StorageView::assert_dtype(DataType dtype) const {
-    if (_dtype != dtype)
-      throw std::invalid_argument("type error: storage is not of type " + dtype_name(_dtype));
-  }
-
-  void StorageView::assert_device(Device device) const {
-    if (_device != device)
-      throw std::invalid_argument("device error: storage is not on device " + device_to_str(device));
-  }
-
-  void StorageView::assert_compatible(DataType dtype, Device device) const {
-    assert_dtype(dtype);
-    assert_device(device);
-  }
-
   size_t StorageView::reserved_memory() const {
     size_t buffer_size = 0;
     TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
@@ -94,7 +79,7 @@ namespace ctranslate2 {
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
     DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes));
     if (_data == nullptr)
-      throw std::runtime_error("reserve: failed to allocated memory");
+      THROW_RUNTIME_ERROR("failed to allocated memory");
     _own_data = true;
     _allocated_size = size;
     return *this;
@@ -134,7 +119,8 @@ namespace ctranslate2 {
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
     if (_size != size(new_shape))
-      throw std::invalid_argument("reshape: new shape is incompatible with current size");
+      THROW_INVALID_ARGUMENT("new shape size (" + std::to_string(size(new_shape))
+                             + ") is incompatible with current size (" + std::to_string(_size) + ")");
     _shape = new_shape;
     return *this;
   }
@@ -168,12 +154,12 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::assign(const StorageView& other) {
-    assert_compatible(other._dtype, other._device);
+    ASSERT_COMPATIBLE(other._dtype, other._device);
     return copy_from(other);
   }
 
   StorageView& StorageView::assign(StorageView&& other) {
-    assert_compatible(other._dtype, other._device);
+    ASSERT_COMPATIBLE(other._dtype, other._device);
     swap(*this, other);
     return *this;
   }
@@ -187,7 +173,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::shallow_copy(StorageView& other) {
-    assert_device(other._device);
+    ASSERT_DEVICE(other._device);
     TYPE_DISPATCH(_dtype, view(other.data<T>(), other._shape));
     return *this;
   }
@@ -219,16 +205,17 @@ namespace ctranslate2 {
 
   template <typename T>
   StorageView& StorageView::fill(T value) {
-    assert_dtype(DataTypeToEnum<T>::value);
+    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
     return *this;
   }
 
   template <typename T>
   StorageView& StorageView::copy_from(const T* data, size_t size, Device device) {
-    assert_dtype(DataTypeToEnum<T>::value);
+    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     if (size != _size)
-      throw std::invalid_argument("copy_from: size mismatch");
+      THROW_INVALID_ARGUMENT("buffer to copy is of size " + std::to_string(size)
+                             + " but current storage size is " + std::to_string(_size));
 #ifdef WITH_CUDA
     if (device != _device) {
       if (device == Device::CUDA)

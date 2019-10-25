@@ -32,7 +32,9 @@ namespace ctranslate2 {
         for (size_t i = 0, j = 0; i < shape.size(); ++i) {
           if (j < _axes.size() && i == _axes[j]) {
             if (shape[i] != 1)
-              throw std::invalid_argument("can't squeeze dimension greater than 1");
+              throw std::invalid_argument("can't squeeze dimension " + std::to_string(i)
+                                          + " which is " + std::to_string(shape[i])
+                                          + ", but should be 1");
             ++j;
           } else {
             new_shape.push_back(shape[i]);

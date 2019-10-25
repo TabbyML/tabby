@@ -230,9 +230,9 @@ namespace ctranslate2 {
 
       // Make sure CPU supports the demanded type
       if ((_computeType == ComputeType::INT8) && (!support_int8)) {
-        throw std::invalid_argument("Demanded compute type is int8, but device doesn't support efficient int8 computation.");
+        throw std::invalid_argument("Requested int8 compute type, but device doesn't support efficient int8 computation.");
       } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
-        throw std::invalid_argument("Demanded compute type is int16, but device doesn't support efficient int16 computation.");
+        throw std::invalid_argument("Requested int16 compute type, but device doesn't support efficient int16 computation.");
       }
 
       for (auto& variable_pair : _variable_index) {
@@ -355,7 +355,7 @@ namespace ctranslate2 {
           dtype = DataType::DT_INT8;
           break;
         default:
-          throw std::runtime_error("unsupported data type");
+          throw std::runtime_error("unknown data type of width " + std::to_string(data_width));
         }
 
         StorageView variable(shape, dtype);

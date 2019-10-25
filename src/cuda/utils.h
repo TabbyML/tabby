@@ -8,12 +8,34 @@
 #include <cudnn.h>
 #include <NvInfer.h>
 
+#include "ctranslate2/utils.h"
+
 namespace ctranslate2 {
   namespace cuda {
 
-#define CUDA_CHECK(ans) { ctranslate2::cuda::cuda_assert((ans), __FILE__, __LINE__); }
-#define CUBLAS_CHECK(ans) { ctranslate2::cuda::cublas_assert((ans), __FILE__, __LINE__); }
-#define CUDNN_CHECK(ans) { ctranslate2::cuda::cudnn_assert((ans), __FILE__, __LINE__); }
+#define CUDA_CHECK(ans)                                                 \
+    {                                                                   \
+      cudaError_t code = (ans);                                         \
+      if (code != cudaSuccess)                                          \
+        THROW_RUNTIME_ERROR("CUDA failed with error "                   \
+                            + std::string(cudaGetErrorString(code)));   \
+    }
+
+#define CUBLAS_CHECK(ans)                                               \
+    {                                                                   \
+      cublasStatus_t status = (ans);                                    \
+      if (status != CUBLAS_STATUS_SUCCESS)                              \
+        THROW_RUNTIME_ERROR("cuBLAS failed with status "                \
+                            + ctranslate2::cuda::cublasGetStatusString(status)); \
+    }
+
+#define CUDNN_CHECK(ans)                                                \
+    {                                                                   \
+      cudnnStatus_t status = (ans);                                     \
+      if (status != CUDNN_STATUS_SUCCESS)                               \
+        THROW_RUNTIME_ERROR("cuDNN failed with status "                 \
+                            + std::string(cudnnGetErrorString(status))); \
+    }
 
 // Default execution policy for Thrust.
 #define THRUST_EXECUTION_POLICY thrust::cuda::par(ctranslate2::cuda::get_thrust_allocator()) \
@@ -22,9 +44,7 @@ namespace ctranslate2 {
 // Convenience macro to call Thrust functions with the default execution policy.
 #define THRUST_CALL(FUN, ...) FUN(THRUST_EXECUTION_POLICY, __VA_ARGS__)
 
-    void cuda_assert(cudaError_t code, const std::string& file, int line);
-    void cublas_assert(cublasStatus_t status, const std::string& file, int line);
-    void cudnn_assert(cudnnStatus_t status, const std::string& file, int line);
+    std::string cublasGetStatusString(cublasStatus_t status);
 
     cudaStream_t get_cuda_stream();
     cublasHandle_t get_cublas_handle();

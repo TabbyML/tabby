@@ -9,11 +9,32 @@
 #endif
 
 #include "types.h"
+#include "utils.h"
 #include "primitives/primitives.h"
 
 using Shape = std::vector<size_t>;
 
 namespace ctranslate2 {
+
+#define ASSERT_DTYPE(DTYPE)                                             \
+  if (_dtype != DTYPE) {                                                \
+    THROW_INVALID_ARGUMENT("expected storage to be of type "            \
+                           + dtype_name(DTYPE)                          \
+                           + ", but is of type "                        \
+                           + dtype_name(_dtype));                       \
+  }
+
+#define ASSERT_DEVICE(DEVICE)                                           \
+  if (_device != DEVICE) {                                              \
+    THROW_INVALID_ARGUMENT("expected storage to be on device "          \
+                           + device_to_str(DEVICE)                      \
+                           + ", but is on device "                      \
+                           + device_to_str(_device));                   \
+  }
+
+#define ASSERT_COMPATIBLE(DTYPE, DEVICE)      \
+  ASSERT_DTYPE(DTYPE);                        \
+  ASSERT_DEVICE(DEVICE)
 
   // This class is a light wrapper around an allocated buffer which adds shape information.
   //
@@ -75,10 +96,6 @@ namespace ctranslate2 {
     // Actual storage type.
     DataType dtype() const;
 
-    void assert_dtype(DataType dtype) const;
-    void assert_device(Device device) const;
-    void assert_compatible(DataType dtype, Device device) const;
-
     // Allocated memory size.
     size_t reserved_memory() const;
     // Clears the content (memory is still reserved).
@@ -118,13 +135,13 @@ namespace ctranslate2 {
 
     template <typename T>
     T* data() {
-      assert_dtype(DataTypeToEnum<T>::value);
+      ASSERT_DTYPE(DataTypeToEnum<T>::value);
       return reinterpret_cast<T*>(_data);
     }
 
     template <typename T>
     const T* data() const {
-      assert_dtype(DataTypeToEnum<T>::value);
+      ASSERT_DTYPE(DataTypeToEnum<T>::value);
       return reinterpret_cast<const T*>(_data);
     }
 
@@ -135,12 +152,14 @@ namespace ctranslate2 {
 
     template <typename T>
     const T* index(const std::vector<size_t>& indices) const {
-      assert_dtype(DataTypeToEnum<T>::value);
+      ASSERT_DTYPE(DataTypeToEnum<T>::value);
       size_t offset = 0;
       for (size_t i = 0; i < indices.size(); ++i)
         offset += indices[i] * stride(i);
       if (offset >= _size)
-        throw std::invalid_argument("index: computed index is out of bounds");
+        THROW_INVALID_ARGUMENT("computed index is out of bounds ("
+                               + std::to_string(offset) + " >= "
+                               + std::to_string(_size) + ")");
       return data<T>() + offset;
     }
 
@@ -152,7 +171,9 @@ namespace ctranslate2 {
     template <typename T>
     const T& at(size_t index) const {
       if (index >= _size)
-        throw std::invalid_argument("at: index is out of bounds");
+        THROW_INVALID_ARGUMENT("index is out of bounds ("
+                               + std::to_string(index) + " >= "
+                               + std::to_string(_size) + ")");
       return data<T>()[index];
     }
 
@@ -169,7 +190,8 @@ namespace ctranslate2 {
     template <typename T>
     T as_scalar() const {
       if (!is_scalar())
-        throw std::invalid_argument("not a scalar");
+        THROW_INVALID_ARGUMENT("storage is not a scalar (expected size of 1 but is "
+                               + std::to_string(_size) + ")");
       return scalar_at<T>({0});
     }
 
@@ -178,7 +200,7 @@ namespace ctranslate2 {
 
     template <typename T>
     StorageView& view(T* data, const Shape& shape) {
-      assert_dtype(DataTypeToEnum<T>::value);
+      ASSERT_DTYPE(DataTypeToEnum<T>::value);
       release();
       _data = static_cast<void*>(data);
       _own_data = false;
