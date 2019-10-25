@@ -314,7 +314,6 @@ namespace ctranslate2 {
   };
 
   template<>
-  template<>
   void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size) {
     unary_transform(x, y, size, relu_func());
   }
@@ -508,7 +507,6 @@ namespace ctranslate2 {
   };
 
   template<>
-  template<>
   void primitives<Device::CUDA>::exp(const float* x, float* y, size_t size) {
     unary_transform(x, y, size, exp_func());
   }
@@ -518,7 +516,6 @@ namespace ctranslate2 {
     float operator()(float x) { return logf(x); }
   };
 
-  template<>
   template<>
   void primitives<Device::CUDA>::log(const float* x, float* y, size_t size) {
     unary_transform(x, y, size, log_func());
@@ -533,7 +530,6 @@ namespace ctranslate2 {
     float operator()(float x) { return powf(x, _power); }
   };
 
-  template<>
   template<>
   void primitives<Device::CUDA>::pow(const float* x, float* y, float power, size_t size) {
     unary_transform(x, y, size, pow_func(power));

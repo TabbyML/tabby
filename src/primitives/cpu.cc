@@ -305,82 +305,63 @@ namespace ctranslate2 {
   }
 
   template<>
-  template <typename T>
-  void primitives<Device::CPU>::relu(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) {
-      return v > 0 ? v : static_cast<T>(0);
-    });
+  void primitives<Device::CPU>::relu(const float* x, float* y, size_t size) {
+    unary_transform(x, y, size, [](float v) { return std::max(v, static_cast<float>(0)); });
   }
 
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::pow(const T* x, T* y, T power, size_t size) {
-    unary_transform(x, y, size, [&power](T v) {
-      return static_cast<T>(std::pow(static_cast<float>(v), static_cast<float>(power)));
-    });
-  }
-
-#ifdef WITH_MKL
-  template<>
   template<>
   void primitives<Device::CPU>::pow(const float* x, float *y, float power, size_t size) {
-    vsPowx(size, x, power, y);
-  }
-#endif
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::exp(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::exp(v)); });
-  }
-
 #ifdef WITH_MKL
-  template<>
+    vsPowx(size, x, power, y);
+#else
+    unary_transform(x, y, size, [power](float v) { return std::pow(v, power); });
+#endif
+  }
+
   template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, size_t size) {
-    vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
-  }
-#endif
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::log(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::log(v)); });
-  }
-
 #ifdef WITH_MKL
-  template<>
+    vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
+#else
+    unary_transform(x, y, size, [](float v) { return std::exp(v); });
+#endif
+  }
+
   template<>
   void primitives<Device::CPU>::log(const float* x, float* y, size_t size) {
-    vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
-  }
-#endif
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::cos(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::cos(v)); });
-  }
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::sin(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::sin(v)); });
-  }
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::tanh(const T* x, T* y, size_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(std::tanh(v)); });
-  }
-
 #ifdef WITH_MKL
+    vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
+#else
+    unary_transform(x, y, size, [](float v) { return std::log(v); });
+#endif
+  }
+
   template<>
+  void primitives<Device::CPU>::cos(const float* x, float* y, size_t size) {
+#ifdef WITH_MKL
+    vsCos(size, x, y);
+#else
+    unary_transform(x, y, size, [](float v) { return std::cos(v); });
+#endif
+  }
+
+  template<>
+  void primitives<Device::CPU>::sin(const float* x, float* y, size_t size) {
+#ifdef WITH_MKL
+    vsSin(size, x, y);
+#else
+    unary_transform(x, y, size, [](float v) { return std::sin(v); });
+#endif
+  }
+
   template<>
   void primitives<Device::CPU>::tanh(const float* x, float* y, size_t size) {
+#ifdef WITH_MKL
     vsTanh(size, x, y);
-  }
+#else
+    unary_transform(x, y, size, [](float v) { return std::tanh(v); });
 #endif
+  }
 
   template<>
   template <typename DataType, typename IndexType>
@@ -656,20 +637,6 @@ namespace ctranslate2 {
                                                size_t a_size, size_t b_size); \
   template void                                                         \
   primitives<Device::CPU>::inv(const T* x, T* y, size_t size);          \
-  template void                                                         \
-  primitives<Device::CPU>::relu(const T* x, T* y, size_t size);         \
-  template void                                                         \
-  primitives<Device::CPU>::pow(const T* x, T* y, T power, size_t size); \
-  template void                                                         \
-  primitives<Device::CPU>::exp(const T* x, T* y, size_t size);          \
-  template void                                                         \
-  primitives<Device::CPU>::log(const T* x, T* y, size_t size);          \
-  template void                                                         \
-  primitives<Device::CPU>::cos(const T* x, T* y, size_t size);          \
-  template void                                                         \
-  primitives<Device::CPU>::sin(const T* x, T* y, size_t size);          \
-  template void                                                         \
-  primitives<Device::CPU>::tanh(const T* x, T* y, size_t size);         \
   template void                                                         \
   primitives<Device::CPU>::transpose_2d(const T* a, const size_t* dims, T* b); \
   template void                                                         \

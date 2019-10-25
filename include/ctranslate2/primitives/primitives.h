@@ -140,14 +140,6 @@ namespace ctranslate2 {
                                size_t batch_size,
                                size_t depth);
 
-    template <typename T>
-    static void relu(const T* x, T* y, size_t size);
-
-    template <typename T>
-    static void relu(T* x, size_t size) {
-      relu(x, x, size);
-    }
-
     template <typename DataType, typename IndexType>
     static void transpose_2d(const DataType* a, const IndexType* dims, DataType* b);
 
@@ -163,23 +155,13 @@ namespace ctranslate2 {
                              const IndexType* perm,
                              DataType* b);
 
-    template <typename T>
-    static void pow(const T* x, T* y, T power, size_t size);
-
-    template <typename T>
-    static void exp(const T* x, T* y, size_t size);
-
-    template <typename T>
-    static void log(const T* x, T* y, size_t size);
-
-    template <typename T>
-    static void cos(const T* x, T* y, size_t size);
-
-    template <typename T>
-    static void sin(const T* x, T* y, size_t size);
-
-    template <typename T>
-    static void tanh(const T* x, T* y, size_t size);
+    static void pow(const float* x, float* y, float power, size_t size);
+    static void exp(const float* x, float* y, size_t size);
+    static void log(const float* x, float* y, size_t size);
+    static void cos(const float* x, float* y, size_t size);
+    static void sin(const float* x, float* y, size_t size);
+    static void tanh(const float* x, float* y, size_t size);
+    static void relu(const float* x, float* y, size_t size);
 
     template <typename In, typename Out>
     static void gemm(const In* a, const In* b,
