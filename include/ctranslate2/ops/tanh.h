@@ -8,6 +8,7 @@ namespace ctranslate2 {
     class Tanh : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const override {
+        PROFILE_FUN;
         compute<float>(x, y);
       }
 

@@ -6,6 +6,7 @@ namespace ctranslate2 {
   namespace ops {
 
     void Dequantize::operator()(const StorageView& x, const StorageView& scale, StorageView& y) const {
+      PROFILE_FUN;
       y.resize_as(x);
       if (x.dtype() == DataType::DT_INT16) {
         if (x.device() != Device::CPU)
@@ -38,6 +39,7 @@ namespace ctranslate2 {
                                 const StorageView& input_scale,
                                 const StorageView& weight_scale,
                                 StorageView& output) const {
+      PROFILE_FUN;
       output.resize_as(gemm_output);
       if (input_scale.is_scalar() && weight_scale.is_scalar()) {
         if (gemm_output.device() != Device::CPU)

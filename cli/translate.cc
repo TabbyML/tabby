@@ -7,6 +7,7 @@
 #include <ctranslate2/translator_pool.h>
 #include <ctranslate2/utils.h>
 #include <ctranslate2/devices.h>
+#include <ctranslate2/profiler.h>
 
 namespace po = boost::program_options;
 
@@ -40,6 +41,8 @@ int main(int argc, char* argv[]) {
      "Minimum sentence length to produce.")
     ("log_throughput", po::bool_switch()->default_value(false),
      "Log average tokens per second at the end of the translation.")
+    ("log_profiling", po::bool_switch()->default_value(false),
+     "Log execution profiling.")
     ("inter_threads", po::value<size_t>()->default_value(1),
      "Maximum number of translations to run in parallel.")
     ("intra_threads", po::value<size_t>()->default_value(0),
@@ -95,12 +98,17 @@ int main(int argc, char* argv[]) {
     out = new std::ofstream(vm["tgt"].as<std::string>());
   }
 
+  auto log_profiling = vm["log_profiling"].as<bool>();
   auto t1 = std::chrono::high_resolution_clock::now();
+  if (log_profiling)
+    ctranslate2::init_profiling(inter_threads);
   auto num_tokens = translator_pool.consume_text_file(*in,
                                                       *out,
                                                       vm["batch_size"].as<size_t>(),
                                                       options,
                                                       vm["with_score"].as<bool>());
+  if (log_profiling)
+    ctranslate2::dump_profiling(std::cerr);
   auto t2 = std::chrono::high_resolution_clock::now();
 
   if (in != &std::cin)

@@ -10,8 +10,14 @@ project(ctranslate2)
 option(WITH_MKL "Compile with Intel MKL backend" ON)
 option(WITH_MKLDNN "Compile with Intel MKL-DNN (requires MKL)" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
+option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
+if(ENABLE_PROFILING)
+  message(STATUS "Enable profiling support")
+  add_definitions(-DENABLE_PROFILING)
+endif()
 
 if(DEFINED ENV{INTELROOT})
   set(INTEL_ROOT_DEFAULT $ENV{INTELROOT})
@@ -88,6 +94,7 @@ set(SOURCES
   src/ops/transpose.cc
   src/ops/quantize.cc
   src/primitives/cpu.cc
+  src/profiler.cc
   src/storage_view.cc
   src/translation_result.cc
   src/translator.cc

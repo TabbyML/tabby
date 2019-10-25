@@ -15,9 +15,11 @@ namespace ctranslate2 {
       }
 
       void operator()(StorageView& data) const {
+        PROFILE_FUN;
         data.reshape(transform_shape(data.shape()));
       }
       void operator()(const StorageView& data, StorageView& squeezed) const override {
+        PROFILE_FUN;
         squeezed.shallow_copy(const_cast<StorageView&>(data));
         squeezed.reshape(transform_shape(data.shape()));
       }

@@ -22,6 +22,7 @@ namespace ctranslate2 {
     }
 
     void SoftMax::operator()(const StorageView& x, const StorageView* lengths, StorageView& y) const {
+      PROFILE_FUN;
       if (lengths && lengths->dim(0) == 1)  // Disable masking when batch size is 1.
         lengths = nullptr;
       y.resize_as(x);

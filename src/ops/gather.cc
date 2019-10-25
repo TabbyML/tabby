@@ -13,6 +13,7 @@ namespace ctranslate2 {
     void Gather::operator()(const StorageView& data,
                             const StorageView& input,
                             StorageView& output) const {
+      PROFILE_FUN;
       Shape output_shape(input.shape());
       for (size_t i = 1; i < data.rank(); ++i)
         output_shape.push_back(data.dim(i));
