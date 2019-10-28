@@ -4,7 +4,7 @@ import six
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import catalog, transformer_spec
+from ctranslate2.specs import transformer_spec
 
 
 def load_model(model_path, src_vocab=None, tgt_vocab=None):
@@ -87,7 +87,7 @@ class OpenNMTTFConverter(Converter):
             self._model_path,
             src_vocab=self._src_vocab,
             tgt_vocab=self._tgt_vocab)
-        if isinstance(model_spec, (catalog.TransformerBase, catalog.TransformerBig)):
+        if isinstance(model_spec, transformer_spec.TransformerSpec):
             if version == 2:
                 set_transformer_spec_v2(model_spec, variables)
             else:

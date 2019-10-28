@@ -12,13 +12,14 @@ namespace ctranslate2 {
     class TransformerModel : public Model
     {
     public:
+      TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads = 0);
       size_t num_heads() const;
       size_t current_spec_revision() const override;
       std::unique_ptr<layers::Encoder> make_encoder() const override;
       std::unique_ptr<layers::Decoder> make_decoder() const override;
     protected:
-      TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads);
       void register_variable(const std::string& name, StorageView& variable) override;
+      void finalize() override;
 
       size_t _num_heads;
     };

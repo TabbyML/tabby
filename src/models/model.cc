@@ -313,6 +313,8 @@ namespace ctranslate2 {
         model = new TransformerBaseModel(path, spec_revision);
       else if (spec == "TransformerBig")
         model = new TransformerBigModel(path, spec_revision);
+      else if (spec == "TransformerSpec")
+        model = new TransformerModel(path, spec_revision);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
 

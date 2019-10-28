@@ -92,6 +92,7 @@ def test_return_attention():
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [("v1/savedmodel", None, None, "TransformerBase"),
+     ("v1/savedmodel", None, None, ctranslate2.specs.TransformerSpec(num_layers=6, num_heads=8)),
      ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
      ("v2/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
     ])

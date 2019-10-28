@@ -46,7 +46,7 @@ namespace ctranslate2 {
     }
 
     size_t TransformerModel::current_spec_revision() const {
-      return 2;
+      return 3;
     }
 
     void TransformerModel::register_variable(const std::string& name, StorageView& variable) {
@@ -54,6 +54,12 @@ namespace ctranslate2 {
       if (_spec_revision == 1)
         var_name = map_v1_variable_name(name);
       Model::register_variable(var_name, variable);
+    }
+
+    void TransformerModel::finalize() {
+      Model::finalize();
+      if (_spec_revision >= 3)
+        _num_heads = get_variable("num_heads").as_scalar<int8_t>();
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {

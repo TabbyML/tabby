@@ -4,13 +4,20 @@ from ctranslate2.specs import model_spec
 
 
 class TransformerSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers):
+    """Describes a Transformer model.
+
+    The specification is invariant to hidden dimensions but requires to
+    explicitly set the number of layers and attention heads.
+    """
+    def __init__(self, num_layers, num_heads):
+        import numpy as np
+        self.num_heads = np.dtype("int8").type(num_heads)
         self.encoder = TransformerEncoderSpec(num_layers)
         self.decoder = TransformerDecoderSpec(num_layers)
 
     @property
     def revision(self):
-        return 2
+        return 3
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):

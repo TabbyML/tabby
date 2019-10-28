@@ -1,6 +1,6 @@
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import catalog, transformer_spec
+from ctranslate2.specs import transformer_spec
 
 
 class OpenNMTPyConverter(Converter):
@@ -22,7 +22,7 @@ class OpenNMTPyConverter(Converter):
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"]["0.bias"]
-        if isinstance(model_spec, (catalog.TransformerBase, catalog.TransformerBig)):
+        if isinstance(model_spec, transformer_spec.TransformerSpec):
             set_transformer_spec(model_spec, variables)
         else:
             raise NotImplementedError()
