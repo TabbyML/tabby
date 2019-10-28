@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v1.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.0) (2019-10-28)
+
+### New features
+
+* Accept Transformer models with custom number of layers and heads
+* `--log-profiling` client option to profile ops execution
+
+### Fixes and improvements
+
+* Fix conversion error for models having 2 different weights with the same values
+* Fix invalid MKL function override after a refactoring
+* Add more information and context to several error messages
+
 ## [v1.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.1.0) (2019-10-18)
 
 ### New features
