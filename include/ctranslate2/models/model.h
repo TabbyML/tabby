@@ -19,11 +19,11 @@ namespace ctranslate2 {
       static std::shared_ptr<Model> load(const std::string& path,
                                          const std::string& device,
                                          int device_index = 0,
-                                         const std::string& computeType = "default");
+                                         const std::string& compute_type = "default");
       static std::shared_ptr<Model> load(const std::string& path,
                                          Device device,
                                          int device_index = 0,
-                                         ComputeType computeType = ComputeType::DEFAULT);
+                                         ComputeType compute_type = ComputeType::DEFAULT);
 
       virtual ~Model() = default;
       virtual size_t current_spec_revision() const;
@@ -56,7 +56,7 @@ namespace ctranslate2 {
       StorageView* get_scale(const std::string& scale_name, DataType dataType);
 
       void set_device(Device type, int index = 0);
-      void set_computType(ComputeType type);
+      void set_compute_type(ComputeType type);
 
       Device _device;
       int _device_index;
@@ -67,7 +67,7 @@ namespace ctranslate2 {
       std::unordered_map<std::string, StorageView> _variable_index;
       std::unordered_map<std::string, std::string> _variable_alias;
       size_t _spec_revision;
-      ComputeType _computeType = ComputeType::DEFAULT;
+      ComputeType _compute_type = ComputeType::DEFAULT;
 
       void convert_data_if_need(bool support_int8,
                                 bool support_int16,

@@ -64,8 +64,8 @@ namespace ctranslate2 {
       _device_index = index;
     }
 
-    void Model::set_computType(ComputeType type) {
-      _computeType = type;
+    void Model::set_compute_type(ComputeType type) {
+      _compute_type = type;
     }
 
     ScopedDeviceSetter Model::get_scoped_device_setter() const {
@@ -155,7 +155,7 @@ namespace ctranslate2 {
       const ops::Dequantize dequantize_op{};
 
       std::string scale_name = name + "_scale";
-      if (_computeType == ComputeType::DEFAULT) {
+      if (_compute_type == ComputeType::DEFAULT) {
         if (is_int8 || is_int16) {
           StorageView *scale = get_scale(scale_name, variable.dtype());
 
@@ -175,7 +175,7 @@ namespace ctranslate2 {
             }
           }
         }
-      } else if (_computeType == ComputeType::FLOAT) {
+      } else if (_compute_type == ComputeType::FLOAT) {
 
         if (is_float) {
           // do nothing
@@ -188,8 +188,8 @@ namespace ctranslate2 {
           swap(variable, variable_float);
         }
 
-      } else if ((_computeType == ComputeType::INT16 && is_int16) ||
-                (_computeType == ComputeType::INT8 && is_int8)) {
+      } else if ((_compute_type == ComputeType::INT16 && is_int16) ||
+                (_compute_type == ComputeType::INT8 && is_int8)) {
         // Make & register a scale if the scale is absent
         get_scale(scale_name, variable.dtype());
 
@@ -199,7 +199,7 @@ namespace ctranslate2 {
           StorageView scale(DataType::DT_FLOAT);
 
           // from float32 to int16
-          StorageView variable_int(_computeType == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
+          StorageView variable_int(_compute_type == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
           quantize_op(variable, variable_int, scale);
           swap(variable, variable_int);
 
@@ -214,7 +214,7 @@ namespace ctranslate2 {
           swap(variable, variable_float);
 
           // from float to int
-          StorageView variable_int(_computeType == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
+          StorageView variable_int(_compute_type == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
           quantize_op(variable, variable_int, *scale);
           swap(variable, variable_int);
         }
@@ -229,9 +229,9 @@ namespace ctranslate2 {
       std::vector<std::pair<std::string, StorageView>> variables_to_add;
 
       // Make sure CPU supports the demanded type
-      if ((_computeType == ComputeType::INT8) && (!support_int8)) {
+      if ((_compute_type == ComputeType::INT8) && (!support_int8)) {
         throw std::invalid_argument("Requested int8 compute type, but device doesn't support efficient int8 computation.");
-      } else if ((_computeType == ComputeType::INT16) && (!support_int16)) {
+      } else if ((_compute_type == ComputeType::INT16) && (!support_int16)) {
         throw std::invalid_argument("Requested int16 compute type, but device doesn't support efficient int16 computation.");
       }
 
@@ -276,15 +276,15 @@ namespace ctranslate2 {
     std::shared_ptr<Model> Model::load(const std::string& path,
                                        const std::string& device,
                                        int device_index,
-                                       const std::string& computeType) {
+                                       const std::string& compute_type) {
 
-      return load(path, str_to_device(device), device_index, str_to_compute_type(computeType));
+      return load(path, str_to_device(device), device_index, str_to_compute_type(compute_type));
     }
 
     std::shared_ptr<Model> Model::load(const std::string& path,
                                        Device device,
                                        int device_index,
-                                       ComputeType computeType) {
+                                       ComputeType compute_type) {
       std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
@@ -317,7 +317,7 @@ namespace ctranslate2 {
         throw std::invalid_argument("Unsupported model spec " + spec);
 
       model->set_device(device, device_index);
-      model->set_computType(computeType);
+      model->set_compute_type(compute_type);
 
       if (spec_revision > model->current_spec_revision())
         throw std::invalid_argument("unsupported " + spec + " revision "
