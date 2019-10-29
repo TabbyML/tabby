@@ -62,12 +62,11 @@ The following frameworks and models are currently supported:
 
 |     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
 | --- | :---: | :---: |
-| TransformerBase | ✓ | ✓ |
-| TransformerBig  | ✓ | ✓ |
+| Transformer | ✓ | ✓ |
 
 If you are using a model that is not listed above, consider opening an issue to discuss future integration.
 
-To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models:
+To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models. They use a predefined model specification for `TransformerBase`. The [converter Python API](docs/python.md#model-conversion-api) can also be used to convert Transformers with any number of layers, hidden dimensions, and attention heads.
 
 **OpenNMT-tf**
 
