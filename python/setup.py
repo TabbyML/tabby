@@ -33,6 +33,7 @@ setup(
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
     install_requires=[
+        "numpy",
         "six",
     ],
     entry_points={

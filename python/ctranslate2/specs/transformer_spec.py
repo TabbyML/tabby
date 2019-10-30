@@ -1,5 +1,7 @@
 """Declares specification of the Transformer model."""
 
+import numpy as np
+
 from ctranslate2.specs import model_spec
 
 
@@ -10,7 +12,6 @@ class TransformerSpec(model_spec.LayerSpec):
     explicitly set the number of layers and attention heads.
     """
     def __init__(self, num_layers, num_heads):
-        import numpy as np
         self.num_heads = np.dtype("int8").type(num_heads)
         self.encoder = TransformerEncoderSpec(num_layers)
         self.decoder = TransformerDecoderSpec(num_layers)
