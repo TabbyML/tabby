@@ -6,12 +6,17 @@
 #include <unordered_map>
 #include <vector>
 
+#ifdef WITH_CUDA
+#  include <cuda_runtime.h>
+#endif
+
 namespace ctranslate2 {
 
   static std::chrono::high_resolution_clock::time_point global_start;
   static std::unordered_map<std::string, std::chrono::microseconds> cumulated;
   static size_t threads;
   static std::mutex mutex;
+  static bool do_profile = false;
 
   static void assert_can_profile() {
 #ifndef ENABLE_PROFILING
@@ -23,6 +28,7 @@ namespace ctranslate2 {
     assert_can_profile();
     threads = num_threads;
     global_start = std::chrono::high_resolution_clock::now();
+    do_profile = true;
   }
 
   void dump_profiling(std::ostream& os) {
@@ -68,24 +74,31 @@ namespace ctranslate2 {
     }
 
     cumulated.clear();
+    do_profile = false;
   }
 
 
   // Track active profiler in the current thread.
   static thread_local const std::string* active_profiler = nullptr;
 
-  Profiler::Profiler(const std::string& name)
-    : _name(name)
-    , _start(std::chrono::high_resolution_clock::now()) {
-    assert_can_profile();
+  Profiler::Profiler(const std::string& name) {
+    if (!do_profile)
+      return;
     if (active_profiler)
       throw std::invalid_argument("Nested profilers are unsupported: tried to start profiler for '"
                                   + name + "' but profiler '"
                                   + *active_profiler + "' is active");
+    _name = name;
+    _start = std::chrono::high_resolution_clock::now();
     active_profiler = &_name;
   }
 
   Profiler::~Profiler() {
+    if (!do_profile)
+      return;
+#ifdef WITH_CUDA
+    cudaDeviceSynchronize();
+#endif
     auto diff = std::chrono::high_resolution_clock::now() - _start;
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(diff);
     {
