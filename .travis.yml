@@ -38,7 +38,7 @@ install:
   - cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
   - make -j2 install
   - cd ../python
-  - BOOST_PYTHON_LIBRARY="boost_python-py${TRAVIS_PYTHON_VERSION//.}" CTRANSLATE2_ROOT=$PWD/../install python setup.py bdist_wheel
+  - CTRANSLATE2_ROOT=$PWD/../install python setup.py bdist_wheel
   - pip install dist/*.whl
   - cd ..
 script:

@@ -8,7 +8,7 @@ RUN apt-get update && \
         ca-certificates \
         libboost-program-options-dev \
         libboost-python-dev \
-        python-pip \
+        python3-dev \
         gnupg2 \
         wget && \
     apt-get clean && \
@@ -56,10 +56,11 @@ COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
+ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
+    cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DCMAKE_PREFIX_PATH=${MKLDNN_ROOT} -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
@@ -68,8 +69,13 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
-RUN pip --no-cache-dir install setuptools wheel
-RUN CTRANSLATE2_ROOT=/root/ctranslate2 python setup.py bdist_wheel
+RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
+    for PYTHON in python python3; do \
+      ${PYTHON} get-pip.py && \
+      ${PYTHON} setup.py bdist_wheel && \
+      rm -r build \
+    ; done && \
+    rm get-pip.py
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
@@ -81,12 +87,18 @@ FROM ubuntu:${UBUNTU_VERSION}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        python-pip && \
+        ca-certificates \
+        python \
+        wget \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /root/ctranslate2 /opt/ctranslate2
-RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
+RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
+    python get-pip.py && \
+    pip --no-cache-dir install /opt/ctranslate2/*cp2*.whl && \
+    rm get-pip.py
 
 WORKDIR /opt
 
