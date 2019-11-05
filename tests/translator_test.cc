@@ -147,6 +147,21 @@ TEST_P(SearchVariantTest, TranslateWithPrefix) {
   EXPECT_EQ(result.output(), expected);
 }
 
+TEST_P(SearchVariantTest, TranslateBatch) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  std::vector<std::vector<std::string>> inputs = {
+    {"آ", "ز", "ا"},
+    {"آ", "ت", "ز", "م", "و", "ن"}};
+  std::vector<std::vector<std::string>> expected = {
+    {"a", "z", "z", "a"},
+    {"a", "t", "z", "m", "o", "n"}};
+  auto result = translator.translate_batch(inputs, options);
+  EXPECT_EQ(result[0].output(), expected[0]);
+  EXPECT_EQ(result[1].output(), expected[1]);
+}
+
 INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   SearchVariantTest,

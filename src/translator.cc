@@ -1,6 +1,7 @@
 #include "ctranslate2/translator.h"
 
 #include <algorithm>
+#include <numeric>
 
 #include "ctranslate2/decoding.h"
 
@@ -24,6 +25,24 @@ namespace ctranslate2 {
     for (const auto& tokens : batch_tokens)
       batch_ids.emplace_back(tokens_to_ids(tokens, vocab));
     return batch_ids;
+  }
+
+  static void sort_from_longest_to_shortest(std::vector<std::vector<size_t>>& ids,
+                                            std::vector<size_t>& original_to_sorted_index) {
+    std::vector<size_t> sorted_to_original_index(ids.size());
+    std::iota(sorted_to_original_index.begin(), sorted_to_original_index.end(), 0);
+    std::sort(sorted_to_original_index.begin(), sorted_to_original_index.end(),
+              [&ids](size_t i1, size_t i2) { return ids[i1].size() > ids[i2].size(); });
+
+    original_to_sorted_index.resize(ids.size());
+    std::vector<std::vector<size_t>> new_ids;
+    new_ids.reserve(ids.size());
+    for (size_t i = 0; i < ids.size(); ++i) {
+      size_t original_index = sorted_to_original_index[i];
+      original_to_sorted_index[original_index] = i;
+      new_ids.emplace_back(std::move(ids[original_index]));
+    }
+    ids = std::move(new_ids);
   }
 
   static std::pair<StorageView, StorageView>
@@ -143,6 +162,14 @@ namespace ctranslate2 {
     auto device = _model->device();
 
     auto source_ids = tokens_to_ids(source, source_vocab);
+
+    // Decoding functions remove finished translations from the batch. On CPU, arrays are
+    // updated in place so it is more efficient to remove content at the end. Shorter sentences
+    // are more likely to finish first so we sort the batch accordingly.
+    std::vector<size_t> sorted_index;
+    if (batch_size > 1 && device == Device::CPU)
+      sort_from_longest_to_shortest(source_ids, sorted_index);
+
     auto inputs = make_inputs(source_ids, device);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
@@ -234,7 +261,17 @@ namespace ctranslate2 {
       const auto* attn = i < attention.size() ? &attention[i] : nullptr;
       results.emplace_back(hypotheses, scores[i], attn);
     }
-    return results;
+
+    if (sorted_index.empty())
+      return results;
+    else {
+      // Reorder results based on original batch index.
+      std::vector<TranslationResult> final_results;
+      final_results.reserve(results.size());
+      for (auto index : sorted_index)
+        final_results.emplace_back(std::move(results[index]));
+      return final_results;
+    }
   }
 
   Device Translator::device() const {

@@ -52,6 +52,46 @@ TEST(OpDeviceTest, SplitInvalidNumOutputs) {
   ASSERT_RAISES(ops::Split(0)(x, a, b, c), std::invalid_argument);
 }
 
+TEST(OpDeviceTest, GatherInPlaceStrictlyIncreasing) {
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  void* data_ptr = data.buffer();
+  StorageView ids({2}, std::vector<int32_t>{1, 2});
+  StorageView expected({2, 2}, std::vector<float>{2, 2, 3, 3});
+  ops::Gather(0)(data, ids);
+  expect_storage_eq(data, expected);
+  EXPECT_EQ(data.buffer(), data_ptr);
+}
+
+TEST(OpDeviceTest, GatherInPlaceIncreasing) {
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  void* data_ptr = data.buffer();
+  StorageView ids({3}, std::vector<int32_t>{1, 1, 3});
+  StorageView expected({3, 2}, std::vector<float>{2, 2, 2, 2, 4, 4});
+  ops::Gather(0)(data, ids);
+  expect_storage_eq(data, expected);
+  EXPECT_EQ(data.buffer(), data_ptr);
+}
+
+TEST(OpDeviceTest, GatherInPlaceDecreasing) {
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  void* data_ptr = data.buffer();
+  StorageView ids({2}, std::vector<int32_t>{1, 0});
+  StorageView expected({2, 2}, std::vector<float>{2, 2, 1, 1});
+  ops::Gather(0)(data, ids);
+  expect_storage_eq(data, expected);
+  EXPECT_NE(data.buffer(), data_ptr);
+}
+
+TEST(OpDeviceTest, GatherInPlaceLarger) {
+  StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
+  void* data_ptr = data.buffer();
+  StorageView ids({5}, std::vector<int32_t>{0, 1, 2, 3, 3});
+  StorageView expected({5, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4, 4, 4});
+  ops::Gather(0)(data, ids);
+  expect_storage_eq(data, expected);
+  EXPECT_NE(data.buffer(), data_ptr);
+}
+
 TEST(OpTest, GemmInt16) {
   StorageView a({64, 64}, static_cast<int16_t>(1));
   StorageView b(a);

@@ -9,6 +9,28 @@
 
 namespace ctranslate2 {
 
+  static const ops::Gather gather;
+
+  static void split_batch_beam(StorageView& input, size_t beam_size) {
+    Shape shape = input.shape();
+    shape.insert(shape.begin() + 1, beam_size);
+    shape[0] /= beam_size;
+    input.reshape(shape);
+  }
+
+  static void merge_batch_beam(StorageView& input) {
+    Shape shape = input.shape();
+    shape[0] *= shape[1];
+    shape.erase(shape.begin() + 1);
+    input.reshape(shape);
+  }
+
+  static void gather_batch(StorageView& data, const StorageView& indices, size_t beam_size) {
+    split_batch_beam(data, beam_size);
+    gather(data, indices);
+    merge_batch_beam(data);
+  }
+
   static void tile(StorageView& input, const StorageView& repeats) {
     static const ops::Tile tile_op{};
     StorageView input_clone(std::move(input));
@@ -58,7 +80,6 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    static const ops::Gather gather;
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -108,7 +129,6 @@ namespace ctranslate2 {
     StorageView log_probs(device);
     StorageView topk_ids_device(device, topk_ids.dtype());
     StorageView topk_scores_device(device);
-    StorageView gather_indices_device(device, DataType::DT_INT32);
 
     StorageView alive_attention;
     StorageView attention_step;
@@ -263,10 +283,6 @@ namespace ctranslate2 {
 
       // If some sentences finished on this step, ignore them for the next step.
       if (finished_count > 0) {
-        // Reshape to gather on batch dim.
-        gather_indices.reshape({cur_batch_size, beam_size});
-        tiled_memory.reshape({cur_batch_size, beam_size, tiled_memory.dim(1), tiled_memory.dim(2)});
-        tiled_memory_lengths.reshape({cur_batch_size, beam_size});
         cur_batch_size -= finished_count;
         StorageView keep_batches({cur_batch_size}, DataType::DT_INT32);
         size_t write_index = 0;
@@ -284,14 +300,26 @@ namespace ctranslate2 {
         gather(alive_seq, keep_batches);
         if (attention)
           gather(alive_attention, keep_batches);
-        gather(gather_indices, keep_batches);
         auto keep_batches_device = keep_batches.to(device);
-        gather(tiled_memory, keep_batches_device);
-        gather(tiled_memory_lengths, keep_batches_device);
-        // Reshape back to the flat repr.
-        gather_indices.reshape({cur_batch_size * beam_size});
-        tiled_memory.reshape({cur_batch_size * beam_size, tiled_memory.dim(2), tiled_memory.dim(3)});
-        tiled_memory_lengths.reshape({cur_batch_size * beam_size});
+        gather_batch(tiled_memory, keep_batches_device, beam_size);
+        gather_batch(tiled_memory_lengths, keep_batches_device, beam_size);
+
+        // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
+        // finished batches from the reorder indices and then reorder. The motivation for this
+        // difference is to enable the fast in place gather on CPU for state elements that should
+        // not be reordered (see Decoder::gather_state and Gather::operator()).
+
+        if (device == Device::CPU) {
+          decoder.gather_state(state, gather_indices);
+          for (auto& pair : state)
+            gather_batch(pair.second, keep_batches_device, beam_size);
+        } else {
+          gather_batch(gather_indices, keep_batches, beam_size);
+          decoder.gather_state(state, gather_indices.to(device));
+        }
+
+      } else {
+        decoder.gather_state(state, gather_indices.to(device));
       }
 
       topk_ids.reshape({cur_batch_size * beam_size, 1});
@@ -301,11 +329,6 @@ namespace ctranslate2 {
         alive_attention.reshape({cur_batch_size * beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
-
-
-      // Reorder states.
-      gather_indices_device.copy_from(gather_indices);
-      decoder.gather_state(state, gather_indices_device);
     }
   }
 
@@ -322,7 +345,6 @@ namespace ctranslate2 {
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
-    static const ops::Gather gather;
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
