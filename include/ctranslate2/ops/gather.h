@@ -9,6 +9,8 @@ namespace ctranslate2 {
     public:
       Gather(int axis = 0);
       using BinaryOp::operator();
+
+      void operator()(StorageView& data, const StorageView& input) const;
       void operator()(const StorageView& data,
                       const StorageView& input,
                       StorageView& output) const override;

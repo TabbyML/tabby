@@ -9,18 +9,6 @@
 
 namespace ctranslate2 {
 
-  // Convenience functions to gather "in-place" (actually uses a temporary).
-  static void gather(StorageView& input, const StorageView& indices) {
-    static const ops::Gather gather_op;
-    StorageView input_clone(std::move(input));
-    gather_op(input_clone, indices, input);
-  }
-  static void gather(layers::DecoderState& state, const StorageView& indices) {
-    for (auto& pair : state) {
-      gather(pair.second, indices);
-    }
-  }
-
   static void tile(StorageView& input, const StorageView& repeats) {
     static const ops::Tile tile_op{};
     StorageView input_clone(std::move(input));
@@ -70,6 +58,7 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    static const ops::Gather gather;
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -316,7 +305,7 @@ namespace ctranslate2 {
 
       // Reorder states.
       gather_indices_device.copy_from(gather_indices);
-      gather(state, gather_indices_device);
+      decoder.gather_state(state, gather_indices_device);
     }
   }
 
@@ -333,6 +322,7 @@ namespace ctranslate2 {
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    static const ops::Gather gather;
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -432,7 +422,7 @@ namespace ctranslate2 {
         }
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
-        gather(state, alive_device);
+        decoder.gather_state(state, alive_device);
         gather(alive_memory, alive_device);
         gather(alive_memory_lengths, alive_device);
       }

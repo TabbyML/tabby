@@ -34,11 +34,6 @@ namespace ctranslate2 {
       return str;
     }
 
-    static bool endswith(const std::string& str, const std::string& suffix) {
-      return (str.size() >= suffix.size() &&
-              str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0);
-    }
-
 
     Model::Model(const std::string& path, size_t spec_revision)
       : _spec_revision(spec_revision) {
@@ -240,7 +235,7 @@ namespace ctranslate2 {
         auto& variable = variable_pair.second;
 
         // Only process "weight" variables.
-        if (endswith(name, "weight")) {
+        if (ends_with(name, "weight")) {
           convert_data_if_need(support_int8,
                                support_int16,
                                name,

@@ -261,6 +261,11 @@ namespace ctranslate2 {
       return state;
     }
 
+    bool TransformerDecoder::should_reorder_state(const std::string& name) const {
+      // No need to reorder projected memory keys and values as they are the same for each beam.
+      return !starts_with(name, "memory");
+    }
+
     void TransformerDecoder::operator()(size_t step,
                                         const StorageView& ids,
                                         const StorageView& memory,

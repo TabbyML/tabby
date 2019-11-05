@@ -10,6 +10,11 @@ namespace ctranslate2 {
         throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
     }
 
+    void Gather::operator()(StorageView& data, const StorageView& input) const {
+      StorageView clone(std::move(data));
+      operator()(clone, input, data);
+    }
+
     void Gather::operator()(const StorageView& data,
                             const StorageView& input,
                             StorageView& output) const {

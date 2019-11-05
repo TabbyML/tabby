@@ -26,7 +26,15 @@ namespace ctranslate2 {
                               StorageView* logits = nullptr,
                               StorageView* attention = nullptr) = 0;
 
+      // Gathers states based on indices.
+      void gather_state(DecoderState& state, const StorageView& indices) const;
+
     protected:
+      // Returns false if the state does not need to be reordered during beam search.
+      virtual bool should_reorder_state(const std::string& name) const;
+      // Returns the current batch size from the decoder state.
+      virtual size_t batch_size(const DecoderState& state) const;
+
       Device _device;
     };
 

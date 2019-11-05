@@ -113,6 +113,8 @@ namespace ctranslate2 {
                       layers::DecoderState& state,
                       StorageView* logits = nullptr,
                       StorageView* attention = nullptr) override;
+    protected:
+      bool should_reorder_state(const std::string& name) const override;
     private:
       layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;
