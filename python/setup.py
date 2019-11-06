@@ -38,7 +38,7 @@ ctranslate2_module = Extension(
 
 setup(
     name="ctranslate2",
-    version="1.2.0",
+    version="1.2.1",
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
     install_requires=[
