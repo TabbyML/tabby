@@ -4,6 +4,15 @@
 
 ### Fixes and improvements
 
+## [v1.2.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.1) (2019-11-06)
+
+### Fixes and improvements
+
+* Avoid copying decoder states when possible to improve decoding performance (10% to 20% faster)
+* Fix execution profiling on GPU (device was not synchronized before measuring the time)
+* Include `Mul` operation in profiling report
+* Add a Python 3 wheel in Ubuntu Docker images
+
 ## [v1.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.0) (2019-10-28)
 
 ### New features

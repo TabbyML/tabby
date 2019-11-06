@@ -17,7 +17,7 @@ CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 3x faster](#benchmarks) than OpenNMT-py.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 4x faster](#benchmarks) than OpenNMT-py.
 * **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
@@ -302,8 +302,8 @@ Configuration:
 
 | | Tokens/s | BLEU |
 | --- | --- | --- |
-| CTranslate2 1.0.1 | 3314.65 | 26.69 |
-| CTranslate2 1.0.1 (int8) | 2254.05 | 26.79 |
+| CTranslate2 1.2.1 | 3917.32 | 26.70 |
+| CTranslate2 1.2.1 (int8) | 2519.24 | 26.80 |
 | OpenNMT-tf 1.25.0 | 1338.26 | 26.90 |
 | OpenNMT-py 0.9.2 | 980.44 | 26.69 |
 
@@ -316,11 +316,11 @@ Configuration:
 
 | | Tokens/s | BLEU |
 | --- | --- | --- |
-| CTranslate2 1.0.1 (int8 + vmap) | 471.43 | 26.59 |
-| CTranslate2 1.0.1 (int16 + vmap) | 423.58 | 26.63 |
-| CTranslate2 1.0.1 (int8) | 383.91 | 26.84 |
-| CTranslate2 1.0.1 (int16) | 346.25 | 26.68 |
-| CTranslate2 1.0.1 (float) | 335.34 | 26.69 |
+| CTranslate2 1.2.1 (int8 + vmap) | 591.78 | 26.59 |
+| CTranslate2 1.2.1 (int16 + vmap) | 514.36 | 26.63 |
+| CTranslate2 1.2.1 (int8) | 448.21 | 26.84 |
+| CTranslate2 1.2.1 (int16) | 395.46 | 26.68 |
+| CTranslate2 1.2.1 (float) | 381.31 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
 | OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
 
