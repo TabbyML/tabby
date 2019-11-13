@@ -77,6 +77,7 @@ set(SOURCES
   src/ops/dequantize.cc
   src/ops/gather.cc
   src/ops/gather_cpu.cc
+  src/ops/gelu.cc
   src/ops/gemm.cc
   src/ops/layer_norm.cc
   src/ops/layer_norm_cpu.cc

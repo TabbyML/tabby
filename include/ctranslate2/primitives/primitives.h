@@ -162,6 +162,7 @@ namespace ctranslate2 {
     static void sin(const float* x, float* y, size_t size);
     static void tanh(const float* x, float* y, size_t size);
     static void relu(const float* x, float* y, size_t size);
+    static void gelu(const float* x, float* y, size_t size);
 
     template <typename In, typename Out>
     static void gemm(const In* a, const In* b,

@@ -310,6 +310,15 @@ namespace ctranslate2 {
   }
 
   template<>
+  void primitives<Device::CPU>::gelu(const float* x, float* y, size_t size) {
+    static const float pi = std::acos(-1.f);
+    static const float scale = std::sqrt(2.f / pi);
+    unary_transform(x, y, size, [](float v) {
+      return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
+   });
+  }
+
+  template<>
   void primitives<Device::CPU>::pow(const float* x, float *y, float power, size_t size) {
 #ifdef WITH_MKL
     vsPowx(size, x, power, y);

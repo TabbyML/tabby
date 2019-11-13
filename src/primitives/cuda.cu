@@ -1,5 +1,6 @@
 #include "ctranslate2/primitives/primitives.h"
 
+#include <cmath>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
@@ -316,6 +317,24 @@ namespace ctranslate2 {
   template<>
   void primitives<Device::CUDA>::relu(const float* x, float* y, size_t size) {
     unary_transform(x, y, size, relu_func());
+  }
+
+  struct gelu_func : public thrust::unary_function<float, float> {
+    float _scale;
+    gelu_func(float scale)
+      : _scale(scale) {
+    }
+    __host__ __device__
+    float operator()(float x) {
+      return 0.5f * x * (1.f + tanhf(_scale * (x + 0.044715f * powf(x, 3.f))));
+    }
+  };
+
+  template<>
+  void primitives<Device::CUDA>::gelu(const float* x, float* y, size_t size) {
+    static const float pi = std::acos(-1.f);
+    static const float scale = std::sqrt(2.f / pi);
+    unary_transform(x, y, size, gelu_func(scale));
   }
 
   template <typename T>

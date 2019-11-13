@@ -555,6 +555,14 @@ TEST_P(OpDeviceTest, LayerNorm) {
   expect_storage_eq(y, expected, 1e-4);
 }
 
+TEST_P(OpDeviceTest, GELU) {
+  Device device = GetParam();
+  StorageView x({2}, std::vector<float>{0.2, -1.3}, device);
+  StorageView expected({2}, std::vector<float>{0.11585142, -0.12607098}, device);
+  ops::GELU()(x, x);
+  expect_storage_eq(x, expected, 1e-5);
+}
+
 TEST_P(OpDeviceTest, QuantizeINT8) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 5, 21, -3, 0}, device);
