@@ -41,7 +41,7 @@ build()
 
     LATEST=$IMAGE:latest-$TAG_SUFFIX
     TAGGED=$IMAGE:$VERSION-$TAG_SUFFIX
-    docker build --no-cache $UBUNTU_VERSION_ARG -t $LATEST -f docker/Dockerfile.$PLAT .
+    docker build --pull $UBUNTU_VERSION_ARG -t $LATEST -f docker/Dockerfile.$PLAT .
     if [ $PUSH -eq 1 ]; then
         docker push $LATEST
     fi
