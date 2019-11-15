@@ -315,7 +315,7 @@ namespace ctranslate2 {
     static const float scale = std::sqrt(2.f / pi);
     unary_transform(x, y, size, [](float v) {
       return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
-   });
+    });
   }
 
   template<>
