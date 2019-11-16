@@ -80,8 +80,12 @@ namespace ctranslate2 {
     }
 
 
+    PositionEncoder::PositionEncoder()
+      : _model_encoding(nullptr) {
+    }
+
     PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope)
-      : _encoding(model.get_variable_if_exists(scope + "/encodings")) {
+      : _model_encoding(model.get_variable_if_exists(scope + "/encodings")) {
     }
 
     void PositionEncoder::operator()(StorageView& input, size_t index) {
@@ -97,15 +101,16 @@ namespace ctranslate2 {
 
     const StorageView& PositionEncoder::get_position_encoding(size_t max_time,
                                                               size_t depth,
-                                                              Device device) const {
-      if (_encoding)
-        return *_encoding;
+                                                              Device device) {
+      if (_model_encoding)
+        return *_model_encoding;
 
       static const size_t default_max_time = 500;
-      static thread_local StorageView position_encoding(device);
+      if (!_generated_encoding)
+        _generated_encoding.reset(new StorageView(device));
 
-      if (position_encoding.empty() || max_time > position_encoding.dim(0)) {
-        size_t reserved_time = (position_encoding.empty()
+      if (_generated_encoding->empty() || max_time > _generated_encoding->dim(0)) {
+        size_t reserved_time = (_generated_encoding->empty()
                                 ? std::max(default_max_time, max_time)
                                 : max_time);
         float log_timescale_increment = log(10000) / (depth / 2 - 1);
@@ -128,10 +133,10 @@ namespace ctranslate2 {
 
         StorageView cache;
         ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
-        position_encoding = cache.to(device);
+        *_generated_encoding = cache.to(device);
       }
 
-      return position_encoding;
+      return *_generated_encoding;
     }
 
 

@@ -37,11 +37,13 @@ namespace ctranslate2 {
     class PositionEncoder
     {
     public:
+      PositionEncoder();
       PositionEncoder(const TransformerModel& model, const std::string& scope);
       void operator()(StorageView& input, size_t index = 0);
     private:
-      const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device) const;
-      const StorageView* _encoding;
+      const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device);
+      const StorageView* _model_encoding;
+      std::unique_ptr<StorageView> _generated_encoding;
     };
 
     class TransformerFeedForward
