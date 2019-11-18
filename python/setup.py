@@ -1,10 +1,10 @@
 import os
-import sys
+import pybind11
 
 from setuptools import setup, find_packages, Extension
 
 
-include_dirs = []
+include_dirs = [pybind11.get_include()]
 library_dirs = []
 
 def _maybe_add_library_root(lib_name):
@@ -17,15 +17,6 @@ def _maybe_add_library_root(lib_name):
         library_dirs.append(path)
         break
 
-def _get_boost_python_libname():
-  libname = "boost_python"
-  if sys.version_info.major == 2:
-    # Boost on CentOS 7 does not come with boost_python-py27 so assume boost_python
-    # is always for Python 2.
-    return libname
-  return "%s-py%d%d" % (libname, sys.version_info.major, sys.version_info.minor)
-
-_maybe_add_library_root("BOOST")
 _maybe_add_library_root("CTRANSLATE2")
 
 ctranslate2_module = Extension(
@@ -34,7 +25,7 @@ ctranslate2_module = Extension(
     extra_compile_args=["-std=c++11"],
     include_dirs=include_dirs,
     library_dirs=library_dirs,
-    libraries=[_get_boost_python_libname(), "ctranslate2"])
+    libraries=["ctranslate2"])
 
 setup(
     name="ctranslate2",

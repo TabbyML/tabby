@@ -80,13 +80,12 @@ COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
-RUN pip --no-cache-dir install setuptools wheel
+RUN pip --no-cache-dir install pybind11==2.4.3
 RUN CTRANSLATE2_ROOT=/root/ctranslate2 python setup.py bdist_wheel
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
     cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib64 && \
-    cp -P /usr/lib64/libboost_python*.so* /root/ctranslate2/lib64 && \
     cp -P /usr/local/cuda/lib64/libcudnn.so* /root/ctranslate2/lib64 && \
     cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64 && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2

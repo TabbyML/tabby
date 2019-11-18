@@ -9,7 +9,6 @@ addons:
     packages:
       - cmake
       - libboost-program-options-dev
-      - libboost-python-dev
 before_install:
   # Intel MKL
   - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
@@ -29,6 +28,7 @@ before_install:
   - cd ..
 
   # Python testing
+  - pip install pybind11==2.4.3
   - pip install -r python/tests/requirements.txt
   - wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
   - tar xf transliteration-aren-all.tar.gz -C tests/data/models/

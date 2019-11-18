@@ -1,21 +1,15 @@
-#include <boost/python.hpp>
-#include <boost/python/stl_iterator.hpp>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 #include <ctranslate2/translator_pool.h>
 
-namespace py = boost::python;
+namespace py = pybind11;
 
-class GILReleaser {
-public:
-  GILReleaser()
-    : _save_state(PyEval_SaveThread()) {
-  }
-  ~GILReleaser() {
-    PyEval_RestoreThread(_save_state);
-  }
-private:
-  PyThreadState* _save_state;
-};
+#if PY_MAJOR_VERSION < 3
+#  define STR_TYPE py::bytes
+#else
+#  define STR_TYPE py::str
+#endif
 
 template <typename T>
 py::list std_vector_to_py_list(const std::vector<T>& v) {
@@ -25,16 +19,29 @@ py::list std_vector_to_py_list(const std::vector<T>& v) {
   return l;
 }
 
+template<>
+py::list std_vector_to_py_list(const std::vector<std::string>& v) {
+  py::list l;
+  for (const auto& x : v)
+    l.append(STR_TYPE(x));
+  return l;
+}
+
+std::vector<std::string> py_list_to_std_vector(const py::object& l) {
+  std::vector<std::string> v;
+  v.reserve(py::len(l));
+  for (const auto& s : l)
+    v.emplace_back(s.cast<std::string>());
+  return v;
+}
+
 static std::vector<std::vector<std::string>> batch_to_vector(const py::object& l) {
   std::vector<std::vector<std::string>> v;
-  if (l == py::object())
+  if (l.is(py::none()))
     return v;
   v.reserve(py::len(l));
-  for (auto it = py::stl_input_iterator<py::list>(l);
-       it != py::stl_input_iterator<py::list>(); it++) {
-    v.emplace_back(py::stl_input_iterator<std::string>(*it),
-                   py::stl_input_iterator<std::string>());
-  }
+  for (const auto& handle : l)
+    v.emplace_back(py_list_to_std_vector(py::cast<py::object>(handle)));
   return v;
 }
 
@@ -73,7 +80,7 @@ public:
     options.num_hypotheses = num_hypotheses;
     options.use_vmap = use_vmap;
 
-    GILReleaser releaser;
+    py::gil_scoped_release release;
     _translator_pool.consume_text_file(in_file, out_file, max_batch_size, options, with_scores);
   }
 
@@ -86,7 +93,7 @@ public:
                            size_t min_decoding_length,
                            bool use_vmap,
                            bool return_attention) {
-    if (source == py::object() || py::len(source) == 0)
+    if (source.is(py::none()) || py::len(source) == 0)
       return py::list();
 
     auto options = ctranslate2::TranslationOptions();
@@ -104,7 +111,7 @@ public:
                                         options);
 
     {
-      GILReleaser releaser;
+      py::gil_scoped_release release;
       results = future.get();
     }
 
@@ -133,38 +140,36 @@ private:
   ctranslate2::TranslatorPool _translator_pool;
 };
 
-BOOST_PYTHON_MODULE(translator)
+PYBIND11_MODULE(translator, m)
 {
-  PyEval_InitThreads();
-  py::class_<TranslatorWrapper, boost::noncopyable>(
-    "Translator",
-    py::init<std::string, std::string, int, std::string, size_t, size_t>(
-      (py::arg("model_path"),
-       py::arg("device")="cpu",
-       py::arg("device_index")=0,
-       py::arg("compute_type")="default",
-       py::arg("inter_threads")=1,
-       py::arg("intra_threads")=4)))
+  py::class_<TranslatorWrapper>(m, "Translator")
+    .def(py::init<std::string, std::string, int, std::string, size_t, size_t>(),
+         py::arg("model_path"),
+         py::arg("device")="cpu",
+         py::arg("device_index")=0,
+         py::arg("compute_type")="default",
+         py::arg("inter_threads")=1,
+         py::arg("intra_threads")=4)
     .def("translate_batch", &TranslatorWrapper::translate_batch,
-         (py::arg("source"),
-          py::arg("target_prefix")=py::object(),
-          py::arg("beam_size")=4,
-          py::arg("num_hypotheses")=1,
-          py::arg("length_penalty")=0,
-          py::arg("max_decoding_length")=250,
-          py::arg("min_decoding_length")=1,
-          py::arg("use_vmap")=false,
-          py::arg("return_attention")=false))
+         py::arg("source"),
+         py::arg("target_prefix")=py::none(),
+         py::arg("beam_size")=4,
+         py::arg("num_hypotheses")=1,
+         py::arg("length_penalty")=0,
+         py::arg("max_decoding_length")=250,
+         py::arg("min_decoding_length")=1,
+         py::arg("use_vmap")=false,
+         py::arg("return_attention")=false)
     .def("translate_file", &TranslatorWrapper::translate_file,
-         (py::arg("input_path"),
-          py::arg("output_path"),
-          py::arg("max_batch_size"),
-          py::arg("beam_size")=4,
-          py::arg("num_hypotheses")=1,
-          py::arg("length_penalty")=0,
-          py::arg("max_decoding_length")=250,
-          py::arg("min_decoding_length")=1,
-          py::arg("use_vmap")=false,
-          py::arg("with_scores")=false))
+         py::arg("input_path"),
+         py::arg("output_path"),
+         py::arg("max_batch_size"),
+         py::arg("beam_size")=4,
+         py::arg("num_hypotheses")=1,
+         py::arg("length_penalty")=0,
+         py::arg("max_decoding_length")=250,
+         py::arg("min_decoding_length")=1,
+         py::arg("use_vmap")=false,
+         py::arg("with_scores")=false)
     ;
 }

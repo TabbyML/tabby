@@ -7,7 +7,7 @@ RUN apt-get update && \
         build-essential \
         ca-certificates \
         libboost-program-options-dev \
-        libboost-python-dev \
+        python-dev \
         python3-dev \
         gnupg2 \
         wget && \
@@ -72,6 +72,7 @@ WORKDIR /root/ctranslate2-dev/python
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     for PYTHON in python python3; do \
       ${PYTHON} get-pip.py && \
+      ${PYTHON} -m pip install pybind11==2.4.3 && \
       ${PYTHON} setup.py bdist_wheel && \
       rm -r build \
     ; done && \
@@ -80,7 +81,6 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
     cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
-    cp -P /usr/lib/x86_64-linux-gnu/libboost_python*.so* /root/ctranslate2/lib && \
     cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
 
 FROM ubuntu:${UBUNTU_VERSION}
