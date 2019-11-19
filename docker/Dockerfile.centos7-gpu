@@ -65,10 +65,11 @@ ARG CUDA_NVCC_FLAGS
 ENV CUDA_NVCC_FLAGS=${CUDA_NVCC_FLAGS:-"-Xfatbin -compress-all"}
 ARG CUDA_ARCH_LIST
 ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
+ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=/root/ctranslate2 \
+    cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT}" \
           -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
@@ -79,16 +80,20 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
-RUN pip --no-cache-dir install pybind11==2.4.3
-RUN CTRANSLATE2_ROOT=/root/ctranslate2 python setup.py bdist_wheel
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py && \
+    pip --no-cache-dir install pybind11==2.4.3 && \
+    python setup.py bdist_wheel && \
+    python setup.py sdist && \
+    mv dist/* /root/ctranslate2 && \
+    rmdir dist
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
     cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib64 && \
     cp -P /usr/local/cuda/lib64/libcudnn.so* /root/ctranslate2/lib64 && \
-    cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64 && \
-    cp /root/ctranslate2-dev/python/dist/*whl /root/ctranslate2
+    cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64
 
 FROM nvidia/cuda:10.0-base-centos7
 
@@ -102,6 +107,7 @@ RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
 
 WORKDIR /opt
 
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/ctranslate2/lib64
+ENV CTRANSLATE2_ROOT=/opt/ctranslate2
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CTRANSLATE2_ROOT/lib64
 
 ENTRYPOINT ["/opt/ctranslate2/bin/translate"]

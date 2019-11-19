@@ -30,6 +30,26 @@ ctranslate2_module = Extension(
 setup(
     name="ctranslate2",
     version="1.2.1",
+    license="MIT",
+    description="Custom C++ inference engine for OpenNMT models",
+    author="OpenNMT",
+    author_email="guillaume.klein@systrangroup.com",
+    url="https://github.com/OpenNMT/CTranslate2",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence"
+    ],
+    project_urls={
+        "Forum": "http://forum.opennmt.net/",
+        "Gitter": "https://gitter.im/OpenNMT/CTranslate2",
+        "Source": "https://github.com/OpenNMT/CTranslate2/"
+    },
+    keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
     install_requires=[
