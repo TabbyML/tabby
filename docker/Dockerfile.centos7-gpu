@@ -84,6 +84,7 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     python get-pip.py && \
     rm get-pip.py && \
     pip --no-cache-dir install pybind11==2.4.3 && \
+    pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
     python setup.py bdist_wheel && \
     python setup.py sdist && \
     mv dist/* /root/ctranslate2 && \

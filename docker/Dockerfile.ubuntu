@@ -77,6 +77,7 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
       rm -r build \
     ; done && \
     rm get-pip.py && \
+    python -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
     python setup.py sdist && \
     mv dist/* /root/ctranslate2 && \
     rmdir dist
