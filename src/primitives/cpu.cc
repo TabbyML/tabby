@@ -5,7 +5,6 @@
 #include <functional>
 #include <numeric>
 #include <stdexcept>
-#include <vector>
 
 #ifdef WITH_MKL
 #  include <mkl.h>
@@ -580,9 +579,10 @@ namespace ctranslate2 {
     CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
     CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
 
-    std::vector<const float*> a_array(batch_size);
-    std::vector<const float*> b_array(batch_size);
-    std::vector<float*> c_array(batch_size);
+    auto ptr_array = static_cast<float**>(alloc_data(3 * batch_size * sizeof (float*)));
+    auto a_array = const_cast<const float**>(ptr_array);
+    auto b_array = const_cast<const float**>(ptr_array + batch_size);
+    auto c_array = ptr_array + 2 * batch_size;
     for (MKL_INT i = 0; i < b_; ++i) {
       a_array[i] = a + (i * m_ * k_);
       b_array[i] = b + (i * k_ * n_);
@@ -592,10 +592,12 @@ namespace ctranslate2 {
     cblas_sgemm_batch(CblasRowMajor,
                       &trans_a, &trans_b,
                       &m_, &n_, &k_,
-                      &alpha, a_array.data(), &lda,
-                      b_array.data(), &ldb,
-                      &beta, c_array.data(), &ldc,
+                      &alpha, a_array, &lda,
+                      b_array, &ldb,
+                      &beta, c_array, &ldc,
                       1 /* group_count */, &b_);
+
+    free_data(ptr_array);
 #else
     for (size_t i = 0; i < batch_size; ++i) {
       const float* a_i = a + (i * m * k);
