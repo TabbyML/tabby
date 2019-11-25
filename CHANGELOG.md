@@ -4,6 +4,14 @@
 
 ### Fixes and improvements
 
+## [v1.2.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.2) (2019-11-25)
+
+### Fixes and improvements
+
+* Fix `PositionEncoder` internal state that was shared with other instances on the same thread
+* Replace Boost.Python by pybind11
+* Include a Python source distribution in the Docker images
+
 ## [v1.2.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.1) (2019-11-06)
 
 ### Fixes and improvements
