@@ -194,7 +194,9 @@ namespace ctranslate2 {
           StorageView scale(DataType::DT_FLOAT);
 
           // from float32 to int16
-          StorageView variable_int(_compute_type == ComputeType::INT16 ? DataType::DT_INT16 : DataType::DT_INT8);
+          StorageView variable_int(_compute_type == ComputeType::INT16
+                                   ? DataType::DT_INT16
+                                   : DataType::DT_INT8);
           quantize_op(variable, variable_int, scale);
           swap(variable, variable_int);
 
@@ -209,7 +211,9 @@ namespace ctranslate2 {
           swap(variable, variable_float);
 
           // from float to int
-          StorageView variable_int(_compute_type == ComputeType::INT8 ? DataType::DT_INT8 : DataType::DT_INT16);
+          StorageView variable_int(_compute_type == ComputeType::INT8
+                                   ? DataType::DT_INT8
+                                   : DataType::DT_INT16);
           quantize_op(variable, variable_int, *scale);
           swap(variable, variable_int);
         }
@@ -225,9 +229,11 @@ namespace ctranslate2 {
 
       // Make sure CPU supports the demanded type
       if ((_compute_type == ComputeType::INT8) && (!support_int8)) {
-        throw std::invalid_argument("Requested int8 compute type, but device doesn't support efficient int8 computation.");
+        throw std::invalid_argument("Requested int8 compute type, but device doesn't "
+                                    "support efficient int8 computation.");
       } else if ((_compute_type == ComputeType::INT16) && (!support_int16)) {
-        throw std::invalid_argument("Requested int16 compute type, but device doesn't support efficient int16 computation.");
+        throw std::invalid_argument("Requested int16 compute type, but device doesn't "
+                                    "support efficient int16 computation.");
       }
 
       for (auto& variable_pair : _variable_index) {

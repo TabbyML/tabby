@@ -51,7 +51,8 @@ namespace ctranslate2 {
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);
-      virtual void register_variable_alias(const std::string& alias, const std::string& variable_name);
+      virtual void register_variable_alias(const std::string& alias,
+                                           const std::string& variable_name);
       virtual void finalize();
       StorageView* get_scale(const std::string& scale_name, DataType dataType);
 
