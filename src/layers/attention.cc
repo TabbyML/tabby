@@ -12,6 +12,7 @@ namespace ctranslate2 {
                                          StorageView& output,
                                          StorageView* attention,
                                          float queries_scale) {
+      PROFILE("DotProductAttention");
       ops::MatMul(false, true, queries_scale)(queries, keys, output);
 
       StorageView attn(values.device());
@@ -52,6 +53,7 @@ namespace ctranslate2 {
                                         StorageView* cached_keys,
                                         StorageView* cached_values,
                                         StorageView* attention) {
+      PROFILE("MultiHeadAttention");
       Device device = queries.device();
       StorageView fused_proj(device);
       StorageView queries_proj(device);

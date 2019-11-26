@@ -8,7 +8,7 @@ namespace ctranslate2 {
     class Cos : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const {
-        PROFILE_FUN;
+        PROFILE("Cos");
         compute<float>(x, y);
       }
 

@@ -19,7 +19,7 @@ namespace ctranslate2 {
     }
 
     void Quantize::operator()(const StorageView& x, StorageView& y, StorageView& scale) const {
-      PROFILE_FUN;
+      PROFILE("Quantize");
       y.resize_as(x);
       if (y.dtype() == DataType::DT_INT16) {
         if (x.device() != Device::CPU)

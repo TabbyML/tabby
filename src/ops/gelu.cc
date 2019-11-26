@@ -6,7 +6,7 @@ namespace ctranslate2 {
   namespace ops {
 
     void GELU::operator()(const StorageView& x, StorageView& y) const {
-      PROFILE_FUN;
+      PROFILE("GELU");
       DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
     }
 

@@ -9,7 +9,7 @@ namespace ctranslate2 {
                                const StorageView& gamma,
                                const StorageView& input,
                                StorageView& output) const {
-      PROFILE_FUN;
+      PROFILE("LayerNorm");
       output.resize_as(input);
       DEVICE_DISPATCH(input.device(), (compute<D, float>(beta, gamma, input, output)));
     }

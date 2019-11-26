@@ -17,7 +17,7 @@ namespace ctranslate2 {
     }
 
     void TopK::operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
-      PROFILE_FUN;
+      PROFILE("TopK");
       size_t batch_size = x.size() / x.dim(-1);
       values.resize({batch_size, _k});
       indices.resize({batch_size, _k});

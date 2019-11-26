@@ -10,7 +10,7 @@ namespace ctranslate2 {
     }
 
     void Transpose::operator()(const StorageView& x, StorageView& y) const {
-      PROFILE_FUN;
+      PROFILE("Transpose");
       if (x.rank() == 1) {
         y = x;
         return;

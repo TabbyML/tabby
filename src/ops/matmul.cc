@@ -14,7 +14,7 @@ namespace ctranslate2 {
     void MatMul::operator()(const StorageView& a,
                             const StorageView& b,
                             StorageView& y) const {
-      PROFILE_FUN;
+      PROFILE("MatMul");
       switch (a.dtype()) {
       case DataType::DT_FLOAT:
         DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));

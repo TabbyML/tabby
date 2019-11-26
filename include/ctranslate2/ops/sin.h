@@ -8,7 +8,7 @@ namespace ctranslate2 {
     class Sin : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const {
-        PROFILE_FUN;
+        PROFILE("Sin");
         compute<float>(x, y);
       }
 

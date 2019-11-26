@@ -80,6 +80,7 @@ namespace ctranslate2 {
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    PROFILE("beam_search");
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);
@@ -345,6 +346,7 @@ namespace ctranslate2 {
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+    PROFILE("greedy_search");
     size_t max_step = start_step + max_length;
     Device device = memory.device();
     size_t batch_size = sample_from.dim(0);

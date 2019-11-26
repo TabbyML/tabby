@@ -166,6 +166,7 @@ namespace ctranslate2 {
     void TransformerEncoderLayer::operator()(const StorageView& input,
                                              const StorageView& lengths,
                                              StorageView& output) {
+      PROFILE("TransformerEncoderLayer");
       StorageView context(input.device());
       _self_attention(input, nullptr, &lengths, context);
       _ff(context, output);
@@ -188,6 +189,7 @@ namespace ctranslate2 {
                                              StorageView& cached_attn_values,
                                              StorageView& output,
                                              StorageView* attention) {
+      PROFILE("TransformerDecoderLayer");
       StorageView context(input.device());
       _self_attention(input, nullptr, nullptr, output,
                       &cached_self_attn_keys, &cached_self_attn_values);
@@ -216,6 +218,7 @@ namespace ctranslate2 {
     void TransformerEncoder::operator()(const StorageView& ids,
                                         const StorageView& lengths,
                                         StorageView& output) {
+      PROFILE("TransformerEncoder");
       StorageView layer_in(output.device());
       StorageView layer_out(output.device());
       _embeddings(ids, layer_in);
@@ -278,6 +281,7 @@ namespace ctranslate2 {
                                         layers::DecoderState& state,
                                         StorageView* logits,
                                         StorageView* attention) {
+      PROFILE("TransformerDecoder");
       StorageView layer_in(ids.device());
       StorageView layer_out(ids.device());
 

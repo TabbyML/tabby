@@ -6,7 +6,7 @@ namespace ctranslate2 {
   namespace ops {
 
     void ReLU::operator()(const StorageView& x, StorageView& y) const {
-      PROFILE_FUN;
+      PROFILE("ReLU");
       DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
     }
 

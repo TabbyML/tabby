@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "ctranslate2/decoding.h"
+#include "ctranslate2/profiler.h"
 
 namespace ctranslate2 {
 
@@ -129,6 +130,7 @@ namespace ctranslate2 {
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
+    PROFILE("translate_batch_with_prefix");
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();

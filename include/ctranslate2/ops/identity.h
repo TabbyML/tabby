@@ -8,7 +8,7 @@ namespace ctranslate2 {
     class Identity : public UnaryOp {
     public:
       void operator()(const StorageView& x, StorageView& y) const override {
-        PROFILE_FUN;
+        PROFILE("Identity");
         y = x;
       }
     };

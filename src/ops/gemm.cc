@@ -17,7 +17,7 @@ namespace ctranslate2 {
                           const StorageView& b,
                           const StorageView& c,
                           StorageView& y) const {
-      PROFILE_FUN;
+      PROFILE("Gemm");
       switch (a.dtype()) {
       case DataType::DT_INT8:
         DEVICE_DISPATCH(a.device(), (compute<D, int8_t, int32_t>(a, b, c, y)));

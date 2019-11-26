@@ -44,7 +44,7 @@ namespace ctranslate2 {
 
     void Gather::operator()(StorageView& data, const StorageView& input) const {
       if (support_gather_batch_inplace(data, input)) {
-        PROFILE_FUN;
+        PROFILE("Gather");
         TYPE_DISPATCH(data.dtype(), (gather_batch_inplace<T>(data, input)));
         data.resize(compute_output_shape(data, input));
       } else {
@@ -56,7 +56,7 @@ namespace ctranslate2 {
     void Gather::operator()(const StorageView& data,
                             const StorageView& input,
                             StorageView& output) const {
-      PROFILE_FUN;
+      PROFILE("Gather");
       output.resize(compute_output_shape(data, input));
       DEVICE_DISPATCH(data.device(),
                       TYPE_DISPATCH(data.dtype(), (compute<D, T>(data, input, output))));

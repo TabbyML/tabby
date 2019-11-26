@@ -12,8 +12,13 @@
 
 namespace ctranslate2 {
 
+  struct ScopeProfile {
+    std::chrono::microseconds time_in_scope;
+    std::chrono::microseconds time_in_scope_and_callees;
+  };
+
   static std::chrono::high_resolution_clock::time_point global_start;
-  static std::unordered_map<std::string, std::chrono::microseconds> cumulated;
+  static std::unordered_map<std::string, ScopeProfile> cumulated;
   static size_t threads;
   static std::mutex mutex;
   static bool do_profile = false;
@@ -22,6 +27,18 @@ namespace ctranslate2 {
 #ifndef ENABLE_PROFILING
     throw std::runtime_error("CTranslate2 was not compiled with profiling support");
 #endif
+  }
+
+  static void print_as_percentage(std::ostream& os, double ratio) {
+    os << std::right << std::setw(6) << std::fixed << std::setprecision(2)
+       << ratio * 100 << '%';
+  }
+
+  static ScopeProfile& get_scope_profile(const std::string& name) {
+    auto it = cumulated.find(name);
+    if (it == cumulated.end())
+      it = cumulated.emplace(name, ScopeProfile()).first;
+    return it->second;
   }
 
   void init_profiling(size_t num_threads) {
@@ -39,22 +56,13 @@ namespace ctranslate2 {
       std::chrono::high_resolution_clock::now() - global_start);
     total_time *= threads;
 
-    std::vector<std::pair<std::string, std::chrono::microseconds> > sorted_cumulated;
-    auto measured_time = std::chrono::microseconds::zero();
-    for (const auto& pair : cumulated) {
-      sorted_cumulated.emplace_back(pair);
-      measured_time += pair.second;
-    }
-
-    // Include total time and non measured time in the report.
-    sorted_cumulated.emplace_back("<all>", total_time);
-    sorted_cumulated.emplace_back("<other>", total_time - measured_time);
-
     // Sort from largest to smallest accumulated time.
+    std::vector<std::pair<std::string, ScopeProfile>> sorted_cumulated(cumulated.begin(),
+                                                                       cumulated.end());
     std::sort(sorted_cumulated.begin(), sorted_cumulated.end(),
-              [] (const std::pair<std::string, std::chrono::microseconds>& a,
-                  const std::pair<std::string, std::chrono::microseconds>& b) {
-                return a.second > b.second;
+              [] (const std::pair<std::string, ScopeProfile>& a,
+                  const std::pair<std::string, ScopeProfile>& b) {
+                return a.second.time_in_scope > b.second.time_in_scope;
               });
 
     // Get the longest profiler name to pretty print the output.
@@ -62,14 +70,25 @@ namespace ctranslate2 {
     for (const auto& pair : sorted_cumulated)
       longest_name = std::max(longest_name, pair.first.length());
 
-    auto total_time_us = static_cast<double>(total_time.count());
+    double total_time_us = total_time.count();
+    double ratio_printed_so_far = 0;
     for (const auto& pair : sorted_cumulated) {
       const auto& name = pair.first;
-      const auto& time_us = static_cast<double>(pair.second.count());
-      os << std::right << std::setw(6) << std::fixed << std::setprecision(2)
-         << (time_us / total_time_us) * 100 << '%'
-         << ' ' << std::left << std::setw(longest_name) << name
-         << ' ' << (time_us / 1000) << "ms"
+      const auto& result = pair.second;
+
+      double time_in_scope_us = result.time_in_scope.count();
+      double time_in_scope_and_callees_us = result.time_in_scope_and_callees.count();
+      double time_in_scope_ratio = time_in_scope_us / total_time_us;
+      double time_in_scope_and_callees_ratio = time_in_scope_and_callees_us / total_time_us;
+      ratio_printed_so_far += time_in_scope_ratio;
+
+      print_as_percentage(os, time_in_scope_ratio);
+      os << ' ';
+      print_as_percentage(os, time_in_scope_and_callees_ratio);
+      os << ' ';
+      print_as_percentage(os, ratio_printed_so_far);
+      os << ' ' << std::left << std::setw(longest_name) << name
+         << ' ' << (time_in_scope_us / 1000) << "ms"
          << std::endl;
     }
 
@@ -79,18 +98,15 @@ namespace ctranslate2 {
 
 
   // Track active profiler in the current thread.
-  static thread_local const std::string* active_profiler = nullptr;
+  static thread_local Profiler* current_profiler = nullptr;
 
   Profiler::Profiler(const std::string& name) {
     if (!do_profile)
       return;
-    if (active_profiler)
-      throw std::invalid_argument("Nested profilers are unsupported: tried to start profiler for '"
-                                  + name + "' but profiler '"
-                                  + *active_profiler + "' is active");
+    _parent = current_profiler;
     _name = name;
     _start = std::chrono::high_resolution_clock::now();
-    active_profiler = &_name;
+    current_profiler = this;
   }
 
   Profiler::~Profiler() {
@@ -103,13 +119,19 @@ namespace ctranslate2 {
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(diff);
     {
       std::lock_guard<std::mutex> lock(mutex);
-      auto it = cumulated.find(_name);
-      if (it == cumulated.end())
-        cumulated.emplace(_name, elapsed);
-      else
-        it->second += elapsed;
+      auto& scope_profile = get_scope_profile(_name);
+      scope_profile.time_in_scope += elapsed;
+      scope_profile.time_in_scope_and_callees += elapsed;
+      if (_parent) {
+        auto& parent_scope_profile = get_scope_profile(_parent->_name);
+        parent_scope_profile.time_in_scope -= elapsed;
+      }
     }
-    active_profiler = nullptr;
+    current_profiler = _parent;
+  }
+
+  const std::string& Profiler::name() const {
+    return _name;
   }
 
 }

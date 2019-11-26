@@ -8,7 +8,7 @@ namespace ctranslate2 {
     void Tile::operator()(const StorageView& input,
                           const StorageView& repeats,
                           StorageView& output) const {
-      PROFILE_FUN;
+      PROFILE("Tile");
       DEVICE_DISPATCH(input.device(),
                       TYPE_DISPATCH(input.dtype(), (compute<D, T>(input, repeats, output))));
     }

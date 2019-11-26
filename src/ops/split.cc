@@ -43,7 +43,7 @@ namespace ctranslate2 {
     }
 
     void Split::operator()(const StorageView& input, std::vector<StorageView*>& outputs) const {
-      PROFILE_FUN;
+      PROFILE("Split");
       auto axis = _axis < 0 ? input.rank() + _axis : _axis;
       auto dim = input.dim(axis);
 
