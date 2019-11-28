@@ -202,22 +202,6 @@ namespace ctranslate2 {
     binary_transform(a, b, c, b_size, thrust::multiplies<T>(), repeat_vec<size_t>(a_size));
   }
 
-  template <typename T>
-  struct wxpb_func : public thrust::binary_function<thrust::tuple<T, T>, T, T> {
-    __host__ __device__
-    T operator()(const thrust::tuple<T, T>& w_b, T x) {
-      return thrust::get<0>(w_b) * x + thrust::get<1>(w_b);
-    }
-  };
-
-  template<>
-  template <typename T>
-  void primitives<Device::CUDA>::mul_and_add_batch_broadcast(const T* x, const T* w, const T* b,
-                                                             T* y, size_t x_size, size_t wb_size) {
-    auto w_b = thrust::make_zip_iterator(thrust::make_tuple(w, b));
-    binary_transform(w_b, x, y, x_size, wxpb_func<T>(), repeat_vec<size_t>(wb_size));
-  }
-
   struct absolute_maximum_func : public thrust::binary_function<float, float, float> {
     __host__ __device__
     float operator()(float a, float b) {
@@ -601,9 +585,6 @@ namespace ctranslate2 {
   template void                                                         \
   primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, \
                                                 T* c, size_t a_size, size_t b_size); \
-  template void                                                         \
-  primitives<Device::CUDA>::mul_and_add_batch_broadcast(const T* x, const T* w, const T* b, \
-                                                        T* y, size_t x_size, size_t wb_size); \
   template void                                                         \
   primitives<Device::CUDA>::transpose_2d(const T* a, const size_t* dims, T* b); \
   template void                                                         \
