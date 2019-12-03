@@ -47,10 +47,10 @@ CTranslate2 uses the external libraries for acceleration.
 * CPU with INT8 support requires: 
   * [Intel MKL-DNN](https://github.com/intel/mkl-dnn) (>=0.20,<1.0)
 * GPU requires:
-  * [CUB](https://nvlabs.github.io/cub/) (>=1.8.0)
-  * [TensorRT](https://developer.nvidia.com/tensorrt) (==6.*)
-  * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (==1.9.3, included in CUDA 10.0)
-  * [cuBLAS](https://developer.nvidia.com/cublas) (with CUDA>=10.0)
+  * [CUB](https://nvlabs.github.io/cub/) (>=1.8)
+  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
+  * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (==1.9.3)
+  * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
   * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
 CTranslate2 supports compiling for CPU only, GPU only, or both.
