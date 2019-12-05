@@ -130,20 +130,13 @@ namespace ctranslate2 {
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
-    PROFILE("translate_batch_with_prefix");
-    const auto& source_vocab = _model->get_source_vocabulary();
-    const auto& target_vocab = _model->get_target_vocabulary();
-    const auto& vocab_map = _model->get_vocabulary_map();
-    auto& encoder = *_encoder;
-    auto& decoder = *_decoder;
-
-    size_t batch_size = source.size();
-    bool with_prefix = !target_prefix.empty();
+    const size_t batch_size = source.size();
+    const bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
     if (options.num_hypotheses > options.beam_size)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
-    if (options.use_vmap && vocab_map.empty())
+    if (options.use_vmap && _model->get_vocabulary_map().empty())
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
@@ -159,6 +152,68 @@ namespace ctranslate2 {
                                     + std::to_string(batch_size) + " for source and "
                                     + std::to_string(target_prefix.size()) + " for target prefix");
     }
+
+    if (batch_size == 0)
+      return std::vector<TranslationResult>();
+
+    const bool no_source_is_empty = std::none_of(source.begin(),
+                                                 source.end(),
+                                                 [](const std::vector<std::string>& tokens) {
+                                                   return tokens.empty();
+                                                 });
+
+    // Directly run translation if all source inputs are non empty.
+    if (no_source_is_empty)
+      return run_translation(source, target_prefix, options);
+
+    std::vector<std::vector<std::string>> non_empty_source;
+    std::vector<std::vector<std::string>> non_empty_target_prefix;
+
+    non_empty_source.reserve(batch_size);
+    if (with_prefix)
+      non_empty_target_prefix.reserve(batch_size);
+
+    for (size_t i = 0; i < batch_size; ++i) {
+      if (!source[i].empty()) {
+        non_empty_source.emplace_back(source[i]);
+        if (with_prefix)
+          non_empty_target_prefix.emplace_back(target_prefix[i]);
+      }
+    }
+
+    std::vector<TranslationResult> results;
+    if (!non_empty_source.empty())
+      results = run_translation(non_empty_source, non_empty_target_prefix, options);
+    std::vector<TranslationResult> final_results;
+    final_results.reserve(batch_size);
+
+    const std::vector<std::vector<std::vector<float>>> empty_attention(options.num_hypotheses);
+
+    for (size_t i = 0, result_index = 0; i < batch_size; ++i) {
+      if (source[i].empty())
+        final_results.emplace_back(std::vector<std::vector<std::string>>(options.num_hypotheses),
+                                   std::vector<float>(options.num_hypotheses, static_cast<float>(0)),
+                                   options.return_attention ? &empty_attention : nullptr);
+      else
+        final_results.emplace_back(std::move(results[result_index++]));
+    }
+
+    return final_results;
+  }
+
+  std::vector<TranslationResult>
+  Translator::run_translation(const std::vector<std::vector<std::string>>& source,
+                              const std::vector<std::vector<std::string>>& target_prefix,
+                              const TranslationOptions& options) {
+    PROFILE("run_translation");
+    const auto& source_vocab = _model->get_source_vocabulary();
+    const auto& target_vocab = _model->get_target_vocabulary();
+    const auto& vocab_map = _model->get_vocabulary_map();
+    auto& encoder = *_encoder;
+    auto& decoder = *_decoder;
+
+    size_t batch_size = source.size();
+    bool with_prefix = !target_prefix.empty();
 
     auto scoped_device_setter = _model->get_scoped_device_setter();
     auto device = _model->device();

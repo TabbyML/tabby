@@ -167,3 +167,48 @@ INSTANTIATE_TEST_CASE_P(
   SearchVariantTest,
   ::testing::Values(1, 4),
   beam_to_test_name);
+
+TEST(TranslatorTest, TranslateEmptyBatch) {
+  Translator translator = default_translator();
+  std::vector<std::vector<std::string>> inputs;
+  auto results = translator.translate_batch(inputs);
+  EXPECT_TRUE(results.empty());
+}
+
+static void check_empty_result(const TranslationResult& result,
+                               size_t num_hypotheses = 1,
+                               bool with_attention = false) {
+  EXPECT_TRUE(result.output().empty());
+  EXPECT_EQ(result.score(), static_cast<float>(0));
+  EXPECT_EQ(result.num_hypotheses(), num_hypotheses);
+  EXPECT_EQ(result.hypotheses().size(), num_hypotheses);
+  EXPECT_EQ(result.scores().size(), num_hypotheses);
+  EXPECT_EQ(result.has_attention(), with_attention);
+  if (with_attention) {
+    const auto& attention = result.attention();
+    EXPECT_EQ(attention.size(), num_hypotheses);
+    EXPECT_TRUE(attention[0].empty());
+  }
+}
+
+TEST(TranslatorTest, TranslateBatchWithEmptySource) {
+  Translator translator = default_translator();
+  std::vector<std::vector<std::string>> inputs = {
+    {}, {"آ", "ز", "ا"}, {}, {"آ", "ت", "ز", "م", "و", "ن"}, {}};
+  auto results = translator.translate_batch(inputs);
+  EXPECT_EQ(results.size(), 5);
+  check_empty_result(results[0]);
+  EXPECT_EQ(results[1].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
+  check_empty_result(results[2]);
+  EXPECT_EQ(results[3].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  check_empty_result(results[4]);
+}
+
+TEST(TranslatorTest, TranslateBatchWithOnlyEmptySource) {
+  Translator translator = default_translator();
+  std::vector<std::vector<std::string>> inputs{{}, {}};
+  auto results = translator.translate_batch(inputs);
+  EXPECT_EQ(results.size(), 2);
+  check_empty_result(results[0]);
+  check_empty_result(results[1]);
+}
