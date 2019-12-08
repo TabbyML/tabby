@@ -1,5 +1,6 @@
 #include "ctranslate2/ops/layer_norm.h"
 
+#include <algorithm>
 #include <cmath>
 
 #define EPSILON 1e-5
