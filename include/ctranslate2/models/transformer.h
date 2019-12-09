@@ -39,9 +39,9 @@ namespace ctranslate2 {
     public:
       PositionEncoder();
       PositionEncoder(const TransformerModel& model, const std::string& scope);
-      void operator()(StorageView& input, size_t index = 0);
+      void operator()(StorageView& input, dim_t index = 0);
     private:
-      const StorageView& get_position_encoding(size_t max_time, size_t depth, Device device);
+      const StorageView& get_position_encoding(dim_t max_time, dim_t depth, Device device);
       const StorageView* _model_encoding;
       std::unique_ptr<StorageView> _generated_encoding;
     };
@@ -108,7 +108,7 @@ namespace ctranslate2 {
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
       void reduce_vocab(const StorageView& ids) override;
       layers::DecoderState initial_state() const override;
-      void operator()(size_t step,
+      void operator()(dim_t step,
                       const StorageView& ids,
                       const StorageView& memory,
                       const StorageView& memory_lengths,

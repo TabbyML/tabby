@@ -3,16 +3,9 @@
 #include <ostream>
 #include <vector>
 
-#ifdef _MSC_VER
-#  include <BaseTsd.h>
-   typedef SSIZE_T ssize_t;
-#endif
-
 #include "types.h"
 #include "utils.h"
 #include "primitives/primitives.h"
-
-using Shape = std::vector<size_t>;
 
 namespace ctranslate2 {
 
@@ -35,6 +28,8 @@ namespace ctranslate2 {
 #define ASSERT_COMPATIBLE(DTYPE, DEVICE)      \
   ASSERT_DTYPE(DTYPE);                        \
   ASSERT_DEVICE(DEVICE)
+
+  using Shape = std::vector<dim_t>;
 
   // This class is a light wrapper around an allocated buffer which adds shape information.
   //
@@ -97,19 +92,19 @@ namespace ctranslate2 {
     DataType dtype() const;
 
     // Allocated memory size.
-    size_t reserved_memory() const;
+    dim_t reserved_memory() const;
     // Clears the content (memory is still reserved).
     StorageView& clear();
     // Releases the memory.
     StorageView& release();
     // Reserves this size (data are discarded).
-    StorageView& reserve(size_t size);
+    StorageView& reserve(dim_t size);
 
-    size_t rank() const;
+    dim_t rank() const;
     const Shape& shape() const;
-    size_t dim(ssize_t dim) const;
-    size_t stride(ssize_t dim) const;
-    size_t size() const;
+    dim_t dim(dim_t dim) const;
+    dim_t stride(dim_t dim) const;
+    dim_t size() const;
     bool is_scalar() const;
     bool empty() const;
 
@@ -117,9 +112,9 @@ namespace ctranslate2 {
 
     StorageView& resize_as(const StorageView& other);
     StorageView& resize(const Shape& new_shape);
-    StorageView& resize(size_t dim, size_t new_size);
-    StorageView& grow(size_t dim, size_t size);
-    StorageView& shrink(size_t dim, size_t size);
+    StorageView& resize(dim_t dim, dim_t new_size);
+    StorageView& grow(dim_t dim, dim_t size);
+    StorageView& shrink(dim_t dim, dim_t size);
 
     // Assignment operators.
     StorageView& operator=(const StorageView& other);
@@ -146,14 +141,14 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T* index(const std::vector<size_t>& indices) {
+    T* index(const std::vector<dim_t>& indices) {
       return const_cast<T*>(static_cast<const StorageView&>(*this).index<T>(indices));
     }
 
     template <typename T>
-    const T* index(const std::vector<size_t>& indices) const {
+    const T* index(const std::vector<dim_t>& indices) const {
       ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      size_t offset = 0;
+      dim_t offset = 0;
       for (size_t i = 0; i < indices.size(); ++i)
         offset += indices[i] * stride(i);
       if (offset >= _size)
@@ -164,12 +159,12 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T& at(size_t index) {
+    T& at(dim_t index) {
       return const_cast<T&>(static_cast<const StorageView&>(*this).at<T>(index));
     }
 
     template <typename T>
-    const T& at(size_t index) const {
+    const T& at(dim_t index) const {
       if (index >= _size)
         THROW_INVALID_ARGUMENT("index is out of bounds ("
                                + std::to_string(index) + " >= "
@@ -178,12 +173,12 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T& at(const std::vector<size_t>& indices) {
+    T& at(const std::vector<dim_t>& indices) {
       return index<T>(indices)[0];
     }
 
     template <typename T>
-    const T& at(const std::vector<size_t>& indices) const {
+    const T& at(const std::vector<dim_t>& indices) const {
       return index<T>(indices)[0];
     }
 
@@ -196,7 +191,7 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T scalar_at(const std::vector<size_t>& indices) const;
+    T scalar_at(const std::vector<dim_t>& indices) const;
 
     template <typename T>
     StorageView& view(T* data, const Shape& shape) {
@@ -215,7 +210,7 @@ namespace ctranslate2 {
     StorageView& copy_from(const StorageView& other);
 
     template <typename T>
-    StorageView& copy_from(const T* data, size_t size, Device device);
+    StorageView& copy_from(const T* data, dim_t size, Device device);
 
     friend void swap(StorageView& a, StorageView& b);
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
@@ -225,12 +220,12 @@ namespace ctranslate2 {
     Device _device = Device::CPU;
     void* _data = nullptr;
     bool _own_data = true;
-    size_t _allocated_size = 0;
-    size_t _size = 0;
+    dim_t _allocated_size = 0;
+    dim_t _size = 0;
     Shape _shape;
 
-    static size_t size(const Shape& shape);
-    static size_t stride(const Shape& shape, size_t dim);
+    static dim_t size(const Shape& shape);
+    static dim_t stride(const Shape& shape, dim_t dim);
 
   };
 

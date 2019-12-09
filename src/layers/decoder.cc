@@ -24,7 +24,7 @@ namespace ctranslate2 {
       }
     }
 
-    size_t Decoder::batch_size(const DecoderState& state) const {
+    dim_t Decoder::batch_size(const DecoderState& state) const {
       return state.begin()->second.dim(0);
     }
 

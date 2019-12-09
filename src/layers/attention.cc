@@ -30,7 +30,7 @@ namespace ctranslate2 {
 
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
-                                           size_t num_heads)
+                                           dim_t num_heads)
       : _num_heads(num_heads)
       , _layer_norm(model, scope + "/layer_norm")
       , _transpose_op({0, 2, 1, 3}) {
@@ -94,7 +94,7 @@ namespace ctranslate2 {
         }
       }
 
-      const size_t dk = queries.dim(-1) / _num_heads;
+      const dim_t dk = queries.dim(-1) / _num_heads;
       const float queries_scale = 1.0 / sqrt(dk);
 
       StorageView& context = queries_proj;  // Reuse storage.

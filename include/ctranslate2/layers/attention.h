@@ -20,7 +20,7 @@ namespace ctranslate2 {
     class MultiHeadAttention
     {
     public:
-      MultiHeadAttention(const models::Model& model, const std::string& scope, size_t num_heads);
+      MultiHeadAttention(const models::Model& model, const std::string& scope, dim_t num_heads);
       void operator()(const StorageView& queries,
                       const StorageView* memory,
                       const StorageView* memory_lengths,
@@ -29,7 +29,7 @@ namespace ctranslate2 {
                       StorageView* cached_values = nullptr,
                       StorageView* attention = nullptr);
     private:
-      size_t _num_heads;
+      dim_t _num_heads;
       std::vector<Dense> _linear;
       LayerNorm _layer_norm;
       DotProductAttention _attention;

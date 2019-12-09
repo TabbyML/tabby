@@ -37,13 +37,13 @@ TEST(OpTest, SplitNoCopyInvalidArgument) {
 TEST(OpDeviceTest, SplitInvalidSize) {
   StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
   StorageView a, b;
-  ASSERT_RAISES(ops::Split(0, std::vector<int>{3, 2})(x, a, b), std::invalid_argument);
+  ASSERT_RAISES(ops::Split(0, {3, 2})(x, a, b), std::invalid_argument);
 }
 
 TEST(OpDeviceTest, SplitInvalidNumSplits) {
   StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8});
   StorageView a, b, c;
-  ASSERT_RAISES(ops::Split(0, std::vector<int>{3, 1})(x, a, b, c), std::invalid_argument);
+  ASSERT_RAISES(ops::Split(0, {3, 1})(x, a, b, c), std::invalid_argument);
 }
 
 TEST(OpDeviceTest, SplitInvalidNumOutputs) {
@@ -307,7 +307,7 @@ TEST_P(OpDeviceTest, SplitNoCopy) {
   StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
   StorageView y(device);
   StorageView z(device);
-  ops::Split(0, std::vector<int>{3, 1}, /*no_copy=*/true)(x, y, z);
+  ops::Split(0, {3, 1}, /*no_copy=*/true)(x, y, z);
   assert_vector_eq(y.shape(), Shape{3, 2});
   assert_vector_eq(z.shape(), Shape{1, 2});
   EXPECT_EQ(y.data<float>(), x.data<float>());

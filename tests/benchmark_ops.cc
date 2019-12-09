@@ -11,7 +11,7 @@ void benchmark_gather(Device device) {
   StorageView data({512, 512}, DataType::DT_FLOAT, device);
   std::vector<int32_t> input_v(250);
   std::iota(input_v.begin(), input_v.end(), 0);
-  StorageView input({input_v.size()}, input_v, device);
+  StorageView input({static_cast<dim_t>(input_v.size())}, input_v, device);
   StorageView output(device);
   const ops::Gather gather_op;
   BENCHMARK(gather_op(data, input, output), 100000);

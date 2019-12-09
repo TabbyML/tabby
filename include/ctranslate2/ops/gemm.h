@@ -19,9 +19,9 @@ namespace ctranslate2 {
                    const StorageView& b,
                    const StorageView& c,
                    StorageView& y) const {
-        size_t k = a.dim(_trans_a ? -2 : -1);
-        size_t n = b.dim(_trans_b ? -2 : -1);
-        size_t m = a.size() / k; // Collapse leading dimensions.
+        const dim_t k = a.dim(_trans_a ? -2 : -1);
+        const dim_t n = b.dim(_trans_b ? -2 : -1);
+        const dim_t m = a.size() / k; // Collapse leading dimensions.
 
         assert(k == b.dim(_trans_b ? -1 : -2));
 
@@ -33,7 +33,7 @@ namespace ctranslate2 {
           assert(!c.empty());
           if (_broadcast_c) {
             assert(c.size() == n);
-            for (size_t i = 0; i < m; ++i)
+            for (dim_t i = 0; i < m; ++i)
               primitives<D>::copy(c.data<Out>(), y.data<Out>() + i * n, n);
           } else {
             assert(c.size() == y.size());

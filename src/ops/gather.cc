@@ -9,7 +9,7 @@ namespace ctranslate2 {
 
     static Shape compute_output_shape(const StorageView& data, const StorageView& input) {
       Shape output_shape(input.shape());
-      for (size_t i = 1; i < data.rank(); ++i)
+      for (dim_t i = 1; i < data.rank(); ++i)
         output_shape.push_back(data.dim(i));
       return output_shape;
     }
@@ -27,8 +27,8 @@ namespace ctranslate2 {
       const auto* indices = input.data<int32_t>();
       auto* dst = data.data<T>();
       const auto copy_dim = data.stride(0);
-      for (size_t i = 0; i < input.size(); ++i) {
-        if (static_cast<size_t>(indices[i]) != i) {
+      for (dim_t i = 0; i < input.size(); ++i) {
+        if (static_cast<dim_t>(indices[i]) != i) {
           const auto* src = data.data<T>() + indices[i] * copy_dim;
           primitives<Device::CPU>::copy(src, dst, copy_dim);
         }

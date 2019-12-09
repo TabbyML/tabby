@@ -48,21 +48,22 @@ namespace ctranslate2 {
 
   static std::pair<StorageView, StorageView>
   make_inputs(const std::vector<std::vector<size_t>>& ids, Device device) {
-    size_t batch_size = ids.size();
+    const dim_t batch_size = ids.size();
 
     // Record lengths and maximum length.
-    size_t max_length = 0;
+    dim_t max_length = 0;
     StorageView lengths({batch_size}, DataType::DT_INT32);
-    for (size_t i = 0; i < batch_size; ++i) {
-      const size_t length = ids[i].size();
+    for (dim_t i = 0; i < batch_size; ++i) {
+      const dim_t length = ids[i].size();
       lengths.at<int32_t>(i) = length;
       max_length = std::max(max_length, length);
     }
 
     // Make 2D input.
     StorageView input({batch_size, max_length}, DataType::DT_INT32);
-    for (size_t i = 0; i < batch_size; ++i) {
-      for (size_t t = 0; t < ids[i].size(); ++t)
+    for (dim_t i = 0; i < batch_size; ++i) {
+      const dim_t length = ids[i].size();
+      for (dim_t t = 0; t < length; ++t)
         input.at<int32_t>({i, t}) = ids[i][t];
     }
 
@@ -212,7 +213,7 @@ namespace ctranslate2 {
     auto& encoder = *_encoder;
     auto& decoder = *_decoder;
 
-    size_t batch_size = source.size();
+    const dim_t batch_size = source.size();
     bool with_prefix = !target_prefix.empty();
 
     auto scoped_device_setter = _model->get_scoped_device_setter();
@@ -239,7 +240,7 @@ namespace ctranslate2 {
     StorageView candidates(DataType::DT_INT32, device);
     if (options.use_vmap && !vocab_map.empty()) {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(source);
-      candidates.resize({candidates_vec.size()});
+      candidates.resize({static_cast<dim_t>(candidates_vec.size())});
       candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
     }
     decoder.reduce_vocab(candidates);
@@ -305,7 +306,7 @@ namespace ctranslate2 {
     // Build results.
     std::vector<TranslationResult> results;
     results.reserve(batch_size);
-    for (size_t i = 0; i < batch_size; ++i) {
+    for (dim_t i = 0; i < batch_size; ++i) {
       std::vector<std::vector<std::string>> hypotheses;
       size_t num_hypotheses = sampled_ids[i].size();
       hypotheses.resize(num_hypotheses);
@@ -315,7 +316,7 @@ namespace ctranslate2 {
         for (auto id : sampled_ids[i][h])
           hypotheses[h].push_back(target_vocab.to_token(id));
       }
-      const auto* attn = i < attention.size() ? &attention[i] : nullptr;
+      const auto* attn = i < static_cast<dim_t>(attention.size()) ? &attention[i] : nullptr;
       results.emplace_back(hypotheses, scores[i], attn);
     }
 

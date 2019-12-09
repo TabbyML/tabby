@@ -29,7 +29,7 @@ namespace ctranslate2 {
                          const StorageView& input,
                          StorageView& output) const {
       auto gather_ids = thrust::make_transform_iterator(
-        thrust::counting_iterator<size_t>(0),
+        thrust::counting_iterator<int32_t>(0),
         map_id(input.data<int32_t>(), data.stride(0)));
       THRUST_CALL(thrust::gather,
                   gather_ids, gather_ids + output.size(), data.data<T>(), output.data<T>());

@@ -11,7 +11,7 @@ namespace ctranslate2 {
 
   static const ops::Gather gather;
 
-  static void split_batch_beam(StorageView& input, size_t beam_size) {
+  static void split_batch_beam(StorageView& input, dim_t beam_size) {
     Shape shape = input.shape();
     shape.insert(shape.begin() + 1, beam_size);
     shape[0] /= beam_size;
@@ -25,7 +25,7 @@ namespace ctranslate2 {
     input.reshape(shape);
   }
 
-  static void gather_batch(StorageView& data, const StorageView& indices, size_t beam_size) {
+  static void gather_batch(StorageView& data, const StorageView& indices, dim_t beam_size) {
     split_batch_beam(data, beam_size);
     gather(data, indices);
     merge_batch_beam(data);
@@ -37,7 +37,7 @@ namespace ctranslate2 {
     tile_op(input_clone, repeats, input);
   }
 
-  static void expand_to_beam_size(StorageView& input, size_t beam_size) {
+  static void expand_to_beam_size(StorageView& input, dim_t beam_size) {
     Shape original_shape(input.shape());
     Shape tile_shape(input.shape());
     tile_shape.insert(std::next(tile_shape.begin()), 1);
@@ -49,14 +49,14 @@ namespace ctranslate2 {
     input.reshape(original_shape);
   }
 
-  static void expand_to_beam_size(layers::DecoderState& state, size_t beam_size) {
+  static void expand_to_beam_size(layers::DecoderState& state, dim_t beam_size) {
     for (auto& pair : state) {
       if (!pair.second.empty())
         expand_to_beam_size(pair.second, beam_size);
     }
   }
 
-  static void penalize_token(StorageView& log_probs, size_t token) {
+  static void penalize_token(StorageView& log_probs, dim_t token) {
     DEVICE_DISPATCH(log_probs.device(),
                     primitives<D>::strided_fill(log_probs.data<float>() + token,
                                                 static_cast<float>(-1e10),
@@ -70,21 +70,21 @@ namespace ctranslate2 {
                    StorageView& candidates,
                    const StorageView& memory,
                    const StorageView& memory_lengths,
-                   size_t start_step,
-                   size_t end_token,
-                   size_t max_length,
-                   size_t min_length,
-                   size_t beam_size,
+                   dim_t start_step,
+                   dim_t end_token,
+                   dim_t max_length,
+                   dim_t min_length,
+                   dim_t beam_size,
                    size_t num_hypotheses,
                    float length_penalty,
                    std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
     PROFILE("beam_search");
-    size_t max_step = start_step + max_length;
+    const dim_t max_step = start_step + max_length;
     Device device = memory.device();
-    size_t batch_size = sample_from.dim(0);
-    size_t cur_batch_size = batch_size;
+    const dim_t batch_size = sample_from.dim(0);
+    dim_t cur_batch_size = batch_size;
     const ops::TopK topk_op(beam_size);
     StorageView alive_seq(sample_from);
     alive_seq.reshape({batch_size, 1});
@@ -117,8 +117,8 @@ namespace ctranslate2 {
     }
 
     std::vector<bool> top_beam_finished(batch_size, false);
-    std::vector<size_t> batch_offset(batch_size);
-    for (size_t i = 0; i < batch_size; ++i) {
+    std::vector<dim_t> batch_offset(batch_size);
+    for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       sampled_ids[i].reserve(num_hypotheses);
       scores[i].reserve(num_hypotheses);
@@ -135,7 +135,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = start_step; step < max_step; ++step) {
+    for (dim_t step = start_step; step < max_step; ++step) {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
@@ -146,7 +146,7 @@ namespace ctranslate2 {
               attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 
-      size_t vocabulary_size = log_probs.dim(-1);
+      const dim_t vocabulary_size = log_probs.dim(-1);
 
       // Multiply by the current beam log probs.
       DEVICE_DISPATCH(log_probs.device(),
@@ -184,7 +184,7 @@ namespace ctranslate2 {
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * beam_size});
-      for (size_t i = 0; i < topk_ids.size(); ++i) {
+      for (dim_t i = 0; i < topk_ids.size(); ++i) {
         auto flat_id = topk_ids.at<int32_t>(i);
         auto beam_id = flat_id / vocabulary_size;
         auto word_id = flat_id % vocabulary_size;
@@ -220,10 +220,10 @@ namespace ctranslate2 {
 
       // Check if some hypotheses are finished.
       std::vector<bool> finished(cur_batch_size, false);
-      size_t finished_count = 0;
-      for (size_t i = 0; i < cur_batch_size; ++i) {
-        size_t batch_id = batch_offset[i];
-        for (size_t k = 0; k < beam_size; ++k) {
+      dim_t finished_count = 0;
+      for (dim_t i = 0; i < cur_batch_size; ++i) {
+        const dim_t batch_id = batch_offset[i];
+        for (dim_t k = 0; k < beam_size; ++k) {
           if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
               || step + 1 == max_step) {
             if (k == 0)
@@ -236,13 +236,13 @@ namespace ctranslate2 {
                 || -score < hypotheses[batch_id].rbegin()->first) {
               std::vector<size_t> hypothesis;
               std::vector<std::vector<float>> attn;
-              size_t max_time = alive_seq.dim(-1);
+              const dim_t max_time = alive_seq.dim(-1);
               hypothesis.reserve(max_time);
               if (attention)
                 attn.reserve(max_time);
-              for (size_t t = 1; t < max_time; ++t) {
-                size_t id = alive_seq.at<int32_t>({i, k, t});
-                if (id == end_token)
+              for (dim_t t = 1; t < max_time; ++t) {
+                const int32_t id = alive_seq.at<int32_t>({i, k, t});
+                if (id == static_cast<int32_t>(end_token))
                   break;
                 hypothesis.push_back(id);
                 if (attention) {
@@ -339,17 +339,17 @@ namespace ctranslate2 {
                      StorageView& candidates,
                      const StorageView& memory,
                      const StorageView& memory_lengths,
-                     size_t start_step,
-                     size_t end_token,
-                     size_t max_length,
-                     size_t min_length,
+                     dim_t start_step,
+                     dim_t end_token,
+                     dim_t max_length,
+                     dim_t min_length,
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
     PROFILE("greedy_search");
-    size_t max_step = start_step + max_length;
+    const dim_t max_step = start_step + max_length;
     Device device = memory.device();
-    size_t batch_size = sample_from.dim(0);
+    const dim_t batch_size = sample_from.dim(0);
     sample_from.reshape({batch_size, 1});
 
     sampled_ids.clear();
@@ -368,8 +368,8 @@ namespace ctranslate2 {
     StorageView log_probs(device);
     StorageView alive({batch_size}, DataType::DT_INT32);
     std::vector<bool> finished(batch_size, false);
-    std::vector<size_t> batch_offset(batch_size);
-    for (size_t i = 0; i < batch_size; ++i) {
+    std::vector<dim_t> batch_offset(batch_size);
+    for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       sampled_ids[i].resize(1);
       scores[i].resize(1);
@@ -384,7 +384,7 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(device);
 
-    for (size_t step = start_step; step < max_step; ++step) {
+    for (dim_t step = start_step; step < max_step; ++step) {
       decoder(step,
               sample_from.to(device),
               alive_memory,
@@ -406,13 +406,13 @@ namespace ctranslate2 {
 
       std::vector<bool> finished_batch(log_probs.dim(0), false);
       bool one_finished = false;
-      size_t count_alive = 0;
-      for (size_t i = 0; i < log_probs.dim(0); ++i) {
-        size_t true_id = best_ids.scalar_at<int32_t>({i});
+      dim_t count_alive = 0;
+      for (dim_t i = 0; i < log_probs.dim(0); ++i) {
+        int32_t true_id = best_ids.scalar_at<int32_t>({i});
         if (!candidates.empty())
           true_id = candidates.scalar_at<int32_t>({true_id});
-        size_t batch_id = batch_offset[i];
-        if (true_id == end_token) {
+        dim_t batch_id = batch_offset[i];
+        if (true_id == static_cast<int32_t>(end_token)) {
           finished[batch_id] = true;
           finished_batch[i] = true;
           one_finished = true;

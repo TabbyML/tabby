@@ -88,9 +88,9 @@ namespace ctranslate2 {
       : _model_encoding(model.get_variable_if_exists(scope + "/encodings")) {
     }
 
-    void PositionEncoder::operator()(StorageView& input, size_t index) {
-      const size_t max_time = input.dim(1);
-      const size_t depth = input.dim(-1);
+    void PositionEncoder::operator()(StorageView& input, dim_t index) {
+      const dim_t max_time = input.dim(1);
+      const dim_t depth = input.dim(-1);
       const StorageView& encodings = get_position_encoding(max_time, depth, input.device());
       DEVICE_DISPATCH(input.device(),
                       primitives<D>::add_batch_broadcast(encodings.data<float>() + index * depth,
@@ -99,28 +99,28 @@ namespace ctranslate2 {
                                                          input.size()));
     }
 
-    const StorageView& PositionEncoder::get_position_encoding(size_t max_time,
-                                                              size_t depth,
+    const StorageView& PositionEncoder::get_position_encoding(dim_t max_time,
+                                                              dim_t depth,
                                                               Device device) {
       if (_model_encoding)
         return *_model_encoding;
 
-      static const size_t default_max_time = 500;
+      static const dim_t default_max_time = 500;
       if (!_generated_encoding)
         _generated_encoding.reset(new StorageView(device));
 
       if (_generated_encoding->empty() || max_time > _generated_encoding->dim(0)) {
-        size_t reserved_time = (_generated_encoding->empty()
-                                ? std::max(default_max_time, max_time)
-                                : max_time);
+        dim_t reserved_time = (_generated_encoding->empty()
+                               ? std::max(default_max_time, max_time)
+                               : max_time);
         float log_timescale_increment = log(10000) / (depth / 2 - 1);
         StorageView timescales({depth / 2}, -log_timescale_increment);
-        for (size_t i = 0; i < timescales.size(); ++i)
+        for (dim_t i = 0; i < timescales.size(); ++i)
           timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
 
         StorageView scaled_time({reserved_time, depth / 2});
-        for (size_t i = 0; i < scaled_time.dim(0); ++i) {
-          for (size_t j = 0; j < scaled_time.dim(1); ++j) {
+        for (dim_t i = 0; i < scaled_time.dim(0); ++i) {
+          for (dim_t j = 0; j < scaled_time.dim(1); ++j) {
             *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
           }
         }
@@ -274,7 +274,7 @@ namespace ctranslate2 {
       return !starts_with(name, "memory");
     }
 
-    void TransformerDecoder::operator()(size_t step,
+    void TransformerDecoder::operator()(dim_t step,
                                         const StorageView& ids,
                                         const StorageView& memory,
                                         const StorageView& memory_lengths,

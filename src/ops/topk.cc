@@ -5,7 +5,7 @@
 namespace ctranslate2 {
   namespace ops {
 
-    TopK::TopK(size_t k, int axis)
+    TopK::TopK(dim_t k, dim_t axis)
       : _k(k) {
       if (axis != -1)
         throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
@@ -18,7 +18,7 @@ namespace ctranslate2 {
 
     void TopK::operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
       PROFILE("TopK");
-      size_t batch_size = x.size() / x.dim(-1);
+      const dim_t batch_size = x.size() / x.dim(-1);
       values.resize({batch_size, _k});
       indices.resize({batch_size, _k});
       DEVICE_DISPATCH(x.device(),

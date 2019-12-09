@@ -7,14 +7,14 @@
 namespace ctranslate2 {
   namespace ops {
 
-    Split::Split(int axis, bool no_copy)
+    Split::Split(dim_t axis, bool no_copy)
       : _axis(axis)
       , _total_size(0)
       , _no_copy(no_copy) {
       check_arguments();
     }
 
-    Split::Split(int axis, const std::vector<int>& split, bool no_copy)
+    Split::Split(dim_t axis, const std::vector<dim_t>& split, bool no_copy)
       : _axis(axis)
       , _split(split)
       , _total_size(std::accumulate(split.begin(), split.end(), 0))
@@ -44,8 +44,8 @@ namespace ctranslate2 {
 
     void Split::operator()(const StorageView& input, std::vector<StorageView*>& outputs) const {
       PROFILE("Split");
-      auto axis = _axis < 0 ? input.rank() + _axis : _axis;
-      auto dim = input.dim(axis);
+      const dim_t axis = _axis < 0 ? input.rank() + _axis : _axis;
+      const dim_t dim = input.dim(axis);
 
       if (!_split.empty()) {
         if (_split.size() != outputs.size())
@@ -62,11 +62,11 @@ namespace ctranslate2 {
         throw std::invalid_argument("axis " + std::to_string(axis) + " is not divisble by "
                                     + std::to_string(outputs.size()));
 
-      size_t offset = 0;
+      dim_t offset = 0;
       for (size_t j = 0; j < outputs.size(); ++j) {
         auto& x = *outputs[j];
         auto shape = input.shape();
-        auto split_size = _split.empty() ? dim / outputs.size() : _split[j];
+        const dim_t split_size = _split.empty() ? dim / outputs.size() : _split[j];
         shape[axis] = split_size;
         if (_no_copy) {
           TYPE_DISPATCH(input.dtype(),

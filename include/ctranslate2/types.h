@@ -6,9 +6,12 @@
 // The implemented approach comes from:
 // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.h
 
+#include <cstdint>
 #include <string>
 
 namespace ctranslate2 {
+
+  using dim_t = int64_t;  // This type should be signed.
 
   enum class DataType {
     DT_FLOAT,

@@ -34,8 +34,8 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      size_t depth = input.dim(-1);
-      size_t batch_size = input.size() / depth;
+      const dim_t depth = input.dim(-1);
+      const dim_t batch_size = input.size() / depth;
 
       StorageView moments({2 * batch_size}, input.dtype(), input.device());
       T* mean_data = moments.data<T>();

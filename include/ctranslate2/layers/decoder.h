@@ -18,7 +18,7 @@ namespace ctranslate2 {
 
       virtual void reduce_vocab(const StorageView&) {}
       virtual DecoderState initial_state() const = 0;
-      virtual void operator()(size_t step,
+      virtual void operator()(dim_t step,
                               const StorageView& ids,
                               const StorageView& memory,
                               const StorageView& memory_lengths,
@@ -33,7 +33,7 @@ namespace ctranslate2 {
       // Returns false if the state does not need to be reordered during beam search.
       virtual bool should_reorder_state(const std::string& name) const;
       // Returns the current batch size from the decoder state.
-      virtual size_t batch_size(const DecoderState& state) const;
+      virtual dim_t batch_size(const DecoderState& state) const;
 
       Device _device;
     };

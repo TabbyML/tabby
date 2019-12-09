@@ -40,8 +40,8 @@ namespace ctranslate2 {
     void SoftMax::compute(const StorageView& input,
                           const StorageView* lengths,
                           StorageView& output) const {
-      size_t depth = input.dim(-1);
-      size_t batch_size = input.size() / depth;
+      const dim_t depth = input.dim(-1);
+      const dim_t batch_size = input.size() / depth;
 
       StorageView masked_input(input.device());
       const auto* data = input.data<float>();

@@ -21,7 +21,7 @@ namespace ctranslate2 {
       void compute(const StorageView& a,
                    const StorageView& b,
                    StorageView& y) const {
-        size_t m, n, k;
+        dim_t m, n, k;
 
         if (_trans_a) {
           m = a.dim(-1);
@@ -42,7 +42,7 @@ namespace ctranslate2 {
         float beta = 0;
 
         if (m * k != a.size()) {
-          size_t batch_size = a.size() / (m * k);
+          const dim_t batch_size = a.size() / (m * k);
           Shape output_shape(a.shape());
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;

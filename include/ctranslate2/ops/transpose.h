@@ -8,14 +8,14 @@ namespace ctranslate2 {
     class Transpose : public UnaryOp {
     public:
       Transpose() = default;
-      Transpose(const std::vector<size_t>& perm);
+      Transpose(const std::vector<dim_t>& perm);
       void operator()(const StorageView& x, StorageView& y) const override;
 
     private:
-      std::vector<size_t> _perm;
+      std::vector<dim_t> _perm;
 
       template <Device D, typename T>
-      void compute(const StorageView& x, const std::vector<size_t>& perm, StorageView& y) const {
+      void compute(const StorageView& x, const std::vector<dim_t>& perm, StorageView& y) const {
         if (x.rank() == 2) {
           y.resize({x.dim(1), x.dim(0)});
           primitives<D>::transpose_2d(x.data<T>(), x.shape().data(), y.data<T>());

@@ -10,9 +10,9 @@ namespace ctranslate2 {
         output_shape->clear();
       const Shape& x_shape = x.shape();
       const Shape& y_shape = y.shape();
-      for (size_t i = 0; i < x_shape.size(); ++i) {
-        size_t x_dim = x_shape[i];
-        size_t y_dim = y_shape[i];
+      for (dim_t i = 0; i < x.rank(); ++i) {
+        const dim_t x_dim = x_shape[i];
+        const dim_t y_dim = y_shape[i];
         if (x_dim != y_dim && x_dim != 1 && y_dim != 1)
           return false;
         if (output_shape)

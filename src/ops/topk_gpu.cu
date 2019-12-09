@@ -7,14 +7,14 @@ namespace ctranslate2 {
 
     class TopKLayer : public cuda::TensorRTLayer {
     public:
-      TopKLayer(int k)
+      TopKLayer(dim_t k)
         : _k(k)
         , _first_depth(0) {
       }
 
       void operator()(const StorageView& x, StorageView& values, StorageView& indices) {
-        int depth = x.dim(-1);
-        int batch_size = x.size() / depth;
+        const dim_t depth = x.dim(-1);
+        const dim_t batch_size = x.size() / depth;
 
         if (_first_depth == 0)
           _first_depth = depth;
@@ -58,8 +58,8 @@ namespace ctranslate2 {
       }
 
     private:
-      int _k;
-      int _first_depth;
+      dim_t _k;
+      dim_t _first_depth;
     };
 
     template <Device D, typename DataType, typename IndexType>

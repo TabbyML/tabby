@@ -41,8 +41,8 @@ namespace ctranslate2 {
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      auto depth = input.dim(-1);
-      auto batch_size = input.size() / depth;
+      const dim_t depth = input.dim(-1);
+      const dim_t batch_size = input.size() / depth;
       layer_norm_kernel(batch_size,
                         depth,
                         static_cast<T>(EPSILON),

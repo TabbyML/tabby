@@ -52,8 +52,8 @@ namespace ctranslate2 {
     return _dtype;
   }
 
-  size_t StorageView::reserved_memory() const {
-    size_t buffer_size = 0;
+  dim_t StorageView::reserved_memory() const {
+    dim_t buffer_size = 0;
     TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
     return buffer_size;
   }
@@ -73,9 +73,9 @@ namespace ctranslate2 {
     return clear();
   }
 
-  StorageView& StorageView::reserve(size_t size) {
+  StorageView& StorageView::reserve(dim_t size) {
     release();
-    size_t required_bytes = 0;
+    dim_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
     DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes));
     if (_data == nullptr)
@@ -85,7 +85,7 @@ namespace ctranslate2 {
     return *this;
   }
 
-  size_t StorageView::rank() const {
+  dim_t StorageView::rank() const {
     return _shape.size();
   }
 
@@ -93,19 +93,19 @@ namespace ctranslate2 {
     return _shape;
   }
 
-  size_t StorageView::dim(ssize_t dim) const {
+  dim_t StorageView::dim(dim_t dim) const {
     if (dim < 0)
       dim = _shape.size() + dim;
     return _shape[dim];
   }
 
-  size_t StorageView::stride(ssize_t dim) const {
+  dim_t StorageView::stride(dim_t dim) const {
     if (dim < 0)
       dim = _shape.size() + dim;
     return stride(_shape, dim);
   }
 
-  size_t StorageView::size() const {
+  dim_t StorageView::size() const {
     return _size;
   }
 
@@ -128,24 +128,24 @@ namespace ctranslate2 {
   StorageView& StorageView::resize(const Shape& new_shape) {
     if (new_shape.empty())
       return clear();
-    size_t new_size = size(new_shape);
+    const dim_t new_size = size(new_shape);
     if (new_size > _allocated_size)
       reserve(new_size);
     _size = new_size;
     return reshape(new_shape);
   }
 
-  StorageView& StorageView::resize(size_t dim, size_t new_size) {
+  StorageView& StorageView::resize(dim_t dim, dim_t new_size) {
     Shape new_shape(_shape);
     new_shape[dim] = new_size;
     return resize(new_shape);
   }
 
-  StorageView& StorageView::grow(size_t dim, size_t size) {
+  StorageView& StorageView::grow(dim_t dim, dim_t size) {
     return resize(dim, _shape[dim] + size);
   }
 
-  StorageView& StorageView::shrink(size_t dim, size_t size) {
+  StorageView& StorageView::shrink(dim_t dim, dim_t size) {
     return resize(dim, _shape[dim] - size);
   }
 
@@ -197,7 +197,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  T StorageView::scalar_at(const std::vector<size_t>& indices) const {
+  T StorageView::scalar_at(const std::vector<dim_t>& indices) const {
     T scalar = T();
     DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
     return scalar;
@@ -211,7 +211,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  StorageView& StorageView::copy_from(const T* data, size_t size, Device device) {
+  StorageView& StorageView::copy_from(const T* data, dim_t size, Device device) {
     ASSERT_DTYPE(DataTypeToEnum<T>::value);
     if (size != _size)
       THROW_INVALID_ARGUMENT("buffer to copy is of size " + std::to_string(size)
@@ -230,20 +230,20 @@ namespace ctranslate2 {
     return *this;
   }
 
-  size_t StorageView::size(const Shape& shape) {
+  dim_t StorageView::size(const Shape& shape) {
     if (shape.empty())
       return 0;
-    size_t size = 1;
+    dim_t size = 1;
     for (auto dim : shape)
       size *= dim;
     return size;
   }
 
-  size_t StorageView::stride(const Shape& shape, size_t dim) {
+  dim_t StorageView::stride(const Shape& shape, dim_t dim) {
     if (shape.empty())
       return 0;
-    size_t stride = 1;
-    for (size_t i = shape.size() - 1; i > dim; --i)
+    dim_t stride = 1;
+    for (dim_t i = shape.size() - 1; i > dim; --i)
       stride *= shape[i];
     return stride;
   }
@@ -267,18 +267,18 @@ namespace ctranslate2 {
       printable.dtype(),
       const auto* values = printable.data<T>();
       if (printable.size() <= PRINT_MAX_VALUES) {
-        for (size_t i = 0; i < printable.size(); ++i) {
+        for (dim_t i = 0; i < printable.size(); ++i) {
           os << ' ';
           print_value(os, values[i]);
         }
       }
       else {
-        for (size_t i = 0; i < PRINT_MAX_VALUES / 2; ++i) {
+        for (dim_t i = 0; i < PRINT_MAX_VALUES / 2; ++i) {
           os << ' ';
           print_value(os, values[i]);
         }
         os << " ...";
-        for (size_t i = printable.size() - (PRINT_MAX_VALUES / 2); i < printable.size(); ++i) {
+        for (dim_t i = printable.size() - (PRINT_MAX_VALUES / 2); i < printable.size(); ++i) {
           os << ' ';
           print_value(os, values[i]);
         }
@@ -286,7 +286,7 @@ namespace ctranslate2 {
       os << std::endl);
     os << "[" << device_to_str(storage.device())
        << " " << dtype_name(storage.dtype()) << " storage viewed as ";
-    for (size_t i = 0; i < storage.rank(); ++i) {
+    for (dim_t i = 0; i < storage.rank(); ++i) {
       if (i > 0)
         os << 'x';
       os << storage.dim(i);
@@ -307,10 +307,10 @@ namespace ctranslate2 {
 
 #define DECLARE_IMPL(T)                                                 \
   template T                                                            \
-  StorageView::scalar_at(const std::vector<size_t>& indices) const;     \
+  StorageView::scalar_at(const std::vector<dim_t>& indices) const;      \
   template StorageView& StorageView::fill(T value);                     \
   template StorageView&                                                 \
-  StorageView::copy_from(const T* data, size_t size, Device device);
+  StorageView::copy_from(const T* data, dim_t size, Device device);
 
   DECLARE_ALL_TYPES(DECLARE_IMPL)
 

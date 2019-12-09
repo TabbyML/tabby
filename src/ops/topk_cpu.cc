@@ -10,12 +10,12 @@ namespace ctranslate2 {
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
-      size_t depth = x.dim(-1);
-      size_t batch_size = x.size() / depth;
+      const dim_t depth = x.dim(-1);
+      const dim_t batch_size = x.size() / depth;
       StorageView full_indices({batch_size, depth}, indices.dtype());
 
       #pragma omp parallel for
-      for (long long i = 0; i < static_cast<long long>(batch_size); ++i) {
+      for (dim_t i = 0; i < batch_size; ++i) {
         const auto* input = x.data<DataType>() + (i * depth);
         auto* ids = full_indices.data<IndexType>() + (i * depth);
         auto* val = values.data<DataType>() + (i * _k);
@@ -25,7 +25,7 @@ namespace ctranslate2 {
                           [&input](const IndexType& i1, const IndexType& i2) {
                             return input[i1] > input[i2];
                           });
-        for (size_t j = 0; j < _k; ++j) {
+        for (dim_t j = 0; j < _k; ++j) {
           ind[j] = ids[j];
           val[j] = input[ind[j]];
         }

@@ -10,8 +10,7 @@ namespace ctranslate2 {
       // TODO: support -1 dimension.
       void operator()(StorageView& data, const StorageView& shape) const {
         PROFILE("Reshape");
-        data.reshape(std::vector<size_t>(shape.data<int32_t>(),
-                                         shape.data<int32_t>() + shape.size()));
+        data.reshape({shape.data<int32_t>(), shape.data<int32_t>() + shape.size()});
       }
 
       void operator()(const StorageView& data,
@@ -19,8 +18,7 @@ namespace ctranslate2 {
                       StorageView& reshaped) const override {
         PROFILE("Reshape");
         reshaped = data;
-        reshaped.reshape(std::vector<size_t>(shape.data<int32_t>(),
-                                             shape.data<int32_t>() + shape.size()));
+        reshaped.reshape({shape.data<int32_t>(), shape.data<int32_t>() + shape.size()});
       }
     };
 
