@@ -99,6 +99,12 @@ class OpenNMTTFConverter(Converter):
     def _save_vocabulary(self, vocab, destination):
         shutil.copy(vocab, destination)
 
+    def _vocabulary_size(self, vocab):
+        with open(vocab, "rb") as vocab_file:
+            num_tokens = 0
+            for _ in vocab_file:
+                num_tokens += 1
+            return num_tokens + 1  # Add OOV token.
 
 def set_transformer_spec_v2(spec, variables):
     set_embeddings(

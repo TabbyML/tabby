@@ -54,6 +54,8 @@ class Converter(object):
         except NotImplementedError:
             raise NotImplementedError("This converter does not support the model %s" % model_spec)
         model_spec.validate()
+        self._check_vocabulary_size("source", src_vocab, model_spec.source_vocabulary_size)
+        self._check_vocabulary_size("target", tgt_vocab, model_spec.target_vocabulary_size)
         if quantization is not None:
             model_spec.quantize(quantization)
         model_spec.serialize(os.path.join(output_dir, "model.bin"))
@@ -76,3 +78,23 @@ class Converter(object):
     @abc.abstractmethod
     def _save_vocabulary(self, vocab, destination):
         raise NotImplementedError()
+
+    def _vocabulary_size(self, vocab):
+        """Returns the vocabulary size.
+
+        When defined, this enables additional error checking when converting models.
+        """
+        return None
+
+    def _check_vocabulary_size(self, name, vocab, expected_size):
+        """Raises an exception if expected and actual vocabulary sizes are known but
+        do not match.
+        """
+        if expected_size is None:
+            return
+        vocab_size = self._vocabulary_size(vocab)
+        if vocab_size is None:
+            return
+        if vocab_size != expected_size:
+            raise ValueError("%s vocabulary has size %d but the model expected a vocabulary "
+                             "of size %d" % (name.capitalize(), vocab_size, expected_size))

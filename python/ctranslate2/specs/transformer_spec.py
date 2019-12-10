@@ -5,7 +5,7 @@ import numpy as np
 from ctranslate2.specs import model_spec
 
 
-class TransformerSpec(model_spec.LayerSpec):
+class TransformerSpec(model_spec.ModelSpec):
     """Describes a Transformer model.
 
     The specification is invariant to hidden dimensions but requires to
@@ -19,6 +19,14 @@ class TransformerSpec(model_spec.LayerSpec):
     @property
     def revision(self):
         return 3
+
+    @property
+    def source_vocabulary_size(self):
+        return self.encoder.embeddings.weight.shape[0]
+
+    @property
+    def target_vocabulary_size(self):
+        return self.decoder.embeddings.weight.shape[0]
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):

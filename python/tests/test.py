@@ -111,6 +111,17 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
+def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
+    # Swap source and target vocabularies.
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        model_path,
+        src_vocab=os.path.join(model_path, "en.vocab"),
+        tgt_vocab=os.path.join(model_path, "ar.vocab"))
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    with pytest.raises(ValueError):
+        converter.convert(output_dir, ctranslate2.specs.TransformerBase())
 
 try:
     import onmt

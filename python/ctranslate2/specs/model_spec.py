@@ -50,10 +50,6 @@ def index_spec(spec, index):
 class LayerSpec(object):
     """Layer specification."""
 
-    @property
-    def revision(self):
-        return 1
-
     def validate(self):
         """Checks that required variables are set to a valid value."""
         def _check(spec, name, value):
@@ -154,3 +150,26 @@ class LayerSpec(object):
             for alias, variable_name in aliases:
                 _write_string(alias)
                 _write_string(variable_name)
+
+
+class ModelSpec(LayerSpec):
+    """The top level layer specification."""
+
+    @property
+    def revision(self):
+        """The model specification revision.
+
+        This value is incremented each time the weights layout of the model is
+        changed (e.g. a weight is renamed).
+        """
+        return 1
+
+    @property
+    def source_vocabulary_size(self):
+        """Source vocabulary size based on the model weights."""
+        return None
+
+    @property
+    def target_vocabulary_size(self):
+        """Target vocabulary size based on the model weights."""
+        return None
