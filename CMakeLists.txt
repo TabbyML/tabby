@@ -164,7 +164,7 @@ if(WITH_MKL)
       ${MKL_LIBRARY_DIR}/libmkl_intel_ilp64.a
       )
   endif()
-  
+
   if(OPENMP_RUNTIME STREQUAL "INTEL")
     if(WIN32)
       list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/mkl_intel_thread.lib)
@@ -256,7 +256,7 @@ if (WITH_CUDA)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
   endif()
-  
+
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
   find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh)
