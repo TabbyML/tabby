@@ -589,6 +589,7 @@ namespace ctranslate2 {
 
     free_data(ptr_array);
 #else
+    #pragma omp parallel for
     for (dim_t i = 0; i < batch_size; ++i) {
       const float* a_i = a + (i * m * k);
       const float* b_i = b + (i * k * n);
