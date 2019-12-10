@@ -4,6 +4,11 @@
 
 ### Fixes and improvements
 
+* Improve translator robustness on empty batch and inputs
+* Speed optimization for `LayerNorm`
+* Check vocabulary size when converting OpenNMT-tf models
+* Add more samples in the execution profiling output which now supports nested functions
+
 ## [v1.2.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.2) (2019-11-25)
 
 ### Fixes and improvements
