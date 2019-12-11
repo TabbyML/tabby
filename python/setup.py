@@ -29,7 +29,7 @@ ctranslate2_module = Extension(
 
 setup(
     name="ctranslate2",
-    version="1.2.2",
+    version="1.2.3",
     license="MIT",
     description="Custom C++ inference engine for OpenNMT models",
     author="OpenNMT",

@@ -4,6 +4,10 @@
 
 ### Fixes and improvements
 
+## [v1.2.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.3) (2019-12-11)
+
+### Fixes and improvements
+
 * Improve translator robustness on empty batch and inputs
 * Speed optimization for `LayerNorm`
 * Check vocabulary size when converting OpenNMT-tf models
