@@ -1,9 +1,11 @@
 #include "./utils.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
 #include "ctranslate2/primitives/primitives.h"
+#include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
   namespace cuda {
@@ -85,6 +87,23 @@ namespace ctranslate2 {
     cudnnHandle_t get_cudnn_handle() {
       static thread_local CudnnHandle cudnn_handle;
       return cudnn_handle.get();
+    }
+
+    CachingAllocatorConfig get_caching_allocator_config() {
+      CachingAllocatorConfig config;
+      const char* config_env = std::getenv("CT2_CUDA_CACHING_ALLOCATOR_CONFIG");
+      if (config_env) {
+        const std::vector<std::string> values = split_string(config_env, ',');
+        if (values.size() != 4)
+          throw std::invalid_argument("CT2_CUDA_CACHING_ALLOCATOR_CONFIG environment variable "
+                                      "should have format: "
+                                      "bin_growth,min_bin,max_bin,max_cached_bytes");
+        config.bin_growth = std::stoul(values[0]);
+        config.min_bin = std::stoul(values[1]);
+        config.max_bin = std::stoul(values[2]);
+        config.max_cached_bytes = std::stoull(values[3]);
+      }
+      return config;
     }
 
     int get_gpu_count() {

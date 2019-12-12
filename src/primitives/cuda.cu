@@ -41,12 +41,12 @@ namespace ctranslate2 {
   }
 
 
-  // See https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html.
+  static const cuda::CachingAllocatorConfig allocator_config = cuda::get_caching_allocator_config();
   static cub::CachingDeviceAllocator allocator(
-    /*bin_growth=*/4,
-    /*min_bin=*/3,
-    /*max_bin=*/12,
-    /*max_cached_bytes=*/200 * (1 << 20));
+    allocator_config.bin_growth,
+    allocator_config.min_bin,
+    allocator_config.max_bin,
+    allocator_config.max_cached_bytes);
 
   template<>
   void primitives<Device::CUDA>::set_device(int index) {

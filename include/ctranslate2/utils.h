@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "devices.h"
 
 namespace ctranslate2 {
@@ -12,6 +15,8 @@ namespace ctranslate2 {
 
   bool ends_with(const std::string& str, const std::string& suffix);
   bool starts_with(const std::string& str, const std::string& prefix);
+
+  std::vector<std::string> split_string(const std::string& str, char delimiter);
 
 #define THROW_EXCEPTION(EXCEPTION, MESSAGE)                             \
   throw EXCEPTION(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + MESSAGE)

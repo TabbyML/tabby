@@ -70,4 +70,22 @@ namespace ctranslate2 {
             str.compare(0, prefix.size(), prefix) == 0);
   }
 
+  std::vector<std::string> split_string(const std::string& str, char delimiter) {
+    std::vector<std::string> parts;
+    std::string part;
+    for (const char c : str) {
+      if (c == delimiter) {
+        if (!part.empty()) {
+          parts.emplace_back(std::move(part));
+          part.clear();
+        }
+      } else {
+        part += c;
+      }
+    }
+    if (!part.empty())
+      parts.emplace_back(std::move(part));
+    return parts;
+  }
+
 }

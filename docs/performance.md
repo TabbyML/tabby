@@ -23,3 +23,20 @@ where the columns mean:
 5. Time spent in the function (in milliseconds)
 
 The list is ordered on 5. from the largest to smallest time.
+
+## CUDA caching allocator
+
+Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 uses a [caching allocator](https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html) which enables a fast reuse of previously allocated buffers.
+
+The caching allocator can be tuned to tradeoff memory usage and speed (see the description in the link above). By default, CTranslate2 uses the following values which have been selected experimentally:
+
+* `bin_growth = 4`
+* `min_bin = 3`
+* `max_bin = 12`
+* `max_cached_bytes = 209715200` (200MB)
+
+You can override these values by setting the environment variable `CT2_CUDA_CACHING_ALLOCATOR_CONFIG` with comma-separated values in the same order as the list above:
+
+```bash
+export CT2_CUDA_CACHING_ALLOCATOR_CONFIG=8,3,7,6291455
+```

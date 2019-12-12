@@ -99,19 +99,7 @@ namespace ctranslate2 {
       std::string line;
       if (!std::getline(in, line))
         return false;
-      std::string token;
-      for (size_t i = 0; i < line.length(); ++i) {
-        if (line[i] == ' ') {
-          if (!token.empty()) {
-            tokens.emplace_back(std::move(token));
-            token.clear();
-          }
-        } else {
-          token += line[i];
-        }
-      }
-      if (!token.empty())
-        tokens.emplace_back(std::move(token));
+      tokens = split_string(line, ' ');
       return true;
     };
 
