@@ -21,8 +21,8 @@ namespace ctranslate2 {
     template <typename... Args>
     TranslatorPool(size_t num_replicas, size_t num_threads_per_replica, Args&&... args) {
       _translator_pool.emplace_back(std::forward<Args>(args)...);
-      // On GPU, we don't benefit much from running in parallel. Even though the code is
-      // using separate streams for each thread, there is still some synchronization points.
+      // On GPU, we currently don't benefit much from running instances in parallel, even
+      // when using separate streams. This could be revisited/improved in the future.
       if (_translator_pool.back().device() == Device::CUDA)
         num_replicas = 1;
       for (size_t i = 1; i < num_replicas; ++i)

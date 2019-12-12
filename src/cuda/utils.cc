@@ -38,38 +38,53 @@ namespace ctranslate2 {
     }
 
     cudaStream_t get_cuda_stream() {
-      // Use one CUDA stream per host thread.
-      static thread_local cudaStream_t stream;
-      static thread_local bool initialized = false;
-      if (!initialized) {
-        CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-        initialized = true;
-      }
-      return stream;
+      // Only use the default stream for now.
+      return static_cast<cudaStream_t>(0);
     }
 
-    cublasHandle_t get_cublas_handle() {
-      // Use one cuBLAS handle per host thread.
-      static thread_local cublasHandle_t handle;
-      static thread_local bool initialized = false;
-      if (!initialized) {
-        CUBLAS_CHECK(cublasCreate(&handle));
-        CUBLAS_CHECK(cublasSetStream(handle, get_cuda_stream()));
-        initialized = true;
+    class CublasHandle {
+    public:
+      CublasHandle() {
+        CUBLAS_CHECK(cublasCreate(&_handle));
+        CUBLAS_CHECK(cublasSetStream(_handle, get_cuda_stream()));
       }
-      return handle;
+      ~CublasHandle() {
+        cublasDestroy(_handle);
+      }
+      cublasHandle_t get() const {
+        return _handle;
+      }
+    private:
+      cublasHandle_t _handle;
+    };
+
+    class CudnnHandle {
+    public:
+      CudnnHandle() {
+        CUDNN_CHECK(cudnnCreate(&_handle));
+        CUDNN_CHECK(cudnnSetStream(_handle, get_cuda_stream()));
+      }
+      ~CudnnHandle() {
+        cudnnDestroy(_handle);
+      }
+      cudnnHandle_t get() const {
+        return _handle;
+      }
+    private:
+      cudnnHandle_t _handle;
+    };
+
+    // We create one cuBLAS/cuDNN handle per host thread. The handle is destroyed
+    // when the thread exits.
+
+    cublasHandle_t get_cublas_handle() {
+      static thread_local CublasHandle cublas_handle;
+      return cublas_handle.get();
     }
 
     cudnnHandle_t get_cudnn_handle() {
-      // Use one cuDNN handle per host thread.
-      static thread_local cudnnHandle_t handle;
-      static thread_local bool initialized = false;
-      if (!initialized) {
-        CUDNN_CHECK(cudnnCreate(&handle));
-        CUDNN_CHECK(cudnnSetStream(handle, get_cuda_stream()));
-        initialized = true;
-      }
-      return handle;
+      static thread_local CudnnHandle cudnn_handle;
+      return cudnn_handle.get();
     }
 
     int get_gpu_count() {
@@ -98,14 +113,14 @@ namespace ctranslate2 {
       return thrust_allocator;
     }
 
-    class Logger : public nvinfer1::ILogger {
+    static class Logger : public nvinfer1::ILogger {
       void log(Severity severity, const char* msg) override {
         if (static_cast<int>(severity) < static_cast<int>(Severity::kINFO))
           std::cerr << msg << std::endl;
       }
     } g_logger;
 
-    class Allocator : public nvinfer1::IGpuAllocator {
+    static class Allocator : public nvinfer1::IGpuAllocator {
       void* allocate(uint64_t size, uint64_t, uint32_t) override {
         return primitives<Device::CUDA>::alloc_data(size);
       }
@@ -116,44 +131,44 @@ namespace ctranslate2 {
 
     } g_allocator;
 
-    static nvinfer1::IBuilder* get_trt_builder() {
-      static thread_local nvinfer1::IBuilder* builder = nullptr;
-      if (!builder) {
-        builder = nvinfer1::createInferBuilder(g_logger);
-        builder->setGpuAllocator(&g_allocator);
-      }
-      return builder;
-    }
 
     bool has_fast_fp16() {
-      return get_trt_builder()->platformHasFastFp16();
+      auto builder = nvinfer1::createInferBuilder(g_logger);
+      bool has_fp16 = builder->platformHasFastFp16();
+      builder->destroy();
+      return has_fp16;
     }
 
     bool has_fast_int8() {
-      return get_trt_builder()->platformHasFastInt8();
+      auto builder = nvinfer1::createInferBuilder(g_logger);
+      bool has_int8 = builder->platformHasFastInt8();
+      builder->destroy();
+      return has_int8;
     }
 
     TensorRTLayer::~TensorRTLayer() {
       if (_execution_context) {
         _execution_context->destroy();
-        _network->destroy();
         _engine->destroy();
-        _builder_config->destroy();
       }
     }
 
     void TensorRTLayer::build() {
-      auto builder = get_trt_builder();
-      _network = builder->createNetworkV2(
+      auto builder = nvinfer1::createInferBuilder(g_logger);
+      builder->setGpuAllocator(&g_allocator);
+      auto network = builder->createNetworkV2(
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
-      build_network(_network);
+      build_network(network);
       auto profile = builder->createOptimizationProfile();
       set_optimization_profile(profile);
-      _builder_config = builder->createBuilderConfig();
-      _builder_config->setMaxWorkspaceSize(1 << 30);
-      _builder_config->addOptimizationProfile(profile);
-      _engine = builder->buildEngineWithConfig(*_network, *_builder_config);
+      auto builder_config = builder->createBuilderConfig();
+      builder_config->setMaxWorkspaceSize(1 << 30);
+      builder_config->addOptimizationProfile(profile);
+      _engine = builder->buildEngineWithConfig(*network, *builder_config);
       _execution_context = _engine->createExecutionContext();
+      network->destroy();
+      builder_config->destroy();
+      builder->destroy();
     }
 
     void TensorRTLayer::run(void** bindings, const std::vector<nvinfer1::Dims>& input_dims) {

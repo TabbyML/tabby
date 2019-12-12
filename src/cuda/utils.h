@@ -78,10 +78,8 @@ namespace ctranslate2 {
 
     private:
       void build();
-      nvinfer1::INetworkDefinition* _network = nullptr;
       nvinfer1::ICudaEngine* _engine = nullptr;
       nvinfer1::IExecutionContext* _execution_context = nullptr;
-      nvinfer1::IBuilderConfig* _builder_config = nullptr;
     };
 
     // Statically assiocate cudnnDataType_t with a C++ type.
