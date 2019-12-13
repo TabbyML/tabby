@@ -1,5 +1,6 @@
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
+from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
@@ -78,14 +79,14 @@ def set_ffn(spec, variables, scope):
 
 def set_multi_head_attention(spec, variables, scope, self_attention=False):
     if self_attention:
-        split_layers = [transformer_spec.LinearSpec() for _ in range(3)]
+        split_layers = [common_spec.LinearSpec() for _ in range(3)]
         set_linear(split_layers[0], variables, "%s.linear_query" % scope)
         set_linear(split_layers[1], variables, "%s.linear_keys" % scope)
         set_linear(split_layers[2], variables, "%s.linear_values" % scope)
         utils.fuse_linear(spec.linear[0], split_layers)
     else:
         set_linear(spec.linear[0], variables, "%s.linear_query" % scope)
-        split_layers = [transformer_spec.LinearSpec() for _ in range(2)]
+        split_layers = [common_spec.LinearSpec() for _ in range(2)]
         set_linear(split_layers[0], variables, "%s.linear_keys" % scope)
         set_linear(split_layers[1], variables, "%s.linear_values" % scope)
         utils.fuse_linear(spec.linear[1], split_layers)

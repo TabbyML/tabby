@@ -2,6 +2,8 @@
 
 import numpy as np
 
+from ctranslate2.specs import attention_spec
+from ctranslate2.specs import common_spec
 from ctranslate2.specs import model_spec
 
 
@@ -30,59 +32,36 @@ class TransformerSpec(model_spec.ModelSpec):
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):
-        self.embeddings = EmbeddingsSpec()
+        self.embeddings = common_spec.EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = LayerNormSpec()
+        self.layer_norm = common_spec.LayerNormSpec()
         self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):
-        self.embeddings = EmbeddingsSpec()
+        self.embeddings = common_spec.EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = LayerNormSpec()
-        self.projection = LinearSpec()
+        self.layer_norm = common_spec.LayerNormSpec()
+        self.projection = common_spec.LinearSpec()
         self.layer = [
             TransformerDecoderLayerSpec() for _ in range(num_layers)]
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
     def __init__(self):
-        self.self_attention = MultiHeadAttentionSpec(self_attention=True)
+        self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
         self.ffn = FeedForwardSpec()
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
     def __init__(self):
-        self.self_attention = MultiHeadAttentionSpec(self_attention=True)
-        self.attention = MultiHeadAttentionSpec()
+        self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
+        self.attention = attention_spec.MultiHeadAttentionSpec()
         self.ffn = FeedForwardSpec()
-
-class MultiHeadAttentionSpec(model_spec.LayerSpec):
-    def __init__(self, self_attention=False):
-        self.layer_norm = LayerNormSpec()
-        if self_attention:
-            num_projections = 2
-        else:
-            num_projections = 3
-        self.linear = [LinearSpec() for _ in range(num_projections)]
 
 class FeedForwardSpec(model_spec.LayerSpec):
     def __init__(self):
-        self.layer_norm = LayerNormSpec()
-        self.linear_0 = LinearSpec()
-        self.linear_1 = LinearSpec()
-
-class LayerNormSpec(model_spec.LayerSpec):
-    def __init__(self):
-        self.gamma = None
-        self.beta = None
-
-class LinearSpec(model_spec.LayerSpec):
-    def __init__(self):
-        self.weight = None
-        self.bias = model_spec.OPTIONAL
-
-class EmbeddingsSpec(model_spec.LayerSpec):
-    def __init__(self):
-        self.weight = None
+        self.layer_norm = common_spec.LayerNormSpec()
+        self.linear_0 = common_spec.LinearSpec()
+        self.linear_1 = common_spec.LinearSpec()
 
 class PositionEncoderSpec(model_spec.LayerSpec):
     def __init__(self):
