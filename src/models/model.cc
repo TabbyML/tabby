@@ -27,8 +27,8 @@ namespace ctranslate2 {
 
     template<>
     std::string consume(std::istream& in) {
-      auto str_length = consume<uint16_t>(in);
-      auto c_str = consume<char>(in, str_length);
+      const auto str_length = consume<uint16_t>(in);
+      const auto c_str = consume<char>(in, str_length);
       std::string str(c_str);
       delete [] c_str;
       return str;
@@ -81,7 +81,7 @@ namespace ctranslate2 {
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
       auto alias_it = _variable_alias.find(name);
-      auto variable_name = alias_it != _variable_alias.end() ? alias_it->second : name;
+      const auto variable_name = alias_it != _variable_alias.end() ? alias_it->second : name;
       auto it = _variable_index.find(variable_name);
       if (it == _variable_index.end())
         return nullptr;
@@ -113,10 +113,10 @@ namespace ctranslate2 {
     }
 
     StorageView* Model::get_scale(const std::string& scale_name, DataType dataType) {
-      StorageView *scale = nullptr;
+      StorageView* scale = nullptr;
       auto scale_it = _variable_index.find(scale_name);
       if (scale_it != _variable_index.end())
-      scale = &scale_it->second;
+        scale = &scale_it->second;
 
       // Compatibility with int16 models without a saved scale.
       if (scale == nullptr) {
@@ -141,9 +141,9 @@ namespace ctranslate2 {
                                 StorageView& variable,
                                 std::vector<std::pair<std::string, StorageView>>& variables_to_add,
                                 std::vector<std::string>& variables_to_remove) {
-      bool is_int8 = variable.dtype() == DataType::DT_INT8;
-      bool is_int16 = variable.dtype() == DataType::DT_INT16;
-      bool is_float = variable.dtype() == DataType::DT_FLOAT;
+      const bool is_int8 = variable.dtype() == DataType::DT_INT8;
+      const bool is_int16 = variable.dtype() == DataType::DT_INT16;
+      const bool is_float = variable.dtype() == DataType::DT_FLOAT;
 
       // Use the same quantization logic as in model_spec.py.
       const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER);
@@ -152,7 +152,7 @@ namespace ctranslate2 {
       std::string scale_name = name + "_scale";
       if (_compute_type == ComputeType::DEFAULT) {
         if (is_int8 || is_int16) {
-          StorageView *scale = get_scale(scale_name, variable.dtype());
+          StorageView* scale = get_scale(scale_name, variable.dtype());
 
           // If quantized variables are not supported, fallback to float32.
           if ((is_int16 && !support_int16) || (is_int8 && !support_int8)) {
@@ -203,7 +203,7 @@ namespace ctranslate2 {
           variables_to_add.emplace_back(make_pair(scale_name, scale));
 
         } else { // DataType::DT_INT8 or DataType::DT_INT16
-          StorageView *scale = get_scale(scale_name, variable.dtype());
+          StorageView* scale = get_scale(scale_name, variable.dtype());
 
           // from int8 to float32 firstly
           StorageView variable_float;
@@ -221,8 +221,8 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
-      bool support_int8 = mayiuse_int8(_device);
-      bool support_int16 = mayiuse_int16(_device);
+      const bool support_int8 = mayiuse_int8(_device);
+      const bool support_int16 = mayiuse_int16(_device);
 
       std::vector<std::string> variables_to_remove;
       std::vector<std::pair<std::string, StorageView>> variables_to_add;
@@ -286,13 +286,13 @@ namespace ctranslate2 {
                                              Device device,
                                              int device_index,
                                              ComputeType compute_type) {
-      std::string model_path = path + "/model.bin";
+      const std::string model_path = path + "/model.bin";
       std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
       if (!model_file.is_open())
         throw std::runtime_error("failed to load the model " + model_path);
 
       // See the model serialization in python/ctranslate2/specs/model_spec.py.
-      auto binary_version = consume<uint32_t>(model_file);
+      const auto binary_version = consume<uint32_t>(model_file);
       if (binary_version > current_binary_version)
         throw std::runtime_error("unsupported model version "
                                  + std::to_string(binary_version)
@@ -329,20 +329,20 @@ namespace ctranslate2 {
                                     + std::to_string(model->current_spec_revision())
                                     + ")");
 
-      auto num_variables = consume<uint32_t>(model_file);
+      const auto num_variables = consume<uint32_t>(model_file);
       for (uint32_t i = 0; i < num_variables; ++i) {
-        auto name = consume<std::string>(model_file);
-        auto rank = consume<uint8_t>(model_file);
-        auto dimensions = consume<uint32_t>(model_file, rank);
-        auto data_width = consume<uint8_t>(model_file);
-        auto data_size = consume<uint32_t>(model_file);
+        const auto name = consume<std::string>(model_file);
+        const size_t rank = consume<uint8_t>(model_file);
+        const auto* dimensions = consume<uint32_t>(model_file, rank);
+        const dim_t data_width = consume<uint8_t>(model_file);
+        const dim_t data_size = consume<uint32_t>(model_file);
 
-        Shape shape(std::max(static_cast<int>(rank), 1));
+        Shape shape(std::max(rank, static_cast<size_t>(1)));
         if (rank == 0) {
           shape[0] = 1;
         } else {
-          for (unsigned int k = 0; k < rank; k++) {
-            shape[k] = static_cast<size_t>(dimensions[k]);
+          for (size_t k = 0; k < rank; k++) {
+            shape[k] = dimensions[k];
           }
         }
 
@@ -369,10 +369,10 @@ namespace ctranslate2 {
       }
 
       if (binary_version >= 3) {
-        auto num_aliases = consume<uint32_t>(model_file);
+        const auto num_aliases = consume<uint32_t>(model_file);
         for (uint32_t i = 0; i < num_aliases; ++i) {
-          auto alias = consume<std::string>(model_file);
-          auto variable_name = consume<std::string>(model_file);
+          const auto alias = consume<std::string>(model_file);
+          const auto variable_name = consume<std::string>(model_file);
           model->register_variable_alias(alias, variable_name);
         }
       }
