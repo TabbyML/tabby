@@ -76,7 +76,7 @@ namespace ctranslate2 {
     make_graph();
   }
 
-  Translator::Translator(const std::shared_ptr<models::Model>& model)
+  Translator::Translator(const std::shared_ptr<const models::Model>& model)
     : _model(model) {
     make_graph();
   }

@@ -16,14 +16,14 @@ namespace ctranslate2 {
     // Base class for models.
     class Model {
     public:
-      static std::shared_ptr<Model> load(const std::string& path,
-                                         const std::string& device,
-                                         int device_index = 0,
-                                         const std::string& compute_type = "default");
-      static std::shared_ptr<Model> load(const std::string& path,
-                                         Device device,
-                                         int device_index = 0,
-                                         ComputeType compute_type = ComputeType::DEFAULT);
+      static std::shared_ptr<const Model> load(const std::string& path,
+                                               const std::string& device,
+                                               int device_index = 0,
+                                               const std::string& compute_type = "default");
+      static std::shared_ptr<const Model> load(const std::string& path,
+                                               Device device,
+                                               int device_index = 0,
+                                               ComputeType compute_type = ComputeType::DEFAULT);
 
       virtual ~Model() = default;
       virtual size_t current_spec_revision() const;
