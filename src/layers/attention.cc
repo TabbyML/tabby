@@ -30,20 +30,15 @@ namespace ctranslate2 {
 
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
-                                           dim_t num_heads)
+                                           dim_t num_heads,
+                                           bool self_attention)
       : _num_heads(num_heads)
       , _layer_norm(model, scope + "/layer_norm")
       , _transpose_op({0, 2, 1, 3}) {
-      for (size_t i = 0;; ++i) {
-        try {
-          _linear.emplace_back(model, scope + "/linear_" + std::to_string(i));
-        } catch (std::exception&) {
-          if (i == 0)
-            throw;
-          else
-            break;
-        }
-      }
+      const dim_t num_linear_layers = self_attention ? 2 : 3;
+      _linear.reserve(num_linear_layers);
+      for (dim_t i = 0; i < num_linear_layers; ++i)
+        _linear.emplace_back(model, scope + "/linear_" + std::to_string(i));
     }
 
     void MultiHeadAttention::operator()(const StorageView& queries,

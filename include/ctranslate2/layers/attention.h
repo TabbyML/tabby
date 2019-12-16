@@ -20,7 +20,10 @@ namespace ctranslate2 {
     class MultiHeadAttention
     {
     public:
-      MultiHeadAttention(const models::Model& model, const std::string& scope, dim_t num_heads);
+      MultiHeadAttention(const models::Model& model,
+                         const std::string& scope,
+                         dim_t num_heads,
+                         bool self_attention);
       void operator()(const StorageView& queries,
                       const StorageView* memory,
                       const StorageView* memory_lengths,

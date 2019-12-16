@@ -159,7 +159,10 @@ namespace ctranslate2 {
 
     TransformerEncoderLayer::TransformerEncoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/self_attention", model.num_heads())
+      : _self_attention(model,
+                        scope + "/self_attention",
+                        model.num_heads(),
+                        /*self_attention=*/true)
       , _ff(model, scope + "/ffn") {
     }
 
@@ -175,8 +178,14 @@ namespace ctranslate2 {
 
     TransformerDecoderLayer::TransformerDecoderLayer(const TransformerModel& model,
                                                      const std::string& scope)
-      : _self_attention(model, scope + "/self_attention", model.num_heads())
-      , _encoder_attention(model, scope + "/attention", model.num_heads())
+      : _self_attention(model,
+                        scope + "/self_attention",
+                        model.num_heads(),
+                        /*self_attention=*/true)
+      , _encoder_attention(model,
+                           scope + "/attention",
+                           model.num_heads(),
+                           /*self_attention=*/false)
       , _ff(model, scope + "/ffn") {
     }
 
