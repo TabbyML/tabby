@@ -195,7 +195,7 @@ namespace ctranslate2 {
                       &cached_self_attn_keys, &cached_self_attn_values);
       _encoder_attention(output, &memory, &memory_lengths, context,
                          &cached_attn_keys, &cached_attn_values, attention);
-      return _ff(context, output);
+      _ff(context, output);
     }
 
 
