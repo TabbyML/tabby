@@ -131,13 +131,13 @@ namespace ctranslate2 {
     template <typename T>
     T* data() {
       ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      return reinterpret_cast<T*>(_data);
+      return static_cast<T*>(_data);
     }
 
     template <typename T>
     const T* data() const {
       ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      return reinterpret_cast<const T*>(_data);
+      return static_cast<const T*>(_data);
     }
 
     template <typename T>
