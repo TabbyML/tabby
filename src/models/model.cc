@@ -337,15 +337,6 @@ namespace ctranslate2 {
         const dim_t data_width = consume<uint8_t>(model_file);
         const dim_t data_size = consume<uint32_t>(model_file);
 
-        Shape shape(std::max(rank, static_cast<size_t>(1)));
-        if (rank == 0) {
-          shape[0] = 1;
-        } else {
-          for (size_t k = 0; k < rank; k++) {
-            shape[k] = dimensions[k];
-          }
-        }
-
         DataType dtype;
         switch (data_width) {
         case 4:
@@ -361,7 +352,7 @@ namespace ctranslate2 {
           throw std::runtime_error("unknown data type of width " + std::to_string(data_width));
         }
 
-        StorageView variable(shape, dtype);
+        StorageView variable({dimensions, dimensions + rank}, dtype);
         consume<char>(model_file, data_size * data_width, static_cast<char*>(variable.buffer()));
         model->register_variable(name, variable);
 

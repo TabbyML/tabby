@@ -57,7 +57,7 @@ namespace ctranslate2 {
     StorageView(T scalar, Device device = Device::CPU)
       : _dtype(DataTypeToEnum<T>::value)
       , _device(device) {
-      resize({1});
+      resize({});
       fill(scalar);
     }
 
@@ -185,9 +185,10 @@ namespace ctranslate2 {
     template <typename T>
     T as_scalar() const {
       if (!is_scalar())
-        THROW_INVALID_ARGUMENT("storage is not a scalar (expected size of 1 but is "
-                               + std::to_string(_size) + ")");
-      return scalar_at<T>({0});
+        THROW_INVALID_ARGUMENT("storage is not a scalar: rank is "
+                               + std::to_string(rank()) + " (expected 0) and size is "
+                               + std::to_string(_size) + " (expected 1)");
+      return scalar_at<T>({});
     }
 
     template <typename T>
@@ -199,7 +200,7 @@ namespace ctranslate2 {
       release();
       _data = static_cast<void*>(data);
       _own_data = false;
-      _allocated_size = size(shape);
+      _allocated_size = compute_size(shape);
       _size = _allocated_size;
       return reshape(shape);
     }
@@ -224,8 +225,8 @@ namespace ctranslate2 {
     dim_t _size = 0;
     Shape _shape;
 
-    static dim_t size(const Shape& shape);
-    static dim_t stride(const Shape& shape, dim_t dim);
+    static dim_t compute_size(const Shape& shape);
+    static dim_t compute_stride(const Shape& shape, dim_t dim);
 
   };
 

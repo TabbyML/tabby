@@ -3,6 +3,14 @@
 #include "./device_dispatch.h"
 
 #define PRINT_MAX_VALUES 6
+#define GUARD_DIM(DIM, RANK)                                            \
+  do {                                                                  \
+    if (DIM >= RANK)                                                    \
+      THROW_INVALID_ARGUMENT("can't index dimension "                   \
+                             + std::to_string(DIM)                      \
+                             + " for a storage with rank "              \
+                             + std::to_string(RANK));                   \
+  } while (false)
 
 namespace ctranslate2 {
 
@@ -74,6 +82,8 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::reserve(dim_t size) {
+    if (size <= _allocated_size)
+      return *this;
     release();
     dim_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
@@ -96,13 +106,15 @@ namespace ctranslate2 {
   dim_t StorageView::dim(dim_t dim) const {
     if (dim < 0)
       dim = _shape.size() + dim;
+    GUARD_DIM(dim, rank());
     return _shape[dim];
   }
 
   dim_t StorageView::stride(dim_t dim) const {
     if (dim < 0)
       dim = _shape.size() + dim;
-    return stride(_shape, dim);
+    GUARD_DIM(dim, rank());
+    return compute_stride(_shape, dim);
   }
 
   dim_t StorageView::size() const {
@@ -110,7 +122,7 @@ namespace ctranslate2 {
   }
 
   bool StorageView::is_scalar() const {
-    return rank() == 1 && _size == 1;
+    return _size == 1 && _shape.empty();
   }
 
   bool StorageView::empty() const {
@@ -118,38 +130,42 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
-    if (_size != size(new_shape))
-      THROW_INVALID_ARGUMENT("new shape size (" + std::to_string(size(new_shape))
+    const dim_t new_size = compute_size(new_shape);
+    if (_size != new_size)
+      THROW_INVALID_ARGUMENT("new shape size (" + std::to_string(new_size)
                              + ") is incompatible with current size (" + std::to_string(_size) + ")");
     _shape = new_shape;
     return *this;
   }
 
   StorageView& StorageView::resize(const Shape& new_shape) {
-    if (new_shape.empty())
-      return clear();
-    const dim_t new_size = size(new_shape);
-    if (new_size > _allocated_size)
-      reserve(new_size);
+    const dim_t new_size = compute_size(new_shape);
+    reserve(new_size);
     _size = new_size;
-    return reshape(new_shape);
+    _shape = new_shape;
+    return *this;
   }
 
   StorageView& StorageView::resize(dim_t dim, dim_t new_size) {
+    GUARD_DIM(dim, rank());
     Shape new_shape(_shape);
     new_shape[dim] = new_size;
     return resize(new_shape);
   }
 
   StorageView& StorageView::grow(dim_t dim, dim_t size) {
+    GUARD_DIM(dim, rank());
     return resize(dim, _shape[dim] + size);
   }
 
   StorageView& StorageView::shrink(dim_t dim, dim_t size) {
+    GUARD_DIM(dim, rank());
     return resize(dim, _shape[dim] - size);
   }
 
   StorageView& StorageView::resize_as(const StorageView& other) {
+    if (other.empty())
+      return clear();
     return resize(other.shape());
   }
 
@@ -230,18 +246,15 @@ namespace ctranslate2 {
     return *this;
   }
 
-  dim_t StorageView::size(const Shape& shape) {
-    if (shape.empty())
-      return 0;
+  dim_t StorageView::compute_size(const Shape& shape) {
     dim_t size = 1;
-    for (auto dim : shape)
+    for (const dim_t dim : shape)
       size *= dim;
     return size;
   }
 
-  dim_t StorageView::stride(const Shape& shape, dim_t dim) {
-    if (shape.empty())
-      return 0;
+  dim_t StorageView::compute_stride(const Shape& shape, dim_t dim) {
+    GUARD_DIM(dim, static_cast<dim_t>(shape.size()));
     dim_t stride = 1;
     for (dim_t i = shape.size() - 1; i > dim; --i)
       stride *= shape[i];
@@ -286,10 +299,14 @@ namespace ctranslate2 {
       os << std::endl);
     os << "[" << device_to_str(storage.device())
        << " " << dtype_name(storage.dtype()) << " storage viewed as ";
-    for (dim_t i = 0; i < storage.rank(); ++i) {
-      if (i > 0)
-        os << 'x';
-      os << storage.dim(i);
+    if (storage.is_scalar())
+      os << "scalar";
+    else {
+      for (dim_t i = 0; i < storage.rank(); ++i) {
+        if (i > 0)
+          os << 'x';
+        os << storage.dim(i);
+      }
     }
     os << ']';
     return os;
