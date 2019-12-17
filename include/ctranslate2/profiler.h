@@ -1,10 +1,8 @@
 #pragma once
 
 #include <chrono>
-#include <mutex>
 #include <ostream>
 #include <string>
-#include <unordered_map>
 
 #include "ctranslate2/devices.h"
 
@@ -32,30 +30,6 @@ namespace ctranslate2 {
     ScopeProfiler* _parent = nullptr;
     std::string _name;
     std::chrono::high_resolution_clock::time_point _start;
-  };
-
-  class ScopeProfile {
-  public:
-    std::chrono::microseconds time_in_scope;
-    std::chrono::microseconds time_in_scope_and_callees;
-  };
-
-  class Profiler {
-  public:
-    Profiler(Device device, size_t num_threads);
-    Device device() const;
-    void dump(std::ostream& os) const;
-    void add_scope_time(const std::string& name,
-                        const std::chrono::microseconds& elapsed,
-                        const std::string* parent_name);
-
-  private:
-    ScopeProfile& get_scope_profile(const std::string& name);
-    Device _device;
-    size_t _num_threads;
-    std::chrono::high_resolution_clock::time_point _global_start;
-    std::unordered_map<std::string, ScopeProfile> _cumulated;
-    std::mutex _mutex;
   };
 
 }
