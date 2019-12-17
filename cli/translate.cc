@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
   auto log_profiling = vm["log_profiling"].as<bool>();
   auto t1 = std::chrono::high_resolution_clock::now();
   if (log_profiling)
-    ctranslate2::init_profiling(inter_threads);
+    ctranslate2::init_profiling(model->device(), inter_threads);
   auto num_tokens = translator_pool.consume_text_file(*in,
                                                       *out,
                                                       vm["batch_size"].as<size_t>(),
