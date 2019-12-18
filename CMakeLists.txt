@@ -55,10 +55,6 @@ else()
 endif()
 
 find_package(Threads)
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-  add_compile_options(${OpenMP_CXX_FLAGS})
-endif()
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -109,6 +105,13 @@ set(LIBRARIES
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
   )
+
+if(NOT WIN32)
+  find_package(OpenMP)
+  if(OpenMP_CXX_FOUND)
+    add_compile_options(${OpenMP_CXX_FLAGS})
+  endif()
+endif()
 
 if(OPENMP_RUNTIME STREQUAL "INTEL")
   # Find Intel libraries.
