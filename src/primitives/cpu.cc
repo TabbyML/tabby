@@ -254,7 +254,7 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  void primitives<Device::CPU>::unquantize(const T* x, float* y, dim_t size, float scale) {
+  void primitives<Device::CPU>::dequantize(const T* x, float* y, dim_t size, float scale) {
     unary_transform(x, y, size, [&scale](T v) {
       return static_cast<float>(v) / scale;
     });
@@ -262,13 +262,13 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  void primitives<Device::CPU>::unquantize_batch(const T* x, const float* scale, float* y,
+  void primitives<Device::CPU>::dequantize_batch(const T* x, const float* scale, float* y,
                                                  dim_t x_size, dim_t scale_size) {
     const dim_t depth = x_size / scale_size;
     #pragma omp parallel for
     for (dim_t i = 0; i < scale_size; ++i) {
       const dim_t offset = i * depth;
-      unquantize(x + offset, y + offset, depth, scale[i]);
+      dequantize(x + offset, y + offset, depth, scale[i]);
     }
   }
 
@@ -654,7 +654,7 @@ namespace ctranslate2 {
                                         const dim_t* perm,              \
                                         T* b);                          \
   template void                                                         \
-  primitives<Device::CPU>::unquantize_batch(const T* x,                 \
+  primitives<Device::CPU>::dequantize_batch(const T* x,                 \
                                             const float* scale,         \
                                             float* y,                   \
                                             dim_t x_size,               \
@@ -662,7 +662,7 @@ namespace ctranslate2 {
   template void                                                         \
   primitives<Device::CPU>::quantize(const float* x, T* y, dim_t size, float scale); \
   template void                                                         \
-  primitives<Device::CPU>::unquantize(const T* x, float* y, dim_t size, float scale);
+  primitives<Device::CPU>::dequantize(const T* x, float* y, dim_t size, float scale);
 
   DECLARE_ALL_TYPES(DECLARE_IMPL)
 

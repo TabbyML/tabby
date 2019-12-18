@@ -14,7 +14,7 @@ namespace ctranslate2 {
         if (!scale.is_scalar())
           throw std::invalid_argument("INT16 quantization scale should be a scalar value");
 
-        primitives<Device::CPU>::unquantize(x.data<int16_t>(),
+        primitives<Device::CPU>::dequantize(x.data<int16_t>(),
                                             y.data<float>(),
                                             x.size(),
                                             scale.as_scalar<float>());
@@ -25,7 +25,7 @@ namespace ctranslate2 {
 
         DEVICE_DISPATCH(
           x.device(),
-          primitives<D>::unquantize_batch(x.data<int8_t>(),
+          primitives<D>::dequantize_batch(x.data<int8_t>(),
                                           scale.data<float>(),
                                           y.data<float>(),
                                           x.size(),
@@ -46,7 +46,7 @@ namespace ctranslate2 {
         if (gemm_output.device() != Device::CPU)
           throw std::invalid_argument("unsupported quantization scales");
         auto scale = input_scale.as_scalar<float>() * weight_scale.as_scalar<float>();
-        primitives<Device::CPU>::unquantize(gemm_output.data<int32_t>(),
+        primitives<Device::CPU>::dequantize(gemm_output.data<int32_t>(),
                                             output.data<float>(),
                                             gemm_output.size(),
                                             scale);

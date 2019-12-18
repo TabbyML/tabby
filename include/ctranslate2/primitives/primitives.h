@@ -121,13 +121,13 @@ namespace ctranslate2 {
     static void quantize(const float* x, T* y, dim_t size, float scale);
 
     template <typename T>
-    static void unquantize(const T* x, float* y, dim_t size, float scale);
+    static void dequantize(const T* x, float* y, dim_t size, float scale);
 
     static void quantize_batch(const float* x, float* scales, int8_t* qx,
                                dim_t batch_size, dim_t depth);
 
     template <typename T>
-    static void unquantize_batch(const T* x, const float* scale, float* y,
+    static void dequantize_batch(const T* x, const float* scale, float* y,
                                  dim_t x_size, dim_t scale_size);
 
     static void rescale_output(const int32_t* x,

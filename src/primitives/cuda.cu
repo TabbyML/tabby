@@ -242,7 +242,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  struct unquantize_func : public thrust::binary_function<float, T, float> {
+  struct dequantize_func : public thrust::binary_function<float, T, float> {
     __device__
     float operator()(float scale, T x) {
       return __fdividef(static_cast<float>(x), scale);
@@ -251,10 +251,10 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::unquantize_batch(const int8_t* x, const float* scale, float* y,
+  void primitives<Device::CUDA>::dequantize_batch(const int8_t* x, const float* scale, float* y,
                                                   dim_t x_size, dim_t scale_size) {
     binary_transform(scale, x, y, x_size,
-                     unquantize_func<int8_t>(),
+                     dequantize_func<int8_t>(),
                      repeat_vec_depth<dim_t>(x_size / scale_size));
   }
 
