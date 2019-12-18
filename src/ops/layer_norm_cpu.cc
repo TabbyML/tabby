@@ -9,28 +9,28 @@ namespace ctranslate2 {
   namespace ops {
 
     template <typename T>
-    static void layer_norm_kernel(int64_t m,
-                                  int64_t n,
+    static void layer_norm_kernel(dim_t m,
+                                  dim_t n,
                                   T eps,
                                   const T* input,
                                   const T* gamma,
                                   const T* beta,
                                   T* output) {
       #pragma omp parallel for
-      for (int64_t i = 0; i < m; ++i) {
+      for (dim_t i = 0; i < m; ++i) {
         const auto offset = i * n;
         const T* x = input + offset;
         T* y = output + offset;
         T mean = 0;  // sum(x)/n
         T rstd = 0;  // 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
-        for (int64_t j = 0; j < n; ++j) {
+        for (dim_t j = 0; j < n; ++j) {
           mean += x[j];
           rstd += x[j] * x[j];
         }
         mean /= n;
         rstd = std::max(rstd / n - mean * mean, static_cast<T>(0));
         rstd = static_cast<T>(1) / std::sqrt(rstd + eps);
-        for (int64_t j = 0; j < n; ++j) {
+        for (dim_t j = 0; j < n; ++j) {
           y[j] = (x[j] - mean) * rstd * gamma[j] + beta[j];
         }
       }
