@@ -35,7 +35,7 @@ before_install:
 install:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install ..
+  - cmake -DCMAKE_INSTALL_PREFIX=$PWD/../install -DWITH_TESTS=ON ..
   - make -j2 install
   - cd ../python
   - CTRANSLATE2_ROOT=$PWD/../install python setup.py bdist_wheel

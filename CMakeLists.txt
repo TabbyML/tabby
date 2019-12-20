@@ -12,6 +12,7 @@ option(WITH_MKLDNN "Compile with Intel MKL-DNN (requires MKL)" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
+option(WITH_TESTS "Compile the tests" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 if(ENABLE_PROFILING)
@@ -308,7 +309,9 @@ endif()
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
 
-add_subdirectory(tests)
+if(WITH_TESTS)
+  add_subdirectory(tests)
+endif()
 
 include(GNUInstallDirs)
 

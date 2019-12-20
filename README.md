@@ -260,7 +260,7 @@ sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
 sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
 ```
 
-Then follow the CTranslate2 [build instructions](#building) again to produce the test executable `tests/ctranslate2_test`. The binary expects the path to the test data as argument:
+Then configure the project with `cmake -DWITH_TESTS=ON` to produce the test executable `tests/ctranslate2_test`. The binary expects the path to the test data as argument:
 
 ```bash
 ./tests/ctranslate2_test ../tests/data
