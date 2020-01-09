@@ -1,5 +1,7 @@
 #include "ctranslate2/utils.h"
 
+#include <chrono>
+
 #ifdef WITH_MKL
 #  include <mkl.h>
 #endif
@@ -86,6 +88,12 @@ namespace ctranslate2 {
     if (!part.empty())
       parts.emplace_back(std::move(part));
     return parts;
+  }
+
+  std::mt19937& get_random_generator() {
+    static thread_local std::mt19937 generator(
+      std::chrono::system_clock::now().time_since_epoch().count());
+    return generator;
   }
 
 }

@@ -47,7 +47,9 @@ output = translator.translate_batch(
     max_decoding_length=250, # Maximum prediction length.
     min_decoding_length=1,   # Minimum prediction length.
     use_vmap=False,          # Use the VMAP saved in this model.
-    return_attention=False)  # Also return the attention vectors.
+    return_attention=False,  # Also return the attention vectors.
+    sampling_topk=1,         # Randomly sample from the top K candidates.
+    sampling_temperature=1.) # Sampling temperature.
 
 translator.translate_file(
     input_path: str,         # Input file.
@@ -59,7 +61,9 @@ translator.translate_file(
     max_decoding_length=250, # Maximum prediction length.
     min_decoding_length=1,   # Minimum prediction length.
     use_vmap=False,          # Use the VMAP saved in this model.
-    with_scores=False)       # Also output predictions scores.
+    with_scores=False,       # Also output predictions scores.
+    sampling_topk=1,         # Randomly sample from the top K candidates.
+    sampling_temperature=1.) # Sampling temperature.
 
 del translator               # Release the translator resources.
 ```

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <random>
 #include <string>
 #include <vector>
 
@@ -17,6 +18,8 @@ namespace ctranslate2 {
   bool starts_with(const std::string& str, const std::string& prefix);
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
+
+  std::mt19937& get_random_generator();
 
 #define THROW_EXCEPTION(EXCEPTION, MESSAGE)                             \
   throw EXCEPTION(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + MESSAGE)

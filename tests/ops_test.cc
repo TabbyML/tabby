@@ -574,6 +574,15 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
   expect_storage_eq(qa, expected_qa);
 }
 
+TEST_P(OpDeviceTest, Multinomial) {
+  Device device = GetParam();
+  StorageView input({2, 4}, std::vector<float>{0, 0, 1, 0, 0, 0, 0, 1}, device);
+  StorageView output(DataType::DT_INT32, device);
+  StorageView expected({2, 2}, std::vector<int32_t>{2, 2, 3, 3}, device);
+  ops::Multinomial(2)(input, output);
+  expect_storage_eq(output, expected);
+}
+
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 #ifdef WITH_CUDA
 INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));

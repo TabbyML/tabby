@@ -29,6 +29,10 @@ int main(int argc, char* argv[]) {
      "Number of sentences to forward into the model at once.")
     ("beam_size", po::value<size_t>()->default_value(5),
      "Beam search size (set 1 for greedy decoding).")
+    ("sampling_topk", po::value<size_t>()->default_value(1),
+     "Sample randomly from the top K candidates.")
+    ("sampling_temperature", po::value<float>()->default_value(1),
+     "Sampling temperature.")
     ("n_best", po::value<size_t>()->default_value(1),
      "Also output the n-best hypotheses.")
     ("with_score", po::bool_switch()->default_value(false),
@@ -80,6 +84,8 @@ int main(int argc, char* argv[]) {
   auto options = ctranslate2::TranslationOptions();
   options.beam_size = vm["beam_size"].as<size_t>();
   options.length_penalty = vm["length_penalty"].as<float>();
+  options.sampling_topk = vm["sampling_topk"].as<size_t>();
+  options.sampling_temperature = vm["sampling_temperature"].as<float>();
   options.max_decoding_length = vm["max_sent_length"].as<size_t>();
   options.min_decoding_length = vm["min_sent_length"].as<size_t>();
   options.num_hypotheses = vm["n_best"].as<size_t>();

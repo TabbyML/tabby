@@ -80,6 +80,8 @@ set(SOURCES
   src/ops/layer_norm_cpu.cc
   src/ops/matmul.cc
   src/ops/mul.cc
+  src/ops/multinomial.cc
+  src/ops/multinomial_cpu.cc
   src/ops/relu.cc
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
@@ -93,6 +95,7 @@ set(SOURCES
   src/ops/quantize.cc
   src/primitives/cpu.cc
   src/profiler.cc
+  src/sampling.cc
   src/storage_view.cc
   src/translation_result.cc
   src/translator.cc
@@ -294,6 +297,7 @@ if (WITH_CUDA)
     src/ops/concat_split_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/layer_norm_gpu.cu
+    src/ops/multinomial_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/topk_gpu.cu
     )

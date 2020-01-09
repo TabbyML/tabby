@@ -32,6 +32,7 @@ Some of these features are difficult to achieve with standard deep learning fram
 The translation API supports several decoding options:
 
 * decoding with greedy or beam search
+* random sampling from the output distribution
 * translating with a known target prefix
 * constraining the decoding length
 * returning multiple translation hypotheses

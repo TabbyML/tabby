@@ -1,11 +1,13 @@
 #pragma once
 
 #include "ctranslate2/layers/decoder.h"
+#include "ctranslate2/sampling.h"
 
 namespace ctranslate2 {
 
   void greedy_search(layers::Decoder& decoder,
                      layers::DecoderState& state,
+                     const Sampler& sampler,
                      StorageView& sample_from,
                      StorageView& candidates,
                      const StorageView& memory,
@@ -20,6 +22,7 @@ namespace ctranslate2 {
 
   void beam_search(layers::Decoder& decoder,
                    layers::DecoderState& state,
+                   const Sampler& sampler,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,

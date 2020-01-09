@@ -70,6 +70,17 @@ namespace ctranslate2 {
     return std::make_pair(input.to(device), lengths.to(device));
   }
 
+  static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
+    const Sampler* sampler = nullptr;
+
+    if (options.sampling_topk != 1)
+      sampler = new RandomSampler(options.sampling_topk, options.sampling_temperature);
+    else
+      sampler = new BestSampler();
+
+    return std::unique_ptr<const Sampler>(sampler);
+  }
+
 
   Translator::Translator(const std::string& model_dir, Device device, int device_index)
     : _model(models::Model::load(model_dir, device, device_index)) {
@@ -137,6 +148,8 @@ namespace ctranslate2 {
     // Check options and inputs.
     if (options.num_hypotheses > options.beam_size)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
+    if (options.sampling_topk != 1 && options.beam_size != 1)
+      throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (options.use_vmap && _model->get_vocabulary_map().empty())
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
@@ -271,9 +284,11 @@ namespace ctranslate2 {
       }
     }
 
+    auto sampler = make_sampler(options);
     if (options.beam_size == 1)
       greedy_search(decoder,
                     state,
+                    *sampler,
                     sample_from,
                     candidates,
                     encoded,
@@ -288,6 +303,7 @@ namespace ctranslate2 {
     else
       beam_search(decoder,
                   state,
+                  *sampler,
                   sample_from,
                   candidates,
                   encoded,

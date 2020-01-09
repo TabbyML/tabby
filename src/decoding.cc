@@ -66,6 +66,7 @@ namespace ctranslate2 {
 
   void beam_search(layers::Decoder& decoder,
                    layers::DecoderState& state,
+                   const Sampler& sampler,
                    StorageView& sample_from,
                    StorageView& candidates,
                    const StorageView& memory,
@@ -128,9 +129,6 @@ namespace ctranslate2 {
 
     StorageView logits(device);
     StorageView log_probs(device);
-    StorageView topk_ids_device(device, topk_ids.dtype());
-    StorageView topk_scores_device(device);
-
     StorageView alive_attention;
     StorageView attention_step;
     StorageView attention_step_device(device);
@@ -170,10 +168,7 @@ namespace ctranslate2 {
       log_probs.reshape({cur_batch_size, beam_size * vocabulary_size});
 
       // TopK candidates.
-      topk_op(log_probs, topk_scores_device, topk_ids_device);
-
-      topk_scores = topk_scores_device.to(Device::CPU);
-      topk_ids = topk_ids_device.to(Device::CPU);
+      sampler(log_probs, topk_ids, topk_scores, beam_size);
       if (attention)
         attention_step.copy_from(attention_step_device);
 
@@ -335,6 +330,7 @@ namespace ctranslate2 {
 
   void greedy_search(layers::Decoder& decoder,
                      layers::DecoderState& state,
+                     const Sampler& sampler,
                      StorageView& sample_from,
                      StorageView& candidates,
                      const StorageView& memory,
@@ -378,9 +374,7 @@ namespace ctranslate2 {
     }
 
     StorageView best_ids( DataType::DT_INT32);
-    StorageView best_ids_device(device, DataType::DT_INT32);
     StorageView best_probs;
-    StorageView best_probs_device(device);
     StorageView attention_step;
     StorageView attention_step_device(device);
 
@@ -398,9 +392,7 @@ namespace ctranslate2 {
       if (step < min_length)
         penalize_token(log_probs, end_token);
 
-      ops::TopK(1)(log_probs, best_probs_device, best_ids_device);
-      best_probs.copy_from(best_probs_device);
-      best_ids.copy_from(best_ids_device);
+      sampler(log_probs, best_ids, best_probs);
       if (attention)
         attention_step.copy_from(attention_step_device);
 

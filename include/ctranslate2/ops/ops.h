@@ -12,6 +12,7 @@
 #include "layer_norm.h"
 #include "matmul.h"
 #include "mul.h"
+#include "multinomial.h"
 #include "quantize.h"
 #include "relu.h"
 #include "reshape.h"

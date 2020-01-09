@@ -71,10 +71,14 @@ public:
                       size_t max_decoding_length,
                       size_t min_decoding_length,
                       bool use_vmap,
-                      bool with_scores) {
+                      bool with_scores,
+                      size_t sampling_topk,
+                      float sampling_temperature) {
     auto options = ctranslate2::TranslationOptions();
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
+    options.sampling_topk = sampling_topk;
+    options.sampling_temperature = sampling_temperature;
     options.max_decoding_length = max_decoding_length;
     options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
@@ -92,13 +96,17 @@ public:
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
-                           bool return_attention) {
+                           bool return_attention,
+                           size_t sampling_topk,
+                           float sampling_temperature) {
     if (source.is(py::none()) || py::len(source) == 0)
       return py::list();
 
     auto options = ctranslate2::TranslationOptions();
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
+    options.sampling_topk = sampling_topk;
+    options.sampling_temperature = sampling_temperature;
     options.max_decoding_length = max_decoding_length;
     options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
@@ -159,7 +167,9 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
-         py::arg("return_attention")=false)
+         py::arg("return_attention")=false,
+         py::arg("sampling_topk")=1,
+         py::arg("sampling_temperature")=1)
     .def("translate_file", &TranslatorWrapper::translate_file,
          py::arg("input_path"),
          py::arg("output_path"),
@@ -170,6 +180,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
-         py::arg("with_scores")=false)
+         py::arg("with_scores")=false,
+         py::arg("sampling_topk")=1,
+         py::arg("sampling_temperature")=1)
     ;
 }

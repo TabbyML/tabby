@@ -14,6 +14,8 @@ namespace ctranslate2 {
     size_t max_decoding_length = 250;
     size_t min_decoding_length = 1;
     float length_penalty = 0;
+    size_t sampling_topk = 1;
+    float sampling_temperature = 1;
     bool use_vmap = false;
     bool return_attention = false;
   };
