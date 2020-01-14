@@ -11,6 +11,7 @@
 * Release cuDNN/cuBLAS/TensorRT handles on thread exit when destroying a `TranslatorPool`
 * Remove use of `--{start,end}-group` compiler options when compiling on Mac OS
 * Update Intel MKL to 2020.0 in Docker images
+* Load vocabulary assets for SavedModel exported with OpenNMT-tf 2.5 and above
 
 ## [v1.2.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.2.3) (2019-12-11)
 
