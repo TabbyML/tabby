@@ -2,6 +2,12 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.3.0) (2020-01-14)
+
+### New features
+
 * Support random sampling (see the `sampling_topk` and `sampling_temperature` translation options)
 * `CT2_CUDA_CACHING_ALLOCATOR_CONFIG` environment variable to configure the CUDA caching allocator
 
