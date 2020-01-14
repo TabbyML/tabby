@@ -28,6 +28,16 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
                     value, scope="%s/%s" % (scope, key) if scope else key))
         return variables
 
+    def _get_asset_path(inputter):
+        lookup_table = getattr(inputter, "tokens_to_ids", None)
+        if lookup_table is None:
+            return None
+        # TODO: retrieve the asset path without using private attributes.
+        asset = getattr(lookup_table._initializer, "_filename", None)
+        if asset is None:
+            return None
+        return asset.asset_path.numpy()
+
     model_version = 1
     tf_version = int(tf.version.VERSION[0])
 
@@ -43,6 +53,13 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
         if tf_version == 2:
             model_version = 2
             imported = tf.saved_model.load(model_path)
+            if src_vocab is None:
+                src_vocab = _get_asset_path(imported.examples_inputter.features_inputter)
+            if tgt_vocab is None:
+                tgt_vocab = _get_asset_path(imported.examples_inputter.labels_inputter)
+            if src_vocab is None or tgt_vocab is None:
+                raise ValueError("src_vocab and tgt_vocab are required as the SavedModel "
+                                 "does not include vocabulary assets")
             variables = {
                 "model/%s" % scope:variable.numpy()
                 for scope, variable in six.iteritems(_extract_variables(imported))}
