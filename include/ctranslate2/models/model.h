@@ -11,7 +11,7 @@
 namespace ctranslate2 {
   namespace models {
 
-    static const size_t current_binary_version = 3;
+    static const size_t current_binary_version = 4;
 
     // Base class for models.
     class Model {

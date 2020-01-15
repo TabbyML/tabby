@@ -274,6 +274,20 @@ namespace ctranslate2 {
       }
     }
 
+    static DataType get_dtype_from_item_size(uint8_t item_size) {
+      // This is the old (and flawed) logic of resolving the dtype of saved variables.
+      switch (item_size) {
+      case 4:
+        return DataType::DT_FLOAT;
+      case 2:
+        return DataType::DT_INT16;
+      case 1:
+        return DataType::DT_INT8;
+      default:
+        throw std::runtime_error("unknown data type of width " + std::to_string(item_size));
+      }
+    }
+
     std::shared_ptr<const Model> Model::load(const std::string& path,
                                              const std::string& device,
                                              int device_index,
@@ -334,26 +348,21 @@ namespace ctranslate2 {
         const auto name = consume<std::string>(model_file);
         const size_t rank = consume<uint8_t>(model_file);
         const auto* dimensions = consume<uint32_t>(model_file, rank);
-        const dim_t data_width = consume<uint8_t>(model_file);
-        const dim_t data_size = consume<uint32_t>(model_file);
 
         DataType dtype;
-        switch (data_width) {
-        case 4:
-          dtype = DataType::DT_FLOAT;
-          break;
-        case 2:
-          dtype = DataType::DT_INT16;
-          break;
-        case 1:
-          dtype = DataType::DT_INT8;
-          break;
-        default:
-          throw std::runtime_error("unknown data type of width " + std::to_string(data_width));
+        dim_t num_bytes = 0;
+        if (binary_version >= 4) {
+          const auto type_id = consume<uint8_t>(model_file);
+          dtype = static_cast<DataType>(type_id);
+          num_bytes = consume<uint32_t>(model_file);
+        } else {
+          const auto item_size = consume<uint8_t>(model_file);
+          dtype = get_dtype_from_item_size(item_size);
+          num_bytes = consume<uint32_t>(model_file) * item_size;
         }
 
         StorageView variable({dimensions, dimensions + rank}, dtype);
-        consume<char>(model_file, data_size * data_width, static_cast<char*>(variable.buffer()));
+        consume<char>(model_file, num_bytes, static_cast<char*>(variable.buffer()));
         model->register_variable(name, variable);
 
         delete [] dimensions;

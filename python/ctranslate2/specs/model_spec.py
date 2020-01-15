@@ -134,7 +134,7 @@ class LayerSpec(object):
                 model.write(six.b(string))
                 model.write(struct.pack('B', 0))
 
-            model.write(struct.pack("I", 3))  # Binary version.
+            model.write(struct.pack("I", 4))  # Binary version.
             _write_string(self.__class__.__name__)
             model.write(struct.pack("I", self.revision))
             model.write(struct.pack("I", len(variables)))
@@ -143,13 +143,23 @@ class LayerSpec(object):
                 model.write(struct.pack("B", len(value.shape)))
                 for dim in value.shape:
                     model.write(struct.pack("I", dim))
-                model.write(struct.pack("B", value.dtype.itemsize))
-                model.write(struct.pack("I", value.size))
+                model.write(struct.pack("B", _dtype_to_type_id(value.dtype)))
+                model.write(struct.pack("I", value.nbytes))
                 model.write(value.tobytes())
             model.write(struct.pack("I", len(aliases)))
             for alias, variable_name in aliases:
                 _write_string(alias)
                 _write_string(variable_name)
+
+
+def _dtype_to_type_id(object_dtype):
+    # Order should match the DataType enum in include/ctranslate2/types.h
+    dtypes = (np.float32, np.int8, np.int16, np.int32)
+    try:
+        return dtypes.index(object_dtype)
+    except ValueError:
+        raise ValueError("%s is not in list of supported dtypes: %s" % (
+            str(object_dtype), ", ".join(map(str, dtypes))))
 
 
 class ModelSpec(LayerSpec):
