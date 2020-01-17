@@ -8,6 +8,7 @@ import ctranslate2
 
 from ctranslate2.specs.model_spec import OPTIONAL, index_spec
 from ctranslate2.specs import transformer_spec
+from ctranslate2.converters import opennmt_tf
 
 
 _TEST_DATA_DIR = os.path.join(
@@ -110,6 +111,22 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+def test_opennmt_tf_variables_conversion(tmpdir):
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
+    _, variables, src_vocab, tgt_vocab = opennmt_tf.load_model(
+        model_path,
+        src_vocab=os.path.join(model_path, "ar.vocab"),
+        tgt_vocab=os.path.join(model_path, "en.vocab"))
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        src_vocab=src_vocab, tgt_vocab=tgt_vocab, variables=variables)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, ctranslate2.specs.TransformerBase())
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
 
 def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     model_path = os.path.join(

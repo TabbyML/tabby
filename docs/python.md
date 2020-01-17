@@ -6,9 +6,10 @@
 import ctranslate2
 
 converter = ctranslate2.converters.OpenNMTTFConverter(
-    model_path: str,         # Path to a OpenNMT-tf checkpoint or SavedModel.
-    src_vocab=None,          # Path to the source vocabulary (required for checkpoints).
-    tgt_vocab=None)          # Path to the target vocabulary (required for checkpoints).
+    model_path=None, # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
+    src_vocab=None,  # Path to the source vocabulary (required for checkpoints).
+    tgt_vocab=None,  # Path to the target vocabulary (required for checkpoints).
+    variables=None)  # Dict of variables name to value (mutually exclusive with model_path).
 
 converter = ctranslate2.converters.OpenNMTPyConverter(
     model_path: str)         # Path to the OpenNMT-py model.
