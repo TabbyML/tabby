@@ -62,18 +62,18 @@ public:
                                                         compute_type)) {
   }
 
-  void translate_file(const std::string& in_file,
-                      const std::string& out_file,
-                      size_t max_batch_size,
-                      size_t beam_size,
-                      size_t num_hypotheses,
-                      float length_penalty,
-                      size_t max_decoding_length,
-                      size_t min_decoding_length,
-                      bool use_vmap,
-                      bool with_scores,
-                      size_t sampling_topk,
-                      float sampling_temperature) {
+  py::tuple translate_file(const std::string& in_file,
+                           const std::string& out_file,
+                           size_t max_batch_size,
+                           size_t beam_size,
+                           size_t num_hypotheses,
+                           float length_penalty,
+                           size_t max_decoding_length,
+                           size_t min_decoding_length,
+                           bool use_vmap,
+                           bool with_scores,
+                           size_t sampling_topk,
+                           float sampling_temperature) {
     auto options = ctranslate2::TranslationOptions();
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
@@ -84,8 +84,17 @@ public:
     options.num_hypotheses = num_hypotheses;
     options.use_vmap = use_vmap;
 
-    py::gil_scoped_release release;
-    _translator_pool.consume_text_file(in_file, out_file, max_batch_size, options, with_scores);
+    size_t num_tokens = 0;
+    {
+      py::gil_scoped_release release;
+      num_tokens = _translator_pool.consume_text_file(in_file,
+                                                      out_file,
+                                                      max_batch_size,
+                                                      options,
+                                                      with_scores);
+    }
+
+    return py::make_tuple(num_tokens);
   }
 
   py::list translate_batch(const py::object& source,

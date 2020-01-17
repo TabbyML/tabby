@@ -47,11 +47,12 @@ def test_file_translation(tmpdir):
         input_file.write("آ ت ش ي س و ن")
         input_file.write("\n")
     translator = _get_transliterator()
-    translator.translate_file(input_path, output_path, max_batch_size=32)
+    stats = translator.translate_file(input_path, output_path, max_batch_size=32)
     with open(output_path) as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "a t z m o n"
         assert lines[1].strip() == "a c h i s o n"
+    assert stats[0] == 13  # Number of generated target tokens.
 
 def test_empty_translation():
     translator = _get_transliterator()

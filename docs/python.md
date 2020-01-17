@@ -52,7 +52,9 @@ output = translator.translate_batch(
     sampling_topk=1,         # Randomly sample from the top K candidates.
     sampling_temperature=1.) # Sampling temperature.
 
-translator.translate_file(
+# stats is a tuple of file statistics containing in order:
+# 1. the number of generated target tokens
+stats = translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to translate.
