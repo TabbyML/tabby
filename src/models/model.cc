@@ -390,5 +390,13 @@ namespace ctranslate2 {
       return std::shared_ptr<Model>(model);
     }
 
+    bool contains_model(const std::string& path) {
+      return (
+        file_exists(path + "/model.bin")
+        && ((file_exists(path + "/source_vocabulary.txt")
+             && file_exists(path + "/target_vocabulary.txt"))
+            || file_exists(path + "/shared_vocabulary.txt")));
+    }
+
   }
 }

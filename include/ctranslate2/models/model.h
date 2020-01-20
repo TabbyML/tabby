@@ -13,6 +13,9 @@ namespace ctranslate2 {
 
     static const size_t current_binary_version = 4;
 
+    // Checks whether the provided path could contain a CTranslate2 model.
+    bool contains_model(const std::string& path);
+
     // Base class for models.
     class Model {
     public:

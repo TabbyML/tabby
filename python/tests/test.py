@@ -16,14 +16,27 @@ _TEST_DATA_DIR = os.path.join(
     "..", "..", "tests", "data")
 
 
+def _get_model_path():
+    return os.path.join(_TEST_DATA_DIR, "models", "v2", "aren-transliteration")
+
 def _get_transliterator():
-    model_path = os.path.join(_TEST_DATA_DIR, "models", "v2", "aren-transliteration")
-    return ctranslate2.Translator(model_path)
+    return ctranslate2.Translator(_get_model_path())
 
 
 def test_invalid_model_path():
     with pytest.raises(RuntimeError):
         ctranslate2.Translator("xxx")
+
+def test_contains_model(tmpdir):
+    assert ctranslate2.contains_model(_get_model_path())
+
+    model_dir = tmpdir.join("model")
+    model_dir.ensure(dir=1)
+    assert not ctranslate2.contains_model(str(model_dir))
+    model_dir.join("model.bin").ensure(file=1)
+    assert not ctranslate2.contains_model(str(model_dir))
+    model_dir.join("shared_vocabulary.txt").ensure(file=1)
+    assert ctranslate2.contains_model(str(model_dir))
 
 def test_batch_translation():
     translator = _get_transliterator()

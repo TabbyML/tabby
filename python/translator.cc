@@ -159,6 +159,8 @@ private:
 
 PYBIND11_MODULE(translator, m)
 {
+  m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
+
   py::class_<TranslatorWrapper>(m, "Translator")
     .def(py::init<std::string, std::string, int, std::string, size_t, size_t>(),
          py::arg("model_path"),

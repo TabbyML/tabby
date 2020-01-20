@@ -21,6 +21,8 @@ namespace ctranslate2 {
 
   std::mt19937& get_random_generator();
 
+  bool file_exists(const std::string& path);
+
 #define THROW_EXCEPTION(EXCEPTION, MESSAGE)                             \
   throw EXCEPTION(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + MESSAGE)
 #define THROW_RUNTIME_ERROR(MESSAGE) THROW_EXCEPTION(std::runtime_error, MESSAGE)

@@ -1,5 +1,6 @@
 try:
     from ctranslate2.translator import Translator
+    from ctranslate2.translator import contains_model
 except ImportError:
     pass
 

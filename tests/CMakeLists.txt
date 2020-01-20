@@ -5,6 +5,7 @@ if (GTEST_FOUND)
   find_package(Threads)
 
   add_executable(ctranslate2_test
+    model_test.cc
     storage_view_test.cc
     ops_test.cc
     transformer_test.cc

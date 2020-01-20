@@ -1,5 +1,6 @@
 #include "ctranslate2/utils.h"
 
+#include <sys/stat.h>
 #include <chrono>
 
 #ifdef WITH_MKL
@@ -94,6 +95,11 @@ namespace ctranslate2 {
     static thread_local std::mt19937 generator(
       std::chrono::system_clock::now().time_since_epoch().count());
     return generator;
+  }
+
+  bool file_exists(const std::string& path) {
+    struct stat buffer;
+    return stat(path.c_str(), &buffer) == 0;
   }
 
 }
