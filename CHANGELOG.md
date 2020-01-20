@@ -2,13 +2,17 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.4.0) (2020-01-20)
+
+### New features
+
 * Publish a package on [PyPI](https://pypi.org/project/ctranslate2/) (without GPU support)
 * Add method to convert OpenNMT-tf models directly from a dictionary of variables
 * Return statistics from Python method `Translator.translate_file`
 * Add `set_model` methods to support changing models without creating a new `Translator`
 * Add a `contains_model` function to check whether a directory could contain a CTranslate2 model
-
-### Fixes and improvements
 
 ## [v1.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.3.0) (2020-01-14)
 
