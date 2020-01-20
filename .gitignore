@@ -1,1 +1,4 @@
 *.pyc
+/.vs
+/build
+CMake*.json

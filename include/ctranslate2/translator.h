@@ -50,6 +50,13 @@ namespace ctranslate2 {
                                 const TranslationOptions& options);
 
     Device device() const;
+    int device_index() const;
+    ComputeType compute_type() const;
+
+    //Change only the model while keeping the same device
+    //and compute type
+    void set_model(const std::string& model_dir);
+    void set_model(const std::shared_ptr<const models::Model>& model);
 
   private:
     void make_graph();
@@ -59,7 +66,7 @@ namespace ctranslate2 {
                     const std::vector<std::vector<std::string>>& target_prefix,
                     const TranslationOptions& options);
 
-    const std::shared_ptr<const models::Model> _model;
+    std::shared_ptr<const models::Model> _model;
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
   };

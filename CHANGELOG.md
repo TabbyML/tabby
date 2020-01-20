@@ -1,7 +1,7 @@
 ## [Unreleased]
 
 ### New features
-
+* Add `set_model` functions to support changing models without creating a new `Translator`
 ### Fixes and improvements
 
 ## [v1.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.3.0) (2020-01-14)

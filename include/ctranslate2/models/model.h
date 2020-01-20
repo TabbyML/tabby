@@ -29,6 +29,8 @@ namespace ctranslate2 {
       virtual size_t current_spec_revision() const;
 
       Device device() const;
+      int device_index() const;
+      ComputeType compute_type() const;
       ScopedDeviceSetter get_scoped_device_setter() const;
 
       const Vocabulary& get_source_vocabulary() const;
