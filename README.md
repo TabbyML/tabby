@@ -2,18 +2,19 @@
 
 # CTranslate2
 
-CTranslate2 is a custom C++ inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
+CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
 
 **Table of contents**
 
 1. [Key features](#key-features)
-2. [Dependencies](#dependencies)
-3. [Converting models](#converting-models)
-4. [Translating](#translating)
-5. [Building](#building)
-6. [Testing](#testing)
-7. [Benchmarks](#benchmarks)
-8. [Frequently asked questions](#frequently-asked-questions)
+1. [Quickstart](#quickstart)
+1. [Installation](#installation)
+1. [Converting models](#converting-models)
+1. [Translating](#translating)
+1. [Building](#building)
+1. [Testing](#testing)
+1. [Benchmarks](#benchmarks)
+1. [Frequently asked questions](#frequently-asked-questions)
 
 ## Key features
 
@@ -39,22 +40,72 @@ The translation API supports several decoding options:
 * returning attention vectors
 * approximating the generation using a pre-compiled [vocabulary map](#how-can-i-generate-a-vocabulary-mapping-file)
 
-## Dependencies
+## Quickstart
 
-CTranslate2 uses the external libraries for acceleration.
+1\. **[Install](#installation) the Python package**:
 
-* CPU requires:
-  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
-* CPU with INT8 support requires: 
-  * [Intel MKL-DNN](https://github.com/intel/mkl-dnn) (>=0.20,<1.0)
-* GPU requires:
-  * [CUB](https://nvlabs.github.io/cub/) (>=1.8)
-  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
-  * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (==1.9.3)
-  * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
-  * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
+```bash
+pip install ctranslate2
+```
 
-CTranslate2 supports compiling for CPU only, GPU only, or both.
+2\. **[Convert](#converting-models) a model trained with OpenNMT-py or OpenNMT-tf**, for example the pretrained Transformer model:
+
+*OpenNMT-py*
+
+```bash
+wget https://s3.amazonaws.com/opennmt-models/transformer-ende-wmt-pyOnmt.tar.gz
+tar xf transformer-ende-wmt-pyOnmt.tar.gz
+
+ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec TransformerBase \
+    --output_dir ende_ctranslate2
+```
+
+*OpenNMT-tf*
+
+```bash
+wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k-v2.tar.gz
+tar xf averaged-ende-export500k.tar.gz
+
+ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec TransformerBase \
+    --output_dir ende_ctranslate2
+```
+
+3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
+
+```python
+import ctranslate2
+translator = ctranslate2.Translator("ende_ctranslate2/")
+outputs = translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+print(outputs[0][0])
+```
+
+## Installation
+
+### Python package
+
+The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will get you started in converting and executing models (CPU only):
+
+```bash
+pip install ctranslate2
+```
+
+### Docker images
+
+The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
+
+```bash
+docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
+```
+
+The images include:
+
+* a translation client to directly translate files (default entrypoint)
+* Python 2 and 3 packages (with GPU support)
+* `libctranslate2.so` library development files
+
+### Manual compilation
+
+See [Building](#building).
 
 ## Converting models
 
@@ -66,37 +117,14 @@ The following frameworks and models are currently supported:
 | --- | :---: | :---: |
 | Transformer | ✓ | ✓ |
 
-If you are using a model that is not listed above, consider opening an issue to discuss future integration.
+*If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
-To get you started, here are the command lines to convert pre-trained OpenNMT-tf and OpenNMT-py models. They use a predefined model specification for `TransformerBase`. The [converter Python API](docs/python.md#model-conversion-api) can also be used to convert Transformers with any number of layers, hidden dimensions, and attention heads.
+Conversion scripts are parts of the Python package and should be run in the same environment as the target training framework:
 
-**OpenNMT-tf**
+* `ct2-opennmt-py-converter`
+* `ct2-opennmt-tf-converter`
 
-```bash
-cd python/
-
-wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k.tar.gz
-tar xf averaged-ende-export500k.tar.gz
-
-python -m ctranslate2.bin.opennmt_tf_converter \
-    --model_path averaged-ende-export500k/1554540232/ \
-    --output_dir ende_ctranslate2 \
-    --model_spec TransformerBase
-```
-
-**OpenNMT-py**
-
-```bash
-cd python/
-
-wget https://s3.amazonaws.com/opennmt-models/transformer-ende-wmt-pyOnmt.tar.gz
-tar xf transformer-ende-wmt-pyOnmt.tar.gz
-
-python -m ctranslate2.bin.opennmt_py_converter \
-    --model_path averaged-10-epoch.pt \
-    --output_dir ende_ctranslate2 \
-    --model_spec TransformerBase
-```
+The [converter Python API](docs/python.md#model-conversion-api) can also be used to convert Transformer models with any number of layers, hidden dimensions, and attention heads.
 
 ### Quantization
 
@@ -126,24 +154,9 @@ See the existing converters implementation which could be used as a template.
 
 ## Translating
 
-Docker images are currently the recommended way to use the project as they embed all dependencies and are optimized. The GPU image supports both CPU and GPU execution:
-
-```bash
-docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
-```
-
-The library has several entrypoints which are briefly introduced below. The examples use the English-German model prepared in [Converting models](#converting-models). This model requires a SentencePiece tokenization.
+The examples use the English-German model converted in the [Quickstart](#quickstart). This model requires a SentencePiece tokenization.
 
 ### With the translation client
-
-#### CPU
-
-```bash
-echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu18-gpu --model /data/ende_ctranslate2
-```
-
-#### GPU
 
 ```bash
 echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
@@ -154,12 +167,9 @@ echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
 
 ### With the Python API
 
-```bash
-docker run -it --rm -v $PWD:/data --entrypoint python opennmt/ctranslate2:latest-ubuntu18
-```
 ```python
 >>> import ctranslate2
->>> translator = ctranslate2.Translator("/data/ende_ctranslate2/", device="cpu")
+>>> translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 >>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
@@ -185,6 +195,23 @@ int main() {
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
 ## Building
+
+### Dependencies
+
+CTranslate2 uses the following external libraries for acceleration:
+
+* CPU requires:
+  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
+* CPU with INT8 support requires:
+  * [Intel MKL-DNN](https://github.com/intel/mkl-dnn) (>=0.20,<1.0)
+* GPU requires:
+  * [CUB](https://nvlabs.github.io/cub/) (>=1.8)
+  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
+  * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (==1.9.3)
+  * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
+  * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
+
+CTranslate2 supports compiling for CPU only, GPU only, or both.
 
 ### Docker images
 
