@@ -64,7 +64,7 @@ ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec Transfor
 
 ```bash
 wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k-v2.tar.gz
-tar xf averaged-ende-export500k.tar.gz
+tar xf averaged-ende-export500k-v2.tar.gz
 
 ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec TransformerBase \
     --output_dir ende_ctranslate2
