@@ -260,15 +260,13 @@ cmake ..
 make -j4
 ```
 
-The binary `translate` will be generated in the directory `cli`:
+The `cli/translate` binary will be generated. You can try it with the model converted in the [Quickstart](#quickstart) section:
 
 ```bash
-echo "▁H ello ▁world !" | ./cli/translate --model ../python/ende_ctranslate2/
+echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/
 ```
 
 The result `▁Hallo ▁Welt !` should be displayed.
-
-**Note:** Before running the command, you should get your model by following the [Converting models](#converting-models) section.
 
 ## Testing
 
