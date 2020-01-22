@@ -82,19 +82,16 @@ namespace ctranslate2 {
   }
 
 
-  Translator::Translator(const std::string& model_dir, Device device, int device_index)
-    : _model(models::Model::load(model_dir, device, device_index)) {
-    make_graph();
+  Translator::Translator(const std::string& model_dir, Device device, int device_index) {
+    set_model(models::Model::load(model_dir, device, device_index));
   }
 
-  Translator::Translator(const std::shared_ptr<const models::Model>& model)
-    : _model(model) {
-    make_graph();
+  Translator::Translator(const std::shared_ptr<const models::Model>& model) {
+    set_model(model);
   }
 
-  Translator::Translator(const Translator& other)
-    : _model(other._model) {
-    make_graph();
+  Translator::Translator(const Translator& other) {
+    set_model(other._model);
   }
 
   void Translator::make_graph() {
@@ -362,8 +359,7 @@ namespace ctranslate2 {
 
   void Translator::set_model(const std::string& model_dir)
   {
-    std::shared_ptr<const models::Model> model;
-    set_model(model->load(model_dir, this->device(), this->device_index(), this->compute_type()));
+    set_model(models::Model::load(model_dir, device(), device_index(), compute_type()));
   }
 
   void Translator::set_model(const std::shared_ptr<const models::Model>& model)
