@@ -74,19 +74,19 @@ public:
                            bool with_scores,
                            size_t sampling_topk,
                            float sampling_temperature) {
-    auto options = ctranslate2::TranslationOptions();
-    options.beam_size = beam_size;
-    options.length_penalty = length_penalty;
-    options.sampling_topk = sampling_topk;
-    options.sampling_temperature = sampling_temperature;
-    options.max_decoding_length = max_decoding_length;
-    options.min_decoding_length = min_decoding_length;
-    options.num_hypotheses = num_hypotheses;
-    options.use_vmap = use_vmap;
-
     size_t num_tokens = 0;
     {
       py::gil_scoped_release release;
+      ctranslate2::TranslationOptions options;
+      options.beam_size = beam_size;
+      options.length_penalty = length_penalty;
+      options.sampling_topk = sampling_topk;
+      options.sampling_temperature = sampling_temperature;
+      options.max_decoding_length = max_decoding_length;
+      options.min_decoding_length = min_decoding_length;
+      options.num_hypotheses = num_hypotheses;
+      options.use_vmap = use_vmap;
+
       num_tokens = _translator_pool.consume_text_file(in_file,
                                                       out_file,
                                                       max_batch_size,
@@ -111,25 +111,24 @@ public:
     if (source.is(py::none()) || py::len(source) == 0)
       return py::list();
 
-    auto options = ctranslate2::TranslationOptions();
-    options.beam_size = beam_size;
-    options.length_penalty = length_penalty;
-    options.sampling_topk = sampling_topk;
-    options.sampling_temperature = sampling_temperature;
-    options.max_decoding_length = max_decoding_length;
-    options.min_decoding_length = min_decoding_length;
-    options.num_hypotheses = num_hypotheses;
-    options.use_vmap = use_vmap;
-    options.return_attention = return_attention;
-
+    const auto source_input = batch_to_vector(source);
+    const auto target_prefix_input = batch_to_vector(target_prefix);
     std::vector<ctranslate2::TranslationResult> results;
-    auto future = _translator_pool.post(batch_to_vector(source),
-                                        batch_to_vector(target_prefix),
-                                        options);
 
     {
       py::gil_scoped_release release;
-      results = future.get();
+      ctranslate2::TranslationOptions options;
+      options.beam_size = beam_size;
+      options.length_penalty = length_penalty;
+      options.sampling_topk = sampling_topk;
+      options.sampling_temperature = sampling_temperature;
+      options.max_decoding_length = max_decoding_length;
+      options.min_decoding_length = min_decoding_length;
+      options.num_hypotheses = num_hypotheses;
+      options.use_vmap = use_vmap;
+      options.return_attention = return_attention;
+
+      results = _translator_pool.post(source_input, target_prefix_input, options).get();
     }
 
     py::list py_results;
