@@ -44,20 +44,6 @@ RUN curl -fsSL https://developer.download.nvidia.com/compute/machine-learning/re
     rpm -ivh --nodeps libnvinfer*.rpm && \
     rm libnvinfer*.rpm
 
-ENV CUB_VERSION=1.8.0
-ENV CUB_ROOT=/root/cub
-RUN wget https://github.com/NVlabs/cub/archive/v${CUB_VERSION}.tar.gz && \
-    tar xf v${CUB_VERSION}.tar.gz && \
-    mv cub-${CUB_VERSION} ${CUB_ROOT} && \
-    rm v${CUB_VERSION}.tar.gz
-
-ENV THRUST_VERSION=1.9.3
-ENV THRUST_ROOT=/root/thrust
-RUN wget https://github.com/thrust/thrust/archive/${THRUST_VERSION}.tar.gz && \
-    tar xf ${THRUST_VERSION}.tar.gz && \
-    mv thrust-${THRUST_VERSION} ${THRUST_ROOT} && \
-    rm ${THRUST_VERSION}.tar.gz
-
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -78,7 +64,7 @@ RUN mkdir build && \
     cd build && \
     source scl_source enable devtoolset-3 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH="${CUB_ROOT};${MKLDNN_ROOT};${THRUST_ROOT}" \
+          -DCMAKE_PREFIX_PATH="${MKLDNN_ROOT}" \
           -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \

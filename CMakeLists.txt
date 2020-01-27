@@ -266,7 +266,7 @@ if (WITH_CUDA)
 
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
-  find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh)
+  find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh PATHS ${CMAKE_SOURCE_DIR}/third_party/cub)
   if(NOT CUB_INCLUDE_DIR)
     message(FATAL_ERROR "CUB library not found")
   else()
@@ -275,7 +275,7 @@ if (WITH_CUDA)
 
   find_path(THRUST_INCLUDE_DIR
     NAMES thrust/device_vector.h
-    HINTS ${CUDA_TOOLKIT_ROOT_DIR}/include)
+    PATHS ${CMAKE_SOURCE_DIR}/third_party/thrust ${CUDA_TOOLKIT_ROOT_DIR}/include)
   if(NOT THRUST_INCLUDE_DIR)
     message(FATAL_ERROR "Thrust library not found")
   else()
