@@ -2,8 +2,8 @@
 !CMakeLists.txt
 !cli
 !cmake
-!deps
 !include
 !python
 !src
 !tests
+!third_party

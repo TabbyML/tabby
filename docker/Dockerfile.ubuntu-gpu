@@ -9,7 +9,6 @@ RUN apt-get update && \
         apt-transport-https \
         build-essential \
         ca-certificates \
-        libboost-program-options-dev \
         python-dev \
         python3-dev \
         gnupg2 \
@@ -67,10 +66,10 @@ RUN wget https://github.com/thrust/thrust/archive/${THRUST_VERSION}.tar.gz && \
 
 WORKDIR /root/ctranslate2-dev
 
+COPY third_party third_party
 COPY cli cli
 COPY include include
 COPY src src
-COPY tests tests
 COPY CMakeLists.txt .
 
 ARG CXX_FLAGS

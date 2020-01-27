@@ -4,6 +4,8 @@
 
 ### Fixes and improvements
 
+* Replace `boost::program_options` with `cxxopts` for client options
+
 ## [v1.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.4.0) (2020-01-20)
 
 ### New features

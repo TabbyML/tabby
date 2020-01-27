@@ -1,11 +1,10 @@
 FROM centos:7 as builder
 
-RUN yum install -y \
-        boost-static \
-        gcc \
-        gcc-c++ \
+RUN yum install -y centos-release-scl-rh && \
+    yum install -y \
+        devtoolset-3-gcc \
+        devtoolset-3-gcc-c++ \
         make \
-        python \
         python-devel \
         wget && \
     rm -rf /var/cache/yum/*
@@ -31,6 +30,7 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
     tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
     cd mkl-dnn-* && \
     mkdir build && cd build && \
+    source scl_source enable devtoolset-3 && \
     cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DARCH_OPT_FLAGS="" \
           -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
           -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
@@ -39,10 +39,10 @@ RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
 
 WORKDIR /root/ctranslate2-dev
 
+COPY third_party third_party
 COPY cli cli
 COPY include include
 COPY src src
-COPY tests tests
 COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
@@ -51,6 +51,7 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
+    source scl_source enable devtoolset-3 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DCMAKE_PREFIX_PATH=${MKLDNN_ROOT} -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
@@ -65,6 +66,7 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     rm get-pip.py && \
     pip --no-cache-dir install pybind11==2.4.3 && \
     pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
+    source scl_source enable devtoolset-3 && \
     python setup.py bdist_wheel && \
     python setup.py sdist && \
     mv dist/* /root/ctranslate2 && \

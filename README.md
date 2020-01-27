@@ -225,7 +225,7 @@ See the `docker/` directory for available images.
 
 ### Binaries (Ubuntu)
 
-The minimum requirements for building CTranslate2 binaries are Intel MKL and the Boost `program_options` module. The instructions below assume an Ubuntu system.
+Intel MKL is the minimum requirement for building CTranslate2. The instructions below assume an Ubuntu system.
 
 **Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
 
@@ -243,12 +243,6 @@ sudo apt-get install intel-mkl-64bit-2020.0-088
 ```
 
 Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more details.
-
-#### Install libboost-program-options-dev
-
-```bash
-sudo apt-get install libboost-program-options-dev
-```
 
 #### Compile
 

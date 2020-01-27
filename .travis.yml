@@ -13,7 +13,6 @@ matrix:
         apt:
           packages:
             - cmake
-            - libboost-program-options-dev
       before_install:
         # Intel MKL
         - wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
