@@ -169,7 +169,7 @@ echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
 
 ```python
 >>> import ctranslate2
->>> translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
+>>> translator = ctranslate2.Translator("ende_ctranslate2/")
 >>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
@@ -182,7 +182,7 @@ echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
 #include <ctranslate2/translator.h>
 
 int main() {
-  ctranslate2::Translator translator("ende_ctranslate2/", ctranslate2::Device::CPU);
+  ctranslate2::Translator translator("ende_ctranslate2/");
   ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
 
   for (const auto& token : result.output())

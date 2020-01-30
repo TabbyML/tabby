@@ -20,11 +20,11 @@ namespace ctranslate2 {
     class Model {
     public:
       static std::shared_ptr<const Model> load(const std::string& path,
-                                               const std::string& device,
+                                               const std::string& device = "cpu",
                                                int device_index = 0,
                                                const std::string& compute_type = "default");
       static std::shared_ptr<const Model> load(const std::string& path,
-                                               Device device,
+                                               Device device = Device::CPU,
                                                int device_index = 0,
                                                ComputeType compute_type = ComputeType::DEFAULT);
 
