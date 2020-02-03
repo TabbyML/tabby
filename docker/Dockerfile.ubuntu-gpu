@@ -38,18 +38,6 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_VERSION=0.21
-RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
-    tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
-    cd mkl-dnn-* && \
-    mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DARCH_OPT_FLAGS="" \
-          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
-          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
-    make -j4 && make install && \
-    cd ../.. && rm -r mkl-dnn-*
-
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -69,8 +57,7 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH="${MKLDNN_ROOT}" \
-          -DWITH_CUDA=ON -DWITH_MKLDNN=ON \
+          -DWITH_CUDA=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 && \
@@ -94,7 +81,6 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
 
 WORKDIR /root
 RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libcudnn.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib
 

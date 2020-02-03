@@ -46,9 +46,8 @@ namespace ctranslate2 {
     case Device::CUDA:
       return cuda::has_fast_int8();
 #endif
-#if defined(WITH_MKL) && defined(WITH_MKLDNN)
+#ifdef WITH_MKL
     case Device::CPU:
-      // Assume MKL-DNN was compiled against MKL otherwise it would only support AVX512.
       return mkl_has_fast_int_gemm();
 #endif
     default:

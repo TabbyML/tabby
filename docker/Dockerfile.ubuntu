@@ -33,18 +33,6 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_VERSION=0.21
-RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
-    tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
-    cd mkl-dnn-* && \
-    mkdir build && cd build && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DARCH_OPT_FLAGS="" \
-          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
-          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
-    make -j4 && make install && \
-    cd ../.. && rm -r mkl-dnn-*
-
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -60,7 +48,6 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH=${MKLDNN_ROOT} -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
@@ -82,8 +69,7 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
-    cp -P /root/mkl-dnn/lib/libmkldnn.so* /root/ctranslate2/lib
+RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib
 
 FROM ubuntu:${UBUNTU_VERSION}
 

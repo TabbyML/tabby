@@ -438,28 +438,25 @@ TEST_P(OpDeviceTest, Gemm) {
 
 TEST_P(OpDeviceTest, GemmInt8) {
   Device device = GetParam();
-  // TODO: This test do not pass on CPU (see https://github.com/intel/mkl-dnn/issues/476).
-  if (device == Device::CPU)
-    return;
   StorageView a({3, 8}, std::vector<int8_t>{
-      55, 114, 57, -86, 96, -70, -24, -59,
-      -30, 50, 69, 74, 59, 9, -115, 10,
-      -2, 9, 61, -124, 124, -90, 98, 105}, device);
+      -31, 14, -39, 36, 17, 4, -10, 15,
+      -58, 8, 0, -26, -18, -42, -3, -21,
+      -27, -63, -51, -4, -37, -63,  2, -4}, device);
   StorageView b({8, 4}, std::vector<int8_t>{
-      87, 63, -104, 119,
-      16, 97, -82, -22,
-      -66, -54, -50, -21,
-      -93, -122, 124, -126,
-      -56, 127, 79, -82,
-      -94, -118, 55, 7,
-      -60, 85, 23, 88,
-      -90, -126, -127, 99}, device);
+      42, -59, -28, 50,
+      56, -17, 14, -57,
+      -15, 37, 37, 63,
+      -29, 41, -41, 9,
+      -47, 38, -20, 27,
+      54, 16, -11, -31,
+      32, -17, -10, -58,
+      45, -17, 58, -44}, device);
   StorageView c;
   StorageView y(DataType::DT_INT32, device);
   StorageView expected({3, 4}, std::vector<int32_t>{
-      18799, 47783, -17907, -2639,
-      -11396, -14398, 5987, -29348,
-      -6338, 34049, -25191, 22128}, device);
+      -1205, 2249, -1269, -4226,
+      -3697, 1272, 2436, -1676,
+      -5560, -1767, -668, 6}, device);
   ops::Gemm op(1.0, 0.0, false, false, false);
   op(a, b, c, y);
   expect_storage_eq(y, expected);

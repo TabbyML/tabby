@@ -135,10 +135,10 @@ The converters support model quantization which is a way to reduce the model siz
 
 However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type | GPU   | CPU (with MKL) | CPU (with MKL and MKL-DNN) |
-| ---------- | ----- | -------------- | -------------------------- |
-| int16      | float | int16          | int16                      |
-| int8       | int8  | int16          | int8                       |
+| Model type | GPU   | CPU (with MKL) |
+| ---------- | ----- | -------------- |
+| int16      | float | int16          |
+| int8       | int8  | int8           |
 
 Quantization can also be configured later when starting a translation instance. See the `compute_type` argument on translation clients.
 
@@ -202,8 +202,6 @@ CTranslate2 uses the following external libraries for acceleration:
 
 * CPU requires:
   * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
-* CPU with INT8 support requires:
-  * [Intel MKL-DNN](https://github.com/intel/mkl-dnn) (>=0.20,<1.0)
 * GPU requires:
   * [CUB](https://nvlabs.github.io/cub/) (>=1.8)
   * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)

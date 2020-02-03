@@ -24,19 +24,6 @@ RUN yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mk
     yum install -y intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
     rm -rf /var/cache/yum/*
 
-ENV MKLDNN_ROOT=/root/mkl-dnn
-ENV MKLDNN_VERSION=0.21
-RUN wget https://github.com/intel/mkl-dnn/archive/v$MKLDNN_VERSION.tar.gz && \
-    tar xf v$MKLDNN_VERSION.tar.gz && rm v$MKLDNN_VERSION.tar.gz && \
-    cd mkl-dnn-* && \
-    mkdir build && cd build && \
-    source scl_source enable devtoolset-3 && \
-    cmake -DCMAKE_INSTALL_PREFIX=${MKLDNN_ROOT} -DARCH_OPT_FLAGS="" \
-          -DMKLROOT=/opt/intel/mkl -DMKLDNN_USE_MKL=FULL:STATIC -DMKLDNN_THREADING=OMP:INTEL \
-          -DWITH_TEST=OFF -DWITH_EXAMPLE=OFF .. && \
-    make -j4 && make install && \
-    cd ../.. && rm -r mkl-dnn-*
-
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -53,7 +40,6 @@ RUN mkdir build && \
     cd build && \
     source scl_source enable devtoolset-3 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH=${MKLDNN_ROOT} -DWITH_MKLDNN=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
@@ -73,8 +59,7 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
-    cp -P /root/mkl-dnn/lib64/libmkldnn.so* /root/ctranslate2/lib64
+RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64
 
 FROM centos:7
 

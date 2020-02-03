@@ -48,10 +48,7 @@ TEST_P(ModelVariantTest, Transliteration) {
   type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::DEFAULT, expected_dtype));
   type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::FLOAT, DataType::DT_FLOAT));
   type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT16, DataType::DT_INT16));
-
-#ifdef WITH_MKLDNN
   type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT8, DataType::DT_INT8));
-#endif
 
   for (const auto& t : type_params) {
     // compute type: none
@@ -63,12 +60,6 @@ TEST_P(ModelVariantTest, Transliteration) {
   }
 }
 
-#ifdef WITH_MKLDNN
-DataType i8_test_dtype = DataType::DT_INT8;
-#else
-DataType i8_test_dtype = DataType::DT_INT16;
-#endif
-
 INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   ModelVariantTest,
@@ -77,7 +68,7 @@ INSTANTIATE_TEST_CASE_P(
     std::make_pair("v1/aren-transliteration-i16", DataType::DT_INT16),
     std::make_pair("v2/aren-transliteration", DataType::DT_FLOAT),
     std::make_pair("v2/aren-transliteration-i16", DataType::DT_INT16),
-    std::make_pair("v2/aren-transliteration-i8", i8_test_dtype)
+    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)
     ),
   path_to_test_name);
 

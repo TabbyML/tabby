@@ -10,10 +10,6 @@
 #  include <mkl.h>
 #endif
 
-#ifdef WITH_MKLDNN
-#  include <mkldnn.hpp>
-#endif
-
 #define ALIGNMENT 64
 
 namespace ctranslate2 {
@@ -509,6 +505,39 @@ namespace ctranslate2 {
 #endif
   }
 
+  static void shift_to_u8(const int8_t* x, uint8_t* ux, dim_t size) {
+    unary_transform(x, ux, size, [](int8_t v) { return static_cast<uint8_t>(v + 128); });
+  }
+
+  static void compute_compensation(const int8_t* b,
+                                   bool transpose_b,
+                                   dim_t k,
+                                   dim_t n,
+                                   float alpha,
+                                   int32_t* compensation) {
+    #pragma omp parallel for
+    for (dim_t i = 0; i < n; ++i) {
+      int32_t val = 0;
+
+      if (transpose_b) {
+        const int8_t* row = b + i * k;
+        val = std::accumulate(row, row + k, static_cast<int32_t>(0));
+      } else {
+        for (dim_t j = 0; j < k; ++j) {
+          val += b[j * n + i];
+        }
+      }
+
+      if (alpha != 1) {
+        val = static_cast<int32_t>(static_cast<float>(val) * alpha * -128.0);
+      } else {
+        val *= -128;
+      }
+
+      compensation[i] = val;
+    }
+  }
+
   template<>
   template<>
   void primitives<Device::CPU>::gemm(const int8_t* a, const int8_t* b,
@@ -516,33 +545,40 @@ namespace ctranslate2 {
                                      dim_t m, dim_t n, dim_t k,
                                      float alpha, float beta,
                                      int32_t* c) {
-#ifdef WITH_MKLDNN
-    int lda = transpose_a ? m : k;
-    int ldb = transpose_b ? k : n;
-    int ldc = n;
+#ifdef WITH_MKL
+    const MKL_INT lda = transpose_a ? m : k;
+    const MKL_INT ldb = transpose_b ? k : n;
+    const MKL_INT ldc = n;
 
-    int m_ = m;
-    int n_ = n;
-    int k_ = k;
+    // We are implementing s8s8s32 GEMM with cblas_gemm_s8u8s32. In row major mode,
+    // it expects a to be unsigned and b to be signed. So we need to shift a to the
+    // uint8 domain and add a compensation term. For more details, see
+    // https://intel.github.io/mkl-dnn/dev_guide_int8_computations.html
 
-    const char* transa = transpose_a ? "T" : "N";
-    const char* transb = transpose_b ? "T" : "N";
-    const char* offsetc = "F";
+    // TODO: we could apply the shift during quantization to avoid this allocation
+    // and transformation.
+    const dim_t a_size = m * k;
+    auto* ua = static_cast<uint8_t*>(alloc_data(a_size));
+    shift_to_u8(a, ua, a_size);
 
-    int8_t ao = 0;
-    int8_t bo = 0;
-    int32_t co = 0;
+    // TODO: b is usually a fixed model weight, so we could compute the compensation once
+    // and reuse it.
+    auto* compensation = static_cast<int32_t*>(alloc_data(k * n * sizeof (int32_t)));
+    compute_compensation(b, transpose_b, k, n, alpha, compensation);
 
-    // mkldnn assumes column-major storage, so swap a and b accordingly.
-    mkldnn::error::wrap_c_api(
-      mkldnn_gemm_s8s8s32(transb, transa, offsetc,
-                          &n_, &m_, &k_,
-                          &alpha,
-                          b, &ldb, &bo,
-                          a, &lda, &ao,
-                          &beta,
-                          c, &ldc, &co),
-      "mkldnn_gemm_s8s8s32 returned with an error");
+    cblas_gemm_s8u8s32(CblasRowMajor,
+                       transpose_a ? CblasTrans : CblasNoTrans,
+                       transpose_b ? CblasTrans : CblasNoTrans,
+                       CblasRowOffset,
+                       m, n, k,
+                       alpha,
+                       ua, lda, 0,
+                       b, ldb, 0,
+                       beta,
+                       c, ldc, compensation);
+
+    free_data(ua);
+    free_data(compensation);
 #else
     throw std::runtime_error("INT8 GEMM not available for CPU");
 #endif
