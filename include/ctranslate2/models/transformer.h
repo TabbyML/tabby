@@ -99,7 +99,7 @@ namespace ctranslate2 {
       layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;
       layers::LayerNorm _output_norm;
-      std::vector<TransformerEncoderLayer> _layers;
+      std::vector<std::unique_ptr<TransformerEncoderLayer>> _layers;
     };
 
     class TransformerDecoder : public layers::Decoder
@@ -121,7 +121,7 @@ namespace ctranslate2 {
       layers::Embeddings _embeddings;
       PositionEncoder _position_encoder;
       layers::LayerNorm _output_norm;
-      std::vector<TransformerDecoderLayer> _layers;
+      std::vector<std::unique_ptr<TransformerDecoderLayer>> _layers;
       layers::Dense _proj;
     };
 

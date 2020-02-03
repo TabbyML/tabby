@@ -214,7 +214,8 @@ namespace ctranslate2 {
       , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
         try {
-          _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
+          _layers.emplace_back(new TransformerEncoderLayer(model,
+                                                           scope + "/layer_" + std::to_string(l)));
         } catch (std::exception&) {
           if (l == 0)
             throw;
@@ -235,7 +236,7 @@ namespace ctranslate2 {
       _position_encoder(layer_in);
 
       for (auto& layer : _layers) {
-        layer(layer_in, lengths, layer_out);
+        (*layer)(layer_in, lengths, layer_out);
         swap(layer_in, layer_out);
       }
       _output_norm(layer_in, output);
@@ -250,7 +251,8 @@ namespace ctranslate2 {
       , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
         try {
-          _layers.emplace_back(model, scope + "/layer_" + std::to_string(l));
+          _layers.emplace_back(new TransformerDecoderLayer(model,
+                                                           scope + "/layer_" + std::to_string(l)));
         } catch (std::exception&) {
           if (l == 0)
             throw;
@@ -299,15 +301,15 @@ namespace ctranslate2 {
       _position_encoder(layer_in, step);
 
       for (size_t l = 0; l < _layers.size(); ++l) {
-        _layers[l](layer_in,
-                   memory,
-                   memory_lengths,
-                   state.at("self_keys_" + std::to_string(l)),
-                   state.at("self_values_" + std::to_string(l)),
-                   state.at("memory_keys_" + std::to_string(l)),
-                   state.at("memory_values_" + std::to_string(l)),
-                   layer_out,
-                   l + 1 == _layers.size() ? attention : nullptr);
+        (*_layers[l])(layer_in,
+                      memory,
+                      memory_lengths,
+                      state.at("self_keys_" + std::to_string(l)),
+                      state.at("self_values_" + std::to_string(l)),
+                      state.at("memory_keys_" + std::to_string(l)),
+                      state.at("memory_values_" + std::to_string(l)),
+                      layer_out,
+                      l + 1 == _layers.size() ? attention : nullptr);
         swap(layer_in, layer_out);
       }
 
