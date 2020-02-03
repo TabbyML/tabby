@@ -4,7 +4,11 @@
 
 ### Fixes and improvements
 
-* Replace `boost::program_options` with `cxxopts` for client options
+* Enable INT8 support on default Intel MKL build
+* Simplify dependencies:
+  * Replace `boost::program_options` with `cxxopts` for client options
+  * Include header-only dependencies as Git submodules (`cxxopts`, `cub`, and `thrust`)
+  * Remove MKL-DNN
 
 ## [v1.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.4.0) (2020-01-20)
 
