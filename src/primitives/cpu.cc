@@ -19,8 +19,8 @@ namespace ctranslate2 {
     std::transform(x, x + size, y, func);
   }
 
-  template <typename T1, typename T2, typename Function>
-  void binary_transform(const T1* a, const T1* b, T2* c, dim_t size, Function func) {
+  template <typename T1, typename T2, typename T3, typename Function>
+  void binary_transform(const T1* a, const T2* b, T3* c, dim_t size, Function func) {
     std::transform(a, a + size, b, c, func);
   }
 
