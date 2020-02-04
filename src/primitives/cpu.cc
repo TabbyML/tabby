@@ -152,6 +152,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::add_batch_broadcast(const T* a, const T* b, T* c,
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = b_size / a_size;
+    #pragma omp parallel for
     for (dim_t i = 0; i < iter_size; ++i) {
       const dim_t offset = i * a_size;
       add(a, b + offset, c + offset, a_size);
@@ -164,6 +165,7 @@ namespace ctranslate2 {
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = a_size;
     const dim_t depth = b_size / a_size;
+    #pragma omp parallel for
     for (dim_t i = 0; i < iter_size; ++i) {
       const dim_t offset = i * depth;
       add(a[i], b + offset, c + offset, depth);
@@ -217,6 +219,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c,
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = b_size / a_size;
+    #pragma omp parallel for
     for (dim_t i = 0; i < iter_size; ++i) {
       const dim_t offset = i * a_size;
       mul(a, b + offset, c + offset, a_size);
