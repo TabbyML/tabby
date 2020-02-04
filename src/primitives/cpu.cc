@@ -563,7 +563,7 @@ namespace ctranslate2 {
 
     // TODO: b is usually a fixed model weight, so we could compute the compensation once
     // and reuse it.
-    auto* compensation = static_cast<int32_t*>(alloc_data(k * n * sizeof (int32_t)));
+    auto* compensation = static_cast<int32_t*>(alloc_data(n * sizeof (int32_t)));
     compute_compensation(b, transpose_b, k, n, alpha, compensation);
 
     cblas_gemm_s8u8s32(CblasRowMajor,
