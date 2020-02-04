@@ -71,8 +71,8 @@ void benchmark_gemm(Device device, DataType dtype) {
   StorageView a({32 * 32, 512}, dtype, device);
   StorageView b({2048, 512}, dtype, device);
   StorageView c(output_dtype, device);
-  const ops::Gemm gemm_op(1, 0, false, false, true);
-  BENCHMARK(gemm_op(a, b, c, c), 1000);
+  const ops::Gemm gemm_op(1, 0, false, true);
+  BENCHMARK(gemm_op(a, b, c), 1000);
 }
 
 void benchmark_quantize(Device device, DataType dtype) {

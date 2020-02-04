@@ -98,7 +98,7 @@ TEST(OpTest, GemmInt16) {
   StorageView c({64, 64}, static_cast<int32_t>(2));
   StorageView y(c.dtype());
   StorageView expected({64, 64}, static_cast<int32_t>(130));
-  ops::Gemm op(2.0, 1.0, false, false, true);
+  ops::Gemm op(2.0, 1.0, false, true);
   op(a, b, c, y);
   expect_storage_eq(y, expected);
 };
@@ -431,7 +431,7 @@ TEST_P(OpDeviceTest, Gemm) {
   StorageView y(c.dtype(), device);
   StorageView expected(
     {4, 4}, std::vector<float>{3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3, 2, 2, 2, 2, 3}, device);
-  ops::Gemm op(1.0, 1.0, false, false, false);
+  ops::Gemm op(1.0, 1.0, false, false);
   op(a, b, c, y);
   expect_storage_eq(y, expected);
 };
@@ -451,15 +451,14 @@ TEST_P(OpDeviceTest, GemmInt8) {
       54, 16, -11, -31,
       32, -17, -10, -58,
       45, -17, 58, -44}, device);
-  StorageView c;
-  StorageView y(DataType::DT_INT32, device);
+  StorageView c(DataType::DT_INT32, device);
   StorageView expected({3, 4}, std::vector<int32_t>{
       -1205, 2249, -1269, -4226,
       -3697, 1272, 2436, -1676,
       -5560, -1767, -668, 6}, device);
-  ops::Gemm op(1.0, 0.0, false, false, false);
-  op(a, b, c, y);
-  expect_storage_eq(y, expected);
+  ops::Gemm op(1.0, 0.0, false, false);
+  op(a, b, c);
+  expect_storage_eq(c, expected);
 };
 
 TEST_P(OpDeviceTest, TopK) {

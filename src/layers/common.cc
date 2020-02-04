@@ -36,7 +36,7 @@ namespace ctranslate2 {
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_weight.device(), DataType::DT_FLOAT)
       , _partial_qscale(_weight.device())
-      , _gemm_op(1, 0, false, false, true) {
+      , _gemm_op(1, 0, false, true) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
@@ -64,10 +64,10 @@ namespace ctranslate2 {
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::DT_INT32, device);
         ops::Quantize()(input, qinput, qinput_scale);
-        _gemm_op(qinput, *weight, *bias, qoutput);
+        _gemm_op(qinput, *weight, qoutput);
         ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
       } else {
-        _gemm_op(input, *weight, *bias, output);
+        _gemm_op(input, *weight, output);
       }
 
       if (bias) {
