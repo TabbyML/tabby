@@ -229,17 +229,17 @@ namespace ctranslate2 {
                                         const StorageView& lengths,
                                         StorageView& output) {
       PROFILE("TransformerEncoder");
-      StorageView layer_in(output.device());
-      StorageView layer_out(output.device());
-      _embeddings(ids, layer_in);
-      ops::Mul()(layer_in, StorageView(static_cast<float>(sqrt(layer_in.dim(-1)))), layer_in);
-      _position_encoder(layer_in);
+      StorageView input(output.device());
+      _embeddings(ids, input);
+      ops::Mul()(input, StorageView(static_cast<float>(sqrt(input.dim(-1)))), input);
+      _position_encoder(input);
 
-      for (auto& layer : _layers) {
-        (*layer)(layer_in, lengths, layer_out);
-        swap(layer_in, layer_out);
+      for (size_t l = 0; l < _layers.size(); ++l) {
+        (*_layers[l])(input, lengths, output);
+        if (l + 1 < _layers.size())
+          swap(input, output);
       }
-      _output_norm(layer_in, output);
+      _output_norm(output, output);
     }
 
 
@@ -314,8 +314,8 @@ namespace ctranslate2 {
       }
 
       if (logits) {
-        _output_norm(layer_in, layer_out);
-        _proj(layer_out, *logits);
+        _output_norm(layer_in, layer_in);
+        _proj(layer_in, *logits);
       }
     }
 
