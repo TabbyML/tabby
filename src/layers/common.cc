@@ -35,7 +35,8 @@ namespace ctranslate2 {
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_weight.device(), DataType::DT_FLOAT)
-      , _partial_qscale(_weight.device()) {
+      , _partial_qscale(_weight.device())
+      , _gemm_op(1, 0, false, false, true) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
@@ -57,17 +58,16 @@ namespace ctranslate2 {
       const StorageView* weight = _partial_weight.empty() ? &_weight : &_partial_weight;
       const StorageView* bias = _partial_bias.empty() ? _bias : &_partial_bias;
 
-      static const ops::Gemm gemm_op(1, 0, false, false, true);
       if (_weight.dtype() == DataType::DT_INT16 || _weight.dtype() == DataType::DT_INT8) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::DT_INT32, device);
         ops::Quantize()(input, qinput, qinput_scale);
-        gemm_op(qinput, *weight, *bias, qoutput);
+        _gemm_op(qinput, *weight, *bias, qoutput);
         ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
       } else {
-        gemm_op(input, *weight, *bias, output);
+        _gemm_op(input, *weight, *bias, output);
       }
 
       if (bias) {

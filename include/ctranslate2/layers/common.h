@@ -12,7 +12,7 @@ namespace ctranslate2 {
       Embeddings(const models::Model& model, const std::string& scope);
       void operator()(const StorageView& ids, StorageView& output);
     private:
-      ops::Gather _gather_op;
+      const ops::Gather _gather_op;
       const StorageView& _embeddings;
       const StorageView* _qscale;
     };
@@ -31,6 +31,7 @@ namespace ctranslate2 {
       StorageView _partial_weight;
       StorageView _partial_bias;
       StorageView _partial_qscale;
+      const ops::Gemm _gemm_op;
     };
 
     class LayerNorm
@@ -39,7 +40,7 @@ namespace ctranslate2 {
       LayerNorm(const models::Model& model, const std::string& scope);
       void operator()(const StorageView& input, StorageView& output);
     private:
-      ops::LayerNorm _norm_op;
+      const ops::LayerNorm _norm_op;
       const StorageView& _beta;
       const StorageView& _gamma;
     };
