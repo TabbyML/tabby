@@ -69,7 +69,7 @@ set(SOURCES
   src/models/transformer.cc
   src/ops/add.cc
   src/ops/concat.cc
-  src/ops/concat_cpu.cc
+  src/ops/concat_split_cpu.cc
   src/ops/dequantize.cc
   src/ops/gather.cc
   src/ops/gather_cpu.cc
@@ -85,7 +85,6 @@ set(SOURCES
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
   src/ops/split.cc
-  src/ops/split_cpu.cc
   src/ops/sub.cc
   src/ops/tile.cc
   src/ops/topk.cc
