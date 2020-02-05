@@ -8,14 +8,16 @@ namespace ctranslate2 {
                          const StorageView& input,
                          StorageView& output) const {
       const auto* indices = input.data<int32_t>();
-      const dim_t copy_dim = data.stride(0);
-      for (dim_t i = 0, merge = 1; i < input.size(); i += merge, merge = 1) {
-        const dim_t index = indices[i];
-        while (i + merge < input.size() && static_cast<dim_t>(indices[i + merge]) == index + merge)
-          ++merge;
-        const auto* src = data.index<T>({index});
-        auto* dst = output.data<T>() + i * copy_dim;
-        primitives<Device::CPU>::copy(src, dst, copy_dim * merge);
+      const dim_t copy_size = data.stride(0);
+      const dim_t num_indices = input.size();
+
+      const T* src = data.data<T>();
+      T* dst = output.data<T>();
+
+      #pragma omp parallel for
+      for (dim_t i = 0; i < num_indices; ++i) {
+        const int32_t read_index = indices[i];
+        primitives<Device::CPU>::copy(src + read_index * copy_size, dst + i * copy_size, copy_size);
       }
     }
 
