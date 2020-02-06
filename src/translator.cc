@@ -357,13 +357,11 @@ namespace ctranslate2 {
     return _model->compute_type();
   }
 
-  void Translator::set_model(const std::string& model_dir)
-  {
+  void Translator::set_model(const std::string& model_dir) {
     set_model(models::Model::load(model_dir, device(), device_index(), compute_type()));
   }
 
-  void Translator::set_model(const std::shared_ptr<const models::Model>& model)
-  {
+  void Translator::set_model(const std::shared_ptr<const models::Model>& model) {
     _model = model;
     make_graph();
   }

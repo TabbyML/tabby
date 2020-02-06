@@ -53,8 +53,7 @@ namespace ctranslate2 {
     int device_index() const;
     ComputeType compute_type() const;
 
-    //Change only the model while keeping the same device
-    //and compute type
+    // Change only the model while keeping the same device and compute type.
     void set_model(const std::string& model_dir);
     void set_model(const std::shared_ptr<const models::Model>& model);
 
