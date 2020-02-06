@@ -2,6 +2,12 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.5.0) (2020-02-06)
+
+### New features
+
 * [C++] Add `max_batch_size` translation options for single translators
 
 ### Fixes and improvements
