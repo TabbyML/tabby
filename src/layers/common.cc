@@ -68,6 +68,8 @@ namespace ctranslate2 {
 
     void Dense::mask_weights(const StorageView& index) {
       ops::Gather()(_weight, index, _partial_weight);
+      if (_u8_shift_compensation)
+        _u8_shift_compensation.reset(compute_u8_compensation(_partial_weight));
       if (_bias)
         ops::Gather()(*_bias, index, _partial_bias);
       if (_qscale && !_qscale->is_scalar())
