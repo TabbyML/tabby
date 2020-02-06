@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.5.1) (2020-02-06)
+
+### Fixes and improvements
+
+* Fix INT8 translation on CPU with vocabulary map
+
 ## [v1.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.5.0) (2020-02-06)
 
 ### New features
