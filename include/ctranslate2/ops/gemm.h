@@ -13,7 +13,8 @@ namespace ctranslate2 {
                       std::vector<StorageView*>& outputs) const override;
       void operator()(const StorageView& a,
                       const StorageView& b,
-                      StorageView& c) const;
+                      StorageView& c,
+                      const StorageView* a_shift_compensation = nullptr) const;
       void operator()(const StorageView& a,
                       const StorageView& b,
                       const StorageView& c,
@@ -23,7 +24,8 @@ namespace ctranslate2 {
       void compute(const StorageView& a,
                    const StorageView& b,
                    const StorageView* c,
-                   StorageView& y) const;
+                   StorageView& y,
+                   const StorageView* a_shift_compensation) const;
 
       float _alpha;
       float _beta;

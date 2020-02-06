@@ -209,16 +209,26 @@ namespace ctranslate2 {
   };
 
   template <typename T>
-  struct quantize_func : public thrust::binary_function<float, float, T> {
+  class quantize_func : public thrust::binary_function<float, float, T> {
+  private:
+    float _shift;
+  public:
+    quantize_func(float shift)
+      : _shift(shift) {
+    }
     __host__ __device__
     T operator()(float scale, float x) {
-      return static_cast<T>(x * scale);
+      return static_cast<T>(x * scale + _shift);
     }
   };
 
   template<>
-  void primitives<Device::CUDA>::quantize_batch(const float* x, float* scales, int8_t* qx,
-                                                dim_t batch_size, dim_t depth) {
+  void primitives<Device::CUDA>::quantize_batch(const float* x,
+                                                float* scales,
+                                                int8_t* qx,
+                                                dim_t batch_size,
+                                                dim_t depth,
+                                                float shift) {
     const dim_t size = batch_size * depth;
 
     // Assign 1 key per batch.
@@ -237,24 +247,30 @@ namespace ctranslate2 {
 
     // qx = x * expand_dims(scales, 1)
     binary_transform(scales, x, qx, size,
-                     quantize_func<int8_t>(),
+                     quantize_func<int8_t>(shift),
                      repeat_vec_depth<dim_t>(depth));
   }
 
   template <typename T>
-  struct dequantize_func : public thrust::binary_function<float, T, float> {
+  class dequantize_func : public thrust::binary_function<float, T, float> {
+  private:
+    float _shift;
+  public:
+    dequantize_func(float shift)
+      : _shift(shift) {
+    }
     __device__
     float operator()(float scale, T x) {
-      return __fdividef(static_cast<float>(x), scale);
+      return __fdividef(static_cast<float>(x) - _shift, scale);
     }
   };
 
   template<>
   template<>
   void primitives<Device::CUDA>::dequantize_batch(const int8_t* x, const float* scale, float* y,
-                                                  dim_t x_size, dim_t scale_size) {
+                                                  dim_t x_size, dim_t scale_size, float shift) {
     binary_transform(scale, x, y, x_size,
-                     dequantize_func<int8_t>(),
+                     dequantize_func<int8_t>(shift),
                      repeat_vec_depth<dim_t>(x_size / scale_size));
   }
 
@@ -421,7 +437,8 @@ namespace ctranslate2 {
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
                                       float alpha, float beta,
-                                      float* c) {
+                                      float* c,
+                                      const float*) {
     // Memo: cuBLAS assumes column-major storage.
 
     const int lda = transpose_a ? m : k;
@@ -447,7 +464,8 @@ namespace ctranslate2 {
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
                                       float alpha, float beta,
-                                      int32_t* c) {
+                                      int32_t* c,
+                                      const int32_t*) {
     const int lda = transpose_a ? m : k;
     const int ldb = transpose_b ? k : n;
     const int ldc = n;

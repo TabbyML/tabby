@@ -32,6 +32,8 @@ namespace ctranslate2 {
       StorageView _partial_bias;
       StorageView _partial_qscale;
       const ops::Gemm _gemm_op;
+      const float _u8_quantization_shift;
+      std::unique_ptr<const StorageView> _u8_shift_compensation;
     };
 
     class LayerNorm

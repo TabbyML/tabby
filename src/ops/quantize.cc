@@ -18,7 +18,10 @@ namespace ctranslate2 {
       operator()(*inputs[0], *outputs[0], *outputs[1]);
     }
 
-    void Quantize::operator()(const StorageView& x, StorageView& y, StorageView& scale) const {
+    void Quantize::operator()(const StorageView& x,
+                              StorageView& y,
+                              StorageView& scale,
+                              float shift) const {
       PROFILE("Quantize");
       y.resize_as(x);
       if (y.dtype() == DataType::DT_INT16) {
@@ -36,7 +39,8 @@ namespace ctranslate2 {
         primitives<Device::CPU>::quantize(x.data<float>(),
                                           y.data<int16_t>(),
                                           x.size(),
-                                          scale.as_scalar<float>());
+                                          scale.as_scalar<float>(),
+                                          shift);
       } else if (y.dtype() == DataType::DT_INT8) {
         // INT8 quantization rescales based on the per batch absolute maximum.
         auto depth = x.dim(-1);
@@ -49,7 +53,8 @@ namespace ctranslate2 {
                                         scale.data<float>(),
                                         y.data<int8_t>(),
                                         batch_size,
-                                        depth));
+                                        depth,
+                                        shift));
       } else {
         throw std::invalid_argument("Quantize: invalid quantized type " + dtype_name(y.dtype())
                                     + ", expected int8 or int16");

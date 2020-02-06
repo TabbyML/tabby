@@ -10,10 +10,14 @@ namespace ctranslate2 {
                          bool transpose_a, bool transpose_b,
                          dim_t m, dim_t n, dim_t k,
                          float alpha, float beta,
-                         StorageView& y) {
+                         StorageView& y,
+                         const StorageView* a_shift_compensation = nullptr) {
       const In* a_data = a.data<In>();
       const In* b_data = b.data<In>();
       Out* y_data = y.data<Out>();
+      const Out* a_shift_compensation_data = (a_shift_compensation
+                                              ? a_shift_compensation->data<Out>()
+                                              : nullptr);
 
       if (beta != 0 && c) {
         const Out* c_data = c->data<Out>();
@@ -31,7 +35,8 @@ namespace ctranslate2 {
                           transpose_a, transpose_b,
                           m, n, k,
                           alpha, beta,
-                          y_data);
+                          y_data,
+                          a_shift_compensation_data);
     }
 
 
@@ -54,19 +59,21 @@ namespace ctranslate2 {
                           const StorageView& b,
                           const StorageView& c,
                           StorageView& y) const {
-      compute(a, b, &c, y);
+      compute(a, b, &c, y, nullptr);
     }
 
     void Gemm::operator()(const StorageView& a,
                           const StorageView& b,
-                          StorageView& c) const {
-      compute(a, b, nullptr, c);
+                          StorageView& c,
+                          const StorageView* a_shift_compensation) const {
+      compute(a, b, nullptr, c, a_shift_compensation);
     }
 
     void Gemm::compute(const StorageView& a,
                        const StorageView& b,
                        const StorageView* c,
-                       StorageView& y) const {
+                       StorageView& y,
+                       const StorageView* a_shift_compensation) const {
       PROFILE("Gemm");
 
       const dim_t k = a.dim(_trans_a ? -2 : -1);
@@ -84,7 +91,8 @@ namespace ctranslate2 {
                                                       _trans_a, _trans_b,
                                                       m, n, k,
                                                       _alpha, _beta,
-                                                      y)));
+                                                      y,
+                                                      a_shift_compensation)));
         break;
 
       case DataType::DT_INT16:
@@ -94,7 +102,8 @@ namespace ctranslate2 {
                                                 _trans_a, _trans_b,
                                                 m, n, k,
                                                 _alpha, _beta,
-                                                y);
+                                                y,
+                                                a_shift_compensation);
         break;
 
       case DataType::DT_FLOAT:
@@ -103,7 +112,8 @@ namespace ctranslate2 {
                                                    _trans_a, _trans_b,
                                                    m, n, k,
                                                    _alpha, _beta,
-                                                   y)));
+                                                   y,
+                                                   a_shift_compensation)));
         break;
 
       default:

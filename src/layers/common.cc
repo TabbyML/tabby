@@ -29,6 +29,28 @@ namespace ctranslate2 {
     }
 
 
+    static bool should_shift_input_to_u8(Device device, DataType dtype) {
+      // If the target Gemm implementation prefers the u8s8s32 format, we can shift
+      // the input to the u8 domain and add a compensation term.
+      return (device == Device::CPU
+              && dtype == DataType::DT_INT8
+              && primitives<Device::CPU>::prefer_u8s8s32_gemm());
+    }
+
+    static StorageView* compute_u8_compensation(const StorageView& weight) {
+      // The compensation term for the shifted input only depends on the weight, so
+      // we can compute it once.
+      const dim_t k = weight.dim(1);
+      const dim_t n = weight.dim(0);
+      auto* compensation = new StorageView({n}, DataType::DT_INT32);
+      primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
+                                                       /*transpose=*/true,
+                                                       k, n,
+                                                       /*alpha=*/1,
+                                                       compensation->data<int32_t>());
+      return compensation;
+    }
+
     Dense::Dense(const models::Model& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
@@ -36,7 +58,11 @@ namespace ctranslate2 {
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_weight.device(), DataType::DT_FLOAT)
       , _partial_qscale(_weight.device())
-      , _gemm_op(1, 0, false, true) {
+      , _gemm_op(1, 0, false, true)
+      , _u8_quantization_shift(should_shift_input_to_u8(_weight.device(), _weight.dtype())
+                               ? 128 : 0)
+      , _u8_shift_compensation(_u8_quantization_shift != 0
+                               ? compute_u8_compensation(_weight) : nullptr) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
@@ -63,8 +89,8 @@ namespace ctranslate2 {
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::DT_INT32, device);
-        ops::Quantize()(input, qinput, qinput_scale);
-        _gemm_op(qinput, *weight, qoutput);
+        ops::Quantize()(input, qinput, qinput_scale, _u8_quantization_shift);
+        _gemm_op(qinput, *weight, qoutput, _u8_shift_compensation.get());
         ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
       } else {
         _gemm_op(input, *weight, output);

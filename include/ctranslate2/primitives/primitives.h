@@ -118,17 +118,17 @@ namespace ctranslate2 {
     static void inv(const T* x, T* y, dim_t size);
 
     template <typename T>
-    static void quantize(const float* x, T* y, dim_t size, float scale);
+    static void quantize(const float* x, T* y, dim_t size, float scale, float shift = 0);
 
     template <typename T>
-    static void dequantize(const T* x, float* y, dim_t size, float scale);
+    static void dequantize(const T* x, float* y, dim_t size, float scale, float shift = 0);
 
     static void quantize_batch(const float* x, float* scales, int8_t* qx,
-                               dim_t batch_size, dim_t depth);
+                               dim_t batch_size, dim_t depth, float shift = 0);
 
     template <typename T>
     static void dequantize_batch(const T* x, const float* scale, float* y,
-                                 dim_t x_size, dim_t scale_size);
+                                 dim_t x_size, dim_t scale_size, float shift = 0);
 
     static void rescale_output(const int32_t* x,
                                const float* input_scales,
@@ -153,12 +153,21 @@ namespace ctranslate2 {
     static void relu(const float* x, float* y, dim_t size);
     static void gelu(const float* x, float* y, dim_t size);
 
+    static void compute_u8_compensation(const int8_t* b,
+                                        bool transpose_b,
+                                        dim_t k,
+                                        dim_t n,
+                                        float alpha,
+                                        int32_t* compensation);
+    static bool prefer_u8s8s32_gemm();
+
     template <typename In, typename Out>
     static void gemm(const In* a, const In* b,
                      bool transpose_a, bool transpose_b,
                      dim_t m, dim_t n, dim_t k,
                      float alpha, float beta,
-                     Out* c);
+                     Out* c,
+                     const Out* a_shift_compensation = nullptr);
 
     template <typename In, typename Out>
     static void gemm_batch(const In* a, const In* b,
