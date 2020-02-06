@@ -2,13 +2,20 @@
 
 ### New features
 
+* [C++] Add `max_batch_size` translation options for single translators
+* [C++] Add `Translator::set_model` method to change the model without rebuilding a translator
+
 ### Fixes and improvements
 
+* Improve INT8 performance on CPU
 * Enable INT8 support on default Intel MKL build
-* Simplify dependencies:
+* Simplify project dependencies:
   * Replace `boost::program_options` with `cxxopts` for client options
   * Include header-only dependencies as Git submodules (`cxxopts`, `cub`, and `thrust`)
   * Remove MKL-DNN
+* Harmonize Python/C++ default values:
+  * [Python] Change default beam size from 4 to 2
+  * [C++] Load models on the CPU by default
 
 ## [v1.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.4.0) (2020-01-20)
 
