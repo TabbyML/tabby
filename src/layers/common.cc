@@ -12,6 +12,7 @@ namespace ctranslate2 {
 
     void Embeddings::operator()(const StorageView& ids,
                                 StorageView& output) {
+      PROFILE("Embeddings");
       if (_embeddings.dtype() == DataType::DT_INT16 || _embeddings.dtype() == DataType::DT_INT8) {
         const auto device = output.device();
         StorageView gathered(_embeddings.dtype(), device);
@@ -80,6 +81,7 @@ namespace ctranslate2 {
     }
 
     void Dense::operator()(const StorageView& input, StorageView& output) {
+      PROFILE("Dense");
       const StorageView* qscale = _partial_qscale.empty() ? _qscale : &_partial_qscale;
       const StorageView* weight = _partial_weight.empty() ? &_weight : &_partial_weight;
       const StorageView* bias = _partial_bias.empty() ? _bias : &_partial_bias;
