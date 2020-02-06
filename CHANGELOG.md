@@ -3,7 +3,6 @@
 ### New features
 
 * [C++] Add `max_batch_size` translation options for single translators
-* [C++] Add `Translator::set_model` method to change the model without rebuilding a translator
 
 ### Fixes and improvements
 
