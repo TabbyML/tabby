@@ -28,15 +28,18 @@ namespace ctranslate2 {
     return batch_ids;
   }
 
-  static void sort_from_longest_to_shortest(std::vector<std::vector<size_t>>& ids,
+  template <typename T>
+  static void sort_from_longest_to_shortest(std::vector<std::vector<T>>& ids,
                                             std::vector<size_t>& original_to_sorted_index) {
+    if (ids.size() == 1)
+      return;
     std::vector<size_t> sorted_to_original_index(ids.size());
     std::iota(sorted_to_original_index.begin(), sorted_to_original_index.end(), 0);
     std::sort(sorted_to_original_index.begin(), sorted_to_original_index.end(),
               [&ids](size_t i1, size_t i2) { return ids[i1].size() > ids[i2].size(); });
 
     original_to_sorted_index.resize(ids.size());
-    std::vector<std::vector<size_t>> new_ids;
+    std::vector<std::vector<T>> new_ids;
     new_ids.reserve(ids.size());
     for (size_t i = 0; i < ids.size(); ++i) {
       size_t original_index = sorted_to_original_index[i];
@@ -175,7 +178,7 @@ namespace ctranslate2 {
 
     // Directly run translation if all source inputs are non empty.
     if (no_source_is_empty)
-      return run_translation(source, target_prefix, options);
+      return translate_tokens(source, target_prefix, options);
 
     std::vector<std::vector<std::string>> non_empty_source;
     std::vector<std::vector<std::string>> non_empty_target_prefix;
@@ -194,7 +197,7 @@ namespace ctranslate2 {
 
     std::vector<TranslationResult> results;
     if (!non_empty_source.empty())
-      results = run_translation(non_empty_source, non_empty_target_prefix, options);
+      results = translate_tokens(non_empty_source, non_empty_target_prefix, options);
     std::vector<TranslationResult> final_results;
     final_results.reserve(batch_size);
 
@@ -213,10 +216,69 @@ namespace ctranslate2 {
   }
 
   std::vector<TranslationResult>
+  Translator::translate_tokens(const std::vector<std::vector<std::string>>& source,
+                               const std::vector<std::vector<std::string>>& target_prefix,
+                               const TranslationOptions& options) {
+    PROFILE("translate_tokens");
+
+    // Sorting the source input has 2 benefits:
+    //
+    // 1. When max_batch_size is smaller that the number of inputs, we prefer translating
+    //    together sentences that have a similar length for improved efficiency.
+    // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
+    //    updated in place so it is more efficient to remove content at the end. Shorter sentences
+    //    are more likely to finish first so we sort the batch accordingly.
+    std::vector<std::vector<std::string>> sorted_source(source);
+    std::vector<size_t> sorted_index;
+    sort_from_longest_to_shortest(sorted_source, sorted_index);
+
+    const size_t total_batch_size = source.size();
+    std::vector<TranslationResult> results;
+
+    if (options.max_batch_size == 0 || options.max_batch_size >= total_batch_size)
+      results = run_translation(sorted_source, target_prefix, options);
+    else {
+      // Translate by batch of size options.max_batch_size.
+      results.reserve(total_batch_size);
+
+      std::vector<std::vector<std::string>> partial_source;
+      partial_source.reserve(options.max_batch_size);
+      for (auto& tokens : sorted_source) {
+        partial_source.emplace_back(std::move(tokens));
+
+        if (partial_source.size() == options.max_batch_size) {
+          auto partial_results = run_translation(partial_source, target_prefix, options);
+          results.insert(results.end(),
+                         std::make_move_iterator(partial_results.begin()),
+                         std::make_move_iterator(partial_results.end()));
+          partial_source.clear();
+        }
+      }
+
+      if (!partial_source.empty()) {
+        auto partial_results = run_translation(partial_source, target_prefix, options);
+        results.insert(results.end(),
+                       std::make_move_iterator(partial_results.begin()),
+                       std::make_move_iterator(partial_results.end()));
+      }
+    }
+
+    // Reorder results based on original batch index.
+    if (sorted_index.empty())
+      return results;
+    else {
+      std::vector<TranslationResult> final_results;
+      final_results.reserve(results.size());
+      for (auto index : sorted_index)
+        final_results.emplace_back(std::move(results[index]));
+      return final_results;
+    }
+  }
+
+  std::vector<TranslationResult>
   Translator::run_translation(const std::vector<std::vector<std::string>>& source,
                               const std::vector<std::vector<std::string>>& target_prefix,
                               const TranslationOptions& options) {
-    PROFILE("run_translation");
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();
@@ -230,14 +292,6 @@ namespace ctranslate2 {
     auto device = _model->device();
 
     auto source_ids = tokens_to_ids(source, source_vocab);
-
-    // Decoding functions remove finished translations from the batch. On CPU, arrays are
-    // updated in place so it is more efficient to remove content at the end. Shorter sentences
-    // are more likely to finish first so we sort the batch accordingly.
-    std::vector<size_t> sorted_index;
-    if (batch_size > 1 && device == Device::CPU)
-      sort_from_longest_to_shortest(source_ids, sorted_index);
-
     auto inputs = make_inputs(source_ids, device);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
@@ -333,16 +387,7 @@ namespace ctranslate2 {
       results.emplace_back(hypotheses, scores[i], attn);
     }
 
-    if (sorted_index.empty())
-      return results;
-    else {
-      // Reorder results based on original batch index.
-      std::vector<TranslationResult> final_results;
-      final_results.reserve(results.size());
-      for (auto index : sorted_index)
-        final_results.emplace_back(std::move(results[index]));
-      return final_results;
-    }
+    return results;
   }
 
   Device Translator::device() const {

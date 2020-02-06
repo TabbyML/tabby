@@ -159,6 +159,26 @@ INSTANTIATE_TEST_CASE_P(
   ::testing::Values(1, 4),
   beam_to_test_name);
 
+TEST(TranslatorTest, TranslateBatchWithMaxBatchSize) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.max_batch_size = 2;
+  std::vector<std::vector<std::string>> inputs = {
+    {"آ" ,"ر" ,"ب" ,"ا" ,"ك" ,"ه"},
+    {"آ" ,"ز" ,"ا"},
+    {"آ" ,"ت" ,"ش" ,"ي" ,"س" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ر" ,"ث" ,"ر"}};
+  auto results = translator.translate_batch(inputs, options);
+  ASSERT_EQ(results.size(), 5);
+  // Order should be preserved.
+  EXPECT_EQ(results[0].output(), (std::vector<std::string>{"a", "r", "b", "a", "k", "e"}));
+  EXPECT_EQ(results[1].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
+  EXPECT_EQ(results[2].output(), (std::vector<std::string>{"a", "c", "h", "i", "s", "o", "n"}));
+  EXPECT_EQ(results[3].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(results[4].output(), (std::vector<std::string>{"a", "r", "t", "h", "e", "r"}));
+}
+
 TEST(TranslatorTest, TranslateEmptyBatch) {
   Translator translator = default_translator();
   std::vector<std::vector<std::string>> inputs;
