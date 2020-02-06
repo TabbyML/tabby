@@ -40,7 +40,6 @@ namespace ctranslate2 {
 
       void split_heads(const StorageView& x, StorageView& y);
       void combine_heads(const StorageView& x, StorageView& y);
-      static void cache_proj(StorageView& proj, StorageView& cache);
     };
 
   }

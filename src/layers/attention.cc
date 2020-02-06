@@ -63,27 +63,39 @@ namespace ctranslate2 {
 
       if (memory) {
         split_heads(fused_proj, split_queries);
-        if (cached_keys != nullptr && !cached_keys->empty()) {
-          split_keys.shallow_copy(*cached_keys);
-          split_values.shallow_copy(*cached_values);
-        } else {
+        if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](*memory, fused_proj);
           ops::Split(-1)(fused_proj, keys_proj, values_proj);
           split_heads(keys_proj, split_keys);
           split_heads(values_proj, split_values);
+
           if (cached_keys != nullptr) {
-            *cached_keys = split_keys;
-            *cached_values = split_values;
+            swap(*cached_keys, split_keys);
+            swap(*cached_values, split_values);
+            split_keys.shallow_copy(*cached_keys);
+            split_values.shallow_copy(*cached_values);
           }
+        } else {
+          split_keys.shallow_copy(*cached_keys);
+          split_values.shallow_copy(*cached_values);
         }
       } else {
         ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
         split_heads(queries_proj, split_queries);
         split_heads(keys_proj, split_keys);
         split_heads(values_proj, split_values);
+
         if (cached_keys != nullptr) {
-          cache_proj(split_keys, *cached_keys);
-          cache_proj(split_values, *cached_values);
+          if (cached_keys->empty()) {
+            swap(*cached_keys, split_keys);
+            swap(*cached_values, split_values);
+          } else {
+            StorageView& tmp = keys_proj;  // Reuse storage.
+            swap(*cached_keys, tmp);
+            ops::Concat(2)({&tmp, &split_keys}, *cached_keys);
+            swap(*cached_values, tmp);
+            ops::Concat(2)({&tmp, &split_values}, *cached_values);
+          }
           split_keys.shallow_copy(*cached_keys);
           split_values.shallow_copy(*cached_values);
         }
@@ -118,16 +130,6 @@ namespace ctranslate2 {
     void MultiHeadAttention::combine_heads(const StorageView& x, StorageView& y) {
       _transpose_op(x, y);
       y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
-    }
-
-    void MultiHeadAttention::cache_proj(StorageView& proj, StorageView& cache) {
-      if (cache.empty()) {
-        cache = proj;
-      } else {
-        StorageView tmp(proj.device());
-        tmp = std::move(cache);
-        ops::Concat(2)({&tmp, &proj}, cache);
-      }
     }
 
   }
