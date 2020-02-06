@@ -42,7 +42,7 @@ translator = ctranslate2.Translator(
 output = translator.translate_batch(
     source: list,            # A list of list of string.
     target_prefix=None,      # An optional list of list of string.
-    beam_size=4,             # Beam size.
+    beam_size=2,             # Beam size.
     num_hypotheses=1,        # Number of hypotheses to return.
     length_penalty=0,        # Length penalty constant.
     max_decoding_length=250, # Maximum prediction length.
@@ -58,7 +58,7 @@ stats = translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to translate.
-    beam_size=4,             # Beam size.
+    beam_size=2,             # Beam size.
     num_hypotheses=1,        # Number of hypotheses to output.
     length_penalty=0,        # Length penalty constant.
     max_decoding_length=250, # Maximum prediction length.
