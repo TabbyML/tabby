@@ -335,11 +335,11 @@ Configuration:
 
 | | Tokens/s | BLEU |
 | --- | --- | --- |
-| CTranslate2 1.2.1 (int8 + vmap) | 591.78 | 26.59 |
-| CTranslate2 1.2.1 (int16 + vmap) | 514.36 | 26.63 |
-| CTranslate2 1.2.1 (int8) | 448.21 | 26.84 |
-| CTranslate2 1.2.1 (int16) | 395.46 | 26.68 |
-| CTranslate2 1.2.1 (float) | 381.31 | 26.69 |
+| CTranslate2 1.5.1 (int8 + vmap) | 647.64 | 26.59 |
+| CTranslate2 1.5.1 (int16 + vmap) | 534.63 | 26.63 |
+| CTranslate2 1.5.1 (int8) | 508.29 | 26.84 |
+| CTranslate2 1.5.1 (int16) | 411.26 | 26.68 |
+| CTranslate2 1.5.1 (float) | 399.72 | 26.69 |
 | OpenNMT-py 0.9.2 | 241.92 | 26.69 |
 | OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
 
