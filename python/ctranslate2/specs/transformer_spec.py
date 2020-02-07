@@ -19,6 +19,10 @@ class TransformerSpec(model_spec.ModelSpec):
         self.decoder = TransformerDecoderSpec(num_layers)
 
     @property
+    def name(self):
+        return "TransformerSpec"
+
+    @property
     def revision(self):
         return 3
 

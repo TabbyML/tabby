@@ -71,15 +71,6 @@ namespace ctranslate2 {
     }
 
 
-    TransformerBaseModel::TransformerBaseModel(const std::string& path, size_t spec_revision)
-      : TransformerModel(path, spec_revision, 8) {
-    }
-
-    TransformerBigModel::TransformerBigModel(const std::string& path, size_t spec_revision)
-      : TransformerModel(path, spec_revision, 16) {
-    }
-
-
     PositionEncoder::PositionEncoder()
       : _model_encoding(nullptr) {
     }

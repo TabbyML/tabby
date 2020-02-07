@@ -117,40 +117,6 @@ class LayerSpec(object):
         """Recursively visits this layer and its children."""
         visit_spec(self, fn)
 
-    def serialize(self, path):
-        """Serializes this specification."""
-        variables = []
-        aliases = []
-        for variable in self.variables(ordered=True):
-            if isinstance(variable[1], six.string_types):
-                aliases.append(variable)
-            else:
-                variables.append(variable)
-
-        with open(path, "wb") as model:
-
-            def _write_string(string):
-                model.write(struct.pack("H", len(string) + 1))
-                model.write(six.b(string))
-                model.write(struct.pack('B', 0))
-
-            model.write(struct.pack("I", 4))  # Binary version.
-            _write_string(self.__class__.__name__)
-            model.write(struct.pack("I", self.revision))
-            model.write(struct.pack("I", len(variables)))
-            for name, value in variables:
-                _write_string(name)
-                model.write(struct.pack("B", len(value.shape)))
-                for dim in value.shape:
-                    model.write(struct.pack("I", dim))
-                model.write(struct.pack("B", _dtype_to_type_id(value.dtype)))
-                model.write(struct.pack("I", value.nbytes))
-                model.write(value.tobytes())
-            model.write(struct.pack("I", len(aliases)))
-            for alias, variable_name in aliases:
-                _write_string(alias)
-                _write_string(variable_name)
-
 
 def _dtype_to_type_id(object_dtype):
     # Order should match the DataType enum in include/ctranslate2/types.h
@@ -164,6 +130,11 @@ def _dtype_to_type_id(object_dtype):
 
 class ModelSpec(LayerSpec):
     """The top level layer specification."""
+
+    @property
+    def name(self):
+        """The name of the model specification."""
+        raise NotImplementedError()
 
     @property
     def revision(self):
@@ -183,3 +154,37 @@ class ModelSpec(LayerSpec):
     def target_vocabulary_size(self):
         """Target vocabulary size based on the model weights."""
         return None
+
+    def serialize(self, path):
+        """Serializes this specification."""
+        variables = []
+        aliases = []
+        for variable in self.variables(ordered=True):
+            if isinstance(variable[1], six.string_types):
+                aliases.append(variable)
+            else:
+                variables.append(variable)
+
+        with open(path, "wb") as model:
+
+            def _write_string(string):
+                model.write(struct.pack("H", len(string) + 1))
+                model.write(six.b(string))
+                model.write(struct.pack('B', 0))
+
+            model.write(struct.pack("I", 4))  # Binary version.
+            _write_string(self.name)
+            model.write(struct.pack("I", self.revision))
+            model.write(struct.pack("I", len(variables)))
+            for name, value in variables:
+                _write_string(name)
+                model.write(struct.pack("B", len(value.shape)))
+                for dim in value.shape:
+                    model.write(struct.pack("I", dim))
+                model.write(struct.pack("B", _dtype_to_type_id(value.dtype)))
+                model.write(struct.pack("I", value.nbytes))
+                model.write(value.tobytes())
+            model.write(struct.pack("I", len(aliases)))
+            for alias, variable_name in aliases:
+                _write_string(alias)
+                _write_string(variable_name)

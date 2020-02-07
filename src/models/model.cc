@@ -297,6 +297,26 @@ namespace ctranslate2 {
       }
     }
 
+    static Model* create_model(const std::string& path,
+                               const std::string& spec,
+                               size_t spec_revision) {
+      Model* model = nullptr;
+
+      // Empty spec name, TransformerBase, and TransformerBig are there for backward
+      // compatibility. Now all Transformer variants are saved under TransformerSpec.
+
+      if (spec.empty() || spec == "TransformerBase")
+        model = new TransformerModel(path, spec_revision, /*num_heads=*/8);
+      else if (spec == "TransformerBig")
+        model = new TransformerModel(path, spec_revision, /*num_heads=*/16);
+      else if (spec == "TransformerSpec")
+        model = new TransformerModel(path, spec_revision);
+      else
+        throw std::invalid_argument("Unsupported model spec " + spec);
+
+      return model;
+    }
+
     std::shared_ptr<const Model> Model::load(const std::string& path,
                                              const std::string& device,
                                              int device_index,
@@ -332,16 +352,7 @@ namespace ctranslate2 {
         spec_revision = 1;
       }
 
-      Model* model = nullptr;
-      if (spec.empty() || spec == "TransformerBase")
-        model = new TransformerBaseModel(path, spec_revision);
-      else if (spec == "TransformerBig")
-        model = new TransformerBigModel(path, spec_revision);
-      else if (spec == "TransformerSpec")
-        model = new TransformerModel(path, spec_revision);
-      else
-        throw std::invalid_argument("Unsupported model spec " + spec);
-
+      Model* model = create_model(path, spec, spec_revision);
       model->set_device(device, device_index);
       model->set_compute_type(compute_type);
 
