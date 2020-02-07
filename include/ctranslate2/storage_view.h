@@ -107,6 +107,9 @@ namespace ctranslate2 {
     dim_t size() const;
     bool is_scalar() const;
     bool empty() const;
+    operator bool() const {
+      return !empty();
+    }
 
     StorageView& reshape(const Shape& new_shape);
 

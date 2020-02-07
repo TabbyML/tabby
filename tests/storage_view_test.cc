@@ -23,3 +23,10 @@ TEST(StorageViewTest, ZeroDim) {
   EXPECT_EQ(a.dim(1), 0);
   EXPECT_EQ(a.dim(2), 2);
 }
+
+TEST(StorageViewTest, BoolOperator) {
+  StorageView a;
+  EXPECT_FALSE(bool(a));
+  a.resize({4});
+  EXPECT_TRUE(bool(a));
+}
