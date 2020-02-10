@@ -45,6 +45,10 @@ namespace ctranslate2 {
       return _num_heads;
     }
 
+    bool TransformerModel::with_relative_position() const {
+      return _with_relative_position;
+    }
+
     size_t TransformerModel::current_spec_revision() const {
       return 3;
     }
@@ -60,6 +64,7 @@ namespace ctranslate2 {
       Model::finalize();
       if (_spec_revision >= 3)
         _num_heads = get_variable("num_heads").as_scalar<int8_t>();
+      _with_relative_position = get_flag_with_default("with_relative_position", false);
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
@@ -201,7 +206,9 @@ namespace ctranslate2 {
 
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
       : _embeddings(model, scope + "/embeddings")
-      , _position_encoder(model, scope + "/position_encodings")
+      , _position_encoder(model.with_relative_position()
+                          ? nullptr
+                          : new PositionEncoder(model, scope + "/position_encodings"))
       , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
         try {
@@ -222,8 +229,8 @@ namespace ctranslate2 {
       PROFILE("TransformerEncoder");
       StorageView input(output.device());
       _embeddings(ids, input);
-      ops::Mul()(input, StorageView(static_cast<float>(sqrt(input.dim(-1)))), input);
-      _position_encoder(input);
+      if (_position_encoder)
+        (*_position_encoder)(input);
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         (*_layers[l])(input, lengths, output);
@@ -237,7 +244,9 @@ namespace ctranslate2 {
     TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
       : Decoder(model.device())
       , _embeddings(model, scope + "/embeddings")
-      , _position_encoder(model, scope + "/position_encodings")
+      , _position_encoder(model.with_relative_position()
+                          ? nullptr
+                          : new PositionEncoder(model, scope + "/position_encodings"))
       , _output_norm(model, scope + "/layer_norm")
       , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
@@ -288,8 +297,8 @@ namespace ctranslate2 {
       StorageView layer_out(ids.device());
 
       _embeddings(ids, layer_in);
-      ops::Mul()(layer_in, StorageView(static_cast<float>(sqrt(layer_in.dim(-1)))), layer_in);
-      _position_encoder(layer_in, step);
+      if (_position_encoder)
+        (*_position_encoder)(layer_in, step);
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         (*_layers[l])(layer_in,

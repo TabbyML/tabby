@@ -13,8 +13,9 @@ class TransformerSpec(model_spec.ModelSpec):
     The specification is invariant to hidden dimensions but requires to
     explicitly set the number of layers and attention heads.
     """
-    def __init__(self, num_layers, num_heads):
+    def __init__(self, num_layers, num_heads, with_relative_position=False):
         self.num_heads = np.dtype("int8").type(num_heads)
+        self.with_relative_position = with_relative_position
         self.encoder = TransformerEncoderSpec(num_layers)
         self.decoder = TransformerDecoderSpec(num_layers)
 

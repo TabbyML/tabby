@@ -115,7 +115,8 @@ The following frameworks and models are currently supported:
 
 |     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
 | --- | :---: | :---: |
-| Transformer | ✓ | ✓ |
+| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ |
+| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ |
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 

@@ -15,6 +15,7 @@ namespace ctranslate2 {
       const ops::Gather _gather_op;
       const StorageView& _embeddings;
       const StorageView* _qscale;
+      const std::unique_ptr<const StorageView> _scale;
     };
 
     class Dense

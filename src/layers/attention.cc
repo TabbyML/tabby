@@ -1,19 +1,97 @@
 #include "ctranslate2/layers/attention.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace ctranslate2 {
   namespace layers {
 
-    void DotProductAttention::operator()(const StorageView& queries,
-                                         const StorageView& keys,
-                                         const StorageView& values,
-                                         const StorageView* values_lengths,
-                                         StorageView& output,
-                                         StorageView* attention,
-                                         float queries_scale) {
-      PROFILE("DotProductAttention");
+    StorageView make_relative_positions(dim_t length, dim_t max_position, bool with_cache) {
+      StorageView positions({with_cache ? 1 : length, length}, DataType::DT_INT32);
+      auto* positions_data = positions.data<int32_t>();
+
+      if (with_cache) {
+        for (dim_t i = 0; i < length; ++i) {
+          positions_data[i] = std::max(i - length + 1, -max_position) + max_position;
+        }
+      } else {
+        for (dim_t i = 0; i < length; ++i) {
+          auto* row = positions_data + i * length;
+          for (dim_t j = 0; j < length; ++j) {
+            row[j] = std::min(std::max(j - i, -max_position), max_position) + max_position;
+          }
+        }
+      }
+
+      return positions;
+    }
+
+    static void matmul_with_relative_representations(const StorageView& a,
+                                                     const StorageView& b,
+                                                     StorageView& c,
+                                                     bool transpose_b = false) {
+      const Device device = a.device();
+      const dim_t batch = a.dim(0);
+      const dim_t head = a.dim(1);
+      const dim_t time = a.dim(2);
+
+      StorageView a_t(device);
+      ops::Transpose({2, 0, 1, 3})(a, a_t);
+      a_t.reshape({time, batch * head, -1});
+
+      StorageView c_t(device);
+      ops::MatMul(/*transpose_a=*/false, transpose_b)(a_t, b, c_t);
+      c_t.reshape({time, batch, head, -1});
+      ops::Transpose({1, 2, 0, 3})(c_t, c);
+    }
+
+    static void add_relative_representations(const StorageView& queries,
+                                             const StorageView& relative_positions,
+                                             const StorageView& relative_values,
+                                             bool transpose,
+                                             StorageView& dot) {
+      const Device device = queries.device();
+
+      StorageView relative_representations(device);
+      ops::Gather()(relative_values, relative_positions, relative_representations);
+
+      StorageView dot_relative(device);
+      matmul_with_relative_representations(queries,
+                                           relative_representations,
+                                           dot_relative,
+                                           transpose);
+      ops::Add()(dot_relative, dot, dot);
+    }
+
+    static void dot_product_attention(const StorageView& queries,
+                                      const StorageView& keys,
+                                      const StorageView& values,
+                                      const StorageView* values_lengths,
+                                      const StorageView* relative_position_keys,
+                                      const StorageView* relative_position_values,
+                                      dim_t maximum_relative_position,
+                                      StorageView& output,
+                                      StorageView* attention = nullptr,
+                                      float queries_scale = 1,
+                                      bool with_cache = false) {
+      PROFILE("dot_product_attention");
+
+      std::unique_ptr<const StorageView> relative_positions;
+      if (relative_position_keys || relative_position_values) {
+        const dim_t max_time = keys.dim(2);
+        relative_positions.reset(
+          new StorageView(make_relative_positions(max_time,
+                                                  maximum_relative_position,
+                                                  with_cache).to(queries.device())));
+      }
+
       ops::MatMul(false, true, queries_scale)(queries, keys, output);
+      if (relative_position_keys)
+        add_relative_representations(queries,
+                                     *relative_positions,
+                                     *relative_position_keys,
+                                     /*transpose=*/true,
+                                     output);
 
       StorageView attn(values.device());
       ops::SoftMax()(output, values_lengths, attn);
@@ -25,6 +103,12 @@ namespace ctranslate2 {
       }
 
       ops::MatMul()(attn, values, output);
+      if (relative_position_values)
+        add_relative_representations(attn,
+                                     *relative_positions,
+                                     *relative_position_keys,
+                                     /*transpose=*/false,
+                                     output);
     }
 
 
@@ -34,6 +118,10 @@ namespace ctranslate2 {
                                            bool self_attention)
       : _num_heads(num_heads)
       , _layer_norm(model, scope + "/layer_norm")
+      , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
+      , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
+      , _maximum_relative_position(_relative_position_keys
+                                   ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
       , _transpose_op({0, 2, 1, 3}) {
       const dim_t num_linear_layers = self_attention ? 2 : 3;
       _linear.reserve(num_linear_layers);
@@ -105,13 +193,17 @@ namespace ctranslate2 {
       const float queries_scale = 1.0 / sqrt(dk);
 
       StorageView& context = queries_proj;  // Reuse storage.
-      _attention(split_queries,
-                 split_keys,
-                 split_values,
-                 memory_lengths,
-                 context,
-                 attention,
-                 queries_scale);
+      dot_product_attention(split_queries,
+                            split_keys,
+                            split_values,
+                            memory_lengths,
+                            _relative_position_keys,
+                            _relative_position_values,
+                            _maximum_relative_position,
+                            context,
+                            attention,
+                            queries_scale,
+                            bool(cached_keys));
 
       StorageView& combined = values_proj;  // Reuse storage.
       combine_heads(context, combined);

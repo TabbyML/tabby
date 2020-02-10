@@ -10,3 +10,5 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         else:
             num_projections = 3
         self.linear = [common_spec.LinearSpec() for _ in range(num_projections)]
+        self.relative_position_keys = model_spec.OPTIONAL
+        self.relative_position_values = model_spec.OPTIONAL

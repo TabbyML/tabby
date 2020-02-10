@@ -1,5 +1,7 @@
 #include "ctranslate2/layers/common.h"
 
+#include <cmath>
+
 #include "../device_dispatch.h"
 
 namespace ctranslate2 {
@@ -7,7 +9,10 @@ namespace ctranslate2 {
 
     Embeddings::Embeddings(const models::Model& model, const std::string& scope)
       : _embeddings(model.get_variable(scope + "/weight"))
-      , _qscale(model.get_variable_if_exists(scope + "/weight_scale")) {
+      , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
+      , _scale(model.get_flag_with_default(scope + "/multiply_by_sqrt_depth", true)
+               ? new StorageView(static_cast<float>(sqrt(_embeddings.dim(-1))))
+               : nullptr) {
     }
 
     void Embeddings::operator()(const StorageView& ids,
@@ -27,6 +32,9 @@ namespace ctranslate2 {
       } else {
         _gather_op(_embeddings, ids, output);
       }
+
+      if (_scale)
+        ops::Mul()(output, *_scale, output);
     }
 
 

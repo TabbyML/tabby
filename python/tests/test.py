@@ -101,9 +101,11 @@ def test_return_attention():
     assert len(attention) == 6  # Target length.
     assert len(attention[0]) == 6  # Source length.
 
-@pytest.mark.skipif(
-    not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
-    reason="Data files are not available")
+
+_FRAMEWORK_DATA_EXIST = os.path.isdir(
+    os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all"))
+
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [("v2/savedmodel", None, None, "TransformerBase"),
@@ -126,6 +128,7 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_tf_variables_conversion(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
@@ -141,7 +144,7 @@ def test_opennmt_tf_variables_conversion(tmpdir):
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
-
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
@@ -154,16 +157,7 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     with pytest.raises(ValueError):
         converter.convert(output_dir, ctranslate2.specs.TransformerBase())
 
-try:
-    import onmt
-    opennmt_py_is_available = True
-except ImportError:
-    opennmt_py_is_available = False
-
-@pytest.mark.skipif(
-    not opennmt_py_is_available
-    or not os.path.isdir(os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")),
-    reason="OpenNMT-py or data files are not available")
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_py_model_conversion(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_py", "aren_7000.pt")
@@ -173,6 +167,21 @@ def test_opennmt_py_model_conversion(tmpdir):
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+def test_opennmt_py_relative_transformer(tmpdir):
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all",
+        "opennmt_py", "aren_relative_6000.pt")
+    converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, ctranslate2.specs.TransformerBaseRelative())
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([
+        ["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"],
+        ["آ" ,"ر" ,"ث" ,"ر"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "o", "m", "o", "n"]
+    assert output[1][0]["tokens"] == ["a", "r", "t", "h", "e", "r"]
 
 def test_layer_spec_validate():
 
@@ -187,6 +196,7 @@ def test_layer_spec_validate():
             self.c = np.zeros([5], dtype=np.int32)
             self.d = OPTIONAL
             self.e = SubSpec()
+            self.f = True
 
     spec = Spec()
     spec.validate()
@@ -195,6 +205,7 @@ def test_layer_spec_validate():
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float32
+    assert spec.f.dtype == np.int8
 
 def test_index_spec():
     spec = ctranslate2.specs.TransformerBase()

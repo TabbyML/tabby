@@ -55,10 +55,14 @@ class LayerSpec(object):
         def _check(spec, name, value):
             if value is None:
                 raise ValueError("Missing value for attribute %s" % name)
-            # Promote float16 to float32 as it is currently an unsupported type.
-            if isinstance(value, np.ndarray) and value.dtype == np.float16:
-                attr_name = _split_scope(name)[-1]
-                setattr(spec, attr_name, value.astype(np.float32))
+            attr_name = _split_scope(name)[-1]
+            if isinstance(value, np.ndarray):
+                # Promote float16 to float32 as it is currently an unsupported type.
+                if value.dtype == np.float16:
+                    setattr(spec, attr_name, value.astype(np.float32))
+            elif isinstance(value, bool):
+                # Convert bool to an integer type.
+                setattr(spec, attr_name, np.dtype("int8").type(value))
         self.visit(_check)
         self._alias_variables()
 

@@ -14,6 +14,7 @@ namespace ctranslate2 {
     public:
       TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads = 0);
       size_t num_heads() const;
+      bool with_relative_position() const;
       size_t current_spec_revision() const override;
       std::unique_ptr<layers::Encoder> make_encoder() const override;
       std::unique_ptr<layers::Decoder> make_decoder() const override;
@@ -22,6 +23,7 @@ namespace ctranslate2 {
       void finalize() override;
 
       size_t _num_heads;
+      bool _with_relative_position;
     };
 
     class PositionEncoder
@@ -87,7 +89,7 @@ namespace ctranslate2 {
                       StorageView& output) override;
     private:
       layers::Embeddings _embeddings;
-      PositionEncoder _position_encoder;
+      const std::unique_ptr<PositionEncoder> _position_encoder;
       layers::LayerNorm _output_norm;
       std::vector<std::unique_ptr<TransformerEncoderLayer>> _layers;
     };
@@ -109,7 +111,7 @@ namespace ctranslate2 {
       bool should_reorder_state(const std::string& name) const override;
     private:
       layers::Embeddings _embeddings;
-      PositionEncoder _position_encoder;
+      const std::unique_ptr<PositionEncoder> _position_encoder;
       layers::LayerNorm _output_norm;
       std::vector<std::unique_ptr<TransformerDecoderLayer>> _layers;
       layers::Dense _proj;

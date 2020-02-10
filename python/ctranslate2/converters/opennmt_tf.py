@@ -154,15 +154,25 @@ def set_transformer_spec_v2(spec, variables):
             variables,
             "model/examples_inputter/features_inputter",
             version=2)
-    set_transformer_encoder_v2(spec.encoder, variables, "model/encoder")
-    set_transformer_decoder_v2(spec.decoder, variables, "model/decoder", target_embedding_name)
+    set_transformer_encoder_v2(
+        spec.encoder,
+        variables,
+        "model/encoder",
+        relative=spec.with_relative_position)
+    set_transformer_decoder_v2(
+        spec.decoder,
+        variables,
+        "model/decoder",
+        target_embedding_name,
+        relative=spec.with_relative_position)
 
-def set_transformer_encoder_v2(spec, variables, scope):
+def set_transformer_encoder_v2(spec, variables, scope, relative=False):
     set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
-        set_transformer_encoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
+        set_transformer_encoder_layer_v2(
+            layer, variables, "%s/layers/%d" % (scope, i), relative=relative)
 
-def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name):
+def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name, relative=False):
     try:
         set_linear(spec.projection, variables, "%s/output_layer" % scope)
     except KeyError:
@@ -174,26 +184,38 @@ def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name):
             transpose=False)
     set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
-        set_transformer_decoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
+        set_transformer_decoder_layer_v2(
+            layer, variables, "%s/layers/%d" % (scope, i), relative=relative)
 
-def set_transformer_encoder_layer_v2(spec, variables, scope):
+def set_transformer_encoder_layer_v2(spec, variables, scope, relative=False):
     set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
     set_multi_head_attention_v2(
-        spec.self_attention, variables, "%s/self_attention" % scope, self_attention=True)
+        spec.self_attention,
+        variables,
+        "%s/self_attention" % scope,
+        self_attention=True,
+        relative=relative)
 
-def set_transformer_decoder_layer_v2(spec, variables, scope):
+def set_transformer_decoder_layer_v2(spec, variables, scope, relative=False):
     set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
     set_multi_head_attention_v2(
-        spec.self_attention, variables, "%s/self_attention" % scope, self_attention=True)
+        spec.self_attention,
+        variables,
+        "%s/self_attention" % scope,
+        self_attention=True,
+        relative=relative)
     set_multi_head_attention_v2(
-        spec.attention, variables, "%s/attention/0" % scope)
+        spec.attention,
+        variables,
+        "%s/attention/0" % scope,
+        relative=relative)
 
 def set_ffn_v2(spec, variables, scope):
     set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
     set_linear(spec.linear_0, variables, "%s/layer/inner" % scope)
     set_linear(spec.linear_1, variables, "%s/layer/outer" % scope)
 
-def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
+def set_multi_head_attention_v2(spec, variables, scope, self_attention=False, relative=False):
     set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
     if self_attention:
         split_layers = [common_spec.LinearSpec() for _ in range(3)]
@@ -201,6 +223,9 @@ def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
         set_linear(split_layers[1], variables, "%s/layer/linear_keys" % scope)
         set_linear(split_layers[2], variables, "%s/layer/linear_values" % scope)
         utils.fuse_linear(spec.linear[0], split_layers)
+        if relative:
+            spec.relative_position_keys = variables["%s/layer/relative_position_keys" % scope]
+            spec.relative_position_values = variables["%s/layer/relative_position_values" % scope]
     else:
         set_linear(spec.linear[0], variables, "%s/layer/linear_queries" % scope)
         split_layers = [common_spec.LinearSpec() for _ in range(2)]
@@ -211,6 +236,8 @@ def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
 
 
 def set_transformer_spec(spec, variables):
+    if spec.with_relative_position:
+        raise NotImplementedError()
     set_transformer_encoder(spec.encoder, variables)
     set_transformer_decoder(spec.decoder, variables)
 
@@ -286,4 +313,5 @@ def set_embeddings(spec, variables, scope, version=1):
         name = "w_embs"
     variable_name = "%s/%s" % (scope, name)
     spec.weight = variables[variable_name]
+    spec.multiply_by_sqrt_depth = True
     return variable_name

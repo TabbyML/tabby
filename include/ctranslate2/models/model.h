@@ -44,6 +44,18 @@ namespace ctranslate2 {
       const StorageView& get_variable(const std::string& name) const;
       const std::unordered_map<std::string, StorageView>& get_variables() const;
 
+      // Attributes are saved as scalar variables.
+      template <typename T>
+      T get_attribute_with_default(const std::string& name, T default_value) const {
+        const StorageView* attribute = get_variable_if_exists(name);
+        if (!attribute)
+          return default_value;
+        return attribute->as_scalar<T>();
+      }
+
+      // A flag is a boolean attribute.
+      bool get_flag_with_default(const std::string& name, bool default_value) const;
+
       // Makes new graph to execute this model. Graphs returned by these function
       // should support being executed in parallel without duplicating the model
       // data (i.e. the weights).

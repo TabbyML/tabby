@@ -108,6 +108,10 @@ namespace ctranslate2 {
       return _variable_index;
     }
 
+    bool Model::get_flag_with_default(const std::string& name, bool default_value) const {
+      return get_attribute_with_default(name, static_cast<int8_t>(default_value));
+    }
+
     void Model::register_variable(const std::string& name, StorageView& variable) {
       _variable_index.emplace(std::piecewise_construct,
                               std::forward_as_tuple(name),

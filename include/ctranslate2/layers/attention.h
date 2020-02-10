@@ -5,17 +5,9 @@
 namespace ctranslate2 {
   namespace layers {
 
-    class DotProductAttention
-    {
-    public:
-      void operator()(const StorageView& queries,
-                      const StorageView& keys,
-                      const StorageView& values,
-                      const StorageView* values_lengths,
-                      StorageView& output,
-                      StorageView* attention = nullptr,
-                      float queries_scale = 1);
-    };
+    StorageView make_relative_positions(dim_t length,
+                                        dim_t max_position,
+                                        bool with_cache = false);
 
     class MultiHeadAttention
     {
@@ -35,7 +27,9 @@ namespace ctranslate2 {
       dim_t _num_heads;
       std::vector<Dense> _linear;
       LayerNorm _layer_norm;
-      DotProductAttention _attention;
+      const StorageView* _relative_position_keys;
+      const StorageView* _relative_position_values;
+      const dim_t _maximum_relative_position;
       ops::Transpose _transpose_op;
 
       void split_heads(const StorageView& x, StorageView& y);
