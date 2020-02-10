@@ -130,11 +130,41 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
-    const dim_t new_size = compute_size(new_shape);
-    if (_size != new_size)
-      THROW_INVALID_ARGUMENT("new shape size (" + std::to_string(new_size)
-                             + ") is incompatible with current size (" + std::to_string(_size) + ")");
-    _shape = new_shape;
+    dim_t unknown_dim = -1;
+    dim_t known_size = 1;
+
+    for (size_t i = 0; i < new_shape.size(); ++i) {
+      const dim_t dim = new_shape[i];
+
+      if (dim >= 0) {
+        known_size *= dim;
+      } else if (dim == -1) {
+        if (unknown_dim >= 0)
+          THROW_INVALID_ARGUMENT("only one dimension can be set to -1, got -1 for dimensions "
+                                 + std::to_string(unknown_dim) + " and " + std::to_string(i));
+        unknown_dim = i;
+      } else {
+        THROW_INVALID_ARGUMENT("invalid value " + std::to_string(dim)
+                               + " for dimension " + std::to_string(i));
+      }
+    }
+
+    if (unknown_dim >= 0) {
+      if (_size % known_size != 0)
+        THROW_INVALID_ARGUMENT("current size (" + std::to_string(_size)
+                               + ") is not divisible by the known size ("
+                               + std::to_string(known_size) + ")");
+      Shape new_shape_copy(new_shape);
+      new_shape_copy[unknown_dim] = _size / known_size;
+      _shape = std::move(new_shape_copy);
+    } else {
+      if (_size != known_size)
+        THROW_INVALID_ARGUMENT("new shape size (" + std::to_string(known_size)
+                               + ") is incompatible with current size ("
+                               + std::to_string(_size) + ")");
+      _shape = new_shape;
+    }
+
     return *this;
   }
 

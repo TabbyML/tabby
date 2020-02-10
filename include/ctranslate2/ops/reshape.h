@@ -7,7 +7,6 @@ namespace ctranslate2 {
 
     class Reshape : public BinaryOp {
     public:
-      // TODO: support -1 dimension.
       void operator()(StorageView& data, const StorageView& shape) const {
         PROFILE("Reshape");
         data.reshape({shape.data<int32_t>(), shape.data<int32_t>() + shape.size()});

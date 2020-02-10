@@ -30,3 +30,18 @@ TEST(StorageViewTest, BoolOperator) {
   a.resize({4});
   EXPECT_TRUE(bool(a));
 }
+
+TEST(StorageViewTest, Reshape) {
+  StorageView a(Shape{16});
+  assert_vector_eq(a.shape(), Shape{16});
+  a.reshape({4, 4});
+  assert_vector_eq(a.shape(), Shape{4, 4});
+  a.reshape({2, -1});
+  assert_vector_eq(a.shape(), Shape{2, 8});
+  a.reshape({-1, 1});
+  assert_vector_eq(a.shape(), Shape{16, 1});
+  a.reshape({2, -1, 2});
+  assert_vector_eq(a.shape(), Shape{2, 4, 2});
+  a.reshape({-1});
+  assert_vector_eq(a.shape(), Shape{16});
+}
