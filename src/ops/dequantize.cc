@@ -6,13 +6,6 @@ namespace ctranslate2 {
   namespace ops {
 
     void Dequantize::operator()(const StorageView& x, const StorageView& scale, StorageView& y) const {
-      return operator()(x, scale, y, 0);
-    }
-
-    void Dequantize::operator()(const StorageView& x,
-                                const StorageView& scale,
-                                StorageView& y,
-                                float shift) const {
       PROFILE("Dequantize");
       y.resize_as(x);
       if (x.dtype() == DataType::DT_INT16) {
@@ -24,8 +17,7 @@ namespace ctranslate2 {
         primitives<Device::CPU>::dequantize(x.data<int16_t>(),
                                             y.data<float>(),
                                             x.size(),
-                                            scale.as_scalar<float>(),
-                                            shift);
+                                            scale.as_scalar<float>());
       } else if (x.dtype() == DataType::DT_INT8) {
         auto batch_size = x.size() / x.dim(-1);
         if (scale.size() != batch_size)
@@ -37,8 +29,7 @@ namespace ctranslate2 {
                                           scale.data<float>(),
                                           y.data<float>(),
                                           x.size(),
-                                          scale.size(),
-                                          shift));
+                                          scale.size()));
       } else {
         throw std::invalid_argument("Dequantize: invalid quantized type " + dtype_name(x.dtype())
                                     + ", expected int8 or int16");
