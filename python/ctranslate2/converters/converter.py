@@ -6,6 +6,7 @@ import shutil
 import six
 
 from ctranslate2.specs import catalog
+from ctranslate2.specs.model_spec import ModelSpec
 
 
 def _list_specs():
@@ -49,6 +50,8 @@ class Converter(object):
         if isinstance(model_spec, six.string_types):
           spec_class = _list_specs()[model_spec]
           model_spec = spec_class()
+        if not isinstance(model_spec, ModelSpec):
+            raise TypeError("model_spec should extend ctranslate2.specs.ModelSpec")
         try:
             src_vocab, tgt_vocab = self._load(model_spec)
         except NotImplementedError:

@@ -16,7 +16,7 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 
 output_dir = converter.convert(
     output_dir: str,         # Path to the output directory.
-    model_spec: LayerSpec,   # A model specification instance from ctranslate2.specs.
+    model_spec: ModelSpec,   # A model specification instance from ctranslate2.specs.
     vmap=None,               # Path to a vocabulary mapping file.
     quantization=None,       # Weights quantization: "int8" or "int16".
     force=False)             # Override output_dir if it exists.
