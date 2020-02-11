@@ -2,6 +2,10 @@
 
 ### New features
 
+* Support Transformers with relative position representations (as in [Shaw et al. 2018](https://arxiv.org/abs/1803.02155))
+* Accept target prefix in batch request
+* Support `return_attention` with prefixed translation
+
 ### Fixes and improvements
 
 ## [v1.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.5.1) (2020-02-06)
