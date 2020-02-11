@@ -144,6 +144,15 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    std::vector<T> to_vector() const {
+      if (_device != Device::CPU)
+        return to(Device::CPU).to_vector<T>();
+      const T* begin = data<T>();
+      const T* end = begin + _size;
+      return std::vector<T>(begin, end);
+    }
+
+    template <typename T>
     T* index(const std::vector<dim_t>& indices) {
       return const_cast<T*>(static_cast<const StorageView&>(*this).index<T>(indices));
     }

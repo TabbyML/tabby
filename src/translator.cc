@@ -153,15 +153,10 @@ namespace ctranslate2 {
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-    if (with_prefix) {
-      if (options.return_attention)
-        throw std::invalid_argument(
-          "Prefixed translation currently does not support returning attention vectors");
-      if (target_prefix.size() != batch_size)
-        throw std::invalid_argument("Batch size mismatch: got "
-                                    + std::to_string(batch_size) + " for source and "
-                                    + std::to_string(target_prefix.size()) + " for target prefix");
-    }
+    if (with_prefix && target_prefix.size() != batch_size)
+      throw std::invalid_argument("Batch size mismatch: got "
+                                  + std::to_string(batch_size) + " for source and "
+                                  + std::to_string(target_prefix.size()) + " for target prefix");
 
     if (batch_size == 0)
       return std::vector<TranslationResult>();
@@ -315,18 +310,34 @@ namespace ctranslate2 {
     auto state = decoder.initial_state();
 
     // Forward target prefix, if set (only batch_size = 1 for now).
+    std::vector<std::vector<std::vector<float>>> prefix_attention;
     if (target_prefix) {
       if (batch_size > 1)
         throw std::invalid_argument("Batched prefixed translation is not supported");
+
       // TODO: Forward all timesteps at once. This requires supporting the masking
       // of future steps.
       const auto& prefix = target_prefix->front();
       auto prefix_ids = tokens_to_ids(prefix, target_vocab);
       start_step = prefix.size();
+      StorageView attention_step(device);
+      if (options.return_attention) {
+        prefix_attention.resize(1);
+        prefix_attention[0].reserve(start_step);
+      }
+
       for (size_t i = 0; i < start_step; ++i) {
         auto input = sample_from.to(device);
         input.reshape({batch_size, 1});
-        decoder(i, input, encoded, lengths, state);
+        decoder(i,
+                input,
+                encoded,
+                lengths,
+                state,
+                /*logits=*/nullptr,
+                options.return_attention ? &attention_step : nullptr);
+        if (attention_step)
+          prefix_attention[0].emplace_back(attention_step.to_vector<float>());
         sample_from.at<int32_t>(0) = prefix_ids[i];
       }
     }
@@ -378,8 +389,12 @@ namespace ctranslate2 {
           hypotheses[h] = (*target_prefix)[i];
         for (auto id : sampled_ids[i][h])
           hypotheses[h].push_back(target_vocab.to_token(id));
+        if (!prefix_attention.empty())
+          attention[i][h].insert(attention[i][h].begin(),
+                                 prefix_attention[i].begin(),
+                                 prefix_attention[i].end());
       }
-      const auto* attn = i < static_cast<dim_t>(attention.size()) ? &attention[i] : nullptr;
+      const auto* attn = attention.empty() ? nullptr : &attention[i];
       results.emplace_back(hypotheses, scores[i], attn);
     }
 

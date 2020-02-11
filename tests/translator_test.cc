@@ -128,14 +128,23 @@ TEST_P(SearchVariantTest, ReturnAttention) {
 }
 
 TEST_P(SearchVariantTest, TranslateWithPrefix) {
+  const auto beam_size = GetParam();
   Translator translator = default_translator();
   TranslationOptions options;
-  options.beam_size = GetParam();
+  options.beam_size = beam_size;
+  options.num_hypotheses = beam_size;
+  options.return_attention = true;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> prefix = {"a", "t", "s"};
   std::vector<std::string> expected = {"a", "t", "s", "u", "m", "o", "n"};
   auto result = translator.translate_with_prefix(input, prefix, options);
+  EXPECT_EQ(result.num_hypotheses(), beam_size);
   EXPECT_EQ(result.output(), expected);
+  ASSERT_TRUE(result.has_attention());
+  const auto& attention = result.attention();
+  EXPECT_EQ(attention.size(), options.beam_size);
+  EXPECT_EQ(attention[0].size(), 7);
+  EXPECT_EQ(attention[0][0].size(), 6);
 }
 
 TEST_P(SearchVariantTest, TranslateBatch) {
