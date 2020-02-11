@@ -81,12 +81,15 @@ namespace ctranslate2 {
     void make_graph();
 
     std::vector<TranslationResult>
-    translate_tokens(const std::vector<std::vector<std::string>>& source,
-                     const std::vector<std::vector<std::string>>& target_prefix,
-                     const TranslationOptions& options);
+    run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
+                                 const TranslationOptions& options);
     std::vector<TranslationResult>
-    run_translation(const std::vector<std::vector<std::string>>& source,
-                    const std::vector<std::vector<std::string>>& target_prefix,
+    run_batch_translation(const std::vector<std::vector<std::string>>& source,
+                          const std::vector<std::vector<std::string>>* target_prefix,
+                          const TranslationOptions& options);
+    TranslationResult
+    run_translation(const std::vector<std::string>& source,
+                    const std::vector<std::string>* target_prefix,
                     const TranslationOptions& options);
 
     std::shared_ptr<const models::Model> _model;

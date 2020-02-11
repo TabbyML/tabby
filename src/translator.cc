@@ -48,16 +48,6 @@ namespace ctranslate2 {
     return new_ids;
   }
 
-  template <typename T>
-  static std::vector<T> index_vector(const std::vector<T>& vector,
-                                     const std::vector<size_t>& index) {
-    const size_t size = vector.size();
-    std::vector<T> new_vector(size);
-    for (size_t i = 0; i < size; ++i)
-      new_vector[index[i]] = vector[i];
-    return new_vector;
-  }
-
   static std::pair<StorageView, StorageView>
   make_inputs(const std::vector<std::vector<size_t>>& ids, Device device) {
     const dim_t batch_size = ids.size();
@@ -167,9 +157,6 @@ namespace ctranslate2 {
       if (options.return_attention)
         throw std::invalid_argument(
           "Prefixed translation currently does not support returning attention vectors");
-      if (batch_size > 1)
-        throw std::invalid_argument(
-          "Prefixed translation currently does not support batch inputs");
       if (target_prefix.size() != batch_size)
         throw std::invalid_argument("Batch size mismatch: got "
                                     + std::to_string(batch_size) + " for source and "
@@ -185,51 +172,52 @@ namespace ctranslate2 {
                                                    return tokens.empty();
                                                  });
 
-    // Directly run translation if all source inputs are non empty.
-    if (no_source_is_empty)
-      return translate_tokens(source, target_prefix, options);
+    // Directly run translation if all source inputs are non empty and there is no target prefix.
+    if (no_source_is_empty && !with_prefix)
+      return run_batch_translation_sorted(source, options);
 
+    std::vector<TranslationResult> with_prefix_results;
     std::vector<std::vector<std::string>> non_empty_source;
-    std::vector<std::vector<std::string>> non_empty_target_prefix;
-
+    with_prefix_results.reserve(batch_size);
     non_empty_source.reserve(batch_size);
-    if (with_prefix)
-      non_empty_target_prefix.reserve(batch_size);
 
+    // As we don't support batch target prefix, we translate those examples separately.
     for (size_t i = 0; i < batch_size; ++i) {
-      if (!source[i].empty()) {
+      if (source[i].empty())
+        continue;
+      else if (with_prefix && !target_prefix[i].empty())
+        with_prefix_results.emplace_back(run_translation(source[i], &target_prefix[i], options));
+      else
         non_empty_source.emplace_back(source[i]);
-        if (with_prefix)
-          non_empty_target_prefix.emplace_back(target_prefix[i]);
-      }
     }
 
+    // Run batch translation of all other non empty examples.
     std::vector<TranslationResult> results;
     if (!non_empty_source.empty())
-      results = translate_tokens(non_empty_source, non_empty_target_prefix, options);
+      results = run_batch_translation_sorted(non_empty_source, options);
     std::vector<TranslationResult> final_results;
     final_results.reserve(batch_size);
 
     const std::vector<std::vector<std::vector<float>>> empty_attention(options.num_hypotheses);
 
-    for (size_t i = 0, result_index = 0; i < batch_size; ++i) {
+    // Build the final results vector.
+    for (size_t i = 0, non_empty_index = 0, with_prefix_index = 0; i < batch_size; ++i) {
       if (source[i].empty())
         final_results.emplace_back(std::vector<std::vector<std::string>>(options.num_hypotheses),
                                    std::vector<float>(options.num_hypotheses, static_cast<float>(0)),
                                    options.return_attention ? &empty_attention : nullptr);
+      else if (with_prefix && !target_prefix[i].empty())
+        final_results.emplace_back(std::move(with_prefix_results[with_prefix_index++]));
       else
-        final_results.emplace_back(std::move(results[result_index++]));
+        final_results.emplace_back(std::move(results[non_empty_index++]));
     }
 
     return final_results;
   }
 
   std::vector<TranslationResult>
-  Translator::translate_tokens(const std::vector<std::vector<std::string>>& source,
-                               const std::vector<std::vector<std::string>>& target_prefix,
-                               const TranslationOptions& options) {
-    PROFILE("translate_tokens");
-
+  Translator::run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
+                                           const TranslationOptions& options) {
     // Sorting the source input has 2 benefits:
     //
     // 1. When max_batch_size is smaller that the number of inputs, we prefer translating
@@ -239,40 +227,33 @@ namespace ctranslate2 {
     //    are more likely to finish first so we sort the batch accordingly.
     std::vector<size_t> sorted_index;
     auto sorted_source = sort_from_longest_to_shortest(source, sorted_index);
-    auto sorted_target_prefix = index_vector(target_prefix, sorted_index);
 
     const size_t total_batch_size = source.size();
     std::vector<TranslationResult> results;
 
     if (options.max_batch_size == 0 || options.max_batch_size >= total_batch_size)
-      results = run_translation(sorted_source, sorted_target_prefix, options);
+      results = run_batch_translation(sorted_source, nullptr,  options);
     else {
       // Translate by batch of size options.max_batch_size.
       results.reserve(total_batch_size);
 
       std::vector<std::vector<std::string>> partial_source;
-      std::vector<std::vector<std::string>> partial_target_prefix;
       partial_source.reserve(options.max_batch_size);
-      if (!target_prefix.empty())
-        partial_target_prefix.reserve(options.max_batch_size);
 
-      for (size_t i = 0; i < total_batch_size; ++i) {
-        partial_source.emplace_back(std::move(sorted_source[i]));
-        if (!target_prefix.empty())
-          partial_target_prefix.emplace_back(std::move(sorted_target_prefix[i]));
+      for (auto& tokens : sorted_source) {
+        partial_source.emplace_back(std::move(tokens));
 
         if (partial_source.size() == options.max_batch_size) {
-          auto partial_results = run_translation(partial_source, partial_target_prefix, options);
+          auto partial_results = run_batch_translation(partial_source, nullptr,  options);
           results.insert(results.end(),
                          std::make_move_iterator(partial_results.begin()),
                          std::make_move_iterator(partial_results.end()));
           partial_source.clear();
-          partial_target_prefix.clear();
         }
       }
 
       if (!partial_source.empty()) {
-        auto partial_results = run_translation(partial_source, partial_target_prefix, options);
+        auto partial_results = run_batch_translation(partial_source, nullptr,  options);
         results.insert(results.end(),
                        std::make_move_iterator(partial_results.begin()),
                        std::make_move_iterator(partial_results.end()));
@@ -288,9 +269,11 @@ namespace ctranslate2 {
   }
 
   std::vector<TranslationResult>
-  Translator::run_translation(const std::vector<std::vector<std::string>>& source,
-                              const std::vector<std::vector<std::string>>& target_prefix,
-                              const TranslationOptions& options) {
+  Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
+                                    const std::vector<std::vector<std::string>>* target_prefix,
+                                    const TranslationOptions& options) {
+    PROFILE("run_batch_translation");
+
     const auto& source_vocab = _model->get_source_vocabulary();
     const auto& target_vocab = _model->get_target_vocabulary();
     const auto& vocab_map = _model->get_vocabulary_map();
@@ -298,7 +281,6 @@ namespace ctranslate2 {
     auto& decoder = *_decoder;
 
     const dim_t batch_size = source.size();
-    bool with_prefix = !target_prefix.empty();
 
     auto scoped_device_setter = _model->get_scoped_device_setter();
     auto device = _model->device();
@@ -333,10 +315,12 @@ namespace ctranslate2 {
     auto state = decoder.initial_state();
 
     // Forward target prefix, if set (only batch_size = 1 for now).
-    if (with_prefix) {
+    if (target_prefix) {
+      if (batch_size > 1)
+        throw std::invalid_argument("Batched prefixed translation is not supported");
       // TODO: Forward all timesteps at once. This requires supporting the masking
       // of future steps.
-      const auto& prefix = target_prefix.front();
+      const auto& prefix = target_prefix->front();
       auto prefix_ids = tokens_to_ids(prefix, target_vocab);
       start_step = prefix.size();
       for (size_t i = 0; i < start_step; ++i) {
@@ -390,8 +374,8 @@ namespace ctranslate2 {
       size_t num_hypotheses = sampled_ids[i].size();
       hypotheses.resize(num_hypotheses);
       for (size_t h = 0; h < num_hypotheses; ++h) {
-        if (with_prefix)
-          hypotheses[h] = target_prefix[i];
+        if (target_prefix)
+          hypotheses[h] = (*target_prefix)[i];
         for (auto id : sampled_ids[i][h])
           hypotheses[h].push_back(target_vocab.to_token(id));
       }
@@ -400,6 +384,18 @@ namespace ctranslate2 {
     }
 
     return results;
+  }
+
+  TranslationResult
+  Translator::run_translation(const std::vector<std::string>& source,
+                              const std::vector<std::string>* target_prefix,
+                              const TranslationOptions& options) {
+    if (!target_prefix)
+      return run_batch_translation({source}, nullptr, options)[0];
+    else {
+      std::vector<std::vector<std::string>> batch_target_prefix(1, *target_prefix);
+      return run_batch_translation({source}, &batch_target_prefix, options)[0];
+    }
   }
 
   Device Translator::device() const {

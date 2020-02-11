@@ -132,8 +132,8 @@ TEST_P(SearchVariantTest, TranslateWithPrefix) {
   TranslationOptions options;
   options.beam_size = GetParam();
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  std::vector<std::string> prefix = {"a", "t", "z"};
-  std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
+  std::vector<std::string> prefix = {"a", "t", "s"};
+  std::vector<std::string> expected = {"a", "t", "s", "u", "m", "o", "n"};
   auto result = translator.translate_with_prefix(input, prefix, options);
   EXPECT_EQ(result.output(), expected);
 }
@@ -222,4 +222,27 @@ TEST(TranslatorTest, TranslateBatchWithOnlyEmptySource) {
   EXPECT_EQ(results.size(), 2);
   check_empty_result(results[0]);
   check_empty_result(results[1]);
+}
+
+TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {
+  Translator translator = default_translator();
+  const TranslationOptions options;
+  const std::vector<std::vector<std::string>> input = {
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {},
+    {"آ" ,"ز" ,"ا"}};
+  const std::vector<std::vector<std::string>> prefix = {
+    {"a", "t", "s"},
+    {},
+    {"a", "t", "z", "o"},
+    {},
+    {}};
+  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
+  EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "o", "m", "o", "n"}));
+  EXPECT_TRUE(result[3].output().empty());
+  EXPECT_EQ(result[4].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
 }
