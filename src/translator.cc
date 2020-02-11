@@ -29,10 +29,9 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  static void sort_from_longest_to_shortest(std::vector<std::vector<T>>& ids,
-                                            std::vector<size_t>& original_to_sorted_index) {
-    if (ids.size() == 1)
-      return;
+  static std::vector<std::vector<T>>
+  sort_from_longest_to_shortest(const std::vector<std::vector<T>>& ids,
+                                std::vector<size_t>& original_to_sorted_index) {
     std::vector<size_t> sorted_to_original_index(ids.size());
     std::iota(sorted_to_original_index.begin(), sorted_to_original_index.end(), 0);
     std::sort(sorted_to_original_index.begin(), sorted_to_original_index.end(),
@@ -44,9 +43,19 @@ namespace ctranslate2 {
     for (size_t i = 0; i < ids.size(); ++i) {
       size_t original_index = sorted_to_original_index[i];
       original_to_sorted_index[original_index] = i;
-      new_ids.emplace_back(std::move(ids[original_index]));
+      new_ids.emplace_back(ids[original_index]);
     }
-    ids = std::move(new_ids);
+    return new_ids;
+  }
+
+  template <typename T>
+  static std::vector<T> index_vector(const std::vector<T>& vector,
+                                     const std::vector<size_t>& index) {
+    const size_t size = vector.size();
+    std::vector<T> new_vector(size);
+    for (size_t i = 0; i < size; ++i)
+      new_vector[index[i]] = vector[i];
+    return new_vector;
   }
 
   static std::pair<StorageView, StorageView>
@@ -228,35 +237,42 @@ namespace ctranslate2 {
     // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
     //    updated in place so it is more efficient to remove content at the end. Shorter sentences
     //    are more likely to finish first so we sort the batch accordingly.
-    std::vector<std::vector<std::string>> sorted_source(source);
     std::vector<size_t> sorted_index;
-    sort_from_longest_to_shortest(sorted_source, sorted_index);
+    auto sorted_source = sort_from_longest_to_shortest(source, sorted_index);
+    auto sorted_target_prefix = index_vector(target_prefix, sorted_index);
 
     const size_t total_batch_size = source.size();
     std::vector<TranslationResult> results;
 
     if (options.max_batch_size == 0 || options.max_batch_size >= total_batch_size)
-      results = run_translation(sorted_source, target_prefix, options);
+      results = run_translation(sorted_source, sorted_target_prefix, options);
     else {
       // Translate by batch of size options.max_batch_size.
       results.reserve(total_batch_size);
 
       std::vector<std::vector<std::string>> partial_source;
+      std::vector<std::vector<std::string>> partial_target_prefix;
       partial_source.reserve(options.max_batch_size);
-      for (auto& tokens : sorted_source) {
-        partial_source.emplace_back(std::move(tokens));
+      if (!target_prefix.empty())
+        partial_target_prefix.reserve(options.max_batch_size);
+
+      for (size_t i = 0; i < total_batch_size; ++i) {
+        partial_source.emplace_back(std::move(sorted_source[i]));
+        if (!target_prefix.empty())
+          partial_target_prefix.emplace_back(std::move(sorted_target_prefix[i]));
 
         if (partial_source.size() == options.max_batch_size) {
-          auto partial_results = run_translation(partial_source, target_prefix, options);
+          auto partial_results = run_translation(partial_source, partial_target_prefix, options);
           results.insert(results.end(),
                          std::make_move_iterator(partial_results.begin()),
                          std::make_move_iterator(partial_results.end()));
           partial_source.clear();
+          partial_target_prefix.clear();
         }
       }
 
       if (!partial_source.empty()) {
-        auto partial_results = run_translation(partial_source, target_prefix, options);
+        auto partial_results = run_translation(partial_source, partial_target_prefix, options);
         results.insert(results.end(),
                        std::make_move_iterator(partial_results.begin()),
                        std::make_move_iterator(partial_results.end()));
@@ -264,15 +280,11 @@ namespace ctranslate2 {
     }
 
     // Reorder results based on original batch index.
-    if (sorted_index.empty())
-      return results;
-    else {
-      std::vector<TranslationResult> final_results;
-      final_results.reserve(results.size());
-      for (auto index : sorted_index)
-        final_results.emplace_back(std::move(results[index]));
-      return final_results;
-    }
+    std::vector<TranslationResult> final_results;
+    final_results.reserve(results.size());
+    for (auto index : sorted_index)
+      final_results.emplace_back(std::move(results[index]));
+    return final_results;
   }
 
   std::vector<TranslationResult>
