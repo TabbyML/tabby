@@ -10,6 +10,8 @@
 #  include <mkl.h>
 #endif
 
+#include "ctranslate2/utils.h"
+
 #define ALIGNMENT 64
 
 namespace ctranslate2 {
@@ -35,20 +37,12 @@ namespace ctranslate2 {
 
   template<>
   void* primitives<Device::CPU>::alloc_data(dim_t size) {
-#ifdef WITH_MKL
-    return mkl_malloc(size, ALIGNMENT);
-#else
-    return malloc(size);
-#endif
+    return aligned_alloc(size, ALIGNMENT);
   }
 
   template<>
   void primitives<Device::CPU>::free_data(void* data) {
-#ifdef WITH_MKL
-    mkl_free(data);
-#else
-    free(data);
-#endif
+    aligned_free(data);
   }
 
   template<>

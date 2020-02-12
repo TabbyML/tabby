@@ -23,6 +23,9 @@ namespace ctranslate2 {
 
   bool file_exists(const std::string& path);
 
+  void* aligned_alloc(size_t size, size_t alignment);
+  void aligned_free(void* ptr);
+
 #define THROW_EXCEPTION(EXCEPTION, MESSAGE)                             \
   throw EXCEPTION(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": " + MESSAGE)
 #define THROW_RUNTIME_ERROR(MESSAGE) THROW_EXCEPTION(std::runtime_error, MESSAGE)

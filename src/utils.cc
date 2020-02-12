@@ -2,6 +2,11 @@
 
 #include <sys/stat.h>
 #include <chrono>
+#include <cstdlib>
+
+#ifdef _WIN32
+#  include <malloc.h>
+#endif
 
 #ifdef WITH_MKL
 #  include <mkl.h>
@@ -99,6 +104,31 @@ namespace ctranslate2 {
   bool file_exists(const std::string& path) {
     struct stat buffer;
     return stat(path.c_str(), &buffer) == 0;
+  }
+
+  void* aligned_alloc(size_t size, size_t alignment) {
+    void* ptr = nullptr;
+#if defined(WITH_MKL)
+    ptr = mkl_malloc(size, alignment);
+#elif defined(_WIN32)
+    ptr = _aligned_malloc(size, alignment);
+#else
+    if (posix_memalign(&ptr, alignment, size) != 0)
+      ptr = nullptr;
+#endif
+    if (ptr == nullptr)
+      throw std::runtime_error("Failed to allocate memory");
+    return ptr;
+  }
+
+  void aligned_free(void* ptr) {
+#if defined(WITH_MKL)
+    mkl_free(ptr);
+#elif defined(_WIN32)
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
   }
 
 }
