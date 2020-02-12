@@ -35,13 +35,21 @@ std::vector<std::string> py_list_to_std_vector(const py::object& l) {
   return v;
 }
 
-static std::vector<std::vector<std::string>> batch_to_vector(const py::object& l) {
+static std::vector<std::vector<std::string>> batch_to_vector(const py::object& l,
+                                                             bool optional = false) {
   std::vector<std::vector<std::string>> v;
   if (l.is(py::none()))
     return v;
   v.reserve(py::len(l));
-  for (const auto& handle : l)
-    v.emplace_back(py_list_to_std_vector(py::cast<py::object>(handle)));
+  for (const auto& handle : l) {
+    if (handle.is(py::none())) {
+      if (optional)
+        v.emplace_back();
+      else
+        throw std::invalid_argument("Invalid None value in input list");
+    } else
+      v.emplace_back(py_list_to_std_vector(handle.cast<py::object>()));
+  }
   return v;
 }
 
@@ -112,7 +120,7 @@ public:
       return py::list();
 
     const auto source_input = batch_to_vector(source);
-    const auto target_prefix_input = batch_to_vector(target_prefix);
+    const auto target_prefix_input = batch_to_vector(target_prefix, /*optional=*/true);
     std::vector<ctranslate2::TranslationResult> results;
 
     {

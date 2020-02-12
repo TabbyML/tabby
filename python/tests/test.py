@@ -75,8 +75,10 @@ def test_empty_translation():
 def test_target_prefix():
     translator = _get_transliterator()
     output = translator.translate_batch(
-        [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]], target_prefix=[["a", "t", "s"]])
+        [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"], ["آ" ,"ت" ,"ش" ,"ي" ,"س" ,"و" ,"ن"]],
+        target_prefix=[["a", "t", "s"], None])
     assert output[0][0]["tokens"][:3] == ["a", "t", "s"]
+    assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
 
 def test_num_hypotheses():
     translator = _get_transliterator()
