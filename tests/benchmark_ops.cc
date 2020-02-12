@@ -8,7 +8,7 @@
 using namespace ctranslate2;
 
 void benchmark_gather(Device device) {
-  StorageView data({512, 512}, DataType::DT_FLOAT, device);
+  StorageView data({512, 512}, DataType::FLOAT, device);
   std::vector<int32_t> input_v(250);
   std::iota(input_v.begin(), input_v.end(), 0);
   StorageView input({static_cast<dim_t>(input_v.size())}, input_v, device);
@@ -18,14 +18,14 @@ void benchmark_gather(Device device) {
 }
 
 void benchmark_transpose(Device device) {
-  StorageView x({64, 48, 8, 64}, DataType::DT_FLOAT, device);
+  StorageView x({64, 48, 8, 64}, DataType::FLOAT, device);
   StorageView y(device);
   const ops::Transpose transpose_op({0, 2, 1, 3});
   BENCHMARK(transpose_op(x, y), 1000);
 }
 
 void benchmark_split(Device device) {
-  StorageView x({64, 512*3}, DataType::DT_FLOAT, device);
+  StorageView x({64, 512*3}, DataType::FLOAT, device);
   StorageView a(device);
   StorageView b(device);
   StorageView c(device);
@@ -61,13 +61,13 @@ void benchmark_topk(Device device) {
   std::vector<float> x = rand_vector(batch_size * k * vocab_size);
   StorageView input({batch_size, k * vocab_size}, x, device);
   StorageView values(input.dtype(), device);
-  StorageView indices(DataType::DT_INT32,  device);
+  StorageView indices(DataType::INT32,  device);
   const ops::TopK op(k);
   BENCHMARK(op(input, values, indices), 2000);
 }
 
 void benchmark_gemm(Device device, DataType dtype) {
-  DataType output_dtype = dtype != DataType::DT_FLOAT ? DataType::DT_INT32 : dtype;
+  DataType output_dtype = dtype != DataType::FLOAT ? DataType::INT32 : dtype;
   StorageView a({32 * 32, 512}, dtype, device);
   StorageView b({2048, 512}, dtype, device);
   StorageView c(output_dtype, device);
@@ -78,15 +78,15 @@ void benchmark_gemm(Device device, DataType dtype) {
 void benchmark_quantize(Device device, DataType dtype) {
   StorageView x({32, 512}, rand_vector(32 * 512), device);
   StorageView y(dtype, device);
-  StorageView scale(DataType::DT_FLOAT, device);
+  StorageView scale(DataType::FLOAT, device);
   const ops::Quantize quantize_op;
   BENCHMARK(quantize_op(x, y, scale), 10000);
 }
 
 void benchmark_dequantize(Device device) {
-  StorageView x({32, 1536}, DataType::DT_INT32, device);
-  StorageView input_scale({32}, DataType::DT_FLOAT, device);
-  StorageView weight_scale({1536}, DataType::DT_FLOAT, device);
+  StorageView x({32, 1536}, DataType::INT32, device);
+  StorageView input_scale({32}, DataType::FLOAT, device);
+  StorageView weight_scale({1536}, DataType::FLOAT, device);
   StorageView y(device);
   const ops::Dequantize dequantize_op{};
   BENCHMARK(dequantize_op(x, input_scale, weight_scale, y), 100000);
@@ -101,11 +101,11 @@ int main(int argc, char* argv[]) {
   std::string op = argv[1];
   Device device = std::string(argv[2]) == "cuda" ? Device::CUDA : Device::CPU;
   std::string dtype_str = argc > 3 ? argv[3] : "float";
-  DataType dtype = DataType::DT_FLOAT;
+  DataType dtype = DataType::FLOAT;
   if (dtype_str == "int16")
-    dtype = DataType::DT_INT16;
+    dtype = DataType::INT16;
   else if (dtype_str == "int8")
-    dtype = DataType::DT_INT8;
+    dtype = DataType::INT8;
 
   ctranslate2::set_num_threads(4);
 

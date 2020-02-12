@@ -14,10 +14,10 @@ namespace ctranslate2 {
   using dim_t = int64_t;  // This type should be signed.
 
   enum class DataType {
-    DT_FLOAT,
-    DT_INT8,
-    DT_INT16,
-    DT_INT32
+    FLOAT,
+    INT8,
+    INT16,
+    INT32
   };
 
   const std::string& dtype_name(DataType type);
@@ -27,14 +27,14 @@ namespace ctranslate2 {
   struct IsValidDataType;
 
   // DataTypeToEnum<T>::v() and DataTypeToEnum<T>::value are the DataType
-  // constants for T, e.g. DataTypeToEnum<float>::v() is DT_FLOAT.
+  // constants for T, e.g. DataTypeToEnum<float>::v() is DataType::FLOAT.
   template <class T>
   struct DataTypeToEnum {
     static_assert(IsValidDataType<T>::value, "Specified Data Type not supported");
   };  // Specializations below
 
-  // EnumToDataType<VALUE>::Type is the type for DataType constant VALUE, e.g.
-  // EnumToDataType<DT_FLOAT>::Type is float.
+  // EnumToDataType<DataType::VALUE>::Type is the type for DataType constant VALUE, e.g.
+  // EnumToDataType<DataType::FLOAT>::Type is float.
   template <DataType VALUE>
   struct EnumToDataType {}; // Specializations below
 
@@ -52,10 +52,10 @@ namespace ctranslate2 {
     typedef TYPE Type;                                  \
   }
 
-  MATCH_TYPE_AND_ENUM(float, DataType::DT_FLOAT, "float");
-  MATCH_TYPE_AND_ENUM(int8_t, DataType::DT_INT8, "int8");
-  MATCH_TYPE_AND_ENUM(int16_t, DataType::DT_INT16, "int16");
-  MATCH_TYPE_AND_ENUM(int32_t, DataType::DT_INT32, "int32");
+  MATCH_TYPE_AND_ENUM(float, DataType::FLOAT, "float");
+  MATCH_TYPE_AND_ENUM(int8_t, DataType::INT8, "int8");
+  MATCH_TYPE_AND_ENUM(int16_t, DataType::INT16, "int16");
+  MATCH_TYPE_AND_ENUM(int32_t, DataType::INT32, "int32");
 
   // All types not specialized are marked invalid.
   template <class T>

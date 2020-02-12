@@ -98,7 +98,7 @@ namespace ctranslate2 {
     expand_to_beam_size(tiled_memory, beam_size);
     expand_to_beam_size(tiled_memory_lengths, beam_size);
 
-    StorageView gather_indices(DataType::DT_INT32);
+    StorageView gather_indices(DataType::INT32);
     StorageView topk_ids(alive_seq);
     StorageView topk_scores;
     StorageView topk_log_probs({beam_size}, std::numeric_limits<float>::lowest());
@@ -280,7 +280,7 @@ namespace ctranslate2 {
       // If some sentences finished on this step, ignore them for the next step.
       if (finished_count > 0) {
         cur_batch_size -= finished_count;
-        StorageView keep_batches({cur_batch_size}, DataType::DT_INT32);
+        StorageView keep_batches({cur_batch_size}, DataType::INT32);
         size_t write_index = 0;
         size_t read_index = 0;
         for (; read_index < finished.size(); ++read_index) {
@@ -362,7 +362,7 @@ namespace ctranslate2 {
 
     StorageView logits(device);
     StorageView log_probs(device);
-    StorageView alive({batch_size}, DataType::DT_INT32);
+    StorageView alive({batch_size}, DataType::INT32);
     std::vector<bool> finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
@@ -373,7 +373,7 @@ namespace ctranslate2 {
         (*attention)[i].resize(1);
     }
 
-    StorageView best_ids( DataType::DT_INT32);
+    StorageView best_ids( DataType::INT32);
     StorageView best_probs;
     StorageView attention_step;
     StorageView attention_step_device(device);

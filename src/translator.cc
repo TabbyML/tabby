@@ -54,7 +54,7 @@ namespace ctranslate2 {
 
     // Record lengths and maximum length.
     dim_t max_length = 0;
-    StorageView lengths({batch_size}, DataType::DT_INT32);
+    StorageView lengths({batch_size}, DataType::INT32);
     for (dim_t i = 0; i < batch_size; ++i) {
       const dim_t length = ids[i].size();
       lengths.at<int32_t>(i) = length;
@@ -62,7 +62,7 @@ namespace ctranslate2 {
     }
 
     // Make 2D input.
-    StorageView input({batch_size, max_length}, DataType::DT_INT32);
+    StorageView input({batch_size, max_length}, DataType::INT32);
     for (dim_t i = 0; i < batch_size; ++i) {
       const dim_t length = ids[i].size();
       for (dim_t t = 0; t < length; ++t)
@@ -290,7 +290,7 @@ namespace ctranslate2 {
     encoder(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
-    StorageView candidates(DataType::DT_INT32, device);
+    StorageView candidates(DataType::INT32, device);
     if (options.use_vmap && !vocab_map.empty()) {
       auto candidates_vec = vocab_map.get_candidates<int32_t>(source);
       candidates.resize({static_cast<dim_t>(candidates_vec.size())});

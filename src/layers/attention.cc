@@ -7,7 +7,7 @@ namespace ctranslate2 {
   namespace layers {
 
     StorageView make_relative_positions(dim_t length, dim_t max_position, bool with_cache) {
-      StorageView positions({with_cache ? 1 : length, length}, DataType::DT_INT32);
+      StorageView positions({with_cache ? 1 : length, length}, DataType::INT32);
       auto* positions_data = positions.data<int32_t>();
 
       if (with_cache) {

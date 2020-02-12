@@ -16,7 +16,7 @@ namespace ctranslate2 {
                             StorageView& y) const {
       PROFILE("MatMul");
       switch (a.dtype()) {
-      case DataType::DT_FLOAT:
+      case DataType::FLOAT:
         DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
         break;
       default:

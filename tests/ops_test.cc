@@ -9,7 +9,7 @@ TEST(OpTest, Transpose1D) {
 }
 
 TEST(OpTest, Squeeze) {
-  StorageView x({2, 1, 3}, DataType::DT_FLOAT);
+  StorageView x({2, 1, 3}, DataType::FLOAT);
   StorageView y;
   ops::Squeeze({1})(x, y);
   assert_vector_eq(y.shape(), {2, 3});
@@ -19,7 +19,7 @@ TEST(OpTest, Squeeze) {
 }
 
 TEST(OpTest, Unsqueeze) {
-  StorageView x({2, 3}, DataType::DT_FLOAT);
+  StorageView x({2, 3}, DataType::FLOAT);
   StorageView y;
   ops::Unsqueeze({1})(x, y);
   assert_vector_eq(y.shape(), {2, 1, 3});
@@ -215,7 +215,7 @@ TEST_P(OpDeviceTest, TileMiddleDim) {
 TEST_P(OpDeviceTest, ConcatEmpty) {
   Device device = GetParam();
   StorageView a({2, 1, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView b({2, 0, 2}, DataType::DT_FLOAT, device);
+  StorageView b({2, 0, 2}, DataType::FLOAT, device);
   StorageView x(device);
   ops::Concat(1)({&a, &b}, x);
   expect_storage_eq(x, a);
@@ -455,7 +455,7 @@ TEST_P(OpDeviceTest, GemmInt8) {
       54, 16, -11, -31,
       32, -17, -10, -58,
       45, -17, 58, -44}, device);
-  StorageView c(DataType::DT_INT32, device);
+  StorageView c(DataType::INT32, device);
   StorageView expected({3, 4}, std::vector<int32_t>{
       -1205, 2249, -1269, -4226,
       -3697, 1272, 2436, -1676,
@@ -565,8 +565,8 @@ TEST_P(OpDeviceTest, GELU) {
 TEST_P(OpDeviceTest, QuantizeINT8) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 5, 21, -3, 0}, device);
-  StorageView scale(DataType::DT_FLOAT, device);
-  StorageView qa(DataType::DT_INT8, device);
+  StorageView scale(DataType::FLOAT, device);
+  StorageView qa(DataType::INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 6.047619}, device);
   StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 30, 127, -18, 0});
   ops::Quantize()(a, qa, scale);
@@ -577,7 +577,7 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
 TEST_P(OpDeviceTest, Multinomial) {
   Device device = GetParam();
   StorageView input({2, 4}, std::vector<float>{0, 0, 1, 0, 0, 0, 0, 1}, device);
-  StorageView output(DataType::DT_INT32, device);
+  StorageView output(DataType::INT32, device);
   StorageView expected({2, 2}, std::vector<int32_t>{2, 2, 3, 3}, device);
   ops::Multinomial(2)(input, output);
   expect_storage_eq(output, expected);

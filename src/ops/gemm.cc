@@ -85,7 +85,7 @@ namespace ctranslate2 {
       y.resize(output_shape);
 
       switch (a.dtype()) {
-      case DataType::DT_INT8:
+      case DataType::INT8:
         DEVICE_DISPATCH(a.device(),
                         (run_gemm<D, int8_t, int32_t>(a, b, c,
                                                       _trans_a, _trans_b,
@@ -95,7 +95,7 @@ namespace ctranslate2 {
                                                       a_shift_compensation)));
         break;
 
-      case DataType::DT_INT16:
+      case DataType::INT16:
         if (a.device() != Device::CPU)
           throw std::invalid_argument("INT16 GEMM is only supported on CPU");
         run_gemm<Device::CPU, int16_t, int32_t>(a, b, c,
@@ -106,7 +106,7 @@ namespace ctranslate2 {
                                                 a_shift_compensation);
         break;
 
-      case DataType::DT_FLOAT:
+      case DataType::FLOAT:
         DEVICE_DISPATCH(a.device(),
                         (run_gemm<D, float, float>(a, b, c,
                                                    _trans_a, _trans_b,

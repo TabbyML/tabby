@@ -18,7 +18,7 @@ namespace ctranslate2 {
     void Embeddings::operator()(const StorageView& ids,
                                 StorageView& output) {
       PROFILE("Embeddings");
-      if (_embeddings.dtype() == DataType::DT_INT16 || _embeddings.dtype() == DataType::DT_INT8) {
+      if (_embeddings.dtype() == DataType::INT16 || _embeddings.dtype() == DataType::INT8) {
         const auto device = output.device();
         StorageView gathered(_embeddings.dtype(), device);
         _gather_op(_embeddings, ids, gathered);
@@ -42,7 +42,7 @@ namespace ctranslate2 {
       // If the target Gemm implementation prefers the u8s8s32 format, we can shift
       // the input to the u8 domain and add a compensation term.
       return (device == Device::CPU
-              && dtype == DataType::DT_INT8
+              && dtype == DataType::INT8
               && primitives<Device::CPU>::prefer_u8s8s32_gemm());
     }
 
@@ -51,7 +51,7 @@ namespace ctranslate2 {
       // we can compute it once.
       const dim_t k = weight.dim(1);
       const dim_t n = weight.dim(0);
-      auto* compensation = new StorageView({n}, DataType::DT_INT32);
+      auto* compensation = new StorageView({n}, DataType::INT32);
       primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
                                                        /*transpose=*/true,
                                                        k, n,
@@ -65,7 +65,7 @@ namespace ctranslate2 {
       , _bias(model.get_variable_if_exists(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _partial_weight(_weight.device(), _weight.dtype())
-      , _partial_bias(_weight.device(), DataType::DT_FLOAT)
+      , _partial_bias(_weight.device(), DataType::FLOAT)
       , _partial_qscale(_weight.device())
       , _gemm_op(1, 0, false, true)
       , _u8_quantization_shift(should_shift_input_to_u8(_weight.device(), _weight.dtype())
@@ -96,11 +96,11 @@ namespace ctranslate2 {
       const StorageView* weight = _partial_weight.empty() ? &_weight : &_partial_weight;
       const StorageView* bias = _partial_bias.empty() ? _bias : &_partial_bias;
 
-      if (_weight.dtype() == DataType::DT_INT16 || _weight.dtype() == DataType::DT_INT8) {
+      if (_weight.dtype() == DataType::INT16 || _weight.dtype() == DataType::INT8) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
-        StorageView qoutput(DataType::DT_INT32, device);
+        StorageView qoutput(DataType::INT32, device);
         ops::Quantize()(input, qinput, qinput_scale, _u8_quantization_shift);
         _gemm_op(qinput, *weight, qoutput, _u8_shift_compensation.get());
         ops::Dequantize()(qoutput, qinput_scale, *qscale, output);

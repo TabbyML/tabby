@@ -8,7 +8,7 @@ namespace ctranslate2 {
     void Dequantize::operator()(const StorageView& x, const StorageView& scale, StorageView& y) const {
       PROFILE("Dequantize");
       y.resize_as(x);
-      if (x.dtype() == DataType::DT_INT16) {
+      if (x.dtype() == DataType::INT16) {
         if (x.device() != Device::CPU)
           throw std::invalid_argument("INT16 dequantization is only supported on CPU");
         if (!scale.is_scalar())
@@ -18,7 +18,7 @@ namespace ctranslate2 {
                                             y.data<float>(),
                                             x.size(),
                                             scale.as_scalar<float>());
-      } else if (x.dtype() == DataType::DT_INT8) {
+      } else if (x.dtype() == DataType::INT8) {
         auto batch_size = x.size() / x.dim(-1);
         if (scale.size() != batch_size)
           throw std::invalid_argument("INT8 dequantization expects per-batch scales");

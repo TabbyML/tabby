@@ -133,7 +133,7 @@ namespace ctranslate2 {
 
       // Compatibility with int16 models without a saved scale.
       if (scale == nullptr) {
-        if (dataType == DataType::DT_INT16) {
+        if (dataType == DataType::INT16) {
           StorageView compat_scale(ops::Quantize::default_int16_scale);
           Model::register_variable(scale_name, compat_scale);
           scale = &_variable_index.at(scale_name);
@@ -154,9 +154,9 @@ namespace ctranslate2 {
                                 StorageView& variable,
                                 std::vector<std::pair<std::string, StorageView>>& variables_to_add,
                                 std::vector<std::string>& variables_to_remove) {
-      const bool is_int8 = variable.dtype() == DataType::DT_INT8;
-      const bool is_int16 = variable.dtype() == DataType::DT_INT16;
-      const bool is_float = variable.dtype() == DataType::DT_FLOAT;
+      const bool is_int8 = variable.dtype() == DataType::INT8;
+      const bool is_int16 = variable.dtype() == DataType::INT16;
+      const bool is_float = variable.dtype() == DataType::FLOAT;
 
       // Use the same quantization logic as in model_spec.py.
       const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER);
@@ -175,7 +175,7 @@ namespace ctranslate2 {
 
             // However, if int16 is supported and we came from int8, quantize to int16.
             if (is_int8 && support_int16) {
-              StorageView variable_int16(DataType::DT_INT16);
+              StorageView variable_int16(DataType::INT16);
               quantize_op(variable, variable_int16, *scale);
               swap(variable, variable_int16);
             } else { // is_int16 or !support_int16
@@ -204,18 +204,18 @@ namespace ctranslate2 {
       } else {
         if (is_float) {
 
-          StorageView scale(DataType::DT_FLOAT);
+          StorageView scale(DataType::FLOAT);
 
           // from float32 to int16
           StorageView variable_int(_compute_type == ComputeType::INT16
-                                   ? DataType::DT_INT16
-                                   : DataType::DT_INT8);
+                                   ? DataType::INT16
+                                   : DataType::INT8);
           quantize_op(variable, variable_int, scale);
           swap(variable, variable_int);
 
           variables_to_add.emplace_back(make_pair(scale_name, scale));
 
-        } else { // DataType::DT_INT8 or DataType::DT_INT16
+        } else { // DataType::INT8 or DataType::INT16
           StorageView* scale = get_scale(scale_name, variable.dtype());
 
           // from int8 to float32 firstly
@@ -225,8 +225,8 @@ namespace ctranslate2 {
 
           // from float to int
           StorageView variable_int(_compute_type == ComputeType::INT8
-                                   ? DataType::DT_INT8
-                                   : DataType::DT_INT16);
+                                   ? DataType::INT8
+                                   : DataType::INT16);
           quantize_op(variable, variable_int, *scale);
           swap(variable, variable_int);
         }
@@ -291,11 +291,11 @@ namespace ctranslate2 {
       // This is the old (and flawed) logic of resolving the dtype of saved variables.
       switch (item_size) {
       case 4:
-        return DataType::DT_FLOAT;
+        return DataType::FLOAT;
       case 2:
-        return DataType::DT_INT16;
+        return DataType::INT16;
       case 1:
-        return DataType::DT_INT8;
+        return DataType::INT8;
       default:
         throw std::runtime_error("unknown data type of width " + std::to_string(item_size));
       }

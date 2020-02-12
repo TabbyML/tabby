@@ -5,10 +5,10 @@
 namespace ctranslate2 {
 
   static const std::map<DataType, std::string> dtype_names = {
-    {DataType::DT_FLOAT, "float"},
-    {DataType::DT_INT8, "int8"},
-    {DataType::DT_INT16, "int16"},
-    {DataType::DT_INT32, "int32"}
+    {DataType::FLOAT, "float"},
+    {DataType::INT8, "int8"},
+    {DataType::INT16, "int16"},
+    {DataType::INT32, "int32"}
   };
 
   const std::string& dtype_name(DataType type) {

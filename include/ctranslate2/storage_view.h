@@ -41,9 +41,9 @@ namespace ctranslate2 {
   class StorageView
   {
   public:
-    StorageView(DataType type = DataType::DT_FLOAT, Device device = Device::CPU);
-    StorageView(Device device, DataType type = DataType::DT_FLOAT);
-    StorageView(const Shape& shape, DataType type = DataType::DT_FLOAT, Device device = Device::CPU);
+    StorageView(DataType type = DataType::FLOAT, Device device = Device::CPU);
+    StorageView(Device device, DataType type = DataType::FLOAT);
+    StorageView(const Shape& shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
 
     template <typename T>
     StorageView(const Shape& shape, T init = T(), Device device = Device::CPU)
@@ -229,7 +229,7 @@ namespace ctranslate2 {
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
   protected:
-    DataType _dtype = DataType::DT_FLOAT;
+    DataType _dtype = DataType::FLOAT;
     Device _device = Device::CPU;
     void* _data = nullptr;
     bool _own_data = true;

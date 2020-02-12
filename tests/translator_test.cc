@@ -35,10 +35,10 @@ static void check_weights_dtype(const std::unordered_map<std::string, StorageVie
 static DataType dtype_with_fallback(DataType dtype, Device device) {
   const bool support_int8 = mayiuse_int8(device);
   const bool support_int16 = mayiuse_int16(device);
-  if (dtype == DataType::DT_INT16 && !support_int16)
-    return DataType::DT_FLOAT;
-  if (dtype == DataType::DT_INT8 && !support_int8)
-    return support_int16 ? DataType::DT_INT16 : DataType::DT_FLOAT;
+  if (dtype == DataType::INT16 && !support_int16)
+    return DataType::FLOAT;
+  if (dtype == DataType::INT8 && !support_int8)
+    return support_int16 ? DataType::INT16 : DataType::FLOAT;
   return dtype;
 }
 
@@ -57,11 +57,11 @@ TEST_P(ModelVariantTest, Transliteration) {
 
   std::vector<std::pair<ComputeType, DataType>> type_params;
   type_params.emplace_back(ComputeType::DEFAULT, dtype_with_fallback(model_dtype, device));
-  type_params.emplace_back(ComputeType::FLOAT, DataType::DT_FLOAT);
+  type_params.emplace_back(ComputeType::FLOAT, DataType::FLOAT);
   if (mayiuse_int16(device))
-    type_params.emplace_back(ComputeType::INT16, DataType::DT_INT16);
+    type_params.emplace_back(ComputeType::INT16, DataType::INT16);
   if (mayiuse_int8(device))
-    type_params.emplace_back(ComputeType::INT8, DataType::DT_INT8);
+    type_params.emplace_back(ComputeType::INT8, DataType::INT8);
 
   for (const auto& types : type_params) {
     const ComputeType compute_type = types.first;
@@ -78,11 +78,11 @@ INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
   ModelVariantTest,
   ::testing::Values(
-    std::make_pair("v1/aren-transliteration", DataType::DT_FLOAT),
-    std::make_pair("v1/aren-transliteration-i16", DataType::DT_INT16),
-    std::make_pair("v2/aren-transliteration", DataType::DT_FLOAT),
-    std::make_pair("v2/aren-transliteration-i16", DataType::DT_INT16),
-    std::make_pair("v2/aren-transliteration-i8", DataType::DT_INT8)
+    std::make_pair("v1/aren-transliteration", DataType::FLOAT),
+    std::make_pair("v1/aren-transliteration-i16", DataType::INT16),
+    std::make_pair("v2/aren-transliteration", DataType::FLOAT),
+    std::make_pair("v2/aren-transliteration-i16", DataType::INT16),
+    std::make_pair("v2/aren-transliteration-i8", DataType::INT8)
     ),
   path_to_test_name);
 

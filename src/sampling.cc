@@ -23,7 +23,7 @@ namespace ctranslate2 {
     if (scores.device() == Device::CPU) {
       topk_op(scores, sampled_scores, sampled_ids);
     } else {
-      StorageView sampled_ids_device(DataType::DT_INT32, scores.device());
+      StorageView sampled_ids_device(DataType::INT32, scores.device());
       StorageView sampled_scores_device(scores.dtype(), scores.device());
       topk_op(scores, sampled_scores_device, sampled_ids_device);
       sampled_ids.copy_from(sampled_ids_device);
@@ -75,7 +75,7 @@ namespace ctranslate2 {
     const StorageView* final_scores = nullptr;
 
     // Maybe restrict scores to the best K candidates.
-    StorageView top_ids(DataType::DT_INT32, device);
+    StorageView top_ids(DataType::INT32, device);
     StorageView top_scores(device);
     if (_from_topk > 0) {
       const ops::TopK topk_op(_from_topk);
