@@ -133,16 +133,21 @@ namespace ctranslate2 {
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
                               const TranslationOptions& options) {
-    std::vector<std::vector<std::string>> target_prefix;
-    return translate_batch_with_prefix(batch_tokens, target_prefix, options);
+    return translate_impl(batch_tokens, nullptr, options);
   }
 
   std::vector<TranslationResult>
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
+    return translate_impl(source, &target_prefix, options);
+  }
+
+  std::vector<TranslationResult>
+  Translator::translate_impl(const std::vector<std::vector<std::string>>& source,
+                             const std::vector<std::vector<std::string>>* target_prefix,
+                             const TranslationOptions& options) {
     const size_t batch_size = source.size();
-    const bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
     if (options.num_hypotheses > options.beam_size)
@@ -153,10 +158,10 @@ namespace ctranslate2 {
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-    if (with_prefix && target_prefix.size() != batch_size)
+    if (target_prefix && target_prefix->size() != batch_size)
       throw std::invalid_argument("Batch size mismatch: got "
                                   + std::to_string(batch_size) + " for source and "
-                                  + std::to_string(target_prefix.size()) + " for target prefix");
+                                  + std::to_string(target_prefix->size()) + " for target prefix");
 
     if (batch_size == 0)
       return std::vector<TranslationResult>();
@@ -168,7 +173,7 @@ namespace ctranslate2 {
                                                  });
 
     // Directly run translation if all source inputs are non empty and there is no target prefix.
-    if (no_source_is_empty && !with_prefix)
+    if (no_source_is_empty && !target_prefix)
       return run_batch_translation_sorted(source, options);
 
     std::vector<TranslationResult> with_prefix_results;
@@ -180,8 +185,8 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       if (source[i].empty())
         continue;
-      else if (with_prefix && !target_prefix[i].empty())
-        with_prefix_results.emplace_back(run_translation(source[i], &target_prefix[i], options));
+      else if (target_prefix && !target_prefix->at(i).empty())
+        with_prefix_results.emplace_back(run_translation(source[i], &target_prefix->at(i), options));
       else
         non_empty_source.emplace_back(source[i]);
     }
@@ -201,7 +206,7 @@ namespace ctranslate2 {
         final_results.emplace_back(std::vector<std::vector<std::string>>(options.num_hypotheses),
                                    std::vector<float>(options.num_hypotheses, static_cast<float>(0)),
                                    options.return_attention ? &empty_attention : nullptr);
-      else if (with_prefix && !target_prefix[i].empty())
+      else if (target_prefix && !target_prefix->at(i).empty())
         final_results.emplace_back(std::move(with_prefix_results[with_prefix_index++]));
       else
         final_results.emplace_back(std::move(results[non_empty_index++]));
