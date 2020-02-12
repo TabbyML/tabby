@@ -32,6 +32,16 @@ static void check_weights_dtype(const std::unordered_map<std::string, StorageVie
   }
 }
 
+static DataType dtype_with_fallback(DataType dtype, Device device) {
+  const bool support_int8 = mayiuse_int8(device);
+  const bool support_int16 = mayiuse_int16(device);
+  if (dtype == DataType::DT_INT16 && !support_int16)
+    return DataType::DT_FLOAT;
+  if (dtype == DataType::DT_INT8 && !support_int8)
+    return support_int16 ? DataType::DT_INT16 : DataType::DT_FLOAT;
+  return dtype;
+}
+
 
 // Test that we can load and translate with different versions of the same model.
 class ModelVariantTest : public ::testing::TestWithParam<std::pair<std::string, DataType>> {
@@ -39,21 +49,25 @@ class ModelVariantTest : public ::testing::TestWithParam<std::pair<std::string, 
 
 TEST_P(ModelVariantTest, Transliteration) {
   auto params = GetParam();
-  const std::string& model_path = params.first;
-  DataType expected_dtype = params.second;
+  const std::string model_path = g_data_dir + "/models/" + params.first;
+  const DataType model_dtype = params.second;
+  const Device device = Device::CPU;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n"};
 
   std::vector<std::pair<ComputeType, DataType>> type_params;
-  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::DEFAULT, expected_dtype));
-  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::FLOAT, DataType::DT_FLOAT));
-  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT16, DataType::DT_INT16));
-  type_params.emplace_back(std::pair<ComputeType, DataType>(ComputeType::INT8, DataType::DT_INT8));
+  type_params.emplace_back(ComputeType::DEFAULT, dtype_with_fallback(model_dtype, device));
+  type_params.emplace_back(ComputeType::FLOAT, DataType::DT_FLOAT);
+  if (mayiuse_int16(device))
+    type_params.emplace_back(ComputeType::INT16, DataType::DT_INT16);
+  if (mayiuse_int8(device))
+    type_params.emplace_back(ComputeType::INT8, DataType::DT_INT8);
 
-  for (const auto& t : type_params) {
-    // compute type: none
-    auto model = models::Model::load(g_data_dir + "/models/" + model_path, Device::CPU, 0, t.first);
-    check_weights_dtype(model->get_variables(), t.second);
+  for (const auto& types : type_params) {
+    const ComputeType compute_type = types.first;
+    const DataType expected_type = types.second;
+    const auto model = models::Model::load(model_path, device, 0, compute_type);
+    check_weights_dtype(model->get_variables(), expected_type);
     Translator translator(model);
     auto result = translator.translate(input);
     EXPECT_EQ(result.output(), expected);

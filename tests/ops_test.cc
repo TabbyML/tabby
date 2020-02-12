@@ -93,6 +93,8 @@ TEST(OpDeviceTest, GatherInPlaceLarger) {
 }
 
 TEST(OpTest, GemmInt16) {
+  if (!mayiuse_int16(Device::CPU))
+    return;
   StorageView a({64, 64}, static_cast<int16_t>(1));
   StorageView b(a);
   StorageView c({64, 64}, static_cast<int32_t>(2));
@@ -438,6 +440,8 @@ TEST_P(OpDeviceTest, Gemm) {
 
 TEST_P(OpDeviceTest, GemmInt8) {
   Device device = GetParam();
+  if (!mayiuse_int8(device))
+    return;
   StorageView a({3, 8}, std::vector<int8_t>{
       -31, 14, -39, 36, 17, 4, -10, 15,
       -58, 8, 0, -26, -18, -42, -3, -21,
