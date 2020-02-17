@@ -12,18 +12,38 @@
 
 #include "ctranslate2/utils.h"
 
+#include "./parallel.h"
+
 #define ALIGNMENT 64
 
 namespace ctranslate2 {
 
+  // work_size is an estimation of the amount of work per index (for example,
+  // 1 for a basic operator + - *, 2 for /, and 4 for exp, log, etc.).
+
   template <typename T1, typename T2, typename Function>
-  void unary_transform(const T1* x, T2* y, dim_t size, Function func) {
-    std::transform(x, x + size, y, func);
+  void unary_transform(const T1* x,
+                       T2* y,
+                       dim_t size,
+                       const Function& func,
+                       dim_t work_size = 1) {
+    parallel_for(0, size, GRAIN_SIZE / work_size,
+                 [&](dim_t begin, dim_t end) {
+                   std::transform(x + begin, x + end, y + begin, func);
+                 });
   }
 
   template <typename T1, typename T2, typename T3, typename Function>
-  void binary_transform(const T1* a, const T2* b, T3* c, dim_t size, Function func) {
-    std::transform(a, a + size, b, c, func);
+  void binary_transform(const T1* a,
+                        const T2* b,
+                        T3* c,
+                        dim_t size,
+                        const Function& func,
+                        dim_t work_size = 1) {
+    parallel_for(0, size, GRAIN_SIZE / work_size,
+                 [&](dim_t begin, dim_t end) {
+                   std::transform(a + begin, a + end, b + begin, c + begin, func);
+                 });
   }
 
   template<>
@@ -223,7 +243,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::inv(const T* x, T* y, dim_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(1) / v; });
+    unary_transform(x, y, size, [](T v) { return static_cast<T>(1) / v; }, /*work_size=*/2);
   }
 
 #ifdef WITH_MKL
@@ -241,12 +261,13 @@ namespace ctranslate2 {
                                          dim_t size,
                                          float scale,
                                          float shift) {
-    unary_transform(x, y, size, [scale, shift](float v) {
-      return static_cast<T>(
-        std::max(
-          std::min(v * scale + shift, static_cast<float>(std::numeric_limits<T>::max())),
-          static_cast<float>(std::numeric_limits<T>::lowest())));
-    });
+    unary_transform(x, y, size,
+                    [scale, shift](float v) {
+                      return static_cast<T>(
+                        std::max(std::min(v * scale + shift,
+                                          static_cast<float>(std::numeric_limits<T>::max())),
+                                 static_cast<float>(std::numeric_limits<T>::lowest())));
+                    }, /*work_size=*/5);
   }
 
   template<>
@@ -259,7 +280,7 @@ namespace ctranslate2 {
     unary_transform(x, y, size,
                     [scale, shift](T v) {
                       return (static_cast<float>(v) - shift) / scale;
-                    });
+                    }, /*work_size=*/4);
   }
 
   template<>
@@ -319,9 +340,10 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::gelu(const float* x, float* y, dim_t size) {
     static const float pi = std::acos(-1.f);
     static const float scale = std::sqrt(2.f / pi);
-    unary_transform(x, y, size, [](float v) {
-      return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
-    });
+    unary_transform(x, y, size,
+                    [](float v) {
+                      return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
+                    }, /*work_size=*/14);
   }
 
   template<>
@@ -329,7 +351,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsPowx(size, x, power, y);
 #else
-    unary_transform(x, y, size, [power](float v) { return std::pow(v, power); });
+    unary_transform(x, y, size, [power](float v) { return std::pow(v, power); }, /*work_size=*/4);
 #endif
   }
 
@@ -338,7 +360,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #else
-    unary_transform(x, y, size, [](float v) { return std::exp(v); });
+    unary_transform(x, y, size, [](float v) { return std::exp(v); }, /*work_size=*/4);
 #endif
   }
 
@@ -347,7 +369,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #else
-    unary_transform(x, y, size, [](float v) { return std::log(v); });
+    unary_transform(x, y, size, [](float v) { return std::log(v); }, /*work_size=*/4);
 #endif
   }
 
@@ -356,7 +378,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsCos(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::cos(v); });
+    unary_transform(x, y, size, [](float v) { return std::cos(v); }, /*work_size=*/4);
 #endif
   }
 
@@ -365,7 +387,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsSin(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::sin(v); });
+    unary_transform(x, y, size, [](float v) { return std::sin(v); }; /*work_size=*/4);
 #endif
   }
 
@@ -374,7 +396,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsTanh(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::tanh(v); });
+    unary_transform(x, y, size, [](float v) { return std::tanh(v); }, /*work_size=*/4);
 #endif
   }
 
