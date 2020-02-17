@@ -265,21 +265,7 @@ The result `▁Hallo ▁Welt !` should be displayed.
 
 ### C++
 
-Google Test is used to run the C++ tests:
-
-1. Download the [latest release](https://github.com/google/googletest/releases/tag/release-1.8.1)
-2. Unzip into an empty folder
-3. Go under the decompressed folder (where `CMakeLists.txt` is located)
-4. Run the following commands:
-
-```bash
-cmake .
-sudo make install
-sudo ln -s  /usr/local/lib/libgtest.a /usr/lib/libgtest.a
-sudo ln -s  /usr/local/lib/libgtest_main.a /usr/lib/libgtest_main.a
-```
-
-Then configure the project with `cmake -DWITH_TESTS=ON` to produce the test executable `tests/ctranslate2_test`. The binary expects the path to the test data as argument:
+To enable the tests, you should configure the project with `cmake -DWITH_TESTS=ON`. This will enable the executable `tests/ctranslate2_test` which runs all tests using Google Test. The binary expects the path to the test data as argument:
 
 ```bash
 ./tests/ctranslate2_test ../tests/data
