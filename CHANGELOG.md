@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.6.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.1) (2020-02-11)
+
+### Fixes and improvements
+
+* [Docker] Remove translation client in CentOS 7 images as it can cause compatibility issues with downstream images
+
 ## [v1.6.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.0) (2020-02-14)
 
 ### New features
