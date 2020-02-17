@@ -1,9 +1,8 @@
 FROM nvidia/cuda:10.0-cudnn7-devel-centos7 as builder
 
-RUN yum install -y centos-release-scl-rh && \
-    yum install -y \
-        devtoolset-3-gcc \
-        devtoolset-3-gcc-c++ \
+RUN yum install -y \
+        gcc \
+        gcc-c++ \
         make \
         python-devel \
         wget && \
@@ -49,8 +48,8 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
-    source scl_source enable devtoolset-3 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
+          -DLIB_ONLY=ON \
           -DWITH_CUDA=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
@@ -65,7 +64,6 @@ RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
     rm get-pip.py && \
     pip --no-cache-dir install pybind11==2.4.3 && \
     pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
-    source scl_source enable devtoolset-3 && \
     python setup.py bdist_wheel && \
     python setup.py sdist && \
     mv dist/* /root/ctranslate2 && \
@@ -90,5 +88,3 @@ WORKDIR /opt
 
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CTRANSLATE2_ROOT/lib64
-
-ENTRYPOINT ["/opt/ctranslate2/bin/translate"]
