@@ -405,8 +405,8 @@ There are many ways to make this project better and faster. See the open issues 
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of threads that is used within operators: increase this value to decrease the latency.
-* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety)
+* `intra_threads` is the number of threads that is used per translation: increase this value to decrease the latency.
+* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety).
 
 The total number of computing threads launched by the process is summarized by this formula:
 
