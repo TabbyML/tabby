@@ -18,8 +18,8 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: on standard translation tasks, it is [up to 4x faster](#benchmarks) than OpenNMT-py.
-* **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization (experimental) on CPU and GPU.
+* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on translation tasks.
+* **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization on CPU and GPU.
 * **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Automatic instruction set dispatch**<br/>When using Intel MKL, the dispatch to the optimal instruction set is done at runtime.
@@ -70,6 +70,8 @@ ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec T
     --output_dir ende_ctranslate2
 ```
 
+*The conversion script should be run in the same environment as the selected training framework.*
+
 3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
 
 ```python
@@ -113,19 +115,26 @@ The core CTranslate2 implementation is framework agnostic. The framework specifi
 
 The following frameworks and models are currently supported:
 
-|     | [OpenNMT-tf](python/ctranslate2/converters/opennmt_tf.py) | [OpenNMT-py](python/ctranslate2/converters/opennmt_py.py) |
+|     | OpenNMT-tf | OpenNMT-py |
 | --- | :---: | :---: |
 | Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ |
 | + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ |
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
-Conversion scripts are parts of the Python package and should be run in the same environment as the target training framework:
+Conversion scripts are parts of the Python package and should be run in the same environment as the selected training framework:
 
 * `ct2-opennmt-py-converter`
 * `ct2-opennmt-tf-converter`
 
 The [converter Python API](docs/python.md#model-conversion-api) can also be used to convert Transformer models with any number of layers, hidden dimensions, and attention heads.
+
+### Integrated model conversion
+
+Models can also be converted directly from the supported training frameworks. See their documentation:
+
+* [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py/blob/master/onmt/bin/release_model.py)
+* [OpenNMT-tf](https://opennmt.net/OpenNMT-tf/serving.html#ctranslate2)
 
 ### Quantization
 
@@ -174,7 +183,7 @@ echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
 >>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
-*See the [Python reference](docs/python.md) for more advanced usage.*
+*See the [Python reference](docs/python.md) for more advanced usages.*
 
 ### With the C++ API
 
@@ -193,7 +202,7 @@ int main() {
 }
 ```
 
-*See the [Translator class](include/ctranslate2/translator.h) for more advanced usage, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
+*See the [Translator class](include/ctranslate2/translator.h) for more advanced usages, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
 
 ## Building
 
@@ -265,7 +274,7 @@ The result `▁Hallo ▁Welt !` should be displayed.
 
 ### C++
 
-To enable the tests, you should configure the project with `cmake -DWITH_TESTS=ON`. This will enable the executable `tests/ctranslate2_test` which runs all tests using Google Test. The binary expects the path to the test data as argument:
+To enable the tests, you should configure the project with `cmake -DWITH_TESTS=ON`. The binary `tests/ctranslate2_test` runs all tests using Google Test. It expects the path to the test data as argument:
 
 ```bash
 ./tests/ctranslate2_test ../tests/data
@@ -273,7 +282,7 @@ To enable the tests, you should configure the project with `cmake -DWITH_TESTS=O
 
 ## Benchmarks
 
-We compare CTranslate2 with OpenNMT-py and OpenNMT-tf on their pretrained English-German Transformer models (available on the [website](http://opennmt.net/)). **For this benchmark, CTranslate2 models are using the weights of the OpenNMT-py model.**
+We compare CTranslate2 with OpenNMT-py and OpenNMT-tf on their pretrained English-German Transformer models (available on the [website](https://opennmt.net/)). **For this benchmark, CTranslate2 models are using the weights of the OpenNMT-py model.**
 
 ### Model size
 
@@ -390,6 +399,20 @@ However, you should probably **not** use this project when:
 * You want to train custom architectures not covered by this project.
 * You see no value in the key features listed at the top of this document.
 
+### What hardware is supported?
+
+The supported hardware mostly depends on the external libraries used for acceleration.
+
+**CPU**
+
+Intel MKL officially supports Intel CPUs only (see [Key Specifications](https://software.intel.com/en-us/mkl)).
+
+When running CTranslate2 on other CPU vendors, we expect the code to run but at lower speed. Optimized execution on AMD and ARM is a future work (contributions are welcome!).
+
+**GPU**
+
+CTranslate2 currently requires a NVIDIA GPU with a compute capability greater than 3.0 (Kepler). The driver requirements depend on the CUDA version, see the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
+
 ### What are the known limitations?
 
 The current approach only exports the weights from existing models and redefines the computation graph via the code. This implies a strong assumption of the graph architecture executed by the original framework.
@@ -402,6 +425,7 @@ There are many ways to make this project better and faster. See the open issues 
 
 * Better support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
+* Optimizations for non-Intel CPUs
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
