@@ -14,10 +14,14 @@ class TransformerSpec(model_spec.ModelSpec):
     explicitly set the number of layers and attention heads.
     """
     def __init__(self, num_layers, num_heads, with_relative_position=False):
+        if isinstance(num_layers, (list, tuple)):
+            num_encoder_layers, num_decoder_layers = num_layers
+        else:
+            num_encoder_layers, num_decoder_layers = num_layers, num_layers
         self.num_heads = np.dtype("int8").type(num_heads)
         self.with_relative_position = with_relative_position
-        self.encoder = TransformerEncoderSpec(num_layers)
-        self.decoder = TransformerDecoderSpec(num_layers)
+        self.encoder = TransformerEncoderSpec(num_encoder_layers)
+        self.decoder = TransformerDecoderSpec(num_decoder_layers)
 
     @property
     def name(self):
