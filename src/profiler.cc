@@ -118,7 +118,8 @@ namespace ctranslate2 {
 #ifdef ENABLE_PROFILING
     profiler.reset(new Profiler(device, num_threads));
 #else
-    throw std::runtime_error("CTranslate2 was not compiled with profiling support");
+    throw std::runtime_error("CTranslate2 was not compiled with profiling support, "
+                             "enable it with -DENABLE_PROFILING=ON during cmake configuration.");
 #endif
   }
 
