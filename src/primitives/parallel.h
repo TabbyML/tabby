@@ -29,9 +29,13 @@ namespace ctranslate2 {
       return;
     }
 #ifdef _OPENMP
+    const dim_t omp_num_threads = omp_get_num_threads();
+    if (omp_num_threads == 1) {
+      return f(begin, end);
+    }
     #pragma omp parallel if (!omp_in_parallel() && ((end - begin) > grain_size))
     {
-      dim_t num_threads = omp_get_num_threads();
+      dim_t num_threads = omp_num_threads;
       if (grain_size > 0) {
         num_threads = std::min(num_threads, ceil_divide((end - begin), grain_size));
       }
