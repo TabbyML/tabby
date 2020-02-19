@@ -53,6 +53,8 @@ pip install ctranslate2
 *OpenNMT-py*
 
 ```bash
+pip install OpenNMT-py
+
 wget https://s3.amazonaws.com/opennmt-models/transformer-ende-wmt-pyOnmt.tar.gz
 tar xf transformer-ende-wmt-pyOnmt.tar.gz
 
@@ -63,14 +65,14 @@ ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec Transfor
 *OpenNMT-tf*
 
 ```bash
+pip install OpenNMT-tf
+
 wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k-v2.tar.gz
 tar xf averaged-ende-export500k-v2.tar.gz
 
 ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec TransformerBase \
     --output_dir ende_ctranslate2
 ```
-
-*The conversion script should be run in the same environment as the selected training framework.*
 
 3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
 
