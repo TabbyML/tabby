@@ -45,12 +45,13 @@ The translation API supports several decoding options:
 1\. **[Install](#installation) the Python package**:
 
 ```bash
+pip install --upgrade pip
 pip install ctranslate2
 ```
 
-2\. **[Convert](#converting-models) a model trained with OpenNMT-py or OpenNMT-tf**, for example the pretrained Transformer model:
+2\. **[Convert](#converting-models) a model trained with OpenNMT-py or OpenNMT-tf**, for example the pretrained Transformer model (choose one of the two models):
 
-*OpenNMT-py*
+*a. OpenNMT-py*
 
 ```bash
 pip install OpenNMT-py
@@ -62,7 +63,7 @@ ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec Transfor
     --output_dir ende_ctranslate2
 ```
 
-*OpenNMT-tf*
+*b. OpenNMT-tf*
 
 ```bash
 pip install OpenNMT-tf
@@ -77,10 +78,9 @@ ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec T
 3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
 
 ```python
-import ctranslate2
-translator = ctranslate2.Translator("ende_ctranslate2/")
-outputs = translator.translate_batch([["▁H", "ello", "▁world", "!"]])
-print(outputs[0][0])
+>>> import ctranslate2
+>>> translator = ctranslate2.Translator("ende_ctranslate2/")
+>>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
 ## Installation
