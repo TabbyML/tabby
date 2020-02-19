@@ -93,6 +93,8 @@ The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will g
 pip install ctranslate2
 ```
 
+The package requires a pip version >= 19.0.
+
 ### Docker images
 
 The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
