@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.6.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.2) (2020-02-21)
+
+### Fixes and improvements
+
+* Fix conversion of models with shared embeddings
+
 ## [v1.6.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.1) (2020-02-11)
 
 ### Fixes and improvements
