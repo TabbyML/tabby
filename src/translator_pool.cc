@@ -17,14 +17,16 @@ namespace ctranslate2 {
   }
 
   std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
-                                                      const TranslationOptions& options) {
+                                                      const TranslationOptions& options,
+                                                      bool blocking) {
     TranslationInput target_prefix;
-    return post(source, target_prefix, options);
+    return post(source, target_prefix, options, blocking);
   }
 
   std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
                                                       const TranslationInput& target_prefix,
-                                                      const TranslationOptions& options) {
+                                                      const TranslationOptions& options,
+                                                      bool blocking) {
     std::future<TranslationOutput> future;
     TranslationJob job;
     job.source = source;
@@ -32,11 +34,19 @@ namespace ctranslate2 {
     job.options = options;
 
     {
-      std::lock_guard<std::mutex> lock(_mutex);
+      std::unique_lock<std::mutex> lock(_mutex);
+      if (blocking)
+        _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
+
+      // locked again here
+
       _work.emplace(std::piecewise_construct,
                     std::forward_as_tuple(std::move(job)),
                     std::forward_as_tuple());
+
       future = _work.back().second.get_future();
+
+      lock.unlock();
     }
 
     _cv.notify_one();
@@ -44,27 +54,24 @@ namespace ctranslate2 {
   }
 
   void TranslatorPool::work_loop(Translator& translator, size_t intra_threads) {
-    auto& work_queue = _work;
-    auto& end_requested = _request_end;
-
     // set_num_threads is called here because it sets the number of OpenMP threads for
     // the current thread.
     set_num_threads(intra_threads);
 
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
-      _cv.wait(lock, [&work_queue, &end_requested]{
-        return !work_queue.empty() || end_requested;
-      });
+      _cv.wait(lock, [this]{ return !_work.empty() || _request_end; });
 
-      if (end_requested) {
+      if (_request_end) {
         lock.unlock();
         break;
       }
 
-      auto work_def = std::move(work_queue.front());
-      work_queue.pop();
+      auto work_def = std::move(_work.front());
+      _work.pop();
       lock.unlock();
+
+      _can_add_more_work.notify_one();
 
       auto& job = work_def.first;
       auto& promise = work_def.second;

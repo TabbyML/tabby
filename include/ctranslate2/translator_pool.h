@@ -34,14 +34,18 @@ namespace ctranslate2 {
                               std::ref(translator),
                               num_threads_per_replica);
     }
+
     ~TranslatorPool();
 
     // Run a translation job asynchronously.
+    // With blocking=true it will block if there is already too much work pending.
     std::future<TranslationOutput> post(const TranslationInput& source,
-                                        const TranslationOptions& options);
+                                        const TranslationOptions& options,
+                                        bool blocking=false);
     std::future<TranslationOutput> post(const TranslationInput& source,
                                         const TranslationInput& target_prefix,
-                                        const TranslationOptions& options);
+                                        const TranslationOptions& options,
+                                        bool blocking=false);
 
     // Translate a stream in parallel.
     // Results will be written in order as they are available so the stream content is
@@ -53,16 +57,16 @@ namespace ctranslate2 {
                         const TranslationOptions& options,
                         Reader& reader,
                         Writer& writer) {
-      std::queue<std::future<TranslationOutput>> futures;
+      std::queue<std::future<TranslationOutput>> results;
 
-      auto pop_results = [&futures, &out, &writer](bool blocking) {
+      auto pop_results = [&results, &out, &writer](bool blocking) {
         static const auto zero_sec = std::chrono::seconds(0);
-        while (!futures.empty()
+        while (!results.empty()
                && (blocking
-                   || futures.front().wait_for(zero_sec) == std::future_status::ready)) {
-          for (const auto& result : futures.front().get())
+                   || results.front().wait_for(zero_sec) == std::future_status::ready)) {
+          for (const auto& result : results.front().get())
             writer(out, result);
-          futures.pop();
+          results.pop();
         }
       };
 
@@ -73,14 +77,15 @@ namespace ctranslate2 {
         batch_tokens.push_back(tokens);
         tokens.clear();
         if (batch_tokens.size() == max_batch_size) {
-          futures.emplace(post(batch_tokens, options));
+          results.emplace(post(batch_tokens, options, true));
           batch_tokens.clear();
         }
         pop_results(false /* blocking */);
       }
 
       if (!batch_tokens.empty())
-        futures.emplace(post(batch_tokens, options));
+        results.emplace(post(batch_tokens, options, true));
+
       pop_results(true /* blocking */);
     }
 
@@ -92,6 +97,7 @@ namespace ctranslate2 {
                              size_t max_batch_size,
                              const TranslationOptions& options,
                              bool with_scores = false);
+
     size_t consume_text_file(std::istream& in,
                              std::ostream& out,
                              size_t max_batch_size,
@@ -107,6 +113,7 @@ namespace ctranslate2 {
 
     void work_loop(Translator& translator, size_t intra_threads);
 
+    std::condition_variable _can_add_more_work;
     std::queue<std::pair<TranslationJob, std::promise<TranslationOutput>>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translator_pool;
