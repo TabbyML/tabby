@@ -59,8 +59,7 @@ class Converter(object):
         model_spec.validate()
         self._check_vocabulary_size("source", src_vocab, model_spec.source_vocabulary_size)
         self._check_vocabulary_size("target", tgt_vocab, model_spec.target_vocabulary_size)
-        if quantization is not None:
-            model_spec.quantize(quantization)
+        model_spec.optimize(quantization=quantization)
         model_spec.serialize(os.path.join(output_dir, "model.bin"))
         if vmap is not None:
             shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))

@@ -64,7 +64,6 @@ class LayerSpec(object):
                 # Convert bool to an integer type.
                 setattr(spec, attr_name, np.dtype("int8").type(value))
         self.visit(_check)
-        self._alias_variables()
 
     def variables(self, prefix="", ordered=False):
         """Returns a dict mapping variables name to value. If ordered is True,
@@ -98,7 +97,7 @@ class LayerSpec(object):
                     setattr(spec, attr_name, other_name)
                     break
 
-    def quantize(self, quantization):
+    def _quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
         def _quantize(spec, name, value):
             if "weight" in name and isinstance(value, np.ndarray):
@@ -116,6 +115,12 @@ class LayerSpec(object):
                 setattr(spec, "weight_scale", scale)
                 setattr(spec, "weight", value)
         self.visit(_quantize)
+
+    def optimize(self, quantization=None):
+        """Applies some optimizations on this layer."""
+        self._alias_variables()
+        if quantization is not None:
+            self._quantize(quantization)
 
     def visit(self, fn):
         """Recursively visits this layer and its children."""

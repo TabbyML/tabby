@@ -131,6 +131,21 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@pytest.mark.parametrize("quantization", ["int16", "int8"])
+def test_opennmt_tf_model_quantization(tmpdir, quantization):
+    model_path = os.path.join(
+        _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        model_path,
+        src_vocab=os.path.join(model_path, "ar.vocab"),
+        tgt_vocab=os.path.join(model_path, "en.vocab"))
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, ctranslate2.specs.TransformerBase(), quantization=quantization)
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_tf_variables_conversion(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
@@ -158,6 +173,43 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     output_dir = str(tmpdir.join("ctranslate2_model"))
     with pytest.raises(ValueError):
         converter.convert(output_dir, ctranslate2.specs.TransformerBase())
+
+def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
+    # Issue https://github.com/OpenNMT/CTranslate2/issues/118
+    import tensorflow as tf
+    import opennmt
+
+    vocab = opennmt.data.Vocab()
+    for i in range(10):
+        vocab.add(str(i))
+    vocab_path = str(tmpdir.join("vocab.txt"))
+    vocab.serialize(vocab_path)
+
+    num_layers = 3
+    num_heads = 4
+    model = opennmt.models.Transformer(
+        opennmt.inputters.WordEmbedder(32),
+        opennmt.inputters.WordEmbedder(32),
+        num_layers,
+        num_units=32,
+        num_heads=num_heads,
+        ffn_inner_dim=64,
+        share_embeddings=opennmt.models.EmbeddingsSharingLevel.ALL)
+    model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
+    model.create_variables()
+
+    checkpoint_prefix = str(tmpdir.join("ckpt"))
+    checkpoint = tf.train.Checkpoint(model=model)
+    checkpoint.write(checkpoint_prefix)
+
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        model_path=checkpoint_prefix, src_vocab=vocab_path, tgt_vocab=vocab_path)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir, ctranslate2.specs.TransformerSpec(num_layers, num_heads))
+
+    # Check that the translation runs.
+    translator = ctranslate2.Translator(output_dir)
+    translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_py_model_conversion(tmpdir):
@@ -203,11 +255,28 @@ def test_layer_spec_validate():
     spec = Spec()
     spec.validate()
     assert spec.a.dtype == np.float32
-    assert spec.b == "a"
+    assert spec.b.dtype == np.float32
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float32
     assert spec.f.dtype == np.int8
+
+def test_layer_spec_optimize():
+
+    class Spec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.a = np.ones([5], dtype=np.float32)
+            self.b = np.ones([5], dtype=np.float32)
+            self.c = np.zeros([5], dtype=np.int32)
+            self.weight = np.ones([5, 4], dtype=np.float32)
+
+    spec = Spec()
+    spec.optimize(quantization="int16")
+    assert spec.a.dtype == np.float32
+    assert spec.b == "a"
+    assert spec.c.dtype == np.int32
+    assert spec.weight.dtype == np.int16
+    assert spec.weight_scale.dtype == np.float32
 
 def test_index_spec():
     spec = ctranslate2.specs.TransformerBase()
