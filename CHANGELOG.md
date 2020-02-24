@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.6.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.3) (2020-02-24)
+
+### Fixes and improvements
+
+* Fix incorrectness in relative representation computation
+
 ## [v1.6.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.2) (2020-02-21)
 
 ### Fixes and improvements
