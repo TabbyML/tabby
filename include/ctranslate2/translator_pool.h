@@ -24,10 +24,12 @@ namespace ctranslate2 {
       _translator_pool.emplace_back(std::forward<Args>(args)...);
       // On GPU, we currently don't benefit much from running instances in parallel, even
       // when using separate streams. This could be revisited/improved in the future.
-      if (_translator_pool.back().device() == Device::CUDA)
-        num_replicas = 1;
-      for (size_t i = 1; i < num_replicas; ++i)
-        _translator_pool.emplace_back(_translator_pool.front());
+      if (_translator_pool.back().device() != Device::CUDA) {
+        _translator_pool.reserve(num_replicas);
+        for (size_t i = 1; i < num_replicas; ++i)
+          _translator_pool.emplace_back(_translator_pool.front());
+      }
+      _workers.reserve(_translator_pool.size());
       for (auto& translator : _translator_pool)
         _workers.emplace_back(&TranslatorPool::work_loop,
                               this,
