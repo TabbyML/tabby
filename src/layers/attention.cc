@@ -26,10 +26,10 @@ namespace ctranslate2 {
       return positions;
     }
 
-    static void matmul_with_relative_representations(const StorageView& a,
+    static void matmul_with_relative_representations(const ops::MatMul& matmul_op,
+                                                     const StorageView& a,
                                                      const StorageView& b,
-                                                     StorageView& c,
-                                                     bool transpose_b = false) {
+                                                     StorageView& c) {
       const Device device = a.device();
       const dim_t batch = a.dim(0);
       const dim_t head = a.dim(1);
@@ -40,7 +40,7 @@ namespace ctranslate2 {
       a_t.reshape({time, batch * head, -1});
 
       StorageView c_t(device);
-      ops::MatMul(/*transpose_a=*/false, transpose_b)(a_t, b, c_t);
+      matmul_op(a_t, b, c_t);
       c_t.reshape({time, batch, head, -1});
       ops::Transpose({1, 2, 0, 3})(c_t, c);
     }
@@ -48,7 +48,7 @@ namespace ctranslate2 {
     static void add_relative_representations(const StorageView& queries,
                                              const StorageView& relative_positions,
                                              const StorageView& relative_values,
-                                             bool transpose,
+                                             const ops::MatMul& matmul_op,
                                              StorageView& dot) {
       const Device device = queries.device();
 
@@ -56,10 +56,10 @@ namespace ctranslate2 {
       ops::Gather()(relative_values, relative_positions, relative_representations);
 
       StorageView dot_relative(device);
-      matmul_with_relative_representations(queries,
+      matmul_with_relative_representations(matmul_op,
+                                           queries,
                                            relative_representations,
-                                           dot_relative,
-                                           transpose);
+                                           dot_relative);
       ops::Add()(dot_relative, dot, dot);
     }
 
@@ -85,12 +85,13 @@ namespace ctranslate2 {
                                                   with_cache).to(queries.device())));
       }
 
-      ops::MatMul(false, true, queries_scale)(queries, keys, output);
+      const ops::MatMul keys_matmul(/*transpose_a=*/false, /*transpose_b=*/true, queries_scale);
+      keys_matmul(queries, keys, output);
       if (relative_position_keys)
         add_relative_representations(queries,
                                      *relative_positions,
                                      *relative_position_keys,
-                                     /*transpose=*/true,
+                                     keys_matmul,
                                      output);
 
       StorageView attn(values.device());
@@ -102,12 +103,13 @@ namespace ctranslate2 {
         attention->copy_from(output.data<float>(), attention->size(), attention->device());
       }
 
-      ops::MatMul()(attn, values, output);
+      const ops::MatMul values_matmul;
+      values_matmul(attn, values, output);
       if (relative_position_values)
         add_relative_representations(attn,
                                      *relative_positions,
-                                     *relative_position_keys,
-                                     /*transpose=*/false,
+                                     *relative_position_values,
+                                     values_matmul,
                                      output);
     }
 
