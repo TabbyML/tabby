@@ -33,11 +33,16 @@ namespace ctranslate2 {
     bool use_vmap = false;
 
     // Number of hypotheses to store in the TranslationResult class (should be smaller than
-    // beam_size).
+    // beam_size unless return_alternatives is set).
     size_t num_hypotheses = 1;
 
     // Store attention vectors in the TranslationResult class.
     bool return_attention = false;
+
+    // Return alternatives at the first unconstrained decoding position. This is typically
+    // used with a target prefix to provide alternatives at a specifc location in the
+    // translation.
+    bool return_alternatives = false;
   };
 
   // This class holds all information required to translate from a model. Copying

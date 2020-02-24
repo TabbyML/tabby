@@ -13,5 +13,10 @@ namespace ctranslate2 {
                       TYPE_DISPATCH(input.dtype(), (compute<D, T>(input, repeats, output))));
     }
 
+    void Tile::operator()(StorageView& input, const StorageView& repeats) const {
+      StorageView input_clone(std::move(input));
+      operator()(input_clone, repeats, input);
+    }
+
   }
 }

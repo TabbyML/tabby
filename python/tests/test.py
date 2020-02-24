@@ -103,6 +103,17 @@ def test_return_attention():
     assert len(attention) == 6  # Target length.
     assert len(attention[0]) == 6  # Source length.
 
+def test_return_alternatives():
+    translator = _get_transliterator()
+    output = translator.translate_batch(
+        [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]],
+        target_prefix=[["a", "t"]],
+        num_hypotheses=10,
+        return_alternatives=True)
+    assert len(output[0]) == 10
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0][1]["tokens"] == ["a", "t", "s", "u", "m", "o", "n"]
+
 
 _FRAMEWORK_DATA_EXIST = os.path.isdir(
     os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all"))

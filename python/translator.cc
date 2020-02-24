@@ -114,6 +114,7 @@ public:
                            size_t min_decoding_length,
                            bool use_vmap,
                            bool return_attention,
+                           bool return_alternatives,
                            size_t sampling_topk,
                            float sampling_temperature) {
     if (source.is(py::none()) || py::len(source) == 0)
@@ -135,6 +136,7 @@ public:
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
       options.return_attention = return_attention;
+      options.return_alternatives = return_alternatives;
 
       results = _translator_pool.post(source_input, target_prefix_input, options).get();
     }
@@ -186,6 +188,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
          py::arg("return_attention")=false,
+         py::arg("return_alternatives")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1)
     .def("translate_file", &TranslatorWrapper::translate_file,

@@ -10,6 +10,7 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView& repeats,
                       StorageView& output) const override;
+      void operator()(StorageView& input, const StorageView& repeats) const;
 
     private:
       template <Device D, typename T>

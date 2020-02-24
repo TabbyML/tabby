@@ -1,5 +1,7 @@
 #include <ctranslate2/translator.h>
 
+#include <algorithm>
+
 #include "test_utils.h"
 
 extern std::string g_data_dir;
@@ -268,4 +270,40 @@ TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {
   EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "o", "m", "o", "n"}));
   EXPECT_TRUE(result[3].output().empty());
   EXPECT_EQ(result[4].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
+}
+
+TEST(TranslatorTest, AlternativesFromPrefix) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 10;
+  options.return_alternatives = true;
+  options.return_attention = true;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::string> prefix = {"a", "t"};
+  const TranslationResult result = translator.translate_with_prefix(input, prefix, options);
+  ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result.hypotheses()[1], (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
+
+  // Tokens at the first unconstrained decoding position should be unique.
+  std::vector<std::string> tokens_at_position;
+  tokens_at_position.reserve(options.num_hypotheses);
+  for (const std::vector<std::string>& hypothesis : result.hypotheses())
+    tokens_at_position.emplace_back(hypothesis[prefix.size()]);
+  EXPECT_EQ(std::unique(tokens_at_position.begin(), tokens_at_position.end()),
+            tokens_at_position.end());
+
+  EXPECT_TRUE(result.has_attention());
+  EXPECT_EQ(result.attention()[0].size(), 6);
+}
+
+TEST(TranslatorTest, AlternativesFromScratch) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 10;
+  options.return_alternatives = true;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const TranslationResult result = translator.translate(input, options);
+  ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }

@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "ctranslate2/decoding.h"
+#include "ctranslate2/ops/ops.h"
 #include "ctranslate2/profiler.h"
 
 namespace ctranslate2 {
@@ -145,7 +146,7 @@ namespace ctranslate2 {
     const bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
-    if (options.num_hypotheses > options.beam_size)
+    if (options.num_hypotheses > options.beam_size && !options.return_alternatives)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
     if (options.sampling_topk != 1 && options.beam_size != 1)
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
@@ -263,6 +264,25 @@ namespace ctranslate2 {
     return final_results;
   }
 
+  static void repeat_batch(StorageView& input, const dim_t repeat) {
+    StorageView repeats({input.rank()}, static_cast<int32_t>(1));
+    repeats.at<int32_t>(0) = repeat;
+    ops::Tile()(input, repeats);
+  }
+
+  template <typename T>
+  static std::vector<std::vector<T>> batch_to_hypotheses(std::vector<std::vector<T>>& array) {
+    if (array.empty())
+      return array;
+    std::vector<std::vector<T>> new_array;
+    new_array.emplace_back();
+    new_array.front().reserve(array.size());
+    for (auto& vector : array) {
+      new_array.front().emplace_back(std::move(vector[0]));
+    }
+    return new_array;
+  }
+
   std::vector<TranslationResult>
   Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
                                     const std::vector<std::vector<std::string>>* target_prefix,
@@ -342,6 +362,53 @@ namespace ctranslate2 {
       }
     }
 
+    std::vector<std::vector<std::vector<size_t>>> expanded_ids;
+    std::vector<std::vector<float>> expanded_scores;
+    std::vector<std::vector<std::vector<std::vector<float>>>> expanded_attention;
+    if (options.return_alternatives) {
+      // In this translation mode, we first expand the next "num_hypotheses" candidate words
+      // before running the full decoding on each prefix. This is to ensure that we get unique
+      // alternatives at this decoding position.
+      beam_search(decoder,
+                  state,
+                  BestSampler(),
+                  sample_from,
+                  candidates,
+                  encoded,
+                  lengths,
+                  start_step,
+                  end_token,
+                  /*max_length=*/1,
+                  /*min_length=*/1,
+                  /*beam_size=*/options.num_hypotheses,
+                  options.num_hypotheses,
+                  /*length_penalty=*/0,
+                  sampled_ids,
+                  scores,
+                  attention_ptr);
+
+      start_step += 1;
+
+      const dim_t new_batch_size = options.num_hypotheses;
+
+      // The next input is the words we just expanded.
+      sample_from.resize({new_batch_size});
+      for (dim_t i = 0; i < new_batch_size; ++i) {
+        sample_from.at<int32_t>(i) = sampled_ids[0][i].back();
+      }
+
+      // We are increasing the batch size from 1 to "num_hypotheses" so we need to adapt
+      // some values. Note: the state was already repeated by the beam search.
+      repeat_batch(encoded, new_batch_size);
+      repeat_batch(lengths, new_batch_size);
+
+      // Save expansion output as we would need to include it in the final result.
+      expanded_ids = std::move(sampled_ids);
+      expanded_scores = std::move(scores);
+      if (attention_ptr)
+        expanded_attention = std::move(*attention_ptr);
+    }
+
     auto sampler = make_sampler(options);
     if (options.beam_size == 1)
       greedy_search(decoder,
@@ -371,11 +438,19 @@ namespace ctranslate2 {
                   options.max_decoding_length,
                   options.min_decoding_length,
                   options.beam_size,
-                  options.num_hypotheses,
+                  options.return_alternatives ? 1 : options.num_hypotheses,
                   options.length_penalty,
                   sampled_ids,
                   scores,
                   attention_ptr);
+
+    if (options.return_alternatives) {
+      // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.
+      sampled_ids = batch_to_hypotheses(sampled_ids);
+      scores = batch_to_hypotheses(scores);
+      if (attention_ptr)
+        *attention_ptr = batch_to_hypotheses(*attention_ptr);
+    }
 
     // Build results.
     std::vector<TranslationResult> results;
@@ -385,14 +460,32 @@ namespace ctranslate2 {
       size_t num_hypotheses = sampled_ids[i].size();
       hypotheses.resize(num_hypotheses);
       for (size_t h = 0; h < num_hypotheses; ++h) {
+        // Finalize the hypothesis.
+        const std::vector<size_t>& prediction = sampled_ids[i][h];
+        std::vector<std::string>& hypothesis = hypotheses[h];
+        hypothesis.reserve(prediction.size()
+                           + (target_prefix ? target_prefix->at(i).size() : 0)
+                           + (!expanded_ids.empty() ? 1 : 0));
         if (target_prefix)
-          hypotheses[h] = (*target_prefix)[i];
-        for (auto id : sampled_ids[i][h])
-          hypotheses[h].push_back(target_vocab.to_token(id));
+          hypothesis.insert(hypothesis.end(),
+                            target_prefix->at(i).begin(),
+                            target_prefix->at(i).end());
+        if (!expanded_ids.empty())
+          hypothesis.push_back(target_vocab.to_token(expanded_ids[i][h][0]));
+        for (const size_t id : prediction)
+          hypothesis.push_back(target_vocab.to_token(id));
+
+        // Finalize the score.
+        if (!expanded_scores.empty())
+          scores[i][h] += expanded_scores[i][h];
+
+        // Finalize the attention.
         if (!prefix_attention.empty())
           attention[i][h].insert(attention[i][h].begin(),
                                  prefix_attention[i].begin(),
                                  prefix_attention[i].end());
+        if (!expanded_attention.empty())
+          attention[i][h].insert(attention[i][h].begin(), expanded_attention[i][h][0]);
       }
       const auto* attn = attention.empty() ? nullptr : &attention[i];
       results.emplace_back(hypotheses, scores[i], attn);

@@ -40,17 +40,18 @@ translator = ctranslate2.Translator(
 # * "tokens"
 # * "attention" (if return_attention is set to True)
 output = translator.translate_batch(
-    source: list,            # A list of list of string.
-    target_prefix=None,      # An optional list of list of string.
-    beam_size=2,             # Beam size (set 1 to run greedy search).
-    num_hypotheses=1,        # Number of hypotheses to return (should be <= beam_size).
-    length_penalty=0,        # Length penalty constant to use during beam search.
-    max_decoding_length=250, # Maximum prediction length.
-    min_decoding_length=1,   # Minimum prediction length.
-    use_vmap=False,          # Use the vocabulary mapping file saved in this model.
-    return_attention=False,  # Include the attention vectors in the output.
-    sampling_topk=1,         # Randomly sample predictions from the top K candidates (with beam_size=1).
-    sampling_temperature=1.) # Sampling temperature to generate more random samples.
+    source: list,              # A list of list of string.
+    target_prefix=None,        # An optional list of list of string.
+    beam_size=2,               # Beam size (set 1 to run greedy search).
+    num_hypotheses=1,          # Number of hypotheses to return (should be <= beam_size).
+    length_penalty=0,          # Length penalty constant to use during beam search.
+    max_decoding_length=250,   # Maximum prediction length.
+    min_decoding_length=1,     # Minimum prediction length.
+    use_vmap=False,            # Use the vocabulary mapping file saved in this model.
+    return_attention=False,    # Include the attention vectors in the output.
+    return_alternatives=False, # Return alternatives at the first unconstrained decoding position.
+    sampling_topk=1,           # Randomly sample predictions from the top K candidates (with beam_size=1).
+    sampling_temperature=1.)   # Sampling temperature to generate more random samples.
 
 # stats is a tuple of file statistics containing in order:
 # 1. the number of generated target tokens
