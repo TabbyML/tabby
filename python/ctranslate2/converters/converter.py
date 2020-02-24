@@ -40,13 +40,9 @@ class Converter(object):
             force=args.force)
 
     def convert(self, output_dir, model_spec, vmap=None, quantization=None, force=False):
-        if os.path.exists(output_dir):
-            if not force:
-                raise RuntimeError(
-                    "output directory %s already exists, use --force to override" % output_dir)
-            else:
-                shutil.rmtree(output_dir)
-        os.makedirs(output_dir)
+        if os.path.exists(output_dir) and not force:
+            raise RuntimeError(
+                "output directory %s already exists, use --force to override" % output_dir)
         if isinstance(model_spec, six.string_types):
           spec_class = _list_specs()[model_spec]
           model_spec = spec_class()
@@ -60,6 +56,11 @@ class Converter(object):
         self._check_vocabulary_size("source", src_vocab, model_spec.source_vocabulary_size)
         self._check_vocabulary_size("target", tgt_vocab, model_spec.target_vocabulary_size)
         model_spec.optimize(quantization=quantization)
+
+        # Create model directory.
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
         model_spec.serialize(os.path.join(output_dir, "model.bin"))
         if vmap is not None:
             shutil.copy(vmap, os.path.join(output_dir, "vmap.txt"))
