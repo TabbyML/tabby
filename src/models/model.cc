@@ -234,6 +234,8 @@ namespace ctranslate2 {
     }
 
     void Model::finalize() {
+      auto scoped_device_setter = get_scoped_device_setter();
+
       const bool support_int8 = mayiuse_int8(_device);
       const bool support_int16 = mayiuse_int16(_device);
 
@@ -276,8 +278,6 @@ namespace ctranslate2 {
       }
 
       // Second pass to move variables on the target device.
-      auto scoped_device_setter = get_scoped_device_setter();
-
       for (auto& pair : _variable_index) {
         auto& variable = pair.second;
         if (!variable.is_scalar() && variable.device() != _device) {
