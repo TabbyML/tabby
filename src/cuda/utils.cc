@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 
 #include "ctranslate2/primitives/primitives.h"
@@ -151,18 +152,16 @@ namespace ctranslate2 {
     } g_allocator;
 
 
-    bool has_fast_fp16() {
-      auto builder = nvinfer1::createInferBuilder(g_logger);
-      bool has_fp16 = builder->platformHasFastFp16();
-      builder->destroy();
-      return has_fp16;
-    }
-
     bool has_fast_int8() {
-      auto builder = nvinfer1::createInferBuilder(g_logger);
-      bool has_int8 = builder->platformHasFastInt8();
-      builder->destroy();
-      return has_int8;
+      static bool has_fast_int8 = false;
+      static std::once_flag flag;
+      std::call_once(flag,
+                     []() {
+                       auto builder = nvinfer1::createInferBuilder(g_logger);
+                       has_fast_int8 = builder->platformHasFastInt8();
+                       builder->destroy();
+                     });
+      return has_fast_int8;
     }
 
     TensorRTLayer::~TensorRTLayer() {

@@ -62,7 +62,6 @@ namespace ctranslate2 {
 
     int get_gpu_count();
     bool has_gpu();
-    bool has_fast_fp16();
     bool has_fast_int8();
 
     // Custom allocator for Thrust.
