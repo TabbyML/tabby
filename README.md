@@ -93,7 +93,10 @@ The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will g
 pip install ctranslate2
 ```
 
-The package requires a pip version >= 19.0.
+**Requirements:**
+
+* OS: Linux
+* pip version: >= 19.0
 
 ### Docker images
 
