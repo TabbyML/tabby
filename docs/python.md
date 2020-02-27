@@ -71,3 +71,5 @@ stats = translator.translate_file(
 
 del translator               # Release the translator resources.
 ```
+
+Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the translation options.
