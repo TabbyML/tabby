@@ -35,12 +35,15 @@ The translation API supports several decoding options:
 * decoding with greedy or beam search
 * random sampling from the output distribution
 * translating with a known target prefix
+* returning alternatives at a specific location in the target
 * constraining the decoding length
 * returning multiple translation hypotheses
 * returning attention vectors
 * approximating the generation using a pre-compiled [vocabulary map](#how-can-i-generate-a-vocabulary-mapping-file)
 
 ## Quickstart
+
+The steps below assume a Linux OS and a Python installation.
 
 1\. **[Install](#installation) the Python package**:
 
@@ -359,12 +362,22 @@ We don't have numbers comparing memory usage yet. However, past experiments show
 
 ## Frequently asked questions
 
+* [How does it relate to the original CTranslate project?](#how-does-it-relate-to-the-original-ctranslate-project)
+* [What is the state of this project?](#what-is-the-state-of-this-project)
+* [Why and when should I use this implementation instead of PyTorch or TensorFlow?](#why-and-when-should-i-use-this-implementation-instead-of-pytorch-or-tensorflow)
+* [What hardware is supported?](#what-hardware-is-supported)
+* [What are the known limitations?](#what-are-the-known-limitations)
+* [What are the future plans?](#what-are-the-future-plans)
+* [What is the difference between `intra_threads` and `inter_threads`?](#what-is-the-difference-between-intra_threads-and-inter_threads)
+* [Do you provide a translation server?](#do-you-provide-a-translation-server)
+* [How do I generate a vocabulary mapping file?](#how-do-i-generate-a-vocabulary-mapping-file)
+
 ### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
 
 The original CTranslate project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
 
 * a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits
-* a direct reliance on Eigen, which introduces heavy templating and a limited GPU support
+* a direct reliance on [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), which introduces heavy templating and a limited GPU support
 
 CTranslate2 addresses these issues in several ways:
 
@@ -374,7 +387,7 @@ CTranslate2 addresses these issues in several ways:
 
 ### What is the state of this project?
 
-The code has been generously tested in production settings so people can rely on it in their application. The following APIs are covered by backward compatibility guarantees:
+The code has been generously tested in production settings so people can rely on it in their application. The project versioning follows [Semantic Versioning 2.0.0](https://semver.org/). The following APIs are covered by backward compatibility guarantees:
 
 * Converted models
 * Python converters options
@@ -418,7 +431,7 @@ When running CTranslate2 on other CPU vendors, we expect the code to run but at 
 
 **GPU**
 
-CTranslate2 currently requires a NVIDIA GPU with a compute capability greater than 3.0 (Kepler). The driver requirements depend on the CUDA version, see the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
+CTranslate2 currently requires a NVIDIA GPU with a compute capability greater or equal to 3.0 (Kepler). The driver requirements depend on the CUDA version, see the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
 
 ### What are the known limitations?
 
@@ -433,6 +446,7 @@ There are many ways to make this project better and faster. See the open issues 
 * Better support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
 * Optimizations for non-Intel CPUs
+* Support GPU execution with the Python packages published on PyPI
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
@@ -451,6 +465,6 @@ Note that these options are only defined for CPU translation. In particular, `in
 
 There is currently no translation server. We may provide a basic server in the future but we think it is up to the users to serve the translation depending on their requirements.
 
-### How can I generate a vocabulary mapping file?
+### How do I generate a vocabulary mapping file?
 
 See [here](https://github.com/OpenNMT/papers/tree/master/WNMT2018/vmap).
