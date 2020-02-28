@@ -42,6 +42,7 @@ translator = ctranslate2.Translator(
 output = translator.translate_batch(
     source: list,              # A list of list of string.
     target_prefix=None,        # An optional list of list of string.
+    max_batch_size=0,          # Maximum batch size to run the model on.
     beam_size=2,               # Beam size (set 1 to run greedy search).
     num_hypotheses=1,          # Number of hypotheses to return (should be <= beam_size).
     length_penalty=0,          # Length penalty constant to use during beam search.
@@ -58,7 +59,8 @@ output = translator.translate_batch(
 stats = translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
-    max_batch_size: int,     # Maximum batch size to translate.
+    max_batch_size: int,     # Maximum batch size to run the model on.
+    read_batch_size=0,       # Number of sentences to read at once.
     beam_size=2,
     num_hypotheses=1,
     length_penalty=0,
@@ -72,4 +74,4 @@ stats = translator.translate_file(
 del translator               # Release the translator resources.
 ```
 
-Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the translation options.
+Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.

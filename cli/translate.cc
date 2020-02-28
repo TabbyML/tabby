@@ -24,6 +24,8 @@ int main(int argc, char* argv[]) {
         cxxopts::value<bool>()->default_value("false"))
     ("batch_size", "Number of sentences to forward into the model at once.",
         cxxopts::value<size_t>()->default_value("30"))
+    ("read_batch_size", "Number of sentences to read at once (defaults to batch_size).",
+        cxxopts::value<size_t>()->default_value("0"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
         cxxopts::value<size_t>()->default_value("5"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
@@ -77,6 +79,7 @@ int main(int argc, char* argv[]) {
   ctranslate2::TranslatorPool translator_pool(inter_threads, intra_threads, model);
 
   auto options = ctranslate2::TranslationOptions();
+  options.max_batch_size = args["batch_size"].as<size_t>();
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();
@@ -103,9 +106,12 @@ int main(int argc, char* argv[]) {
   auto t1 = std::chrono::high_resolution_clock::now();
   if (log_profiling)
     ctranslate2::init_profiling(model->device(), inter_threads);
+  auto read_batch_size = args["read_batch_size"].as<size_t>();
+  if (read_batch_size == 0)
+    read_batch_size = options.max_batch_size;
   auto num_tokens = translator_pool.consume_text_file(*in,
                                                       *out,
-                                                      args["batch_size"].as<size_t>(),
+                                                      read_batch_size,
                                                       options,
                                                       args["with_score"].as<bool>());
   if (log_profiling)

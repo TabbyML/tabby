@@ -55,7 +55,7 @@ namespace ctranslate2 {
     template <typename Reader, typename Writer>
     void consume_stream(std::istream& in,
                         std::ostream& out,
-                        size_t max_batch_size,
+                        size_t read_batch_size,
                         const TranslationOptions& options,
                         Reader& reader,
                         Writer& writer) {
@@ -78,7 +78,7 @@ namespace ctranslate2 {
       while (reader(in, tokens)) {
         batch_tokens.push_back(tokens);
         tokens.clear();
-        if (batch_tokens.size() == max_batch_size) {
+        if (batch_tokens.size() == read_batch_size) {
           results.emplace(post(batch_tokens, options, true));
           batch_tokens.clear();
         }
@@ -96,13 +96,13 @@ namespace ctranslate2 {
     // The returned value is the total number of produced tokens.
     size_t consume_text_file(const std::string& in_file,
                              const std::string& out_file,
-                             size_t max_batch_size,
+                             size_t read_batch_size,
                              const TranslationOptions& options,
                              bool with_scores = false);
 
     size_t consume_text_file(std::istream& in,
                              std::ostream& out,
-                             size_t max_batch_size,
+                             size_t read_batch_size,
                              const TranslationOptions& options,
                              bool with_scores = false);
 

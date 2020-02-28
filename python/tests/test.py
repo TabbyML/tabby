@@ -38,11 +38,13 @@ def test_contains_model(tmpdir):
     model_dir.join("shared_vocabulary.txt").ensure(file=1)
     assert ctranslate2.contains_model(str(model_dir))
 
-def test_batch_translation():
+@pytest.mark.parametrize("max_batch_size", [0, 1])
+def test_batch_translation(max_batch_size):
     translator = _get_transliterator()
     output = translator.translate_batch([
         ["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"],
-        ["آ" ,"ت" ,"ش" ,"ي" ,"س" ,"و" ,"ن"]])
+        ["آ" ,"ت" ,"ش" ,"ي" ,"س" ,"و" ,"ن"]],
+        max_batch_size=max_batch_size)
     assert len(output) == 2
     assert len(output[0]) == 1  # One hypothesis.
     assert len(output[1]) == 1

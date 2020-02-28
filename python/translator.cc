@@ -73,6 +73,7 @@ public:
   py::tuple translate_file(const std::string& in_file,
                            const std::string& out_file,
                            size_t max_batch_size,
+                           size_t read_batch_size,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -86,6 +87,7 @@ public:
     {
       py::gil_scoped_release release;
       ctranslate2::TranslationOptions options;
+      options.max_batch_size = max_batch_size;
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.sampling_topk = sampling_topk;
@@ -95,9 +97,11 @@ public:
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
 
+      if (read_batch_size == 0)
+        read_batch_size = max_batch_size;
       num_tokens = _translator_pool.consume_text_file(in_file,
                                                       out_file,
-                                                      max_batch_size,
+                                                      read_batch_size,
                                                       options,
                                                       with_scores);
     }
@@ -107,6 +111,7 @@ public:
 
   py::list translate_batch(const py::object& source,
                            const py::object& target_prefix,
+                           size_t max_batch_size,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -127,6 +132,7 @@ public:
     {
       py::gil_scoped_release release;
       ctranslate2::TranslationOptions options;
+      options.max_batch_size = max_batch_size;
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.sampling_topk = sampling_topk;
@@ -181,6 +187,7 @@ PYBIND11_MODULE(translator, m)
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          py::arg("source"),
          py::arg("target_prefix")=py::none(),
+         py::arg("max_batch_size")=0,
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
@@ -195,6 +202,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("input_path"),
          py::arg("output_path"),
          py::arg("max_batch_size"),
+         py::arg("read_batch_size")=0,
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,

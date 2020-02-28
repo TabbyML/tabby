@@ -83,7 +83,7 @@ namespace ctranslate2 {
 
   size_t TranslatorPool::consume_text_file(const std::string& in_file,
                                            const std::string& out_file,
-                                           size_t max_batch_size,
+                                           size_t read_batch_size,
                                            const TranslationOptions& options,
                                            bool with_scores) {
     std::ifstream in(in_file);
@@ -92,12 +92,12 @@ namespace ctranslate2 {
     std::ofstream out(out_file);
     if (!out.is_open())
       throw std::runtime_error("failed to open output file " + out_file);
-    return consume_text_file(in, out, max_batch_size, options, with_scores);
+    return consume_text_file(in, out, read_batch_size, options, with_scores);
   }
 
   size_t TranslatorPool::consume_text_file(std::istream& in,
                                            std::ostream& out,
-                                           size_t max_batch_size,
+                                           size_t read_batch_size,
                                            const TranslationOptions& options,
                                            bool with_scores) {
     size_t num_tokens = 0;
@@ -126,7 +126,7 @@ namespace ctranslate2 {
       }
     };
 
-    consume_stream(in, out, max_batch_size, options, reader, writer);
+    consume_stream(in, out, read_batch_size, options, reader, writer);
     return num_tokens;
   }
 

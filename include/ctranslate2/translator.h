@@ -11,7 +11,8 @@ namespace ctranslate2 {
   struct TranslationOptions {
     // Maximum batch size to run the model on (set 0 to forward the input as is).
     // When more inputs are passed to translate(), they will be internally sorted by length
-    // to increase efficiency.
+    // and split to batches of size max_batch_size. Having inputs with similar lengths in a
+    // batch reduces the padding and so increases the computation efficiency.
     size_t max_batch_size = 0;
 
     // Beam size to use for beam search (set 1 to run greedy search).
