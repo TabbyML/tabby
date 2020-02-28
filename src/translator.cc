@@ -85,8 +85,11 @@ namespace ctranslate2 {
   }
 
 
-  Translator::Translator(const std::string& model_dir, Device device, int device_index) {
-    set_model(models::Model::load(model_dir, device, device_index));
+  Translator::Translator(const std::string& model_dir,
+                         Device device,
+                         int device_index,
+                         ComputeType compute_type) {
+    set_model(models::Model::load(model_dir, device, device_index, compute_type));
   }
 
   Translator::Translator(const std::shared_ptr<const models::Model>& model) {

@@ -50,7 +50,10 @@ namespace ctranslate2 {
   // be safely executed in parallel.
   class Translator {
   public:
-    Translator(const std::string& model_dir, Device device = Device::CPU, int device_index = 0);
+    Translator(const std::string& model_dir,
+               Device device = Device::CPU,
+               int device_index = 0,
+               ComputeType compute_type = ComputeType::DEFAULT);
     Translator(const std::shared_ptr<const models::Model>& model);
     Translator(const Translator& other);
     ~Translator();
