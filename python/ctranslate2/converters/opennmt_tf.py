@@ -8,6 +8,21 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
+def _register_gather_tree_op(tf, tf_version):
+    if tf_version == 1:
+        from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
+    elif tf_version == 2:
+        # TensorFlow Addons lazily loads custom ops. So we call the op with invalid inputs
+        # just to trigger the registration.
+        # See also: https://github.com/tensorflow/addons/issues/1151.
+        import tensorflow_addons as tfa
+        try:
+            tfa.seq2seq.gather_tree(0, 0, 0, 0)
+        except tf.errors.InvalidArgumentError:
+            pass
+    else:
+        raise ValueError("Unsupported TensorFlow version %d" % tf_version)
+
 def load_model(model_path, src_vocab=None, tgt_vocab=None):
     """Loads variables and vocabularies from a TensorFlow checkpoint or SavedModel."""
     import tensorflow as tf
@@ -42,12 +57,7 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
     tf_version = int(tf.version.VERSION[0])
 
     # Force beam search kernel loading.
-    if tf_version == 1:
-        from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
-    elif tf_version == 2:
-        from tensorflow_addons.seq2seq import beam_search_decoder
-    else:
-        raise ValueError("Unsupported TensorFlow version %d" % tf_version)
+    _register_gather_tree_op(tf, tf_version)
 
     if tf.saved_model.contains_saved_model(model_path):
         if tf_version == 2:
