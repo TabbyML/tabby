@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v1.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.7.0) (2020-02-28)
+
+### New features
+
+* Translation option `return_alternatives` to return multiple choices at the first unconstrained decoding position: combined with a target prefix, this could be used to provide alternative words and translations at a specific location in the target
+* Support Transformers with different number of encoder/decoder layers
+* Allow compilation without OpenMP with `-DOPENMP_RUNTIME=NONE`
+
+### Fixes and improvements
+
+* Fix SavedModel conversion when TensorFlow Addons 0.8 is installed
+* Fix error when releasing a translator/model that is placed on a GPU that is not GPU 0
+* Fix memory that was allocated on GPU 0 even when the translator/model was placed on another GPU
+* Query GPU int8 support on the first model load, and then cache the result for future loads
+* Avoid creating an empty model directory on conversion errors
+* Parallelize some low level transformations on CPU
+* Reduce memory usage when translating large files by limiting the work queue size
+
 ## [v1.6.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.6.3) (2020-02-24)
 
 ### Fixes and improvements
