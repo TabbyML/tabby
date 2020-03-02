@@ -40,3 +40,35 @@ You can override these values by setting the environment variable `CT2_CUDA_CACH
 ```bash
 export CT2_CUDA_CACHING_ALLOCATOR_CONFIG=8,3,7,6291455
 ```
+
+## Tool to tune intra_threads and inter_threads
+
+You can use the script `tune_inter_intra.py` to find the best values for your hardware.
+Simply replace your call to `./build/cli/translate` by `python3 ./tools/tune_inter_intra.py ./build/cli/translate`.
+```bash
+head -n 100 valid.de | python3 ./tools/tune_inter_intra.py ./build/cli/translate --model ende_ctranslate2 --beam_size 2 > values.csv
+column -s, -t < out.csv | sort -k3 -r
+```
+```bash
+inter_threads  intra_threads  tokens/s  memory_used (in MB)
+4              2              919.333   918
+2              4              919.333   706
+1              8              919.333   557
+8              1              689.5     914
+7              1              689.5     910
+3              2              689.5     876
+2              3              689.5     731
+2              2              689.5     729
+1              5              689.5     562
+1              7              689.5     553
+1              4              689.5     553
+1              6              689.5     549
+5              1              551.6     914
+4              1              551.6     910
+6              1              551.6     869
+3              1              551.6     861
+1              3              551.6     567
+2              1              394.0     715
+1              2              394.0     562
+1              1              212.154   559
+```
