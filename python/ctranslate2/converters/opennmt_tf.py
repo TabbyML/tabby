@@ -56,10 +56,9 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
     model_version = 1
     tf_version = int(tf.version.VERSION[0])
 
-    # Force beam search kernel loading.
-    _register_gather_tree_op(tf, tf_version)
-
     if tf.saved_model.contains_saved_model(model_path):
+        # Force beam search kernel loading.
+        _register_gather_tree_op(tf, tf_version)
         if tf_version == 2:
             model_version = 2
             imported = tf.saved_model.load(model_path)
