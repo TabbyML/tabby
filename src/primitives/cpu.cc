@@ -387,7 +387,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsSin(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::sin(v); }; /*work_size=*/4);
+    unary_transform(x, y, size, [](float v) { return std::sin(v); }, /*work_size=*/4);
 #endif
   }
 
