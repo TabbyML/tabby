@@ -27,10 +27,8 @@ namespace ctranslate2 {
                        dim_t size,
                        const Function& func,
                        dim_t work_size = 1) {
-    parallel_for(0, size, GRAIN_SIZE / work_size,
-                 [&](dim_t begin, dim_t end) {
-                   std::transform(x + begin, x + end, y + begin, func);
-                 });
+    (void)work_size;
+    std::transform(x, x + size, y, func);
   }
 
   template <typename T1, typename T2, typename T3, typename Function>
@@ -40,10 +38,8 @@ namespace ctranslate2 {
                         dim_t size,
                         const Function& func,
                         dim_t work_size = 1) {
-    parallel_for(0, size, GRAIN_SIZE / work_size,
-                 [&](dim_t begin, dim_t end) {
-                   std::transform(a + begin, a + end, b + begin, c + begin, func);
-                 });
+    (void)work_size;
+    std::transform(a, a + size, b, c, func);
   }
 
   template<>
