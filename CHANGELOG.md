@@ -4,6 +4,14 @@
 
 ### Fixes and improvements
 
+## [v1.7.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.7.1) (2020-03-03)
+
+### Fixes and improvements
+
+* Revert "Parallelize some low level transformations on CPU" which caused incorrect computation
+* Avoid unnecessary TensorFlow runtime initialization when converting checkpoints
+* Fix compilation without MKL
+
 ## [v1.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.7.0) (2020-02-28)
 
 ### New features
