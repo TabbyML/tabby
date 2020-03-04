@@ -61,15 +61,17 @@ namespace ctranslate2 {
   }
 
   template<>
-  void* primitives<Device::CUDA>::alloc_data(dim_t size) {
+  void* primitives<Device::CUDA>::alloc_data(dim_t size, int device_index) {
+    if (device_index < 0)
+      device_index = cub::CachingDeviceAllocator::INVALID_DEVICE_ORDINAL;
     void* data = nullptr;
-    CUDA_CHECK(allocator.DeviceAllocate(&data, size, cuda::get_cuda_stream()));
+    CUDA_CHECK(allocator.DeviceAllocate(device_index, &data, size, cuda::get_cuda_stream()));
     return data;
   }
 
   template<>
-  void primitives<Device::CUDA>::free_data(void* data) {
-    CUDA_CHECK(allocator.DeviceFree(data));
+  void primitives<Device::CUDA>::free_data(void* data, int device_index) {
+    CUDA_CHECK(allocator.DeviceFree(device_index, data));
   }
 
   template<>

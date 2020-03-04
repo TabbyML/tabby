@@ -100,13 +100,6 @@ namespace ctranslate2 {
     set_model(other._model);
   }
 
-  Translator::~Translator() {
-    auto scoped_device_setter = _model->get_scoped_device_setter();
-    _model.reset();
-    _encoder.reset();
-    _decoder.reset();
-  }
-
   void Translator::make_graph() {
     auto scoped_device_setter = _model->get_scoped_device_setter();
     _encoder = _model->make_encoder();

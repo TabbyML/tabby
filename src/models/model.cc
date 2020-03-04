@@ -46,11 +46,6 @@ namespace ctranslate2 {
       _vocabulary_map.reset(new VocabularyMap(path + "/vmap.txt", get_target_vocabulary()));
     }
 
-    Model::~Model() {
-      auto scoped_device_setter = get_scoped_device_setter();
-      _variable_index.clear();
-    }
-
     size_t Model::current_spec_revision() const {
       return 1;
     }

@@ -145,16 +145,38 @@ namespace ctranslate2 {
       }
     } g_logger;
 
-    static class Allocator : public nvinfer1::IGpuAllocator {
+    class TensorRTAllocator : public nvinfer1::IGpuAllocator {
+    private:
+      int _device;
+    public:
+      TensorRTAllocator(int device)
+        : _device(device) {
+      }
+
       void* allocate(uint64_t size, uint64_t, uint32_t) override {
-        return primitives<Device::CUDA>::alloc_data(size);
+        return primitives<Device::CUDA>::alloc_data(size, _device);
       }
 
       void free(void* memory) override {
-        primitives<Device::CUDA>::free_data(memory);
+        primitives<Device::CUDA>::free_data(memory, _device);
       }
 
-    } g_allocator;
+    };
+
+    static std::vector<TensorRTAllocator> create_trt_allocators() {
+      const int num_gpus = get_gpu_count();
+      std::vector<TensorRTAllocator> allocators;
+      allocators.reserve(num_gpus);
+      for (int i = 0; i < num_gpus; ++i) {
+        allocators.emplace_back(i);
+      }
+      return allocators;
+    }
+
+    static TensorRTAllocator& get_trt_allocator(int device) {
+      static std::vector<TensorRTAllocator> allocators(create_trt_allocators());
+      return allocators[device];
+    }
 
 
     bool has_fast_int8(int device) {
@@ -176,7 +198,7 @@ namespace ctranslate2 {
 
     void TensorRTLayer::build() {
       auto builder = nvinfer1::createInferBuilder(g_logger);
-      builder->setGpuAllocator(&g_allocator);
+      builder->setGpuAllocator(&get_trt_allocator(primitives<Device::CUDA>::get_device()));
       auto network = builder->createNetworkV2(
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
       build_network(network);

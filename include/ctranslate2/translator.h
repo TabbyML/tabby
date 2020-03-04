@@ -57,7 +57,6 @@ namespace ctranslate2 {
                ComputeType compute_type = ComputeType::DEFAULT);
     Translator(const std::shared_ptr<const models::Model>& model);
     Translator(const Translator& other);
-    ~Translator();
 
     TranslationResult
     translate(const std::vector<std::string>& tokens);

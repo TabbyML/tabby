@@ -52,12 +52,12 @@ namespace ctranslate2 {
   }
 
   template<>
-  void* primitives<Device::CPU>::alloc_data(dim_t size) {
+  void* primitives<Device::CPU>::alloc_data(dim_t size, int) {
     return aligned_alloc(size, ALIGNMENT);
   }
 
   template<>
-  void primitives<Device::CPU>::free_data(void* data) {
+  void primitives<Device::CPU>::free_data(void* data, int) {
     aligned_free(data);
   }
 

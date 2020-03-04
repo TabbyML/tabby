@@ -28,7 +28,7 @@ namespace ctranslate2 {
                                                int device_index,
                                                const std::string& compute_type);
 
-      virtual ~Model();
+      virtual ~Model() = default;
       virtual size_t current_spec_revision() const;
 
       Device device() const;

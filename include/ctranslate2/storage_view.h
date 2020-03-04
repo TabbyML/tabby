@@ -231,6 +231,7 @@ namespace ctranslate2 {
   protected:
     DataType _dtype = DataType::FLOAT;
     Device _device = Device::CPU;
+    int _device_index = 0;
     void* _data = nullptr;
     bool _own_data = true;
     dim_t _allocated_size = 0;

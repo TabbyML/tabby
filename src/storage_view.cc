@@ -17,29 +17,34 @@ namespace ctranslate2 {
   StorageView::StorageView(DataType type, Device device)
     : _dtype(type)
     , _device(device) {
+    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
   }
 
   StorageView::StorageView(Device device, DataType type)
     : _dtype(type)
     , _device(device) {
+    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
   }
 
   StorageView::StorageView(const Shape& shape, DataType type, Device device)
     : _dtype(type)
     , _device(device) {
+    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
     resize(shape);
     TYPE_DISPATCH(type, fill(T()));
   }
 
   StorageView::StorageView(const StorageView& other)
     : _dtype(other._dtype)
-    , _device(other._device) {
+    , _device(other._device)
+    , _device_index(other._device_index) {
     assign(other);
   }
 
   StorageView::StorageView(StorageView&& other)
     : _dtype(other._dtype)
-    , _device(other._device) {
+    , _device(other._device)
+    , _device_index(other._device_index) {
     assign(std::move(other));
   }
 
@@ -74,7 +79,7 @@ namespace ctranslate2 {
 
   StorageView& StorageView::release() {
     if (_own_data && _data != nullptr) {
-      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data));
+      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data, _device_index));
     }
     _data = nullptr;
     _allocated_size = 0;
@@ -87,7 +92,7 @@ namespace ctranslate2 {
     release();
     dim_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes));
+    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes, _device_index));
     if (_data == nullptr)
       THROW_RUNTIME_ERROR("failed to allocated memory");
     _own_data = true;
@@ -327,7 +332,7 @@ namespace ctranslate2 {
         }
       }
       os << std::endl);
-    os << "[" << device_to_str(storage.device())
+    os << "[" << device_to_str(storage.device()) << ':' << storage._device_index
        << " " << dtype_name(storage.dtype()) << " storage viewed as ";
     if (storage.is_scalar())
       os << "scalar";
@@ -345,6 +350,7 @@ namespace ctranslate2 {
   void swap(StorageView& a, StorageView& b) {
     std::swap(a._dtype, b._dtype);
     std::swap(a._device, b._device);
+    std::swap(a._device_index, b._device_index);
     std::swap(a._data, b._data);
     std::swap(a._own_data, b._own_data);
     std::swap(a._allocated_size, b._allocated_size);

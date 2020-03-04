@@ -13,8 +13,8 @@ namespace ctranslate2 {
     static void set_device(int index);
     static int get_device();
 
-    static void* alloc_data(dim_t size);
-    static void free_data(void* data);
+    static void* alloc_data(dim_t size, int device_index = -1);
+    static void free_data(void* data, int device_index = -1);
     static void clear_cache();
 
     template <typename T>
