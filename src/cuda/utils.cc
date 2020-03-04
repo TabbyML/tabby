@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <mutex>
 #include <stdexcept>
 
 #include "ctranslate2/primitives/primitives.h"
@@ -152,16 +151,14 @@ namespace ctranslate2 {
     } g_allocator;
 
 
-    bool has_fast_int8() {
-      static bool has_fast_int8 = false;
-      static std::once_flag flag;
-      std::call_once(flag,
-                     []() {
-                       auto builder = nvinfer1::createInferBuilder(g_logger);
-                       has_fast_int8 = builder->platformHasFastInt8();
-                       builder->destroy();
-                     });
-      return has_fast_int8;
+    bool has_fast_int8(int device) {
+      if (device < 0) {
+        CUDA_CHECK(cudaGetDevice(&device));
+      }
+      cudaDeviceProp device_prop;
+      CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
+      // See https://docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html#hardware-precision-matrix
+      return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
     }
 
     TensorRTLayer::~TensorRTLayer() {

@@ -241,8 +241,8 @@ namespace ctranslate2 {
     void Model::finalize() {
       auto scoped_device_setter = get_scoped_device_setter();
 
-      const bool support_int8 = mayiuse_int8(_device);
-      const bool support_int16 = mayiuse_int16(_device);
+      const bool support_int8 = mayiuse_int8(_device, _device_index);
+      const bool support_int16 = mayiuse_int16(_device, _device_index);
 
       std::vector<std::string> variables_to_remove;
       std::vector<std::pair<std::string, StorageView>> variables_to_add;

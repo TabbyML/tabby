@@ -34,7 +34,7 @@ namespace ctranslate2 {
   }
 #endif
 
-  bool mayiuse_int16(Device device) {
+  bool mayiuse_int16(Device device, int) {
     switch (device) {
 #ifdef WITH_MKL
     case Device::CPU:
@@ -45,11 +45,11 @@ namespace ctranslate2 {
     }
   }
 
-  bool mayiuse_int8(Device device) {
+  bool mayiuse_int8(Device device, int device_index) {
     switch (device) {
 #ifdef WITH_CUDA
     case Device::CUDA:
-      return cuda::has_fast_int8();
+      return cuda::has_fast_int8(device_index);
 #endif
 #ifdef WITH_MKL
     case Device::CPU:
