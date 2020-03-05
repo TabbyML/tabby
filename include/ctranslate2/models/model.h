@@ -36,6 +36,9 @@ namespace ctranslate2 {
       ComputeType compute_type() const;
       ScopedDeviceSetter get_scoped_device_setter() const;
 
+      // If the model contains variables, they will be moved to the new device.
+      void set_device(const Device device, const int index = 0);
+
       const Vocabulary& get_source_vocabulary() const;
       const Vocabulary& get_target_vocabulary() const;
       const VocabularyMap& get_vocabulary_map() const;
@@ -73,7 +76,6 @@ namespace ctranslate2 {
       virtual void finalize();
       StorageView* get_scale(const std::string& scale_name, DataType dataType);
 
-      void set_device(Device type, int index = 0);
       void set_compute_type(ComputeType type);
 
       Device _device;

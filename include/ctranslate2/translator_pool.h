@@ -106,6 +106,8 @@ namespace ctranslate2 {
                              const TranslationOptions& options,
                              bool with_scores = false);
 
+    const std::vector<Translator>& get_translators() const;
+
   private:
     struct TranslationJob {
       TranslationInput source;

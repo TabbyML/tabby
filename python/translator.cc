@@ -1,3 +1,5 @@
+#include <mutex>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -62,12 +64,16 @@ public:
                     const std::string& compute_type,
                     size_t inter_threads,
                     size_t intra_threads)
-    : _translator_pool(inter_threads,
-                       intra_threads,
-                       ctranslate2::models::Model::load(model_path,
-                                                        device,
-                                                        device_index,
-                                                        compute_type)) {
+    : _model_path(model_path)
+    , _device(ctranslate2::str_to_device(device))
+    , _device_index(device_index)
+    , _compute_type(ctranslate2::str_to_compute_type(compute_type))
+    , _model(ctranslate2::models::Model::load(_model_path,
+                                              _device,
+                                              _device_index,
+                                              _compute_type))
+    , _model_state(ModelState::Loaded)
+    , _translator_pool(inter_threads, intra_threads, _model) {
   }
 
   py::tuple translate_file(const std::string& in_file,
@@ -86,6 +92,9 @@ public:
     size_t num_tokens = 0;
     {
       py::gil_scoped_release release;
+      const std::lock_guard<std::mutex> lock(_reader1_mutex);
+      assert_model_is_ready();
+
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
       options.beam_size = beam_size;
@@ -131,6 +140,9 @@ public:
 
     {
       py::gil_scoped_release release;
+      const std::lock_guard<std::mutex> lock(_reader2_mutex);
+      assert_model_is_ready();
+
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
       options.beam_size = beam_size;
@@ -168,8 +180,79 @@ public:
     return py_results;
   }
 
+  void unload_model(const bool to_cpu) {
+    change_model_state(to_cpu ? ModelState::UnloadedToCpu : ModelState::Unloaded);
+  }
+
+  void load_model() {
+    change_model_state(ModelState::Loaded);
+  }
+
 private:
+  enum class ModelState {
+    Loaded,
+    Unloaded,
+    UnloadedToCpu,
+  };
+
+  const std::string _model_path;
+  const ctranslate2::Device _device;
+  const int _device_index;
+  const ctranslate2::ComputeType _compute_type;
+
+  std::shared_ptr<const ctranslate2::models::Model> _model;
+  ModelState _model_state;
   ctranslate2::TranslatorPool _translator_pool;
+
+  // TODO: we basically need a shared_mutex here.
+  std::mutex _reader1_mutex;
+  std::mutex _reader2_mutex;
+
+  void assert_model_is_ready() const {
+    if (_model_state != ModelState::Loaded)
+      throw std::runtime_error("The model for this translator was unloaded");
+  }
+
+  // TODO: consider moving this model state logic inside TranslatorPool.
+  void change_model_state(const ModelState target_state) {
+    py::gil_scoped_release release;  // Release the GIL before acquiring the lock.
+
+    // Lock out all readers when changing the model state.
+    std::lock(_reader1_mutex, _reader2_mutex);
+    const std::lock_guard<std::mutex> reader1_lock(_reader1_mutex, std::adopt_lock);
+    const std::lock_guard<std::mutex> reader2_lock(_reader2_mutex, std::adopt_lock);
+
+    if (target_state == _model_state)
+      return;
+
+    // We can const_cast the model because it is initially constructed as a non
+    // const pointer. We can also mutate it because we locked out all readers.
+    auto* model = const_cast<ctranslate2::models::Model*>(_model.get());
+    auto& translators = const_cast<std::vector<ctranslate2::Translator>&>(
+      _translator_pool.get_translators());
+
+    if (target_state == ModelState::UnloadedToCpu || target_state == ModelState::Unloaded) {
+      for (auto& translator : translators)
+        translator.detach_model();
+      if (target_state == ModelState::UnloadedToCpu)
+        model->set_device(ctranslate2::Device::CPU);
+      else
+        _model.reset();
+    } else if (target_state == ModelState::Loaded) {
+      if (_model_state == ModelState::UnloadedToCpu) {
+        model->set_device(_device, _device_index);
+      } else {
+        _model = ctranslate2::models::Model::load(_model_path,
+                                                  _device,
+                                                  _device_index,
+                                                  _compute_type);
+      }
+      for (auto& translator : translators)
+        translator.set_model(_model);
+    }
+
+    _model_state = target_state;
+  }
 };
 
 PYBIND11_MODULE(translator, m)
@@ -212,5 +295,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("with_scores")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1)
+    .def("unload_model", &TranslatorWrapper::unload_model,
+         py::arg("to_cpu")=false)
+    .def("load_model", &TranslatorWrapper::load_model)
     ;
 }

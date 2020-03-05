@@ -97,13 +97,8 @@ namespace ctranslate2 {
   }
 
   Translator::Translator(const Translator& other) {
-    set_model(other._model);
-  }
-
-  void Translator::make_graph() {
-    auto scoped_device_setter = _model->get_scoped_device_setter();
-    _encoder = _model->make_encoder();
-    _decoder = _model->make_decoder();
+    if (other._model)
+      set_model(other._model);
   }
 
   TranslationResult
@@ -145,6 +140,7 @@ namespace ctranslate2 {
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
+    assert_has_model();
     const size_t batch_size = source.size();
     const bool with_prefix = !target_prefix.empty();
 
@@ -510,23 +506,51 @@ namespace ctranslate2 {
   }
 
   Device Translator::device() const {
+    assert_has_model();
     return _model->device();
   }
 
   int Translator::device_index() const {
+    assert_has_model();
     return _model->device_index();
   }
 
   ComputeType Translator::compute_type() const {
+    assert_has_model();
     return _model->compute_type();
   }
 
   void Translator::set_model(const std::string& model_dir) {
-    set_model(models::Model::load(model_dir, device(), device_index(), compute_type()));
+    Device device = Device::CPU;
+    int device_index = 0;
+    ComputeType compute_type = ComputeType::DEFAULT;
+    if (_model) {
+      device = _model->device();
+      device_index = _model->device_index();
+      compute_type = _model->compute_type();
+    }
+    set_model(models::Model::load(model_dir, device, device_index, compute_type));
   }
 
   void Translator::set_model(const std::shared_ptr<const models::Model>& model) {
     _model = model;
-    make_graph();
+    auto scoped_device_setter = _model->get_scoped_device_setter();
+    _encoder = _model->make_encoder();
+    _decoder = _model->make_decoder();
   }
+
+  void Translator::detach_model() {
+    if (!_model)
+      return;
+    auto scoped_device_setter = _model->get_scoped_device_setter();
+    _encoder.reset();
+    _decoder.reset();
+    _model.reset();
+  }
+
+  void Translator::assert_has_model() const {
+    if (!_model)
+      throw std::runtime_error("No model is attached to this translator");
+  }
+
 }

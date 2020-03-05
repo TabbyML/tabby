@@ -82,12 +82,15 @@ namespace ctranslate2 {
     int device_index() const;
     ComputeType compute_type() const;
 
-    // Change only the model while keeping the same device and compute type.
+    // Change the model while keeping the same device and compute type as the previous model.
     void set_model(const std::string& model_dir);
     void set_model(const std::shared_ptr<const models::Model>& model);
 
+    // Detach the model from this translator, which becomes unusable until set_model is called.
+    void detach_model();
+
   private:
-    void make_graph();
+    void assert_has_model() const;
 
     std::vector<TranslationResult>
     run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,

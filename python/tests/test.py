@@ -116,6 +116,18 @@ def test_return_alternatives():
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
     assert output[0][1]["tokens"] == ["a", "t", "s", "u", "m", "o", "n"]
 
+@pytest.mark.parametrize("to_cpu", [False, True])
+def test_model_unload(to_cpu):
+    batch = [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]]
+    translator = _get_transliterator()
+    translator.unload_model(to_cpu=to_cpu)
+    with pytest.raises(RuntimeError, match="unloaded"):
+        translator.translate_batch(batch)
+    translator.load_model()
+    output = translator.translate_batch(batch)
+    assert len(output) == 1
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
 
 _FRAMEWORK_DATA_EXIST = os.path.isdir(
     os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all"))

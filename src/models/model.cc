@@ -34,6 +34,38 @@ namespace ctranslate2 {
       return str;
     }
 
+    static void move_variables_to_device(std::unordered_map<std::string, StorageView>& variables,
+                                         const Device device) {
+      for (auto& pair : variables) {
+        StorageView& variable = pair.second;
+        if (!variable.is_scalar() && variable.device() != device) {
+          StorageView variable_device = variable.to(device);
+          swap(variable, variable_device);
+        }
+      }
+    }
+
+    static void move_variables(std::unordered_map<std::string, StorageView>& variables,
+                               const Device src_device, const int src_device_index,
+                               const Device dst_device, const int dst_device_index) {
+      if (variables.empty())
+        return;
+      if (src_device == dst_device && src_device_index == dst_device_index)
+        return;
+
+      // Move variables back to the CPU device.
+      if (src_device != Device::CPU) {
+        ScopedDeviceSetter scoped_device_setter(src_device, src_device_index);
+        move_variables_to_device(variables, Device::CPU);
+      }
+
+      // Move variables to the destination device.
+      if (dst_device != Device::CPU) {
+        ScopedDeviceSetter scoped_device_setter(dst_device, dst_device_index);
+        move_variables_to_device(variables, dst_device);
+      }
+    }
+
 
     Model::Model(const std::string& path, size_t spec_revision)
       : _spec_revision(spec_revision) {
@@ -63,8 +95,9 @@ namespace ctranslate2 {
       return _compute_type;
     }
 
-    void Model::set_device(Device type, int index) {
-      _device = type;
+    void Model::set_device(const Device device, const int index) {
+      move_variables(_variable_index, _device, _device_index, device, index);
+      _device = device;
       _device_index = index;
     }
 
@@ -278,13 +311,7 @@ namespace ctranslate2 {
       }
 
       // Second pass to move variables on the target device.
-      for (auto& pair : _variable_index) {
-        auto& variable = pair.second;
-        if (!variable.is_scalar() && variable.device() != _device) {
-          StorageView variable_device = variable.to(_device);
-          swap(variable, variable_device);
-        }
-      }
+      move_variables_to_device(_variable_index, _device);
     }
 
     static DataType get_dtype_from_item_size(uint8_t item_size) {

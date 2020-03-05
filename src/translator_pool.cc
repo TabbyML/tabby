@@ -130,4 +130,8 @@ namespace ctranslate2 {
     return num_tokens;
   }
 
+  const std::vector<Translator>& TranslatorPool::get_translators() const {
+    return _translator_pool;
+  }
+
 }
