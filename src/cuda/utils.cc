@@ -63,22 +63,16 @@ namespace ctranslate2 {
     class CudnnHandle {
     public:
       CudnnHandle() {
-        CUDA_CHECK(cudaGetDevice(&_device));
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, get_cuda_stream()));
       }
       ~CudnnHandle() {
-        int current_device;
-        CUDA_CHECK(cudaGetDevice(&current_device));
-        CUDA_CHECK(cudaSetDevice(_device));
-        CUDNN_CHECK(cudnnDestroy(_handle));
-        CUDA_CHECK(cudaSetDevice(current_device));
+        cudnnDestroy(_handle);
       }
       cudnnHandle_t get() const {
         return _handle;
       }
     private:
-      int _device;
       cudnnHandle_t _handle;
     };
 
