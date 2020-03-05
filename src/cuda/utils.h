@@ -87,6 +87,7 @@ namespace ctranslate2 {
 
     private:
       void build();
+      int _device = 0;
       nvinfer1::ICudaEngine* _engine = nullptr;
       nvinfer1::IExecutionContext* _execution_context = nullptr;
     };

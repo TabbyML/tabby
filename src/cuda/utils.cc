@@ -47,32 +47,38 @@ namespace ctranslate2 {
     class CublasHandle {
     public:
       CublasHandle() {
+        CUDA_CHECK(cudaGetDevice(&_device));
         CUBLAS_CHECK(cublasCreate(&_handle));
         CUBLAS_CHECK(cublasSetStream(_handle, get_cuda_stream()));
       }
       ~CublasHandle() {
+        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
         cublasDestroy(_handle);
       }
       cublasHandle_t get() const {
         return _handle;
       }
     private:
+      int _device;
       cublasHandle_t _handle;
     };
 
     class CudnnHandle {
     public:
       CudnnHandle() {
+        CUDA_CHECK(cudaGetDevice(&_device));
         CUDNN_CHECK(cudnnCreate(&_handle));
         CUDNN_CHECK(cudnnSetStream(_handle, get_cuda_stream()));
       }
       ~CudnnHandle() {
+        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
         cudnnDestroy(_handle);
       }
       cudnnHandle_t get() const {
         return _handle;
       }
     private:
+      int _device;
       cudnnHandle_t _handle;
     };
 
@@ -185,14 +191,16 @@ namespace ctranslate2 {
 
     TensorRTLayer::~TensorRTLayer() {
       if (_execution_context) {
+        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
         _execution_context->destroy();
         _engine->destroy();
       }
     }
 
     void TensorRTLayer::build() {
+      CUDA_CHECK(cudaGetDevice(&_device));
       auto builder = nvinfer1::createInferBuilder(g_logger);
-      builder->setGpuAllocator(&get_trt_allocator(primitives<Device::CUDA>::get_device()));
+      builder->setGpuAllocator(&get_trt_allocator(_device));
       auto network = builder->createNetworkV2(
         1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
       build_network(network);
