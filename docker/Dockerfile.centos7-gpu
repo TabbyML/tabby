@@ -1,12 +1,14 @@
 FROM nvidia/cuda:10.0-cudnn7-devel-centos7 as builder
 
-RUN yum install -y \
+RUN yum install -y epel-release && \
+    yum install -y \
         gcc \
         gcc-c++ \
         make \
-        python-devel \
+        python3-devel \
         wget && \
-    rm -rf /var/cache/yum/*
+    rm -rf /var/cache/yum/* && \
+    python3 -m pip --no-cache-dir install --upgrade pip
 
 WORKDIR /root
 
@@ -59,13 +61,11 @@ RUN mkdir build && \
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python get-pip.py && \
-    rm get-pip.py && \
-    pip --no-cache-dir install pybind11==2.4.3 && \
-    pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
-    python setup.py bdist_wheel && \
-    python setup.py sdist && \
+RUN python3 -m pip --no-cache-dir install wheel pybind11==2.4.3 && \
+    python3 -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
+    python3 setup.py bdist_wheel && \
+    python3 setup.py sdist && \
+    rm -r build && \
     mv dist/* /root/ctranslate2 && \
     rmdir dist
 
@@ -76,13 +76,16 @@ RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64 && \
 
 FROM nvidia/cuda:10.0-base-centos7
 
-RUN yum install -y \
-        cuda-cublas-$CUDA_PKG_VERSION && \
-    rm -rf /var/cache/yum/*
+RUN yum install -y epel-release && \
+    yum install -y \
+        cuda-cublas-$CUDA_PKG_VERSION \
+        python3 \
+        && \
+    rm -rf /var/cache/yum/* && \
+    python3 -m pip --no-cache-dir install --upgrade pip
 
 COPY --from=builder /root/ctranslate2 /opt/ctranslate2
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python get-pip.py && rm get-pip.py
-RUN pip --no-cache-dir install /opt/ctranslate2/*.whl
+RUN python3 -m pip --no-cache-dir install /opt/ctranslate2/*cp3*.whl
 
 WORKDIR /opt
 

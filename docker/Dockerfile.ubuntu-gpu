@@ -9,7 +9,6 @@ RUN apt-get update && \
         apt-transport-https \
         build-essential \
         ca-certificates \
-        python-dev \
         python3-dev \
         gnupg2 \
         libnvinfer${TENSORRT_MAJOR_VERSION}=${TENSORRT_VERSION}-1+cuda10.0 \
@@ -67,15 +66,13 @@ COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
-    for PYTHON in python python3; do \
-      ${PYTHON} get-pip.py && \
-      ${PYTHON} -m pip install pybind11==2.4.3 && \
-      ${PYTHON} setup.py bdist_wheel && \
-      rm -r build \
-    ; done && \
+    python3 get-pip.py && \
+    python3 -m pip --no-cache-dir install pybind11==2.4.3 && \
+    python3 setup.py bdist_wheel && \
+    rm -r build && \
     rm get-pip.py && \
-    python -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
-    python setup.py sdist && \
+    python3 -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
+    python3 setup.py sdist && \
     mv dist/* /root/ctranslate2 && \
     rmdir dist
 
@@ -89,7 +86,7 @@ FROM nvidia/cuda:10.0-base-ubuntu${UBUNTU_VERSION}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         cuda-cublas-$CUDA_PKG_VERSION \
-        python \
+        python3-distutils-extra \
         wget \
         && \
     apt-get clean && \
@@ -97,8 +94,8 @@ RUN apt-get update && \
 
 COPY --from=builder /root/ctranslate2 /opt/ctranslate2
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
-    python get-pip.py && \
-    pip --no-cache-dir install /opt/ctranslate2/*cp2*.whl && \
+    python3 get-pip.py && \
+    python3 -m pip --no-cache-dir install /opt/ctranslate2/*cp3*.whl && \
     rm get-pip.py
 
 WORKDIR /opt
