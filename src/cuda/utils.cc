@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 
 #include "ctranslate2/primitives/primitives.h"
@@ -196,7 +197,10 @@ namespace ctranslate2 {
       }
     }
 
+    static std::mutex trt_build_mutex;
+
     void TensorRTLayer::build() {
+      const std::lock_guard<std::mutex> lock(trt_build_mutex);
       CUDA_CHECK(cudaGetDevice(&_device));
       auto builder = nvinfer1::createInferBuilder(g_logger);
       builder->setGpuAllocator(&get_trt_allocator(_device));
