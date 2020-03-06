@@ -124,6 +124,16 @@ namespace ctranslate2 {
       return get_gpu_count() > 0;
     }
 
+    bool has_fast_int8(int device) {
+      if (device < 0) {
+        CUDA_CHECK(cudaGetDevice(&device));
+      }
+      cudaDeviceProp device_prop;
+      CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
+      // See https://docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html#hardware-precision-matrix
+      return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
+    }
+
     ThrustAllocator::value_type* ThrustAllocator::allocate(std::ptrdiff_t num_bytes) {
       return reinterpret_cast<ThrustAllocator::value_type*>(
         primitives<Device::CUDA>::alloc_data(num_bytes));
@@ -176,17 +186,6 @@ namespace ctranslate2 {
     static TensorRTAllocator& get_trt_allocator(int device) {
       static std::vector<TensorRTAllocator> allocators(create_trt_allocators());
       return allocators[device];
-    }
-
-
-    bool has_fast_int8(int device) {
-      if (device < 0) {
-        CUDA_CHECK(cudaGetDevice(&device));
-      }
-      cudaDeviceProp device_prop;
-      CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
-      // See https://docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html#hardware-precision-matrix
-      return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
     }
 
     TensorRTLayer::~TensorRTLayer() {
