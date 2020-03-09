@@ -6,7 +6,7 @@
 
 namespace ctranslate2 {
 
-  // Implements an standard indexed vocabulary
+  // Implements a standard indexed vocabulary.
   class Vocabulary
   {
   public:
