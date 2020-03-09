@@ -22,7 +22,7 @@ namespace ctranslate2 {
     size_t size() const;
 
   private:
-    std::vector<std::string> _id_to_token;
+    std::vector<const std::string*> _id_to_token;
     std::unordered_map<std::string, size_t> _token_to_id;
   };
 
