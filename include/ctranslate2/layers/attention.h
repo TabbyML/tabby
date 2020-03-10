@@ -22,18 +22,18 @@ namespace ctranslate2 {
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
                       StorageView* cached_values = nullptr,
-                      StorageView* attention = nullptr);
+                      StorageView* attention = nullptr) const;
     private:
-      dim_t _num_heads;
-      std::vector<Dense> _linear;
-      LayerNorm _layer_norm;
+      const dim_t _num_heads;
+      const std::vector<Dense> _linear;
+      const LayerNorm _layer_norm;
       const StorageView* _relative_position_keys;
       const StorageView* _relative_position_values;
       const dim_t _maximum_relative_position;
-      ops::Transpose _transpose_op;
+      const ops::Transpose _transpose_op;
 
-      void split_heads(const StorageView& x, StorageView& y);
-      void combine_heads(const StorageView& x, StorageView& y);
+      void split_heads(const StorageView& x, StorageView& y) const;
+      void combine_heads(const StorageView& x, StorageView& y) const;
     };
 
   }

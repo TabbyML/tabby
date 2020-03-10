@@ -143,7 +143,7 @@ namespace ctranslate2 {
       , _ff2(model, scope + "/linear_1") {
     }
 
-    void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) {
+    void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) const {
       StorageView inner(input.device());
       _layer_norm(input, output);
       _ff1(output, inner);
@@ -164,7 +164,7 @@ namespace ctranslate2 {
 
     void TransformerEncoderLayer::operator()(const StorageView& input,
                                              const StorageView& lengths,
-                                             StorageView& output) {
+                                             StorageView& output) const {
       PROFILE("TransformerEncoderLayer");
       StorageView context(input.device());
       _self_attention(input, nullptr, &lengths, context);
@@ -193,7 +193,7 @@ namespace ctranslate2 {
                                              StorageView& cached_attn_keys,
                                              StorageView& cached_attn_values,
                                              StorageView& output,
-                                             StorageView* attention) {
+                                             StorageView* attention) const {
       PROFILE("TransformerDecoderLayer");
       StorageView context(input.device());
       _self_attention(input, nullptr, nullptr, output,

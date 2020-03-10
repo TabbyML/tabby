@@ -10,7 +10,7 @@ namespace ctranslate2 {
     {
     public:
       Embeddings(const models::Model& model, const std::string& scope);
-      void operator()(const StorageView& ids, StorageView& output);
+      void operator()(const StorageView& ids, StorageView& output) const;
     private:
       const ops::Gather _gather_op;
       const StorageView& _embeddings;
@@ -22,7 +22,7 @@ namespace ctranslate2 {
     {
     public:
       Dense(const models::Model& model, const std::string& scope);
-      void operator()(const StorageView& input, StorageView& output);
+      void operator()(const StorageView& input, StorageView& output) const;
       void mask_weights(const StorageView& index);
       void reset_mask();
     private:
@@ -41,7 +41,7 @@ namespace ctranslate2 {
     {
     public:
       LayerNorm(const models::Model& model, const std::string& scope);
-      void operator()(const StorageView& input, StorageView& output);
+      void operator()(const StorageView& input, StorageView& output) const;
     private:
       const ops::LayerNorm _norm_op;
       const StorageView& _beta;

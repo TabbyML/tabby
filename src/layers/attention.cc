@@ -113,22 +113,30 @@ namespace ctranslate2 {
                                      output);
     }
 
+    static std::vector<Dense> make_linear_layers(const models::Model& model,
+                                                 const std::string& scope,
+                                                 bool self_attention) {
+      const dim_t num_linear_layers = self_attention ? 2 : 3;
+      std::vector<Dense> layers;
+      layers.reserve(num_linear_layers);
+      for (dim_t i = 0; i < num_linear_layers; ++i)
+        layers.emplace_back(model, scope + "/linear_" + std::to_string(i));
+      return layers;
+    }
+
 
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
                                            dim_t num_heads,
                                            bool self_attention)
       : _num_heads(num_heads)
+      , _linear(make_linear_layers(model, scope, self_attention))
       , _layer_norm(model, scope + "/layer_norm")
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
       , _maximum_relative_position(_relative_position_keys
                                    ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
       , _transpose_op({0, 2, 1, 3}) {
-      const dim_t num_linear_layers = self_attention ? 2 : 3;
-      _linear.reserve(num_linear_layers);
-      for (dim_t i = 0; i < num_linear_layers; ++i)
-        _linear.emplace_back(model, scope + "/linear_" + std::to_string(i));
     }
 
     void MultiHeadAttention::operator()(const StorageView& queries,
@@ -137,7 +145,7 @@ namespace ctranslate2 {
                                         StorageView& output,
                                         StorageView* cached_keys,
                                         StorageView* cached_values,
-                                        StorageView* attention) {
+                                        StorageView* attention) const {
       PROFILE("MultiHeadAttention");
       Device device = queries.device();
       StorageView fused_proj(device);
@@ -214,14 +222,14 @@ namespace ctranslate2 {
       ops::Add()(queries, output, output);
     }
 
-    void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) {
+    void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) const {
       const StorageView z({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads},
                           const_cast<float*>(x.data<float>()),
                           x.device());
       _transpose_op(z, y);
     }
 
-    void MultiHeadAttention::combine_heads(const StorageView& x, StorageView& y) {
+    void MultiHeadAttention::combine_heads(const StorageView& x, StorageView& y) const {
       _transpose_op(x, y);
       y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
     }

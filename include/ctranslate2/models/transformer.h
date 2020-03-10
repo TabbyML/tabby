@@ -42,11 +42,11 @@ namespace ctranslate2 {
     {
     public:
       TransformerFeedForward(const TransformerModel& model, const std::string& scope);
-      void operator()(const StorageView& input, StorageView& output);
+      void operator()(const StorageView& input, StorageView& output) const;
     private:
-      layers::LayerNorm _layer_norm;
-      layers::Dense _ff1;
-      layers::Dense _ff2;
+      const layers::LayerNorm _layer_norm;
+      const layers::Dense _ff1;
+      const layers::Dense _ff2;
     };
 
     class TransformerEncoderLayer
@@ -55,10 +55,10 @@ namespace ctranslate2 {
       TransformerEncoderLayer(const TransformerModel& model, const std::string& scope);
       void operator()(const StorageView& input,
                       const StorageView& lengths,
-                      StorageView& output);
+                      StorageView& output) const;
     private:
-      layers::MultiHeadAttention _self_attention;
-      TransformerFeedForward _ff;
+      const layers::MultiHeadAttention _self_attention;
+      const TransformerFeedForward _ff;
     };
 
     class TransformerDecoderLayer
@@ -73,11 +73,11 @@ namespace ctranslate2 {
                       StorageView& cached_attn_keys,
                       StorageView& cached_attn_values,
                       StorageView& output,
-                      StorageView* attention = nullptr);
+                      StorageView* attention = nullptr) const;
     private:
-      layers::MultiHeadAttention _self_attention;
-      layers::MultiHeadAttention _encoder_attention;
-      TransformerFeedForward _ff;
+      const layers::MultiHeadAttention _self_attention;
+      const layers::MultiHeadAttention _encoder_attention;
+      const TransformerFeedForward _ff;
     };
 
     class TransformerEncoder : public layers::Encoder
@@ -88,10 +88,10 @@ namespace ctranslate2 {
                       const StorageView& lengths,
                       StorageView& output) override;
     private:
-      layers::Embeddings _embeddings;
+      const layers::Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;
-      layers::LayerNorm _output_norm;
-      std::vector<std::unique_ptr<TransformerEncoderLayer>> _layers;
+      const layers::LayerNorm _output_norm;
+      std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
     };
 
     class TransformerDecoder : public layers::Decoder
@@ -110,10 +110,10 @@ namespace ctranslate2 {
     protected:
       bool should_reorder_state(const std::string& name) const override;
     private:
-      layers::Embeddings _embeddings;
+      const layers::Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;
-      layers::LayerNorm _output_norm;
-      std::vector<std::unique_ptr<TransformerDecoderLayer>> _layers;
+      const layers::LayerNorm _output_norm;
+      std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       layers::Dense _proj;
     };
 
