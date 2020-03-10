@@ -122,11 +122,12 @@ namespace ctranslate2 {
             out << ' ';
           out << hypotheses[n][i];
         }
-        out << std::endl;
+        out << '\n';
       }
     };
 
     consume_stream(in, out, read_batch_size, options, reader, writer);
+    out.flush();
     return num_tokens;
   }
 
