@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v1.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.8.0) (2020-03-10)
+
+### New features
+
+* [Python] Add methods `Translator.unload_model` and `Translator.load_model` to manually manage memory
+* [Docker] Move all images to Python 3 only
+* Expose options that enable an internal sorting by length to increase the translation efficiency:
+  * for file translation: `read_batch_size` contiguous examples will be loaded, sorted by length, and batched with size `max_batch_size`
+  * for batch translation: if the batch is larger than `max_batch_size`, examples will be sorted by length and batched with size `max_batch_size`
+
+### Fixes and improvements
+
+* Fix another error when releasing a translator that is placed on a GPU that is not GPU 0
+* Fix possible memory corruption when creating GPU translators in parallel
+* Fix memory that is briefly allocated on GPU 0 when destroying a translator that is placed on another GPU
+* Reduce latency of model loading, especially on GPU
+
 ## [v1.7.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.7.1) (2020-03-03)
 
 ### Fixes and improvements
