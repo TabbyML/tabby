@@ -73,16 +73,17 @@ namespace ctranslate2 {
       };
 
       TranslationInput batch_tokens;
+      batch_tokens.reserve(read_batch_size);
       std::vector<std::string> tokens;
 
       while (reader(in, tokens)) {
-        batch_tokens.push_back(tokens);
+        batch_tokens.emplace_back(std::move(tokens));
         tokens.clear();
         if (batch_tokens.size() == read_batch_size) {
           results.emplace(post(batch_tokens, options, true));
           batch_tokens.clear();
+          pop_results(false /* blocking */);
         }
-        pop_results(false /* blocking */);
       }
 
       if (!batch_tokens.empty())
