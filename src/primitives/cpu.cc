@@ -80,6 +80,14 @@ namespace ctranslate2 {
     std::fill_n(x, size, a);
   }
 
+#ifdef WITH_MKL
+  template<>
+  template<>
+  void primitives<Device::CPU>::fill(float* x, float a, dim_t size) {
+    cblas_scopy(size, &a, /*incx=*/0, x, /*incy=*/1);
+  }
+#endif
+
   template<>
   template <typename T>
   void primitives<Device::CPU>::strided_fill(T* x, T a, dim_t inc_x, dim_t size) {
@@ -87,6 +95,14 @@ namespace ctranslate2 {
       x[j] = a;
     }
   }
+
+#ifdef WITH_MKL
+  template<>
+  template<>
+  void primitives<Device::CPU>::strided_fill(float* x, float a, dim_t inc_x, dim_t size) {
+    cblas_scopy(size, &a, /*incx=*/0, x, inc_x);
+  }
+#endif
 
   template<>
   template <typename T>
