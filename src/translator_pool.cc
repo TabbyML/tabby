@@ -75,9 +75,18 @@ namespace ctranslate2 {
 
       auto& job = work_def.first;
       auto& promise = work_def.second;
-      promise.set_value(translator.translate_batch_with_prefix(job.source,
-                                                               job.target_prefix,
-                                                               job.options));
+      try {
+        promise.set_value(translator.translate_batch_with_prefix(job.source,
+                                                                 job.target_prefix,
+                                                                 job.options));
+      } catch (...) {
+        try {
+          // Store the exception in the shared state so that future.get() will throw it.
+          promise.set_exception(std::current_exception());
+        } catch (...) {
+          // set_exception may throw too.
+        }
+      }
     }
   }
 

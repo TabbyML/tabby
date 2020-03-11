@@ -74,6 +74,14 @@ def test_empty_translation():
     assert translator.translate_batch([]) == []
     assert translator.translate_batch(None) == []
 
+def test_invalid_translation_options():
+    translator = _get_transliterator()
+    with pytest.raises(ValueError):
+        translator.translate_batch(
+            [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]],
+            min_decoding_length=10,
+            max_decoding_length=5)
+
 def test_target_prefix():
     translator = _get_transliterator()
     output = translator.translate_batch(
