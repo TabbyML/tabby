@@ -111,15 +111,22 @@ namespace ctranslate2 {
 
   private:
     struct TranslationJob {
-      TranslationInput source;
-      TranslationInput target_prefix;
-      TranslationOptions options;
+      TranslationJob(const TranslationInput& source_,
+                     const TranslationInput& target_prefix_,
+                     const TranslationOptions& options_)
+        : source(source_)
+        , target_prefix(target_prefix_)
+        , options(options_) {
+      }
+      const TranslationInput source;
+      const TranslationInput target_prefix;
+      const TranslationOptions options;
     };
 
     void work_loop(Translator& translator, size_t intra_threads);
 
     std::condition_variable _can_add_more_work;
-    std::queue<std::pair<TranslationJob, std::promise<TranslationOutput>>> _work;
+    std::queue<std::pair<const TranslationJob, std::promise<TranslationOutput>>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translator_pool;
     std::mutex _mutex;

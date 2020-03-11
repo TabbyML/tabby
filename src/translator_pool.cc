@@ -27,28 +27,19 @@ namespace ctranslate2 {
                                                       const TranslationInput& target_prefix,
                                                       const TranslationOptions& options,
                                                       bool blocking) {
-    std::future<TranslationOutput> future;
-    TranslationJob job;
-    job.source = source;
-    job.target_prefix = target_prefix;
-    job.options = options;
+    std::unique_lock<std::mutex> lock(_mutex);
+    if (blocking)
+      _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
 
-    {
-      std::unique_lock<std::mutex> lock(_mutex);
-      if (blocking)
-        _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
+    // locked again here
 
-      // locked again here
+    _work.emplace(std::piecewise_construct,
+                  std::forward_as_tuple(source, target_prefix, options),
+                  std::forward_as_tuple());
 
-      _work.emplace(std::piecewise_construct,
-                    std::forward_as_tuple(std::move(job)),
-                    std::forward_as_tuple());
+    std::future<TranslationOutput> future = _work.back().second.get_future();
 
-      future = _work.back().second.get_future();
-
-      lock.unlock();
-    }
-
+    lock.unlock();
     _cv.notify_one();
     return future;
   }
@@ -73,7 +64,7 @@ namespace ctranslate2 {
 
       _can_add_more_work.notify_one();
 
-      auto& job = work_def.first;
+      const auto& job = work_def.first;
       auto& promise = work_def.second;
       try {
         promise.set_value(translator.translate_batch_with_prefix(job.source,
