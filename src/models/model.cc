@@ -246,7 +246,7 @@ namespace ctranslate2 {
           quantize_op(variable, variable_int, scale);
           swap(variable, variable_int);
 
-          variables_to_add.emplace_back(make_pair(scale_name, scale));
+          variables_to_add.emplace_back(scale_name, scale);
 
         } else { // DataType::INT8 or DataType::INT16
           StorageView* scale = get_scale(scale_name, variable.dtype());
@@ -304,11 +304,8 @@ namespace ctranslate2 {
         _variable_index.erase(name);
 
       // Add needed variables.
-      for (auto& variable_pair : variables_to_add) {
-        _variable_index.emplace(std::piecewise_construct,
-                                std::forward_as_tuple(std::move(variable_pair.first)),
-                                std::forward_as_tuple(std::move(variable_pair.second)));
-      }
+      for (auto& variable_pair : variables_to_add)
+        _variable_index.emplace(std::move(variable_pair));
 
       // Second pass to move variables on the target device.
       move_variables_to_device(_variable_index, _device);
