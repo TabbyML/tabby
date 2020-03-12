@@ -74,9 +74,6 @@ namespace ctranslate2 {
       virtual void register_variable_alias(const std::string& alias,
                                            const std::string& variable_name);
       virtual void finalize();
-      StorageView* get_scale(const std::string& scale_name, DataType dataType);
-
-      void set_compute_type(ComputeType type);
 
       Device _device;
       int _device_index;
@@ -89,12 +86,14 @@ namespace ctranslate2 {
       size_t _spec_revision;
       ComputeType _compute_type = ComputeType::DEFAULT;
 
-      void convert_data_if_need(bool support_int8,
-                                bool support_int16,
-                                const std::string& name,
-                                StorageView& variable,
-                                std::vector<std::pair<std::string, StorageView>>& variables_to_add,
-                                std::vector<std::string>& variables_to_remove);
+    private:
+      void set_compute_type(ComputeType type);
+      void convert_to_compute_type(const std::string& name,
+                                   StorageView& variable,
+                                   const bool support_int8,
+                                   const bool support_int16,
+                                   std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                                   std::vector<std::string>& variables_to_remove);
     };
 
   }
