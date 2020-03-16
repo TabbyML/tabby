@@ -11,11 +11,6 @@ namespace ctranslate2 {
         throw std::invalid_argument("unsupported topk axis " + std::to_string(axis));
     }
 
-    void TopK::operator()(const std::vector<StorageView*>& inputs,
-                          std::vector<StorageView*>& outputs) const {
-      operator()(*inputs[0], *outputs[0], *outputs[1]);
-    }
-
     void TopK::operator()(const StorageView& x, StorageView& values, StorageView& indices) const {
       PROFILE("TopK");
       const dim_t batch_size = x.size() / x.dim(-1);

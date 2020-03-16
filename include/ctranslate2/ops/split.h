@@ -10,8 +10,6 @@ namespace ctranslate2 {
       Split(dim_t axis, bool no_copy = false);
       Split(dim_t axis, const std::vector<dim_t>& split, bool no_copy = false);
 
-      void operator()(const std::vector<StorageView*>& inputs,
-                      std::vector<StorageView*>& outputs) const override;
       void operator()(const StorageView& input, StorageView& output1, StorageView& output2) const;
       void operator()(const StorageView& input,
                       StorageView& output1, StorageView& output2, StorageView& output3) const;

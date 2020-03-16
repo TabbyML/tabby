@@ -10,11 +10,6 @@ namespace ctranslate2 {
     }
 
     void Concat::operator()(const std::vector<StorageView*>& inputs,
-                            std::vector<StorageView*>& outputs) const {
-      operator()(inputs, *outputs[0]);
-    }
-
-    void Concat::operator()(const std::vector<StorageView*>& inputs,
                             StorageView& output) const {
       PROFILE("Concat");
       const dim_t rank = inputs.front()->rank();

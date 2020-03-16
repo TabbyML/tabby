@@ -8,8 +8,6 @@ namespace ctranslate2 {
     class TopK : public Op {
     public:
       TopK(dim_t k, dim_t axis = -1);
-      void operator()(const std::vector<StorageView*>& inputs,
-                      std::vector<StorageView*>& outputs) const override;
       void operator()(const StorageView& x, StorageView& values, StorageView& indices) const;
 
     private:

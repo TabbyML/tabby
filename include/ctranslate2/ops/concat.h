@@ -9,8 +9,6 @@ namespace ctranslate2 {
     public:
       Concat(int axis);
       void operator()(const std::vector<StorageView*>& inputs,
-                      std::vector<StorageView*>& outputs) const override;
-      void operator()(const std::vector<StorageView*>& inputs,
                       StorageView& output) const;
 
     private:

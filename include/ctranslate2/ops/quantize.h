@@ -16,8 +16,6 @@ namespace ctranslate2 {
       static const StorageView default_int16_scale;
 
       Quantize(ScaleType int16_scale_type = ScaleType::GLOBAL);
-      void operator()(const std::vector<StorageView*>& inputs,
-                      std::vector<StorageView*>& outputs) const override;
       void operator()(const StorageView& x,
                       StorageView& y,
                       StorageView& scale,

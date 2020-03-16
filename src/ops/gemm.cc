@@ -47,14 +47,6 @@ namespace ctranslate2 {
       , _trans_b(trans_b) {
     }
 
-    void Gemm::operator()(const std::vector<StorageView*>& inputs,
-                          std::vector<StorageView*>& outputs) const {
-      if (inputs.size() == 2)
-        operator()(*inputs[0], *inputs[1], *outputs[0]);
-      else
-        operator()(*inputs[0], *inputs[1], *inputs[2], *outputs[0]);
-    }
-
     void Gemm::operator()(const StorageView& a,
                           const StorageView& b,
                           const StorageView& c,

@@ -22,11 +22,6 @@ namespace ctranslate2 {
       check_arguments();
     }
 
-    void Split::operator()(const std::vector<StorageView*>& inputs,
-                           std::vector<StorageView*>& outputs) const {
-      operator()(*inputs[0], outputs);
-    }
-
     void Split::operator()(const StorageView& input,
                            StorageView& output1,
                            StorageView& output2) const {

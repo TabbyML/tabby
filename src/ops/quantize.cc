@@ -13,11 +13,6 @@ namespace ctranslate2 {
         throw std::invalid_argument("INT16 quantization only supports GLOBAL and PER_LAYER scales");
     }
 
-    void Quantize::operator()(const std::vector<StorageView*>& inputs,
-                              std::vector<StorageView*>& outputs) const {
-      operator()(*inputs[0], *outputs[0], *outputs[1]);
-    }
-
     void Quantize::operator()(const StorageView& x,
                               StorageView& y,
                               StorageView& scale,

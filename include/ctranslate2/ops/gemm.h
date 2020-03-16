@@ -9,8 +9,6 @@ namespace ctranslate2 {
     public:
       Gemm(float alpha = 1, float beta = 1, bool trans_a = false, bool trans_b = false);
 
-      void operator()(const std::vector<StorageView*>& inputs,
-                      std::vector<StorageView*>& outputs) const override;
       void operator()(const StorageView& a,
                       const StorageView& b,
                       StorageView& c,
