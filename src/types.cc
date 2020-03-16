@@ -1,18 +1,28 @@
 #include "ctranslate2/types.h"
 
-#include <map>
-
 namespace ctranslate2 {
 
-  static const std::map<DataType, std::string> dtype_names = {
-    {DataType::FLOAT, "float"},
-    {DataType::INT8, "int8"},
-    {DataType::INT16, "int16"},
-    {DataType::INT32, "int32"}
-  };
+  std::string dtype_name(DataType type) {
+    switch (type) {
+    case DataType::FLOAT:
+      return "float";
+    case DataType::INT8:
+      return "int8";
+    case DataType::INT16:
+      return "int16";
+    case DataType::INT32:
+      return "int32";
+    }
+  }
 
-  const std::string& dtype_name(DataType type) {
-    return dtype_names.at(type);
+  ComputeType str_to_compute_type(const std::string& compute_type) {
+    if (compute_type == "int8")
+      return ComputeType::INT8;
+    if (compute_type == "int16")
+      return ComputeType::INT16;
+    if (compute_type == "float")
+      return ComputeType::FLOAT;
+    return ComputeType::DEFAULT;
   }
 
 }

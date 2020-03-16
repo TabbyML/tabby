@@ -20,7 +20,16 @@ namespace ctranslate2 {
     INT32
   };
 
-  const std::string& dtype_name(DataType type);
+  std::string dtype_name(DataType type);
+
+  enum class ComputeType {
+    DEFAULT,
+    FLOAT,
+    INT8,
+    INT16
+  };
+
+  ComputeType str_to_compute_type(const std::string& compute_type);
 
   // Validates type T for whether it is a supported DataType.
   template <class T>
