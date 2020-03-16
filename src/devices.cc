@@ -35,10 +35,15 @@ namespace ctranslate2 {
     return "";
   }
 
+  template <Device D>
+  static void get_and_set_device(const int new_index, int* prev_index) {
+    *prev_index = primitives<D>::get_device();
+    primitives<D>::set_device(new_index);
+  }
+
   ScopedDeviceSetter::ScopedDeviceSetter(Device device, int index)
     : _device(device) {
-    DEVICE_DISPATCH(_device, _prev_index = primitives<D>::get_device());
-    DEVICE_DISPATCH(_device, primitives<D>::set_device(index));
+    DEVICE_DISPATCH(_device, get_and_set_device<D>(index, &_prev_index));
   }
 
   ScopedDeviceSetter::~ScopedDeviceSetter() {
