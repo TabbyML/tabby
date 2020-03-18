@@ -189,7 +189,7 @@ namespace ctranslate2 {
         auto word_id = flat_id % vocabulary_size;
         auto batch_id = i / beam_size;
         if (candidates)
-          word_id = candidates->scalar_at<int32_t>({word_id});
+          word_id = candidates->at<int32_t>(word_id);
         topk_ids.at<int32_t>(i) = word_id;
         gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
       }
@@ -412,7 +412,7 @@ namespace ctranslate2 {
       for (dim_t i = 0; i < log_probs.dim(0); ++i) {
         int32_t true_id = best_ids.scalar_at<int32_t>({i});
         if (candidates)
-          true_id = candidates->scalar_at<int32_t>({true_id});
+          true_id = candidates->at<int32_t>(true_id);
         dim_t batch_id = batch_offset[i];
         if (true_id == static_cast<int32_t>(end_token)) {
           finished[batch_id] = true;

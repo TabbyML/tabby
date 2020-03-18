@@ -312,8 +312,8 @@ namespace ctranslate2 {
     std::unique_ptr<StorageView> candidates;
     if (options.use_vmap && !vocab_map.empty()) {
       const std::vector<int32_t> ids = vocab_map.get_candidates<int32_t>(source);
-      candidates.reset(new StorageView({static_cast<dim_t>(ids.size())}, ids, device));
-      decoder.set_vocabulary_mask(*candidates);
+      candidates.reset(new StorageView({static_cast<dim_t>(ids.size())}, ids));
+      decoder.set_vocabulary_mask(candidates->to(device));
     } else {
       decoder.reset_vocabulary_mask();
     }
