@@ -38,4 +38,12 @@ namespace ctranslate2 {
                    std::vector<std::vector<float>>& scores,
                    std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr);
 
+  void initialize_decoder_with_prefix(const StorageView& start_ids,
+                                      const std::vector<size_t>& prefix_ids,
+                                      layers::Decoder& decoder,
+                                      layers::DecoderState& state,
+                                      const StorageView* memory,
+                                      const StorageView* memory_lengths,
+                                      std::vector<std::vector<float>>* prefix_attention);
+
 }

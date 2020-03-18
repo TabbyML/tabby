@@ -334,32 +334,19 @@ namespace ctranslate2 {
     if (target_prefix) {
       if (batch_size > 1)
         throw std::invalid_argument("Batched prefixed translation is not supported");
-
-      // TODO: Forward all timesteps at once. This requires supporting the masking
-      // of future steps.
-      const auto& prefix = target_prefix->front();
-      auto prefix_ids = tokens_to_ids(prefix, target_vocab);
-      start_step = prefix.size();
-      StorageView attention_step(device);
-      if (options.return_attention) {
+      if (options.return_attention)
         prefix_attention.resize(1);
-        prefix_attention[0].reserve(start_step);
-      }
-
-      for (size_t i = 0; i < start_step; ++i) {
-        auto input = sample_from.to(device);
-        input.reshape({batch_size, 1});
-        decoder(i,
-                input,
-                &encoded,
-                &lengths,
-                state,
-                /*logits=*/nullptr,
-                options.return_attention ? &attention_step : nullptr);
-        if (attention_step)
-          prefix_attention[0].emplace_back(attention_step.to_vector<float>());
-        sample_from.at<int32_t>(0) = prefix_ids[i];
-      }
+      const std::vector<std::string>& prefix = target_prefix->front();
+      const std::vector<size_t> prefix_ids = tokens_to_ids(prefix, target_vocab);
+      initialize_decoder_with_prefix(sample_from,
+                                     prefix_ids,
+                                     decoder,
+                                     state,
+                                     &encoded,
+                                     &lengths,
+                                     options.return_attention ? &prefix_attention[0] : nullptr);
+      sample_from.at<int32_t>(0) = prefix_ids.back();
+      start_step += prefix.size();
     }
 
     std::vector<std::vector<std::vector<size_t>>> expanded_ids;

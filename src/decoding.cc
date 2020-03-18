@@ -457,4 +457,34 @@ namespace ctranslate2 {
     }
   }
 
+  void initialize_decoder_with_prefix(const StorageView& start_ids,
+                                      const std::vector<size_t>& prefix_ids,
+                                      layers::Decoder& decoder,
+                                      layers::DecoderState& state,
+                                      const StorageView* memory,
+                                      const StorageView* memory_lengths,
+                                      std::vector<std::vector<float>>* prefix_attention) {
+    const Device device = decoder.device();
+    const size_t prefix_size = prefix_ids.size();
+
+    StorageView input(start_ids);
+    input.reshape({1, 1});
+    StorageView attention(device);
+    if (prefix_attention)
+      prefix_attention->reserve(prefix_size);
+
+    for (size_t i = 0; i < prefix_size; ++i) {
+      decoder(i,
+              input.to(device),
+              memory,
+              memory_lengths,
+              state,
+              /*logits=*/nullptr,
+              prefix_attention ? &attention : nullptr);
+      if (prefix_attention)
+        prefix_attention->emplace_back(attention.to_vector<float>());
+      input.at<int32_t>(0) = prefix_ids[i];
+    }
+  }
+
 }
