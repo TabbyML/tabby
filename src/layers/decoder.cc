@@ -32,5 +32,9 @@ namespace ctranslate2 {
       return true;
     }
 
+    Device Decoder::device() const {
+      return _device;
+    }
+
   }
 }

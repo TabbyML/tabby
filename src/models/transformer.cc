@@ -287,8 +287,8 @@ namespace ctranslate2 {
 
     void TransformerDecoder::operator()(dim_t step,
                                         const StorageView& ids,
-                                        const StorageView& memory,
-                                        const StorageView& memory_lengths,
+                                        const StorageView* memory,
+                                        const StorageView* memory_lengths,
                                         layers::DecoderState& state,
                                         StorageView* logits,
                                         StorageView* attention) {
@@ -302,8 +302,8 @@ namespace ctranslate2 {
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         (*_layers[l])(layer_in,
-                      memory,
-                      memory_lengths,
+                      *memory,
+                      *memory_lengths,
                       state.at("self_keys_" + std::to_string(l)),
                       state.at("self_values_" + std::to_string(l)),
                       state.at("memory_keys_" + std::to_string(l)),
