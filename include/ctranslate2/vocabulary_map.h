@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unordered_set>
+#include <set>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -24,7 +24,7 @@ namespace ctranslate2 {
     template <typename T>
     std::vector<T>
     get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const {
-      std::unordered_set<size_t> candidates = _fixed_candidates;
+      std::set<size_t> candidates = _fixed_candidates;
       std::string accu;
       for (const auto& tokens : batch_tokens) {
         for (size_t i = 0; i < tokens.size(); i++) {
@@ -43,7 +43,7 @@ namespace ctranslate2 {
     }
 
   private:
-    std::unordered_set<size_t> _fixed_candidates;
+    std::set<size_t> _fixed_candidates;
     std::vector<std::unordered_map<std::string, std::vector<size_t>>> _map_rules;
   };
 
