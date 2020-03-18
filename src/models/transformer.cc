@@ -262,11 +262,12 @@ namespace ctranslate2 {
       }
     }
 
-    void TransformerDecoder::reduce_vocab(const StorageView& ids) {
-      if (!ids.empty())
-        _proj.mask_weights(ids);
-      else
-        _proj.reset_mask();
+    void TransformerDecoder::set_vocabulary_mask(const StorageView& ids) {
+      _proj.mask_weights(ids);
+    }
+
+    void TransformerDecoder::reset_vocabulary_mask() {
+      _proj.reset_mask();
     }
 
     layers::DecoderState TransformerDecoder::initial_state() const {

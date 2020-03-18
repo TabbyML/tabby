@@ -68,7 +68,7 @@ namespace ctranslate2 {
                    layers::DecoderState& state,
                    const Sampler& sampler,
                    StorageView& sample_from,
-                   const StorageView& candidates,
+                   const StorageView* candidates,
                    const StorageView* memory,
                    const StorageView* memory_lengths,
                    dim_t start_step,
@@ -188,8 +188,8 @@ namespace ctranslate2 {
         auto beam_id = flat_id / vocabulary_size;
         auto word_id = flat_id % vocabulary_size;
         auto batch_id = i / beam_size;
-        if (!candidates.empty())
-          word_id = candidates.scalar_at<int32_t>({word_id});
+        if (candidates)
+          word_id = candidates->scalar_at<int32_t>({word_id});
         topk_ids.at<int32_t>(i) = word_id;
         gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
       }
@@ -338,7 +338,7 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      StorageView& sample_from,
-                     const StorageView& candidates,
+                     const StorageView* candidates,
                      const StorageView* memory,
                      const StorageView* memory_lengths,
                      dim_t start_step,
@@ -411,8 +411,8 @@ namespace ctranslate2 {
       dim_t count_alive = 0;
       for (dim_t i = 0; i < log_probs.dim(0); ++i) {
         int32_t true_id = best_ids.scalar_at<int32_t>({i});
-        if (!candidates.empty())
-          true_id = candidates.scalar_at<int32_t>({true_id});
+        if (candidates)
+          true_id = candidates->scalar_at<int32_t>({true_id});
         dim_t batch_id = batch_offset[i];
         if (true_id == static_cast<int32_t>(end_token)) {
           finished[batch_id] = true;

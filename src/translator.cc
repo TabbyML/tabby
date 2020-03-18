@@ -309,13 +309,14 @@ namespace ctranslate2 {
     encoder(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
-    StorageView candidates(DataType::INT32, device);
+    std::unique_ptr<StorageView> candidates;
     if (options.use_vmap && !vocab_map.empty()) {
-      auto candidates_vec = vocab_map.get_candidates<int32_t>(source);
-      candidates.resize({static_cast<dim_t>(candidates_vec.size())});
-      candidates.copy_from(candidates_vec.data(), candidates_vec.size(), Device::CPU);
+      const std::vector<int32_t> ids = vocab_map.get_candidates<int32_t>(source);
+      candidates.reset(new StorageView({static_cast<dim_t>(ids.size())}, ids, device));
+      decoder.set_vocabulary_mask(*candidates);
+    } else {
+      decoder.reset_vocabulary_mask();
     }
-    decoder.reduce_vocab(candidates);
 
     // Decode.
     size_t start_step = 0;
@@ -372,7 +373,7 @@ namespace ctranslate2 {
                   state,
                   BestSampler(),
                   sample_from,
-                  candidates,
+                  candidates.get(),
                   &encoded,
                   &lengths,
                   start_step,
@@ -414,7 +415,7 @@ namespace ctranslate2 {
                     state,
                     *sampler,
                     sample_from,
-                    candidates,
+                    candidates.get(),
                     &encoded,
                     &lengths,
                     start_step,
@@ -429,7 +430,7 @@ namespace ctranslate2 {
                   state,
                   *sampler,
                   sample_from,
-                  candidates,
+                  candidates.get(),
                   &encoded,
                   &lengths,
                   start_step,

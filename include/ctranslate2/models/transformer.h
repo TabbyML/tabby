@@ -98,7 +98,8 @@ namespace ctranslate2 {
     {
     public:
       TransformerDecoder(const TransformerModel& model, const std::string& scope);
-      void reduce_vocab(const StorageView& ids) override;
+      void set_vocabulary_mask(const StorageView& ids) override;
+      void reset_vocabulary_mask() override;
       layers::DecoderState initial_state() const override;
       void operator()(dim_t step,
                       const StorageView& ids,
