@@ -26,6 +26,10 @@ namespace ctranslate2 {
                               DecoderState& state,
                               StorageView* logits = nullptr,
                               StorageView* attention = nullptr) = 0;
+      void operator()(dim_t step,
+                      const StorageView& ids,
+                      DecoderState& state,
+                      StorageView* logits = nullptr);
 
       // Gathers states based on indices.
       void gather_state(DecoderState& state, const StorageView& indices) const;

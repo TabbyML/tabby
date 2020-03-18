@@ -173,33 +173,41 @@ namespace ctranslate2 {
 
 
     TransformerDecoderLayer::TransformerDecoderLayer(const TransformerModel& model,
-                                                     const std::string& scope)
+                                                     const std::string& scope,
+                                                     const bool with_encoder_attention)
       : _self_attention(model,
                         scope + "/self_attention",
                         model.num_heads(),
                         /*self_attention=*/true)
-      , _encoder_attention(model,
-                           scope + "/attention",
-                           model.num_heads(),
-                           /*self_attention=*/false)
+      , _encoder_attention(with_encoder_attention
+                           ? new layers::MultiHeadAttention(model,
+                                                            scope + "/attention",
+                                                            model.num_heads(),
+                                                            /*self_attention=*/false)
+                           : nullptr)
       , _ff(model, scope + "/ffn") {
     }
 
     void TransformerDecoderLayer::operator()(const StorageView& input,
-                                             const StorageView& memory,
-                                             const StorageView& memory_lengths,
+                                             const StorageView* memory,
+                                             const StorageView* memory_lengths,
                                              StorageView& cached_self_attn_keys,
                                              StorageView& cached_self_attn_values,
-                                             StorageView& cached_attn_keys,
-                                             StorageView& cached_attn_values,
+                                             StorageView* cached_attn_keys,
+                                             StorageView* cached_attn_values,
                                              StorageView& output,
                                              StorageView* attention) const {
       PROFILE("TransformerDecoderLayer");
       StorageView context(input.device());
-      _self_attention(input, nullptr, nullptr, output,
-                      &cached_self_attn_keys, &cached_self_attn_values);
-      _encoder_attention(output, &memory, &memory_lengths, context,
-                         &cached_attn_keys, &cached_attn_values, attention);
+      if (_encoder_attention) {
+        _self_attention(input, nullptr, nullptr, output,
+                        &cached_self_attn_keys, &cached_self_attn_values);
+        (*_encoder_attention)(output, memory, memory_lengths, context,
+                              cached_attn_keys, cached_attn_values, attention);
+      } else {
+        _self_attention(input, nullptr, nullptr, context,
+                        &cached_self_attn_keys, &cached_self_attn_values);
+      }
       _ff(context, output);
     }
 
@@ -241,8 +249,11 @@ namespace ctranslate2 {
     }
 
 
-    TransformerDecoder::TransformerDecoder(const TransformerModel& model, const std::string& scope)
+    TransformerDecoder::TransformerDecoder(const TransformerModel& model,
+                                           const std::string& scope,
+                                           const bool with_encoder_attention)
       : Decoder(model.device())
+      , _with_encoder_attention(with_encoder_attention)
       , _embeddings(model, scope + "/embeddings")
       , _position_encoder(model.with_relative_position()
                           ? nullptr
@@ -252,7 +263,8 @@ namespace ctranslate2 {
       for (size_t l = 0;; ++l) {
         try {
           _layers.emplace_back(new TransformerDecoderLayer(model,
-                                                           scope + "/layer_" + std::to_string(l)));
+                                                           scope + "/layer_" + std::to_string(l),
+                                                           with_encoder_attention));
         } catch (std::exception&) {
           if (l == 0)
             throw;
@@ -273,17 +285,20 @@ namespace ctranslate2 {
     layers::DecoderState TransformerDecoder::initial_state() const {
       layers::DecoderState state;
       for (size_t i = 0; i < _layers.size(); ++i) {
-        state.emplace("self_keys_" + std::to_string(i), StorageView(_device));
-        state.emplace("self_values_" + std::to_string(i), StorageView(_device));
-        state.emplace("memory_keys_" + std::to_string(i), StorageView(_device));
-        state.emplace("memory_values_" + std::to_string(i), StorageView(_device));
+        const std::string i_str = std::to_string(i);
+        state.emplace("self_keys_" + i_str, StorageView(_device));
+        state.emplace("self_values_" + i_str, StorageView(_device));
+        if (_with_encoder_attention) {
+          state.emplace("memory_keys_" + i_str, StorageView(_device));
+          state.emplace("memory_values_" + i_str, StorageView(_device));
+        }
       }
       return state;
     }
 
     bool TransformerDecoder::should_reorder_state(const std::string& name) const {
       // No need to reorder projected memory keys and values as they are the same for each beam.
-      return !starts_with(name, "memory");
+      return !_with_encoder_attention || !starts_with(name, "memory");
     }
 
     void TransformerDecoder::operator()(dim_t step,
@@ -302,13 +317,14 @@ namespace ctranslate2 {
         (*_position_encoder)(layer_in, step);
 
       for (size_t l = 0; l < _layers.size(); ++l) {
+        const std::string l_str = std::to_string(l);
         (*_layers[l])(layer_in,
-                      *memory,
-                      *memory_lengths,
-                      state.at("self_keys_" + std::to_string(l)),
-                      state.at("self_values_" + std::to_string(l)),
-                      state.at("memory_keys_" + std::to_string(l)),
-                      state.at("memory_values_" + std::to_string(l)),
+                      memory,
+                      memory_lengths,
+                      state.at("self_keys_" + l_str),
+                      state.at("self_values_" + l_str),
+                      _with_encoder_attention ? &state.at("memory_keys_" + l_str) : nullptr,
+                      _with_encoder_attention ? &state.at("memory_values_" + l_str) : nullptr,
                       layer_out,
                       l + 1 == _layers.size() ? attention : nullptr);
         swap(layer_in, layer_out);

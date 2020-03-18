@@ -64,19 +64,21 @@ namespace ctranslate2 {
     class TransformerDecoderLayer
     {
     public:
-      TransformerDecoderLayer(const TransformerModel& model, const std::string& scope);
+      TransformerDecoderLayer(const TransformerModel& model,
+                              const std::string& scope,
+                              const bool with_encoder_attention = true);
       void operator()(const StorageView& input,
-                      const StorageView& memory,
-                      const StorageView& memory_lengths,
+                      const StorageView* memory,
+                      const StorageView* memory_lengths,
                       StorageView& cached_self_attn_keys,
                       StorageView& cached_self_attn_values,
-                      StorageView& cached_attn_keys,
-                      StorageView& cached_attn_values,
+                      StorageView* cached_attn_keys,
+                      StorageView* cached_attn_values,
                       StorageView& output,
                       StorageView* attention = nullptr) const;
     private:
       const layers::MultiHeadAttention _self_attention;
-      const layers::MultiHeadAttention _encoder_attention;
+      const std::unique_ptr<const layers::MultiHeadAttention> _encoder_attention;
       const TransformerFeedForward _ff;
     };
 
@@ -97,7 +99,9 @@ namespace ctranslate2 {
     class TransformerDecoder : public layers::Decoder
     {
     public:
-      TransformerDecoder(const TransformerModel& model, const std::string& scope);
+      TransformerDecoder(const TransformerModel& model,
+                         const std::string& scope,
+                         const bool with_encoder_attention = true);
       void set_vocabulary_mask(const StorageView& ids) override;
       void reset_vocabulary_mask() override;
       layers::DecoderState initial_state() const override;
@@ -111,6 +115,7 @@ namespace ctranslate2 {
     protected:
       bool should_reorder_state(const std::string& name) const override;
     private:
+      const bool _with_encoder_attention;
       const layers::Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const layers::LayerNorm _output_norm;
