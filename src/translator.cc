@@ -277,25 +277,6 @@ namespace ctranslate2 {
     return final_results;
   }
 
-  static void repeat_batch(StorageView& input, const dim_t repeat) {
-    StorageView repeats({input.rank()}, static_cast<int32_t>(1));
-    repeats.at<int32_t>(0) = repeat;
-    ops::Tile()(input, repeats);
-  }
-
-  template <typename T>
-  static std::vector<std::vector<T>> batch_to_hypotheses(std::vector<std::vector<T>>& array) {
-    if (array.empty())
-      return array;
-    std::vector<std::vector<T>> new_array;
-    new_array.emplace_back();
-    new_array.front().reserve(array.size());
-    for (auto& vector : array) {
-      new_array.front().emplace_back(std::move(vector[0]));
-    }
-    return new_array;
-  }
-
   std::vector<TranslationResult>
   Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
                                     const std::vector<std::vector<std::string>>* target_prefix,
@@ -313,7 +294,11 @@ namespace ctranslate2 {
     auto scoped_device_setter = _model->get_scoped_device_setter();
     auto device = _model->device();
 
-    auto source_ids = tokens_to_ids(source, source_vocab);
+    std::vector<std::vector<size_t>> source_ids = tokens_to_ids(source, source_vocab);
+    std::vector<std::vector<size_t>> target_prefix_ids;
+    if (target_prefix)
+      target_prefix_ids = tokens_to_ids(*target_prefix, target_vocab);
+
     auto inputs = make_inputs(source_ids, device);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
@@ -333,143 +318,30 @@ namespace ctranslate2 {
     }
 
     // Decode.
-    size_t start_step = 0;
-    size_t start_token = target_vocab.to_id(Vocabulary::bos_token);
-    size_t end_token = target_vocab.to_id(Vocabulary::eos_token);
-    StorageView sample_from({batch_size}, static_cast<int32_t>(start_token));
-    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
-    std::vector<std::vector<float>> scores;
-    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
-    auto* attention_ptr = options.return_attention ? &attention : nullptr;
-    auto state = decoder.initial_state();
+    const std::vector<size_t> start_ids(batch_size, target_vocab.to_id(Vocabulary::bos_token));
+    const size_t end_id = target_vocab.to_id(Vocabulary::eos_token);
+    const std::vector<GenerationResult<size_t>> results = decode(
+      decoder,
+      *make_search_strategy(options),
+      *make_sampler(options),
+      start_ids,
+      target_prefix ? &target_prefix_ids : nullptr,
+      candidates.get(),
+      &encoded,
+      &lengths,
+      end_id,
+      options.max_decoding_length,
+      options.min_decoding_length,
+      options.num_hypotheses,
+      options.return_alternatives,
+      options.return_attention);
 
-    // Forward target prefix, if set (only batch_size = 1 for now).
-    std::vector<std::vector<std::vector<float>>> prefix_attention;
-    if (target_prefix) {
-      if (batch_size > 1)
-        throw std::invalid_argument("Batched prefixed translation is not supported");
-      if (options.return_attention)
-        prefix_attention.resize(1);
-      const std::vector<std::string>& prefix = target_prefix->front();
-      const std::vector<size_t> prefix_ids = tokens_to_ids(prefix, target_vocab);
-      initialize_decoder_with_prefix(sample_from,
-                                     prefix_ids,
-                                     decoder,
-                                     state,
-                                     &encoded,
-                                     &lengths,
-                                     options.return_attention ? &prefix_attention[0] : nullptr);
-      sample_from.at<int32_t>(0) = prefix_ids.back();
-      start_step += prefix.size();
-    }
-
-    std::vector<std::vector<std::vector<size_t>>> expanded_ids;
-    std::vector<std::vector<float>> expanded_scores;
-    std::vector<std::vector<std::vector<std::vector<float>>>> expanded_attention;
-    if (options.return_alternatives) {
-      // In this translation mode, we first expand the next "num_hypotheses" candidate words
-      // before running the full decoding on each prefix. This is to ensure that we get unique
-      // alternatives at this decoding position.
-      BeamSearch(options.num_hypotheses).search(decoder,
-                                                state,
-                                                BestSampler(),
-                                                sample_from,
-                                                candidates.get(),
-                                                &encoded,
-                                                &lengths,
-                                                start_step,
-                                                end_token,
-                                                /*max_length=*/1,
-                                                /*min_length=*/1,
-                                                sampled_ids,
-                                                scores,
-                                                attention_ptr);
-
-      start_step += 1;
-
-      const dim_t new_batch_size = options.num_hypotheses;
-
-      // The next input is the words we just expanded.
-      sample_from.resize({new_batch_size});
-      for (dim_t i = 0; i < new_batch_size; ++i) {
-        sample_from.at<int32_t>(i) = sampled_ids[0][i].back();
-      }
-
-      // We are increasing the batch size from 1 to "num_hypotheses" so we need to adapt
-      // some values. Note: the state was already repeated by the beam search.
-      repeat_batch(encoded, new_batch_size);
-      repeat_batch(lengths, new_batch_size);
-
-      // Save expansion output as we would need to include it in the final result.
-      expanded_ids = std::move(sampled_ids);
-      expanded_scores = std::move(scores);
-      if (attention_ptr)
-        expanded_attention = std::move(*attention_ptr);
-    }
-
-    make_search_strategy(options)->search(decoder,
-                                          state,
-                                          *make_sampler(options),
-                                          sample_from,
-                                          candidates.get(),
-                                          &encoded,
-                                          &lengths,
-                                          start_step,
-                                          end_token,
-                                          options.max_decoding_length,
-                                          options.min_decoding_length,
-                                          sampled_ids,
-                                          scores,
-                                          attention_ptr);
-
-    if (options.return_alternatives) {
-      // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.
-      sampled_ids = batch_to_hypotheses(sampled_ids);
-      scores = batch_to_hypotheses(scores);
-      if (attention_ptr)
-        *attention_ptr = batch_to_hypotheses(*attention_ptr);
-    }
-
-    // Build results.
-    std::vector<TranslationResult> results;
-    results.reserve(batch_size);
-    for (dim_t i = 0; i < batch_size; ++i) {
-      std::vector<std::vector<std::string>> hypotheses;
-      size_t num_hypotheses = sampled_ids[i].size();
-      hypotheses.resize(num_hypotheses);
-      for (size_t h = 0; h < num_hypotheses; ++h) {
-        // Finalize the hypothesis.
-        const std::vector<size_t>& prediction = sampled_ids[i][h];
-        std::vector<std::string>& hypothesis = hypotheses[h];
-        hypothesis.reserve(prediction.size()
-                           + (target_prefix ? target_prefix->at(i).size() : 0)
-                           + (!expanded_ids.empty() ? 1 : 0));
-        if (target_prefix)
-          hypothesis.insert(hypothesis.end(),
-                            target_prefix->at(i).begin(),
-                            target_prefix->at(i).end());
-        if (!expanded_ids.empty())
-          hypothesis.push_back(target_vocab.to_token(expanded_ids[i][h][0]));
-        for (const size_t id : prediction)
-          hypothesis.push_back(target_vocab.to_token(id));
-
-        // Finalize the score.
-        if (!expanded_scores.empty())
-          scores[i][h] += expanded_scores[i][h];
-
-        // Finalize the attention.
-        if (!prefix_attention.empty())
-          attention[i][h].insert(attention[i][h].begin(),
-                                 prefix_attention[i].begin(),
-                                 prefix_attention[i].end());
-        if (!expanded_attention.empty())
-          attention[i][h].insert(attention[i][h].begin(), expanded_attention[i][h][0]);
-      }
-      const auto* attn = attention.empty() ? nullptr : &attention[i];
-      results.emplace_back(hypotheses, scores[i], attn);
-    }
-
-    return results;
+    // Convert generated ids to tokens.
+    std::vector<TranslationResult> final_results;
+    final_results.reserve(results.size());
+    for (const GenerationResult<size_t>& result : results)
+      final_results.emplace_back(make_translation_result(result, target_vocab));
+    return final_results;
   }
 
   TranslationResult

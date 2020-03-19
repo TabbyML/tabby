@@ -496,4 +496,176 @@ namespace ctranslate2 {
     }
   }
 
+  static void repeat_batch(StorageView& input, const dim_t repeat) {
+    StorageView repeats({input.rank()}, static_cast<int32_t>(1));
+    repeats.at<int32_t>(0) = repeat;
+    ops::Tile()(input, repeats);
+  }
+
+  template <typename T>
+  static std::vector<std::vector<T>> batch_to_hypotheses(std::vector<std::vector<T>>& array) {
+    if (array.empty())
+      return array;
+    std::vector<std::vector<T>> new_array;
+    new_array.emplace_back();
+    new_array.front().reserve(array.size());
+    for (auto& vector : array) {
+      new_array.front().emplace_back(std::move(vector[0]));
+    }
+    return new_array;
+  }
+
+  std::vector<GenerationResult<size_t>>
+  decode(layers::Decoder& decoder,
+         const SearchStrategy& search_strategy,
+         const Sampler& sampler,
+         const std::vector<size_t>& start_ids,
+         const std::vector<std::vector<size_t>>* target_prefix,
+         const StorageView* candidates,
+         StorageView* memory,
+         StorageView* memory_lengths,
+         const dim_t end_id,
+         const dim_t max_length,
+         const dim_t min_length,
+         const size_t num_hypotheses,
+         const bool return_alternatives,
+         const bool return_attention) {
+    size_t start_step = 0;
+    const dim_t batch_size = start_ids.size();
+    StorageView sample_from({batch_size}, std::vector<int32_t>(start_ids.begin(), start_ids.end()));
+    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
+    std::vector<std::vector<float>> scores;
+    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
+    auto* attention_ptr = return_attention ? &attention : nullptr;
+    auto state = decoder.initial_state();
+
+    // Forward target prefix, if set (only batch_size = 1 for now).
+    std::vector<std::vector<std::vector<float>>> prefix_attention;
+    if (target_prefix) {
+      if (batch_size > 1)
+        throw std::invalid_argument("Batched prefixed translation is not supported");
+      if (return_attention)
+        prefix_attention.resize(1);
+      const std::vector<size_t>& prefix_ids = target_prefix->front();
+      initialize_decoder_with_prefix(sample_from,
+                                     prefix_ids,
+                                     decoder,
+                                     state,
+                                     memory,
+                                     memory_lengths,
+                                     return_attention ? &prefix_attention[0] : nullptr);
+      sample_from.at<int32_t>(0) = prefix_ids.back();
+      start_step += prefix_ids.size();
+    }
+
+    std::vector<std::vector<std::vector<size_t>>> expanded_ids;
+    std::vector<std::vector<float>> expanded_scores;
+    std::vector<std::vector<std::vector<std::vector<float>>>> expanded_attention;
+    if (return_alternatives) {
+      // In this translation mode, we first expand the next "num_hypotheses" candidate words
+      // before running the full decoding on each prefix. This is to ensure that we get unique
+      // alternatives at this decoding position.
+      BeamSearch(num_hypotheses).search(decoder,
+                                        state,
+                                        BestSampler(),
+                                        sample_from,
+                                        candidates,
+                                        memory,
+                                        memory_lengths,
+                                        start_step,
+                                        end_id,
+                                        /*max_length=*/1,
+                                        /*min_length=*/1,
+                                        sampled_ids,
+                                        scores,
+                                        attention_ptr);
+
+      start_step += 1;
+
+      const dim_t new_batch_size = num_hypotheses;
+
+      // The next input is the words we just expanded.
+      sample_from.resize({new_batch_size});
+      for (dim_t i = 0; i < new_batch_size; ++i) {
+        sample_from.at<int32_t>(i) = sampled_ids[0][i].back();
+      }
+
+      // We are increasing the batch size from 1 to "num_hypotheses" so we need to adapt
+      // some values. Note: the state was already repeated by the beam search.
+      if (memory)
+        repeat_batch(*memory, new_batch_size);
+      if (memory_lengths)
+        repeat_batch(*memory_lengths, new_batch_size);
+
+      // Save expansion output as we would need to include it in the final result.
+      expanded_ids = std::move(sampled_ids);
+      expanded_scores = std::move(scores);
+      if (attention_ptr)
+        expanded_attention = std::move(*attention_ptr);
+    }
+
+    search_strategy.search(decoder,
+                           state,
+                           sampler,
+                           sample_from,
+                           candidates,
+                           memory,
+                           memory_lengths,
+                           start_step,
+                           end_id,
+                           max_length,
+                           min_length,
+                           sampled_ids,
+                           scores,
+                           attention_ptr);
+
+    if (return_alternatives) {
+      // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.
+      sampled_ids = batch_to_hypotheses(sampled_ids);
+      scores = batch_to_hypotheses(scores);
+      if (attention_ptr)
+        *attention_ptr = batch_to_hypotheses(*attention_ptr);
+    }
+
+    // Build results.
+    std::vector<GenerationResult<size_t>> results;
+    results.reserve(batch_size);
+    for (dim_t i = 0; i < batch_size; ++i) {
+      std::vector<std::vector<size_t>> hypotheses;
+      size_t num_hypotheses = sampled_ids[i].size();
+      hypotheses.resize(num_hypotheses);
+      for (size_t h = 0; h < num_hypotheses; ++h) {
+        // Finalize the hypothesis.
+        const std::vector<size_t>& prediction = sampled_ids[i][h];
+        std::vector<size_t>& hypothesis = hypotheses[h];
+        hypothesis.reserve(prediction.size()
+                           + (target_prefix ? target_prefix->at(i).size() : 0)
+                           + (!expanded_ids.empty() ? 1 : 0));
+        if (target_prefix)
+          hypothesis.insert(hypothesis.end(),
+                            target_prefix->at(i).begin(),
+                            target_prefix->at(i).end());
+        if (!expanded_ids.empty())
+          hypothesis.push_back(expanded_ids[i][h][0]);
+        hypothesis.insert(hypothesis.end(), prediction.begin(), prediction.end());
+
+        // Finalize the score.
+        if (!expanded_scores.empty())
+          scores[i][h] += expanded_scores[i][h];
+
+        // Finalize the attention.
+        if (!prefix_attention.empty())
+          attention[i][h].insert(attention[i][h].begin(),
+                                 prefix_attention[i].begin(),
+                                 prefix_attention[i].end());
+        if (!expanded_attention.empty())
+          attention[i][h].insert(attention[i][h].begin(), expanded_attention[i][h][0]);
+      }
+      const auto* attn = attention.empty() ? nullptr : &attention[i];
+      results.emplace_back(hypotheses, scores[i], attn);
+    }
+
+    return results;
+  }
+
 }

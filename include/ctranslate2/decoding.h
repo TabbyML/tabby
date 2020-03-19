@@ -2,6 +2,7 @@
 
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/sampling.h"
+#include "ctranslate2/translation_result.h"
 
 namespace ctranslate2 {
 
@@ -79,5 +80,21 @@ namespace ctranslate2 {
                                       const StorageView* memory,
                                       const StorageView* memory_lengths,
                                       std::vector<std::vector<float>>* prefix_attention);
+
+  std::vector<GenerationResult<size_t>>
+  decode(layers::Decoder& decoder,
+         const SearchStrategy& search_strategy,
+         const Sampler& sampler,
+         const std::vector<size_t>& start_ids,
+         const std::vector<std::vector<size_t>>* target_prefix,
+         const StorageView* candidates,  // TODO: this should a size_t vector for consistency.
+         StorageView* memory,  // TODO: this should be const.
+         StorageView* memory_lengths,  // TODO: this should be const.
+         const dim_t end_id,
+         const dim_t max_length,
+         const dim_t min_length,
+         const size_t num_hypotheses,
+         const bool return_alternatives,
+         const bool return_attention);
 
 }
