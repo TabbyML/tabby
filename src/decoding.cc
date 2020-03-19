@@ -520,7 +520,7 @@ namespace ctranslate2 {
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
-         const std::vector<std::vector<size_t>>* target_prefix,
+         const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          StorageView* memory,
          StorageView* memory_lengths,
@@ -541,21 +541,20 @@ namespace ctranslate2 {
 
     // Forward target prefix, if set (only batch_size = 1 for now).
     std::vector<std::vector<std::vector<float>>> prefix_attention;
-    if (target_prefix) {
+    if (prefix_ids) {
       if (batch_size > 1)
         throw std::invalid_argument("Batched prefixed translation is not supported");
       if (return_attention)
         prefix_attention.resize(1);
-      const std::vector<size_t>& prefix_ids = target_prefix->front();
       initialize_decoder_with_prefix(sample_from,
-                                     prefix_ids,
+                                     prefix_ids->front(),
                                      decoder,
                                      state,
                                      memory,
                                      memory_lengths,
                                      return_attention ? &prefix_attention[0] : nullptr);
-      sample_from.at<int32_t>(0) = prefix_ids.back();
-      start_step += prefix_ids.size();
+      sample_from.at<int32_t>(0) = prefix_ids->front().back();
+      start_step += prefix_ids->front().size();
     }
 
     std::vector<std::vector<std::vector<size_t>>> expanded_ids;
@@ -639,12 +638,12 @@ namespace ctranslate2 {
         const std::vector<size_t>& prediction = sampled_ids[i][h];
         std::vector<size_t>& hypothesis = hypotheses[h];
         hypothesis.reserve(prediction.size()
-                           + (target_prefix ? target_prefix->at(i).size() : 0)
+                           + (prefix_ids ? prefix_ids->at(i).size() : 0)
                            + (!expanded_ids.empty() ? 1 : 0));
-        if (target_prefix)
+        if (prefix_ids)
           hypothesis.insert(hypothesis.end(),
-                            target_prefix->at(i).begin(),
-                            target_prefix->at(i).end());
+                            prefix_ids->at(i).begin(),
+                            prefix_ids->at(i).end());
         if (!expanded_ids.empty())
           hypothesis.push_back(expanded_ids[i][h][0]);
         hypothesis.insert(hypothesis.end(), prediction.begin(), prediction.end());

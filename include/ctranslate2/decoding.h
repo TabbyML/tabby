@@ -86,7 +86,7 @@ namespace ctranslate2 {
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
-         const std::vector<std::vector<size_t>>* target_prefix,
+         const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          StorageView* memory,  // TODO: this should be const.
          StorageView* memory_lengths,  // TODO: this should be const.
