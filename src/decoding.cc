@@ -77,7 +77,7 @@ namespace ctranslate2 {
   BeamSearch::search(layers::Decoder& decoder,
                      layers::DecoderState& state,
                      const Sampler& sampler,
-                     const StorageView& start_ids,
+                     const std::vector<size_t>& start_ids,
                      const dim_t start_step,
                      const dim_t end_id,
                      const dim_t max_length,
@@ -89,11 +89,11 @@ namespace ctranslate2 {
     PROFILE("beam_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
-    const dim_t batch_size = start_ids.dim(0);
+    const dim_t batch_size = start_ids.size();
     dim_t cur_batch_size = batch_size;
     const ops::TopK topk_op(_beam_size);
-    StorageView alive_seq(start_ids);
-    alive_seq.reshape({batch_size, 1});
+    StorageView alive_seq({batch_size, 1},
+                          std::vector<int32_t>(start_ids.begin(), start_ids.end()));
 
     expand_to_beam_size(state, _beam_size);
     expand_to_beam_size(alive_seq, _beam_size);
@@ -328,7 +328,7 @@ namespace ctranslate2 {
   GreedySearch::search(layers::Decoder& decoder,
                        layers::DecoderState& state,
                        const Sampler& sampler,
-                       const StorageView& start_ids,
+                       const std::vector<size_t>& start_ids,
                        const dim_t start_step,
                        const dim_t end_id,
                        const dim_t max_length,
@@ -340,9 +340,9 @@ namespace ctranslate2 {
     PROFILE("greedy_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
-    const dim_t batch_size = start_ids.dim(0);
-    StorageView sample_from(start_ids);
-    sample_from.reshape({batch_size, 1});
+    const dim_t batch_size = start_ids.size();
+    StorageView sample_from({batch_size, 1},
+                            std::vector<int32_t>(start_ids.begin(), start_ids.end()));
 
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
@@ -434,16 +434,15 @@ namespace ctranslate2 {
     }
   }
 
-  void initialize_decoder_with_prefix(const StorageView& start_ids,
-                                      const std::vector<size_t>& prefix_ids,
-                                      layers::Decoder& decoder,
+  void initialize_decoder_with_prefix(layers::Decoder& decoder,
                                       layers::DecoderState& state,
+                                      const std::vector<size_t>& start_ids,
+                                      const std::vector<size_t>& prefix_ids,
                                       std::vector<std::vector<float>>* prefix_attention) {
     const Device device = decoder.device();
     const size_t prefix_size = prefix_ids.size();
 
-    StorageView input(start_ids);
-    input.reshape({1, 1});
+    StorageView input({1, 1}, std::vector<int32_t>(start_ids.begin(), start_ids.end()));
     StorageView attention(device);
     if (prefix_attention)
       prefix_attention->reserve(prefix_size);
@@ -478,7 +477,7 @@ namespace ctranslate2 {
          layers::DecoderState& state,
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
-         const std::vector<size_t>& start_ids,
+         std::vector<size_t> start_ids,
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          const dim_t end_id,
@@ -487,13 +486,8 @@ namespace ctranslate2 {
          const size_t num_hypotheses,
          const bool return_alternatives,
          const bool return_attention) {
-    size_t start_step = 0;
     const dim_t batch_size = start_ids.size();
-    StorageView sample_from({batch_size}, std::vector<int32_t>(start_ids.begin(), start_ids.end()));
-    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
-    std::vector<std::vector<float>> scores;
-    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
-    auto* attention_ptr = return_attention ? &attention : nullptr;
+    dim_t start_step = 0;
 
     // Forward target prefix, if set (only batch_size = 1 for now).
     std::vector<std::vector<std::vector<float>>> prefix_attention;
@@ -502,12 +496,12 @@ namespace ctranslate2 {
         throw std::invalid_argument("Batch decoding with a prefix is not supported");
       if (return_attention)
         prefix_attention.resize(1);
-      initialize_decoder_with_prefix(sample_from,
-                                     prefix_ids->front(),
-                                     decoder,
+      initialize_decoder_with_prefix(decoder,
                                      state,
+                                     start_ids,
+                                     prefix_ids->front(),
                                      return_attention ? &prefix_attention[0] : nullptr);
-      sample_from.at<int32_t>(0) = prefix_ids->front().back();
+      start_ids[0] = prefix_ids->front().back();
       start_step += prefix_ids->front().size();
     }
 
@@ -521,37 +515,30 @@ namespace ctranslate2 {
       BeamSearch(num_hypotheses).search(decoder,
                                         state,
                                         BestSampler(),
-                                        sample_from,
+                                        start_ids,
                                         start_step,
                                         end_id,
                                         /*max_length=*/1,
                                         /*min_length=*/1,
                                         output_ids_map,
-                                        sampled_ids,
-                                        scores,
-                                        attention_ptr);
-
-      start_step += 1;
-
-      const dim_t new_batch_size = num_hypotheses;
+                                        expanded_ids,
+                                        expanded_scores,
+                                        return_attention ? &expanded_attention : nullptr);
 
       // The next input is the words we just expanded.
-      sample_from.resize({new_batch_size});
-      for (dim_t i = 0; i < new_batch_size; ++i) {
-        sample_from.at<int32_t>(i) = sampled_ids[0][i].back();
-      }
-
-      // Save expansion output as we would need to include it in the final result.
-      expanded_ids = std::move(sampled_ids);
-      expanded_scores = std::move(scores);
-      if (attention_ptr)
-        expanded_attention = std::move(*attention_ptr);
+      start_ids.resize(num_hypotheses);
+      for (size_t i = 0; i < num_hypotheses; ++i)
+        start_ids[i] = expanded_ids[0][i].back();
+      start_step += 1;
     }
 
+    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
+    std::vector<std::vector<float>> scores;
+    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
     search_strategy.search(decoder,
                            state,
                            sampler,
-                           sample_from,
+                           start_ids,
                            start_step,
                            end_id,
                            max_length,
@@ -559,14 +546,13 @@ namespace ctranslate2 {
                            output_ids_map,
                            sampled_ids,
                            scores,
-                           attention_ptr);
+                           return_attention ? &attention : nullptr);
 
     if (return_alternatives) {
       // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.
       sampled_ids = batch_to_hypotheses(sampled_ids);
       scores = batch_to_hypotheses(scores);
-      if (attention_ptr)
-        *attention_ptr = batch_to_hypotheses(*attention_ptr);
+      attention = batch_to_hypotheses(attention);
     }
 
     // Build results.

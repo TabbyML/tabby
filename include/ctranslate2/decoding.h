@@ -13,7 +13,7 @@ namespace ctranslate2 {
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
-           const StorageView& start_ids,
+           const std::vector<size_t>& start_ids,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -34,7 +34,7 @@ namespace ctranslate2 {
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
-           const StorageView& start_ids,
+           const std::vector<size_t>& start_ids,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -56,7 +56,7 @@ namespace ctranslate2 {
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
-           const StorageView& start_ids,
+           const std::vector<size_t>& start_ids,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -67,10 +67,10 @@ namespace ctranslate2 {
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const override;
   };
 
-  void initialize_decoder_with_prefix(const StorageView& start_ids,
-                                      const std::vector<size_t>& prefix_ids,
-                                      layers::Decoder& decoder,
+  void initialize_decoder_with_prefix(layers::Decoder& decoder,
                                       layers::DecoderState& state,
+                                      const std::vector<size_t>& start_ids,
+                                      const std::vector<size_t>& prefix_ids,
                                       std::vector<std::vector<float>>* prefix_attention);
 
   std::vector<GenerationResult<size_t>>
@@ -78,7 +78,7 @@ namespace ctranslate2 {
          layers::DecoderState& state,
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
-         const std::vector<size_t>& start_ids,
+         std::vector<size_t> start_ids,
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          const dim_t end_id,
