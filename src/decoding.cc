@@ -77,12 +77,12 @@ namespace ctranslate2 {
   BeamSearch::search(layers::Decoder& decoder,
                      layers::DecoderState& state,
                      const Sampler& sampler,
-                     StorageView& sample_from,
+                     const StorageView& start_ids,
                      const StorageView* candidates,
                      const StorageView* memory,
                      const StorageView* memory_lengths,
                      const dim_t start_step,
-                     const dim_t end_token,
+                     const dim_t end_id,
                      const dim_t max_length,
                      const dim_t min_length,
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
@@ -91,10 +91,10 @@ namespace ctranslate2 {
     PROFILE("beam_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
-    const dim_t batch_size = sample_from.dim(0);
+    const dim_t batch_size = start_ids.dim(0);
     dim_t cur_batch_size = batch_size;
     const ops::TopK topk_op(_beam_size);
-    StorageView alive_seq(sample_from);
+    StorageView alive_seq(start_ids);
     alive_seq.reshape({batch_size, 1});
 
     expand_to_beam_size(state, _beam_size);
@@ -171,9 +171,9 @@ namespace ctranslate2 {
         ops::Mul()(log_probs, StorageView(1.f / length_penalty_weight), log_probs);
       }
 
-      // Penalize end_token, if configured.
+      // Penalize end_id, if configured.
       if (step < min_length)
-        penalize_token(log_probs, end_token);
+        penalize_token(log_probs, end_id);
 
       // Flatten the probs into a list of candidates.
       log_probs.reshape({cur_batch_size, _beam_size * vocabulary_size});
@@ -230,7 +230,7 @@ namespace ctranslate2 {
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         for (dim_t k = 0; k < _beam_size; ++k) {
-          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
+          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_id)
               || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
@@ -248,7 +248,7 @@ namespace ctranslate2 {
                 attn.reserve(max_time);
               for (dim_t t = 1; t < max_time; ++t) {
                 const int32_t id = alive_seq.at<int32_t>({i, k, t});
-                if (id == static_cast<int32_t>(end_token))
+                if (id == static_cast<int32_t>(end_id))
                   break;
                 hypothesis.push_back(id);
                 if (attention) {
@@ -345,12 +345,12 @@ namespace ctranslate2 {
   GreedySearch::search(layers::Decoder& decoder,
                        layers::DecoderState& state,
                        const Sampler& sampler,
-                       StorageView& sample_from,
+                       const StorageView& start_ids,
                        const StorageView* candidates,
                        const StorageView* memory,
                        const StorageView* memory_lengths,
                        const dim_t start_step,
-                       const dim_t end_token,
+                       const dim_t end_id,
                        const dim_t max_length,
                        const dim_t min_length,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
@@ -359,7 +359,8 @@ namespace ctranslate2 {
     PROFILE("greedy_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
-    const dim_t batch_size = sample_from.dim(0);
+    const dim_t batch_size = start_ids.dim(0);
+    StorageView sample_from(start_ids);
     sample_from.reshape({batch_size, 1});
 
     sampled_ids.clear();
@@ -406,9 +407,9 @@ namespace ctranslate2 {
               attention ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
 
-      // Penalize end_token, if configured.
+      // Penalize end_id, if configured.
       if (step < min_length)
-        penalize_token(log_probs, end_token);
+        penalize_token(log_probs, end_id);
 
       sampler(log_probs, best_ids, best_probs);
       if (attention)
@@ -422,7 +423,7 @@ namespace ctranslate2 {
         if (candidates)
           true_id = candidates->at<int32_t>(true_id);
         dim_t batch_id = batch_offset[i];
-        if (true_id == static_cast<int32_t>(end_token)) {
+        if (true_id == static_cast<int32_t>(end_id)) {
           finished[batch_id] = true;
           finished_batch[i] = true;
           one_finished = true;
