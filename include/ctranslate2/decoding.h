@@ -14,13 +14,13 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* candidates,
            const StorageView* memory,
            const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
            const dim_t min_length,
+           const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const = 0;
@@ -37,13 +37,13 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* candidates,
            const StorageView* memory,
            const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
            const dim_t min_length,
+           const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const override;
@@ -61,13 +61,13 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* candidates,
            const StorageView* memory,
            const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
            const dim_t min_length,
+           const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const override;
@@ -87,7 +87,7 @@ namespace ctranslate2 {
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
          const std::vector<std::vector<size_t>>* target_prefix,
-         const StorageView* candidates,  // TODO: this should a size_t vector for consistency.
+         const std::vector<size_t>* output_ids_map,
          StorageView* memory,  // TODO: this should be const.
          StorageView* memory_lengths,  // TODO: this should be const.
          const dim_t end_id,

@@ -57,4 +57,24 @@ namespace ctranslate2 {
     return _map_rules.empty();
   }
 
+  std::vector<size_t>
+  VocabularyMap::get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const {
+    std::set<size_t> candidates = _fixed_candidates;
+    std::string accu;
+    for (const auto& tokens : batch_tokens) {
+      for (size_t i = 0; i < tokens.size(); i++) {
+        accu.clear();
+        for (size_t h = 0; h < _map_rules.size() && i + h < tokens.size(); ++h) {
+          if (h > 0)
+            accu += ' ';
+          accu += tokens[i + h];
+          auto it = _map_rules[h].find(accu);
+          if (it != _map_rules[h].end())
+            candidates.insert(it->second.begin(), it->second.end());
+        }
+      }
+    }
+    return std::vector<size_t>(candidates.begin(), candidates.end());
+  }
+
 }

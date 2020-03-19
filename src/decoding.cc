@@ -78,13 +78,13 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const StorageView& start_ids,
-                     const StorageView* candidates,
                      const StorageView* memory,
                      const StorageView* memory_lengths,
                      const dim_t start_step,
                      const dim_t end_id,
                      const dim_t max_length,
                      const dim_t min_length,
+                     const std::vector<size_t>* output_ids_map,
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
@@ -195,8 +195,8 @@ namespace ctranslate2 {
         auto beam_id = flat_id / vocabulary_size;
         auto word_id = flat_id % vocabulary_size;
         auto batch_id = i / _beam_size;
-        if (candidates)
-          word_id = candidates->at<int32_t>(word_id);
+        if (output_ids_map)
+          word_id = output_ids_map->at(word_id);
         topk_ids.at<int32_t>(i) = word_id;
         gather_indices.at<int32_t>(i) = beam_id + batch_id * _beam_size;
       }
@@ -346,13 +346,13 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const StorageView& start_ids,
-                       const StorageView* candidates,
                        const StorageView* memory,
                        const StorageView* memory_lengths,
                        const dim_t start_step,
                        const dim_t end_id,
                        const dim_t max_length,
                        const dim_t min_length,
+                       const std::vector<size_t>* output_ids_map,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
@@ -420,8 +420,8 @@ namespace ctranslate2 {
       dim_t count_alive = 0;
       for (dim_t i = 0; i < log_probs.dim(0); ++i) {
         int32_t true_id = best_ids.scalar_at<int32_t>({i});
-        if (candidates)
-          true_id = candidates->at<int32_t>(true_id);
+        if (output_ids_map)
+          true_id = output_ids_map->at(true_id);
         dim_t batch_id = batch_offset[i];
         if (true_id == static_cast<int32_t>(end_id)) {
           finished[batch_id] = true;
@@ -521,7 +521,7 @@ namespace ctranslate2 {
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
          const std::vector<std::vector<size_t>>* target_prefix,
-         const StorageView* candidates,
+         const std::vector<size_t>* output_ids_map,
          StorageView* memory,
          StorageView* memory_lengths,
          const dim_t end_id,
@@ -569,13 +569,13 @@ namespace ctranslate2 {
                                         state,
                                         BestSampler(),
                                         sample_from,
-                                        candidates,
                                         memory,
                                         memory_lengths,
                                         start_step,
                                         end_id,
                                         /*max_length=*/1,
                                         /*min_length=*/1,
+                                        output_ids_map,
                                         sampled_ids,
                                         scores,
                                         attention_ptr);
@@ -608,13 +608,13 @@ namespace ctranslate2 {
                            state,
                            sampler,
                            sample_from,
-                           candidates,
                            memory,
                            memory_lengths,
                            start_step,
                            end_id,
                            max_length,
                            min_length,
+                           output_ids_map,
                            sampled_ids,
                            scores,
                            attention_ptr);

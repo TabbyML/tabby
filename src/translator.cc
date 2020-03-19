@@ -308,11 +308,13 @@ namespace ctranslate2 {
     encoder(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
-    std::unique_ptr<StorageView> candidates;
+    std::vector<size_t> output_ids_map;
     if (options.use_vmap && !vocab_map.empty()) {
-      const std::vector<int32_t> ids = vocab_map.get_candidates<int32_t>(source);
-      candidates.reset(new StorageView({static_cast<dim_t>(ids.size())}, ids));
-      decoder.set_vocabulary_mask(candidates->to(device));
+      output_ids_map = vocab_map.get_candidates(source);
+      decoder.set_vocabulary_mask(
+        StorageView({static_cast<dim_t>(output_ids_map.size())},
+                    std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
+                    device));
     } else {
       decoder.reset_vocabulary_mask();
     }
@@ -326,7 +328,7 @@ namespace ctranslate2 {
       *make_sampler(options),
       start_ids,
       target_prefix ? &target_prefix_ids : nullptr,
-      candidates.get(),
+      !output_ids_map.empty() ? &output_ids_map : nullptr,
       &encoded,
       &lengths,
       end_id,
