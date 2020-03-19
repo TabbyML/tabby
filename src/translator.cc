@@ -320,17 +320,19 @@ namespace ctranslate2 {
     }
 
     // Decode.
+    layers::DecoderState state = decoder.initial_state();
+    state.emplace(std::string("memory"), std::move(encoded));
+    state.emplace(std::string("memory_lengths"), std::move(lengths));
     const std::vector<size_t> start_ids(batch_size, target_vocab.to_id(Vocabulary::bos_token));
     const size_t end_id = target_vocab.to_id(Vocabulary::eos_token);
     const std::vector<GenerationResult<size_t>> results = decode(
       decoder,
+      state,
       *make_search_strategy(options),
       *make_sampler(options),
       start_ids,
       target_prefix ? &target_prefix_ids : nullptr,
       !output_ids_map.empty() ? &output_ids_map : nullptr,
-      &encoded,
-      &lengths,
       end_id,
       options.max_decoding_length,
       options.min_decoding_length,

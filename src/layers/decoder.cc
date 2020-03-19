@@ -9,13 +9,6 @@ namespace ctranslate2 {
       : _device(device) {
     }
 
-    void Decoder::operator()(dim_t step,
-                             const StorageView& ids,
-                             DecoderState& state,
-                             StorageView* logits) {
-      operator()(step, ids, nullptr, nullptr, state, logits, nullptr);
-    }
-
     void Decoder::gather_state(DecoderState& state, const StorageView& indices) const {
       static const ops::Gather gather_op;
 

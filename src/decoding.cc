@@ -78,8 +78,6 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const StorageView& start_ids,
-                     const StorageView* memory,
-                     const StorageView* memory_lengths,
                      const dim_t start_step,
                      const dim_t end_id,
                      const dim_t max_length,
@@ -99,15 +97,6 @@ namespace ctranslate2 {
 
     expand_to_beam_size(state, _beam_size);
     expand_to_beam_size(alive_seq, _beam_size);
-
-    std::unique_ptr<StorageView> tiled_memory;
-    std::unique_ptr<StorageView> tiled_memory_lengths;
-    if (memory) {
-      tiled_memory.reset(new StorageView(*memory));
-      tiled_memory_lengths.reset(new StorageView(*memory_lengths));
-      expand_to_beam_size(*tiled_memory, _beam_size);
-      expand_to_beam_size(*tiled_memory_lengths, _beam_size);
-    }
 
     StorageView gather_indices(DataType::INT32);
     StorageView topk_ids(alive_seq);
@@ -148,8 +137,6 @@ namespace ctranslate2 {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
-              tiled_memory.get(),
-              tiled_memory_lengths.get(),
               state,
               &logits,
               attention ? &attention_step_device : nullptr);
@@ -308,10 +295,6 @@ namespace ctranslate2 {
         if (attention)
           gather(alive_attention, keep_batches);
         auto keep_batches_device = keep_batches.to(device);
-        if (tiled_memory)
-          gather_batch(*tiled_memory, keep_batches_device, _beam_size);
-        if (tiled_memory_lengths)
-          gather_batch(*tiled_memory_lengths, keep_batches_device, _beam_size);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
         // finished batches from the reorder indices and then reorder. The motivation for this
@@ -346,8 +329,6 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const StorageView& start_ids,
-                       const StorageView* memory,
-                       const StorageView* memory_lengths,
                        const dim_t start_step,
                        const dim_t end_id,
                        const dim_t max_length,
@@ -372,13 +353,6 @@ namespace ctranslate2 {
       attention->resize(batch_size);
     }
 
-    std::unique_ptr<StorageView> alive_memory;
-    std::unique_ptr<StorageView> alive_memory_lengths;
-    if (memory) {
-      alive_memory.reset(new StorageView(*memory));
-      alive_memory_lengths.reset(new StorageView(*memory_lengths));
-    }
-
     StorageView logits(device);
     StorageView log_probs(device);
     StorageView alive({batch_size}, DataType::INT32);
@@ -400,8 +374,6 @@ namespace ctranslate2 {
     for (dim_t step = start_step; step < max_step; ++step) {
       decoder(step,
               sample_from.to(device),
-              alive_memory.get(),
-              alive_memory_lengths.get(),
               state,
               &logits,
               attention ? &attention_step_device : nullptr);
@@ -458,10 +430,6 @@ namespace ctranslate2 {
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
         decoder.gather_state(state, alive_device);
-        if (alive_memory)
-          gather(*alive_memory, alive_device);
-        if (alive_memory_lengths)
-          gather(*alive_memory_lengths, alive_device);
       }
     }
   }
@@ -470,8 +438,6 @@ namespace ctranslate2 {
                                       const std::vector<size_t>& prefix_ids,
                                       layers::Decoder& decoder,
                                       layers::DecoderState& state,
-                                      const StorageView* memory,
-                                      const StorageView* memory_lengths,
                                       std::vector<std::vector<float>>* prefix_attention) {
     const Device device = decoder.device();
     const size_t prefix_size = prefix_ids.size();
@@ -485,8 +451,6 @@ namespace ctranslate2 {
     for (size_t i = 0; i < prefix_size; ++i) {
       decoder(i,
               input.to(device),
-              memory,
-              memory_lengths,
               state,
               /*logits=*/nullptr,
               prefix_attention ? &attention : nullptr);
@@ -494,12 +458,6 @@ namespace ctranslate2 {
         prefix_attention->emplace_back(attention.to_vector<float>());
       input.at<int32_t>(0) = prefix_ids[i];
     }
-  }
-
-  static void repeat_batch(StorageView& input, const dim_t repeat) {
-    StorageView repeats({input.rank()}, static_cast<int32_t>(1));
-    repeats.at<int32_t>(0) = repeat;
-    ops::Tile()(input, repeats);
   }
 
   template <typename T>
@@ -517,13 +475,12 @@ namespace ctranslate2 {
 
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
+         layers::DecoderState& state,
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
-         StorageView* memory,
-         StorageView* memory_lengths,
          const dim_t end_id,
          const dim_t max_length,
          const dim_t min_length,
@@ -537,7 +494,6 @@ namespace ctranslate2 {
     std::vector<std::vector<float>> scores;
     std::vector<std::vector<std::vector<std::vector<float>>>> attention;
     auto* attention_ptr = return_attention ? &attention : nullptr;
-    auto state = decoder.initial_state();
 
     // Forward target prefix, if set (only batch_size = 1 for now).
     std::vector<std::vector<std::vector<float>>> prefix_attention;
@@ -550,8 +506,6 @@ namespace ctranslate2 {
                                      prefix_ids->front(),
                                      decoder,
                                      state,
-                                     memory,
-                                     memory_lengths,
                                      return_attention ? &prefix_attention[0] : nullptr);
       sample_from.at<int32_t>(0) = prefix_ids->front().back();
       start_step += prefix_ids->front().size();
@@ -568,8 +522,6 @@ namespace ctranslate2 {
                                         state,
                                         BestSampler(),
                                         sample_from,
-                                        memory,
-                                        memory_lengths,
                                         start_step,
                                         end_id,
                                         /*max_length=*/1,
@@ -589,13 +541,6 @@ namespace ctranslate2 {
         sample_from.at<int32_t>(i) = sampled_ids[0][i].back();
       }
 
-      // We are increasing the batch size from 1 to "num_hypotheses" so we need to adapt
-      // some values. Note: the state was already repeated by the beam search.
-      if (memory)
-        repeat_batch(*memory, new_batch_size);
-      if (memory_lengths)
-        repeat_batch(*memory_lengths, new_batch_size);
-
       // Save expansion output as we would need to include it in the final result.
       expanded_ids = std::move(sampled_ids);
       expanded_scores = std::move(scores);
@@ -607,8 +552,6 @@ namespace ctranslate2 {
                            state,
                            sampler,
                            sample_from,
-                           memory,
-                           memory_lengths,
                            start_step,
                            end_id,
                            max_length,

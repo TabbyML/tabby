@@ -21,15 +21,9 @@ namespace ctranslate2 {
       virtual DecoderState initial_state() const = 0;
       virtual void operator()(dim_t step,
                               const StorageView& ids,
-                              const StorageView* memory,
-                              const StorageView* memory_lengths,
                               DecoderState& state,
                               StorageView* logits = nullptr,
                               StorageView* attention = nullptr) = 0;
-      void operator()(dim_t step,
-                      const StorageView& ids,
-                      DecoderState& state,
-                      StorageView* logits = nullptr);
 
       // Gathers states based on indices.
       void gather_state(DecoderState& state, const StorageView& indices) const;

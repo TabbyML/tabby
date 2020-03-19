@@ -14,8 +14,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* memory,
-           const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -37,8 +35,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* memory,
-           const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -61,8 +57,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const StorageView& start_ids,
-           const StorageView* memory,
-           const StorageView* memory_lengths,
            const dim_t start_step,
            const dim_t end_id,
            const dim_t max_length,
@@ -77,19 +71,16 @@ namespace ctranslate2 {
                                       const std::vector<size_t>& prefix_ids,
                                       layers::Decoder& decoder,
                                       layers::DecoderState& state,
-                                      const StorageView* memory,
-                                      const StorageView* memory_lengths,
                                       std::vector<std::vector<float>>* prefix_attention);
 
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
+         layers::DecoderState& state,
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
          const std::vector<size_t>& start_ids,
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
-         StorageView* memory,  // TODO: this should be const.
-         StorageView* memory_lengths,  // TODO: this should be const.
          const dim_t end_id,
          const dim_t max_length,
          const dim_t min_length,

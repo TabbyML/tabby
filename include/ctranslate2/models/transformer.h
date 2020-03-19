@@ -107,8 +107,6 @@ namespace ctranslate2 {
       layers::DecoderState initial_state() const override;
       void operator()(dim_t step,
                       const StorageView& ids,
-                      const StorageView* memory,
-                      const StorageView* memory_lengths,
                       layers::DecoderState& state,
                       StorageView* logits = nullptr,
                       StorageView* attention = nullptr) override;

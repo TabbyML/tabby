@@ -303,8 +303,6 @@ namespace ctranslate2 {
 
     void TransformerDecoder::operator()(dim_t step,
                                         const StorageView& ids,
-                                        const StorageView* memory,
-                                        const StorageView* memory_lengths,
                                         layers::DecoderState& state,
                                         StorageView* logits,
                                         StorageView* attention) {
@@ -315,6 +313,13 @@ namespace ctranslate2 {
       _embeddings(ids, layer_in);
       if (_position_encoder)
         (*_position_encoder)(layer_in, step);
+
+      const StorageView* memory = nullptr;
+      const StorageView* memory_lengths = nullptr;
+      if (_with_encoder_attention) {
+        memory = &state.at("memory");
+        memory_lengths = &state.at("memory_lengths");
+      }
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         const std::string l_str = std::to_string(l);
