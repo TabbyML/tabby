@@ -543,7 +543,7 @@ namespace ctranslate2 {
     std::vector<std::vector<std::vector<float>>> prefix_attention;
     if (prefix_ids) {
       if (batch_size > 1)
-        throw std::invalid_argument("Batched prefixed translation is not supported");
+        throw std::invalid_argument("Batch decoding with a prefix is not supported");
       if (return_attention)
         prefix_attention.resize(1);
       initialize_decoder_with_prefix(sample_from,
