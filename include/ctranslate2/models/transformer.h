@@ -4,12 +4,12 @@
 
 #include "ctranslate2/layers/layers.h"
 
-#include "model.h"
+#include "sequence_to_sequence.h"
 
 namespace ctranslate2 {
   namespace models {
 
-    class TransformerModel : public Model
+    class TransformerModel : public SequenceToSequenceModel
     {
     public:
       TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads = 0);

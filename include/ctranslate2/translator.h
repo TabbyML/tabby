@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "models/model.h"
+#include "models/sequence_to_sequence.h"
 #include "translation_result.h"
 
 namespace ctranslate2 {
@@ -107,6 +107,9 @@ namespace ctranslate2 {
     std::shared_ptr<const models::Model> _model;
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
+    const VocabularyMap* _vocabulary_map;
+    const Vocabulary* _source_vocabulary;
+    const Vocabulary* _target_vocabulary;
   };
 
 }

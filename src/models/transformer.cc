@@ -37,7 +37,7 @@ namespace ctranslate2 {
     TransformerModel::TransformerModel(const std::string& path,
                                        size_t spec_revision,
                                        size_t num_heads)
-      : Model(path, spec_revision)
+      : SequenceToSequenceModel(path, spec_revision)
       , _num_heads(num_heads) {
     }
 
@@ -57,11 +57,11 @@ namespace ctranslate2 {
       std::string var_name = name;
       if (_spec_revision == 1)
         var_name = map_v1_variable_name(name);
-      Model::register_variable(var_name, variable);
+      SequenceToSequenceModel::register_variable(var_name, variable);
     }
 
     void TransformerModel::finalize() {
-      Model::finalize();
+      SequenceToSequenceModel::finalize();
       if (_spec_revision >= 3)
         _num_heads = get_variable("num_heads").as_scalar<int8_t>();
       _with_relative_position = get_flag_with_default("with_relative_position", false);

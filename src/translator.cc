@@ -163,7 +163,7 @@ namespace ctranslate2 {
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
     if (options.sampling_topk != 1 && options.beam_size != 1)
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
-    if (options.use_vmap && _model->get_vocabulary_map().empty())
+    if (options.use_vmap && _vocabulary_map->empty())
       throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
@@ -283,9 +283,9 @@ namespace ctranslate2 {
                                     const TranslationOptions& options) {
     PROFILE("run_batch_translation");
 
-    const auto& source_vocab = _model->get_source_vocabulary();
-    const auto& target_vocab = _model->get_target_vocabulary();
-    const auto& vocab_map = _model->get_vocabulary_map();
+    const auto& source_vocab = *_source_vocabulary;
+    const auto& target_vocab = *_target_vocabulary;
+    const auto& vocab_map = *_vocabulary_map;
     auto& encoder = *_encoder;
     auto& decoder = *_decoder;
 
@@ -388,16 +388,25 @@ namespace ctranslate2 {
   }
 
   void Translator::set_model(const std::shared_ptr<const models::Model>& model) {
+    const auto* seq2seq_model = dynamic_cast<const models::SequenceToSequenceModel*>(model.get());
+    if (!seq2seq_model)
+      throw std::invalid_argument("Translator expects a model of type SequenceToSequenceModel");
     _model = model;
     auto scoped_device_setter = _model->get_scoped_device_setter();
-    _encoder = _model->make_encoder();
-    _decoder = _model->make_decoder();
+    _encoder = seq2seq_model->make_encoder();
+    _decoder = seq2seq_model->make_decoder();
+    _vocabulary_map = &seq2seq_model->get_vocabulary_map();
+    _source_vocabulary = &seq2seq_model->get_source_vocabulary();
+    _target_vocabulary = &seq2seq_model->get_target_vocabulary();
   }
 
   void Translator::detach_model() {
     if (!_model)
       return;
     auto scoped_device_setter = _model->get_scoped_device_setter();
+    _vocabulary_map = nullptr;
+    _source_vocabulary = nullptr;
+    _target_vocabulary = nullptr;
     _encoder.reset();
     _decoder.reset();
     _model.reset();

@@ -34,8 +34,6 @@ def test_contains_model(tmpdir):
     model_dir.ensure(dir=1)
     assert not ctranslate2.contains_model(str(model_dir))
     model_dir.join("model.bin").ensure(file=1)
-    assert not ctranslate2.contains_model(str(model_dir))
-    model_dir.join("shared_vocabulary.txt").ensure(file=1)
     assert ctranslate2.contains_model(str(model_dir))
 
 @pytest.mark.parametrize("max_batch_size", [0, 1])

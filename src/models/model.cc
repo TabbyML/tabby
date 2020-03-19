@@ -105,15 +105,8 @@ namespace ctranslate2 {
     }
 
 
-    Model::Model(const std::string& path, size_t spec_revision)
+    Model::Model(const std::string&, size_t spec_revision)
       : _spec_revision(spec_revision) {
-      try {
-        _shared_vocabulary.reset(new Vocabulary(path + "/shared_vocabulary.txt"));
-      } catch (std::exception&) {
-        _source_vocabulary.reset(new Vocabulary(path + "/source_vocabulary.txt"));
-        _target_vocabulary.reset(new Vocabulary(path + "/target_vocabulary.txt"));
-      }
-      _vocabulary_map.reset(new VocabularyMap(path + "/vmap.txt", get_target_vocabulary()));
     }
 
     size_t Model::current_spec_revision() const {
@@ -145,18 +138,6 @@ namespace ctranslate2 {
 
     ScopedDeviceSetter Model::get_scoped_device_setter() const {
       return ScopedDeviceSetter(_device, _device_index);
-    }
-
-    const Vocabulary& Model::get_source_vocabulary() const {
-      return _shared_vocabulary ? *_shared_vocabulary : *_source_vocabulary;
-    }
-
-    const Vocabulary& Model::get_target_vocabulary() const {
-      return _shared_vocabulary ? *_shared_vocabulary : *_target_vocabulary;
-    }
-
-    const VocabularyMap& Model::get_vocabulary_map() const {
-      return *_vocabulary_map;
     }
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
@@ -417,11 +398,7 @@ namespace ctranslate2 {
     }
 
     bool contains_model(const std::string& path) {
-      return (
-        file_exists(path + "/model.bin")
-        && ((file_exists(path + "/source_vocabulary.txt")
-             && file_exists(path + "/target_vocabulary.txt"))
-            || file_exists(path + "/shared_vocabulary.txt")));
+      return file_exists(path + "/model.bin");
     }
 
   }

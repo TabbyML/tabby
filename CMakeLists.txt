@@ -66,6 +66,7 @@ set(SOURCES
   src/layers/decoder.cc
   src/layers/common.cc
   src/models/model.cc
+  src/models/sequence_to_sequence.cc
   src/models/transformer.cc
   src/ops/add.cc
   src/ops/concat.cc
