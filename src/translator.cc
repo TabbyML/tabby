@@ -84,6 +84,20 @@ namespace ctranslate2 {
     return std::unique_ptr<const Sampler>(sampler);
   }
 
+  static std::unique_ptr<const SearchStrategy>
+  make_search_strategy(const TranslationOptions& options) {
+    const SearchStrategy* strategy = nullptr;
+
+    if (options.beam_size == 1)
+      strategy = new GreedySearch();
+    else
+      strategy = new BeamSearch(options.beam_size,
+                                options.length_penalty,
+                                options.return_alternatives ? 1 : options.num_hypotheses);
+
+    return std::unique_ptr<const SearchStrategy>(strategy);
+  }
+
 
   Translator::Translator(const std::string& model_dir,
                          Device device,
@@ -356,23 +370,20 @@ namespace ctranslate2 {
       // In this translation mode, we first expand the next "num_hypotheses" candidate words
       // before running the full decoding on each prefix. This is to ensure that we get unique
       // alternatives at this decoding position.
-      beam_search(decoder,
-                  state,
-                  BestSampler(),
-                  sample_from,
-                  candidates.get(),
-                  &encoded,
-                  &lengths,
-                  start_step,
-                  end_token,
-                  /*max_length=*/1,
-                  /*min_length=*/1,
-                  /*beam_size=*/options.num_hypotheses,
-                  options.num_hypotheses,
-                  /*length_penalty=*/0,
-                  sampled_ids,
-                  scores,
-                  attention_ptr);
+      BeamSearch(options.num_hypotheses).search(decoder,
+                                                state,
+                                                BestSampler(),
+                                                sample_from,
+                                                candidates.get(),
+                                                &encoded,
+                                                &lengths,
+                                                start_step,
+                                                end_token,
+                                                /*max_length=*/1,
+                                                /*min_length=*/1,
+                                                sampled_ids,
+                                                scores,
+                                                attention_ptr);
 
       start_step += 1;
 
@@ -396,40 +407,20 @@ namespace ctranslate2 {
         expanded_attention = std::move(*attention_ptr);
     }
 
-    auto sampler = make_sampler(options);
-    if (options.beam_size == 1)
-      greedy_search(decoder,
-                    state,
-                    *sampler,
-                    sample_from,
-                    candidates.get(),
-                    &encoded,
-                    &lengths,
-                    start_step,
-                    end_token,
-                    options.max_decoding_length,
-                    options.min_decoding_length,
-                    sampled_ids,
-                    scores,
-                    attention_ptr);
-    else
-      beam_search(decoder,
-                  state,
-                  *sampler,
-                  sample_from,
-                  candidates.get(),
-                  &encoded,
-                  &lengths,
-                  start_step,
-                  end_token,
-                  options.max_decoding_length,
-                  options.min_decoding_length,
-                  options.beam_size,
-                  options.return_alternatives ? 1 : options.num_hypotheses,
-                  options.length_penalty,
-                  sampled_ids,
-                  scores,
-                  attention_ptr);
+    make_search_strategy(options)->search(decoder,
+                                          state,
+                                          *make_sampler(options),
+                                          sample_from,
+                                          candidates.get(),
+                                          &encoded,
+                                          &lengths,
+                                          start_step,
+                                          end_token,
+                                          options.max_decoding_length,
+                                          options.min_decoding_length,
+                                          sampled_ids,
+                                          scores,
+                                          attention_ptr);
 
     if (options.return_alternatives) {
       // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.

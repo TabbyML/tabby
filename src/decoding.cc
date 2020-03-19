@@ -64,48 +64,55 @@ namespace ctranslate2 {
                                                 log_probs.dim(0)));
   }
 
-  void beam_search(layers::Decoder& decoder,
-                   layers::DecoderState& state,
-                   const Sampler& sampler,
-                   StorageView& sample_from,
-                   const StorageView* candidates,
-                   const StorageView* memory,
-                   const StorageView* memory_lengths,
-                   dim_t start_step,
-                   dim_t end_token,
-                   dim_t max_length,
-                   dim_t min_length,
-                   dim_t beam_size,
-                   size_t num_hypotheses,
-                   float length_penalty,
-                   std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                   std::vector<std::vector<float>>& scores,
-                   std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+
+  BeamSearch::BeamSearch(const dim_t beam_size,
+                         const float length_penalty,
+                         const size_t num_hypotheses)
+    : _beam_size(beam_size)
+    , _length_penalty(length_penalty)
+    , _num_hypotheses(num_hypotheses == 0 ? beam_size : num_hypotheses) {
+  }
+
+  void
+  BeamSearch::search(layers::Decoder& decoder,
+                     layers::DecoderState& state,
+                     const Sampler& sampler,
+                     StorageView& sample_from,
+                     const StorageView* candidates,
+                     const StorageView* memory,
+                     const StorageView* memory_lengths,
+                     const dim_t start_step,
+                     const dim_t end_token,
+                     const dim_t max_length,
+                     const dim_t min_length,
+                     std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
+                     std::vector<std::vector<float>>& scores,
+                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
     PROFILE("beam_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const dim_t batch_size = sample_from.dim(0);
     dim_t cur_batch_size = batch_size;
-    const ops::TopK topk_op(beam_size);
+    const ops::TopK topk_op(_beam_size);
     StorageView alive_seq(sample_from);
     alive_seq.reshape({batch_size, 1});
 
-    expand_to_beam_size(state, beam_size);
-    expand_to_beam_size(alive_seq, beam_size);
+    expand_to_beam_size(state, _beam_size);
+    expand_to_beam_size(alive_seq, _beam_size);
 
     std::unique_ptr<StorageView> tiled_memory;
     std::unique_ptr<StorageView> tiled_memory_lengths;
     if (memory) {
       tiled_memory.reset(new StorageView(*memory));
       tiled_memory_lengths.reset(new StorageView(*memory_lengths));
-      expand_to_beam_size(*tiled_memory, beam_size);
-      expand_to_beam_size(*tiled_memory_lengths, beam_size);
+      expand_to_beam_size(*tiled_memory, _beam_size);
+      expand_to_beam_size(*tiled_memory_lengths, _beam_size);
     }
 
     StorageView gather_indices(DataType::INT32);
     StorageView topk_ids(alive_seq);
     StorageView topk_scores;
-    StorageView topk_log_probs({beam_size}, std::numeric_limits<float>::lowest());
+    StorageView topk_log_probs({_beam_size}, std::numeric_limits<float>::lowest());
     topk_log_probs.at<float>(0) = 0;
     tile(topk_log_probs, StorageView({1}, static_cast<int32_t>(batch_size)));
 
@@ -125,10 +132,10 @@ namespace ctranslate2 {
     std::vector<dim_t> batch_offset(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-      sampled_ids[i].reserve(num_hypotheses);
-      scores[i].reserve(num_hypotheses);
+      sampled_ids[i].reserve(_num_hypotheses);
+      scores[i].reserve(_num_hypotheses);
       if (attention)
-        (*attention)[i].reserve(num_hypotheses);
+        (*attention)[i].reserve(_num_hypotheses);
     }
 
     StorageView logits(device);
@@ -159,8 +166,8 @@ namespace ctranslate2 {
 
       // Penalize by the length, if enabled.
       float length_penalty_weight = 1.0;
-      if (length_penalty != 0) {
-        length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, length_penalty);
+      if (_length_penalty != 0) {
+        length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, _length_penalty);
         ops::Mul()(log_probs, StorageView(1.f / length_penalty_weight), log_probs);
       }
 
@@ -169,40 +176,40 @@ namespace ctranslate2 {
         penalize_token(log_probs, end_token);
 
       // Flatten the probs into a list of candidates.
-      log_probs.reshape({cur_batch_size, beam_size * vocabulary_size});
+      log_probs.reshape({cur_batch_size, _beam_size * vocabulary_size});
 
       // TopK candidates.
-      sampler(log_probs, topk_ids, topk_scores, beam_size);
+      sampler(log_probs, topk_ids, topk_scores, _beam_size);
       if (attention)
         attention_step.copy_from(attention_step_device);
 
       topk_log_probs = topk_scores;
       // Recover the true log probs if length penalty was applied.
-      if (length_penalty != 0)
+      if (_length_penalty != 0)
         ops::Mul()(topk_log_probs, StorageView(length_penalty_weight), topk_log_probs);
 
       // Unflatten the ids.
-      gather_indices.resize({cur_batch_size * beam_size});
+      gather_indices.resize({cur_batch_size * _beam_size});
       for (dim_t i = 0; i < topk_ids.size(); ++i) {
         auto flat_id = topk_ids.at<int32_t>(i);
         auto beam_id = flat_id / vocabulary_size;
         auto word_id = flat_id % vocabulary_size;
-        auto batch_id = i / beam_size;
+        auto batch_id = i / _beam_size;
         if (candidates)
           word_id = candidates->at<int32_t>(word_id);
         topk_ids.at<int32_t>(i) = word_id;
-        gather_indices.at<int32_t>(i) = beam_id + batch_id * beam_size;
+        gather_indices.at<int32_t>(i) = beam_id + batch_id * _beam_size;
       }
 
       // Append last prediction.
       gather(alive_seq, gather_indices);
-      alive_seq.reshape({cur_batch_size, beam_size, alive_seq.dim(-1)});
-      topk_ids.reshape({cur_batch_size, beam_size, 1});
+      alive_seq.reshape({cur_batch_size, _beam_size, alive_seq.dim(-1)});
+      topk_ids.reshape({cur_batch_size, _beam_size, 1});
       StorageView cur_alive_seq(std::move(alive_seq));
       ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
-      topk_log_probs.reshape({cur_batch_size, beam_size});
-      topk_scores.reshape({cur_batch_size, beam_size});
-      topk_ids.reshape({cur_batch_size, beam_size});
+      topk_log_probs.reshape({cur_batch_size, _beam_size});
+      topk_scores.reshape({cur_batch_size, _beam_size});
+      topk_ids.reshape({cur_batch_size, _beam_size});
       if (attention) {
         if (alive_attention.empty())
           alive_attention = attention_step;
@@ -212,7 +219,7 @@ namespace ctranslate2 {
           ops::Concat(1)({&cur_alive_attention, &attention_step}, alive_attention);
         }
         alive_attention.reshape({cur_batch_size,
-                                 beam_size,
+                                 _beam_size,
                                  alive_attention.dim(1),
                                  alive_attention.dim(2)});
       }
@@ -222,7 +229,7 @@ namespace ctranslate2 {
       dim_t finished_count = 0;
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
-        for (dim_t k = 0; k < beam_size; ++k) {
+        for (dim_t k = 0; k < _beam_size; ++k) {
           if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_token)
               || step + 1 == max_step) {
             if (k == 0)
@@ -231,7 +238,7 @@ namespace ctranslate2 {
             // Prevent this beam from advancing in the next step.
             topk_log_probs.at<float>({i, k}) = -1e10;
             // Save the finished hypothesis only if it is still a candidate.
-            if (hypotheses[batch_id].size() < num_hypotheses
+            if (hypotheses[batch_id].size() < _num_hypotheses
                 || -score < hypotheses[batch_id].rbegin()->first) {
               std::vector<size_t> hypothesis;
               std::vector<std::vector<float>> attn;
@@ -259,13 +266,13 @@ namespace ctranslate2 {
           }
         }
 
-        if (top_beam_finished[i] && hypotheses[batch_id].size() >= num_hypotheses) {
+        if (top_beam_finished[i] && hypotheses[batch_id].size() >= _num_hypotheses) {
           ++finished_count;
           finished[i] = true;
 
-          // Return the "num_hypotheses" best hypotheses.
+          // Return the "_num_hypotheses" best hypotheses.
           for (auto& pair : hypotheses[batch_id]) {
-            if (sampled_ids[batch_id].size() >= num_hypotheses)
+            if (sampled_ids[batch_id].size() >= _num_hypotheses)
               break;
             scores[batch_id].push_back(-pair.first);
             sampled_ids[batch_id].emplace_back(std::move(pair.second.first));
@@ -302,9 +309,9 @@ namespace ctranslate2 {
           gather(alive_attention, keep_batches);
         auto keep_batches_device = keep_batches.to(device);
         if (tiled_memory)
-          gather_batch(*tiled_memory, keep_batches_device, beam_size);
+          gather_batch(*tiled_memory, keep_batches_device, _beam_size);
         if (tiled_memory_lengths)
-          gather_batch(*tiled_memory_lengths, keep_batches_device, beam_size);
+          gather_batch(*tiled_memory_lengths, keep_batches_device, _beam_size);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
         // finished batches from the reorder indices and then reorder. The motivation for this
@@ -314,9 +321,9 @@ namespace ctranslate2 {
         if (device == Device::CPU) {
           decoder.gather_state(state, gather_indices);
           for (auto& pair : state)
-            gather_batch(pair.second, keep_batches_device, beam_size);
+            gather_batch(pair.second, keep_batches_device, _beam_size);
         } else {
-          gather_batch(gather_indices, keep_batches, beam_size);
+          gather_batch(gather_indices, keep_batches, _beam_size);
           decoder.gather_state(state, gather_indices.to(device));
         }
 
@@ -324,30 +331,31 @@ namespace ctranslate2 {
         decoder.gather_state(state, gather_indices.to(device));
       }
 
-      topk_ids.reshape({cur_batch_size * beam_size, 1});
-      topk_log_probs.reshape({cur_batch_size * beam_size});
-      alive_seq.reshape({cur_batch_size * beam_size, alive_seq.dim(-1)});
+      topk_ids.reshape({cur_batch_size * _beam_size, 1});
+      topk_log_probs.reshape({cur_batch_size * _beam_size});
+      alive_seq.reshape({cur_batch_size * _beam_size, alive_seq.dim(-1)});
       if (attention)
-        alive_attention.reshape({cur_batch_size * beam_size,
+        alive_attention.reshape({cur_batch_size * _beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
     }
   }
 
-  void greedy_search(layers::Decoder& decoder,
-                     layers::DecoderState& state,
-                     const Sampler& sampler,
-                     StorageView& sample_from,
-                     const StorageView* candidates,
-                     const StorageView* memory,
-                     const StorageView* memory_lengths,
-                     dim_t start_step,
-                     dim_t end_token,
-                     dim_t max_length,
-                     dim_t min_length,
-                     std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                     std::vector<std::vector<float>>& scores,
-                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention) {
+  void
+  GreedySearch::search(layers::Decoder& decoder,
+                       layers::DecoderState& state,
+                       const Sampler& sampler,
+                       StorageView& sample_from,
+                       const StorageView* candidates,
+                       const StorageView* memory,
+                       const StorageView* memory_lengths,
+                       const dim_t start_step,
+                       const dim_t end_token,
+                       const dim_t max_length,
+                       const dim_t min_length,
+                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
+                       std::vector<std::vector<float>>& scores,
+                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
     PROFILE("greedy_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
