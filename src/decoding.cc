@@ -560,7 +560,6 @@ namespace ctranslate2 {
     results.reserve(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       std::vector<std::vector<size_t>> hypotheses;
-      size_t num_hypotheses = sampled_ids[i].size();
       hypotheses.resize(num_hypotheses);
       for (size_t h = 0; h < num_hypotheses; ++h) {
         // Finalize the hypothesis.
