@@ -484,13 +484,12 @@ namespace ctranslate2 {
          const size_t num_hypotheses,
          const bool return_alternatives,
          const bool return_attention) {
-    const dim_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
     // Forward target prefix, if set (only batch_size = 1 for now).
     std::vector<std::vector<std::vector<float>>> prefix_attention;
     if (prefix_ids) {
-      if (batch_size > 1)
+      if (prefix_ids->size() > 1)
         throw std::invalid_argument("Batch decoding with a prefix is not supported");
       if (return_attention)
         prefix_attention.resize(1);
@@ -556,9 +555,10 @@ namespace ctranslate2 {
     }
 
     // Build results.
+    const size_t batch_size = sampled_ids.size();
     std::vector<GenerationResult<size_t>> results;
     results.reserve(batch_size);
-    for (dim_t i = 0; i < batch_size; ++i) {
+    for (size_t i = 0; i < batch_size; ++i) {
       std::vector<std::vector<size_t>> hypotheses;
       hypotheses.resize(num_hypotheses);
       for (size_t h = 0; h < num_hypotheses; ++h) {
