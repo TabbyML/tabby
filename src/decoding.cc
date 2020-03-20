@@ -559,37 +559,38 @@ namespace ctranslate2 {
     std::vector<GenerationResult<size_t>> results;
     results.reserve(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
-      std::vector<std::vector<size_t>> hypotheses;
-      hypotheses.resize(num_hypotheses);
-      for (size_t h = 0; h < num_hypotheses; ++h) {
-        // Finalize the hypothesis.
-        const std::vector<size_t>& prediction = sampled_ids[i][h];
-        std::vector<size_t>& hypothesis = hypotheses[h];
-        hypothesis.reserve(prediction.size()
-                           + (prefix_ids ? prefix_ids->at(i).size() : 0)
-                           + (!expanded_ids.empty() ? 1 : 0));
-        if (prefix_ids)
-          hypothesis.insert(hypothesis.end(),
-                            prefix_ids->at(i).begin(),
-                            prefix_ids->at(i).end());
-        if (!expanded_ids.empty())
-          hypothesis.push_back(expanded_ids[i][h][0]);
-        hypothesis.insert(hypothesis.end(), prediction.begin(), prediction.end());
 
-        // Finalize the score.
-        if (!expanded_scores.empty())
-          scores[i][h] += expanded_scores[i][h];
+      // Aggregate result from the optional prefix and expansion step.
+      if (prefix_ids || return_alternatives) {
 
-        // Finalize the attention.
-        if (!prefix_attention.empty())
-          attention[i][h].insert(attention[i][h].begin(),
-                                 prefix_attention[i].begin(),
-                                 prefix_attention[i].end());
-        if (!expanded_attention.empty())
-          attention[i][h].insert(attention[i][h].begin(), expanded_attention[i][h][0]);
+        for (size_t h = 0; h < num_hypotheses; ++h) {
+          // Finalize the generated ids.
+          std::vector<size_t>& ids = sampled_ids[i][h];
+          if (!expanded_ids.empty())
+            ids.insert(ids.begin(), expanded_ids[i][h][0]);
+          if (prefix_ids)
+            ids.insert(ids.begin(), prefix_ids->at(i).begin(), prefix_ids->at(i).end());
+
+          // Finalize the score.
+          if (!expanded_scores.empty())
+            scores[i][h] += expanded_scores[i][h];
+
+          // Finalize the attention.
+          if (return_attention) {
+            std::vector<std::vector<float>>& attn = attention[i][h];
+            if (!expanded_attention.empty())
+              attn.insert(attn.begin(), expanded_attention[i][h][0]);
+            if (!prefix_attention.empty())
+              attn.insert(attn.begin(),
+                          prefix_attention[i].begin(),
+                          prefix_attention[i].end());
+          }
+        }
       }
-      const auto* attn = attention.empty() ? nullptr : &attention[i];
-      results.emplace_back(hypotheses, scores[i], attn);
+
+      results.emplace_back(sampled_ids[i],
+                           scores[i],
+                           return_attention ? &attention[i] : nullptr);
     }
 
     return results;
