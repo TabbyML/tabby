@@ -280,51 +280,44 @@ namespace ctranslate2 {
                                     const std::vector<std::vector<std::string>>* target_prefix,
                                     const TranslationOptions& options) {
     PROFILE("run_batch_translation");
-
-    const auto& source_vocab = *_source_vocabulary;
-    const auto& target_vocab = *_target_vocabulary;
-    const auto& vocab_map = *_vocabulary_map;
-    auto& encoder = *_encoder;
-    auto& decoder = *_decoder;
-
-    const dim_t batch_size = source.size();
-
     auto scoped_device_setter = _model->get_scoped_device_setter();
-    auto device = _model->device();
 
-    std::vector<std::vector<size_t>> source_ids = tokens_to_ids(source, source_vocab);
+    std::vector<std::vector<size_t>> source_ids = tokens_to_ids(source, *_source_vocabulary);
     std::vector<std::vector<size_t>> target_prefix_ids;
     if (target_prefix)
-      target_prefix_ids = tokens_to_ids(*target_prefix, target_vocab);
+      target_prefix_ids = tokens_to_ids(*target_prefix, *_target_vocabulary);
 
-    auto inputs = make_inputs(source_ids, device);
+    const Device device = _model->device();
+    std::pair<StorageView, StorageView> inputs = make_inputs(source_ids, device);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
 
     // Encode sequence.
     StorageView encoded(device);
-    encoder(ids, lengths, encoded);
+    (*_encoder)(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
     std::vector<size_t> output_ids_map;
-    if (options.use_vmap && !vocab_map.empty()) {
-      output_ids_map = vocab_map.get_candidates(source);
-      decoder.set_vocabulary_mask(
+    if (options.use_vmap && !_vocabulary_map->empty()) {
+      output_ids_map = _vocabulary_map->get_candidates(source);
+      _decoder->set_vocabulary_mask(
         StorageView({static_cast<dim_t>(output_ids_map.size())},
                     std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
                     device));
     } else {
-      decoder.reset_vocabulary_mask();
+      _decoder->reset_vocabulary_mask();
     }
 
     // Decode.
-    layers::DecoderState state = decoder.initial_state();
+    layers::DecoderState state = _decoder->initial_state();
     state.emplace(std::string("memory"), std::move(encoded));
     state.emplace(std::string("memory_lengths"), std::move(lengths));
-    const std::vector<size_t> start_ids(batch_size, target_vocab.to_id(Vocabulary::bos_token));
-    const size_t end_id = target_vocab.to_id(Vocabulary::eos_token);
+    const size_t start_id = _target_vocabulary->to_id(Vocabulary::bos_token);
+    const size_t end_id = _target_vocabulary->to_id(Vocabulary::eos_token);
+    const size_t batch_size = source.size();
+    const std::vector<size_t> start_ids(batch_size, start_id);
     const std::vector<GenerationResult<size_t>> results = decode(
-      decoder,
+      *_decoder,
       state,
       *make_search_strategy(options),
       *make_sampler(options),
@@ -342,7 +335,7 @@ namespace ctranslate2 {
     std::vector<TranslationResult> final_results;
     final_results.reserve(results.size());
     for (const GenerationResult<size_t>& result : results)
-      final_results.emplace_back(make_translation_result(result, target_vocab));
+      final_results.emplace_back(make_translation_result(result, *_target_vocabulary));
     return final_results;
   }
 
