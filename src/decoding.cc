@@ -292,7 +292,6 @@ namespace ctranslate2 {
         gather(alive_seq, keep_batches);
         if (attention)
           gather(alive_attention, keep_batches);
-        auto keep_batches_device = keep_batches.to(device);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
         // finished batches from the reorder indices and then reorder. The motivation for this
@@ -302,7 +301,7 @@ namespace ctranslate2 {
         if (device == Device::CPU) {
           decoder.gather_state(state, gather_indices);
           for (auto& pair : state)
-            gather_batch(pair.second, keep_batches_device, _beam_size);
+            gather_batch(pair.second, keep_batches, _beam_size);
         } else {
           gather_batch(gather_indices, keep_batches, _beam_size);
           decoder.gather_state(state, gather_indices.to(device));
