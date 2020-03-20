@@ -65,12 +65,9 @@ namespace ctranslate2 {
   }
 
 
-  BeamSearch::BeamSearch(const dim_t beam_size,
-                         const float length_penalty,
-                         const size_t num_hypotheses)
+  BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty)
     : _beam_size(beam_size)
-    , _length_penalty(length_penalty)
-    , _num_hypotheses(num_hypotheses == 0 ? beam_size : num_hypotheses) {
+    , _length_penalty(length_penalty) {
   }
 
   void
@@ -85,7 +82,8 @@ namespace ctranslate2 {
                      const std::vector<size_t>* output_ids_map,
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>& scores,
-                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
+                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
+                     const size_t num_hypotheses) const {
     PROFILE("beam_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
@@ -121,10 +119,10 @@ namespace ctranslate2 {
     std::vector<dim_t> batch_offset(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-      sampled_ids[i].reserve(_num_hypotheses);
-      scores[i].reserve(_num_hypotheses);
+      sampled_ids[i].reserve(num_hypotheses);
+      scores[i].reserve(num_hypotheses);
       if (attention)
-        (*attention)[i].reserve(_num_hypotheses);
+        (*attention)[i].reserve(num_hypotheses);
     }
 
     StorageView logits(device);
@@ -225,7 +223,7 @@ namespace ctranslate2 {
             // Prevent this beam from advancing in the next step.
             topk_log_probs.at<float>({i, k}) = -1e10;
             // Save the finished hypothesis only if it is still a candidate.
-            if (hypotheses[batch_id].size() < _num_hypotheses
+            if (hypotheses[batch_id].size() < num_hypotheses
                 || -score < hypotheses[batch_id].rbegin()->first) {
               std::vector<size_t> hypothesis;
               std::vector<std::vector<float>> attn;
@@ -253,13 +251,13 @@ namespace ctranslate2 {
           }
         }
 
-        if (top_beam_finished[i] && hypotheses[batch_id].size() >= _num_hypotheses) {
+        if (top_beam_finished[i] && hypotheses[batch_id].size() >= num_hypotheses) {
           ++finished_count;
           finished[i] = true;
 
-          // Return the "_num_hypotheses" best hypotheses.
+          // Return the "num_hypotheses" best hypotheses.
           for (auto& pair : hypotheses[batch_id]) {
-            if (sampled_ids[batch_id].size() >= _num_hypotheses)
+            if (sampled_ids[batch_id].size() >= num_hypotheses)
               break;
             scores[batch_id].push_back(-pair.first);
             sampled_ids[batch_id].emplace_back(std::move(pair.second.first));
@@ -336,7 +334,8 @@ namespace ctranslate2 {
                        const std::vector<size_t>* output_ids_map,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>& scores,
-                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention) const {
+                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
+                       const size_t) const {
     PROFILE("greedy_search");
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
@@ -523,7 +522,8 @@ namespace ctranslate2 {
                                         output_ids_map,
                                         expanded_ids,
                                         expanded_scores,
-                                        return_attention ? &expanded_attention : nullptr);
+                                        return_attention ? &expanded_attention : nullptr,
+                                        num_hypotheses);
 
       // The next input is the words we just expanded.
       start_ids.resize(num_hypotheses);
@@ -546,7 +546,8 @@ namespace ctranslate2 {
                            output_ids_map,
                            sampled_ids,
                            scores,
-                           return_attention ? &attention : nullptr);
+                           return_attention ? &attention : nullptr,
+                           return_alternatives ? 1 : num_hypotheses);
 
     if (return_alternatives) {
       // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.

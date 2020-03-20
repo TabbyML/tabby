@@ -21,14 +21,13 @@ namespace ctranslate2 {
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
-           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const = 0;
+           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
+           const size_t num_hypotheses = 1) const = 0;
   };
 
   class BeamSearch : public SearchStrategy {
   public:
-    BeamSearch(const dim_t beam_size,
-               const float length_penalty = 0,
-               const size_t num_hypotheses = 0);
+    BeamSearch(const dim_t beam_size, const float length_penalty = 0);
 
     void
     search(layers::Decoder& decoder,
@@ -42,12 +41,12 @@ namespace ctranslate2 {
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
-           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const override;
+           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
+           const size_t num_hypotheses = 1) const override;
 
   private:
     const dim_t _beam_size;
     const float _length_penalty;
-    const size_t _num_hypotheses;
   };
 
   class GreedySearch : public SearchStrategy {
@@ -64,7 +63,8 @@ namespace ctranslate2 {
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>& scores,
-           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr) const override;
+           std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
+           const size_t num_hypotheses = 1) const override;
   };
 
   void initialize_decoder_with_prefix(layers::Decoder& decoder,

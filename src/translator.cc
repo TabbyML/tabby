@@ -91,9 +91,7 @@ namespace ctranslate2 {
     if (options.beam_size == 1)
       strategy = new GreedySearch();
     else
-      strategy = new BeamSearch(options.beam_size,
-                                options.length_penalty,
-                                options.return_alternatives ? 1 : options.num_hypotheses);
+      strategy = new BeamSearch(options.beam_size, options.length_penalty);
 
     return std::unique_ptr<const SearchStrategy>(strategy);
   }
