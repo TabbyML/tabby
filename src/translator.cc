@@ -205,14 +205,10 @@ namespace ctranslate2 {
     std::vector<TranslationResult> final_results;
     final_results.reserve(batch_size);
 
-    const std::vector<std::vector<std::vector<float>>> empty_attention(options.num_hypotheses);
-
     // Build the final results vector.
     for (size_t i = 0, non_empty_index = 0, with_prefix_index = 0; i < batch_size; ++i) {
       if (source[i].empty())
-        final_results.emplace_back(std::vector<std::vector<std::string>>(options.num_hypotheses),
-                                   std::vector<float>(options.num_hypotheses, static_cast<float>(0)),
-                                   options.return_attention ? &empty_attention : nullptr);
+        final_results.emplace_back(options.num_hypotheses, options.return_attention);
       else if (with_prefix && !target_prefix[i].empty())
         final_results.emplace_back(std::move(with_prefix_results[with_prefix_index++]));
       else

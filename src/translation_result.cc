@@ -3,6 +3,13 @@
 namespace ctranslate2 {
 
   template <typename T>
+  GenerationResult<T>::GenerationResult(const size_t num_hypotheses, const bool with_attention)
+    : _hypotheses(num_hypotheses)
+    , _scores(num_hypotheses, static_cast<float>(0))
+    , _attention(with_attention ? num_hypotheses : 0) {
+  }
+
+  template <typename T>
   GenerationResult<T>::GenerationResult(const std::vector<std::vector<T>>& hypotheses,
                                         const std::vector<float>& scores,
                                         const std::vector<std::vector<std::vector<float>>>* attention)
