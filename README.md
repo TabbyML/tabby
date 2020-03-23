@@ -463,7 +463,7 @@ Note that these options are only defined for CPU translation. In particular, `in
 
 ### Do you provide a translation server?
 
-There is currently no translation server. We may provide a basic server in the future but we think it is up to the users to serve the translation depending on their requirements.
+The [OpenNMT-py REST server](https://forum.opennmt.net/t/simple-opennmt-py-rest-server/1392) is able to serve CTranslate2 models. See the [code integration](https://github.com/OpenNMT/OpenNMT-py/commit/91d5d57142b9aa0a0859fbfa0dd94f301f56f879) to learn more.
 
 ### How do I generate a vocabulary mapping file?
 
