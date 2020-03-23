@@ -312,7 +312,7 @@ namespace ctranslate2 {
     const size_t end_id = _target_vocabulary->to_id(Vocabulary::eos_token);
     const size_t batch_size = source.size();
     const std::vector<size_t> start_ids(batch_size, start_id);
-    const std::vector<GenerationResult<size_t>> results = decode(
+    std::vector<GenerationResult<size_t>> results = decode(
       *_decoder,
       state,
       *make_search_strategy(options),
@@ -330,8 +330,8 @@ namespace ctranslate2 {
     // Convert generated ids to tokens.
     std::vector<TranslationResult> final_results;
     final_results.reserve(results.size());
-    for (const GenerationResult<size_t>& result : results)
-      final_results.emplace_back(make_translation_result(result, *_target_vocabulary));
+    for (GenerationResult<size_t>& result : results)
+      final_results.emplace_back(make_translation_result(std::move(result), *_target_vocabulary));
     return final_results;
   }
 

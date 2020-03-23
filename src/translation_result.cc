@@ -10,13 +10,19 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  GenerationResult<T>::GenerationResult(const std::vector<std::vector<T>>& hypotheses,
-                                        const std::vector<float>& scores,
-                                        const std::vector<std::vector<std::vector<float>>>* attention)
-    : _hypotheses(hypotheses)
-    , _scores(scores) {
-    if (attention)
-      _attention = *attention;
+  GenerationResult<T>::GenerationResult(std::vector<std::vector<T>> hypotheses,
+                                        std::vector<float> scores)
+    : _hypotheses(std::move(hypotheses))
+    , _scores(std::move(scores)) {
+  }
+
+  template <typename T>
+  GenerationResult<T>::GenerationResult(std::vector<std::vector<T>> hypotheses,
+                                        std::vector<float> scores,
+                                        std::vector<std::vector<std::vector<float>>> attention)
+    : _hypotheses(std::move(hypotheses))
+    , _scores(std::move(scores))
+    , _attention(std::move(attention)) {
   }
 
   template <typename T>
@@ -59,8 +65,8 @@ namespace ctranslate2 {
   template class GenerationResult<size_t>;
 
 
-  TranslationResult make_translation_result(const GenerationResult<size_t>& result,
-                                            const Vocabulary& vocabulary) {
+  GenerationResult<std::string> make_translation_result(GenerationResult<size_t>&& result,
+                                                        const Vocabulary& vocabulary) {
     std::vector<std::vector<std::string>> hypotheses;
     hypotheses.reserve(result.num_hypotheses());
 
@@ -72,7 +78,9 @@ namespace ctranslate2 {
       hypotheses.emplace_back(std::move(tokens));
     }
 
-    return TranslationResult(hypotheses, result.scores(), &result.attention());
+    return GenerationResult<std::string>(std::move(hypotheses),
+                                         std::move(result._scores),
+                                         std::move(result._attention));
   }
 
 }

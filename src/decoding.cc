@@ -588,9 +588,13 @@ namespace ctranslate2 {
         }
       }
 
-      results.emplace_back(sampled_ids[i],
-                           scores[i],
-                           return_attention ? &attention[i] : nullptr);
+      if (return_attention)
+        results.emplace_back(std::move(sampled_ids[i]),
+                             std::move(scores[i]),
+                             std::move(attention[i]));
+      else
+        results.emplace_back(std::move(sampled_ids[i]),
+                             std::move(scores[i]));
     }
 
     return results;
