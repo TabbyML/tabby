@@ -15,45 +15,45 @@ int main(int argc, char* argv[]) {
     ("help", "Display available options.")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
     ("compute_type", "Force the model type as \"float\", \"int16\" or \"int8\"",
-        cxxopts::value<std::string>()->default_value("default"))
-        ("src", "Path to the file to translate (read from the standard input if not set).",
-        cxxopts::value<std::string>())
+     cxxopts::value<std::string>()->default_value("default"))
+    ("src", "Path to the file to translate (read from the standard input if not set).",
+     cxxopts::value<std::string>())
     ("tgt", "Path to the output file (write to the standard output if not set.",
-        cxxopts::value<std::string>())
+     cxxopts::value<std::string>())
     ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
-        cxxopts::value<bool>()->default_value("false"))
+     cxxopts::value<bool>()->default_value("false"))
     ("batch_size", "Number of sentences to forward into the model at once.",
-        cxxopts::value<size_t>()->default_value("30"))
+     cxxopts::value<size_t>()->default_value("30"))
     ("read_batch_size", "Number of sentences to read at once (defaults to batch_size).",
-        cxxopts::value<size_t>()->default_value("0"))
+     cxxopts::value<size_t>()->default_value("0"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
-        cxxopts::value<size_t>()->default_value("5"))
+     cxxopts::value<size_t>()->default_value("5"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
-        cxxopts::value<size_t>()->default_value("1"))
+     cxxopts::value<size_t>()->default_value("1"))
     ("sampling_temperature", "Sampling temperature.",
-        cxxopts::value<float>()->default_value("1"))
-     ("n_best", "Also output the n-best hypotheses.",
-         cxxopts::value<size_t>()->default_value("1"))
+     cxxopts::value<float>()->default_value("1"))
+    ("n_best", "Also output the n-best hypotheses.",
+     cxxopts::value<size_t>()->default_value("1"))
     ("with_score", "Also output translation scores.",
-        cxxopts::value<bool>()->default_value("false"))
+     cxxopts::value<bool>()->default_value("false"))
     ("length_penalty", "Length penalty to apply during beam search",
-        cxxopts::value<float>()->default_value("0"))
+     cxxopts::value<float>()->default_value("0"))
     ("max_sent_length", "Maximum sentence length to produce.",
-        cxxopts::value<size_t>()->default_value("250"))
+     cxxopts::value<size_t>()->default_value("250"))
     ("min_sent_length", "Minimum sentence length to produce.",
-        cxxopts::value<size_t>()->default_value("1"))
+     cxxopts::value<size_t>()->default_value("1"))
     ("log_throughput", "Log average tokens per second at the end of the translation.",
-        cxxopts::value<bool>()->default_value("false"))
+     cxxopts::value<bool>()->default_value("false"))
     ("log_profiling", "Log execution profiling.",
-        cxxopts::value<bool>()->default_value("false"))
+     cxxopts::value<bool>()->default_value("false"))
     ("inter_threads", "Maximum number of translations to run in parallel.",
-        cxxopts::value<size_t>()->default_value("1"))
+     cxxopts::value<size_t>()->default_value("1"))
     ("intra_threads", "Number of OpenMP threads (set to 0 to use the default value).",
-        cxxopts::value<size_t>()->default_value("0"))
+     cxxopts::value<size_t>()->default_value("0"))
     ("device", "Device to use (can be cpu, cuda, auto).",
-        cxxopts::value<std::string>()->default_value("cpu"))
+     cxxopts::value<std::string>()->default_value("cpu"))
     ("device_index", "Index of the device to use.",
-        cxxopts::value<int>()->default_value("0"))
+     cxxopts::value<int>()->default_value("0"))
     ;
 
   auto args = cmd_options.parse(argc, argv);
