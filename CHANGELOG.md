@@ -2,6 +2,12 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.9.0) (2020-03-24)
+
+### New features
+
 * Return 2 additional statistics from file translation APIs:
   * the number of translated examples
   * the total translation time in milliseconds
