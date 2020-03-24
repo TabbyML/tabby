@@ -2,7 +2,16 @@
 
 ### New features
 
+* Return 2 additional statistics from file translation APIs:
+  * the number of translated examples
+  * the total translation time in milliseconds
+
 ### Fixes and improvements
+
+* Fix exceptions that were not catched by the Python wrapper
+* Fix an invalid insertion in the variables collection while iterating over it
+* Optimize filling operation of float storages
+* Internal refactoring of decoding functions to make them reusable for other tasks (e.g. generative language models)
 
 ## [v1.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.8.0) (2020-03-10)
 
