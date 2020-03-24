@@ -1,5 +1,6 @@
 #include "ctranslate2/translator_pool.h"
 
+#include <chrono>
 #include <fstream>
 
 #include "ctranslate2/utils.h"
@@ -81,11 +82,11 @@ namespace ctranslate2 {
     }
   }
 
-  size_t TranslatorPool::consume_text_file(const std::string& in_file,
-                                           const std::string& out_file,
-                                           size_t read_batch_size,
-                                           const TranslationOptions& options,
-                                           bool with_scores) {
+  TranslationStats TranslatorPool::consume_text_file(const std::string& in_file,
+                                                     const std::string& out_file,
+                                                     size_t read_batch_size,
+                                                     const TranslationOptions& options,
+                                                     bool with_scores) {
     std::ifstream in(in_file);
     if (!in.is_open())
       throw std::runtime_error("failed to open input file " + in_file);
@@ -95,12 +96,12 @@ namespace ctranslate2 {
     return consume_text_file(in, out, read_batch_size, options, with_scores);
   }
 
-  size_t TranslatorPool::consume_text_file(std::istream& in,
-                                           std::ostream& out,
-                                           size_t read_batch_size,
-                                           const TranslationOptions& options,
-                                           bool with_scores) {
-    size_t num_tokens = 0;
+  TranslationStats TranslatorPool::consume_text_file(std::istream& in,
+                                                     std::ostream& out,
+                                                     size_t read_batch_size,
+                                                     const TranslationOptions& options,
+                                                     bool with_scores) {
+    TranslationStats stats;
 
     auto reader = [](std::istream& in, std::vector<std::string>& tokens) {
       std::string line;
@@ -110,10 +111,11 @@ namespace ctranslate2 {
       return true;
     };
 
-    auto writer = [&num_tokens, &with_scores](std::ostream& out, const TranslationResult& result) {
+    auto writer = [&stats, &with_scores](std::ostream& out, const TranslationResult& result) {
       const auto& hypotheses = result.hypotheses();
       const auto& scores = result.scores();
-      num_tokens += hypotheses[0].size();
+      stats.num_examples += 1;
+      stats.num_tokens += hypotheses[0].size();
       for (size_t n = 0; n < hypotheses.size(); ++n) {
         if (with_scores)
           out << scores[n] << " ||| ";
@@ -126,9 +128,15 @@ namespace ctranslate2 {
       }
     };
 
+    const auto t1 = std::chrono::high_resolution_clock::now();
+
     consume_stream(in, out, read_batch_size, options, reader, writer);
     out.flush();
-    return num_tokens;
+
+    const auto t2 = std::chrono::high_resolution_clock::now();
+    stats.total_time_in_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+      t2 - t1).count();
+    return stats;
   }
 
   const std::vector<Translator>& TranslatorPool::get_translators() const {

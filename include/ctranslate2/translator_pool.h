@@ -14,6 +14,12 @@ namespace ctranslate2 {
   using TranslationInput = std::vector<std::vector<std::string>>;
   using TranslationOutput = std::vector<TranslationResult>;
 
+  struct TranslationStats {
+    size_t num_tokens = 0;
+    size_t num_examples = 0;
+    double total_time_in_ms = 0;
+  };
+
   // A pool of Translators running in parallel.
   class TranslatorPool {
   public:
@@ -95,17 +101,17 @@ namespace ctranslate2 {
     // Translate a file in parallel.
     // These are wrappers around consume_stream that set the appropriate reader and writer.
     // The returned value is the total number of produced tokens.
-    size_t consume_text_file(const std::string& in_file,
-                             const std::string& out_file,
-                             size_t read_batch_size,
-                             const TranslationOptions& options,
-                             bool with_scores = false);
+    TranslationStats consume_text_file(const std::string& in_file,
+                                       const std::string& out_file,
+                                       size_t read_batch_size,
+                                       const TranslationOptions& options,
+                                       bool with_scores = false);
 
-    size_t consume_text_file(std::istream& in,
-                             std::ostream& out,
-                             size_t read_batch_size,
-                             const TranslationOptions& options,
-                             bool with_scores = false);
+    TranslationStats consume_text_file(std::istream& in,
+                                       std::ostream& out,
+                                       size_t read_batch_size,
+                                       const TranslationOptions& options,
+                                       bool with_scores = false);
 
     const std::vector<Translator>& get_translators() const;
 

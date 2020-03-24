@@ -56,6 +56,8 @@ output = translator.translate_batch(
 
 # stats is a tuple of file statistics containing in order:
 # 1. the number of generated target tokens
+# 2. the number of translated examples
+# 3. the total translation time in milliseconds
 stats = translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.

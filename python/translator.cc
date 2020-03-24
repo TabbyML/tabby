@@ -89,7 +89,8 @@ public:
                            bool with_scores,
                            size_t sampling_topk,
                            float sampling_temperature) {
-    size_t num_tokens = 0;
+    ctranslate2::TranslationStats stats;
+
     {
       py::gil_scoped_release release;
       const std::lock_guard<std::mutex> lock(_reader1_mutex);
@@ -108,14 +109,14 @@ public:
 
       if (read_batch_size == 0)
         read_batch_size = max_batch_size;
-      num_tokens = _translator_pool.consume_text_file(in_file,
-                                                      out_file,
-                                                      read_batch_size,
-                                                      options,
-                                                      with_scores);
+      stats = _translator_pool.consume_text_file(in_file,
+                                                 out_file,
+                                                 read_batch_size,
+                                                 options,
+                                                 with_scores);
     }
 
-    return py::make_tuple(num_tokens);
+    return py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
   }
 
   py::list translate_batch(const py::object& source,

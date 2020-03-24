@@ -66,6 +66,8 @@ def test_file_translation(tmpdir):
         assert lines[0].strip() == "a t z m o n"
         assert lines[1].strip() == "a c h i s o n"
     assert stats[0] == 13  # Number of generated target tokens.
+    assert stats[1] == 2  # Number of translated examples.
+    assert isinstance(stats[2], float)  # Total time in milliseconds.
 
 def test_empty_translation():
     translator = _get_transliterator()

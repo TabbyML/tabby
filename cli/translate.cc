@@ -1,4 +1,3 @@
-#include <chrono>
 #include <fstream>
 #include <iostream>
 
@@ -103,20 +102,19 @@ int main(int argc, char* argv[]) {
   }
 
   auto log_profiling = args["log_profiling"].as<bool>();
-  auto t1 = std::chrono::high_resolution_clock::now();
   if (log_profiling)
     ctranslate2::init_profiling(model->device(), inter_threads);
   auto read_batch_size = args["read_batch_size"].as<size_t>();
   if (read_batch_size == 0)
     read_batch_size = options.max_batch_size;
-  auto num_tokens = translator_pool.consume_text_file(*in,
-                                                      *out,
-                                                      read_batch_size,
-                                                      options,
-                                                      args["with_score"].as<bool>());
+  const ctranslate2::TranslationStats stats = translator_pool.consume_text_file(
+    *in,
+    *out,
+    read_batch_size,
+    options,
+    args["with_score"].as<bool>());
   if (log_profiling)
     ctranslate2::dump_profiling(std::cerr);
-  auto t2 = std::chrono::high_resolution_clock::now();
 
   if (in != &std::cin)
     delete in;
@@ -124,8 +122,7 @@ int main(int argc, char* argv[]) {
     delete out;
 
   if (args["log_throughput"].as<bool>()) {
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-    std::cerr << static_cast<double>(num_tokens) / static_cast<double>(duration / 1000) << std::endl;
+    std::cerr << static_cast<double>(stats.num_tokens) / (stats.total_time_in_ms / 1000) << std::endl;
   }
 
   return 0;
