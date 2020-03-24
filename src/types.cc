@@ -12,6 +12,8 @@ namespace ctranslate2 {
       return "int16";
     case DataType::INT32:
       return "int32";
+    default:
+      return "";
     }
   }
 
