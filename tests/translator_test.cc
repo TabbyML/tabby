@@ -319,3 +319,11 @@ TEST(TranslatorTest, DetachModel) {
                                            Device::CPU));
   translator.translate(input);
 }
+
+TEST(TranslatorTest, InvalidNumHypotheses) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 0;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  EXPECT_THROW(translator.translate(input, options), std::invalid_argument);
+}
