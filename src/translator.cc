@@ -157,6 +157,10 @@ namespace ctranslate2 {
     const bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
+    if (options.num_hypotheses == 0)
+      throw std::invalid_argument("num_hypotheses must be > 0");
+    if (options.beam_size == 0)
+      throw std::invalid_argument("beam_size must be > 0");
     if (options.num_hypotheses > options.beam_size && !options.return_alternatives)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
     if (options.sampling_topk != 1 && options.beam_size != 1)
