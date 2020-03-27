@@ -63,7 +63,7 @@ namespace ctranslate2 {
     }
 
     // Make 2D input.
-    StorageView input({batch_size, max_length}, DataType::INT32);
+    StorageView input({batch_size, max_length}, int32_t(0));
     for (dim_t i = 0; i < batch_size; ++i) {
       const dim_t length = ids[i].size();
       for (dim_t t = 0; t < length; ++t)

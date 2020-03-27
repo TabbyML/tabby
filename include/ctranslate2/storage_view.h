@@ -43,6 +43,8 @@ namespace ctranslate2 {
   public:
     StorageView(DataType type = DataType::FLOAT, Device device = Device::CPU);
     StorageView(Device device, DataType type = DataType::FLOAT);
+
+    // The reserved memory is uninitialized.
     StorageView(const Shape& shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
 
     template <typename T>
@@ -97,7 +99,10 @@ namespace ctranslate2 {
     StorageView& clear();
     // Releases the memory.
     StorageView& release();
-    // Reserves this size (data are discarded).
+    // Reserves the memory.
+    // If size is larger than the currently allocated size, a reallocation occurs and
+    // the data is replaced by uninitialized memory.
+    // If size is smaller than the currently allocated size, this a no-op.
     StorageView& reserve(dim_t size);
 
     dim_t rank() const;
@@ -113,6 +118,7 @@ namespace ctranslate2 {
 
     StorageView& reshape(const Shape& new_shape);
 
+    // Resize methods (see also reserve() for information about reallocation policy).
     StorageView& resize_as(const StorageView& other);
     StorageView& resize(const Shape& new_shape);
     StorageView& resize(dim_t dim, dim_t new_size);

@@ -31,7 +31,6 @@ namespace ctranslate2 {
     , _device(device) {
     DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
     resize(shape);
-    TYPE_DISPATCH(type, fill(T()));
   }
 
   StorageView::StorageView(const StorageView& other)
