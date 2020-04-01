@@ -22,9 +22,11 @@ namespace ctranslate2 {
     bool empty() const;
 
     std::vector<size_t>
-    get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const;
+    get_candidates(const std::vector<std::vector<std::string>>& batch_tokens,
+                   const size_t multiple_of = 16) const;
 
   private:
+    const size_t _vocabulary_size;
     std::set<size_t> _fixed_candidates;
     std::vector<std::unordered_map<std::string, std::vector<size_t>>> _map_rules;
   };
