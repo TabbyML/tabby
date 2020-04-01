@@ -329,6 +329,7 @@ namespace ctranslate2 {
       options.min_decoding_length,
       options.num_hypotheses,
       options.return_alternatives,
+      options.return_scores,
       options.return_attention);
 
     // Convert generated ids to tokens.

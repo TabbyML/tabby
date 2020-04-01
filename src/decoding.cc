@@ -80,7 +80,7 @@ namespace ctranslate2 {
                      const dim_t min_length,
                      const std::vector<size_t>* output_ids_map,
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                     std::vector<std::vector<float>>& scores,
+                     std::vector<std::vector<float>>* scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
                      const size_t num_hypotheses) const {
     PROFILE("beam_search");
@@ -107,8 +107,10 @@ namespace ctranslate2 {
     hypotheses.resize(batch_size);
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
-    scores.clear();
-    scores.resize(batch_size);
+    if (scores) {
+      scores->clear();
+      scores->resize(batch_size);
+    }
     if (attention) {
       attention->clear();
       attention->resize(batch_size);
@@ -119,7 +121,8 @@ namespace ctranslate2 {
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       sampled_ids[i].reserve(num_hypotheses);
-      scores[i].reserve(num_hypotheses);
+      if (scores)
+        (*scores)[i].reserve(num_hypotheses);
       if (attention)
         (*attention)[i].reserve(num_hypotheses);
     }
@@ -258,8 +261,10 @@ namespace ctranslate2 {
           for (auto& pair : hypotheses[batch_id]) {
             if (sampled_ids[batch_id].size() >= num_hypotheses)
               break;
-            scores[batch_id].push_back(-pair.first);
             sampled_ids[batch_id].emplace_back(std::move(pair.second.first));
+            if (scores) {
+              (*scores)[batch_id].push_back(-pair.first);
+            }
             if (attention) {
               (*attention)[batch_id].emplace_back(std::move(pair.second.second));
             }
@@ -331,7 +336,7 @@ namespace ctranslate2 {
                        const dim_t min_length,
                        const std::vector<size_t>* output_ids_map,
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                       std::vector<std::vector<float>>& scores,
+                       std::vector<std::vector<float>>* scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
                        const size_t) const {
     PROFILE("greedy_search");
@@ -343,8 +348,10 @@ namespace ctranslate2 {
 
     sampled_ids.clear();
     sampled_ids.resize(batch_size);
-    scores.clear();
-    scores.resize(batch_size);
+    if (scores) {
+      scores->clear();
+      scores->resize(batch_size);
+    }
     if (attention) {
       attention->clear();
       attention->resize(batch_size);
@@ -358,7 +365,8 @@ namespace ctranslate2 {
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       sampled_ids[i].resize(1);
-      scores[i].resize(1);
+      if (scores)
+        (*scores)[i].resize(1);
       if (attention)
         (*attention)[i].resize(1);
     }
@@ -374,7 +382,13 @@ namespace ctranslate2 {
               state,
               &logits,
               attention ? &attention_step_device : nullptr);
-      ops::LogSoftMax()(logits, log_probs);
+
+      // Compute log probs only if scores should be returned.
+      if (scores) {
+        ops::LogSoftMax()(logits, log_probs);
+      } else {
+        log_probs.shallow_copy(logits);
+      }
 
       // Penalize end_id, if configured.
       if (step < min_length)
@@ -399,8 +413,10 @@ namespace ctranslate2 {
         } else {
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
-          scores[batch_id][0] += best_probs.scalar_at<float>({i});
           ++count_alive;
+          if (scores) {
+            (*scores)[batch_id][0] += best_probs.scalar_at<float>({i});
+          }
           if (attention) {
             const auto* attn = attention_step.index<float>({i});
             (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));
@@ -482,6 +498,7 @@ namespace ctranslate2 {
          const dim_t min_length,
          const size_t num_hypotheses,
          const bool return_alternatives,
+         const bool return_scores,
          const bool return_attention) {
     dim_t start_step = 0;
 
@@ -518,7 +535,7 @@ namespace ctranslate2 {
                                         /*min_length=*/1,
                                         output_ids_map,
                                         expanded_ids,
-                                        expanded_scores,
+                                        return_scores ? &expanded_scores : nullptr,
                                         return_attention ? &expanded_attention : nullptr,
                                         num_hypotheses);
 
@@ -542,7 +559,7 @@ namespace ctranslate2 {
                            min_length,
                            output_ids_map,
                            sampled_ids,
-                           scores,
+                           return_scores ? &scores : nullptr,
                            return_attention ? &attention : nullptr,
                            return_alternatives ? 1 : num_hypotheses);
 
@@ -571,7 +588,7 @@ namespace ctranslate2 {
             ids.insert(ids.begin(), prefix_ids->at(i).begin(), prefix_ids->at(i).end());
 
           // Finalize the score.
-          if (!expanded_scores.empty())
+          if (return_scores && !expanded_scores.empty())
             scores[i][h] += expanded_scores[i][h];
 
           // Finalize the attention.
@@ -587,13 +604,12 @@ namespace ctranslate2 {
         }
       }
 
+      GenerationResult<size_t> result(std::move(sampled_ids[i]));
+      if (return_scores)
+        result.set_scores(std::move(scores[i]));
       if (return_attention)
-        results.emplace_back(std::move(sampled_ids[i]),
-                             std::move(scores[i]),
-                             std::move(attention[i]));
-      else
-        results.emplace_back(std::move(sampled_ids[i]),
-                             std::move(scores[i]));
+        result.set_attention(std::move(attention[i]));
+      results.emplace_back(std::move(result));
     }
 
     return results;

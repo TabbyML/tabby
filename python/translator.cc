@@ -106,6 +106,7 @@ public:
       options.min_decoding_length = min_decoding_length;
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
+      options.return_scores = with_scores;
 
       if (read_batch_size == 0)
         read_batch_size = max_batch_size;
@@ -128,6 +129,7 @@ public:
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
+                           bool return_scores,
                            bool return_attention,
                            bool return_alternatives,
                            size_t sampling_topk,
@@ -154,6 +156,7 @@ public:
       options.min_decoding_length = min_decoding_length;
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
+      options.return_scores = return_scores;
       options.return_attention = return_attention;
       options.return_alternatives = return_alternatives;
 
@@ -165,8 +168,10 @@ public:
       py::list batch;
       for (size_t i = 0; i < result.num_hypotheses(); ++i) {
         py::dict hyp;
-        hyp["score"] = result.scores()[i];
         hyp["tokens"] = std_vector_to_py_list(result.hypotheses()[i]);
+        if (result.has_scores()) {
+          hyp["score"] = result.scores()[i];
+        }
         if (result.has_attention()) {
           py::list attn;
           for (const auto& attn_vector : result.attention()[i])
@@ -278,6 +283,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
+         py::arg("return_scores")=true,
          py::arg("return_attention")=false,
          py::arg("return_alternatives")=false,
          py::arg("sampling_topk")=1,

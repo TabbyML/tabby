@@ -20,7 +20,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-           std::vector<std::vector<float>>& scores,
+           std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
            const size_t num_hypotheses = 1) const = 0;
   };
@@ -40,7 +40,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-           std::vector<std::vector<float>>& scores,
+           std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
            const size_t num_hypotheses = 1) const override;
 
@@ -62,7 +62,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-           std::vector<std::vector<float>>& scores,
+           std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
            const size_t num_hypotheses = 1) const override;
   };
@@ -86,6 +86,7 @@ namespace ctranslate2 {
          const dim_t min_length,
          const size_t num_hypotheses,
          const bool return_alternatives,
+         const bool return_scores,
          const bool return_attention);
 
 }

@@ -10,10 +10,8 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  GenerationResult<T>::GenerationResult(std::vector<std::vector<T>> hypotheses,
-                                        std::vector<float> scores)
-    : _hypotheses(std::move(hypotheses))
-    , _scores(std::move(scores)) {
+  GenerationResult<T>::GenerationResult(std::vector<std::vector<T>> hypotheses)
+    : _hypotheses(std::move(hypotheses)) {
   }
 
   template <typename T>
@@ -51,8 +49,23 @@ namespace ctranslate2 {
   }
 
   template <typename T>
+  void GenerationResult<T>::set_scores(std::vector<float> scores) {
+    _scores = std::move(scores);
+  }
+
+  template <typename T>
+  bool GenerationResult<T>::has_scores() const {
+    return !_scores.empty();
+  }
+
+  template <typename T>
   const std::vector<std::vector<std::vector<float>>>& GenerationResult<T>::attention() const {
     return _attention;
+  }
+
+  template <typename T>
+  void GenerationResult<T>::set_attention(std::vector<std::vector<std::vector<float>>> attention) {
+    _attention = std::move(attention);
   }
 
   template <typename T>

@@ -87,6 +87,7 @@ int main(int argc, char* argv[]) {
   options.min_decoding_length = args["min_sent_length"].as<size_t>();
   options.num_hypotheses = args["n_best"].as<size_t>();
   options.use_vmap = args["use_vmap"].as<bool>();
+  options.return_scores = args["with_score"].as<bool>();
 
   std::istream* in = &std::cin;
   std::ostream* out = &std::cout;

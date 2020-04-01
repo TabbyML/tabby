@@ -37,6 +37,8 @@ namespace ctranslate2 {
     // beam_size unless return_alternatives is set).
     size_t num_hypotheses = 1;
 
+    // Store scores in the TranslationResult class.
+    bool return_scores = true;
     // Store attention vectors in the TranslationResult class.
     bool return_attention = false;
 

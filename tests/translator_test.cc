@@ -327,3 +327,14 @@ TEST(TranslatorTest, InvalidNumHypotheses) {
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   EXPECT_THROW(translator.translate(input, options), std::invalid_argument);
 }
+
+TEST(TranslatorTest, IgnoreScore) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = 1;
+  options.return_scores = false;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const TranslationResult result = translator.translate(input, options);
+  EXPECT_FALSE(result.has_scores());
+  EXPECT_EQ(result.output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+}

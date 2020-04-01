@@ -113,6 +113,14 @@ def test_return_attention():
     assert len(attention) == 6  # Target length.
     assert len(attention[0]) == 6  # Source length.
 
+def test_ignore_scores():
+    translator = _get_transliterator()
+    output = translator.translate_batch(
+        [["آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"]],
+        beam_size=1,
+        return_scores=False)
+    assert "scores" not in output[0][0]
+
 def test_return_alternatives():
     translator = _get_transliterator()
     output = translator.translate_batch(

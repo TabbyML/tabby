@@ -118,7 +118,7 @@ namespace ctranslate2 {
       stats.num_tokens += hypotheses[0].size();
       for (size_t n = 0; n < hypotheses.size(); ++n) {
         if (with_scores)
-          out << scores[n] << " ||| ";
+          out << (result.has_scores() ? scores[n] : 0) << " ||| ";
         for (size_t i = 0; i < hypotheses[n].size(); ++i) {
           if (i > 0)
             out << ' ';
