@@ -6,6 +6,10 @@
 #include <numeric>
 #include <stdexcept>
 
+#ifdef __AVX__
+#  include <immintrin.h>
+#endif
+
 #ifdef WITH_MKL
 #  include <mkl.h>
 #endif
@@ -345,7 +349,26 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
-    unary_transform(x, y, size, [](float v) { return std::max(v, static_cast<float>(0)); });
+    const auto relu_op = [](float v) { return std::max(v, 0.f); };
+
+#ifdef __AVX__
+    const dim_t num_packs = size / 8;
+    const __m256 zero = _mm256_setzero_ps();
+
+    #pragma omp parallel for
+    for (dim_t i = 0; i < num_packs; ++i) {
+      const dim_t offset = i * 8;
+      // Assume that the memory is aligned.
+      _mm256_store_ps(y + offset, _mm256_max_ps(_mm256_load_ps(x + offset), zero));
+    }
+
+    // Process remaining positions.
+    for (dim_t i = num_packs * 8; i < size; ++i) {
+      y[i] = relu_op(x[i]);
+    }
+#else
+    unary_transform(x, y, size, relu_op);
+#endif
   }
 
   template<>

@@ -583,6 +583,15 @@ TEST_P(OpDeviceTest, Multinomial) {
   expect_storage_eq(output, expected);
 }
 
+TEST_P(OpDeviceTest, ReLU) {
+  Device device = GetParam();
+  StorageView input({2, 5}, std::vector<float>{-1, 1, 2, -2, 2, 4, -3, 0, -1, -3}, device);
+  StorageView expected({2, 5}, std::vector<float>{0, 1, 2, 0, 2, 4, 0, 0, 0, 0}, device);
+  StorageView output(device);
+  ops::ReLU()(input, output);
+  expect_storage_eq(output, expected);
+}
+
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 #ifdef WITH_CUDA
 INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
