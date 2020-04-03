@@ -147,7 +147,7 @@ namespace ctranslate2 {
       : _size(size) {
     }
     __host__ __device__
-    T operator()(const T& i) {
+    T operator()(const T i) {
       return i % _size;
     }
   };
@@ -159,7 +159,7 @@ namespace ctranslate2 {
       : _size(size) {
     }
     __host__ __device__
-    T operator()(const T& i) {
+    T operator()(const T i) {
       return i / _size;
     }
   };
@@ -346,7 +346,7 @@ namespace ctranslate2 {
       , _cols(cols) {
     }
     __host__ __device__
-    T operator()(const T& i) const {
+    T operator()(const T i) const {
       const T i0 = i / _rows;
       const T i1 = i % _rows;
       return i1 * _cols + i0;
@@ -377,7 +377,7 @@ namespace ctranslate2 {
       _b_s2 = 1;
     }
     __host__ __device__
-    T operator()(const T& i) const {
+    T operator()(const T i) const {
       const T i0 = i / _b_s0;
       const T i1 = i / _b_s1 % _b_d1;
       const T i2 = i % _b_d2;
@@ -415,7 +415,7 @@ namespace ctranslate2 {
       _b_s3 = 1;
     }
     __host__ __device__
-    T operator()(const T& i) const {
+    T operator()(const T i) const {
       const T i0 = i / _b_s0;
       const T i1 = i / _b_s1 % _b_d1;
       const T i2 = i / _b_s2 % _b_d2;
