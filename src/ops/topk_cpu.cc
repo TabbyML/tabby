@@ -18,16 +18,24 @@ namespace ctranslate2 {
         const auto* input = x.data<DataType>() + (i * depth);
         auto* val = values.data<DataType>() + (i * _k);
         auto* ind = indices.data<IndexType>() + (i * _k);
-        StorageView range({depth}, indices.dtype());
-        auto* ids = range.data<IndexType>();
-        std::iota(ids, ids + depth, 0);
-        std::partial_sort(ids, ids + _k, ids + depth,
-                          [&input](const IndexType& i1, const IndexType& i2) {
-                            return input[i1] > input[i2];
-                          });
-        for (dim_t j = 0; j < _k; ++j) {
-          ind[j] = ids[j];
-          val[j] = input[ind[j]];
+
+        if (_k == 1) {
+          const DataType* max = std::max_element(input, input + depth);
+          const IndexType index = std::distance(input, max);
+          val[0] = *max;
+          ind[0] = index;
+        } else {
+          StorageView range({depth}, indices.dtype());
+          auto* ids = range.data<IndexType>();
+          std::iota(ids, ids + depth, 0);
+          std::partial_sort(ids, ids + _k, ids + depth,
+                            [&input](const IndexType& i1, const IndexType& i2) {
+                              return input[i1] > input[i2];
+                            });
+          for (dim_t j = 0; j < _k; ++j) {
+            ind[j] = ids[j];
+            val[j] = input[ind[j]];
+          }
         }
       }
     }
