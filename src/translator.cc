@@ -235,28 +235,33 @@ namespace ctranslate2 {
     std::vector<size_t> sorted_index;
     auto sorted_source = sort_from_longest_to_shortest(source, sorted_index);
 
-    const size_t total_batch_size = source.size();
     std::vector<TranslationResult> results;
-
-    if (options.max_batch_size == 0 || options.max_batch_size >= total_batch_size)
+    if (options.max_batch_size == 0
+        || get_batch_size(source, options.batch_type) <= options.max_batch_size)
       results = run_batch_translation(sorted_source, nullptr,  options);
     else {
       // Translate by batch of size options.max_batch_size.
-      results.reserve(total_batch_size);
+      results.reserve(source.size());
 
       std::vector<std::vector<std::string>> partial_source;
-      partial_source.reserve(options.max_batch_size);
+      partial_source.reserve(source.size());
+      size_t partial_batch_size = 0;
 
       for (auto& tokens : sorted_source) {
-        partial_source.emplace_back(std::move(tokens));
+        const size_t batch_size_increment = get_batch_size_increment(tokens, options.batch_type);
 
-        if (partial_source.size() == options.max_batch_size) {
+        if (partial_batch_size > 0
+            && partial_batch_size + batch_size_increment > options.max_batch_size) {
           auto partial_results = run_batch_translation(partial_source, nullptr,  options);
           results.insert(results.end(),
                          std::make_move_iterator(partial_results.begin()),
                          std::make_move_iterator(partial_results.end()));
           partial_source.clear();
+          partial_batch_size = 0;
         }
+
+        partial_source.emplace_back(std::move(tokens));
+        partial_batch_size += batch_size_increment;
       }
 
       if (!partial_source.empty()) {
@@ -407,6 +412,15 @@ namespace ctranslate2 {
   void Translator::assert_has_model() const {
     if (!_model)
       throw std::runtime_error("No model is attached to this translator");
+  }
+
+
+  BatchType str_to_batch_type(const std::string& batch_type) {
+    if (batch_type == "examples")
+      return BatchType::Examples;
+    else if (batch_type == "tokens")
+      return BatchType::Tokens;
+    throw std::invalid_argument("Invalid batch type: " + batch_type);
   }
 
 }

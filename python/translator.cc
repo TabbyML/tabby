@@ -80,6 +80,7 @@ public:
                            const std::string& out_file,
                            size_t max_batch_size,
                            size_t read_batch_size,
+                           const std::string& batch_type,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -98,6 +99,7 @@ public:
 
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
+      options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.sampling_topk = sampling_topk;
@@ -123,6 +125,7 @@ public:
   py::list translate_batch(const py::object& source,
                            const py::object& target_prefix,
                            size_t max_batch_size,
+                           const std::string& batch_type,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -148,6 +151,7 @@ public:
 
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
+      options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.sampling_topk = sampling_topk;
@@ -277,6 +281,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("source"),
          py::arg("target_prefix")=py::none(),
          py::arg("max_batch_size")=0,
+         py::arg("batch_type")="examples",
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
@@ -293,6 +298,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("output_path"),
          py::arg("max_batch_size"),
          py::arg("read_batch_size")=0,
+         py::arg("batch_type")="examples",
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,

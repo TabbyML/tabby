@@ -43,6 +43,7 @@ output = translator.translate_batch(
     source: list,              # A list of list of string.
     target_prefix=None,        # An optional list of list of string.
     max_batch_size=0,          # Maximum batch size to run the model on.
+    batch_type="examples",     # Whether max_batch_size is the number of examples or tokens.
     beam_size=2,               # Beam size (set 1 to run greedy search).
     num_hypotheses=1,          # Number of hypotheses to return (should be <= beam_size).
     length_penalty=0,          # Length penalty constant to use during beam search.
@@ -64,6 +65,7 @@ stats = translator.translate_file(
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to run the model on.
     read_batch_size=0,       # Number of sentences to read at once.
+    batch_type="examples",   # Whether the batch size is the number of examples or tokens.
     beam_size=2,
     num_hypotheses=1,
     length_penalty=0,

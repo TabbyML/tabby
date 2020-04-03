@@ -21,10 +21,12 @@ int main(int argc, char* argv[]) {
      cxxopts::value<std::string>())
     ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
      cxxopts::value<bool>()->default_value("false"))
-    ("batch_size", "Number of sentences to forward into the model at once.",
+    ("batch_size", "Size of the batch to forward into the model at once.",
      cxxopts::value<size_t>()->default_value("30"))
-    ("read_batch_size", "Number of sentences to read at once (defaults to batch_size).",
+    ("read_batch_size", "Size of the batch to read at once (defaults to batch_size).",
      cxxopts::value<size_t>()->default_value("0"))
+    ("batch_type", "Batch type (can be examples, tokens).",
+     cxxopts::value<std::string>()->default_value("examples"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
      cxxopts::value<size_t>()->default_value("5"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
@@ -79,6 +81,7 @@ int main(int argc, char* argv[]) {
 
   auto options = ctranslate2::TranslationOptions();
   options.max_batch_size = args["batch_size"].as<size_t>();
+  options.batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();

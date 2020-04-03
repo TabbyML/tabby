@@ -8,12 +8,20 @@
 
 namespace ctranslate2 {
 
+  enum class BatchType {
+    Examples,
+    Tokens,
+  };
+
   struct TranslationOptions {
     // Maximum batch size to run the model on (set 0 to forward the input as is).
     // When more inputs are passed to translate(), they will be internally sorted by length
     // and split to batches of size max_batch_size. Having inputs with similar lengths in a
     // batch reduces the padding and so increases the computation efficiency.
     size_t max_batch_size = 0;
+
+    // Whether "max_batch_size" represents number of examples or tokens.
+    BatchType batch_type = BatchType::Examples;
 
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 2;
@@ -113,5 +121,26 @@ namespace ctranslate2 {
     const Vocabulary* _source_vocabulary;
     const Vocabulary* _target_vocabulary;
   };
+
+
+  BatchType str_to_batch_type(const std::string& batch_type);
+
+  template <typename T>
+  size_t get_batch_size_increment(const std::vector<T>& example, const BatchType batch_type) {
+    switch (batch_type) {
+    case BatchType::Tokens:
+      return example.size();
+    default:
+      return 1;
+    };
+  }
+
+  template <typename T>
+  size_t get_batch_size(const std::vector<std::vector<T>>& examples, const BatchType batch_type) {
+    size_t batch_size = 0;
+    for (const std::vector<T>& example : examples)
+      batch_size += get_batch_size_increment(example, batch_type);
+    return batch_size;
+  }
 
 }
