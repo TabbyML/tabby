@@ -12,19 +12,19 @@
 
 namespace ctranslate2 {
 
-  template <typename T, typename UnaryFunction>
-  void unary_transform(const T* x, T* y, dim_t size, UnaryFunction op) {
+  template <typename T1, typename T2, typename UnaryFunction>
+  void unary_transform(const T1* x, T2* y, dim_t size, const UnaryFunction& op) {
     THRUST_CALL(thrust::transform, x, x + size, y, op);
   }
 
-  template <typename T, typename BinaryFunction>
-  void binary_transform(const T* a, const T* b, T* c, dim_t size, BinaryFunction op) {
+  template <typename T1, typename T2, typename T3, typename BinaryFunction>
+  void binary_transform(const T1* a, const T2* b, T3* c, dim_t size, const BinaryFunction& op) {
     THRUST_CALL(thrust::transform, a, a + size, b, c, op);
   }
 
   template <typename T1, typename T2, typename T3, typename BinaryFunction, typename IndexFunction>
   void binary_transform(T1 a, T2 b, T3 c, dim_t size,
-                        BinaryFunction op, IndexFunction index_a) {
+                        const BinaryFunction& op, const IndexFunction& index_a) {
     auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<dim_t>(0), index_a);
     auto a_it = thrust::make_permutation_iterator(a, index_it);
     THRUST_CALL(thrust::transform, a_it, a_it + size, b, c, op);
@@ -33,7 +33,7 @@ namespace ctranslate2 {
   // perm_fun is a functor that takes the index in the permuted iterator and
   // return the index in the original iterator.
   template <typename T, typename PermFunction>
-  void permute(const T* x, T* y, dim_t size, PermFunction perm_fun) {
+  void permute(const T* x, T* y, dim_t size, const PermFunction& perm_fun) {
     auto ind_it = thrust::counting_iterator<dim_t>(0);
     auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
     auto perm_it = thrust::make_permutation_iterator(x, perm_ind_it);
