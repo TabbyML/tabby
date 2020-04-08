@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.9.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.9.1) (2020-04-08)
+
+### Fixes and improvements
+
+* Fix parallel translations when calling `Translator.translate_batch` from multiple Python threads
+* Fix crash on invalid `num_hypotheses` value
+
 ## [v1.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.9.0) (2020-03-24)
 
 ### New features
