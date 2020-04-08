@@ -1,5 +1,3 @@
-#include <mutex>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -90,12 +88,11 @@ public:
                            bool with_scores,
                            size_t sampling_topk,
                            float sampling_temperature) {
+    assert_model_is_ready();
     ctranslate2::TranslationStats stats;
 
     {
       py::gil_scoped_release release;
-      const std::lock_guard<std::mutex> lock(_reader1_mutex);
-      assert_model_is_ready();
 
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
@@ -140,14 +137,14 @@ public:
     if (source.is(py::none()) || py::len(source) == 0)
       return py::list();
 
+    assert_model_is_ready();
+
     const auto source_input = batch_to_vector(source);
     const auto target_prefix_input = batch_to_vector(target_prefix, /*optional=*/true);
     std::vector<ctranslate2::TranslationResult> results;
 
     {
       py::gil_scoped_release release;
-      const std::lock_guard<std::mutex> lock(_reader2_mutex);
-      assert_model_is_ready();
 
       ctranslate2::TranslationOptions options;
       options.max_batch_size = max_batch_size;
@@ -214,10 +211,6 @@ private:
   ModelState _model_state;
   ctranslate2::TranslatorPool _translator_pool;
 
-  // TODO: we basically need a shared_mutex here.
-  std::mutex _reader1_mutex;
-  std::mutex _reader2_mutex;
-
   void assert_model_is_ready() const {
     if (_model_state != ModelState::Loaded)
       throw std::runtime_error("The model for this translator was unloaded");
@@ -225,15 +218,10 @@ private:
 
   // TODO: consider moving this model state logic inside TranslatorPool.
   void change_model_state(const ModelState target_state) {
-    py::gil_scoped_release release;  // Release the GIL before acquiring the lock.
-
-    // Lock out all readers when changing the model state.
-    std::lock(_reader1_mutex, _reader2_mutex);
-    const std::lock_guard<std::mutex> reader1_lock(_reader1_mutex, std::adopt_lock);
-    const std::lock_guard<std::mutex> reader2_lock(_reader2_mutex, std::adopt_lock);
-
     if (target_state == _model_state)
       return;
+
+    py::gil_scoped_release release;
 
     // We can const_cast the model because it is initially constructed as a non
     // const pointer. We can also mutate it because we locked out all readers.

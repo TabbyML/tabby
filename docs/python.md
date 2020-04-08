@@ -84,3 +84,5 @@ Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structu
 * `translator.unload_model(to_cpu=False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
 * `translator.load_model()`<br/>Load the model back to the initial device.
 * `del translator`<br/>Release the translator resources.
+
+When using multiple Python threads, the application should ensure that no translations are running before calling these functions.
