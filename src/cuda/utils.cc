@@ -149,6 +149,7 @@ namespace ctranslate2 {
       return thrust_allocator;
     }
 
+#ifdef WITH_TENSORRT
     static class Logger : public nvinfer1::ILogger {
       void log(Severity severity, const char* msg) override {
         if (static_cast<int>(severity) < static_cast<int>(Severity::kINFO))
@@ -226,6 +227,7 @@ namespace ctranslate2 {
         _execution_context->setBindingDimensions(i, input_dims[i]);
       _execution_context->enqueueV2(bindings, get_cuda_stream(), nullptr);
     }
+#endif
 
   }
 }

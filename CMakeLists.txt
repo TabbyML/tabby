@@ -9,6 +9,7 @@ project(ctranslate2)
 
 option(WITH_MKL "Compile with Intel MKL backend" ON)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
+option(WITH_TENSORRT "Compile with TensorRT (required for TopK with k > 1)" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(WITH_TESTS "Compile the tests" OFF)
@@ -234,19 +235,29 @@ if (WITH_CUDA)
     message(FATAL_ERROR "cuDNN library not found")
   endif()
 
-  find_library(TENSORRT_LIBRARY NAMES nvinfer)
-  find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h)
-  if(NOT TENSORRT_LIBRARY OR NOT TENSORRT_INCLUDE_DIR)
-    message(FATAL_ERROR "TensorRT not found")
-  else()
-    message(STATUS "Found TensorRT library: ${TENSORRT_LIBRARY}")
-    message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
-  endif()
+  if(WITH_TENSORRT)
+    find_library(TENSORRT_LIBRARY NAMES nvinfer)
+    find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h)
+    if(NOT TENSORRT_LIBRARY OR NOT TENSORRT_INCLUDE_DIR)
+      message(FATAL_ERROR "TensorRT not found")
+    else()
+      message(STATUS "Found TensorRT library: ${TENSORRT_LIBRARY}")
+      message(STATUS "Found TensorRT include directory: ${TENSORRT_INCLUDE_DIR}")
+    endif()
 
-  if(NOT MSVC)
-    # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+    if(NOT MSVC)
+      # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+    endif()
+
+    add_definitions(-DWITH_TENSORRT)
+    include_directories(
+      ${TENSORRT_INCLUDE_DIR}
+      )
+    list(APPEND LIBRARIES
+      ${TENSORRT_LIBRARY}
+      )
   endif()
 
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
@@ -267,10 +278,6 @@ if (WITH_CUDA)
     message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
   endif()
 
-  include_directories(
-    ${TENSORRT_INCLUDE_DIR}
-  )
-
   cuda_include_directories(
     ${CUB_INCLUDE_DIR}
     ${THRUST_INCLUDE_DIR}
@@ -289,7 +296,6 @@ if (WITH_CUDA)
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
     ${CUDNN_LIBRARY}
-    ${TENSORRT_LIBRARY}
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})

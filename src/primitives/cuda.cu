@@ -40,6 +40,30 @@ namespace ctranslate2 {
     THRUST_CALL(thrust::copy_n, perm_it, size, y);
   }
 
+  template <typename T>
+  struct repeat_vec : thrust::unary_function<T, T> {
+    T _size;
+    repeat_vec(T size)
+      : _size(size) {
+    }
+    __host__ __device__
+    T operator()(const T i) {
+      return i % _size;
+    }
+  };
+
+  template <typename T>
+  struct repeat_vec_depth : thrust::unary_function<T, T> {
+    T _size;
+    repeat_vec_depth(T size)
+      : _size(size) {
+    }
+    __host__ __device__
+    T operator()(const T i) {
+      return i / _size;
+    }
+  };
+
 
   static const cuda::CachingAllocatorConfig allocator_config = cuda::get_caching_allocator_config();
   static cub::CachingDeviceAllocator allocator(
@@ -128,6 +152,39 @@ namespace ctranslate2 {
     return deref(max, 0);
   }
 
+  template <typename T1, typename T2>
+  struct greater_tuple {
+    __device__ __host__
+    thrust::tuple<T1, T2> operator()(const thrust::tuple<T1, T2>& a,
+                                     const thrust::tuple<T1, T2>& b) const {
+      if (a > b)
+        return a;
+      else
+        return b;
+    }
+  };
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::row_max(const T* x,
+                                         const dim_t rows,
+                                         const dim_t cols,
+                                         T* values,
+                                         int32_t* indices) {
+    auto keys_it = thrust::make_transform_iterator(thrust::counting_iterator<int32_t>(0),
+                                                   repeat_vec_depth<int32_t>(cols));
+    auto ids_it = thrust::make_transform_iterator(thrust::counting_iterator<int32_t>(0),
+                                                  repeat_vec<int32_t>(cols));
+
+    THRUST_CALL(thrust::reduce_by_key,
+                keys_it, keys_it + (rows * cols),
+                thrust::make_zip_iterator(thrust::make_tuple(x, ids_it)),
+                thrust::make_discard_iterator(),
+                thrust::make_zip_iterator(thrust::make_tuple(values, indices)),
+                thrust::equal_to<int32_t>(),
+                greater_tuple<T, int32_t>());
+  }
+
   template<>
   template <typename T>
   void primitives<Device::CUDA>::add(T a, const T* x, T* y, dim_t size) {
@@ -139,30 +196,6 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::add(const T* a, const T* b, T* c, dim_t size) {
     binary_transform(a, b, c, size, thrust::plus<T>());
   }
-
-  template <typename T>
-  struct repeat_vec : thrust::unary_function<T, T> {
-    T _size;
-    repeat_vec(T size)
-      : _size(size) {
-    }
-    __host__ __device__
-    T operator()(const T i) {
-      return i % _size;
-    }
-  };
-
-  template <typename T>
-  struct repeat_vec_depth : thrust::unary_function<T, T> {
-    T _size;
-    repeat_vec_depth(T size)
-      : _size(size) {
-    }
-    __host__ __device__
-    T operator()(const T i) {
-      return i / _size;
-    }
-  };
 
   template<>
   template <typename T>
@@ -585,6 +618,12 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::max_element(const T* array, dim_t size);    \
   template T                                                            \
   primitives<Device::CUDA>::max(const T* array, dim_t size);            \
+  template void                                                         \
+  primitives<Device::CUDA>::row_max(const T* x,                         \
+                                    const dim_t rows,                   \
+                                    const dim_t cols,                   \
+                                    T* values,                          \
+                                    int32_t* indices);                  \
   template void                                                         \
   primitives<Device::CUDA>::add(T a, const T* x, T* y, dim_t size);     \
   template void                                                         \

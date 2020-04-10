@@ -159,6 +159,22 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::row_max(const T* x,
+                                        const dim_t rows,
+                                        const dim_t cols,
+                                        T* values,
+                                        int32_t* indices) {
+    #pragma omp parallel for
+    for (dim_t i = 0; i < rows; ++i) {
+      const T* row = x + i * cols;
+      const T* max = std::max_element(row, row + cols);
+      values[i] = *max;
+      indices[i] = std::distance(row, max);
+    }
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::add(T a, const T* x, T* y, dim_t size) {
     unary_transform(x, y, size, [&a](T v) { return v + a; });
   }
@@ -747,6 +763,12 @@ namespace ctranslate2 {
   primitives<Device::CPU>::max(const T* array, dim_t size);             \
   template T                                                            \
   primitives<Device::CPU>::amax(const T* array, dim_t size);            \
+  template void                                                         \
+  primitives<Device::CPU>::row_max(const T* x,                          \
+                                   const dim_t rows,                    \
+                                   const dim_t cols,                    \
+                                   T* values,                           \
+                                   int32_t* indices);                   \
   template void                                                         \
   primitives<Device::CPU>::add(T a, const T* x, T* y, dim_t size);      \
   template void                                                         \

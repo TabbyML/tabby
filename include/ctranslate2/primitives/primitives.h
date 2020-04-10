@@ -43,6 +43,12 @@ namespace ctranslate2 {
     static T max(const T* array, dim_t size);
     template <typename T>
     static T amax(const T* array, dim_t size);
+    template <typename T>
+    static void row_max(const T* x,
+                        const dim_t rows,
+                        const dim_t cols,
+                        T* values,
+                        int32_t* indices);
 
     template <typename T>
     static void add(T a, const T* x, T* y, dim_t size);

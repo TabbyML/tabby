@@ -5,6 +5,7 @@
 namespace ctranslate2 {
   namespace ops {
 
+#ifdef WITH_TENSORRT
     class TopKLayer : public cuda::TensorRTLayer {
     public:
       TopKLayer(dim_t k)
@@ -61,13 +62,26 @@ namespace ctranslate2 {
       dim_t _k;
       dim_t _first_depth;
     };
+#endif
 
     template <Device D, typename DataType, typename IndexType>
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
+#ifdef WITH_TENSORRT
       static thread_local TopKLayer topk_layer(_k);
       topk_layer(x, values, indices);
+#else
+      if (_k > 1)
+        throw std::runtime_error("TopK with k > 1 requires TensorRT");
+      const dim_t depth = x.dim(-1);
+      const dim_t batch_size = x.size() / depth;
+      primitives<D>::row_max(x.data<DataType>(),
+                             batch_size,
+                             depth,
+                             values.data<DataType>(),
+                             indices.data<IndexType>());
+#endif
     }
 
 #define DECLARE_IMPL(T)                                                 \

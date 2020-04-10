@@ -6,7 +6,10 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <cudnn.h>
-#include <NvInfer.h>
+
+#ifdef WITH_TENSORRT
+#  include <NvInfer.h>
+#endif
 
 #include "ctranslate2/utils.h"
 
@@ -74,6 +77,7 @@ namespace ctranslate2 {
 
     ThrustAllocator& get_thrust_allocator();
 
+#ifdef WITH_TENSORRT
     class TensorRTLayer {
     public:
       virtual ~TensorRTLayer();
@@ -91,6 +95,7 @@ namespace ctranslate2 {
       nvinfer1::ICudaEngine* _engine = nullptr;
       nvinfer1::IExecutionContext* _execution_context = nullptr;
     };
+#endif
 
     // Statically assiocate cudnnDataType_t with a C++ type.
     template <class T>
