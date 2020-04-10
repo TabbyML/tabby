@@ -5,7 +5,6 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
-#include <cudnn.h>
 
 #ifdef WITH_TENSORRT
 #  include <NvInfer.h>
@@ -32,14 +31,6 @@ namespace ctranslate2 {
                             + ctranslate2::cuda::cublasGetStatusString(status)); \
     }
 
-#define CUDNN_CHECK(ans)                                                \
-    {                                                                   \
-      cudnnStatus_t status = (ans);                                     \
-      if (status != CUDNN_STATUS_SUCCESS)                               \
-        THROW_RUNTIME_ERROR("cuDNN failed with status "                 \
-                            + std::string(cudnnGetErrorString(status))); \
-    }
-
 // Default execution policy for Thrust.
 #define THRUST_EXECUTION_POLICY thrust::cuda::par(ctranslate2::cuda::get_thrust_allocator()) \
     .on(ctranslate2::cuda::get_cuda_stream())
@@ -51,7 +42,6 @@ namespace ctranslate2 {
 
     cudaStream_t get_cuda_stream();
     cublasHandle_t get_cublas_handle();
-    cudnnHandle_t get_cudnn_handle();
 
     // See https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html.
     struct CachingAllocatorConfig {
@@ -96,20 +86,6 @@ namespace ctranslate2 {
       nvinfer1::IExecutionContext* _execution_context = nullptr;
     };
 #endif
-
-    // Statically assiocate cudnnDataType_t with a C++ type.
-    template <class T>
-    struct TypeToCUDNNType {};
-
-#define MATCH_CUDNN_DATA_TYPE(TYPE, CUDNN_DATA_TYPE)            \
-    template<>                                                  \
-    struct TypeToCUDNNType<TYPE> {                              \
-      static constexpr cudnnDataType_t value = CUDNN_DATA_TYPE; \
-    }
-
-    MATCH_CUDNN_DATA_TYPE(float, CUDNN_DATA_FLOAT);
-    MATCH_CUDNN_DATA_TYPE(int8_t, CUDNN_DATA_INT8);
-    MATCH_CUDNN_DATA_TYPE(int32_t, CUDNN_DATA_INT32);
 
   }
 }

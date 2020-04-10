@@ -224,17 +224,6 @@ if (WITH_CUDA)
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 
-  find_library(CUDNN_LIBRARY cudnn
-    ${CUDA_TOOLKIT_ROOT_DIR}/lib64
-    ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64
-    /usr/lib/x86_64-linux-gnu
-    )
-  if(CUDNN_LIBRARY)
-    message(STATUS "Found cuDNN library: ${CUDNN_LIBRARY}")
-  else()
-    message(FATAL_ERROR "cuDNN library not found")
-  endif()
-
   if(WITH_TENSORRT)
     find_library(TENSORRT_LIBRARY NAMES nvinfer)
     find_path(TENSORRT_INCLUDE_DIR NAMES NvInfer.h)
@@ -295,7 +284,6 @@ if (WITH_CUDA)
     )
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
-    ${CUDNN_LIBRARY}
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})

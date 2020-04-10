@@ -64,36 +64,12 @@ namespace ctranslate2 {
       cublasHandle_t _handle;
     };
 
-    class CudnnHandle {
-    public:
-      CudnnHandle() {
-        CUDA_CHECK(cudaGetDevice(&_device));
-        CUDNN_CHECK(cudnnCreate(&_handle));
-        CUDNN_CHECK(cudnnSetStream(_handle, get_cuda_stream()));
-      }
-      ~CudnnHandle() {
-        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
-        cudnnDestroy(_handle);
-      }
-      cudnnHandle_t get() const {
-        return _handle;
-      }
-    private:
-      int _device;
-      cudnnHandle_t _handle;
-    };
-
     // We create one cuBLAS/cuDNN handle per host thread. The handle is destroyed
     // when the thread exits.
 
     cublasHandle_t get_cublas_handle() {
       static thread_local CublasHandle cublas_handle;
       return cublas_handle.get();
-    }
-
-    cudnnHandle_t get_cudnn_handle() {
-      static thread_local CudnnHandle cudnn_handle;
-      return cudnn_handle.get();
     }
 
     CachingAllocatorConfig get_caching_allocator_config() {
