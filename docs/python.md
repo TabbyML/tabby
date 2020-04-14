@@ -47,6 +47,7 @@ output = translator.translate_batch(
     beam_size=2,               # Beam size (set 1 to run greedy search).
     num_hypotheses=1,          # Number of hypotheses to return (should be <= beam_size).
     length_penalty=0,          # Length penalty constant to use during beam search.
+    coverage_penalty=0,        # Converage penalty constant to use during beam search.
     max_decoding_length=250,   # Maximum prediction length.
     min_decoding_length=1,     # Minimum prediction length.
     use_vmap=False,            # Use the vocabulary mapping file saved in this model.
@@ -69,6 +70,7 @@ stats = translator.translate_file(
     beam_size=2,
     num_hypotheses=1,
     length_penalty=0,
+    coverage_penalty=0,
     max_decoding_length=250,
     min_decoding_length=1,
     use_vmap=False,

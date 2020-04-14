@@ -97,6 +97,28 @@ namespace ctranslate2 {
     static void sub(const T* a, const T* b, T* c, dim_t size);
 
     template <typename T>
+    static void max(T a, const T* x, T* y, dim_t size);
+
+    template <typename T>
+    static void max(const T* a, const T* b, T* c, dim_t size);
+
+    template <typename T>
+    static void max(T a, T* y, dim_t size) {
+      max(a, y, y, size);
+    }
+
+    template <typename T>
+    static void min(T a, const T* x, T* y, dim_t size);
+
+    template <typename T>
+    static void min(const T* a, const T* b, T* c, dim_t size);
+
+    template <typename T>
+    static void min(T a, T* y, dim_t size) {
+      min(a, y, y, size);
+    }
+
+    template <typename T>
     static void mul(T a, const T* x, T* y, dim_t size);
 
     template <typename T>

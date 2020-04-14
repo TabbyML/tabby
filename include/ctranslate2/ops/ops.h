@@ -28,3 +28,5 @@
 #include "transpose.h"
 #include "dequantize.h"
 #include "unsqueeze.h"
+#include "min_max.h"
+#include "log.h"

@@ -27,7 +27,7 @@ namespace ctranslate2 {
 
   class BeamSearch : public SearchStrategy {
   public:
-    BeamSearch(const dim_t beam_size, const float length_penalty = 0);
+    BeamSearch(const dim_t beam_size, const float length_penalty = 0, const float coverage_penalty = 0);
 
     void
     search(layers::Decoder& decoder,
@@ -47,6 +47,7 @@ namespace ctranslate2 {
   private:
     const dim_t _beam_size;
     const float _length_penalty;
+    const float _coverage_penalty;
   };
 
   class GreedySearch : public SearchStrategy {

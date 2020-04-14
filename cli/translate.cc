@@ -39,6 +39,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<bool>()->default_value("false"))
     ("length_penalty", "Length penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
+    ("coverage_penalty", "Coverage penalty to apply during beam search",
+     cxxopts::value<float>()->default_value("0"))
     ("max_sent_length", "Maximum sentence length to produce.",
      cxxopts::value<size_t>()->default_value("250"))
     ("min_sent_length", "Minimum sentence length to produce.",
@@ -84,6 +86,7 @@ int main(int argc, char* argv[]) {
   options.batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
+  options.coverage_penalty = args["coverage_penalty"].as<float>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();
   options.sampling_temperature = args["sampling_temperature"].as<float>();
   options.max_decoding_length = args["max_sent_length"].as<size_t>();

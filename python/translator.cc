@@ -82,6 +82,7 @@ public:
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
+                           float coverage_penalty,
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
@@ -99,6 +100,7 @@ public:
       options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
+      options.coverage_penalty = coverage_penalty;
       options.sampling_topk = sampling_topk;
       options.sampling_temperature = sampling_temperature;
       options.max_decoding_length = max_decoding_length;
@@ -126,6 +128,7 @@ public:
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
+                           float coverage_penalty,
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
@@ -151,6 +154,7 @@ public:
       options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
+      options.coverage_penalty = coverage_penalty;
       options.sampling_topk = sampling_topk;
       options.sampling_temperature = sampling_temperature;
       options.max_decoding_length = max_decoding_length;
@@ -273,6 +277,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
+         py::arg("coverage_penalty")=0,
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
@@ -290,6 +295,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
+         py::arg("coverage_penalty")=0,
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,

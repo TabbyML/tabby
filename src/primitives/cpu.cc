@@ -234,6 +234,34 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::max(T a, const T* x, T* y, dim_t size){
+    unary_transform(x, y, size, [&a](T v) { return a > v ? a : v; });
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::max(const T* a, const T* b, T* c, dim_t size){
+    binary_transform(a, b, c, size, [](const T &a, const T& b){
+      return std::max<T>(a, b);
+    });
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::min(T a, const T* x, T* y, dim_t size){
+    unary_transform(x, y, size, [&a](T v) { return a > v ? v : a; });
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CPU>::min(const T* a, const T* b, T* c, dim_t size){
+    binary_transform(a, b, c, size, [](const T &a, const T& b){
+      return std::min<T>(a, b);
+    });
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::mul(T a, const T* x, T* y, dim_t size) {
     unary_transform(x, y, size, [&a](T v) { return v * a; });
   }
@@ -781,6 +809,14 @@ namespace ctranslate2 {
                                                dim_t a_size, dim_t b_size); \
   template void                                                         \
   primitives<Device::CPU>::sub(const T* a, const T* b, T* c, dim_t size); \
+  template void                                                         \
+  primitives<Device::CPU>::min(T a, const T* x, T* y, dim_t size);      \
+  template void                                                         \
+  primitives<Device::CPU>::min(const T* a, const T* b, T* c, dim_t size); \
+  template void                                                         \
+  primitives<Device::CPU>::max(T a, const T* x, T* y, dim_t size);     \
+  template void                                                         \
+  primitives<Device::CPU>::max(const T* a, const T* b, T* c, dim_t size); \
   template void                                                         \
   primitives<Device::CPU>::mul(T a, const T* x, T* y, dim_t size);      \
   template void                                                         \

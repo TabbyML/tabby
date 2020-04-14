@@ -27,6 +27,8 @@ namespace ctranslate2 {
     size_t beam_size = 2;
     // Length penalty value to apply during beam search.
     float length_penalty = 0;
+    // Coverage value to apply during beam search.
+    float coverage_penalty = 0;
 
     // Decoding length constraints.
     size_t max_decoding_length = 250;
