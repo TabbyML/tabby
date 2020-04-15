@@ -77,12 +77,11 @@ namespace ctranslate2 {
     private:
       void process_linear_weights();
       void set_compute_type(ComputeType type);
-      void convert_to_compute_type(const std::string& name,
-                                   StorageView& variable,
-                                   const bool support_int8,
-                                   const bool support_int16,
-                                   std::vector<std::pair<std::string, StorageView>>& variables_to_add,
-                                   std::vector<std::string>& variables_to_remove);
+      void ensure_dtype(const std::string& name,
+                        StorageView& variable,
+                        const DataType target_dtype,
+                        std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                        std::vector<std::string>& variables_to_remove);
     };
 
   }

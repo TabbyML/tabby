@@ -188,19 +188,14 @@ namespace ctranslate2 {
     }
 
     void
-    Model::convert_to_compute_type(const std::string& name,
-                                   StorageView& variable,
-                                   const bool support_int8,
-                                   const bool support_int16,
-                                   std::vector<std::pair<std::string, StorageView>>& variables_to_add,
-                                   std::vector<std::string>& variables_to_remove) {
+    Model::ensure_dtype(const std::string& name,
+                        StorageView& variable,
+                        const DataType target_dtype,
+                        std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                        std::vector<std::string>& variables_to_remove) {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
       const bool is_float = variable.dtype() == DataType::FLOAT;
-      const DataType target_dtype = compute_type_to_data_type(_compute_type,
-                                                              variable.dtype(),
-                                                              support_int8,
-                                                              support_int16);
 
       const std::string scale_name = name + "_scale";
       StorageView* saved_scale = nullptr;
@@ -260,12 +255,15 @@ namespace ctranslate2 {
 
         // Convert "weight" variables to the expected compute type.
         if (is_quantizable(name)) {
-          convert_to_compute_type(name,
-                                  variable,
-                                  support_int8,
-                                  support_int16,
-                                  variables_to_add,
-                                  variables_to_remove);
+          const DataType target_dtype = compute_type_to_data_type(_compute_type,
+                                                                  variable.dtype(),
+                                                                  support_int8,
+                                                                  support_int16);
+          ensure_dtype(name,
+                       variable,
+                       target_dtype,
+                       variables_to_add,
+                       variables_to_remove);
         }
       }
 
