@@ -595,7 +595,6 @@ TEST_P(OpDeviceTest, ReLU) {
 
 TEST_P(OpDeviceTest, Log) {
   Device device = GetParam();
-  float abs_diff = 1e-6;
   std::vector<float > input_vec({0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4});
   std::vector<float > output_vec;
   output_vec.reserve(input_vec.size());
@@ -605,7 +604,7 @@ TEST_P(OpDeviceTest, Log) {
   StorageView expected({2, 4}, output_vec, device);
   StorageView output(device);
   ops::Log()(input, output);
-  expect_storage_eq(output, expected, abs_diff);
+  expect_storage_eq(output, expected, 1e-4);
 }
 
 template <typename T, typename Ops, typename Func>
