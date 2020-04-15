@@ -19,6 +19,8 @@ namespace ctranslate2 {
       std::unique_ptr<layers::Encoder> make_encoder() const override;
       std::unique_ptr<layers::Decoder> make_decoder() const override;
     protected:
+      bool is_quantizable(const std::string& variable_name) const override;
+      bool is_linear_weight(const std::string& variable_name) const override;
       void register_variable(const std::string& name, StorageView& variable) override;
       void finalize() override;
 

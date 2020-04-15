@@ -38,46 +38,23 @@ namespace ctranslate2 {
     }
 
 
-    static bool should_shift_input_to_u8(Device device, DataType dtype) {
-      // If the target Gemm implementation prefers the u8s8s32 format, we can shift
-      // the input to the u8 domain and add a compensation term.
-      return (device == Device::CPU
-              && dtype == DataType::INT8
-              && primitives<Device::CPU>::prefer_u8s8s32_gemm());
-    }
-
-    static StorageView* compute_u8_compensation(const StorageView& weight) {
-      // The compensation term for the shifted input only depends on the weight, so
-      // we can compute it once.
-      const dim_t k = weight.dim(1);
-      const dim_t n = weight.dim(0);
-      auto* compensation = new StorageView({n}, DataType::INT32);
-      primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
-                                                       /*transpose=*/true,
-                                                       k, n,
-                                                       /*alpha=*/1,
-                                                       compensation->data<int32_t>());
-      return compensation;
-    }
-
     Dense::Dense(const models::Model& model, const std::string& scope)
       : _weight(model.get_variable(scope + "/weight"))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
+      , _u8_shift_compensation(model.get_variable_if_exists(scope + "/weight_compensation"))
+      , _u8_shift(_u8_shift_compensation ? 128 : 0)
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_weight.device(), DataType::FLOAT)
-      , _partial_qscale(_weight.device())
-      , _gemm_op(1, 0, false, true)
-      , _u8_quantization_shift(should_shift_input_to_u8(_weight.device(), _weight.dtype())
-                               ? 128 : 0)
-      , _u8_shift_compensation(_u8_quantization_shift != 0
-                               ? compute_u8_compensation(_weight) : nullptr) {
+      , _partial_qscale(_weight.device(), DataType::FLOAT)
+      , _partial_u8_shift_compensation(_weight.device(), DataType::INT32)
+      , _gemm_op(1, 0, false, true) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
       ops::Gather()(_weight, index, _partial_weight);
       if (_u8_shift_compensation)
-        _u8_shift_compensation.reset(compute_u8_compensation(_partial_weight));
+        ops::Gather()(*_u8_shift_compensation, index, _partial_u8_shift_compensation);
       if (_bias)
         ops::Gather()(*_bias, index, _partial_bias);
       if (_qscale && !_qscale->is_scalar())
@@ -88,6 +65,7 @@ namespace ctranslate2 {
       _partial_weight.clear();
       _partial_bias.clear();
       _partial_qscale.clear();
+      _partial_u8_shift_compensation.clear();
     }
 
     void Dense::operator()(const StorageView& input, StorageView& output) const {
@@ -95,14 +73,17 @@ namespace ctranslate2 {
       const StorageView* qscale = _partial_qscale.empty() ? _qscale : &_partial_qscale;
       const StorageView* weight = _partial_weight.empty() ? &_weight : &_partial_weight;
       const StorageView* bias = _partial_bias.empty() ? _bias : &_partial_bias;
+      const StorageView* compensation = (_partial_u8_shift_compensation.empty()
+                                         ? _u8_shift_compensation
+                                         : &_partial_u8_shift_compensation);
 
       if (_weight.dtype() == DataType::INT16 || _weight.dtype() == DataType::INT8) {
         const auto device = input.device();
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::INT32, device);
-        ops::Quantize()(input, qinput, qinput_scale, _u8_quantization_shift);
-        _gemm_op(qinput, *weight, qoutput, _u8_shift_compensation.get());
+        ops::Quantize()(input, qinput, qinput_scale, _u8_shift);
+        _gemm_op(qinput, *weight, qoutput, compensation);
         ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
       } else {
         _gemm_op(input, *weight, output);

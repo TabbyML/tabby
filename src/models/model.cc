@@ -141,9 +141,7 @@ namespace ctranslate2 {
     }
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
-      auto alias_it = _variable_alias.find(name);
-      const auto variable_name = alias_it != _variable_alias.end() ? alias_it->second : name;
-      auto it = _variable_index.find(variable_name);
+      auto it = _variable_index.find(name);
       if (it == _variable_index.end())
         return nullptr;
       return &it->second;
@@ -172,9 +170,21 @@ namespace ctranslate2 {
 
     void Model::register_variable_alias(const std::string& alias,
                                         const std::string& variable_name) {
-      _variable_alias.emplace(alias, variable_name);
-      // Also alias the quantization scale that could be associated to variable_name.
-      _variable_alias.emplace(alias + "_scale", variable_name + "_scale");
+      auto it = _variable_index.find(variable_name);
+      if (it == _variable_index.end())
+        return;
+      StorageView& variable = it->second;
+      StorageView view(variable.dtype(), variable.device());
+      view.shallow_copy(variable);
+      register_variable(alias, view);
+    }
+
+    bool Model::is_quantizable(const std::string&) const {
+      return false;
+    }
+
+    bool Model::is_linear_weight(const std::string&) const {
+      return false;
     }
 
     void
@@ -249,7 +259,7 @@ namespace ctranslate2 {
         auto& variable = variable_pair.second;
 
         // Convert "weight" variables to the expected compute type.
-        if (ends_with(name, "weight")) {
+        if (is_quantizable(name)) {
           convert_to_compute_type(name,
                                   variable,
                                   support_int8,
@@ -269,6 +279,42 @@ namespace ctranslate2 {
 
       // Second pass to move variables on the target device.
       move_variables_to_device(_variable_index, _device);
+    }
+
+    // This method runs some precomputations on linear weights when possible.
+    void Model::process_linear_weights() {
+      if (_device != Device::CPU)
+        return;  // There is currently no processing for non CPU device.
+
+      std::vector<std::pair<std::string, StorageView>> variables_to_add;
+
+      for (auto& pair : _variable_index) {
+        const std::string& name = pair.first;
+        if (!is_linear_weight(name))
+          continue;
+
+        StorageView& weight = pair.second;
+
+        // If the target Gemm implementation prefers the u8s8s32 format, we can shift
+        // the input of linear layers to the u8 domain and add a compensation term.
+        // This term only depends on the linear weight, so we can compute it once and
+        // store it as a model variable.
+        if (weight.dtype() == DataType::INT8
+            && primitives<Device::CPU>::prefer_u8s8s32_gemm()) {
+          const dim_t k = weight.dim(1);
+          const dim_t n = weight.dim(0);
+          StorageView compensation({n}, DataType::INT32);
+          primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
+                                                           /*transpose=*/true,
+                                                           k, n,
+                                                           /*alpha=*/1,
+                                                           compensation.data<int32_t>());
+          variables_to_add.emplace_back(name + "_compensation", std::move(compensation));
+        }
+      }
+
+      for (auto& pair : variables_to_add)
+        _variable_index.emplace(std::move(pair));
     }
 
     static DataType get_dtype_from_item_size(uint8_t item_size) {
@@ -381,20 +427,22 @@ namespace ctranslate2 {
         delete [] dimensions;
       }
 
+      model->finalize();
+
+      // Register aliases, which are shallow copies of finalized variables.
       if (binary_version >= 3) {
         const auto num_aliases = consume<uint32_t>(model_file);
-        // We reserve double the size because we alias both the variable name and
-        // its possible quantization scale name.
-        model->_variable_alias.reserve(num_aliases * 2);
         for (uint32_t i = 0; i < num_aliases; ++i) {
           const auto alias = consume<std::string>(model_file);
           const auto variable_name = consume<std::string>(model_file);
           model->register_variable_alias(alias, variable_name);
+          // Also alias the quantization scale that could be associated to variable_name.
+          model->register_variable_alias(alias + "_scale", variable_name + "_scale");
         }
       }
 
-      model->finalize();
-      return std::shared_ptr<Model>(model);
+      model->process_linear_weights();
+      return std::shared_ptr<const Model>(model);
     }
 
     bool contains_model(const std::string& path) {
