@@ -2,7 +2,17 @@
 
 ### New features
 
+* Coverage penalty as in [Wu et al. 2016](https://arxiv.org/abs/1609.08144) with the option `coverage_penalty`
+* Batch size can be expressed in number of tokens with the option `batch_type`
+* Translation scores can be disabled with the option `return_scores` (if disabled, the final SoftMax is skipped during greedy decoding)
+* Support compilation without TensorRT by setting `-DWITH_TENSORRT=OFF` during CMake configuration (in this case, beam search is no longer supported)
+
 ### Fixes and improvements
+
+* Remove direct dependency to cuDNN (still an indirect dependency via TensorRT)
+* Static AVX optimization for the ReLU operator
+* Remove unnecessary memory initialization when creating temporary buffers
+* Dissociate SoftMax and LogSoftMax in profiling report
 
 ## [v1.9.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.9.1) (2020-04-08)
 
