@@ -191,7 +191,7 @@ namespace ctranslate2 {
     Model::ensure_dtype(const std::string& name,
                         StorageView& variable,
                         const DataType target_dtype,
-                        std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                        std::unordered_map<std::string, StorageView>& variables_to_add,
                         std::vector<std::string>& variables_to_remove) {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
@@ -206,8 +206,8 @@ namespace ctranslate2 {
           saved_scale = &it->second;
         } else if (is_int16) {
           // Backward compatibility with int16 models without a saved scale.
-          variables_to_add.emplace_back(scale_name, ops::Quantize::default_int16_scale);
-          saved_scale = &variables_to_add.back().second;
+          saved_scale = &variables_to_add.emplace(scale_name,
+                                                  ops::Quantize::default_int16_scale).first->second;
         } else {
           throw std::runtime_error("variable " + scale_name + " not found");
         }
@@ -229,7 +229,7 @@ namespace ctranslate2 {
         // Quantize float32 to int8 or int16.
         StorageView scale;
         quantize_op(variable, target_variable, scale);
-        variables_to_add.emplace_back(scale_name, scale);
+        variables_to_add.emplace(scale_name, scale);
       } else {
         // Convert int8 -> float32 -> int16 or int16 -> float32 -> int8.
         StorageView tmp_variable;
@@ -247,7 +247,7 @@ namespace ctranslate2 {
       const bool support_int16 = mayiuse_int16(_device, _device_index);
 
       std::vector<std::string> variables_to_remove;
-      std::vector<std::pair<std::string, StorageView>> variables_to_add;
+      std::unordered_map<std::string, StorageView> variables_to_add;
 
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;
@@ -284,7 +284,7 @@ namespace ctranslate2 {
       if (_device != Device::CPU)
         return;  // There is currently no processing for non CPU device.
 
-      std::vector<std::pair<std::string, StorageView>> variables_to_add;
+      std::unordered_map<std::string, StorageView> variables_to_add;
 
       for (auto& pair : _variable_index) {
         const std::string& name = pair.first;
@@ -307,7 +307,7 @@ namespace ctranslate2 {
                                                            k, n,
                                                            /*alpha=*/1,
                                                            compensation.data<int32_t>());
-          variables_to_add.emplace_back(name + "_compensation", std::move(compensation));
+          variables_to_add.emplace(name + "_compensation", std::move(compensation));
         }
       }
 

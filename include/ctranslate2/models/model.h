@@ -80,7 +80,7 @@ namespace ctranslate2 {
       void ensure_dtype(const std::string& name,
                         StorageView& variable,
                         const DataType target_dtype,
-                        std::vector<std::pair<std::string, StorageView>>& variables_to_add,
+                        std::unordered_map<std::string, StorageView>& variables_to_add,
                         std::vector<std::string>& variables_to_remove);
     };
 
