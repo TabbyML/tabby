@@ -90,11 +90,13 @@ ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec T
 
 ### Python package
 
-The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will get you started in converting and executing models (CPU only):
+The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will get you started in converting and executing models:
 
 ```bash
 pip install ctranslate2
 ```
+
+The package published on PyPI only supports CPU execution at the moment. Consider using a Docker image for GPU support (see below).
 
 **Requirements:**
 
@@ -112,7 +114,7 @@ docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
 The images include:
 
 * a translation client to directly translate files (only in Ubuntu images)
-* Python 2 and 3 packages (with GPU support)
+* Python 3 packages (with GPU support)
 * `libctranslate2.so` library development files
 
 ### Manual compilation
