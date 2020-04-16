@@ -45,10 +45,10 @@ namespace ctranslate2 {
     return future;
   }
 
-  void TranslatorPool::work_loop(Translator& translator, size_t intra_threads) {
+  void TranslatorPool::work_loop(Translator& translator, size_t num_threads) {
     // set_num_threads is called here because it sets the number of OpenMP threads for
     // the current thread.
-    set_num_threads(intra_threads);
+    set_num_threads(num_threads);
 
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
@@ -140,7 +140,7 @@ namespace ctranslate2 {
   }
 
   const std::vector<Translator>& TranslatorPool::get_translators() const {
-    return _translator_pool;
+    return _translators;
   }
 
 }

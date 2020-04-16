@@ -25,22 +25,22 @@ namespace ctranslate2 {
   public:
     // "args" are forwarded to the Translator constructor.
     template <typename... Args>
-    TranslatorPool(size_t num_replicas, size_t num_threads_per_replica, Args&&... args) {
-      set_num_threads(num_threads_per_replica);
-      _translator_pool.emplace_back(std::forward<Args>(args)...);
+    TranslatorPool(size_t num_translators, size_t num_threads_per_translator, Args&&... args) {
+      set_num_threads(num_threads_per_translator);
+      _translators.emplace_back(std::forward<Args>(args)...);
       // On GPU, we currently don't benefit much from running instances in parallel, even
       // when using separate streams. This could be revisited/improved in the future.
-      if (_translator_pool.back().device() != Device::CUDA) {
-        _translator_pool.reserve(num_replicas);
-        for (size_t i = 1; i < num_replicas; ++i)
-          _translator_pool.emplace_back(_translator_pool.front());
+      if (_translators.back().device() != Device::CUDA) {
+        _translators.reserve(num_translators);
+        for (size_t i = 1; i < num_translators; ++i)
+          _translators.emplace_back(_translators.front());
       }
-      _workers.reserve(_translator_pool.size());
-      for (auto& translator : _translator_pool)
+      _workers.reserve(_translators.size());
+      for (auto& translator : _translators)
         _workers.emplace_back(&TranslatorPool::work_loop,
                               this,
                               std::ref(translator),
-                              num_threads_per_replica);
+                              num_threads_per_translator);
     }
 
     ~TranslatorPool();
@@ -135,12 +135,12 @@ namespace ctranslate2 {
       const TranslationOptions options;
     };
 
-    void work_loop(Translator& translator, size_t intra_threads);
+    void work_loop(Translator& translator, size_t num_threads);
 
     std::condition_variable _can_add_more_work;
     std::queue<std::pair<const TranslationJob, std::promise<TranslationOutput>>> _work;
     std::vector<std::thread> _workers;
-    std::vector<Translator> _translator_pool;
+    std::vector<Translator> _translators;
     std::mutex _mutex;
     std::condition_variable _cv;
     bool _request_end = false;
