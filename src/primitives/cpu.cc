@@ -246,6 +246,14 @@ namespace ctranslate2 {
     });
   }
 
+#ifdef WITH_MKL
+  template<>
+  template<>
+  void primitives<Device::CPU>::max(const float* a, const float* b, float* c, dim_t size) {
+    vsFmax(size, a, b, c);
+  }
+#endif
+
   template<>
   template <typename T>
   void primitives<Device::CPU>::min(T a, const T* x, T* y, dim_t size){
@@ -259,6 +267,14 @@ namespace ctranslate2 {
       return std::min<T>(a, b);
     });
   }
+
+#ifdef WITH_MKL
+  template<>
+  template<>
+  void primitives<Device::CPU>::min(const float* a, const float* b, float* c, dim_t size) {
+    vsFmin(size, a, b, c);
+  }
+#endif
 
   template<>
   template <typename T>
