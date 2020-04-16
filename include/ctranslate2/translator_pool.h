@@ -26,7 +26,6 @@ namespace ctranslate2 {
     // "args" are forwarded to the Translator constructor.
     template <typename... Args>
     TranslatorPool(size_t num_translators, size_t num_threads_per_translator, Args&&... args) {
-      set_num_threads(num_threads_per_translator);
       _translators.emplace_back(std::forward<Args>(args)...);
       // On GPU, we currently don't benefit much from running instances in parallel, even
       // when using separate streams. This could be revisited/improved in the future.

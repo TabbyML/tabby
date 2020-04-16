@@ -66,10 +66,11 @@ public:
     , _device(ctranslate2::str_to_device(device))
     , _device_index(device_index)
     , _compute_type(ctranslate2::str_to_compute_type(compute_type))
-    , _model(ctranslate2::models::Model::load(_model_path,
-                                              _device,
-                                              _device_index,
-                                              _compute_type))
+    , _model((ctranslate2::set_num_threads(intra_threads),
+              ctranslate2::models::Model::load(_model_path,
+                                               _device,
+                                               _device_index,
+                                               _compute_type)))
     , _model_state(ModelState::Loaded)
     , _translator_pool(inter_threads, intra_threads, _model) {
   }

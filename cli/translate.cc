@@ -73,6 +73,9 @@ int main(int argc, char* argv[]) {
   size_t inter_threads = args["inter_threads"].as<size_t>();
   size_t intra_threads = args["intra_threads"].as<size_t>();
 
+  // The same number of OpenMP threads should be used for loading and running model.
+  ctranslate2::set_num_threads(intra_threads);
+
   auto model = ctranslate2::models::Model::load(
     args["model"].as<std::string>(),
     args["device"].as<std::string>(),
