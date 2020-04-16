@@ -54,6 +54,7 @@ namespace ctranslate2 {
         } else {
           y.resize({m, n});
           primitives<D>::gemm(a.data<In>(), b.data<In>(),
+                              /*a_is_packed=*/false, /*b_is_packed=*/false,
                               _trans_a, _trans_b,
                               m, n, k,
                               _alpha, beta, y.data<Out>());

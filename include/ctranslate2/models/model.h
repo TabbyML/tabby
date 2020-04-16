@@ -61,6 +61,9 @@ namespace ctranslate2 {
       // Returns true if the variable is the weight of a linear/dense layer.
       virtual bool is_linear_weight(const std::string& variable_name) const;
 
+      // Returns true if the variable can be pre-packed.
+      virtual bool is_packable(const std::string& variable_name) const;
+
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(const std::string& name, StorageView& variable);

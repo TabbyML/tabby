@@ -38,8 +38,21 @@ namespace ctranslate2 {
     }
 
 
+    static const StorageView& get_linear_weight(const models::Model& model,
+                                                const std::string& scope,
+                                                bool* is_packed) {
+      const StorageView* weight = model.get_variable_if_exists(scope + "/weight_packed");
+      if (weight) {
+        *is_packed = true;
+        return *weight;
+      }
+      *is_packed = false;
+      return model.get_variable(scope + "/weight");
+    }
+
     Dense::Dense(const models::Model& model, const std::string& scope)
-      : _weight(model.get_variable(scope + "/weight"))
+      : _packed_weight(false)
+      , _weight(get_linear_weight(model, scope, &_packed_weight))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _u8_shift_compensation(model.get_variable_if_exists(scope + "/weight_compensation"))
@@ -48,10 +61,17 @@ namespace ctranslate2 {
       , _partial_bias(_weight.device(), DataType::FLOAT)
       , _partial_qscale(_weight.device(), DataType::FLOAT)
       , _partial_u8_shift_compensation(_weight.device(), DataType::INT32)
-      , _gemm_op(1, 0, false, true) {
+      , _gemm_op(/*alpha=*/1,
+                 /*beta=*/0,
+                 /*trans_a=*/false,
+                 /*trans_b=*/true,
+                 /*a_is_packed=*/false,
+                 _packed_weight) {
     }
 
     void Dense::mask_weights(const StorageView& index) {
+      if (_packed_weight)
+        throw std::runtime_error("Can't mask pre-packed weight");
       ops::Gather()(_weight, index, _partial_weight);
       if (_u8_shift_compensation)
         ops::Gather()(*_u8_shift_compensation, index, _partial_u8_shift_compensation);

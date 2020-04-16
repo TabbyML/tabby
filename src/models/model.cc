@@ -104,6 +104,38 @@ namespace ctranslate2 {
       }
     }
 
+    template <typename T>
+    static void pack_weight(const StorageView& weight,
+                            const bool transpose,
+                            const dim_t k,
+                            const dim_t n,
+                            const float alpha,
+                            StorageView& packed_weight) {
+      const T* src = weight.data<T>();
+      const dim_t pack_bytes = primitives<Device::CPU>::gemm_pack_b(src,
+                                                                    transpose,
+                                                                    k, n,
+                                                                    alpha);
+
+      if (pack_bytes == 0)  // Packed Gemm is not supported.
+        return;
+
+      const dim_t pack_size = pack_bytes / sizeof (T);
+      const dim_t weight_size = weight.size();
+
+      // We want the packed storage to have the same shape as the original weight
+      // so that operators can query its shape, but also have enough space to store
+      // the packed data.
+      packed_weight.reserve(std::max(weight_size, pack_size));
+      packed_weight.resize_as(weight);
+
+      primitives<Device::CPU>::gemm_pack_b(src,
+                                           transpose,
+                                           k, n,
+                                           alpha,
+                                           packed_weight.data<T>());
+    }
+
 
     Model::Model(const std::string&, size_t spec_revision)
       : _spec_revision(spec_revision) {
@@ -184,6 +216,10 @@ namespace ctranslate2 {
     }
 
     bool Model::is_linear_weight(const std::string&) const {
+      return false;
+    }
+
+    bool Model::is_packable(const std::string&) const {
       return false;
     }
 
@@ -284,35 +320,67 @@ namespace ctranslate2 {
       if (_device != Device::CPU)
         return;  // There is currently no processing for non CPU device.
 
+      const bool should_pack_weights = read_bool_from_env("CT2_USE_EXPERIMENTAL_PACKED_GEMM");
+      const bool transpose = true;
+      const float alpha = 1;
+
+      std::vector<std::string> variables_to_remove;
       std::unordered_map<std::string, StorageView> variables_to_add;
 
-      for (auto& pair : _variable_index) {
+      for (const auto& pair : _variable_index) {
         const std::string& name = pair.first;
         if (!is_linear_weight(name))
           continue;
 
-        StorageView& weight = pair.second;
+        const StorageView& weight = pair.second;
+        const DataType dtype = weight.dtype();
+        const dim_t k = weight.dim(1);
+        const dim_t n = weight.dim(0);
 
         // If the target Gemm implementation prefers the u8s8s32 format, we can shift
         // the input of linear layers to the u8 domain and add a compensation term.
         // This term only depends on the linear weight, so we can compute it once and
         // store it as a model variable.
-        if (weight.dtype() == DataType::INT8
+        if (dtype == DataType::INT8
             && primitives<Device::CPU>::prefer_u8s8s32_gemm()) {
-          const dim_t k = weight.dim(1);
-          const dim_t n = weight.dim(0);
           StorageView compensation({n}, DataType::INT32);
           primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
-                                                           /*transpose=*/true,
+                                                           transpose,
                                                            k, n,
-                                                           /*alpha=*/1,
+                                                           alpha,
                                                            compensation.data<int32_t>());
           variables_to_add.emplace(name + "_compensation", std::move(compensation));
+        }
+
+        // If requested, linear weights can be packed for the Gemm call.
+        if (should_pack_weights && is_packable(name)) {
+          StorageView packed_weight(dtype);
+
+          switch (dtype) {
+          case DataType::FLOAT:
+            pack_weight<float>(weight, transpose, k, n, alpha, packed_weight);
+            break;
+          case DataType::INT16:
+            pack_weight<int16_t>(weight, transpose, k, n, alpha, packed_weight);
+            break;
+          case DataType::INT8:
+            pack_weight<int8_t>(weight, transpose, k, n, alpha, packed_weight);
+            break;
+          default:
+            break;
+          }
+
+          if (!packed_weight.empty()) {
+            variables_to_add.emplace(name + "_packed", std::move(packed_weight));
+            variables_to_remove.emplace_back(name);  // The original weight is no longer needed.
+          }
         }
       }
 
       for (auto& pair : variables_to_add)
         _variable_index.emplace(std::move(pair));
+      for (const auto& name : variables_to_remove)
+        _variable_index.erase(name);
     }
 
     static DataType get_dtype_from_item_size(uint8_t item_size) {

@@ -575,10 +575,82 @@ namespace ctranslate2 {
     }
   }
 
+#ifdef WITH_MKL
+  // m value used to pack the b matrix.
+  constexpr MKL_INT mkl_gemm_pack_b_m = 1;
+#endif
+
+  template<>
+  template<>
+  dim_t primitives<Device::CPU>::gemm_pack_b(const float* b,
+                                             const bool transpose_b,
+                                             const dim_t k,
+                                             const dim_t n,
+                                             const float alpha,
+                                             float* dest) {
+#ifdef WITH_MKL
+    if (!dest)
+      return cblas_sgemm_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
+    cblas_sgemm_pack(CblasRowMajor,
+                     CblasBMatrix,
+                     transpose_b ? CblasTrans : CblasNoTrans,
+                     mkl_gemm_pack_b_m, n, k,
+                     alpha,
+                     b,
+                     transpose_b ? k : n,
+                     dest);
+#endif
+    return 0;
+  }
+
+  template<>
+  template<>
+  dim_t primitives<Device::CPU>::gemm_pack_b(const int16_t* b,
+                                             const bool transpose_b,
+                                             const dim_t k,
+                                             const dim_t n,
+                                             const float,
+                                             int16_t* dest) {
+#ifdef WITH_MKL
+    if (!dest)
+      return cblas_gemm_s16s16s32_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
+    cblas_gemm_s16s16s32_pack(CblasRowMajor,
+                              CblasBMatrix,
+                              transpose_b ? CblasTrans : CblasNoTrans,
+                              mkl_gemm_pack_b_m, n, k,
+                              b,
+                              transpose_b ? k : n,
+                              dest);
+#endif
+    return 0;
+  }
+
+  template<>
+  template<>
+  dim_t primitives<Device::CPU>::gemm_pack_b(const int8_t* b,
+                                             const bool transpose_b,
+                                             const dim_t k,
+                                             const dim_t n,
+                                             const float,
+                                             int8_t* dest) {
+#ifdef WITH_MKL
+    if (!dest)
+      return cblas_gemm_s8u8s32_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
+    cblas_gemm_s8u8s32_pack(CblasRowMajor,
+                            CblasBMatrix,
+                            transpose_b ? CblasTrans : CblasNoTrans,
+                            mkl_gemm_pack_b_m, n, k,
+                            b,
+                            transpose_b ? k : n,
+                            dest);
+#endif
+    return 0;
+  }
 
   template<>
   template<>
   void primitives<Device::CPU>::gemm(const float* a, const float* b,
+                                     bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
                                      float alpha, float beta,
@@ -592,12 +664,24 @@ namespace ctranslate2 {
     CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
     CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
 
-    cblas_sgemm(CblasRowMajor,
-                trans_a, trans_b,
-                m, n, k,
-                alpha, a, lda,
-                b, ldb,
-                beta, c, ldc);
+    if (a_is_packed || b_is_packed) {
+      cblas_sgemm_compute(CblasRowMajor,
+                          a_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_a,
+                          b_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_b,
+                          m, n, k,
+                          a, lda,
+                          b, ldb,
+                          beta, c, ldc);
+    } else {
+      cblas_sgemm(CblasRowMajor,
+                  trans_a, trans_b,
+                  m, n, k,
+                  alpha,
+                  a, lda,
+                  b, ldb,
+                  beta,
+                  c, ldc);
+    }
 #else
     throw std::runtime_error("SGEMM not available for CPU");
 #endif
@@ -606,6 +690,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::gemm(const int16_t* a, const int16_t* b,
+                                     bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
                                      float alpha, float beta,
@@ -624,14 +709,27 @@ namespace ctranslate2 {
     MKL_INT16 ob = 0;
     MKL_INT32 oc = 0;
 
-    cblas_gemm_s16s16s32(CblasRowMajor,
-                         trans_a, trans_b,
-                         offsetc, m, n, k,
-                         alpha,
-                         reinterpret_cast<const MKL_INT16*>(a), lda, oa,
-                         reinterpret_cast<const MKL_INT16*>(b), ldb, ob,
-                         beta,
-                         reinterpret_cast<MKL_INT32*>(c), ldc, &oc);
+    if (a_is_packed || b_is_packed) {
+      cblas_gemm_s16s16s32_compute(CblasRowMajor,
+                                   a_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_a,
+                                   b_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_b,
+                                   offsetc, m, n, k,
+                                   alpha,
+                                   a, lda, oa,
+                                   b, ldb, ob,
+                                   beta,
+                                   c, ldc, &oc);
+    } else {
+      cblas_gemm_s16s16s32(CblasRowMajor,
+                           trans_a, trans_b,
+                           offsetc, m, n, k,
+                           alpha,
+                           a, lda, oa,
+                           b, ldb, ob,
+                           beta,
+                           c, ldc, &oc);
+
+    }
 #else
     throw std::runtime_error("INT16 GEMM not available for CPU");
 #endif
@@ -684,6 +782,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::gemm(const int8_t* a, const int8_t* b,
+                                     bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
                                      float alpha, float beta,
@@ -695,6 +794,7 @@ namespace ctranslate2 {
     // uint8 domain and add a compensation term. For more details, see
     // https://intel.github.io/mkl-dnn/dev_guide_int8_computations.html
 
+    const bool use_packed_api = a_is_packed || b_is_packed;
     const uint8_t* ua = nullptr;
     uint8_t* tmp_ua = nullptr;
     int32_t* tmp_a_shift_compensation = nullptr;
@@ -702,6 +802,9 @@ namespace ctranslate2 {
     if (a_shift_compensation) {
       // If the compensation term is passed as argument, we assume a is already shifted.
       ua = reinterpret_cast<const uint8_t*>(a);
+    } else if (use_packed_api) {
+      throw std::invalid_argument("Packed cblas_gemm_s8u8s32 requires the uint8 shift "
+                                  "compensation term to be passed as argument");
     } else {
       const dim_t a_size = m * k;
       tmp_ua = static_cast<uint8_t*>(alloc_data(a_size));
@@ -717,16 +820,31 @@ namespace ctranslate2 {
     const MKL_INT ldb = transpose_b ? k : n;
     const MKL_INT ldc = n;
 
-    cblas_gemm_s8u8s32(CblasRowMajor,
-                       transpose_a ? CblasTrans : CblasNoTrans,
-                       transpose_b ? CblasTrans : CblasNoTrans,
-                       CblasRowOffset,
-                       m, n, k,
-                       alpha,
-                       ua, lda, 0,
-                       b, ldb, 0,
-                       beta,
-                       c, ldc, a_shift_compensation);
+    const CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
+    const CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
+
+    if (use_packed_api) {
+      cblas_gemm_s8u8s32_compute(CblasRowMajor,
+                                 a_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_a,
+                                 b_is_packed ? (MKL_INT)CblasPacked : (MKL_INT)trans_b,
+                                 CblasRowOffset,
+                                 m, n, k,
+                                 alpha,
+                                 ua, lda, 0,
+                                 b, ldb, 0,
+                                 beta,
+                                 c, ldc, a_shift_compensation);
+    } else {
+      cblas_gemm_s8u8s32(CblasRowMajor,
+                         trans_a, trans_b,
+                         CblasRowOffset,
+                         m, n, k,
+                         alpha,
+                         ua, lda, 0,
+                         b, ldb, 0,
+                         beta,
+                         c, ldc, a_shift_compensation);
+    }
 
     if (tmp_ua)
       free_data(tmp_ua);

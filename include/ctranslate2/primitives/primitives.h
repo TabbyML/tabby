@@ -189,8 +189,19 @@ namespace ctranslate2 {
                                         int32_t* compensation);
     static bool prefer_u8s8s32_gemm();
 
+    // If dest is not passed, returns the number of bytes required to store the packed data,
+    // or 0 if packing is not supported.
+    template <typename T>
+    static dim_t gemm_pack_b(const T* b,
+                             const bool transpose_b,
+                             const dim_t k,
+                             const dim_t n,
+                             const float alpha,
+                             T* dest = nullptr);
+
     template <typename In, typename Out>
     static void gemm(const In* a, const In* b,
+                     bool a_is_packed, bool b_is_packed,
                      bool transpose_a, bool transpose_b,
                      dim_t m, dim_t n, dim_t k,
                      float alpha, float beta,

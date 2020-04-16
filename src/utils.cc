@@ -22,6 +22,18 @@
 
 namespace ctranslate2 {
 
+  std::string read_string_from_env(const char* var, const std::string& default_value) {
+    const char* value = std::getenv(var);
+    if (!value)
+      return default_value;
+    return value;
+  }
+
+  bool read_bool_from_env(const char* var, const bool default_value) {
+    const std::string value_str = read_string_from_env(var, default_value ? "1" : "0");
+    return value_str == "1" || value_str == "true" || value_str == "TRUE";
+  }
+
 #ifdef WITH_MKL
   static bool mkl_has_fast_int_gemm() {
 #  if __INTEL_MKL__ > 2019 || (__INTEL_MKL__ == 2019 && __INTEL_MKL_UPDATE__ >= 5)

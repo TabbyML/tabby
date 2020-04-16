@@ -511,6 +511,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CUDA>::gemm(const float* a, const float* b,
+                                      bool, bool,
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
                                       float alpha, float beta,
@@ -538,6 +539,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CUDA>::gemm(const int8_t* a, const int8_t* b,
+                                      bool, bool,
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
                                       float alpha, float beta,

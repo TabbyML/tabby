@@ -62,6 +62,12 @@ namespace ctranslate2 {
       return is_quantizable(variable_name) && variable_name.find("embeddings") == std::string::npos;
     }
 
+    bool TransformerModel::is_packable(const std::string& variable_name) const {
+      // Disallow packing for the last linear layer which can be dynamically masked.
+      return (is_linear_weight(variable_name)
+              && variable_name.find("projection") == std::string::npos);
+    }
+
     void TransformerModel::register_variable(const std::string& name, StorageView& variable) {
       std::string var_name = name;
       if (_spec_revision == 1)

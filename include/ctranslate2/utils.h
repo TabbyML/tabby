@@ -8,6 +8,9 @@
 
 namespace ctranslate2 {
 
+  std::string read_string_from_env(const char* var, const std::string& default_value = "");
+  bool read_bool_from_env(const char* var, const bool default_value = false);
+
   // Check feature support.
   bool mayiuse_int16(Device device, int device_index = 0);
   bool mayiuse_int8(Device device, int device_index = 0);

@@ -7,6 +7,7 @@ namespace ctranslate2 {
 
     template <Device D, typename In, typename Out>
     static void run_gemm(const StorageView& a, const StorageView& b, const StorageView* c,
+                         bool a_is_packed, bool b_is_packed,
                          bool transpose_a, bool transpose_b,
                          dim_t m, dim_t n, dim_t k,
                          float alpha, float beta,
@@ -32,6 +33,7 @@ namespace ctranslate2 {
       }
 
       primitives<D>::gemm(a_data, b_data,
+                          a_is_packed, b_is_packed,
                           transpose_a, transpose_b,
                           m, n, k,
                           alpha, beta,
@@ -40,11 +42,18 @@ namespace ctranslate2 {
     }
 
 
-    Gemm::Gemm(float alpha, float beta, bool trans_a, bool trans_b)
+    Gemm::Gemm(float alpha,
+               float beta,
+               bool trans_a,
+               bool trans_b,
+               bool a_is_packed,
+               bool b_is_packed)
       : _alpha(alpha)
       , _beta(beta)
       , _trans_a(trans_a)
-      , _trans_b(trans_b) {
+      , _trans_b(trans_b)
+      , _a_is_packed(a_is_packed)
+      , _b_is_packed(b_is_packed) {
     }
 
     void Gemm::operator()(const StorageView& a,
@@ -80,6 +89,7 @@ namespace ctranslate2 {
       case DataType::INT8:
         DEVICE_DISPATCH(a.device(),
                         (run_gemm<D, int8_t, int32_t>(a, b, c,
+                                                      _a_is_packed, _b_is_packed,
                                                       _trans_a, _trans_b,
                                                       m, n, k,
                                                       _alpha, _beta,
@@ -91,6 +101,7 @@ namespace ctranslate2 {
         if (a.device() != Device::CPU)
           throw std::invalid_argument("INT16 GEMM is only supported on CPU");
         run_gemm<Device::CPU, int16_t, int32_t>(a, b, c,
+                                                _a_is_packed, _b_is_packed,
                                                 _trans_a, _trans_b,
                                                 m, n, k,
                                                 _alpha, _beta,
@@ -101,6 +112,7 @@ namespace ctranslate2 {
       case DataType::FLOAT:
         DEVICE_DISPATCH(a.device(),
                         (run_gemm<D, float, float>(a, b, c,
+                                                   _a_is_packed, _b_is_packed,
                                                    _trans_a, _trans_b,
                                                    m, n, k,
                                                    _alpha, _beta,
