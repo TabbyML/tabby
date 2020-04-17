@@ -80,6 +80,7 @@ set(SOURCES
   src/ops/gemm.cc
   src/ops/layer_norm.cc
   src/ops/layer_norm_cpu.cc
+  src/ops/log.cc
   src/ops/matmul.cc
   src/ops/mul.cc
   src/ops/multinomial.cc

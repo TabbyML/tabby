@@ -633,7 +633,7 @@ void TestMinMax(Device device, const Ops& ops, const Func& func){
     StorageView input({2, 4}, input_vec, device);
     StorageView expected({2, 4}, output_vec, device);
     StorageView output(device);
-    ops(input, StorageView(compare_val, device), output);
+    ops(input, StorageView(compare_val), output);
     expect_storage_eq(output, expected);
   }
 }

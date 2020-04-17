@@ -7,16 +7,13 @@ namespace ctranslate2 {
 
     class Log : public UnaryOp {
     public:
-      void operator()(const StorageView& x, StorageView& y) const {
-        PROFILE("Log");
-        compute<float>(x, y);
-      }
+      void operator()(const StorageView& x, StorageView& y) const;
 
     private:
-      template <typename T>
+      template <Device D, typename T>
       void compute(const StorageView& x, StorageView& y) const {
         y.resize_as(x);
-        primitives<>::log(x.data<T>(), y.data<T>(), x.size());
+        primitives<D>::log(x.data<T>(), y.data<T>(), x.size());
       }
     };
 
