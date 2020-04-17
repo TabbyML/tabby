@@ -902,7 +902,12 @@ namespace ctranslate2 {
       const float* b_i = b + (i * k * n);
       float* c_i = c + (i * m * n);
 
-      gemm(a_i, b_i, transpose_a, transpose_b, m, n, k, alpha, beta, c_i);
+      gemm(a_i, b_i,
+           /*a_is_packed=*/false, /*b_is_packed=*/false,
+           transpose_a, transpose_b,
+           m, n, k,
+           alpha, beta,
+           c_i);
     }
 #endif
   }
