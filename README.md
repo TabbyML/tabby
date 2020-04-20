@@ -461,7 +461,7 @@ The total number of computing threads launched by the process is summarized by t
 num_threads = inter_threads * intra_threads
 ```
 
-Note that these options are only defined for CPU translation. In particular, `inter_threads` is forced to 1 when executing on GPU.
+Note that these options are only defined for CPU translation and are forced to 1 when executing on GPU.
 
 ### Do you provide a translation server?
 

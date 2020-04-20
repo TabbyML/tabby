@@ -23,23 +23,18 @@ namespace ctranslate2 {
   // A pool of Translators running in parallel.
   class TranslatorPool {
   public:
-    // "args" are forwarded to the Translator constructor.
+    TranslatorPool(size_t num_translators,
+                   size_t num_threads_per_translator,
+                   const std::shared_ptr<const models::Model>& model);
+
+    // "args" are forwarded to the models::Model::load function.
     template <typename... Args>
-    TranslatorPool(size_t num_translators, size_t num_threads_per_translator, Args&&... args) {
-      _translators.emplace_back(std::forward<Args>(args)...);
-      // On GPU, we currently don't benefit much from running instances in parallel, even
-      // when using separate streams. This could be revisited/improved in the future.
-      if (_translators.back().device() != Device::CUDA) {
-        _translators.reserve(num_translators);
-        for (size_t i = 1; i < num_translators; ++i)
-          _translators.emplace_back(_translators.front());
-      }
-      _workers.reserve(_translators.size());
-      for (auto& translator : _translators)
-        _workers.emplace_back(&TranslatorPool::work_loop,
-                              this,
-                              std::ref(translator),
-                              num_threads_per_translator);
+    TranslatorPool(size_t num_translators,
+                   size_t num_threads_per_translator,
+                   const std::string& model_dir,
+                   Args&&... args) {
+      const auto model = models::Model::load(model_dir, std::forward<Args>(args)...);
+      create_translators(model, num_translators, num_threads_per_translator);
     }
 
     ~TranslatorPool();
@@ -134,6 +129,9 @@ namespace ctranslate2 {
       const TranslationOptions options;
     };
 
+    void create_translators(const std::shared_ptr<const models::Model>& model,
+                            size_t num_translators,
+                            size_t num_threads_per_translator);
     void work_loop(Translator& translator, size_t num_threads);
 
     std::condition_variable _can_add_more_work;

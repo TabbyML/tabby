@@ -7,6 +7,12 @@
 
 namespace ctranslate2 {
 
+  TranslatorPool::TranslatorPool(size_t num_translators,
+                                 size_t num_threads_per_translator,
+                                 const std::shared_ptr<const models::Model>& model) {
+    create_translators(model, num_translators, num_threads_per_translator);
+  }
+
   TranslatorPool::~TranslatorPool() {
     {
       std::lock_guard<std::mutex> lock(_mutex);
@@ -43,6 +49,28 @@ namespace ctranslate2 {
     lock.unlock();
     _cv.notify_one();
     return future;
+  }
+
+  void TranslatorPool::create_translators(const std::shared_ptr<const models::Model>& model,
+                                          size_t num_translators,
+                                          size_t num_threads_per_translator) {
+    if (model->device() == Device::CUDA) {
+      // On GPU, we currently don't benefit much from running translators in parallel, even
+      // when using separate streams. This could be revisited/improved in the future.
+      num_translators = 1;
+      // Most computation will run on GPU so multiple CPU computation threads are not useful.
+      num_threads_per_translator = 1;
+    }
+
+    _translators.reserve(num_translators);
+    _workers.reserve(num_translators);
+    for (size_t i = 0; i < num_translators; ++i) {
+      _translators.emplace_back(model);
+      _workers.emplace_back(&TranslatorPool::work_loop,
+                            this,
+                            std::ref(_translators.back()),
+                            num_threads_per_translator);
+    }
   }
 
   void TranslatorPool::work_loop(Translator& translator, size_t num_threads) {
