@@ -225,9 +225,7 @@ CTranslate2 uses the following external libraries for acceleration:
 * CPU requires:
   * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
 * GPU requires:
-  * [CUB](https://nvlabs.github.io/cub/) (>=1.8)
   * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
-  * [Thrust](https://docs.nvidia.com/cuda/thrust/index.html) (==1.9.3)
   * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
   * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
