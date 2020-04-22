@@ -2,7 +2,7 @@ enable_testing()
 
 set(BUILD_GMOCK OFF)
 set(INSTALL_GTEST OFF)
-add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest)
 
 add_executable(ctranslate2_test
   layers_test.cc
