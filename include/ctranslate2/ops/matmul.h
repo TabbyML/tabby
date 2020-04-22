@@ -21,28 +21,38 @@ namespace ctranslate2 {
       void compute(const StorageView& a,
                    const StorageView& b,
                    StorageView& y) const {
-        dim_t m, n, k;
-
+        dim_t m, k_a;
         if (_trans_a) {
           m = a.dim(-1);
-          k = a.dim(-2);
+          k_a = a.dim(-2);
         } else {
           m = a.dim(-2);
-          k = a.dim(-1);
+          k_a = a.dim(-1);
         }
 
+        dim_t k_b, n;
         if (_trans_b) {
           n = b.dim(-2);
-          assert(k == b.dim(-1));
+          k_b = b.dim(-1);
         } else {
           n = b.dim(-1);
-          assert(k == b.dim(-2));
+          k_b = b.dim(-2);
         }
 
-        float beta = 0;
+        if (k_a != k_b)
+          throw std::invalid_argument("MatMul: k dimension of inputs a and b should match");
 
-        if (m * k != a.size()) {
-          const dim_t batch_size = a.size() / (m * k);
+        const dim_t k = k_a;
+        const dim_t a_batch_size = a.size() / (m * k);
+        const dim_t b_batch_size = b.size() / (k * n);
+
+        if (a_batch_size != b_batch_size)
+          throw std::invalid_argument("MatMul: batch dimension of inputs a and b should match");
+
+        const dim_t batch_size = a_batch_size;
+        const float beta = 0;
+
+        if (batch_size > 1) {
           Shape output_shape(a.shape());
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;

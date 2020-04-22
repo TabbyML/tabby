@@ -20,7 +20,7 @@ namespace ctranslate2 {
         DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
         break;
       default:
-        throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
+        throw std::invalid_argument("MatMul: unsupported compute type " + dtype_name(a.dtype()));
       }
     }
 
