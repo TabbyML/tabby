@@ -55,9 +55,9 @@ namespace ctranslate2 {
     }
   }
 
-  static void penalize_token(StorageView& log_probs, dim_t token) {
+  static void penalize_token(StorageView& log_probs, const size_t id) {
     DEVICE_DISPATCH(log_probs.device(),
-                    primitives<D>::strided_fill(log_probs.data<float>() + token,
+                    primitives<D>::strided_fill(log_probs.data<float>() + id,
                                                 static_cast<float>(-1e10),
                                                 log_probs.dim(-1),
                                                 log_probs.dim(0)));
@@ -75,8 +75,8 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
+                     const size_t end_id,
                      const dim_t start_step,
-                     const dim_t end_id,
                      const dim_t max_length,
                      const dim_t min_length,
                      const std::vector<size_t>* output_ids_map,
@@ -359,8 +359,8 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
+                       const size_t end_id,
                        const dim_t start_step,
-                       const dim_t end_id,
                        const dim_t max_length,
                        const dim_t min_length,
                        const std::vector<size_t>* output_ids_map,
@@ -522,7 +522,7 @@ namespace ctranslate2 {
          std::vector<size_t> start_ids,
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
-         const dim_t end_id,
+         const size_t end_id,
          const dim_t max_length,
          const dim_t min_length,
          const size_t num_hypotheses,
@@ -558,8 +558,8 @@ namespace ctranslate2 {
                                         state,
                                         BestSampler(),
                                         start_ids,
-                                        start_step,
                                         end_id,
+                                        start_step,
                                         /*max_length=*/1,
                                         /*min_length=*/1,
                                         output_ids_map,
@@ -582,8 +582,8 @@ namespace ctranslate2 {
                            state,
                            sampler,
                            start_ids,
-                           start_step,
                            end_id,
+                           start_step,
                            max_length,
                            min_length,
                            output_ids_map,
