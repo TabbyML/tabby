@@ -18,9 +18,10 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 
 ## Key features
 
-* **Fast execution**<br/>The execution aims to be faster than a general purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on translation tasks.
-* **Model quantization**<br/>Support INT16 quantization on CPU and INT8 quantization on CPU and GPU.
-* **Parallel translation**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
+* **Efficient runtime**<br/>The runtime aims to be faster and lighter than a general-purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on standard translation tasks.
+* **Interactive decoding**<br/>Advanced decoding features allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
+* **Model quantization**<br/>Support for 16-bit and 8-bit integer quantization to reduce memory and computation requirements.
+* **Parallel translations**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Automatic instruction set dispatch**<br/>When using Intel MKL, the dispatch to the optimal instruction set is done at runtime.
 * **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
