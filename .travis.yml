@@ -39,6 +39,7 @@ matrix:
       before_install:
         - docker run -v $PWD:/root -w /root quay.io/pypa/manylinux2010_x86_64 bash /root/python/tools/build_wheel.sh
         - pip install -r python/tests/requirements.txt
+        - pip uninstall -y ctranslate2
         - pip install twine
       install:
         - pip install python/wheelhouse/*cp37*.whl
