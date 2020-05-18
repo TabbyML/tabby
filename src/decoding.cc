@@ -85,6 +85,7 @@ namespace ctranslate2 {
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
                      const size_t num_hypotheses) const {
     PROFILE("beam_search");
+    const dim_t min_step = start_step + min_length;
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const dim_t batch_size = start_ids.size();
@@ -161,7 +162,7 @@ namespace ctranslate2 {
       }
 
       // Penalize end_id, if configured.
-      if (step < min_length)
+      if (step < min_step)
         penalize_token(log_probs, end_id);
 
       // Flatten the probs into a list of candidates.
@@ -369,6 +370,7 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
                        const size_t) const {
     PROFILE("greedy_search");
+    const dim_t min_step = start_step + min_length;
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const dim_t batch_size = start_ids.size();
@@ -420,7 +422,7 @@ namespace ctranslate2 {
       }
 
       // Penalize end_id, if configured.
-      if (step < min_length)
+      if (step < min_step)
         penalize_token(log_probs, end_id);
 
       sampler(log_probs, best_ids, best_probs);
@@ -523,8 +525,8 @@ namespace ctranslate2 {
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          const size_t end_id,
-         const dim_t max_length,
-         const dim_t min_length,
+         dim_t max_length,
+         dim_t min_length,
          const size_t num_hypotheses,
          const bool return_alternatives,
          const bool return_scores,
@@ -544,7 +546,10 @@ namespace ctranslate2 {
                                      prefix_ids->front(),
                                      return_attention ? &prefix_attention[0] : nullptr);
       start_ids[0] = prefix_ids->front().back();
-      start_step += prefix_ids->front().size();
+      const dim_t prefix_length = prefix_ids->front().size();
+      start_step += prefix_length;
+      max_length = std::max(max_length - prefix_length, dim_t(0));
+      min_length = std::max(min_length - prefix_length, dim_t(0));
     }
 
     std::vector<std::vector<std::vector<size_t>>> expanded_ids;
@@ -573,6 +578,8 @@ namespace ctranslate2 {
       for (size_t i = 0; i < num_hypotheses; ++i)
         start_ids[i] = expanded_ids[0][i].back();
       start_step += 1;
+      max_length = std::max(max_length - 1, dim_t(0));
+      min_length = std::max(min_length - 1, dim_t(0));
     }
 
     std::vector<std::vector<std::vector<size_t>>> sampled_ids;

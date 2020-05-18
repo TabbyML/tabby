@@ -308,6 +308,17 @@ TEST(TranslatorTest, AlternativesFromScratch) {
   EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
 
+TEST(TranslatorTest, AlternativesFromFullTarget) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 4;
+  options.return_alternatives = true;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::string> target = {"a", "t", "z", "m", "o", "n"};
+  const TranslationResult result = translator.translate_with_prefix(input, target, options);
+  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n", "e"}));
+}
+
 TEST(TranslatorTest, DetachModel) {
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   Translator translator = default_translator();
