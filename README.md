@@ -314,45 +314,22 @@ We translate the test set *newstest2014* and report:
 * the number of target tokens generated per second (higher is better)
 * the BLEU score of the detokenized output (higher is better)
 
-Unless otherwise noted, translations are running beam search with a size of 4 and a maximum batch size of 32.
+Translations are running beam search with a size of 4 and a maximum batch size of 32. CPU translations are using 4 threads.
 
 **Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
 
-#### GPU
-
-Configuration:
-
-* **GPU:** NVIDIA Tesla V100
-* **CUDA:** 10.0
-* **Driver:** 410.48
-
-| | Tokens/s | BLEU |
-| --- | --- | --- |
-| CTranslate2 1.2.1 | 3917.32 | 26.70 |
-| CTranslate2 1.2.1 (int8) | 2519.24 | 26.80 |
-| OpenNMT-tf 1.25.0 | 1338.26 | 26.90 |
-| OpenNMT-py 0.9.2 | 980.44 | 26.69 |
-
-#### CPU
-
-Configuration:
-
-* **CPU:** Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz (with AVX2)
-* **Number of threads:** 4 "intra threads", 1 "inter threads" ([what's the difference?](#what-is-the-difference-between-intra_threads-and-inter_threads))
-
-| | Tokens/s | BLEU |
-| --- | --- | --- |
-| CTranslate2 1.5.1 (int8 + vmap) | 647.64 | 26.59 |
-| CTranslate2 1.5.1 (int16 + vmap) | 534.63 | 26.63 |
-| CTranslate2 1.5.1 (int8) | 508.29 | 26.84 |
-| CTranslate2 1.5.1 (int16) | 411.26 | 26.68 |
-| CTranslate2 1.5.1 (float) | 399.72 | 26.69 |
-| OpenNMT-py 0.9.2 | 241.92 | 26.69 |
-| OpenNMT-tf 1.25.0 | 119.34 | 26.90 |
+| | CPU (i7-7700) | GPU (GTX 1080) | GPU (GTX 1080 Ti) | GPU (RTX 2080 Ti) | BLEU |
+| --- | --- | --- | --- | --- | --- |
+| OpenNMT-py 1.1.1 | 179.1 | 1510.0 | 1709.3 | 1406.2 | 26.69 |
+| OpenNMT-tf 2.9.1 | 217.6 | 1659.2 | 1762.8 | 1628.3 | 26.90 |
+| CTranslate2 1.10.0 | 389.4 | 3081.3 | 3388.0 | 4196.2 | 26.69 |
+| - int16 | 413.6 | | | | 26.68 |
+| - int16 + vmap | 527.6 | | | | 26.63 |
+| - int8 | 508.3 | 2654.8 | 2734.6 | 3143.4 | 26.84 |
+| - int8 + vmap | 646.2 | 2921.5 | 2992.1 | 3319.9 | 26.59 |
 
 #### Comments
 
-* Both CTranslate2 and OpenNMT-py drop finished translations from the batch which is especially benefitial on CPU.
 * On GPU, int8 quantization is generally slower as the runtime overhead of int8<->float conversions is presently too high compared to the actual computation.
 * On CPU, performance gains of quantized runs can be greater depending on settings such as the number of threads, batch size, beam size, etc.
 * In addition to possible performance gains, quantization results in a much lower memory usage and can also act as a regularizer (hence the higher BLEU score in some cases).
