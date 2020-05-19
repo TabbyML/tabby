@@ -24,7 +24,9 @@ where the columns mean:
 
 The list is ordered on 5. from the largest to smallest time.
 
-## CUDA caching allocator
+## GPU performance
+
+### CUDA caching allocator
 
 Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 uses a [caching allocator](https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html) which enables a fast reuse of previously allocated buffers.
 
@@ -41,10 +43,17 @@ You can override these values by setting the environment variable `CT2_CUDA_CACH
 export CT2_CUDA_CACHING_ALLOCATOR_CONFIG=8,3,7,6291455
 ```
 
-## Tool to tune intra_threads and inter_threads
+## CPU performance
 
-You can use the script `tune_inter_intra.py` to find the best values for your hardware.
-Simply replace your call to `./build/cli/translate` by `python3 ./tools/tune_inter_intra.py ./build/cli/translate`.
+### Packed GEMM
+
+Packed GEMM could improve performance for single-core decoding. You can enable this mode by setting the environment variable `CT2_USE_EXPERIMENTAL_PACKED_GEMM=1`. See [Intel's article](https://software.intel.com/content/www/us/en/develop/articles/introducing-the-new-packed-apis-for-gemm.html) to learn more about packed GEMM.
+
+### Tuning `intra_threads` and `inter_threads`
+
+You can use the script `tools/tune_inter_intra.py` to find the threading configuration that maximizes the global throughput.
+Simply replace your call to `./build/cli/translate` by `python3 ./tools/tune_inter_intra.py ./build/cli/translate`. The script will run the translation multiple times and report the final tokens per second metric and the maximum memory usage for each threading combination.
+
 ```bash
 head -n 100 valid.de | python3 ./tools/tune_inter_intra.py ./build/cli/translate --model ende_ctranslate2 --beam_size 2 > values.csv
 column -s, -t < out.csv | sort -k3 -r
