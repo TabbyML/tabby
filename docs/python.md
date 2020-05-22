@@ -1,10 +1,12 @@
 # Python
 
+```python
+import ctranslate2
+```
+
 ## Model conversion API
 
 ```python
-import ctranslate2
-
 converter = ctranslate2.converters.OpenNMTTFConverter(
     model_path=None, # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
     src_vocab=None,  # Path to the source vocabulary (required for checkpoints).
@@ -25,8 +27,6 @@ output_dir = converter.convert(
 ## Translation API
 
 ```python
-import ctranslate2
-
 translator = ctranslate2.Translator(
     model_path: str          # Path to the CTranslate2 model directory.
     device="cpu",            # The device to use: "cpu", "cuda", or "auto".
@@ -88,3 +88,10 @@ Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structu
 * `del translator`<br/>Release the translator resources.
 
 When using multiple Python threads, the application should ensure that no translations are running before calling these functions.
+
+## Utility API
+
+```python
+# Helper function to check if a directory seems to contain a CTranslate2 model.
+ctranslate2.contains_model(path: str)
+```
