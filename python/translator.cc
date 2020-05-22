@@ -228,8 +228,7 @@ private:
 
     py::gil_scoped_release release;
 
-    // We can const_cast the model because it is initially constructed as a non
-    // const pointer. We can also mutate it because we locked out all readers.
+    // We can const_cast the model because it is initially constructed as a non const pointer.
     auto* model = const_cast<ctranslate2::models::Model*>(_model.get());
     auto& translators = const_cast<std::vector<ctranslate2::Translator>&>(
       _translator_pool.get_translators());
