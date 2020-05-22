@@ -8,54 +8,54 @@ import ctranslate2
 
 ```python
 converter = ctranslate2.converters.OpenNMTTFConverter(
-    model_path=None, # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
-    src_vocab=None,  # Path to the source vocabulary (required for checkpoints).
-    tgt_vocab=None,  # Path to the target vocabulary (required for checkpoints).
-    variables=None)  # Dict of variables name to value (mutually exclusive with model_path).
+    model_path: str = None,  # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
+    src_vocab: str = None,   # Path to the source vocabulary (required for checkpoints).
+    tgt_vocab: str = None,   # Path to the target vocabulary (required for checkpoints).
+    variables: dict = None)  # Dict of variables name to value (mutually exclusive with model_path).
 
 converter = ctranslate2.converters.OpenNMTPyConverter(
     model_path: str)         # Path to the OpenNMT-py model.
 
 output_dir = converter.convert(
-    output_dir: str,         # Path to the output directory.
-    model_spec: ModelSpec,   # A model specification instance from ctranslate2.specs.
-    vmap=None,               # Path to a vocabulary mapping file.
-    quantization=None,       # Weights quantization: "int8" or "int16".
-    force=False)             # Override output_dir if it exists.
+    output_dir: str,          # Path to the output directory.
+    model_spec: ModelSpec,    # A model specification instance from ctranslate2.specs.
+    vmap: str = None,         # Path to a vocabulary mapping file.
+    quantization: str = None, # Weights quantization: "int8" or "int16".
+    force: bool = False)      # Override output_dir if it exists.
 ```
 
 ## Translation API
 
 ```python
 translator = ctranslate2.Translator(
-    model_path: str          # Path to the CTranslate2 model directory.
-    device="cpu",            # The device to use: "cpu", "cuda", or "auto".
-    device_index=0,          # The index of the device to place this translator on.
-    compute_type="default"   # The computation type: "default", "int8", "int16", or "float".
-    inter_threads=1,         # Maximum number of concurrent translations (CPU only).
-    intra_threads=4)         # Threads to use per translation (CPU only).
+    model_path: str                 # Path to the CTranslate2 model directory.
+    device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
+    device_index: int = 0,          # The index of the device to place this translator on.
+    compute_type: str = "default"   # The computation type: "default", "int8", "int16", or "float".
+    inter_threads: int = 1,         # Maximum number of concurrent translations (CPU only).
+    intra_threads: int = 4)         # Threads to use per translation (CPU only).
 
 # output is a 2D list [batch x num_hypotheses] containing dict with keys:
 # * "score"
 # * "tokens"
 # * "attention" (if return_attention is set to True)
 output = translator.translate_batch(
-    source: list,              # A list of list of string.
-    target_prefix=None,        # An optional list of list of string.
-    max_batch_size=0,          # Maximum batch size to run the model on.
-    batch_type="examples",     # Whether max_batch_size is the number of examples or tokens.
-    beam_size=2,               # Beam size (set 1 to run greedy search).
-    num_hypotheses=1,          # Number of hypotheses to return (should be <= beam_size).
-    length_penalty=0,          # Length penalty constant to use during beam search.
-    coverage_penalty=0,        # Converage penalty constant to use during beam search.
-    max_decoding_length=250,   # Maximum prediction length.
-    min_decoding_length=1,     # Minimum prediction length.
-    use_vmap=False,            # Use the vocabulary mapping file saved in this model.
-    return_scores=True,        # Include the prediction scores in the output.
-    return_attention=False,    # Include the attention vectors in the output.
-    return_alternatives=False, # Return alternatives at the first unconstrained decoding position.
-    sampling_topk=1,           # Randomly sample predictions from the top K candidates (with beam_size=1).
-    sampling_temperature=1.)   # Sampling temperature to generate more random samples.
+    source: list,                      # A list of list of string.
+    target_prefix: list = None,        # An optional list of list of string.
+    max_batch_size: int = 0,           # Maximum batch size to run the model on.
+    batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
+    beam_size: int = 2,                # Beam size (set 1 to run greedy search).
+    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size).
+    length_penalty: float = 0,         # Length penalty constant to use during beam search.
+    coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
+    max_decoding_length: int = 250,    # Maximum prediction length.
+    min_decoding_length: int = 1,      # Minimum prediction length.
+    use_vmap: bool = False,            # Use the vocabulary mapping file saved in this model.
+    return_scores: bool = True,        # Include the prediction scores in the output.
+    return_attention: bool = False,    # Include the attention vectors in the output.
+    return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
+    sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates (with beam_size=1).
+    sampling_temperature: float = 1)   # Sampling temperature to generate more random samples.
 
 # stats is a tuple of file statistics containing in order:
 # 1. the number of generated target tokens
@@ -65,25 +65,25 @@ stats = translator.translate_file(
     input_path: str,         # Input file.
     output_path: str,        # Output file.
     max_batch_size: int,     # Maximum batch size to run the model on.
-    read_batch_size=0,       # Number of sentences to read at once.
-    batch_type="examples",   # Whether the batch size is the number of examples or tokens.
-    beam_size=2,
-    num_hypotheses=1,
-    length_penalty=0,
-    coverage_penalty=0,
-    max_decoding_length=250,
-    min_decoding_length=1,
-    use_vmap=False,
-    with_scores=False,
-    sampling_topk=1,
-    sampling_temperature=1.)
+    read_batch_size: int = 0,       # Number of sentences to read at once.
+    batch_type: str = "examples",   # Whether the batch size is the number of examples or tokens.
+    beam_size: int = 2,
+    num_hypotheses: int = 1,
+    length_penalty: float = 0,
+    coverage_penalty: float = 0,
+    max_decoding_length: int = 250,
+    min_decoding_length: int = 1,
+    use_vmap: bool = False,
+    with_scores: bool = False,
+    sampling_topk: int = 1,
+    sampling_temperature: float = 1)
 ```
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.
 
 ## Memory management API
 
-* `translator.unload_model(to_cpu=False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
+* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
 * `translator.load_model()`<br/>Load the model back to the initial device.
 * `del translator`<br/>Release the translator resources.
 
