@@ -7,6 +7,11 @@ from setuptools import setup, find_packages, Extension
 include_dirs = [pybind11.get_include()]
 library_dirs = []
 
+def _get_long_description():
+    readme_path = os.path.join(os.path.dirname(__file__), "..", "README.md")
+    with open(readme_path) as readme_file:
+        return readme_file.read()
+
 def _maybe_add_library_root(lib_name):
   if "%s_ROOT" % lib_name in os.environ:
     root = os.environ["%s_ROOT" % lib_name]
@@ -32,6 +37,8 @@ setup(
     version="1.10.0",
     license="MIT",
     description="Optimized inference engine for OpenNMT models",
+    long_description=_get_long_description(),
+    long_description_content_type="text/markdown",
     author="OpenNMT",
     author_email="guillaume.klein@systrangroup.com",
     url="https://opennmt.net",
