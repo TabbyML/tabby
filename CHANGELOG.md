@@ -4,6 +4,14 @@
 
 ### Fixes and improvements
 
+## [v1.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.10.1) (2020-05-25)
+
+### Fixes and improvements
+
+* Force `intra_threads` to 1 when running a model on GPU to prevent high CPU load
+* Improve handling of decoding length constraints when using a target prefix
+* Do not raise an error when setting `use_vmap` but no vocabulary map exists
+
 ## [v1.10.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.10.0) (2020-04-17)
 
 ### New features
