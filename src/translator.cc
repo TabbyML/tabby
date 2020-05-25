@@ -165,8 +165,6 @@ namespace ctranslate2 {
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
     if (options.sampling_topk != 1 && options.beam_size != 1)
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
-    if (options.use_vmap && _vocabulary_map->empty())
-      throw std::invalid_argument("use_vmap is set but the model does not include a vocabulary map");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
     if (with_prefix && target_prefix.size() != batch_size)

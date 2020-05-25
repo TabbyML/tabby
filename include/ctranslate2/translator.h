@@ -40,7 +40,7 @@ namespace ctranslate2 {
     // High temperature increase randomness.
     float sampling_temperature = 1;
 
-    // Use the vocabulary map included in the model directory.
+    // Allow using the vocabulary map included in the model directory, if it exists.
     bool use_vmap = false;
 
     // Number of hypotheses to store in the TranslationResult class (should be smaller than
