@@ -51,6 +51,8 @@ RUN mkdir build && \
     VERBOSE=1 make -j4 && \
     make install
 
+ENV LANG=C.UTF-8
+COPY README.md .
 COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
