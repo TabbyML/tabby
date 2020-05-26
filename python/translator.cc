@@ -1,3 +1,4 @@
+#include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
@@ -75,6 +76,9 @@ public:
     , _translator_pool(inter_threads, intra_threads, _model) {
   }
 
+  using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
+  using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
+
   py::tuple translate_file(const std::string& in_file,
                            const std::string& out_file,
                            size_t max_batch_size,
@@ -89,7 +93,12 @@ public:
                            bool use_vmap,
                            bool with_scores,
                            size_t sampling_topk,
-                           float sampling_temperature) {
+                           float sampling_temperature,
+                           const TokenizeFn& tokenize_fn,
+                           const DetokenizeFn& detokenize_fn) {
+    if (bool(tokenize_fn) != bool(detokenize_fn))
+      throw std::invalid_argument("tokenize_fn and detokenize_fn should both be set or none at all");
+
     assert_model_is_ready();
     ctranslate2::TranslationStats stats;
 
@@ -112,11 +121,33 @@ public:
 
       if (read_batch_size == 0)
         read_batch_size = max_batch_size;
-      stats = _translator_pool.consume_text_file(in_file,
-                                                 out_file,
-                                                 read_batch_size,
-                                                 options,
-                                                 with_scores);
+
+      if (tokenize_fn && detokenize_fn) {
+        // Re-acquire the GIL before calling the tokenization functions.
+        const auto safe_tokenize_fn = [&tokenize_fn](const std::string& text) {
+          py::gil_scoped_acquire acquire;
+          return tokenize_fn(text);
+        };
+
+        const auto safe_detokenize_fn = [&detokenize_fn](const std::vector<std::string>& tokens) {
+          py::gil_scoped_acquire acquire;
+          return detokenize_fn(tokens);
+        };
+
+        stats = _translator_pool.consume_raw_text_file(in_file,
+                                                       out_file,
+                                                       safe_tokenize_fn,
+                                                       safe_detokenize_fn,
+                                                       read_batch_size,
+                                                       options,
+                                                       with_scores);
+      } else {
+        stats = _translator_pool.consume_text_file(in_file,
+                                                   out_file,
+                                                   read_batch_size,
+                                                   options,
+                                                   with_scores);
+      }
     }
 
     return py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
@@ -301,7 +332,9 @@ PYBIND11_MODULE(translator, m)
          py::arg("use_vmap")=false,
          py::arg("with_scores")=false,
          py::arg("sampling_topk")=1,
-         py::arg("sampling_temperature")=1)
+         py::arg("sampling_temperature")=1,
+         py::arg("tokenize_fn")=nullptr,
+         py::arg("detokenize_fn")=nullptr)
     .def("unload_model", &TranslatorWrapper::unload_model,
          py::arg("to_cpu")=false)
     .def("load_model", &TranslatorWrapper::load_model)

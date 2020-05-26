@@ -1,8 +1,5 @@
 #include "ctranslate2/translator_pool.h"
 
-#include <chrono>
-#include <fstream>
-
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
@@ -110,17 +107,27 @@ namespace ctranslate2 {
     }
   }
 
+  std::ifstream TranslatorPool::open_input_file(const std::string& file) const {
+    std::ifstream stream(file);
+    if (!stream)
+      throw std::runtime_error("failed to open input file " + file);
+    return stream;
+  }
+
+  std::ofstream TranslatorPool::open_output_file(const std::string& file) const {
+    std::ofstream stream(file);
+    if (!stream)
+      throw std::runtime_error("failed to open output file " + file);
+    return stream;
+  }
+
   TranslationStats TranslatorPool::consume_text_file(const std::string& in_file,
                                                      const std::string& out_file,
                                                      size_t read_batch_size,
                                                      const TranslationOptions& options,
                                                      bool with_scores) {
-    std::ifstream in(in_file);
-    if (!in.is_open())
-      throw std::runtime_error("failed to open input file " + in_file);
-    std::ofstream out(out_file);
-    if (!out.is_open())
-      throw std::runtime_error("failed to open output file " + out_file);
+    std::ifstream in = open_input_file(in_file);
+    std::ofstream out = open_output_file(out_file);
     return consume_text_file(in, out, read_batch_size, options, with_scores);
   }
 
@@ -129,42 +136,27 @@ namespace ctranslate2 {
                                                      size_t read_batch_size,
                                                      const TranslationOptions& options,
                                                      bool with_scores) {
-    TranslationStats stats;
-
-    auto reader = [](std::istream& in, std::vector<std::string>& tokens) {
-      std::string line;
-      if (!std::getline(in, line))
-        return false;
-      tokens = split_string(line, ' ');
-      return true;
+    const auto tokenizer = [](const std::string& text) {
+      return split_string(text, ' ');
     };
 
-    auto writer = [&stats, &with_scores](std::ostream& out, const TranslationResult& result) {
-      const auto& hypotheses = result.hypotheses();
-      const auto& scores = result.scores();
-      stats.num_examples += 1;
-      stats.num_tokens += hypotheses[0].size();
-      for (size_t n = 0; n < hypotheses.size(); ++n) {
-        if (with_scores)
-          out << (result.has_scores() ? scores[n] : 0) << " ||| ";
-        for (size_t i = 0; i < hypotheses[n].size(); ++i) {
-          if (i > 0)
-            out << ' ';
-          out << hypotheses[n][i];
-        }
-        out << '\n';
+    const auto detokenizer = [](const std::vector<std::string>& tokens) {
+      std::string text;
+      for (const auto& token : tokens) {
+        if (!text.empty())
+          text += ' ';
+        text += token;
       }
+      return text;
     };
 
-    const auto t1 = std::chrono::high_resolution_clock::now();
-
-    consume_stream(in, out, read_batch_size, options, reader, writer);
-    out.flush();
-
-    const auto t2 = std::chrono::high_resolution_clock::now();
-    stats.total_time_in_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
-      t2 - t1).count();
-    return stats;
+    return consume_raw_text_file(in,
+                                 out,
+                                 tokenizer,
+                                 detokenizer,
+                                 read_batch_size,
+                                 options,
+                                 with_scores);
   }
 
   const std::vector<Translator>& TranslatorPool::get_translators() const {

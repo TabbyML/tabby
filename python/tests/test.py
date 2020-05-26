@@ -69,6 +69,39 @@ def test_file_translation(tmpdir):
     assert stats[1] == 2  # Number of translated examples.
     assert isinstance(stats[2], float)  # Total time in milliseconds.
 
+def test_raw_file_translation(tmpdir):
+    input_path = str(tmpdir.join("input.txt"))
+    output_path = str(tmpdir.join("output.txt"))
+    with open(input_path, "w") as input_file:
+        input_file.write("آتزمون")
+        input_file.write("\n")
+        input_file.write("آتشيسون")
+        input_file.write("\n")
+
+    translator = ctranslate2.Translator(_get_model_path())
+    tokenize_fn = lambda text: list(text)
+    detokenize_fn = lambda tokens: "".join(tokens)
+    max_batch_size = 4
+
+    with pytest.raises(ValueError):
+        translator.translate_file(
+            input_path, output_path, max_batch_size, tokenize_fn=tokenize_fn)
+    with pytest.raises(ValueError):
+        translator.translate_file(
+            input_path, output_path, max_batch_size, detokenize_fn=detokenize_fn)
+
+    translator.translate_file(
+        input_path,
+        output_path,
+        max_batch_size,
+        tokenize_fn=tokenize_fn,
+        detokenize_fn=detokenize_fn)
+
+    with open(output_path) as output_file:
+        lines = output_file.readlines()
+        assert lines[0].strip() == "atzmon"
+        assert lines[1].strip() == "achison"
+
 def test_empty_translation():
     translator = _get_transliterator()
     assert translator.translate_batch([]) == []

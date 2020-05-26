@@ -76,7 +76,9 @@ stats = translator.translate_file(
     use_vmap: bool = False,
     with_scores: bool = False,
     sampling_topk: int = 1,
-    sampling_temperature: float = 1)
+    sampling_temperature: float = 1,
+    tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    detokenize_fn: callable = None) # Function with signature: list of strings -> string
 ```
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.

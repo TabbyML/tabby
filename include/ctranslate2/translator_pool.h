@@ -1,9 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <future>
-#include <istream>
+#include <fstream>
 #include <mutex>
-#include <ostream>
 #include <queue>
 #include <thread>
 
@@ -51,7 +51,8 @@ namespace ctranslate2 {
 
     // Translate a stream in parallel.
     // Results will be written in order as they are available so the stream content is
-    // never stored fully in memory.
+    // never stored fully in memory
+    // The reader and writer functions do not need to be thread-safe .
     template <typename Reader, typename Writer>
     void consume_stream(std::istream& in,
                         std::ostream& out,
@@ -113,6 +114,68 @@ namespace ctranslate2 {
                                        const TranslationOptions& options,
                                        bool with_scores = false);
 
+    template <typename Tokenizer, typename Detokenizer>
+    TranslationStats consume_raw_text_file(const std::string& in_file,
+                                           const std::string& out_file,
+                                           Tokenizer& tokenizer,
+                                           Detokenizer& detokenizer,
+                                           const size_t read_batch_size,
+                                           const TranslationOptions& options,
+                                           const bool with_scores = false) {
+      std::ifstream in = open_input_file(in_file);
+      std::ofstream out = open_output_file(out_file);
+      return consume_raw_text_file(in,
+                                   out,
+                                   tokenizer,
+                                   detokenizer,
+                                   read_batch_size,
+                                   options,
+                                   with_scores);
+
+    }
+
+    template <typename Tokenizer, typename Detokenizer>
+    TranslationStats consume_raw_text_file(std::istream& in,
+                                           std::ostream& out,
+                                           Tokenizer& tokenizer,
+                                           Detokenizer& detokenizer,
+                                           const size_t read_batch_size,
+                                           const TranslationOptions& options,
+                                           const bool with_scores = false) {
+      TranslationStats stats;
+
+      auto reader = [&tokenizer](std::istream& in, std::vector<std::string>& tokens) {
+        std::string line;
+        if (!std::getline(in, line))
+          return false;
+        tokens = tokenizer(line);
+        return true;
+      };
+
+      auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
+                                                         const TranslationResult& result) {
+        const auto& hypotheses = result.hypotheses();
+        const auto& scores = result.scores();
+        stats.num_examples += 1;
+        stats.num_tokens += hypotheses[0].size();
+        for (size_t n = 0; n < hypotheses.size(); ++n) {
+          if (with_scores)
+            out << (result.has_scores() ? scores[n] : 0) << " ||| ";
+          out << detokenizer(hypotheses[n]) << '\n';
+        }
+      };
+
+      const auto t1 = std::chrono::high_resolution_clock::now();
+
+      consume_stream(in, out, read_batch_size, options, reader, writer);
+      out.flush();
+
+      const auto t2 = std::chrono::high_resolution_clock::now();
+      stats.total_time_in_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+        t2 - t1).count();
+      return stats;
+    }
+
     const std::vector<Translator>& get_translators() const;
 
   private:
@@ -133,6 +196,9 @@ namespace ctranslate2 {
                             size_t num_translators,
                             size_t num_threads_per_translator);
     void work_loop(Translator& translator, size_t num_threads);
+
+    std::ifstream open_input_file(const std::string& file) const;
+    std::ofstream open_output_file(const std::string& file) const;
 
     std::condition_variable _can_add_more_work;
     std::queue<std::pair<const TranslationJob, std::promise<TranslationOutput>>> _work;
