@@ -19,7 +19,7 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 ## Key features
 
 * **Efficient runtime**<br/>The runtime aims to be faster and lighter than a general-purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on standard translation tasks.
-* **Interactive decoding**<br/>Advanced decoding features allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
+* **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 * **Model quantization**<br/>Support for 16-bit and 8-bit integer quantization to reduce memory and computation requirements.
 * **Parallel translations**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
@@ -41,6 +41,8 @@ The translation API supports several decoding options:
 * returning multiple translation hypotheses
 * returning attention vectors
 * approximating the generation using a pre-compiled [vocabulary map](#how-can-i-generate-a-vocabulary-mapping-file)
+
+See the [Decoding](docs/decoding.md) documentation for examples.
 
 ## Quickstart
 
