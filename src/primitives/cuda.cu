@@ -1,6 +1,8 @@
 #include "ctranslate2/primitives/primitives.h"
 
 #include <cmath>
+#include <type_traits>
+
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <thrust/device_vector.h>
@@ -358,31 +360,51 @@ namespace ctranslate2 {
     }
   };
 
-  template<>
-  void primitives<Device::CUDA>::rescale_output(const int32_t* x,
-                                                const float* input_scales,
-                                                const float* weight_scales,
-                                                float* y,
-                                                dim_t batch_size,
-                                                dim_t depth) {
+  template <bool transpose_a, bool transpose_b>
+  static void rescale_output_impl(const int32_t* c,
+                                  const float* a_scales,
+                                  const float* b_scales,
+                                  float* y,
+                                  dim_t batch_size,
+                                  dim_t depth) {
+#define EXPAND(scales, transpose)                                       \
+    thrust::make_permutation_iterator(                                  \
+      scales,                                                           \
+      thrust::make_transform_iterator(                                  \
+        thrust::counting_iterator<int>(0),                              \
+        typename std::conditional<transpose, repeat_vec<int>, repeat_vec_depth<int>>::type(depth)))
+
+    // y = c / (expand_dims(a_scales, trans_a ? 0 : 1) * expand_dims(b_scales, trans_b ? 0 : 1)
+    auto a_scales_it = EXPAND(a_scales, transpose_a);
+    auto b_scales_it = EXPAND(b_scales, transpose_b);
+    auto scales_it = thrust::make_zip_iterator(thrust::make_tuple(a_scales_it, b_scales_it));
     const dim_t size = batch_size * depth;
-
-    // y = x / (expand_dims(input_scales, 1) * expand_dims(weight_scales, 0)
-    auto input_scales_it = thrust::make_permutation_iterator(
-      input_scales,
-      thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
-                                      repeat_vec_depth<int>(depth)));
-    auto weight_scales_it = thrust::make_permutation_iterator(
-      weight_scales,
-      thrust::make_transform_iterator(thrust::counting_iterator<int>(0),
-                                      repeat_vec<int>(depth)));
-
-    auto scales_it = thrust::make_zip_iterator(thrust::make_tuple(input_scales_it, weight_scales_it));
     THRUST_CALL(thrust::transform,
-                x, x + size,
+                c, c + size,
                 scales_it,
                 y,
                 rescale_func());
+
+#undef EXPAND
+  }
+
+  template<>
+  void primitives<Device::CUDA>::rescale_output(const int32_t* c,
+                                                const float* a_scales,
+                                                const float* b_scales,
+                                                const bool transpose_a,
+                                                const bool transpose_b,
+                                                float* y,
+                                                dim_t batch_size,
+                                                dim_t depth) {
+    if (transpose_a && transpose_b)
+      rescale_output_impl<true, true>(c, a_scales, b_scales, y, batch_size, depth);
+    else if (transpose_a)
+      rescale_output_impl<true, false>(c, a_scales, b_scales, y, batch_size, depth);
+    else if (transpose_b)
+      rescale_output_impl<false, true>(c, a_scales, b_scales, y, batch_size, depth);
+    else
+      rescale_output_impl<false, false>(c, a_scales, b_scales, y, batch_size, depth);
   }
 
   struct relu_func : public thrust::unary_function<float, float> {

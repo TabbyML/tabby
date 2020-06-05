@@ -36,29 +36,34 @@ namespace ctranslate2 {
       }
     }
 
-    void Dequantize::operator()(const StorageView& gemm_output,
-                                const StorageView& input_scale,
-                                const StorageView& weight_scale,
-                                StorageView& output) const {
+    void Dequantize::operator()(const StorageView& c,
+                                const StorageView& a_scale,
+                                const StorageView& b_scale,
+                                const bool transpose_a,
+                                const bool transpose_b,
+                                StorageView& y) const {
       PROFILE("DequantizeGemmOutput");
-      output.resize_as(gemm_output);
-      if (input_scale.is_scalar() && weight_scale.is_scalar()) {
-        if (gemm_output.device() != Device::CPU)
+      const Device device = c.device();
+      y.resize_as(c);
+      if (a_scale.is_scalar() && b_scale.is_scalar()) {
+        if (device != Device::CPU)
           throw std::invalid_argument("unsupported quantization scales");
-        auto scale = input_scale.as_scalar<float>() * weight_scale.as_scalar<float>();
-        primitives<Device::CPU>::dequantize(gemm_output.data<int32_t>(),
-                                            output.data<float>(),
-                                            gemm_output.size(),
+        auto scale = a_scale.as_scalar<float>() * b_scale.as_scalar<float>();
+        primitives<Device::CPU>::dequantize(c.data<int32_t>(),
+                                            y.data<float>(),
+                                            c.size(),
                                             scale);
       } else {
         DEVICE_DISPATCH(
-          gemm_output.device(),
-          primitives<D>::rescale_output(gemm_output.data<int32_t>(),
-                                        input_scale.data<float>(),
-                                        weight_scale.data<float>(),
-                                        output.data<float>(),
-                                        input_scale.size(),
-                                        gemm_output.dim(-1)));
+          device,
+          primitives<D>::rescale_output(c.data<int32_t>(),
+                                        a_scale.data<float>(),
+                                        b_scale.data<float>(),
+                                        transpose_a,
+                                        transpose_b,
+                                        y.data<float>(),
+                                        a_scale.size(),
+                                        c.dim(-1)));
 
       }
     }

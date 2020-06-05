@@ -8,10 +8,14 @@ namespace ctranslate2 {
     class Dequantize : public BinaryOp {
     public:
       void operator()(const StorageView& x, const StorageView& scale, StorageView& y) const override;
-      void operator()(const StorageView& gemm_output,
-                      const StorageView& input_scale,
-                      const StorageView& weight_scale,
-                      StorageView& output) const;
+
+      // Rescales the int32 GEMM output to float32, given the input scales.
+      void operator()(const StorageView& c,
+                      const StorageView& a_scale,
+                      const StorageView& b_scale,
+                      const bool transpose_a,
+                      const bool transpose_b,
+                      StorageView& y) const;
 
     };
 

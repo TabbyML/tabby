@@ -89,7 +89,7 @@ void benchmark_dequantize(Device device) {
   StorageView weight_scale({1536}, DataType::FLOAT, device);
   StorageView y(device);
   const ops::Dequantize dequantize_op{};
-  BENCHMARK(dequantize_op(x, input_scale, weight_scale, y), 100000);
+  BENCHMARK(dequantize_op(x, input_scale, weight_scale, false, true, y), 100000);
 }
 
 int main(int argc, char* argv[]) {

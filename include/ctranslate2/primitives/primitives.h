@@ -158,9 +158,11 @@ namespace ctranslate2 {
     static void dequantize_batch(const T* x, const float* scale, float* y,
                                  dim_t x_size, dim_t scale_size, float shift = 0);
 
-    static void rescale_output(const int32_t* x,
-                               const float* input_scales,
-                               const float* weigh_scales,
+    static void rescale_output(const int32_t* c,
+                               const float* a_scales,
+                               const float* b_scales,
+                               const bool transpose_a,
+                               const bool transpose_b,
                                float* y,
                                dim_t batch_size,
                                dim_t depth);

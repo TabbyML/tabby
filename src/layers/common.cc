@@ -104,7 +104,12 @@ namespace ctranslate2 {
         StorageView qoutput(DataType::INT32, device);
         ops::Quantize()(input, qinput, qinput_scale, _u8_shift);
         _gemm_op(qinput, *weight, qoutput, compensation);
-        ops::Dequantize()(qoutput, qinput_scale, *qscale, output);
+        ops::Dequantize()(qoutput,
+                          qinput_scale,
+                          *qscale,
+                          /*trans_a=*/false,
+                          /*trans_b=*/true,
+                          output);
       } else {
         _gemm_op(input, *weight, output);
       }

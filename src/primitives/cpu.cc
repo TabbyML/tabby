@@ -392,9 +392,11 @@ namespace ctranslate2 {
   }
 
   template<>
-  void primitives<Device::CPU>::rescale_output(const int32_t* x,
-                                               const float* input_scales,
-                                               const float* weight_scales,
+  void primitives<Device::CPU>::rescale_output(const int32_t* c,
+                                               const float* a_scales,
+                                               const float* b_scales,
+                                               const bool transpose_a,
+                                               const bool transpose_b,
                                                float* y,
                                                dim_t batch_size,
                                                dim_t depth) {
@@ -402,7 +404,9 @@ namespace ctranslate2 {
     for (dim_t i = 0; i < batch_size; ++i) {
       for (dim_t j = 0; j < depth; ++j) {
         const dim_t index = j + i * depth;
-        y[index] = static_cast<float>(x[index]) / (input_scales[i] * weight_scales[j]);
+        const float a_scale = transpose_a ? a_scales[j] : a_scales[i];
+        const float b_scale = transpose_b ? b_scales[j] : b_scales[i];
+        y[index] = static_cast<float>(c[index]) / (a_scale * b_scale);
       }
     }
   }
