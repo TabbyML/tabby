@@ -143,9 +143,6 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    static void inv(const T* x, T* y, dim_t size);
-
-    template <typename T>
     static void quantize(const float* x, T* y, dim_t size, float scale, float shift = 0);
 
     template <typename T>

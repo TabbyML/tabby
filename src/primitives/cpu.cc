@@ -318,20 +318,6 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  void primitives<Device::CPU>::inv(const T* x, T* y, dim_t size) {
-    unary_transform(x, y, size, [](T v) { return static_cast<T>(1) / v; }, /*work_size=*/2);
-  }
-
-#ifdef WITH_MKL
-  template<>
-  template<>
-  void primitives<Device::CPU>::inv(const float* x, float* y, dim_t size) {
-    vsInv(size, x, y);
-  }
-#endif
-
-  template<>
-  template <typename T>
   void primitives<Device::CPU>::quantize(const float* x,
                                          T* y,
                                          dim_t size,
@@ -967,8 +953,6 @@ namespace ctranslate2 {
   template void                                                         \
   primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c, \
                                                dim_t a_size, dim_t b_size); \
-  template void                                                         \
-  primitives<Device::CPU>::inv(const T* x, T* y, dim_t size);           \
   template void                                                         \
   primitives<Device::CPU>::transpose_2d(const T* a,                     \
                                         const dim_t* dims,              \
