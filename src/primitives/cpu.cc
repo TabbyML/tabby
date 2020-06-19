@@ -6,15 +6,12 @@
 #include <numeric>
 #include <stdexcept>
 
-#ifdef __AVX__
-#  include <immintrin.h>
-#endif
-
 #ifdef WITH_MKL
 #  include <mkl.h>
 #endif
 
 #include "ctranslate2/utils.h"
+#include "cpu/kernels.h"
 
 #include "./parallel.h"
 
@@ -176,13 +173,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::add(T a, const T* x, T* y, dim_t size) {
-    unary_transform(x, y, size, [&a](T v) { return v + a; });
+    CPU_ISA_DISPATCH((cpu::add<ISA>(a, x, y, size)));
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::add(const T* a, const T* b, T* c, dim_t size) {
-    binary_transform(a, b, c, size, std::plus<T>());
+    CPU_ISA_DISPATCH((cpu::add<ISA>(a, b, c, size)));
   }
 
 #ifdef WITH_MKL
@@ -221,7 +218,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::sub(const T* a, const T* b, T* c, dim_t size) {
-    binary_transform(a, b, c, size, std::minus<T>());
+    CPU_ISA_DISPATCH((cpu::sub<ISA>(a, b, c, size)));
   }
 
 #ifdef WITH_MKL
@@ -235,15 +232,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::max(T a, const T* x, T* y, dim_t size){
-    unary_transform(x, y, size, [&a](T v) { return a > v ? a : v; });
+    CPU_ISA_DISPATCH((cpu::max<ISA>(a, x, y, size)));
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::max(const T* a, const T* b, T* c, dim_t size){
-    binary_transform(a, b, c, size, [](const T &a, const T& b){
-      return std::max<T>(a, b);
-    });
+    CPU_ISA_DISPATCH((cpu::max<ISA>(a, b, c, size)));
   }
 
 #ifdef WITH_MKL
@@ -257,15 +252,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::min(T a, const T* x, T* y, dim_t size){
-    unary_transform(x, y, size, [&a](T v) { return a > v ? v : a; });
+    CPU_ISA_DISPATCH((cpu::min<ISA>(a, x, y, size)));
   }
 
   template<>
   template <typename T>
   void primitives<Device::CPU>::min(const T* a, const T* b, T* c, dim_t size){
-    binary_transform(a, b, c, size, [](const T &a, const T& b){
-      return std::min<T>(a, b);
-    });
+    CPU_ISA_DISPATCH((cpu::min<ISA>(a, b, c, size)));
   }
 
 #ifdef WITH_MKL
@@ -279,7 +272,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::mul(T a, const T* x, T* y, dim_t size) {
-    unary_transform(x, y, size, [&a](T v) { return v * a; });
+    CPU_ISA_DISPATCH((cpu::mul<ISA>(a, x, y, size)));
   }
 
 #ifdef WITH_MKL
@@ -293,7 +286,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::mul(const T* a, const T* b, T* c, dim_t size) {
-    binary_transform(a, b, c, size, std::multiplies<T>());
+    CPU_ISA_DISPATCH((cpu::mul<ISA>(a, b, c, size)));
   }
 
 #ifdef WITH_MKL
@@ -389,7 +382,7 @@ namespace ctranslate2 {
     if (!transpose_a && transpose_b) {
       // Optimize the common case using transform and minimizing the number of division.
       auto* r_b_scales = static_cast<float*>(alloc_data(depth * sizeof (float)));
-      unary_transform(b_scales, r_b_scales, depth, [](float b_scale) { return 1.f / b_scale; });
+      CPU_ISA_DISPATCH((cpu::rcp<ISA>(b_scales, r_b_scales, depth)));
       #pragma omp parallel for
       for (dim_t i = 0; i < batch_size; ++i) {
         const float r_a_scale = 1.f / a_scales[i];
@@ -415,26 +408,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
-    const auto relu_op = [](float v) { return std::max(v, 0.f); };
-
-#ifdef __AVX__
-    const dim_t num_packs = size / 8;
-    const __m256 zero = _mm256_setzero_ps();
-
-    #pragma omp parallel for
-    for (dim_t i = 0; i < num_packs; ++i) {
-      const dim_t offset = i * 8;
-      // Assume that the memory is aligned.
-      _mm256_store_ps(y + offset, _mm256_max_ps(_mm256_load_ps(x + offset), zero));
-    }
-
-    // Process remaining positions.
-    for (dim_t i = num_packs * 8; i < size; ++i) {
-      y[i] = relu_op(x[i]);
-    }
-#else
-    unary_transform(x, y, size, relu_op);
-#endif
+    max(float(0), x, y, size);
   }
 
   template<>

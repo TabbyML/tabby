@@ -10,6 +10,7 @@ project(ctranslate2)
 option(WITH_MKL "Compile with Intel MKL backend" ON)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(WITH_TENSORRT "Compile with TensorRT (required for TopK with k > 1)" ON)
+option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(LIB_ONLY "Do not compile clients" OFF)
 option(WITH_TESTS "Compile the tests" OFF)
@@ -59,10 +60,14 @@ find_package(Threads)
 
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
 set(SOURCES
   src/decoding.cc
   src/devices.cc
+  src/cpu/cpu_info.cc
+  src/cpu/cpu_isa.cc
+  src/cpu/kernels.cc
   src/layers/attention.cc
   src/layers/decoder.cc
   src/layers/common.cc
@@ -111,6 +116,29 @@ set(LIBRARIES
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
   )
+
+macro(ct2_compile_kernels_for_isa isa flag)
+  configure_file(
+    src/cpu/kernels.cc
+    ${CMAKE_CURRENT_BINARY_DIR}/kernels_${isa}.cc
+    COPYONLY)
+  set_source_files_properties(
+    ${CMAKE_CURRENT_BINARY_DIR}/kernels_${isa}.cc
+    PROPERTIES COMPILE_FLAGS ${flag})
+  list(APPEND SOURCES ${CMAKE_CURRENT_BINARY_DIR}/kernels_${isa}.cc)
+endmacro()
+
+if(ENABLE_CPU_DISPATCH)
+  message(STATUS "Compiling for multiple CPU ISA and enabling runtime dispatch")
+  add_definitions(-DCT2_WITH_CPU_DISPATCH)
+  if(WIN32)
+    ct2_compile_kernels_for_isa(avx "/arch:AVX")
+    ct2_compile_kernels_for_isa(avx2 "/arch:AVX2")
+  else()
+    ct2_compile_kernels_for_isa(avx "-mavx")
+    ct2_compile_kernels_for_isa(avx2 "-mavx2")
+  endif()
+endif()
 
 if(NOT OPENMP_RUNTIME STREQUAL "NONE")
   if(NOT WIN32)
