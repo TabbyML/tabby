@@ -386,13 +386,29 @@ namespace ctranslate2 {
                                                float* y,
                                                dim_t batch_size,
                                                dim_t depth) {
-    #pragma omp parallel for
-    for (dim_t i = 0; i < batch_size; ++i) {
-      for (dim_t j = 0; j < depth; ++j) {
-        const dim_t index = j + i * depth;
-        const float a_scale = transpose_a ? a_scales[j] : a_scales[i];
-        const float b_scale = transpose_b ? b_scales[j] : b_scales[i];
-        y[index] = static_cast<float>(c[index]) / (a_scale * b_scale);
+    if (!transpose_a && transpose_b) {
+      // Optimize the common case using transform and minimizing the number of division.
+      auto* r_b_scales = static_cast<float*>(alloc_data(depth * sizeof (float)));
+      unary_transform(b_scales, r_b_scales, depth, [](float b_scale) { return 1.f / b_scale; });
+      #pragma omp parallel for
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const float r_a_scale = 1.f / a_scales[i];
+        const dim_t offset = i * depth;
+        binary_transform(c + offset, r_b_scales, y + offset, depth,
+                         [r_a_scale](int32_t v, float r_b_scale) {
+                           return static_cast<float>(v) * r_a_scale * r_b_scale;
+                         });
+      }
+      free_data(r_b_scales);
+    } else {
+      #pragma omp parallel for
+      for (dim_t i = 0; i < batch_size; ++i) {
+        for (dim_t j = 0; j < depth; ++j) {
+          const dim_t index = j + i * depth;
+          const float a_scale = transpose_a ? a_scales[j] : a_scales[i];
+          const float b_scale = transpose_b ? b_scales[j] : b_scales[i];
+          y[index] = static_cast<float>(c[index]) / (a_scale * b_scale);
+        }
       }
     }
   }
