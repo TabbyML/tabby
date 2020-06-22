@@ -642,20 +642,6 @@ namespace ctranslate2 {
     unary_transform(x, y, size, log_func());
   }
 
-  struct pow_func : public thrust::unary_function<float, float> {
-    float _power;
-    pow_func(float power)
-      : _power(power) {
-    }
-    __host__ __device__
-    float operator()(float x) { return powf(x, _power); }
-  };
-
-  template<>
-  void primitives<Device::CUDA>::pow(const float* x, float* y, float power, dim_t size) {
-    unary_transform(x, y, size, pow_func(power));
-  }
-
 
   template<>
   template <typename T>

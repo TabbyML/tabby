@@ -21,7 +21,6 @@
 #include "split.h"
 #include "squeeze.h"
 #include "sub.h"
-#include "tanh.h"
 #include "tile.h"
 #include "topk.h"
 #include "transpose.h"

@@ -422,15 +422,6 @@ namespace ctranslate2 {
   }
 
   template<>
-  void primitives<Device::CPU>::pow(const float* x, float *y, float power, dim_t size) {
-#ifdef WITH_MKL
-    vsPowx(size, x, power, y);
-#else
-    unary_transform(x, y, size, [power](float v) { return std::pow(v, power); }, /*work_size=*/4);
-#endif
-  }
-
-  template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
     vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
@@ -463,15 +454,6 @@ namespace ctranslate2 {
     vsSin(size, x, y);
 #else
     unary_transform(x, y, size, [](float v) { return std::sin(v); }, /*work_size=*/4);
-#endif
-  }
-
-  template<>
-  void primitives<Device::CPU>::tanh(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
-    vsTanh(size, x, y);
-#else
-    unary_transform(x, y, size, [](float v) { return std::tanh(v); }, /*work_size=*/4);
 #endif
   }
 
