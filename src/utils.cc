@@ -77,6 +77,7 @@ namespace ctranslate2 {
     }
   }
 
+#ifdef WITH_MKL
   static bool mayiuse_mkl_init() {
     const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
     if (use_mkl_env.empty())
@@ -84,6 +85,7 @@ namespace ctranslate2 {
     else
       return string_to_bool(use_mkl_env);
   }
+#endif
 
   bool mayiuse_mkl() {
 #ifdef WITH_MKL
