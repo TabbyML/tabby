@@ -9,6 +9,15 @@ namespace ctranslate2 {
     template <CpuIsa ISA, typename T>
     void rcp(const T* x, T* y, dim_t size);
 
+    template <CpuIsa ISA>
+    void exp(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
+    void log(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
+    void sin(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
+    void cos(const float* x, float* y, dim_t size);
+
     template <CpuIsa ISA, typename T>
     void add(T a, const T* x, T* y, dim_t size);
     template <CpuIsa ISA, typename T>

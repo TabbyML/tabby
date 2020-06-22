@@ -56,6 +56,25 @@ namespace ctranslate2 {
       vectorized_unary_transform<ISA>(x, y, size, Vec<T, ISA>::rcp);
     }
 
+    template<>
+    void exp<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::exp);
+    }
+
+    template<>
+    void log<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::log);
+    }
+    template<>
+    void sin<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::sin);
+    }
+
+    template<>
+    void cos<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::cos);
+    }
+
     template <CpuIsa ISA, typename T>
     void add(T a, const T* x, T* y, dim_t size) {
       const auto vec_a = Vec<T, ISA>::load(a);

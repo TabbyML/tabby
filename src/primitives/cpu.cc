@@ -426,7 +426,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #else
-    unary_transform(x, y, size, [](float v) { return std::exp(v); }, /*work_size=*/4);
+    CPU_ISA_DISPATCH((cpu::exp<ISA>(x, y, size)));
 #endif
   }
 
@@ -435,7 +435,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #else
-    unary_transform(x, y, size, [](float v) { return std::log(v); }, /*work_size=*/4);
+    CPU_ISA_DISPATCH((cpu::log<ISA>(x, y, size)));
 #endif
   }
 
@@ -444,7 +444,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsCos(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::cos(v); }, /*work_size=*/4);
+    CPU_ISA_DISPATCH((cpu::cos<ISA>(x, y, size)));
 #endif
   }
 
@@ -453,7 +453,7 @@ namespace ctranslate2 {
 #ifdef WITH_MKL
     vsSin(size, x, y);
 #else
-    unary_transform(x, y, size, [](float v) { return std::sin(v); }, /*work_size=*/4);
+    CPU_ISA_DISPATCH((cpu::sin<ISA>(x, y, size)));
 #endif
   }
 

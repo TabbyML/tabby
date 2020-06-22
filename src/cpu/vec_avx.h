@@ -1,6 +1,7 @@
 #pragma once
 
 #include <immintrin.h>
+#include <avx_mathfun.h>
 
 #include "vec.h"
 
@@ -48,6 +49,22 @@ namespace ctranslate2 {
 
       static value_type rcp(value_type a) {
         return _mm256_rcp_ps(a);
+      }
+
+      static value_type exp(value_type a) {
+        return exp256_ps(a);
+      }
+
+      static value_type log(value_type a) {
+        return log256_ps(a);
+      }
+
+      static value_type sin(value_type a) {
+        return sin256_ps(a);
+      }
+
+      static value_type cos(value_type a) {
+        return cos256_ps(a);
       }
 
       static value_type max(value_type a, value_type b) {

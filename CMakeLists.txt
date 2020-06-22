@@ -61,6 +61,7 @@ find_package(Threads)
 set(INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/third_party
   )
 set(SOURCES
   src/decoding.cc
