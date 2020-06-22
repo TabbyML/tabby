@@ -26,12 +26,12 @@ namespace ctranslate2 {
         return _mm256_set1_ps(value);
       }
 
-      static value_type load(const float* ptr, dim_t count = width) {
+      static value_type load(const float* ptr, dim_t count = width, float default_value = 0) {
         if (count == width) {
           return _mm256_loadu_ps(ptr);
         } else {
           __ct2_align32__ float tmp_values[width];
-          std::fill_n(tmp_values, width, 0);
+          std::fill_n(tmp_values, width, default_value);
           std::copy_n(ptr, count, tmp_values);
           return _mm256_loadu_ps(tmp_values);
         }

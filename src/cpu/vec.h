@@ -19,8 +19,9 @@ namespace ctranslate2 {
         return value;
       }
 
-      static value_type load(const T* ptr, dim_t count = width) {
+      static value_type load(const T* ptr, dim_t count = width, T default_value = 0) {
         (void)count;
+        (void)default_value;
         return *ptr;
       }
 
