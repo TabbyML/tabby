@@ -20,7 +20,13 @@
 #  include "./cuda/utils.h"
 #endif
 
+#include "cpu/cpu_info.h"
+
 namespace ctranslate2 {
+
+  static bool string_to_bool(const std::string& str) {
+    return str == "1" || str == "true" || str == "TRUE";
+  }
 
   std::string read_string_from_env(const char* var, const std::string& default_value) {
     const char* value = std::getenv(var);
@@ -30,8 +36,7 @@ namespace ctranslate2 {
   }
 
   bool read_bool_from_env(const char* var, const bool default_value) {
-    const std::string value_str = read_string_from_env(var, default_value ? "1" : "0");
-    return value_str == "1" || value_str == "true" || value_str == "TRUE";
+    return string_to_bool(read_string_from_env(var, default_value ? "1" : "0"));
   }
 
 #ifdef WITH_MKL
@@ -70,6 +75,23 @@ namespace ctranslate2 {
     default:
       return false;
     }
+  }
+
+  static bool mayiuse_mkl_init() {
+    const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
+    if (use_mkl_env.empty())
+      return cpu::cpu_is_intel();
+    else
+      return string_to_bool(use_mkl_env);
+  }
+
+  bool mayiuse_mkl() {
+#ifdef WITH_MKL
+    static const bool mayiuse = mayiuse_mkl_init();
+    return mayiuse;
+#else
+    return false;
+#endif
   }
 
   void set_num_threads(size_t num_threads) {

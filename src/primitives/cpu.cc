@@ -182,13 +182,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::add<ISA>(a, b, c, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::add(const float* a, const float* b, float* c, dim_t size) {
-    vsAdd(size, a, b, c);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return vsAdd(size, a, b, c);
 #endif
+    CPU_ISA_DISPATCH((cpu::add<ISA>(a, b, c, size)));
+  }
 
   template<>
   template <typename T>
@@ -221,13 +223,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::sub<ISA>(a, b, c, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::sub(const float* a, const float* b, float* c, dim_t size) {
-    vsSub(size, a, b, c);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return vsSub(size, a, b, c);
 #endif
+    CPU_ISA_DISPATCH((cpu::sub<ISA>(a, b, c, size)));
+  }
 
   template<>
   template <typename T>
@@ -241,13 +245,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::max<ISA>(a, b, c, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::max(const float* a, const float* b, float* c, dim_t size) {
-    vsFmax(size, a, b, c);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return vsFmax(size, a, b, c);
 #endif
+    CPU_ISA_DISPATCH((cpu::max<ISA>(a, b, c, size)));
+  }
 
   template<>
   template <typename T>
@@ -261,13 +267,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::min<ISA>(a, b, c, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::min(const float* a, const float* b, float* c, dim_t size) {
-    vsFmin(size, a, b, c);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return vsFmin(size, a, b, c);
 #endif
+    CPU_ISA_DISPATCH((cpu::min<ISA>(a, b, c, size)));
+  }
 
   template<>
   template <typename T>
@@ -275,13 +283,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::mul<ISA>(a, x, y, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::mul(float a, const float* x, float* y, dim_t size) {
-    cblas_saxpby(size, a, x, 1 /* incx */, 0 /* b */, y, 1 /* incy */);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return cblas_saxpby(size, a, x, 1 /* incx */, 0 /* b */, y, 1 /* incy */);
 #endif
+    CPU_ISA_DISPATCH((cpu::mul<ISA>(a, x, y, size)));
+  }
 
   template<>
   template <typename T>
@@ -289,13 +299,15 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::mul<ISA>(a, b, c, size)));
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::mul(const float* a, const float* b, float* c, dim_t size) {
-    vsMul(size, a, b, c);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return vsMul(size, a, b, c);
 #endif
+    CPU_ISA_DISPATCH((cpu::mul<ISA>(a, b, c, size)));
+  }
 
   template<>
   template <typename T>
@@ -424,37 +436,37 @@ namespace ctranslate2 {
   template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
-    vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
-#else
-    CPU_ISA_DISPATCH((cpu::exp<ISA>(x, y, size)));
+    if (mayiuse_mkl())
+      return vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #endif
+    CPU_ISA_DISPATCH((cpu::exp<ISA>(x, y, size)));
   }
 
   template<>
   void primitives<Device::CPU>::log(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
-    vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
-#else
-    CPU_ISA_DISPATCH((cpu::log<ISA>(x, y, size)));
+    if (mayiuse_mkl())
+      return vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
 #endif
+    CPU_ISA_DISPATCH((cpu::log<ISA>(x, y, size)));
   }
 
   template<>
   void primitives<Device::CPU>::cos(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
-    vsCos(size, x, y);
-#else
-    CPU_ISA_DISPATCH((cpu::cos<ISA>(x, y, size)));
+    if (mayiuse_mkl())
+      return vsCos(size, x, y);
 #endif
+    CPU_ISA_DISPATCH((cpu::cos<ISA>(x, y, size)));
   }
 
   template<>
   void primitives<Device::CPU>::sin(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
-    vsSin(size, x, y);
-#else
-    CPU_ISA_DISPATCH((cpu::sin<ISA>(x, y, size)));
+    if (mayiuse_mkl())
+      return vsSin(size, x, y);
 #endif
+    CPU_ISA_DISPATCH((cpu::sin<ISA>(x, y, size)));
   }
 
   template<>
