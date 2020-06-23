@@ -104,6 +104,7 @@ namespace ctranslate2 {
     // the data is replaced by uninitialized memory.
     // If size is smaller than the currently allocated size, this a no-op.
     StorageView& reserve(dim_t size);
+    bool owns_data() const;
 
     dim_t rank() const;
     const Shape& shape() const;
