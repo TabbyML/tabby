@@ -16,15 +16,15 @@ namespace ctranslate2 {
 
     template <dim_t vec_width, typename Function>
     static void vectorized_iter(dim_t size, const Function& func) {
-      const dim_t num_trailing = size % vec_width;
-      const dim_t num_vecs = num_trailing == 0 ? size : size - num_trailing;
+      const dim_t remaining = size % vec_width;
+      size -= remaining;
 
-      for (dim_t i = 0; i < num_vecs; i += vec_width) {
+      for (dim_t i = 0; i < size; i += vec_width) {
         func(i, vec_width);
       }
 
-      if (num_trailing != 0) {
-        func(num_vecs, num_trailing);
+      if (remaining != 0) {
+        func(size, remaining);
       }
     }
 
