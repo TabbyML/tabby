@@ -74,11 +74,41 @@ namespace ctranslate2 {
 
     static void move_variables_to_device(std::unordered_map<std::string, StorageView>& variables,
                                          const Device device) {
+      // Some variables can be shallow copies of others. Those variables should not be
+      // moved but updated to point to the new location.
+      std::unordered_map<void*, std::vector<StorageView*>> buffer_to_aliases;
+      std::vector<StorageView*> variables_to_move;
+
+      buffer_to_aliases.reserve(variables.size());
+      variables_to_move.reserve(variables.size());
+
+      // First pass to select the variables to move and map the aliases to the buffer they alias.
       for (auto& pair : variables) {
         StorageView& variable = pair.second;
-        if (!variable.is_scalar() && variable.device() != device) {
-          StorageView variable_device = variable.to(device);
-          swap(variable, variable_device);
+        if (variable.is_scalar() || variable.device() == device)
+          continue;
+
+        if (variable.owns_data()) {
+          variables_to_move.push_back(&variable);
+        } else {
+          buffer_to_aliases[variable.buffer()].push_back(&variable);
+        }
+      }
+
+      // Second pass to move variables and update the associated aliases.
+      for (auto* variable : variables_to_move) {
+        void* prev_buffer = variable->buffer();
+
+        StorageView variable_device = variable->to(device);
+        swap(*variable, variable_device);
+
+        auto it = buffer_to_aliases.find(prev_buffer);
+        if (it != buffer_to_aliases.end()) {
+          for (StorageView* alias : it->second) {
+            StorageView new_alias(alias->dtype(), device);
+            new_alias.shallow_copy(*variable);
+            swap(*alias, new_alias);
+          }
         }
       }
     }

@@ -99,6 +99,10 @@ namespace ctranslate2 {
     return *this;
   }
 
+  bool StorageView::owns_data() const {
+    return _own_data;
+  }
+
   dim_t StorageView::rank() const {
     return _shape.size();
   }
