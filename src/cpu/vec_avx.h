@@ -22,11 +22,11 @@ namespace ctranslate2 {
       using value_type = __m256;
       static constexpr dim_t width = 8;
 
-      static value_type load(float value) {
+      static inline value_type load(float value) {
         return _mm256_set1_ps(value);
       }
 
-      static value_type load(const float* ptr, dim_t count = width, float default_value = 0) {
+      static inline value_type load(const float* ptr, dim_t count = width, float default_value = 0) {
         if (count == width) {
           return _mm256_loadu_ps(ptr);
         } else {
@@ -37,7 +37,7 @@ namespace ctranslate2 {
         }
       }
 
-      static void store(value_type value, float* ptr, dim_t count = width) {
+      static inline void store(value_type value, float* ptr, dim_t count = width) {
         if (count == width) {
           _mm256_storeu_ps(ptr, value);
         } else {
@@ -47,43 +47,43 @@ namespace ctranslate2 {
         }
       }
 
-      static value_type rcp(value_type a) {
+      static inline value_type rcp(value_type a) {
         return _mm256_rcp_ps(a);
       }
 
-      static value_type exp(value_type a) {
+      static inline value_type exp(value_type a) {
         return exp256_ps(a);
       }
 
-      static value_type log(value_type a) {
+      static inline value_type log(value_type a) {
         return log256_ps(a);
       }
 
-      static value_type sin(value_type a) {
+      static inline value_type sin(value_type a) {
         return sin256_ps(a);
       }
 
-      static value_type cos(value_type a) {
+      static inline value_type cos(value_type a) {
         return cos256_ps(a);
       }
 
-      static value_type max(value_type a, value_type b) {
+      static inline value_type max(value_type a, value_type b) {
         return _mm256_max_ps(a, b);
       }
 
-      static value_type min(value_type a, value_type b) {
+      static inline value_type min(value_type a, value_type b) {
         return _mm256_min_ps(a, b);
       }
 
-      static value_type add(value_type a, value_type b) {
+      static inline value_type add(value_type a, value_type b) {
         return _mm256_add_ps(a, b);
       }
 
-      static value_type sub(value_type a, value_type b) {
+      static inline value_type sub(value_type a, value_type b) {
         return _mm256_sub_ps(a, b);
       }
 
-      static value_type mul(value_type a, value_type b) {
+      static inline value_type mul(value_type a, value_type b) {
         return _mm256_mul_ps(a, b);
       }
 

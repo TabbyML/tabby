@@ -32,7 +32,7 @@ namespace ctranslate2 {
     static void vectorized_unary_transform(const T* x, T* y, dim_t size, const Function& func) {
       vectorized_iter<Vec<T, ISA>::width>(size,
                                           [x, y, &func](dim_t i, dim_t width) {
-                                            const auto v = Vec<T, ISA>::load(x + i, width);
+                                            auto v = Vec<T, ISA>::load(x + i, width);
                                             Vec<T, ISA>::store(func(v), y + i, width);
                                           });
     }
@@ -45,8 +45,8 @@ namespace ctranslate2 {
                                             const Function& func) {
       vectorized_iter<Vec<T, ISA>::width>(size,
                                           [a, b, c, &func](dim_t i, dim_t width) {
-                                            const auto v1 = Vec<T, ISA>::load(a + i, width);
-                                            const auto v2 = Vec<T, ISA>::load(b + i, width);
+                                            auto v1 = Vec<T, ISA>::load(a + i, width);
+                                            auto v2 = Vec<T, ISA>::load(b + i, width);
                                             Vec<T, ISA>::store(func(v1, v2), c + i, width);
                                           });
     }
@@ -77,7 +77,7 @@ namespace ctranslate2 {
 
     template <CpuIsa ISA, typename T>
     void add(T a, const T* x, T* y, dim_t size) {
-      const auto vec_a = Vec<T, ISA>::load(a);
+      auto vec_a = Vec<T, ISA>::load(a);
       vectorized_unary_transform<ISA>(x, y, size,
                                       [vec_a](vec_type<T, ISA> v) {
                                         return Vec<T, ISA>::add(v, vec_a);
@@ -96,7 +96,7 @@ namespace ctranslate2 {
 
     template <CpuIsa ISA, typename T>
     void mul(T a, const T* x, T* y, dim_t size) {
-      const auto vec_a = Vec<T, ISA>::load(a);
+      auto vec_a = Vec<T, ISA>::load(a);
       vectorized_unary_transform<ISA>(x, y, size,
                                       [vec_a](vec_type<T, ISA> v) {
                                         return Vec<T, ISA>::mul(v, vec_a);
@@ -110,7 +110,7 @@ namespace ctranslate2 {
 
     template <CpuIsa ISA, typename T>
     void max(T a, const T* x, T* y, dim_t size) {
-      const auto vec_a = Vec<T, ISA>::load(a);
+      auto vec_a = Vec<T, ISA>::load(a);
       vectorized_unary_transform<ISA>(x, y, size,
                                       [vec_a](vec_type<T, ISA> v) {
                                         return Vec<T, ISA>::max(v, vec_a);
@@ -124,7 +124,7 @@ namespace ctranslate2 {
 
     template <CpuIsa ISA, typename T>
     void min(T a, const T* x, T* y, dim_t size) {
-      const auto vec_a = Vec<T, ISA>::load(a);
+      auto vec_a = Vec<T, ISA>::load(a);
       vectorized_unary_transform<ISA>(x, y, size,
                                       [vec_a](vec_type<T, ISA> v) {
                                         return Vec<T, ISA>::min(v, vec_a);
