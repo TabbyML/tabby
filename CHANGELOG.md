@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.10.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.10.2) (2020-06-23)
+
+### Fixes and improvements
+
+* [Python] Fix error when calling `unload_model(to_cpu=True)` for models with shared weights
+* [Python] Do not ignore errors when importing the compiled translator extension
+
 ## [v1.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.10.1) (2020-05-25)
 
 ### Fixes and improvements
