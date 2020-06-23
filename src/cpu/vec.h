@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 #include "ctranslate2/types.h"
 
@@ -9,7 +10,7 @@ namespace ctranslate2 {
   namespace cpu {
 
     // Interface for vectorized types.
-    template <typename T, CpuIsa ISA>
+    template <typename T, CpuIsa ISA = CpuIsa::GENERIC>
     struct Vec {
 
       using value_type = T;
@@ -28,6 +29,10 @@ namespace ctranslate2 {
       static inline void store(value_type value, T* ptr, dim_t count = width) {
         (void)count;
         *ptr = value;
+      }
+
+      static inline value_type abs(value_type a) {
+        return std::abs(a);
       }
 
       static inline value_type rcp(value_type a) {

@@ -41,5 +41,12 @@ namespace ctranslate2 {
     template <CpuIsa ISA, typename T>
     void min(const T* a, const T* b, T* c, dim_t size);
 
+    template <CpuIsa ISA, typename T>
+    T reduce_sum(const T* x, dim_t size);
+    template <CpuIsa ISA, typename T>
+    T reduce_max(const T* x, dim_t size);
+    template <CpuIsa ISA, typename T>
+    T reduce_amax(const T* x, dim_t size);
+
   }
 }

@@ -47,6 +47,11 @@ namespace ctranslate2 {
         }
       }
 
+      static inline value_type abs(value_type a) {
+        auto mask = _mm256_set1_ps(-0.f);
+        return _mm256_andnot_ps(mask, a);
+      }
+
       static inline value_type rcp(value_type a) {
         return _mm256_rcp_ps(a);
       }

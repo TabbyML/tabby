@@ -122,7 +122,9 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CPU>::sum(const T* array, dim_t size) {
-    return std::accumulate(array, array + size, static_cast<T>(0));
+    T sum = 0;
+    CPU_ISA_DISPATCH((sum = cpu::reduce_sum<ISA>(array, size)));
+    return sum;
   }
 
   template<>
@@ -134,25 +136,30 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CPU>::max(const T* array, dim_t size) {
-    return *std::max_element(array, array + size);
+    T max = 0;
+    CPU_ISA_DISPATCH((max = cpu::reduce_max<ISA>(array, size)));
+    return max;
   }
 
   template<>
   template <typename T>
   T primitives<Device::CPU>::amax(const T* array, dim_t size) {
-    return std::abs(*std::max_element(array, array + size,
-                                      [](T a, T b){
-                                        return std::abs(a) < std::abs(b);
-                                      }));
+    T max = 0;
+    CPU_ISA_DISPATCH((max = cpu::reduce_amax<ISA>(array, size)));
+    return max;
   }
 
-#ifdef WITH_MKL
   template<>
   template<>
   float primitives<Device::CPU>::amax(const float* x, dim_t size) {
-    return std::abs(x[cblas_isamax(size, x, /*incx=*/1)]);
-  }
+#ifdef WITH_MKL
+    if (mayiuse_mkl())
+      return std::abs(x[cblas_isamax(size, x, /*incx=*/1)]);
 #endif
+    float max = 0;
+    CPU_ISA_DISPATCH((max = cpu::reduce_amax<ISA>(x, size)));
+    return max;
+  }
 
   template<>
   template <typename T>

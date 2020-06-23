@@ -51,6 +51,68 @@ namespace ctranslate2 {
                                           });
     }
 
+    struct identity {
+      template <typename T>
+      constexpr T&& operator()(T&& v) const noexcept {
+        return std::forward<T>(v);
+      }
+    };
+
+    template <CpuIsa ISA,
+              typename T,
+              typename VecMapFunc,
+              typename VecReduceFunc,
+              typename ScalarMapFunc,
+              typename ScalarReduceFunc>
+    static T vectorized_map_reduce_all(const T* x,
+                                       dim_t size,
+                                       T init,
+                                       const VecMapFunc& vec_map_func,
+                                       const VecReduceFunc& vec_reduce_func,
+                                       const ScalarMapFunc& scalar_map_func,
+                                       const ScalarReduceFunc& scalar_reduce_func) {
+      if (Vec<T, ISA>::width == 1 || size <= Vec<T, ISA>::width) {
+        T accu = init;
+        for (dim_t i = 0; i < size; ++i) {
+          accu = scalar_reduce_func(accu, scalar_map_func(x[i]));
+        }
+        return accu;
+      }
+
+      auto vec_accu = Vec<T, ISA>::load(init);
+      vectorized_iter<Vec<T, ISA>::width>(
+        size,
+        [x, init, &vec_accu, &vec_map_func, &vec_reduce_func](dim_t i, dim_t width) {
+          auto v = Vec<T, ISA>::load(x + i, width, init);
+          vec_accu = vec_reduce_func(vec_accu, vec_map_func(v));
+        });
+
+      T values[Vec<T, ISA>::width];
+      Vec<T, ISA>::store(vec_accu, values);
+      return vectorized_map_reduce_all<ISA>(values,
+                                            Vec<T, ISA>::width,
+                                            init,
+                                            identity(),
+                                            vec_reduce_func,
+                                            identity(),
+                                            scalar_reduce_func);
+    }
+
+    template <CpuIsa ISA, typename T, typename VecReduceFunc, typename ScalarReduceFunc>
+    static T vectorized_reduce_all(const T* x,
+                                   dim_t size,
+                                   T init,
+                                   const VecReduceFunc& vec_reduce_func,
+                                   const ScalarReduceFunc& scalar_reduce_func) {
+      return vectorized_map_reduce_all<ISA>(x,
+                                            size,
+                                            init,
+                                            identity(),
+                                            vec_reduce_func,
+                                            identity(),
+                                            scalar_reduce_func);
+    }
+
     template <CpuIsa ISA, typename T>
     void rcp(const T* x, T* y, dim_t size) {
       vectorized_unary_transform<ISA>(x, y, size, Vec<T, ISA>::rcp);
@@ -136,6 +198,35 @@ namespace ctranslate2 {
       vectorized_binary_transform<ISA>(a, b, c, size, Vec<T, ISA>::min);
     }
 
+    template <CpuIsa ISA, typename T>
+    T reduce_sum(const T* x, dim_t size) {
+      return vectorized_reduce_all<ISA>(x,
+                                        size,
+                                        static_cast<T>(0),
+                                        Vec<T, ISA>::add,
+                                        Vec<T>::add);
+    }
+
+    template <CpuIsa ISA, typename T>
+    T reduce_max(const T* x, dim_t size) {
+      return vectorized_reduce_all<ISA>(x,
+                                        size,
+                                        x[0],
+                                        Vec<T, ISA>::max,
+                                        Vec<T>::max);
+    }
+
+    template <CpuIsa ISA, typename T>
+    T reduce_amax(const T* x, dim_t size) {
+      return vectorized_map_reduce_all<ISA>(x,
+                                            size,
+                                            static_cast<T>(0),
+                                            Vec<T, ISA>::abs,
+                                            Vec<T, ISA>::max,
+                                            Vec<T>::abs,
+                                            Vec<T>::max);
+    }
+
 #define DECLARE_IMPL(T)                                                 \
     template void rcp<TARGET_ISA>(const T* x, T* y, dim_t size);        \
     template void add<TARGET_ISA>(T a, const T* x, T* y, dim_t size);   \
@@ -146,7 +237,10 @@ namespace ctranslate2 {
     template void max<TARGET_ISA>(T a, const T* x, T* y, dim_t size);   \
     template void max<TARGET_ISA>(const T* a, const T* b, T* c, dim_t size); \
     template void min<TARGET_ISA>(T a, const T* x, T* y, dim_t size);   \
-    template void min<TARGET_ISA>(const T* a, const T* b, T* c, dim_t size);
+    template void min<TARGET_ISA>(const T* a, const T* b, T* c, dim_t size); \
+    template T reduce_sum<TARGET_ISA>(const T* x, dim_t size);          \
+    template T reduce_max<TARGET_ISA>(const T* x, dim_t size);          \
+    template T reduce_amax<TARGET_ISA>(const T* x, dim_t size);
 
     DECLARE_ALL_TYPES(DECLARE_IMPL)
 
