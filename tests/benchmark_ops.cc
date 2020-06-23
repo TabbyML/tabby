@@ -3,7 +3,6 @@
 #include <numeric>
 
 #include "ctranslate2/ops/ops.h"
-#include "ctranslate2/utils.h"
 
 using namespace ctranslate2;
 
@@ -106,8 +105,6 @@ int main(int argc, char* argv[]) {
     dtype = DataType::INT16;
   else if (dtype_str == "int8")
     dtype = DataType::INT8;
-
-  ctranslate2::set_num_threads(4);
 
   if (op == "gather")
     benchmark_gather(device);
