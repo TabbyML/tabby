@@ -6,6 +6,7 @@ set -x
 ROOT_DIR=$PWD
 PYBIND11_VERSION=${PYBIND11_VERSION:-2.4.3}
 MKL_VERSION=${MKL_VERSION:-2020.0-088}
+DNNL_VERSION=${DNNL_VERSION:-1.5}
 PATH=/opt/python/cp37-cp37m/bin:$PATH
 
 yum install -y yum-utils
@@ -15,8 +16,16 @@ yum install -y intel-mkl-64bit-${MKL_VERSION}
 
 pip install "cmake==3.13.*"
 
+curl -L -O https://github.com/oneapi-src/oneDNN/archive/v${DNNL_VERSION}.tar.gz
+tar xf *.tar.gz && rm *.tar.gz
+cd oneDNN-*
+mkdir build && cd build
+cmake -DCMAKE_INSTALL_PREFIX=$ROOT_DIR/dnnl -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF ..
+make -j2 install
+cd $ROOT_DIR
+
 mkdir build-release && cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release -DLIB_ONLY=ON ..
+cmake -DCMAKE_BUILD_TYPE=Release -DLIB_ONLY=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DCMAKE_PREFIX_PATH=$ROOT_DIR/dnnl ..
 make -j2 install
 cd ..
 rm -r build-release
@@ -29,7 +38,7 @@ do
     rm -rf build
 done
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/intel/lib/intel64/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT_DIR/dnnl/lib64
 for wheel in dist/*
 do
     auditwheel show $wheel

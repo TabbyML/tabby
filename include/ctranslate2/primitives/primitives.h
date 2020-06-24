@@ -184,7 +184,6 @@ namespace ctranslate2 {
                                         dim_t n,
                                         float alpha,
                                         int32_t* compensation);
-    static bool prefer_u8s8s32_gemm();
 
     // If dest is not passed, returns the number of bytes required to store the packed data,
     // or 0 if packing is not supported.

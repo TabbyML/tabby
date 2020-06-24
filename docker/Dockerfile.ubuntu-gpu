@@ -37,6 +37,14 @@ RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCT
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+ENV DNNL_VERSION=1.5.0
+ENV DNNL_TAG=v1.5
+ENV DNNL_DIR=/root/dnnl
+RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl_lnx_${DNNL_VERSION}_cpu_gomp.tgz && \
+    tar xf dnnl*.tgz && \
+    rm dnnl*.tgz && \
+    mv dnnl* ${DNNL_DIR}
+
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -56,6 +64,7 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
+          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
           -DWITH_CUDA=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
@@ -79,7 +88,7 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib && \
+RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libcudnn.so* /root/ctranslate2/lib && \
     cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib
 

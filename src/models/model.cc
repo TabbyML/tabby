@@ -5,6 +5,8 @@
 #include "ctranslate2/models/transformer.h"
 #include "ctranslate2/utils.h"
 
+#include "cpu/backend.h"
+
 namespace ctranslate2 {
   namespace models {
 
@@ -44,14 +46,14 @@ namespace ctranslate2 {
       }
       case ComputeType::INT16: {
         if (!support_int16)
-          throw std::invalid_argument("Requested int16 compute type, but device doesn't "
-                                      "support efficient int16 computation.");
+          throw std::invalid_argument("Requested int16 compute type, but the target device "
+                                      "and backend do not support efficient int16 computation.");
         return DataType::INT16;
       }
       case ComputeType::INT8: {
         if (!support_int8)
-          throw std::invalid_argument("Requested int8 compute type, but device doesn't "
-                                      "support efficient int8 computation.");
+          throw std::invalid_argument("Requested int8 compute type, but the target device "
+                                      "and backend do not support efficient int8 computation.");
         return DataType::INT8;
       }
       case ComputeType::DEFAULT: {
@@ -371,8 +373,7 @@ namespace ctranslate2 {
         // the input of linear layers to the u8 domain and add a compensation term.
         // This term only depends on the linear weight, so we can compute it once and
         // store it as a model variable.
-        if (dtype == DataType::INT8
-            && primitives<Device::CPU>::prefer_u8s8s32_gemm()) {
+        if (dtype == DataType::INT8 && cpu::prefer_u8s8s32_gemm()) {
           StorageView compensation({n}, DataType::INT32);
           primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
                                                            transpose,

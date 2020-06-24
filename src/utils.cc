@@ -20,11 +20,11 @@
 #  include "./cuda/utils.h"
 #endif
 
-#include "cpu/cpu_info.h"
+#include "cpu/backend.h"
 
 namespace ctranslate2 {
 
-  static bool string_to_bool(const std::string& str) {
+  bool string_to_bool(const std::string& str) {
     return str == "1" || str == "true" || str == "TRUE";
   }
 
@@ -39,24 +39,10 @@ namespace ctranslate2 {
     return string_to_bool(read_string_from_env(var, default_value ? "1" : "0"));
   }
 
-#ifdef WITH_MKL
-  static bool mkl_has_fast_int_gemm() {
-#  if __INTEL_MKL__ > 2019 || (__INTEL_MKL__ == 2019 && __INTEL_MKL_UPDATE__ >= 5)
-    // Intel MKL 2019.5 added optimized integers GEMM for SSE4.2 and AVX (in addition to
-    // the existing AVX2 and AVX512), so it is virtually optimized for all target platforms.
-    return true;
-#  else
-    return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
-#  endif
-  }
-#endif
-
   bool mayiuse_int16(Device device, int) {
     switch (device) {
-#ifdef WITH_MKL
     case Device::CPU:
-      return mkl_has_fast_int_gemm();
-#endif
+      return cpu::has_gemm_backend(ComputeType::INT16);
     default:
       return false;
     }
@@ -68,32 +54,11 @@ namespace ctranslate2 {
     case Device::CUDA:
       return cuda::has_fast_int8(device_index);
 #endif
-#ifdef WITH_MKL
     case Device::CPU:
-      return mkl_has_fast_int_gemm();
-#endif
+      return cpu::has_gemm_backend(ComputeType::INT8);
     default:
       return false;
     }
-  }
-
-#ifdef WITH_MKL
-  static bool mayiuse_mkl_init() {
-    const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
-    if (use_mkl_env.empty())
-      return cpu::cpu_is_intel();
-    else
-      return string_to_bool(use_mkl_env);
-  }
-#endif
-
-  bool mayiuse_mkl() {
-#ifdef WITH_MKL
-    static const bool mayiuse = mayiuse_mkl_init();
-    return mayiuse;
-#else
-    return false;
-#endif
   }
 
   void set_num_threads(size_t num_threads) {

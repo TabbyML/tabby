@@ -25,6 +25,14 @@ RUN yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mk
     yum install -y intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
     rm -rf /var/cache/yum/*
 
+ENV DNNL_VERSION=1.5.0
+ENV DNNL_TAG=v1.5
+ENV DNNL_DIR=/root/dnnl
+RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl_lnx_${DNNL_VERSION}_cpu_gomp.tgz && \
+    tar xf dnnl*.tgz && \
+    rm dnnl*.tgz && \
+    mv dnnl* ${DNNL_DIR}
+
 WORKDIR /root/ctranslate2-dev
 
 COPY third_party third_party
@@ -40,6 +48,7 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
+          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
           -DLIB_ONLY=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
@@ -59,12 +68,13 @@ RUN python3 -m pip --no-cache-dir install wheel pybind11==2.4.3 && \
     rmdir dist
 
 WORKDIR /root
-RUN cp /opt/intel/lib/intel64/libiomp5.so /root/ctranslate2/lib64
+RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib64
 
 FROM centos:7
 
 RUN yum install -y epel-release && \
     yum install -y \
+        libgomp \
         python3 \
         && \
     rm -rf /var/cache/yum/* && \

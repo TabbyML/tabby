@@ -23,7 +23,7 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 * **Model quantization**<br/>Support for 16-bit and 8-bit integer quantization to reduce memory and computation requirements.
 * **Parallel translations**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Automatic instruction set dispatch**<br/>When using Intel MKL, the dispatch to the optimal instruction set is done at runtime.
+* **Automatic instruction set architecture dispatch**<br/>The latest instruction set architecture (ISA) is automatically detected and selected at runtime.
 * **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
 * **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 
@@ -160,10 +160,10 @@ The converters support model quantization which is a way to reduce the model siz
 
 However, some execution settings are not (yet) optimized for all quantization types. The following table documents the actual types used during the computation:
 
-| Model type | GPU   | CPU (with MKL) |
-| ---------- | ----- | -------------- |
-| int16      | float | int16          |
-| int8       | int8  | int8           |
+| Model type | GPU   | CPU (Intel) | CPU (AMD) |
+| ---------- | ----- | ----------- | --------- |
+| int16      | float | int16       | float     |
+| int8       | int8  | int8        | int8      |
 
 Quantization can also be configured later when starting a translation instance. See the `compute_type` argument on translation clients.
 
@@ -223,16 +223,18 @@ int main() {
 
 ### Dependencies
 
-CTranslate2 uses the following external libraries for acceleration:
+Backends can be enabled or disabled during the CMake configuration. CTranslate2 supports multiple backends in a single binary:
 
-* CPU requires:
+* `-DWITH_MKL=ON` requires:
   * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
-* GPU requires:
+* `-DWITH_DNNL=ON` requires:
+  * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
+* `-DWITH_CUDA=ON` requires:
   * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
   * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
   * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
-CTranslate2 supports compiling for CPU only, GPU only, or both.
+When building with both Intel MKL and oneDNN, the backend will be selected at runtime based on the CPU information.
 
 ### Docker images
 
@@ -246,9 +248,7 @@ See the `docker/` directory for available images.
 
 ### Binaries (Ubuntu)
 
-Intel MKL is the minimum requirement for building CTranslate2. The instructions below assume an Ubuntu system.
-
-**Note:** This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
+This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
 
 #### Install Intel MKL
 
@@ -405,9 +405,11 @@ The supported hardware mostly depends on the external libraries used for acceler
 
 **CPU**
 
-Intel MKL officially supports Intel CPUs only (see [Key Specifications](https://software.intel.com/en-us/mkl)).
+We recommend using a recent Intel CPU and [Intel MKL](https://software.intel.com/en-us/mkl) for maximum performance.
 
-When running CTranslate2 on other CPU vendors, we expect the code to run but at lower speed. Optimized execution on AMD and ARM is a future work (contributions are welcome!).
+However, Intel MKL is known to run poorly on AMD CPUs. To improve AMD support, we recommend enabling the [oneDNN](https://github.com/oneapi-src/oneDNN) backend that will be automatically selected at runtime. oneDNN is included in all pre-built binaries of CTranslate2.
+
+Optimized execution on ARM is a future work (contributions are welcome!).
 
 **GPU**
 
@@ -425,7 +427,7 @@ There are many ways to make this project better and faster. See the open issues 
 
 * Better support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
-* Optimizations for non-Intel CPUs
+* Optimizations for ARM CPUs
 * Support GPU execution with the Python packages published on PyPI
 
 ### What is the difference between `intra_threads` and `inter_threads`?
