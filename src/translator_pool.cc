@@ -107,18 +107,16 @@ namespace ctranslate2 {
     }
   }
 
-  std::ifstream TranslatorPool::open_input_file(const std::string& file) const {
-    std::ifstream stream(file);
+  void TranslatorPool::open_input_file(const std::string& file, std::ifstream& stream) const {
+    stream.open(file);
     if (!stream)
       throw std::runtime_error("failed to open input file " + file);
-    return stream;
   }
 
-  std::ofstream TranslatorPool::open_output_file(const std::string& file) const {
-    std::ofstream stream(file);
+  void TranslatorPool::open_output_file(const std::string& file, std::ofstream& stream) const {
+    stream.open(file);
     if (!stream)
       throw std::runtime_error("failed to open output file " + file);
-    return stream;
   }
 
   TranslationStats TranslatorPool::consume_text_file(const std::string& in_file,
@@ -126,8 +124,10 @@ namespace ctranslate2 {
                                                      size_t read_batch_size,
                                                      const TranslationOptions& options,
                                                      bool with_scores) {
-    std::ifstream in = open_input_file(in_file);
-    std::ofstream out = open_output_file(out_file);
+    std::ifstream in;
+    open_input_file(in_file, in);
+    std::ofstream out;
+    open_output_file(out_file, out);
     return consume_text_file(in, out, read_batch_size, options, with_scores);
   }
 

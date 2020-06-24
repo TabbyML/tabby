@@ -122,8 +122,10 @@ namespace ctranslate2 {
                                            const size_t read_batch_size,
                                            const TranslationOptions& options,
                                            const bool with_scores = false) {
-      std::ifstream in = open_input_file(in_file);
-      std::ofstream out = open_output_file(out_file);
+      std::ifstream in;
+      open_input_file(in_file, in);
+      std::ofstream out;
+      open_output_file(out_file, out);
       return consume_raw_text_file(in,
                                    out,
                                    tokenizer,
@@ -197,8 +199,8 @@ namespace ctranslate2 {
                             size_t num_threads_per_translator);
     void work_loop(Translator& translator, size_t num_threads);
 
-    std::ifstream open_input_file(const std::string& file) const;
-    std::ofstream open_output_file(const std::string& file) const;
+    void open_input_file(const std::string& file, std::ifstream& stream) const;
+    void open_output_file(const std::string& file, std::ofstream& stream) const;
 
     std::condition_variable _can_add_more_work;
     std::queue<std::pair<const TranslationJob, std::promise<TranslationOutput>>> _work;
