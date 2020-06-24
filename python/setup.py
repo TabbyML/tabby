@@ -1,3 +1,4 @@
+import io
 import os
 import pybind11
 
@@ -9,7 +10,7 @@ library_dirs = []
 
 def _get_long_description():
     readme_path = os.path.join(os.path.dirname(__file__), "..", "README.md")
-    with open(readme_path) as readme_file:
+    with io.open(readme_path, encoding="utf-8") as readme_file:
         return readme_file.read()
 
 def _maybe_add_library_root(lib_name):
