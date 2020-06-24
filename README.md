@@ -11,6 +11,7 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 1. [Installation](#installation)
 1. [Converting models](#converting-models)
 1. [Translating](#translating)
+1. [Environment variables](#environment-variables)
 1. [Building](#building)
 1. [Testing](#testing)
 1. [Benchmarks](#benchmarks)
@@ -218,6 +219,15 @@ int main() {
 ```
 
 *See the [Translator class](include/ctranslate2/translator.h) for more advanced usages, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
+
+## Environment variables
+
+Some environment variables can be configured to customize the execution:
+
+* `CT2_CUDA_CACHING_ALLOCATOR_CONFIG`: Tune the CUDA caching allocator (see [Performance](docs/performance.md)).
+* `CT2_FORCE_CPU_ISA`: Force CTranslate2 to select a specific instruction set architecture (ISA). Possible values are: `GENERIC`, `AVX`, `AVX2`. Note: this does not impact backend libraries (such as Intel MKL) which usually have their own environment variables to configure ISA dispatching.
+* `CT2_USE_EXPERIMENTAL_PACKED_GEMM`: Enable the packed GEMM API for Intel MKL (see [Performance](docs/performance.md)).
+* `CT2_USE_MKL`: Force CTranslate2 to use (or not) Intel MKL. By default, the runtime automatically decides whether to use Intel MKL or not based on the CPU vendor.
 
 ## Building
 
