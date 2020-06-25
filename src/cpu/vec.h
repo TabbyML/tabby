@@ -77,7 +77,7 @@ namespace ctranslate2 {
 
     };
 
-    template <typename T, CpuIsa ISA>
+    template <typename T, CpuIsa ISA = CpuIsa::GENERIC>
     using vec_type = typename Vec<T, ISA>::value_type;
 
   }

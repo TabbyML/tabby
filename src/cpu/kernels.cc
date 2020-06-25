@@ -244,5 +244,75 @@ namespace ctranslate2 {
 
     DECLARE_ALL_TYPES(DECLARE_IMPL)
 
+
+    template<>
+    void softmax<TARGET_ISA>(const float* input,
+                             const int32_t* lengths,
+                             float* output,
+                             dim_t lengths_size,
+                             dim_t batch_size,
+                             dim_t depth,
+                             bool log,
+                             float epsilon) {
+      using VecType = Vec<float, TARGET_ISA>;
+
+      #pragma omp parallel for
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const dim_t offset = i * depth;
+        const float* x = input + offset;
+        float* y = output + offset;
+
+        dim_t size = depth;
+        if (lengths) {
+          if (lengths_size == batch_size) {
+            size = lengths[i];
+          } else {
+            // Broadcast length vector.
+            size = lengths[i * lengths_size / batch_size];
+          }
+
+          // Directly set 0 in output for out of range positions.
+          for (dim_t j = size; j < depth; ++j) {
+            y[j] = 0;
+          }
+
+          if (size == 0) {
+            continue;
+          }
+        }
+
+        const auto x_max = reduce_max<TARGET_ISA>(x, size);
+        const auto vec_x_max = VecType::load(x_max);
+
+        const auto scalar_exp_func = [x_max](vec_type<float> v) {
+                                       return Vec<float>::exp(Vec<float>::sub(v, x_max));
+                                     };
+        const auto vec_exp_func = [vec_x_max](vec_type<float, TARGET_ISA> v) {
+                                    return VecType::exp(VecType::sub(v, vec_x_max));
+                                  };
+
+        if (log) {
+          const auto exp_sum = vectorized_map_reduce_all<TARGET_ISA>(
+            x,
+            size,
+            static_cast<float>(0),
+            vec_exp_func,
+            VecType::add,
+            scalar_exp_func,
+            Vec<float>::add);
+          add<TARGET_ISA>(-x_max - std::log(exp_sum), x, y, size);
+        } else {
+          vectorized_unary_transform<TARGET_ISA>(x, y, size, vec_exp_func);
+          const auto exp_sum = vectorized_reduce_all<TARGET_ISA>(
+            y,
+            size,
+            static_cast<float>(0),
+            VecType::add,
+            Vec<float>::add);
+          mul<TARGET_ISA>(static_cast<float>(1) / (exp_sum + epsilon), y, y, size);
+        }
+      }
+    }
+
   }
 }

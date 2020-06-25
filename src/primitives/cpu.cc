@@ -449,7 +449,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
     if (cpu::mayiuse_mkl())
-      return vmsExp(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
+      return vsExp(size, x, y);
 #endif
     CPU_ISA_DISPATCH((cpu::exp<ISA>(x, y, size)));
   }
@@ -458,7 +458,7 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::log(const float* x, float* y, dim_t size) {
 #ifdef WITH_MKL
     if (cpu::mayiuse_mkl())
-      return vmsLn(size, x, y, VML_EP | VML_FTZDAZ_ON | VML_ERRMODE_IGNORE);
+      return vsLn(size, x, y);
 #endif
     CPU_ISA_DISPATCH((cpu::log<ISA>(x, y, size)));
   }
