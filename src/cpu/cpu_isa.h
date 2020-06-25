@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace ctranslate2 {
   namespace cpu {
 
@@ -8,6 +10,8 @@ namespace ctranslate2 {
       AVX,
       AVX2,
     };
+
+    std::string isa_to_str(CpuIsa isa);
 
     // Returns the CPU ISA to dispatch to.
     CpuIsa get_cpu_isa();

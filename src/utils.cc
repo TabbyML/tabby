@@ -21,6 +21,8 @@
 #endif
 
 #include "cpu/backend.h"
+#include "cpu/cpu_info.h"
+#include "cpu/cpu_isa.h"
 
 namespace ctranslate2 {
 
@@ -38,6 +40,42 @@ namespace ctranslate2 {
   bool read_bool_from_env(const char* var, const bool default_value) {
     return string_to_bool(read_string_from_env(var, default_value ? "1" : "0"));
   }
+
+  bool verbose_mode() {
+    static const bool verbose = read_bool_from_env("CT2_VERBOSE");
+    return verbose;
+  }
+
+  static void log_config() {
+    LOG() << std::boolalpha
+          << "CPU: " << cpu::cpu_vendor()
+          << " (SSE4.1=" << cpu::cpu_supports_sse41()
+          << ", AVX=" << cpu::cpu_supports_avx()
+          << ", AVX2=" << cpu::cpu_supports_avx()
+          << ")" << std::endl;
+    LOG() << "Selected CPU ISA: " << cpu::isa_to_str(cpu::get_cpu_isa()) << std::endl;
+    LOG() << "Use Intel MKL: " << cpu::mayiuse_mkl() << std::endl;
+    LOG() << "SGEMM CPU backend: "
+          << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT))
+          << std::endl;
+    LOG() << "GEMM_S16 CPU backend: "
+          << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT16))
+          << std::endl;
+    LOG() << "GEMM_S8 CPU backend: "
+          << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT8))
+          << " (u8s8 preferred: " << cpu::prefer_u8s8s32_gemm() << ")"
+          << std::endl;
+    LOG() << "Use packed GEMM: " << cpu::should_pack_gemm_weights() << std::endl;
+  }
+
+  // Maybe log run configuration on program start.
+  static struct ConfigLogger {
+    ConfigLogger() {
+      if (verbose_mode()) {
+        log_config();
+      }
+    }
+  } config_logger;
 
   bool mayiuse_int16(Device device, int) {
     switch (device) {

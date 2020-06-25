@@ -20,23 +20,40 @@ namespace ctranslate2 {
       return mkl_cbwr_get_auto_branch() >= MKL_CBWR_AVX2;
 #  endif
     }
+#endif
 
     static bool mayiuse_mkl_init() {
       const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
-      if (use_mkl_env.empty())
+      if (use_mkl_env.empty()) {
+#ifdef WITH_MKL
         return cpu_is_intel();
-      else
-        return string_to_bool(use_mkl_env);
-    }
+#else
+        return false;
 #endif
+      } else {
+        const bool use_mkl = string_to_bool(use_mkl_env);
+#ifndef WITH_MKL
+        if (use_mkl)
+          throw std::invalid_argument("This CTranslate2 binary was not compiled with Intel MKL");
+#endif
+        return use_mkl;
+      }
+    }
 
     bool mayiuse_mkl() {
-#ifdef WITH_MKL
       static const bool mayiuse = mayiuse_mkl_init();
       return mayiuse;
-#else
-      return false;
-#endif
+    }
+
+    std::string gemm_backend_to_str(GemmBackend gemm_backend) {
+      switch (gemm_backend) {
+      case GemmBackend::MKL:
+        return "MKL";
+      case GemmBackend::DNNL:
+        return "DNNL";
+      default:
+        return "NONE";
+      }
     }
 
     GemmBackend get_gemm_backend(ComputeType compute_type) {
@@ -59,6 +76,11 @@ namespace ctranslate2 {
     bool prefer_u8s8s32_gemm() {
       const auto gemm_s8_backend = get_gemm_backend(ComputeType::INT8);
       return gemm_s8_backend == cpu::GemmBackend::MKL || gemm_s8_backend == cpu::GemmBackend::DNNL;
+    }
+
+    bool should_pack_gemm_weights() {
+      static const bool should_pack = read_bool_from_env("CT2_USE_EXPERIMENTAL_PACKED_GEMM");
+      return should_pack;
     }
 
   }

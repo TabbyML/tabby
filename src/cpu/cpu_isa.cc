@@ -21,6 +21,17 @@ namespace ctranslate2 {
 #endif
     }
 
+    std::string isa_to_str(CpuIsa isa) {
+      switch (isa) {
+      case CpuIsa::AVX:
+        return "AVX";
+      case CpuIsa::AVX2:
+        return "AVX2";
+      default:
+        return "GENERIC";
+      }
+    }
+
     static CpuIsa init_isa() {
       const std::string env_isa = read_string_from_env("CT2_FORCE_CPU_ISA");
       if (!env_isa.empty()) {

@@ -352,7 +352,7 @@ namespace ctranslate2 {
       if (_device != Device::CPU)
         return;  // There is currently no processing for non CPU device.
 
-      const bool should_pack_weights = read_bool_from_env("CT2_USE_EXPERIMENTAL_PACKED_GEMM");
+      const bool should_pack_weights = cpu::should_pack_gemm_weights();
       const bool transpose = true;
       const float alpha = 1;
 

@@ -1,7 +1,5 @@
 #include "cpu_info.h"
 
-#include <string>
-
 #ifdef _WIN32
 #  include <intrin.h>
 #  include <immintrin.h>
@@ -76,6 +74,10 @@ namespace ctranslate2 {
     };
 
     static CPUInfo cpu_info;
+
+    const std::string& cpu_vendor() {
+      return cpu_info.vendor;
+    }
 
     bool cpu_is_intel() {
       return cpu_info.is_intel;
