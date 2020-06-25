@@ -163,7 +163,7 @@ However, some execution settings are not (yet) optimized for all quantization ty
 
 | Model type | GPU   | CPU (Intel) | CPU (AMD) |
 | ---------- | ----- | ----------- | --------- |
-| int16      | float | int16       | float     |
+| int16      | float | int16       | int8      |
 | int8       | int8  | int8        | int8      |
 
 Quantization can also be configured later when starting a translation instance. See the `compute_type` argument on translation clients.

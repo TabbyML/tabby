@@ -38,6 +38,7 @@ namespace ctranslate2 {
 
     static DataType compute_type_to_data_type(const ComputeType compute_type,
                                               const DataType data_type,
+                                              const Device device,
                                               const bool support_int8,
                                               const bool support_int16) {
       switch (compute_type) {
@@ -60,7 +61,9 @@ namespace ctranslate2 {
         // By default we possibly promote the saved type depending on the hardware support.
         switch (data_type) {
         case DataType::INT16:
-          return support_int16 ? DataType::INT16 : DataType::FLOAT;
+          return (support_int16
+                  ? DataType::INT16
+                  : (device == Device::CPU && support_int8 ? DataType::INT8 : DataType::FLOAT));
         case DataType::INT8:
           return (support_int8
                   ? DataType::INT8
@@ -325,6 +328,7 @@ namespace ctranslate2 {
         if (is_quantizable(name)) {
           const DataType target_dtype = compute_type_to_data_type(_compute_type,
                                                                   variable.dtype(),
+                                                                  _device,
                                                                   support_int8,
                                                                   support_int16);
           ensure_dtype(name,

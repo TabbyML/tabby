@@ -38,7 +38,7 @@ static DataType dtype_with_fallback(DataType dtype, Device device) {
   const bool support_int8 = mayiuse_int8(device);
   const bool support_int16 = mayiuse_int16(device);
   if (dtype == DataType::INT16 && !support_int16)
-    return DataType::FLOAT;
+    return support_int8 ? DataType::INT8 : DataType::FLOAT;
   if (dtype == DataType::INT8 && !support_int8)
     return support_int16 ? DataType::INT16 : DataType::FLOAT;
   return dtype;
