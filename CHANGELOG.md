@@ -2,7 +2,15 @@
 
 ### New features
 
+* Add tokenization and detokenization hooks for file translation APIs
+* Add alternatives to Intel MKL:
+  * Integrate [oneDNN](https://github.com/oneapi-src/oneDNN) for GEMM functions
+  * Implement vectorized operators that automatically select the instruction set architecture (ISA) (can be manually controlled with the `CT2_FORCE_CPU_ISA` environment variable)
+* When alternatives are available, avoid using Intel MKL on non Intel processors (can be manually controlled with the `CT2_USE_MKL` environment variable)
+
 ### Fixes and improvements
+
+* Improve numerical precision of SoftMax layer on CPU
 
 ## [v1.10.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.10.2) (2020-06-23)
 
