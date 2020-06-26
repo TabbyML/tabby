@@ -1,9 +1,9 @@
 FROM centos:7 as builder
 
-RUN yum install -y epel-release && \
+RUN yum install -y epel-release centos-release-scl-rh && \
     yum install -y \
-        gcc \
-        gcc-c++ \
+        devtoolset-8-gcc \
+        devtoolset-8-gcc-c++ \
         make \
         python3-devel \
         wget && \
@@ -47,9 +47,9 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
+    source scl_source enable devtoolset-8 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
-          -DLIB_ONLY=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
@@ -61,6 +61,7 @@ COPY python python
 WORKDIR /root/ctranslate2-dev/python
 RUN python3 -m pip --no-cache-dir install wheel pybind11==2.4.3 && \
     python3 -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
+    source scl_source enable devtoolset-8 && \
     python3 setup.py bdist_wheel && \
     python3 setup.py sdist && \
     rm -r build && \
@@ -87,3 +88,5 @@ WORKDIR /opt
 
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CTRANSLATE2_ROOT/lib64
+
+ENTRYPOINT ["/opt/ctranslate2/bin/translate"]

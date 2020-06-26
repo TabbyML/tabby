@@ -289,8 +289,8 @@ if (WITH_CUDA)
 
     if(NOT MSVC)
       # TensorRT 6 header generates a lot of deprecating warnings. Ignore them.
-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${TENSORRT_INCLUDE_DIR}")
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Wno-deprecated-declarations")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
     endif()
 
     add_definitions(-DWITH_TENSORRT)

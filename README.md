@@ -117,7 +117,7 @@ docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
 
 The images include:
 
-* a translation client to directly translate files (only in Ubuntu images)
+* a translation client to directly translate files
 * Python 3 packages (with GPU support)
 * `libctranslate2.so` library development files
 
