@@ -47,7 +47,10 @@ namespace ctranslate2 {
   }
 
   ScopedDeviceSetter::~ScopedDeviceSetter() {
-    DEVICE_DISPATCH(_device, primitives<D>::set_device(_prev_index));
+    try {
+      DEVICE_DISPATCH(_device, primitives<D>::set_device(_prev_index));
+    } catch (...) {
+    }
   }
 
 }
