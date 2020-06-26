@@ -88,9 +88,12 @@ namespace ctranslate2 {
 
   bool mayiuse_int8(Device device, int device_index) {
     switch (device) {
-#ifdef WITH_CUDA
     case Device::CUDA:
+#ifdef WITH_CUDA
       return cuda::has_fast_int8(device_index);
+#else
+      (void)device_index;
+      return false;
 #endif
     case Device::CPU:
       return cpu::has_gemm_backend(ComputeType::INT8);
