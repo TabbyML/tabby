@@ -17,8 +17,7 @@
 #include "ctranslate2/utils.h"
 #include "cpu/backend.h"
 #include "cpu/kernels.h"
-
-#include "./parallel.h"
+#include "cpu/parallel.h"
 
 #define ALIGNMENT 64
 
@@ -31,10 +30,20 @@ namespace ctranslate2 {
   void unary_transform(const T1* x,
                        T2* y,
                        dim_t size,
-                       const Function& func,
-                       dim_t work_size = 1) {
-    (void)work_size;
+                       const Function& func) {
     std::transform(x, x + size, y, func);
+  }
+
+  template <typename T1, typename T2, typename Function>
+  void parallel_unary_transform(const T1* x,
+                                T2* y,
+                                dim_t size,
+                                dim_t work_size,
+                                const Function& func) {
+    cpu::parallel_for(0, size, work_size,
+                      [x, y, &func](dim_t begin, dim_t end) {
+                        std::transform(x + begin, x + end, y + begin, func);
+                      });
   }
 
   template <typename T1, typename T2, typename T3, typename Function>
@@ -42,10 +51,21 @@ namespace ctranslate2 {
                         const T2* b,
                         T3* c,
                         dim_t size,
-                        const Function& func,
-                        dim_t work_size = 1) {
-    (void)work_size;
+                        const Function& func) {
     std::transform(a, a + size, b, c, func);
+  }
+
+  template <typename T1, typename T2, typename T3, typename Function>
+  void parallel_binary_transform(const T1* a,
+                                 const T2* b,
+                                 T3* c,
+                                 dim_t size,
+                                 dim_t work_size,
+                                 const Function& func) {
+    cpu::parallel_for(0, size, work_size,
+                      [a, b, c, &func](dim_t begin, dim_t end) {
+                        std::transform(a + begin, a + end, b + begin, c + begin, func);
+                      });
   }
 
   template<>
@@ -340,13 +360,14 @@ namespace ctranslate2 {
                                          dim_t size,
                                          float scale,
                                          float shift) {
-    unary_transform(x, y, size,
-                    [scale, shift](float v) {
-                      return static_cast<T>(
-                        std::max(std::min(v * scale + shift,
-                                          static_cast<float>(std::numeric_limits<T>::max())),
-                                 static_cast<float>(std::numeric_limits<T>::lowest())));
-                    }, /*work_size=*/5);
+    parallel_unary_transform(x, y, size, /*work_size=*/5,
+                             [scale, shift](float v) {
+                               return static_cast<T>(
+                                 std::max(
+                                   std::min(v * scale + shift,
+                                            static_cast<float>(std::numeric_limits<T>::max())),
+                                   static_cast<float>(std::numeric_limits<T>::lowest())));
+                             });
   }
 
   template<>
@@ -356,10 +377,10 @@ namespace ctranslate2 {
                                            dim_t size,
                                            float scale,
                                            float shift) {
-    unary_transform(x, y, size,
-                    [scale, shift](T v) {
-                      return (static_cast<float>(v) - shift) / scale;
-                    }, /*work_size=*/4);
+    parallel_unary_transform(x, y, size, /*work_size=*/4,
+                             [scale, shift](T v) {
+                               return (static_cast<float>(v) - shift) / scale;
+                             });
   }
 
   template<>
@@ -432,17 +453,21 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
-    max(float(0), x, y, size);
+    cpu::parallel_for(0, size, /*work_size=*/1,
+                      [x, y](dim_t begin, dim_t end) {
+                        max(float(0), x + begin, y + begin, end - begin);
+                      });
   }
 
   template<>
   void primitives<Device::CPU>::gelu(const float* x, float* y, dim_t size) {
     static const float pi = std::acos(-1.f);
     static const float scale = std::sqrt(2.f / pi);
-    unary_transform(x, y, size,
-                    [](float v) {
-                      return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
-                    }, /*work_size=*/14);
+    parallel_unary_transform(
+      x, y, size, /*work_size=*/14,
+      [](float v) {
+        return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
+      });
   }
 
   template<>
