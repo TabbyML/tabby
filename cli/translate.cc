@@ -11,7 +11,7 @@
 int main(int argc, char* argv[]) {
   cxxopts::Options cmd_options("translate", "CTranslate2 translation client");
   cmd_options.add_options()
-    ("help", "Display available options.")
+    ("h,help", "Display available options.")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
     ("compute_type", "Force the model type as \"float\", \"int16\" or \"int8\"",
      cxxopts::value<std::string>()->default_value("default"))
