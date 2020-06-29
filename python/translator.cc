@@ -14,17 +14,19 @@ namespace py = pybind11;
 
 template <typename T>
 py::list std_vector_to_py_list(const std::vector<T>& v) {
-  py::list l;
-  for (const auto& x : v)
-    l.append(x);
+  py::list l(v.size());
+  for (size_t i = 0; i < v.size(); ++i) {
+    l[i] = v[i];
+  }
   return l;
 }
 
 template<>
 py::list std_vector_to_py_list(const std::vector<std::string>& v) {
-  py::list l;
-  for (const auto& x : v)
-    l.append(STR_TYPE(x));
+  py::list l(v.size());
+  for (size_t i = 0; i < v.size(); ++i) {
+    l[i] = STR_TYPE(v[i]);
+  }
   return l;
 }
 
@@ -200,9 +202,10 @@ public:
       results = _translator_pool.post(source_input, target_prefix_input, options).get();
     }
 
-    py::list py_results;
-    for (const auto& result : results) {
-      py::list batch;
+    py::list py_results(results.size());
+    for (size_t b = 0; b < results.size(); ++b) {
+      const auto& result = results[b];
+      py::list batch(result.num_hypotheses());
       for (size_t i = 0; i < result.num_hypotheses(); ++i) {
         py::dict hyp;
         hyp["tokens"] = std_vector_to_py_list(result.hypotheses()[i]);
@@ -210,14 +213,15 @@ public:
           hyp["score"] = result.scores()[i];
         }
         if (result.has_attention()) {
-          py::list attn;
-          for (const auto& attn_vector : result.attention()[i])
-            attn.append(std_vector_to_py_list(attn_vector));
+          const auto& attention_vectors = result.attention()[i];
+          py::list attn(attention_vectors.size());
+          for (size_t t = 0; t < attention_vectors.size(); ++t)
+            attn[t] = std_vector_to_py_list(attention_vectors[t]);
           hyp["attention"] = attn;
         }
-        batch.append(hyp);
+        batch[i] = hyp;
       }
-      py_results.append(batch);
+      py_results[b] = batch;
     }
 
     return py_results;
