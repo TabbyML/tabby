@@ -2,6 +2,12 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.11.0) (2020-06-29)
+
+### New features
+
 * Add tokenization and detokenization hooks for file translation APIs
 * Add alternatives to Intel MKL:
   * Integrate [oneDNN](https://github.com/oneapi-src/oneDNN) for GEMM functions
