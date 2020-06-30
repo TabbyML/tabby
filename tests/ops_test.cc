@@ -560,7 +560,7 @@ TEST_P(OpDeviceTest, GELU) {
   StorageView x({2}, std::vector<float>{0.2, -1.3}, device);
   StorageView expected({2}, std::vector<float>{0.11585142, -0.12607098}, device);
   ops::GELU()(x, x);
-  expect_storage_eq(x, expected, 1e-5);
+  expect_storage_eq(x, expected, 1e-3);
 }
 
 TEST_P(OpDeviceTest, QuantizeINT8) {

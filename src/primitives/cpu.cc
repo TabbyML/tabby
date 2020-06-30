@@ -445,6 +445,19 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::gelu(const float* x, float* y, dim_t size) {
+#ifdef WITH_MKL
+    if (cpu::mayiuse_mkl()) {
+      const bool inplace = (x == y);
+      float* tmp = y;
+      if (inplace)
+        tmp = static_cast<float*>(alloc_data(size * sizeof (float)));
+      vsCdfNorm(size, x, tmp);
+      vsMul(size, x, tmp, y);
+      if (inplace)
+        free_data(tmp);
+      return;
+    }
+#endif
     static const float pi = std::acos(-1.f);
     static const float scale = std::sqrt(2.f / pi);
     parallel_unary_transform(
