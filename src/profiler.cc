@@ -1,5 +1,23 @@
 #include "ctranslate2/profiler.h"
 
+#ifndef ENABLE_PROFILING
+
+#include <stdexcept>
+
+namespace ctranslate2 {
+
+  void init_profiling(Device, size_t) {
+    throw std::runtime_error("CTranslate2 was not compiled with profiling support, "
+                             "enable it with -DENABLE_PROFILING=ON during cmake configuration.");
+  }
+
+  void dump_profiling(std::ostream&) {
+  }
+
+}
+
+#else
+
 #include <algorithm>
 #include <iomanip>
 #include <memory>
@@ -115,14 +133,7 @@ namespace ctranslate2 {
 
 
   void init_profiling(Device device, size_t num_threads) {
-#ifdef ENABLE_PROFILING
     profiler.reset(new Profiler(device, num_threads));
-#else
-    (void)device;
-    (void)num_threads;
-    throw std::runtime_error("CTranslate2 was not compiled with profiling support, "
-                             "enable it with -DENABLE_PROFILING=ON during cmake configuration.");
-#endif
   }
 
   void dump_profiling(std::ostream& os) {
@@ -159,3 +170,5 @@ namespace ctranslate2 {
   }
 
 }
+
+#endif
