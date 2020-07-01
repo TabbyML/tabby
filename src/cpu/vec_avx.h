@@ -31,8 +31,8 @@ namespace ctranslate2 {
           return _mm256_loadu_ps(ptr);
         } else {
           __ct2_align32__ float tmp_values[width];
-          std::fill_n(tmp_values, width, default_value);
-          std::copy_n(ptr, count, tmp_values);
+          std::fill(tmp_values, tmp_values + width, default_value);
+          std::copy(ptr, ptr + count, tmp_values);
           return _mm256_loadu_ps(tmp_values);
         }
       }
@@ -43,7 +43,7 @@ namespace ctranslate2 {
         } else {
           __ct2_align32__ float tmp_values[width];
           _mm256_storeu_ps(tmp_values, value);
-          std::copy_n(tmp_values, count, ptr);
+          std::copy(tmp_values, tmp_values + count, ptr);
         }
       }
 

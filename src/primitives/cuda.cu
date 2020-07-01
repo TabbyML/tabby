@@ -39,7 +39,7 @@ namespace ctranslate2 {
     auto ind_it = thrust::counting_iterator<dim_t>(0);
     auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
     auto perm_it = thrust::make_permutation_iterator(x, perm_ind_it);
-    THRUST_CALL(thrust::copy_n, perm_it, size, y);
+    THRUST_CALL(thrust::copy, perm_it, perm_it + size, y);
   }
 
   template <typename T>
@@ -116,7 +116,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CUDA>::fill(T* x, T a, dim_t size) {
-    THRUST_CALL(thrust::fill_n, x, size, a);
+    THRUST_CALL(thrust::fill, x, x + size, a);
   }
   template<>
   template <typename T>
@@ -124,7 +124,7 @@ namespace ctranslate2 {
     auto it = thrust::make_permutation_iterator(
       x, thrust::make_transform_iterator(thrust::counting_iterator<dim_t>(0),
                                          thrust::placeholders::_1 * inc_x));
-    THRUST_CALL(thrust::fill_n, it, size, a);
+    THRUST_CALL(thrust::fill, it, it + size, a);
   }
 
   template<>
