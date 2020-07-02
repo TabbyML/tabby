@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -21,6 +23,8 @@ namespace ctranslate2 {
     // the number of computations per indices increases.
     constexpr dim_t GRAIN_SIZE = 32768;
 
+    // work_size is an estimation of the amount of work per index (for example,
+    // 1 for a basic operator + - *, 2 for /, and 4 for exp, log, etc.).
     template <typename Function>
     inline void parallel_for(const dim_t begin,
                              const dim_t end,
@@ -52,6 +56,48 @@ namespace ctranslate2 {
 #else
       f(begin, end);
 #endif
+    }
+
+    template <typename T1, typename T2, typename Function>
+    inline void unary_transform(const T1* x,
+                                T2* y,
+                                dim_t size,
+                                const Function& func) {
+      std::transform(x, x + size, y, func);
+    }
+
+    template <typename T1, typename T2, typename Function>
+    inline void parallel_unary_transform(const T1* x,
+                                         T2* y,
+                                         dim_t size,
+                                         dim_t work_size,
+                                         const Function& func) {
+      parallel_for(0, size, work_size,
+                   [x, y, &func](dim_t begin, dim_t end) {
+                     std::transform(x + begin, x + end, y + begin, func);
+                   });
+    }
+
+    template <typename T1, typename T2, typename T3, typename Function>
+    inline void binary_transform(const T1* a,
+                                 const T2* b,
+                                 T3* c,
+                                 dim_t size,
+                                 const Function& func) {
+      std::transform(a, a + size, b, c, func);
+    }
+
+    template <typename T1, typename T2, typename T3, typename Function>
+    inline void parallel_binary_transform(const T1* a,
+                                          const T2* b,
+                                          T3* c,
+                                          dim_t size,
+                                          dim_t work_size,
+                                          const Function& func) {
+      parallel_for(0, size, work_size,
+                   [a, b, c, &func](dim_t begin, dim_t end) {
+                     std::transform(a + begin, a + end, b + begin, c + begin, func);
+                   });
     }
 
   }

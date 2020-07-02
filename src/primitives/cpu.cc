@@ -1,6 +1,5 @@
 #include "ctranslate2/primitives/primitives.h"
 
-#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <numeric>
@@ -22,51 +21,6 @@
 #define ALIGNMENT 64
 
 namespace ctranslate2 {
-
-  // work_size is an estimation of the amount of work per index (for example,
-  // 1 for a basic operator + - *, 2 for /, and 4 for exp, log, etc.).
-
-  template <typename T1, typename T2, typename Function>
-  void unary_transform(const T1* x,
-                       T2* y,
-                       dim_t size,
-                       const Function& func) {
-    std::transform(x, x + size, y, func);
-  }
-
-  template <typename T1, typename T2, typename Function>
-  void parallel_unary_transform(const T1* x,
-                                T2* y,
-                                dim_t size,
-                                dim_t work_size,
-                                const Function& func) {
-    cpu::parallel_for(0, size, work_size,
-                      [x, y, &func](dim_t begin, dim_t end) {
-                        std::transform(x + begin, x + end, y + begin, func);
-                      });
-  }
-
-  template <typename T1, typename T2, typename T3, typename Function>
-  void binary_transform(const T1* a,
-                        const T2* b,
-                        T3* c,
-                        dim_t size,
-                        const Function& func) {
-    std::transform(a, a + size, b, c, func);
-  }
-
-  template <typename T1, typename T2, typename T3, typename Function>
-  void parallel_binary_transform(const T1* a,
-                                 const T2* b,
-                                 T3* c,
-                                 dim_t size,
-                                 dim_t work_size,
-                                 const Function& func) {
-    cpu::parallel_for(0, size, work_size,
-                      [a, b, c, &func](dim_t begin, dim_t end) {
-                        std::transform(a + begin, a + end, b + begin, c + begin, func);
-                      });
-  }
 
   template<>
   void primitives<Device::CPU>::set_device(int) {
@@ -344,14 +298,14 @@ namespace ctranslate2 {
                                          dim_t size,
                                          float scale,
                                          float shift) {
-    parallel_unary_transform(x, y, size, /*work_size=*/5,
-                             [scale, shift](float v) {
-                               return static_cast<T>(
-                                 std::max(
-                                   std::min(v * scale + shift,
-                                            static_cast<float>(std::numeric_limits<T>::max())),
-                                   static_cast<float>(std::numeric_limits<T>::lowest())));
-                             });
+    cpu::parallel_unary_transform(x, y, size, /*work_size=*/5,
+                                  [scale, shift](float v) {
+                                    return static_cast<T>(
+                                      std::max(
+                                        std::min(v * scale + shift,
+                                                 static_cast<float>(std::numeric_limits<T>::max())),
+                                        static_cast<float>(std::numeric_limits<T>::lowest())));
+                                  });
   }
 
   template<>
@@ -361,10 +315,10 @@ namespace ctranslate2 {
                                            dim_t size,
                                            float scale,
                                            float shift) {
-    parallel_unary_transform(x, y, size, /*work_size=*/4,
-                             [scale, shift](T v) {
-                               return (static_cast<float>(v) - shift) / scale;
-                             });
+    cpu::parallel_unary_transform(x, y, size, /*work_size=*/4,
+                                  [scale, shift](T v) {
+                                    return (static_cast<float>(v) - shift) / scale;
+                                  });
   }
 
   template<>
@@ -391,10 +345,10 @@ namespace ctranslate2 {
       const float* row = x + i * depth;
       int8_t* qrow = qx + i * depth;
       auto scale = static_cast<float>(std::numeric_limits<int8_t>::max()) / amax(row, depth);
-      unary_transform(row, qrow, depth,
-                      [scale, shift](float v) {
-                        return static_cast<int8_t>(v * scale + shift);
-                      });
+      cpu::unary_transform(row, qrow, depth,
+                           [scale, shift](float v) {
+                             return static_cast<int8_t>(v * scale + shift);
+                           });
       scales[i] = scale;
     }
   }
@@ -416,10 +370,10 @@ namespace ctranslate2 {
       for (dim_t i = 0; i < batch_size; ++i) {
         const float r_a_scale = 1.f / a_scales[i];
         const dim_t offset = i * depth;
-        binary_transform(c + offset, r_b_scales, y + offset, depth,
-                         [r_a_scale](int32_t v, float r_b_scale) {
-                           return static_cast<float>(v) * r_a_scale * r_b_scale;
-                         });
+        cpu::binary_transform(c + offset, r_b_scales, y + offset, depth,
+                              [r_a_scale](int32_t v, float r_b_scale) {
+                                return static_cast<float>(v) * r_a_scale * r_b_scale;
+                              });
       }
       free_data(r_b_scales);
     } else {
@@ -460,7 +414,7 @@ namespace ctranslate2 {
 #endif
     static const float pi = std::acos(-1.f);
     static const float scale = std::sqrt(2.f / pi);
-    parallel_unary_transform(
+    cpu::parallel_unary_transform(
       x, y, size, /*work_size=*/14,
       [](float v) {
         return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
@@ -783,7 +737,7 @@ namespace ctranslate2 {
 
 #ifdef WITH_MKL
   static void shift_to_u8(const int8_t* x, uint8_t* ux, dim_t size) {
-    unary_transform(x, ux, size, [](int8_t v) { return static_cast<uint8_t>(v + 128); });
+    cpu::unary_transform(x, ux, size, [](int8_t v) { return static_cast<uint8_t>(v + 128); });
   }
 #endif
 
