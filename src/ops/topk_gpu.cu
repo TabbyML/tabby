@@ -5,7 +5,7 @@
 namespace ctranslate2 {
   namespace ops {
 
-#ifdef WITH_TENSORRT
+#ifdef CT2_WITH_TENSORRT
     class TopKLayer : public cuda::TensorRTLayer {
     public:
       TopKLayer(dim_t k)
@@ -68,7 +68,7 @@ namespace ctranslate2 {
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
-#ifdef WITH_TENSORRT
+#ifdef CT2_WITH_TENSORRT
       static thread_local TopKLayer topk_layer(_k);
       topk_layer(x, values, indices);
 #else

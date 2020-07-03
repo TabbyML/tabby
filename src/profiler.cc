@@ -1,6 +1,6 @@
 #include "ctranslate2/profiler.h"
 
-#ifndef ENABLE_PROFILING
+#ifndef CT2_ENABLE_PROFILING
 
 #include <stdexcept>
 
@@ -25,7 +25,7 @@ namespace ctranslate2 {
 #include <vector>
 #include <unordered_map>
 
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
 #  include <cuda_runtime.h>
 #endif
 
@@ -159,7 +159,7 @@ namespace ctranslate2 {
   ScopeProfiler::~ScopeProfiler() {
     if (!profiler)
       return;
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
     if (profiler->device() == Device::CUDA)
       cudaDeviceSynchronize();
 #endif

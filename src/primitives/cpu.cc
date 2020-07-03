@@ -5,11 +5,11 @@
 #include <numeric>
 #include <stdexcept>
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
 #  include <mkl.h>
 #endif
 
-#ifdef WITH_DNNL
+#ifdef CT2_WITH_DNNL
 #  include <dnnl.h>
 #endif
 
@@ -43,7 +43,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::clear_cache() {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     mkl_free_buffers();
 #endif
   }
@@ -68,7 +68,7 @@ namespace ctranslate2 {
     }
   }
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::strided_fill(float* x, float a, dim_t inc_x, dim_t size) {
@@ -115,7 +115,7 @@ namespace ctranslate2 {
   template<>
   template<>
   float primitives<Device::CPU>::amax(const float* x, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return std::abs(x[cblas_isamax(size, x, /*incx=*/1)]);
 #endif
@@ -155,7 +155,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::add(const float* a, const float* b, float* c, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsAdd(size, a, b, c);
 #endif
@@ -196,7 +196,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::sub(const float* a, const float* b, float* c, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsSub(size, a, b, c);
 #endif
@@ -218,7 +218,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::max(const float* a, const float* b, float* c, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsFmax(size, a, b, c);
 #endif
@@ -240,7 +240,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::min(const float* a, const float* b, float* c, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsFmin(size, a, b, c);
 #endif
@@ -256,7 +256,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::mul(float a, const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return cblas_saxpby(size, a, x, 1 /* incx */, 0 /* b */, y, 1 /* incy */);
 #endif
@@ -272,7 +272,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::mul(const float* a, const float* b, float* c, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsMul(size, a, b, c);
 #endif
@@ -301,7 +301,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::gelu(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl()) {
       const bool inplace = (x == y);
       float* tmp = y;
@@ -325,7 +325,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsExp(size, x, y);
 #endif
@@ -334,7 +334,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::log(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsLn(size, x, y);
 #endif
@@ -343,7 +343,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::cos(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsCos(size, x, y);
 #endif
@@ -352,7 +352,7 @@ namespace ctranslate2 {
 
   template<>
   void primitives<Device::CPU>::sin(const float* x, float* y, dim_t size) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
       return vsSin(size, x, y);
 #endif
@@ -370,7 +370,7 @@ namespace ctranslate2 {
     }
   }
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
   template<>
   template<>
   void primitives<Device::CPU>::transpose_2d(const float* a, const dim_t* dims, float* b) {
@@ -462,7 +462,7 @@ namespace ctranslate2 {
   static cpu::GemmBackend gemm_s8_backend = cpu::get_gemm_backend(ComputeType::INT8);
   static cpu::GemmBackend gemm_s16_backend = cpu::get_gemm_backend(ComputeType::INT16);
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
   // m value used to pack the b matrix.
   constexpr MKL_INT mkl_gemm_pack_b_m = 1;
 #endif
@@ -475,7 +475,7 @@ namespace ctranslate2 {
                                              const dim_t n,
                                              const float alpha,
                                              float* dest) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (sgemm_backend == cpu::GemmBackend::MKL) {
       if (!dest)
         return cblas_sgemm_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
@@ -500,7 +500,7 @@ namespace ctranslate2 {
                                              const dim_t n,
                                              const float,
                                              int16_t* dest) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (gemm_s16_backend == cpu::GemmBackend::MKL) {
       if (!dest)
         return cblas_gemm_s16s16s32_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
@@ -524,7 +524,7 @@ namespace ctranslate2 {
                                              const dim_t n,
                                              const float,
                                              int8_t* dest) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     if (gemm_s8_backend == cpu::GemmBackend::MKL) {
       if (!dest)
         return cblas_gemm_s8u8s32_pack_get_size(CblasBMatrix, mkl_gemm_pack_b_m, n, k);
@@ -555,7 +555,7 @@ namespace ctranslate2 {
 
     switch (sgemm_backend) {
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
       CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
       CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
@@ -582,7 +582,7 @@ namespace ctranslate2 {
     }
 #endif
 
-#ifdef WITH_DNNL
+#ifdef CT2_WITH_DNNL
     case cpu::GemmBackend::DNNL: {
       dnnl_sgemm(transpose_a ? 'T' : 'N',
                  transpose_b ? 'T' : 'N',
@@ -612,7 +612,7 @@ namespace ctranslate2 {
                                      const int32_t*) {
     switch (gemm_s16_backend) {
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
       MKL_INT lda = transpose_a ? m : k;
       MKL_INT ldb = transpose_b ? k : n;
@@ -656,7 +656,7 @@ namespace ctranslate2 {
     }
   }
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
   static void shift_to_u8(const int8_t* x, uint8_t* ux, dim_t size) {
     cpu::unary_transform(x, ux, size, [](int8_t v) { return static_cast<uint8_t>(v + 128); });
   }
@@ -708,7 +708,7 @@ namespace ctranslate2 {
 
     switch (gemm_s8_backend) {
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
       // We are implementing s8s8s32 GEMM with cblas_gemm_s8u8s32. In row major mode,
       // it expects a to be unsigned and b to be signed. So we need to shift a to the
@@ -771,7 +771,7 @@ namespace ctranslate2 {
     }
 #endif
 
-#ifdef WITH_DNNL
+#ifdef CT2_WITH_DNNL
     case cpu::GemmBackend::DNNL: {
       const char transa = transpose_a ? 'T' : 'N';
       const char transb = transpose_b ? 'T' : 'N';
@@ -816,7 +816,7 @@ namespace ctranslate2 {
                                            float* c) {
     switch (sgemm_backend) {
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
       MKL_INT lda = transpose_a ? m : k;
       MKL_INT ldb = transpose_b ? k : n;

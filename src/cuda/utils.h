@@ -6,7 +6,7 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
-#ifdef WITH_TENSORRT
+#ifdef CT2_WITH_TENSORRT
 #  include <NvInfer.h>
 #endif
 
@@ -67,7 +67,7 @@ namespace ctranslate2 {
 
     ThrustAllocator& get_thrust_allocator();
 
-#ifdef WITH_TENSORRT
+#ifdef CT2_WITH_TENSORRT
     class TensorRTLayer {
     public:
       virtual ~TensorRTLayer();

@@ -8,7 +8,7 @@
 #  include <malloc.h>
 #endif
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
 #  include <mkl.h>
 #endif
 
@@ -16,7 +16,7 @@
 #  include <omp.h>
 #endif
 
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
 #  include "./cuda/utils.h"
 #endif
 
@@ -89,7 +89,7 @@ namespace ctranslate2 {
   bool mayiuse_int8(Device device, int device_index) {
     switch (device) {
     case Device::CUDA:
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
       return cuda::has_fast_int8(device_index);
 #else
       (void)device_index;
@@ -150,7 +150,7 @@ namespace ctranslate2 {
 
   void* aligned_alloc(size_t size, size_t alignment) {
     void* ptr = nullptr;
-#if defined(WITH_MKL)
+#if defined(CT2_WITH_MKL)
     ptr = mkl_malloc(size, alignment);
 #elif defined(_WIN32)
     ptr = _aligned_malloc(size, alignment);
@@ -164,7 +164,7 @@ namespace ctranslate2 {
   }
 
   void aligned_free(void* ptr) {
-#if defined(WITH_MKL)
+#if defined(CT2_WITH_MKL)
     mkl_free(ptr);
 #elif defined(_WIN32)
     _aligned_free(ptr);

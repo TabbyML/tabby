@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
 #  include <cuda_runtime.h>
 #  define SYNCHRONIZE cudaDeviceSynchronize()
 #else

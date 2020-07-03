@@ -8,7 +8,7 @@
 
 namespace ctranslate2 {
 
-#ifdef ENABLE_PROFILING
+#ifdef CT2_ENABLE_PROFILING
 #  define PROFILE(NAME) ctranslate2::ScopeProfiler scope_profiler(NAME)
 
   // Times of profilers created in different threads with the same name are accumulated.

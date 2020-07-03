@@ -1,6 +1,6 @@
 #include "backend.h"
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
 #  include <mkl.h>
 #endif
 
@@ -10,7 +10,7 @@
 namespace ctranslate2 {
   namespace cpu {
 
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
     static inline bool mkl_has_fast_int_gemm() {
 #  if __INTEL_MKL__ > 2019 || (__INTEL_MKL__ == 2019 && __INTEL_MKL_UPDATE__ >= 5)
       // Intel MKL 2019.5 added optimized integers GEMM for SSE4.2 and AVX (in addition to
@@ -25,14 +25,14 @@ namespace ctranslate2 {
     static bool mayiuse_mkl_init() {
       const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
       if (use_mkl_env.empty()) {
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
         return cpu_is_intel();
 #else
         return false;
 #endif
       } else {
         const bool use_mkl = string_to_bool(use_mkl_env);
-#ifndef WITH_MKL
+#ifndef CT2_WITH_MKL
         if (use_mkl)
           throw std::invalid_argument("This CTranslate2 binary was not compiled with Intel MKL");
 #endif
@@ -57,7 +57,7 @@ namespace ctranslate2 {
     }
 
     GemmBackend get_gemm_backend(ComputeType compute_type) {
-#ifdef WITH_DNNL
+#ifdef CT2_WITH_DNNL
       if (!mayiuse_mkl()) {
         if (compute_type != ComputeType::INT16)
           return GemmBackend::DNNL;
@@ -65,7 +65,7 @@ namespace ctranslate2 {
           return GemmBackend::NONE;
       }
 #endif
-#ifdef WITH_MKL
+#ifdef CT2_WITH_MKL
       if (compute_type == ComputeType::FLOAT || mkl_has_fast_int_gemm()) {
         return GemmBackend::MKL;
       }

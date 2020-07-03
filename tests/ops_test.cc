@@ -655,7 +655,6 @@ TEST_P(OpDeviceTest, Max) {
 }
 
 INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
 INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
-
 #endif

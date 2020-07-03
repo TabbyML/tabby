@@ -18,7 +18,7 @@
   }
 
 #define SINGLE_ARG(...) __VA_ARGS__
-#ifndef WITH_CUDA
+#ifndef CT2_WITH_CUDA
 #  define DEVICE_DISPATCH(DEVICE, STMTS)                \
   switch (DEVICE) {                                     \
     UNSUPPORTED_DEVICE_CASE(Device::CUDA)               \

@@ -220,7 +220,7 @@ namespace ctranslate2 {
     if (size != _size)
       THROW_INVALID_ARGUMENT("buffer to copy is of size " + std::to_string(size)
                              + " but current storage size is " + std::to_string(_size));
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
     if (device != _device) {
       if (device == Device::CUDA)
         cross_device_primitives<Device::CUDA, Device::CPU>::copy(data, this->data<T>(), size);

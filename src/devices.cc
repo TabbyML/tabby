@@ -1,6 +1,6 @@
 #include "ctranslate2/devices.h"
 
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
 #  include "./cuda/utils.h"
 #endif
 
@@ -10,14 +10,14 @@
 namespace ctranslate2 {
 
   Device str_to_device(const std::string& device) {
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
     if (device == "cuda" || device == "CUDA")
       return Device::CUDA;
 #endif
     if (device == "cpu" || device == "CPU")
       return Device::CPU;
     if (device == "auto" || device == "AUTO")
-#ifdef WITH_CUDA
+#ifdef CT2_WITH_CUDA
       return cuda::has_gpu() ? Device::CUDA : Device::CPU;
 #else
       return Device::CPU;

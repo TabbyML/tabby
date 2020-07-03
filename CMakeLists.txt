@@ -19,7 +19,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
 if(ENABLE_PROFILING)
   message(STATUS "Enable profiling support")
-  add_definitions(-DENABLE_PROFILING)
+  add_definitions(-DCT2_ENABLE_PROFILING)
 endif()
 
 if(DEFINED ENV{INTELROOT})
@@ -195,7 +195,7 @@ if(WITH_MKL)
     message(FATAL_ERROR "MKL library directory not found")
   endif()
 
-  add_definitions(-DWITH_MKL -DMKL_ILP64)
+  add_definitions(-DCT2_WITH_MKL -DMKL_ILP64)
   if(WIN32)
     set(MKL_LIBRARIES
       ${MKL_LIBRARY_DIR}/mkl_core.lib
@@ -251,14 +251,14 @@ if(WITH_DNNL)
     message(FATAL_ERROR "DNNL library not found")
   endif()
 
-  add_definitions(-DWITH_DNNL)
+  add_definitions(-DCT2_WITH_DNNL)
   list(APPEND INCLUDE_DIRECTORIES ${DNNL_INCLUDE_DIR})
   list(APPEND LIBRARIES ${DNNL_LIBRARY})
 endif()
 
 if (WITH_CUDA)
   find_package(CUDA 10.0 REQUIRED)
-  add_definitions(-DWITH_CUDA)
+  add_definitions(-DCT2_WITH_CUDA)
   if(MSVC)
     if(BUILD_SHARED_LIBS)
       set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MD$<$<CONFIG:Debug>:d>")
@@ -295,7 +295,7 @@ if (WITH_CUDA)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
     endif()
 
-    add_definitions(-DWITH_TENSORRT)
+    add_definitions(-DCT2_WITH_TENSORRT)
     include_directories(
       ${TENSORRT_INCLUDE_DIR}
       )
