@@ -414,6 +414,25 @@ namespace ctranslate2 {
                                              const dim_t* dims,
                                              const dim_t* perm,
                                              T* b) {
+    if (perm[0] == 0 && perm[1] == 2 && perm[2] == 1 && perm[3] == 3) {
+      // Optimize the permutation used in multi-head attention.
+      const dim_t r1 = dims[2];
+      const dim_t r2 = dims[1];
+      const dim_t depth = dims[3];
+
+      #pragma omp parallel for
+      for (dim_t i = 0; i < dims[0]; ++i) {
+        const dim_t offset = i * r1 * r2;
+        for (dim_t j = 0; j < r1 * r2; ++j) {
+          const dim_t a_offset = depth * (offset + j);
+          const dim_t b_offset = depth * (offset + j / r1 + (j % r1) * r2);
+          copy(a + a_offset, b + b_offset, depth);
+        }
+      }
+
+      return;
+    }
+
     dim_t perm_ind[4];
     for (dim_t i = 0; i < 4; ++i)
       perm_ind[perm[i]] = i;
