@@ -82,6 +82,7 @@ set(SOURCES
   src/ops/concat.cc
   src/ops/concat_split_cpu.cc
   src/ops/dequantize.cc
+  src/ops/dequantize_cpu.cc
   src/ops/gather.cc
   src/ops/gather_cpu.cc
   src/ops/gelu.cc
@@ -103,6 +104,7 @@ set(SOURCES
   src/ops/topk_cpu.cc
   src/ops/transpose.cc
   src/ops/quantize.cc
+  src/ops/quantize_cpu.cc
   src/primitives/cpu.cc
   src/profiler.cc
   src/sampling.cc
@@ -329,11 +331,13 @@ if (WITH_CUDA)
     src/cuda/utils.cc
     src/primitives/cuda.cu
     src/ops/concat_split_gpu.cu
+    src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/layer_norm_gpu.cu
     src/ops/multinomial_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/topk_gpu.cu
+    src/ops/quantize_gpu.cu
     )
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}

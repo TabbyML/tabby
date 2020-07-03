@@ -292,104 +292,6 @@ namespace ctranslate2 {
   }
 
   template<>
-  template <typename T>
-  void primitives<Device::CPU>::quantize(const float* x,
-                                         T* y,
-                                         dim_t size,
-                                         float scale,
-                                         float shift) {
-    cpu::parallel_unary_transform(x, y, size, /*work_size=*/5,
-                                  [scale, shift](float v) {
-                                    return static_cast<T>(
-                                      std::max(
-                                        std::min(v * scale + shift,
-                                                 static_cast<float>(std::numeric_limits<T>::max())),
-                                        static_cast<float>(std::numeric_limits<T>::lowest())));
-                                  });
-  }
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::dequantize(const T* x,
-                                           float* y,
-                                           dim_t size,
-                                           float scale,
-                                           float shift) {
-    cpu::parallel_unary_transform(x, y, size, /*work_size=*/4,
-                                  [scale, shift](T v) {
-                                    return (static_cast<float>(v) - shift) / scale;
-                                  });
-  }
-
-  template<>
-  template <typename T>
-  void primitives<Device::CPU>::dequantize_batch(const T* x, const float* scale, float* y,
-                                                 dim_t x_size, dim_t scale_size, float shift) {
-    const dim_t depth = x_size / scale_size;
-    #pragma omp parallel for
-    for (dim_t i = 0; i < scale_size; ++i) {
-      const dim_t offset = i * depth;
-      dequantize(x + offset, y + offset, depth, scale[i], shift);
-    }
-  }
-
-  template<>
-  void primitives<Device::CPU>::quantize_batch(const float* x,
-                                               float* scales,
-                                               int8_t* qx,
-                                               dim_t batch_size,
-                                               dim_t depth,
-                                               float shift) {
-    #pragma omp parallel for
-    for (dim_t i = 0; i < batch_size; ++i) {
-      const float* row = x + i * depth;
-      int8_t* qrow = qx + i * depth;
-      auto scale = static_cast<float>(std::numeric_limits<int8_t>::max()) / amax(row, depth);
-      cpu::unary_transform(row, qrow, depth,
-                           [scale, shift](float v) {
-                             return static_cast<int8_t>(v * scale + shift);
-                           });
-      scales[i] = scale;
-    }
-  }
-
-  template<>
-  void primitives<Device::CPU>::rescale_output(const int32_t* c,
-                                               const float* a_scales,
-                                               const float* b_scales,
-                                               const bool transpose_a,
-                                               const bool transpose_b,
-                                               float* y,
-                                               dim_t batch_size,
-                                               dim_t depth) {
-    if (!transpose_a && transpose_b) {
-      // Optimize the common case using transform and minimizing the number of division.
-      auto* r_b_scales = static_cast<float*>(alloc_data(depth * sizeof (float)));
-      CPU_ISA_DISPATCH((cpu::rcp<ISA>(b_scales, r_b_scales, depth)));
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const float r_a_scale = 1.f / a_scales[i];
-        const dim_t offset = i * depth;
-        cpu::binary_transform(c + offset, r_b_scales, y + offset, depth,
-                              [r_a_scale](int32_t v, float r_b_scale) {
-                                return static_cast<float>(v) * r_a_scale * r_b_scale;
-                              });
-      }
-      free_data(r_b_scales);
-    } else {
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        for (dim_t j = 0; j < depth; ++j) {
-          const dim_t index = j + i * depth;
-          const float a_scale = transpose_a ? a_scales[j] : a_scales[i];
-          const float b_scale = transpose_b ? b_scales[j] : b_scales[i];
-          y[index] = static_cast<float>(c[index]) / (a_scale * b_scale);
-        }
-      }
-    }
-  }
-
-  template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
     cpu::parallel_for(0, size, /*work_size=*/1,
                       [x, y](dim_t begin, dim_t end) {
@@ -1016,22 +918,7 @@ namespace ctranslate2 {
   primitives<Device::CPU>::transpose_4d(const T* a,                     \
                                         const dim_t* dims,              \
                                         const dim_t* perm,              \
-                                        T* b);                          \
-  template void                                                         \
-  primitives<Device::CPU>::dequantize_batch(const T* x,                 \
-                                            const float* scale,         \
-                                            float* y,                   \
-                                            dim_t x_size,               \
-                                            dim_t scale_size,           \
-                                            float shift);               \
-  template void                                                         \
-  primitives<Device::CPU>::quantize(const float* x, T* y,               \
-                                    dim_t size,                         \
-                                    float scale, float shift);          \
-  template void                                                         \
-  primitives<Device::CPU>::dequantize(const T* x, float* y,             \
-                                      dim_t size,                       \
-                                      float scale, float shift);
+                                        T* b);
 
   DECLARE_ALL_TYPES(DECLARE_IMPL)
 

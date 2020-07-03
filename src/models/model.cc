@@ -278,7 +278,7 @@ namespace ctranslate2 {
         } else if (is_int16) {
           // Backward compatibility with int16 models without a saved scale.
           saved_scale = &variables_to_add.emplace(scale_name,
-                                                  ops::Quantize::default_int16_scale).first->second;
+                                                  ops::Quantize::global_int16_scale).first->second;
         } else {
           throw std::runtime_error("variable " + scale_name + " not found");
         }

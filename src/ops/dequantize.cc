@@ -5,33 +5,32 @@
 namespace ctranslate2 {
   namespace ops {
 
-    void Dequantize::operator()(const StorageView& x, const StorageView& scale, StorageView& y) const {
+    void Dequantize::operator()(const StorageView& input,
+                                const StorageView& scale,
+                                StorageView& output) const {
       PROFILE("Dequantize");
-      y.resize_as(x);
-      if (x.dtype() == DataType::INT16) {
-        if (x.device() != Device::CPU)
+      output.resize_as(input);
+
+      switch (input.dtype()) {
+      case DataType::INT16: {
+        if (input.device() != Device::CPU)
           throw std::invalid_argument("INT16 dequantization is only supported on CPU");
         if (!scale.is_scalar())
           throw std::invalid_argument("INT16 quantization scale should be a scalar value");
+        dequantize<Device::CPU, int16_t>(input, scale, output);
+        break;
+      }
 
-        primitives<Device::CPU>::dequantize(x.data<int16_t>(),
-                                            y.data<float>(),
-                                            x.size(),
-                                            scale.as_scalar<float>());
-      } else if (x.dtype() == DataType::INT8) {
-        auto batch_size = x.size() / x.dim(-1);
+      case DataType::INT8: {
+        const dim_t batch_size = input.size() / input.dim(-1);
         if (scale.size() != batch_size)
           throw std::invalid_argument("INT8 dequantization expects per-batch scales");
+        DEVICE_DISPATCH(input.device(), (dequantize<D, int8_t>(input, scale, output)));
+        break;
+      }
 
-        DEVICE_DISPATCH(
-          x.device(),
-          primitives<D>::dequantize_batch(x.data<int8_t>(),
-                                          scale.data<float>(),
-                                          y.data<float>(),
-                                          x.size(),
-                                          scale.size()));
-      } else {
-        throw std::invalid_argument("Dequantize: invalid quantized type " + dtype_name(x.dtype())
+      default:
+        throw std::invalid_argument("Dequantize: invalid quantized type " + dtype_name(input.dtype())
                                     + ", expected int8 or int16");
       }
     }
@@ -43,29 +42,13 @@ namespace ctranslate2 {
                                 const bool transpose_b,
                                 StorageView& y) const {
       PROFILE("DequantizeGemmOutput");
-      const Device device = c.device();
       y.resize_as(c);
-      if (a_scale.is_scalar() && b_scale.is_scalar()) {
-        if (device != Device::CPU)
-          throw std::invalid_argument("unsupported quantization scales");
-        auto scale = a_scale.as_scalar<float>() * b_scale.as_scalar<float>();
-        primitives<Device::CPU>::dequantize(c.data<int32_t>(),
-                                            y.data<float>(),
-                                            c.size(),
-                                            scale);
-      } else {
-        DEVICE_DISPATCH(
-          device,
-          primitives<D>::rescale_output(c.data<int32_t>(),
-                                        a_scale.data<float>(),
-                                        b_scale.data<float>(),
-                                        transpose_a,
-                                        transpose_b,
-                                        y.data<float>(),
-                                        a_scale.size(),
-                                        c.dim(-1)));
-
-      }
+      DEVICE_DISPATCH(c.device(), dequantize_gemm_output<D>(c,
+                                                            a_scale,
+                                                            b_scale,
+                                                            transpose_a,
+                                                            transpose_b,
+                                                            y));
     }
 
   }

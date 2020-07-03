@@ -31,12 +31,13 @@ namespace ctranslate2 {
       const StorageView* _bias;
       const StorageView* _qscale;
       const StorageView* _u8_shift_compensation;
-      const float _u8_shift;
       StorageView _partial_weight;
       StorageView _partial_bias;
       StorageView _partial_qscale;
       StorageView _partial_u8_shift_compensation;
       const ops::Gemm _gemm_op;
+      const ops::Quantize _quantize_op;
+      const ops::Dequantize _dequantize_op;
     };
 
     class LayerNorm

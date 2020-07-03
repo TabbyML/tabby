@@ -143,28 +143,6 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    static void quantize(const float* x, T* y, dim_t size, float scale, float shift = 0);
-
-    template <typename T>
-    static void dequantize(const T* x, float* y, dim_t size, float scale, float shift = 0);
-
-    static void quantize_batch(const float* x, float* scales, int8_t* qx,
-                               dim_t batch_size, dim_t depth, float shift = 0);
-
-    template <typename T>
-    static void dequantize_batch(const T* x, const float* scale, float* y,
-                                 dim_t x_size, dim_t scale_size, float shift = 0);
-
-    static void rescale_output(const int32_t* c,
-                               const float* a_scales,
-                               const float* b_scales,
-                               const bool transpose_a,
-                               const bool transpose_b,
-                               float* y,
-                               dim_t batch_size,
-                               dim_t depth);
-
-    template <typename T>
     static void transpose_2d(const T* a, const dim_t* dims, T* b);
     template <typename T>
     static void transpose_3d(const T* a, const dim_t* dims, const dim_t* perm, T* b);
