@@ -29,6 +29,15 @@ namespace ctranslate2 {
   ASSERT_DTYPE(DTYPE);                        \
   ASSERT_DEVICE(DEVICE)
 
+#define GUARD_DIM(DIM, RANK)                                            \
+  do {                                                                  \
+    if (DIM >= RANK)                                                    \
+      THROW_INVALID_ARGUMENT("can't index dimension "                   \
+                             + std::to_string(DIM)                      \
+                             + " for a storage with rank "              \
+                             + std::to_string(RANK));                   \
+  } while (false)
+
   using Shape = std::vector<dim_t>;
 
   // This class is a light wrapper around an allocated buffer which adds shape information.
@@ -87,11 +96,16 @@ namespace ctranslate2 {
     ~StorageView();
 
     // Device management.
-    Device device() const;
+    Device device() const {
+      return _device;
+    }
+
     StorageView to(Device D) const;
 
     // Actual storage type.
-    DataType dtype() const;
+    DataType dtype() const {
+      return _dtype;
+    }
 
     // Allocated memory size.
     dim_t reserved_memory() const;
@@ -106,13 +120,40 @@ namespace ctranslate2 {
     StorageView& reserve(dim_t size);
     bool owns_data() const;
 
-    dim_t rank() const;
-    const Shape& shape() const;
-    dim_t dim(dim_t dim) const;
-    dim_t stride(dim_t dim) const;
-    dim_t size() const;
-    bool is_scalar() const;
-    bool empty() const;
+    dim_t rank() const {
+      return _shape.size();
+    }
+
+    const Shape& shape() const {
+      return _shape;
+    }
+
+    dim_t dim(dim_t dim) const {
+      if (dim < 0)
+        dim = _shape.size() + dim;
+      GUARD_DIM(dim, rank());
+      return _shape[dim];
+    }
+
+    dim_t stride(dim_t dim) const {
+      if (dim < 0)
+        dim = _shape.size() + dim;
+      GUARD_DIM(dim, rank());
+      return compute_stride(_shape, dim);
+    }
+
+    dim_t size() const {
+      return _size;
+    }
+
+    bool is_scalar() const {
+      return _size == 1 && _shape.empty();
+    }
+
+    bool empty() const {
+      return _size == 0;
+    }
+
     operator bool() const {
       return !empty();
     }

@@ -3,14 +3,6 @@
 #include "./device_dispatch.h"
 
 #define PRINT_MAX_VALUES 6
-#define GUARD_DIM(DIM, RANK)                                            \
-  do {                                                                  \
-    if (DIM >= RANK)                                                    \
-      THROW_INVALID_ARGUMENT("can't index dimension "                   \
-                             + std::to_string(DIM)                      \
-                             + " for a storage with rank "              \
-                             + std::to_string(RANK));                   \
-  } while (false)
 
 namespace ctranslate2 {
 
@@ -51,17 +43,9 @@ namespace ctranslate2 {
     release();
   }
 
-  Device StorageView::device() const {
-    return _device;
-  }
-
   StorageView StorageView::to(Device device) const {
     StorageView device_copy(_shape, _dtype, device);
     return device_copy.copy_from(*this);
-  }
-
-  DataType StorageView::dtype() const {
-    return _dtype;
   }
 
   dim_t StorageView::reserved_memory() const {
@@ -101,40 +85,6 @@ namespace ctranslate2 {
 
   bool StorageView::owns_data() const {
     return _own_data;
-  }
-
-  dim_t StorageView::rank() const {
-    return _shape.size();
-  }
-
-  const Shape& StorageView::shape() const {
-    return _shape;
-  }
-
-  dim_t StorageView::dim(dim_t dim) const {
-    if (dim < 0)
-      dim = _shape.size() + dim;
-    GUARD_DIM(dim, rank());
-    return _shape[dim];
-  }
-
-  dim_t StorageView::stride(dim_t dim) const {
-    if (dim < 0)
-      dim = _shape.size() + dim;
-    GUARD_DIM(dim, rank());
-    return compute_stride(_shape, dim);
-  }
-
-  dim_t StorageView::size() const {
-    return _size;
-  }
-
-  bool StorageView::is_scalar() const {
-    return _size == 1 && _shape.empty();
-  }
-
-  bool StorageView::empty() const {
-    return _size == 0;
   }
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
