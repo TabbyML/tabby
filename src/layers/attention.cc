@@ -128,9 +128,11 @@ namespace ctranslate2 {
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
                                            dim_t num_heads,
-                                           bool self_attention)
+                                           bool self_attention,
+                                           LayerNormStrategy layer_norm_strategy)
       : _num_heads(num_heads)
       , _linear(make_linear_layers(model, scope, self_attention))
+      , _layer_norm_strategy(layer_norm_strategy)
       , _layer_norm(model, scope + "/layer_norm")
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
@@ -156,8 +158,12 @@ namespace ctranslate2 {
       StorageView split_keys(device);
       StorageView split_values(device);
 
-      _layer_norm(queries, queries_proj);
-      _linear[0](queries_proj, fused_proj);
+      if (_layer_norm_strategy == LayerNormStrategy::Input) {
+        _layer_norm(queries, queries_proj);
+        _linear[0](queries_proj, fused_proj);
+      } else {
+        _linear[0](queries, fused_proj);
+      }
 
       if (memory) {
         split_heads(fused_proj, split_queries);
@@ -220,6 +226,9 @@ namespace ctranslate2 {
 
       _linear.back()(combined, output);
       ops::Add()(queries, output, output);
+      if (_layer_norm_strategy == LayerNormStrategy::Output) {
+        _layer_norm(output, output);
+      }
     }
 
     void MultiHeadAttention::split_heads(const StorageView& x, StorageView& y) const {
