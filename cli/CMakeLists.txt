@@ -4,15 +4,14 @@ if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include
     "by calling \"git submodule update --init --recursive\"")
 endif()
 
-include_directories(
-  ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include
-  )
-
 add_executable(translate
   translate.cc
   )
-target_link_libraries(translate PRIVATE
-  ${PROJECT_NAME}
+target_include_directories(translate
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include
+  )
+target_link_libraries(translate
+  PRIVATE ${PROJECT_NAME}
   )
 
 install(

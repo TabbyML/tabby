@@ -59,8 +59,10 @@ endif()
 
 find_package(Threads)
 
-set(INCLUDE_DIRECTORIES
+set(PUBLIC_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  )
+set(PRIVATE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
   )
@@ -228,7 +230,7 @@ if(WITH_MKL)
       list(APPEND MKL_LIBRARIES ${MKL_LIBRARY_DIR}/libmkl_sequential.a)
     endif()
   endif()
-  list(APPEND INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
+  list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${MKL_INCLUDE_DIR})
   if(WIN32 OR APPLE)
     list(APPEND LIBRARIES ${MKL_LIBRARIES})
   else()
@@ -252,7 +254,7 @@ if(WITH_DNNL)
   endif()
 
   add_definitions(-DCT2_WITH_DNNL)
-  list(APPEND INCLUDE_DIRECTORIES ${DNNL_INCLUDE_DIR})
+  list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${DNNL_INCLUDE_DIR})
   list(APPEND LIBRARIES ${DNNL_LIBRARY})
 endif()
 
@@ -296,7 +298,7 @@ if (WITH_CUDA)
     endif()
 
     add_definitions(-DCT2_WITH_TENSORRT)
-    include_directories(
+    list(APPEND PRIVATE_INCLUDE_DIRECTORIES
       ${TENSORRT_INCLUDE_DIR}
       )
     list(APPEND LIBRARIES
@@ -347,7 +349,10 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDE_DIRECTORIES})
+target_include_directories(${PROJECT_NAME}
+  PUBLIC ${PUBLIC_INCLUDE_DIRECTORIES}
+  PRIVATE ${PRIVATE_INCLUDE_DIRECTORIES}
+  )
 
 if(WITH_TESTS)
   add_subdirectory(tests)
