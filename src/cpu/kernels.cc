@@ -11,6 +11,8 @@
 #  include "cpu/vec.h"
 #endif
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
   namespace cpu {
 

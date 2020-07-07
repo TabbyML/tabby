@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/gather.h"
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

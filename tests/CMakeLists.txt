@@ -13,6 +13,9 @@ add_executable(ctranslate2_test
   transformer_test.cc
   translator_test.cc
   test.cc)
+target_include_directories(ctranslate2_test
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src
+  )
 target_link_libraries(ctranslate2_test
   ${PROJECT_NAME}
   gtest_main

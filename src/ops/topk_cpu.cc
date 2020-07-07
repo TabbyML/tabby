@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

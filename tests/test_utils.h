@@ -4,6 +4,8 @@
 
 #include "ctranslate2/storage_view.h"
 
+#include "type_dispatch.h"
+
 using namespace ctranslate2;
 
 #define ASSERT_RAISES(STMT, EXCEPT)                     \

@@ -17,6 +17,7 @@
 #include "cpu/backend.h"
 #include "cpu/kernels.h"
 #include "cpu/parallel.h"
+#include "type_dispatch.h"
 
 #define ALIGNMENT 64
 

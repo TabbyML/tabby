@@ -57,37 +57,18 @@ namespace ctranslate2 {
     StorageView(const Shape& shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
 
     template <typename T>
-    StorageView(const Shape& shape, T init = T(), Device device = Device::CPU)
-      : _dtype(DataTypeToEnum<T>::value)
-      , _device(device) {
-      resize(shape);
-      fill(init);
-    }
+    StorageView(const Shape& shape, T init = T(), Device device = Device::CPU);
 
     template <typename T>
-    StorageView(T scalar, Device device = Device::CPU)
-      : _dtype(DataTypeToEnum<T>::value)
-      , _device(device) {
-      resize({});
-      fill(scalar);
-    }
+    StorageView(T scalar, Device device = Device::CPU);
 
     // Create from a std::vector (copy).
     template <typename T>
-    StorageView(const Shape& shape, const std::vector<T>& init, Device device = Device::CPU)
-      : _dtype(DataTypeToEnum<T>::value)
-      , _device(device) {
-      resize(shape);
-      copy_from(init.data(), init.size(), Device::CPU);
-    }
+    StorageView(const Shape& shape, const std::vector<T>& init, Device device = Device::CPU);
 
     // Create from a buffer (no copy).
     template <typename T>
-    StorageView(const Shape& shape, T* data, Device device = Device::CPU)
-      : _dtype(DataTypeToEnum<T>::value)
-      , _device(device) {
-      view(data, shape);
-    }
+    StorageView(const Shape& shape, T* data, Device device = Device::CPU);
 
     // Copy constructor.
     StorageView(const StorageView& other);
@@ -180,43 +161,17 @@ namespace ctranslate2 {
     const void* buffer() const;
 
     template <typename T>
-    T* data() {
-      ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      return static_cast<T*>(_data);
-    }
+    T* data();
+    template <typename T>
+    const T* data() const;
 
     template <typename T>
-    const T* data() const {
-      ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      return static_cast<const T*>(_data);
-    }
+    std::vector<T> to_vector() const;
 
     template <typename T>
-    std::vector<T> to_vector() const {
-      if (_device != Device::CPU)
-        return to(Device::CPU).to_vector<T>();
-      const T* begin = data<T>();
-      const T* end = begin + _size;
-      return std::vector<T>(begin, end);
-    }
-
+    T* index(const std::vector<dim_t>& indices);
     template <typename T>
-    T* index(const std::vector<dim_t>& indices) {
-      return const_cast<T*>(static_cast<const StorageView&>(*this).index<T>(indices));
-    }
-
-    template <typename T>
-    const T* index(const std::vector<dim_t>& indices) const {
-      ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      dim_t offset = 0;
-      for (size_t i = 0; i < indices.size(); ++i)
-        offset += indices[i] * stride(i);
-      if (offset >= _size)
-        THROW_INVALID_ARGUMENT("computed index is out of bounds ("
-                               + std::to_string(offset) + " >= "
-                               + std::to_string(_size) + ")");
-      return data<T>() + offset;
-    }
+    const T* index(const std::vector<dim_t>& indices) const;
 
     template <typename T>
     T& at(dim_t index) {
@@ -255,15 +210,7 @@ namespace ctranslate2 {
     T scalar_at(const std::vector<dim_t>& indices) const;
 
     template <typename T>
-    StorageView& view(T* data, const Shape& shape) {
-      ASSERT_DTYPE(DataTypeToEnum<T>::value);
-      release();
-      _data = static_cast<void*>(data);
-      _own_data = false;
-      _allocated_size = compute_size(shape);
-      _size = _allocated_size;
-      return reshape(shape);
-    }
+    StorageView& view(T* data, const Shape& shape);
 
     template <typename T>
     StorageView& fill(T value);

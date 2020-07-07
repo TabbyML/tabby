@@ -1,6 +1,8 @@
 #include "ctranslate2/ops/concat.h"
 #include "ctranslate2/ops/split.h"
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 

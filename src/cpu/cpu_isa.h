@@ -33,6 +33,7 @@ namespace ctranslate2 {
     break;                                              \
   }
 
+#define SINGLE_ARG(...) __VA_ARGS__
 #ifdef CT2_WITH_CPU_DISPATCH
 #  define CPU_ISA_DISPATCH(STMTS)                             \
   switch (cpu::get_cpu_isa()) {                               \

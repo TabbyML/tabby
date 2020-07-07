@@ -9,6 +9,7 @@
 #include <cub/util_allocator.cuh>
 
 #include "cuda/helpers.h"
+#include "type_dispatch.h"
 
 namespace ctranslate2 {
 
