@@ -57,8 +57,8 @@ class LayerSpec(object):
                 raise ValueError("Missing value for attribute %s" % name)
             attr_name = _split_scope(name)[-1]
             if isinstance(value, np.ndarray):
-                # Promote float16 to float32 as it is currently an unsupported type.
-                if value.dtype == np.float16:
+                # Use float32 as the working floating point type.
+                if value.dtype in (np.float16, np.float64):
                     setattr(spec, attr_name, value.astype(np.float32))
             elif isinstance(value, bool):
                 # Convert bool to an integer type.
@@ -100,7 +100,12 @@ class LayerSpec(object):
     def _quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
         def _quantize(spec, name, value):
-            if "weight" in name and isinstance(value, np.ndarray):
+            if not isinstance(value, np.ndarray):
+                return
+            if quantization == "float16":
+                if value.dtype == np.float32:
+                    setattr(spec, name, value.astype(np.float16))
+            elif "weight" in name:
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
@@ -129,7 +134,7 @@ class LayerSpec(object):
 
 def _dtype_to_type_id(object_dtype):
     # Order should match the DataType enum in include/ctranslate2/types.h
-    dtypes = (np.float32, np.int8, np.int16, np.int32)
+    dtypes = (np.float32, np.int8, np.int16, np.int32, np.float16)
     try:
         return dtypes.index(object_dtype)
     except ValueError:

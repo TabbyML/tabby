@@ -40,10 +40,17 @@ namespace ctranslate2 {
                                               const DataType data_type,
                                               const Device device,
                                               const bool support_int8,
-                                              const bool support_int16) {
+                                              const bool support_int16,
+                                              const bool support_float16) {
       switch (compute_type) {
       case ComputeType::FLOAT: {
         return DataType::FLOAT;
+      }
+      case ComputeType::FLOAT16: {
+        if (!support_float16)
+          throw std::invalid_argument("Requested float16 compute type, but the target device "
+                                      "and backend do not support efficient float16 computation.");
+        return DataType::FLOAT16;
       }
       case ComputeType::INT16: {
         if (!support_int16)
@@ -68,6 +75,8 @@ namespace ctranslate2 {
           return (support_int8
                   ? DataType::INT8
                   : (support_int16 ? DataType::INT16 : DataType::FLOAT));
+        case DataType::FLOAT16:
+          return support_float16 ? DataType::FLOAT16 : DataType::FLOAT;
         default:
           return data_type;
         }
@@ -267,6 +276,7 @@ namespace ctranslate2 {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
       const bool is_float = variable.dtype() == DataType::FLOAT;
+      const bool is_float16 = variable.dtype() == DataType::FLOAT16;
 
       const std::string scale_name = name + "_scale";
       StorageView* saved_scale = nullptr;
@@ -292,15 +302,33 @@ namespace ctranslate2 {
       const ops::Dequantize dequantize_op{};
       StorageView target_variable(target_dtype);
 
-      if (target_dtype == DataType::FLOAT) {
-        // Dequantize int8 or int16 back to float32.
-        dequantize_op(variable, *saved_scale, target_variable);
-        variables_to_remove.emplace_back(scale_name);  // The scale is no longer needed.
-      } else if (is_float) {
+      if (target_dtype == DataType::FLOAT || target_dtype == DataType::FLOAT16) {
+        if (is_float16) {
+          target_variable = variable.to_float();
+        } else if (is_float) {
+          target_variable = variable.to_float16();
+        } else {
+          // Dequantize int8 or int16 back to float32.
+          StorageView dequantized;
+          dequantize_op(variable, *saved_scale, dequantized);
+          variables_to_remove.emplace_back(scale_name);  // The scale is no longer needed.
+          if (target_dtype == DataType::FLOAT16) {
+            target_variable = dequantized.to_float16();
+          } else {
+            target_variable = std::move(dequantized);
+          }
+        }
+
+      } else if (is_float || is_float16) {
         // Quantize float32 to int8 or int16.
         StorageView scale;
-        quantize_op(variable, target_variable, scale);
+        if (is_float16) {
+          quantize_op(variable.to_float(), target_variable, scale);
+        } else {
+          quantize_op(variable, target_variable, scale);
+        }
         variables_to_add.emplace(scale_name, scale);
+
       } else {
         // Convert int8 -> float32 -> int16 or int16 -> float32 -> int8.
         StorageView tmp_variable;
@@ -316,6 +344,7 @@ namespace ctranslate2 {
 
       const bool support_int8 = mayiuse_int8(_device, _device_index);
       const bool support_int16 = mayiuse_int16(_device, _device_index);
+      const bool support_float16 = mayiuse_float16(_device, _device_index);
 
       std::vector<std::string> variables_to_remove;
       std::unordered_map<std::string, StorageView> variables_to_add;
@@ -324,18 +353,29 @@ namespace ctranslate2 {
         const auto& name = variable_pair.first;
         auto& variable = variable_pair.second;
 
+        const DataType target_dtype = compute_type_to_data_type(_compute_type,
+                                                                variable.dtype(),
+                                                                _device,
+                                                                support_int8,
+                                                                support_int16,
+                                                                support_float16);
+
         // Convert "weight" variables to the expected compute type.
         if (is_quantizable(name)) {
-          const DataType target_dtype = compute_type_to_data_type(_compute_type,
-                                                                  variable.dtype(),
-                                                                  _device,
-                                                                  support_int8,
-                                                                  support_int16);
           ensure_dtype(name,
                        variable,
                        target_dtype,
                        variables_to_add,
                        variables_to_remove);
+        } else if (!variable.is_scalar()) {
+          // Other parameters may be converted from or to float16 (e.g. bias).
+          if (variable.dtype() == DataType::FLOAT && target_dtype == DataType::FLOAT16) {
+            StorageView half_variable = variable.to_float16();
+            swap(variable, half_variable);
+          } else if (variable.dtype() == DataType::FLOAT16 && target_dtype == DataType::FLOAT) {
+            StorageView float_variable = variable.to_float();
+            swap(variable, float_variable);
+          }
         }
       }
 

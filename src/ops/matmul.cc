@@ -19,6 +19,13 @@ namespace ctranslate2 {
       case DataType::FLOAT:
         DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, y)));
         break;
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16:
+        if (a.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 MatMul is only supported on CUDA");
+        compute<Device::CUDA, float16_t>(a, b, y);
+        break;
+#endif
       default:
         throw std::invalid_argument("MatMul: unsupported compute type " + dtype_name(a.dtype()));
       }

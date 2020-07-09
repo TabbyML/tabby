@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
   cmd_options.add_options()
     ("h,help", "Display available options.")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
-    ("compute_type", "Force the model type as \"float\", \"int16\" or \"int8\"",
+    ("compute_type", "Force the model type as \"float\", \"float16\", \"int16\" or \"int8\"",
      cxxopts::value<std::string>()->default_value("default"))
     ("src", "Path to the file to translate (read from the standard input if not set).",
      cxxopts::value<std::string>())

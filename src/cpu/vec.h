@@ -20,7 +20,7 @@ namespace ctranslate2 {
         return value;
       }
 
-      static inline value_type load(const T* ptr, dim_t count = width, T default_value = 0) {
+      static inline value_type load(const T* ptr, dim_t count = width, T default_value = T(0)) {
         (void)count;
         (void)default_value;
         return *ptr;
@@ -32,7 +32,7 @@ namespace ctranslate2 {
       }
 
       static inline value_type abs(value_type a) {
-        return std::abs(a);
+        return static_cast<value_type>(std::abs(a));
       }
 
       static inline value_type rcp(value_type a) {

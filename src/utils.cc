@@ -77,6 +77,22 @@ namespace ctranslate2 {
     }
   } config_logger;
 
+  bool mayiuse_float16(Device device, int device_index) {
+    switch (device) {
+    case Device::CUDA: {
+#ifdef CT2_WITH_CUDA
+      static const bool allow_float16 = read_bool_from_env("CT2_CUDA_ALLOW_FP16");
+      return allow_float16 || cuda::has_fast_float16(device_index);
+#else
+      (void)device_index;
+      return false;
+#endif
+    }
+    default:
+      return false;
+    }
+  }
+
   bool mayiuse_int16(Device device, int) {
     switch (device) {
     case Device::CPU:

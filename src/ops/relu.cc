@@ -7,7 +7,22 @@ namespace ctranslate2 {
 
     void ReLU::operator()(const StorageView& x, StorageView& y) const {
       PROFILE("ReLU");
-      DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
+      switch (x.dtype()) {
+      case DataType::FLOAT: {
+        DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
+        break;
+      }
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16: {
+        if (x.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 ReLU is only supported on GPU");
+        compute<Device::CUDA, float16_t>(x, y);
+        break;
+      }
+#endif
+      default:
+        throw std::invalid_argument("ReLU only supports float (or float16 on GPU)");
+      }
     }
 
   }

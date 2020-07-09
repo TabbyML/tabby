@@ -14,7 +14,7 @@ namespace ctranslate2 {
       Output,
     };
 
-    class MultiHeadAttention
+    class MultiHeadAttention : public Layer
     {
     public:
       MultiHeadAttention(const models::Model& model,
@@ -22,6 +22,7 @@ namespace ctranslate2 {
                          dim_t num_heads,
                          bool self_attention,
                          LayerNormStrategy layer_norm_strategy = LayerNormStrategy::Input);
+      DataType output_type() const override;
       void operator()(const StorageView& queries,
                       const StorageView* memory,
                       const StorageView* memory_lengths,
@@ -39,7 +40,7 @@ namespace ctranslate2 {
       const dim_t _maximum_relative_position;
       const ops::Transpose _transpose_op;
 
-      void split_heads(const StorageView& x, StorageView& y) const;
+      void split_heads(StorageView& x, StorageView& y) const;
       void combine_heads(const StorageView& x, StorageView& y) const;
     };
 

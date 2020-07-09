@@ -27,6 +27,8 @@ namespace ctranslate2 {
 
     template <typename T>
     static void copy(const T* x, T* y, dim_t size);
+    template <typename U, typename V>
+    static void convert(const U* x, V* y, dim_t size);
 
     template <typename T>
     static T sum(const T* array, dim_t size);
@@ -153,8 +155,10 @@ namespace ctranslate2 {
     static void log(const float* x, float* y, dim_t size);
     static void cos(const float* x, float* y, dim_t size);
     static void sin(const float* x, float* y, dim_t size);
-    static void relu(const float* x, float* y, dim_t size);
     static void gelu(const float* x, float* y, dim_t size);
+
+    template <typename T>
+    static void relu(const T* x, T* y, dim_t size);
 
     static void compute_u8_compensation(const int8_t* b,
                                         bool transpose_b,

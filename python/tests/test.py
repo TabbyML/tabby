@@ -205,7 +205,7 @@ def test_opennmt_tf_model_conversion(tmpdir, model_path, src_vocab, tgt_vocab, m
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
-@pytest.mark.parametrize("quantization", ["int16", "int8"])
+@pytest.mark.parametrize("quantization", ["float16", "int16", "int8"])
 def test_opennmt_tf_model_quantization(tmpdir, quantization):
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", "v2", "checkpoint")
@@ -342,6 +342,7 @@ def test_layer_spec_optimize():
             self.a = np.ones([5], dtype=np.float32)
             self.b = np.ones([5], dtype=np.float32)
             self.c = np.zeros([5], dtype=np.int32)
+            self.d = np.dtype("float32").type(3.14)
             self.weight = np.ones([5, 4], dtype=np.float32)
 
     spec = Spec()
@@ -349,8 +350,17 @@ def test_layer_spec_optimize():
     assert spec.a.dtype == np.float32
     assert spec.b == "a"
     assert spec.c.dtype == np.int32
+    assert spec.d.dtype == np.float32
     assert spec.weight.dtype == np.int16
     assert spec.weight_scale.dtype == np.float32
+
+    spec = Spec()
+    spec.optimize(quantization="float16")
+    assert spec.a.dtype == np.float16
+    assert spec.b == "a"
+    assert spec.c.dtype == np.int32
+    assert spec.d.dtype == np.float32
+    assert spec.weight.dtype == np.float16
 
 def test_index_spec():
     spec = ctranslate2.specs.TransformerBase()

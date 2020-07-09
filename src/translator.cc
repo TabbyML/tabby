@@ -296,7 +296,7 @@ namespace ctranslate2 {
     StorageView& lengths = inputs.second;
 
     // Encode sequence.
-    StorageView encoded(device);
+    StorageView encoded(_encoder->output_type(), device);
     (*_encoder)(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.

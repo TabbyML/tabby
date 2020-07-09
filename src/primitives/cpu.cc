@@ -84,9 +84,18 @@ namespace ctranslate2 {
   }
 
   template<>
+  template <typename U, typename V>
+  void primitives<Device::CPU>::convert(const U* x, V* y, dim_t size) {
+    std::copy(x, x + size, y);
+  }
+
+  template void primitives<Device::CPU>::convert(const float*, float16_t*, dim_t);
+  template void primitives<Device::CPU>::convert(const float16_t*, float*, dim_t);
+
+  template<>
   template <typename T>
   T primitives<Device::CPU>::sum(const T* array, dim_t size) {
-    T sum = 0;
+    auto sum = T(0);
     CPU_ISA_DISPATCH((sum = cpu::reduce_sum<ISA>(array, size)));
     return sum;
   }
@@ -100,7 +109,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CPU>::max(const T* array, dim_t size) {
-    T max = 0;
+    auto max = T(0);
     CPU_ISA_DISPATCH((max = cpu::reduce_max<ISA>(array, size)));
     return max;
   }
@@ -108,7 +117,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CPU>::amax(const T* array, dim_t size) {
-    T max = 0;
+    auto max = T(0);
     CPU_ISA_DISPATCH((max = cpu::reduce_amax<ISA>(array, size)));
     return max;
   }
@@ -292,6 +301,7 @@ namespace ctranslate2 {
     }
   }
 
+  template<>
   template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
     cpu::parallel_for(0, size, /*work_size=*/1,

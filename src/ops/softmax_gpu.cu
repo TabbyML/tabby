@@ -3,17 +3,19 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/replace.h>
 
-#include "../cuda/utils.h"
+#include "cuda/helpers.h"
+#include "cuda/utils.h"
 
 namespace ctranslate2 {
   namespace ops {
 
+    template <typename T>
     static void softmax_kernel(cudaStream_t stream,
                                const bool log_softmax,
-                               const float* x,
+                               const T* x,
                                const int64_t rows,
                                const int64_t cols,
-                               float* y);
+                               T* y);
 
     // Operator returning true for each out of range positions.
     class mask_func {
@@ -50,11 +52,11 @@ namespace ctranslate2 {
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / depth;
 
-      StorageView masked_input(input.device());
-      const auto* data = input.data<float>();
+      StorageView masked_input(input.dtype(), input.device());
+      const auto* data = input.data<T>();
       if (lengths) {
         masked_input.resize_as(input);
-        auto* masked_data = masked_input.data<float>();
+        auto* masked_data = masked_input.data<T>();
 
         // Copy input but replace out of range positions with -inf.
         THRUST_CALL(thrust::replace_copy_if,
@@ -63,7 +65,7 @@ namespace ctranslate2 {
                     thrust::counting_iterator<int32_t>(0),
                     masked_data,
                     mask_func(lengths->data<int32_t>(), lengths->dim(0), batch_size, depth),
-                    std::numeric_limits<float>::lowest());
+                    std::numeric_limits<T>::lowest());
 
         data = masked_data;
       }
@@ -83,6 +85,7 @@ namespace ctranslate2 {
                                       StorageView& output) const;
 
     DECLARE_IMPL(float)
+    DECLARE_IMPL(float16_t)
 
   }
 }
@@ -191,7 +194,7 @@ namespace at {
         : logsum(max_input + std::log(sum)) {}
 
       __device__ __forceinline__ OutT operator()(T input) const {
-        return static_cast<OutT>(input - logsum);
+        return static_cast<OutT>(static_cast<AccumT>(input) - logsum);
       }
 
       const AccumT logsum;
@@ -204,7 +207,7 @@ namespace at {
         , sum(sum) {}
 
       __device__ __forceinline__ OutT operator()(T input) const {
-        return static_cast<OutT>(std::exp(input - max_input) / sum);
+        return static_cast<OutT>(std::exp(static_cast<AccumT>(input) - max_input) / sum);
       }
 
       const AccumT max_input;
@@ -218,7 +221,7 @@ namespace at {
         : max_k(v) {}
 
       __device__ __forceinline__ AccumT operator()(AccumT sum, T v) const {
-        return sum + std::exp(v - max_k);
+        return sum + std::exp(static_cast<AccumT>(v) - max_k);
       }
 
       const AccumT max_k;
@@ -374,29 +377,32 @@ namespace at {
 namespace ctranslate2 {
   namespace ops {
 
-    template <template <typename, typename, typename> class Epilogue>
+    template <typename T, template <typename, typename, typename> class Epilogue>
     static void softmax_kernel_impl(cudaStream_t stream,
-                                    const float* x,
+                                    const T* x,
                                     const int64_t rows,
                                     const int64_t cols,
-                                    float* y) {
+                                    T* y) {
       const int ILP = 2;
       const dim3 grid(rows);
       const dim3 block = at::native::SoftMax_getBlockSize(ILP, cols);
-      at::native::cunn_SoftMaxForward<ILP, float, float, float, Epilogue>
+      at::native::cunn_SoftMaxForward<ILP, T, float, T, Epilogue>
         <<<grid, block, block.x * sizeof (float), stream>>>(y, x, cols);
     }
 
+    template <typename T>
     static void softmax_kernel(cudaStream_t stream,
                                const bool log_softmax,
-                               const float* x,
+                               const T* x,
                                const int64_t rows,
                                const int64_t cols,
-                               float* y) {
+                               T* y) {
       if (log_softmax)
-        softmax_kernel_impl<at::native::LogSoftMaxForwardEpilogue>(stream, x, rows, cols, y);
+        softmax_kernel_impl<cuda::device_type<T>, at::native::LogSoftMaxForwardEpilogue>(
+          stream, cuda::device_cast(x), rows, cols, cuda::device_cast(y));
       else
-        softmax_kernel_impl<at::native::SoftMaxForwardEpilogue>(stream, x, rows, cols, y);
+        softmax_kernel_impl<cuda::device_type<T>, at::native::SoftMaxForwardEpilogue>(
+          stream, cuda::device_cast(x), rows, cols, cuda::device_cast(y));
     }
 
   }

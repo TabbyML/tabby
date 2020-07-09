@@ -26,7 +26,22 @@ namespace ctranslate2 {
       if (lengths && lengths->dim(0) == 1)  // Disable masking when batch size is 1.
         lengths = nullptr;
       y.resize_as(x);
-      DEVICE_DISPATCH(x.device(), (compute<D, float>(x, lengths, y)));
+      switch (x.dtype()) {
+      case DataType::FLOAT: {
+        DEVICE_DISPATCH(x.device(), (compute<D, float>(x, lengths, y)));
+        break;
+      }
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16: {
+        if (x.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 SoftMax is only supported on GPU");
+        compute<Device::CUDA, float16_t>(x, lengths, y);
+        break;
+      }
+#endif
+      default:
+        throw std::invalid_argument("SoftMax only supports float (or float16 on GPU)");
+      }
     }
 
   }

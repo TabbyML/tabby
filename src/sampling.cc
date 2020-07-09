@@ -2,6 +2,8 @@
 
 #include "ctranslate2/ops/ops.h"
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
 
   void Sampler::operator()(const StorageView& scores,
@@ -72,11 +74,12 @@ namespace ctranslate2 {
                              StorageView& sampled_scores) const {
     PROFILE("RandomSampler");
     const Device device = scores.device();
+    const DataType dtype = scores.dtype();
     const StorageView* final_scores = nullptr;
 
     // Maybe restrict scores to the best K candidates.
     StorageView top_ids(DataType::INT32, device);
-    StorageView top_scores(device);
+    StorageView top_scores(dtype, device);
     if (_from_topk > 0) {
       const ops::TopK topk_op(_from_topk);
       topk_op(scores, top_scores, top_ids);
@@ -86,14 +89,14 @@ namespace ctranslate2 {
     }
 
     // Divide scores by the temperature constant.
-    StorageView scaled_scores(device);
+    StorageView scaled_scores(dtype, device);
     if (_temperature != 1) {
-      ops::Mul()(*final_scores, StorageView(float(1) / _temperature), scaled_scores);
+      ops::Mul()(*final_scores, StorageView(float(1) / _temperature).to(dtype), scaled_scores);
       final_scores = &scaled_scores;
     }
 
     // Convert scores to probabilities.
-    StorageView probs(device);
+    StorageView probs(dtype, device);
     ops::SoftMax()(*final_scores, probs);
 
     // Generate samples.
@@ -106,7 +109,7 @@ namespace ctranslate2 {
 
     if (_from_topk > 0)  // Return ids relative to the initial distribution.
       select_indices<int32_t>(top_ids, sampled_ids, sampled_ids);
-    select_indices<float>(scores, sampled_ids, sampled_scores);
+    TYPE_DISPATCH(scores.dtype(), select_indices<T>(scores, sampled_ids, sampled_scores));
   }
 
 }

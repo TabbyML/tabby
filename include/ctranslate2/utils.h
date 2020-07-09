@@ -16,6 +16,7 @@ namespace ctranslate2 {
   bool verbose_mode();
 
   // Check feature support.
+  bool mayiuse_float16(Device device, int device_index = 0);
   bool mayiuse_int16(Device device, int device_index = 0);
   bool mayiuse_int8(Device device, int device_index = 0);
 

@@ -2,17 +2,31 @@
 
 #include <cmath>
 
-#include "../device_dispatch.h"
+#include "device_dispatch.h"
+#include "type_dispatch.h"
 
 namespace ctranslate2 {
   namespace layers {
+
+    static StorageView* get_sqrt_depth_scale(const StorageView& embeddings) {
+      const auto scale = std::sqrt(static_cast<float>(embeddings.dim(-1)));
+      if (embeddings.dtype() == DataType::FLOAT16) {
+        return new StorageView(float16_t(scale));
+      } else {
+        return new StorageView(scale);
+      }
+    }
 
     Embeddings::Embeddings(const models::Model& model, const std::string& scope)
       : _embeddings(model.get_variable(scope + "/weight"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _scale(model.get_flag_with_default(scope + "/multiply_by_sqrt_depth", true)
-               ? new StorageView(static_cast<float>(sqrt(_embeddings.dim(-1))))
+               ? get_sqrt_depth_scale(_embeddings)
                : nullptr) {
+    }
+
+    DataType Embeddings::output_type() const {
+      return _embeddings.dtype() == DataType::FLOAT16 ? DataType::FLOAT16 : DataType::FLOAT;
     }
 
     void Embeddings::operator()(const StorageView& ids,
@@ -57,7 +71,7 @@ namespace ctranslate2 {
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _u8_shift_compensation(model.get_variable_if_exists(scope + "/weight_compensation"))
       , _partial_weight(_weight.device(), _weight.dtype())
-      , _partial_bias(_weight.device(), DataType::FLOAT)
+      , _partial_bias(_weight.device(), _bias ? _bias->dtype() : DataType::FLOAT)
       , _partial_qscale(_weight.device(), DataType::FLOAT)
       , _partial_u8_shift_compensation(_weight.device(), DataType::INT32)
       , _gemm_op(/*alpha=*/1,
@@ -68,6 +82,10 @@ namespace ctranslate2 {
                  _packed_weight)
       , _quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::GLOBAL,
                      /*shit_to_uint8=*/bool(_u8_shift_compensation)) {
+    }
+
+    DataType Dense::output_type() const {
+      return _weight.dtype() == DataType::FLOAT16 ? DataType::FLOAT16 : DataType::FLOAT;
     }
 
     void Dense::mask_weights(const StorageView& index) {
@@ -117,10 +135,11 @@ namespace ctranslate2 {
 
       if (bias) {
         DEVICE_DISPATCH(output.device(),
-                        primitives<D>::add_batch_broadcast(bias->data<float>(),
-                                                           output.data<float>(),
-                                                           bias->size(),
-                                                           output.size()));
+                        TYPE_DISPATCH(bias->dtype(),
+                                      primitives<D>::add_batch_broadcast(bias->data<T>(),
+                                                                         output.data<T>(),
+                                                                         bias->size(),
+                                                                         output.size())));
       }
     }
 
@@ -128,6 +147,10 @@ namespace ctranslate2 {
     LayerNorm::LayerNorm(const models::Model& model, const std::string& scope)
       : _beta(model.get_variable(scope + "/beta"))
       , _gamma(model.get_variable(scope + "/gamma")) {
+    }
+
+    DataType LayerNorm::output_type() const {
+      return _beta.dtype();
     }
 
     void LayerNorm::operator()(const StorageView& input, StorageView& output) const {

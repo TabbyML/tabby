@@ -6,10 +6,16 @@
 namespace ctranslate2 {
   namespace layers {
 
-    class Embeddings
+    class Layer {
+    public:
+      virtual DataType output_type() const = 0;
+    };
+
+    class Embeddings : public Layer
     {
     public:
       Embeddings(const models::Model& model, const std::string& scope);
+      DataType output_type() const override;
       void operator()(const StorageView& ids, StorageView& output) const;
     private:
       const ops::Gather _gather_op;
@@ -18,10 +24,11 @@ namespace ctranslate2 {
       const std::unique_ptr<const StorageView> _scale;
     };
 
-    class Dense
+    class Dense : public Layer
     {
     public:
       Dense(const models::Model& model, const std::string& scope);
+      DataType output_type() const override;
       void operator()(const StorageView& input, StorageView& output) const;
       void mask_weights(const StorageView& index);
       void reset_mask();
@@ -40,10 +47,11 @@ namespace ctranslate2 {
       const ops::Dequantize _dequantize_op;
     };
 
-    class LayerNorm
+    class LayerNorm : public Layer
     {
     public:
       LayerNorm(const models::Model& model, const std::string& scope);
+      DataType output_type() const override;
       void operator()(const StorageView& input, StorageView& output) const;
     private:
       const ops::LayerNorm _norm_op;

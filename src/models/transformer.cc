@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-#include "../device_dispatch.h"
+#include "device_dispatch.h"
+#include "type_dispatch.h"
 
 namespace ctranslate2 {
   namespace models {
@@ -102,23 +103,28 @@ namespace ctranslate2 {
     void PositionEncoder::operator()(StorageView& input, dim_t index) {
       const dim_t max_time = input.dim(1);
       const dim_t depth = input.dim(-1);
-      const StorageView& encodings = get_position_encoding(max_time, depth, input.device());
+      const StorageView& encodings = get_position_encoding(max_time,
+                                                           depth,
+                                                           input.device(),
+                                                           input.dtype());
       DEVICE_DISPATCH(input.device(),
-                      primitives<D>::add_batch_broadcast(encodings.data<float>() + index * depth,
-                                                         input.data<float>(),
-                                                         max_time * depth,
-                                                         input.size()));
+                      TYPE_DISPATCH(input.dtype(),
+                                    primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
+                                                                       input.data<T>(),
+                                                                       max_time * depth,
+                                                                       input.size())));
     }
 
     const StorageView& PositionEncoder::get_position_encoding(dim_t max_time,
                                                               dim_t depth,
-                                                              Device device) {
+                                                              Device device,
+                                                              DataType dtype) {
       if (_model_encoding)
         return *_model_encoding;
 
       static const dim_t default_max_time = 500;
       if (!_generated_encoding)
-        _generated_encoding.reset(new StorageView(device));
+        _generated_encoding.reset(new StorageView(dtype, device));
 
       if (_generated_encoding->empty() || max_time > _generated_encoding->dim(0)) {
         dim_t reserved_time = (_generated_encoding->empty()
@@ -144,7 +150,7 @@ namespace ctranslate2 {
 
         StorageView cache;
         ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
-        *_generated_encoding = cache.to(device);
+        *_generated_encoding = cache.to(dtype).to(device);
       }
 
       return *_generated_encoding;
@@ -159,7 +165,7 @@ namespace ctranslate2 {
     }
 
     void TransformerFeedForward::operator()(const StorageView& input, StorageView& output) const {
-      StorageView inner(input.device());
+      StorageView inner(input.dtype(), input.device());
       _layer_norm(input, output);
       _ff1(output, inner);
       ops::ReLU()(inner, inner);
@@ -181,7 +187,7 @@ namespace ctranslate2 {
                                              const StorageView& lengths,
                                              StorageView& output) const {
       PROFILE("TransformerEncoderLayer");
-      StorageView context(input.device());
+      StorageView context(input.dtype(), input.device());
       _self_attention(input, nullptr, &lengths, context);
       _ff(context, output);
     }
@@ -213,7 +219,7 @@ namespace ctranslate2 {
                                              StorageView& output,
                                              StorageView* attention) const {
       PROFILE("TransformerDecoderLayer");
-      StorageView context(input.device());
+      StorageView context(input.dtype(), input.device());
       if (_encoder_attention) {
         _self_attention(input, nullptr, nullptr, output,
                         &cached_self_attn_keys, &cached_self_attn_values);
@@ -246,11 +252,15 @@ namespace ctranslate2 {
       }
     }
 
+    DataType TransformerEncoder::output_type() const {
+      return _output_norm.output_type();
+    }
+
     void TransformerEncoder::operator()(const StorageView& ids,
                                         const StorageView& lengths,
                                         StorageView& output) {
       PROFILE("TransformerEncoder");
-      StorageView input(output.device());
+      StorageView input(output.dtype(), output.device());
       _embeddings(ids, input);
       if (_position_encoder)
         (*_position_encoder)(input);
@@ -289,6 +299,10 @@ namespace ctranslate2 {
       }
     }
 
+    DataType TransformerDecoder::output_type() const {
+      return _proj.output_type();
+    }
+
     void TransformerDecoder::set_vocabulary_mask(const StorageView& ids) {
       _proj.mask_weights(ids);
     }
@@ -298,14 +312,15 @@ namespace ctranslate2 {
     }
 
     layers::DecoderState TransformerDecoder::initial_state() const {
+      const DataType dtype = output_type();
       layers::DecoderState state;
       for (size_t i = 0; i < _layers.size(); ++i) {
         const std::string i_str = std::to_string(i);
-        state.emplace("self_keys_" + i_str, StorageView(_device));
-        state.emplace("self_values_" + i_str, StorageView(_device));
+        state.emplace("self_keys_" + i_str, StorageView(dtype, _device));
+        state.emplace("self_values_" + i_str, StorageView(dtype, _device));
         if (_with_encoder_attention) {
-          state.emplace("memory_keys_" + i_str, StorageView(_device));
-          state.emplace("memory_values_" + i_str, StorageView(_device));
+          state.emplace("memory_keys_" + i_str, StorageView(dtype, _device));
+          state.emplace("memory_values_" + i_str, StorageView(dtype, _device));
         }
       }
       return state;
@@ -322,8 +337,8 @@ namespace ctranslate2 {
                                         StorageView* logits,
                                         StorageView* attention) {
       PROFILE("TransformerDecoder");
-      StorageView layer_in(ids.device());
-      StorageView layer_out(ids.device());
+      StorageView layer_in(output_type(), ids.device());
+      StorageView layer_out(output_type(), ids.device());
 
       _embeddings(ids, layer_in);
       if (_position_encoder)

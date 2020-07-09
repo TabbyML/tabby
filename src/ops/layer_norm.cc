@@ -11,7 +11,22 @@ namespace ctranslate2 {
                                StorageView& output) const {
       PROFILE("LayerNorm");
       output.resize_as(input);
-      DEVICE_DISPATCH(input.device(), (compute<D, float>(beta, gamma, input, output)));
+      switch (input.dtype()) {
+      case DataType::FLOAT: {
+        DEVICE_DISPATCH(input.device(), (compute<D, float>(beta, gamma, input, output)));
+        break;
+      }
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16: {
+        if (input.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 LayerNorm is only supported on GPU");
+        compute<Device::CUDA, float16_t>(beta, gamma, input, output);
+        break;
+      }
+#endif
+      default:
+        throw std::invalid_argument("LayerNorm only supports float (or float16 on GPU)");
+      }
     }
 
   }

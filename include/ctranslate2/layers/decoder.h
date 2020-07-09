@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "ctranslate2/layers/common.h"
 #include "ctranslate2/storage_view.h"
 
 namespace ctranslate2 {
@@ -11,7 +12,7 @@ namespace ctranslate2 {
     using DecoderState = std::unordered_map<std::string, StorageView>;
 
     // Base class for decoders.
-    class Decoder {
+    class Decoder : public Layer {
     public:
       Decoder(Device device);
       virtual ~Decoder() = default;

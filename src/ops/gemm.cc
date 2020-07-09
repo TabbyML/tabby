@@ -120,6 +120,20 @@ namespace ctranslate2 {
                                                    a_shift_compensation)));
         break;
 
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16:
+        if (a.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 GEMM is only supported on GPU");
+        run_gemm<Device::CUDA, float16_t, float16_t>(a, b, c,
+                                                     _a_is_packed, _b_is_packed,
+                                                     _trans_a, _trans_b,
+                                                     m, n, k,
+                                                     _alpha, _beta,
+                                                     y,
+                                                     a_shift_compensation);
+        break;
+#endif
+
       default:
         throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
       }

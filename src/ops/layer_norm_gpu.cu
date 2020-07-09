@@ -1,23 +1,26 @@
 #include "ctranslate2/ops/layer_norm.h"
 
-#include "../cuda/utils.h"
+#include "cuda/helpers.h"
+#include "cuda/utils.h"
 
 namespace at {
   namespace native {
 
     // Forward declaration of the CUDA kernels.
+    template <typename T>
     __global__ void RowwiseMomentsCUDAKernel(int64_t N,
-                                             float eps,
-                                             const float* X,
-                                             float* mean,
-                                             float* rstd);
+                                             T eps,
+                                             const T* X,
+                                             T* mean,
+                                             T* rstd);
+    template <typename T>
     __global__ void LayerNormForwardCUDAKernel(int64_t N,
-                                               const float* X,
-                                               const float* mean,
-                                               const float* rstd,
-                                               const float* gamma,
-                                               const float* beta,
-                                               float* Y);
+                                               const T* X,
+                                               const T* mean,
+                                               const T* rstd,
+                                               const T* gamma,
+                                               const T* beta,
+                                               T* Y);
 
   }
 }
@@ -27,13 +30,13 @@ namespace ctranslate2 {
 
 #define CUDA_NUM_THREADS 256
 #define CUDA_BLOCK_REDUCE_NUM_THREADS 512
-#define EPSILON 1e-4
 
     template <Device D, typename T>
     void LayerNorm::compute(const StorageView& beta,
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
+      const auto epsilon = T(1e-4);
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / depth;
 
@@ -43,13 +46,22 @@ namespace ctranslate2 {
       const T* input_data = input.data<T>();
 
       auto stream = cuda::get_cuda_stream();
-      at::native::RowwiseMomentsCUDAKernel
+      at::native::RowwiseMomentsCUDAKernel<cuda::device_type<T>>
         <<<batch_size, CUDA_BLOCK_REDUCE_NUM_THREADS, 0, stream>>>(
-          depth, EPSILON, input_data, mean_data, rstd_data);
-      at::native::LayerNormForwardCUDAKernel
+          depth,
+          cuda::device_type<T>(epsilon),
+          cuda::device_cast(input_data),
+          cuda::device_cast(mean_data),
+          cuda::device_cast(rstd_data));
+      at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>>
         <<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
-          depth, input_data, mean_data, rstd_data,
-          gamma.data<T>(), beta.data<T>(), output.data<T>());
+          depth,
+          cuda::device_cast(input_data),
+          cuda::device_cast(mean_data),
+          cuda::device_cast(rstd_data),
+          cuda::device_cast(gamma.data<T>()),
+          cuda::device_cast(beta.data<T>()),
+          cuda::device_cast(output.data<T>()));
     }
 
 #define DECLARE_IMPL(T)                                                 \
@@ -60,6 +72,7 @@ namespace ctranslate2 {
                                         StorageView& output) const;
 
     DECLARE_IMPL(float)
+    DECLARE_IMPL(float16_t)
 
   }
 }
@@ -150,7 +163,8 @@ namespace at {
 #  define WARP_SIZE 32
 #endif
 
-    __inline__ __device__ float WarpReduceSum(float val) {
+    template <typename T>
+    __inline__ __device__ T WarpReduceSum(T val) {
       #pragma unroll
       for (int offset = (WARP_SIZE >> 1); offset > 0; offset >>= 1) {
         val += __shfl_down_sync(0xffffffff, val, offset, WARP_SIZE);
@@ -158,7 +172,8 @@ namespace at {
       return val;
     }
 
-    __inline__ __device__ float BlockReduceSum(float val, float* shared) {
+    template <typename T>
+    __inline__ __device__ T BlockReduceSum(T val, T* shared) {
       const int lid = threadIdx.x % WARP_SIZE;
       const int wid = threadIdx.x / WARP_SIZE;
       val = WarpReduceSum(val);
@@ -173,11 +188,12 @@ namespace at {
       return val;
     }
 
+    template <typename T>
     __global__ void RowwiseMomentsCUDAKernel(int64_t N,
-                                             float eps,
-                                             const float* X,
-                                             float* mean,
-                                             float* rstd) {
+                                             T eps,
+                                             const T* X,
+                                             T* mean,
+                                             T* rstd) {
       __shared__ float m_shared[WARP_SIZE];
       __shared__ float v_shared[WARP_SIZE];
       const int64_t i = blockIdx.x;
@@ -185,8 +201,8 @@ namespace at {
       float sum2 = 0;
       for (int64_t j = threadIdx.x; j < N; j += blockDim.x) {
         const int64_t index = i * N + j;
-        sum1 += X[index];
-        sum2 += X[index] * X[index];
+        sum1 += static_cast<float>(X[index]);
+        sum2 += static_cast<float>(X[index]) * static_cast<float>(X[index]);
       }
       sum1 = BlockReduceSum(sum1, m_shared);
       sum2 = BlockReduceSum(sum2, v_shared);
@@ -195,23 +211,25 @@ namespace at {
         sum1 *= scale;
         sum2 = fmaxf(sum2 * scale - sum1 * sum1, float(0));
         mean[i] = sum1;
-        rstd[i] = rsqrtf(sum2 + eps);
+        rstd[i] = rsqrtf(sum2 + static_cast<float>(eps));
       }
     }
 
+    template <typename T>
     __global__ void LayerNormForwardCUDAKernel(int64_t N,
-                                               const float* X,
-                                               const float* mean,
-                                               const float* rstd,
-                                               const float* gamma,
-                                               const float* beta,
-                                               float* Y) {
+                                               const T* X,
+                                               const T* mean,
+                                               const T* rstd,
+                                               const T* gamma,
+                                               const T* beta,
+                                               T* Y) {
       const int64_t i = blockIdx.x;
       for (int64_t j = threadIdx.x; j < N; j += blockDim.x) {
         const int64_t index = i * N + j;
-        const float gamma_v = gamma == nullptr ? float(1) : gamma[j];
-        const float beta_v = beta == nullptr ? float(0) : beta[j];
-        Y[index] = (X[index] - mean[i]) * rstd[i] * gamma_v + beta_v;
+        const float gamma_v = gamma == nullptr ? float(1) : static_cast<float>(gamma[j]);
+        const float beta_v = beta == nullptr ? float(0) : static_cast<float>(beta[j]);
+        Y[index] = ((static_cast<float>(X[index]) - static_cast<float>(mean[i]))
+                    * static_cast<float>(rstd[i]) * gamma_v + beta_v);
       }
     }
 

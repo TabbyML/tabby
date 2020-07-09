@@ -12,6 +12,8 @@ namespace ctranslate2 {
       return "int16";
     case DataType::INT32:
       return "int32";
+    case DataType::FLOAT16:
+      return "float16";
     default:
       return "";
     }
@@ -24,6 +26,8 @@ namespace ctranslate2 {
       return ComputeType::INT16;
     if (compute_type == "float")
       return ComputeType::FLOAT;
+    if (compute_type == "float16")
+      return ComputeType::FLOAT16;
     return ComputeType::DEFAULT;
   }
 

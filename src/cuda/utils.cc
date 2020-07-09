@@ -101,14 +101,26 @@ namespace ctranslate2 {
       return get_gpu_count() > 0;
     }
 
-    bool has_fast_int8(int device) {
+    static cudaDeviceProp get_device_properties(int device) {
       if (device < 0) {
         CUDA_CHECK(cudaGetDevice(&device));
       }
       cudaDeviceProp device_prop;
       CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
-      // See https://docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html#hardware-precision-matrix
+      return device_prop;
+    }
+
+    // See docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html
+    // for hardware support of reduced precision.
+
+    bool has_fast_int8(int device) {
+      cudaDeviceProp device_prop = get_device_properties(device);
       return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
+    }
+
+    bool has_fast_float16(int device) {
+      cudaDeviceProp device_prop = get_device_properties(device);
+      return device_prop.major >= 7;
     }
 
     ThrustAllocator::value_type* ThrustAllocator::allocate(std::ptrdiff_t num_bytes) {
@@ -187,8 +199,8 @@ namespace ctranslate2 {
       auto profile = builder->createOptimizationProfile();
       set_optimization_profile(profile);
       auto builder_config = builder->createBuilderConfig();
-      builder_config->setMaxWorkspaceSize(1 << 30);
       builder_config->addOptimizationProfile(profile);
+      set_builder_config(builder_config);
       _engine = builder->buildEngineWithConfig(*network, *builder_config);
       _execution_context = _engine->createExecutionContext();
       network->destroy();

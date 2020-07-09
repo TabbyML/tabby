@@ -16,8 +16,24 @@ namespace ctranslate2 {
       const dim_t batch_size = x.size() / x.dim(-1);
       values.resize({batch_size, _k});
       indices.resize({batch_size, _k});
-      DEVICE_DISPATCH(x.device(),
-                      (compute<D, float, int32_t>(x, values, indices)));
+
+      switch (x.dtype()) {
+      case DataType::FLOAT: {
+        DEVICE_DISPATCH(x.device(),
+                        (compute<D, float, int32_t>(x, values, indices)));
+        break;
+      }
+#ifdef CT2_WITH_CUDA
+      case DataType::FLOAT16: {
+        if (x.device() != Device::CUDA)
+          throw std::invalid_argument("FP16 TopK is only supported on GPU");
+        compute<Device::CUDA, float16_t, int32_t>(x, values, indices);
+        break;
+      }
+#endif
+      default:
+        throw std::invalid_argument("TopK only supports float (or float16 on GPU)");
+      }
     }
 
   }

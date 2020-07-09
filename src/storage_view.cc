@@ -80,6 +80,32 @@ namespace ctranslate2 {
     return device_copy.copy_from(*this);
   }
 
+  StorageView StorageView::to(DataType dtype) const {
+    if (_dtype == dtype)
+      return *this;
+    StorageView converted(_shape, dtype, _device);
+    if (_dtype == DataType::FLOAT && dtype == DataType::FLOAT16) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<float>(), converted.data<float16_t>(), _size));
+    } else if (_dtype == DataType::FLOAT16 && dtype == DataType::FLOAT) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<float16_t>(), converted.data<float>(), _size));
+    } else {
+      // TODO: support other conversions.
+      throw std::invalid_argument("Conversion from " + dtype_name(_dtype)
+                                  + " to " + dtype_name(dtype) + " is not yet implemented");
+    }
+    return converted;
+  }
+
+  StorageView StorageView::to_float16() const {
+    return to(DataType::FLOAT16);
+  }
+
+  StorageView StorageView::to_float() const {
+    return to(DataType::FLOAT);
+  }
+
   dim_t StorageView::reserved_memory() const {
     dim_t buffer_size = 0;
     TYPE_DISPATCH(_dtype, buffer_size = _allocated_size * sizeof (T));
@@ -272,10 +298,11 @@ namespace ctranslate2 {
     return *this;
   }
 
-  template <typename T>
-  T StorageView::scalar_at(const std::vector<dim_t>& indices) const {
-    T scalar = T();
-    DEVICE_DISPATCH(_device, scalar = primitives<D>::deref(index<T>(indices), 0));
+  template <typename U>
+  U StorageView::scalar_at(const std::vector<dim_t>& indices) const {
+    auto scalar = U();
+    DEVICE_DISPATCH(_device,
+                    TYPE_DISPATCH(_dtype, scalar = primitives<D>::deref(index<T>(indices), 0)));
     return scalar;
   }
 

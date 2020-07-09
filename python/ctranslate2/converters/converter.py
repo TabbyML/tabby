@@ -25,7 +25,7 @@ class Converter(object):
                             help="Type of model to convert.")
         parser.add_argument("--vocab_mapping", default=None,
                             help="Vocabulary mapping file (optional).")
-        parser.add_argument("--quantization", default=None, choices=["int8", "int16"],
+        parser.add_argument("--quantization", default=None, choices=["int8", "int16", "float16"],
                             help="Weight quantization type.")
         parser.add_argument("--force", action="store_true",
                             help="Force conversion even if the output directory already exists.")
