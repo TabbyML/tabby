@@ -79,7 +79,7 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    struct repeat_vec : thrust::unary_function<T, T> {
+    struct repeat_vec {
       T _size;
       repeat_vec(T size)
         : _size(size) {
@@ -91,7 +91,7 @@ namespace ctranslate2 {
     };
 
     template <typename T>
-    struct repeat_vec_depth : thrust::unary_function<T, T> {
+    struct repeat_vec_depth {
       T _size;
       repeat_vec_depth(T size)
         : _size(size) {

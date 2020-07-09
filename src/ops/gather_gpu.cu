@@ -10,7 +10,7 @@
 namespace ctranslate2 {
   namespace ops {
 
-    struct map_id : public thrust::unary_function<int32_t, int32_t> {
+    struct map_id {
       const int32_t* _offsets;
       int32_t _stride;
       map_id(const int32_t* offsets, int32_t stride)

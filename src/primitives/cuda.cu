@@ -250,7 +250,7 @@ namespace ctranslate2 {
   template void primitives<Device::CUDA>::relu(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::relu(const float16_t*, float16_t*, dim_t);
 
-  struct gelu_func : public thrust::unary_function<float, float> {
+  struct gelu_func {
     float _scale;
     gelu_func(float scale)
       : _scale(scale) {
@@ -269,7 +269,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  struct perm_indices_2d : public thrust::unary_function<T, T> {
+  struct perm_indices_2d {
     T _rows, _cols;
     perm_indices_2d(T rows, T cols)
       : _rows(rows)
@@ -290,7 +290,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  struct perm_indices_3d : public thrust::unary_function<T, T> {
+  struct perm_indices_3d {
     T _a_ps0, _a_ps1, _a_ps2; // Permuted strides of the original array.
     T _b_d0, _b_d1, _b_d2;    // Dimension of the permutated array.
     T _b_s0, _b_s1, _b_s2;    // Strides of the permutated array.
@@ -325,7 +325,7 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  struct perm_indices_4d : public thrust::unary_function<T, T> {
+  struct perm_indices_4d {
     T _a_ps0, _a_ps1, _a_ps2, _a_ps3; // Permuted strides of the original array.
     T _b_d0, _b_d1, _b_d2, _b_d3;    // Dimension of the permutated array.
     T _b_s0, _b_s1, _b_s2, _b_s3;    // Strides of the permutated array.
@@ -523,7 +523,7 @@ namespace ctranslate2 {
                                             CUBLAS_GEMM_DEFAULT_TENSOR_OP));
   }
 
-  struct exp_func : public thrust::unary_function<float, float> {
+  struct exp_func {
     __host__ __device__
     float operator()(float x) { return expf(x); }
   };
@@ -533,7 +533,7 @@ namespace ctranslate2 {
     cuda::unary_transform(x, y, size, exp_func());
   }
 
-  struct log_func : public thrust::unary_function<float, float> {
+  struct log_func {
     __host__ __device__
     float operator()(float x) { return logf(x); }
   };
