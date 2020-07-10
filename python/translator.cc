@@ -56,19 +56,35 @@ static std::vector<std::vector<std::string>> batch_to_vector(const py::object& l
   return v;
 }
 
+static ctranslate2::ComputeType get_compute_type(const py::object compute_type,
+                                                 const std::string& device) {
+  if (py::isinstance<py::str>(compute_type)) {
+    return ctranslate2::str_to_compute_type(compute_type.cast<std::string>());
+  } else if (py::isinstance<py::dict>(compute_type)) {
+    py::dict dict(compute_type);
+    if (!dict.contains(device)) {
+      return ctranslate2::ComputeType::DEFAULT;
+    } else {
+      return ctranslate2::str_to_compute_type(compute_type[device.c_str()].cast<std::string>());
+    }
+  } else {
+    throw std::invalid_argument("Invalid compute_type argument: expected a string or a dict");
+  }
+}
+
 class TranslatorWrapper
 {
 public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
                     int device_index,
-                    const std::string& compute_type,
+                    py::object compute_type,
                     size_t inter_threads,
                     size_t intra_threads)
     : _model_path(model_path)
     , _device(ctranslate2::str_to_device(device))
     , _device_index(device_index)
-    , _compute_type(ctranslate2::str_to_compute_type(compute_type))
+    , _compute_type(get_compute_type(compute_type, device))
     , _model((ctranslate2::set_num_threads(intra_threads),
               ctranslate2::models::Model::load(_model_path,
                                                _device,
@@ -297,7 +313,7 @@ PYBIND11_MODULE(translator, m)
   m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
 
   py::class_<TranslatorWrapper>(m, "Translator")
-    .def(py::init<std::string, std::string, int, std::string, size_t, size_t>(),
+    .def(py::init<std::string, std::string, int, py::object, size_t, size_t>(),
          py::arg("model_path"),
          py::arg("device")="cpu",
          py::arg("device_index")=0,

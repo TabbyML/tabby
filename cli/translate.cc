@@ -13,8 +13,12 @@ int main(int argc, char* argv[]) {
   cmd_options.add_options()
     ("h,help", "Display available options.")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
-    ("compute_type", "Force the model type as \"float\", \"float16\", \"int16\" or \"int8\"",
+    ("compute_type", "The type used for computation: default, float, float16, int16, or int8",
      cxxopts::value<std::string>()->default_value("default"))
+    ("cuda_compute_type", "Computation type on CUDA devices (overrides compute_type)",
+     cxxopts::value<std::string>())
+    ("cpu_compute_type", "Computation type on CPU devices (overrides compute_type)",
+     cxxopts::value<std::string>())
     ("src", "Path to the file to translate (read from the standard input if not set).",
      cxxopts::value<std::string>())
     ("tgt", "Path to the output file (write to the standard output if not set.",
@@ -76,11 +80,24 @@ int main(int argc, char* argv[]) {
   // The same number of OpenMP threads should be used for loading and running model.
   ctranslate2::set_num_threads(intra_threads);
 
+  const auto device = ctranslate2::str_to_device(args["device"].as<std::string>());
+  auto compute_type = ctranslate2::str_to_compute_type(args["compute_type"].as<std::string>());
+  switch (device) {
+  case ctranslate2::Device::CPU:
+    if (args.count("cpu_compute_type"))
+      compute_type = ctranslate2::str_to_compute_type(args["cpu_compute_type"].as<std::string>());
+    break;
+  case ctranslate2::Device::CUDA:
+    if (args.count("cuda_compute_type"))
+      compute_type = ctranslate2::str_to_compute_type(args["cuda_compute_type"].as<std::string>());
+    break;
+  };
+
   auto model = ctranslate2::models::Model::load(
     args["model"].as<std::string>(),
-    args["device"].as<std::string>(),
+    device,
     args["device_index"].as<int>(),
-    args["compute_type"].as<std::string>());
+    compute_type);
 
   ctranslate2::TranslatorPool translator_pool(inter_threads, intra_threads, model);
 

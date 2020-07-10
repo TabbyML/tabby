@@ -1,5 +1,7 @@
 #include "ctranslate2/types.h"
 
+#include <stdexcept>
+
 namespace ctranslate2 {
 
   std::string dtype_name(DataType type) {
@@ -28,7 +30,9 @@ namespace ctranslate2 {
       return ComputeType::FLOAT;
     if (compute_type == "float16")
       return ComputeType::FLOAT16;
-    return ComputeType::DEFAULT;
+    if (compute_type == "default")
+      return ComputeType::DEFAULT;
+    throw std::invalid_argument("Invalid compute type: " + compute_type);
   }
 
 }

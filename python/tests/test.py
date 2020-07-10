@@ -36,6 +36,15 @@ def test_contains_model(tmpdir):
     model_dir.join("model.bin").ensure(file=1)
     assert ctranslate2.contains_model(str(model_dir))
 
+def test_compute_type():
+    model_path = _get_model_path()
+    with pytest.raises(ValueError):
+        ctranslate2.Translator(model_path, compute_type="float64")
+    with pytest.raises(ValueError):
+        ctranslate2.Translator(model_path, compute_type=["int8", "int16"])
+    ctranslate2.Translator(model_path, compute_type="int8")
+    ctranslate2.Translator(model_path, compute_type={"cuda": "float16", "cpu": "int8"})
+
 @pytest.mark.parametrize("max_batch_size", [0, 1])
 def test_batch_translation(max_batch_size):
     translator = _get_transliterator()
