@@ -1,5 +1,6 @@
 #pragma once
 
+#include <istream>
 #include <set>
 #include <unordered_map>
 #include <string>
@@ -17,7 +18,7 @@ namespace ctranslate2 {
   // and provides methods to map input tokens to possible target tokens.
   class VocabularyMap {
   public:
-    VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary);
+    VocabularyMap(std::istream& map_file, const Vocabulary& vocabulary);
 
     bool empty() const;
 

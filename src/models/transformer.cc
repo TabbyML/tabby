@@ -35,10 +35,10 @@ namespace ctranslate2 {
       return name;
     }
 
-    TransformerModel::TransformerModel(const std::string& path,
+    TransformerModel::TransformerModel(ModelReader& model_reader,
                                        size_t spec_revision,
                                        size_t num_heads)
-      : SequenceToSequenceModel(path, spec_revision)
+      : SequenceToSequenceModel(model_reader, spec_revision)
       , _num_heads(num_heads) {
     }
 

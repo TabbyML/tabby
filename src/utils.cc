@@ -1,6 +1,5 @@
 #include "ctranslate2/utils.h"
 
-#include <sys/stat.h>
 #include <chrono>
 #include <cstdlib>
 
@@ -157,11 +156,6 @@ namespace ctranslate2 {
     static thread_local std::mt19937 generator(
       std::chrono::system_clock::now().time_since_epoch().count());
     return generator;
-  }
-
-  bool file_exists(const std::string& path) {
-    struct stat buffer;
-    return stat(path.c_str(), &buffer) == 0;
   }
 
   void* aligned_alloc(size_t size, size_t alignment) {

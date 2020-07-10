@@ -13,10 +13,7 @@ namespace ctranslate2 {
   // memory upfront and avoid multiple re-allocations and copies.
   constexpr size_t VOCABULARY_SIZE_HINT = 50000;
 
-  Vocabulary::Vocabulary(const std::string& path) {
-    std::ifstream in(path);
-    if (!in.is_open())
-      throw std::invalid_argument("Unable to open the vocabulary file `" + path + "`");
+  Vocabulary::Vocabulary(std::istream& in) {
     _token_to_id.reserve(VOCABULARY_SIZE_HINT);
     _id_to_token.reserve(VOCABULARY_SIZE_HINT);
     std::string line;

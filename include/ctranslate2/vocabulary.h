@@ -1,5 +1,6 @@
 #pragma once
 
+#include <istream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -15,7 +16,7 @@ namespace ctranslate2 {
     static const std::string bos_token;
     static const std::string eos_token;
 
-    Vocabulary(const std::string& path);
+    Vocabulary(std::istream& in);
 
     const std::string& to_token(size_t id) const;
     size_t to_id(const std::string& token) const;

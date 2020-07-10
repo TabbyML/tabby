@@ -13,7 +13,7 @@ namespace ctranslate2 {
     public:
       const Vocabulary& get_source_vocabulary() const;
       const Vocabulary& get_target_vocabulary() const;
-      const VocabularyMap& get_vocabulary_map() const;
+      const VocabularyMap* get_vocabulary_map() const;
 
       // Makes new graph to execute this model. Graphs returned by these function
       // should support being executed in parallel without duplicating the model
@@ -22,7 +22,7 @@ namespace ctranslate2 {
       virtual std::unique_ptr<layers::Decoder> make_decoder() const = 0;
 
     protected:
-      SequenceToSequenceModel(const std::string& path, size_t spec_revision);
+      SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
 
       std::unique_ptr<const Vocabulary> _source_vocabulary;
       std::unique_ptr<const Vocabulary> _target_vocabulary;

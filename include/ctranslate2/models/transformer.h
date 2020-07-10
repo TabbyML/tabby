@@ -12,7 +12,7 @@ namespace ctranslate2 {
     class TransformerModel : public SequenceToSequenceModel
     {
     public:
-      TransformerModel(const std::string& path, size_t spec_revision, size_t num_heads = 0);
+      TransformerModel(ModelReader& model_reader, size_t spec_revision, size_t num_heads = 0);
       size_t num_heads() const;
       bool with_relative_position() const;
       size_t current_spec_revision() const override;

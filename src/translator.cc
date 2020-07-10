@@ -301,7 +301,7 @@ namespace ctranslate2 {
 
     // If set, extract the subset of candidates to generate.
     std::vector<size_t> output_ids_map;
-    if (options.use_vmap && !_vocabulary_map->empty()) {
+    if (options.use_vmap && _vocabulary_map && !_vocabulary_map->empty()) {
       output_ids_map = _vocabulary_map->get_candidates(source);
       _decoder->set_vocabulary_mask(
         StorageView({static_cast<dim_t>(output_ids_map.size())},
@@ -371,6 +371,11 @@ namespace ctranslate2 {
   }
 
   void Translator::set_model(const std::string& model_dir) {
+    models::ModelFileReader model_reader(model_dir);
+    set_model(model_reader);
+  }
+
+  void Translator::set_model(models::ModelReader& model_reader) {
     Device device = Device::CPU;
     int device_index = 0;
     ComputeType compute_type = ComputeType::DEFAULT;
@@ -379,7 +384,7 @@ namespace ctranslate2 {
       device_index = _model->device_index();
       compute_type = _model->compute_type();
     }
-    set_model(models::Model::load(model_dir, device, device_index, compute_type));
+    set_model(models::Model::load(model_reader, device, device_index, compute_type));
   }
 
   void Translator::set_model(const std::shared_ptr<const models::Model>& model) {
@@ -390,7 +395,7 @@ namespace ctranslate2 {
     auto scoped_device_setter = _model->get_scoped_device_setter();
     _encoder = seq2seq_model->make_encoder();
     _decoder = seq2seq_model->make_decoder();
-    _vocabulary_map = &seq2seq_model->get_vocabulary_map();
+    _vocabulary_map = seq2seq_model->get_vocabulary_map();
     _source_vocabulary = &seq2seq_model->get_source_vocabulary();
     _target_vocabulary = &seq2seq_model->get_target_vocabulary();
   }

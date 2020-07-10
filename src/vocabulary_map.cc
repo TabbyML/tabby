@@ -4,12 +4,8 @@
 
 namespace ctranslate2 {
 
-  VocabularyMap::VocabularyMap(const std::string& map_path, const Vocabulary& vocabulary)
+  VocabularyMap::VocabularyMap(std::istream& map_file, const Vocabulary& vocabulary)
     : _vocabulary_size(vocabulary.size()) {
-    std::ifstream map_file(map_path);
-    if (!map_file.is_open())
-      return;
-
     std::string line;
     while (std::getline(map_file, line)) {
       std::string token;

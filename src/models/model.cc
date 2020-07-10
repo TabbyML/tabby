@@ -10,6 +10,8 @@
 namespace ctranslate2 {
   namespace models {
 
+    static const std::string binary_file = "model.bin";
+
     template <typename T>
     T consume(std::istream& in) {
       T val;
@@ -181,7 +183,7 @@ namespace ctranslate2 {
     }
 
 
-    Model::Model(const std::string&, size_t spec_revision)
+    Model::Model(ModelReader&, size_t spec_revision)
       : _spec_revision(spec_revision) {
     }
 
@@ -472,7 +474,7 @@ namespace ctranslate2 {
       }
     }
 
-    static Model* create_model(const std::string& path,
+    static Model* create_model(ModelReader& model_reader,
                                const std::string& spec,
                                size_t spec_revision) {
       Model* model = nullptr;
@@ -481,11 +483,11 @@ namespace ctranslate2 {
       // compatibility. Now all Transformer variants are saved under TransformerSpec.
 
       if (spec.empty() || spec == "TransformerBase")
-        model = new TransformerModel(path, spec_revision, /*num_heads=*/8);
+        model = new TransformerModel(model_reader, spec_revision, /*num_heads=*/8);
       else if (spec == "TransformerBig")
-        model = new TransformerModel(path, spec_revision, /*num_heads=*/16);
+        model = new TransformerModel(model_reader, spec_revision, /*num_heads=*/16);
       else if (spec == "TransformerSpec")
-        model = new TransformerModel(path, spec_revision);
+        model = new TransformerModel(model_reader, spec_revision);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
 
@@ -518,10 +520,17 @@ namespace ctranslate2 {
                                              Device device,
                                              int device_index,
                                              ComputeType compute_type) {
-      const std::string model_path = path + "/model.bin";
-      std::ifstream model_file(model_path, std::ios_base::in | std::ios_base::binary);
-      if (!model_file.is_open())
-        throw std::runtime_error("failed to load the model " + model_path);
+      ModelFileReader model_reader(path);
+      return load(model_reader, device, device_index, compute_type);
+    }
+
+    std::shared_ptr<const Model> Model:: load(ModelReader& model_reader,
+                                              Device device,
+                                              int device_index,
+                                              ComputeType compute_type) {
+      std::unique_ptr<std::istream> model_file_ptr = model_reader.get_required_file(binary_file,
+                                                                                    /*binary=*/true);
+      std::istream& model_file = *model_file_ptr;
 
       // See the model serialization in python/ctranslate2/specs/model_spec.py.
       const auto binary_version = consume<uint32_t>(model_file);
@@ -536,7 +545,7 @@ namespace ctranslate2 {
         spec_revision = 1;
       }
 
-      Model* model = create_model(path, spec, spec_revision);
+      Model* model = create_model(model_reader, spec, spec_revision);
       model->set_device(device, device_index);
       model->set_compute_type(compute_type);
 
@@ -587,7 +596,37 @@ namespace ctranslate2 {
     }
 
     bool contains_model(const std::string& path) {
-      return file_exists(path + "/model.bin");
+      return bool(ModelFileReader(path).get_file(binary_file));
+    }
+
+
+    std::unique_ptr<std::istream> ModelReader::get_required_file(const std::string& filename,
+                                                                 const bool binary) {
+      std::unique_ptr<std::istream> file = get_file(filename, binary);
+      if (!file)
+        throw std::runtime_error("Unable to open file '" + filename
+                                 + "' in model '" + get_model_id() + "'");
+      return file;
+    }
+
+
+    ModelFileReader::ModelFileReader(std::string model_dir, std::string path_separator)
+      : _model_dir(std::move(model_dir))
+      , _path_separator(std::move(path_separator)) {
+    }
+
+    std::string ModelFileReader::get_model_id() const {
+      return _model_dir;
+    }
+
+    std::unique_ptr<std::istream> ModelFileReader::get_file(const std::string& filename,
+                                                            const bool binary) {
+      const std::string path = _model_dir + _path_separator + filename;
+      const std::ios_base::openmode mode = binary ? std::ios_base::binary : std::ios_base::in;
+      std::unique_ptr<std::istream> stream(new std::ifstream(path, mode));
+      if (!stream || !(*stream))
+        return nullptr;
+      return stream;
     }
 
   }

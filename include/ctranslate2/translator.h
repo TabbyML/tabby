@@ -96,6 +96,8 @@ namespace ctranslate2 {
 
     // Change the model while keeping the same device and compute type as the previous model.
     void set_model(const std::string& model_dir);
+    void set_model(models::ModelReader& model_reader);
+
     void set_model(const std::shared_ptr<const models::Model>& model);
 
     // Detach the model from this translator, which becomes unusable until set_model is called.

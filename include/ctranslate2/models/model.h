@@ -1,5 +1,6 @@
 #pragma once
 
+#include <istream>
 #include <unordered_map>
 #include <memory>
 
@@ -13,10 +14,16 @@ namespace ctranslate2 {
     // Checks whether the provided path could contain a CTranslate2 model.
     bool contains_model(const std::string& path);
 
+    class ModelReader;
+
     // Base class for models.
     class Model {
     public:
       static std::shared_ptr<const Model> load(const std::string& path,
+                                               Device device = Device::CPU,
+                                               int device_index = 0,
+                                               ComputeType compute_type = ComputeType::DEFAULT);
+      static std::shared_ptr<const Model> load(ModelReader& model_reader,
                                                Device device = Device::CPU,
                                                int device_index = 0,
                                                ComputeType compute_type = ComputeType::DEFAULT);
@@ -53,7 +60,7 @@ namespace ctranslate2 {
       bool get_flag_with_default(const std::string& name, bool default_value) const;
 
     protected:
-      Model(const std::string& path, size_t spec_revision);
+      Model(ModelReader& model_reader, size_t spec_revision);
 
       // Returns true if the variable is quantizable and should respect compute_type.
       virtual bool is_quantizable(const std::string& variable_name) const;
@@ -85,6 +92,35 @@ namespace ctranslate2 {
                         const DataType target_dtype,
                         std::unordered_map<std::string, StorageView>& variables_to_add,
                         std::vector<std::string>& variables_to_remove);
+    };
+
+    // The ModelReader interface allows user code to customize how and where to read model files.
+    class ModelReader {
+    public:
+      virtual ~ModelReader() = default;
+
+      // Returns a string identifying the model to be loaded (e.g. its path on disk).
+      virtual std::string get_model_id() const = 0;
+      // Returns a stream over a file included in the model, or nullptr if the file can't be openned.
+      virtual std::unique_ptr<std::istream> get_file(const std::string& filename,
+                                                     const bool binary = false) = 0;
+
+      // Wrapper around get_file, raises an exception if the file can't be openned.
+      std::unique_ptr<std::istream> get_required_file(const std::string& filename,
+                                                      const bool binary = false);
+
+    };
+
+    class ModelFileReader : public ModelReader {
+    public:
+      ModelFileReader(std::string model_dir, std::string path_separator = "/");
+      std::string get_model_id() const override;
+      std::unique_ptr<std::istream> get_file(const std::string& filename,
+                                             const bool binary = false) override;
+
+    private:
+      std::string _model_dir;
+      std::string _path_separator;
     };
 
   }

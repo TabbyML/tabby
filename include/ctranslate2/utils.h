@@ -29,8 +29,6 @@ namespace ctranslate2 {
 
   std::mt19937& get_random_generator();
 
-  bool file_exists(const std::string& path);
-
   void* aligned_alloc(size_t size, size_t alignment);
   void aligned_free(void* ptr);
 
