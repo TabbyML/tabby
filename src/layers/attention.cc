@@ -186,8 +186,8 @@ namespace ctranslate2 {
           split_heads(values_proj, split_values);
 
           if (cached_keys != nullptr) {
-            swap(*cached_keys, split_keys);
-            swap(*cached_values, split_values);
+            *cached_keys = std::move(split_keys);
+            *cached_values = std::move(split_values);
             split_keys.shallow_copy(*cached_keys);
             split_values.shallow_copy(*cached_values);
           }
@@ -203,13 +203,13 @@ namespace ctranslate2 {
 
         if (cached_keys != nullptr) {
           if (cached_keys->empty()) {
-            swap(*cached_keys, split_keys);
-            swap(*cached_values, split_values);
+            *cached_keys = std::move(split_keys);
+            *cached_values = std::move(split_values);
           } else {
             StorageView& tmp = keys_proj;  // Reuse storage.
-            swap(*cached_keys, tmp);
+            tmp = std::move(*cached_keys);
             ops::Concat(2)({&tmp, &split_keys}, *cached_keys);
-            swap(*cached_values, tmp);
+            tmp = std::move(*cached_values);
             ops::Concat(2)({&tmp, &split_values}, *cached_values);
           }
           split_keys.shallow_copy(*cached_keys);

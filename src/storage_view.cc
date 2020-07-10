@@ -7,29 +7,36 @@
 
 namespace ctranslate2 {
 
+  static inline int get_current_device(const Device device) {
+    int index = 0;
+    DEVICE_DISPATCH(device, index = primitives<D>::get_device());
+    return index;
+  }
+
   StorageView::StorageView(DataType type, Device device)
     : _dtype(type)
-    , _device(device) {
-    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
+    , _device(device)
+    , _device_index(get_current_device(device)) {
   }
 
   StorageView::StorageView(Device device, DataType type)
     : _dtype(type)
-    , _device(device) {
-    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
+    , _device(device)
+    , _device_index(get_current_device(device)) {
   }
 
   StorageView::StorageView(const Shape& shape, DataType type, Device device)
     : _dtype(type)
-    , _device(device) {
-    DEVICE_DISPATCH(device, _device_index = primitives<D>::get_device());
+    , _device(device)
+    , _device_index(get_current_device(device)) {
     resize(shape);
   }
 
   template <typename T>
   StorageView::StorageView(const Shape& shape, T init, Device device)
     : _dtype(DataTypeToEnum<T>::value)
-    , _device(device) {
+    , _device(device)
+    , _device_index(get_current_device(device)) {
     resize(shape);
     fill(init);
   }
@@ -37,7 +44,8 @@ namespace ctranslate2 {
   template <typename T>
   StorageView::StorageView(T scalar, Device device)
     : _dtype(DataTypeToEnum<T>::value)
-    , _device(device) {
+    , _device(device)
+    , _device_index(get_current_device(device)) {
     resize({});
     fill(scalar);
   }
@@ -45,7 +53,8 @@ namespace ctranslate2 {
   template <typename T>
   StorageView::StorageView(const Shape& shape, const std::vector<T>& init, Device device)
     : _dtype(DataTypeToEnum<T>::value)
-    , _device(device) {
+    , _device(device)
+    , _device_index(get_current_device(device)) {
     resize(shape);
     copy_from(init.data(), init.size(), Device::CPU);
   }
@@ -53,7 +62,8 @@ namespace ctranslate2 {
   template <typename T>
   StorageView::StorageView(const Shape& shape, T* data, Device device)
     : _dtype(DataTypeToEnum<T>::value)
-    , _device(device) {
+    , _device(device)
+    , _device_index(get_current_device(device)) {
     view(data, shape);
   }
 
@@ -216,12 +226,15 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::assign(const StorageView& other) {
-    ASSERT_COMPATIBLE(other._dtype, other._device);
+    if (_device != other._device || _device_index != other._device_index)
+      release();
+    _device = other._device;
+    _device_index = other._device_index;
+    _dtype = other._dtype;
     return copy_from(other);
   }
 
   StorageView& StorageView::assign(StorageView&& other) {
-    ASSERT_COMPATIBLE(other._dtype, other._device);
     swap(*this, other);
     return *this;
   }
@@ -235,8 +248,11 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::shallow_copy(StorageView& other) {
-    ASSERT_DEVICE(other._device);
+    _dtype = other._dtype;
     TYPE_DISPATCH(_dtype, view(other.data<T>(), other._shape));
+    // Device info should be set after view(), which releases memory on the current device.
+    _device = other._device;
+    _device_index = other._device_index;
     return *this;
   }
 

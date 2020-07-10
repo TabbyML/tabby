@@ -114,9 +114,7 @@ namespace ctranslate2 {
       // Second pass to move variables and update the associated aliases.
       for (auto* variable : variables_to_move) {
         void* prev_buffer = variable->buffer();
-
-        StorageView variable_device = variable->to(device);
-        swap(*variable, variable_device);
+        *variable = variable->to(device);
 
         auto it = buffer_to_aliases.find(prev_buffer);
         if (it != buffer_to_aliases.end()) {
@@ -338,7 +336,7 @@ namespace ctranslate2 {
         quantize_op(tmp_variable, target_variable, *saved_scale);
       }
 
-      swap(variable, target_variable);
+      variable = std::move(target_variable);
     }
 
     void Model::finalize() {
@@ -372,11 +370,9 @@ namespace ctranslate2 {
         } else if (!variable.is_scalar()) {
           // Other parameters may be converted from or to float16 (e.g. bias).
           if (variable.dtype() == DataType::FLOAT && target_dtype == DataType::FLOAT16) {
-            StorageView half_variable = variable.to_float16();
-            swap(variable, half_variable);
+            variable = variable.to_float16();
           } else if (variable.dtype() == DataType::FLOAT16 && target_dtype == DataType::FLOAT) {
-            StorageView float_variable = variable.to_float();
-            swap(variable, float_variable);
+            variable = variable.to_float();
           }
         }
       }

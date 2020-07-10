@@ -268,7 +268,7 @@ namespace ctranslate2 {
       for (size_t l = 0; l < _layers.size(); ++l) {
         (*_layers[l])(input, lengths, output);
         if (l + 1 < _layers.size())
-          swap(input, output);
+          input = std::move(output);
       }
       _output_norm(output, output);
     }
@@ -362,7 +362,7 @@ namespace ctranslate2 {
                       _with_encoder_attention ? &state.at("memory_values_" + l_str) : nullptr,
                       layer_out,
                       l + 1 == _layers.size() ? attention : nullptr);
-        swap(layer_in, layer_out);
+        layer_in = std::move(layer_out);
       }
 
       if (logits) {
