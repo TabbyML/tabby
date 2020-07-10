@@ -2,7 +2,14 @@
 
 ### New features
 
+* Support `float16` data type for model conversion (with `--quantization float16`) and GPU computation (with `--compute_type float16`)
+* [C++] Add `ModelReader` interface to customize model loading
+
 ### Fixes and improvements
+
+* Optimize Transpose op on CPU for the permutation used in multi-head attention
+* Optimize GELU op CPU with Intel MKL
+* Inline some frequently called methods
 
 ## [v1.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.11.0) (2020-06-29)
 
