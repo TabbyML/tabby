@@ -26,9 +26,9 @@ namespace ctranslate2 {
     break;                                      \
   }
 
-#define CPU_ISA_DEFAULT(STMTS)                          \
+#define CPU_ISA_DEFAULT(CPU_ISA, STMTS)                 \
   default: {                                            \
-    const cpu::CpuIsa ISA = cpu::CpuIsa::GENERIC;       \
+    const cpu::CpuIsa ISA = CPU_ISA;                    \
     STMTS;                                              \
     break;                                              \
   }
@@ -39,11 +39,21 @@ namespace ctranslate2 {
   switch (cpu::get_cpu_isa()) {                               \
     CPU_ISA_CASE(cpu::CpuIsa::AVX2, SINGLE_ARG(STMTS))        \
     CPU_ISA_CASE(cpu::CpuIsa::AVX, SINGLE_ARG(STMTS))         \
-    CPU_ISA_DEFAULT(SINGLE_ARG(STMTS))                        \
+    CPU_ISA_DEFAULT(cpu::CpuIsa::GENERIC, SINGLE_ARG(STMTS))  \
+  }
+#elif defined(__AVX2__)
+#  define CPU_ISA_DISPATCH(STMTS)                             \
+  switch (cpu::get_cpu_isa()) {                               \
+    CPU_ISA_DEFAULT(cpu::CpuIsa::AVX2, SINGLE_ARG(STMTS))     \
+  }
+#elif defined(__AVX__)
+#  define CPU_ISA_DISPATCH(STMTS)                             \
+  switch (cpu::get_cpu_isa()) {                               \
+    CPU_ISA_DEFAULT(cpu::CpuIsa::AVX, SINGLE_ARG(STMTS))      \
   }
 #else
 #  define CPU_ISA_DISPATCH(STMTS)                             \
   switch (cpu::get_cpu_isa()) {                               \
-    CPU_ISA_DEFAULT(SINGLE_ARG(STMTS))                        \
+    CPU_ISA_DEFAULT(cpu::CpuIsa::GENERIC, SINGLE_ARG(STMTS))  \
   }
 #endif
