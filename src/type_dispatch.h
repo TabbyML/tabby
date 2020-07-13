@@ -10,7 +10,9 @@ namespace ctranslate2 {
 
   // Validates type T for whether it is a supported DataType.
   template <class T>
-  struct IsValidDataType;
+  struct IsValidDataType {
+    static constexpr bool value = false;
+  };
 
   // DataTypeToEnum<T>::v() and DataTypeToEnum<T>::value are the DataType
   // constants for T, e.g. DataTypeToEnum<float>::v() is DataType::FLOAT.
@@ -24,7 +26,7 @@ namespace ctranslate2 {
   template <DataType VALUE>
   struct EnumToDataType {}; // Specializations below
 
-#define MATCH_TYPE_AND_ENUM(TYPE, ENUM, NAME)           \
+#define MATCH_TYPE_AND_ENUM(TYPE, ENUM)                 \
   template<>                                            \
   struct DataTypeToEnum<TYPE> {                         \
     static constexpr DataType value = ENUM;             \
@@ -38,17 +40,13 @@ namespace ctranslate2 {
     typedef TYPE Type;                                  \
   }
 
-  MATCH_TYPE_AND_ENUM(float, DataType::FLOAT, "float");
-  MATCH_TYPE_AND_ENUM(int8_t, DataType::INT8, "int8");
-  MATCH_TYPE_AND_ENUM(int16_t, DataType::INT16, "int16");
-  MATCH_TYPE_AND_ENUM(int32_t, DataType::INT32, "int32");
-  MATCH_TYPE_AND_ENUM(float16_t, DataType::FLOAT16, "float16");
+  MATCH_TYPE_AND_ENUM(float, DataType::FLOAT);
+  MATCH_TYPE_AND_ENUM(int8_t, DataType::INT8);
+  MATCH_TYPE_AND_ENUM(int16_t, DataType::INT16);
+  MATCH_TYPE_AND_ENUM(int32_t, DataType::INT32);
+  MATCH_TYPE_AND_ENUM(float16_t, DataType::FLOAT16);
 
-  // All types not specialized are marked invalid.
-  template <class T>
-  struct IsValidDataType {
-    static constexpr bool value = false;
-  };
+#undef MATCH_TYPE_AND_ENUM
 
 #define TYPE_CASE(TYPE, STMTS)                  \
   case DataTypeToEnum<TYPE>::value: {           \
