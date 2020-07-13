@@ -50,7 +50,9 @@ namespace ctranslate2 {
   }
 
   static std::pair<StorageView, StorageView>
-  make_inputs(const std::vector<std::vector<size_t>>& ids, Device device) {
+  make_inputs(const std::vector<std::vector<size_t>>& ids,
+              const Device device,
+              const dim_t length_multiple_of = 1) {
     const dim_t batch_size = ids.size();
 
     // Record lengths and maximum length.
@@ -60,6 +62,10 @@ namespace ctranslate2 {
       const dim_t length = ids[i].size();
       lengths.at<int32_t>(i) = length;
       max_length = std::max(max_length, length);
+    }
+
+    if (max_length % length_multiple_of != 0) {
+      max_length += (length_multiple_of - max_length % length_multiple_of);
     }
 
     // Make 2D input.
@@ -291,18 +297,33 @@ namespace ctranslate2 {
       target_prefix_ids = tokens_to_ids(*target_prefix, *_target_vocabulary);
 
     const Device device = _model->device();
-    std::pair<StorageView, StorageView> inputs = make_inputs(source_ids, device);
+    const DataType dtype = _encoder->output_type();
+    std::pair<StorageView, StorageView> inputs = make_inputs(source_ids,
+                                                             device,
+                                                             dtype == DataType::FLOAT16 ? 8 : 1);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
 
     // Encode sequence.
-    StorageView encoded(_encoder->output_type(), device);
+    StorageView encoded(dtype, device);
     (*_encoder)(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
     std::vector<size_t> output_ids_map;
     if (options.use_vmap && _vocabulary_map && !_vocabulary_map->empty()) {
       output_ids_map = _vocabulary_map->get_candidates(source);
+    } else if (dtype == DataType::FLOAT16 && _target_vocabulary->size() % 8 != 0) {
+      // Pad vocabulary size to a multiple of 8 to enable Tensor Cores.
+      // Note that get_candidates above already returns a multiple of 8.
+      const size_t vocab_size = _target_vocabulary->size();
+      const size_t padded_size = vocab_size + (8 - vocab_size % 8);
+      output_ids_map.resize(padded_size);
+      for (size_t i = 0; i < padded_size; ++i) {
+        output_ids_map[i] = i < vocab_size ? i : 0;
+      }
+    }
+
+    if (!output_ids_map.empty()) {
       _decoder->set_vocabulary_mask(
         StorageView({static_cast<dim_t>(output_ids_map.size())},
                     std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
