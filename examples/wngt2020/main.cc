@@ -2,6 +2,7 @@
 #include <ctranslate2/translator_pool.h>
 #include <ctranslate2/models/sequence_to_sequence.h>
 #include <fstream>
+#include <regex>
 
 static std::vector<std::string> get_vocabulary_tokens(const ctranslate2::Vocabulary& vocabulary) {
   std::vector<std::string> tokens;
@@ -61,7 +62,7 @@ int main(int, char* argv[]) {
                                 const ctranslate2::TranslationResult& result) {
                   std::string text;
                   sp_processor.Decode(result.output(), &text);
-                  out << text << '\n';
+                  out << std::regex_replace(text, std::regex("<unk>"), "UNK") << '\n';
                 };
 
   ctranslate2::TranslationOptions options;
