@@ -367,7 +367,7 @@ namespace ctranslate2 {
                        target_dtype,
                        variables_to_add,
                        variables_to_remove);
-        } else if (!variable.is_scalar()) {
+        } else if (!variable.is_scalar() && name.find("_scale") == std::string::npos) {
           // Other parameters may be converted from or to float16 (e.g. bias).
           if (variable.dtype() == DataType::FLOAT && target_dtype == DataType::FLOAT16) {
             variable = variable.to_float16();
