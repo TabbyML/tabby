@@ -18,9 +18,6 @@ RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
     rm cmake-3.12.2-Linux-x86_64.tar.gz
 ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
 
-# See note in Dockerfile.cpu.
-ENV CXX_FLAGS="-march=skylake"
-
 ENV SENTENCEPIECE_VERSION=v0.1.8
 RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.tar.gz && \
     tar xf $SENTENCEPIECE_VERSION.tar.gz && \
@@ -35,7 +32,7 @@ RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.
 
 ENV CUDA_ARCH_LIST="7.5"
 
-ENV CTRANSLATE2_VERSION=v1.10.0
+ENV CTRANSLATE2_VERSION=e73e27fc7d86c0d22be018ea459cf7cedec72278
 RUN git clone https://github.com/OpenNMT/CTranslate2.git && \
     cd CTranslate2 && \
     git checkout $CTRANSLATE2_VERSION && \

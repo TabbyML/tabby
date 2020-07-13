@@ -29,7 +29,7 @@ int main(int, char* argv[]) {
   if (device == ctranslate2::Device::CUDA) {
     num_replicas = 1;
     max_batch_size = 6000;
-    compute_type = ctranslate2::ComputeType::FLOAT;
+    compute_type = ctranslate2::ComputeType::FLOAT16;
   } else if (num_cores == 1) {
     num_replicas = 1;
     max_batch_size = 512;
