@@ -38,6 +38,11 @@ namespace ctranslate2 {
       return str;
     }
 
+    static inline void unsupported_compute_type(const std::string& name) {
+      throw std::invalid_argument("Requested " + name + " compute type, but the target device "
+                                  "or backend do not support efficient " + name + " computation.");
+    }
+
     static DataType compute_type_to_data_type(const ComputeType compute_type,
                                               const DataType data_type,
                                               const Device device,
@@ -50,20 +55,17 @@ namespace ctranslate2 {
       }
       case ComputeType::FLOAT16: {
         if (!support_float16)
-          throw std::invalid_argument("Requested float16 compute type, but the target device "
-                                      "and backend do not support efficient float16 computation.");
+          unsupported_compute_type("float16");
         return DataType::FLOAT16;
       }
       case ComputeType::INT16: {
         if (!support_int16)
-          throw std::invalid_argument("Requested int16 compute type, but the target device "
-                                      "and backend do not support efficient int16 computation.");
+          unsupported_compute_type("int16");
         return DataType::INT16;
       }
       case ComputeType::INT8: {
         if (!support_int8)
-          throw std::invalid_argument("Requested int8 compute type, but the target device "
-                                      "and backend do not support efficient int8 computation.");
+          unsupported_compute_type("int8");
         return DataType::INT8;
       }
       case ComputeType::DEFAULT: {
@@ -72,7 +74,9 @@ namespace ctranslate2 {
         case DataType::INT16:
           return (support_int16
                   ? DataType::INT16
-                  : (device == Device::CPU && support_int8 ? DataType::INT8 : DataType::FLOAT));
+                  : (device == Device::CPU
+                     ? (support_int8 ? DataType::INT8 : DataType::FLOAT)
+                     : (support_float16 ? DataType::FLOAT16 : DataType::FLOAT)));
         case DataType::INT8:
           return (support_int8
                   ? DataType::INT8

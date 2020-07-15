@@ -165,7 +165,7 @@ However, some execution settings are not (yet) optimized for all computation typ
 | Model type | GPU (NVIDIA) | CPU (Intel) | CPU (AMD) |
 | ---------- | ------------ | ----------- | --------- |
 | float16    | float16 (\*) | float       | float     |
-| int16      | float        | int16       | int8      |
+| int16      | float16 (\*) | int16       | int8      |
 | int8       | int8 (\*\*)  | int8        | int8      |
 
 *(\*) for Compute Capability >= 7.0, (\*\*) for Compute Capability >= 7.0 or == 6.1.*
