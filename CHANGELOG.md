@@ -2,13 +2,15 @@
 
 ### New features
 
-* Support `float16` data type for model conversion (with `--quantization float16`) and GPU computation (with `--compute_type float16`)
+* Support `float16` data type for model conversion (with `--quantization float16`) and computation (with `--compute_type float16`). FP16 execution requires a NVIDIA GPU with Compute Capability >= 7.0.
+* Allow setting a computation type per device (e.g. `Translator(..., compute_type={"cuda": "float16", "cpu": "int8"})` with the Python API)
 * [C++] Add `ModelReader` interface to customize model loading
 
 ### Fixes and improvements
 
 * Optimize Transpose op on CPU for the permutation used in multi-head attention
 * Optimize GELU op CPU with Intel MKL
+* Fix compilation when targeting an architecture and disabling ISA dispatch (e.g.: `-DCMAKE_CXX_FLAGS="-march=skylake" -DENABLE_CPU_DISPATCH=OFF`)
 * Inline some frequently called methods
 
 ## [v1.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.11.0) (2020-06-29)
