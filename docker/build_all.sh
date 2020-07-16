@@ -24,24 +24,13 @@ IMAGE=opennmt/ctranslate2
 
 build()
 {
-    PLAT=$1
+    DOCKERFILE=$1
+    IMAGE_NAME=$2
+    BUILD_ARGS=${3:-}
 
-    if [ "$#" -eq 2 ]; then
-        UBUNTU_VERSION_ARG="--build-arg UBUNTU_VERSION=$2"
-        UBUNTU_MAJOR_VERSION="${2%.*}"
-        if [[ "$PLAT" = *-* ]]; then
-            TAG_SUFFIX="${PLAT%-*}${UBUNTU_MAJOR_VERSION}-${PLAT##*-}"
-        else
-            TAG_SUFFIX=$PLAT$UBUNTU_MAJOR_VERSION
-        fi
-    else
-        UBUNTU_VERSION_ARG=""
-        TAG_SUFFIX=$PLAT
-    fi
-
-    LATEST=$IMAGE:latest-$TAG_SUFFIX
-    TAGGED=$IMAGE:$VERSION-$TAG_SUFFIX
-    docker build --pull $UBUNTU_VERSION_ARG -t $LATEST -f docker/Dockerfile.$PLAT .
+    LATEST=$IMAGE:latest-$IMAGE_NAME
+    TAGGED=$IMAGE:$VERSION-$IMAGE_NAME
+    docker build --pull $BUILD_ARGS -t $LATEST -f docker/$DOCKERFILE .
     if [ $PUSH -eq 1 ]; then
         docker push $LATEST
     fi
@@ -53,9 +42,14 @@ build()
     fi
 }
 
-build ubuntu 16.04
-build ubuntu-gpu 16.04
-build ubuntu 18.04
-build ubuntu-gpu 18.04
-build centos7
-build centos7-gpu
+build Dockerfile.ubuntu ubuntu18
+build Dockerfile.ubuntu-gpu ubuntu18-gpu "--build-arg CUDA_VERSION=10.0"
+build Dockerfile.ubuntu-gpu ubuntu18-cuda10.0 "--build-arg CUDA_VERSION=10.0"
+build Dockerfile.ubuntu-gpu ubuntu18-cuda10.1 "--build-arg CUDA_VERSION=10.1"
+build Dockerfile.ubuntu-gpu ubuntu18-cuda10.2 "--build-arg CUDA_VERSION=10.2"
+
+build Dockerfile.centos7 centos7
+build Dockerfile.centos7-gpu centos7-gpu "--build-arg CUDA_VERSION=10.0"
+build Dockerfile.centos7-gpu centos7-cuda10.0 "--build-arg CUDA_VERSION=10.0"
+build Dockerfile.centos7-gpu centos7-cuda10.1 "--build-arg CUDA_VERSION=10.1"
+build Dockerfile.centos7-gpu centos7-cuda10.2 "--build-arg CUDA_VERSION=10.2"

@@ -84,7 +84,8 @@ FROM ubuntu:${UBUNTU_VERSION}
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
-        python3-distutils-extra \
+        libgomp1 \
+        python3-distutils \
         wget \
         && \
     apt-get clean && \
