@@ -189,7 +189,7 @@ The examples use the English-German model converted in the [Quickstart](#quickst
 ### With the translation client
 
 ```bash
-echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
+echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
     opennmt/ctranslate2:latest-ubuntu18-cuda10.2 --model /data/ende_ctranslate2 --device cuda
 ```
 
