@@ -112,7 +112,7 @@ The package published on PyPI only supports CPU execution at the moment. Conside
 The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu18-gpu
+docker pull opennmt/ctranslate2:latest-ubuntu18-cuda10.2
 ```
 
 The images include:
@@ -190,10 +190,10 @@ The examples use the English-German model converted in the [Quickstart](#quickst
 
 ```bash
 echo "▁H ello ▁world !" | nvidia-docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu18-gpu --model /data/ende_ctranslate2 --device cuda
+    opennmt/ctranslate2:latest-ubuntu18-cuda10.2 --model /data/ende_ctranslate2 --device cuda
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-gpu --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-cuda10.2 --help` for additional options.*
 
 ### With the Python API
 
