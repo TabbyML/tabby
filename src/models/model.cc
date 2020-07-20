@@ -353,16 +353,26 @@ namespace ctranslate2 {
       std::vector<std::string> variables_to_remove;
       std::unordered_map<std::string, StorageView> variables_to_add;
 
+      DataType model_dtype = DataType::FLOAT;
+      for (const auto& variable_pair : _variable_index) {
+        const std::string& name = variable_pair.first;
+        const StorageView& variable = variable_pair.second;
+        if (is_quantizable(name)) {
+          model_dtype = variable.dtype();
+          break;
+        }
+      }
+
+      const DataType target_dtype = compute_type_to_data_type(_compute_type,
+                                                              model_dtype,
+                                                              _device,
+                                                              support_int8,
+                                                              support_int16,
+                                                              support_float16);
+
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;
         auto& variable = variable_pair.second;
-
-        const DataType target_dtype = compute_type_to_data_type(_compute_type,
-                                                                variable.dtype(),
-                                                                _device,
-                                                                support_int8,
-                                                                support_int16,
-                                                                support_float16);
 
         // Convert "weight" variables to the expected compute type.
         if (is_quantizable(name)) {
@@ -373,10 +383,14 @@ namespace ctranslate2 {
                        variables_to_remove);
         } else if (!variable.is_scalar() && name.find("_scale") == std::string::npos) {
           // Other parameters may be converted from or to float16 (e.g. bias).
-          if (variable.dtype() == DataType::FLOAT && target_dtype == DataType::FLOAT16) {
-            variable = variable.to_float16();
-          } else if (variable.dtype() == DataType::FLOAT16 && target_dtype == DataType::FLOAT) {
-            variable = variable.to_float();
+          if (target_dtype == DataType::FLOAT16) {
+            if (variable.dtype() == DataType::FLOAT) {
+              variable = variable.to_float16();
+            }
+          } else {
+            if (variable.dtype() == DataType::FLOAT16) {
+              variable = variable.to_float();
+            }
           }
         }
       }
