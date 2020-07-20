@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.12.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.12.1) (2020-07-20)
+
+### Fixes and improvements
+
+* Fix implicit int16 to float16 model conversion on compatible GPUs
+
 ## [v1.12.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.12.0) (2020-07-16)
 
 ### Changes
