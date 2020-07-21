@@ -121,6 +121,8 @@ namespace ctranslate2 {
 #ifdef _OPENMP
     if (num_threads != 0)
       omp_set_num_threads(num_threads);
+#else
+    (void)num_threads;
 #endif
   }
 

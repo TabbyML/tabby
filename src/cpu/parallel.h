@@ -54,6 +54,7 @@ namespace ctranslate2 {
         }
       }
 #else
+      (void)work_size;
       f(begin, end);
 #endif
     }
