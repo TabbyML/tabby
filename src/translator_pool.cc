@@ -59,6 +59,17 @@ namespace ctranslate2 {
       num_threads_per_translator = 1;
     }
 
+    static const int core_offset = read_int_from_env("CT2_TRANSLATORS_CORE_OFFSET", -1);
+    if (core_offset >= 0) {
+#ifdef __linux__
+      if (num_threads_per_translator > 1) {
+        throw std::invalid_argument("Pinning translators to CPU cores requires intra_threads = 1");
+      }
+#else
+      throw std::invalid_argument("Pinning translators to CPU cores is only supported on Linux");
+#endif
+    }
+
     _translators.reserve(num_translators);
     _workers.reserve(num_translators);
     for (size_t i = 0; i < num_translators; ++i) {
@@ -67,6 +78,20 @@ namespace ctranslate2 {
                             this,
                             std::ref(_translators.back()),
                             num_threads_per_translator);
+#ifdef __linux__
+      if (core_offset >= 0) {
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(core_offset + i, &cpuset);
+        const int status = pthread_setaffinity_np(_workers.back().native_handle(),
+                                                  sizeof (cpu_set_t),
+                                                  &cpuset);
+        if (status != 0) {
+          throw std::runtime_error("Error calling pthread_setaffinity_np: "
+                                   + std::to_string(status));
+        }
+      }
+#endif
     }
   }
 

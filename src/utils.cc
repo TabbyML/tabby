@@ -40,6 +40,13 @@ namespace ctranslate2 {
     return string_to_bool(read_string_from_env(var, default_value ? "1" : "0"));
   }
 
+  int read_int_from_env(const char* var, const int default_value) {
+    const std::string value = read_string_from_env(var);
+    if (value.empty())
+      return default_value;
+    return std::stoi(value);
+  }
+
   bool verbose_mode() {
     static const bool verbose = read_bool_from_env("CT2_VERBOSE");
     return verbose;
