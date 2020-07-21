@@ -308,6 +308,25 @@ TEST(TranslatorTest, AlternativesFromScratch) {
   EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
 
+TEST(TranslatorTest, AlternativesFromScratchBatch) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 10;
+  options.return_alternatives = true;
+  const std::vector<std::vector<std::string>> inputs = {
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ", "ز", "ا"}
+  };
+  const std::vector<TranslationResult> results = translator.translate_batch(inputs, options);
+  ASSERT_EQ(results.size(), inputs.size());
+  ASSERT_EQ(results[0].num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(results[0].hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(results[0].hypotheses()[1], (std::vector<std::string>{"e", "t", "z", "m", "o", "n"}));
+  ASSERT_EQ(results[1].num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(results[1].hypotheses()[0], (std::vector<std::string>{"a", "z", "z", "a"}));
+  EXPECT_EQ(results[1].hypotheses()[1], (std::vector<std::string>{"e", "z", "a"}));
+}
+
 TEST(TranslatorTest, AlternativesFromFullTarget) {
   Translator translator = default_translator();
   TranslationOptions options;

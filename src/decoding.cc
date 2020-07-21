@@ -524,14 +524,21 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  static std::vector<std::vector<T>> batch_to_hypotheses(std::vector<std::vector<T>>& array) {
+  static std::vector<std::vector<T>> unflatten_hypotheses(std::vector<std::vector<T>> array,
+                                                          const size_t batch_size,
+                                                          const size_t num_hypotheses) {
+    // Reshape array from batch_size*num_hypotheses x 1 to batch_size x num_hypotheses.
     if (array.empty())
       return array;
     std::vector<std::vector<T>> new_array;
-    new_array.emplace_back();
-    new_array.front().reserve(array.size());
-    for (auto& vector : array) {
-      new_array.front().emplace_back(std::move(vector[0]));
+    new_array.reserve(batch_size);
+    for (size_t b = 0; b < batch_size; ++b) {
+      std::vector<T> hypotheses;
+      hypotheses.reserve(num_hypotheses);
+      for (size_t i = 0; i < num_hypotheses; ++i) {
+        hypotheses.emplace_back(std::move(array[b * num_hypotheses + i][0]));
+      }
+      new_array.emplace_back(std::move(hypotheses));
     }
     return new_array;
   }
@@ -551,6 +558,7 @@ namespace ctranslate2 {
          const bool return_alternatives,
          const bool return_scores,
          const bool return_attention) {
+    const size_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
     // Forward target prefix, if set (only batch_size = 1 for now).
@@ -594,9 +602,12 @@ namespace ctranslate2 {
                                         num_hypotheses);
 
       // The next input is the words we just expanded.
-      start_ids.resize(num_hypotheses);
-      for (size_t i = 0; i < num_hypotheses; ++i)
-        start_ids[i] = expanded_ids[0][i].back();
+      start_ids.resize(batch_size * num_hypotheses);
+      for (size_t b = 0; b < batch_size; ++b) {
+        for (size_t i = 0; i < num_hypotheses; ++i) {
+          start_ids[b * num_hypotheses + i] = expanded_ids[b][i].back();
+        }
+      }
       start_step += 1;
       max_length = std::max(max_length - 1, dim_t(0));
       min_length = std::max(min_length - 1, dim_t(0));
@@ -620,14 +631,13 @@ namespace ctranslate2 {
                            return_alternatives ? 1 : num_hypotheses);
 
     if (return_alternatives) {
-      // We convert outputs from shape num_hypotheses x 1 to 1 x num_hypotheses.
-      sampled_ids = batch_to_hypotheses(sampled_ids);
-      scores = batch_to_hypotheses(scores);
-      attention = batch_to_hypotheses(attention);
+      // Convert outputs from shape batch_size*num_hypotheses x 1 to batch_size x num_hypotheses.
+      sampled_ids = unflatten_hypotheses(std::move(sampled_ids), batch_size, num_hypotheses);
+      scores = unflatten_hypotheses(std::move(scores), batch_size, num_hypotheses);
+      attention = unflatten_hypotheses(std::move(attention), batch_size, num_hypotheses);
     }
 
     // Build results.
-    const size_t batch_size = sampled_ids.size();
     std::vector<GenerationResult<size_t>> results;
     results.reserve(batch_size);
     for (size_t i = 0; i < batch_size; ++i) {
