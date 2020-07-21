@@ -16,6 +16,9 @@
 namespace ctranslate2 {
   namespace cuda {
 
+    constexpr dim_t max_threads = 1024;
+    constexpr dim_t max_blocks = 65535;
+
     template <typename T>
     struct DeviceType {
       using type = T;

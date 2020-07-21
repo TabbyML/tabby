@@ -176,12 +176,12 @@ namespace at {
 #  define C10_WARP_SIZE 32
 #endif
 
-    constexpr int max_threads = 1024;
     constexpr float max_float = std::numeric_limits<float>::max();
 
     static dim3 SoftMax_getBlockSize(int ILP, uint64_t dim_size) {
       uint64_t block_size = 1;
-      uint64_t max_block_size = std::min(dim_size / ILP, static_cast<uint64_t>(max_threads));
+      uint64_t max_block_size = std::min(dim_size / ILP,
+                                         static_cast<uint64_t>(::ctranslate2::cuda::max_threads));
       while (block_size < max_block_size) block_size *= 2;
       // Launch at least a single warp - the kernel assumes that.
       block_size = std::max(block_size, static_cast<uint64_t>(C10_WARP_SIZE));

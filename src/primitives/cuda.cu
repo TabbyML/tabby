@@ -354,12 +354,56 @@ namespace ctranslate2 {
     }
   };
 
+  template <typename T>
+  __global__ void transpose_0213(const T* in,
+                                 const dim_t rows,
+                                 const dim_t cols,
+                                 const dim_t stride1,
+                                 const dim_t stride2,
+                                 T* out) {
+    const dim_t stride = stride1 * stride2;
+    for (dim_t bid = 0; bid < rows; bid += gridDim.x) {
+      const dim_t j = bid + blockIdx.x;
+      if (j < rows) {
+        const dim_t z = j / stride;
+        const dim_t y = (j % stride) / stride1;
+        const dim_t x = (j % stride) % stride1;
+        const dim_t j2 = z * stride + x * stride2 + y;
+
+        const T* row_in = in + j2 * cols;
+        T* row_out = out + j * cols;
+
+        for (dim_t tid = 0; tid < cols; tid += blockDim.x) {
+          const dim_t i = tid + threadIdx.x;
+          if (i < cols) {
+            row_out[i] = row_in[i];
+          }
+        }
+      }
+    }
+  }
+
   template<>
   template <typename T>
   void primitives<Device::CUDA>::transpose_4d(const T* a,
                                               const dim_t* dims,
                                               const dim_t* perm,
                                               T* b) {
+    if (perm[0] == 0 && perm[1] == 2 && perm[2] == 1 && perm[3] == 3) {
+      // Optimize the permutation used in multi-head attention.
+      const dim_t rows = dims[0] * dims[1] * dims[2];
+      const dim_t cols = dims[3];
+      const dim_t blocks = std::min(rows, cuda::max_blocks);
+      const dim_t threads = std::min(cols, cuda::max_threads);
+      transpose_0213<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(a,
+                                                                      rows,
+                                                                      cols,
+                                                                      dims[1],
+                                                                      dims[2],
+                                                                      b);
+      return;
+    }
+
     cuda::permute(a, b, dims[0] * dims[1] * dims[2] * dims[3], perm_indices_4d<dim_t>(dims, perm));
   }
 
