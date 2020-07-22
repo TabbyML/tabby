@@ -134,13 +134,26 @@ TEST_P(SearchVariantTest, ReturnAttention) {
   options.beam_size = beam_size;
   options.num_hypotheses = beam_size;
   options.return_attention = true;
-  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
-  ASSERT_TRUE(result.has_attention());
-  const auto& attention = result.attention();
-  EXPECT_EQ(attention.size(), beam_size);
-  EXPECT_EQ(attention[0].size(), 6);
-  EXPECT_EQ(attention[0][0].size(), 6);
+  const std::vector<std::vector<std::string>> inputs = {
+    {"آ", "ز", "ا"},
+    {"آ", "ت", "ز", "م", "و", "ن"}
+  };
+  const std::vector<std::pair<size_t, size_t>> expected_shapes = {
+    {4, 3},
+    {6, 6}
+  };  // (target_length, source_length)
+  const auto results = translator.translate_batch(inputs, options);
+  for (size_t i = 0; i < inputs.size(); ++i) {
+    const TranslationResult& result = results[i];
+    const auto& expected_shape = expected_shapes[i];
+    ASSERT_TRUE(result.has_attention());
+    const auto& attention = result.attention();
+    EXPECT_EQ(attention.size(), beam_size);
+    EXPECT_EQ(attention[0].size(), expected_shape.first);
+    for (const auto& vector : attention[0]) {
+      EXPECT_EQ(vector.size(), expected_shape.second);
+    }
+  }
 }
 
 TEST_P(SearchVariantTest, TranslateWithPrefix) {

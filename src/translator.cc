@@ -359,8 +359,23 @@ namespace ctranslate2 {
     // Convert generated ids to tokens.
     std::vector<TranslationResult> final_results;
     final_results.reserve(results.size());
-    for (GenerationResult<size_t>& result : results)
+    for (size_t i = 0; i < batch_size; ++i) {
+      GenerationResult<size_t>& result = results[i];
+
+      // Remove padding in attention vectors.
+      if (result.has_attention()) {
+        const size_t source_length = source[i].size();
+        auto all_attention = result.attention();
+        for (auto& attention : all_attention) {
+          for (auto& vector : attention) {
+            vector.resize(source_length);
+          }
+        }
+        result.set_attention(std::move(all_attention));
+      }
+
       final_results.emplace_back(make_translation_result(std::move(result), *_target_vocabulary));
+    }
     return final_results;
   }
 
