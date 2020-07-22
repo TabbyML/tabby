@@ -46,7 +46,7 @@ output = translator.translate_batch(
     max_batch_size: int = 0,           # Maximum batch size to run the model on.
     batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
     beam_size: int = 2,                # Beam size (set 1 to run greedy search).
-    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size).
+    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size unless return_alternatives is set).
     length_penalty: float = 0,         # Length penalty constant to use during beam search.
     coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
     max_decoding_length: int = 250,    # Maximum prediction length.
