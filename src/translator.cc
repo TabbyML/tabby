@@ -160,7 +160,6 @@ namespace ctranslate2 {
                                           const TranslationOptions& options) {
     assert_has_model();
     const size_t batch_size = source.size();
-    const bool with_prefix = !target_prefix.empty();
 
     // Check options and inputs.
     if (options.num_hypotheses == 0)
@@ -173,7 +172,7 @@ namespace ctranslate2 {
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (options.min_decoding_length > options.max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-    if (with_prefix && target_prefix.size() != batch_size)
+    if (!target_prefix.empty() && target_prefix.size() != batch_size)
       throw std::invalid_argument("Batch size mismatch: got "
                                   + std::to_string(batch_size) + " for source and "
                                   + std::to_string(target_prefix.size()) + " for target prefix");
@@ -181,11 +180,9 @@ namespace ctranslate2 {
     if (batch_size == 0)
       return std::vector<TranslationResult>();
 
-    const bool no_source_is_empty = std::none_of(source.begin(),
-                                                 source.end(),
-                                                 [](const std::vector<std::string>& tokens) {
-                                                   return tokens.empty();
-                                                 });
+    const auto is_empty = [](const std::vector<std::string>& tokens) { return tokens.empty(); };
+    const bool no_source_is_empty = std::none_of(source.begin(), source.end(), is_empty);
+    const bool with_prefix = !std::all_of(target_prefix.begin(), target_prefix.end(), is_empty);
 
     // Directly run translation if all source inputs are non empty and there is no target prefix.
     if (no_source_is_empty && !with_prefix)
