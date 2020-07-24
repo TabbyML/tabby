@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "devices.h"
 #include "half_float/half.hpp"
 
 namespace ctranslate2 {
@@ -29,5 +30,10 @@ namespace ctranslate2 {
   };
 
   ComputeType str_to_compute_type(const std::string& compute_type);
+  DataType compute_type_to_data_type(const ComputeType compute_type,
+                                     const DataType weights_type,
+                                     const Device device,
+                                     const int device_index,
+                                     const bool enable_fallback = false);
 
 }

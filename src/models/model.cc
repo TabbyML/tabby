@@ -38,60 +38,6 @@ namespace ctranslate2 {
       return str;
     }
 
-    static inline void unsupported_compute_type(const std::string& name) {
-      throw std::invalid_argument("Requested " + name + " compute type, but the target device "
-                                  "or backend do not support efficient " + name + " computation.");
-    }
-
-    static DataType compute_type_to_data_type(const ComputeType compute_type,
-                                              const DataType data_type,
-                                              const Device device,
-                                              const bool support_int8,
-                                              const bool support_int16,
-                                              const bool support_float16) {
-      switch (compute_type) {
-      case ComputeType::FLOAT: {
-        return DataType::FLOAT;
-      }
-      case ComputeType::FLOAT16: {
-        if (!support_float16)
-          unsupported_compute_type("float16");
-        return DataType::FLOAT16;
-      }
-      case ComputeType::INT16: {
-        if (!support_int16)
-          unsupported_compute_type("int16");
-        return DataType::INT16;
-      }
-      case ComputeType::INT8: {
-        if (!support_int8)
-          unsupported_compute_type("int8");
-        return DataType::INT8;
-      }
-      case ComputeType::DEFAULT: {
-        // By default we possibly promote the saved type depending on the hardware support.
-        switch (data_type) {
-        case DataType::INT16:
-          return (support_int16
-                  ? DataType::INT16
-                  : (device == Device::CPU
-                     ? (support_int8 ? DataType::INT8 : DataType::FLOAT)
-                     : (support_float16 ? DataType::FLOAT16 : DataType::FLOAT)));
-        case DataType::INT8:
-          return (support_int8
-                  ? DataType::INT8
-                  : (support_int16 ? DataType::INT16 : DataType::FLOAT));
-        case DataType::FLOAT16:
-          return support_float16 ? DataType::FLOAT16 : DataType::FLOAT;
-        default:
-          return data_type;
-        }
-      }
-      default:
-        return data_type;
-      }
-    }
-
     static void move_variables_to_device(std::unordered_map<std::string, StorageView>& variables,
                                          const Device device) {
       // Some variables can be shallow copies of others. Those variables should not be
@@ -346,10 +292,6 @@ namespace ctranslate2 {
     void Model::finalize() {
       auto scoped_device_setter = get_scoped_device_setter();
 
-      const bool support_int8 = mayiuse_int8(_device, _device_index);
-      const bool support_int16 = mayiuse_int16(_device, _device_index);
-      const bool support_float16 = mayiuse_float16(_device, _device_index);
-
       std::vector<std::string> variables_to_remove;
       std::unordered_map<std::string, StorageView> variables_to_add;
 
@@ -366,9 +308,7 @@ namespace ctranslate2 {
       const DataType target_dtype = compute_type_to_data_type(_compute_type,
                                                               model_dtype,
                                                               _device,
-                                                              support_int8,
-                                                              support_int16,
-                                                              support_float16);
+                                                              _device_index);
 
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;
