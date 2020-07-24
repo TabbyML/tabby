@@ -23,8 +23,8 @@ namespace ctranslate2 {
   private:
     dim_t _batch_size;
     dim_t _max_time;
-    StorageView _padding_to_flat;
-    StorageView _flat_to_padding;
+    StorageView _padded_to_flat;
+    StorageView _flat_to_padded;
     const ops::Gather _gather_op;
   };
 

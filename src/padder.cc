@@ -15,35 +15,35 @@ namespace ctranslate2 {
       _max_time = max_time;
 
     const dim_t max_size = _max_time * _batch_size;
-    std::vector<int32_t> padding_to_flat;
-    std::vector<int32_t> flat_to_padding;
-    padding_to_flat.reserve(max_size);
-    flat_to_padding.reserve(max_size);
+    std::vector<int32_t> padded_to_flat;
+    std::vector<int32_t> flat_to_padded;
+    padded_to_flat.reserve(max_size);
+    flat_to_padded.reserve(max_size);
 
-    dim_t padding_offset = 0;
-    dim_t no_padding_offset = 0;
+    dim_t padded_offset = 0;
+    dim_t flat_offset = 0;
 
     for (dim_t i = 0; i < _batch_size; ++i) {
       const dim_t length = lengths_vec[i];
       for (dim_t t = 0; t < length; ++t) {
-        padding_to_flat.push_back(padding_offset + t);
-        flat_to_padding.push_back(no_padding_offset + t);
+        padded_to_flat.push_back(padded_offset + t);
+        flat_to_padded.push_back(flat_offset + t);
       }
       for (dim_t t = length; t < _max_time; ++t) {
-        flat_to_padding.push_back(no_padding_offset + length - 1);
+        flat_to_padded.push_back(flat_offset + length - 1);
       }
-      padding_offset += _max_time;
-      no_padding_offset += length;
+      padded_offset += _max_time;
+      flat_offset += length;
     }
 
-    while (padding_to_flat.size() % pad_batch_to_multiple != 0) {
-      padding_to_flat.push_back(padding_to_flat.back());
-      ++no_padding_offset;
+    while (padded_to_flat.size() % pad_batch_to_multiple != 0) {
+      padded_to_flat.push_back(padded_to_flat.back());
+      ++flat_offset;
     }
 
     const Device device = lengths.device();
-    _padding_to_flat = StorageView({no_padding_offset}, padding_to_flat, device);
-    _flat_to_padding = StorageView({padding_offset}, flat_to_padding, device);
+    _padded_to_flat = StorageView({flat_offset}, padded_to_flat, device);
+    _flat_to_padded = StorageView({padded_offset}, flat_to_padded, device);
   }
 
   void Padder::remove_padding(StorageView& x) const {
@@ -51,11 +51,11 @@ namespace ctranslate2 {
     shape[1] *= shape[0];
     shape.erase(shape.begin());
     x.reshape(shape);
-    _gather_op(x, _padding_to_flat);
+    _gather_op(x, _padded_to_flat);
   }
 
   void Padder::add_padding(StorageView& x) const {
-    _gather_op(x, _flat_to_padding);
+    _gather_op(x, _flat_to_padded);
     Shape shape = x.shape();
     shape[0] /= _batch_size;
     shape.insert(shape.begin(), _batch_size);
