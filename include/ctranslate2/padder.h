@@ -10,7 +10,9 @@ namespace ctranslate2 {
   class Padder {
   public:
     // If max_time is negative, it is set to the maximum length.
-    Padder(const StorageView& lengths, const dim_t max_time = -1);
+    Padder(const StorageView& lengths,
+           const dim_t max_time = -1,
+           const dim_t pad_batch_to_multiple = 1);
 
     // Merge batch and time dimensions and remove padding.
     void remove_padding(StorageView& x) const;

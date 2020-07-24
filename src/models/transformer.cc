@@ -267,7 +267,7 @@ namespace ctranslate2 {
         (*_position_encoder)(input);
 
       // Remove padding to reduce the amount of computation.
-      Padder padder(lengths, input.dim(1));
+      Padder padder(lengths, input.dim(1), input.dtype() == DataType::FLOAT16 ? 8 : 1);
       padder.remove_padding(input);
 
       for (size_t l = 0; l < _layers.size(); ++l) {

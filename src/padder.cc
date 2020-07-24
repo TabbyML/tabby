@@ -4,7 +4,9 @@
 
 namespace ctranslate2 {
 
-  Padder::Padder(const StorageView& lengths, const dim_t max_time)
+  Padder::Padder(const StorageView& lengths,
+                 const dim_t max_time,
+                 const dim_t pad_batch_to_multiple)
     : _batch_size(lengths.size()) {
     const std::vector<int32_t> lengths_vec = lengths.to_vector<int32_t>();
     if (max_time < 0)
@@ -32,6 +34,11 @@ namespace ctranslate2 {
       }
       padding_offset += _max_time;
       no_padding_offset += length;
+    }
+
+    while (padding_to_flat.size() % pad_batch_to_multiple != 0) {
+      padding_to_flat.push_back(padding_to_flat.back());
+      ++no_padding_offset;
     }
 
     const Device device = lengths.device();
