@@ -4,6 +4,8 @@
 #include <iostream>
 #include <mutex>
 #include <stdexcept>
+#include <thread>
+#include <unordered_map>
 
 #include "ctranslate2/primitives/primitives.h"
 #include "ctranslate2/utils.h"
@@ -101,25 +103,35 @@ namespace ctranslate2 {
       return get_gpu_count() > 0;
     }
 
-    static cudaDeviceProp get_device_properties(int device) {
+    static const cudaDeviceProp& get_device_properties(int device) {
+      static std::unordered_map<int, cudaDeviceProp> cache;
+      static std::mutex mutex;
+
       if (device < 0) {
         CUDA_CHECK(cudaGetDevice(&device));
       }
+
+      const std::lock_guard<std::mutex> lock(mutex);
+      auto it = cache.find(device);
+      if (it != cache.end()) {
+        return it->second;
+      }
+
       cudaDeviceProp device_prop;
       CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
-      return device_prop;
+      return cache.emplace(device, device_prop).first->second;
     }
 
     // See docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html
     // for hardware support of reduced precision.
 
     bool has_fast_int8(int device) {
-      cudaDeviceProp device_prop = get_device_properties(device);
+      const cudaDeviceProp& device_prop = get_device_properties(device);
       return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
     }
 
     bool has_fast_float16(int device) {
-      cudaDeviceProp device_prop = get_device_properties(device);
+      const cudaDeviceProp& device_prop = get_device_properties(device);
       return device_prop.major >= 7;
     }
 
