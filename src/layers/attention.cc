@@ -158,7 +158,8 @@ namespace ctranslate2 {
                                         StorageView& output,
                                         StorageView* cached_keys,
                                         StorageView* cached_values,
-                                        StorageView* attention) const {
+                                        StorageView* attention,
+                                        const Padder* padder) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -178,6 +179,9 @@ namespace ctranslate2 {
       }
 
       if (memory) {
+        if (padder) {
+          throw std::invalid_argument("Padder is not supported in decoder");
+        }
         split_heads(fused_proj, split_queries);
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](*memory, fused_proj);
@@ -197,6 +201,12 @@ namespace ctranslate2 {
         }
       } else {
         ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
+        if (padder) {
+          // From now on the time dimension is required.
+          padder->add_padding(queries_proj);
+          padder->add_padding(keys_proj);
+          padder->add_padding(values_proj);
+        }
         split_heads(queries_proj, split_queries);
         split_heads(keys_proj, split_keys);
         split_heads(values_proj, split_values);
@@ -235,6 +245,11 @@ namespace ctranslate2 {
 
       StorageView& combined = values_proj;  // Reuse storage.
       combine_heads(context, combined);
+
+      if (padder) {
+        // The time dimension is no longer needed.
+        padder->remove_padding(combined);
+      }
 
       _linear.back()(combined, output);
       ops::Add()(queries, output, output);

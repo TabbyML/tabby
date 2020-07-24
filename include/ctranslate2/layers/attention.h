@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ctranslate2/layers/common.h"
+#include "ctranslate2/padder.h"
 
 namespace ctranslate2 {
   namespace layers {
@@ -29,7 +30,8 @@ namespace ctranslate2 {
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
                       StorageView* cached_values = nullptr,
-                      StorageView* attention = nullptr) const;
+                      StorageView* attention = nullptr,
+                      const Padder* padder = nullptr) const;
     private:
       const dim_t _num_heads;
       const std::vector<Dense> _linear;

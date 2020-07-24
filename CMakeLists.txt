@@ -108,6 +108,7 @@ set(SOURCES
   src/ops/quantize.cc
   src/ops/quantize_cpu.cc
   src/primitives/cpu.cc
+  src/padder.cc
   src/profiler.cc
   src/sampling.cc
   src/storage_view.cc

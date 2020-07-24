@@ -3,6 +3,7 @@
 // This file defines the execution engine for a TransformerSpec model.
 
 #include "ctranslate2/layers/layers.h"
+#include "ctranslate2/padder.h"
 
 #include "sequence_to_sequence.h"
 
@@ -61,6 +62,7 @@ namespace ctranslate2 {
       TransformerEncoderLayer(const TransformerModel& model, const std::string& scope);
       void operator()(const StorageView& input,
                       const StorageView& lengths,
+                      const Padder& padder,
                       StorageView& output) const;
     private:
       const layers::MultiHeadAttention _self_attention;

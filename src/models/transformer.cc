@@ -185,10 +185,11 @@ namespace ctranslate2 {
 
     void TransformerEncoderLayer::operator()(const StorageView& input,
                                              const StorageView& lengths,
+                                             const Padder& padder,
                                              StorageView& output) const {
       PROFILE("TransformerEncoderLayer");
       StorageView context(input.dtype(), input.device());
-      _self_attention(input, nullptr, &lengths, context);
+      _self_attention(input, nullptr, &lengths, context, nullptr, nullptr, nullptr, &padder);
       _ff(context, output);
     }
 
@@ -265,12 +266,17 @@ namespace ctranslate2 {
       if (_position_encoder)
         (*_position_encoder)(input);
 
+      // Remove padding to reduce the amount of computation.
+      Padder padder(lengths, input.dim(1));
+      padder.remove_padding(input);
+
       for (size_t l = 0; l < _layers.size(); ++l) {
-        (*_layers[l])(input, lengths, output);
+        (*_layers[l])(input, lengths, padder, output);
         if (l + 1 < _layers.size())
           input = std::move(output);
       }
       _output_norm(output, output);
+      padder.add_padding(output);
     }
 
 
