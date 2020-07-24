@@ -6,7 +6,7 @@ namespace ctranslate2 {
   namespace ops {
 
     template <typename T>
-    struct dequantize_func : public thrust::binary_function<float, T, float> {
+    struct dequantize_func {
       __device__
       float operator()(float scale, T x) {
         return __fdividef(static_cast<float>(x), scale);
@@ -27,9 +27,7 @@ namespace ctranslate2 {
     }
 
 
-    struct rescale_func : public thrust::binary_function<int32_t,
-                                                         thrust::tuple<float, float>,
-                                                         float> {
+    struct rescale_func {
       __device__
       float operator()(int32_t x, const thrust::tuple<float, float>& scales) {
         return __fdividef(__int2float_rn(x), (thrust::get<0>(scales) * thrust::get<1>(scales)));

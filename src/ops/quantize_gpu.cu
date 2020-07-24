@@ -8,7 +8,7 @@
 namespace ctranslate2 {
   namespace ops {
 
-    struct absolute_maximum_func : public thrust::binary_function<float, float, float> {
+    struct absolute_maximum_func {
       __host__ __device__
       float operator()(float a, float b) {
         return fmaxf(fabsf(a), fabsf(b));
@@ -16,7 +16,7 @@ namespace ctranslate2 {
     };
 
     template <typename T>
-    struct quantize_func : public thrust::binary_function<float, float, T> {
+    struct quantize_func {
       __host__ __device__
       T operator()(float scale, float x) {
         return static_cast<T>(x * scale);
