@@ -2,7 +2,9 @@
 
 # CTranslate2
 
-CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. This project is geared towards efficient serving of standard translation models but is also a place for experimentation around model compression and inference acceleration.
+CTranslate2 is a fast inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. The goal is to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems such as Transformer models.
+
+The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but has also experimental features related to model compression and inference acceleration.
 
 **Table of contents**
 
@@ -19,14 +21,14 @@ CTranslate2 is an optimized inference engine for [OpenNMT-py](https://github.com
 
 ## Key features
 
-* **Efficient runtime**<br/>The runtime aims to be faster and lighter than a general-purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on standard translation tasks.
-* **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
+* **Fast and efficient runtime**<br/>The runtime aims to be faster and lighter than a general-purpose deep learning framework: it is [up to 4x faster](#benchmarks) than OpenNMT-py on standard translation tasks.
 * **Quantization and reduced precision**<br/>The model serialization and computation support weights with reduced precision: 16-bit floating points (FP16), 16-bit integers, and 8-bit integers.
-* **Parallel translations**<br/>Translations can be run efficiently in parallel without duplicating the model data in memory.
+* **Parallel translations**<br/>CPU translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Automatic instruction set architecture dispatch**<br/>The latest instruction set architecture (ISA) is automatically detected and selected at runtime.
+* **Automatic CPU detection and code dispatch**<br/>The fastest code path is selected at runtime based on the CPU (Intel or AMD) and the supported instruction set architectures (AVX, AVX2, or AVX512).
 * **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
-* **Easy to use translation APIs**<br/>The project exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
+* **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
+* **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
 Some of these features are difficult to achieve with standard deep learning frameworks and are the motivation for this project.
 
@@ -261,11 +263,13 @@ The Docker images are self contained and build the code from the active director
 docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
 ```
 
+When building GPU images, the CUDA version can be selected with `--build-arg CUDA_VERSION=10.2`.
+
 See the `docker/` directory for available images.
 
 ### Binaries (Ubuntu)
 
-This minimal installation only enables CPU execution. For GPU support, see how the [GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
+This minimal installation only enables CPU execution with Intel MKL. For more advanced usages and GPU support, see how the [Ubuntu GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
 
 #### Install Intel MKL
 
@@ -373,18 +377,18 @@ We don't have numbers comparing memory usage yet. However, past experiments show
 
 The original CTranslate project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
 
-* a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits
-* a direct reliance on [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), which introduces heavy templating and a limited GPU support
+* a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits;
+* a direct reliance on [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), which introduces heavy templating and a limited GPU support.
 
 CTranslate2 addresses these issues in several ways:
 
-* the core implementation is framework agnostic, moving the framework specific logic to a model conversion step
-* the internal operators follow the ONNX specifications as much as possible for better future-proofing
-* the call to external libraries (Intel MKL, cuBLAS, etc.) occurs as late as possible in the execution to not rely on a library specific logic
+* the core implementation is framework agnostic, moving the framework specific logic to a model conversion step;
+* the internal operators follow the ONNX specifications as much as possible for better future-proofing;
+* the call to external libraries (Intel MKL, cuBLAS, etc.) occurs as late as possible in the execution to not rely on a library specific logic.
 
 ### What is the state of this project?
 
-The code has been generously tested in production settings so people can rely on it in their application. The project versioning follows [Semantic Versioning 2.0.0](https://semver.org/). The following APIs are covered by backward compatibility guarantees:
+The implementation has been generously tested in [production environment](https://translate.systran.net/) so people can rely on it in their application. The project versioning follows [Semantic Versioning 2.0.0](https://semver.org/). The following APIs are covered by backward compatibility guarantees:
 
 * Converted models
 * Python converters options
@@ -407,7 +411,7 @@ Other APIs are expected to evolve to increase efficiency, genericity, and model 
 Here are some scenarios where this project could be used:
 
 * You want to accelarate standard translation models for production usage, especially on CPUs.
-* You need to embed translation models in an existing C++ application.
+* You need to embed translation models in an existing C++ application without adding large dependencies.
 * Your application requires custom threading and memory usage control.
 * You want to reduce the model size on disk and/or memory.
 
@@ -442,16 +446,16 @@ We are actively looking to ease this assumption by supporting ONNX as model part
 
 ### What are the future plans?
 
-There are many ways to make this project better and faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
+There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
 
-* Better support of INT8 quantization, for example by quantizing more layers
+* Increased support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
 * Optimizations for ARM CPUs
 * Support GPU execution with the Python packages published on PyPI
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of threads that is used per translation: increase this value to decrease the latency.
+* `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency.
 * `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety).
 
 The total number of computing threads launched by the process is summarized by this formula:
