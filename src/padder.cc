@@ -13,6 +13,13 @@ namespace ctranslate2 {
       _max_time = *std::max_element(lengths_vec.begin(), lengths_vec.end());
     else
       _max_time = max_time;
+    const bool has_padding = std::any_of(lengths_vec.begin(),
+                                         lengths_vec.end(),
+                                         [this](const int32_t length) {
+                                           return length != _max_time;
+                                         });
+    if (!has_padding)
+      return;
 
     const dim_t max_size = _max_time * _batch_size;
     std::vector<int32_t> padded_to_flat;
@@ -47,6 +54,8 @@ namespace ctranslate2 {
   }
 
   void Padder::remove_padding(StorageView& x) const {
+    if (!_padded_to_flat)
+      return;
     Shape shape = x.shape();
     shape[1] *= shape[0];
     shape.erase(shape.begin());
@@ -55,6 +64,8 @@ namespace ctranslate2 {
   }
 
   void Padder::add_padding(StorageView& x) const {
+    if (!_flat_to_padded)
+      return;
     _gather_op(x, _flat_to_padded);
     Shape shape = x.shape();
     shape[0] /= _batch_size;

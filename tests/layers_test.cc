@@ -47,3 +47,16 @@ TEST(LayerTest, PadderToMultiple) {
   padder.add_padding(x);
   expect_storage_eq(x, w_padding);
 }
+
+TEST(LayerTest, PadderIgnore) {
+  const StorageView lengths({3}, std::vector<int32_t>{4, 4, 4});
+  const Padder padder(lengths);
+
+  StorageView x({3, 4}, std::vector<int32_t>{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11});
+  const StorageView original(x);
+
+  padder.remove_padding(x);
+  expect_storage_eq(x, original);
+  padder.add_padding(x);
+  expect_storage_eq(x, original);
+}
