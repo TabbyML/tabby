@@ -1,7 +1,6 @@
 #include "ctranslate2/decoding.h"
 
 #include <cmath>
-#include <limits>
 #include <map>
 
 #include "ctranslate2/ops/ops.h"
@@ -65,18 +64,6 @@ namespace ctranslate2 {
                                                               log_probs.dim(0))));
   }
 
-  template <typename T>
-  static void initialize_cum_log_probs(StorageView& cum_log_probs,
-                                       const dim_t batch_size,
-                                       const dim_t beam_size) {
-    const dim_t size = batch_size * beam_size;
-    cum_log_probs.resize({size});
-    auto* data = cum_log_probs.data<T>();
-    for (dim_t i = 0; i < size; ++i) {
-      data[i] = (i % beam_size == 0 ? T(0) : std::numeric_limits<T>::lowest());
-    }
-  }
-
 
   BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty, const float coverage_penalty)
     : _beam_size(beam_size)
@@ -106,17 +93,12 @@ namespace ctranslate2 {
     const dim_t batch_size = start_ids.size();
     dim_t cur_batch_size = batch_size;
     const ops::TopK topk_op(_beam_size);
-    StorageView alive_seq({batch_size, 1},
-                          std::vector<int32_t>(start_ids.begin(), start_ids.end()));
-
-    expand_to_beam_size(state, _beam_size);
-    expand_to_beam_size(alive_seq, _beam_size);
 
     StorageView gather_indices(DataType::INT32);
-    StorageView topk_ids(alive_seq);
+    StorageView topk_ids({batch_size, 1},
+                         std::vector<int32_t>(start_ids.begin(), start_ids.end()));
     StorageView topk_scores(dtype);
     StorageView topk_log_probs(dtype);
-    TYPE_DISPATCH(dtype, initialize_cum_log_probs<T>(topk_log_probs, batch_size, _beam_size));
 
     using Result = std::pair<std::vector<size_t>, std::vector<std::vector<float>>>;
     std::vector<std::map<float, Result>> hypotheses;
@@ -145,6 +127,7 @@ namespace ctranslate2 {
 
     StorageView logits(dtype, device);
     StorageView log_probs(dtype, device);
+    StorageView alive_seq(topk_ids.dtype());
     StorageView alive_attention;
     StorageView attention_step;
     StorageView attention_step_device(dtype, device);
@@ -162,12 +145,15 @@ namespace ctranslate2 {
       const dim_t vocabulary_size = log_probs.dim(-1);
 
       // Multiply by the current beam log probs.
-      DEVICE_DISPATCH(log_probs.device(),
-                      TYPE_DISPATCH(log_probs.dtype(),
-                                    primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<T>(),
-                                                                       log_probs.data<T>(),
-                                                                       topk_log_probs.size(),
-                                                                       log_probs.size())));
+      if (step > start_step) {
+        DEVICE_DISPATCH(
+          log_probs.device(),
+          TYPE_DISPATCH(log_probs.dtype(),
+                        primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<T>(),
+                                                           log_probs.data<T>(),
+                                                           topk_log_probs.size(),
+                                                           log_probs.size())));
+      }
 
       // Penalize by the length, if enabled.
       float length_penalty_weight = 1.0;
@@ -183,12 +169,10 @@ namespace ctranslate2 {
         penalize_token(log_probs, end_id);
 
       // Flatten the probs into a list of candidates.
-      log_probs.reshape({cur_batch_size, _beam_size * vocabulary_size});
+      log_probs.reshape({cur_batch_size, -1});
 
       // TopK candidates.
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
-      if (attention || _coverage_penalty != 0)
-        attention_step.copy_from(attention_step_device.to_float());
 
       topk_log_probs = topk_scores;
       // Recover the true log probs if length penalty was applied.
@@ -207,43 +191,55 @@ namespace ctranslate2 {
         if (output_ids_map)
           word_id = output_ids_map->at(word_id);
         topk_ids.at<int32_t>(i) = word_id;
-        gather_indices.at<int32_t>(i) = beam_id + batch_id * _beam_size;
+        // On the first step, batches are not yet replicated beam_size times.
+        gather_indices.at<int32_t>(i) = (step > start_step
+                                         ? beam_id + batch_id * _beam_size
+                                         : batch_id);
       }
 
       // Append last prediction.
-      gather(alive_seq, gather_indices);
-      alive_seq.reshape({cur_batch_size, _beam_size, alive_seq.dim(-1)});
       topk_ids.reshape({cur_batch_size, _beam_size, 1});
-      StorageView cur_alive_seq(std::move(alive_seq));
-      ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
+      if (alive_seq) {
+        gather(alive_seq, gather_indices);
+        alive_seq.reshape({cur_batch_size, _beam_size, alive_seq.dim(-1)});
+        StorageView cur_alive_seq(std::move(alive_seq));
+        ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
+      } else {
+        alive_seq = topk_ids;
+      }
+
       topk_log_probs.reshape({cur_batch_size, _beam_size});
       topk_scores.reshape({cur_batch_size, _beam_size});
       topk_ids.reshape({cur_batch_size, _beam_size});
 
-      if(_coverage_penalty != 0){
-        if(step == 0){
+      if (attention_step_device) {
+        attention_step.copy_from(attention_step_device.to_float());
+        if (step == start_step) {
+          expand_to_beam_size(attention_step, _beam_size);
+        }
+      }
+
+      if (_coverage_penalty != 0) {
+        if (!coverage) {
           coverage = attention_step;
-        }else{
+        } else {
           gather(coverage, gather_indices);
           ops::Add()(attention_step, coverage, coverage);
         }
-        auto penalty = StorageView({cur_batch_size * _beam_size, 1}, coverage.dtype(), coverage.device());
-        auto tmp = StorageView(coverage.shape(), coverage.dtype(), coverage.device());
+        StorageView tmp(dtype, device);
         ops::Min()(coverage, 1.0f, tmp);
         ops::Log()(tmp, tmp);
-        const dim_t col = tmp.dim(-1);
-        const dim_t row = tmp.size() / col;
-        tmp.reshape({row, col});
-        ops::MatMul()(tmp, StorageView({col, 1}, 1.0f), penalty);
+        tmp.reshape({-1, tmp.dim(-1)});
+        StorageView penalty(dtype, device);
+        ops::MatMul()(tmp, StorageView({tmp.dim(-1), 1}, 1.0f), penalty);
         ops::Mul()(penalty, StorageView(_coverage_penalty), penalty);
         ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
       }
 
       if (attention) {
-        if (alive_attention.empty()){
+        if (!alive_attention) {
           alive_attention = attention_step;
-        }
-        else {
+        } else {
           gather(alive_attention, gather_indices);
           StorageView cur_alive_attention(std::move(alive_attention));
           ops::Concat(1)({&cur_alive_attention, &attention_step}, alive_attention);
@@ -276,13 +272,13 @@ namespace ctranslate2 {
               hypothesis.reserve(max_time);
               if (attention)
                 attn.reserve(max_time);
-              for (dim_t t = 1; t < max_time; ++t) {
+              for (dim_t t = 0; t < max_time; ++t) {
                 const int32_t id = alive_seq.at<int32_t>({i, k, t});
                 if (id == static_cast<int32_t>(end_id))
                   break;
                 hypothesis.push_back(id);
                 if (attention) {
-                  const auto* attn_vec = alive_attention.index<float>({i, k, t - 1});
+                  const auto* attn_vec = alive_attention.index<float>({i, k, t});
                   attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
                 }
               }
@@ -317,8 +313,13 @@ namespace ctranslate2 {
       }
 
       // If all remaining sentences are finished, no need to go further.
-      if (finished_count == cur_batch_size)
+      if (finished_count == cur_batch_size) {
+        if (step == start_step) {
+          // We should ensure that states are replicated before exiting this function.
+          expand_to_beam_size(state, _beam_size);
+        }
         break;
+      }
 
       // If some sentences finished on this step, ignore them for the next step.
       if (finished_count > 0) {
