@@ -184,6 +184,15 @@ namespace ctranslate2 {
                                  with_scores);
   }
 
+  size_t TranslatorPool::num_queued_batches() {
+    const std::lock_guard<std::mutex> lock(_mutex);
+    return _work.size();
+  }
+
+  size_t TranslatorPool::num_translators() const {
+    return _translators.size();
+  }
+
   const std::vector<Translator>& TranslatorPool::get_translators() const {
     return _translators;
   }

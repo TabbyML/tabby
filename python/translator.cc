@@ -94,6 +94,26 @@ public:
     , _translator_pool(inter_threads, intra_threads, _model) {
   }
 
+  bool model_is_loaded() const {
+    return _model_state == ModelState::Loaded;
+  }
+
+  std::string device() const {
+    return ctranslate2::device_to_str(_device);
+  }
+
+  int device_index() const {
+    return _device_index;
+  }
+
+  size_t num_translators() const {
+    return _translator_pool.num_translators();
+  }
+
+  size_t num_queued_batches() {
+    return _translator_pool.num_queued_batches();
+  }
+
   using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
   using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
 
@@ -268,7 +288,7 @@ private:
   ctranslate2::TranslatorPool _translator_pool;
 
   void assert_model_is_ready() const {
-    if (_model_state != ModelState::Loaded)
+    if (!model_is_loaded())
       throw std::runtime_error("The model for this translator was unloaded");
   }
 
@@ -320,6 +340,10 @@ PYBIND11_MODULE(translator, m)
          py::arg("compute_type")="default",
          py::arg("inter_threads")=1,
          py::arg("intra_threads")=4)
+    .def_property_readonly("device", &TranslatorWrapper::device)
+    .def_property_readonly("device_index", &TranslatorWrapper::device_index)
+    .def_property_readonly("num_translators", &TranslatorWrapper::num_translators)
+    .def_property_readonly("num_queued_batches", &TranslatorWrapper::num_queued_batches)
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          py::arg("source"),
          py::arg("target_prefix")=py::none(),
@@ -358,5 +382,6 @@ PYBIND11_MODULE(translator, m)
     .def("unload_model", &TranslatorWrapper::unload_model,
          py::arg("to_cpu")=false)
     .def("load_model", &TranslatorWrapper::load_model)
+    .def_property_readonly("model_is_loaded", &TranslatorWrapper::model_is_loaded)
     ;
 }

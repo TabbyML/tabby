@@ -28,9 +28,9 @@ namespace ctranslate2 {
   std::string device_to_str(Device device) {
     switch (device) {
     case Device::CUDA:
-      return "CUDA";
+      return "cuda";
     case Device::CPU:
-      return "CPU";
+      return "cpu";
     }
     return "";
   }

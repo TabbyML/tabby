@@ -36,6 +36,12 @@ translator = ctranslate2.Translator(
     inter_threads: int = 1,         # Maximum number of concurrent translations (CPU only).
     intra_threads: int = 4)         # Threads to use per translation (CPU only).
 
+# Properties:
+translator.device              # Device this translator is running on.
+translator.device_index        # Device index this translator is running on.
+translator.num_translators     # Number of translators backing this instance.
+translator.num_queued_batches  # Number of batches waiting to be translated.
+
 # output is a 2D list [batch x num_hypotheses] containing dict with keys:
 # * "score"
 # * "tokens"
@@ -46,7 +52,8 @@ output = translator.translate_batch(
     max_batch_size: int = 0,           # Maximum batch size to run the model on.
     batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
     beam_size: int = 2,                # Beam size (set 1 to run greedy search).
-    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size unless return_alternatives is set).
+    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size
+                                       # unless return_alternatives is set).
     length_penalty: float = 0,         # Length penalty constant to use during beam search.
     coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
     max_decoding_length: int = 250,    # Maximum prediction length.
@@ -88,13 +95,11 @@ Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structu
 
 * `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
 * `translator.load_model()`<br/>Load the model back to the initial device.
+* `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.
 * `del translator`<br/>Release the translator resources.
 
 When using multiple Python threads, the application should ensure that no translations are running before calling these functions.
 
 ## Utility API
 
-```python
-# Helper function to check if a directory seems to contain a CTranslate2 model.
-ctranslate2.contains_model(path: str)
-```
+* `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.

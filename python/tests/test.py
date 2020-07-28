@@ -36,6 +36,14 @@ def test_contains_model(tmpdir):
     model_dir.join("model.bin").ensure(file=1)
     assert ctranslate2.contains_model(str(model_dir))
 
+def test_translator_properties():
+    translator = ctranslate2.Translator(_get_model_path(), inter_threads=2)
+    assert translator.model_is_loaded
+    assert translator.device == "cpu"
+    assert translator.device_index == 0
+    assert translator.num_translators == 2
+    assert translator.num_queued_batches == 0
+
 def test_compute_type():
     model_path = _get_model_path()
     with pytest.raises(ValueError):

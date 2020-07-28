@@ -178,6 +178,8 @@ namespace ctranslate2 {
       return stats;
     }
 
+    size_t num_queued_batches();
+    size_t num_translators() const;
     const std::vector<Translator>& get_translators() const;
 
   private:
