@@ -64,6 +64,28 @@ namespace ctranslate2 {
                                                               log_probs.dim(0))));
   }
 
+  static void update_sample_with_prefix(const dim_t step,
+                                        StorageView& sampled_ids,
+                                        StorageView& sampled_scores,
+                                        const std::vector<std::vector<size_t>>& prefix_ids,
+                                        const std::vector<dim_t>& batch_offset) {
+    const dim_t batch_size = sampled_scores.dim(0);
+    const dim_t beam_size = sampled_scores.dim(1);
+    for (dim_t i = 0; i < batch_size; ++i) {
+      const dim_t batch_id = batch_offset[i];
+      const auto& prefix = prefix_ids[batch_id];
+      const dim_t prefix_length = prefix.size();
+      if (step >= prefix_length)
+        continue;
+      for (dim_t k = 0; k < beam_size; ++k) {
+        sampled_ids.at<int32_t>({i, k}) = prefix[step];
+        // Set the highest log score for the first beam and penalize the others.
+        TYPE_DISPATCH(sampled_scores.dtype(),
+                      sampled_scores.at<T>({i, k}) = (k == 0 ? 0 : T(-1e10)));
+      }
+    }
+  }
+
 
   BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty, const float coverage_penalty)
     : _beam_size(beam_size)
@@ -84,7 +106,8 @@ namespace ctranslate2 {
                      std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                      std::vector<std::vector<float>>* scores,
                      std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
-                     const size_t num_hypotheses) const {
+                     const size_t num_hypotheses,
+                     const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
     const dim_t min_step = start_step + min_length;
     const dim_t max_step = start_step + max_length;
@@ -173,6 +196,8 @@ namespace ctranslate2 {
 
       // TopK candidates.
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
+      if (prefix_ids)
+        update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, batch_offset);
 
       topk_log_probs = topk_scores;
       // Recover the true log probs if length penalty was applied.
@@ -336,6 +361,7 @@ namespace ctranslate2 {
             ++write_index;
           }
         }
+        batch_offset.resize(write_index);
         gather(topk_ids, keep_batches);
         gather(topk_log_probs, keep_batches);
         gather(alive_seq, keep_batches);
@@ -388,7 +414,8 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
                        std::vector<std::vector<float>>* scores,
                        std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
-                       const size_t) const {
+                       const size_t,
+                       const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
     const dim_t min_step = start_step + min_length;
     const dim_t max_step = start_step + max_length;
@@ -447,6 +474,8 @@ namespace ctranslate2 {
         penalize_token(log_probs, end_id);
 
       sampler(log_probs, best_ids, best_probs);
+      if (prefix_ids)
+        update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, batch_offset);
       if (attention)
         attention_step.copy_from(attention_step_device.to_float());
 
@@ -492,6 +521,7 @@ namespace ctranslate2 {
             ++write_index;
           }
         }
+        batch_offset.resize(write_index);
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
         decoder.gather_state(state, alive_device);
@@ -562,29 +592,29 @@ namespace ctranslate2 {
     const size_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
-    // Forward target prefix, if set (only batch_size = 1 for now).
     std::vector<std::vector<std::vector<float>>> prefix_attention;
-    if (prefix_ids) {
-      if (prefix_ids->size() > 1)
-        throw std::invalid_argument("Batch decoding with a prefix is not supported");
-      if (return_attention)
-        prefix_attention.resize(1);
-      initialize_decoder_with_prefix(decoder,
-                                     state,
-                                     start_ids,
-                                     prefix_ids->front(),
-                                     return_attention ? &prefix_attention[0] : nullptr);
-      start_ids[0] = prefix_ids->front().back();
-      const dim_t prefix_length = prefix_ids->front().size();
-      start_step += prefix_length;
-      max_length = std::max(max_length - prefix_length, dim_t(0));
-      min_length = std::max(min_length - prefix_length, dim_t(0));
-    }
-
     std::vector<std::vector<std::vector<size_t>>> expanded_ids;
     std::vector<std::vector<float>> expanded_scores;
     std::vector<std::vector<std::vector<std::vector<float>>>> expanded_attention;
     if (return_alternatives) {
+      if (prefix_ids) {
+        if (prefix_ids->size() > 1)
+          throw std::invalid_argument("Returning alternatives from a prefix is not supported "
+                                      "in batch mode");
+        if (return_attention)
+          prefix_attention.resize(1);
+        initialize_decoder_with_prefix(decoder,
+                                       state,
+                                       start_ids,
+                                       prefix_ids->front(),
+                                       return_attention ? &prefix_attention[0] : nullptr);
+        start_ids[0] = prefix_ids->front().back();
+        const dim_t prefix_length = prefix_ids->front().size();
+        start_step += prefix_length;
+        max_length = std::max(max_length - prefix_length, dim_t(0));
+        min_length = std::max(min_length - prefix_length, dim_t(0));
+      }
+
       // In this translation mode, we first expand the next "num_hypotheses" candidate words
       // before running the full decoding on each prefix. This is to ensure that we get unique
       // alternatives at this decoding position.
@@ -629,7 +659,8 @@ namespace ctranslate2 {
                            sampled_ids,
                            return_scores ? &scores : nullptr,
                            return_attention ? &attention : nullptr,
-                           return_alternatives ? 1 : num_hypotheses);
+                           return_alternatives ? 1 : num_hypotheses,
+                           return_alternatives ? nullptr : prefix_ids);
 
     if (return_alternatives) {
       // Convert outputs from shape batch_size*num_hypotheses x 1 to batch_size x num_hypotheses.
@@ -644,7 +675,7 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
 
       // Aggregate result from the optional prefix and expansion step.
-      if (prefix_ids || return_alternatives) {
+      if (return_alternatives) {
 
         for (size_t h = 0; h < num_hypotheses; ++h) {
           // Finalize the generated ids.

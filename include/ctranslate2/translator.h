@@ -108,6 +108,7 @@ namespace ctranslate2 {
 
     std::vector<TranslationResult>
     run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
+                                 const std::vector<std::vector<std::string>>* target_prefix,
                                  const TranslationOptions& options);
     std::vector<TranslationResult>
     run_batch_translation(const std::vector<std::vector<std::string>>& source,

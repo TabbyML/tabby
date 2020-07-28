@@ -22,7 +22,8 @@ namespace ctranslate2 {
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
-           const size_t num_hypotheses = 1) const = 0;
+           const size_t num_hypotheses = 1,
+           const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
 
   class BeamSearch : public SearchStrategy {
@@ -42,7 +43,8 @@ namespace ctranslate2 {
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
-           const size_t num_hypotheses = 1) const override;
+           const size_t num_hypotheses = 1,
+           const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
     const dim_t _beam_size;
@@ -65,7 +67,8 @@ namespace ctranslate2 {
            std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
            std::vector<std::vector<float>>* scores = nullptr,
            std::vector<std::vector<std::vector<std::vector<float>>>>* attention = nullptr,
-           const size_t num_hypotheses = 1) const override;
+           const size_t num_hypotheses = 1,
+           const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
   void initialize_decoder_with_prefix(layers::Decoder& decoder,

@@ -183,30 +183,44 @@ namespace ctranslate2 {
     const auto is_empty = [](const std::vector<std::string>& tokens) { return tokens.empty(); };
     const bool no_source_is_empty = std::none_of(source.begin(), source.end(), is_empty);
     const bool with_prefix = !std::all_of(target_prefix.begin(), target_prefix.end(), is_empty);
+    const bool allow_batch_prefix = !options.return_alternatives;
 
-    // Directly run translation if all source inputs are non empty and there is no target prefix.
-    if (no_source_is_empty && !with_prefix)
-      return run_batch_translation_sorted(source, options);
+    // Fast path for the common case.
+    if (no_source_is_empty && (!with_prefix || allow_batch_prefix))
+      return run_batch_translation_sorted(source, with_prefix ? &target_prefix : nullptr, options);
 
     std::vector<TranslationResult> with_prefix_results;
     std::vector<std::vector<std::string>> non_empty_source;
-    with_prefix_results.reserve(batch_size);
+    std::vector<std::vector<std::string>> prefix;
     non_empty_source.reserve(batch_size);
+    if (with_prefix) {
+      prefix.reserve(batch_size);
+      if (!allow_batch_prefix) {
+        with_prefix_results.reserve(batch_size);
+      }
+    }
 
-    // As we don't support batch target prefix, we translate those examples separately.
     for (size_t i = 0; i < batch_size; ++i) {
       if (source[i].empty())
         continue;
-      else if (with_prefix && !target_prefix[i].empty())
-        with_prefix_results.emplace_back(run_translation(source[i], &target_prefix[i], options));
-      else
+      if (with_prefix) {
+        if (allow_batch_prefix) {
+          non_empty_source.emplace_back(source[i]);
+          prefix.emplace_back(target_prefix[i]);
+        } else if (!target_prefix.empty()) {
+          with_prefix_results.emplace_back(run_translation(source[i], &target_prefix[i], options));
+        }
+      } else {
         non_empty_source.emplace_back(source[i]);
+      }
     }
 
     // Run batch translation of all other non empty examples.
     std::vector<TranslationResult> results;
     if (!non_empty_source.empty())
-      results = run_batch_translation_sorted(non_empty_source, options);
+      results = run_batch_translation_sorted(non_empty_source,
+                                             with_prefix && allow_batch_prefix ? &prefix : nullptr,
+                                             options);
     std::vector<TranslationResult> final_results;
     final_results.reserve(batch_size);
 
@@ -214,7 +228,7 @@ namespace ctranslate2 {
     for (size_t i = 0, non_empty_index = 0, with_prefix_index = 0; i < batch_size; ++i) {
       if (source[i].empty())
         final_results.emplace_back(options.num_hypotheses, options.return_attention);
-      else if (with_prefix && !target_prefix[i].empty())
+      else if (with_prefix && !allow_batch_prefix && !target_prefix[i].empty())
         final_results.emplace_back(std::move(with_prefix_results[with_prefix_index++]));
       else
         final_results.emplace_back(std::move(results[non_empty_index++]));
@@ -225,6 +239,7 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   Translator::run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
+                                           const std::vector<std::vector<std::string>>* target_prefix,
                                            const TranslationOptions& options) {
     // Sorting the source input has 2 benefits:
     //
@@ -236,37 +251,62 @@ namespace ctranslate2 {
     std::vector<size_t> sorted_index;
     auto sorted_source = sort_from_longest_to_shortest(source, sorted_index);
 
+    std::vector<std::vector<std::string>> sorted_target_prefix;
+    if (target_prefix) {
+      sorted_target_prefix.resize(target_prefix->size());
+      for (size_t i = 0; i < target_prefix->size(); ++i)
+        sorted_target_prefix[sorted_index[i]] = target_prefix->at(i);
+    }
+
     std::vector<TranslationResult> results;
     if (options.max_batch_size == 0
         || get_batch_size(source, options.batch_type) <= options.max_batch_size)
-      results = run_batch_translation(sorted_source, nullptr,  options);
+      results = run_batch_translation(sorted_source,
+                                      target_prefix ? &sorted_target_prefix : nullptr,
+                                      options);
     else {
       // Translate by batch of size options.max_batch_size.
       results.reserve(source.size());
 
       std::vector<std::vector<std::string>> partial_source;
+      std::vector<std::vector<std::string>> partial_target_prefix;
       partial_source.reserve(source.size());
+      if (target_prefix)
+        partial_target_prefix.reserve(target_prefix->size());
       size_t partial_batch_size = 0;
 
-      for (auto& tokens : sorted_source) {
+      for (size_t i = 0; i < sorted_source.size(); ++i) {
+        const auto& tokens = sorted_source[i];
         const size_t batch_size_increment = get_batch_size_increment(tokens, options.batch_type);
 
         if (partial_batch_size > 0
             && partial_batch_size + batch_size_increment > options.max_batch_size) {
-          auto partial_results = run_batch_translation(partial_source, nullptr,  options);
+          auto partial_results = run_batch_translation(partial_source,
+                                                       target_prefix
+                                                       ? &partial_target_prefix
+                                                       : nullptr,
+                                                       options);
           results.insert(results.end(),
                          std::make_move_iterator(partial_results.begin()),
                          std::make_move_iterator(partial_results.end()));
           partial_source.clear();
           partial_batch_size = 0;
+          if (target_prefix)
+            partial_target_prefix.clear();
         }
 
         partial_source.emplace_back(std::move(tokens));
         partial_batch_size += batch_size_increment;
+        if (target_prefix)
+          partial_target_prefix.emplace_back(std::move(sorted_target_prefix[i]));
       }
 
       if (!partial_source.empty()) {
-        auto partial_results = run_batch_translation(partial_source, nullptr,  options);
+        auto partial_results = run_batch_translation(partial_source,
+                                                     target_prefix
+                                                     ? &partial_target_prefix
+                                                     : nullptr,
+                                                     options);
         results.insert(results.end(),
                        std::make_move_iterator(partial_results.begin()),
                        std::make_move_iterator(partial_results.end()));
