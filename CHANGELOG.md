@@ -2,7 +2,21 @@
 
 ### New features
 
+* Environment variable `CT2_TRANSLATORS_CORE_OFFSET` to pin parallel translators to a range of CPU cores (only for `intra_threads` = 1)
+* [Python] Add some properties to the `Translator` object:
+  * `device`
+  * `device_index`
+  * `num_translators`
+  * `num_queued_batches`
+  * `model_is_loaded`
+
 ### Fixes and improvements
+
+* Improve batch performance of target prefix
+* Improve performance when the input batch contains sentences with very different lengths
+* Improve beam search performance by expanding the batch size only after the first decoding step
+* Optimize Transpose op on GPU for the permutation used in multi-head attention
+* Remove padding in returned attention vectors
 
 ## [v1.12.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.12.1) (2020-07-20)
 
