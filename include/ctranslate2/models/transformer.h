@@ -62,8 +62,8 @@ namespace ctranslate2 {
       TransformerEncoderLayer(const TransformerModel& model, const std::string& scope);
       void operator()(const StorageView& input,
                       const StorageView& lengths,
-                      const Padder& padder,
-                      StorageView& output) const;
+                      StorageView& output,
+                      const Padder* padder = nullptr) const;
     private:
       const layers::MultiHeadAttention _self_attention;
       const TransformerFeedForward _ff;
