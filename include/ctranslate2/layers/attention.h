@@ -24,6 +24,7 @@ namespace ctranslate2 {
                          bool self_attention,
                          LayerNormStrategy layer_norm_strategy = LayerNormStrategy::Input);
       DataType output_type() const override;
+      dim_t output_size() const override;
       void operator()(const StorageView& queries,
                       const StorageView* memory,
                       const StorageView* memory_lengths,
@@ -41,6 +42,7 @@ namespace ctranslate2 {
       const StorageView* _relative_position_keys;
       const StorageView* _relative_position_values;
       const dim_t _maximum_relative_position;
+      const float _queries_scale;
       const ops::Transpose _transpose_op;
 
       void split_heads(StorageView& x, StorageView& y) const;

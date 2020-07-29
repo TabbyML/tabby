@@ -258,6 +258,10 @@ namespace ctranslate2 {
       return _output_norm.output_type();
     }
 
+    dim_t TransformerEncoder::output_size() const {
+      return _output_norm.output_size();
+    }
+
     void TransformerEncoder::operator()(const StorageView& ids,
                                         const StorageView& lengths,
                                         StorageView& output) {
@@ -312,6 +316,10 @@ namespace ctranslate2 {
 
     DataType TransformerDecoder::output_type() const {
       return _proj.output_type();
+    }
+
+    dim_t TransformerDecoder::output_size() const {
+      return _proj.output_size();
     }
 
     void TransformerDecoder::set_vocabulary_mask(const StorageView& ids) {

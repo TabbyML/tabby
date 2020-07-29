@@ -146,11 +146,16 @@ namespace ctranslate2 {
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
       , _maximum_relative_position(_relative_position_keys
                                    ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
+      , _queries_scale(1.f / std::sqrt(static_cast<float>(_layer_norm.output_size() / num_heads)))
       , _transpose_op({0, 2, 1, 3}) {
     }
 
     DataType MultiHeadAttention::output_type() const {
       return _layer_norm.output_type();
+    }
+
+    dim_t MultiHeadAttention::output_size() const {
+      return _layer_norm.output_size();
     }
 
     void MultiHeadAttention::operator()(const StorageView& queries,
@@ -230,9 +235,6 @@ namespace ctranslate2 {
         }
       }
 
-      const dim_t dk = queries.dim(-1) / _num_heads;
-      const float queries_scale = 1.0 / sqrt(dk);
-
       StorageView& context = queries_proj;  // Reuse storage.
       dot_product_attention(split_queries,
                             split_keys,
@@ -243,7 +245,7 @@ namespace ctranslate2 {
                             _maximum_relative_position,
                             context,
                             attention,
-                            queries_scale,
+                            _queries_scale,
                             bool(cached_keys));
 
       StorageView& combined = values_proj;  // Reuse storage.

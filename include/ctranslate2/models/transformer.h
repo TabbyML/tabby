@@ -96,6 +96,7 @@ namespace ctranslate2 {
     public:
       TransformerEncoder(const TransformerModel& model, const std::string& scope);
       DataType output_type() const override;
+      dim_t output_size() const override;
       void operator()(const StorageView& ids,
                       const StorageView& lengths,
                       StorageView& output) override;
@@ -113,6 +114,7 @@ namespace ctranslate2 {
                          const std::string& scope,
                          const bool with_encoder_attention = true);
       DataType output_type() const override;
+      dim_t output_size() const override;
       void set_vocabulary_mask(const StorageView& ids) override;
       void reset_vocabulary_mask() override;
       layers::DecoderState initial_state() const override;

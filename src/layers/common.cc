@@ -29,6 +29,10 @@ namespace ctranslate2 {
       return _embeddings.dtype() == DataType::FLOAT16 ? DataType::FLOAT16 : DataType::FLOAT;
     }
 
+    dim_t Embeddings::output_size() const {
+      return _embeddings.dim(1);
+    }
+
     void Embeddings::operator()(const StorageView& ids,
                                 StorageView& output) const {
       PROFILE("Embeddings");
@@ -86,6 +90,10 @@ namespace ctranslate2 {
 
     DataType Dense::output_type() const {
       return _weight.dtype() == DataType::FLOAT16 ? DataType::FLOAT16 : DataType::FLOAT;
+    }
+
+    dim_t Dense::output_size() const {
+      return _weight.dim(0);
     }
 
     void Dense::mask_weights(const StorageView& index) {
@@ -151,6 +159,10 @@ namespace ctranslate2 {
 
     DataType LayerNorm::output_type() const {
       return _beta.dtype();
+    }
+
+    dim_t LayerNorm::output_size() const {
+      return _beta.size();
     }
 
     void LayerNorm::operator()(const StorageView& input, StorageView& output) const {
