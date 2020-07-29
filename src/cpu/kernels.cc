@@ -305,12 +305,7 @@ namespace ctranslate2 {
           add<TARGET_ISA>(-x_max - std::log(exp_sum), x, y, size);
         } else {
           vectorized_unary_transform<TARGET_ISA>(x, y, size, vec_exp_func);
-          const auto exp_sum = vectorized_reduce_all<TARGET_ISA>(
-            y,
-            size,
-            static_cast<float>(0),
-            VecType::add,
-            Vec<float>::add);
+          const auto exp_sum = reduce_sum<TARGET_ISA>(y, size);
           mul<TARGET_ISA>(static_cast<float>(1) / (exp_sum + epsilon), y, y, size);
         }
       }
