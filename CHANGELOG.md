@@ -17,6 +17,7 @@
 * Improve beam search performance by expanding the batch size only after the first decoding step
 * Optimize Transpose op on GPU for the permutation used in multi-head attention
 * Remove padding in returned attention vectors
+* Update Intel MKL to 2020.2
 
 ## [v1.12.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.12.1) (2020-07-20)
 
