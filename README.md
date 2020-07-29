@@ -102,7 +102,7 @@ The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will g
 pip install ctranslate2
 ```
 
-The package published on PyPI only supports CPU execution at the moment. Consider using a Docker image for GPU support (see below).
+The package published on PyPI only supports CPU execution at the moment. Consider using a Docker image for GPU support with Python (see below).
 
 **Requirements:**
 
@@ -240,24 +240,9 @@ Some environment variables can be configured to customize the execution:
 
 ## Building
 
-### Dependencies
-
-Backends can be enabled or disabled during the CMake configuration. CTranslate2 supports multiple backends in a single binary:
-
-* `-DWITH_MKL=ON` requires:
-  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
-* `-DWITH_DNNL=ON` requires:
-  * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
-* `-DWITH_CUDA=ON` requires:
-  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
-  * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
-  * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
-
-When building with both Intel MKL and oneDNN, the backend will be selected at runtime based on the CPU information.
-
 ### Docker images
 
-The Docker images are self contained and build the code from the active directory. The `build` command should be run from the project root directory, e.g.:
+The Docker images build all translation clients presented in [Translating](#translating). The `build` command should be run from the project root directory, e.g.:
 
 ```bash
 docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
@@ -267,7 +252,38 @@ When building GPU images, the CUDA version can be selected with `--build-arg CUD
 
 See the `docker/` directory for available images.
 
-### Binaries (Ubuntu)
+### Build options
+
+The project uses [CMake](https://cmake.org/) for compilation. The following options can be set with `-DOPTION=VALUE`:
+
+| CMake option | Accepted values (default in bold) | Description |
+| --- | --- | --- |
+| CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
+| ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targetting an architecture with the `-march` compilation flag) |
+| ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
+| LIB_ONLY | **OFF**, ON | Disables the translation client |
+| OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime (INTEL: Intel OpenMP; COMP: OpenMP runtime provided by the compiler; NONE: no OpenMP runtime) |
+| WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
+| WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |
+| WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
+| WITH_TENSORRT | OFF, **ON** | Compiles with TensorRT (required for beam search decoding on GPU) |
+| WITH_TESTS | **OFF**, ON | Compiles the tests |
+
+Some build options require external dependencies:
+
+* `-DWITH_MKL=ON` requires:
+  * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
+* `-DWITH_DNNL=ON` requires:
+  * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
+* `-DWITH_CUDA=ON` requires:
+  * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
+* `-DWITH_TENSORRT=ON` requires:
+  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
+  * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
+
+Multiple backends can be enabled for a single build. When building with both Intel MKL and oneDNN, the backend will be selected at runtime based on the CPU information.
+
+### Example (Ubuntu)
 
 This minimal installation only enables CPU execution with Intel MKL. For more advanced usages and GPU support, see how the [Ubuntu GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
 
@@ -313,6 +329,25 @@ To enable the tests, you should configure the project with `cmake -DWITH_TESTS=O
 ```bash
 ./tests/ctranslate2_test ../tests/data
 ```
+
+### Python
+
+```bash
+# Install the CTranslate2 library.
+cd build && make install && cd ..
+
+# Build and install the Python wheel.
+cd python
+pip install pybind11
+python setup.py bdist_wheel
+pip install dist/*.whl
+
+# Run the tests with pytest.
+pip install pytest
+pytest tests/test.py
+```
+
+Depending on your build configuration, you might need to set `LD_LIBRARY_PATH` if missing libraries are reported when running `tests/test.py`.
 
 ## Benchmarks
 
