@@ -138,6 +138,7 @@ namespace ctranslate2 {
                                            bool self_attention,
                                            LayerNormStrategy layer_norm_strategy)
       : _num_heads(num_heads)
+      , _self_attention(self_attention)
       , _linear(make_linear_layers(model, scope, self_attention))
       , _layer_norm_strategy(layer_norm_strategy)
       , _layer_norm(model, scope + "/layer_norm")
@@ -178,14 +179,16 @@ namespace ctranslate2 {
         _linear[0](queries, fused_proj);
       }
 
-      if (memory) {
-        if (padder) {
-          throw std::invalid_argument("Padder is not supported in decoder");
-        }
+      if (!_self_attention) {
         split_heads(fused_proj, split_queries);
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](*memory, fused_proj);
           ops::Split(-1)(fused_proj, keys_proj, values_proj);
+          if (padder) {
+            // From now on the time dimension is required.
+            padder->add_padding(keys_proj);
+            padder->add_padding(values_proj);
+          }
           split_heads(keys_proj, split_keys);
           split_heads(values_proj, split_values);
 

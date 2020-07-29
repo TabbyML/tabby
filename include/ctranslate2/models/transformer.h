@@ -83,7 +83,8 @@ namespace ctranslate2 {
                       StorageView* cached_attn_keys,
                       StorageView* cached_attn_values,
                       StorageView& output,
-                      StorageView* attention = nullptr) const;
+                      StorageView* attention = nullptr,
+                      const Padder* padder = nullptr) const;
     private:
       const layers::MultiHeadAttention _self_attention;
       const std::unique_ptr<const layers::MultiHeadAttention> _encoder_attention;

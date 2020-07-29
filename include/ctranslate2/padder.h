@@ -9,6 +9,10 @@ namespace ctranslate2 {
   // This is useful to save on computation when lengths are very different.
   class Padder {
   public:
+    static inline bool allow_padding_removal(const Device device, const DataType dtype) {
+      return device == Device::CPU || dtype != DataType::FLOAT16;
+    }
+
     // If max_time is negative, it is set to the maximum length.
     Padder(const StorageView& lengths,
            const dim_t max_time = -1,

@@ -34,6 +34,7 @@ namespace ctranslate2 {
                       const Padder* padder = nullptr) const;
     private:
       const dim_t _num_heads;
+      const bool _self_attention;
       const std::vector<Dense> _linear;
       const LayerNormStrategy _layer_norm_strategy;
       const LayerNorm _layer_norm;
