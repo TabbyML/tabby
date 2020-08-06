@@ -86,6 +86,18 @@ namespace ctranslate2 {
     }
   }
 
+  template <typename T>
+  static void initialize_cum_log_probs(StorageView& cum_log_probs,
+                                       const dim_t batch_size,
+                                       const dim_t beam_size) {
+    const dim_t size = batch_size * beam_size;
+    cum_log_probs.resize({size});
+    auto* data = cum_log_probs.data<T>();
+    for (dim_t i = 0; i < size; ++i) {
+      data[i] = (i % beam_size == 0 ? T(0) : std::numeric_limits<T>::lowest());
+    }
+  }
+
 
   BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty, const float coverage_penalty)
     : _beam_size(beam_size)
@@ -113,6 +125,7 @@ namespace ctranslate2 {
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
+    const bool expand_after_first_step = (device == Device::CPU);
     const dim_t batch_size = start_ids.size();
     dim_t cur_batch_size = batch_size;
 
@@ -121,6 +134,12 @@ namespace ctranslate2 {
                          std::vector<int32_t>(start_ids.begin(), start_ids.end()));
     StorageView topk_scores(dtype);
     StorageView topk_log_probs(dtype);
+
+    if (!expand_after_first_step) {
+      expand_to_beam_size(state, _beam_size);
+      expand_to_beam_size(topk_ids, _beam_size);
+      TYPE_DISPATCH(dtype, initialize_cum_log_probs<T>(topk_log_probs, batch_size, _beam_size));
+    }
 
     using Result = std::pair<std::vector<size_t>, std::vector<std::vector<float>>>;
     std::vector<std::map<float, Result>> hypotheses;
@@ -165,9 +184,10 @@ namespace ctranslate2 {
               (attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
       const dim_t vocabulary_size = log_probs.dim(-1);
+      const bool is_expanded = (!expand_after_first_step || step > start_step);
 
       // Multiply by the current beam log probs.
-      if (step > start_step) {
+      if (is_expanded) {
         DEVICE_DISPATCH(
           log_probs.device(),
           TYPE_DISPATCH(log_probs.dtype(),
@@ -216,7 +236,7 @@ namespace ctranslate2 {
           word_id = output_ids_map->at(word_id);
         topk_ids.at<int32_t>(i) = word_id;
         // On the first step, batches are not yet replicated beam_size times.
-        gather_indices.at<int32_t>(i) = (step > start_step
+        gather_indices.at<int32_t>(i) = (is_expanded
                                          ? beam_id + batch_id * _beam_size
                                          : batch_id);
       }
@@ -238,7 +258,7 @@ namespace ctranslate2 {
 
       if (attention_step_device) {
         attention_step.copy_from(attention_step_device.to_float());
-        if (step == start_step) {
+        if (!is_expanded) {
           expand_to_beam_size(attention_step, _beam_size);
         }
       }
@@ -338,7 +358,7 @@ namespace ctranslate2 {
 
       // If all remaining sentences are finished, no need to go further.
       if (finished_count == cur_batch_size) {
-        if (step == start_step) {
+        if (!is_expanded) {
           // We should ensure that states are replicated before exiting this function.
           expand_to_beam_size(state, _beam_size);
         }
