@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.13.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.1) (2020-08-06)
+
+### Fixes and improvements
+
+* Fix performance regression when decoding with a large beam size on GPU
+
 ## [v1.13.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.0) (2020-07-30)
 
 ### New features
