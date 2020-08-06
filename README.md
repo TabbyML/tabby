@@ -277,9 +277,9 @@ Some build options require external dependencies:
   * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
 * `-DWITH_CUDA=ON` requires:
   * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
-* `-DWITH_TENSORRT=ON` requires:
-  * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
-  * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
+  * `-DWITH_TENSORRT=ON` requires:
+    * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
+    * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
 Multiple backends can be enabled for a single build. When building with both Intel MKL and oneDNN, the backend will be selected at runtime based on the CPU information.
 
