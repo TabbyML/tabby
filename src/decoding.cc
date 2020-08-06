@@ -115,7 +115,6 @@ namespace ctranslate2 {
     const DataType dtype = decoder.output_type();
     const dim_t batch_size = start_ids.size();
     dim_t cur_batch_size = batch_size;
-    const ops::TopK topk_op(_beam_size);
 
     StorageView gather_indices(DataType::INT32);
     StorageView topk_ids({batch_size, 1},
