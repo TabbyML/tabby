@@ -251,7 +251,7 @@ namespace ctranslate2 {
       StorageView& combined = values_proj;  // Reuse storage.
       combine_heads(context, combined);
 
-      if (padder) {
+      if (padder && _self_attention) {
         // The time dimension is no longer needed.
         padder->remove_padding(combined);
       }
