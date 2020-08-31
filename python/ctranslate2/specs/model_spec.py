@@ -104,7 +104,8 @@ class LayerSpec(object):
                 return
             if quantization == "float16":
                 if value.dtype == np.float32:
-                    setattr(spec, name, value.astype(np.float16))
+                    key = _split_scope(name)[-1]
+                    setattr(spec, key, value.astype(np.float16))
             elif "weight" in name:
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits

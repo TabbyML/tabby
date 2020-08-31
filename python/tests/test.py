@@ -354,6 +354,10 @@ def test_layer_spec_validate():
 
 def test_layer_spec_optimize():
 
+    class SubSpec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.a = np.ones([6], dtype=np.float32)
+
     class Spec(ctranslate2.specs.LayerSpec):
         def __init__(self):
             self.a = np.ones([5], dtype=np.float32)
@@ -361,6 +365,7 @@ def test_layer_spec_optimize():
             self.c = np.zeros([5], dtype=np.int32)
             self.d = np.dtype("float32").type(3.14)
             self.weight = np.ones([5, 4], dtype=np.float32)
+            self.sub = SubSpec()
 
     spec = Spec()
     spec.optimize(quantization="int16")
@@ -378,6 +383,7 @@ def test_layer_spec_optimize():
     assert spec.c.dtype == np.int32
     assert spec.d.dtype == np.float32
     assert spec.weight.dtype == np.float16
+    assert spec.sub.a.dtype == np.float16
 
 def test_index_spec():
     spec = ctranslate2.specs.TransformerBase()
