@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.13.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.2) (2020-08-31)
+
+### Fixes and improvements
+
+* Fix model conversion to `float16` when using the Python converters: weights were duplicated and not correctly converted
+* Fix incorrect code logic that could lead to incorrect translation results
+
 ## [v1.13.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.1) (2020-08-06)
 
 ### Fixes and improvements
