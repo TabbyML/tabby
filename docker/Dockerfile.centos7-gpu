@@ -92,7 +92,10 @@ RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib64 && \
         && echo /usr/local/cuda/lib64/libcublas.so* \
         || echo /lib64/libcublas*.so*) \
         /root/ctranslate2/lib64 && \
-    cp -P /usr/local/cuda/lib64/libcudnn.so* /root/ctranslate2/lib64 && \
+    cp -P $([ $CUDA_VERSION = "10.0.130" ] || [ $CUDA_VERSION = "10.1.243" ] \
+        && echo /usr/local/cuda/lib64/libcudnn.so* \
+        || echo /lib64/libcudnn.so*) \
+        /root/ctranslate2/lib64 && \
     cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-centos7
