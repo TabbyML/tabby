@@ -66,8 +66,8 @@ COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py && \
-    python3 -m pip --no-cache-dir install pybind11==2.4.3 && \
+    python3 get-pip.py --no-setuptools && \
+    python3 -m pip --no-cache-dir install pybind11==2.4.3 setuptools==49.* && \
     python3 setup.py bdist_wheel && \
     rm -r build && \
     rm get-pip.py && \
