@@ -838,17 +838,32 @@ namespace ctranslate2 {
       MKL_INT n_ = n;
       MKL_INT k_ = k;
 
+      MKL_INT stridea = m_ * k_;
+      MKL_INT strideb = k_ * n_;
+      MKL_INT stridec = m_ * n_;
+
       CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
       CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
 
+#  if __INTEL_MKL__ > 2020 || (__INTEL_MKL__ == 2020 && __INTEL_MKL_UPDATE__ >= 2)
+      cblas_sgemm_batch_strided(CblasRowMajor,
+                                trans_a, trans_b,
+                                m, n, k,
+                                alpha,
+                                a, lda, stridea,
+                                b, ldb, strideb,
+                                beta,
+                                c, ldc, stridec,
+                                b_);
+#  else
       auto ptr_array = static_cast<float**>(alloc_data(3 * batch_size * sizeof (float*)));
       auto a_array = const_cast<const float**>(ptr_array);
       auto b_array = const_cast<const float**>(ptr_array + batch_size);
       auto c_array = ptr_array + 2 * batch_size;
       for (MKL_INT i = 0; i < b_; ++i) {
-        a_array[i] = a + (i * m_ * k_);
-        b_array[i] = b + (i * k_ * n_);
-        c_array[i] = c + (i * m_ * n_);
+        a_array[i] = a + (i * stridea);
+        b_array[i] = b + (i * strideb);
+        c_array[i] = c + (i * stridec);
       }
 
       cblas_sgemm_batch(CblasRowMajor,
@@ -860,6 +875,7 @@ namespace ctranslate2 {
                         1 /* group_count */, &b_);
 
       free_data(ptr_array);
+#  endif
       break;
     }
 #endif
