@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/topk.h"
 
+#include <unordered_map>
+
 #include "../cuda/utils.h"
 
 namespace ctranslate2 {
@@ -73,13 +75,21 @@ namespace ctranslate2 {
     };
 #endif
 
+    template <typename DataType>
+    static TopKLayer<DataType>& get_trt_topk_layer(dim_t k) {
+      static thread_local std::unordered_map<dim_t, TopKLayer<DataType>> layer_cache;
+      auto it = layer_cache.find(k);
+      if (it == layer_cache.end())
+        it = layer_cache.emplace(k, TopKLayer<DataType>(k)).first;
+      return it->second;
+    }
+
     template <Device D, typename DataType, typename IndexType>
     void TopK::compute(const StorageView& x,
                        StorageView& values,
                        StorageView& indices) const {
 #ifdef CT2_WITH_TENSORRT
-      static thread_local TopKLayer<DataType> topk_layer(_k);
-      topk_layer(x, values, indices);
+      get_trt_topk_layer<DataType>(_k)(x, values, indices);
 #else
       if (_k > 1)
         throw std::runtime_error("TopK with k > 1 requires TensorRT");
