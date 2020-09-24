@@ -4,6 +4,8 @@
 
 ### Fixes and improvements
 
+* Fix CUDA illegal memory access when changing the beam size in the same process
+
 ## [v1.13.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.2) (2020-08-31)
 
 ### Fixes and improvements
