@@ -10,9 +10,11 @@
 namespace ctranslate2 {
 
   Device str_to_device(const std::string& device) {
-#ifdef CT2_WITH_CUDA
     if (device == "cuda" || device == "CUDA")
+#ifdef CT2_WITH_CUDA
       return Device::CUDA;
+#else
+      throw std::invalid_argument("This CTranslate2 package was not compiled with CUDA support");
 #endif
     if (device == "cpu" || device == "CPU")
       return Device::CPU;
