@@ -33,7 +33,7 @@ translator = ctranslate2.Translator(
     device_index: int = 0,          # The index of the device to place this translator on.
     compute_type: str = "default"   # The computation type: "default", "int8", "int16", "float16", or "float",
                                     # or a dict mapping a device to a computation type.
-    inter_threads: int = 1,         # Maximum number of concurrent translations (CPU only).
+    inter_threads: int = 1,         # Maximum number of parallel translations (CPU only).
     intra_threads: int = 4)         # Threads to use per translation (CPU only).
 
 # Properties:
@@ -90,6 +90,22 @@ stats = translator.translate_file(
 ```
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.
+
+### Note on parallel CPU translations
+
+For CPU translations, the parameter `inter_threads` controls the number of batches a `Translator` instance can process in parallel. The `translate_file` method automatically takes advantage of this parallelization.
+
+However, extra work may be needed when using the `translate_batch` method because multiple translations should be started concurrently from Python. If you are using a multithreaded HTTP server, this may already be the case. For other cases, you could use a [`ThreadPoolExecutor`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor) to submit multiple translations:
+
+```python
+import concurrent.futures
+with concurrent.futures.ThreadPoolExecutor(max_workers=inter_threads) as executor:
+    futures = [
+        executor.submit(translator.translate_batch, batch)
+        for batch in batch_generator()]
+    for future in futures:
+        translation_result = future.result()
+```
 
 ## Memory management API
 
