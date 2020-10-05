@@ -41,12 +41,12 @@ namespace ctranslate2 {
 
     // Run a translation job asynchronously.
     // With blocking=true it will block if there is already too much work pending.
-    std::future<TranslationOutput> post(const TranslationInput& source,
-                                        const TranslationOptions& options,
+    std::future<TranslationOutput> post(TranslationInput source,
+                                        TranslationOptions options,
                                         bool blocking=false);
-    std::future<TranslationOutput> post(const TranslationInput& source,
-                                        const TranslationInput& target_prefix,
-                                        const TranslationOptions& options,
+    std::future<TranslationOutput> post(TranslationInput source,
+                                        TranslationInput target_prefix,
+                                        TranslationOptions options,
                                         bool blocking=false);
 
     // Translate a stream in parallel.
@@ -82,7 +82,7 @@ namespace ctranslate2 {
         const size_t batch_size_increment = get_batch_size_increment(tokens, options.batch_type);
 
         if (batch_size > 0 && batch_size + batch_size_increment > read_batch_size) {
-          results.emplace(post(batch_tokens, options, true));
+          results.emplace(post(std::move(batch_tokens), options, true));
           batch_tokens.clear();
           batch_size = 0;
           pop_results(false /* blocking */);
@@ -94,7 +94,7 @@ namespace ctranslate2 {
       }
 
       if (!batch_tokens.empty())
-        results.emplace(post(batch_tokens, options, true));
+        results.emplace(post(std::move(batch_tokens), options, true));
 
       pop_results(true /* blocking */);
     }
@@ -184,9 +184,9 @@ namespace ctranslate2 {
 
   private:
     struct TranslationJob {
-      TranslationJob(const TranslationInput& source_,
-                     const TranslationInput& target_prefix_,
-                     const TranslationOptions& options_)
+      TranslationJob(TranslationInput source_,
+                     TranslationInput target_prefix_,
+                     TranslationOptions options_)
         : source(source_)
         , target_prefix(target_prefix_)
         , options(options_) {

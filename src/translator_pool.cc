@@ -20,16 +20,15 @@ namespace ctranslate2 {
       worker.join();
   }
 
-  std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
-                                                      const TranslationOptions& options,
+  std::future<TranslationOutput> TranslatorPool::post(TranslationInput source,
+                                                      TranslationOptions options,
                                                       bool blocking) {
-    TranslationInput target_prefix;
-    return post(source, target_prefix, options, blocking);
+    return post(std::move(source), TranslationInput(), std::move(options), blocking);
   }
 
-  std::future<TranslationOutput> TranslatorPool::post(const TranslationInput& source,
-                                                      const TranslationInput& target_prefix,
-                                                      const TranslationOptions& options,
+  std::future<TranslationOutput> TranslatorPool::post(TranslationInput source,
+                                                      TranslationInput target_prefix,
+                                                      TranslationOptions options,
                                                       bool blocking) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (blocking)
@@ -38,7 +37,9 @@ namespace ctranslate2 {
     // locked again here
 
     _work.emplace(std::piecewise_construct,
-                  std::forward_as_tuple(source, target_prefix, options),
+                  std::forward_as_tuple(std::move(source),
+                                        std::move(target_prefix),
+                                        std::move(options)),
                   std::forward_as_tuple());
 
     std::future<TranslationOutput> future = _work.back().second.get_future();

@@ -212,8 +212,8 @@ public:
 
     assert_model_is_ready();
 
-    const auto source_input = batch_to_vector(source);
-    const auto target_prefix_input = batch_to_vector(target_prefix, /*optional=*/true);
+    auto source_input = batch_to_vector(source);
+    auto target_prefix_input = batch_to_vector(target_prefix, /*optional=*/true);
     std::vector<ctranslate2::TranslationResult> results;
 
     {
@@ -235,7 +235,9 @@ public:
       options.return_attention = return_attention;
       options.return_alternatives = return_alternatives;
 
-      results = _translator_pool.post(source_input, target_prefix_input, options).get();
+      results = _translator_pool.post(std::move(source_input),
+                                      std::move(target_prefix_input),
+                                      std::move(options)).get();
     }
 
     py::list py_results(results.size());
