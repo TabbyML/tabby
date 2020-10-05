@@ -80,18 +80,7 @@ namespace ctranslate2 {
 
   GenerationResult<std::string> make_translation_result(GenerationResult<size_t>&& result,
                                                         const Vocabulary& vocabulary) {
-    std::vector<std::vector<std::string>> hypotheses;
-    hypotheses.reserve(result.num_hypotheses());
-
-    for (const std::vector<size_t>& ids: result.hypotheses()) {
-      std::vector<std::string> tokens;
-      tokens.reserve(ids.size());
-      for (const size_t id : ids)
-        tokens.push_back(vocabulary.to_token(id));
-      hypotheses.emplace_back(std::move(tokens));
-    }
-
-    return GenerationResult<std::string>(std::move(hypotheses),
+    return GenerationResult<std::string>(vocabulary.to_tokens(result.hypotheses()),
                                          std::move(result._scores),
                                          std::move(result._attention));
   }
