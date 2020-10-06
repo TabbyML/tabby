@@ -29,36 +29,6 @@ namespace ctranslate2 {
     return new_ids;
   }
 
-  static std::pair<StorageView, StorageView>
-  make_inputs(const std::vector<std::vector<size_t>>& ids,
-              const Device device,
-              const dim_t length_multiple_of = 1) {
-    const dim_t batch_size = ids.size();
-
-    // Record lengths and maximum length.
-    dim_t max_length = 0;
-    StorageView lengths({batch_size}, DataType::INT32);
-    for (dim_t i = 0; i < batch_size; ++i) {
-      const dim_t length = ids[i].size();
-      lengths.at<int32_t>(i) = length;
-      max_length = std::max(max_length, length);
-    }
-
-    if (max_length % length_multiple_of != 0) {
-      max_length += (length_multiple_of - max_length % length_multiple_of);
-    }
-
-    // Make 2D input.
-    StorageView input({batch_size, max_length}, int32_t(0));
-    for (dim_t i = 0; i < batch_size; ++i) {
-      const dim_t length = ids[i].size();
-      for (dim_t t = 0; t < length; ++t)
-        input.at<int32_t>({i, t}) = ids[i][t];
-    }
-
-    return std::make_pair(input.to(device), lengths.to(device));
-  }
-
   static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
     const Sampler* sampler = nullptr;
 
@@ -315,9 +285,10 @@ namespace ctranslate2 {
 
     const Device device = _model->device();
     const DataType dtype = _encoder->output_type();
-    std::pair<StorageView, StorageView> inputs = make_inputs(source_ids,
-                                                             device,
-                                                             dtype == DataType::FLOAT16 ? 8 : 1);
+    std::pair<StorageView, StorageView> inputs = layers::make_sequence_inputs(
+      source_ids,
+      device,
+      dtype == DataType::FLOAT16 ? 8 : 1);
     StorageView& ids = inputs.first;
     StorageView& lengths = inputs.second;
 

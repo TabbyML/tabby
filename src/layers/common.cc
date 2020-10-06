@@ -8,6 +8,36 @@
 namespace ctranslate2 {
   namespace layers {
 
+    std::pair<StorageView, StorageView>
+    make_sequence_inputs(const std::vector<std::vector<size_t>>& ids,
+                         const Device device,
+                         const dim_t length_multiple_of) {
+      const dim_t batch_size = ids.size();
+
+      // Record lengths and maximum length.
+      dim_t max_length = 0;
+      StorageView lengths({batch_size}, DataType::INT32);
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const dim_t length = ids[i].size();
+        lengths.at<int32_t>(i) = length;
+        max_length = std::max(max_length, length);
+      }
+
+      if (max_length % length_multiple_of != 0) {
+        max_length += (length_multiple_of - max_length % length_multiple_of);
+      }
+
+      // Make 2D input.
+      StorageView input({batch_size, max_length}, int32_t(0));
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const dim_t length = ids[i].size();
+        for (dim_t t = 0; t < length; ++t)
+          input.at<int32_t>({i, t}) = ids[i][t];
+      }
+
+      return std::make_pair(input.to(device), lengths.to(device));
+    }
+
     static StorageView* get_sqrt_depth_scale(const StorageView& embeddings) {
       const auto scale = std::sqrt(static_cast<float>(embeddings.dim(-1)));
       if (embeddings.dtype() == DataType::FLOAT16) {
