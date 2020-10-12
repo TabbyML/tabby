@@ -19,9 +19,11 @@ int main(int argc, char* argv[]) {
      cxxopts::value<std::string>())
     ("cpu_compute_type", "Computation type on CPU devices (overrides compute_type)",
      cxxopts::value<std::string>())
-    ("src", "Path to the file to translate (read from the standard input if not set).",
+    ("src", "Path to the source file (read from the standard input if not set).",
      cxxopts::value<std::string>())
-    ("tgt", "Path to the output file (write to the standard output if not set.",
+    ("tgt", "Path to the target file.",
+     cxxopts::value<std::string>())
+    ("out", "Path to the output file (write to the standard output if not set).",
      cxxopts::value<std::string>())
     ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
      cxxopts::value<bool>()->default_value("false"))
@@ -115,17 +117,25 @@ int main(int argc, char* argv[]) {
   options.use_vmap = args["use_vmap"].as<bool>();
   options.return_scores = args["with_score"].as<bool>();
 
-  std::istream* in = &std::cin;
-  std::ostream* out = &std::cout;
+  std::istream* source = &std::cin;
+  std::istream* target = nullptr;
+  std::ostream* output = &std::cout;
   if (args.count("src")) {
     auto path = args["src"].as<std::string>();
     auto src_file = new std::ifstream(path);
     if (!src_file->is_open())
-      throw std::runtime_error("Unable to open input file " + path);
-    in = src_file;
+      throw std::runtime_error("Unable to open source file " + path);
+    source = src_file;
   }
   if (args.count("tgt")) {
-    out = new std::ofstream(args["tgt"].as<std::string>());
+    auto path = args["tgt"].as<std::string>();
+    auto tgt_file = new std::ifstream(path);
+    if (!tgt_file->is_open())
+      throw std::runtime_error("Unable to open target file " + path);
+    target = tgt_file;
+  }
+  if (args.count("out")) {
+    output = new std::ofstream(args["out"].as<std::string>());
   }
 
   auto log_profiling = args["log_profiling"].as<bool>();
@@ -135,18 +145,21 @@ int main(int argc, char* argv[]) {
   if (read_batch_size == 0)
     read_batch_size = options.max_batch_size;
   const ctranslate2::TranslationStats stats = translator_pool.consume_text_file(
-    *in,
-    *out,
+    *source,
+    *output,
     read_batch_size,
     options,
-    args["with_score"].as<bool>());
+    args["with_score"].as<bool>(),
+    target);
   if (log_profiling)
     ctranslate2::dump_profiling(std::cerr);
 
-  if (in != &std::cin)
-    delete in;
-  if (out != &std::cout)
-    delete out;
+  if (source != &std::cin)
+    delete source;
+  if (target)
+    delete target;
+  if (output != &std::cout)
+    delete output;
 
   if (args["log_throughput"].as<bool>()) {
     std::cerr << static_cast<double>(stats.num_tokens) / (stats.total_time_in_ms / 1000) << std::endl;

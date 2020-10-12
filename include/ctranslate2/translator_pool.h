@@ -7,6 +7,7 @@
 #include <queue>
 #include <thread>
 
+#include "batch_reader.h"
 #include "translator.h"
 
 namespace ctranslate2 {
@@ -60,59 +61,78 @@ namespace ctranslate2 {
                         const TranslationOptions& options,
                         Reader& reader,
                         Writer& writer) {
+      return consume_stream(in, nullptr, out, read_batch_size, options, reader, nullptr, writer);
+    }
+
+    template <typename SourceReader, typename TargetReader, typename TargetWriter>
+    void consume_stream(std::istream& source,
+                        std::istream* target,
+                        std::ostream& output,
+                        size_t read_batch_size,
+                        const TranslationOptions& options,
+                        SourceReader& source_reader,
+                        TargetReader& target_reader,
+                        TargetWriter& target_writer) {
       std::queue<std::future<TranslationOutput>> results;
 
-      auto pop_results = [&results, &out, &writer](bool blocking) {
+      auto pop_results = [&results, &output, &target_writer](bool blocking) {
         static const auto zero_sec = std::chrono::seconds(0);
         while (!results.empty()
                && (blocking
                    || results.front().wait_for(zero_sec) == std::future_status::ready)) {
           for (const auto& result : results.front().get())
-            writer(out, result);
+            target_writer(output, result);
           results.pop();
         }
       };
 
-      TranslationInput batch_tokens;
-      batch_tokens.reserve(read_batch_size);
-      std::vector<std::string> tokens;
-      size_t batch_size = 0;
-
-      while (reader(in, tokens)) {
-        const size_t batch_size_increment = get_batch_size_increment(tokens, options.batch_type);
-
-        if (batch_size > 0 && batch_size + batch_size_increment > read_batch_size) {
-          results.emplace(post(std::move(batch_tokens), options, true));
-          batch_tokens.clear();
-          batch_size = 0;
-          pop_results(false /* blocking */);
-        }
-
-        batch_tokens.emplace_back(std::move(tokens));
-        batch_size += batch_size_increment;
-        tokens.clear();
+      BatchReader<SourceReader> batch_source_reader(source, source_reader);
+      std::unique_ptr<BatchReader<TargetReader>> batch_target_reader;
+      if (target) {
+        batch_target_reader.reset(new BatchReader<TargetReader>(*target, target_reader));
       }
 
-      if (!batch_tokens.empty())
-        results.emplace(post(std::move(batch_tokens), options, true));
+      while (batch_source_reader.has_next()) {
+        auto batch_source_tokens = batch_source_reader.get_next(read_batch_size,
+                                                                options.batch_type);
 
-      pop_results(true /* blocking */);
+        if (batch_target_reader) {
+          auto batch_target_tokens = batch_target_reader->get_next(batch_source_tokens.size());
+          if (batch_target_tokens.size() != batch_source_tokens.size())
+            throw std::runtime_error("Source and target streams do not have "
+                                     "the same number of elements");
+          results.emplace(post(std::move(batch_source_tokens),
+                               std::move(batch_target_tokens),
+                               options,
+                               /*blocking=*/true));
+        } else {
+          results.emplace(post(std::move(batch_source_tokens),
+                               options,
+                               /*blocking=*/true));
+        }
+
+        pop_results(/*blocking=*/false);
+      }
+
+      pop_results(/*blocking=*/true);
     }
 
     // Translate a file in parallel.
     // These are wrappers around consume_stream that set the appropriate reader and writer.
     // The returned value is the total number of produced tokens.
-    TranslationStats consume_text_file(const std::string& in_file,
-                                       const std::string& out_file,
+    TranslationStats consume_text_file(const std::string& source_file,
+                                       const std::string& output_file,
                                        size_t read_batch_size,
                                        const TranslationOptions& options,
-                                       bool with_scores = false);
+                                       bool with_scores = false,
+                                       const std::string* target_file = nullptr);
 
-    TranslationStats consume_text_file(std::istream& in,
-                                       std::ostream& out,
+    TranslationStats consume_text_file(std::istream& source,
+                                       std::ostream& output,
                                        size_t read_batch_size,
                                        const TranslationOptions& options,
-                                       bool with_scores = false);
+                                       bool with_scores = false,
+                                       std::istream* target = nullptr);
 
     template <typename Tokenizer, typename Detokenizer>
     TranslationStats consume_raw_text_file(const std::string& in_file,
@@ -144,14 +164,69 @@ namespace ctranslate2 {
                                            const size_t read_batch_size,
                                            const TranslationOptions& options,
                                            const bool with_scores = false) {
+      return consume_raw_text_file(in,
+                                   nullptr,
+                                   out,
+                                   tokenizer,
+                                   tokenizer,
+                                   detokenizer,
+                                   read_batch_size,
+                                   options,
+                                   with_scores);
+    }
+
+    template <typename SourceTokenizer, typename TargetTokenizer, typename TargetDetokenizer>
+    TranslationStats consume_raw_text_file(const std::string& source_file,
+                                           const std::string* target_file,
+                                           const std::string& output_file,
+                                           SourceTokenizer& source_tokenizer,
+                                           TargetTokenizer& target_tokenizer,
+                                           TargetDetokenizer& detokenizer,
+                                           const size_t read_batch_size,
+                                           const TranslationOptions& options,
+                                           const bool with_scores = false) {
+      std::ifstream source;
+      open_input_file(source_file, source);
+      std::ofstream output;
+      open_output_file(output_file, output);
+
+      std::unique_ptr<std::ifstream> target;
+      if (target_file) {
+        target.reset(new std::ifstream());
+        open_input_file(*target_file, *target);
+      }
+
+      return consume_raw_text_file(source,
+                                   target.get(),
+                                   output,
+                                   source_tokenizer,
+                                   target_tokenizer,
+                                   detokenizer,
+                                   read_batch_size,
+                                   options,
+                                   with_scores);
+    }
+
+    template <typename SourceTokenizer, typename TargetTokenizer, typename TargetDetokenizer>
+    TranslationStats consume_raw_text_file(std::istream& source,
+                                           std::istream* target,
+                                           std::ostream& output,
+                                           SourceTokenizer& source_tokenizer,
+                                           TargetTokenizer& target_tokenizer,
+                                           TargetDetokenizer& detokenizer,
+                                           const size_t read_batch_size,
+                                           const TranslationOptions& options,
+                                           const bool with_scores = false) {
       TranslationStats stats;
 
-      auto reader = [&tokenizer](std::istream& in, std::vector<std::string>& tokens) {
-        std::string line;
-        if (!std::getline(in, line))
-          return false;
-        tokens = tokenizer(line);
-        return true;
+      auto source_reader = [this, &source_tokenizer](std::istream& in,
+                                                     std::vector<std::string>& tokens) {
+        return read_next_sequence(in, source_tokenizer, tokens);
+      };
+
+      auto target_reader = [this, &target_tokenizer](std::istream& in,
+                                                     std::vector<std::string>& tokens) {
+        return read_next_sequence(in, target_tokenizer, tokens);
       };
 
       auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
@@ -169,8 +244,15 @@ namespace ctranslate2 {
 
       const auto t1 = std::chrono::high_resolution_clock::now();
 
-      consume_stream(in, out, read_batch_size, options, reader, writer);
-      out.flush();
+      consume_stream(source,
+                     target,
+                     output,
+                     read_batch_size,
+                     options,
+                     source_reader,
+                     target_reader,
+                     writer);
+      output.flush();
 
       const auto t2 = std::chrono::high_resolution_clock::now();
       stats.total_time_in_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
@@ -211,6 +293,17 @@ namespace ctranslate2 {
     std::mutex _mutex;
     std::condition_variable _cv;
     bool _request_end = false;
+
+    template <typename Tokenizer>
+    bool read_next_sequence(std::istream& in,
+                            Tokenizer& tokenizer,
+                            std::vector<std::string>& tokens) const {
+      std::string line;
+      if (!std::getline(in, line))
+        return false;
+      tokens = tokenizer(line);
+      return true;
+    }
   };
 
 }

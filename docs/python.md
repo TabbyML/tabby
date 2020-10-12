@@ -86,7 +86,10 @@ stats = translator.translate_file(
     sampling_topk: int = 1,
     sampling_temperature: float = 1,
     tokenize_fn: callable = None,   # Function with signature: string -> list of strings
-    detokenize_fn: callable = None) # Function with signature: list of strings -> string
+    detokenize_fn: callable = None, # Function with signature: list of strings -> string
+    target_path: str = "",          # Target prefix file.
+    target_tokenize_fn: callable = None,  # Same as tokenize_fn but for the target.
+)
 ```
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.

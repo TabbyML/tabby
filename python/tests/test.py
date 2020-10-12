@@ -119,6 +119,87 @@ def test_raw_file_translation(tmpdir):
         assert lines[0].strip() == "atzmon"
         assert lines[1].strip() == "achison"
 
+def test_file_translation_with_prefix(tmpdir):
+    source_path = str(tmpdir.join("input.txt"))
+    target_path = str(tmpdir.join("target.txt"))
+    output_path = str(tmpdir.join("output.txt"))
+    with open(source_path, "w") as source_file:
+        source_file.write("آ ت ز م و ن")
+        source_file.write("\n")
+        source_file.write("آ ت ش ي س و ن")
+        source_file.write("\n")
+    with open(target_path, "w") as target_file:
+        target_file.write("a t s\n")
+
+    translator = _get_transliterator()
+    max_batch_size = 4
+
+    with pytest.raises(RuntimeError):
+        # One line is missing from target_path.
+        translator.translate_file(
+            source_path,
+            output_path,
+            max_batch_size,
+            target_path=target_path)
+
+    with open(target_path, "a") as target_file:
+        target_file.write("\n")  # No prefix.
+
+    translator.translate_file(
+        source_path,
+        output_path,
+        max_batch_size,
+        target_path=target_path)
+
+    with open(output_path) as output_file:
+        lines = output_file.readlines()
+        assert lines[0].strip() == "a t s u m o n"
+        assert lines[1].strip() == "a c h i s o n"
+
+def test_raw_file_translation_with_prefix(tmpdir):
+    source_path = str(tmpdir.join("input.txt"))
+    target_path = str(tmpdir.join("target.txt"))
+    output_path = str(tmpdir.join("output.txt"))
+    with open(source_path, "w") as source_file:
+        source_file.write("آتزمون")
+        source_file.write("\n")
+        source_file.write("آتشيسون")
+        source_file.write("\n")
+    with open(target_path, "w") as target_file:
+        # Write target in reverse to use a different tokenization.
+        target_file.write("sta\n")
+        target_file.write("\n")
+
+    translator = ctranslate2.Translator(_get_model_path())
+    source_tokenize_fn = lambda text: list(text)
+    target_tokenize_fn = lambda text: list(reversed(list(text)))
+    detokenize_fn = lambda tokens: "".join(tokens)
+    max_batch_size = 4
+
+    with pytest.raises(ValueError):
+        # Target tokenization is missing.
+        translator.translate_file(
+            source_path,
+            output_path,
+            max_batch_size,
+            tokenize_fn=source_tokenize_fn,
+            detokenize_fn=detokenize_fn,
+            target_path=target_path)
+
+    translator.translate_file(
+        source_path,
+        output_path,
+        max_batch_size,
+        tokenize_fn=source_tokenize_fn,
+        detokenize_fn=detokenize_fn,
+        target_path=target_path,
+        target_tokenize_fn=target_tokenize_fn)
+
+    with open(output_path) as output_file:
+        lines = output_file.readlines()
+        assert lines[0].strip() == "atsumon"
+        assert lines[1].strip() == "achison"
+
 def test_empty_translation():
     translator = _get_transliterator()
     assert translator.translate_batch([]) == []
