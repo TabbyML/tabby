@@ -285,6 +285,19 @@ TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {
   EXPECT_EQ(result[4].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
 }
 
+TEST(TranslatorTest, TranslatePrefixWithLargeBeam) {
+  // Related to issue https://github.com/OpenNMT/CTranslate2/issues/277
+  // This is an example where </s> appears in the topk of the first unconstrained decoding
+  // step and produces an incorrect hypothesis that dominates others.
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = 5;
+  const std::vector<std::string> input = {"أ" ,"و" ,"ل" ,"ي" ,"س" ,"س"};
+  const std::vector<std::string> prefix = {"u", "l", "i", "s", "e"};
+  const auto result = translator.translate_with_prefix(input, prefix, options);
+  EXPECT_EQ(result.output(), (std::vector<std::string>{"u", "l", "i", "s", "e", "s"}));
+}
+
 TEST(TranslatorTest, AlternativesFromPrefix) {
   Translator translator = default_translator();
   TranslationOptions options;

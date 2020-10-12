@@ -68,6 +68,7 @@ namespace ctranslate2 {
                                         StorageView& sampled_ids,
                                         StorageView& sampled_scores,
                                         const std::vector<std::vector<size_t>>& prefix_ids,
+                                        const size_t end_id,
                                         const std::vector<dim_t>& batch_offset) {
     const dim_t batch_size = sampled_scores.dim(0);
     const dim_t beam_size = sampled_scores.dim(1);
@@ -75,13 +76,27 @@ namespace ctranslate2 {
       const dim_t batch_id = batch_offset[i];
       const auto& prefix = prefix_ids[batch_id];
       const dim_t prefix_length = prefix.size();
-      if (step >= prefix_length)
-        continue;
-      for (dim_t k = 0; k < beam_size; ++k) {
-        sampled_ids.at<int32_t>({i, k}) = prefix[step];
-        // Set the highest log score for the first beam and penalize the others.
-        TYPE_DISPATCH(sampled_scores.dtype(),
-                      sampled_scores.at<T>({i, k}) = (k == 0 ? 0 : T(-1e10)));
+      if (step < prefix_length) {
+        for (dim_t k = 0; k < beam_size; ++k) {
+          sampled_ids.at<int32_t>({i, k}) = prefix[step];
+          // Set the highest log score for the first beam and penalize the others.
+          TYPE_DISPATCH(sampled_scores.dtype(),
+                        sampled_scores.at<T>({i, k}) = (k == 0 ? 0 : T(-1e10)));
+        }
+      } else if (step == prefix_length) {
+        // At the first unconstrained decoding step, only the first beam is expanded.
+        // It happens that </s> appears in the topk, especially when k is large. This
+        // can produce incorrect and short predictions that dominate others (see issue
+        // #277). To mitigate this issue, we penalize </s> in secondary beams.
+        for (dim_t k = 1; k < beam_size; ++k) {
+          auto& sampled_id = sampled_ids.at<int32_t>({i, k});
+          if (static_cast<size_t>(sampled_id) == end_id) {
+            // Assign a token different than </s> and with a low probability.
+            sampled_id = 0;
+            TYPE_DISPATCH(sampled_scores.dtype(),
+                          sampled_scores.at<T>({i, k}) = T(-1e10));
+          }
+        }
       }
     }
   }
@@ -216,7 +231,7 @@ namespace ctranslate2 {
       // TopK candidates.
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
       if (prefix_ids)
-        update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, batch_offset);
+        update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, end_id, batch_offset);
 
       topk_log_probs = topk_scores;
       // Recover the true log probs if length penalty was applied.
@@ -494,7 +509,7 @@ namespace ctranslate2 {
 
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
-        update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, batch_offset);
+        update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
       if (attention)
         attention_step.copy_from(attention_step_device.to_float());
 
