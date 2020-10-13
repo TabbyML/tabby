@@ -2,6 +2,12 @@
 
 ### New features
 
+### Fixes and improvements
+
+## [v1.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.14.0) (2020-10-13)
+
+### New features
+
 * Accept target prefix in file translation APIs
 
 ### Fixes and improvements
