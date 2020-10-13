@@ -2,9 +2,15 @@
 
 ### New features
 
+* Accept target prefix in file translation APIs
+
 ### Fixes and improvements
 
 * Fix CUDA illegal memory access when changing the beam size in the same process
+* Fix decoding with target prefix that sometimes did not go beyond the prefix
+* Fix Intel MKl search paths on macOS
+* Update Intel MKL to 2020.3
+* Clarify error message when selecting a CUDA device in CPU-only builds
 
 ## [v1.13.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.13.2) (2020-08-31)
 
