@@ -1,12 +1,18 @@
 ARG CUDA_VERSION=10.0
 FROM nvidia/cuda:${CUDA_VERSION}-cudnn7-devel-centos7 as builder
 
-RUN yum install -y epel-release centos-release-scl-rh && \
+ENV TENSORRT_MAJOR_VERSION=6
+ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.0.1
+
+RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
+    yum install -y epel-release centos-release-scl-rh && \
     yum install -y \
         devtoolset-8-gcc \
         devtoolset-8-gcc-c++ \
         gcc \
         gcc-c++ \
+        libnvinfer${TENSORRT_MAJOR_VERSION}-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION} \
+        libnvinfer-devel-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION} \
         make \
         python3-devel \
         wget && \
@@ -35,14 +41,6 @@ RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl
     tar xf dnnl*.tgz && \
     rm dnnl*.tgz && \
     mv dnnl* ${DNNL_DIR}
-
-ENV TENSORRT_MAJOR_VERSION=6
-ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.0.1
-RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
-    curl -fsSL https://developer.download.nvidia.com/compute/machine-learning/repos/rhel7/x86_64/libnvinfer-devel-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION}.x86_64.rpm -O && \
-    curl -fsSL https://developer.download.nvidia.com/compute/machine-learning/repos/rhel7/x86_64/libnvinfer${TENSORRT_MAJOR_VERSION}-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION}.x86_64.rpm -O && \
-    rpm -ivh --nodeps libnvinfer*.rpm && \
-    rm libnvinfer*.rpm
 
 WORKDIR /root/ctranslate2-dev
 
