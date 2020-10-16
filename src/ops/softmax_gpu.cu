@@ -170,23 +170,7 @@ namespace ctranslate2 {
 namespace at {
   namespace native {
 
-#ifdef __HIP_PLATFORM_HCC__
-#  define C10_WARP_SIZE 64
-#else
-#  define C10_WARP_SIZE 32
-#endif
-
     constexpr float max_float = std::numeric_limits<float>::max();
-
-    static dim3 SoftMax_getBlockSize(int ILP, uint64_t dim_size) {
-      uint64_t block_size = 1;
-      uint64_t max_block_size = std::min(dim_size / ILP,
-                                         static_cast<uint64_t>(::ctranslate2::cuda::max_threads));
-      while (block_size < max_block_size) block_size *= 2;
-      // Launch at least a single warp - the kernel assumes that.
-      block_size = std::max(block_size, static_cast<uint64_t>(C10_WARP_SIZE));
-      return dim3(block_size);
-    }
 
     template<typename T, typename AccumT, typename OutT>
     struct LogSoftMaxForwardEpilogue {
@@ -249,87 +233,10 @@ namespace at {
       }
     };
 
-    template <template<typename> class Reduction, typename AccumT>
-    __device__ __forceinline__ AccumT
-    blockReduce(AccumT* smem, AccumT val,
-                const Reduction<AccumT>& r,
-                AccumT defaultVal)
-    {
-      // To avoid RaW races from chaining blockReduce calls together, we need a sync here
-      __syncthreads();
-
-      smem[threadIdx.x] = val;
-
-      __syncthreads();
-
-      AccumT warpVal = defaultVal;
-
-      // First warp will perform per-warp reductions for the remaining warps
-      uint32_t mask = (((uint64_t)1) << (blockDim.x / C10_WARP_SIZE)) - 1;
-      if (threadIdx.x < C10_WARP_SIZE) {
-        int lane = threadIdx.x % C10_WARP_SIZE;
-        if (lane < blockDim.x / C10_WARP_SIZE) {
-          #pragma unroll
-          for (int i = 0; i < C10_WARP_SIZE; ++i) {
-            warpVal = r(warpVal, smem[lane * C10_WARP_SIZE + i]);
-          }
-#ifndef __HIP_PLATFORM_HCC__
-          __syncwarp(mask);
-#endif
-          smem[lane] = warpVal;
-        }
-      }
-
-      __syncthreads();
-
-      // First thread will perform a reduction of the above per-warp reductions
-      AccumT blockVal = defaultVal;
-
-      if (threadIdx.x == 0) {
-        for (int i = 0; i < blockDim.x / C10_WARP_SIZE; ++i) {
-          blockVal = r(blockVal, smem[i]);
-        }
-        smem[0] = blockVal;
-      }
-
-      // Sync and broadcast
-      __syncthreads();
-      return smem[0];
-    }
-
-    template <template<typename, typename> class Reduction, int ILP, typename T, typename AccumT>
-    __device__ __forceinline__ AccumT
-    ilpReduce(const T* data,
-              int size,
-              const Reduction<T, AccumT>& r,
-              AccumT defaultVal)
-    {
-      AccumT threadVal = defaultVal;
-      int offset = threadIdx.x;
-
-      int last = size % (ILP * blockDim.x);
-
-      // Body (unroll by ILP times)
-      for (; offset < size - last; offset += blockDim.x * ILP) {
-        T tmp[ILP];
-
-        #pragma unroll
-        for (int j = 0; j < ILP; ++j)
-          tmp[j] = data[offset + j * blockDim.x];
-
-        #pragma unroll
-        for (int j = 0; j < ILP; ++j)
-          threadVal = r(threadVal, tmp[j]);
-      }
-
-      // Epilogue
-      for (; offset < size; offset += blockDim.x)
-        threadVal = r(threadVal, data[offset]);
-
-      return threadVal;
-    }
-
-    template <int ILP, typename scalar_t, typename accscalar_t, typename outscalar_t, template <typename, typename, typename> class Epilogue>
+    template <typename scalar_t,
+              typename accscalar_t,
+              typename outscalar_t,
+              template <typename, typename, typename> class Epilogue>
     __global__ void
     cunn_SoftMaxForward(outscalar_t *output, const scalar_t *input, int classes)
     {
@@ -341,34 +248,20 @@ namespace at {
       output += blockIdx.x * classes;
 
       // find the max
-      accscalar_t threadMax = ilpReduce<MaxFloat, ILP, scalar_t, accscalar_t>(
+      accscalar_t threadMax = ctranslate2::cuda::ilp_reduce(
         input, classes, MaxFloat<scalar_t, accscalar_t>(), -max_float);
-      accscalar_t max_k = blockReduce<Max, accscalar_t>(
+      accscalar_t max_k = ctranslate2::cuda::block_reduce(
         sdata, threadMax, Max<accscalar_t>(), -max_float);
 
       // reduce all values
-      accscalar_t threadExp = ilpReduce<SumExpFloat, ILP, scalar_t, accscalar_t>(
+      accscalar_t threadExp = ctranslate2::cuda::ilp_reduce(
         input, classes, SumExpFloat<scalar_t, accscalar_t>(max_k), static_cast<accscalar_t>(0));
-      accscalar_t sumAll = blockReduce<Add, accscalar_t>(
+      accscalar_t sumAll = ctranslate2::cuda::block_reduce(
         sdata, threadExp, Add<accscalar_t>(), static_cast<accscalar_t>(0));
 
-      Epilogue<scalar_t, accscalar_t, outscalar_t> epilogue(max_k, sumAll);
-      int offset = threadIdx.x;
-      int last = classes % (ILP * blockDim.x);
-      for (; offset < classes - last; offset += blockDim.x * ILP) {
-        scalar_t tmp[ILP];
-
-        #pragma unroll
-        for (int j = 0; j < ILP; ++j)
-          tmp[j] = input[offset + j * blockDim.x];
-
-        #pragma unroll
-        for (int j = 0; j < ILP; ++j)
-          output[offset + j * blockDim.x] = epilogue(tmp[j]);
-      }
-
-      for (; offset < classes; offset += blockDim.x)
-        output[offset] = epilogue(input[offset]);
+      // apply epilogue
+      ctranslate2::cuda::apply_epilogue(
+        input, classes, Epilogue<scalar_t, accscalar_t, outscalar_t>(max_k, sumAll), output);
     }
 
   }
@@ -383,10 +276,9 @@ namespace ctranslate2 {
                                     const int64_t rows,
                                     const int64_t cols,
                                     T* y) {
-      const int ILP = 2;
       const dim3 grid(rows);
-      const dim3 block = at::native::SoftMax_getBlockSize(ILP, cols);
-      at::native::cunn_SoftMaxForward<ILP, T, float, T, Epilogue>
+      const dim3 block(cuda::get_block_size(cols));
+      at::native::cunn_SoftMaxForward<T, float, T, Epilogue>
         <<<grid, block, block.x * sizeof (float), stream>>>(y, x, cols);
     }
 

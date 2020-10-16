@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include <cuda_fp16.h>
 #include <thrust/device_vector.h>
 
@@ -194,6 +196,129 @@ namespace ctranslate2 {
     };
 #endif
 
+    // The following kernels are adapted from:
+    // https://github.com/pytorch/pytorch/blob/40eff454ce5638fbff638a7f4502e29ffb9a2f0d/aten/src/ATen/native/cuda/SoftMax.cu
+    // They help define row-wise reduction where each block handles a single row.
+
+#define C10_WARP_SIZE 32
+
+    template <int ILP = 2>
+    inline dim3 get_block_size(dim_t dim_size) {
+      dim_t block_size = 1;
+      dim_t max_block_size = std::min(dim_size / ILP, max_threads);
+      while (block_size < max_block_size)
+        block_size *= 2;
+      // Launch at least a single warp - the kernel assumes that.
+      block_size = std::max(block_size, static_cast<dim_t>(C10_WARP_SIZE));
+      return dim3(block_size);
+    }
+
+    template <typename Reduction, typename AccumT>
+    __device__ __forceinline__ AccumT block_reduce(AccumT* smem,
+                                                   AccumT val,
+                                                   const Reduction& r,
+                                                   AccumT defaultVal)
+    {
+      // To avoid RaW races from chaining blockReduce calls together, we need a sync here
+      __syncthreads();
+
+      smem[threadIdx.x] = val;
+
+      __syncthreads();
+
+      AccumT warpVal = defaultVal;
+
+      // First warp will perform per-warp reductions for the remaining warps
+      uint32_t mask = (((uint64_t)1) << (blockDim.x / C10_WARP_SIZE)) - 1;
+      if (threadIdx.x < C10_WARP_SIZE) {
+        int lane = threadIdx.x % C10_WARP_SIZE;
+        if (lane < blockDim.x / C10_WARP_SIZE) {
+          #pragma unroll
+          for (int i = 0; i < C10_WARP_SIZE; ++i) {
+            warpVal = r(warpVal, smem[lane * C10_WARP_SIZE + i]);
+          }
+          __syncwarp(mask);
+          smem[lane] = warpVal;
+        }
+      }
+
+      __syncthreads();
+
+      // First thread will perform a reduction of the above per-warp reductions
+      AccumT blockVal = defaultVal;
+
+      if (threadIdx.x == 0) {
+        for (int i = 0; i < blockDim.x / C10_WARP_SIZE; ++i) {
+          blockVal = r(blockVal, smem[i]);
+        }
+        smem[0] = blockVal;
+      }
+
+      // Sync and broadcast
+      __syncthreads();
+      return smem[0];
+    }
+
+    template <typename Reduction,
+              typename T,
+              typename AccumT = T,
+              int ILP = 2>
+    __device__ __forceinline__ AccumT ilp_reduce(const T* data,
+                                                 int size,
+                                                 const Reduction& r,
+                                                 AccumT defaultVal)
+    {
+      AccumT threadVal = defaultVal;
+      int offset = threadIdx.x;
+
+      int last = size % (ILP * blockDim.x);
+
+      // Body (unroll by ILP times)
+      for (; offset < size - last; offset += blockDim.x * ILP) {
+        T tmp[ILP];
+
+        #pragma unroll
+        for (int j = 0; j < ILP; ++j)
+          tmp[j] = data[offset + j * blockDim.x];
+
+        #pragma unroll
+        for (int j = 0; j < ILP; ++j)
+          threadVal = r(threadVal, tmp[j]);
+      }
+
+      // Epilogue
+      for (; offset < size; offset += blockDim.x)
+        threadVal = r(threadVal, data[offset]);
+
+      return threadVal;
+    }
+
+    template <typename Epilogue,
+              typename scalar_t,
+              typename outscalar_t,
+              int ILP = 2>
+    __device__ __forceinline__ void
+    apply_epilogue(const scalar_t* input,
+                   int depth,
+                   const Epilogue& epilogue,
+                   outscalar_t* output) {
+      int offset = threadIdx.x;
+      int last = depth % (ILP * blockDim.x);
+      for (; offset < depth - last; offset += blockDim.x * ILP) {
+        scalar_t tmp[ILP];
+
+        #pragma unroll
+        for (int j = 0; j < ILP; ++j)
+          tmp[j] = input[offset + j * blockDim.x];
+
+        #pragma unroll
+        for (int j = 0; j < ILP; ++j)
+          output[offset + j * blockDim.x] = epilogue(tmp[j]);
+      }
+
+      for (; offset < depth; offset += blockDim.x)
+        output[offset] = epilogue(input[offset]);
+    }
 
   }
 }
