@@ -373,7 +373,9 @@ We translate the test set *newstest2014* and report:
 * the maximum memory usage (lower is better)
 * the BLEU score of the detokenized output (higher is better)
 
-Translations are running beam search with a size of 4 and a maximum batch size of 32. CPU translations are using 4 threads. See the directory [`tools/benchmark`](tools/benchmark) for more details about the benchmark procedure and how to run it.
+Translations are running beam search with a size of 4 and a maximum batch size of 32. CPU translations are using 4 threads.
+
+See the directory [`tools/benchmark`](tools/benchmark) for more details about the benchmark procedure and how to run it. Also see the [Performance](docs/performance.md) document to further improve CTranslate2 performance.
 
 **Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
 
