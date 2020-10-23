@@ -313,7 +313,9 @@ def set_linear(spec, variables, scope, weight_name=None, transpose=True):
     spec.weight = variables[weight_name].squeeze()
     if transpose:
         spec.weight = spec.weight.transpose()
-    spec.bias = variables["%s/bias" % scope]
+    bias = variables.get("%s/bias" % scope)
+    if bias is not None:
+        spec.bias = bias
 
 def set_embeddings(spec, variables, scope, version=1):
     if version == 2:

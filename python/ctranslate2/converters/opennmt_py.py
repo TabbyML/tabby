@@ -22,7 +22,7 @@ class OpenNMTPyConverter(Converter):
         checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
-        variables["generator.bias"] = checkpoint["generator"]["0.bias"]
+        variables["generator.bias"] = checkpoint["generator"].get("0.bias")
         if isinstance(model_spec, transformer_spec.TransformerSpec):
             set_transformer_spec(model_spec, variables)
         else:
@@ -126,7 +126,9 @@ def set_layer_norm(spec, variables, scope):
 
 def set_linear(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
-    spec.bias = _get_variable(variables, "%s.bias" % scope)
+    bias = variables.get("%s.bias" % scope)
+    if bias is not None:
+        spec.bias = bias.numpy()
 
 def set_embeddings(spec, variables, scope, multiply_by_sqrt_depth=True):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
