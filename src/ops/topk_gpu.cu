@@ -73,7 +73,6 @@ namespace ctranslate2 {
       dim_t _k;
       dim_t _first_depth;
     };
-#endif
 
     template <typename DataType>
     static TopKLayer<DataType>& get_trt_topk_layer(dim_t k) {
@@ -83,6 +82,7 @@ namespace ctranslate2 {
         it = layer_cache.emplace(k, TopKLayer<DataType>(k)).first;
       return it->second;
     }
+#endif
 
     template <Device D, typename DataType, typename IndexType>
     void TopK::compute(const StorageView& x,
