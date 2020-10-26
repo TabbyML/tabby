@@ -79,12 +79,12 @@ COPY python python
 
 WORKDIR /root/ctranslate2-dev/python
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
-    python3 get-pip.py --no-setuptools && \
-    python3 -m pip --no-cache-dir install pybind11==2.4.3 setuptools==49.* && \
+    python3 get-pip.py && \
+    python3 -m pip --no-cache-dir install -r install_requirements.txt && \
     python3 setup.py bdist_wheel && \
     rm -r build && \
     rm get-pip.py && \
-    python3 -m pip freeze | grep pybind11 > /root/ctranslate2/install_requirements.txt && \
+    cp install_requirements.txt /root/ctranslate2/ && \
     python3 setup.py sdist && \
     mv dist/* /root/ctranslate2 && \
     rmdir dist

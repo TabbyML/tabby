@@ -4,7 +4,6 @@ set -e
 set -x
 
 ROOT_DIR=$PWD
-PYBIND11_VERSION=${PYBIND11_VERSION:-2.4.3}
 MKL_VERSION=${MKL_VERSION:-2020.3-111}
 DNNL_VERSION=${DNNL_VERSION:-1.5}
 PATH=/opt/python/cp37-cp37m/bin:$PATH
@@ -33,7 +32,7 @@ rm -r build-release
 cd python
 for PYTHON_ROOT in /opt/python/*
 do
-    $PYTHON_ROOT/bin/pip install pybind11==${PYBIND11_VERSION}
+    $PYTHON_ROOT/bin/pip install -r install_requirements.txt
     $PYTHON_ROOT/bin/python setup.py bdist_wheel
     rm -rf build
 done
