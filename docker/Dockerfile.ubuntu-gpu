@@ -1,9 +1,6 @@
 ARG UBUNTU_VERSION=18.04
 ARG CUDA_VERSION=10.0
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn7-devel-ubuntu${UBUNTU_VERSION} as builder
-
-ENV TENSORRT_MAJOR_VERSION=6
-ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.0.1
+FROM nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
 
 RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
     apt-get update && \
@@ -13,8 +10,6 @@ RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
         ca-certificates \
         python3-dev \
         gnupg2 \
-        libnvinfer${TENSORRT_MAJOR_VERSION}=${TENSORRT_VERSION}-1+cuda${CUDA_SHORT_VERSION} \
-        libnvinfer-dev=${TENSORRT_VERSION}-1+cuda${CUDA_SHORT_VERSION} \
         wget && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -94,9 +89,7 @@ RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib && \
     cp -P $([ $CUDA_VERSION = "10.0.130" ] \
         && echo /usr/local/cuda/lib64/libcublas.so* \
         || echo /usr/lib/x86_64-linux-gnu/libcublas*.so*) \
-        /root/ctranslate2/lib && \
-    cp -P /usr/lib/x86_64-linux-gnu/libcudnn.so* /root/ctranslate2/lib && \
-    cp -P /usr/lib/x86_64-linux-gnu/libnvinfer.so* /root/ctranslate2/lib
+        /root/ctranslate2/lib
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu${UBUNTU_VERSION}
 

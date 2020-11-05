@@ -1,8 +1,5 @@
 ARG CUDA_VERSION=10.0
-FROM nvidia/cuda:${CUDA_VERSION}-cudnn7-devel-centos7 as builder
-
-ENV TENSORRT_MAJOR_VERSION=6
-ENV TENSORRT_VERSION=${TENSORRT_MAJOR_VERSION}.0.1
+FROM nvidia/cuda:${CUDA_VERSION}-devel-centos7 as builder
 
 RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
     yum install -y epel-release centos-release-scl-rh && \
@@ -11,8 +8,6 @@ RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
         devtoolset-8-gcc-c++ \
         gcc \
         gcc-c++ \
-        libnvinfer${TENSORRT_MAJOR_VERSION}-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION} \
-        libnvinfer-devel-${TENSORRT_VERSION}-1.cuda${CUDA_SHORT_VERSION} \
         make \
         python3-devel \
         wget && \
@@ -89,9 +84,7 @@ RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib64 && \
     cp -P $([ $CUDA_VERSION = "10.0.130" ] \
         && echo /usr/local/cuda/lib64/libcublas.so* \
         || echo /lib64/libcublas*.so*) \
-        /root/ctranslate2/lib64 && \
-    cp -P /lib64/libcudnn.so* /root/ctranslate2/lib64 && \
-    cp -P /lib64/libnvinfer.so* /root/ctranslate2/lib64
+        /root/ctranslate2/lib64
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-centos7
 

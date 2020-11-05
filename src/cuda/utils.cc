@@ -1,11 +1,11 @@
 #include "./utils.h"
 
 #include <cstdlib>
-#include <iostream>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 #include "ctranslate2/primitives/primitives.h"
 #include "ctranslate2/utils.h"
@@ -148,86 +148,6 @@ namespace ctranslate2 {
       static ThrustAllocator thrust_allocator;
       return thrust_allocator;
     }
-
-#ifdef CT2_WITH_TENSORRT
-    static class Logger : public nvinfer1::ILogger {
-      void log(Severity severity, const char* msg) override {
-        if (static_cast<int>(severity) < static_cast<int>(Severity::kINFO))
-          std::cerr << msg << std::endl;
-      }
-    } g_logger;
-
-    class TensorRTAllocator : public nvinfer1::IGpuAllocator {
-    private:
-      int _device;
-    public:
-      TensorRTAllocator(int device)
-        : _device(device) {
-      }
-
-      void* allocate(uint64_t size, uint64_t, uint32_t) override {
-        return primitives<Device::CUDA>::alloc_data(size, _device);
-      }
-
-      void free(void* memory) override {
-        primitives<Device::CUDA>::free_data(memory, _device);
-      }
-
-    };
-
-    static std::vector<TensorRTAllocator> create_trt_allocators() {
-      const int num_gpus = get_gpu_count();
-      std::vector<TensorRTAllocator> allocators;
-      allocators.reserve(num_gpus);
-      for (int i = 0; i < num_gpus; ++i) {
-        allocators.emplace_back(i);
-      }
-      return allocators;
-    }
-
-    static TensorRTAllocator& get_trt_allocator(int device) {
-      static std::vector<TensorRTAllocator> allocators(create_trt_allocators());
-      return allocators[device];
-    }
-
-    TensorRTLayer::~TensorRTLayer() {
-      if (_execution_context) {
-        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
-        _execution_context->destroy();
-        _engine->destroy();
-      }
-    }
-
-    static std::mutex trt_build_mutex;
-
-    void TensorRTLayer::build() {
-      const std::lock_guard<std::mutex> lock(trt_build_mutex);
-      CUDA_CHECK(cudaGetDevice(&_device));
-      auto builder = nvinfer1::createInferBuilder(g_logger);
-      builder->setGpuAllocator(&get_trt_allocator(_device));
-      auto network = builder->createNetworkV2(
-        1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH));
-      build_network(network);
-      auto profile = builder->createOptimizationProfile();
-      set_optimization_profile(profile);
-      auto builder_config = builder->createBuilderConfig();
-      builder_config->addOptimizationProfile(profile);
-      set_builder_config(builder_config);
-      _engine = builder->buildEngineWithConfig(*network, *builder_config);
-      _execution_context = _engine->createExecutionContext();
-      network->destroy();
-      builder_config->destroy();
-      builder->destroy();
-    }
-
-    void TensorRTLayer::run(void** bindings, const std::vector<nvinfer1::Dims>& input_dims) {
-      if (!_execution_context)
-        build();
-      for (size_t i = 0; i < input_dims.size(); ++i)
-        _execution_context->setBindingDimensions(i, input_dims[i]);
-      _execution_context->enqueueV2(bindings, get_cuda_stream(), nullptr);
-    }
-#endif
 
   }
 }

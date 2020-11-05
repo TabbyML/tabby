@@ -26,7 +26,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 * **Parallel translations**<br/>CPU translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Automatic CPU detection and code dispatch**<br/>The fastest code path is selected at runtime based on the CPU (Intel or AMD) and the supported instruction set architectures (AVX, AVX2, or AVX512).
-* **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 1GB.
+* **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 * **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
@@ -266,7 +266,6 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |
 | WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
-| WITH_TENSORRT | OFF, **ON** | Compiles with TensorRT (required for beam search decoding on GPU) |
 | WITH_TESTS | **OFF**, ON | Compiles the tests |
 
 Some build options require external dependencies:
@@ -277,9 +276,6 @@ Some build options require external dependencies:
   * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
 * `-DWITH_CUDA=ON` requires:
   * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
-  * `-DWITH_TENSORRT=ON` requires:
-    * [TensorRT](https://developer.nvidia.com/tensorrt) (>=6.0,<7.0)
-    * [cuDNN](https://developer.nvidia.com/cudnn) (>=7.5)
 
 Multiple backends can be enabled for a single build. When building with both Intel MKL and oneDNN, the backend will be selected at runtime based on the CPU information.
 
