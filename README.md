@@ -281,9 +281,7 @@ Multiple backends can be enabled for a single build. When building with both Int
 
 ### Example (Ubuntu)
 
-This minimal installation only enables CPU execution with Intel MKL. For more advanced usages and GPU support, see how the [Ubuntu GPU Dockerfile](docker/Dockerfile.ubuntu-gpu) is defined.
-
-#### Install Intel MKL
+#### Install Intel MKL (optional for GPU only builds)
 
 Use the following instructions to install Intel MKL:
 
@@ -296,22 +294,29 @@ sudo apt-get update
 sudo apt-get install intel-mkl-64bit-2020.4-912
 ```
 
-Go to https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-apt-repo for more details.
+See the [Intel MKL documentation](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html) for other installation methods.
+
+#### Install CUDA (optional for CPU only builds)
+
+See the [NVIDIA documentation](https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html) for information on how to download and install CUDA.
 
 #### Compile
 
 Under the project root, run the following commands:
 
 ```bash
+git submodule update --init
 mkdir build && cd build
-cmake ..
+cmake -DWITH_MKL=ON -DWITH_CUDA=ON ..
 make -j4
 ```
 
-The `cli/translate` binary will be generated. You can try it with the model converted in the [Quickstart](#quickstart) section:
+(If you did not install one of Intel MKL or CUDA, set its corresponding flag to `OFF` in the CMake command line.)
+
+These steps should produce the `cli/translate` binary. You can try it with the model converted in the [Quickstart](#quickstart) section:
 
 ```bash
-echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/
+echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/ --device auto
 ```
 
 The result `▁Hallo ▁Welt !` should be displayed.
