@@ -2,11 +2,17 @@
 
 ### New features
 
-* [Experimental] The Python package published on PyPI now includes GPU support. The binary is compiled with CUDA 10.1, but all CUDA dependencies are integrated in the package and do not need to be installed on the system. The only requirement should be a working GPU with driver version >= 418.39. 
+### Fixes and improvements
+
+## [v1.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.15.0) (2020-11-06)
+
+### New features
+
+* [Experimental] The Python package published on PyPI now includes GPU support. The binary is compiled with CUDA 10.1, but all CUDA dependencies are integrated in the package and do not need to be installed on the system. The only requirement should be a working GPU with driver version >= 418.39.
 
 ### Fixes and improvements
 
-* Remove the TensorRT dependency to simplify installation and reduce memory usage: 
+* Remove the TensorRT dependency to simplify installation and reduce memory usage:
   * Reduce GPU Docker images size by 600MB
   * Reduce memory usage on the GPU and the system by up 1GB
   * Reduce initialization time during the first GPU translation
