@@ -2,7 +2,19 @@
 
 ### New features
 
+* [Experimental] The Python package published on PyPI now includes GPU support. The binary is compiled with CUDA 10.1, but all CUDA dependencies are integrated in the package and do not need to be installed on the system. The only requirement should be a working GPU with driver version >= 418.39. 
+
 ### Fixes and improvements
+
+* Remove the TensorRT dependency to simplify installation and reduce memory usage: 
+  * Reduce GPU Docker images size by 600MB
+  * Reduce memory usage on the GPU and the system by up 1GB
+  * Reduce initialization time during the first GPU translation
+* Improve TopK performance on GPU for K < 5
+* Improve INT8 performance on GPU
+* Accept linear layers without bias when converting models
+* Update Intel MKL to 2020.4
+* [Python] Improve compatibility with Python 3.9
 
 ## [v1.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.14.0) (2020-10-13)
 
