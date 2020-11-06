@@ -102,12 +102,13 @@ The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will g
 pip install ctranslate2
 ```
 
-The package published on PyPI only supports CPU execution at the moment. Consider using a Docker image for GPU support with Python (see below).
+The package published on PyPI supports CPU and GPU execution. All software dependencies are included in the package (including CUDA for GPU support). The only requirements are listed below.
 
 **Requirements:**
 
 * OS: Linux
 * pip version: >= 19.0
+* GPU driver version: >= 418.39
 
 ### Docker images
 
@@ -120,7 +121,7 @@ docker pull opennmt/ctranslate2:latest-ubuntu18-cuda10.2
 The images include:
 
 * a translation client to directly translate files
-* Python 3 packages (with GPU support)
+* Python 3 packages
 * `libctranslate2.so` library development files
 
 ### Manual compilation
