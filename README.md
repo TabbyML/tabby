@@ -400,9 +400,9 @@ Executed on a [*c5.2xlarge*](https://aws.amazon.com/ec2/instance-types/c5/) Amaz
 | -- | --- | --- | --- | --- |
 | OpenNMT-tf 2.13.0 | 1780.0 | 2694MB | 1778MB | 26.93 |
 | OpenNMT-py 2.0.0 | 1295.9 | 2706MB | 1930MB | 26.77 |
-| CTranslate2 1.14.0 | 2461.6 | 1498MB | 1284MB | 26.77 |
-| - int8 | 2369.8 | 2516MB | 1286MB | 26.80 |
-| - float16 | **3648.9** | 1230MB | 1300MB | 26.78 |
+| CTranslate2 1.15.0 | 2498.1 | 1076MB | 314MB | 26.77 |
+| - int8 | 2881.9 | 796MB | 325MB | 26.80 |
+| - float16 | **3871.7** | 848MB | 367MB | 26.80 |
 
 Executed on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU.
 
