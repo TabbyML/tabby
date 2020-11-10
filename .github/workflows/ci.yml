@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - v*
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build-and-test-cpp:
+    runs-on: ubuntu-latest
+    env:
+      CT2_VERBOSE: 1
+    strategy:
+      matrix:
+        backend: [mkl, dnnl]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Build with MKL
+        if: matrix.backend == 'mkl'
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+          sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+          sudo apt-get update
+          sudo apt-get install -y intel-mkl-64bit-2020.4-912
+          cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON .
+          make install
+
+      - name: Build with DNNL
+        if: matrix.backend == 'dnnl'
+        run: |
+          wget https://github.com/oneapi-src/oneDNN/releases/download/v1.5/dnnl_lnx_1.5.0_cpu_gomp.tgz
+          tar xf dnnl*.tgz && rm dnnl*.tgz
+          mv dnnl* dnnl/
+          cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DWITH_DNNL=ON -DCMAKE_PREFIX_PATH=$PWD/dnnl .
+          make install
+
+      - name: Download test data
+        run: |
+          wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
+          tar xf transliteration-aren-all.tar.gz -C tests/data/models/
+
+      - name: Test
+        run: |
+          tests/ctranslate2_test tests/data
+
+
+  build-and-test-python-wheels:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Build wheels
+        run: |
+          docker run -v $PWD:/root -w /root quay.io/pypa/manylinux2010_x86_64 bash /root/python/tools/build_wheel.sh
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r python/tests/requirements.txt
+          python -m pip uninstall -y ctranslate2
+          python -m pip install python/wheelhouse/*cp36*.whl
+
+      - name: Download test data
+        run: |
+          wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
+          tar xf transliteration-aren-all.tar.gz -C tests/data/models/
+
+      - name: Test with pytest
+        run: |
+          python -m pytest python/tests/test.py
+
+      - name: Upload Python wheels
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-wheels-linux
+          path: python/wheelhouse
+
+
+  publish-python-wheels-on-pypi:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: [build-and-test-cpp, build-and-test-python-wheels]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Python wheels
+        uses: actions/download-artifact@v2
+        with:
+          name: python-wheels-linux
+
+      - name: Publish Python wheels to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
+          packages_dir: .
