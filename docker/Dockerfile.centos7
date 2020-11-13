@@ -12,10 +12,11 @@ RUN yum install -y epel-release centos-release-scl-rh && \
 
 WORKDIR /root
 
-RUN wget https://cmake.org/files/v3.12/cmake-3.12.2-Linux-x86_64.tar.gz
-RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
-    rm cmake-3.12.2-Linux-x86_64.tar.gz
-ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
+ENV CMAKE_VERSION=3.18.4
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && \
+    tar xf *.tar.gz && \
+    rm *.tar.gz
+ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
 ENV MKL_VERSION=2020
 ENV MKL_UPDATE=4
