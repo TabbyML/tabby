@@ -24,7 +24,7 @@ PREFIX="python3 benchmark.py --num_samples 3 --num_threads $NUM_THREADS --src wm
 if [[ $USE_GPU -eq 0 ]]
 then
 
-    $PREFIX --image opennmt/opennmt-tf-benchmark --name gpu-opennmt-tf-float \
+    $PREFIX --image opennmt/opennmt-tf-benchmark --name cpu-opennmt-tf-float \
             --command "%s %s $BATCH_SIZE $BEAM_SIZE"
 
     $PREFIX --image opennmt/opennmt-py-benchmark --name cpu-opennmt-py-float \
