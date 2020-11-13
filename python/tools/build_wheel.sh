@@ -43,8 +43,9 @@ cd ..
 rm -r build-release
 
 cd python
-for PYTHON_ROOT in /opt/python/*
+for PYTHON_VERSION in cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
 do
+    PYTHON_ROOT=/opt/python/$PYTHON_VERSION
     $PYTHON_ROOT/bin/pip install -r install_requirements.txt
     $PYTHON_ROOT/bin/python setup.py bdist_wheel
     rm -rf build

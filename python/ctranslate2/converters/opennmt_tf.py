@@ -1,6 +1,5 @@
 import shutil
 import os
-import six
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
@@ -36,7 +35,7 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
             for i, value in enumerate(structure):
                 variables.update(_extract_variables(value, scope="%s/%d" % (scope, i)))
         elif isinstance(structure, tracking.AutoTrackable):
-            for key, value in six.iteritems(structure.__dict__):
+            for key, value in structure.__dict__.items():
                 if key.startswith("_") or key == "keras_api":
                     continue
                 variables.update(_extract_variables(
@@ -71,7 +70,7 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
                                  "does not include vocabulary assets")
             variables = {
                 "model/%s" % scope:variable.numpy()
-                for scope, variable in six.iteritems(_extract_variables(imported))}
+                for scope, variable in _extract_variables(imported).items()}
         elif tf_version == 1:
             config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
             with tf.compat.v1.Graph().as_default():
@@ -80,8 +79,8 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
                     variables = sess.run(
                         {variable.op.name:variable for variable in tf.compat.v1.global_variables()})
                     assets = sess.run(tf.compat.v1.get_collection(tf.GraphKeys.ASSET_FILEPATHS))
-            src_vocab = os.path.join(six.b(model_path), b"assets", os.path.basename(assets[0]))
-            tgt_vocab = os.path.join(six.b(model_path), b"assets", os.path.basename(assets[1]))
+            src_vocab = os.path.join(model_path.encode("utf-8"), b"assets", os.path.basename(assets[0]))
+            tgt_vocab = os.path.join(model_path.encode("utf-8"), b"assets", os.path.basename(assets[1]))
     else:
         if src_vocab is None or tgt_vocab is None:
             raise ValueError("vocabularies must be passed as argument when converting checkpoint")
@@ -92,12 +91,12 @@ def load_model(model_path, src_vocab=None, tgt_vocab=None):
         reader = tf.train.load_checkpoint(checkpoint)
         variables = {
             name:reader.get_tensor(name)
-            for name in six.iterkeys(reader.get_variable_to_shape_map())}
+            for name in reader.get_variable_to_shape_map().keys()}
         if os.path.basename(checkpoint).startswith("ckpt"):
             model_version = 2
             variables = {
                 name.replace("/.ATTRIBUTES/VARIABLE_VALUE", ""):value
-                for name, value in six.iteritems(variables)}
+                for name, value in variables.items()}
     return model_version, variables, src_vocab, tgt_vocab
 
 

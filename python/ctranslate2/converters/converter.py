@@ -3,7 +3,6 @@ import filecmp
 import inspect
 import os
 import shutil
-import six
 
 from ctranslate2.specs import catalog
 from ctranslate2.specs.model_spec import ModelSpec
@@ -14,14 +13,13 @@ def _list_specs():
             if inspect.isclass(getattr(catalog, symbol)) and not symbol.startswith("_")}
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Converter(object):
+class Converter(abc.ABC):
 
     @staticmethod
     def declare_arguments(parser):
         parser.add_argument("--output_dir", required=True,
                             help="Output model directory.")
-        parser.add_argument("--model_spec", required=True, choices=list(six.iterkeys(_list_specs())),
+        parser.add_argument("--model_spec", required=True, choices=list(_list_specs().keys()),
                             help="Type of model to convert.")
         parser.add_argument("--vocab_mapping", default=None,
                             help="Vocabulary mapping file (optional).")
@@ -43,7 +41,7 @@ class Converter(object):
         if os.path.exists(output_dir) and not force:
             raise RuntimeError(
                 "output directory %s already exists, use --force to override" % output_dir)
-        if isinstance(model_spec, six.string_types):
+        if isinstance(model_spec, str):
           spec_class = _list_specs()[model_spec]
           model_spec = spec_class()
         if not isinstance(model_spec, ModelSpec):

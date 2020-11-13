@@ -4,7 +4,6 @@ each required variable of the specification is set.
 """
 
 import struct
-import six
 import numpy as np
 
 OPTIONAL = "optional"
@@ -25,7 +24,7 @@ def _parent_scope(scope):
 
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
-    for name, value in list(six.iteritems(spec.__dict__)):
+    for name, value in list(spec.__dict__.items()):
         if isinstance(value, list):
             for i, elem in enumerate(value):
                 visit_spec(elem, fn, scope=_join_scope(scope, "%s_%d" % (name, i)))
@@ -71,12 +70,12 @@ class LayerSpec(object):
         """
         var = {}
         def _register_var(spec, name, value):
-            if isinstance(value, six.string_types) and value == OPTIONAL:
+            if isinstance(value, str) and value == OPTIONAL:
                 return
             var[_join_scope(prefix, name)] = value
         self.visit(_register_var)
         if ordered:
-            return list(sorted(six.iteritems(var), key=lambda x: x[0]))
+            return list(sorted(var.items(), key=lambda x: x[0]))
         return var
 
     def _alias_variables(self):
@@ -175,7 +174,7 @@ class ModelSpec(LayerSpec):
         variables = []
         aliases = []
         for variable in self.variables(ordered=True):
-            if isinstance(variable[1], six.string_types):
+            if isinstance(variable[1], str):
                 aliases.append(variable)
             else:
                 variables.append(variable)
@@ -184,7 +183,7 @@ class ModelSpec(LayerSpec):
 
             def _write_string(string):
                 model.write(struct.pack("H", len(string) + 1))
-                model.write(six.b(string))
+                model.write(string.encode("utf-8"))
                 model.write(struct.pack('B', 0))
 
             model.write(struct.pack("I", 4))  # Binary version.

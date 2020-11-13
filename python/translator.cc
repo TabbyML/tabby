@@ -6,26 +6,11 @@
 
 namespace py = pybind11;
 
-#if PY_MAJOR_VERSION < 3
-#  define STR_TYPE py::bytes
-#else
-#  define STR_TYPE py::str
-#endif
-
 template <typename T>
 py::list std_vector_to_py_list(const std::vector<T>& v) {
   py::list l(v.size());
   for (size_t i = 0; i < v.size(); ++i) {
     l[i] = v[i];
-  }
-  return l;
-}
-
-template<>
-py::list std_vector_to_py_list(const std::vector<std::string>& v) {
-  py::list l(v.size());
-  for (size_t i = 0; i < v.size(); ++i) {
-    l[i] = STR_TYPE(v[i]);
   }
   return l;
 }
