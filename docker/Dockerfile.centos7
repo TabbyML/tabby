@@ -25,8 +25,8 @@ RUN yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mk
     yum install -y intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
     rm -rf /var/cache/yum/*
 
-ENV DNNL_VERSION=1.5.0
-ENV DNNL_TAG=v1.5
+ENV DNNL_VERSION=1.7.0
+ENV DNNL_TAG=v1.7
 ENV DNNL_DIR=/root/dnnl
 RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl_lnx_${DNNL_VERSION}_cpu_gomp.tgz && \
     tar xf dnnl*.tgz && \

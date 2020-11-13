@@ -38,7 +38,7 @@ jobs:
       - name: Build with DNNL
         if: matrix.backend == 'dnnl'
         run: |
-          wget https://github.com/oneapi-src/oneDNN/releases/download/v1.5/dnnl_lnx_1.5.0_cpu_gomp.tgz
+          wget https://github.com/oneapi-src/oneDNN/releases/download/v1.7/dnnl_lnx_1.7.0_cpu_gomp.tgz
           tar xf dnnl*.tgz && rm dnnl*.tgz
           mv dnnl* dnnl/
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DWITH_DNNL=ON -DCMAKE_PREFIX_PATH=$PWD/dnnl .

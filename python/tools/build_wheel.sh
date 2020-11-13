@@ -27,7 +27,7 @@ yum install -y intel-mkl-64bit-${MKL_VERSION}
 
 pip install "cmake==3.13.*"
 
-DNNL_VERSION=1.5
+DNNL_VERSION=1.7
 curl -L -O https://github.com/oneapi-src/oneDNN/archive/v${DNNL_VERSION}.tar.gz
 tar xf *.tar.gz && rm *.tar.gz
 cd oneDNN-*
