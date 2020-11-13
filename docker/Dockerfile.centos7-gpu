@@ -1,8 +1,7 @@
 ARG CUDA_VERSION=10.0
 FROM nvidia/cuda:${CUDA_VERSION}-devel-centos7 as builder
 
-RUN export CUDA_SHORT_VERSION=`echo $CUDA_VERSION | cut -d'.' -f 1,2` && \
-    yum install -y epel-release centos-release-scl-rh && \
+RUN yum install -y epel-release centos-release-scl-rh && \
     yum install -y \
         devtoolset-8-gcc \
         devtoolset-8-gcc-c++ \
