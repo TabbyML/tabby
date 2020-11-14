@@ -1,8 +1,18 @@
 ## [Unreleased]
 
+### Changes
+
+* Drop support for Python 2.7 and 3.5
+
 ### New features
 
+* Add Docker images using CUDA 11.0
+
 ### Fixes and improvements
+
+* Improve GPU performance on Turing architecture when using a Docker image or the Python package
+* Update oneDNN to 1.7
+* [Python] Improve type checking for some arguments
 
 ## [v1.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.15.0) (2020-11-06)
 
