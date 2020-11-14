@@ -25,7 +25,7 @@ yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.re
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
 yum install -y intel-mkl-64bit-${MKL_VERSION}
 
-pip install "cmake==3.13.*"
+pip install "cmake==3.18.4"
 
 DNNL_VERSION=1.7
 curl -L -O https://github.com/oneapi-src/oneDNN/archive/v${DNNL_VERSION}.tar.gz
