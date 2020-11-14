@@ -28,7 +28,7 @@ _maybe_add_library_root("CTRANSLATE2")
 ctranslate2_module = Extension(
     "ctranslate2.translator",
     sources=["translator.cc"],
-    extra_compile_args=["-std=c++11"],
+    extra_compile_args=["-std=c++17"],
     include_dirs=include_dirs,
     library_dirs=library_dirs,
     libraries=["ctranslate2"])

@@ -48,7 +48,7 @@ def test_compute_type():
     model_path = _get_model_path()
     with pytest.raises(ValueError):
         ctranslate2.Translator(model_path, compute_type="float64")
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         ctranslate2.Translator(model_path, compute_type=["int8", "int16"])
     ctranslate2.Translator(model_path, compute_type="int8")
     ctranslate2.Translator(model_path, compute_type={"cuda": "float16", "cpu": "int8"})
@@ -203,7 +203,6 @@ def test_raw_file_translation_with_prefix(tmpdir):
 def test_empty_translation():
     translator = _get_transliterator()
     assert translator.translate_batch([]) == []
-    assert translator.translate_batch(None) == []
 
 def test_invalid_translation_options():
     translator = _get_transliterator()
