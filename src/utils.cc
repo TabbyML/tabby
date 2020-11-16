@@ -76,7 +76,7 @@ namespace ctranslate2 {
 #ifdef CT2_WITH_CUDA
     for (int i = 0; i < cuda::get_gpu_count(); ++i) {
       const cudaDeviceProp& device_prop = cuda::get_device_properties(i);
-      LOG() << "GPU #" << i << ':' << device_prop.name
+      LOG() << "GPU #" << i << ": " << device_prop.name
             << " (CC=" << device_prop.major << '.' << device_prop.minor << ')'
             << std::endl;
       LOG() << " - Allow INT8: " << mayiuse_int8(Device::CUDA, i)
