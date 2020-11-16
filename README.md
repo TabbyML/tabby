@@ -494,10 +494,8 @@ We are actively looking to ease this assumption by supporting ONNX as model part
 
 There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
 
-* Increased support of INT8 quantization, for example by quantizing more layers
 * Support of running ONNX graphs
 * Optimizations for ARM CPUs
-* Support GPU execution with the Python packages published on PyPI
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
