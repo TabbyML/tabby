@@ -10,7 +10,7 @@ namespace ctranslate2 {
   class Padder {
   public:
     static inline bool allow_padding_removal(const Device device, const DataType dtype) {
-      return device == Device::CPU || dtype != DataType::FLOAT16;
+      return device == Device::CPU || dtype == DataType::FLOAT;
     }
 
     // If max_time is negative, it is set to the maximum length.

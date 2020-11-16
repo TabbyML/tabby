@@ -51,8 +51,9 @@ namespace ctranslate2 {
 
     int get_gpu_count();
     bool has_gpu();
-    bool has_fast_int8(int device = -1);
-    bool has_fast_float16(int device = -1);
+    bool gpu_supports_int8(int device = -1);
+    bool gpu_has_int8_tensor_cores(int device = -1);
+    bool gpu_has_fp16_tensor_cores(int device = -1);
 
     // Custom allocator for Thrust.
     class ThrustAllocator {

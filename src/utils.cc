@@ -88,7 +88,7 @@ namespace ctranslate2 {
     case Device::CUDA: {
 #ifdef CT2_WITH_CUDA
       static const bool allow_float16 = read_bool_from_env("CT2_CUDA_ALLOW_FP16");
-      return allow_float16 || cuda::has_fast_float16(device_index);
+      return allow_float16 || cuda::gpu_has_fp16_tensor_cores(device_index);
 #else
       (void)device_index;
       return false;
@@ -112,7 +112,7 @@ namespace ctranslate2 {
     switch (device) {
     case Device::CUDA:
 #ifdef CT2_WITH_CUDA
-      return cuda::has_fast_int8(device_index);
+      return cuda::gpu_supports_int8(device_index);
 #else
       (void)device_index;
       return false;
@@ -122,6 +122,22 @@ namespace ctranslate2 {
     default:
       return false;
     }
+  }
+
+  dim_t get_preferred_size_multiple(DataType dtype, Device device, int device_index) {
+#ifdef CT2_WITH_CUDA
+    if (device == Device::CUDA) {
+      if (dtype == DataType::FLOAT16 && cuda::gpu_has_fp16_tensor_cores(device_index))
+        return 8;
+      if (dtype == DataType::INT8 && cuda::gpu_has_int8_tensor_cores(device_index))
+        return 16;
+    }
+#else
+    (void)dtype;
+    (void)device;
+    (void)device_index;
+#endif
+    return 1;
   }
 
   void set_num_threads(size_t num_threads) {

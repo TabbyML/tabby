@@ -1,10 +1,8 @@
 #include "./utils.h"
 
 #include <cstdlib>
-#include <mutex>
+#include <memory>
 #include <stdexcept>
-#include <thread>
-#include <unordered_map>
 #include <vector>
 
 #include "ctranslate2/primitives/primitives.h"
@@ -104,33 +102,37 @@ namespace ctranslate2 {
     }
 
     static const cudaDeviceProp& get_device_properties(int device) {
-      static std::unordered_map<int, cudaDeviceProp> cache;
-      static std::mutex mutex;
+      static thread_local std::vector<std::unique_ptr<cudaDeviceProp>> cache;
 
       if (device < 0) {
         CUDA_CHECK(cudaGetDevice(&device));
       }
-
-      const std::lock_guard<std::mutex> lock(mutex);
-      auto it = cache.find(device);
-      if (it != cache.end()) {
-        return it->second;
+      if (device >= static_cast<int>(cache.size())) {
+        cache.resize(device + 1);
       }
 
-      cudaDeviceProp device_prop;
-      CUDA_CHECK(cudaGetDeviceProperties(&device_prop, device));
-      return cache.emplace(device, device_prop).first->second;
+      auto& device_prop = cache[device];
+      if (!device_prop) {
+        device_prop.reset(new cudaDeviceProp());
+        CUDA_CHECK(cudaGetDeviceProperties(device_prop.get(), device));
+      }
+      return *device_prop;
     }
 
     // See docs.nvidia.com/deeplearning/sdk/tensorrt-support-matrix/index.html
     // for hardware support of reduced precision.
 
-    bool has_fast_int8(int device) {
+    bool gpu_supports_int8(int device) {
       const cudaDeviceProp& device_prop = get_device_properties(device);
       return device_prop.major > 6 || (device_prop.major == 6 && device_prop.minor == 1);
     }
 
-    bool has_fast_float16(int device) {
+    bool gpu_has_int8_tensor_cores(int device) {
+      const cudaDeviceProp& device_prop = get_device_properties(device);
+      return device_prop.major > 7 || (device_prop.major == 7 && device_prop.minor >= 2);
+    }
+
+    bool gpu_has_fp16_tensor_cores(int device) {
       const cudaDeviceProp& device_prop = get_device_properties(device);
       return device_prop.major >= 7;
     }
