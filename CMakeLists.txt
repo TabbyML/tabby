@@ -66,6 +66,7 @@ set(PRIVATE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
   )
 set(SOURCES
+  src/batch_reader.cc
   src/decoding.cc
   src/devices.cc
   src/cpu/backend.cc

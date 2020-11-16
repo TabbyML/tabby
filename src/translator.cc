@@ -218,19 +218,19 @@ namespace ctranslate2 {
       // Translate by batch of size options.max_batch_size.
       results.reserve(source.size());
 
-      std::vector<std::vector<std::string>> partial_source;
-      std::vector<std::vector<std::string>> partial_target_prefix;
-      partial_source.reserve(source.size());
+      VectorReader source_reader(std::move(sorted_source));
+      std::unique_ptr<VectorReader> target_prefix_reader;
       if (target_prefix)
-        partial_target_prefix.reserve(target_prefix->size());
-      size_t partial_batch_size = 0;
+        target_prefix_reader.reset(new VectorReader(std::move(sorted_target_prefix)));
 
-      for (size_t i = 0; i < sorted_source.size(); ++i) {
-        const auto& tokens = sorted_source[i];
-        const size_t batch_size_increment = get_batch_size_increment(tokens, options.batch_type);
+      while (source_reader.has_next()) {
+        std::vector<std::vector<std::string>> partial_source = source_reader.get_next(
+          options.max_batch_size, options.batch_type);
+        std::vector<std::vector<std::string>> partial_target_prefix;
+        if (target_prefix)
+          partial_target_prefix = target_prefix_reader->get_next(partial_source.size());
 
-        if (partial_batch_size > 0
-            && partial_batch_size + batch_size_increment > options.max_batch_size) {
+        {
           auto partial_results = run_batch_translation(partial_source,
                                                        target_prefix
                                                        ? &partial_target_prefix
@@ -239,27 +239,7 @@ namespace ctranslate2 {
           results.insert(results.end(),
                          std::make_move_iterator(partial_results.begin()),
                          std::make_move_iterator(partial_results.end()));
-          partial_source.clear();
-          partial_batch_size = 0;
-          if (target_prefix)
-            partial_target_prefix.clear();
         }
-
-        partial_source.emplace_back(std::move(tokens));
-        partial_batch_size += batch_size_increment;
-        if (target_prefix)
-          partial_target_prefix.emplace_back(std::move(sorted_target_prefix[i]));
-      }
-
-      if (!partial_source.empty()) {
-        auto partial_results = run_batch_translation(partial_source,
-                                                     target_prefix
-                                                     ? &partial_target_prefix
-                                                     : nullptr,
-                                                     options);
-        results.insert(results.end(),
-                       std::make_move_iterator(partial_results.begin()),
-                       std::make_move_iterator(partial_results.end()));
       }
     }
 
@@ -442,15 +422,6 @@ namespace ctranslate2 {
   void Translator::assert_has_model() const {
     if (!_model)
       throw std::runtime_error("No model is attached to this translator");
-  }
-
-
-  BatchType str_to_batch_type(const std::string& batch_type) {
-    if (batch_type == "examples")
-      return BatchType::Examples;
-    else if (batch_type == "tokens")
-      return BatchType::Tokens;
-    throw std::invalid_argument("Invalid batch type: " + batch_type);
   }
 
 }

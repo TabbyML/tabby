@@ -86,10 +86,10 @@ namespace ctranslate2 {
         }
       };
 
-      BatchReader<SourceReader> batch_source_reader(source, source_reader);
-      std::unique_ptr<BatchReader<TargetReader>> batch_target_reader;
+      StreamReader<SourceReader> batch_source_reader(source, source_reader);
+      std::unique_ptr<StreamReader<TargetReader>> batch_target_reader;
       if (target) {
-        batch_target_reader.reset(new BatchReader<TargetReader>(*target, target_reader));
+        batch_target_reader.reset(new StreamReader<TargetReader>(*target, target_reader));
       }
 
       while (batch_source_reader.has_next()) {

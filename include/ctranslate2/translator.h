@@ -3,15 +3,11 @@
 #include <string>
 #include <vector>
 
+#include "batch_reader.h"
 #include "models/sequence_to_sequence.h"
 #include "translation_result.h"
 
 namespace ctranslate2 {
-
-  enum class BatchType {
-    Examples,
-    Tokens,
-  };
 
   struct TranslationOptions {
     // Maximum batch size to run the model on (set 0 to forward the input as is).
@@ -126,26 +122,5 @@ namespace ctranslate2 {
     const Vocabulary* _source_vocabulary;
     const Vocabulary* _target_vocabulary;
   };
-
-
-  BatchType str_to_batch_type(const std::string& batch_type);
-
-  template <typename T>
-  size_t get_batch_size_increment(const std::vector<T>& example, const BatchType batch_type) {
-    switch (batch_type) {
-    case BatchType::Tokens:
-      return example.size();
-    default:
-      return 1;
-    };
-  }
-
-  template <typename T>
-  size_t get_batch_size(const std::vector<std::vector<T>>& examples, const BatchType batch_type) {
-    size_t batch_size = 0;
-    for (const std::vector<T>& example : examples)
-      batch_size += get_batch_size_increment(example, batch_type);
-    return batch_size;
-  }
 
 }
