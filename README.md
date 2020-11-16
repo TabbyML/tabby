@@ -346,7 +346,7 @@ python setup.py bdist_wheel
 pip install dist/*.whl
 
 # Run the tests with pytest.
-pip install pytest
+pip install -r tests/requirements.txt
 pytest tests/test.py
 ```
 
