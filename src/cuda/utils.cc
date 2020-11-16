@@ -101,7 +101,7 @@ namespace ctranslate2 {
       return get_gpu_count() > 0;
     }
 
-    static const cudaDeviceProp& get_device_properties(int device) {
+    const cudaDeviceProp& get_device_properties(int device) {
       static thread_local std::vector<std::unique_ptr<cudaDeviceProp>> cache;
 
       if (device < 0) {

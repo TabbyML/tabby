@@ -59,19 +59,34 @@ namespace ctranslate2 {
           << ", AVX=" << cpu::cpu_supports_avx()
           << ", AVX2=" << cpu::cpu_supports_avx()
           << ")" << std::endl;
-    LOG() << "Selected CPU ISA: " << cpu::isa_to_str(cpu::get_cpu_isa()) << std::endl;
-    LOG() << "Use Intel MKL: " << cpu::mayiuse_mkl() << std::endl;
-    LOG() << "SGEMM CPU backend: "
+    LOG() << " - Selected ISA: " << cpu::isa_to_str(cpu::get_cpu_isa()) << std::endl;
+    LOG() << " - Use Intel MKL: " << cpu::mayiuse_mkl() << std::endl;
+    LOG() << " - SGEMM backend: "
           << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT))
           << std::endl;
-    LOG() << "GEMM_S16 CPU backend: "
+    LOG() << " - GEMM_S16 backend: "
           << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT16))
           << std::endl;
-    LOG() << "GEMM_S8 CPU backend: "
+    LOG() << " - GEMM_S8 backend: "
           << cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT8))
           << " (u8s8 preferred: " << cpu::prefer_u8s8s32_gemm() << ")"
           << std::endl;
-    LOG() << "Use packed GEMM: " << cpu::should_pack_gemm_weights() << std::endl;
+    LOG() << " - Use packed GEMM: " << cpu::should_pack_gemm_weights() << std::endl;
+
+#ifdef CT2_WITH_CUDA
+    for (int i = 0; i < cuda::get_gpu_count(); ++i) {
+      const cudaDeviceProp& device_prop = cuda::get_device_properties(i);
+      LOG() << "GPU #" << i << ':' << device_prop.name
+            << " (CC=" << device_prop.major << '.' << device_prop.minor << ')'
+            << std::endl;
+      LOG() << " - Allow INT8: " << mayiuse_int8(Device::CUDA, i)
+            << " (with Tensor Cores: " << cuda::gpu_has_int8_tensor_cores(i) << ')'
+            << std::endl;
+      LOG() << " - Allow FP16: " << mayiuse_float16(Device::CUDA, i)
+            << " (with Tensor Cores: " << cuda::gpu_has_fp16_tensor_cores(i) << ')'
+            << std::endl;
+    }
+#endif
   }
 
   // Maybe log run configuration on program start.
