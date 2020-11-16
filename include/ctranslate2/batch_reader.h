@@ -36,6 +36,8 @@ namespace ctranslate2 {
   // Base class to produce batches.
   class BatchReader {
   public:
+    virtual ~BatchReader() = default;
+
     std::vector<std::vector<std::string>>
     get_next(const size_t max_batch_size,
              const BatchType batch_type = BatchType::Examples);
