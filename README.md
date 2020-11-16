@@ -341,7 +341,7 @@ cd build && make install && cd ..
 
 # Build and install the Python wheel.
 cd python
-pip install pybind11
+pip install -r install_requirements.txt
 python setup.py bdist_wheel
 pip install dist/*.whl
 
