@@ -218,22 +218,18 @@ namespace ctranslate2 {
       // Translate by batch of size options.max_batch_size.
       results.reserve(source.size());
 
-      VectorReader source_reader(std::move(sorted_source));
-      std::unique_ptr<VectorReader> target_prefix_reader;
+      ParallelBatchReader batch_reader;
+      batch_reader.add(new VectorReader(std::move(sorted_source)));
       if (target_prefix)
-        target_prefix_reader.reset(new VectorReader(std::move(sorted_target_prefix)));
+        batch_reader.add(new VectorReader(std::move(sorted_target_prefix)));
 
-      while (source_reader.has_next()) {
-        std::vector<std::vector<std::string>> partial_source = source_reader.get_next(
-          options.max_batch_size, options.batch_type);
-        std::vector<std::vector<std::string>> partial_target_prefix;
-        if (target_prefix)
-          partial_target_prefix = target_prefix_reader->get_next(partial_source.size());
+      while (batch_reader.has_next()) {
+        auto batch = batch_reader.get_next(options.max_batch_size, options.batch_type);
 
         {
-          auto partial_results = run_batch_translation(partial_source,
+          auto partial_results = run_batch_translation(batch[0],
                                                        target_prefix
-                                                       ? &partial_target_prefix
+                                                       ? &batch[1]
                                                        : nullptr,
                                                        options);
           results.insert(results.end(),

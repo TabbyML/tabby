@@ -48,4 +48,36 @@ namespace ctranslate2 {
     return std::move(_examples[_index++]);
   }
 
+  void ParallelBatchReader::add(BatchReader* reader) {
+    _readers.emplace_back(reader);
+  }
+
+  std::vector<std::vector<std::vector<std::string>>>
+  ParallelBatchReader::get_next(const size_t max_batch_size,
+                                const BatchType batch_type) {
+    std::vector<std::vector<std::vector<std::string>>> batches;
+    batches.resize(_readers.size());
+
+    if (has_next()) {
+      batches[0] = _readers[0]->get_next(max_batch_size, batch_type);
+
+      const size_t batch_size = batches[0].size();
+      for (size_t i = 1; i < _readers.size(); ++i) {
+        batches[i] = _readers[i]->get_next(batch_size);
+        if (batches[i].size() != batch_size)
+          throw std::runtime_error("One input stream has less elements than the others");
+      }
+    }
+
+    return batches;
+  }
+
+  bool ParallelBatchReader::has_next() const {
+    for (const auto& reader : _readers) {
+      if (reader->has_next())
+        return true;
+    }
+    return false;
+  }
+
 }

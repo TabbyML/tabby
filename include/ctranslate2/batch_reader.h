@@ -1,6 +1,7 @@
 #pragma once
 
 #include <istream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -108,6 +109,23 @@ namespace ctranslate2 {
   private:
     std::vector<std::vector<std::string>> _examples;
     size_t _index;
+  };
+
+  // Read batches from multiple sources.
+  class ParallelBatchReader {
+  public:
+    void add(BatchReader* reader);  // The instance takes ownership of the pointer.
+
+    // batch_type is applied to the first stream and then the function takes the same
+    // number of examples from the other streams.
+    std::vector<std::vector<std::vector<std::string>>>
+    get_next(const size_t max_batch_size,
+             const BatchType batch_type = BatchType::Examples);
+
+    bool has_next() const;
+
+  private:
+    std::vector<std::unique_ptr<BatchReader>> _readers;
   };
 
 }
