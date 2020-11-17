@@ -54,7 +54,6 @@ namespace ctranslate2 {
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (min_decoding_length > max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-;
   }
 
 
