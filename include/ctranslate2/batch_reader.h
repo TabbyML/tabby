@@ -14,26 +14,6 @@ namespace ctranslate2 {
 
   BatchType str_to_batch_type(const std::string& batch_type);
 
-  template <typename T>
-  size_t get_batch_size_increment(const std::vector<T>& example,
-                                  const BatchType batch_type) {
-    switch (batch_type) {
-    case BatchType::Tokens:
-      return example.size();
-    default:
-      return 1;
-    };
-  }
-
-  template <typename T>
-  size_t get_batch_size(const std::vector<std::vector<T>>& examples,
-                        const BatchType batch_type) {
-    size_t batch_size = 0;
-    for (const std::vector<T>& example : examples)
-      batch_size += get_batch_size_increment(example, batch_type);
-    return batch_size;
-  }
-
   // Base class to produce batches.
   class BatchReader {
   public:
@@ -43,10 +23,10 @@ namespace ctranslate2 {
     get_next(const size_t max_batch_size,
              const BatchType batch_type = BatchType::Examples);
 
-    // Returns true if there are still elements to read.
-    virtual bool has_next() const = 0;
-
   protected:
+    // Returns true if there are still elements to read.
+    virtual bool has_next_element() const = 0;
+
     // Returns the next element but does not consume it.
     virtual const std::vector<std::string>& peek_next_element() = 0;
 
@@ -66,10 +46,6 @@ namespace ctranslate2 {
       advance();
     }
 
-    bool has_next() const override {
-      return !_end;
-    }
-
   private:
     std::istream& _stream;
     Reader& _reader;
@@ -85,6 +61,10 @@ namespace ctranslate2 {
     }
 
   protected:
+    bool has_next_element() const override {
+      return !_end;
+    }
+
     const std::vector<std::string>& peek_next_element() override {
       return _next;
     }
@@ -100,9 +80,9 @@ namespace ctranslate2 {
   class VectorReader : public BatchReader {
   public:
     VectorReader(std::vector<std::vector<std::string>> examples);
-    bool has_next() const override;
 
   protected:
+    bool has_next_element() const override;
     const std::vector<std::string>& peek_next_element() override;
     std::vector<std::string> get_next_element() override;
 
@@ -121,8 +101,6 @@ namespace ctranslate2 {
     std::vector<std::vector<std::vector<std::string>>>
     get_next(const size_t max_batch_size,
              const BatchType batch_type = BatchType::Examples);
-
-    bool has_next() const;
 
   private:
     std::vector<std::unique_ptr<BatchReader>> _readers;

@@ -10,6 +10,17 @@ namespace ctranslate2 {
     throw std::invalid_argument("Invalid batch type: " + batch_type);
   }
 
+  template <typename T>
+  static size_t get_batch_size_increment(const std::vector<T>& example,
+                                         const BatchType batch_type) {
+    switch (batch_type) {
+    case BatchType::Tokens:
+      return example.size();
+    default:
+      return 1;
+    };
+  }
+
   std::vector<std::vector<std::string>>
   BatchReader::get_next(const size_t max_batch_size,
                         const BatchType batch_type) {
@@ -18,7 +29,7 @@ namespace ctranslate2 {
 
     size_t batch_size = 0;
 
-    while (has_next()) {
+    while (has_next_element()) {
       const size_t batch_size_increment = get_batch_size_increment(peek_next_element(),
                                                                    batch_type);
       if (batch_size > 0 && batch_size + batch_size_increment > max_batch_size)
@@ -36,7 +47,7 @@ namespace ctranslate2 {
   {
   }
 
-  bool VectorReader::has_next() const {
+  bool VectorReader::has_next_element() const {
     return _index < _examples.size();
   }
 
@@ -57,27 +68,16 @@ namespace ctranslate2 {
                                 const BatchType batch_type) {
     std::vector<std::vector<std::vector<std::string>>> batches;
     batches.resize(_readers.size());
+    batches[0] = _readers[0]->get_next(max_batch_size, batch_type);
 
-    if (has_next()) {
-      batches[0] = _readers[0]->get_next(max_batch_size, batch_type);
-
-      const size_t batch_size = batches[0].size();
-      for (size_t i = 1; i < _readers.size(); ++i) {
-        batches[i] = _readers[i]->get_next(batch_size);
-        if (batches[i].size() != batch_size)
-          throw std::runtime_error("One input stream has less elements than the others");
-      }
+    const size_t batch_size = batches[0].size();
+    for (size_t i = 1; i < _readers.size(); ++i) {
+      batches[i] = _readers[i]->get_next(batch_size);
+      if (batches[i].size() != batch_size)
+        throw std::runtime_error("One input stream has less elements than the others");
     }
 
     return batches;
-  }
-
-  bool ParallelBatchReader::has_next() const {
-    for (const auto& reader : _readers) {
-      if (reader->has_next())
-        return true;
-    }
-    return false;
   }
 
 }

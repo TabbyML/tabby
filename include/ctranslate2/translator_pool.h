@@ -50,6 +50,11 @@ namespace ctranslate2 {
                                         TranslationOptions options,
                                         bool blocking=false);
 
+    // Run a translation synchronously.
+    TranslationOutput translate_batch(const TranslationInput& source,
+                                      const TranslationInput& target_prefix,
+                                      TranslationOptions options);
+
     // Translate a stream in parallel.
     // Results will be written in order as they are available so the stream content is
     // never stored fully in memory
@@ -92,8 +97,10 @@ namespace ctranslate2 {
         batch_reader.add(new StreamReader<TargetReader>(*target, target_reader));
       }
 
-      while (batch_reader.has_next()) {
+      while (true) {
         auto batch = batch_reader.get_next(read_batch_size, options.batch_type);
+        if (batch[0].empty())
+          break;
         results.emplace(post(std::move(batch[0]),
                              target
                              ? std::move(batch[1])

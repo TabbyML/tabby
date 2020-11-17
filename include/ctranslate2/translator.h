@@ -9,6 +9,9 @@
 
 namespace ctranslate2 {
 
+  class Translator;
+  class TranslatorPool;
+
   struct TranslationOptions {
     // Maximum batch size to run the model on (set 0 to forward the input as is).
     // When more inputs are passed to translate(), they will be internally sorted by length
@@ -52,6 +55,16 @@ namespace ctranslate2 {
     // used with a target prefix to provide alternatives at a specifc location in the
     // translation.
     bool return_alternatives = false;
+
+    void validate() const;
+
+  private:
+    // Internal options.
+    bool validated = false;
+    bool rebatch_input = true;
+
+    friend class Translator;
+    friend class TranslatorPool;
   };
 
   // This class holds all information required to translate from a model. Copying
@@ -103,17 +116,9 @@ namespace ctranslate2 {
     void assert_has_model() const;
 
     std::vector<TranslationResult>
-    run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
-                                 const std::vector<std::vector<std::string>>* target_prefix,
-                                 const TranslationOptions& options);
-    std::vector<TranslationResult>
     run_batch_translation(const std::vector<std::vector<std::string>>& source,
-                          const std::vector<std::vector<std::string>>* target_prefix,
+                          const std::vector<std::vector<std::string>>& target_prefix,
                           const TranslationOptions& options);
-    TranslationResult
-    run_translation(const std::vector<std::string>& source,
-                    const std::vector<std::string>* target_prefix,
-                    const TranslationOptions& options);
 
     std::shared_ptr<const models::Model> _model;
     std::unique_ptr<layers::Encoder> _encoder;
@@ -122,5 +127,18 @@ namespace ctranslate2 {
     const Vocabulary* _source_vocabulary;
     const Vocabulary* _target_vocabulary;
   };
+
+  struct TranslationBatch {
+    std::vector<std::vector<std::string>> source;
+    std::vector<std::vector<std::string>> target_prefix;
+    std::vector<size_t> example_index;  // Index of each example in the original input.
+  };
+
+  // Rebatch the input according to the translation options.
+  // This function can also reorder the examples to improve efficiency.
+  std::vector<TranslationBatch>
+  rebatch_translation_input(const std::vector<std::vector<std::string>>& source,
+                            const std::vector<std::vector<std::string>>& target_prefix,
+                            const TranslationOptions& options);
 
 }

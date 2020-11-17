@@ -234,9 +234,9 @@ public:
       options.return_attention = return_attention;
       options.return_alternatives = return_alternatives;
 
-      results = _translator_pool.post(source,
-                                      finalize_optional_batch(target_prefix),
-                                      std::move(options)).get();
+      results = _translator_pool.translate_batch(source,
+                                                 finalize_optional_batch(target_prefix),
+                                                 options);
     }
 
     py::list py_results(results.size());

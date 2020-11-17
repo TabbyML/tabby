@@ -96,9 +96,11 @@ Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structu
 
 ### Note on parallel CPU translations
 
-For CPU translations, the parameter `inter_threads` controls the number of batches a `Translator` instance can process in parallel. The `translate_file` method automatically takes advantage of this parallelization.
+For CPU translations, the parameter `inter_threads` controls the number of batches a `Translator` instance can process in parallel. Parallel translations are enabled in the following cases:
 
-However, extra work may be needed when using the `translate_batch` method because multiple translations should be started concurrently from Python. If you are using a multithreaded HTTP server, this may already be the case. For other cases, you could use a [`ThreadPoolExecutor`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor) to submit multiple translations:
+* When calling `translate_file`.
+* When calling `translate_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
+* When calling `translate_batch` from multiple Python threads. If you are using a multithreaded HTTP server, this may already be the case. For other cases, you could use a [`ThreadPoolExecutor`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor) to submit multiple concurrent translations:
 
 ```python
 import concurrent.futures

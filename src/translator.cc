@@ -10,30 +10,12 @@
 namespace ctranslate2 {
 
   template <typename T>
-  static std::vector<size_t>
-  sort_from_longest_to_shortest(const std::vector<std::vector<T>>& examples) {
-    std::vector<size_t> sorted_to_original_index(examples.size());
-    std::iota(sorted_to_original_index.begin(), sorted_to_original_index.end(), 0);
-    std::sort(sorted_to_original_index.begin(), sorted_to_original_index.end(),
-              [&examples](size_t i1, size_t i2) {
-                return examples[i1].size() > examples[i2].size();
-              });
-
-    std::vector<size_t> original_to_sorted_index(examples.size());
-    for (size_t i = 0; i < sorted_to_original_index.size(); ++i) {
-      const size_t original_index = sorted_to_original_index[i];
-      original_to_sorted_index[original_index] = i;
-    }
-    return original_to_sorted_index;
-  }
-
-  template <typename T>
   static std::vector<T> index_vector(const std::vector<T>& v,
-                                     const std::vector<size_t>& new_index) {
+                                     const std::vector<size_t>& index) {
     std::vector<T> new_v;
-    new_v.resize(v.size());
-    for (size_t i = 0; i < v.size(); ++i)
-      new_v[new_index[i]] = v[i];
+    new_v.resize(index.size());
+    for (size_t i = 0; i < index.size(); ++i)
+      new_v[i] = v[index[i]];
     return new_v;
   }
 
@@ -58,6 +40,21 @@ namespace ctranslate2 {
       strategy = new BeamSearch(options.beam_size, options.length_penalty, options.coverage_penalty);
 
     return std::unique_ptr<const SearchStrategy>(strategy);
+  }
+
+
+  void TranslationOptions::validate() const {
+    if (num_hypotheses == 0)
+      throw std::invalid_argument("num_hypotheses must be > 0");
+    if (beam_size == 0)
+      throw std::invalid_argument("beam_size must be > 0");
+    if (num_hypotheses > beam_size && !return_alternatives)
+      throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
+    if (sampling_topk != 1 && beam_size != 1)
+      throw std::invalid_argument("Random sampling should be used with beam_size = 1");
+    if (min_decoding_length > max_decoding_length)
+      throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
+;
   }
 
 
@@ -116,141 +113,33 @@ namespace ctranslate2 {
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
-    assert_has_model();
-    const size_t batch_size = source.size();
+    if (!options.validated)
+      options.validate();
+    if (!options.rebatch_input)
+      return run_batch_translation(source, target_prefix, options);
 
-    // Check options and inputs.
-    if (options.num_hypotheses == 0)
-      throw std::invalid_argument("num_hypotheses must be > 0");
-    if (options.beam_size == 0)
-      throw std::invalid_argument("beam_size must be > 0");
-    if (options.num_hypotheses > options.beam_size && !options.return_alternatives)
-      throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
-    if (options.sampling_topk != 1 && options.beam_size != 1)
-      throw std::invalid_argument("Random sampling should be used with beam_size = 1");
-    if (options.min_decoding_length > options.max_decoding_length)
-      throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
-    if (!target_prefix.empty() && target_prefix.size() != batch_size)
-      throw std::invalid_argument("Batch size mismatch: got "
-                                  + std::to_string(batch_size) + " for source and "
-                                  + std::to_string(target_prefix.size()) + " for target prefix");
+    const TranslationResult empty_result(options.num_hypotheses, options.return_attention);
+    std::vector<TranslationResult> results(source.size(), empty_result);
 
-    if (batch_size == 0)
-      return std::vector<TranslationResult>();
-
-    const auto is_empty = [](const std::vector<std::string>& tokens) { return tokens.empty(); };
-    const bool no_source_is_empty = std::none_of(source.begin(), source.end(), is_empty);
-    const bool with_prefix = !std::all_of(target_prefix.begin(), target_prefix.end(), is_empty);
-    const bool allow_batch_prefix = !options.return_alternatives;
-
-    // Fast path for the common case.
-    if (no_source_is_empty && (!with_prefix || allow_batch_prefix))
-      return run_batch_translation_sorted(source, with_prefix ? &target_prefix : nullptr, options);
-
-    std::vector<TranslationResult> with_prefix_results;
-    std::vector<std::vector<std::string>> non_empty_source;
-    std::vector<std::vector<std::string>> prefix;
-    non_empty_source.reserve(batch_size);
-    if (with_prefix) {
-      prefix.reserve(batch_size);
-      if (!allow_batch_prefix) {
-        with_prefix_results.reserve(batch_size);
-      }
+    for (const auto& batch : rebatch_translation_input(source, target_prefix, options)) {
+      auto batch_results = run_batch_translation(batch.source, batch.target_prefix, options);
+      for (size_t i = 0; i < batch_results.size(); ++i)
+        results[batch.example_index[i]] = std::move(batch_results[i]);
     }
 
-    for (size_t i = 0; i < batch_size; ++i) {
-      if (source[i].empty())
-        continue;
-      if (with_prefix) {
-        if (allow_batch_prefix) {
-          non_empty_source.emplace_back(source[i]);
-          prefix.emplace_back(target_prefix[i]);
-        } else if (!target_prefix.empty()) {
-          with_prefix_results.emplace_back(run_translation(source[i], &target_prefix[i], options));
-        }
-      } else {
-        non_empty_source.emplace_back(source[i]);
-      }
-    }
-
-    // Run batch translation of all other non empty examples.
-    std::vector<TranslationResult> results;
-    if (!non_empty_source.empty())
-      results = run_batch_translation_sorted(non_empty_source,
-                                             with_prefix && allow_batch_prefix ? &prefix : nullptr,
-                                             options);
-    std::vector<TranslationResult> final_results;
-    final_results.reserve(batch_size);
-
-    // Build the final results vector.
-    for (size_t i = 0, non_empty_index = 0, with_prefix_index = 0; i < batch_size; ++i) {
-      if (source[i].empty())
-        final_results.emplace_back(options.num_hypotheses, options.return_attention);
-      else if (with_prefix && !allow_batch_prefix && !target_prefix[i].empty())
-        final_results.emplace_back(std::move(with_prefix_results[with_prefix_index++]));
-      else
-        final_results.emplace_back(std::move(results[non_empty_index++]));
-    }
-
-    return final_results;
-  }
-
-  std::vector<TranslationResult>
-  Translator::run_batch_translation_sorted(const std::vector<std::vector<std::string>>& source,
-                                           const std::vector<std::vector<std::string>>* target_prefix,
-                                           const TranslationOptions& options) {
-    // Sorting the source input has 2 benefits:
-    //
-    // 1. When max_batch_size is smaller that the number of inputs, we prefer translating
-    //    together sentences that have a similar length for improved efficiency.
-    // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
-    //    updated in place so it is more efficient to remove content at the end. Shorter sentences
-    //    are more likely to finish first so we sort the batch accordingly.
-    const std::vector<size_t> sorted_index = sort_from_longest_to_shortest(source);
-
-    ParallelBatchReader batch_reader;
-    batch_reader.add(new VectorReader(index_vector(source, sorted_index)));
-    if (target_prefix)
-      batch_reader.add(new VectorReader(index_vector(*target_prefix, sorted_index)));
-
-    size_t max_batch_size = options.max_batch_size;
-    BatchType batch_type = options.batch_type;
-    if (max_batch_size == 0) {
-      max_batch_size = source.size();
-      batch_type = BatchType::Examples;
-    }
-
-    std::vector<TranslationResult> results;
-    results.reserve(source.size());
-
-    while (batch_reader.has_next()) {
-      const auto batch = batch_reader.get_next(max_batch_size, batch_type);
-      const auto& source_batch = batch[0];
-      const auto* target_prefix_batch = target_prefix ? &batch[1] : nullptr;
-
-      for (auto& result : run_batch_translation(source_batch, target_prefix_batch, options))
-        results.emplace_back(std::move(result));
-    }
-
-    // Reorder results based on original batch index.
-    std::vector<TranslationResult> final_results;
-    final_results.reserve(results.size());
-    for (auto index : sorted_index)
-      final_results.emplace_back(std::move(results[index]));
-    return final_results;
+    return results;
   }
 
   std::vector<TranslationResult>
   Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
-                                    const std::vector<std::vector<std::string>>* target_prefix,
+                                    const std::vector<std::vector<std::string>>& target_prefix,
                                     const TranslationOptions& options) {
     PROFILE("run_batch_translation");
+    assert_has_model();
     auto scoped_device_setter = _model->get_scoped_device_setter();
 
     std::vector<std::vector<size_t>> source_ids = _source_vocabulary->to_ids(source);
-    std::vector<std::vector<size_t>> target_prefix_ids;
-    if (target_prefix)
-      target_prefix_ids = _target_vocabulary->to_ids(*target_prefix);
+    std::vector<std::vector<size_t>> target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
 
     const Device device = _model->device();
     const int device_index = _model->device_index();
@@ -306,7 +195,7 @@ namespace ctranslate2 {
       *make_search_strategy(options),
       *make_sampler(options),
       start_ids,
-      target_prefix ? &target_prefix_ids : nullptr,
+      !target_prefix_ids.empty() ? &target_prefix_ids : nullptr,
       !output_ids_map.empty() ? &output_ids_map : nullptr,
       end_id,
       options.max_decoding_length,
@@ -337,18 +226,6 @@ namespace ctranslate2 {
       final_results.emplace_back(make_translation_result(std::move(result), *_target_vocabulary));
     }
     return final_results;
-  }
-
-  TranslationResult
-  Translator::run_translation(const std::vector<std::string>& source,
-                              const std::vector<std::string>* target_prefix,
-                              const TranslationOptions& options) {
-    if (!target_prefix)
-      return run_batch_translation({source}, nullptr, options)[0];
-    else {
-      std::vector<std::vector<std::string>> batch_target_prefix(1, *target_prefix);
-      return run_batch_translation({source}, &batch_target_prefix, options)[0];
-    }
   }
 
   Device Translator::device() const {
@@ -411,6 +288,77 @@ namespace ctranslate2 {
   void Translator::assert_has_model() const {
     if (!_model)
       throw std::runtime_error("No model is attached to this translator");
+  }
+
+  std::vector<TranslationBatch>
+  rebatch_translation_input(const std::vector<std::vector<std::string>>& source,
+                            const std::vector<std::vector<std::string>>& target_prefix,
+                            const TranslationOptions& options) {
+    if (!target_prefix.empty() && target_prefix.size() != source.size())
+      throw std::invalid_argument("Batch size mismatch: got "
+                                  + std::to_string(source.size()) + " for source and "
+                                  + std::to_string(target_prefix.size()) + " for target prefix");
+
+    const size_t global_batch_size = source.size();
+    size_t max_batch_size = options.max_batch_size;
+    BatchType batch_type = options.batch_type;
+    if (options.return_alternatives) {
+      max_batch_size = 1;  // Disable batching in return_alternatives mode.
+      batch_type = BatchType::Examples;
+    } else if (max_batch_size == 0) {
+      max_batch_size = global_batch_size;
+      batch_type = BatchType::Examples;
+    }
+
+    // Sorting the source inputs from the longest to the shortest has 2 benefits:
+    //
+    // 1. When max_batch_size is smaller that the number of inputs, we prefer translating
+    //    together sentences that have a similar length for improved efficiency.
+    // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
+    //    updated in place so it is more efficient to remove content at the end. Shorter sentences
+    //    are more likely to finish first so we sort the batch accordingly.
+    std::vector<size_t> example_index(global_batch_size);
+    std::iota(example_index.begin(), example_index.end(), 0);
+    std::sort(example_index.begin(), example_index.end(),
+              [&source](size_t i1, size_t i2) {
+                return source[i1].size() > source[i2].size();
+              });
+
+    // Ignore empty examples.
+    // As example_index is sorted from longest to shortest, we simply pop empty examples
+    // from the back.
+    while (!example_index.empty() && source[example_index.back()].empty())
+      example_index.pop_back();
+
+    std::vector<TranslationBatch> batches;
+    if (example_index.empty())
+      return batches;
+
+    ParallelBatchReader batch_reader;
+    batch_reader.add(new VectorReader(index_vector(source, example_index)));
+    if (!target_prefix.empty())
+      batch_reader.add(new VectorReader(index_vector(target_prefix, example_index)));
+
+    for (size_t offset = 0;;) {
+      auto batch = batch_reader.get_next(max_batch_size, batch_type);
+      if (batch[0].empty())
+        break;
+
+      TranslationBatch translation_batch;
+      translation_batch.source = std::move(batch[0]);
+      if (batch.size() > 1)
+        translation_batch.target_prefix = std::move(batch[1]);
+
+      const size_t batch_size = translation_batch.source.size();
+      translation_batch.example_index.insert(translation_batch.example_index.begin(),
+                                             example_index.begin() + offset,
+                                             example_index.begin() + offset + batch_size);
+      offset += batch_size;
+
+      batches.emplace_back(std::move(translation_batch));
+    }
+
+    return batches;
   }
 
 }
