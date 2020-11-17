@@ -10,23 +10,31 @@
 namespace ctranslate2 {
 
   template <typename T>
-  static std::vector<std::vector<T>>
-  sort_from_longest_to_shortest(const std::vector<std::vector<T>>& ids,
-                                std::vector<size_t>& original_to_sorted_index) {
-    std::vector<size_t> sorted_to_original_index(ids.size());
+  static std::vector<size_t>
+  sort_from_longest_to_shortest(const std::vector<std::vector<T>>& examples) {
+    std::vector<size_t> sorted_to_original_index(examples.size());
     std::iota(sorted_to_original_index.begin(), sorted_to_original_index.end(), 0);
     std::sort(sorted_to_original_index.begin(), sorted_to_original_index.end(),
-              [&ids](size_t i1, size_t i2) { return ids[i1].size() > ids[i2].size(); });
+              [&examples](size_t i1, size_t i2) {
+                return examples[i1].size() > examples[i2].size();
+              });
 
-    original_to_sorted_index.resize(ids.size());
-    std::vector<std::vector<T>> new_ids;
-    new_ids.reserve(ids.size());
-    for (size_t i = 0; i < ids.size(); ++i) {
-      size_t original_index = sorted_to_original_index[i];
+    std::vector<size_t> original_to_sorted_index(examples.size());
+    for (size_t i = 0; i < sorted_to_original_index.size(); ++i) {
+      const size_t original_index = sorted_to_original_index[i];
       original_to_sorted_index[original_index] = i;
-      new_ids.emplace_back(ids[original_index]);
     }
-    return new_ids;
+    return original_to_sorted_index;
+  }
+
+  template <typename T>
+  static std::vector<T> index_vector(const std::vector<T>& v,
+                                     const std::vector<size_t>& new_index) {
+    std::vector<T> new_v;
+    new_v.resize(v.size());
+    for (size_t i = 0; i < v.size(); ++i)
+      new_v[new_index[i]] = v[i];
+    return new_v;
   }
 
   static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
@@ -198,45 +206,30 @@ namespace ctranslate2 {
     // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
     //    updated in place so it is more efficient to remove content at the end. Shorter sentences
     //    are more likely to finish first so we sort the batch accordingly.
-    std::vector<size_t> sorted_index;
-    auto sorted_source = sort_from_longest_to_shortest(source, sorted_index);
+    const std::vector<size_t> sorted_index = sort_from_longest_to_shortest(source);
 
-    std::vector<std::vector<std::string>> sorted_target_prefix;
-    if (target_prefix) {
-      sorted_target_prefix.resize(target_prefix->size());
-      for (size_t i = 0; i < target_prefix->size(); ++i)
-        sorted_target_prefix[sorted_index[i]] = target_prefix->at(i);
+    ParallelBatchReader batch_reader;
+    batch_reader.add(new VectorReader(index_vector(source, sorted_index)));
+    if (target_prefix)
+      batch_reader.add(new VectorReader(index_vector(*target_prefix, sorted_index)));
+
+    size_t max_batch_size = options.max_batch_size;
+    BatchType batch_type = options.batch_type;
+    if (max_batch_size == 0) {
+      max_batch_size = source.size();
+      batch_type = BatchType::Examples;
     }
 
     std::vector<TranslationResult> results;
-    if (options.max_batch_size == 0
-        || get_batch_size(source, options.batch_type) <= options.max_batch_size)
-      results = run_batch_translation(sorted_source,
-                                      target_prefix ? &sorted_target_prefix : nullptr,
-                                      options);
-    else {
-      // Translate by batch of size options.max_batch_size.
-      results.reserve(source.size());
+    results.reserve(source.size());
 
-      ParallelBatchReader batch_reader;
-      batch_reader.add(new VectorReader(std::move(sorted_source)));
-      if (target_prefix)
-        batch_reader.add(new VectorReader(std::move(sorted_target_prefix)));
+    while (batch_reader.has_next()) {
+      const auto batch = batch_reader.get_next(max_batch_size, batch_type);
+      const auto& source_batch = batch[0];
+      const auto* target_prefix_batch = target_prefix ? &batch[1] : nullptr;
 
-      while (batch_reader.has_next()) {
-        auto batch = batch_reader.get_next(options.max_batch_size, options.batch_type);
-
-        {
-          auto partial_results = run_batch_translation(batch[0],
-                                                       target_prefix
-                                                       ? &batch[1]
-                                                       : nullptr,
-                                                       options);
-          results.insert(results.end(),
-                         std::make_move_iterator(partial_results.begin()),
-                         std::make_move_iterator(partial_results.end()));
-        }
-      }
+      for (auto& result : run_batch_translation(source_batch, target_prefix_batch, options))
+        results.emplace_back(std::move(result));
     }
 
     // Reorder results based on original batch index.
