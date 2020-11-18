@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### New features
+
+### Fixes and improvements
+
+## [v1.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.0) (2020-11-18)
+
 ### Changes
 
 * Drop support for Python 2.7 and 3.5
@@ -12,7 +18,7 @@
 
 * Enable parallel CPU translations from `translate_batch` in Python when setting `inter_threads` > 1 and `max_batch_size` > 0
 * Improve GPU performance on Turing architecture when using a Docker image or the Python package
-* Pad size of INT8 matrices to a multiple of 16 when the GPU has INT8 Tensor Cores 
+* Pad size of INT8 matrices to a multiple of 16 when the GPU has INT8 Tensor Cores
 * Add information about detected GPU devices in `CT2_VERBOSE` output
 * Update oneDNN to 1.7
 * [Python] Improve type checking for some arguments
