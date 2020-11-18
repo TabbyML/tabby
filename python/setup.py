@@ -45,6 +45,7 @@ setup(
     url="https://opennmt.net",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
+        "Environment :: GPU :: NVIDIA CUDA :: 10.1",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
