@@ -51,6 +51,9 @@ namespace ctranslate2 {
                                         bool blocking=false);
 
     // Run a translation synchronously.
+    // To benefit from parallelism, you can set max_batch_size in the translation options:
+    // the input will be split according to this value and each batch will be translated
+    // in parallel.
     TranslationOutput translate_batch(const TranslationInput& source,
                                       const TranslationInput& target_prefix,
                                       TranslationOptions options);
