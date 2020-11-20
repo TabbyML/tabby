@@ -484,7 +484,7 @@ namespace ctranslate2 {
         (*attention)[i].resize(1);
     }
 
-    StorageView best_ids( DataType::INT32);
+    StorageView best_ids(DataType::INT32);
     StorageView best_probs(dtype);
     StorageView attention_step;
     StorageView attention_step_device(dtype, device);
