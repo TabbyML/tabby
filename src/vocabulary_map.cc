@@ -55,8 +55,7 @@ namespace ctranslate2 {
   }
 
   std::vector<size_t>
-  VocabularyMap::get_candidates(const std::vector<std::vector<std::string>>& batch_tokens,
-                                const size_t multiple_of) const {
+  VocabularyMap::get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const {
     std::set<size_t> candidates = _fixed_candidates;
     std::string accu;
     for (const auto& tokens : batch_tokens) {
@@ -73,15 +72,7 @@ namespace ctranslate2 {
       }
     }
 
-    std::vector<size_t> ids(candidates.begin(), candidates.end());
-    const size_t num_candidates = ids.size();
-    const size_t padding_size = multiple_of - (num_candidates % multiple_of);
-    if (padding_size != multiple_of && num_candidates + padding_size <= _vocabulary_size) {
-      std::vector<size_t> padding(padding_size, 0);
-      ids.insert(ids.begin(), padding.begin(), padding.end());
-    }
-
-    return ids;
+    return std::vector<size_t>(candidates.begin(), candidates.end());
   }
 
 }

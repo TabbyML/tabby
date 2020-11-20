@@ -158,20 +158,17 @@ namespace ctranslate2 {
     // If set, extract the subset of candidates to generate.
     std::vector<size_t> output_ids_map;
     if (options.use_vmap && _vocabulary_map && !_vocabulary_map->empty()) {
-      output_ids_map = _vocabulary_map->get_candidates(source, preferred_size_multiple);
+      output_ids_map = _vocabulary_map->get_candidates(source);
     } else if (_target_vocabulary->size() % preferred_size_multiple != 0) {
-      // Pad vocabulary size to the preferred size multiple.
-      const size_t vocab_size = _target_vocabulary->size();
-      const size_t padded_size = (vocab_size
-                                  + (preferred_size_multiple
-                                     - vocab_size % preferred_size_multiple));
-      output_ids_map.resize(padded_size);
-      for (size_t i = 0; i < padded_size; ++i) {
-        output_ids_map[i] = i < vocab_size ? i : 0;
-      }
+      output_ids_map.resize(_target_vocabulary->size());
+      std::iota(output_ids_map.begin(), output_ids_map.end(), size_t(0));
     }
 
     if (!output_ids_map.empty()) {
+      // Pad vocabulary size to the preferred size multiple.
+      while (output_ids_map.size() % preferred_size_multiple != 0)
+        output_ids_map.push_back(0);
+
       _decoder->set_vocabulary_mask(
         StorageView({static_cast<dim_t>(output_ids_map.size())},
                     std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
