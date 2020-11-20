@@ -362,23 +362,17 @@ namespace ctranslate2 {
                                  const dim_t stride2,
                                  T* out) {
     const dim_t stride = stride1 * stride2;
-    for (dim_t bid = 0; bid < rows; bid += gridDim.x) {
-      const dim_t j = bid + blockIdx.x;
-      if (j < rows) {
-        const dim_t z = j / stride;
-        const dim_t y = (j % stride) / stride1;
-        const dim_t x = (j % stride) % stride1;
-        const dim_t j2 = z * stride + x * stride2 + y;
+    for (dim_t j = blockIdx.x; j < rows; j += gridDim.x) {
+      const dim_t z = j / stride;
+      const dim_t y = (j % stride) / stride1;
+      const dim_t x = (j % stride) % stride1;
+      const dim_t j2 = z * stride + x * stride2 + y;
 
-        const T* row_in = in + j2 * cols;
-        T* row_out = out + j * cols;
+      const T* row_in = in + j2 * cols;
+      T* row_out = out + j * cols;
 
-        for (dim_t tid = 0; tid < cols; tid += blockDim.x) {
-          const dim_t i = tid + threadIdx.x;
-          if (i < cols) {
-            row_out[i] = row_in[i];
-          }
-        }
+      for (dim_t i = threadIdx.x; i < cols; i += blockDim.x) {
+        row_out[i] = row_in[i];
       }
     }
   }
