@@ -1,8 +1,5 @@
 #include "ctranslate2/ops/softmax.h"
 
-#include <thrust/iterator/counting_iterator.h>
-#include <thrust/replace.h>
-
 #include "cuda/helpers.h"
 #include "cuda/utils.h"
 
@@ -15,35 +12,9 @@ namespace ctranslate2 {
                                const T* x,
                                const int64_t rows,
                                const int64_t cols,
+                               const int32_t* lengths,
+                               const int64_t lengths_size,
                                T* y);
-
-    // Operator returning true for each out of range positions.
-    class mask_func {
-    private:
-      const int32_t* _lengths;
-      const int32_t _batch_size;       // Batch size.
-      const int32_t _flat_batch_size;  // Batch size * inner dimensions.
-      const int32_t _depth;            // Last dimension.
-
-    public:
-      mask_func(const int32_t* lengths,
-                int32_t batch_size,
-                int32_t flat_batch_size,
-                int32_t depth)
-        : _lengths(lengths)
-        , _batch_size(batch_size)
-        , _flat_batch_size(flat_batch_size)
-        , _depth(depth) {
-      }
-
-      __device__
-      bool operator()(int32_t index) const {
-        auto position = index % _depth;
-        auto flat_batch = index / _depth;
-        auto true_batch = flat_batch * _batch_size / _flat_batch_size;
-        return position >= _lengths[true_batch];
-      }
-    };
 
     template <Device D, typename T>
     void SoftMax::compute(const StorageView& input,
@@ -51,30 +22,13 @@ namespace ctranslate2 {
                           StorageView& output) const {
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / depth;
-
-      StorageView masked_input(input.dtype(), input.device());
-      const auto* data = input.data<T>();
-      if (lengths) {
-        masked_input.resize_as(input);
-        auto* masked_data = masked_input.data<T>();
-
-        // Copy input but replace out of range positions with -inf.
-        THRUST_CALL(thrust::replace_copy_if,
-                    data,
-                    data + input.size(),
-                    thrust::counting_iterator<int32_t>(0),
-                    masked_data,
-                    mask_func(lengths->data<int32_t>(), lengths->dim(0), batch_size, depth),
-                    std::numeric_limits<T>::lowest());
-
-        data = masked_data;
-      }
-
       softmax_kernel(cuda::get_cuda_stream(),
                      _log,
-                     data,
+                     input.data<T>(),
                      batch_size,
                      depth,
+                     lengths ? lengths->data<int32_t>() : nullptr,
+                     lengths ? lengths->dim(0) : 0,
                      output.data<T>());
     }
 
@@ -236,32 +190,48 @@ namespace at {
     template <typename scalar_t,
               typename accscalar_t,
               typename outscalar_t,
+              typename length_t,
               template <typename, typename, typename> class Epilogue>
     __global__ void
-    cunn_SoftMaxForward(outscalar_t *output, const scalar_t *input, int classes)
+    cunn_SoftMaxForward(outscalar_t *output,
+                        const scalar_t *input,
+                        int batch_size,
+                        int classes,
+                        const length_t *lengths,
+                        int lengths_size)
     {
       extern __shared__ unsigned char smem[];
       auto sdata = reinterpret_cast<accscalar_t*>(smem);
       // forward pointers to batch[blockIdx.x]
       // each block handles a sample in the mini-batch
-      input += blockIdx.x * classes;
-      output += blockIdx.x * classes;
+      const int row = blockIdx.x;
+      input += row * classes;
+      output += row * classes;
+
+      int size = classes;
+      if (lengths)
+      {
+        // Directly set 0 in output for out of range positions.
+        size = lengths[row * lengths_size / batch_size];  // Broadcast length vector.
+        for (int i = size + threadIdx.x; i < classes; i += blockDim.x)
+          output[i] = 0;
+      }
 
       // find the max
       accscalar_t threadMax = ctranslate2::cuda::ilp_reduce(
-        input, classes, MaxFloat<scalar_t, accscalar_t>(), -max_float);
+        input, size, MaxFloat<scalar_t, accscalar_t>(), -max_float);
       accscalar_t max_k = ctranslate2::cuda::block_reduce(
         sdata, threadMax, Max<accscalar_t>(), -max_float);
 
       // reduce all values
       accscalar_t threadExp = ctranslate2::cuda::ilp_reduce(
-        input, classes, SumExpFloat<scalar_t, accscalar_t>(max_k), static_cast<accscalar_t>(0));
+        input, size, SumExpFloat<scalar_t, accscalar_t>(max_k), static_cast<accscalar_t>(0));
       accscalar_t sumAll = ctranslate2::cuda::block_reduce(
         sdata, threadExp, Add<accscalar_t>(), static_cast<accscalar_t>(0));
 
       // apply epilogue
       ctranslate2::cuda::apply_epilogue(
-        input, classes, Epilogue<scalar_t, accscalar_t, outscalar_t>(max_k, sumAll), output);
+        input, size, Epilogue<scalar_t, accscalar_t, outscalar_t>(max_k, sumAll), output);
     }
 
   }
@@ -275,11 +245,18 @@ namespace ctranslate2 {
                                     const T* x,
                                     const int64_t rows,
                                     const int64_t cols,
+                                    const int32_t* lengths,
+                                    const int64_t lengths_size,
                                     T* y) {
       const dim3 grid(rows);
       const dim3 block(cuda::get_block_size(cols));
-      at::native::cunn_SoftMaxForward<T, float, T, Epilogue>
-        <<<grid, block, block.x * sizeof (float), stream>>>(y, x, cols);
+      at::native::cunn_SoftMaxForward<T, float, T, int32_t, Epilogue>
+        <<<grid, block, block.x * sizeof (float), stream>>>(y,
+                                                            x,
+                                                            rows,
+                                                            cols,
+                                                            lengths,
+                                                            lengths_size);
     }
 
     template <typename T>
@@ -288,13 +265,15 @@ namespace ctranslate2 {
                                const T* x,
                                const int64_t rows,
                                const int64_t cols,
+                               const int32_t* lengths,
+                               const int64_t lengths_size,
                                T* y) {
       if (log_softmax)
         softmax_kernel_impl<cuda::device_type<T>, at::native::LogSoftMaxForwardEpilogue>(
-          stream, cuda::device_cast(x), rows, cols, cuda::device_cast(y));
+          stream, cuda::device_cast(x), rows, cols, lengths, lengths_size, cuda::device_cast(y));
       else
         softmax_kernel_impl<cuda::device_type<T>, at::native::SoftMaxForwardEpilogue>(
-          stream, cuda::device_cast(x), rows, cols, cuda::device_cast(y));
+          stream, cuda::device_cast(x), rows, cols, lengths, lengths_size, cuda::device_cast(y));
     }
 
   }
