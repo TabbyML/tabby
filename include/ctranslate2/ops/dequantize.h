@@ -17,7 +17,8 @@ namespace ctranslate2 {
                       const StorageView& b_scale,
                       const bool transpose_a,
                       const bool transpose_b,
-                      StorageView& y) const;
+                      StorageView& y,
+                      const StorageView* bias = nullptr) const;
 
     private:
       template <Device D, typename T>
@@ -31,6 +32,7 @@ namespace ctranslate2 {
                                   const StorageView& b_scale,
                                   const bool transpose_a,
                                   const bool transpose_b,
+                                  const StorageView* bias,
                                   StorageView& y) const;
 
     };

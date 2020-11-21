@@ -40,7 +40,8 @@ namespace ctranslate2 {
                                 const StorageView& b_scale,
                                 const bool transpose_a,
                                 const bool transpose_b,
-                                StorageView& y) const {
+                                StorageView& y,
+                                const StorageView* bias) const {
       PROFILE("DequantizeGemmOutput");
       y.resize_as(c);
       DEVICE_DISPATCH(c.device(), dequantize_gemm_output<D>(c,
@@ -48,6 +49,7 @@ namespace ctranslate2 {
                                                             b_scale,
                                                             transpose_a,
                                                             transpose_b,
+                                                            bias,
                                                             y));
     }
 

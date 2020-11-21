@@ -52,7 +52,11 @@ namespace ctranslate2 {
                                                          const StorageView& b_scale,
                                                          const bool transpose_a,
                                                          const bool transpose_b,
+                                                         const StorageView* bias,
                                                          StorageView& y) const {
+      if (bias)
+        throw std::runtime_error("Fused dequantize and bias add is not implemented on CPU");
+
       const auto* c_data = c.data<int32_t>();
       auto* y_data = y.data<float>();
 

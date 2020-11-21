@@ -153,9 +153,11 @@ namespace ctranslate2 {
       const StorageView* compensation = (_partial_u8_shift_compensation.empty()
                                          ? _u8_shift_compensation
                                          : &_partial_u8_shift_compensation);
+      bool fused_bias = false;
 
       if (_weight.dtype() == DataType::INT16 || _weight.dtype() == DataType::INT8) {
         const auto device = input.device();
+        fused_bias = (device == Device::CUDA);
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::INT32, device);
@@ -166,12 +168,13 @@ namespace ctranslate2 {
                        *qscale,
                        /*trans_a=*/false,
                        /*trans_b=*/true,
-                       output);
+                       output,
+                       fused_bias ? bias : nullptr);
       } else {
         _gemm_op(input, *weight, output);
       }
 
-      if (bias) {
+      if (bias && !fused_bias) {
         DEVICE_DISPATCH(output.device(),
                         TYPE_DISPATCH(bias->dtype(),
                                       primitives<D>::add_batch_broadcast(bias->data<T>(),
