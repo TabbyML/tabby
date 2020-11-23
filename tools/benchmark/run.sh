@@ -53,5 +53,7 @@ else
            --command "--src %s --out %s --beam_size $BEAM_SIZE --batch_size $BATCH_SIZE --compute_type float16"
     $PREFIX --gpu --image opennmt/ctranslate2-benchmark --name gpu-ctranslate2-int8 \
             --command "--src %s --out %s --beam_size $BEAM_SIZE --batch_size $BATCH_SIZE --compute_type int8"
+    $PREFIX --gpu --image opennmt/ctranslate2-benchmark --name gpu-ctranslate2-float16-sorting \
+           --command "--src %s --out %s --beam_size $BEAM_SIZE --batch_size $BATCH_SIZE --read_batch_size 256 --compute_type float16"
 
 fi
