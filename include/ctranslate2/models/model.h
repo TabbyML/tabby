@@ -37,7 +37,12 @@ namespace ctranslate2 {
 
       Device device() const;
       int device_index() const;
+
+      // The requested compute type.
       ComputeType compute_type() const;
+      // The compute type that is effectively used.
+      ComputeType effective_compute_type() const;
+
       ScopedDeviceSetter get_scoped_device_setter() const;
 
       // If the model contains variables, they will be moved to the new device.
@@ -83,6 +88,7 @@ namespace ctranslate2 {
       std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
       ComputeType _compute_type = ComputeType::DEFAULT;
+      ComputeType _effective_compute_type = ComputeType::DEFAULT;
 
     private:
       void process_linear_weights();

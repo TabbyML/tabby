@@ -102,6 +102,7 @@ namespace ctranslate2 {
                       StorageView& output) override;
     private:
       const layers::Embeddings _embeddings;
+      const ComputeType _compute_type;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const layers::LayerNorm _output_norm;
       std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
@@ -127,6 +128,7 @@ namespace ctranslate2 {
       bool should_reorder_state(const std::string& name) const override;
     private:
       const bool _with_encoder_attention;
+      const ComputeType _compute_type;
       const layers::Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const layers::LayerNorm _output_norm;

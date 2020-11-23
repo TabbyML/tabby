@@ -21,7 +21,9 @@ namespace ctranslate2 {
   bool mayiuse_float16(Device device, int device_index = 0);
   bool mayiuse_int16(Device device, int device_index = 0);
   bool mayiuse_int8(Device device, int device_index = 0);
-  dim_t get_preferred_size_multiple(DataType dtype, Device device, int device_index = 0);
+  dim_t get_preferred_size_multiple(ComputeType compute_type,
+                                    Device device,
+                                    int device_index = 0);
 
   void set_num_threads(size_t num_threads);
 

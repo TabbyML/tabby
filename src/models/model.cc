@@ -152,6 +152,10 @@ namespace ctranslate2 {
       return _compute_type;
     }
 
+    ComputeType Model::effective_compute_type() const {
+      return _effective_compute_type;
+    }
+
     void Model::set_device(const Device device, const int index) {
       move_variables(_variable_index, _device, _device_index, device, index);
       _device = device;
@@ -305,10 +309,11 @@ namespace ctranslate2 {
         }
       }
 
-      const DataType target_dtype = compute_type_to_data_type(_compute_type,
-                                                              model_dtype,
-                                                              _device,
-                                                              _device_index);
+      _effective_compute_type = resolve_compute_type(_compute_type,
+                                                     model_dtype,
+                                                     _device,
+                                                     _device_index);
+      const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
 
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;

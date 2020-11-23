@@ -42,47 +42,47 @@ namespace ctranslate2 {
                                 "or backend do not support efficient " + name + " computation.");
   }
 
-  DataType compute_type_to_data_type(const ComputeType compute_type,
-                                     const DataType weights_type,
-                                     const Device device,
-                                     const int device_index,
-                                     const bool enable_fallback) {
+  ComputeType resolve_compute_type(const ComputeType compute_type,
+                                   const DataType weights_type,
+                                   const Device device,
+                                   const int device_index,
+                                   const bool enable_fallback) {
     switch (compute_type) {
 
     case ComputeType::FLOAT: {
-      return DataType::FLOAT;
+      return ComputeType::FLOAT;
     }
 
     case ComputeType::FLOAT16: {
       if (mayiuse_float16(device, device_index))
-        return DataType::FLOAT16;
+        return ComputeType::FLOAT16;
       if (!enable_fallback)
         unsupported_compute_type("float16");
-      return DataType::FLOAT;
+      return ComputeType::FLOAT;
     }
 
     case ComputeType::INT16: {
       if (mayiuse_int16(device, device_index))
-        return DataType::INT16;
+        return ComputeType::INT16;
       if (!enable_fallback)
         unsupported_compute_type("int16");
       if (device == Device::CPU && mayiuse_int8(device, device_index))
-        return DataType::INT8;
+        return ComputeType::INT8;
       if (device == Device::CUDA && mayiuse_float16(device, device_index))
-        return DataType::FLOAT16;
-      return DataType::FLOAT;
+        return ComputeType::FLOAT16;
+      return ComputeType::FLOAT;
     }
 
     case ComputeType::INT8: {
       if (mayiuse_int8(device, device_index))
-        return DataType::INT8;
+        return ComputeType::INT8;
       if (!enable_fallback)
         unsupported_compute_type("int8");
       if (device == Device::CPU && mayiuse_int16(device, device_index))
-        return DataType::INT16;
+        return ComputeType::INT16;
       if (device == Device::CUDA && mayiuse_float16(device, device_index))
-        return DataType::FLOAT16;
-      return DataType::FLOAT;
+        return ComputeType::FLOAT16;
+      return ComputeType::FLOAT;
     }
 
     default: {
@@ -105,13 +105,28 @@ namespace ctranslate2 {
         break;
       }
 
-      return compute_type_to_data_type(inferred_compute_type,
-                                       weights_type,
-                                       device,
-                                       device_index,
-                                       /*enable_fallback=*/true);
+      return resolve_compute_type(inferred_compute_type,
+                                  weights_type,
+                                  device,
+                                  device_index,
+                                  /*enable_fallback=*/true);
     }
 
+    }
+  }
+
+  DataType compute_type_to_data_type(const ComputeType compute_type) {
+    switch (compute_type) {
+    case ComputeType::FLOAT:
+      return DataType::FLOAT;
+    case ComputeType::INT8:
+      return DataType::INT8;
+    case ComputeType::INT16:
+      return DataType::INT16;
+    case ComputeType::FLOAT16:
+      return DataType::FLOAT16;
+    default:
+      throw std::invalid_argument("resolve_compute_type should be called first");
     }
   }
 

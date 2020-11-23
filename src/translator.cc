@@ -141,9 +141,10 @@ namespace ctranslate2 {
     std::vector<std::vector<size_t>> target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
 
     const Device device = _model->device();
-    const int device_index = _model->device_index();
-    const DataType dtype = _encoder->output_type();
-    const dim_t preferred_size_multiple = get_preferred_size_multiple(dtype, device, device_index);
+    const dim_t preferred_size_multiple = get_preferred_size_multiple(
+      _model->effective_compute_type(),
+      device,
+      _model->device_index());
     std::pair<StorageView, StorageView> inputs = layers::make_sequence_inputs(
       source_ids,
       device,
@@ -152,7 +153,7 @@ namespace ctranslate2 {
     StorageView& lengths = inputs.second;
 
     // Encode sequence.
-    StorageView encoded(dtype, device);
+    StorageView encoded(_encoder->output_type(), device);
     (*_encoder)(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.

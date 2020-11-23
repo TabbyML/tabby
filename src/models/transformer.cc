@@ -237,6 +237,7 @@ namespace ctranslate2 {
 
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
       : _embeddings(model, scope + "/embeddings")
+      , _compute_type(model.effective_compute_type())
       , _position_encoder(model.with_relative_position()
                           ? nullptr
                           : new PositionEncoder(model, scope + "/position_encodings"))
@@ -273,7 +274,7 @@ namespace ctranslate2 {
 
       // Remove padding to reduce the amount of computation.
       std::unique_ptr<Padder> padder;
-      if (Padder::allow_padding_removal(output.device(), output.dtype())) {
+      if (Padder::allow_padding_removal(output.device(), _compute_type)) {
         padder.reset(new Padder(lengths, input.dim(1)));
         padder->remove_padding(input);
       }
@@ -294,6 +295,7 @@ namespace ctranslate2 {
                                            const bool with_encoder_attention)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
+      , _compute_type(model.effective_compute_type())
       , _embeddings(model, scope + "/embeddings")
       , _position_encoder(model.with_relative_position()
                           ? nullptr
@@ -370,7 +372,7 @@ namespace ctranslate2 {
         memory_lengths = &state.at("memory_lengths");
         if (step == 0) {
           memory = &state.at("memory");
-          if (Padder::allow_padding_removal(memory->device(), memory->dtype())) {
+          if (Padder::allow_padding_removal(memory->device(), _compute_type)) {
             memory_padder.reset(new Padder(*memory_lengths, memory->dim(1)));
             memory_padder->remove_padding(*memory);
           }

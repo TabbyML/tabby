@@ -139,16 +139,14 @@ namespace ctranslate2 {
     }
   }
 
-  dim_t get_preferred_size_multiple(DataType dtype, Device device, int device_index) {
+  dim_t get_preferred_size_multiple(ComputeType compute_type, Device device, int device_index) {
 #ifdef CT2_WITH_CUDA
     if (device == Device::CUDA) {
-      if (dtype == DataType::FLOAT16 && cuda::gpu_has_fp16_tensor_cores(device_index))
+      if (compute_type == ComputeType::FLOAT16 && cuda::gpu_has_fp16_tensor_cores(device_index))
         return 8;
-      if (dtype == DataType::INT8 && cuda::gpu_has_int8_tensor_cores(device_index))
-        return 16;
     }
 #else
-    (void)dtype;
+    (void)compute_type;
     (void)device;
     (void)device_index;
 #endif
