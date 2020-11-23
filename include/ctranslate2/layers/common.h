@@ -13,6 +13,7 @@ namespace ctranslate2 {
 
     class Layer {
     public:
+      virtual ~Layer() = default;
       virtual DataType output_type() const = 0;
       virtual dim_t output_size() const = 0;
     };
