@@ -4,6 +4,15 @@
 
 ### Fixes and improvements
 
+## [v1.16.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.1) (2020-11-23)
+
+### Fixes and improvements
+
+* Fuse dequantization and bias addition on GPU for improved INT8 performance
+* Improve performance of masked softmax on GPU
+* Fix error when building the CentOS 7 GPU Docker image
+* The previous version listed "Pad size of INT8 matrices to a multiple of 16 when the GPU has INT8 Tensor Cores". However, the padding was not applied due to a bug and fixing it degraded the performance, so this behavior is not implemented for now.
+
 ## [v1.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.0) (2020-11-18)
 
 ### Changes
