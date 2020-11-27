@@ -49,7 +49,7 @@ See the [Decoding](docs/decoding.md) documentation for examples.
 
 ## Quickstart
 
-The steps below assume a Linux OS and a Python installation (3.6 or above).
+The steps below assume a Linux OS and a Python installation (3.5 or above).
 
 1\. **[Install](#installation) the Python package**:
 
@@ -107,7 +107,7 @@ The package published on PyPI supports CPU and GPU execution. All software depen
 **Requirements:**
 
 * OS: Linux
-* Python version: >= 3.6
+* Python version: >= 3.5
 * pip version: >= 19.0
 * GPU driver version: >= 418.39
 
