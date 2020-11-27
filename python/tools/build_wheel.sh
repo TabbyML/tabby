@@ -43,7 +43,7 @@ cd ..
 rm -r build-release
 
 cd python
-for PYTHON_VERSION in cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
+for PYTHON_VERSION in cp35-cp35m cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39
 do
     PYTHON_ROOT=/opt/python/$PYTHON_VERSION
     $PYTHON_ROOT/bin/pip install -r install_requirements.txt

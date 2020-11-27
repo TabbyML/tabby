@@ -51,6 +51,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
@@ -65,7 +66,7 @@ setup(
     keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.6",
+    python_requires=">=3.5",
     install_requires=[
         "numpy",
     ],
