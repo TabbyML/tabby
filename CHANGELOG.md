@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.16.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.2) (2020-11-27)
+
+### Fixes and improvements
+
+* Fix cuBLAS version included in the Python wheels published to PyPI. The included library was targetting CUDA 10.2 instead of CUDA 10.1.
+* Re-add Python 3.5 wheels on PyPI to give users more time to transition
+
 ## [v1.16.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.1) (2020-11-23)
 
 ### Fixes and improvements
