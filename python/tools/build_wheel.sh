@@ -11,13 +11,12 @@ PATH=/opt/python/cp37-cp37m/bin:$PATH
 # * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos6-x86_64/devel/Dockerfile
 CUDA_VERSION=10.1.243
 CUDA_PKG_VERSION=10-1-$CUDA_VERSION-1
+CUBLAS_PKG_VERSION=10.2.1.243-1
 curl -o cuda-repo.rpm https://developer.download.nvidia.com/compute/cuda/repos/rhel6/x86_64/cuda-repo-rhel6-$CUDA_VERSION-1.x86_64.rpm
 rpm --install cuda-repo.rpm
 yum clean expire-cache
-yum install -y cuda-nvcc-$CUDA_PKG_VERSION cuda-cudart-dev-$CUDA_PKG_VERSION libcublas-devel-10.2.1.243-1
+yum install --setopt=obsoletes=0 -y cuda-nvcc-$CUDA_PKG_VERSION cuda-cudart-dev-$CUDA_PKG_VERSION libcublas-devel-$CUBLAS_PKG_VERSION libcublas10-$CUBLAS_PKG_VERSION
 ln -s cuda-10.1 /usr/local/cuda
-mv /usr/local/cuda-10.2/include/* /usr/local/cuda/include/
-mv /usr/local/cuda-10.2/lib64/lib* /usr/local/cuda/lib64/
 
 MKL_VERSION=2020.4-912
 yum install -y yum-utils
