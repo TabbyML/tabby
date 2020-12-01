@@ -112,6 +112,8 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=inter_threads) as executo
         translation_result = future.result()
 ```
 
+Note: parallelization with Python threads is made possible because the `Translator` methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
+
 ## Memory management API
 
 * `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
