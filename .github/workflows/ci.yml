@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-and-test-cpp:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     env:
       CT2_VERBOSE: 1
     strategy:
@@ -55,7 +55,7 @@ jobs:
 
 
   build-and-test-python-wheels:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - uses: actions/checkout@v2
@@ -96,7 +96,7 @@ jobs:
   publish-python-wheels-on-pypi:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [build-and-test-cpp, build-and-test-python-wheels]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
       - name: Download Python wheels
