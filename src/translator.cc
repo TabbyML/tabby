@@ -137,8 +137,8 @@ namespace ctranslate2 {
     assert_has_model();
     auto scoped_device_setter = _model->get_scoped_device_setter();
 
-    std::vector<std::vector<size_t>> source_ids = _source_vocabulary->to_ids(source);
-    std::vector<std::vector<size_t>> target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
+    const std::vector<std::vector<size_t>> source_ids = _source_vocabulary->to_ids(source);
+    const std::vector<std::vector<size_t>> target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
 
     const Device device = _model->device();
     const dim_t preferred_size_multiple = get_preferred_size_multiple(
