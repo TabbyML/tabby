@@ -157,11 +157,7 @@ namespace ctranslate2 {
 namespace at {
   namespace native {
 
-#ifdef __HIP_PLATFORM_HCC__
-#  define WARP_SIZE 64
-#else
-#  define WARP_SIZE 32
-#endif
+#define WARP_SIZE 32
 
     template <typename T>
     __inline__ __device__ T WarpReduceSum(T val) {
