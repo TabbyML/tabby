@@ -129,12 +129,13 @@ namespace at {
     template<typename T, typename AccumT, typename OutT>
     struct LogSoftMaxForwardEpilogue {
       __device__ __forceinline__ LogSoftMaxForwardEpilogue(AccumT max_input, AccumT sum)
-        : logsum(max_input + std::log(sum)) {}
+        : max_input(max_input),  logsum(std::log(sum)) {}
 
       __device__ __forceinline__ OutT operator()(T input) const {
-        return static_cast<OutT>(static_cast<AccumT>(input) - logsum);
+        return static_cast<OutT>(static_cast<AccumT>(input) - max_input - logsum);
       }
 
+      const AccumT max_input;
       const AccumT logsum;
     };
 
