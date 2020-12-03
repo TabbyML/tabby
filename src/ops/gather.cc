@@ -8,9 +8,11 @@
 namespace ctranslate2 {
   namespace ops {
 
-    static Shape compute_output_shape(const StorageView& data, const StorageView& input) {
+    static inline Shape compute_output_shape(const StorageView& data,
+                                             const StorageView& input,
+                                             const dim_t axis) {
       Shape output_shape(input.shape());
-      for (dim_t i = 1; i < data.rank(); ++i)
+      for (dim_t i = axis + 1; i < data.rank(); ++i)
         output_shape.push_back(data.dim(i));
       return output_shape;
     }
@@ -38,16 +40,16 @@ namespace ctranslate2 {
     }
 
 
-    Gather::Gather(int axis) {
-      if (axis != 0)
-        throw std::invalid_argument("unsupported gather axis " + std::to_string(axis));
+    Gather::Gather(const dim_t axis, const dim_t batch_dims)
+      : _axis(axis)
+      , _batch_dims(batch_dims) {
     }
 
     void Gather::operator()(StorageView& data, const StorageView& input) const {
-      if (support_gather_batch_inplace(data, input)) {
+      if (_axis == 0 && _batch_dims == 0 && support_gather_batch_inplace(data, input)) {
         PROFILE("Gather");
         TYPE_DISPATCH(data.dtype(), (gather_batch_inplace<T>(data, input)));
-        data.resize(compute_output_shape(data, input));
+        data.resize(compute_output_shape(data, input, _axis));
       } else {
         StorageView clone(std::move(data));
         operator()(clone, input, data);
@@ -58,9 +60,32 @@ namespace ctranslate2 {
                             const StorageView& input,
                             StorageView& output) const {
       PROFILE("Gather");
-      output.resize(compute_output_shape(data, input));
+
+      if (_batch_dims > 0) {
+        if (data.rank() < _batch_dims)
+          throw std::invalid_argument("Gather: rank of data should greater than or equal to "
+                                      + std::to_string(_batch_dims));
+        if (input.rank() < _batch_dims)
+          throw std::invalid_argument("Gather: rank of input should greater than or equal to "
+                                      + std::to_string(_batch_dims));
+
+        const auto& data_shape = data.shape();
+        const auto& input_shape = input.shape();
+        if (!std::equal(data_shape.begin(),
+                        data_shape.begin() + _batch_dims,
+                        input_shape.begin()))
+          throw std::invalid_argument("Gather: first " + std::to_string(_batch_dims)
+                                      + " dimensions of data and input should match");
+      }
+
+      const dim_t axis = _axis < 0 ? data.rank() + _axis : _axis;
+      output.resize(compute_output_shape(data, input, axis));
       DEVICE_DISPATCH(data.device(),
-                      TYPE_DISPATCH(data.dtype(), (compute<D, T>(data, input, output))));
+                      TYPE_DISPATCH(data.dtype(), (compute<D, T>(data,
+                                                                 input,
+                                                                 axis,
+                                                                 _batch_dims,
+                                                                 output))));
     }
 
   }
