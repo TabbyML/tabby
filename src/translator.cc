@@ -330,6 +330,7 @@ namespace ctranslate2 {
     std::vector<TranslationBatch> batches;
     if (example_index.empty())
       return batches;
+    batches.reserve(example_index.size());
 
     ParallelBatchReader batch_reader;
     batch_reader.add(new VectorReader(index_vector(source, example_index)));
