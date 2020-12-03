@@ -67,20 +67,19 @@ set(PRIVATE_INCLUDE_DIRECTORIES
   )
 set(SOURCES
   src/batch_reader.cc
-  src/decoding.cc
-  src/devices.cc
   src/cpu/backend.cc
   src/cpu/cpu_info.cc
   src/cpu/cpu_isa.cc
   src/cpu/kernels.cc
+  src/decoding.cc
+  src/devices.cc
   src/layers/attention.cc
-  src/layers/decoder.cc
   src/layers/common.cc
+  src/layers/decoder.cc
   src/models/model.cc
   src/models/sequence_to_sequence.cc
   src/models/transformer.cc
   src/ops/add.cc
-  src/ops/min_max.cc
   src/ops/concat.cc
   src/ops/concat_split_cpu.cc
   src/ops/dequantize.cc
@@ -93,9 +92,12 @@ set(SOURCES
   src/ops/layer_norm_cpu.cc
   src/ops/log.cc
   src/ops/matmul.cc
+  src/ops/min_max.cc
   src/ops/mul.cc
   src/ops/multinomial.cc
   src/ops/multinomial_cpu.cc
+  src/ops/quantize.cc
+  src/ops/quantize_cpu.cc
   src/ops/relu.cc
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
@@ -105,10 +107,8 @@ set(SOURCES
   src/ops/topk.cc
   src/ops/topk_cpu.cc
   src/ops/transpose.cc
-  src/ops/quantize.cc
-  src/ops/quantize_cpu.cc
-  src/primitives/cpu.cc
   src/padder.cc
+  src/primitives/cpu.cc
   src/profiler.cc
   src/sampling.cc
   src/storage_view.cc
