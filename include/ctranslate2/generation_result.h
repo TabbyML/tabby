@@ -3,8 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "vocabulary.h"
-
 namespace ctranslate2 {
 
   template <typename T>
@@ -30,16 +28,10 @@ namespace ctranslate2 {
     void set_attention(std::vector<std::vector<std::vector<float>>> attention);
     bool has_attention() const;
 
-    friend GenerationResult<std::string>
-    make_translation_result(GenerationResult<size_t>&& result,
-                            const Vocabulary& vocabulary);
-
   private:
     std::vector<std::vector<T>> _hypotheses;
     std::vector<float> _scores;
     std::vector<std::vector<std::vector<float>>> _attention;
   };
-
-  using TranslationResult = GenerationResult<std::string>;
 
 }

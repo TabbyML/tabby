@@ -220,7 +220,9 @@ namespace ctranslate2 {
         result.set_attention(std::move(all_attention));
       }
 
-      final_results.emplace_back(make_translation_result(std::move(result), *_target_vocabulary));
+      final_results.emplace_back(_target_vocabulary->to_tokens(result.hypotheses()),
+                                 result.scores(),
+                                 result.attention());
     }
     return final_results;
   }

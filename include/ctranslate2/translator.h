@@ -5,9 +5,11 @@
 
 #include "batch_reader.h"
 #include "models/sequence_to_sequence.h"
-#include "translation_result.h"
+#include "generation_result.h"
 
 namespace ctranslate2 {
+
+  using TranslationResult = GenerationResult<std::string>;
 
   class Translator;
   class TranslatorPool;

@@ -1,4 +1,4 @@
-#include "ctranslate2/translation_result.h"
+#include "ctranslate2/generation_result.h"
 
 namespace ctranslate2 {
 
@@ -76,13 +76,5 @@ namespace ctranslate2 {
 
   template class GenerationResult<std::string>;
   template class GenerationResult<size_t>;
-
-
-  GenerationResult<std::string> make_translation_result(GenerationResult<size_t>&& result,
-                                                        const Vocabulary& vocabulary) {
-    return GenerationResult<std::string>(vocabulary.to_tokens(result.hypotheses()),
-                                         std::move(result._scores),
-                                         std::move(result._attention));
-  }
 
 }

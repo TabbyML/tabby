@@ -73,6 +73,7 @@ set(SOURCES
   src/cpu/kernels.cc
   src/decoding.cc
   src/devices.cc
+  src/generation_result.cc
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
@@ -112,7 +113,6 @@ set(SOURCES
   src/profiler.cc
   src/sampling.cc
   src/storage_view.cc
-  src/translation_result.cc
   src/translator.cc
   src/translator_pool.cc
   src/types.cc

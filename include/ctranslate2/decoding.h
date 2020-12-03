@@ -2,7 +2,7 @@
 
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/sampling.h"
-#include "ctranslate2/translation_result.h"
+#include "ctranslate2/generation_result.h"
 
 namespace ctranslate2 {
 
