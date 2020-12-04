@@ -71,12 +71,6 @@ namespace ctranslate2 {
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
-  void initialize_decoder_with_prefix(layers::Decoder& decoder,
-                                      layers::DecoderState& state,
-                                      const std::vector<size_t>& start_ids,
-                                      const std::vector<size_t>& prefix_ids,
-                                      std::vector<std::vector<float>>* prefix_attention);
-
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,

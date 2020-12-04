@@ -563,11 +563,11 @@ namespace ctranslate2 {
     }
   }
 
-  void initialize_decoder_with_prefix(layers::Decoder& decoder,
-                                      layers::DecoderState& state,
-                                      const std::vector<size_t>& start_ids,
-                                      const std::vector<size_t>& prefix_ids,
-                                      std::vector<std::vector<float>>* prefix_attention) {
+  static void initialize_decoder_with_prefix(layers::Decoder& decoder,
+                                             layers::DecoderState& state,
+                                             const std::vector<size_t>& start_ids,
+                                             const std::vector<size_t>& prefix_ids,
+                                             std::vector<std::vector<float>>* prefix_attention) {
     const Device device = decoder.device();
     const size_t prefix_size = prefix_ids.size();
 
