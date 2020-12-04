@@ -120,8 +120,8 @@ namespace ctranslate2 {
     const TranslationResult empty_result(options.num_hypotheses, options.return_attention);
     std::vector<TranslationResult> results(source.size(), empty_result);
 
-    for (const auto& batch : rebatch_translation_input(source, target_prefix, options)) {
-      auto batch_results = run_batch_translation(batch.source, batch.target_prefix, options);
+    for (const auto& batch : rebatch_input(source, target_prefix, options)) {
+      auto batch_results = run_batch_translation(batch.source, batch.target, options);
       for (size_t i = 0; i < batch_results.size(); ++i)
         results[batch.example_index[i]] = std::move(batch_results[i]);
     }
@@ -289,22 +289,31 @@ namespace ctranslate2 {
       throw std::runtime_error("No model is attached to this translator");
   }
 
-  std::vector<TranslationBatch>
-  rebatch_translation_input(const std::vector<std::vector<std::string>>& source,
-                            const std::vector<std::vector<std::string>>& target_prefix,
-                            const TranslationOptions& options) {
-    if (!target_prefix.empty() && target_prefix.size() != source.size())
-      throw std::invalid_argument("Batch size mismatch: got "
-                                  + std::to_string(source.size()) + " for source and "
-                                  + std::to_string(target_prefix.size()) + " for target prefix");
-
-    const size_t global_batch_size = source.size();
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target_prefix,
+                const TranslationOptions& options) {
     size_t max_batch_size = options.max_batch_size;
     BatchType batch_type = options.batch_type;
     if (options.return_alternatives) {
       max_batch_size = 1;  // Disable batching in return_alternatives mode.
       batch_type = BatchType::Examples;
-    } else if (max_batch_size == 0) {
+    }
+    return rebatch_input(source, target_prefix, max_batch_size, batch_type);
+  }
+
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target,
+                size_t max_batch_size,
+                BatchType batch_type) {
+    if (!target.empty() && target.size() != source.size())
+      throw std::invalid_argument("Batch size mismatch: got "
+                                  + std::to_string(source.size()) + " for source and "
+                                  + std::to_string(target.size()) + " for target");
+
+    const size_t global_batch_size = source.size();
+    if (max_batch_size == 0) {
       max_batch_size = global_batch_size;
       batch_type = BatchType::Examples;
     }
@@ -329,33 +338,33 @@ namespace ctranslate2 {
     while (!example_index.empty() && source[example_index.back()].empty())
       example_index.pop_back();
 
-    std::vector<TranslationBatch> batches;
+    std::vector<Batch> batches;
     if (example_index.empty())
       return batches;
     batches.reserve(example_index.size());
 
     ParallelBatchReader batch_reader;
     batch_reader.add(new VectorReader(index_vector(source, example_index)));
-    if (!target_prefix.empty())
-      batch_reader.add(new VectorReader(index_vector(target_prefix, example_index)));
+    if (!target.empty())
+      batch_reader.add(new VectorReader(index_vector(target, example_index)));
 
     for (size_t offset = 0;;) {
-      auto batch = batch_reader.get_next(max_batch_size, batch_type);
-      if (batch[0].empty())
+      auto batch_tokens = batch_reader.get_next(max_batch_size, batch_type);
+      if (batch_tokens[0].empty())
         break;
 
-      TranslationBatch translation_batch;
-      translation_batch.source = std::move(batch[0]);
-      if (batch.size() > 1)
-        translation_batch.target_prefix = std::move(batch[1]);
+      Batch batch;
+      batch.source = std::move(batch_tokens[0]);
+      if (batch_tokens.size() > 1)
+        batch.target = std::move(batch_tokens[1]);
 
-      const size_t batch_size = translation_batch.source.size();
-      translation_batch.example_index.insert(translation_batch.example_index.begin(),
-                                             example_index.begin() + offset,
-                                             example_index.begin() + offset + batch_size);
+      const size_t batch_size = batch.source.size();
+      batch.example_index.insert(batch.example_index.begin(),
+                                 example_index.begin() + offset,
+                                 example_index.begin() + offset + batch_size);
       offset += batch_size;
 
-      batches.emplace_back(std::move(translation_batch));
+      batches.emplace_back(std::move(batch));
     }
 
     return batches;

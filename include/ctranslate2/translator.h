@@ -130,17 +130,22 @@ namespace ctranslate2 {
     const Vocabulary* _target_vocabulary;
   };
 
-  struct TranslationBatch {
+  struct Batch {
     std::vector<std::vector<std::string>> source;
-    std::vector<std::vector<std::string>> target_prefix;
+    std::vector<std::vector<std::string>> target;
     std::vector<size_t> example_index;  // Index of each example in the original input.
   };
 
   // Rebatch the input according to the translation options.
   // This function can also reorder the examples to improve efficiency.
-  std::vector<TranslationBatch>
-  rebatch_translation_input(const std::vector<std::vector<std::string>>& source,
-                            const std::vector<std::vector<std::string>>& target_prefix,
-                            const TranslationOptions& options);
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target,
+                size_t max_batch_size,
+                BatchType batch_type = BatchType::Examples);
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target_prefix,
+                const TranslationOptions& options);
 
 }

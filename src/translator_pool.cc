@@ -59,14 +59,14 @@ namespace ctranslate2 {
       return TranslationOutput();
 
     // Rebatch the input and post each sub-batch in the translation queue.
-    auto batches = rebatch_translation_input(source, target_prefix, options);
+    auto batches = rebatch_input(source, target_prefix, options);
     options.rebatch_input = false;
 
     std::vector<std::future<TranslationOutput>> futures;
     futures.reserve(batches.size());
     for (auto& batch : batches) {
       futures.emplace_back(post(std::move(batch.source),
-                                std::move(batch.target_prefix),
+                                std::move(batch.target),
                                 options));
     }
 
