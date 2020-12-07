@@ -69,11 +69,10 @@ int main(int argc, char* argv[]) {
 
   if (args.count("help")) {
     std::cerr << cmd_options.help() << std::endl;
-    return 1;
+    return 0;
   }
   if (!args.count("model")) {
-    std::cerr << "missing model" << std::endl;
-    return 1;
+    throw std::invalid_argument("Option --model is required to run translation");
   }
 
   size_t inter_threads = args["inter_threads"].as<size_t>();
