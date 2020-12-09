@@ -158,8 +158,12 @@ if(NOT OPENMP_RUNTIME STREQUAL "NONE")
 
   if(OPENMP_RUNTIME STREQUAL "INTEL")
     # Find Intel libraries.
-    find_library(IOMP5_LIBRARY iomp5 libiomp5md HINTS
-      ${INTEL_ROOT}/lib ${INTEL_ROOT}/lib/intel64 ${INTEL_ROOT}/compiler/lib/intel64)
+    find_library(IOMP5_LIBRARY iomp5 libiomp5md PATHS
+      ${INTEL_ROOT}/lib
+      ${INTEL_ROOT}/lib/intel64
+      ${INTEL_ROOT}/compiler/lib/intel64
+      ${INTEL_ROOT}/oneapi/compiler/latest/linux/compiler/lib/intel64_lin
+      )
     if(IOMP5_LIBRARY)
       list(APPEND LIBRARIES ${IOMP5_LIBRARY})
       message(STATUS "Using OpenMP: ${IOMP5_LIBRARY}")
@@ -179,8 +183,11 @@ if(NOT OPENMP_RUNTIME STREQUAL "NONE")
 endif()
 
 if(WITH_MKL)
-  find_path(MKL_ROOT include/mkl.h PATHS $ENV{MKLROOT} ${INTEL_ROOT}/mkl
-                                   DOC "Path to MKL root directory")
+  find_path(MKL_ROOT include/mkl.h DOC "Path to MKL root directory" PATHS
+    $ENV{MKLROOT}
+    ${INTEL_ROOT}/mkl
+    ${INTEL_ROOT}/oneapi/mkl/latest
+    )
 
   # Find MKL includes.
   find_path(MKL_INCLUDE_DIR NAMES mkl.h HINTS ${MKL_ROOT}/include/)
@@ -241,14 +248,21 @@ if(WITH_MKL)
 endif()
 
 if(WITH_DNNL)
-  find_path(DNNL_INCLUDE_DIR NAMES dnnl.h)
+  set(ONEAPI_DNNL_PATH ${INTEL_ROOT}/oneapi/dnnl/latest)
+  if(OPENMP_RUNTIME STREQUAL "INTEL")
+    set(ONEAPI_DNNL_PATH ${ONEAPI_DNNL_PATH}/cpu_iomp)
+  else()
+    set(ONEAPI_DNNL_PATH ${ONEAPI_DNNL_PATH}/cpu_gomp)
+  endif()
+
+  find_path(DNNL_INCLUDE_DIR NAMES dnnl.h PATHS ${ONEAPI_DNNL_PATH}/include)
   if(DNNL_INCLUDE_DIR)
     message(STATUS "Found DNNL include directory: ${DNNL_INCLUDE_DIR}")
   else()
     message(FATAL_ERROR "DNNL include directory not found")
   endif()
 
-  find_library(DNNL_LIBRARY NAMES dnnl)
+  find_library(DNNL_LIBRARY NAMES dnnl PATHS ${ONEAPI_DNNL_PATH}/lib)
   if(DNNL_LIBRARY)
     message(STATUS "Found DNNL library: ${DNNL_LIBRARY}")
   else()
