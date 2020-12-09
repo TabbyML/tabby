@@ -124,9 +124,7 @@ namespace ctranslate2 {
     std::shared_ptr<const models::Model> _model;
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
-    const VocabularyMap* _vocabulary_map;
-    const Vocabulary* _source_vocabulary;
-    const Vocabulary* _target_vocabulary;
+    const models::SequenceToSequenceModel* _seq2seq_model = nullptr;
   };
 
   struct Batch {

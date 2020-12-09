@@ -137,8 +137,10 @@ namespace ctranslate2 {
     assert_has_model();
     auto scoped_device_setter = _model->get_scoped_device_setter();
 
-    const std::vector<std::vector<size_t>> source_ids = _source_vocabulary->to_ids(source);
-    const std::vector<std::vector<size_t>> target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
+    const auto& source_vocabulary = _seq2seq_model->get_source_vocabulary();
+    const auto& target_vocabulary = _seq2seq_model->get_target_vocabulary();
+    const auto source_ids = source_vocabulary.to_ids(source);
+    const auto target_prefix_ids = target_vocabulary.to_ids(target_prefix);
 
     const Device device = _model->device();
     const dim_t preferred_size_multiple = get_preferred_size_multiple(
@@ -157,11 +159,12 @@ namespace ctranslate2 {
     (*_encoder)(ids, lengths, encoded);
 
     // If set, extract the subset of candidates to generate.
+    const auto* vocabulary_map = _seq2seq_model->get_vocabulary_map();
     std::vector<size_t> output_ids_map;
-    if (options.use_vmap && _vocabulary_map && !_vocabulary_map->empty()) {
-      output_ids_map = _vocabulary_map->get_candidates(source);
-    } else if (_target_vocabulary->size() % preferred_size_multiple != 0) {
-      output_ids_map.resize(_target_vocabulary->size());
+    if (options.use_vmap && vocabulary_map) {
+      output_ids_map = vocabulary_map->get_candidates(source);
+    } else if (target_vocabulary.size() % preferred_size_multiple != 0) {
+      output_ids_map.resize(target_vocabulary.size());
       std::iota(output_ids_map.begin(), output_ids_map.end(), size_t(0));
     }
 
@@ -182,8 +185,8 @@ namespace ctranslate2 {
     layers::DecoderState state = _decoder->initial_state();
     state.emplace(std::string("memory"), std::move(encoded));
     state.emplace(std::string("memory_lengths"), std::move(lengths));
-    const size_t start_id = _target_vocabulary->to_id(Vocabulary::bos_token);
-    const size_t end_id = _target_vocabulary->to_id(Vocabulary::eos_token);
+    const size_t start_id = target_vocabulary.to_id(Vocabulary::bos_token);
+    const size_t end_id = target_vocabulary.to_id(Vocabulary::eos_token);
     const size_t batch_size = source.size();
     const std::vector<size_t> start_ids(batch_size, start_id);
     std::vector<GenerationResult<size_t>> results = decode(
@@ -220,7 +223,7 @@ namespace ctranslate2 {
         result.set_attention(std::move(all_attention));
       }
 
-      final_results.emplace_back(_target_vocabulary->to_tokens(result.hypotheses()),
+      final_results.emplace_back(target_vocabulary.to_tokens(result.hypotheses()),
                                  result.scores(),
                                  result.attention());
     }
@@ -264,24 +267,20 @@ namespace ctranslate2 {
     if (!seq2seq_model)
       throw std::invalid_argument("Translator expects a model of type SequenceToSequenceModel");
     _model = model;
+    _seq2seq_model = seq2seq_model;
     auto scoped_device_setter = _model->get_scoped_device_setter();
     _encoder = seq2seq_model->make_encoder();
     _decoder = seq2seq_model->make_decoder();
-    _vocabulary_map = seq2seq_model->get_vocabulary_map();
-    _source_vocabulary = &seq2seq_model->get_source_vocabulary();
-    _target_vocabulary = &seq2seq_model->get_target_vocabulary();
   }
 
   void Translator::detach_model() {
     if (!_model)
       return;
     auto scoped_device_setter = _model->get_scoped_device_setter();
-    _vocabulary_map = nullptr;
-    _source_vocabulary = nullptr;
-    _target_vocabulary = nullptr;
     _encoder.reset();
     _decoder.reset();
     _model.reset();
+    _seq2seq_model = nullptr;
   }
 
   void Translator::assert_has_model() const {
