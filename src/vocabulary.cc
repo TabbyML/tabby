@@ -29,6 +29,9 @@ namespace ctranslate2 {
   }
 
   const std::string& Vocabulary::to_token(size_t id) const {
+    if (id >= size())
+      throw std::invalid_argument("Invalid token ID " + std::to_string(id)
+                                  + ": valid IDs are between 0 and " + std::to_string(size() - 1));
     return *_id_to_token[id];
   }
 
