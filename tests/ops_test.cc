@@ -568,12 +568,12 @@ TEST_P(OpDeviceFPTest, SoftMax) {
 TEST_P(OpDeviceFPTest, LogSoftMax) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;
-  StorageView x({2, 5}, std::vector<float>{
-      -0.2, 3.0, 1.2, -1.1, 0.0,
-      4.6, 3.3, 0.2, -1.6, 1.0}, device);
-  StorageView expected({2, 5}, std::vector<float>{
-      -3.440921, -0.240921, -2.040921, -4.340921, -3.240921,
-      -0.273199, -1.573199, -4.673199, -6.473199, -3.873199}, device);
+  StorageView x({2, 10}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0, 0.2, -3.0, -1.2, 1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0, -4.6, -3.3, -0.2, 1.6, -1.0}, device);
+  StorageView expected({2, 10}, std::vector<float>{
+      -3.638294, -0.438294, -2.238294, -4.538294, -3.438294, -3.238294, -6.438294, -4.638294, -2.338294, -3.438294,
+      -0.319434, -1.619434, -4.719434, -6.519434, -3.919434, -9.519434, -8.219434, -5.119434, -3.319434, -5.919434}, device);
   StorageView y(dtype, device);
   ops::LogSoftMax()(x.to(dtype), y);
   expect_storage_eq(y.to_float(), expected, 1e-2);

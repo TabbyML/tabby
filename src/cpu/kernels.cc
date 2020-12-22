@@ -81,6 +81,9 @@ namespace ctranslate2 {
         return accu;
       }
 
+      const dim_t remaining = size % Vec<T, ISA>::width;
+      size -= remaining;
+
       auto vec_accu = Vec<T, ISA>::load(init);
       vectorized_iter<Vec<T, ISA>::width>(
         size,
@@ -91,13 +94,21 @@ namespace ctranslate2 {
 
       T values[Vec<T, ISA>::width];
       Vec<T, ISA>::store(vec_accu, values);
-      return vectorized_map_reduce_all<ISA>(values,
-                                            Vec<T, ISA>::width,
-                                            init,
-                                            identity(),
-                                            vec_reduce_func,
-                                            identity(),
-                                            scalar_reduce_func);
+      const auto accu =  vectorized_map_reduce_all<ISA>(values,
+                                                        Vec<T, ISA>::width,
+                                                        init,
+                                                        identity(),
+                                                        vec_reduce_func,
+                                                        identity(),
+                                                        scalar_reduce_func);
+
+      return  vectorized_map_reduce_all<ISA>(x + size,
+                                             remaining,
+                                             accu,
+                                             vec_map_func,
+                                             vec_reduce_func,
+                                             scalar_map_func,
+                                             scalar_reduce_func);
     }
 
     template <CpuIsa ISA, typename T, typename VecReduceFunc, typename ScalarReduceFunc>
