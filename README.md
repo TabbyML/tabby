@@ -268,6 +268,8 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |
 | WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
+| WITH_ACCELERATE | **OFF**, ON | Compiles with the Apple Accelerate backend |
+| WITH_OPENBLAS | **OFF**, ON | Compiles with the OpenBLAS backend |
 | WITH_TESTS | **OFF**, ON | Compiles the tests |
 
 Some build options require external dependencies:
@@ -276,6 +278,10 @@ Some build options require external dependencies:
   * [Intel MKL](https://software.intel.com/en-us/mkl) (>=2019.5)
 * `-DWITH_DNNL=ON` requires:
   * [oneDNN](https://github.com/oneapi-src/oneDNN) (>=1.5)
+* `-DWITH_ACCELERATE=ON` requires:
+  * [Accelerate](https://developer.apple.com/documentation/accelerate) (only available on macOS)
+* `-DWITH_OPENBLAS=ON` requires:
+  * [OpenBLAS](https://github.com/xianyi/OpenBLAS)
 * `-DWITH_CUDA=ON` requires:
   * [cuBLAS](https://developer.nvidia.com/cublas) (>=10.0)
 

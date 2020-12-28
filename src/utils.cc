@@ -58,6 +58,7 @@ namespace ctranslate2 {
           << " (SSE4.1=" << cpu::cpu_supports_sse41()
           << ", AVX=" << cpu::cpu_supports_avx()
           << ", AVX2=" << cpu::cpu_supports_avx()
+          << ", NEON=" << cpu::cpu_supports_neon()
           << ")" << std::endl;
     LOG() << " - Selected ISA: " << cpu::isa_to_str(cpu::get_cpu_isa()) << std::endl;
     LOG() << " - Use Intel MKL: " << cpu::mayiuse_mkl() << std::endl;

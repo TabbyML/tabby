@@ -1,15 +1,18 @@
 #include "cpu_info.h"
 
+#if defined(__x86_64__)
 #ifdef _WIN32
 #  include <intrin.h>
 #  include <immintrin.h>
 #else
 #  include <cpuid.h>
 #endif
+#endif
 
 namespace ctranslate2 {
   namespace cpu {
 
+#if defined(__x86_64__)
     static void get_cpuid(unsigned int eax_in, unsigned int* data) {
 #ifdef _WIN32
       __cpuid(reinterpret_cast<int*>(data), static_cast<int>(eax_in));
@@ -95,5 +98,35 @@ namespace ctranslate2 {
       return cpu_info.avx2;
     }
 
+    bool cpu_supports_neon() {
+      return false;
+    }
+
+#elif defined(__aarch64__)
+    const std::string& cpu_vendor() {
+      static const std::string vendor = "ARM";
+      return vendor;
+    }
+
+    bool cpu_is_intel() {
+      return false;
+    }
+
+    bool cpu_supports_sse41() {
+      return false;
+    }
+
+    bool cpu_supports_avx() {
+      return false;
+    }
+
+    bool cpu_supports_avx2() {
+      return false;
+    }
+
+    bool cpu_supports_neon() {
+      return true;
+    }
+#endif
   }
 }

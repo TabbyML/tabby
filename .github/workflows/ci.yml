@@ -11,7 +11,7 @@ on:
       - master
 
 jobs:
-  build-and-test-cpp:
+  build-and-test-cpp-x86_64:
     runs-on: ubuntu-18.04
     env:
       CT2_VERBOSE: 1
@@ -52,6 +52,93 @@ jobs:
       - name: Test
         run: |
           tests/ctranslate2_test tests/data
+
+
+  build-and-test-cpp-aarch64:
+    runs-on: ubuntu-20.04
+    env:
+      CT2_VERBOSE: 1
+    strategy:
+      matrix:
+        backend: [openblas, dnnl]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install cross compiler and emulator
+        run: sudo apt-get install -y g++-aarch64-linux-gnu gfortran-aarch64-linux-gnu qemu-user-static
+
+      - name: Build with OpenBLAS
+        if: matrix.backend == 'openblas'
+        run: |
+          wget https://github.com/xianyi/OpenBLAS/archive/v0.3.13.tar.gz
+          tar xzvf v0.3.13.tar.gz
+          cd OpenBLAS-0.3.13
+          make TARGET=ARMV8 CC=aarch64-linux-gnu-gcc FC=aarch64-linux-gnu-gfortran HOSTCC=gcc NO_LAPACK=1 -j $(nproc)
+          sudo make PREFIX=/usr/aarch64-linux-gnu install
+          cd ..
+
+          cmake \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu \
+            -DOPENMP_RUNTIME=COMP \
+            -DCMAKE_INSTALL_PREFIX=$PWD/install \
+            -DWITH_MKL=OFF \
+            -DWITH_OPENBLAS=ON \
+            -DWITH_TESTS=ON \
+            .
+          make -j $(nproc) install
+
+      - name: Build with DNNL
+        if: matrix.backend == 'dnnl'
+        run: |
+          wget https://github.com/oneapi-src/oneDNN/archive/v1.7.tar.gz
+          tar xzvf v1.7.tar.gz
+          cd oneDNN-1.7
+          cmake \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu \
+            -DCMAKE_INSTALL_PREFIX=/usr/aarch64-linux-gnu \
+            -DDNNL_TARGET_ARCH="AARCH64" \
+            -DDNNL_CPU_RUNTIME=OMP \
+            -DDNNL_BUILD_TESTS=OFF \
+            .
+          make -j $(nproc)
+          sudo make install
+          cd ..
+
+          cmake \
+            -DCMAKE_SYSTEM_NAME=Linux \
+            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+            -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu \
+            -DOPENMP_RUNTIME=COMP \
+            -DCMAKE_INSTALL_PREFIX=$PWD/install \
+            -DWITH_MKL=OFF \
+            -DWITH_DNNL=ON \
+            -DWITH_TESTS=ON \
+            .
+          make -j $(nproc) install
+
+      - name: Download test data
+        run: |
+          wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
+          tar xf transliteration-aren-all.tar.gz -C tests/data/models/
+
+      - name: Test
+        run: |
+          tests/ctranslate2_test tests/data
+        env:
+          QEMU_LD_PREFIX: /usr/aarch64-linux-gnu
 
 
   build-and-test-python-wheels:
@@ -95,7 +182,7 @@ jobs:
 
   publish-python-wheels-on-pypi:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-and-test-cpp, build-and-test-python-wheels]
+    needs: [build-and-test-cpp-x86_64, build-and-test-python-wheels]
     runs-on: ubuntu-18.04
 
     steps:

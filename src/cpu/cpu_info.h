@@ -12,6 +12,7 @@ namespace ctranslate2 {
     bool cpu_supports_sse41();
     bool cpu_supports_avx();
     bool cpu_supports_avx2();
+    bool cpu_supports_neon();
 
   }
 }

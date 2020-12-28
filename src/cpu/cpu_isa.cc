@@ -27,6 +27,8 @@ namespace ctranslate2 {
         return "AVX";
       case CpuIsa::AVX2:
         return "AVX2";
+      case CpuIsa::NEON:
+        return "NEON";
       default:
         return "GENERIC";
       }
@@ -39,6 +41,8 @@ namespace ctranslate2 {
           return try_isa(env_isa, CpuIsa::AVX2, cpu_supports_avx2());
         } else if (env_isa == "AVX") {
           return try_isa(env_isa, CpuIsa::AVX, cpu_supports_avx());
+        } else if (env_isa == "NEON") {
+          return try_isa(env_isa, CpuIsa::NEON, cpu_supports_neon());
         } else if (env_isa == "GENERIC") {
           return CpuIsa::GENERIC;
         } else {
@@ -51,6 +55,8 @@ namespace ctranslate2 {
         return CpuIsa::AVX2;
       } else if (cpu_supports_avx()) {
         return CpuIsa::AVX;
+      } else if (cpu_supports_neon()) {
+        return CpuIsa::NEON;
       }
 #endif
 
