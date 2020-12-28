@@ -129,6 +129,23 @@ namespace ctranslate2 {
     return results;
   }
 
+  static void
+  replace_unknowns(const std::vector<std::string>& source,
+                   std::vector<std::vector<std::string>>& hypotheses,
+                   const std::vector<std::vector<std::vector<float>>>& attention) {
+      for (size_t h = 0; h < hypotheses.size(); ++h) {
+        for (size_t t = 0; t < hypotheses[h].size(); ++t) {
+          if (hypotheses[h][t] == Vocabulary::unk_token) {
+            const std::vector<float>& attention_values = attention[h][t];
+            const size_t pos = std::distance(attention_values.begin(),
+                                             std::max_element(attention_values.begin(), attention_values.end()));
+
+            hypotheses[h][t] = source[pos];
+          }
+        }
+      }
+    }
+
   std::vector<TranslationResult>
   Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
                                     const std::vector<std::vector<std::string>>& target_prefix,
@@ -203,13 +220,24 @@ namespace ctranslate2 {
       options.num_hypotheses,
       options.return_alternatives,
       options.return_scores,
-      options.return_attention);
+      options.return_attention || options.replace_unknowns);
 
     // Convert generated ids to tokens.
     std::vector<TranslationResult> final_results;
     final_results.reserve(results.size());
     for (size_t i = 0; i < batch_size; ++i) {
       GenerationResult<size_t>& result = results[i];
+      std::vector<std::vector<std::string>> hypotheses = target_vocabulary.to_tokens(result.hypotheses());
+  
+      if (result.has_attention() && options.replace_unknowns) {
+        const auto& attention_values = results[i].attention();
+        replace_unknowns(source[i], hypotheses, attention_values);
+
+        if (!options.return_attention) {
+          std::vector<std::vector<std::vector<float>>> empty_attention;
+          result.set_attention(empty_attention);
+        }
+      }
 
       // Remove padding in attention vectors.
       if (result.has_attention()) {
@@ -223,7 +251,8 @@ namespace ctranslate2 {
         result.set_attention(std::move(all_attention));
       }
 
-      final_results.emplace_back(target_vocabulary.to_tokens(result.hypotheses()),
+
+      final_results.emplace_back(hypotheses,
                                  result.scores(),
                                  result.attention());
     }

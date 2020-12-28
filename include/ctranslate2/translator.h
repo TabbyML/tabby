@@ -58,6 +58,9 @@ namespace ctranslate2 {
     // translation.
     bool return_alternatives = false;
 
+    // Replace unknown target tokens by the original source token with the highest attention.
+    bool replace_unknowns = false;
+
     void validate() const;
 
   private:
