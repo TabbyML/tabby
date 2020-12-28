@@ -475,21 +475,17 @@ However, you should probably **not** use this project when:
 
 ### What hardware is supported?
 
-The supported hardware mostly depends on the external libraries used for acceleration.
-
 **CPU**
 
-We recommend using a recent Intel CPU and [Intel MKL](https://software.intel.com/en-us/mkl) for maximum performance.
+CTranslate2 supports x86-64 and ARM64 processors. It includes optimizations for AVX, AVX2, and NEON and supports multiple BLAS backends that should be selected based on the target platform (see [Building](#building)).
 
-However, Intel MKL is known to run poorly on AMD CPUs. To improve AMD support, we recommend enabling the [oneDNN](https://github.com/oneapi-src/oneDNN) backend that will be automatically selected at runtime. oneDNN is included in all pre-built binaries of CTranslate2.
-
-Optimized execution on ARM is a future work (contributions are welcome!).
+Prebuilt binaries are designed to run on any x86-64 processors supporting at least SSE 4.2. The binaries implement runtime dispatch to select the best backend and instruction set architecture (ISA) for the platform. In particular, they are compiled with both [Intel MKL](https://software.intel.com/en-us/mkl) and [oneDNN](https://github.com/oneapi-src/oneDNN) so that Intel MKL is only used on Intel processors where it performs best, whereas oneDNN is used on other x86-64 processors such as AMD.
 
 **GPU**
 
-CTranslate2 currently requires a NVIDIA GPU with a Compute Capability greater or equal to 3.0 (Kepler). FP16 execution requires a Compute Capability greater or equal to 7.0.
+CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.0 (Kepler). FP16 execution requires a Compute Capability greater or equal to 7.0.
 
-The driver requirement depends on the CUDA version, see the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
+The driver requirement depends on the CUDA version. See the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
 
 ### What are the known limitations?
 
@@ -502,7 +498,6 @@ We are actively looking to ease this assumption by supporting ONNX as model part
 There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
 
 * Support of running ONNX graphs
-* Optimizations for ARM CPUs
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
