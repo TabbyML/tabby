@@ -21,21 +21,16 @@ RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/c
     rm *.tar.gz
 ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
-ENV MKL_VERSION=2020
-ENV MKL_UPDATE=4
-ENV MKL_BUILD=912
-RUN yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.repo && \
-    rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
-    yum install -y intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
+ENV ONEAPI_VERSION=2021.1.1
+ENV MKL_BUILD=52
+ENV DNNL_BUILD=55
+RUN yum-config-manager --add-repo https://yum.repos.intel.com/oneapi && \
+    rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    yum install -y \
+        intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD \
+        intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD \
+        && \
     rm -rf /var/cache/yum/*
-
-ENV DNNL_VERSION=1.7.0
-ENV DNNL_TAG=v1.7
-ENV DNNL_DIR=/root/dnnl
-RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl_lnx_${DNNL_VERSION}_cpu_gomp.tgz && \
-    tar xf dnnl*.tgz && \
-    rm dnnl*.tgz && \
-    mv dnnl* ${DNNL_DIR}
 
 WORKDIR /root/ctranslate2-dev
 
@@ -80,7 +75,7 @@ RUN python3 -m pip --no-cache-dir install -r install_requirements.txt && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib64 && \
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib6464 && \
     cp $(ldconfig -p | grep 'libcublas.*\.so\..*' | tr ' ' '\n' | grep /) /root/ctranslate2/lib64
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-centos7

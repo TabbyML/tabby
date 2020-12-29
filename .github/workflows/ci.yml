@@ -24,24 +24,27 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build with MKL
+      - name: Install Intel oneAPI
+        run: |
+          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+          sudo apt-key add *.PUB
+          sudo sh -c 'echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list'
+          sudo apt-get update
+
+      - name: Configure with MKL
         if: matrix.backend == 'mkl'
         run: |
-          wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-          sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-          sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
-          sudo apt-get update
-          sudo apt-get install -y intel-mkl-64bit-2020.4-912
+          sudo apt-get install -y intel-oneapi-mkl-devel
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON .
-          make install
 
-      - name: Build with DNNL
+      - name: Configure with DNNL
         if: matrix.backend == 'dnnl'
         run: |
-          wget https://github.com/oneapi-src/oneDNN/releases/download/v1.7/dnnl_lnx_1.7.0_cpu_gomp.tgz
-          tar xf dnnl*.tgz && rm dnnl*.tgz
-          mv dnnl* dnnl/
-          cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DWITH_DNNL=ON -DCMAKE_PREFIX_PATH=$PWD/dnnl .
+          sudo apt-get install -y intel-oneapi-dnnl-devel
+          cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DWITH_TESTS=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DWITH_DNNL=ON .
+
+      - name: Build
+        run: |
           make install
 
       - name: Download test data
@@ -156,7 +159,7 @@ jobs:
 
       - name: Build wheels
         run: |
-          docker run -v $PWD:/root -w /root quay.io/pypa/manylinux2010_x86_64 bash /root/python/tools/build_wheel.sh
+          docker run -v $PWD:/root -w /root quay.io/pypa/manylinux2014_x86_64 bash /root/python/tools/build_wheel.sh
 
       - name: Install dependencies
         run: |

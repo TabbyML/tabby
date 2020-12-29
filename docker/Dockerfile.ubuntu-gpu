@@ -21,26 +21,20 @@ RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/c
     rm *.tar.gz
 ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
-ENV MKL_VERSION=2020
-ENV MKL_UPDATE=4
-ENV MKL_BUILD=912
-RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
-    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    echo "deb https://apt.repos.intel.com/mkl all main" > /etc/apt/sources.list.d/intel-mkl.list && \
+ENV ONEAPI_VERSION=2021.1.1
+ENV MKL_BUILD=52
+ENV DNNL_BUILD=55
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    apt-key add *.PUB && \
+    rm *.PUB && \
+    echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
+        intel-oneapi-mkl-devel=$ONEAPI_VERSION-$MKL_BUILD \
+        intel-oneapi-dnnl-devel=$ONEAPI_VERSION-$DNNL_BUILD \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
-
-ENV DNNL_VERSION=1.7.0
-ENV DNNL_TAG=v1.7
-ENV DNNL_DIR=/root/dnnl
-RUN wget https://github.com/oneapi-src/oneDNN/releases/download/${DNNL_TAG}/dnnl_lnx_${DNNL_VERSION}_cpu_gomp.tgz && \
-    tar xf dnnl*.tgz && \
-    rm dnnl*.tgz && \
-    mv dnnl* ${DNNL_DIR}
 
 WORKDIR /root/ctranslate2-dev
 
@@ -85,7 +79,7 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P ${DNNL_DIR}/lib/*.so* /root/ctranslate2/lib && \
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib && \
     cp $(ldconfig -p | grep 'libcublas.*\.so\..*' | tr ' ' '\n' | grep /) /root/ctranslate2/lib
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu${UBUNTU_VERSION}

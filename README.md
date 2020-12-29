@@ -109,7 +109,7 @@ The package published on PyPI supports CPU and GPU execution. All software depen
 
 * OS: Linux
 * Python version: >= 3.5
-* pip version: >= 19.0
+* pip version: >= 19.3
 * GPU driver version: >= 418.39
 
 ### Docker images
@@ -295,12 +295,11 @@ Multiple backends can be enabled for a single build. When building with both Int
 Use the following instructions to install Intel MKL:
 
 ```bash
-wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
-sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
+sudo sh -c 'echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list'
 sudo apt-get update
-sudo apt-get install intel-mkl-64bit-2020.4-912
+sudo apt-get install intel-oneapi-mkl-devel
 ```
 
 See the [Intel MKL documentation](https://software.intel.com/content/www/us/en/develop/tools/math-kernel-library.html) for other installation methods.
