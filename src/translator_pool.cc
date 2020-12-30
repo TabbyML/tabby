@@ -20,18 +20,36 @@ namespace ctranslate2 {
       worker.join();
   }
 
-  std::future<TranslationOutput> TranslatorPool::post(TranslationInput source,
-                                                      TranslationOptions options,
-                                                      bool blocking) {
-    return post(std::move(source), TranslationInput(), std::move(options), blocking);
+  std::future<std::vector<TranslationResult>>
+  TranslatorPool::translate_batch_async(std::vector<std::vector<std::string>> source,
+                                        TranslationOptions options) {
+    return post(std::move(source), std::move(options));
   }
 
-  std::future<TranslationOutput> TranslatorPool::post(TranslationInput source,
-                                                      TranslationInput target_prefix,
-                                                      TranslationOptions options,
-                                                      bool blocking) {
+  std::future<std::vector<TranslationResult>>
+  TranslatorPool::translate_batch_async(std::vector<std::vector<std::string>> source,
+                                        std::vector<std::vector<std::string>> target_prefix,
+                                        TranslationOptions options) {
+    return post(std::move(source), std::move(target_prefix), std::move(options));
+  }
+
+  std::future<std::vector<TranslationResult>>
+  TranslatorPool::post(std::vector<std::vector<std::string>> source,
+                       TranslationOptions options,
+                       bool throttle) {
+    return post(std::move(source),
+                std::vector<std::vector<std::string>>(),
+                std::move(options),
+                throttle);
+  }
+
+  std::future<std::vector<TranslationResult>>
+  TranslatorPool::post(std::vector<std::vector<std::string>> source,
+                       std::vector<std::vector<std::string>> target_prefix,
+                       TranslationOptions options,
+                       bool throttle) {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (blocking)
+    if (throttle)
       _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
 
     // locked again here
@@ -47,20 +65,28 @@ namespace ctranslate2 {
     return future;
   }
 
-  TranslationOutput TranslatorPool::translate_batch(const TranslationInput& source,
-                                                    const TranslationInput& target_prefix,
-                                                    TranslationOptions options) {
+  std::vector<TranslationResult>
+  TranslatorPool::translate_batch(const std::vector<std::vector<std::string>>& source,
+                                  const TranslationOptions& options) {
+    return translate_batch(source, std::vector<std::vector<std::string>>(), options);
+  }
+
+  std::vector<TranslationResult>
+  TranslatorPool::translate_batch(const std::vector<std::vector<std::string>>& source,
+                                  const std::vector<std::vector<std::string>>& target_prefix,
+                                  const TranslationOptions& user_options) {
+    TranslationOptions options = user_options;
     options.validate();
     options.validated = true;
 
     if (source.empty())
-      return TranslationOutput();
+      return std::vector<TranslationResult>();
 
     // Rebatch the input and post each sub-batch in the translation queue.
     auto batches = rebatch_input(source, target_prefix, options);
     options.rebatch_input = false;
 
-    std::vector<std::future<TranslationOutput>> futures;
+    std::vector<std::future<std::vector<TranslationResult>>> futures;
     futures.reserve(batches.size());
     for (auto& batch : batches) {
       futures.emplace_back(post(std::move(batch.source),
@@ -69,7 +95,7 @@ namespace ctranslate2 {
     }
 
     const TranslationResult empty_result(options.num_hypotheses, options.return_attention);
-    TranslationOutput results(source.size(), empty_result);
+    std::vector<TranslationResult> results(source.size(), empty_result);
 
     // Wait for the result of each sub-batch.
     for (size_t batch_id = 0; batch_id < batches.size(); ++batch_id) {
@@ -166,7 +192,8 @@ namespace ctranslate2 {
     }
   }
 
-  TranslationOutput TranslatorPool::TranslationJob::compute(Translator& translator) const {
+  std::vector<TranslationResult>
+  TranslatorPool::TranslationJob::compute(Translator& translator) const {
     return translator.translate_batch_with_prefix(_source, _target_prefix, _options);
   }
 

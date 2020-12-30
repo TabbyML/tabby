@@ -12,9 +12,6 @@
 
 namespace ctranslate2 {
 
-  using TranslationInput = std::vector<std::vector<std::string>>;
-  using TranslationOutput = std::vector<TranslationResult>;
-
   struct TranslationStats {
     size_t num_tokens = 0;
     size_t num_examples = 0;
@@ -41,22 +38,25 @@ namespace ctranslate2 {
     ~TranslatorPool();
 
     // Run a translation job asynchronously.
-    // With blocking=true it will block if there is already too much work pending.
-    std::future<TranslationOutput> post(TranslationInput source,
-                                        TranslationOptions options,
-                                        bool blocking=false);
-    std::future<TranslationOutput> post(TranslationInput source,
-                                        TranslationInput target_prefix,
-                                        TranslationOptions options,
-                                        bool blocking=false);
+    std::future<std::vector<TranslationResult>>
+    translate_batch_async(std::vector<std::vector<std::string>> source,
+                          TranslationOptions options);
+    std::future<std::vector<TranslationResult>>
+    translate_batch_async(std::vector<std::vector<std::string>> source,
+                          std::vector<std::vector<std::string>> target_prefix,
+                          TranslationOptions options);
 
     // Run a translation synchronously.
     // To benefit from parallelism, you can set max_batch_size in the translation options:
     // the input will be split according to this value and each batch will be translated
     // in parallel.
-    TranslationOutput translate_batch(const TranslationInput& source,
-                                      const TranslationInput& target_prefix,
-                                      TranslationOptions options);
+    std::vector<TranslationResult>
+    translate_batch(const std::vector<std::vector<std::string>>& source,
+                    const TranslationOptions& options);
+    std::vector<TranslationResult>
+    translate_batch(const std::vector<std::vector<std::string>>& source,
+                    const std::vector<std::vector<std::string>>& target_prefix,
+                    const TranslationOptions& options);
 
     // Translate a stream in parallel.
     // Results will be written in order as they are available so the stream content is
@@ -81,7 +81,7 @@ namespace ctranslate2 {
                         SourceReader& source_reader,
                         TargetReader& target_reader,
                         TargetWriter& target_writer) {
-      std::queue<std::future<TranslationOutput>> results;
+      std::queue<std::future<std::vector<TranslationResult>>> results;
 
       auto pop_results = [&results, &output, &target_writer](bool blocking) {
         static const auto zero_sec = std::chrono::seconds(0);
@@ -109,7 +109,7 @@ namespace ctranslate2 {
                              ? std::move(batch[1])
                              : std::vector<std::vector<std::string>>(),
                              options,
-                             /*blocking=*/true));
+                             /*throttle=*/true));
 
         pop_results(/*blocking=*/false);
       }
@@ -264,6 +264,17 @@ namespace ctranslate2 {
     size_t num_translators() const;
     const std::vector<Translator>& get_translators() const;
 
+    // With throttle=true it will block if there is already too much work pending.
+    std::future<std::vector<TranslationResult>>
+    post(std::vector<std::vector<std::string>> source,
+         TranslationOptions options,
+         bool throttle = false);
+    std::future<std::vector<TranslationResult>>
+    post(std::vector<std::vector<std::string>> source,
+         std::vector<std::vector<std::string>> target_prefix,
+         TranslationOptions options,
+         bool throttle = false);
+
   private:
     class Job {
     public:
@@ -287,10 +298,10 @@ namespace ctranslate2 {
       std::promise<ResultType> _promise;
     };
 
-    class TranslationJob : public BaseJob<TranslationOutput> {
+    class TranslationJob : public BaseJob<std::vector<TranslationResult>> {
     public:
-      TranslationJob(TranslationInput source,
-                     TranslationInput target_prefix,
+      TranslationJob(std::vector<std::vector<std::string>> source,
+                     std::vector<std::vector<std::string>> target_prefix,
                      TranslationOptions options)
         : _source(std::move(source))
         , _target_prefix(std::move(target_prefix))
@@ -298,11 +309,11 @@ namespace ctranslate2 {
       }
 
     protected:
-      TranslationOutput compute(Translator& translator) const override;
+      std::vector<TranslationResult> compute(Translator& translator) const override;
 
     private:
-      TranslationInput _source;
-      TranslationInput _target_prefix;
+      std::vector<std::vector<std::string>> _source;
+      std::vector<std::vector<std::string>> _target_prefix;
       TranslationOptions _options;
     };
 
