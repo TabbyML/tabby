@@ -9,16 +9,6 @@
 
 namespace ctranslate2 {
 
-  template <typename T>
-  static std::vector<T> index_vector(const std::vector<T>& v,
-                                     const std::vector<size_t>& index) {
-    std::vector<T> new_v;
-    new_v.resize(index.size());
-    for (size_t i = 0; i < index.size(); ++i)
-      new_v[i] = v[index[i]];
-    return new_v;
-  }
-
   static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
     const Sampler* sampler = nullptr;
 

@@ -310,8 +310,9 @@ namespace ctranslate2 {
       }
 
       // Check if some hypotheses are finished.
-      std::vector<bool> finished(cur_batch_size, false);
-      dim_t finished_count = 0;
+      std::vector<int32_t> non_finished_index;
+      non_finished_index.reserve(cur_batch_size);
+
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         for (dim_t k = 0; k < _beam_size; ++k) {
@@ -352,9 +353,6 @@ namespace ctranslate2 {
         }
 
         if (top_beam_finished[i] && hypotheses[batch_id].size() >= num_hypotheses) {
-          ++finished_count;
-          finished[i] = true;
-
           // Return the "num_hypotheses" best hypotheses.
           for (auto& pair : hypotheses[batch_id]) {
             if (sampled_ids[batch_id].size() >= num_hypotheses)
@@ -368,11 +366,15 @@ namespace ctranslate2 {
             }
           }
           hypotheses[batch_id].clear();
+        } else {
+          non_finished_index.emplace_back(i);
         }
       }
 
+      const dim_t next_batch_size = non_finished_index.size();
+
       // If all remaining sentences are finished, no need to go further.
-      if (finished_count == cur_batch_size) {
+      if (next_batch_size == 0) {
         if (!is_expanded) {
           // We should ensure that states are replicated before exiting this function.
           expand_to_beam_size(state, _beam_size);
@@ -381,21 +383,12 @@ namespace ctranslate2 {
       }
 
       // If some sentences finished on this step, ignore them for the next step.
-      if (finished_count > 0) {
-        auto old_batch_size = cur_batch_size;
-        cur_batch_size -= finished_count;
-        StorageView keep_batches({cur_batch_size}, DataType::INT32);
-        size_t write_index = 0;
-        size_t read_index = 0;
-        for (; read_index < finished.size(); ++read_index) {
-          if (!finished[read_index]) {
-            keep_batches.at<int32_t>(write_index) = read_index;
-            top_beam_finished[write_index] = top_beam_finished[read_index];
-            batch_offset[write_index] = batch_offset[read_index];
-            ++write_index;
-          }
-        }
-        batch_offset.resize(write_index);
+      if (next_batch_size != cur_batch_size) {
+        cur_batch_size = next_batch_size;
+        batch_offset = index_vector(batch_offset, non_finished_index);
+        top_beam_finished = index_vector(top_beam_finished, non_finished_index);
+
+        StorageView keep_batches({cur_batch_size}, non_finished_index);
         gather(topk_ids, keep_batches);
         gather(topk_log_probs, keep_batches);
         gather(alive_seq, keep_batches);
@@ -417,7 +410,7 @@ namespace ctranslate2 {
         }
 
         if(_coverage_penalty != 0){
-          coverage.reshape({old_batch_size, _beam_size, coverage.dim(1), coverage.dim(2)});
+          coverage.reshape({-1, _beam_size, coverage.dim(1), coverage.dim(2)});
           gather(coverage, keep_batches);
           coverage.reshape({cur_batch_size * _beam_size, coverage.dim(2), coverage.dim(3)});
         }
@@ -472,8 +465,6 @@ namespace ctranslate2 {
 
     StorageView logits(dtype, device);
     StorageView log_probs(dtype, device);
-    StorageView alive({batch_size}, DataType::INT32);
-    std::vector<bool> finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
@@ -513,22 +504,19 @@ namespace ctranslate2 {
       if (attention)
         attention_step.copy_from(attention_step_device.to_float());
 
-      std::vector<bool> finished_batch(log_probs.dim(0), false);
-      bool one_finished = false;
-      dim_t count_alive = 0;
-      for (dim_t i = 0; i < log_probs.dim(0); ++i) {
+      const dim_t cur_batch_size = log_probs.dim(0);
+      std::vector<int32_t> non_finished_index;
+      non_finished_index.reserve(cur_batch_size);
+
+      for (dim_t i = 0; i < cur_batch_size; ++i) {
         int32_t true_id = best_ids.scalar_at<int32_t>({i});
         if (output_ids_map)
           true_id = output_ids_map->at(true_id);
         dim_t batch_id = batch_offset[i];
-        if (true_id == static_cast<int32_t>(end_id)) {
-          finished[batch_id] = true;
-          finished_batch[i] = true;
-          one_finished = true;
-        } else {
+        if (true_id != static_cast<int32_t>(end_id)) {
+          non_finished_index.emplace_back(i);
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
-          ++count_alive;
           if (scores) {
             (*scores)[batch_id][0] += best_probs.scalar_at<float>({i});
           }
@@ -539,23 +527,17 @@ namespace ctranslate2 {
         }
       }
 
+      const dim_t count_alive = non_finished_index.size();
+
       // No more sentences are alive, stop here.
       if (count_alive == 0)
         break;
 
       // Remove finished sentences from the execution.
-      if (one_finished) {
-        alive.resize({count_alive});
-        size_t write_index = 0;
-        size_t read_index = 0;
-        for (; read_index < finished_batch.size(); ++read_index) {
-          if (!finished_batch[read_index]) {
-            batch_offset[write_index] = batch_offset[read_index];
-            alive.at<int32_t>(write_index) = read_index;
-            ++write_index;
-          }
-        }
-        batch_offset.resize(write_index);
+      if (count_alive != cur_batch_size) {
+        batch_offset = index_vector(batch_offset, non_finished_index);
+
+        StorageView alive({count_alive}, non_finished_index);
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
         decoder.gather_state(state, alive_device);

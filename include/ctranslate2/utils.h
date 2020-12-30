@@ -32,6 +32,16 @@ namespace ctranslate2 {
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
 
+  template <typename T, typename I>
+  static std::vector<T> index_vector(const std::vector<T>& v,
+                                     const std::vector<I>& index) {
+    std::vector<T> new_v;
+    new_v.resize(index.size());
+    for (size_t i = 0; i < index.size(); ++i)
+      new_v[i] = v[index[i]];
+    return new_v;
+  }
+
   std::mt19937& get_random_generator();
 
   void* aligned_alloc(size_t size, size_t alignment);
