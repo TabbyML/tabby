@@ -219,7 +219,7 @@ namespace ctranslate2 {
     for (size_t i = 0; i < batch_size; ++i) {
       GenerationResult<size_t>& result = results[i];
       std::vector<std::vector<std::string>> hypotheses = target_vocabulary.to_tokens(result.hypotheses());
-  
+
       if (result.has_attention() && options.replace_unknowns) {
         const auto& attention_values = results[i].attention();
         replace_unknowns(source[i], hypotheses, attention_values);
