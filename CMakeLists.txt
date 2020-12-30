@@ -354,6 +354,7 @@ if (WITH_CUDA)
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/layer_norm_gpu.cu
+    src/ops/multinomial_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/topk_gpu.cu
     src/ops/quantize_gpu.cu

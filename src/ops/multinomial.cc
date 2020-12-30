@@ -10,14 +10,6 @@ namespace ctranslate2 {
     }
 
     void Multinomial::operator()(const StorageView& input, StorageView& output) const {
-      if (input.device() != Device::CPU) {
-        // TODO: CUDA implementation.
-        StorageView output_host(output.dtype());
-        operator()(input.to(Device::CPU), output_host);
-        output.copy_from(output_host);
-        return;
-      }
-
       PROFILE("Multinomial");
 
       Shape output_shape = input.shape();
@@ -26,10 +18,10 @@ namespace ctranslate2 {
 
       switch (input.dtype()) {
       case DataType::FLOAT:
-        compute<Device::CPU, float>(input, output);
+        DEVICE_DISPATCH(input.device(), (compute<D, float>(input, output)));
         break;
       case DataType::FLOAT16:
-        compute<Device::CPU, float16_t>(input, output);
+        DEVICE_DISPATCH(input.device(), (compute<D, float16_t>(input, output)));
         break;
       default:
         throw std::invalid_argument("Multinomial only supports float types");
