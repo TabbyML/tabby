@@ -36,13 +36,11 @@ namespace ctranslate2 {
 
     // locked again here
 
-    _work.emplace(std::piecewise_construct,
-                  std::forward_as_tuple(std::move(source),
-                                        std::move(target_prefix),
-                                        std::move(options)),
-                  std::forward_as_tuple());
-
-    std::future<TranslationOutput> future = _work.back().second.get_future();
+    auto* job = new TranslationJob(std::move(source),
+                                   std::move(target_prefix),
+                                   std::move(options));
+    auto future = job->get_future();
+    _work.emplace(job);
 
     lock.unlock();
     _cv.notify_one();
@@ -144,27 +142,32 @@ namespace ctranslate2 {
         break;
       }
 
-      auto work_def = std::move(_work.front());
+      auto job = std::move(_work.front());
       _work.pop();
       lock.unlock();
 
       _can_add_more_work.notify_one();
 
-      const auto& job = work_def.first;
-      auto& promise = work_def.second;
+      job->run(translator);
+    }
+  }
+
+  template <typename OutputType>
+  void TranslatorPool::BaseJob<OutputType>::run(Translator& translator) {
+    try {
+      _promise.set_value(compute(translator));
+    } catch (...) {
       try {
-        promise.set_value(translator.translate_batch_with_prefix(job.source,
-                                                                 job.target_prefix,
-                                                                 job.options));
+        // Store the exception in the shared state so that future.get() will throw it.
+        _promise.set_exception(std::current_exception());
       } catch (...) {
-        try {
-          // Store the exception in the shared state so that future.get() will throw it.
-          promise.set_exception(std::current_exception());
-        } catch (...) {
-          // set_exception may throw too.
-        }
+        // set_exception may throw too.
       }
     }
+  }
+
+  TranslationOutput TranslatorPool::TranslationJob::compute(Translator& translator) const {
+    return translator.translate_batch_with_prefix(_source, _target_prefix, _options);
   }
 
   void TranslatorPool::open_input_file(const std::string& file, std::ifstream& stream) const {
