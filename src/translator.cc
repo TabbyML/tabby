@@ -123,18 +123,19 @@ namespace ctranslate2 {
   replace_unknowns(const std::vector<std::string>& source,
                    std::vector<std::vector<std::string>>& hypotheses,
                    const std::vector<std::vector<std::vector<float>>>& attention) {
-      for (size_t h = 0; h < hypotheses.size(); ++h) {
-        for (size_t t = 0; t < hypotheses[h].size(); ++t) {
-          if (hypotheses[h][t] == Vocabulary::unk_token) {
-            const std::vector<float>& attention_values = attention[h][t];
-            const size_t pos = std::distance(attention_values.begin(),
-                                             std::max_element(attention_values.begin(), attention_values.end()));
+    for (size_t h = 0; h < hypotheses.size(); ++h) {
+      for (size_t t = 0; t < hypotheses[h].size(); ++t) {
+        if (hypotheses[h][t] == Vocabulary::unk_token) {
+          const std::vector<float>& attention_values = attention[h][t];
+          const size_t pos = std::distance(attention_values.begin(),
+                                           std::max_element(attention_values.begin(),
+                                                            attention_values.end()));
 
-            hypotheses[h][t] = source[pos];
-          }
+          hypotheses[h][t] = source[pos];
         }
       }
     }
+  }
 
   std::vector<TranslationResult>
   Translator::run_batch_translation(const std::vector<std::vector<std::string>>& source,
