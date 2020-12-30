@@ -320,6 +320,7 @@ namespace ctranslate2 {
     void create_translators(const std::shared_ptr<const models::Model>& model,
                             size_t num_translators,
                             size_t num_threads_per_translator);
+    void post_job(std::unique_ptr<Job> job, bool throttle = false);
     void work_loop(Translator& translator, size_t num_threads);
 
     void open_input_file(const std::string& file, std::ifstream& stream) const;

@@ -48,21 +48,25 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::string>> target_prefix,
                        TranslationOptions options,
                        bool throttle) {
+    auto* job = new TranslationJob(std::move(source),
+                                   std::move(target_prefix),
+                                   std::move(options));
+    auto future = job->get_future();
+    post_job(std::unique_ptr<Job>(job), throttle);
+    return future;
+  }
+
+  void TranslatorPool::post_job(std::unique_ptr<Job> job, bool throttle) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (throttle)
       _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
 
     // locked again here
 
-    auto* job = new TranslationJob(std::move(source),
-                                   std::move(target_prefix),
-                                   std::move(options));
-    auto future = job->get_future();
-    _work.emplace(job);
+    _work.emplace(std::move(job));
 
     lock.unlock();
     _cv.notify_one();
-    return future;
   }
 
   std::vector<TranslationResult>
