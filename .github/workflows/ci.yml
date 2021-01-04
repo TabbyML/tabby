@@ -159,22 +159,15 @@ jobs:
 
       - name: Build wheels
         run: |
-          docker run -v $PWD:/root -w /root quay.io/pypa/manylinux2014_x86_64 bash /root/python/tools/build_wheel.sh
-
-      - name: Install dependencies
-        run: |
-          python -m pip install -r python/tests/requirements.txt
-          python -m pip uninstall -y ctranslate2
-          python -m pip install python/wheelhouse/*cp36*.whl
-
-      - name: Download test data
-        run: |
-          wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
-          tar xf transliteration-aren-all.tar.gz -C tests/data/models/
-
-      - name: Test with pytest
-        run: |
-          python -m pytest python/tests/test.py
+          python -m pip install cibuildwheel==1.7.4
+          python -m cibuildwheel python --output-dir python/wheelhouse
+        env:
+          CIBW_BEFORE_ALL: python/tools/prepare_build_environment.sh
+          CIBW_BEFORE_BUILD: pip install -r python/install_requirements.txt
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_BEFORE_TEST: python/tools/prepare_test_environment.sh
+          CIBW_TEST_COMMAND: '{project}/python/tools/run_test.sh {project}'
+          CIBW_SKIP: cp27-* pp* *i686
 
       - name: Upload Python wheels
         uses: actions/upload-artifact@v2

@@ -9,7 +9,7 @@ include_dirs = [pybind11.get_include()]
 library_dirs = []
 
 def _get_long_description():
-    readme_path = os.path.join(os.path.dirname(__file__), "..", "README.md")
+    readme_path = os.path.join(os.path.dirname(__file__), "README.md")
     with io.open(readme_path, encoding="utf-8") as readme_file:
         return readme_file.read()
 
