@@ -19,27 +19,20 @@
 namespace ctranslate2 {
   namespace cpu {
 
-    template <dim_t vec_width, typename Function>
-    static void vectorized_iter(dim_t size, const Function& func) {
-      const dim_t remaining = size % vec_width;
+    template <CpuIsa ISA, typename T, typename Function>
+    static void vectorized_unary_transform(const T* x, T* y, dim_t size, const Function& func) {
+      const dim_t remaining = size % Vec<T, ISA>::width;
       size -= remaining;
 
-      for (dim_t i = 0; i < size; i += vec_width) {
-        func(i, vec_width);
+      for (dim_t i = 0; i < size; i += Vec<T, ISA>::width) {
+        auto v = Vec<T, ISA>::load(x + i);
+        Vec<T, ISA>::store(func(v), y + i);
       }
 
       if (remaining != 0) {
-        func(size, remaining);
+        auto v = Vec<T, ISA>::load(x + size, remaining);
+        Vec<T, ISA>::store(func(v), y + size, remaining);
       }
-    }
-
-    template <CpuIsa ISA, typename T, typename Function>
-    static void vectorized_unary_transform(const T* x, T* y, dim_t size, const Function& func) {
-      vectorized_iter<Vec<T, ISA>::width>(size,
-                                          [x, y, &func](dim_t i, dim_t width) {
-                                            auto v = Vec<T, ISA>::load(x + i, width);
-                                            Vec<T, ISA>::store(func(v), y + i, width);
-                                          });
     }
 
     template <CpuIsa ISA, typename T, typename Function>
@@ -48,12 +41,20 @@ namespace ctranslate2 {
                                             T* c,
                                             dim_t size,
                                             const Function& func) {
-      vectorized_iter<Vec<T, ISA>::width>(size,
-                                          [a, b, c, &func](dim_t i, dim_t width) {
-                                            auto v1 = Vec<T, ISA>::load(a + i, width);
-                                            auto v2 = Vec<T, ISA>::load(b + i, width);
-                                            Vec<T, ISA>::store(func(v1, v2), c + i, width);
-                                          });
+      const dim_t remaining = size % Vec<T, ISA>::width;
+      size -= remaining;
+
+      for (dim_t i = 0; i < size; i += Vec<T, ISA>::width) {
+        auto v1 = Vec<T, ISA>::load(a + i);
+        auto v2 = Vec<T, ISA>::load(b + i);
+        Vec<T, ISA>::store(func(v1, v2), c + i);
+      }
+
+      if (remaining != 0) {
+        auto v1 = Vec<T, ISA>::load(a + size, remaining);
+        auto v2 = Vec<T, ISA>::load(b + size, remaining);
+        Vec<T, ISA>::store(func(v1, v2), c + size, remaining);
+      }
     }
 
     struct identity {
@@ -88,12 +89,10 @@ namespace ctranslate2 {
       size -= remaining;
 
       auto vec_accu = Vec<T, ISA>::load(init);
-      vectorized_iter<Vec<T, ISA>::width>(
-        size,
-        [x, init, &vec_accu, &vec_map_func, &vec_reduce_func](dim_t i, dim_t width) {
-          auto v = Vec<T, ISA>::load(x + i, width, init);
-          vec_accu = vec_reduce_func(vec_accu, vec_map_func(v));
-        });
+      for (dim_t i = 0; i < size; i += Vec<T, ISA>::width) {
+        auto v = Vec<T, ISA>::load(x + i, Vec<T, ISA>::width, init);
+        vec_accu = vec_reduce_func(vec_accu, vec_map_func(v));
+      }
 
       T values[Vec<T, ISA>::width];
       Vec<T, ISA>::store(vec_accu, values);
