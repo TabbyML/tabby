@@ -52,6 +52,7 @@ namespace ctranslate2 {
       void operator()(const StorageView& input, StorageView& output) const;
     private:
       const layers::LayerNorm _layer_norm;
+      const layers::Activation _activation;
       const layers::Dense _ff1;
       const layers::Dense _ff2;
     };

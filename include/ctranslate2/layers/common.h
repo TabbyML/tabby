@@ -18,6 +18,26 @@ namespace ctranslate2 {
       virtual dim_t output_size() const = 0;
     };
 
+    enum class ActivationType {
+      GELU,
+      ReLU,
+    };
+
+    class Activation : public Layer {
+    public:
+      Activation(const ActivationType type);
+      ActivationType type() const {
+        return _type;
+      }
+
+      void operator()(const StorageView& x, StorageView& y) const;
+      DataType output_type() const override;
+      dim_t output_size() const override;
+    private:
+      const ActivationType _type;
+      const std::unique_ptr<const ops::UnaryOp> _op;
+    };
+
     class Embeddings : public Layer
     {
     public:
@@ -35,7 +55,9 @@ namespace ctranslate2 {
     class Dense : public Layer
     {
     public:
-      Dense(const models::Model& model, const std::string& scope);
+      Dense(const models::Model& model,
+            const std::string& scope,
+            const Activation* activation = nullptr);
       DataType output_type() const override;
       dim_t output_size() const override;
       void operator()(const StorageView& input, StorageView& output) const;
@@ -51,6 +73,7 @@ namespace ctranslate2 {
       StorageView _partial_bias;
       StorageView _partial_qscale;
       StorageView _partial_u8_shift_compensation;
+      const Activation* _activation;
       const ops::Gemm _gemm_op;
       const ops::Quantize _quantize_op;
       const ops::Dequantize _dequantize_op;

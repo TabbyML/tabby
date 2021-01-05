@@ -160,7 +160,8 @@ namespace ctranslate2 {
     TransformerFeedForward::TransformerFeedForward(const TransformerModel& model,
                                                    const std::string& scope)
       : _layer_norm(model, scope + "/layer_norm")
-      , _ff1(model, scope + "/linear_0")
+      , _activation(layers::ActivationType::ReLU)
+      , _ff1(model, scope + "/linear_0", &_activation)
       , _ff2(model, scope + "/linear_1") {
     }
 
@@ -168,7 +169,6 @@ namespace ctranslate2 {
       StorageView inner(input.dtype(), input.device());
       _layer_norm(input, output);
       _ff1(output, inner);
-      ops::ReLU()(inner, inner);
       _ff2(inner, output);
       ops::Add()(input, output, output);
     }
