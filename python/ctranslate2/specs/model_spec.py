@@ -145,6 +145,10 @@ def _dtype_to_type_id(object_dtype):
 class ModelSpec(LayerSpec):
     """The top level layer specification."""
 
+    def __init__(self):
+        self.with_source_bos = False
+        self.with_source_eos = False
+
     @property
     def name(self):
         """The name of the model specification."""

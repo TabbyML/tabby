@@ -61,15 +61,25 @@ namespace ctranslate2 {
 
   template <typename From, typename To>
   std::vector<std::vector<To>> lookup_batch(const Vocabulary& vocab,
-                                            const std::vector<std::vector<From>>& batch_from) {
+                                            const std::vector<std::vector<From>>& batch_from,
+                                            const From* prefix = nullptr,
+                                            const From* suffix = nullptr) {
     std::vector<std::vector<To>> batch_to;
     batch_to.reserve(batch_from.size());
 
+    const size_t length_increment = size_t(bool(prefix)) + size_t(bool(suffix));
+
     for (const auto& from : batch_from) {
       std::vector<To> to;
-      to.reserve(from.size());
+      to.reserve(from.size() + length_increment);
+
+      if (prefix)
+        to.emplace_back(lookup<From, To>(vocab, *prefix));
       for (const auto& element : from)
         to.emplace_back(lookup<From, To>(vocab, element));
+      if (suffix)
+        to.emplace_back(lookup<From, To>(vocab, *suffix));
+
       batch_to.emplace_back(std::move(to));
     }
 
@@ -82,8 +92,13 @@ namespace ctranslate2 {
   }
 
   std::vector<std::vector<size_t>>
-  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens) const {
-    return lookup_batch<std::string, size_t>(*this, batch_tokens);
+  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+                     const bool add_bos,
+                     const bool add_eos) const {
+    return lookup_batch<std::string, size_t>(*this,
+                                             batch_tokens,
+                                             add_bos ? &bos_token : nullptr,
+                                             add_eos ? &eos_token : nullptr);
   }
 
 }

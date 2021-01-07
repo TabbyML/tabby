@@ -21,13 +21,26 @@ namespace ctranslate2 {
       virtual std::unique_ptr<layers::Encoder> make_encoder() const = 0;
       virtual std::unique_ptr<layers::Decoder> make_decoder() const = 0;
 
+      bool with_source_bos() const {
+        return _with_source_bos;
+      }
+
+      bool with_source_eos() const {
+        return _with_source_eos;
+      }
+
     protected:
       SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
+      virtual void finalize() override;
 
+    private:
       std::unique_ptr<const Vocabulary> _source_vocabulary;
       std::unique_ptr<const Vocabulary> _target_vocabulary;
       std::unique_ptr<const Vocabulary> _shared_vocabulary;
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
+
+      bool _with_source_bos = false;
+      bool _with_source_eos = false;
     };
 
   }

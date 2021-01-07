@@ -14,6 +14,7 @@ class TransformerSpec(model_spec.ModelSpec):
     explicitly set the number of layers and attention heads.
     """
     def __init__(self, num_layers, num_heads, with_relative_position=False):
+        super().__init__()
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
         else:
