@@ -4,7 +4,7 @@
 
 CTranslate2 is a fast inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. The goal is to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems such as Transformer models.
 
-The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but has also experimental features related to model compression and inference acceleration.
+The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
 **Table of contents**
 
@@ -21,12 +21,13 @@ The project is production-oriented and comes with [backward compatibility guaran
 
 ## Key features
 
-* **Fast and efficient execution**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks.
+* **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks.
 * **Quantization and reduced precision**<br/>The model serialization and computation support weights with reduced precision: 16-bit floating points (FP16), 16-bit integers, and 8-bit integers.
+* **Multiple CPU architectures support**<br/>The project supports x86-64 and ARM64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
+* **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
 * **Parallel translations**<br/>CPU translations can be run efficiently in parallel without duplicating the model data in memory.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Automatic CPU detection and code dispatch**<br/>The fastest code path is selected at runtime based on the CPU (Intel or AMD) and the supported instruction set architectures (AVX, AVX2, or AVX512).
-* **Ligthweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
+* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 * **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
@@ -97,17 +98,17 @@ ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec T
 
 ### Python package
 
-The [`ctranslate2`](https://pypi.org/project/ctranslate2/) Python package will get you started in converting and executing models:
+Python packages are published on [PyPI](https://pypi.org/project/ctranslate2/) for Linux and macOS:
 
 ```bash
 pip install ctranslate2
 ```
 
-The package published on PyPI supports CPU and GPU execution. All software dependencies are included in the package (including CUDA for GPU support). The only requirements are listed below.
+All software dependencies are included in the package, including CUDA libraries for GPU support on Linux. The macOS version only supports CPU execution.
 
 **Requirements:**
 
-* OS: Linux
+* OS: Linux, macOS
 * Python version: >= 3.5
 * pip version: >= 19.3
 * GPU driver version: >= 418.39
@@ -165,21 +166,29 @@ The converters support reducing the weights precision to save on space and possi
 * `int16`
 * `float16`
 
-However, some execution settings are not (yet) optimized for all computation types. The following table documents the actual type used during the computation depending on the model type:
+When loading a quantized model, the library tries to use the same type for computation. If the current platform or backend do not support optimized execution for this computation type (e.g. `int16` is not optimized on GPU), then the library converts the model weights to another optimized type. The tables below document the fallback types:
 
-| Model type | GPU (NVIDIA) | CPU (Intel) | CPU (AMD) |
-| ---------- | ------------ | ----------- | --------- |
-| float16    | float16 (\*) | float       | float     |
-| int16      | float16 (\*) | int16       | int8      |
-| int8       | int8 (\*\*)  | int8        | int8      |
+**On CPU:**
 
-*(\*) for Compute Capability >= 7.0, (\*\*) for Compute Capability >= 7.0 or == 6.1.*
+| Model | int8 | int16 | float16 |
+| --- | --- | --- | --- |
+| Intel | int8 | int16 | float |
+| other | int8 | int8 | float |
 
-The computation type can also be configured later, when starting a translation instance. See the `compute_type` argument on translation clients.
+*(This table only applies for prebuilt binaries or when compiling with both Intel MKL and oneDNN backends.)*
+
+**On GPU:**
+
+| Compute Capability | int8 | int16 | float16 |
+| --- | --- | --- | --- |
+| >= 7.0 | int8 | float16 | float16 |
+| 6.1 | int8 | float | float |
+| <= 6.0 | float | float | float |
 
 **Notes:**
 
-* Integer quantization is only supported for GEMM-based layers and embeddings
+* The computation type can also be changed when creating a translation instance by setting the `--compute_type` argument.
+* Integer quantization is only applied for GEMM-based layers and embeddings.
 
 ### Adding converters
 
@@ -324,10 +333,9 @@ make -j4
 These steps should produce the `cli/translate` binary. You can try it with the model converted in the [Quickstart](#quickstart) section:
 
 ```bash
-echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/ --device auto
+$ echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/ --device auto
+▁Hallo ▁Welt !
 ```
-
-The result `▁Hallo ▁Welt !` should be displayed.
 
 ## Testing
 
