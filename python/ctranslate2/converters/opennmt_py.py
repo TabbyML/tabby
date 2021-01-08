@@ -19,6 +19,7 @@ class OpenNMTPyConverter(Converter):
 
     def _load(self, model_spec):
         import torch
+
         checkpoint = torch.load(self._model_path, map_location="cpu")
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
@@ -36,15 +37,22 @@ class OpenNMTPyConverter(Converter):
 
 
 def set_transformer_spec(spec, variables):
-    set_transformer_encoder(spec.encoder, variables, relative=spec.with_relative_position)
-    set_transformer_decoder(spec.decoder, variables, relative=spec.with_relative_position)
+    set_transformer_encoder(
+        spec.encoder, variables, relative=spec.with_relative_position
+    )
+    set_transformer_decoder(
+        spec.decoder, variables, relative=spec.with_relative_position
+    )
+
 
 def set_transformer_encoder(spec, variables, relative=False):
     set_input_layers(spec, variables, "encoder", relative=relative)
     set_layer_norm(spec.layer_norm, variables, "encoder.layer_norm")
     for i, layer in enumerate(spec.layer):
         set_transformer_encoder_layer(
-            layer, variables, "encoder.transformer.%d" % i, relative=relative)
+            layer, variables, "encoder.transformer.%d" % i, relative=relative
+        )
+
 
 def set_transformer_decoder(spec, variables, relative=False):
     set_input_layers(spec, variables, "decoder", relative=relative)
@@ -52,12 +60,17 @@ def set_transformer_decoder(spec, variables, relative=False):
     set_layer_norm(spec.layer_norm, variables, "decoder.layer_norm")
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer(
-            layer, variables, "decoder.transformer_layers.%d" % i, relative=relative)
+            layer, variables, "decoder.transformer_layers.%d" % i, relative=relative
+        )
+
 
 def set_input_layers(spec, variables, scope, relative=False):
     try:
         set_position_encodings(
-            spec.position_encodings, variables, "%s.embeddings.make_embedding.pe" % scope)
+            spec.position_encodings,
+            variables,
+            "%s.embeddings.make_embedding.pe" % scope,
+        )
         with_pe = True
     except KeyError:
         if not relative:
@@ -67,7 +80,9 @@ def set_input_layers(spec, variables, scope, relative=False):
         spec.embeddings,
         variables,
         "%s.embeddings.make_embedding.emb_luts.0" % scope,
-        multiply_by_sqrt_depth=with_pe)
+        multiply_by_sqrt_depth=with_pe,
+    )
+
 
 def set_transformer_encoder_layer(spec, variables, scope, relative=False):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
@@ -76,8 +91,10 @@ def set_transformer_encoder_layer(spec, variables, scope, relative=False):
         variables,
         "%s.self_attn" % scope,
         self_attention=True,
-        relative=relative)
+        relative=relative,
+    )
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm" % scope)
+
 
 def set_transformer_decoder_layer(spec, variables, scope, relative=False):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
@@ -86,17 +103,22 @@ def set_transformer_decoder_layer(spec, variables, scope, relative=False):
         variables,
         "%s.self_attn" % scope,
         self_attention=True,
-        relative=relative)
+        relative=relative,
+    )
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm_1" % scope)
     set_multi_head_attention(spec.attention, variables, "%s.context_attn" % scope)
     set_layer_norm(spec.attention.layer_norm, variables, "%s.layer_norm_2" % scope)
+
 
 def set_ffn(spec, variables, scope):
     set_layer_norm(spec.layer_norm, variables, "%s.layer_norm" % scope)
     set_linear(spec.linear_0, variables, "%s.w_1" % scope)
     set_linear(spec.linear_1, variables, "%s.w_2" % scope)
 
-def set_multi_head_attention(spec, variables, scope, self_attention=False, relative=False):
+
+def set_multi_head_attention(
+    spec, variables, scope, self_attention=False, relative=False
+):
     if self_attention:
         split_layers = [common_spec.LinearSpec() for _ in range(3)]
         set_linear(split_layers[0], variables, "%s.linear_query" % scope)
@@ -112,17 +134,20 @@ def set_multi_head_attention(spec, variables, scope, self_attention=False, relat
     set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
     if relative:
         spec.relative_position_keys = _get_variable(
-            variables, "%s.relative_positions_embeddings.weight" % scope)
+            variables, "%s.relative_positions_embeddings.weight" % scope
+        )
         spec.relative_position_values = spec.relative_position_keys
+
 
 def set_layer_norm(spec, variables, scope):
     try:
         spec.gamma = _get_variable(variables, "%s.weight" % scope)
         spec.beta = _get_variable(variables, "%s.bias" % scope)
-    except:
+    except KeyError:
         # Compatibility with older models using a custom LayerNorm module.
         spec.gamma = _get_variable(variables, "%s.a_2" % scope)
         spec.beta = _get_variable(variables, "%s.b_2" % scope)
+
 
 def set_linear(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
@@ -130,13 +155,14 @@ def set_linear(spec, variables, scope):
     if bias is not None:
         spec.bias = bias.numpy()
 
+
 def set_embeddings(spec, variables, scope, multiply_by_sqrt_depth=True):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
     spec.multiply_by_sqrt_depth = multiply_by_sqrt_depth
 
+
 def set_position_encodings(spec, variables, scope):
     spec.encodings = _get_variable(variables, "%s.pe" % scope).squeeze()
-
 
 
 def _get_variable(variables, name):

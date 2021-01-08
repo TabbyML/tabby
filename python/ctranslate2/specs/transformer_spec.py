@@ -13,6 +13,7 @@ class TransformerSpec(model_spec.ModelSpec):
     The specification is invariant to hidden dimensions but requires to
     explicitly set the number of layers and attention heads.
     """
+
     def __init__(self, num_layers, num_heads, with_relative_position=False):
         super().__init__()
         if isinstance(num_layers, (list, tuple)):
@@ -40,6 +41,7 @@ class TransformerSpec(model_spec.ModelSpec):
     def target_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]
 
+
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):
         self.embeddings = common_spec.EmbeddingsSpec()
@@ -47,19 +49,21 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         self.layer_norm = common_spec.LayerNormSpec()
         self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
 
+
 class TransformerDecoderSpec(model_spec.LayerSpec):
     def __init__(self, num_layers):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
         self.layer_norm = common_spec.LayerNormSpec()
         self.projection = common_spec.LinearSpec()
-        self.layer = [
-            TransformerDecoderLayerSpec() for _ in range(num_layers)]
+        self.layer = [TransformerDecoderLayerSpec() for _ in range(num_layers)]
+
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
     def __init__(self):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
         self.ffn = FeedForwardSpec()
+
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
     def __init__(self):
@@ -67,11 +71,13 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         self.attention = attention_spec.MultiHeadAttentionSpec()
         self.ffn = FeedForwardSpec()
 
+
 class FeedForwardSpec(model_spec.LayerSpec):
     def __init__(self):
         self.layer_norm = common_spec.LayerNormSpec()
         self.linear_0 = common_spec.LinearSpec()
         self.linear_1 = common_spec.LinearSpec()
+
 
 class PositionEncoderSpec(model_spec.LayerSpec):
     def __init__(self):

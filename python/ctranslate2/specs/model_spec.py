@@ -14,13 +14,16 @@ def _join_scope(scope, name):
         return name
     return "%s/%s" % (scope, name)
 
+
 def _split_scope(scope):
     return scope.split("/")
+
 
 def _parent_scope(scope):
     keys = _split_scope(scope)
     scope, attr = keys[:-1], keys[-1]
     return "/".join(scope), attr
+
 
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
@@ -32,6 +35,7 @@ def visit_spec(spec, fn, scope=""):
             visit_spec(value, fn, scope=_join_scope(scope, name))
         else:
             fn(spec, _join_scope(scope, name), value)
+
 
 def index_spec(spec, index):
     if not index:
@@ -51,6 +55,7 @@ class LayerSpec(object):
 
     def validate(self):
         """Checks that required variables are set to a valid value."""
+
         def _check(spec, name, value):
             if value is None:
                 raise ValueError("Missing value for attribute %s" % name)
@@ -62,6 +67,7 @@ class LayerSpec(object):
             elif isinstance(value, bool):
                 # Convert bool to an integer type.
                 setattr(spec, attr_name, np.dtype("int8").type(value))
+
         self.visit(_check)
 
     def variables(self, prefix="", ordered=False):
@@ -69,10 +75,12 @@ class LayerSpec(object):
         returns an ordered list of (name, value) pairs instead.
         """
         var = {}
+
         def _register_var(spec, name, value):
             if isinstance(value, str) and value == OPTIONAL:
                 return
             var[_join_scope(prefix, name)] = value
+
         self.visit(_register_var)
         if ordered:
             return list(sorted(var.items(), key=lambda x: x[0]))
@@ -89,7 +97,9 @@ class LayerSpec(object):
                     break
                 # Because variables can be transformed on load (e.g. transposed),
                 # we use an element-wise equality check.
-                if value.dtype == other_value.dtype and np.array_equal(value, other_value):
+                if value.dtype == other_value.dtype and np.array_equal(
+                    value, other_value
+                ):
                     # Replace variable value by the alias name.
                     scope, attr_name = _parent_scope(name)
                     spec = index_spec(self, scope)
@@ -98,6 +108,7 @@ class LayerSpec(object):
 
     def _quantize(self, quantization):
         """Possibly quantizes the variable of the layer."""
+
         def _quantize(spec, name, value):
             if not isinstance(value, np.ndarray):
                 return
@@ -109,9 +120,13 @@ class LayerSpec(object):
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
-                    scale = np.dtype(value.dtype).type(2**10 / np.amax(np.absolute(value)))
+                    scale = np.dtype(value.dtype).type(
+                        2 ** 10 / np.amax(np.absolute(value))
+                    )
                     value *= scale
-                    value = np.clip(value, np.iinfo(np.int16).min, np.iinfo(np.int16).max)
+                    value = np.clip(
+                        value, np.iinfo(np.int16).min, np.iinfo(np.int16).max
+                    )
                     value = value.astype(np.int16)
                 elif quantization == "int8":
                     scale = 127.0 / np.amax(np.absolute(value), axis=1)
@@ -119,6 +134,7 @@ class LayerSpec(object):
                     value = value.astype(np.int8)
                 setattr(spec, "weight_scale", scale)
                 setattr(spec, "weight", value)
+
         self.visit(_quantize)
 
     def optimize(self, quantization=None):
@@ -138,8 +154,10 @@ def _dtype_to_type_id(object_dtype):
     try:
         return dtypes.index(object_dtype)
     except ValueError:
-        raise ValueError("%s is not in list of supported dtypes: %s" % (
-            str(object_dtype), ", ".join(map(str, dtypes))))
+        raise ValueError(
+            "%s is not in list of supported dtypes: %s"
+            % (str(object_dtype), ", ".join(map(str, dtypes)))
+        )
 
 
 class ModelSpec(LayerSpec):
@@ -188,7 +206,7 @@ class ModelSpec(LayerSpec):
             def _write_string(string):
                 model.write(struct.pack("H", len(string) + 1))
                 model.write(string.encode("utf-8"))
-                model.write(struct.pack('B', 0))
+                model.write(struct.pack("B", 0))
 
             model.write(struct.pack("I", 4))  # Binary version.
             _write_string(self.name)

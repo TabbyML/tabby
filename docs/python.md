@@ -11,17 +11,20 @@ converter = ctranslate2.converters.OpenNMTTFConverter(
     model_path: str = None,  # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
     src_vocab: str = None,   # Path to the source vocabulary (required for checkpoints).
     tgt_vocab: str = None,   # Path to the target vocabulary (required for checkpoints).
-    variables: dict = None)  # Dict of variables name to value (mutually exclusive with model_path).
+    variables: dict = None,  # Dict of variables name to value (mutually exclusive with model_path).
+)
 
 converter = ctranslate2.converters.OpenNMTPyConverter(
-    model_path: str)         # Path to the OpenNMT-py model.
+    model_path: str,         # Path to the OpenNMT-py model.
+)
 
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
     model_spec: ModelSpec,    # A model specification instance from ctranslate2.specs.
     vmap: str = None,         # Path to a vocabulary mapping file.
     quantization: str = None, # Weights quantization: "int8" or "int16".
-    force: bool = False)      # Override output_dir if it exists.
+    force: bool = False,      # Override output_dir if it exists.
+)
 ```
 
 ## Translation API
@@ -34,7 +37,8 @@ translator = ctranslate2.Translator(
     compute_type: str = "default"   # The computation type: "default", "int8", "int16", "float16", or "float",
                                     # or a dict mapping a device to a computation type.
     inter_threads: int = 1,         # Maximum number of parallel translations (CPU only).
-    intra_threads: int = 4)         # Threads to use per translation (CPU only).
+    intra_threads: int = 4,         # Threads to use per translation (CPU only).
+)
 
 # Properties:
 translator.device              # Device this translator is running on.
@@ -64,7 +68,8 @@ output = translator.translate_batch(
     return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
     sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates (with beam_size=1).
     sampling_temperature: float = 1,   # Sampling temperature to generate more random samples.
-    replace_unknowns: bool = False)    # Replace unknown target tokens by the source token with the highest attention.
+    replace_unknowns: bool = False,    # Replace unknown target tokens by the source token with the highest attention.
+)
 
 # stats is a tuple of file statistics containing in order:
 # 1. the number of generated target tokens
@@ -106,10 +111,12 @@ For CPU translations, the parameter `inter_threads` controls the number of batch
 
 ```python
 import concurrent.futures
+
 with concurrent.futures.ThreadPoolExecutor(max_workers=inter_threads) as executor:
     futures = [
         executor.submit(translator.translate_batch, batch)
-        for batch in batch_generator()]
+        for batch in batch_generator()
+    ]
     for future in futures:
         translation_result = future.result()
 ```

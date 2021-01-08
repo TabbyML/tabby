@@ -210,9 +210,36 @@ jobs:
           path: python/wheelhouse
 
 
+  check-python-style:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - name: Install dependencies
+        run: |
+          python -m pip install black==20.8b1 flake8==3.8.*
+
+      - name: Check code format with Black
+        working-directory: python
+        run: |
+          black --check .
+
+      - name: Check code style with Flake8
+        working-directory: python
+        if: ${{ always() }}
+        run: |
+          flake8 .
+
+
   publish-python-wheels-on-pypi:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-and-test-cpp-x86_64, build-and-test-python-wheels]
+    needs: [build-and-test-cpp-x86_64, build-and-test-python-wheels, check-python-style]
     runs-on: ubuntu-18.04
 
     steps:

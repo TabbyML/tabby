@@ -1,5 +1,5 @@
-import io
 import os
+import sys
 import pybind11
 
 from setuptools import setup, find_packages, Extension
@@ -8,20 +8,23 @@ from setuptools import setup, find_packages, Extension
 include_dirs = [pybind11.get_include()]
 library_dirs = []
 
+
 def _get_long_description():
     readme_path = os.path.join(os.path.dirname(__file__), "README.md")
-    with io.open(readme_path, encoding="utf-8") as readme_file:
+    with open(readme_path, encoding="utf-8") as readme_file:
         return readme_file.read()
 
+
 def _maybe_add_library_root(lib_name):
-  if "%s_ROOT" % lib_name in os.environ:
-    root = os.environ["%s_ROOT" % lib_name]
-    include_dirs.append("%s/include" % root)
-    for lib_dir in ("lib", "lib64"):
-      path = "%s/%s" % (root, lib_dir)
-      if os.path.exists(path):
-        library_dirs.append(path)
-        break
+    if "%s_ROOT" % lib_name in os.environ:
+        root = os.environ["%s_ROOT" % lib_name]
+        include_dirs.append("%s/include" % root)
+        for lib_dir in ("lib", "lib64"):
+            path = "%s/%s" % (root, lib_dir)
+            if os.path.exists(path):
+                library_dirs.append(path)
+                break
+
 
 _maybe_add_library_root("CTRANSLATE2")
 
@@ -41,7 +44,8 @@ ctranslate2_module = Extension(
     extra_link_args=ldflags,
     include_dirs=include_dirs,
     library_dirs=library_dirs,
-    libraries=["ctranslate2"])
+    libraries=["ctranslate2"],
+)
 
 setup(
     name="ctranslate2",
@@ -66,12 +70,12 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence"
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
         "Forum": "https://forum.opennmt.net",
         "Gitter": "https://gitter.im/OpenNMT/CTranslate2",
-        "Source": "https://github.com/OpenNMT/CTranslate2"
+        "Source": "https://github.com/OpenNMT/CTranslate2",
     },
     keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
@@ -85,5 +89,5 @@ setup(
             "ct2-opennmt-py-converter=ctranslate2.bin.opennmt_py_converter:main",
             "ct2-opennmt-tf-converter=ctranslate2.bin.opennmt_tf_converter:main",
         ],
-    }
+    },
 )
