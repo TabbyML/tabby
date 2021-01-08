@@ -75,7 +75,7 @@ RUN python3 -m pip --no-cache-dir install -r install_requirements.txt && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib6464 && \
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib64 && \
     cp $(ldconfig -p | grep 'libcublas.*\.so\..*' | tr ' ' '\n' | grep /) /root/ctranslate2/lib64
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-centos7
