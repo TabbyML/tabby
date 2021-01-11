@@ -4,8 +4,8 @@ set -e
 set -x
 
 # Install CUDA 10.1, see:
-# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos6-x86_64/base/Dockerfile
-# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos6-x86_64/devel/Dockerfile
+# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos7-x86_64/base/Dockerfile
+# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos7-x86_64/devel/Dockerfile
 CUDA_VERSION=10.1.243
 CUDA_PKG_VERSION=10-1-$CUDA_VERSION-1
 CUBLAS_PKG_VERSION=10.2.1.243-1
