@@ -4,6 +4,32 @@
 
 ### Fixes and improvements
 
+## [v1.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.17.0) (2021-01-11)
+
+### Changes
+
+* Linux Python wheels are now compiled under `manylinux2014` and require `pip` version >= 19.3
+
+### New features
+
+* Publish Python wheels for macOS (CPU only)
+* Support compilation for ARM 64-bit architecture and add NEON vectorization
+* Add new optional GEMM backends: [Apple Accelerate](https://developer.apple.com/documentation/accelerate) and [OpenBLAS](https://www.openblas.net/)
+* Add `replace_unknowns` translation option to replace unknown target tokens by source tokens with the highest attention
+* Add flags in the model specification to declare that BOS and/or EOS tokens should be added to the source sequences
+
+### Fixes and improvements
+
+* Fix segmentation fault when the model is converted with a wrong vocabulary and predicts an out-of-vocabulary index
+* Fix result of vectorized array reduction when the array length is not a multiple of the SIMD registers width
+* Fix exit code when running `cli/translate -h`
+* Improve performance of vectorized vector math by inlining calls to intrinsics functions
+* Improve accuracy of LogSoftMax CUDA implementation
+* Improve error message when `--model` option is not set in `cli/translate`
+* Update oneMKL to 2020.1 in published binaries
+* Update oneDNN to 2.0 in published binaries
+* Update default search paths to support compilation with oneMKL and oneDNN installed from the oneAPI toolkit
+
 ## [v1.16.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.16.2) (2020-11-27)
 
 ### Fixes and improvements
