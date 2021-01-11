@@ -11,6 +11,20 @@ on:
       - master
 
 jobs:
+  build-windows-minimal:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Compile without backend
+        run: |
+          cmake -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE .
+          cmake --build .
+
+
   build-and-test-cpp-x86_64:
     runs-on: ${{ matrix.os }}
     env:

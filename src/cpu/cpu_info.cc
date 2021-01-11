@@ -1,6 +1,6 @@
 #include "cpu_info.h"
 
-#if defined(__x86_64__)
+#if defined(CT2_X86_BUILD)
 #ifdef _WIN32
 #  include <intrin.h>
 #  include <immintrin.h>
@@ -12,7 +12,7 @@
 namespace ctranslate2 {
   namespace cpu {
 
-#if defined(__x86_64__)
+#if defined(CT2_X86_BUILD)
     static void get_cpuid(unsigned int eax_in, unsigned int* data) {
 #ifdef _WIN32
       __cpuid(reinterpret_cast<int*>(data), static_cast<int>(eax_in));
@@ -102,7 +102,7 @@ namespace ctranslate2 {
       return false;
     }
 
-#elif defined(__aarch64__)
+#elif defined(CT2_ARM64_BUILD)
     const std::string& cpu_vendor() {
       static const std::string vendor = "ARM";
       return vendor;
