@@ -483,10 +483,10 @@ namespace ctranslate2 {
       return load(model_reader, device, device_index, compute_type);
     }
 
-    std::shared_ptr<const Model> Model:: load(ModelReader& model_reader,
-                                              Device device,
-                                              int device_index,
-                                              ComputeType compute_type) {
+    std::shared_ptr<const Model> Model::load(ModelReader& model_reader,
+                                             Device device,
+                                             int device_index,
+                                             ComputeType compute_type) {
       std::unique_ptr<std::istream> model_file_ptr = model_reader.get_required_file(binary_file,
                                                                                     /*binary=*/true);
       std::istream& model_file = *model_file_ptr;
