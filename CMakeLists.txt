@@ -350,10 +350,12 @@ if (WITH_CUDA)
     message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
   endif()
 
-  cuda_include_directories(
+  set(CUDA_INCLUDE_DIRECTORIES
     ${CUB_INCLUDE_DIR}
     ${THRUST_INCLUDE_DIR}
     )
+
+  cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/utils.cc
@@ -367,6 +369,7 @@ if (WITH_CUDA)
     src/ops/topk_gpu.cu
     src/ops/quantize_gpu.cu
     )
+  list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDA_INCLUDE_DIRECTORIES})
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
     )
@@ -375,7 +378,7 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME} BEFORE
   PUBLIC ${PUBLIC_INCLUDE_DIRECTORIES}
   PRIVATE ${PRIVATE_INCLUDE_DIRECTORIES}
   )
