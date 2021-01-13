@@ -78,7 +78,7 @@ output = translator.translate_batch(
 stats = translator.translate_file(
     input_path: str,                # Input file.
     output_path: str,               # Output file.
-    max_batch_size: int,            # Maximum batch size to run the model on.
+    max_batch_size: int = 32,       # Maximum batch size to run the model on.
     read_batch_size: int = 0,       # Number of sentences to read at once.
     batch_type: str = "examples",   # Whether the batch size is the number of examples or tokens.
     beam_size: int = 2,

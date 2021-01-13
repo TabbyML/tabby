@@ -370,7 +370,7 @@ PYBIND11_MODULE(translator, m)
     .def("translate_file", &TranslatorWrapper::translate_file,
          py::arg("input_path"),
          py::arg("output_path"),
-         py::arg("max_batch_size"),
+         py::arg("max_batch_size")=32,
          py::arg("read_batch_size")=0,
          py::arg("batch_type")="examples",
          py::arg("beam_size")=2,

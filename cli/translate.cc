@@ -28,13 +28,13 @@ int main(int argc, char* argv[]) {
     ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
      cxxopts::value<bool>()->default_value("false"))
     ("batch_size", "Size of the batch to forward into the model at once.",
-     cxxopts::value<size_t>()->default_value("30"))
+     cxxopts::value<size_t>()->default_value("32"))
     ("read_batch_size", "Size of the batch to read at once (defaults to batch_size).",
      cxxopts::value<size_t>()->default_value("0"))
     ("batch_type", "Batch type (can be examples, tokens).",
      cxxopts::value<std::string>()->default_value("examples"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
-     cxxopts::value<size_t>()->default_value("5"))
+     cxxopts::value<size_t>()->default_value("2"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
      cxxopts::value<size_t>()->default_value("1"))
     ("sampling_temperature", "Sampling temperature.",
