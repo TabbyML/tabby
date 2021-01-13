@@ -169,6 +169,9 @@ namespace ctranslate2 {
 
       if (_request_end) {
         lock.unlock();
+        // The CUDA context is destroyed when the thread exits, so we clear the translation
+        // resources now when the CUDA context is still active.
+        translator.detach_model();
         break;
       }
 
