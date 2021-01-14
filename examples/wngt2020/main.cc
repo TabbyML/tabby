@@ -1,7 +1,6 @@
 #include <sentencepiece_processor.h>
 #include <ctranslate2/translator_pool.h>
 #include <ctranslate2/models/sequence_to_sequence.h>
-#include <fstream>
 #include <regex>
 
 static std::vector<std::string> get_vocabulary_tokens(const ctranslate2::Vocabulary& vocabulary) {
@@ -50,20 +49,17 @@ int main(int, char* argv[]) {
   if (!status.ok())
     throw std::runtime_error("Failed to set the SentencePiece vocabulary");
 
-  auto reader = [&sp_processor](std::istream& in, std::vector<std::string>& tokens) {
-                  std::string line;
-                  if (!std::getline(in, line))
-                    return false;
-                  sp_processor.Encode(line, &tokens);
-                  return true;
-                };
+  auto tokenizer = [&sp_processor](const std::string& text) {
+    std::vector<std::string> tokens;
+    sp_processor.Encode(text, &tokens);
+    return tokens;
+  };
 
-  auto writer = [&sp_processor](std::ostream& out,
-                                const ctranslate2::TranslationResult& result) {
-                  std::string text;
-                  sp_processor.Decode(result.output(), &text);
-                  out << std::regex_replace(text, std::regex("<unk>"), "UNK") << '\n';
-                };
+  auto detokenizer = [&sp_processor](const std::vector<std::string>& tokens) {
+    std::string text;
+    sp_processor.Decode(tokens, &text);
+    return std::regex_replace(text, std::regex("<unk>"), "UNK");
+  };
 
   ctranslate2::TranslationOptions options;
   options.beam_size = 1;
@@ -73,9 +69,7 @@ int main(int, char* argv[]) {
   options.use_vmap = true;
   options.return_scores = false;
 
-  std::ifstream in(in_file);
-  std::ofstream out(out_file);
-  pool.consume_stream(in, out, max_batch_size * 8, options, reader, writer);
-  out.flush();
+  const size_t read_batch_size = max_batch_size * 16;
+  pool.consume_raw_text_file(in_file, out_file, tokenizer, detokenizer, read_batch_size, options);
   return 0;
 }

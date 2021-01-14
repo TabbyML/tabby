@@ -13,12 +13,13 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-RUN wget https://cmake.org/files/v3.12/cmake-3.12.2-Linux-x86_64.tar.gz
-RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
-    rm cmake-3.12.2-Linux-x86_64.tar.gz
-ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
+ENV CMAKE_VERSION=3.18.4
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && \
+    tar xf *.tar.gz && \
+    rm *.tar.gz
+ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
-ENV SENTENCEPIECE_VERSION=v0.1.8
+ENV SENTENCEPIECE_VERSION=v0.1.95
 RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.tar.gz && \
     tar xf $SENTENCEPIECE_VERSION.tar.gz && \
     rm $SENTENCEPIECE_VERSION.tar.gz && \
@@ -32,14 +33,14 @@ RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.
 
 ENV CUDA_ARCH_LIST="7.5"
 
-ENV CTRANSLATE2_VERSION=e73e27fc7d86c0d22be018ea459cf7cedec72278
+ENV CTRANSLATE2_VERSION=v1.17.0
 RUN git clone https://github.com/OpenNMT/CTranslate2.git && \
     cd CTranslate2 && \
     git checkout $CTRANSLATE2_VERSION && \
     git submodule update --init && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DLIB_ONLY=ON -DWITH_CUDA=ON -DWITH_MKL=OFF -DWITH_TENSORRT=OFF -DOPENMP_RUNTIME=NONE -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
+    cmake -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DLIB_ONLY=ON -DWITH_CUDA=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j4 install && \
     cd /root && \
     rm -r CTranslate2

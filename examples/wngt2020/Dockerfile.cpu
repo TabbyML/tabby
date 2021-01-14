@@ -1,4 +1,4 @@
-FROM ubuntu:18.04 as builder
+FROM ubuntu:20.04 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -14,30 +14,28 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-RUN wget https://cmake.org/files/v3.12/cmake-3.12.2-Linux-x86_64.tar.gz
-RUN tar xf cmake-3.12.2-Linux-x86_64.tar.gz && \
-    rm cmake-3.12.2-Linux-x86_64.tar.gz
-ENV PATH=$PATH:/root/cmake-3.12.2-Linux-x86_64/bin
+ENV CMAKE_VERSION=3.18.4
+RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && \
+    tar xf *.tar.gz && \
+    rm *.tar.gz
+ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
-ENV MKL_VERSION=2020
-ENV MKL_UPDATE=0
-ENV MKL_BUILD=088
-RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
-    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    rm GPG-PUB-KEY-INTEL-SW-PRODUCTS-*.PUB && \
-    echo "deb https://apt.repos.intel.com/mkl all main" > /etc/apt/sources.list.d/intel-mkl.list && \
+ENV ONEAPI_VERSION=2021.1.1
+ENV MKL_BUILD=52
+RUN wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    apt-key add *.PUB && \
+    rm *.PUB && \
+    echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        intel-mkl-64bit-$MKL_VERSION.$MKL_UPDATE-$MKL_BUILD && \
+        intel-oneapi-mkl-devel=$ONEAPI_VERSION-$MKL_BUILD \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# The target architecture should be cascadelake but this requires updating GCC and libstd.
-# We assume that we don't gain much from these compiler flags as all the heavy lifting is
-# done by MKL.
-ENV CXX_FLAGS="-march=skylake"
+ENV CXX_FLAGS="-march=cascadelake"
 
-ENV SENTENCEPIECE_VERSION=v0.1.8
+ENV SENTENCEPIECE_VERSION=v0.1.95
 RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.tar.gz && \
     tar xf $SENTENCEPIECE_VERSION.tar.gz && \
     rm $SENTENCEPIECE_VERSION.tar.gz && \
@@ -49,14 +47,14 @@ RUN wget https://github.com/google/sentencepiece/archive/$SENTENCEPIECE_VERSION.
     cd /root && \
     rm -r sentencepiece-*
 
-ENV CTRANSLATE2_VERSION=v1.10.0
+ENV CTRANSLATE2_VERSION=v1.17.0
 RUN wget https://github.com/OpenNMT/CTranslate2/archive/$CTRANSLATE2_VERSION.tar.gz && \
     tar xf $CTRANSLATE2_VERSION.tar.gz && \
     rm $CTRANSLATE2_VERSION.tar.gz && \
     cd CTranslate2-* && \
     mkdir build && \
     cd build && \
-    cmake -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DLIB_ONLY=ON -DOPENMP_RUNTIME=NONE .. && \
+    cmake -DCMAKE_CXX_FLAGS=${CXX_FLAGS} -DLIB_ONLY=ON -DOPENMP_RUNTIME=NONE -DENABLE_CPU_DISPATCH=OFF .. && \
     VERBOSE=1 make -j4 install && \
     cd /root && \
     rm -r CTranslate2-*
@@ -73,11 +71,12 @@ RUN mkdir /opt/wngt2020 && \
     cp /root/build/run /opt/wngt2020 && \
     cp /usr/local/lib/libctranslate2.so /opt/wngt2020
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 COPY --from=builder /opt/wngt2020 /opt/wngt2020
 ENV LD_LIBRARY_PATH=/opt/wngt2020
 ENV CT2_USE_EXPERIMENTAL_PACKED_GEMM=1
+ENV CT2_TRANSLATORS_CORE_OFFSET=0
 
 ARG MODEL_PATH
 COPY ${MODEL_PATH} /model
