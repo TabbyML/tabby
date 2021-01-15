@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.17.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.17.1) (2021-01-15)
+
+### Fixes and improvements
+
+* Fix Python wheel loading error on macOS
+
 ## [v1.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.17.0) (2021-01-11)
 
 ### Changes
