@@ -9,8 +9,8 @@ ONEAPI_INSTALLER_URL=https://registrationcenter-download.intel.com/akdlm/irc_nas
 wget -q $ONEAPI_INSTALLER_URL
 hdiutil attach -noverify -noautofsck $(basename $ONEAPI_INSTALLER_URL)
 sudo /Volumes/$(basename $ONEAPI_INSTALLER_URL .dmg)/bootstrapper.app/Contents/MacOS/bootstrapper --silent --eula accept --components intel.oneapi.mac.mkl.devel:intel.oneapi.mac.dnnl
-# Prefix the install name of libdnnl with @rpath
-sudo install_name_tool -id @rpath/libdnnl.2.dylib /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/libdnnl.2.0.dylib
+# Fix install name and rpath of libdnnl so that delocate works correctly.
+sudo install_name_tool -id @rpath/libdnnl.2.dylib -add_rpath /opt/intel/oneapi/compiler/latest/mac/compiler/lib /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/libdnnl.2.0.dylib
 
 # Install LLVM's libomp because Intel's OpenMP runtime included in MKL does
 # not ship with the header file.
