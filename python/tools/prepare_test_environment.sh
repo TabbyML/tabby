@@ -10,6 +10,7 @@ fi
 
 # Install test rquirements
 pip install -r python/tests/requirements.txt
+pip uninstall -y ctranslate2
 
 # Download test data
 curl -o transliteration-aren-all.tar.gz https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
