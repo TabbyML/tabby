@@ -188,7 +188,7 @@ jobs:
           QEMU_LD_PREFIX: /usr/aarch64-linux-gnu
 
 
-  build-and-test-python-wheels:
+  build-python-wheels:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -213,8 +213,6 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: python/tools/prepare_build_environment_macos.sh
           CIBW_BEFORE_BUILD: pip install -r python/install_requirements.txt
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_BEFORE_TEST: python/tools/prepare_test_environment.sh
-          CIBW_TEST_COMMAND: '{project}/python/tools/run_test.sh {project}'
           CIBW_SKIP: cp27-* pp* *i686
 
       - name: Upload Python wheels
@@ -222,6 +220,47 @@ jobs:
         with:
           name: python-wheels
           path: python/wheelhouse
+
+
+  # We could test the Python wheels using cibuildwheel but we prefer to run the tests outside
+  # the build environment to ensure wheels correctly embed all dependencies.
+  test-python-wheels:
+    needs: [build-python-wheels]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15]
+
+    steps:
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+
+      - uses: actions/checkout@v2
+
+      - name: Prepare test environment
+        run: |
+          ./python/tools/prepare_test_environment.sh
+
+      - name: Download Python wheels
+        uses: actions/download-artifact@v2
+        with:
+          name: python-wheels
+
+      - name: Install wheel
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          pip install *cp36*manylinux*.whl
+
+      - name: Install wheel
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          pip install *cp36*macosx*.whl
+
+      - name: Run tests
+        run: |
+          ./python/tools/run_test.sh $PWD
 
 
   check-python-style:
@@ -253,7 +292,7 @@ jobs:
 
   publish-python-wheels-on-pypi:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    needs: [build-and-test-cpp-x86_64, build-and-test-python-wheels, check-python-style]
+    needs: [build-and-test-cpp-x86_64, build-python-wheels, test-python-wheels, check-python-style]
     runs-on: ubuntu-18.04
 
     steps:
