@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "devices.h"
@@ -26,6 +27,7 @@ namespace ctranslate2 {
                                     int device_index = 0);
 
   void set_num_threads(size_t num_threads);
+  void set_thread_affinity(std::thread& thread, int index);
 
   bool ends_with(const std::string& str, const std::string& suffix);
   bool starts_with(const std::string& str, const std::string& prefix);
