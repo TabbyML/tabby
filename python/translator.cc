@@ -301,6 +301,8 @@ private:
   void change_model_state(const ModelState target_state) {
     if (target_state == _model_state)
       return;
+    if (target_state == ModelState::UnloadedToCpu && _device == ctranslate2::Device::CPU)
+      return;
 
     py::gil_scoped_release release;
 

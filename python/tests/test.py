@@ -296,8 +296,9 @@ def test_model_unload(to_cpu):
     batch = [["آ", "ت", "ز", "م", "و", "ن"]]
     translator = _get_transliterator()
     translator.unload_model(to_cpu=to_cpu)
-    with pytest.raises(RuntimeError, match="unloaded"):
-        translator.translate_batch(batch)
+    if not to_cpu:
+        with pytest.raises(RuntimeError, match="unloaded"):
+            translator.translate_batch(batch)
     translator.load_model()
     output = translator.translate_batch(batch)
     assert len(output) == 1
