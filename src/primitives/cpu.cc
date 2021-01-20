@@ -32,7 +32,9 @@
 namespace ctranslate2 {
 
   template<>
-  void primitives<Device::CPU>::set_device(int) {
+  void primitives<Device::CPU>::set_device(int index) {
+    if (index != 0)
+      throw std::invalid_argument("Invalid CPU device index: " + std::to_string(index));
   }
 
   template<>

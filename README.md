@@ -25,7 +25,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 * **Quantization and reduced precision**<br/>The model serialization and computation support weights with reduced precision: 16-bit floating points (FP16), 16-bit integers, and 8-bit integers.
 * **Multiple CPU architectures support**<br/>The project supports x86-64 and ARM64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
-* **Parallel translations**<br/>CPU translations can be run efficiently in parallel without duplicating the model data in memory.
+* **Parallel translations**<br/>Translations can be run efficiently in parallel using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
@@ -510,7 +510,7 @@ There are many ways to make this project better and even faster. See the open is
 ### What is the difference between `intra_threads` and `inter_threads`?
 
 * `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency.
-* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput (this will also increase the memory usage as some internal buffers are duplicated for thread safety).
+* `inter_threads` is the maximum number of CPU translations executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
 
 The total number of computing threads launched by the process is summarized by this formula:
 
@@ -518,7 +518,7 @@ The total number of computing threads launched by the process is summarized by t
 num_threads = inter_threads * intra_threads
 ```
 
-Note that these options are only defined for CPU translation and are forced to 1 when executing on GPU.
+Note that these options are only defined for CPU translation and are forced to 1 when executing on GPU. Parallel translations on GPU require multiple GPUs. See the option `device_index` that accepts multiple device IDs.
 
 ### Do you provide a translation server?
 

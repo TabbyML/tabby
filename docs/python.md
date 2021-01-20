@@ -33,16 +33,21 @@ output_dir = converter.convert(
 translator = ctranslate2.Translator(
     model_path: str                 # Path to the CTranslate2 model directory.
     device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
-    device_index: int = 0,          # The index of the device to place this translator on.
-    compute_type: str = "default"   # The computation type: "default", "int8", "int16", "float16", or "float",
-                                    # or a dict mapping a device to a computation type.
+
+    # The device ID, or list of device IDs, where to place this translator on.
+    device_index: Union[int, List[int]] = 0,
+
+    # The computation type: "default", "int8", "int16", "float16", or "float",
+    # or a dict mapping a device to a computation type.
+    compute_type: Union[str, Dict[str, str]] = "default",
+
     inter_threads: int = 1,         # Maximum number of parallel translations (CPU only).
     intra_threads: int = 4,         # Threads to use per translation (CPU only).
 )
 
 # Properties:
 translator.device              # Device this translator is running on.
-translator.device_index        # Device index this translator is running on.
+translator.device_index        # List of device IDs where this translator is running on.
 translator.num_translators     # Number of translators backing this instance.
 translator.num_queued_batches  # Number of batches waiting to be translated.
 
@@ -101,9 +106,19 @@ stats = translator.translate_file(
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.
 
-### Note on parallel CPU translations
+### Note on parallel translations
 
-For CPU translations, the parameter `inter_threads` controls the number of batches a `Translator` instance can process in parallel. Parallel translations are enabled in the following cases:
+A `Translator` instance can be configured to process multiple batches in parallel:
+
+```python
+# Create a CPU translator with 4 workers each using 1 thread:
+translator = ctranslate2.Translator(model_path, device="cpu", inter_threads=4, intra_threads=1)
+
+# Create a GPU translator with 4 workers each running on a separate GPU:
+translator = ctranslate2.Translator(model_path, device="cuda", device_index=[0, 1, 2, 3])
+```
+
+Parallel translations are enabled in the following cases:
 
 * When calling `translate_file`.
 * When calling `translate_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.

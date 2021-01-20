@@ -588,5 +588,35 @@ namespace ctranslate2 {
       return stream;
     }
 
+
+    std::vector<std::shared_ptr<const Model>>
+    load_replicas(const std::string& model_path,
+                  const Device device,
+                  const std::vector<int>& device_indices,
+                  const ComputeType compute_type) {
+      std::vector<std::shared_ptr<const Model>> models;
+      if (device_indices.empty())
+        return models;
+
+      models.reserve(device_indices.size());
+
+      std::unordered_map<int, size_t> device_to_main_replica;
+      device_to_main_replica.reserve(device_indices.size());
+
+      for (size_t i = 0; i < device_indices.size(); ++i) {
+        const auto device_index = device_indices[i];
+        const auto main_replica_on_device = device_to_main_replica.find(device_index);
+
+        if (main_replica_on_device != device_to_main_replica.end()) {
+          models.emplace_back(models[main_replica_on_device->second]);
+        } else {
+          models.emplace_back(Model::load(model_path, device, device_index, compute_type));
+          device_to_main_replica.emplace(device_index, i);
+        }
+      }
+
+      return models;
+    }
+
   }
 }

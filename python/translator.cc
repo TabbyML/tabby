@@ -44,6 +44,16 @@ public:
   }
 };
 
+struct DeviceIndexResolver {
+  std::vector<int> operator()(int device_index) const {
+    return std::vector<int>(1, device_index);
+  }
+
+  std::vector<int> operator()(const std::vector<int>& device_index) const {
+    return device_index;
+  }
+};
+
 using Tokens = std::vector<std::string>;
 using BatchTokens = std::vector<Tokens>;
 using BatchTokensOptional = std::optional<std::vector<std::optional<Tokens>>>;
@@ -60,37 +70,47 @@ static BatchTokens finalize_optional_batch(const BatchTokensOptional& optional) 
   return batch;
 }
 
+static inline std::vector<int>
+get_translators_location(const std::vector<ctranslate2::Translator>& translators) {
+  std::vector<int> ids;
+  ids.reserve(translators.size());
+  for (const auto& translator : translators)
+    ids.emplace_back(translator.device_index());
+  return ids;
+}
+
+
 class TranslatorWrapper
 {
 public:
   TranslatorWrapper(const std::string& model_path,
                     const std::string& device,
-                    int device_index,
+                    const std::variant<int, std::vector<int>>& device_index,
                     const StringOrMap& compute_type,
                     size_t inter_threads,
                     size_t intra_threads)
     : _model_path(model_path)
     , _device(ctranslate2::str_to_device(device))
-    , _device_index(device_index)
     , _compute_type(std::visit(ComputeTypeResolver(device), compute_type))
-    , _model((ctranslate2::set_num_threads(intra_threads),
-              ctranslate2::models::Model::load(_model_path,
-                                               _device,
-                                               _device_index,
-                                               _compute_type)))
-    , _model_state(ModelState::Loaded)
-    , _translator_pool(inter_threads, intra_threads, _model) {
+    , _translator_pool(inter_threads,
+                       intra_threads,
+                       model_path,
+                       _device,
+                       std::visit(DeviceIndexResolver(), device_index),
+                       _compute_type)
+    , _device_index(get_translators_location(_translator_pool.get_translators()))
+    , _model_is_loaded(true) {
   }
 
   bool model_is_loaded() const {
-    return _model_state == ModelState::Loaded;
+    return _model_is_loaded;
   }
 
   std::string device() const {
     return ctranslate2::device_to_str(_device);
   }
 
-  int device_index() const {
+  const std::vector<int>& device_index() const {
     return _device_index;
   }
 
@@ -269,69 +289,73 @@ public:
   }
 
   void unload_model(const bool to_cpu) {
-    change_model_state(to_cpu ? ModelState::UnloadedToCpu : ModelState::Unloaded);
-  }
-
-  void load_model() {
-    change_model_state(ModelState::Loaded);
-  }
-
-private:
-  enum class ModelState {
-    Loaded,
-    Unloaded,
-    UnloadedToCpu,
-  };
-
-  const std::string _model_path;
-  const ctranslate2::Device _device;
-  const int _device_index;
-  const ctranslate2::ComputeType _compute_type;
-
-  std::shared_ptr<const ctranslate2::models::Model> _model;
-  ModelState _model_state;
-  ctranslate2::TranslatorPool _translator_pool;
-
-  void assert_model_is_ready() const {
-    if (!model_is_loaded())
-      throw std::runtime_error("The model for this translator was unloaded");
-  }
-
-  // TODO: consider moving this model state logic inside TranslatorPool.
-  void change_model_state(const ModelState target_state) {
-    if (target_state == _model_state)
-      return;
-    if (target_state == ModelState::UnloadedToCpu && _device == ctranslate2::Device::CPU)
+    if (!_model_is_loaded || (to_cpu && _device == ctranslate2::Device::CPU))
       return;
 
     py::gil_scoped_release release;
 
-    // We can const_cast the model because it is initially constructed as a non const pointer.
-    auto* model = const_cast<ctranslate2::models::Model*>(_model.get());
-    auto& translators = const_cast<std::vector<ctranslate2::Translator>&>(
-      _translator_pool.get_translators());
+    const auto& translators = _translator_pool.get_translators();
+    if (to_cpu)
+      _cached_models.reserve(translators.size());
 
-    if (target_state == ModelState::UnloadedToCpu || target_state == ModelState::Unloaded) {
-      for (auto& translator : translators)
-        translator.detach_model();
-      if (target_state == ModelState::UnloadedToCpu)
-        model->set_device(ctranslate2::Device::CPU);
-      else
-        _model.reset();
-    } else if (target_state == ModelState::Loaded) {
-      if (_model_state == ModelState::UnloadedToCpu) {
-        model->set_device(_device, _device_index);
-      } else {
-        _model = ctranslate2::models::Model::load(_model_path,
-                                                  _device,
-                                                  _device_index,
-                                                  _compute_type);
+    for (const auto& translator : translators) {
+      if (to_cpu) {
+        const auto& model = translator.get_model();
+        const_cast<ctranslate2::models::Model&>(*model).set_device(ctranslate2::Device::CPU);
+        _cached_models.emplace_back(model);
       }
-      for (auto& translator : translators)
-        translator.set_model(_model);
+
+      const_cast<ctranslate2::Translator&>(translator).detach_model();
     }
 
-    _model_state = target_state;
+    _model_is_loaded = false;
+  }
+
+  void load_model() {
+    if (_model_is_loaded)
+      return;
+
+    py::gil_scoped_release release;
+
+    if (_cached_models.empty()) {
+      _cached_models = ctranslate2::models::load_replicas(_model_path,
+                                                          _device,
+                                                          _device_index,
+                                                          _compute_type);
+    }
+
+    const auto& translators = _translator_pool.get_translators();
+
+    for (size_t i = 0; i < _cached_models.size(); ++i) {
+      const auto& model = _cached_models[i];
+      const auto& translator = translators[i];
+
+      // If the model was unloaded to the system memory, move it back to the initial device.
+      if (model->device() != _device)
+        const_cast<ctranslate2::models::Model&>(*model).set_device(_device, _device_index[i]);
+
+      // Reattach the model to the translator instance.
+      const_cast<ctranslate2::Translator&>(translator).set_model(model);
+    }
+
+    _cached_models.clear();
+    _model_is_loaded = true;
+  }
+
+private:
+  const std::string _model_path;
+  const ctranslate2::Device _device;
+  const ctranslate2::ComputeType _compute_type;
+
+  ctranslate2::TranslatorPool _translator_pool;
+  const std::vector<int> _device_index;
+
+  std::vector<std::shared_ptr<const ctranslate2::models::Model>> _cached_models;
+  bool _model_is_loaded;
+
+  void assert_model_is_ready() const {
+    if (!model_is_loaded())
+      throw std::runtime_error("The model for this translator was unloaded");
   }
 };
 
@@ -340,7 +364,7 @@ PYBIND11_MODULE(translator, m)
   m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
 
   py::class_<TranslatorWrapper>(m, "Translator")
-    .def(py::init<const std::string&, const std::string&, int, const StringOrMap&, size_t, size_t>(),
+    .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t>(),
          py::arg("model_path"),
          py::arg("device")="cpu",
          py::arg("device_index")=0,

@@ -21,6 +21,7 @@ Below are some recommendations to further improve translation performance. Many 
 ### GPU
 
 * Set the compute type to "float16" if you have a NVIDIA GPU with Compute Capability >= 7.0
+* Pass multiple GPU IDs to `device_index` to run translations on multiple GPUs
 
 ## Measuring performance
 

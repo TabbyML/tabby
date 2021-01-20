@@ -129,5 +129,13 @@ namespace ctranslate2 {
       std::string _path_separator;
     };
 
+    // Load a model replica on each device ID configured in device_indices.
+    // Replicas on the same device ID will reference the same model instance.
+    std::vector<std::shared_ptr<const Model>>
+    load_replicas(const std::string& model_path,
+                  const Device device,
+                  const std::vector<int>& device_indices,
+                  const ComputeType compute_type);
+
   }
 }

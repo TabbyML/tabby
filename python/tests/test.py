@@ -29,6 +29,14 @@ def test_invalid_model_path():
         ctranslate2.Translator("xxx")
 
 
+def test_invalid_device_settings():
+    model_path = _get_model_path()
+    with pytest.raises(ValueError):
+        ctranslate2.Translator(model_path, device_index=[])
+    with pytest.raises(ValueError):
+        ctranslate2.Translator(model_path, device_index=[0, 1])
+
+
 def test_contains_model(tmpdir):
     assert ctranslate2.contains_model(_get_model_path())
 
@@ -43,7 +51,7 @@ def test_translator_properties():
     translator = ctranslate2.Translator(_get_model_path(), inter_threads=2)
     assert translator.model_is_loaded
     assert translator.device == "cpu"
-    assert translator.device_index == 0
+    assert translator.device_index == [0, 0]
     assert translator.num_translators == 2
     assert translator.num_queued_batches == 0
 

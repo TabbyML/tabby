@@ -23,17 +23,18 @@ namespace ctranslate2 {
   public:
     TranslatorPool(size_t num_translators,
                    size_t num_threads_per_translator,
-                   const std::shared_ptr<const models::Model>& model);
+                   const std::string& model_dir,
+                   const Device device = Device::CPU,
+                   const int device_index = 0,
+                   const ComputeType compute_type = ComputeType::DEFAULT);
 
-    // "args" are forwarded to the models::Model::load function.
-    template <typename... Args>
-    TranslatorPool(size_t num_translators,
+    // Multi-device constructor.
+    TranslatorPool(size_t num_translators_per_device,
                    size_t num_threads_per_translator,
                    const std::string& model_dir,
-                   Args&&... args) {
-      const auto model = models::Model::load(model_dir, std::forward<Args>(args)...);
-      create_translators(model, num_translators, num_threads_per_translator);
-    }
+                   const Device device,
+                   const std::vector<int>& device_indices,
+                   const ComputeType compute_type = ComputeType::DEFAULT);
 
     ~TranslatorPool();
 
@@ -317,9 +318,13 @@ namespace ctranslate2 {
       TranslationOptions _options;
     };
 
-    void create_translators(const std::shared_ptr<const models::Model>& model,
-                            size_t num_translators,
-                            size_t num_threads_per_translator);
+    void create_translators(size_t num_translators_per_device,
+                            size_t num_threads_per_translator,
+                            const std::string& model_dir,
+                            const Device device,
+                            std::vector<int> device_indices,
+                            const ComputeType compute_type);
+
     void post_job(std::unique_ptr<Job> job, bool throttle = false);
     void work_loop(Translator& translator, size_t num_threads);
 
