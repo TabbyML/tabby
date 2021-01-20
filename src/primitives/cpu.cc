@@ -41,17 +41,17 @@ namespace ctranslate2 {
   }
 
   template<>
-  void* primitives<Device::CPU>::alloc_data(dim_t size, int) {
+  void* primitives<Device::CPU>::alloc_data(dim_t size, int, void**) {
     return aligned_alloc(size, ALIGNMENT);
   }
 
   template<>
-  void primitives<Device::CPU>::free_data(void* data, int) {
+  void primitives<Device::CPU>::free_data(void* data, int, void*) {
     aligned_free(data);
   }
 
   template<>
-  void primitives<Device::CPU>::clear_cache() {
+  void primitives<Device::CPU>::clear_cache(void*) {
 #ifdef CT2_WITH_MKL
     mkl_free_buffers();
 #endif

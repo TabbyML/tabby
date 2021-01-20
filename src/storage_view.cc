@@ -130,9 +130,10 @@ namespace ctranslate2 {
 
   StorageView& StorageView::release() {
     if (_own_data && _data != nullptr) {
-      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data, _device_index));
+      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data, _device_index, _allocator));
     }
     _data = nullptr;
+    _allocator = nullptr;
     _allocated_size = 0;
     return clear();
   }
@@ -143,7 +144,9 @@ namespace ctranslate2 {
     release();
     dim_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes, _device_index));
+    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes,
+                                                               _device_index,
+                                                               &_allocator));
     if (_data == nullptr)
       THROW_RUNTIME_ERROR("failed to allocated memory");
     _own_data = true;
@@ -430,6 +433,7 @@ namespace ctranslate2 {
     std::swap(a._dtype, b._dtype);
     std::swap(a._device, b._device);
     std::swap(a._device_index, b._device_index);
+    std::swap(a._allocator, b._allocator);
     std::swap(a._data, b._data);
     std::swap(a._own_data, b._own_data);
     std::swap(a._allocated_size, b._allocated_size);

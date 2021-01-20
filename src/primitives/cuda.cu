@@ -13,7 +13,9 @@
 
 namespace ctranslate2 {
 
-  static cub::CachingDeviceAllocator& get_allocator() {
+  static cub::CachingDeviceAllocator& get_allocator(void* allocator_handle = nullptr) {
+    if (allocator_handle)
+      return *reinterpret_cast<cub::CachingDeviceAllocator*>(allocator_handle);
     static const auto allocator_config = cuda::get_caching_allocator_config();
     static thread_local cub::CachingDeviceAllocator allocator(allocator_config.bin_growth,
                                                               allocator_config.min_bin,
@@ -35,22 +37,25 @@ namespace ctranslate2 {
   }
 
   template<>
-  void* primitives<Device::CUDA>::alloc_data(dim_t size, int device_index) {
+  void* primitives<Device::CUDA>::alloc_data(dim_t size, int device_index, void** allocator_handle) {
     if (device_index < 0)
       device_index = get_device();
     void* data = nullptr;
-    CUDA_CHECK(get_allocator().DeviceAllocate(device_index, &data, size, cuda::get_cuda_stream()));
+    auto& allocator = get_allocator();
+    CUDA_CHECK(allocator.DeviceAllocate(device_index, &data, size, cuda::get_cuda_stream()));
+    if (allocator_handle)
+      *allocator_handle = &allocator;
     return data;
   }
 
   template<>
-  void primitives<Device::CUDA>::free_data(void* data, int device_index) {
-    CUDA_CHECK(get_allocator().DeviceFree(device_index, data));
+  void primitives<Device::CUDA>::free_data(void* data, int device_index, void* allocator_handle) {
+    CUDA_CHECK(get_allocator(allocator_handle).DeviceFree(device_index, data));
   }
 
   template<>
-  void primitives<Device::CUDA>::clear_cache() {
-    CUDA_CHECK(get_allocator().FreeAllCached());
+  void primitives<Device::CUDA>::clear_cache(void* allocator_handle) {
+    CUDA_CHECK(get_allocator(allocator_handle).FreeAllCached());
   }
 
   template<>
