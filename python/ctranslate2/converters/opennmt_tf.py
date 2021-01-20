@@ -11,15 +11,9 @@ def _register_gather_tree_op(tf, tf_version):
     if tf_version == 1:
         from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
     elif tf_version == 2:
-        # TensorFlow Addons lazily loads custom ops. So we call the op with invalid inputs
-        # just to trigger the registration.
-        # See also: https://github.com/tensorflow/addons/issues/1151.
         import tensorflow_addons as tfa
 
-        try:
-            tfa.seq2seq.gather_tree(0, 0, 0, 0)
-        except tf.errors.InvalidArgumentError:
-            pass
+        tfa.register_all()
     else:
         raise ValueError("Unsupported TensorFlow version %d" % tf_version)
 
