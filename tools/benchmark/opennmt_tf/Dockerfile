@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.1-cudnn7-runtime-ubuntu18.04
+FROM nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -16,7 +16,7 @@ RUN wget -q https://opennmt-models.s3.amazonaws.com/averaged-ende-ckpt500k-v2.ta
     tar xf *.tar.gz && \
     rm *.tar.gz
 
-RUN python3 -m pip install --no-cache-dir tensorflow==2.3.* OpenNMT-tf==2.13.*
+RUN python3 -m pip install --no-cache-dir tensorflow==2.4.* OpenNMT-tf==2.14.*
 
 COPY opennmt_tf/run.sh /
 

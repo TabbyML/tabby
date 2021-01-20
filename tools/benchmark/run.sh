@@ -29,6 +29,8 @@ then
 
     $PREFIX --image opennmt/opennmt-py-benchmark --name cpu-opennmt-py-float \
             --command "-src %s -output %s -beam_size $BEAM_SIZE -batch_size $BATCH_SIZE"
+    $PREFIX --image opennmt/opennmt-py-benchmark --name cpu-opennmt-py-int8 \
+            --command "-src %s -output %s -beam_size $BEAM_SIZE -batch_size $BATCH_SIZE -int8"
 
     $PREFIX --image opennmt/ctranslate2-benchmark --name cpu-ctranslate2-float \
             --command "--src %s --out %s --beam_size $BEAM_SIZE --batch_size $BATCH_SIZE"
