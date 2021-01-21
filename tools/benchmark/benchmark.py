@@ -70,7 +70,7 @@ def benchmark_image(image_name,
                     target_file,
                     tokenizer=None,
                     mount_dir="/data",
-                    env=None,
+                    num_threads=4,
                     use_gpu=False):
     source_file = source_file if os.path.isabs(source_file) else os.path.abspath(source_file)
     target_file = target_file if os.path.isabs(target_file) else os.path.abspath(target_file)
@@ -93,13 +93,14 @@ def benchmark_image(image_name,
             kwargs["device_requests"] = [
                 docker.types.DeviceRequest(count=0, capabilities=[['gpu']])
             ]
-    if env is not None:
-        kwargs["environment"] = {key:str(value) for key, value in env.items()}
+    else:
+        kwargs["cpuset_cpus"] = ",".join(map(str, range(num_threads)))
     container = client.containers.run(
         image_name,
         command % (os.path.join(mount_dir, source_file), os.path.join(mount_dir, output_file)),
         detach=True,
         mounts=[docker.types.Mount(mount_dir, data_dir, type="bind")],
+        environment={"OMP_NUM_THREADS": str(args.num_threads)},
         **kwargs)
     try:
         logs, max_cpu_mem, max_gpu_mem = monitor_container(container, use_gpu=use_gpu)
@@ -122,8 +123,6 @@ parser.add_argument("--num_threads", type=int, default=4)
 parser.add_argument("--gpu", action="store_true")
 args = parser.parse_args()
 
-env = {"OMP_NUM_THREADS": str(args.num_threads)}
-
 src_tok = args.src + ".tok"
 tokenizer = pyonmttok.Tokenizer("none", sp_model_path=args.sp_model)
 tokenizer.tokenize_file(args.src, src_tok, num_threads=args.num_threads)
@@ -136,7 +135,7 @@ for _ in range(args.num_samples):
         src_tok,
         args.tgt,
         tokenizer,
-        env=env,
+        num_threads=args.num_threads,
         use_gpu=args.gpu,
     )
     if result is None:
