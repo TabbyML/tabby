@@ -118,7 +118,7 @@ All software dependencies are included in the package, including CUDA libraries 
 The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu18-cuda10.2
+docker pull opennmt/ctranslate2:latest-ubuntu18-cuda11.0
 ```
 
 The images include:
@@ -204,10 +204,10 @@ The examples use the English-German model converted in the [Quickstart](#quickst
 
 ```bash
 echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu18-cuda10.2 --model /data/ende_ctranslate2 --device cuda
+    opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --model /data/ende_ctranslate2 --device cuda
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-cuda10.2 --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --help` for additional options.*
 
 ### With the Python API
 
@@ -260,7 +260,7 @@ The Docker images build all translation clients presented in [Translating](#tran
 docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
 ```
 
-When building GPU images, the CUDA version can be selected with `--build-arg CUDA_VERSION=10.2`.
+When building GPU images, the CUDA version can be selected with `--build-arg CUDA_VERSION=11.0`.
 
 See the `docker/` directory for available images.
 
