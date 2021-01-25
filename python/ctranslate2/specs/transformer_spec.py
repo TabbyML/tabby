@@ -7,7 +7,7 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import model_spec
 
 
-class TransformerSpec(model_spec.ModelSpec):
+class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
     """Describes a Transformer model.
 
     The specification is invariant to hidden dimensions but requires to
@@ -34,12 +34,11 @@ class TransformerSpec(model_spec.ModelSpec):
         return 3
 
     @property
-    def source_vocabulary_size(self):
-        return self.encoder.embeddings.weight.shape[0]
-
-    @property
-    def target_vocabulary_size(self):
-        return self.decoder.embeddings.weight.shape[0]
+    def vocabulary_size(self):
+        return {
+            "source": self.encoder.embeddings.weight.shape[0],
+            "target": self.decoder.embeddings.weight.shape[0],
+        }
 
 
 class TransformerEncoderSpec(model_spec.LayerSpec):

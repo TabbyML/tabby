@@ -348,6 +348,8 @@ def test_opennmt_tf_model_conversion(
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, model_spec)
+    assert os.path.isfile(os.path.join(output_dir, "source_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "target_vocabulary.txt"))
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
@@ -460,6 +462,8 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     converter.convert(
         output_dir, ctranslate2.specs.TransformerSpec(num_layers, num_heads)
     )
+
+    assert os.path.isfile(os.path.join(output_dir, "shared_vocabulary.txt"))
 
     # Check that the translation runs.
     translator = ctranslate2.Translator(output_dir)

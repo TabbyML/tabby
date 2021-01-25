@@ -3,6 +3,7 @@ that do not load a computation graph. The model converter should make sure that
 each required variable of the specification is set.
 """
 
+import os
 import struct
 import numpy as np
 
@@ -28,6 +29,8 @@ def _parent_scope(scope):
 def visit_spec(spec, fn, scope=""):
     """Recursively visits a layer spec."""
     for name, value in list(spec.__dict__.items()):
+        if name.startswith("_"):
+            continue
         if isinstance(value, list):
             for i, elem in enumerate(value):
                 visit_spec(elem, fn, scope=_join_scope(scope, "%s_%d" % (name, i)))
@@ -163,10 +166,6 @@ def _dtype_to_type_id(object_dtype):
 class ModelSpec(LayerSpec):
     """The top level layer specification."""
 
-    def __init__(self):
-        self.with_source_bos = False
-        self.with_source_eos = False
-
     @property
     def name(self):
         """The name of the model specification."""
@@ -181,18 +180,12 @@ class ModelSpec(LayerSpec):
         """
         return 1
 
-    @property
-    def source_vocabulary_size(self):
-        """Source vocabulary size based on the model weights."""
-        return None
-
-    @property
-    def target_vocabulary_size(self):
-        """Target vocabulary size based on the model weights."""
-        return None
+    def save(self, output_dir):
+        """Saves this model specification."""
+        self.serialize(os.path.join(output_dir, "model.bin"))
 
     def serialize(self, path):
-        """Serializes this specification."""
+        """Serializes the model variables."""
         variables = []
         aliases = []
         for variable in self.variables(ordered=True):
@@ -224,3 +217,61 @@ class ModelSpec(LayerSpec):
             for alias, variable_name in aliases:
                 _write_string(alias)
                 _write_string(variable_name)
+
+
+class SequenceToSequenceModelSpec(ModelSpec):
+    """Base specification for sequence to sequence models."""
+
+    def __init__(self):
+        self.with_source_bos = False
+        self.with_source_eos = False
+        self._vocabularies = {}
+
+    def register_vocabulary(self, name, tokens):
+        """Registers a vocabulary of tokens."""
+        self._vocabularies[name] = tokens
+
+    @property
+    def vocabulary_size(self):
+        """Vocabulary sizes based on the model weights."""
+        return {
+            "source": None,
+            "target": None,
+        }
+
+    def validate(self):
+        # Check that vocabularies are registered and have the correct size.
+        for name, expected_size in self.vocabulary_size.items():
+            vocabulary = self._vocabularies.get(name)
+            if vocabulary is None:
+                raise ValueError("No %s vocabulary has been registered" % name)
+            if expected_size is not None and len(vocabulary) != expected_size:
+                raise ValueError(
+                    "%s vocabulary has size %d but the model expected a vocabulary "
+                    "of size %d" % (name.capitalize(), len(vocabulary), expected_size)
+                )
+
+        # Validate the rest of the model.
+        super().validate()
+
+    def save(self, output_dir):
+        # Save the vocabularies.
+        all_vocabularies = list(self._vocabularies.values())
+        if all(vocabulary == all_vocabularies[0] for vocabulary in all_vocabularies):
+            vocabularies = {"shared": all_vocabularies[0]}
+        else:
+            vocabularies = self._vocabularies
+
+        for name, tokens in vocabularies.items():
+            path = os.path.join(output_dir, "%s_vocabulary.txt" % name)
+            _save_lines(path, tokens)
+
+        # Save the rest of the model.
+        super().save(output_dir)
+
+
+def _save_lines(path, lines):
+    with open(path, "w") as f:
+        for line in lines:
+            f.write(line)
+            f.write("\n")

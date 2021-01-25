@@ -10,13 +10,6 @@ class OpenNMTPyConverter(Converter):
     def __init__(self, model_path):
         self._model_path = model_path
 
-    def _save_vocabulary(self, vocab, output_path):
-        with open(output_path, "wb") as output_file:
-            for word in vocab.itos:
-                word = word.encode("utf-8")
-                output_file.write(word)
-                output_file.write(b"\n")
-
     def _load(self, model_spec):
         import torch
 
@@ -30,10 +23,14 @@ class OpenNMTPyConverter(Converter):
             raise NotImplementedError()
         vocab = checkpoint["vocab"]
         if isinstance(vocab, dict) and "src" in vocab:
-            return vocab["src"].fields[0][1].vocab, vocab["tgt"].fields[0][1].vocab
+            src_vocab = vocab["src"].fields[0][1].vocab
+            tgt_vocab = vocab["tgt"].fields[0][1].vocab
         else:
             # Compatibility with older models.
-            return vocab[0][1], vocab[1][1]
+            src_vocab = vocab[0][1]
+            tgt_vocab = vocab[1][1]
+        model_spec.register_vocabulary("source", src_vocab.itos)
+        model_spec.register_vocabulary("target", tgt_vocab.itos)
 
 
 def set_transformer_spec(spec, variables):
