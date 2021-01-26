@@ -5,6 +5,10 @@
 
 #include "ctranslate2/utils.h"
 
+#ifdef CT2_WITH_CUDA
+#  include "cuda/utils.h"
+#endif
+
 namespace ctranslate2 {
 
   TranslatorPool::TranslatorPool(size_t num_translators,
@@ -153,6 +157,29 @@ namespace ctranslate2 {
     return repeated;
   }
 
+  static inline bool have_same_compute_capability(const std::vector<int>& device_indices) {
+#ifdef CT2_WITH_CUDA
+    if (device_indices.size() > 1) {
+      int ref_major = -1;
+      int ref_minor = -1;
+      for (const int device : device_indices) {
+        const cudaDeviceProp& device_prop = cuda::get_device_properties(device);
+        const int major = device_prop.major;
+        const int minor = device_prop.minor;
+        if (ref_major < 0) {
+          ref_major = major;
+          ref_minor = minor;
+        } else if (major != ref_major || minor != ref_minor)
+          return false;
+      }
+    }
+#else
+    (void)device_indices;
+#endif
+
+    return true;
+  }
+
   void TranslatorPool::create_translators(size_t num_translators_per_device,
                                           size_t num_threads_per_translator,
                                           const std::string& model_dir,
@@ -171,6 +198,8 @@ namespace ctranslate2 {
 
       if (!all_unique(device_indices))
         throw std::invalid_argument("GPU IDs in device_index should be unique");
+      if (!have_same_compute_capability(device_indices))
+        throw std::invalid_argument("All GPU used in parallel must have the same Compute Capability");
     }
 
     // Repeat each device index by the number of translators running on each device.
