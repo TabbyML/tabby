@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
     ("inter_threads", "Maximum number of CPU translations to run in parallel.",
      cxxopts::value<size_t>()->default_value("1"))
     ("intra_threads", "Number of OpenMP threads (set to 0 to use the default value).",
-     cxxopts::value<size_t>()->default_value("0"))
+     cxxopts::value<size_t>()->default_value("4"))
     ("device", "Device to use (can be cpu, cuda, auto).",
      cxxopts::value<std::string>()->default_value("cpu"))
     ("device_index", "Comma-separated list of device IDs to use.",
