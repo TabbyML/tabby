@@ -4,6 +4,26 @@
 
 ### Fixes and improvements
 
+## [v1.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.0) (2021-01-28)
+
+### Changes
+
+* Some options default value in the `translate` client have been changed to match the Python API:
+  * `batch_size` = 32 (instead of 30)
+  * `beam_size` = 2 (instead of 5)
+  * `intra_threads` = 4 (instead of 0)
+
+### New features
+
+* Support multi-GPU translation: `device_index` argument can now be set to a list of GPU IDs (see [example](https://github.com/OpenNMT/CTranslate2/blob/master/docs/python.md#note-on-parallel-translations))
+
+### Fixes and improvements
+
+* Improve performance when using multiple GPU translators concurrently in the same process
+* [Python] Do nothing when calling `unload_model(to_cpu=True)` on CPU translators
+* [Python] Set a default value for `max_batch_size` argument in method `Translator.translate_file`
+* Disable `CT2_TRANSLATORS_CORE_OFFSET` in OpenMP builds as setting thread affinity does not work when OpenMP is enabled
+
 ## [v1.17.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.17.1) (2021-01-15)
 
 ### Fixes and improvements
