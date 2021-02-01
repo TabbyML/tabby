@@ -100,8 +100,10 @@ class LayerSpec(object):
                     break
                 # Because variables can be transformed on load (e.g. transposed),
                 # we use an element-wise equality check.
-                if value.dtype == other_value.dtype and np.array_equal(
-                    value, other_value
+                if (
+                    not np.isscalar(value)
+                    and value.dtype == other_value.dtype
+                    and np.array_equal(value, other_value)
                 ):
                     # Replace variable value by the alias name.
                     scope, attr_name = _parent_scope(name)
