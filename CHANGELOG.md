@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.18.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.1) (2021-02-01)
+
+### Fixes and improvements
+
+* Fix conversion of models setting the attributes `with_source_bos` or `with_source_eos`
+
 ## [v1.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.0) (2021-01-28)
 
 ### Changes
