@@ -56,14 +56,6 @@ class BenchmarkResult:
         self.max_gpu_mem = max(self.max_gpu_mem, other_result.max_gpu_mem)
         self.weight += 1
 
-    def __str__(self):
-        return "%.2f;%.1f;%d;%d" % (
-            self.bleu,
-            self.tokens_per_sec,
-            int(self.max_cpu_mem),
-            int(self.max_gpu_mem),
-        )
-
 def benchmark_image(image_name,
                     command,
                     source_file,
@@ -121,6 +113,7 @@ parser.add_argument("--sp_model", required=True)
 parser.add_argument("--num_samples", type=int, default=3)
 parser.add_argument("--num_threads", type=int, default=4)
 parser.add_argument("--gpu", action="store_true")
+parser.add_argument("--format", choices=["csv", "markdown"], default="csv")
 args = parser.parse_args()
 
 src_tok = args.src + ".tok"
@@ -143,4 +136,26 @@ for _ in range(args.num_samples):
     else:
         result.combine(sample_result)
 
-print("%s;%s" % (args.name, result))
+if args.format == "csv":
+    print(
+        "%s;%.2f;%.1f;%d;%d"
+        % (
+            args.name,
+            result.bleu,
+            result.tokens_per_sec,
+            int(result.max_cpu_mem),
+            int(result.max_gpu_mem),
+        )
+    )
+elif args.format == "markdown":
+    print(
+        "| %s | %.1f | %s | %.2f |"
+        % (
+            args.name,
+            result.tokens_per_sec,
+            "%d | %d" % (int(result.max_gpu_mem), int(result.max_cpu_mem))
+            if args.gpu
+            else str(int(result.max_cpu_mem)),
+            result.bleu,
+        )
+    )
