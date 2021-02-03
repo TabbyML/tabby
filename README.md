@@ -89,9 +89,9 @@ ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec T
 3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
 
 ```python
->>> import ctranslate2
->>> translator = ctranslate2.Translator("ende_ctranslate2/")
->>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+import ctranslate2
+translator = ctranslate2.Translator("ende_ctranslate2/")
+translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
 ## Installation
@@ -212,9 +212,9 @@ echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
 ### With the Python API
 
 ```python
->>> import ctranslate2
->>> translator = ctranslate2.Translator("ende_ctranslate2/")
->>> translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+import ctranslate2
+translator = ctranslate2.Translator("ende_ctranslate2/")
+translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
 *See the [Python reference](docs/python.md) for more advanced usages.*
