@@ -20,11 +20,14 @@ namespace ctranslate2 {
       IndexType* i_data = indices.data<IndexType>();
 
       if (_k == 1) {
-        primitives<>::row_max(x_data,
-                              batch_size,
-                              depth,
-                              v_data,
-                              i_data);
+        #pragma omp parallel for
+        for (dim_t i = 0; i < batch_size; ++i) {
+          const DataType* row = x_data + i * depth;
+          const DataType* max = std::max_element(row, row + depth);
+          v_data[i] = *max;
+          i_data[i] = std::distance(row, max);
+        }
+
       } else {
         #pragma omp parallel for
         for (dim_t i = 0; i < batch_size; ++i) {

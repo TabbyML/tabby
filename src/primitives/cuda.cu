@@ -5,7 +5,6 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
-#include <thrust/iterator/discard_iterator.h>
 #include <cub/util_allocator.cuh>
 
 #include "cuda/helpers.h"
@@ -121,46 +120,6 @@ namespace ctranslate2 {
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, dim_t size) {
     return deref(array, max_element(array, size));
-  }
-
-#if !CUDA_CAN_USE_HALF
-  namespace cuda {
-    template<>
-    struct maximum<thrust::tuple<__half, int32_t>> {
-      __host__ __device__ thrust::tuple<__half, int32_t>
-      operator()(const thrust::tuple<__half, int32_t>& lhs,
-                 const thrust::tuple<__half, int32_t>& rhs) const {
-        const float lv = float(lhs.get<0>());
-        const float rv = float(rhs.get<0>());
-        if (rv > lv)
-          return rhs;
-        if (lv < rv)
-          return lhs;
-        return lhs.get<1>() < rhs.get<1>() ? rhs : lhs;
-      }
-    };
-  }
-#endif
-
-  template<>
-  template <typename T>
-  void primitives<Device::CUDA>::row_max(const T* x,
-                                         const dim_t rows,
-                                         const dim_t cols,
-                                         T* values,
-                                         int32_t* indices) {
-    auto keys_it = thrust::make_transform_iterator(thrust::counting_iterator<int32_t>(0),
-                                                   cuda::repeat_vec_depth<int32_t>(cols));
-    auto ids_it = thrust::make_transform_iterator(thrust::counting_iterator<int32_t>(0),
-                                                  cuda::repeat_vec<int32_t>(cols));
-
-    THRUST_CALL(thrust::reduce_by_key,
-                keys_it, keys_it + (rows * cols),
-                thrust::make_zip_iterator(thrust::make_tuple(cuda::device_cast(x), ids_it)),
-                thrust::make_discard_iterator(),
-                thrust::make_zip_iterator(thrust::make_tuple(cuda::device_cast(values), indices)),
-                thrust::equal_to<int32_t>(),
-                cuda::maximum<thrust::tuple<cuda::device_type<T>, int32_t>>());
   }
 
   template<>
@@ -616,12 +575,6 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::max_element(const T* array, dim_t size);    \
   template T                                                            \
   primitives<Device::CUDA>::max(const T* array, dim_t size);            \
-  template void                                                         \
-  primitives<Device::CUDA>::row_max(const T* x,                         \
-                                    const dim_t rows,                   \
-                                    const dim_t cols,                   \
-                                    T* values,                          \
-                                    int32_t* indices);                  \
   template void                                                         \
   primitives<Device::CUDA>::add(T a, const T* x, T* y, dim_t size);     \
   template void                                                         \
