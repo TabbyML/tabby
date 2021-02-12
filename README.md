@@ -44,7 +44,7 @@ The translation API supports several decoding options:
 * constraining the decoding length
 * returning multiple translation hypotheses
 * returning attention vectors
-* approximating the generation using a pre-compiled [vocabulary map](#how-can-i-generate-a-vocabulary-mapping-file)
+* approximating the generation using a pre-compiled [vocabulary map](#how-do-i-generate-a-vocabulary-mapping-file)
 * replacing unknown target tokens by source tokens with the highest attention
 
 See the [Decoding](docs/decoding.md) documentation for examples.
