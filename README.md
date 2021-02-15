@@ -374,11 +374,12 @@ We compare CTranslate2 with OpenNMT-py and OpenNMT-tf on their pretrained Englis
 
 | | Model size |
 | --- | --- |
-| CTranslate2 (int8) | 110MB |
-| CTranslate2 (int16) | 197MB |
-| OpenNMT-tf | 367MB |
-| CTranslate2 (float) | 374MB |
 | OpenNMT-py | 542MB |
+| OpenNMT-tf | 367MB |
+| CTranslate2 | 364MB |
+| - int16 | 187MB |
+| - float16 | 182MB |
+| - int8 | 100MB |
 
 CTranslate2 models are generally lighter and can go as low as 100MB when quantized to int8. This also results in a fast loading time and noticeable lower memory usage during runtime.
 
