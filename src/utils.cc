@@ -57,7 +57,7 @@ namespace ctranslate2 {
           << "CPU: " << cpu::cpu_vendor()
           << " (SSE4.1=" << cpu::cpu_supports_sse41()
           << ", AVX=" << cpu::cpu_supports_avx()
-          << ", AVX2=" << cpu::cpu_supports_avx()
+          << ", AVX2=" << cpu::cpu_supports_avx2()
           << ", NEON=" << cpu::cpu_supports_neon()
           << ")" << std::endl;
     LOG() << " - Selected ISA: " << cpu::isa_to_str(cpu::get_cpu_isa()) << std::endl;
