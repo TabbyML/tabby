@@ -285,11 +285,11 @@ namespace ctranslate2 {
           gather(coverage, gather_indices);
           ops::Add()(attention_step, coverage, coverage);
         }
-        StorageView tmp(dtype, device);
+        StorageView tmp;
         ops::Min()(coverage, 1.0f, tmp);
         ops::Log()(tmp, tmp);
         tmp.reshape({-1, tmp.dim(-1)});
-        StorageView penalty(dtype, device);
+        StorageView penalty;
         ops::MatMul()(tmp, StorageView({tmp.dim(-1), 1}, 1.0f), penalty);
         ops::Mul()(penalty, StorageView(_coverage_penalty), penalty);
         ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
