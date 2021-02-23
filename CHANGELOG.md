@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.18.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.2) (2021-02-23)
+
+### Fixes and improvements
+
+* Fix crash when enabling coverage penalty in GPU translation
+* Fix incorrect value of AVX2 flag in `CT2_VERBOSE` output
+
 ## [v1.18.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.1) (2021-02-01)
 
 ### Fixes and improvements
