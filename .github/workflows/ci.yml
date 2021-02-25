@@ -115,7 +115,9 @@ jobs:
           submodules: recursive
 
       - name: Install cross compiler and emulator
-        run: sudo apt-get install -y g++-aarch64-linux-gnu gfortran-aarch64-linux-gnu qemu-user-static
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-aarch64-linux-gnu gfortran-aarch64-linux-gnu qemu-user-static
 
       - name: Build with OpenBLAS
         if: matrix.backend == 'openblas'
