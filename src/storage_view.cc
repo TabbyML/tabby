@@ -343,6 +343,12 @@ namespace ctranslate2 {
     return *this;
   }
 
+  StorageView& StorageView::zero() {
+    DEVICE_DISPATCH(_device,
+                    TYPE_DISPATCH(_dtype, primitives<D>::fill(data<T>(), T(0), _size)));
+    return *this;
+  }
+
   template <typename T>
   StorageView& StorageView::copy_from(const T* data, dim_t size, Device device) {
     ASSERT_DTYPE(DataTypeToEnum<T>::value);
