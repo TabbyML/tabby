@@ -72,7 +72,7 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib && \
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/*.so* /root/ctranslate2/lib && \
     cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so /root/ctranslate2/lib
 
 FROM ubuntu:${UBUNTU_VERSION}
