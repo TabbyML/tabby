@@ -45,7 +45,7 @@ RUN mkdir build && \
     cd build && \
     source scl_source enable devtoolset-8 && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
+          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
     VERBOSE=1 make -j4 && \
     make install
@@ -65,13 +65,13 @@ RUN python3 -m pip --no-cache-dir install -r install_requirements.txt && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib64
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/*.so* /root/ctranslate2/lib64 && \
+    cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so /root/ctranslate2/lib64
 
 FROM centos:7
 
 RUN yum install -y epel-release && \
     yum install -y \
-        libgomp \
         python3 \
         && \
     rm -rf /var/cache/yum/* && \

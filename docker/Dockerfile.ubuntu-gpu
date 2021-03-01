@@ -55,7 +55,7 @@ ENV CTRANSLATE2_ROOT=/root/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
+          -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL \
           -DWITH_CUDA=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
@@ -79,14 +79,14 @@ RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     rmdir dist
 
 WORKDIR /root
-RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_gomp/lib/*.so* /root/ctranslate2/lib && \
+RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/*.so* /root/ctranslate2/lib && \
+    cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so /root/ctranslate2/lib && \
     cp $(ldconfig -p | grep 'libcublas.*\.so\..*' | tr ' ' '\n' | grep /) /root/ctranslate2/lib
 
 FROM nvidia/cuda:${CUDA_VERSION}-base-ubuntu${UBUNTU_VERSION}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libgomp1 \
         python3-distutils \
         wget \
         && \
