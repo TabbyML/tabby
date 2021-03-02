@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v1.18.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.3) (2021-03-02)
+
+### Fixes and improvements
+
+* Use Intel OpenMP instead of GNU OpenMP in the Docker images as a workaround for issue #409.
+
 ## [v1.18.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.2) (2021-02-23)
 
 ### Fixes and improvements
