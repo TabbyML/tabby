@@ -78,6 +78,7 @@ def benchmark_image(image_name,
         detokenize_fn = lambda line: tokenizer.detokenize(line.rstrip().split())
 
     kwargs = {}
+    environment = {"OMP_NUM_THREADS": str(args.num_threads)}
     if use_gpu:
         if docker_major_version < 19 or (docker_major_version == 19 and docker_minor_version < 3):
             kwargs["runtime"] = "nvidia"
@@ -87,12 +88,13 @@ def benchmark_image(image_name,
             ]
     else:
         kwargs["cpuset_cpus"] = ",".join(map(str, range(num_threads)))
+        environment["CUDA_VISIBLE_DEVICES"] = ""
     container = client.containers.run(
         image_name,
         command % (os.path.join(mount_dir, source_file), os.path.join(mount_dir, output_file)),
         detach=True,
         mounts=[docker.types.Mount(mount_dir, data_dir, type="bind")],
-        environment={"OMP_NUM_THREADS": str(args.num_threads)},
+        environment=environment,
         **kwargs)
     try:
         logs, max_cpu_mem, max_gpu_mem = monitor_container(container, use_gpu=use_gpu)
