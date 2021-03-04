@@ -10,15 +10,6 @@
 
 namespace py = pybind11;
 
-template <typename T>
-py::list std_vector_to_py_list(const std::vector<T>& v) {
-  py::list l(v.size());
-  for (size_t i = 0; i < v.size(); ++i) {
-    l[i] = v[i];
-  }
-  return l;
-}
-
 using StringOrMap = std::variant<std::string, std::unordered_map<std::string, std::string>>;
 
 class ComputeTypeResolver {
@@ -269,16 +260,12 @@ public:
       py::list batch(result.num_hypotheses());
       for (size_t i = 0; i < result.num_hypotheses(); ++i) {
         py::dict hyp;
-        hyp["tokens"] = std_vector_to_py_list(result.hypotheses()[i]);
+        hyp["tokens"] = result.hypotheses()[i];
         if (result.has_scores()) {
           hyp["score"] = result.scores()[i];
         }
         if (result.has_attention()) {
-          const auto& attention_vectors = result.attention()[i];
-          py::list attn(attention_vectors.size());
-          for (size_t t = 0; t < attention_vectors.size(); ++t)
-            attn[t] = std_vector_to_py_list(attention_vectors[t]);
-          hyp["attention"] = attn;
+          hyp["attention"] = result.attention()[i];
         }
         batch[i] = hyp;
       }

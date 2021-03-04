@@ -275,7 +275,9 @@ def test_return_attention():
     )
     attention = output[0][0]["attention"]
     assert len(attention) == 6  # Target length.
-    assert len(attention[0]) == 6  # Source length.
+    for vector in attention:
+        assert len(vector) == 6  # Source length.
+        assert all(isinstance(value, float) for value in vector)
 
 
 def test_ignore_scores():
