@@ -52,8 +52,8 @@ translator.num_translators     # Number of translators backing this instance.
 translator.num_queued_batches  # Number of batches waiting to be translated.
 
 # output is a 2D list [batch x num_hypotheses] containing dict with keys:
-# * "score"
 # * "tokens"
+# * "score" (if return_scores is set to True)
 # * "attention" (if return_attention is set to True)
 output = translator.translate_batch(
     source: list,                      # A list of list of string.
