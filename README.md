@@ -271,7 +271,7 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 | CMake option | Accepted values (default in bold) | Description |
 | --- | --- | --- |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
-| ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targetting an architecture with the `-march` compilation flag) |
+| ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
 | LIB_ONLY | **OFF**, ON | Disables the translation client |
 | OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime (INTEL: Intel OpenMP; COMP: OpenMP runtime provided by the compiler; NONE: no OpenMP runtime) |
