@@ -1,4 +1,3 @@
-import shutil
 import os
 
 from ctranslate2.converters import utils
