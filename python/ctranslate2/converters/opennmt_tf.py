@@ -1,5 +1,7 @@
 import os
 
+import numpy as np
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec
@@ -213,7 +215,14 @@ def set_transformer_decoder_v2(
     spec, variables, scope, target_embedding_name, relative=False
 ):
     try:
-        set_linear(spec.projection, variables, "%s/output_layer" % scope)
+        set_linear(
+            spec.projection,
+            variables,
+            "%s/output_layer" % scope,
+            transpose=False,
+        )
+        if not np.array_equal(spec.projection.weight, spec.embeddings.weight):
+            spec.projection.weight = spec.projection.weight.transpose()
     except KeyError:
         set_linear(
             spec.projection,

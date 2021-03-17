@@ -428,9 +428,7 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
         converter.convert(output_dir, ctranslate2.specs.TransformerBase())
 
 
-def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
-    # Issue https://github.com/OpenNMT/CTranslate2/issues/118
-    import tensorflow as tf
+def _build_model_with_shared_embeddings(tmpdir):
     import opennmt
 
     vocab = opennmt.data.Vocab()
@@ -452,6 +450,14 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     )
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
     model.create_variables()
+    return model, vocab_path
+
+
+def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
+    # Issue https://github.com/OpenNMT/CTranslate2/issues/118
+    import tensorflow as tf
+
+    model, vocab_path = _build_model_with_shared_embeddings(tmpdir)
 
     checkpoint_prefix = str(tmpdir.join("ckpt"))
     checkpoint = tf.train.Checkpoint(model=model)
@@ -461,15 +467,30 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
         model_path=checkpoint_prefix, src_vocab=vocab_path, tgt_vocab=vocab_path
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(
-        output_dir, ctranslate2.specs.TransformerSpec(num_layers, num_heads)
-    )
+    converter.convert(output_dir, model.ctranslate2_spec)
 
     assert os.path.isfile(os.path.join(output_dir, "shared_vocabulary.txt"))
 
     # Check that the translation runs.
     translator = ctranslate2.Translator(output_dir)
     translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
+
+
+def test_saved_model_shared_embeddings_conversion(tmpdir):
+    export_dir = str(tmpdir.join("export"))
+    model, _ = _build_model_with_shared_embeddings(tmpdir)
+    model.export(export_dir)
+
+    converter = ctranslate2.converters.OpenNMTTFConverter(export_dir)
+    model_spec = model.ctranslate2_spec
+    converter._load(model_spec)
+
+    assert np.array_equal(
+        model_spec.encoder.embeddings.weight, model_spec.decoder.embeddings.weight
+    )
+    assert np.array_equal(
+        model_spec.decoder.embeddings.weight, model_spec.decoder.projection.weight
+    )
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
