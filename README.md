@@ -436,9 +436,9 @@ Executed with CUDA 11.0 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance
 * [Do you provide a translation server?](#do-you-provide-a-translation-server)
 * [How do I generate a vocabulary mapping file?](#how-do-i-generate-a-vocabulary-mapping-file)
 
-### How does it relate to the original [CTranslate](https://github.com/OpenNMT/CTranslate) project?
+### How does it relate to the original CTranslate project?
 
-The original CTranslate project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
+The original [CTranslate](https://github.com/OpenNMT/CTranslate) project shares a similar goal which is to provide a custom execution engine for OpenNMT models that is lightweight and fast. However, it has some limitations that were hard to overcome:
 
 * a strong dependency on LuaTorch and OpenNMT-lua, which are now both deprecated in favor of other toolkits;
 * a direct reliance on [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page), which introduces heavy templating and a limited GPU support.
