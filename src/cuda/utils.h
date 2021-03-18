@@ -39,16 +39,6 @@ namespace ctranslate2 {
     cudaStream_t get_cuda_stream();
     cublasHandle_t get_cublas_handle();
 
-    // See https://nvlabs.github.io/cub/structcub_1_1_caching_device_allocator.html.
-    struct CachingAllocatorConfig {
-      unsigned int bin_growth = 4;
-      unsigned int min_bin = 3;
-      unsigned int max_bin = 12;
-      size_t max_cached_bytes = 200 * (1 << 20);  // 200MB
-    };
-
-    CachingAllocatorConfig get_caching_allocator_config();
-
     int get_gpu_count();
     bool has_gpu();
     const cudaDeviceProp& get_device_properties(int device = -1);

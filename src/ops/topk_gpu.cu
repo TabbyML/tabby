@@ -32,10 +32,11 @@ namespace ctranslate2 {
       const dim_t batch_size = x.size() / depth;
       const dim_t temp_size = batch_size * _k * MAX_BLOCKS_PER_BEAM;
 
+      auto& allocator = get_allocator<D>();
       auto* topk_tmp_id = static_cast<IndexType*>(
-        primitives<D>::alloc_data(temp_size * sizeof (IndexType)));
+        allocator.allocate(temp_size * sizeof (IndexType)));
       auto* topk_tmp_val = static_cast<DataType*>(
-        primitives<D>::alloc_data(temp_size * sizeof (DataType)));
+        allocator.allocate(temp_size * sizeof (DataType)));
 
       fastertransformer::topK_kernelLauncher(cuda::device_cast(x.data<DataType>()),
                                              cuda::device_cast(topk_tmp_id),
@@ -48,8 +49,8 @@ namespace ctranslate2 {
                                              depth,
                                              cuda::get_cuda_stream());
 
-      primitives<D>::free_data(topk_tmp_id);
-      primitives<D>::free_data(topk_tmp_val);
+      allocator.free(topk_tmp_id);
+      allocator.free(topk_tmp_val);
     }
 
 #define DECLARE_IMPL(T)                                                 \

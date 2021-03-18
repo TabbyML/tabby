@@ -21,15 +21,15 @@
 #  include <cblas.h>
 #endif
 
-#include "ctranslate2/utils.h"
+#include "ctranslate2/allocator.h"
 #include "cpu/backend.h"
 #include "cpu/kernels.h"
 #include "cpu/parallel.h"
 #include "type_dispatch.h"
 
-#define ALIGNMENT 64
-
 namespace ctranslate2 {
+
+  static Allocator& allocator = get_allocator<Device::CPU>();
 
   template<>
   void primitives<Device::CPU>::set_device(int index) {
@@ -40,23 +40,6 @@ namespace ctranslate2 {
   template<>
   int primitives<Device::CPU>::get_device() {
     return 0;
-  }
-
-  template<>
-  void* primitives<Device::CPU>::alloc_data(dim_t size, int, void**) {
-    return aligned_alloc(size, ALIGNMENT);
-  }
-
-  template<>
-  void primitives<Device::CPU>::free_data(void* data, int, void*) {
-    aligned_free(data);
-  }
-
-  template<>
-  void primitives<Device::CPU>::clear_cache(void*) {
-#ifdef CT2_WITH_MKL
-    mkl_free_buffers();
-#endif
   }
 
   template<>
@@ -311,11 +294,11 @@ namespace ctranslate2 {
       const bool inplace = (x == y);
       float* tmp = y;
       if (inplace)
-        tmp = static_cast<float*>(alloc_data(size * sizeof (float)));
+        tmp = static_cast<float*>(allocator.allocate(size * sizeof (float)));
       vsCdfNorm(size, x, tmp);
       vsMul(size, x, tmp, y);
       if (inplace)
-        free_data(tmp);
+        allocator.free(tmp);
       return;
     }
 #endif
@@ -767,11 +750,11 @@ namespace ctranslate2 {
                                     "compensation term to be passed as argument");
       } else {
         const dim_t a_size = m * k;
-        tmp_ua = static_cast<uint8_t*>(alloc_data(a_size));
+        tmp_ua = static_cast<uint8_t*>(allocator.allocate(a_size));
         shift_to_u8(a, tmp_ua, a_size);
         ua = tmp_ua;
 
-        tmp_a_shift_compensation = static_cast<int32_t*>(alloc_data(n * sizeof (int32_t)));
+        tmp_a_shift_compensation = static_cast<int32_t*>(allocator.allocate(n * sizeof (int32_t)));
         compute_u8_compensation(b, transpose_b, k, n, alpha, tmp_a_shift_compensation);
         a_shift_compensation = tmp_a_shift_compensation;
       }
@@ -803,9 +786,9 @@ namespace ctranslate2 {
       }
 
       if (tmp_ua)
-        free_data(tmp_ua);
+        allocator.free(tmp_ua);
       if (tmp_a_shift_compensation)
-        free_data(tmp_a_shift_compensation);
+        allocator.free(tmp_a_shift_compensation);
       break;
     }
 #endif
@@ -884,7 +867,7 @@ namespace ctranslate2 {
                                 c, ldc, stridec,
                                 b_);
 #  else
-      auto ptr_array = static_cast<float**>(alloc_data(3 * batch_size * sizeof (float*)));
+      auto ptr_array = static_cast<float**>(allocator.allocate(3 * batch_size * sizeof (float*)));
       auto a_array = const_cast<const float**>(ptr_array);
       auto b_array = const_cast<const float**>(ptr_array + batch_size);
       auto c_array = ptr_array + 2 * batch_size;
@@ -902,7 +885,7 @@ namespace ctranslate2 {
                         &beta, c_array, &ldc,
                         1 /* group_count */, &b_);
 
-      free_data(ptr_array);
+      allocator.free(ptr_array);
 #  endif
       break;
     }

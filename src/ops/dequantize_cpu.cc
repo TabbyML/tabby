@@ -73,7 +73,8 @@ namespace ctranslate2 {
 
         if (!transpose_a && transpose_b) {
           // Optimize the common case using transform and minimizing the number of division.
-          auto* r_b_scale = static_cast<float*>(primitives<>::alloc_data(depth * sizeof (float)));
+          auto& allocator = get_allocator<Device::CPU>();
+          auto* r_b_scale = static_cast<float*>(allocator.allocate(depth * sizeof (float)));
           CPU_ISA_DISPATCH((cpu::rcp<ISA>(b_scale_data, r_b_scale, depth)));
 
           #pragma omp parallel for
@@ -86,7 +87,7 @@ namespace ctranslate2 {
                                   });
           }
 
-          primitives<>::free_data(r_b_scale);
+          allocator.free(r_b_scale);
 
         } else {
           // Generic implementation.

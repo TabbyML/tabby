@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "ctranslate2/primitives/primitives.h"
+#include "ctranslate2/allocator.h"
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
@@ -72,23 +72,6 @@ namespace ctranslate2 {
       return cublas_handle.get();
     }
 
-    CachingAllocatorConfig get_caching_allocator_config() {
-      CachingAllocatorConfig config;
-      const char* config_env = std::getenv("CT2_CUDA_CACHING_ALLOCATOR_CONFIG");
-      if (config_env) {
-        const std::vector<std::string> values = split_string(config_env, ',');
-        if (values.size() != 4)
-          throw std::invalid_argument("CT2_CUDA_CACHING_ALLOCATOR_CONFIG environment variable "
-                                      "should have format: "
-                                      "bin_growth,min_bin,max_bin,max_cached_bytes");
-        config.bin_growth = std::stoul(values[0]);
-        config.min_bin = std::stoul(values[1]);
-        config.max_bin = std::stoul(values[2]);
-        config.max_cached_bytes = std::stoull(values[3]);
-      }
-      return config;
-    }
-
     int get_gpu_count() {
       int gpu_count = 0;
       cudaError_t status = cudaGetDeviceCount(&gpu_count);
@@ -138,12 +121,13 @@ namespace ctranslate2 {
     }
 
     ThrustAllocator::value_type* ThrustAllocator::allocate(std::ptrdiff_t num_bytes) {
-      return reinterpret_cast<ThrustAllocator::value_type*>(
-        primitives<Device::CUDA>::alloc_data(num_bytes));
+      auto& allocator = get_allocator<Device::CUDA>();
+      return reinterpret_cast<ThrustAllocator::value_type*>(allocator.allocate(num_bytes));
     }
 
     void ThrustAllocator::deallocate(ThrustAllocator::value_type* p, size_t) {
-      return primitives<Device::CUDA>::free_data(p);
+      auto& allocator = get_allocator<Device::CUDA>();
+      return allocator.free(p);
     }
 
     ThrustAllocator& get_thrust_allocator() {

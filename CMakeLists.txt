@@ -72,7 +72,9 @@ set(PRIVATE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
   )
 set(SOURCES
+  src/allocator.cc
   src/batch_reader.cc
+  src/cpu/allocator.cc
   src/cpu/backend.cc
   src/cpu/cpu_info.cc
   src/cpu/cpu_isa.cc
@@ -358,6 +360,7 @@ if (WITH_CUDA)
   cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
+    src/cuda/allocator.cc
     src/cuda/utils.cc
     src/primitives/cuda.cu
     src/ops/concat_split_gpu.cu

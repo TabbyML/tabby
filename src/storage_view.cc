@@ -130,7 +130,7 @@ namespace ctranslate2 {
 
   StorageView& StorageView::release() {
     if (_own_data && _data != nullptr) {
-      DEVICE_DISPATCH(_device, primitives<D>::free_data(_data, _device_index, _allocator));
+      _allocator->free(_data, _device_index);
     }
     _data = nullptr;
     _allocator = nullptr;
@@ -144,9 +144,8 @@ namespace ctranslate2 {
     release();
     dim_t required_bytes = 0;
     TYPE_DISPATCH(_dtype, required_bytes = size * sizeof (T));
-    DEVICE_DISPATCH(_device, _data = primitives<D>::alloc_data(required_bytes,
-                                                               _device_index,
-                                                               &_allocator));
+    _allocator = &get_allocator(_device);
+    _data = _allocator->allocate(required_bytes, _device_index);
     if (_data == nullptr)
       THROW_RUNTIME_ERROR("failed to allocated memory");
     _own_data = true;

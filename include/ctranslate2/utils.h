@@ -46,9 +46,6 @@ namespace ctranslate2 {
 
   std::mt19937& get_random_generator();
 
-  void* aligned_alloc(size_t size, size_t alignment);
-  void aligned_free(void* ptr);
-
 #ifdef NDEBUG
 #  define THROW_EXCEPTION(EXCEPTION, MESSAGE) throw EXCEPTION(MESSAGE)
 #else

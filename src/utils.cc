@@ -3,14 +3,6 @@
 #include <chrono>
 #include <cstdlib>
 
-#ifdef _WIN32
-#  include <malloc.h>
-#endif
-
-#ifdef CT2_WITH_MKL
-#  include <mkl.h>
-#endif
-
 #ifdef _OPENMP
 #  include <omp.h>
 #endif
@@ -213,31 +205,6 @@ namespace ctranslate2 {
     static thread_local std::mt19937 generator(
       std::chrono::system_clock::now().time_since_epoch().count());
     return generator;
-  }
-
-  void* aligned_alloc(size_t size, size_t alignment) {
-    void* ptr = nullptr;
-#if defined(CT2_WITH_MKL)
-    ptr = mkl_malloc(size, alignment);
-#elif defined(_WIN32)
-    ptr = _aligned_malloc(size, alignment);
-#else
-    if (posix_memalign(&ptr, alignment, size) != 0)
-      ptr = nullptr;
-#endif
-    if (ptr == nullptr)
-      throw std::runtime_error("Failed to allocate memory");
-    return ptr;
-  }
-
-  void aligned_free(void* ptr) {
-#if defined(CT2_WITH_MKL)
-    mkl_free(ptr);
-#elif defined(_WIN32)
-    _aligned_free(ptr);
-#else
-    free(ptr);
-#endif
   }
 
 }
