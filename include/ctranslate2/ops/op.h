@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "ctranslate2/storage_view.h"
+#include "ctranslate2/primitives.h"
 #include "ctranslate2/profiler.h"
-#include "ctranslate2/primitives/primitives.h"
 
 namespace ctranslate2 {
   namespace ops {

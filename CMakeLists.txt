@@ -79,6 +79,7 @@ set(SOURCES
   src/cpu/cpu_info.cc
   src/cpu/cpu_isa.cc
   src/cpu/kernels.cc
+  src/cpu/primitives.cc
   src/decoding.cc
   src/devices.cc
   src/generation_result.cc
@@ -117,7 +118,6 @@ set(SOURCES
   src/ops/topk_cpu.cc
   src/ops/transpose.cc
   src/padder.cc
-  src/primitives/cpu.cc
   src/profiler.cc
   src/sampling.cc
   src/storage_view.cc
@@ -361,8 +361,8 @@ if (WITH_CUDA)
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/allocator.cc
+    src/cuda/primitives.cu
     src/cuda/utils.cc
-    src/primitives/cuda.cu
     src/ops/concat_split_gpu.cu
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu

@@ -1,5 +1,5 @@
 #include "test_utils.h"
-#include "ctranslate2/primitives/primitives.h"
+#include "ctranslate2/primitives.h"
 
 TEST(PrimitiveTest, StridedFillCPU) {
   StorageView x({3, 2}, float(0));

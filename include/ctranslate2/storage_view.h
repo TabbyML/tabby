@@ -6,7 +6,6 @@
 #include "allocator.h"
 #include "types.h"
 #include "utils.h"
-#include "primitives/primitives.h"
 
 namespace ctranslate2 {
 

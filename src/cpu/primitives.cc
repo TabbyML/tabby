@@ -1,4 +1,4 @@
-#include "ctranslate2/primitives/primitives.h"
+#include "ctranslate2/primitives.h"
 
 #include <cmath>
 #include <functional>

@@ -1,5 +1,7 @@
 #include "ctranslate2/storage_view.h"
 
+#include "ctranslate2/primitives.h"
+
 #include "device_dispatch.h"
 #include "type_dispatch.h"
 
