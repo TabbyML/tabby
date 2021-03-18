@@ -12,18 +12,6 @@
 namespace ctranslate2 {
 
   template<>
-  void primitives<Device::CUDA>::set_device(int index) {
-    CUDA_CHECK(cudaSetDevice(index));
-  }
-
-  template<>
-  int primitives<Device::CUDA>::get_device() {
-    int index;
-    CUDA_CHECK(cudaGetDevice(&index));
-    return index;
-  }
-
-  template<>
   template <typename T>
   T primitives<Device::CUDA>::deref(const T* x, dim_t index) {
     T val = T();

@@ -10,9 +10,6 @@ namespace ctranslate2 {
   template <Device D = Device::CPU>
   struct primitives {
 
-    static void set_device(int index);
-    static int get_device();
-
     template <typename T>
     static T deref(const T* x, dim_t index);
 

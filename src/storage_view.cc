@@ -7,28 +7,22 @@
 
 namespace ctranslate2 {
 
-  static inline int get_current_device(const Device device) {
-    int index = 0;
-    DEVICE_DISPATCH(device, index = primitives<D>::get_device());
-    return index;
-  }
-
   StorageView::StorageView(DataType type, Device device)
     : _dtype(type)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
   }
 
   StorageView::StorageView(Device device, DataType type)
     : _dtype(type)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
   }
 
   StorageView::StorageView(const Shape& shape, DataType type, Device device)
     : _dtype(type)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
     resize(shape);
   }
 
@@ -36,7 +30,7 @@ namespace ctranslate2 {
   StorageView::StorageView(const Shape& shape, T init, Device device)
     : _dtype(DataTypeToEnum<T>::value)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
     resize(shape);
     fill(init);
   }
@@ -45,7 +39,7 @@ namespace ctranslate2 {
   StorageView::StorageView(T scalar, Device device)
     : _dtype(DataTypeToEnum<T>::value)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
     resize({});
     fill(scalar);
   }
@@ -54,7 +48,7 @@ namespace ctranslate2 {
   StorageView::StorageView(const Shape& shape, const std::vector<T>& init, Device device)
     : _dtype(DataTypeToEnum<T>::value)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
     resize(shape);
     copy_from(init.data(), init.size(), Device::CPU);
   }
@@ -63,7 +57,7 @@ namespace ctranslate2 {
   StorageView::StorageView(const Shape& shape, T* data, Device device)
     : _dtype(DataTypeToEnum<T>::value)
     , _device(device)
-    , _device_index(get_current_device(device)) {
+    , _device_index(get_device_index(device)) {
     view(data, shape);
   }
 

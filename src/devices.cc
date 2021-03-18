@@ -4,7 +4,6 @@
 #  include "./cuda/utils.h"
 #endif
 
-#include "ctranslate2/primitives/primitives.h"
 #include "./device_dispatch.h"
 
 namespace ctranslate2 {
@@ -38,21 +37,43 @@ namespace ctranslate2 {
   }
 
   template <Device D>
-  static void get_and_set_device(const int new_index, int* prev_index) {
-    *prev_index = primitives<D>::get_device();
-    primitives<D>::set_device(new_index);
+  int get_device_index();
+  template <Device D>
+  void set_device_index(int index);
+
+  template<>
+  int get_device_index<Device::CPU>() {
+    return 0;
   }
 
-  ScopedDeviceSetter::ScopedDeviceSetter(Device device, int index)
-    : _device(device) {
-    DEVICE_DISPATCH(_device, get_and_set_device<D>(index, &_prev_index));
+  template<>
+  void set_device_index<Device::CPU>(int index) {
+    if (index != 0)
+      throw std::invalid_argument("Invalid CPU device index: " + std::to_string(index));
   }
 
-  ScopedDeviceSetter::~ScopedDeviceSetter() {
-    try {
-      DEVICE_DISPATCH(_device, primitives<D>::set_device(_prev_index));
-    } catch (...) {
-    }
+#ifdef CT2_WITH_CUDA
+  template<>
+  int get_device_index<Device::CUDA>() {
+    int index = 0;
+    CUDA_CHECK(cudaGetDevice(&index));
+    return index;
+  }
+
+  template<>
+  void set_device_index<Device::CUDA>(int index) {
+    CUDA_CHECK(cudaSetDevice(index));
+  }
+#endif
+
+  int get_device_index(Device device) {
+    int index = 0;
+    DEVICE_DISPATCH(device, index = get_device_index<D>());
+    return index;
+  }
+
+  void set_device_index(Device device, int index) {
+    DEVICE_DISPATCH(device, set_device_index<D>(index));
   }
 
 }

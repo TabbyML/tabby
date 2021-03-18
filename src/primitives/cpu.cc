@@ -32,17 +32,6 @@ namespace ctranslate2 {
   static Allocator& allocator = get_allocator<Device::CPU>();
 
   template<>
-  void primitives<Device::CPU>::set_device(int index) {
-    if (index != 0)
-      throw std::invalid_argument("Invalid CPU device index: " + std::to_string(index));
-  }
-
-  template<>
-  int primitives<Device::CPU>::get_device() {
-    return 0;
-  }
-
-  template<>
   template <typename T>
   T primitives<Device::CPU>::deref(const T* x, dim_t index) {
     return x[index];
