@@ -34,6 +34,8 @@ namespace ctranslate2 {
       return ComputeType::FLOAT16;
     if (compute_type == "default")
       return ComputeType::DEFAULT;
+    if (compute_type == "auto")
+      return ComputeType::AUTO;
     throw std::invalid_argument("Invalid compute type: " + compute_type);
   }
 
@@ -82,6 +84,21 @@ namespace ctranslate2 {
         return ComputeType::INT16;
       if (device == Device::CUDA && mayiuse_float16(device, device_index))
         return ComputeType::FLOAT16;
+      return ComputeType::FLOAT;
+    }
+
+    case ComputeType::AUTO: {
+      if (device == Device::CUDA) {
+        if (mayiuse_float16(device, device_index))
+          return ComputeType::FLOAT16;
+        if (mayiuse_int8(device, device_index))
+          return ComputeType::INT8;
+      } else {
+        if (mayiuse_int8(device, device_index))
+          return ComputeType::INT8;
+        if (mayiuse_int16(device, device_index))
+          return ComputeType::INT16;
+      }
       return ComputeType::FLOAT;
     }
 

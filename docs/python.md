@@ -37,7 +37,7 @@ translator = ctranslate2.Translator(
     # The device ID, or list of device IDs, where to place this translator on.
     device_index: Union[int, List[int]] = 0,
 
-    # The computation type: "default", "int8", "int16", "float16", or "float",
+    # The computation type: "default", "auto", "int8", "int16", "float16", or "float",
     # or a dict mapping a device to a computation type.
     compute_type: Union[str, Dict[str, str]] = "default",
 

@@ -23,6 +23,7 @@ namespace ctranslate2 {
 
   enum class ComputeType {
     DEFAULT,
+    AUTO,
     FLOAT,
     INT8,
     INT16,

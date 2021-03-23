@@ -6,6 +6,7 @@ Below are some recommendations to further improve translation performance. Many 
 
 ### General
 
+* Set the compute type to "auto" to automatically select the fastest execution path on the current system
 * Reduce the beam size to the minimum value that meets your quality requirement
 * When using a beam size of 1, disable `return_scores` if you are not using prediction scores: the final softmax layer can be skipped
 * Set `max_batch_size` and pass a larger batch to `translate_batch`: the input sentences will be sorted by length and split by chunk of `max_batch_size` elements for improved efficiency
@@ -13,14 +14,12 @@ Below are some recommendations to further improve translation performance. Many 
 
 ### CPU
 
-* Set the compute type to "int8"
 * Use an Intel CPU supporting AVX512
 * If you are translating a large volume of data, prefer increasing `inter_threads` over `intra_threads` to improve scalability
 * Avoid setting `intra_threads` to a value that is greater than the number of physical cores
 
 ### GPU
 
-* Set the compute type to "float16" if you have a NVIDIA GPU with Compute Capability >= 7.0
 * Pass multiple GPU IDs to `device_index` to run translations on multiple GPUs
 
 ## Measuring performance

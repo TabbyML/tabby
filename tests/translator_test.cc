@@ -62,8 +62,14 @@ TEST_P(ModelVariantTest, Transliteration) {
   type_params.emplace_back(ComputeType::FLOAT, DataType::FLOAT);
   if (mayiuse_int16(device))
     type_params.emplace_back(ComputeType::INT16, DataType::INT16);
-  if (mayiuse_int8(device))
+  if (mayiuse_int8(device)) {
     type_params.emplace_back(ComputeType::INT8, DataType::INT8);
+    type_params.emplace_back(ComputeType::AUTO, DataType::INT8);
+  } else if (mayiuse_int16(device)) {
+    type_params.emplace_back(ComputeType::AUTO, DataType::INT16);
+  } else {
+    type_params.emplace_back(ComputeType::AUTO, DataType::FLOAT);
+  }
 
   for (const auto& types : type_params) {
     const ComputeType compute_type = types.first;
