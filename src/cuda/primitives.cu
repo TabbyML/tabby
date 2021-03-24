@@ -1,8 +1,5 @@
 #include "ctranslate2/primitives.h"
 
-#include <cmath>
-#include <type_traits>
-
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 
