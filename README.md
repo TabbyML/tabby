@@ -270,6 +270,7 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 
 | CMake option | Accepted values (default in bold) | Description |
 | --- | --- | --- |
+| BUILD_TESTS | **OFF**, ON | Compiles the tests |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
 | ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
@@ -280,7 +281,6 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 | WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
 | WITH_ACCELERATE | **OFF**, ON | Compiles with the Apple Accelerate backend |
 | WITH_OPENBLAS | **OFF**, ON | Compiles with the OpenBLAS backend |
-| WITH_TESTS | **OFF**, ON | Compiles the tests |
 
 Some build options require external dependencies:
 
@@ -341,7 +341,7 @@ $ echo "▁H ello ▁world !" | ./cli/translate --model ende_ctranslate2/ --devi
 
 ### C++
 
-To enable the tests, you should configure the project with `cmake -DWITH_TESTS=ON`. The binary `tests/ctranslate2_test` runs all tests using Google Test. It expects the path to the test data as argument:
+To enable the tests, you should configure the project with `cmake -DBUILD_TESTS=ON`. The binary `tests/ctranslate2_test` runs all tests using Google Test. It expects the path to the test data as argument:
 
 ```bash
 ./tests/ctranslate2_test ../tests/data
