@@ -142,6 +142,10 @@ namespace ctranslate2 {
     PROFILE("run_batch_translation");
     assert_has_model();
     auto scoped_device_setter = _model->get_scoped_device_setter();
+    const Device device = _model->device();
+
+    if (!_allocator)
+      _allocator = &ctranslate2::get_allocator(device);
 
     const auto& source_vocabulary = _seq2seq_model->get_source_vocabulary();
     const auto& target_vocabulary = _seq2seq_model->get_target_vocabulary();
@@ -150,7 +154,6 @@ namespace ctranslate2 {
                                                      _seq2seq_model->with_source_eos());
     const auto target_prefix_ids = target_vocabulary.to_ids(target_prefix);
 
-    const Device device = _model->device();
     const dim_t preferred_size_multiple = get_preferred_size_multiple(
       _model->effective_compute_type(),
       device,

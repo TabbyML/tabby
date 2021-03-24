@@ -293,6 +293,11 @@ public:
       }
 
       const_cast<ctranslate2::Translator&>(translator).detach_model();
+
+      // Clear cache of memory allocator associated with this translator.
+      auto* allocator = translator.get_allocator();
+      if (allocator && _device == ctranslate2::Device::CUDA)
+        allocator->clear_cache();
     }
 
     _model_is_loaded = false;

@@ -120,6 +120,12 @@ namespace ctranslate2 {
     // Detach the model from this translator, which becomes unusable until set_model is called.
     void detach_model();
 
+    // Return the memory allocator associated with this translator.
+    // The allocator is registered on the first translation.
+    Allocator* get_allocator() const {
+      return _allocator;
+    }
+
   private:
     void assert_has_model() const;
 
@@ -132,6 +138,7 @@ namespace ctranslate2 {
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
     const models::SequenceToSequenceModel* _seq2seq_model = nullptr;
+    Allocator* _allocator = nullptr;
   };
 
   struct Batch {
