@@ -26,6 +26,7 @@ RUN yum-config-manager --add-repo https://yum.repos.intel.com/oneapi && \
     yum install -y \
         intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD \
         intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD \
+        intel-oneapi-common-vars-$ONEAPI_VERSION-60 \
         && \
     rm -rf /var/cache/yum/*
 
