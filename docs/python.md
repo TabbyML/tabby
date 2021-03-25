@@ -140,12 +140,11 @@ Note: parallelization with Python threads is made possible because the `Translat
 
 ## Memory management API
 
-* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. When `to_cpu` is `True`, the model is moved to the CPU memory and not fully unloaded.
+* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if the translator is used simultaneously in another thread.
+  * `to_cpu`: If `True`, the model is moved to the CPU memory and not fully unloaded.
 * `translator.load_model()`<br/>Load the model back to the initial device.
 * `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.
 * `del translator`<br/>Release the translator resources.
-
-When using multiple Python threads, the application should ensure that no translations are running before calling these functions.
 
 ## Utility API
 
