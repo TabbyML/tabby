@@ -76,7 +76,7 @@ namespace ctranslate2 {
 
     };
 
-    static CPUInfo cpu_info;
+    static const CPUInfo cpu_info;
 
     const std::string& cpu_vendor() {
       return cpu_info.vendor;
