@@ -19,13 +19,13 @@ ln -s cuda-10.1 /usr/local/cuda
 yum install -y devtoolset-8
 source /opt/rh/devtoolset-8/enable
 
-ONEAPI_VERSION=2021.1.1
-MKL_BUILD=52
-DNNL_BUILD=55
+ONEAPI_VERSION=2021.2.0
+MKL_BUILD=296
+DNNL_BUILD=228
 yum install -y yum-utils
 yum-config-manager --add-repo https://yum.repos.intel.com/oneapi
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD intel-oneapi-common-vars-$ONEAPI_VERSION-60
+yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD
 echo "/opt/intel/oneapi/dnnl/latest/cpu_gomp/lib" > /etc/ld.so.conf.d/intel-dnnl.conf
 ldconfig
 
