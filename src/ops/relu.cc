@@ -1,6 +1,7 @@
 #include "ctranslate2/ops/relu.h"
 
-#include "../device_dispatch.h"
+#include "device_dispatch.h"
+#include "type_dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {

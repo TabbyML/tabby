@@ -8,6 +8,7 @@
 #include "ctranslate2/types.h"
 
 #include "utils.h"
+#include "type_dispatch.h"
 
 #if !defined(__CUDACC__) || !defined(__CUDA_ARCH__) || __CUDA_ARCH__ >= 530
 #  define CUDA_CAN_USE_HALF 1

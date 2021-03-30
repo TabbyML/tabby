@@ -2,6 +2,8 @@
 
 #include "ctranslate2/utils.h"
 
+#include "type_dispatch.h"
+
 namespace ctranslate2 {
   namespace ops {
 
