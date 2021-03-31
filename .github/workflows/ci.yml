@@ -207,15 +207,17 @@ jobs:
           python-version: 3.6
 
       - name: Build wheels
-        run: |
-          python -m pip install cibuildwheel==1.7.4
-          python -m cibuildwheel python --output-dir python/wheelhouse
+        uses: joerick/cibuildwheel@v1.10.0
+        with:
+          package-dir: python
+          output-dir: python/wheelhouse
         env:
           CIBW_BEFORE_ALL_LINUX: python/tools/prepare_build_environment_linux.sh
           CIBW_BEFORE_ALL_MACOS: python/tools/prepare_build_environment_macos.sh
           CIBW_BEFORE_BUILD: pip install -r python/install_requirements.txt
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-          CIBW_SKIP: cp27-* pp* *i686
+          CIBW_ARCHS: auto64
+          CIBW_SKIP: pp*
 
       - name: Upload Python wheels
         uses: actions/upload-artifact@v2
