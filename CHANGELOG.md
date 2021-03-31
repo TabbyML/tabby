@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v1.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.19.0) (2021-03-31)
+
+### Changes
+
+* Rename CMake option `WITH_TESTS` to `BUILD_TESTS`
+
+### New features
+
+* Add "auto" compute type to automatically select the fastest compute type on the current system
+
+### Fixes and improvements
+
+* [Python] Clear memory allocator cache when calling `unload_model`
+* [Python] Make methods `unload_model` and `load_model` thread safe
+* Fix conversion of TensorFlow SavedModel with shared embeddings
+* Update Intel oneAPI to 2021.2
+* Compile core library with C++14 standard
+
 ## [v1.18.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.18.3) (2021-03-02)
 
 ### Fixes and improvements
