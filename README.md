@@ -51,7 +51,7 @@ See the [Decoding](docs/decoding.md) documentation for examples.
 
 ## Quickstart
 
-The steps below assume a Linux OS and a Python installation (3.5 or above).
+The steps below assume a Linux OS and a Python installation (3.6 or above).
 
 1\. **[Install](#installation) the Python package**:
 
@@ -109,7 +109,7 @@ All software dependencies are included in the package, including CUDA libraries 
 **Requirements:**
 
 * OS: Linux, macOS
-* Python version: >= 3.5
+* Python version: >= 3.6
 * pip version: >= 19.3
 * GPU driver version: >= 418.39
 
