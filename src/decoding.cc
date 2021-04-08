@@ -513,13 +513,13 @@ namespace ctranslate2 {
         if (output_ids_map)
           true_id = output_ids_map->at(true_id);
         dim_t batch_id = batch_offset[i];
+        if (scores) {
+          (*scores)[batch_id][0] += best_probs.scalar_at<float>({i});
+        }
         if (true_id != static_cast<int32_t>(end_id)) {
           non_finished_index.emplace_back(i);
           sample_from.at<int32_t>(i) = true_id;
           sampled_ids[batch_id][0].push_back(true_id);
-          if (scores) {
-            (*scores)[batch_id][0] += best_probs.scalar_at<float>({i});
-          }
           if (attention) {
             const auto* attn = attention_step.index<float>({i});
             (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));

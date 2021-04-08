@@ -415,3 +415,14 @@ TEST(TranslatorTest, IgnoreScore) {
   EXPECT_FALSE(result.has_scores());
   EXPECT_EQ(result.output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
+
+TEST(TranslatorTest, SameBeamAndGreedyScore) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  options.beam_size = 1;
+  const auto greedy_score = translator.translate(input, options).score();
+  options.beam_size = 2;
+  const auto beam_score = translator.translate(input, options).score();
+  EXPECT_NEAR(greedy_score, beam_score, 1e-5);
+}
