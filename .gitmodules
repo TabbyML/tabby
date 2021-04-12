@@ -10,3 +10,6 @@
 [submodule "third_party/googletest"]
 	path = third_party/googletest
 	url = https://github.com/google/googletest.git
+[submodule "third_party/cpu_features"]
+	path = third_party/cpu_features
+	url = https://github.com/google/cpu_features.git

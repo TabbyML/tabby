@@ -26,7 +26,7 @@ namespace ctranslate2 {
       const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
       if (use_mkl_env.empty()) {
 #ifdef CT2_WITH_MKL
-        return cpu_is_intel();
+        return cpu_vendor() == "GenuineIntel";
 #else
         return false;
 #endif

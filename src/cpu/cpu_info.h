@@ -8,7 +8,6 @@ namespace ctranslate2 {
     // Functions returning some info about the current CPU.
 
     const std::string& cpu_vendor();
-    bool cpu_is_intel();
     bool cpu_supports_sse41();
     bool cpu_supports_avx();
     bool cpu_supports_avx2();
