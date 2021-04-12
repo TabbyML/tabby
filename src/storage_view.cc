@@ -125,7 +125,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::release() {
-    if (_own_data && _data != nullptr) {
+    if (_allocator && _data != nullptr) {
       _allocator->free(_data, _device_index);
     }
     _data = nullptr;
@@ -144,13 +144,12 @@ namespace ctranslate2 {
     _data = _allocator->allocate(required_bytes, _device_index);
     if (_data == nullptr)
       THROW_RUNTIME_ERROR("failed to allocated memory");
-    _own_data = true;
     _allocated_size = size;
     return *this;
   }
 
   bool StorageView::owns_data() const {
-    return _own_data;
+    return _allocator;
   }
 
   StorageView& StorageView::reshape(const Shape& new_shape) {
@@ -325,7 +324,6 @@ namespace ctranslate2 {
     ASSERT_DTYPE(DataTypeToEnum<T>::value);
     release();
     _data = static_cast<void*>(data);
-    _own_data = false;
     _allocated_size = compute_size(shape);
     _size = _allocated_size;
     return reshape(shape);
@@ -436,7 +434,6 @@ namespace ctranslate2 {
     std::swap(a._device_index, b._device_index);
     std::swap(a._allocator, b._allocator);
     std::swap(a._data, b._data);
-    std::swap(a._own_data, b._own_data);
     std::swap(a._allocated_size, b._allocated_size);
     std::swap(a._size, b._size);
     std::swap(a._shape, b._shape);

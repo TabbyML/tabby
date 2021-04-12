@@ -233,7 +233,6 @@ namespace ctranslate2 {
     int _device_index = 0;
     Allocator* _allocator = nullptr;
     void* _data = nullptr;
-    bool _own_data = true;
     dim_t _allocated_size = 0;
     dim_t _size = 0;
     Shape _shape;
