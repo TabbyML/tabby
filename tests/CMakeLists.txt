@@ -10,7 +10,6 @@ add_executable(ctranslate2_test
   storage_view_test.cc
   ops_test.cc
   primitives_test.cc
-  transformer_test.cc
   translator_test.cc
   test.cc)
 target_include_directories(ctranslate2_test PRIVATE

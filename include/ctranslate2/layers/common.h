@@ -52,6 +52,41 @@ namespace ctranslate2 {
       const std::unique_ptr<const StorageView> _scale;
     };
 
+    // Base class for position encoders.
+    class PositionEncoder : public Layer {
+    public:
+      void operator()(StorageView& input, dim_t index = 0);
+      void operator()(const StorageView& input, StorageView& output, dim_t index = 0);
+    protected:
+      virtual const StorageView& get_position_encoding(dim_t max_time) = 0;
+    };
+
+    // Concrete position encoder loading encoding vectors from the model.
+    class PositionEmbedding : public PositionEncoder {
+    public:
+      PositionEmbedding(const models::Model& model, const std::string& scope);
+      DataType output_type() const override;
+      dim_t output_size() const override;
+    protected:
+      const StorageView& get_position_encoding(dim_t max_time) override;
+    private:
+      const StorageView& _encoding;
+    };
+
+    // Concrete position encoder computing sinusoidal position encodings (compatible with OpenNMT-tf).
+    class SinusoidalPositionEncoder : public PositionEncoder {
+    public:
+      SinusoidalPositionEncoder(dim_t depth,
+                                DataType dtype = DataType::FLOAT,
+                                Device device = Device::CPU);
+      DataType output_type() const override;
+      dim_t output_size() const override;
+    protected:
+      const StorageView& get_position_encoding(dim_t max_time) override;
+    private:
+      StorageView _encoding;
+    };
+
     class Dense : public Layer
     {
     public:

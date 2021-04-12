@@ -115,6 +115,101 @@ namespace ctranslate2 {
     }
 
 
+    void PositionEncoder::operator()(StorageView& input, dim_t index) {
+      const dim_t time = input.dim(1);
+      const dim_t depth = input.dim(-1);
+      const dim_t max_time = std::max(time, index + 1);
+      const StorageView& encodings = get_position_encoding(max_time);
+      const dim_t num_encodings = encodings.dim(0);
+
+      if (max_time > num_encodings)
+        std::runtime_error("No position encodings are defined for positions >= "
+                           + std::to_string(num_encodings)
+                           + ", but got position "
+                           + std::to_string(max_time - 1));
+
+      DEVICE_DISPATCH(input.device(),
+                      TYPE_DISPATCH(input.dtype(),
+                                    primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
+                                                                       input.data<T>(),
+                                                                       time * depth,
+                                                                       input.size())));
+    }
+
+    void PositionEncoder::operator()(const StorageView& input, StorageView& output, dim_t index) {
+      output = input;
+      operator()(output, index);
+    }
+
+
+    PositionEmbedding::PositionEmbedding(const models::Model& model, const std::string& scope)
+      : _encoding(model.get_variable(scope + "/encodings"))
+    {
+    }
+
+    const StorageView& PositionEmbedding::get_position_encoding(dim_t) {
+      return _encoding;
+    }
+
+    DataType PositionEmbedding::output_type() const {
+      return _encoding.dtype();
+    }
+
+    dim_t PositionEmbedding::output_size() const {
+      return _encoding.dim(1);
+    }
+
+
+    static StorageView generate_sinusoidal_position_encoding(dim_t max_time,
+                                                             dim_t depth,
+                                                             DataType dtype,
+                                                             Device device) {
+      float log_timescale_increment = log(10000) / (depth / 2 - 1);
+      StorageView timescales({depth / 2}, -log_timescale_increment);
+      for (dim_t i = 0; i < timescales.size(); ++i)
+        timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
+
+      StorageView scaled_time({max_time, depth / 2});
+      for (dim_t i = 0; i < scaled_time.dim(0); ++i) {
+        for (dim_t j = 0; j < scaled_time.dim(1); ++j) {
+          *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
+        }
+      }
+
+      StorageView sin_encoding;
+      StorageView cos_encoding;
+
+      ops::Sin()(scaled_time, sin_encoding);
+      ops::Cos()(scaled_time, cos_encoding);
+
+      StorageView cache;
+      ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
+      return cache.to(dtype).to(device);
+    }
+
+    SinusoidalPositionEncoder::SinusoidalPositionEncoder(dim_t depth, DataType dtype, Device device)
+      : _encoding(generate_sinusoidal_position_encoding(500, depth, dtype, device))
+    {
+    }
+
+    const StorageView& SinusoidalPositionEncoder::get_position_encoding(dim_t max_time) {
+      if (max_time > _encoding.dim(0))
+        _encoding = generate_sinusoidal_position_encoding(max_time,
+                                                          _encoding.dim(1),
+                                                          _encoding.dtype(),
+                                                          _encoding.device());
+      return _encoding;
+    }
+
+    DataType SinusoidalPositionEncoder::output_type() const {
+      return _encoding.dtype();
+    }
+
+    dim_t SinusoidalPositionEncoder::output_size() const {
+      return _encoding.dim(1);
+    }
+
+
     static const StorageView& get_linear_weight(const models::Model& model,
                                                 const std::string& scope,
                                                 bool* is_packed) {

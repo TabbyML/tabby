@@ -30,21 +30,6 @@ namespace ctranslate2 {
       bool _with_relative_position;
     };
 
-    class PositionEncoder
-    {
-    public:
-      PositionEncoder();
-      PositionEncoder(const TransformerModel& model, const std::string& scope);
-      void operator()(StorageView& input, dim_t index = 0);
-    private:
-      const StorageView& get_position_encoding(dim_t max_time,
-                                               dim_t depth,
-                                               Device device,
-                                               DataType dtype);
-      const StorageView* _model_encoding;
-      std::unique_ptr<StorageView> _generated_encoding;
-    };
-
     class TransformerFeedForward
     {
     public:
@@ -104,7 +89,7 @@ namespace ctranslate2 {
     private:
       const layers::Embeddings _embeddings;
       const ComputeType _compute_type;
-      const std::unique_ptr<PositionEncoder> _position_encoder;
+      const std::unique_ptr<layers::PositionEncoder> _position_encoder;
       const layers::LayerNorm _output_norm;
       std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
     };
@@ -131,7 +116,7 @@ namespace ctranslate2 {
       const bool _with_encoder_attention;
       const ComputeType _compute_type;
       const layers::Embeddings _embeddings;
-      const std::unique_ptr<PositionEncoder> _position_encoder;
+      const std::unique_ptr<layers::PositionEncoder> _position_encoder;
       const layers::LayerNorm _output_norm;
       std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       layers::Dense _proj;

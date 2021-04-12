@@ -1,7 +1,5 @@
 #include "ctranslate2/models/transformer.h"
 
-#include <cmath>
-
 #include "device_dispatch.h"
 #include "type_dispatch.h"
 
@@ -92,68 +90,18 @@ namespace ctranslate2 {
     }
 
 
-    PositionEncoder::PositionEncoder()
-      : _model_encoding(nullptr) {
-    }
-
-    PositionEncoder::PositionEncoder(const TransformerModel& model, const std::string& scope)
-      : _model_encoding(model.get_variable_if_exists(scope + "/encodings")) {
-    }
-
-    void PositionEncoder::operator()(StorageView& input, dim_t index) {
-      const dim_t max_time = input.dim(1);
-      const dim_t depth = input.dim(-1);
-      const StorageView& encodings = get_position_encoding(max_time,
-                                                           depth,
-                                                           input.device(),
-                                                           input.dtype());
-      DEVICE_DISPATCH(input.device(),
-                      TYPE_DISPATCH(input.dtype(),
-                                    primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
-                                                                       input.data<T>(),
-                                                                       max_time * depth,
-                                                                       input.size())));
-    }
-
-    const StorageView& PositionEncoder::get_position_encoding(dim_t max_time,
-                                                              dim_t depth,
-                                                              Device device,
-                                                              DataType dtype) {
-      if (_model_encoding)
-        return *_model_encoding;
-
-      static const dim_t default_max_time = 500;
-      if (!_generated_encoding)
-        _generated_encoding.reset(new StorageView(dtype, device));
-
-      if (_generated_encoding->empty() || max_time > _generated_encoding->dim(0)) {
-        dim_t reserved_time = (_generated_encoding->empty()
-                               ? std::max(default_max_time, max_time)
-                               : max_time);
-        float log_timescale_increment = log(10000) / (depth / 2 - 1);
-        StorageView timescales({depth / 2}, -log_timescale_increment);
-        for (dim_t i = 0; i < timescales.size(); ++i)
-          timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
-
-        StorageView scaled_time({reserved_time, depth / 2});
-        for (dim_t i = 0; i < scaled_time.dim(0); ++i) {
-          for (dim_t j = 0; j < scaled_time.dim(1); ++j) {
-            *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
-          }
-        }
-
-        StorageView sin_encoding;
-        StorageView cos_encoding;
-
-        ops::Sin()(scaled_time, sin_encoding);
-        ops::Cos()(scaled_time, cos_encoding);
-
-        StorageView cache;
-        ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
-        *_generated_encoding = cache.to(dtype).to(device);
-      }
-
-      return *_generated_encoding;
+    static std::unique_ptr<layers::PositionEncoder>
+    build_position_encoder(const TransformerModel& model,
+                           const std::string& scope,
+                           const layers::Embeddings& embeddings) {
+      if (model.with_relative_position())
+        return nullptr;
+      if (model.get_variable_if_exists(scope + "/encodings"))
+        return std::make_unique<layers::PositionEmbedding>(model, scope);
+      else
+        return std::make_unique<layers::SinusoidalPositionEncoder>(embeddings.output_size(),
+                                                                   embeddings.output_type(),
+                                                                   model.device());
     }
 
 
@@ -238,9 +186,7 @@ namespace ctranslate2 {
     TransformerEncoder::TransformerEncoder(const TransformerModel& model, const std::string& scope)
       : _embeddings(model, scope + "/embeddings")
       , _compute_type(model.effective_compute_type())
-      , _position_encoder(model.with_relative_position()
-                          ? nullptr
-                          : new PositionEncoder(model, scope + "/position_encodings"))
+      , _position_encoder(build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
         try {
@@ -297,9 +243,7 @@ namespace ctranslate2 {
       , _with_encoder_attention(with_encoder_attention)
       , _compute_type(model.effective_compute_type())
       , _embeddings(model, scope + "/embeddings")
-      , _position_encoder(model.with_relative_position()
-                          ? nullptr
-                          : new PositionEncoder(model, scope + "/position_encodings"))
+      , _position_encoder(build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _output_norm(model, scope + "/layer_norm")
       , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
