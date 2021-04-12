@@ -60,7 +60,9 @@ jobs:
 
       - name: Install libomp
         if: startsWith(matrix.os, 'macos')
-        run: brew install libomp
+        run: |
+          brew update
+          brew install libomp
 
       - name: Configure with MKL
         if: startsWith(matrix.os, 'ubuntu') && matrix.backend == 'mkl'

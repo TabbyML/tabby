@@ -14,6 +14,7 @@ sudo install_name_tool -id @rpath/libdnnl.2.dylib -add_rpath /opt/intel/oneapi/c
 
 # Install LLVM's libomp because Intel's OpenMP runtime included in MKL does
 # not ship with the header file.
+brew update
 brew install libomp
 
 pip install "cmake==3.18.4"
