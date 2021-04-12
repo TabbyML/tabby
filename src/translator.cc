@@ -365,9 +365,9 @@ namespace ctranslate2 {
     batches.reserve(example_index.size());
 
     ParallelBatchReader batch_reader;
-    batch_reader.add(new VectorReader(index_vector(source, example_index)));
+    batch_reader.add(std::make_unique<VectorReader>(index_vector(source, example_index)));
     if (!target.empty())
-      batch_reader.add(new VectorReader(index_vector(target, example_index)));
+      batch_reader.add(std::make_unique<VectorReader>(index_vector(target, example_index)));
 
     for (size_t offset = 0;;) {
       auto batch_tokens = batch_reader.get_next(max_batch_size, batch_type);

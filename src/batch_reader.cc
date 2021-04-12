@@ -59,8 +59,8 @@ namespace ctranslate2 {
     return std::move(_examples[_index++]);
   }
 
-  void ParallelBatchReader::add(BatchReader* reader) {
-    _readers.emplace_back(reader);
+  void ParallelBatchReader::add(std::unique_ptr<BatchReader> reader) {
+    _readers.emplace_back(std::move(reader));
   }
 
   std::vector<std::vector<std::vector<std::string>>>

@@ -96,9 +96,9 @@ namespace ctranslate2 {
       };
 
       ParallelBatchReader batch_reader;
-      batch_reader.add(new StreamReader<SourceReader>(source, source_reader));
+      batch_reader.add(std::make_unique<StreamReader<SourceReader>>(source, source_reader));
       if (target) {
-        batch_reader.add(new StreamReader<TargetReader>(*target, target_reader));
+        batch_reader.add(std::make_unique<StreamReader<TargetReader>>(*target, target_reader));
       }
 
       while (true) {

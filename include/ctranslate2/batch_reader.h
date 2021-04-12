@@ -94,7 +94,7 @@ namespace ctranslate2 {
   // Read batches from multiple sources.
   class ParallelBatchReader {
   public:
-    void add(BatchReader* reader);  // The instance takes ownership of the pointer.
+    void add(std::unique_ptr<BatchReader> reader);
 
     // batch_type is applied to the first stream and then the function takes the same
     // number of examples from the other streams.
