@@ -39,12 +39,13 @@ namespace ctranslate2 {
     }
 
 
-    static inline ops::UnaryOp* make_activation_op(const ActivationType type) {
+    static inline std::unique_ptr<const ops::UnaryOp>
+    make_activation_op(const ActivationType type) {
       switch (type) {
       case ActivationType::GELU:
-        return new ops::GELU();
+        return std::make_unique<ops::GELU>();
       case ActivationType::ReLU:
-        return new ops::ReLU();
+        return std::make_unique<ops::ReLU>();
       }
       return nullptr;
     }
@@ -67,12 +68,12 @@ namespace ctranslate2 {
     }
 
 
-    static StorageView* get_sqrt_depth_scale(const StorageView& embeddings) {
+    static inline StorageView get_sqrt_depth_scale(const StorageView& embeddings) {
       const auto scale = std::sqrt(static_cast<float>(embeddings.dim(-1)));
       if (embeddings.dtype() == DataType::FLOAT16) {
-        return new StorageView(float16_t(scale));
+        return StorageView(float16_t(scale));
       } else {
-        return new StorageView(scale);
+        return StorageView(scale);
       }
     }
 
@@ -80,7 +81,7 @@ namespace ctranslate2 {
       : _embeddings(model.get_variable(scope + "/weight"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
       , _scale(model.get_flag_with_default(scope + "/multiply_by_sqrt_depth", true)
-               ? get_sqrt_depth_scale(_embeddings)
+               ? std::make_unique<StorageView>(get_sqrt_depth_scale(_embeddings))
                : nullptr) {
     }
 

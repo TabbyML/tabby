@@ -133,7 +133,7 @@ namespace ctranslate2 {
 
 
   void init_profiling(Device device, size_t num_threads) {
-    profiler.reset(new Profiler(device, num_threads));
+    profiler = std::make_unique<Profiler>(device, num_threads);
   }
 
   void dump_profiling(std::ostream& os) {

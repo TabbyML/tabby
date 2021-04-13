@@ -32,10 +32,10 @@ namespace ctranslate2 {
           max_cached_bytes = std::stoull(values[3]);
         }
 
-        _allocator.reset(new cub::CachingDeviceAllocator(bin_growth,
-                                                         min_bin,
-                                                         max_bin,
-                                                         max_cached_bytes));
+        _allocator = std::make_unique<cub::CachingDeviceAllocator>(bin_growth,
+                                                                   min_bin,
+                                                                   max_bin,
+                                                                   max_cached_bytes);
       }
 
       void* allocate(size_t size, int device_index) override {

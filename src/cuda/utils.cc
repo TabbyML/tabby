@@ -96,7 +96,7 @@ namespace ctranslate2 {
 
       auto& device_prop = cache[device];
       if (!device_prop) {
-        device_prop.reset(new cudaDeviceProp());
+        device_prop = std::make_unique<cudaDeviceProp>();
         CUDA_CHECK(cudaGetDeviceProperties(device_prop.get(), device));
       }
       return *device_prop;

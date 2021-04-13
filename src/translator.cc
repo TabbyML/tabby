@@ -10,26 +10,20 @@
 namespace ctranslate2 {
 
   static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
-    const Sampler* sampler = nullptr;
-
     if (options.sampling_topk != 1)
-      sampler = new RandomSampler(options.sampling_topk, options.sampling_temperature);
+      return std::make_unique<RandomSampler>(options.sampling_topk, options.sampling_temperature);
     else
-      sampler = new BestSampler();
-
-    return std::unique_ptr<const Sampler>(sampler);
+      return std::make_unique<BestSampler>();
   }
 
   static std::unique_ptr<const SearchStrategy>
   make_search_strategy(const TranslationOptions& options) {
-    const SearchStrategy* strategy = nullptr;
-
     if (options.beam_size == 1)
-      strategy = new GreedySearch();
+      return std::make_unique<GreedySearch>();
     else
-      strategy = new BeamSearch(options.beam_size, options.length_penalty, options.coverage_penalty);
-
-    return std::unique_ptr<const SearchStrategy>(strategy);
+      return std::make_unique<BeamSearch>(options.beam_size,
+                                          options.length_penalty,
+                                          options.coverage_penalty);
   }
 
 

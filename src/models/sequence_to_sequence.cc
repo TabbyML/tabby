@@ -13,15 +13,15 @@ namespace ctranslate2 {
       {
         auto shared_vocabulary = model_reader.get_file(shared_vocabulary_file);
         if (shared_vocabulary) {
-          _shared_vocabulary.reset(new Vocabulary(*shared_vocabulary));
+          _shared_vocabulary = std::make_unique<Vocabulary>(*shared_vocabulary);
         } else {
           {
             auto source_vocabulary = model_reader.get_required_file(source_vocabulary_file);
-            _source_vocabulary.reset(new Vocabulary(*source_vocabulary));
+            _source_vocabulary = std::make_unique<Vocabulary>(*source_vocabulary);
           }
           {
             auto target_vocabulary = model_reader.get_required_file(target_vocabulary_file);
-            _target_vocabulary.reset(new Vocabulary(*target_vocabulary));
+            _target_vocabulary = std::make_unique<Vocabulary>(*target_vocabulary);
           }
         }
       }
@@ -29,7 +29,7 @@ namespace ctranslate2 {
       {
         auto vmap = model_reader.get_file(vmap_file);
         if (vmap) {
-          _vocabulary_map.reset(new VocabularyMap(*vmap, get_target_vocabulary()));
+          _vocabulary_map = std::make_unique<VocabularyMap>(*vmap, get_target_vocabulary());
         }
       }
     }

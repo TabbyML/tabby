@@ -83,10 +83,10 @@ namespace ctranslate2 {
       std::unique_ptr<const StorageView> relative_positions;
       if (relative_position_keys || relative_position_values) {
         const dim_t max_time = keys.dim(2);
-        relative_positions.reset(
-          new StorageView(make_relative_positions(max_time,
-                                                  maximum_relative_position,
-                                                  with_cache).to(queries.device())));
+        relative_positions = std::make_unique<StorageView>(
+          make_relative_positions(max_time,
+                                  maximum_relative_position,
+                                  with_cache).to(queries.device()));
       }
 
       const ops::MatMul keys_matmul(/*transpose_a=*/false, /*transpose_b=*/true, queries_scale);

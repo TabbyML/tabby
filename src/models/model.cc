@@ -433,24 +433,20 @@ namespace ctranslate2 {
       }
     }
 
-    static Model* create_model(ModelReader& model_reader,
-                               const std::string& spec,
-                               size_t spec_revision) {
-      Model* model = nullptr;
-
+    static std::shared_ptr<Model> create_model(ModelReader& model_reader,
+                                               const std::string& spec,
+                                               size_t spec_revision) {
       // Empty spec name, TransformerBase, and TransformerBig are there for backward
       // compatibility. Now all Transformer variants are saved under TransformerSpec.
 
       if (spec.empty() || spec == "TransformerBase")
-        model = new TransformerModel(model_reader, spec_revision, /*num_heads=*/8);
+        return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/8);
       else if (spec == "TransformerBig")
-        model = new TransformerModel(model_reader, spec_revision, /*num_heads=*/16);
+        return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/16);
       else if (spec == "TransformerSpec")
-        model = new TransformerModel(model_reader, spec_revision);
+        return std::make_shared<TransformerModel>(model_reader, spec_revision);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
-
-      return model;
     }
 
     static void check_version(const size_t saved_version,
@@ -504,7 +500,7 @@ namespace ctranslate2 {
         spec_revision = 1;
       }
 
-      Model* model = create_model(model_reader, spec, spec_revision);
+      auto model = create_model(model_reader, spec, spec_revision);
       model->set_device(device, device_index);
       model->set_compute_type(compute_type);
 
@@ -551,7 +547,7 @@ namespace ctranslate2 {
       }
 
       model->process_linear_weights();
-      return std::shared_ptr<const Model>(model);
+      return model;
     }
 
     bool contains_model(const std::string& path) {
@@ -582,7 +578,7 @@ namespace ctranslate2 {
                                                             const bool binary) {
       const std::string path = _model_dir + _path_separator + filename;
       const std::ios_base::openmode mode = binary ? std::ios_base::binary : std::ios_base::in;
-      std::unique_ptr<std::istream> stream(new std::ifstream(path, mode));
+      auto stream = std::make_unique<std::ifstream>(path, mode);
       if (!stream || !(*stream))
         return nullptr;
       return stream;

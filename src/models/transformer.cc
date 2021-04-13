@@ -82,11 +82,11 @@ namespace ctranslate2 {
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
-      return std::unique_ptr<layers::Encoder>(new TransformerEncoder(*this, "encoder"));
+      return std::make_unique<TransformerEncoder>(*this, "encoder");
     }
 
     std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {
-      return std::unique_ptr<layers::Decoder>(new TransformerDecoder(*this, "decoder"));
+      return std::make_unique<TransformerDecoder>(*this, "decoder");
     }
 
 
@@ -150,10 +150,10 @@ namespace ctranslate2 {
                         model.num_heads(),
                         /*self_attention=*/true)
       , _encoder_attention(with_encoder_attention
-                           ? new layers::MultiHeadAttention(model,
-                                                            scope + "/attention",
-                                                            model.num_heads(),
-                                                            /*self_attention=*/false)
+                           ? std::make_unique<layers::MultiHeadAttention>(model,
+                                                                          scope + "/attention",
+                                                                          model.num_heads(),
+                                                                          /*self_attention=*/false)
                            : nullptr)
       , _ff(model, scope + "/ffn") {
     }
@@ -189,9 +189,9 @@ namespace ctranslate2 {
       , _position_encoder(build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _output_norm(model, scope + "/layer_norm") {
       for (size_t l = 0;; ++l) {
+        const std::string layer_scope = scope + "/layer_" + std::to_string(l);
         try {
-          _layers.emplace_back(new TransformerEncoderLayer(model,
-                                                           scope + "/layer_" + std::to_string(l)));
+          _layers.emplace_back(std::make_unique<TransformerEncoderLayer>(model, layer_scope));
         } catch (std::exception&) {
           if (l == 0)
             throw;
@@ -221,7 +221,7 @@ namespace ctranslate2 {
       // Remove padding to reduce the amount of computation.
       std::unique_ptr<Padder> padder;
       if (Padder::allow_padding_removal(output.device(), _compute_type)) {
-        padder.reset(new Padder(lengths, input.dim(1)));
+        padder = std::make_unique<Padder>(lengths, input.dim(1));
         padder->remove_padding(input);
       }
 
@@ -247,10 +247,11 @@ namespace ctranslate2 {
       , _output_norm(model, scope + "/layer_norm")
       , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
+        const std::string layer_scope = scope + "/layer_" + std::to_string(l);
         try {
-          _layers.emplace_back(new TransformerDecoderLayer(model,
-                                                           scope + "/layer_" + std::to_string(l),
-                                                           with_encoder_attention));
+          _layers.emplace_back(std::make_unique<TransformerDecoderLayer>(model,
+                                                                         layer_scope,
+                                                                         with_encoder_attention));
         } catch (std::exception&) {
           if (l == 0)
             throw;
@@ -317,7 +318,7 @@ namespace ctranslate2 {
         if (step == 0) {
           memory = &state.at("memory");
           if (Padder::allow_padding_removal(memory->device(), _compute_type)) {
-            memory_padder.reset(new Padder(*memory_lengths, memory->dim(1)));
+            memory_padder = std::make_unique<Padder>(*memory_lengths, memory->dim(1));
             memory_padder->remove_padding(*memory);
           }
         }

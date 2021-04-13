@@ -193,7 +193,7 @@ namespace ctranslate2 {
 
       std::unique_ptr<std::ifstream> target;
       if (target_file) {
-        target.reset(new std::ifstream());
+        target = std::make_unique<std::ifstream>();
         open_input_file(*target_file, *target);
       }
 

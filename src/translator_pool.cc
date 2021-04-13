@@ -77,11 +77,11 @@ namespace ctranslate2 {
                        std::vector<std::vector<std::string>> target_prefix,
                        TranslationOptions options,
                        bool throttle) {
-    auto* job = new TranslationJob(std::move(source),
-                                   std::move(target_prefix),
-                                   std::move(options));
+    auto job = std::make_unique<TranslationJob>(std::move(source),
+                                                std::move(target_prefix),
+                                                std::move(options));
     auto future = job->get_future();
-    post_job(std::unique_ptr<Job>(job), throttle);
+    post_job(std::move(job), throttle);
     return future;
   }
 
@@ -297,7 +297,7 @@ namespace ctranslate2 {
 
     std::unique_ptr<std::ifstream> target;
     if (target_file) {
-      target.reset(new std::ifstream());
+      target = std::make_unique<std::ifstream>();
       open_input_file(*target_file, *target);
     }
 
