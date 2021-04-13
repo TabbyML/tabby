@@ -243,7 +243,7 @@ namespace ctranslate2 {
                  /*a_is_packed=*/false,
                  _packed_weight)
       , _quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::GLOBAL,
-                     /*shit_to_uint8=*/bool(_u8_shift_compensation)) {
+                     /*shift_to_uint8=*/bool(_u8_shift_compensation)) {
     }
 
     DataType Dense::output_type() const {
