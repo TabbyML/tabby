@@ -86,6 +86,7 @@ set(SOURCES
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
+  src/layers/transformer.cc
   src/models/model.cc
   src/models/sequence_to_sequence.cc
   src/models/transformer.cc
