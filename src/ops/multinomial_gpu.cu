@@ -9,7 +9,7 @@ namespace ctranslate2 {
     void Multinomial::compute(const StorageView& input, StorageView& output) const {
       // TODO: CUDA implementation.
       StorageView output_host(output.shape(), output.dtype());
-      compute<Device::CPU, T>(input.to(Device::CPU), output_host);
+      dispatch(input.to(Device::CPU), output_host);
       output.copy_from(output_host);
     }
 

@@ -13,6 +13,8 @@ namespace ctranslate2 {
     private:
       dim_t _sample_size;
 
+      void dispatch(const StorageView& input, StorageView& output) const;
+
       template <Device D, typename T>
       void compute(const StorageView& input, StorageView& output) const;
     };
