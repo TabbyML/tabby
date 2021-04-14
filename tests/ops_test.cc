@@ -630,6 +630,18 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
   expect_storage_eq(qa, expected_qa);
 }
 
+TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
+  Device device = GetParam();
+  StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 0, 0, 0, 0}, device);
+  StorageView scale(DataType::FLOAT, device);
+  StorageView qa(DataType::INT8, device);
+  StorageView expected_scale({2}, std::vector<float>{12.7, 1}, device);
+  StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 0, 0, 0, 0});
+  ops::Quantize()(a, qa, scale);
+  expect_storage_eq(scale, expected_scale);
+  expect_storage_eq(qa, expected_qa);
+}
+
 TEST_P(OpDeviceFPTest, Multinomial) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;

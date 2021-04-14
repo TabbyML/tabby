@@ -587,6 +587,19 @@ def test_layer_spec_optimize():
     assert spec.sub.a.dtype == np.float16
 
 
+def test_int8_quantization():
+    class Spec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.weight = np.array([[-10, -3, 5, 2], [0, 0, 0, 0]], dtype=np.float32)
+
+    spec = Spec()
+    spec.optimize(quantization="int8")
+    assert np.array_equal(
+        spec.weight, np.array([[-127, -38, 63, 25], [0, 0, 0, 0]], dtype=np.int8)
+    )
+    assert np.array_equal(spec.weight_scale, np.array([12.7, 1], dtype=np.float32))
+
+
 def test_index_spec():
     spec = ctranslate2.specs.TransformerBase()
     assert isinstance(

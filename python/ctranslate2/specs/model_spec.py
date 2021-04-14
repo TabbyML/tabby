@@ -134,7 +134,9 @@ class LayerSpec(object):
                     )
                     value = value.astype(np.int16)
                 elif quantization == "int8":
-                    scale = 127.0 / np.amax(np.absolute(value), axis=1)
+                    amax = np.amax(np.absolute(value), axis=1)
+                    amax[amax == 0] = 127.0
+                    scale = 127.0 / amax
                     value *= np.expand_dims(scale, 1)
                     value = value.astype(np.int8)
                 setattr(spec, "weight_scale", scale)
