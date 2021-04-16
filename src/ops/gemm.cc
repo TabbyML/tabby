@@ -84,7 +84,7 @@ namespace ctranslate2 {
 
       Shape output_shape(a.shape());
       output_shape[output_shape.size() - 1] = n;
-      y.resize(output_shape);
+      y.resize(std::move(output_shape));
 
       switch (a.dtype()) {
       case DataType::INT8:

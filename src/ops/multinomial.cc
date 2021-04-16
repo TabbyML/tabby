@@ -15,7 +15,7 @@ namespace ctranslate2 {
 
       Shape output_shape = input.shape();
       output_shape.back() = _sample_size;
-      output.resize(output_shape);
+      output.resize(std::move(output_shape));
 
       dispatch(input, output);
     }

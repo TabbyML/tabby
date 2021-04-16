@@ -10,7 +10,7 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  T primitives<Device::CUDA>::deref(const T* x, dim_t index) {
+  T primitives<Device::CUDA>::at(const T* x, dim_t index) {
     T val = T();
     cross_device_primitives<Device::CUDA, Device::CPU>::copy(x + index, &val, 1);
     return val;
@@ -70,7 +70,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, dim_t size) {
-    return deref(array, max_element(array, size));
+    return at(array, max_element(array, size));
   }
 
   template<>
@@ -513,7 +513,7 @@ namespace ctranslate2 {
 
 #define DECLARE_IMPL(T)                                                 \
   template T                                                            \
-  primitives<Device::CUDA>::deref(const T* x, dim_t index);             \
+  primitives<Device::CUDA>::at(const T* x, dim_t index);                \
   template void                                                         \
   primitives<Device::CUDA>::fill(T* x, T a, dim_t size);                \
   template void                                                         \

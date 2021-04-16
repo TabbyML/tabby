@@ -56,7 +56,7 @@ namespace ctranslate2 {
           Shape output_shape(a.shape());
           output_shape[output_shape.size() - 1] = n;
           output_shape[output_shape.size() - 2] = m;
-          y.resize(output_shape);
+          y.resize(std::move(output_shape));
           primitives<D>::gemm_batch(a.data<In>(), b.data<In>(),
                                     _trans_a, _trans_b,
                                     batch_size, m, n, k,

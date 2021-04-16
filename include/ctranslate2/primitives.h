@@ -11,7 +11,7 @@ namespace ctranslate2 {
   struct primitives {
 
     template <typename T>
-    static T deref(const T* x, dim_t index);
+    static T at(const T* x, dim_t index);
 
     template <typename T>
     static void fill(T* x, T a, dim_t size);

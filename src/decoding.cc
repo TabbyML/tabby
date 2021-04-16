@@ -15,14 +15,14 @@ namespace ctranslate2 {
     Shape shape = input.shape();
     shape.insert(shape.begin() + 1, beam_size);
     shape[0] /= beam_size;
-    input.reshape(shape);
+    input.reshape(std::move(shape));
   }
 
   static void merge_batch_beam(StorageView& input) {
     Shape shape = input.shape();
     shape[0] *= shape[1];
     shape.erase(shape.begin() + 1);
-    input.reshape(shape);
+    input.reshape(std::move(shape));
   }
 
   static void gather_batch(StorageView& data, const StorageView& indices, dim_t beam_size) {
@@ -40,12 +40,12 @@ namespace ctranslate2 {
     Shape original_shape(input.shape());
     Shape tile_shape(input.shape());
     tile_shape.insert(std::next(tile_shape.begin()), 1);
-    input.reshape(tile_shape);
+    input.reshape(std::move(tile_shape));
     StorageView repeats({input.rank()}, static_cast<int32_t>(1));
     repeats.at<int32_t>(1) = beam_size;
     tile(input, repeats);
     original_shape[0] *= beam_size;
-    input.reshape(original_shape);
+    input.reshape(std::move(original_shape));
   }
 
   static void expand_to_beam_size(layers::DecoderState& state, dim_t beam_size) {

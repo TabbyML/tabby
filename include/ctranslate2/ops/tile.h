@@ -29,7 +29,7 @@ namespace ctranslate2 {
           }
         }
 
-        output.resize(output_shape);
+        output.resize(std::move(output_shape));
 
         dim_t copied = 0;
         for (dim_t i = last_repeated_dim; i >= 0; --i) {

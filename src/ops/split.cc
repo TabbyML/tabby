@@ -66,9 +66,9 @@ namespace ctranslate2 {
         shape[axis] = split_size;
         if (_no_copy) {
           TYPE_DISPATCH(input.dtype(),
-                        x.view(const_cast<T*>(input.data<T>() + offset), shape));
+                        x.view(const_cast<T*>(input.data<T>() + offset), std::move(shape)));
         } else {
-          x.resize(shape);
+          x.resize(std::move(shape));
         }
         offset += input.stride(0) * split_size;
       }

@@ -264,10 +264,10 @@ namespace ctranslate2 {
     }
 
     void MultiHeadAttention::split_heads(StorageView& x, StorageView& y) const {
-      const Shape original_shape = x.shape();
+      Shape original_shape = x.shape();
       x.reshape({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
       _transpose_op(x, y);
-      x.reshape(original_shape);
+      x.reshape(std::move(original_shape));
     }
 
     void MultiHeadAttention::combine_heads(const StorageView& x, StorageView& y) const {

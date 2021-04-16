@@ -23,7 +23,7 @@ namespace ctranslate2 {
 
       Shape output_shape(inputs.front()->shape());
       output_shape[axis] = concat_dims;
-      output.resize(output_shape);
+      output.resize(std::move(output_shape));
 
       DEVICE_DISPATCH(output.device(),
                       TYPE_DISPATCH(output.dtype(), (compute<D, T>(inputs, output))));

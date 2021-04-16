@@ -59,7 +59,7 @@ namespace ctranslate2 {
     Shape shape = x.shape();
     shape[1] *= shape[0];
     shape.erase(shape.begin());
-    x.reshape(shape);
+    x.reshape(std::move(shape));
     _gather_op(x, _padded_to_flat);
   }
 
@@ -70,7 +70,7 @@ namespace ctranslate2 {
     Shape shape = x.shape();
     shape[0] /= _batch_size;
     shape.insert(shape.begin(), _batch_size);
-    x.reshape(shape);
+    x.reshape(std::move(shape));
   }
 
 

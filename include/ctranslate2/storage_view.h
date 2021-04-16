@@ -40,6 +40,33 @@ namespace ctranslate2 {
 
   using Shape = std::vector<dim_t>;
 
+  inline dim_t compute_size(const Shape& shape) {
+    dim_t size = 1;
+    for (const dim_t dim : shape)
+      size *= dim;
+    return size;
+  }
+
+  inline dim_t compute_stride(const Shape& shape, dim_t dim) {
+    const dim_t rank = shape.size();
+    GUARD_DIM(dim, rank);
+    dim_t stride = 1;
+    for (dim_t i = rank - 1; i > dim; --i)
+      stride *= shape[i];
+    return stride;
+  }
+
+  inline std::vector<dim_t> get_strides(const Shape& shape) {
+    const dim_t rank = shape.size();
+    if (rank == 0)
+      return {};
+    std::vector<dim_t> strides(rank);
+    strides[rank - 1] = 1;
+    for (dim_t i = rank - 2; i >= 0; --i)
+      strides[i] = strides[i + 1] * shape[i + 1];
+    return strides;
+  }
+
   // This class is a light wrapper around an allocated buffer which adds shape information.
   //
   // 1. it can be resized, reshaped, copied, and assigned;
@@ -54,21 +81,21 @@ namespace ctranslate2 {
     StorageView(Device device, DataType type = DataType::FLOAT);
 
     // The reserved memory is uninitialized.
-    StorageView(const Shape& shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
+    StorageView(Shape shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
 
     template <typename T>
-    StorageView(const Shape& shape, T init = T(), Device device = Device::CPU);
+    StorageView(Shape shape, T init = T(), Device device = Device::CPU);
 
     template <typename T>
     StorageView(T scalar, Device device = Device::CPU);
 
     // Create from a std::vector (copy).
     template <typename T>
-    StorageView(const Shape& shape, const std::vector<T>& init, Device device = Device::CPU);
+    StorageView(Shape shape, const std::vector<T>& init, Device device = Device::CPU);
 
     // Create from a buffer (no copy).
     template <typename T>
-    StorageView(const Shape& shape, T* data, Device device = Device::CPU);
+    StorageView(Shape shape, T* data, Device device = Device::CPU);
 
     // Copy constructor.
     StorageView(const StorageView& other);
@@ -142,11 +169,11 @@ namespace ctranslate2 {
       return !empty();
     }
 
-    StorageView& reshape(const Shape& new_shape);
+    StorageView& reshape(Shape new_shape);
 
     // Resize methods (see also reserve() for information about reallocation policy).
     StorageView& resize_as(const StorageView& other);
-    StorageView& resize(const Shape& new_shape);
+    StorageView& resize(Shape new_shape);
     StorageView& resize(dim_t dim, dim_t new_size);
     StorageView& grow(dim_t dim, dim_t size);
     StorageView& shrink(dim_t dim, dim_t size);
@@ -172,9 +199,9 @@ namespace ctranslate2 {
     std::vector<T> to_vector() const;
 
     template <typename T>
-    T* index(const std::vector<dim_t>& indices);
+    T* index(std::initializer_list<dim_t> indices);
     template <typename T>
-    const T* index(const std::vector<dim_t>& indices) const;
+    const T* index(std::initializer_list<dim_t> indices) const;
 
     template <typename T>
     T& at(dim_t index) {
@@ -191,12 +218,12 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T& at(const std::vector<dim_t>& indices) {
+    T& at(std::initializer_list<dim_t> indices) {
       return index<T>(indices)[0];
     }
 
     template <typename T>
-    const T& at(const std::vector<dim_t>& indices) const {
+    const T& at(std::initializer_list<dim_t> indices) const {
       return index<T>(indices)[0];
     }
 
@@ -210,10 +237,10 @@ namespace ctranslate2 {
     }
 
     template <typename T>
-    T scalar_at(const std::vector<dim_t>& indices) const;
+    T scalar_at(std::initializer_list<dim_t> indices) const;
 
     template <typename T>
-    StorageView& view(T* data, const Shape& shape);
+    StorageView& view(T* data, Shape shape);
 
     template <typename T>
     StorageView& fill(T value);
@@ -236,10 +263,6 @@ namespace ctranslate2 {
     dim_t _allocated_size = 0;
     dim_t _size = 0;
     Shape _shape;
-
-    static dim_t compute_size(const Shape& shape);
-    static dim_t compute_stride(const Shape& shape, dim_t dim);
-
   };
 
 }

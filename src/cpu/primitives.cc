@@ -33,7 +33,7 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  T primitives<Device::CPU>::deref(const T* x, dim_t index) {
+  T primitives<Device::CPU>::at(const T* x, dim_t index) {
     return x[index];
   }
 
@@ -903,7 +903,7 @@ namespace ctranslate2 {
 
 #define DECLARE_IMPL(T)                                                 \
   template T                                                            \
-  primitives<Device::CPU>::deref(const T* x, dim_t index);              \
+  primitives<Device::CPU>::at(const T* x, dim_t index);                 \
   template void                                                         \
   primitives<Device::CPU>::fill(T* x, T a, dim_t size);                 \
   template void                                                         \
