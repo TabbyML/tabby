@@ -183,9 +183,9 @@ namespace ctranslate2 {
       ops::Sin()(scaled_time, sin_encoding);
       ops::Cos()(scaled_time, cos_encoding);
 
-      StorageView cache;
-      ops::Concat(-1)({&sin_encoding, &cos_encoding}, cache);
-      return cache.to(dtype).to(device);
+      StorageView encoding;
+      ops::Concat(-1)({&sin_encoding, &cos_encoding}, encoding);
+      return encoding.to(dtype).to(device);
     }
 
     SinusoidalPositionEncoder::SinusoidalPositionEncoder(dim_t depth, DataType dtype, Device device)
