@@ -575,4 +575,3 @@ namespace ctranslate2 {
   DECLARE_ALL_TYPES(DECLARE_IMPL)
 
 }
-
