@@ -43,14 +43,12 @@ build()
 }
 
 build Dockerfile.centos7 centos7
-build Dockerfile.centos7-gpu centos7-gpu "--build-arg CUDA_VERSION=10.0"
 build Dockerfile.centos7-gpu centos7-cuda10.0 "--build-arg CUDA_VERSION=10.0"
 build Dockerfile.centos7-gpu centos7-cuda10.1 "--build-arg CUDA_VERSION=10.1"
 build Dockerfile.centos7-gpu centos7-cuda10.2 "--build-arg CUDA_VERSION=10.2"
 build Dockerfile.centos7-gpu centos7-cuda11.0 "--build-arg CUDA_VERSION=11.0"
 
 build Dockerfile.ubuntu ubuntu18
-build Dockerfile.ubuntu-gpu ubuntu18-gpu "--build-arg CUDA_VERSION=10.0"
 build Dockerfile.ubuntu-gpu ubuntu18-cuda10.0 "--build-arg CUDA_VERSION=10.0"
 build Dockerfile.ubuntu-gpu ubuntu18-cuda10.1 "--build-arg CUDA_VERSION=10.1"
 build Dockerfile.ubuntu-gpu ubuntu18-cuda10.2 "--build-arg CUDA_VERSION=10.2"
