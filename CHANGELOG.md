@@ -4,6 +4,22 @@
 
 ### Fixes and improvements
 
+## [v1.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.20.0) (2021-04-20)
+
+### Changes
+
+* Drop Python 3.5 support
+* Docker image tags suffixed with `-gpu` are no longer updated to prefer tags with an explicit CUDA version
+
+### Fixes and improvements
+
+* Fix int8 quantization for rows that only contains zeros
+* Fix type error when running the CUDA code path of the Multinomial operator
+* Add EOS score to the greedy search final score for consistency with the beam search output
+* Use third party library [google/cpu\_features](https://github.com/google/cpu_features) to resolve CPU features at runtime
+* Small optimizations when manipulating tensor shapes and indices
+* Internal refactoring of Transformer layers
+
 ## [v1.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.19.0) (2021-03-31)
 
 ### Changes
