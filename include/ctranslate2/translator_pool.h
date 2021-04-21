@@ -331,12 +331,12 @@ namespace ctranslate2 {
     void open_input_file(const std::string& file, std::ifstream& stream) const;
     void open_output_file(const std::string& file, std::ofstream& stream) const;
 
-    std::condition_variable _can_add_more_work;
+    std::condition_variable _can_add_job;
+    std::condition_variable _can_get_job;
     std::queue<std::unique_ptr<Job>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translators;
     std::mutex _mutex;
-    std::condition_variable _cv;
     bool _request_end = false;
 
     template <typename Tokenizer>

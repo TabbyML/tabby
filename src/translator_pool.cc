@@ -44,7 +44,7 @@ namespace ctranslate2 {
       std::lock_guard<std::mutex> lock(_mutex);
       _request_end = true;
     }
-    _cv.notify_all();  // Request all workers to end their loop.
+    _can_get_job.notify_all();  // Request all workers to end their loop.
     for (auto& worker : _workers)
       worker.join();
   }
@@ -88,14 +88,14 @@ namespace ctranslate2 {
   void TranslatorPool::post_job(std::unique_ptr<Job> job, bool throttle) {
     std::unique_lock<std::mutex> lock(_mutex);
     if (throttle)
-      _can_add_more_work.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
+      _can_add_job.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
 
     // locked again here
 
     _work.emplace(std::move(job));
 
     lock.unlock();
-    _cv.notify_one();
+    _can_get_job.notify_one();
   }
 
   std::vector<TranslationResult>
@@ -233,7 +233,7 @@ namespace ctranslate2 {
 
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
-      _cv.wait(lock, [this]{ return !_work.empty() || _request_end; });
+      _can_get_job.wait(lock, [this]{ return !_work.empty() || _request_end; });
 
       if (_request_end) {
         lock.unlock();
@@ -247,7 +247,7 @@ namespace ctranslate2 {
       _work.pop();
       lock.unlock();
 
-      _can_add_more_work.notify_one();
+      _can_add_job.notify_one();
 
       job->run(translator);
     }
