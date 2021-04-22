@@ -247,12 +247,19 @@ TEST(TranslatorTest, TranslateEmptyBatch) {
 
 static void check_empty_result(const TranslationResult& result,
                                size_t num_hypotheses = 1,
-                               bool with_attention = false) {
+                               bool with_attention = false,
+                               bool with_score = true) {
   EXPECT_TRUE(result.output().empty());
-  EXPECT_EQ(result.score(), static_cast<float>(0));
   EXPECT_EQ(result.num_hypotheses(), num_hypotheses);
   EXPECT_EQ(result.hypotheses().size(), num_hypotheses);
-  EXPECT_EQ(result.scores().size(), num_hypotheses);
+  EXPECT_EQ(result.has_scores(), with_score);
+  if (with_score) {
+    EXPECT_EQ(result.scores().size(), num_hypotheses);
+    EXPECT_EQ(result.score(), 0);
+    for (const auto score : result.scores()) {
+      EXPECT_EQ(score, 0);
+    }
+  }
   EXPECT_EQ(result.has_attention(), with_attention);
   if (with_attention) {
     const auto& attention = result.attention();
@@ -281,6 +288,13 @@ TEST(TranslatorTest, TranslateBatchWithOnlyEmptySource) {
   EXPECT_EQ(results.size(), 2);
   check_empty_result(results[0]);
   check_empty_result(results[1]);
+}
+
+TEST(TranslatorTest, TranslateEmptySourceWithoutScore) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.return_scores = false;
+  EXPECT_FALSE(translator.translate(std::vector<std::string>{}, options).has_scores());
 }
 
 TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {

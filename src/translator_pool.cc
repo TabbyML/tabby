@@ -127,7 +127,9 @@ namespace ctranslate2 {
                                 options));
     }
 
-    const TranslationResult empty_result(options.num_hypotheses, options.return_attention);
+    const TranslationResult empty_result(options.num_hypotheses,
+                                         options.return_attention,
+                                         options.return_scores);
     std::vector<TranslationResult> results(source.size(), empty_result);
 
     // Wait for the result of each sub-batch.

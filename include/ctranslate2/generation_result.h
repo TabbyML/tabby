@@ -8,11 +8,15 @@ namespace ctranslate2 {
   template <typename T>
   class GenerationResult {
   public:
-    GenerationResult(const size_t num_hypotheses, const bool with_attention);  // Empty result.
     GenerationResult(std::vector<std::vector<T>> hypotheses);
     GenerationResult(std::vector<std::vector<T>> hypotheses,
                      std::vector<float> scores,
                      std::vector<std::vector<std::vector<float>>> attention);
+
+    // Construct an empty result.
+    GenerationResult(const size_t num_hypotheses,
+                     const bool with_attention,
+                     const bool with_score);
 
     size_t num_hypotheses() const;
 

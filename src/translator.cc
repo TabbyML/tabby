@@ -101,7 +101,9 @@ namespace ctranslate2 {
     if (!options.rebatch_input)
       return run_batch_translation(source, target_prefix, options);
 
-    const TranslationResult empty_result(options.num_hypotheses, options.return_attention);
+    const TranslationResult empty_result(options.num_hypotheses,
+                                         options.return_attention,
+                                         options.return_scores);
     std::vector<TranslationResult> results(source.size(), empty_result);
 
     for (const auto& batch : rebatch_input(source, target_prefix, options)) {

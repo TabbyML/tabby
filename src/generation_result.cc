@@ -1,11 +1,15 @@
 #include "ctranslate2/generation_result.h"
 
+#include <stdexcept>
+
 namespace ctranslate2 {
 
   template <typename T>
-  GenerationResult<T>::GenerationResult(const size_t num_hypotheses, const bool with_attention)
+  GenerationResult<T>::GenerationResult(const size_t num_hypotheses,
+                                        const bool with_attention,
+                                        const bool with_score)
     : _hypotheses(num_hypotheses)
-    , _scores(num_hypotheses, static_cast<float>(0))
+    , _scores(with_score ? num_hypotheses : 0, static_cast<float>(0))
     , _attention(with_attention ? num_hypotheses : 0) {
   }
 
@@ -30,6 +34,8 @@ namespace ctranslate2 {
 
   template <typename T>
   float GenerationResult<T>::score() const {
+    if (_scores.empty())
+      throw std::runtime_error("This result has no scores");
     return _scores[0];
   }
 
