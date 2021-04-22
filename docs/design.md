@@ -70,4 +70,4 @@ In particular, no compilation flags should be used in the header file to make it
 
 ## Python wrapper
 
-The Python wrapper uses [pybind11](https://github.com/pybind/pybind11/). On each new release, the CI builds and pushes `manylinux2010` wheels to PyPI.
+The Python wrapper uses [pybind11](https://github.com/pybind/pybind11/). On each new release, the CI builds and pushes `manylinux2014` wheels to PyPI.
