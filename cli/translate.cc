@@ -47,9 +47,9 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("coverage_penalty", "Coverage penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
-    ("max_sent_length", "Maximum sentence length to produce.",
+    ("max_decoding_length", "Maximum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("250"))
-    ("min_sent_length", "Minimum sentence length to produce.",
+    ("min_decoding_length", "Minimum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("1"))
     ("log_throughput", "Log average tokens per second at the end of the translation.",
      cxxopts::value<bool>()->default_value("false"))
@@ -108,8 +108,8 @@ int main(int argc, char* argv[]) {
   options.coverage_penalty = args["coverage_penalty"].as<float>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();
   options.sampling_temperature = args["sampling_temperature"].as<float>();
-  options.max_decoding_length = args["max_sent_length"].as<size_t>();
-  options.min_decoding_length = args["min_sent_length"].as<size_t>();
+  options.max_decoding_length = args["max_decoding_length"].as<size_t>();
+  options.min_decoding_length = args["min_decoding_length"].as<size_t>();
   options.num_hypotheses = args["n_best"].as<size_t>();
   options.use_vmap = args["use_vmap"].as<bool>();
   options.return_scores = args["with_score"].as<bool>();
