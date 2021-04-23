@@ -59,37 +59,31 @@ namespace ctranslate2 {
 
   TranslationResult
   Translator::translate(const std::vector<std::string>& tokens) {
-    TranslationOptions options;
-    return translate(tokens, options);
+    return translate(tokens, TranslationOptions());
   }
 
   TranslationResult
   Translator::translate(const std::vector<std::string>& tokens,
                         const TranslationOptions& options) {
-    std::vector<std::vector<std::string>> batch_tokens(1, tokens);
-    return translate_batch(batch_tokens, options)[0];
+    return translate_batch({tokens}, options)[0];
   }
 
   TranslationResult
   Translator::translate_with_prefix(const std::vector<std::string>& source,
                                     const std::vector<std::string>& target_prefix,
                                     const TranslationOptions& options) {
-    std::vector<std::vector<std::string>> batch_source(1, source);
-    std::vector<std::vector<std::string>> batch_target_prefix(1, target_prefix);
-    return translate_batch_with_prefix(batch_source, batch_target_prefix, options)[0];
+    return translate_batch_with_prefix({source}, {target_prefix}, options)[0];
   }
 
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens) {
-    TranslationOptions options;
-    return translate_batch(batch_tokens, options);
+    return translate_batch(batch_tokens, TranslationOptions());
   }
 
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& batch_tokens,
                               const TranslationOptions& options) {
-    std::vector<std::vector<std::string>> target_prefix;
-    return translate_batch_with_prefix(batch_tokens, target_prefix, options);
+    return translate_batch_with_prefix(batch_tokens, {}, options);
   }
 
   std::vector<TranslationResult>

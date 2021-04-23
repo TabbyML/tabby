@@ -21,7 +21,7 @@ namespace ctranslate2 {
                        num_threads_per_translator,
                        model_dir,
                        device,
-                       std::vector<int>(1, device_index),
+                       {device_index},
                        compute_type);
   }
 
@@ -52,7 +52,7 @@ namespace ctranslate2 {
   std::future<std::vector<TranslationResult>>
   TranslatorPool::translate_batch_async(std::vector<std::vector<std::string>> source,
                                         TranslationOptions options) {
-    return post(std::move(source), std::move(options));
+    return translate_batch_async(std::move(source), {}, std::move(options));
   }
 
   std::future<std::vector<TranslationResult>>
@@ -66,10 +66,7 @@ namespace ctranslate2 {
   TranslatorPool::post(std::vector<std::vector<std::string>> source,
                        TranslationOptions options,
                        bool throttle) {
-    return post(std::move(source),
-                std::vector<std::vector<std::string>>(),
-                std::move(options),
-                throttle);
+    return post(std::move(source), {}, std::move(options), throttle);
   }
 
   std::future<std::vector<TranslationResult>>
@@ -101,7 +98,7 @@ namespace ctranslate2 {
   std::vector<TranslationResult>
   TranslatorPool::translate_batch(const std::vector<std::vector<std::string>>& source,
                                   const TranslationOptions& options) {
-    return translate_batch(source, std::vector<std::vector<std::string>>(), options);
+    return translate_batch(source, {}, options);
   }
 
   std::vector<TranslationResult>
@@ -113,7 +110,7 @@ namespace ctranslate2 {
     options.validated = true;
 
     if (source.empty())
-      return std::vector<TranslationResult>();
+      return {};
 
     // Rebatch the input and post each sub-batch in the translation queue.
     auto batches = rebatch_input(source, target_prefix, options);
