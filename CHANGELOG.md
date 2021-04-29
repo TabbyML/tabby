@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v1.20.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.20.1) (2021-04-29)
+
+### Fixes and improvements
+
+* Do not return scores for empty outputs when `return_scores` is disabled
+* Do not include google/cpu\_features library in CTranslate2 installation
+
 ## [v1.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.20.0) (2021-04-20)
 
 ### Changes
