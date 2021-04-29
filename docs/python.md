@@ -33,6 +33,7 @@ output_dir = converter.convert(
 translator = ctranslate2.Translator(
     model_path: str                 # Path to the CTranslate2 model directory.
     device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
+    *,
 
     # The device ID, or list of device IDs, where to place this translator on.
     device_index: Union[int, List[int]] = 0,
@@ -58,6 +59,7 @@ translator.num_queued_batches  # Number of batches waiting to be translated.
 output = translator.translate_batch(
     source: list,                      # A list of list of string.
     target_prefix: list = None,        # An optional list of list of string.
+    *,
     max_batch_size: int = 0,           # Maximum batch size to run the model on.
     batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
     beam_size: int = 2,                # Beam size (set 1 to run greedy search).
@@ -84,6 +86,7 @@ stats = translator.translate_file(
     source_path: str,               # Source file.
     output_path: str,               # Output file.
     target_path: str = "",          # Target prefix file.
+    *,
     max_batch_size: int = 32,       # Maximum batch size to run the model on.
     read_batch_size: int = 0,       # Number of sentences to read at once.
     batch_type: str = "examples",   # Whether the batch size is the number of examples or tokens.
