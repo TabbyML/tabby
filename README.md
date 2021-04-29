@@ -272,11 +272,11 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 
 | CMake option | Accepted values (default in bold) | Description |
 | --- | --- | --- |
+| BUILD_CLI | OFF, **ON** | Compiles the translation clients |
 | BUILD_TESTS | **OFF**, ON | Compiles the tests |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
 | ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
-| LIB_ONLY | **OFF**, ON | Disables the translation client |
 | OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime (INTEL: Intel OpenMP; COMP: OpenMP runtime provided by the compiler; NONE: no OpenMP runtime) |
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |

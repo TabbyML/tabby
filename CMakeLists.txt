@@ -14,7 +14,7 @@ option(WITH_OPENBLAS "Compile with OpenBLAS backend" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
 option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
-option(LIB_ONLY "Do not compile clients" OFF)
+option(BUILD_CLI "Compile the clients" ON)
 option(BUILD_TESTS "Compile the tests" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
@@ -400,7 +400,7 @@ endif()
 
 include(GNUInstallDirs)
 
-if (NOT LIB_ONLY)
+if (BUILD_CLI)
   add_subdirectory(cli)
 endif()
 
