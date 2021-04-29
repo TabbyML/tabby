@@ -10,22 +10,24 @@ def main():
     parser.add_argument(
         "--model_path",
         required=True,
-        help="Model path (a checkpoint, a checkpoint directory, or a SavedModel).",
+        help="Model path (a checkpoint or a checkpoint directory).",
     )
     parser.add_argument(
         "--src_vocab",
-        default=None,
-        help="Source vocabulary file (required if converting a checkpoint).",
+        required=True,
+        help="Source vocabulary file.",
     )
     parser.add_argument(
         "--tgt_vocab",
-        default=None,
-        help="Target vocabulary file (required if converting a checkpoint).",
+        required=True,
+        help="Target vocabulary file.",
     )
     converters.Converter.declare_arguments(parser)
     args = parser.parse_args()
     converters.OpenNMTTFConverter(
-        args.model_path, src_vocab=args.src_vocab, tgt_vocab=args.tgt_vocab
+        args.src_vocab,
+        args.tgt_vocab,
+        model_path=args.model_path,
     ).convert_from_args(args)
 
 

@@ -324,13 +324,6 @@ _FRAMEWORK_DATA_EXIST = os.path.isdir(
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [
-        ("v2/savedmodel", None, None, "TransformerBase"),
-        (
-            "v2/savedmodel",
-            None,
-            None,
-            ctranslate2.specs.TransformerSpec(num_layers=6, num_heads=8),
-        ),
         ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
         ("v2/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
     ],
@@ -341,12 +334,12 @@ def test_opennmt_tf_model_conversion(
     model_path = os.path.join(
         _TEST_DATA_DIR, "models", "transliteration-aren-all", "opennmt_tf", model_path
     )
-    if src_vocab is not None:
-        src_vocab = os.path.join(model_path, src_vocab)
-    if tgt_vocab is not None:
-        tgt_vocab = os.path.join(model_path, tgt_vocab)
+    src_vocab = os.path.join(model_path, src_vocab)
+    tgt_vocab = os.path.join(model_path, tgt_vocab)
     converter = ctranslate2.converters.OpenNMTTFConverter(
-        model_path, src_vocab=src_vocab, tgt_vocab=tgt_vocab
+        src_vocab,
+        tgt_vocab,
+        model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, model_spec)
@@ -369,9 +362,9 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
         "checkpoint",
     )
     converter = ctranslate2.converters.OpenNMTTFConverter(
-        model_path,
-        src_vocab=os.path.join(model_path, "ar.vocab"),
-        tgt_vocab=os.path.join(model_path, "en.vocab"),
+        os.path.join(model_path, "ar.vocab"),
+        os.path.join(model_path, "en.vocab"),
+        model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(
@@ -392,13 +385,13 @@ def test_opennmt_tf_variables_conversion(tmpdir):
         "v2",
         "checkpoint",
     )
-    _, variables, src_vocab, tgt_vocab = opennmt_tf.load_model(
-        model_path,
-        src_vocab=os.path.join(model_path, "ar.vocab"),
-        tgt_vocab=os.path.join(model_path, "en.vocab"),
-    )
+    src_vocab = os.path.join(model_path, "ar.vocab")
+    tgt_vocab = os.path.join(model_path, "en.vocab")
+    _, variables = opennmt_tf.load_model(model_path)
     converter = ctranslate2.converters.OpenNMTTFConverter(
-        src_vocab=src_vocab, tgt_vocab=tgt_vocab, variables=variables
+        src_vocab,
+        tgt_vocab,
+        variables=variables,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, ctranslate2.specs.TransformerBase())
@@ -419,9 +412,9 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     )
     # Swap source and target vocabularies.
     converter = ctranslate2.converters.OpenNMTTFConverter(
-        model_path,
-        src_vocab=os.path.join(model_path, "en.vocab"),
-        tgt_vocab=os.path.join(model_path, "ar.vocab"),
+        os.path.join(model_path, "en.vocab"),
+        os.path.join(model_path, "ar.vocab"),
+        model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     with pytest.raises(ValueError):
@@ -464,7 +457,9 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     checkpoint.write(checkpoint_prefix)
 
     converter = ctranslate2.converters.OpenNMTTFConverter(
-        model_path=checkpoint_prefix, src_vocab=vocab_path, tgt_vocab=vocab_path
+        vocab_path,
+        vocab_path,
+        model_path=checkpoint_prefix,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, model.ctranslate2_spec)
@@ -474,23 +469,6 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     # Check that the translation runs.
     translator = ctranslate2.Translator(output_dir)
     translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
-
-
-def test_saved_model_shared_embeddings_conversion(tmpdir):
-    export_dir = str(tmpdir.join("export"))
-    model, _ = _build_model_with_shared_embeddings(tmpdir)
-    model.export(export_dir)
-
-    converter = ctranslate2.converters.OpenNMTTFConverter(export_dir)
-    model_spec = model.ctranslate2_spec
-    converter._load(model_spec)
-
-    assert np.array_equal(
-        model_spec.encoder.embeddings.weight, model_spec.decoder.embeddings.weight
-    )
-    assert np.array_equal(
-        model_spec.decoder.embeddings.weight, model_spec.decoder.projection.weight
-    )
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
