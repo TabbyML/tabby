@@ -53,6 +53,7 @@ class OpenNMTTFConverter(Converter):
 
     def __init__(
         self,
+        model_spec,
         src_vocab,
         tgt_vocab,
         model_path=None,
@@ -64,12 +65,14 @@ class OpenNMTTFConverter(Converter):
             raise ValueError(
                 "variables should be a dict mapping variable name to value"
             )
+        self._model_spec = model_spec
         self._model_path = model_path
         self._src_vocab = src_vocab
         self._tgt_vocab = tgt_vocab
         self._variables = variables
 
-    def _load(self, model_spec):
+    def _load(self):
+        model_spec = self._model_spec
         if self._model_path is not None:
             version, variables = load_model(self._model_path)
         else:
@@ -81,9 +84,10 @@ class OpenNMTTFConverter(Converter):
             else:
                 set_transformer_spec(model_spec, variables)
         else:
-            raise NotImplementedError()
+            return None
         model_spec.register_vocabulary("source", _load_vocab(self._src_vocab))
         model_spec.register_vocabulary("target", _load_vocab(self._tgt_vocab))
+        return model_spec
 
 
 def set_transformer_spec_v2(spec, variables):

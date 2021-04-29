@@ -325,8 +325,18 @@ _FRAMEWORK_DATA_EXIST = os.path.isdir(
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [
-        ("v1/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
-        ("v2/checkpoint", "ar.vocab", "en.vocab", ctranslate2.specs.TransformerBase()),
+        (
+            "v1/checkpoint",
+            "ar.vocab",
+            "en.vocab",
+            ctranslate2.specs.TransformerSpec(6, 8),
+        ),
+        (
+            "v2/checkpoint",
+            "ar.vocab",
+            "en.vocab",
+            ctranslate2.specs.TransformerSpec(6, 8),
+        ),
     ],
 )
 def test_opennmt_tf_model_conversion(
@@ -338,12 +348,13 @@ def test_opennmt_tf_model_conversion(
     src_vocab = os.path.join(model_path, src_vocab)
     tgt_vocab = os.path.join(model_path, tgt_vocab)
     converter = ctranslate2.converters.OpenNMTTFConverter(
+        model_spec,
         src_vocab,
         tgt_vocab,
         model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, model_spec)
+    converter.convert(output_dir)
     assert os.path.isfile(os.path.join(output_dir, "source_vocabulary.txt"))
     assert os.path.isfile(os.path.join(output_dir, "target_vocabulary.txt"))
     translator = ctranslate2.Translator(output_dir)
@@ -363,14 +374,13 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
         "checkpoint",
     )
     converter = ctranslate2.converters.OpenNMTTFConverter(
+        ctranslate2.specs.TransformerSpec(6, 8),
         os.path.join(model_path, "ar.vocab"),
         os.path.join(model_path, "en.vocab"),
         model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(
-        output_dir, ctranslate2.specs.TransformerBase(), quantization=quantization
-    )
+    converter.convert(output_dir, quantization=quantization)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
@@ -390,12 +400,13 @@ def test_opennmt_tf_variables_conversion(tmpdir):
     tgt_vocab = os.path.join(model_path, "en.vocab")
     _, variables = opennmt_tf.load_model(model_path)
     converter = ctranslate2.converters.OpenNMTTFConverter(
+        ctranslate2.specs.TransformerSpec(6, 8),
         src_vocab,
         tgt_vocab,
         variables=variables,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, ctranslate2.specs.TransformerBase())
+    converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
@@ -413,13 +424,14 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     )
     # Swap source and target vocabularies.
     converter = ctranslate2.converters.OpenNMTTFConverter(
+        ctranslate2.specs.TransformerSpec(6, 8),
         os.path.join(model_path, "en.vocab"),
         os.path.join(model_path, "ar.vocab"),
         model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     with pytest.raises(ValueError):
-        converter.convert(output_dir, ctranslate2.specs.TransformerBase())
+        converter.convert(output_dir)
 
 
 def _build_model_with_shared_embeddings(tmpdir):
@@ -458,12 +470,13 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     checkpoint.write(checkpoint_prefix)
 
     converter = ctranslate2.converters.OpenNMTTFConverter(
+        model.ctranslate2_spec,
         vocab_path,
         vocab_path,
         model_path=checkpoint_prefix,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, model.ctranslate2_spec)
+    converter.convert(output_dir)
 
     assert os.path.isfile(os.path.join(output_dir, "shared_vocabulary.txt"))
 
@@ -483,7 +496,7 @@ def test_opennmt_py_model_conversion(tmpdir):
     )
     converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, ctranslate2.specs.TransformerBase())
+    converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
@@ -500,7 +513,7 @@ def test_opennmt_py_relative_transformer(tmpdir):
     )
     converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir, ctranslate2.specs.TransformerBaseRelative())
+    converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ر", "ث", "ر"]]
@@ -580,7 +593,7 @@ def test_int8_quantization():
 
 
 def test_index_spec():
-    spec = ctranslate2.specs.TransformerBase()
+    spec = ctranslate2.specs.TransformerSpec(6, 8)
     assert isinstance(
         index_spec(spec, "encoder/layer_5"),
         transformer_spec.TransformerEncoderLayerSpec,

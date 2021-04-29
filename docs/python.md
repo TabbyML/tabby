@@ -8,6 +8,7 @@ import ctranslate2
 
 ```python
 converter = ctranslate2.converters.OpenNMTTFConverter(
+    model_spec: ModelSpec,   # Specification of the model to convert.
     src_vocab: str,          # Path to the source vocabulary.
     tgt_vocab: str,          # Path to the target vocabulary.
     model_path: str = None,  # Path to a OpenNMT-tf checkpoint (mutually exclusive with variables)
@@ -20,7 +21,6 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
-    model_spec: ModelSpec,    # A model specification instance from ctranslate2.specs.
     vmap: str = None,         # Path to a vocabulary mapping file.
     quantization: str = None, # Weights quantization: "int8" or "int16".
     force: bool = False,      # Override output_dir if it exists.
