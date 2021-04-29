@@ -18,6 +18,9 @@ namespace ctranslate2 {
                      const bool with_attention,
                      const bool with_score);
 
+    // Construct an uninitialized result.
+    GenerationResult() = default;
+
     size_t num_hypotheses() const;
 
     const std::vector<T>& output() const;
