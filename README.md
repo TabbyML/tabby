@@ -112,7 +112,7 @@ All software dependencies are included in the package, including CUDA libraries 
 * OS: Linux, macOS
 * Python version: >= 3.6
 * pip version: >= 19.3
-* GPU driver version: >= 418.39
+* GPU driver version: >= 450.80.02
 
 ### Docker images
 
