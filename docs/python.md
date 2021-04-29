@@ -68,7 +68,7 @@ output = translator.translate_batch(
     max_decoding_length: int = 250,    # Maximum prediction length.
     min_decoding_length: int = 1,      # Minimum prediction length.
     use_vmap: bool = False,            # Use the vocabulary mapping file saved in this model.
-    return_scores: bool = True,        # Include the prediction scores in the output.
+    return_scores: bool = False,       # Include the prediction scores in the output.
     return_attention: bool = False,    # Include the attention vectors in the output.
     return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
     sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates (with beam_size=1).

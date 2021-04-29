@@ -72,6 +72,7 @@ def test_batch_translation(max_batch_size):
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
         max_batch_size=max_batch_size,
+        return_scores=True,
     )
     assert len(output) == 2
     assert len(output[0]) == 1  # One hypothesis.

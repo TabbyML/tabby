@@ -49,7 +49,7 @@ namespace ctranslate2 {
     size_t num_hypotheses = 1;
 
     // Store scores in the TranslationResult class.
-    bool return_scores = true;
+    bool return_scores = false;
     // Store attention vectors in the TranslationResult class.
     bool return_attention = false;
 

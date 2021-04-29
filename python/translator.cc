@@ -397,7 +397,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
-         py::arg("return_scores")=true,
+         py::arg("return_scores")=false,
          py::arg("return_attention")=false,
          py::arg("return_alternatives")=false,
          py::arg("sampling_topk")=1,

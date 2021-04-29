@@ -203,6 +203,7 @@ TEST_P(SearchVariantTest, TranslateWithPrefix) {
 TEST_P(SearchVariantTest, TranslateBatch) {
   Translator translator = default_translator();
   TranslationOptions options;
+  options.return_scores = true;
   options.beam_size = GetParam();
   std::vector<std::vector<std::string>> inputs = {
     {"آ", "ز", "ا"},
@@ -211,6 +212,8 @@ TEST_P(SearchVariantTest, TranslateBatch) {
     {"a", "z", "z", "a"},
     {"a", "t", "z", "m", "o", "n"}};
   auto result = translator.translate_batch(inputs, options);
+  EXPECT_TRUE(result[0].has_scores());
+  EXPECT_TRUE(result[1].has_scores());
   EXPECT_EQ(result[0].output(), expected[0]);
   EXPECT_EQ(result[1].output(), expected[1]);
 }
@@ -266,7 +269,7 @@ TEST(TranslatorTest, TranslateEmptyBatch) {
 static void check_empty_result(const TranslationResult& result,
                                size_t num_hypotheses = 1,
                                bool with_attention = false,
-                               bool with_score = true) {
+                               bool with_score = false) {
   EXPECT_TRUE(result.output().empty());
   EXPECT_EQ(result.num_hypotheses(), num_hypotheses);
   EXPECT_EQ(result.hypotheses().size(), num_hypotheses);
@@ -451,6 +454,7 @@ TEST(TranslatorTest, IgnoreScore) {
 TEST(TranslatorTest, SameBeamAndGreedyScore) {
   Translator translator = default_translator();
   TranslationOptions options;
+  options.return_scores = true;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   options.beam_size = 1;
   const auto greedy_score = translator.translate(input, options).score();
