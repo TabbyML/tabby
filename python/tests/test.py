@@ -92,7 +92,7 @@ def test_file_translation(tmpdir):
         input_file.write("آ ت ش ي س و ن")
         input_file.write("\n")
     translator = _get_transliterator()
-    stats = translator.translate_file(input_path, output_path, max_batch_size=32)
+    stats = translator.translate_file(input_path, output_path)
     with open(output_path) as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "a t z m o n"
@@ -114,23 +114,21 @@ def test_raw_file_translation(tmpdir):
     translator = ctranslate2.Translator(_get_model_path())
     tokenize_fn = lambda text: list(text)
     detokenize_fn = lambda tokens: "".join(tokens)
-    max_batch_size = 4
 
     with pytest.raises(ValueError):
         translator.translate_file(
-            input_path, output_path, max_batch_size, tokenize_fn=tokenize_fn
+            input_path, output_path, source_tokenize_fn=tokenize_fn
         )
     with pytest.raises(ValueError):
         translator.translate_file(
-            input_path, output_path, max_batch_size, detokenize_fn=detokenize_fn
+            input_path, output_path, target_detokenize_fn=detokenize_fn
         )
 
     translator.translate_file(
         input_path,
         output_path,
-        max_batch_size,
-        tokenize_fn=tokenize_fn,
-        detokenize_fn=detokenize_fn,
+        source_tokenize_fn=tokenize_fn,
+        target_detokenize_fn=detokenize_fn,
     )
 
     with open(output_path) as output_file:
@@ -152,19 +150,22 @@ def test_file_translation_with_prefix(tmpdir):
         target_file.write("a t s\n")
 
     translator = _get_transliterator()
-    max_batch_size = 4
 
     with pytest.raises(RuntimeError):
         # One line is missing from target_path.
         translator.translate_file(
-            source_path, output_path, max_batch_size, target_path=target_path
+            source_path,
+            output_path,
+            target_path=target_path,
         )
 
     with open(target_path, "a") as target_file:
         target_file.write("\n")  # No prefix.
 
     translator.translate_file(
-        source_path, output_path, max_batch_size, target_path=target_path
+        source_path,
+        output_path,
+        target_path=target_path,
     )
 
     with open(output_path) as output_file:
@@ -191,27 +192,24 @@ def test_raw_file_translation_with_prefix(tmpdir):
     source_tokenize_fn = lambda text: list(text)
     target_tokenize_fn = lambda text: list(reversed(list(text)))
     detokenize_fn = lambda tokens: "".join(tokens)
-    max_batch_size = 4
 
     with pytest.raises(ValueError):
         # Target tokenization is missing.
         translator.translate_file(
             source_path,
             output_path,
-            max_batch_size,
-            tokenize_fn=source_tokenize_fn,
-            detokenize_fn=detokenize_fn,
             target_path=target_path,
+            source_tokenize_fn=source_tokenize_fn,
+            target_detokenize_fn=detokenize_fn,
         )
 
     translator.translate_file(
         source_path,
         output_path,
-        max_batch_size,
-        tokenize_fn=source_tokenize_fn,
-        detokenize_fn=detokenize_fn,
         target_path=target_path,
+        source_tokenize_fn=source_tokenize_fn,
         target_tokenize_fn=target_tokenize_fn,
+        target_detokenize_fn=detokenize_fn,
     )
 
     with open(output_path) as output_file:

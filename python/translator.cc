@@ -121,6 +121,7 @@ public:
 
   py::tuple translate_file(const std::string& source_path,
                            const std::string& output_path,
+                           const std::string& target_path,
                            size_t max_batch_size,
                            size_t read_batch_size,
                            const std::string& batch_type,
@@ -134,15 +135,14 @@ public:
                            bool with_scores,
                            size_t sampling_topk,
                            float sampling_temperature,
-                           const TokenizeFn& tokenize_fn,
-                           const DetokenizeFn& detokenize_fn,
-                           const std::string& target_path,
+                           bool replace_unknowns,
+                           const TokenizeFn& source_tokenize_fn,
                            const TokenizeFn& target_tokenize_fn,
-                           bool replace_unknowns) {
-    if (bool(tokenize_fn) != bool(detokenize_fn))
-      throw std::invalid_argument("tokenize_fn and detokenize_fn should both be set or none at all");
+                           const DetokenizeFn& target_detokenize_fn) {
+    if (bool(source_tokenize_fn) != bool(target_detokenize_fn))
+      throw std::invalid_argument("source_tokenize_fn and target_detokenize_fn should both be set or none at all");
     const std::string* target_path_ptr = target_path.empty() ? nullptr : &target_path;
-    if (target_path_ptr && tokenize_fn && !target_tokenize_fn)
+    if (target_path_ptr && source_tokenize_fn && !target_tokenize_fn)
       throw std::invalid_argument("target_tokenize_fn should be set when passing a target file");
 
     ctranslate2::TranslationStats stats;
@@ -171,11 +171,11 @@ public:
       if (read_batch_size == 0)
         read_batch_size = max_batch_size;
 
-      if (tokenize_fn && detokenize_fn) {
+      if (source_tokenize_fn && target_detokenize_fn) {
         // Re-acquire the GIL before calling the tokenization functions.
-        const auto safe_tokenize_fn = [&tokenize_fn](const std::string& text) {
+        const auto safe_source_tokenize_fn = [&source_tokenize_fn](const std::string& text) {
           py::gil_scoped_acquire acquire;
-          return tokenize_fn(text);
+          return source_tokenize_fn(text);
         };
 
         const auto safe_target_tokenize_fn = [&target_tokenize_fn](const std::string& text) {
@@ -183,17 +183,17 @@ public:
           return target_tokenize_fn(text);
         };
 
-        const auto safe_detokenize_fn = [&detokenize_fn](const std::vector<std::string>& tokens) {
+        const auto safe_target_detokenize_fn = [&target_detokenize_fn](const std::vector<std::string>& tokens) {
           py::gil_scoped_acquire acquire;
-          return detokenize_fn(tokens);
+          return target_detokenize_fn(tokens);
         };
 
         stats = _translator_pool.consume_raw_text_file(source_path,
                                                        target_path_ptr,
                                                        output_path,
-                                                       safe_tokenize_fn,
+                                                       safe_source_tokenize_fn,
                                                        safe_target_tokenize_fn,
-                                                       safe_detokenize_fn,
+                                                       safe_target_detokenize_fn,
                                                        read_batch_size,
                                                        options,
                                                        with_scores);
@@ -404,8 +404,9 @@ PYBIND11_MODULE(translator, m)
          py::arg("sampling_temperature")=1,
          py::arg("replace_unknowns")=false)
     .def("translate_file", &TranslatorWrapper::translate_file,
-         py::arg("input_path"),
+         py::arg("source_path"),
          py::arg("output_path"),
+         py::arg("target_path")="",
          py::arg("max_batch_size")=32,
          py::arg("read_batch_size")=0,
          py::arg("batch_type")="examples",
@@ -419,11 +420,10 @@ PYBIND11_MODULE(translator, m)
          py::arg("with_scores")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
-         py::arg("tokenize_fn")=nullptr,
-         py::arg("detokenize_fn")=nullptr,
-         py::arg("target_path")="",
+         py::arg("replace_unknowns")=false,
+         py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
-         py::arg("replace_unknowns")=false)
+         py::arg("target_detokenize_fn")=nullptr)
     .def("unload_model", &TranslatorWrapper::unload_model,
          py::arg("to_cpu")=false)
     .def("load_model", &TranslatorWrapper::load_model)

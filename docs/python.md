@@ -81,8 +81,9 @@ output = translator.translate_batch(
 # 2. the number of translated examples
 # 3. the total translation time in milliseconds
 stats = translator.translate_file(
-    input_path: str,                # Input file.
+    source_path: str,               # Source file.
     output_path: str,               # Output file.
+    target_path: str = "",          # Target prefix file.
     max_batch_size: int = 32,       # Maximum batch size to run the model on.
     read_batch_size: int = 0,       # Number of sentences to read at once.
     batch_type: str = "examples",   # Whether the batch size is the number of examples or tokens.
@@ -96,11 +97,10 @@ stats = translator.translate_file(
     with_scores: bool = False,
     sampling_topk: int = 1,
     sampling_temperature: float = 1,
-    tokenize_fn: callable = None,   # Function with signature: string -> list of strings
-    detokenize_fn: callable = None, # Function with signature: list of strings -> string
-    target_path: str = "",          # Target prefix file.
-    target_tokenize_fn: callable = None,  # Same as tokenize_fn but for the target.
-    replace_unknowns: bool = False,  # Replace unknown target tokens by the source token with the highest attention.
+    replace_unknowns: bool = False,
+    source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_detokenize_fn: callable = None, # Function with signature: list of strings -> string
 )
 ```
 
