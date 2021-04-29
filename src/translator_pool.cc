@@ -51,15 +51,19 @@ namespace ctranslate2 {
 
   std::vector<std::future<TranslationResult>>
   TranslatorPool::translate_batch_async(const std::vector<std::vector<std::string>>& source,
-                                        const TranslationOptions& options) {
-    return translate_batch_async(source, {}, options);
+                                        const TranslationOptions& options,
+                                        const size_t max_batch_size,
+                                        const BatchType batch_type) {
+    return translate_batch_async(source, {}, options, max_batch_size, batch_type);
   }
 
   std::vector<std::future<TranslationResult>>
   TranslatorPool::translate_batch_async(const std::vector<std::vector<std::string>>& source,
                                         const std::vector<std::vector<std::string>>& target_prefix,
-                                        const TranslationOptions& options) {
-    return post(source, target_prefix, options);
+                                        const TranslationOptions& options,
+                                        const size_t max_batch_size,
+                                        const BatchType batch_type) {
+    return post(source, target_prefix, options, max_batch_size, batch_type, /*throttle=*/false);
   }
 
   void TranslatorPool::post_job(std::unique_ptr<Job> job, bool throttle) {
@@ -77,15 +81,19 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   TranslatorPool::translate_batch(const std::vector<std::vector<std::string>>& source,
-                                  const TranslationOptions& options) {
-    return translate_batch(source, {}, options);
+                                  const TranslationOptions& options,
+                                  const size_t max_batch_size,
+                                  const BatchType batch_type) {
+    return translate_batch(source, {}, options, max_batch_size, batch_type);
   }
 
   std::vector<TranslationResult>
   TranslatorPool::translate_batch(const std::vector<std::vector<std::string>>& source,
                                   const std::vector<std::vector<std::string>>& target_prefix,
-                                  const TranslationOptions& options) {
-    auto futures = translate_batch_async(source, target_prefix, options);
+                                  const TranslationOptions& options,
+                                  const size_t max_batch_size,
+                                  const BatchType batch_type) {
+    auto futures = translate_batch_async(source, target_prefix, options, max_batch_size, batch_type);
 
     std::vector<TranslationResult> results;
     results.reserve(futures.size());
@@ -99,6 +107,8 @@ namespace ctranslate2 {
   TranslatorPool::post(const std::vector<std::vector<std::string>>& source,
                        const std::vector<std::vector<std::string>>& target_prefix,
                        TranslationOptions options,
+                       size_t max_batch_size,
+                       BatchType batch_type,
                        bool throttle) {
     options.validate();
     options.validated = true;
@@ -107,7 +117,11 @@ namespace ctranslate2 {
       return {};
 
     // Rebatch the input and post each sub-batch in the translation queue.
-    auto batches = rebatch_input(source, target_prefix, options);
+    if (!options.support_batch_translation()) {
+      max_batch_size = 1;
+      batch_type = BatchType::Examples;
+    }
+    auto batches = rebatch_input(source, target_prefix, max_batch_size, batch_type);
     options.rebatch_input = false;
 
     auto consumer = std::make_shared<JobResultConsumer<TranslationResult>>(source.size());
@@ -268,8 +282,10 @@ namespace ctranslate2 {
 
   TranslationStats TranslatorPool::consume_text_file(const std::string& source_file,
                                                      const std::string& output_file,
-                                                     size_t read_batch_size,
                                                      const TranslationOptions& options,
+                                                     size_t max_batch_size,
+                                                     size_t read_batch_size,
+                                                     BatchType batch_type,
                                                      bool with_scores,
                                                      const std::string* target_file) {
     std::ifstream source;
@@ -283,13 +299,22 @@ namespace ctranslate2 {
       open_input_file(*target_file, *target);
     }
 
-    return consume_text_file(source, output, read_batch_size, options, with_scores, target.get());
+    return consume_text_file(source,
+                             output,
+                             options,
+                             max_batch_size,
+                             read_batch_size,
+                             batch_type,
+                             with_scores,
+                             target.get());
   }
 
   TranslationStats TranslatorPool::consume_text_file(std::istream& source,
                                                      std::ostream& output,
-                                                     size_t read_batch_size,
                                                      const TranslationOptions& options,
+                                                     size_t max_batch_size,
+                                                     size_t read_batch_size,
+                                                     BatchType batch_type,
                                                      bool with_scores,
                                                      std::istream* target) {
     const auto tokenizer = [](const std::string& text) {
@@ -312,8 +337,10 @@ namespace ctranslate2 {
                                  tokenizer,
                                  tokenizer,
                                  detokenizer,
-                                 read_batch_size,
                                  options,
+                                 max_batch_size,
+                                 read_batch_size,
+                                 batch_type,
                                  with_scores);
   }
 

@@ -101,8 +101,6 @@ int main(int argc, char* argv[]) {
                                               compute_type);
 
   auto options = ctranslate2::TranslationOptions();
-  options.max_batch_size = args["batch_size"].as<size_t>();
-  options.batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.coverage_penalty = args["coverage_penalty"].as<float>();
@@ -139,14 +137,13 @@ int main(int argc, char* argv[]) {
   auto log_profiling = args["log_profiling"].as<bool>();
   if (log_profiling)
     ctranslate2::init_profiling(device, translator_pool.num_translators());
-  auto read_batch_size = args["read_batch_size"].as<size_t>();
-  if (read_batch_size == 0)
-    read_batch_size = options.max_batch_size;
   const ctranslate2::TranslationStats stats = translator_pool.consume_text_file(
     *source,
     *output,
-    read_batch_size,
     options,
+    args["batch_size"].as<size_t>(),
+    args["read_batch_size"].as<size_t>(),
+    ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>()),
     args["with_score"].as<bool>(),
     target);
   if (log_profiling)

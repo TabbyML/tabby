@@ -124,7 +124,7 @@ public:
                            const std::string& target_path,
                            size_t max_batch_size,
                            size_t read_batch_size,
-                           const std::string& batch_type,
+                           const std::string& batch_type_str,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -153,9 +153,8 @@ public:
       std::shared_lock lock(_mutex);
       assert_model_is_ready();
 
+      ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
       ctranslate2::TranslationOptions options;
-      options.max_batch_size = max_batch_size;
-      options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.coverage_penalty = coverage_penalty;
@@ -194,14 +193,18 @@ public:
                                                        safe_source_tokenize_fn,
                                                        safe_target_tokenize_fn,
                                                        safe_target_detokenize_fn,
-                                                       read_batch_size,
                                                        options,
+                                                       max_batch_size,
+                                                       read_batch_size,
+                                                       batch_type,
                                                        with_scores);
       } else {
         stats = _translator_pool.consume_text_file(source_path,
                                                    output_path,
-                                                   read_batch_size,
                                                    options,
+                                                   max_batch_size,
+                                                   read_batch_size,
+                                                   batch_type,
                                                    with_scores,
                                                    target_path_ptr);
       }
@@ -213,7 +216,7 @@ public:
   py::list translate_batch(const BatchTokens& source,
                            const BatchTokensOptional& target_prefix,
                            size_t max_batch_size,
-                           const std::string& batch_type,
+                           const std::string& batch_type_str,
                            size_t beam_size,
                            size_t num_hypotheses,
                            float length_penalty,
@@ -238,9 +241,8 @@ public:
       std::shared_lock lock(_mutex);
       assert_model_is_ready();
 
+      ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
       ctranslate2::TranslationOptions options;
-      options.max_batch_size = max_batch_size;
-      options.batch_type = ctranslate2::str_to_batch_type(batch_type);
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.coverage_penalty = coverage_penalty;
@@ -257,7 +259,9 @@ public:
 
       results = _translator_pool.translate_batch(source,
                                                  finalize_optional_batch(target_prefix),
-                                                 options);
+                                                 options,
+                                                 max_batch_size,
+                                                 batch_type);
     }
 
     py::list py_results(results.size());
