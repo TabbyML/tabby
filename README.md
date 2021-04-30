@@ -27,7 +27,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
 * **Parallel and asynchronous translations**<br/>Translations can be run efficiently in parallel and asynchronously using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
+* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 500MB (with CUDA 10.0).
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 * **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
@@ -116,17 +116,18 @@ All software dependencies are included in the package, including CUDA libraries 
 
 ### Docker images
 
-The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
+The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images with prebuilt libraries and clients:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu18-cuda11.0
+docker pull opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2
 ```
 
-The images include:
+The library is installed in `/opt/ctranslate2` and a Python package is installed on the system.
 
-* a translation client to directly translate files
-* Python 3 packages
-* `libctranslate2.so` library development files
+**Requirements:**
+
+* Docker
+* GPU driver version: >= 450.80.02
 
 ### Manual compilation
 
@@ -205,10 +206,10 @@ The examples use the English-German model converted in the [Quickstart](#quickst
 
 ```bash
 echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --model /data/ende_ctranslate2 --device cuda
+    opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cuda
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help` for additional options.*
 
 ### With the Python API
 
@@ -259,10 +260,8 @@ Some environment variables can be configured to customize the execution:
 The Docker images build all translation clients presented in [Translating](#translating). The `build` command should be run from the project root directory, e.g.:
 
 ```bash
-docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
+docker build -t opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 -f docker/Dockerfile .
 ```
-
-When building GPU images, the CUDA version can be selected with `--build-arg CUDA_VERSION=11.0`.
 
 See the `docker/` directory for available images.
 
@@ -495,7 +494,7 @@ Prebuilt binaries are designed to run on any x86-64 processors supporting at lea
 
 **GPU**
 
-CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.0 (Kepler). FP16 execution requires a Compute Capability greater or equal to 7.0.
+CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.5. FP16 execution requires a Compute Capability greater or equal to 7.0.
 
 The driver requirement depends on the CUDA version. See the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
 

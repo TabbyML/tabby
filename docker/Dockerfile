@@ -1,20 +1,16 @@
-ARG UBUNTU_VERSION=18.04
-FROM ubuntu:${UBUNTU_VERSION} as builder
+FROM nvidia/cuda:11.2.2-devel-ubuntu20.04 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        apt-transport-https \
-        build-essential \
-        ca-certificates \
         python3-dev \
-        gnupg2 \
-        wget && \
+        wget \
+        && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root
 
-ENV CMAKE_VERSION=3.18.4
+ENV CMAKE_VERSION=3.19.7
 RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && \
     tar xf *.tar.gz && \
     rm *.tar.gz
@@ -45,15 +41,20 @@ COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
 ENV CXX_FLAGS=${CXX_FLAGS}
+ARG CUDA_NVCC_FLAGS
+ENV CUDA_NVCC_FLAGS=${CUDA_NVCC_FLAGS:-"-Xfatbin -compress-all"}
+ARG CUDA_ARCH_LIST
+ENV CUDA_ARCH_LIST=${CUDA_ARCH_LIST:-"Common"}
 ENV CTRANSLATE2_ROOT=/root/ctranslate2
 
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
           -DCMAKE_PREFIX_PATH=${DNNL_DIR} -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL \
-          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" .. && \
-    VERBOSE=1 make -j4 && \
-    make install
+          -DWITH_CUDA=ON \
+          -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
+          -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
+    VERBOSE=1 make -j4 install
 
 ENV LANG=en_US.UTF-8
 COPY README.md .
@@ -62,24 +63,21 @@ COPY python python
 WORKDIR /root/ctranslate2-dev/python
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
+    rm get-pip.py && \
     python3 -m pip --no-cache-dir install -r install_requirements.txt && \
     python3 setup.py bdist_wheel && \
-    rm -r build && \
-    rm get-pip.py && \
-    cp install_requirements.txt /root/ctranslate2/ && \
-    python3 setup.py sdist && \
     mv dist/* /root/ctranslate2 && \
-    rmdir dist
+    rm -r build dist
 
 WORKDIR /root
 RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/*.so* /root/ctranslate2/lib && \
-    cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so /root/ctranslate2/lib
+    cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so /root/ctranslate2/lib && \
+    cp -P /usr/local/cuda/lib64/libcublas*.so* /root/ctranslate2/lib
 
-FROM ubuntu:${UBUNTU_VERSION}
+FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        ca-certificates \
         python3-distutils \
         wget \
         && \
@@ -89,8 +87,9 @@ RUN apt-get update && \
 COPY --from=builder /root/ctranslate2 /opt/ctranslate2
 RUN wget -nv https://bootstrap.pypa.io/get-pip.py && \
     python3 get-pip.py && \
-    python3 -m pip --no-cache-dir install /opt/ctranslate2/*cp3*.whl && \
-    rm get-pip.py
+    rm get-pip.py && \
+    python3 -m pip --no-cache-dir install /opt/ctranslate2/*.whl && \
+    rm /opt/ctranslate2/*.whl
 
 WORKDIR /opt
 
