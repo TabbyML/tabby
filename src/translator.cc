@@ -144,10 +144,7 @@ namespace ctranslate2 {
                                                      _seq2seq_model->with_source_eos());
     const auto target_prefix_ids = target_vocabulary.to_ids(target_prefix);
 
-    const dim_t preferred_size_multiple = get_preferred_size_multiple(
-      _model->effective_compute_type(),
-      device,
-      _model->device_index());
+    const dim_t preferred_size_multiple = _model->preferred_size_multiple();
     std::pair<StorageView, StorageView> inputs = layers::make_sequence_inputs(
       source_ids,
       device,

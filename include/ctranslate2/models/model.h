@@ -35,15 +35,31 @@ namespace ctranslate2 {
       virtual ~Model() = default;
       virtual size_t current_spec_revision() const;
 
-      Device device() const;
-      int device_index() const;
+      Device device() const {
+        return _device;
+      }
+
+      int device_index() const {
+        return _device_index;
+      }
 
       // The requested compute type.
-      ComputeType compute_type() const;
-      // The compute type that is effectively used.
-      ComputeType effective_compute_type() const;
+      ComputeType compute_type() const {
+        return _compute_type;
+      }
 
-      ScopedDeviceSetter get_scoped_device_setter() const;
+      // The compute type that is effectively used.
+      ComputeType effective_compute_type() const {
+        return _effective_compute_type;
+      }
+
+      dim_t preferred_size_multiple() const {
+        return _preferred_size_multiple;
+      }
+
+      ScopedDeviceSetter get_scoped_device_setter() const {
+        return ScopedDeviceSetter(_device, _device_index);
+      }
 
       // If the model contains variables, they will be moved to the new device.
       void set_device(const Device device, const int index = 0);
@@ -89,6 +105,7 @@ namespace ctranslate2 {
       size_t _spec_revision;
       ComputeType _compute_type = ComputeType::DEFAULT;
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
+      dim_t _preferred_size_multiple = 1;
 
     private:
       void process_linear_weights();

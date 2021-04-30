@@ -139,23 +139,6 @@ namespace ctranslate2 {
       return 1;
     }
 
-    Device Model::device() const {
-      return _device;
-    }
-
-    int Model::device_index() const
-    {
-      return _device_index;
-    }
-
-    ComputeType Model::compute_type() const {
-      return _compute_type;
-    }
-
-    ComputeType Model::effective_compute_type() const {
-      return _effective_compute_type;
-    }
-
     void Model::set_device(const Device device, const int index) {
       move_variables(_variable_index, _device, _device_index, device, index);
       _device = device;
@@ -164,10 +147,6 @@ namespace ctranslate2 {
 
     void Model::set_compute_type(ComputeType type) {
       _compute_type = type;
-    }
-
-    ScopedDeviceSetter Model::get_scoped_device_setter() const {
-      return ScopedDeviceSetter(_device, _device_index);
     }
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
@@ -313,6 +292,9 @@ namespace ctranslate2 {
                                                      model_dtype,
                                                      _device,
                                                      _device_index);
+      _preferred_size_multiple = get_preferred_size_multiple(_effective_compute_type,
+                                                             _device,
+                                                             _device_index);
       const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
 
       for (auto& variable_pair : _variable_index) {
