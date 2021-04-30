@@ -112,7 +112,7 @@ All software dependencies are included in the package, including CUDA libraries 
 * OS: Linux, macOS
 * Python version: >= 3.6
 * pip version: >= 19.3
-* GPU driver version: >= 450.80.02
+* (optional) GPU driver version: >= 450.80.02
 
 ### Docker images
 
@@ -127,7 +127,7 @@ The library is installed in `/opt/ctranslate2` and a Python package is installed
 **Requirements:**
 
 * Docker
-* GPU driver version: >= 450.80.02
+* (optional) GPU driver version: >= 450.80.02
 
 ### Manual compilation
 
