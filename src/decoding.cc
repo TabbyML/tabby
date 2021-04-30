@@ -1,7 +1,8 @@
 #include "ctranslate2/decoding.h"
 
+#include <algorithm>
 #include <cmath>
-#include <map>
+#include <numeric>
 
 #include "ctranslate2/ops/ops.h"
 #include "device_dispatch.h"
@@ -113,6 +114,28 @@ namespace ctranslate2 {
     }
   }
 
+  // Sort hypotheses from best to worst score, in the limit of max_hypotheses.
+  template <typename T>
+  static inline void sort_hypotheses(GenerationResult<T>& result,
+                                     size_t max_hypotheses,
+                                     bool keep_scores) {
+    std::vector<size_t> idx(result.num_hypotheses());
+    std::iota(idx.begin(), idx.end(), 0);
+    std::sort(idx.begin(), idx.end(),
+              [&result](size_t i1, size_t i2) { return result.scores[i1] > result.scores[i2]; });
+
+    if (max_hypotheses < idx.size())
+      idx.resize(max_hypotheses);
+
+    result.hypotheses = index_vector(result.hypotheses, idx);
+    if (keep_scores)
+      result.scores = index_vector(result.scores, idx);
+    else
+      result.scores.clear();
+    if (result.has_attention())
+      result.attention = index_vector(result.attention, idx);
+  }
+
 
   BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty, const float coverage_penalty)
     : _beam_size(beam_size)
@@ -120,7 +143,7 @@ namespace ctranslate2 {
     , _coverage_penalty(coverage_penalty) {
   }
 
-  void
+  std::vector<GenerationResult<size_t>>
   BeamSearch::search(layers::Decoder& decoder,
                      layers::DecoderState& state,
                      const Sampler& sampler,
@@ -130,9 +153,8 @@ namespace ctranslate2 {
                      const dim_t max_length,
                      const dim_t min_length,
                      const std::vector<size_t>* output_ids_map,
-                     std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                     std::vector<std::vector<float>>* scores,
-                     std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
+                     const bool return_scores,
+                     const bool return_attention,
                      const size_t num_hypotheses,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
@@ -156,29 +178,11 @@ namespace ctranslate2 {
       TYPE_DISPATCH(dtype, initialize_cum_log_probs<T>(topk_log_probs, batch_size, _beam_size));
     }
 
-    using Result = std::pair<std::vector<size_t>, std::vector<std::vector<float>>>;
-    std::vector<std::map<float, Result>> hypotheses;
-    hypotheses.resize(batch_size);
-    sampled_ids.clear();
-    sampled_ids.resize(batch_size);
-    if (scores) {
-      scores->clear();
-      scores->resize(batch_size);
-    }
-    if (attention) {
-      attention->clear();
-      attention->resize(batch_size);
-    }
-
     std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
+    std::vector<GenerationResult<size_t>> results(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-      sampled_ids[i].reserve(num_hypotheses);
-      if (scores)
-        (*scores)[i].reserve(num_hypotheses);
-      if (attention)
-        (*attention)[i].reserve(num_hypotheses);
     }
 
     StorageView logits(dtype, device);
@@ -196,7 +200,7 @@ namespace ctranslate2 {
               topk_ids.to(device),
               state,
               &logits,
-              (attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
+              (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
       ops::LogSoftMax()(logits, log_probs);
       const dim_t vocabulary_size = log_probs.dim(-1);
       const bool is_expanded = (!expand_after_first_step || step > start_step);
@@ -295,7 +299,7 @@ namespace ctranslate2 {
         ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
       }
 
-      if (attention) {
+      if (return_attention) {
         if (!alive_attention) {
           alive_attention = attention_step;
         } else {
@@ -323,49 +327,36 @@ namespace ctranslate2 {
             float score = topk_scores.scalar_at<float>({i, k});
             // Prevent this beam from advancing in the next step.
             TYPE_DISPATCH(dtype, topk_log_probs.at<T>({i, k}) = T(-1e10));
-            // Save the finished hypothesis only if it is still a candidate.
-            if (hypotheses[batch_id].size() < num_hypotheses
-                || -score < hypotheses[batch_id].rbegin()->first) {
+
+            {
               std::vector<size_t> hypothesis;
               std::vector<std::vector<float>> attn;
               const dim_t max_time = alive_seq.dim(-1);
               hypothesis.reserve(max_time);
-              if (attention)
+              if (return_attention)
                 attn.reserve(max_time);
               for (dim_t t = 0; t < max_time; ++t) {
                 const int32_t id = alive_seq.at<int32_t>({i, k, t});
                 if (id == static_cast<int32_t>(end_id))
                   break;
                 hypothesis.push_back(id);
-                if (attention) {
+                if (return_attention) {
                   const auto* attn_vec = alive_attention.index<float>({i, k, t});
                   attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
                 }
               }
 
-              // Use -score as the key to iterate the map from best to worst.
-              hypotheses[batch_id].emplace(std::piecewise_construct,
-                                           std::forward_as_tuple(-score),
-                                           std::forward_as_tuple(std::move(hypothesis),
-                                                                 std::move(attn)));
+              auto& result = results[batch_id];
+              result.scores.emplace_back(score);
+              result.hypotheses.emplace_back(std::move(hypothesis));
+              if (return_attention)
+                result.attention.emplace_back(std::move(attn));
             }
           }
         }
 
-        if (top_beam_finished[i] && hypotheses[batch_id].size() >= num_hypotheses) {
-          // Return the "num_hypotheses" best hypotheses.
-          for (auto& pair : hypotheses[batch_id]) {
-            if (sampled_ids[batch_id].size() >= num_hypotheses)
-              break;
-            sampled_ids[batch_id].emplace_back(std::move(pair.second.first));
-            if (scores) {
-              (*scores)[batch_id].push_back(-pair.first);
-            }
-            if (attention) {
-              (*attention)[batch_id].emplace_back(std::move(pair.second.second));
-            }
-          }
-          hypotheses[batch_id].clear();
+        if (top_beam_finished[i] && results[batch_id].num_hypotheses() >= num_hypotheses) {
+          sort_hypotheses(results[batch_id], num_hypotheses, return_scores);
         } else {
           non_finished_index.emplace_back(i);
         }
@@ -392,7 +383,7 @@ namespace ctranslate2 {
         gather(topk_ids, keep_batches);
         gather(topk_log_probs, keep_batches);
         gather(alive_seq, keep_batches);
-        if (attention)
+        if (return_attention)
           gather(alive_attention, keep_batches);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
@@ -421,14 +412,16 @@ namespace ctranslate2 {
       topk_ids.reshape({cur_batch_size * _beam_size, 1});
       topk_log_probs.reshape({cur_batch_size * _beam_size});
       alive_seq.reshape({cur_batch_size * _beam_size, alive_seq.dim(-1)});
-      if (attention)
+      if (return_attention)
         alive_attention.reshape({cur_batch_size * _beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
     }
+
+    return results;
   }
 
-  void
+  std::vector<GenerationResult<size_t>>
   GreedySearch::search(layers::Decoder& decoder,
                        layers::DecoderState& state,
                        const Sampler& sampler,
@@ -438,9 +431,8 @@ namespace ctranslate2 {
                        const dim_t max_length,
                        const dim_t min_length,
                        const std::vector<size_t>* output_ids_map,
-                       std::vector<std::vector<std::vector<size_t>>>& sampled_ids,
-                       std::vector<std::vector<float>>* scores,
-                       std::vector<std::vector<std::vector<std::vector<float>>>>* attention,
+                       const bool return_scores,
+                       const bool return_attention,
                        const size_t,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
@@ -452,27 +444,15 @@ namespace ctranslate2 {
     StorageView sample_from({batch_size, 1},
                             std::vector<int32_t>(start_ids.begin(), start_ids.end()));
 
-    sampled_ids.clear();
-    sampled_ids.resize(batch_size);
-    if (scores) {
-      scores->clear();
-      scores->resize(batch_size);
-    }
-    if (attention) {
-      attention->clear();
-      attention->resize(batch_size);
-    }
 
     StorageView logits(dtype, device);
     StorageView log_probs(dtype, device);
     std::vector<dim_t> batch_offset(batch_size);
+    std::vector<GenerationResult<size_t>> results;
+    results.reserve(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
-      sampled_ids[i].resize(1);
-      if (scores)
-        (*scores)[i].resize(1);
-      if (attention)
-        (*attention)[i].resize(1);
+      results.emplace_back(/*num_hypotheses=*/1, return_attention, return_scores);
     }
 
     StorageView best_ids(DataType::INT32);
@@ -485,10 +465,10 @@ namespace ctranslate2 {
               sample_from.to(device),
               state,
               &logits,
-              attention ? &attention_step_device : nullptr);
+              return_attention ? &attention_step_device : nullptr);
 
       // Compute log probs only if scores should be returned.
-      if (scores) {
+      if (return_scores) {
         ops::LogSoftMax()(logits, log_probs);
       } else {
         log_probs.shallow_copy(logits);
@@ -501,7 +481,7 @@ namespace ctranslate2 {
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
         update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
-      if (attention)
+      if (return_attention)
         attention_step.copy_from(attention_step_device.to_float());
 
       const dim_t cur_batch_size = log_probs.dim(0);
@@ -513,16 +493,16 @@ namespace ctranslate2 {
         if (output_ids_map)
           true_id = output_ids_map->at(true_id);
         dim_t batch_id = batch_offset[i];
-        if (scores) {
-          (*scores)[batch_id][0] += best_probs.scalar_at<float>({i});
+        if (return_scores) {
+          results[batch_id].scores[0] += best_probs.scalar_at<float>({i});
         }
         if (true_id != static_cast<int32_t>(end_id)) {
           non_finished_index.emplace_back(i);
           sample_from.at<int32_t>(i) = true_id;
-          sampled_ids[batch_id][0].push_back(true_id);
-          if (attention) {
+          results[batch_id].hypotheses[0].push_back(true_id);
+          if (return_attention) {
             const auto* attn = attention_step.index<float>({i});
-            (*attention)[batch_id][0].emplace_back(attn, attn + attention_step.dim(-1));
+            results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
           }
         }
       }
@@ -543,6 +523,8 @@ namespace ctranslate2 {
         decoder.gather_state(state, alive_device);
       }
     }
+
+    return results;
   }
 
   static void initialize_decoder_with_prefix(layers::Decoder& decoder,
@@ -570,26 +552,6 @@ namespace ctranslate2 {
     }
   }
 
-  template <typename T>
-  static std::vector<std::vector<T>> unflatten_hypotheses(std::vector<std::vector<T>> array,
-                                                          const size_t batch_size,
-                                                          const size_t num_hypotheses) {
-    // Reshape array from batch_size*num_hypotheses x 1 to batch_size x num_hypotheses.
-    if (array.empty())
-      return array;
-    std::vector<std::vector<T>> new_array;
-    new_array.reserve(batch_size);
-    for (size_t b = 0; b < batch_size; ++b) {
-      std::vector<T> hypotheses;
-      hypotheses.reserve(num_hypotheses);
-      for (size_t i = 0; i < num_hypotheses; ++i) {
-        hypotheses.emplace_back(std::move(array[b * num_hypotheses + i][0]));
-      }
-      new_array.emplace_back(std::move(hypotheses));
-    }
-    return new_array;
-  }
-
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
@@ -608,11 +570,9 @@ namespace ctranslate2 {
     const size_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
-    std::vector<std::vector<std::vector<float>>> prefix_attention;
-    std::vector<std::vector<std::vector<size_t>>> expanded_ids;
-    std::vector<std::vector<float>> expanded_scores;
-    std::vector<std::vector<std::vector<std::vector<float>>>> expanded_attention;
+    std::vector<GenerationResult<size_t>> expansion_results;
     if (return_alternatives) {
+      std::vector<std::vector<std::vector<float>>> prefix_attention;
       if (prefix_ids) {
         if (prefix_ids->size() > 1)
           throw std::invalid_argument("Returning alternatives from a prefix is not supported "
@@ -634,96 +594,79 @@ namespace ctranslate2 {
       // In this translation mode, we first expand the next "num_hypotheses" candidate words
       // before running the full decoding on each prefix. This is to ensure that we get unique
       // alternatives at this decoding position.
-      BeamSearch(num_hypotheses).search(decoder,
-                                        state,
-                                        BestSampler(),
-                                        start_ids,
-                                        end_id,
-                                        start_step,
-                                        /*max_length=*/1,
-                                        /*min_length=*/1,
-                                        output_ids_map,
-                                        expanded_ids,
-                                        return_scores ? &expanded_scores : nullptr,
-                                        return_attention ? &expanded_attention : nullptr,
-                                        num_hypotheses);
+      expansion_results = BeamSearch(num_hypotheses).search(decoder,
+                                                            state,
+                                                            BestSampler(),
+                                                            start_ids,
+                                                            end_id,
+                                                            start_step,
+                                                            /*max_length=*/1,
+                                                            /*min_length=*/1,
+                                                            output_ids_map,
+                                                            return_scores,
+                                                            return_attention,
+                                                            num_hypotheses);
 
-      // The next input is the words we just expanded.
       start_ids.resize(batch_size * num_hypotheses);
       for (size_t b = 0; b < batch_size; ++b) {
+        auto& result = expansion_results[b];
+
         for (size_t i = 0; i < num_hypotheses; ++i) {
-          start_ids[b * num_hypotheses + i] = expanded_ids[b][i].back();
+          // The next input is the words we just expanded.
+          start_ids[b * num_hypotheses + i] = result.hypotheses[i].back();
+
+          // Prepend expansion result with the prefix.
+          if (prefix_ids) {
+            result.hypotheses[i].insert(result.hypotheses[i].begin(),
+                                        prefix_ids->at(b).begin(),
+                                        prefix_ids->at(b).end());
+            if (return_attention) {
+              result.attention[i].insert(result.attention[i].begin(),
+                                         prefix_attention[b].begin(),
+                                         prefix_attention[b].end());
+            }
+          }
         }
       }
+
       start_step += 1;
       max_length = std::max(max_length - 1, dim_t(0));
       min_length = std::max(min_length - 1, dim_t(0));
     }
 
-    std::vector<std::vector<std::vector<size_t>>> sampled_ids;
-    std::vector<std::vector<float>> scores;
-    std::vector<std::vector<std::vector<std::vector<float>>>> attention;
-    search_strategy.search(decoder,
-                           state,
-                           sampler,
-                           start_ids,
-                           end_id,
-                           start_step,
-                           max_length,
-                           min_length,
-                           output_ids_map,
-                           sampled_ids,
-                           return_scores ? &scores : nullptr,
-                           return_attention ? &attention : nullptr,
-                           return_alternatives ? 1 : num_hypotheses,
-                           return_alternatives ? nullptr : prefix_ids);
+    auto results = search_strategy.search(decoder,
+                                          state,
+                                          sampler,
+                                          start_ids,
+                                          end_id,
+                                          start_step,
+                                          max_length,
+                                          min_length,
+                                          output_ids_map,
+                                          return_scores,
+                                          return_attention,
+                                          return_alternatives ? 1 : num_hypotheses,
+                                          return_alternatives ? nullptr : prefix_ids);
 
     if (return_alternatives) {
-      // Convert outputs from shape batch_size*num_hypotheses x 1 to batch_size x num_hypotheses.
-      sampled_ids = unflatten_hypotheses(std::move(sampled_ids), batch_size, num_hypotheses);
-      scores = unflatten_hypotheses(std::move(scores), batch_size, num_hypotheses);
-      attention = unflatten_hypotheses(std::move(attention), batch_size, num_hypotheses);
-    }
+      // Append to expansion results.
+      for (size_t b = 0; b < batch_size; ++b) {
+        auto& prefix = expansion_results[b];
+        for (size_t i = 0; i < num_hypotheses; ++i) {
+          auto& suffix = results[b * num_hypotheses + i];
 
-    // Build results.
-    std::vector<GenerationResult<size_t>> results;
-    results.reserve(batch_size);
-    for (size_t i = 0; i < batch_size; ++i) {
-
-      // Aggregate result from the optional prefix and expansion step.
-      if (return_alternatives) {
-
-        for (size_t h = 0; h < num_hypotheses; ++h) {
-          // Finalize the generated ids.
-          std::vector<size_t>& ids = sampled_ids[i][h];
-          if (!expanded_ids.empty())
-            ids.insert(ids.begin(), expanded_ids[i][h][0]);
-          if (prefix_ids)
-            ids.insert(ids.begin(), prefix_ids->at(i).begin(), prefix_ids->at(i).end());
-
-          // Finalize the score.
-          if (return_scores && !expanded_scores.empty())
-            scores[i][h] += expanded_scores[i][h];
-
-          // Finalize the attention.
-          if (return_attention) {
-            std::vector<std::vector<float>>& attn = attention[i][h];
-            if (!expanded_attention.empty())
-              attn.insert(attn.begin(), expanded_attention[i][h][0]);
-            if (!prefix_attention.empty())
-              attn.insert(attn.begin(),
-                          prefix_attention[i].begin(),
-                          prefix_attention[i].end());
-          }
+          prefix.hypotheses[i].insert(prefix.hypotheses[i].end(),
+                                      std::make_move_iterator(suffix.hypotheses[0].begin()),
+                                      std::make_move_iterator(suffix.hypotheses[0].end()));
+          if (prefix.has_attention())
+            prefix.attention[i].insert(prefix.attention[i].end(),
+                                       std::make_move_iterator(suffix.attention[0].begin()),
+                                       std::make_move_iterator(suffix.attention[0].end()));
+          if (prefix.has_scores())
+            prefix.scores[i] += suffix.scores[0];
         }
       }
-
-      GenerationResult<size_t> result(std::move(sampled_ids[i]));
-      if (return_scores)
-        result.scores = std::move(scores[i]);
-      if (return_attention)
-        result.attention = std::move(attention[i]);
-      results.emplace_back(std::move(result));
+      results = std::move(expansion_results);
     }
 
     return results;
