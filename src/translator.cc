@@ -226,7 +226,8 @@ namespace ctranslate2 {
             vector = std::vector<float>(vector.begin() + offset, vector.begin() + offset + length);
           }
 
-          replace_unknowns(source[i], hypotheses[h], attention);
+          if (options.replace_unknowns)
+            replace_unknowns(source[i], hypotheses[h], attention);
         }
 
         if (!options.return_attention)
