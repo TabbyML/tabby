@@ -270,12 +270,12 @@ public:
       py::list batch(result.num_hypotheses());
       for (size_t i = 0; i < result.num_hypotheses(); ++i) {
         py::dict hyp;
-        hyp["tokens"] = result.hypotheses()[i];
+        hyp["tokens"] = result.hypotheses[i];
         if (result.has_scores()) {
-          hyp["score"] = result.scores()[i];
+          hyp["score"] = result.scores[i];
         }
         if (result.has_attention()) {
-          hyp["attention"] = result.attention()[i];
+          hyp["attention"] = result.attention[i];
         }
         batch[i] = hyp;
       }

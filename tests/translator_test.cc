@@ -153,7 +153,7 @@ TEST_P(SearchVariantTest, ReturnAttention) {
     const TranslationResult& result = results[i];
     const auto& expected_shape = expected_shapes[i];
     ASSERT_TRUE(result.has_attention());
-    const auto& attention = result.attention();
+    const auto& attention = result.attention;
     EXPECT_EQ(attention.size(), beam_size);
     EXPECT_EQ(attention[0].size(), expected_shape.first);
     for (const auto& vector : attention[0]) {
@@ -175,7 +175,7 @@ TEST_P(SearchVariantTest, ReturnAttentionWithPrefix) {
   auto result = translator.translate_with_prefix(input, prefix, options);
   EXPECT_EQ(result.output(), expected);
   EXPECT_TRUE(result.has_attention());
-  for (const auto& vector : result.attention()[0]) {
+  for (const auto& vector : result.attention[0]) {
     EXPECT_EQ(vector.size(), input.size());
   }
 }
@@ -194,7 +194,7 @@ TEST_P(SearchVariantTest, TranslateWithPrefix) {
   EXPECT_EQ(result.num_hypotheses(), beam_size);
   EXPECT_EQ(result.output(), expected);
   ASSERT_TRUE(result.has_attention());
-  const auto& attention = result.attention();
+  const auto& attention = result.attention;
   EXPECT_EQ(attention.size(), options.beam_size);
   EXPECT_EQ(attention[0].size(), 7);
   EXPECT_EQ(attention[0][0].size(), 6);
@@ -252,18 +252,18 @@ static void check_empty_result(const TranslationResult& result,
                                bool with_score = false) {
   EXPECT_TRUE(result.output().empty());
   EXPECT_EQ(result.num_hypotheses(), num_hypotheses);
-  EXPECT_EQ(result.hypotheses().size(), num_hypotheses);
+  EXPECT_EQ(result.hypotheses.size(), num_hypotheses);
   EXPECT_EQ(result.has_scores(), with_score);
   if (with_score) {
-    EXPECT_EQ(result.scores().size(), num_hypotheses);
+    EXPECT_EQ(result.scores.size(), num_hypotheses);
     EXPECT_EQ(result.score(), 0);
-    for (const auto score : result.scores()) {
+    for (const auto score : result.scores) {
       EXPECT_EQ(score, 0);
     }
   }
   EXPECT_EQ(result.has_attention(), with_attention);
   if (with_attention) {
-    const auto& attention = result.attention();
+    const auto& attention = result.attention;
     EXPECT_EQ(attention.size(), num_hypotheses);
     EXPECT_TRUE(attention[0].empty());
   }
@@ -344,19 +344,19 @@ TEST(TranslatorTest, AlternativesFromPrefix) {
   const std::vector<std::string> prefix = {"a", "t"};
   const TranslationResult result = translator.translate_with_prefix(input, prefix, options);
   ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
-  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
-  EXPECT_EQ(result.hypotheses()[1], (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
+  EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result.hypotheses[1], (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
 
   // Tokens at the first unconstrained decoding position should be unique.
   std::vector<std::string> tokens_at_position;
   tokens_at_position.reserve(options.num_hypotheses);
-  for (const std::vector<std::string>& hypothesis : result.hypotheses())
+  for (const std::vector<std::string>& hypothesis : result.hypotheses)
     tokens_at_position.emplace_back(hypothesis[prefix.size()]);
   EXPECT_EQ(std::unique(tokens_at_position.begin(), tokens_at_position.end()),
             tokens_at_position.end());
 
   EXPECT_TRUE(result.has_attention());
-  EXPECT_EQ(result.attention()[0].size(), 6);
+  EXPECT_EQ(result.attention[0].size(), 6);
 }
 
 TEST(TranslatorTest, AlternativesFromScratch) {
@@ -367,7 +367,7 @@ TEST(TranslatorTest, AlternativesFromScratch) {
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   const TranslationResult result = translator.translate(input, options);
   ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
-  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
 
 TEST(TranslatorTest, AlternativesFromScratchBatch) {
@@ -382,11 +382,11 @@ TEST(TranslatorTest, AlternativesFromScratchBatch) {
   const std::vector<TranslationResult> results = translator.translate_batch(inputs, options);
   ASSERT_EQ(results.size(), inputs.size());
   ASSERT_EQ(results[0].num_hypotheses(), options.num_hypotheses);
-  EXPECT_EQ(results[0].hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
-  EXPECT_EQ(results[0].hypotheses()[1], (std::vector<std::string>{"e", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(results[0].hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(results[0].hypotheses[1], (std::vector<std::string>{"e", "t", "z", "m", "o", "n"}));
   ASSERT_EQ(results[1].num_hypotheses(), options.num_hypotheses);
-  EXPECT_EQ(results[1].hypotheses()[0], (std::vector<std::string>{"a", "z", "z", "a"}));
-  EXPECT_EQ(results[1].hypotheses()[1], (std::vector<std::string>{"e", "z", "a"}));
+  EXPECT_EQ(results[1].hypotheses[0], (std::vector<std::string>{"a", "z", "z", "a"}));
+  EXPECT_EQ(results[1].hypotheses[1], (std::vector<std::string>{"e", "z", "a"}));
 }
 
 TEST(TranslatorTest, AlternativesFromFullTarget) {
@@ -397,7 +397,7 @@ TEST(TranslatorTest, AlternativesFromFullTarget) {
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   const std::vector<std::string> target = {"a", "t", "z", "m", "o", "n"};
   const TranslationResult result = translator.translate_with_prefix(input, target, options);
-  EXPECT_EQ(result.hypotheses()[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n", "e"}));
+  EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n", "e"}));
 }
 
 TEST(TranslatorTest, DetachModel) {

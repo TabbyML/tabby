@@ -214,16 +214,15 @@ namespace ctranslate2 {
     final_results.reserve(results.size());
     for (size_t i = 0; i < batch_size; ++i) {
       GenerationResult<size_t>& result = results[i];
-      std::vector<std::vector<std::string>> hypotheses = target_vocabulary.to_tokens(result.hypotheses());
+      auto hypotheses = target_vocabulary.to_tokens(result.hypotheses);
 
       if (result.has_attention()) {
         // Remove padding and special tokens in attention vectors.
         const size_t offset = size_t(_seq2seq_model->with_source_bos());
         const size_t length = source[i].size();
 
-        auto all_attention = result.attention();
-        for (size_t h = 0; h < all_attention.size(); ++h) {
-          auto& attention = all_attention[h];
+        for (size_t h = 0; h < result.attention.size(); ++h) {
+          auto& attention = result.attention[h];
 
           for (auto& vector : attention) {
             vector = std::vector<float>(vector.begin() + offset, vector.begin() + offset + length);
@@ -234,14 +233,12 @@ namespace ctranslate2 {
         }
 
         if (!options.return_attention)
-          all_attention.clear();
-
-        result.set_attention(std::move(all_attention));
+          result.attention.clear();
       }
 
       final_results.emplace_back(std::move(hypotheses),
-                                 result.scores(),
-                                 result.attention());
+                                 std::move(result.scores),
+                                 std::move(result.attention));
     }
     return final_results;
   }

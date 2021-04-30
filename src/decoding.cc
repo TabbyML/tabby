@@ -720,9 +720,9 @@ namespace ctranslate2 {
 
       GenerationResult<size_t> result(std::move(sampled_ids[i]));
       if (return_scores)
-        result.set_scores(std::move(scores[i]));
+        result.scores = std::move(scores[i]);
       if (return_attention)
-        result.set_attention(std::move(attention[i]));
+        result.attention = std::move(attention[i]);
       results.emplace_back(std::move(result));
     }
 

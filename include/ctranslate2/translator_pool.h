@@ -276,8 +276,8 @@ namespace ctranslate2 {
 
       auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
                                                          const TranslationResult& result) {
-        const auto& hypotheses = result.hypotheses();
-        const auto& scores = result.scores();
+        const auto& hypotheses = result.hypotheses;
+        const auto& scores = result.scores;
         stats.num_examples += 1;
         stats.num_tokens += hypotheses[0].size();
         for (size_t n = 0; n < hypotheses.size(); ++n) {
