@@ -235,7 +235,7 @@ namespace ctranslate2 {
         result.set_attention(std::move(all_attention));
       }
 
-      final_results.emplace_back(hypotheses,
+      final_results.emplace_back(std::move(hypotheses),
                                  result.scores(),
                                  result.attention());
     }
