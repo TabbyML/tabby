@@ -79,7 +79,7 @@ setup(
     keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.6",
+    python_requires=">=3.6,<=3.9",
     install_requires=[
         "numpy",
     ],
