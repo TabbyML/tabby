@@ -67,14 +67,20 @@ namespace ctranslate2 {
     : _dtype(other._dtype)
     , _device(other._device)
     , _device_index(other._device_index) {
-    assign(other);
+    copy_from(other);
   }
 
   StorageView::StorageView(StorageView&& other)
     : _dtype(other._dtype)
     , _device(other._device)
-    , _device_index(other._device_index) {
-    assign(std::move(other));
+    , _device_index(other._device_index)
+    , _allocator(other._allocator)
+    , _data(other._data)
+    , _allocated_size(other._allocated_size)
+    , _size(other._size)
+    , _shape(std::move(other._shape)) {
+    other._allocator = nullptr;  // other no longer owns the data.
+    other.release();
   }
 
   StorageView::~StorageView() {
@@ -219,7 +225,7 @@ namespace ctranslate2 {
     return resize(other.shape());
   }
 
-  StorageView& StorageView::assign(const StorageView& other) {
+  StorageView& StorageView::operator=(const StorageView& other) {
     if (_device != other._device || _device_index != other._device_index)
       release();
     _device = other._device;
@@ -228,17 +234,16 @@ namespace ctranslate2 {
     return copy_from(other);
   }
 
-  StorageView& StorageView::assign(StorageView&& other) {
-    swap(*this, other);
-    return *this;
-  }
-
-  StorageView& StorageView::operator=(const StorageView& other) {
-    return assign(other);
-  }
-
   StorageView& StorageView::operator=(StorageView&& other) {
-    return assign(std::move(other));
+    std::swap(_dtype, other._dtype);
+    std::swap(_device, other._device);
+    std::swap(_device_index, other._device_index);
+    std::swap(_allocator, other._allocator);
+    std::swap(_data, other._data);
+    std::swap(_allocated_size, other._allocated_size);
+    std::swap(_size, other._size);
+    std::swap(_shape, other._shape);
+    return *this;
   }
 
   StorageView& StorageView::shallow_copy(StorageView& other) {
@@ -248,10 +253,6 @@ namespace ctranslate2 {
     _device = other._device;
     _device_index = other._device_index;
     return *this;
-  }
-
-  StorageView& StorageView::deep_copy(const StorageView& other) {
-    return assign(other);
   }
 
   void* StorageView::buffer() {
@@ -410,17 +411,6 @@ namespace ctranslate2 {
     }
     os << ']';
     return os;
-  }
-
-  void swap(StorageView& a, StorageView& b) {
-    std::swap(a._dtype, b._dtype);
-    std::swap(a._device, b._device);
-    std::swap(a._device_index, b._device_index);
-    std::swap(a._allocator, b._allocator);
-    std::swap(a._data, b._data);
-    std::swap(a._allocated_size, b._allocated_size);
-    std::swap(a._size, b._size);
-    std::swap(a._shape, b._shape);
   }
 
 #define DECLARE_IMPL(T)                                                 \

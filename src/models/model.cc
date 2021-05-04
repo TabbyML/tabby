@@ -71,7 +71,7 @@ namespace ctranslate2 {
           for (StorageView* alias : it->second) {
             StorageView new_alias(alias->dtype(), device);
             new_alias.shallow_copy(*variable);
-            swap(*alias, new_alias);
+            *alias = std::move(new_alias);
           }
         }
       }

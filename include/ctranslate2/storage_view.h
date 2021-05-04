@@ -181,11 +181,8 @@ namespace ctranslate2 {
     // Assignment operators.
     StorageView& operator=(const StorageView& other);
     StorageView& operator=(StorageView&& other);
-    StorageView& assign(const StorageView& other);
-    StorageView& assign(StorageView&& other);
 
     StorageView& shallow_copy(StorageView& other);
-    StorageView& deep_copy(const StorageView& other);
 
     void* buffer();
     const void* buffer() const;
@@ -251,7 +248,6 @@ namespace ctranslate2 {
     template <typename T>
     StorageView& copy_from(const T* data, dim_t size, Device device);
 
-    friend void swap(StorageView& a, StorageView& b);
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
   protected:
