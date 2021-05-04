@@ -136,11 +136,11 @@ namespace ctranslate2 {
                                            const std::string& scope,
                                            dim_t num_heads,
                                            bool self_attention,
-                                           LayerNormStrategy layer_norm_strategy)
+                                           bool pre_norm)
       : _num_heads(num_heads)
       , _self_attention(self_attention)
       , _linear(make_linear_layers(model, scope, self_attention))
-      , _layer_norm_strategy(layer_norm_strategy)
+      , _pre_norm(pre_norm)
       , _layer_norm(model, scope + "/layer_norm")
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
@@ -177,12 +177,13 @@ namespace ctranslate2 {
       StorageView split_keys(dtype, device);
       StorageView split_values(dtype, device);
 
-      if (_layer_norm_strategy == LayerNormStrategy::Input) {
+      const StorageView* q = &queries;
+      if (_pre_norm) {
         _layer_norm(queries, queries_proj);
-        _linear[0](queries_proj, fused_proj);
-      } else {
-        _linear[0](queries, fused_proj);
+        q = &queries_proj;
       }
+
+      _linear[0](*q, fused_proj);
 
       if (!_self_attention) {
         split_heads(fused_proj, split_queries);
@@ -258,7 +259,7 @@ namespace ctranslate2 {
 
       _linear.back()(combined, output);
       ops::Add()(queries, output, output);
-      if (_layer_norm_strategy == LayerNormStrategy::Output) {
+      if (!_pre_norm) {
         _layer_norm(output, output);
       }
     }

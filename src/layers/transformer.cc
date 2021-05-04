@@ -4,30 +4,41 @@ namespace ctranslate2 {
   namespace layers {
 
     FeedForwardNetwork::FeedForwardNetwork(const models::Model& model,
-                                           const std::string& scope)
+                                           const std::string& scope,
+                                           const bool pre_norm)
       : _layer_norm(model, scope + "/layer_norm")
+      , _pre_norm(pre_norm)
       , _activation(ActivationType::ReLU)
       , _ff1(model, scope + "/linear_0", &_activation)
       , _ff2(model, scope + "/linear_1") {
     }
 
     void FeedForwardNetwork::operator()(const StorageView& input, StorageView& output) const {
+      const StorageView* x = &input;
+      if (_pre_norm) {
+        _layer_norm(input, output);
+        x = &output;
+      }
+
       StorageView inner(input.dtype(), input.device());
-      _layer_norm(input, output);
-      _ff1(output, inner);
+      _ff1(*x, inner);
       _ff2(inner, output);
       ops::Add()(input, output, output);
+      if (!_pre_norm)
+        _layer_norm(output, output);
     }
 
 
     TransformerEncoderLayer::TransformerEncoderLayer(const models::Model& model,
                                                      const std::string& scope,
-                                                     const size_t num_heads)
+                                                     const size_t num_heads,
+                                                     const bool pre_norm)
       : _self_attention(model,
                         scope + "/self_attention",
                         num_heads,
-                        /*self_attention=*/true)
-      , _ff(model, scope + "/ffn") {
+                        /*self_attention=*/true,
+                        pre_norm)
+      , _ff(model, scope + "/ffn", pre_norm) {
     }
 
     void TransformerEncoderLayer::operator()(const StorageView& input,
@@ -44,18 +55,21 @@ namespace ctranslate2 {
     TransformerDecoderLayer::TransformerDecoderLayer(const models::Model& model,
                                                      const std::string& scope,
                                                      const size_t num_heads,
-                                                     const bool with_encoder_attention)
+                                                     const bool with_encoder_attention,
+                                                     const bool pre_norm)
       : _self_attention(model,
                         scope + "/self_attention",
                         num_heads,
-                        /*self_attention=*/true)
+                        /*self_attention=*/true,
+                        pre_norm)
       , _encoder_attention(with_encoder_attention
                            ? std::make_unique<MultiHeadAttention>(model,
                                                                   scope + "/attention",
                                                                   num_heads,
-                                                                  /*self_attention=*/false)
+                                                                  /*self_attention=*/false,
+                                                                  pre_norm)
                            : nullptr)
-      , _ff(model, scope + "/ffn") {
+      , _ff(model, scope + "/ffn", pre_norm) {
     }
 
     void TransformerDecoderLayer::operator()(const StorageView& input,
@@ -99,19 +113,23 @@ namespace ctranslate2 {
     TransformerEncoder::TransformerEncoder(const models::Model& model,
                                            const std::string& scope,
                                            const size_t num_heads,
-                                           const bool with_position_encoding)
+                                           const bool with_position_encoding,
+                                           const bool pre_norm)
       : _embeddings(model, scope + "/embeddings")
       , _compute_type(model.effective_compute_type())
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
                           : nullptr)
-      , _output_norm(model, scope + "/layer_norm") {
+      , _output_norm(pre_norm
+                     ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
+                     : nullptr) {
       for (size_t l = 0;; ++l) {
         const std::string layer_scope = scope + "/layer_" + std::to_string(l);
         try {
           auto layer = std::make_unique<TransformerEncoderLayer>(model,
                                                                  layer_scope,
-                                                                 num_heads);
+                                                                 num_heads,
+                                                                 pre_norm);
           _layers.emplace_back(std::move(layer));
         } catch (std::exception&) {
           if (l == 0)
@@ -143,7 +161,8 @@ namespace ctranslate2 {
         if (l + 1 < _layers.size())
           input = std::move(output);
       }
-      _output_norm(output, output);
+      if (_output_norm)
+        (*_output_norm)(output, output);
       if (padder)
         padder->add_padding(output);
     }
@@ -153,7 +172,8 @@ namespace ctranslate2 {
                                            const std::string& scope,
                                            const size_t num_heads,
                                            const bool with_position_encoding,
-                                           const bool with_encoder_attention)
+                                           const bool with_encoder_attention,
+                                           const bool pre_norm)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
       , _compute_type(model.effective_compute_type())
@@ -161,7 +181,9 @@ namespace ctranslate2 {
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
                           : nullptr)
-      , _output_norm(model, scope + "/layer_norm")
+      , _output_norm(pre_norm
+                     ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
+                     : nullptr)
       , _proj(model, scope + "/projection") {
       for (size_t l = 0;; ++l) {
         const std::string layer_scope = scope + "/layer_" + std::to_string(l);
@@ -169,7 +191,8 @@ namespace ctranslate2 {
           auto layer = std::make_unique<TransformerDecoderLayer>(model,
                                                                  layer_scope,
                                                                  num_heads,
-                                                                 with_encoder_attention);
+                                                                 with_encoder_attention,
+                                                                 pre_norm);
           _layers.emplace_back(std::move(layer));
         } catch (std::exception&) {
           if (l == 0)
@@ -256,7 +279,8 @@ namespace ctranslate2 {
       }
 
       if (logits) {
-        _output_norm(layer_in, layer_in);
+        if (_output_norm)
+          (*_output_norm)(layer_in, layer_in);
         _proj(layer_in, *logits);
       }
     }

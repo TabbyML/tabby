@@ -70,20 +70,24 @@ namespace ctranslate2 {
       if (_spec_revision >= 3)
         _num_heads = get_variable("num_heads").as_scalar<int8_t>();
       _with_relative_position = get_flag_with_default("with_relative_position", false);
+      _pre_norm = get_flag_with_default("pre_norm", true);
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
       return std::make_unique<layers::TransformerEncoder>(*this,
                                                           "encoder",
                                                           _num_heads,
-                                                          !_with_relative_position);
+                                                          !_with_relative_position,
+                                                          _pre_norm);
     }
 
     std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {
       return std::make_unique<layers::TransformerDecoder>(*this,
                                                           "decoder",
                                                           _num_heads,
-                                                          !_with_relative_position);
+                                                          !_with_relative_position,
+                                                          /*with_encoder_attention=*/true,
+                                                          _pre_norm);
     }
 
   }

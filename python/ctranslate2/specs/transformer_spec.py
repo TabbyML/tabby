@@ -14,16 +14,23 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
     explicitly set the number of layers and attention heads.
     """
 
-    def __init__(self, num_layers, num_heads, with_relative_position=False):
+    def __init__(
+        self,
+        num_layers,
+        num_heads,
+        with_relative_position=False,
+        pre_norm=True,
+    ):
         super().__init__()
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
         else:
             num_encoder_layers, num_decoder_layers = num_layers, num_layers
         self.num_heads = np.dtype("int8").type(num_heads)
+        self.pre_norm = np.dtype("int8").type(pre_norm)
         self.with_relative_position = with_relative_position
-        self.encoder = TransformerEncoderSpec(num_encoder_layers)
-        self.decoder = TransformerDecoderSpec(num_decoder_layers)
+        self.encoder = TransformerEncoderSpec(num_encoder_layers, pre_norm=pre_norm)
+        self.decoder = TransformerDecoderSpec(num_decoder_layers, pre_norm=pre_norm)
 
     @property
     def name(self):
@@ -42,18 +49,22 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers):
+    def __init__(self, num_layers, pre_norm=True):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = common_spec.LayerNormSpec()
+        self.layer_norm = (
+            common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
+        )
         self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
 
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers):
+    def __init__(self, num_layers, pre_norm=True):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = common_spec.LayerNormSpec()
+        self.layer_norm = (
+            common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
+        )
         self.projection = common_spec.LinearSpec()
         self.layer = [TransformerDecoderLayerSpec() for _ in range(num_layers)]
 
