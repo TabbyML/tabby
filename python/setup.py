@@ -5,14 +5,23 @@ import pybind11
 from setuptools import setup, find_packages, Extension
 
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
 include_dirs = [pybind11.get_include()]
 library_dirs = []
 
 
 def _get_long_description():
-    readme_path = os.path.join(os.path.dirname(__file__), "README.md")
+    readme_path = os.path.join(base_dir, "README.md")
     with open(readme_path, encoding="utf-8") as readme_file:
         return readme_file.read()
+
+
+def _get_project_version():
+    version_path = os.path.join(base_dir, "ctranslate2", "version.py")
+    version = {}
+    with open(version_path, encoding="utf-8") as fp:
+        exec(fp.read(), version)
+    return version["__version__"]
 
 
 def _maybe_add_library_root(lib_name):
@@ -49,7 +58,7 @@ ctranslate2_module = Extension(
 
 setup(
     name="ctranslate2",
-    version="1.20.1",
+    version=_get_project_version(),
     license="MIT",
     description="Fast inference engine for OpenNMT models",
     long_description=_get_long_description(),

@@ -10,3 +10,5 @@ except ImportError as e:
 
 from ctranslate2 import converters
 from ctranslate2 import specs
+
+from ctranslate2.version import __version__
