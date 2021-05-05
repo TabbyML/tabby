@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include "ctranslate2/allocator.h"
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
@@ -118,21 +117,6 @@ namespace ctranslate2 {
     bool gpu_has_fp16_tensor_cores(int device) {
       const cudaDeviceProp& device_prop = get_device_properties(device);
       return device_prop.major >= 7;
-    }
-
-    ThrustAllocator::value_type* ThrustAllocator::allocate(std::ptrdiff_t num_bytes) {
-      auto& allocator = get_allocator<Device::CUDA>();
-      return reinterpret_cast<ThrustAllocator::value_type*>(allocator.allocate(num_bytes));
-    }
-
-    void ThrustAllocator::deallocate(ThrustAllocator::value_type* p, size_t) {
-      auto& allocator = get_allocator<Device::CUDA>();
-      return allocator.free(p);
-    }
-
-    ThrustAllocator& get_thrust_allocator() {
-      static ThrustAllocator thrust_allocator;
-      return thrust_allocator;
     }
 
   }

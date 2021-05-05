@@ -328,7 +328,7 @@ if (WITH_CUDA)
       set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MT$<$<CONFIG:Debug>:d>")
     endif()
   else()
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++14")
   endif()
   if(OpenMP_CXX_FOUND)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}")
@@ -340,29 +340,13 @@ if (WITH_CUDA)
 
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+  set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 
+  message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
-  find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cub)
-  if(NOT CUB_INCLUDE_DIR)
-    message(FATAL_ERROR "CUB library not found")
-  else()
-    message(STATUS "Found CUB include directory: ${CUB_INCLUDE_DIR}")
-  endif()
-
-  find_path(THRUST_INCLUDE_DIR
-    NAMES thrust/device_vector.h
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust ${CUDA_TOOLKIT_ROOT_DIR}/include)
-  if(NOT THRUST_INCLUDE_DIR)
-    message(FATAL_ERROR "Thrust library not found")
-  else()
-    message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
-  endif()
-
-  set(CUDA_INCLUDE_DIRECTORIES
-    ${CUB_INCLUDE_DIR}
-    ${THRUST_INCLUDE_DIR}
-    )
+  add_subdirectory(third_party/thrust EXCLUDE_FROM_ALL)
+  thrust_create_target(Thrust)
 
   cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
   cuda_add_library(${PROJECT_NAME}
@@ -382,6 +366,7 @@ if (WITH_CUDA)
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDA_INCLUDE_DIRECTORIES})
   list(APPEND LIBRARIES
     ${CUDA_CUBLAS_LIBRARIES}
+    Thrust
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})

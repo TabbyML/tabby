@@ -323,7 +323,7 @@ See the [NVIDIA documentation](https://docs.nvidia.com/cuda/cuda-installation-gu
 Under the project root, run the following commands:
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 mkdir build && cd build
 cmake -DWITH_MKL=ON -DWITH_CUDA=ON ..
 make -j4

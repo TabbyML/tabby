@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include <cuda_fp16.h>
-#include <thrust/device_vector.h>
 
 #include "ctranslate2/types.h"
 
