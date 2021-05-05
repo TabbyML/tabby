@@ -27,7 +27,7 @@ ldconfig
 pip install "cmake==3.18.4"
 
 mkdir build-release && cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DCUDA_NVCC_FLAGS="-Xfatbin -compress-all" -DCUDA_ARCH_LIST="Common" ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common" ..
 make -j$(nproc) install
 cd ..
 rm -r build-release
