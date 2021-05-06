@@ -64,7 +64,7 @@ namespace ctranslate2 {
     }
 
     CpuIsa get_cpu_isa() {
-      static CpuIsa cpu_isa = init_isa();
+      static const CpuIsa cpu_isa = init_isa();
       return cpu_isa;
     }
 
