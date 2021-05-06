@@ -12,7 +12,7 @@
 
 #define DEVICE_CASE(DEVICE, STMT)               \
   case DEVICE: {                                \
-    const Device D = DEVICE;                    \
+    constexpr Device D = DEVICE;                \
     STMT;                                       \
     break;                                      \
   }

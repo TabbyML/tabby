@@ -22,14 +22,14 @@ namespace ctranslate2 {
 
 #define CPU_ISA_CASE(CPU_ISA, STMTS)            \
   case CPU_ISA: {                               \
-    const cpu::CpuIsa ISA = CPU_ISA;            \
+    constexpr cpu::CpuIsa ISA = CPU_ISA;        \
     STMTS;                                      \
     break;                                      \
   }
 
 #define CPU_ISA_DEFAULT(CPU_ISA, STMTS)                 \
   default: {                                            \
-    const cpu::CpuIsa ISA = CPU_ISA;                    \
+    constexpr cpu::CpuIsa ISA = CPU_ISA;                \
     STMTS;                                              \
     break;                                              \
   }
