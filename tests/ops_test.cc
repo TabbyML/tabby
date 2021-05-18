@@ -662,18 +662,19 @@ TEST_P(OpDeviceFPTest, ReLU) {
   expect_storage_eq(output.to_float(), expected);
 }
 
-TEST_P(OpDeviceTest, Log) {
-  Device device = GetParam();
+TEST_P(OpDeviceFPTest, Log) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
   std::vector<float > input_vec({0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4});
-  std::vector<float > output_vec;
-  output_vec.reserve(input_vec.size());
-  std::transform(input_vec.begin(), input_vec.end(), std::back_inserter(output_vec),
+  std::vector<float > expected_vec;
+  expected_vec.reserve(input_vec.size());
+  std::transform(input_vec.begin(), input_vec.end(), std::back_inserter(expected_vec),
           [](const float& i){return std::log(i);});
   StorageView input({2, 4}, input_vec, device);
-  StorageView expected({2, 4}, output_vec, device);
-  StorageView output(device);
-  ops::Log()(input, output);
-  expect_storage_eq(output, expected, 1e-4);
+  StorageView expected({2, 4}, expected_vec, device);
+  StorageView output(dtype, device);
+  ops::Log()(input.to(dtype), output);
+  expect_storage_eq(output.to_float(), expected, 1e-3);
 }
 
 template <typename T, typename Ops, typename Func>

@@ -139,7 +139,8 @@ namespace ctranslate2 {
     static void transpose_4d(const T* a, const dim_t* dims, const dim_t* perm, T* b);
 
     static void exp(const float* x, float* y, dim_t size);
-    static void log(const float* x, float* y, dim_t size);
+    template <typename T>
+    static void log(const T* x, T* y, dim_t size);
     static void cos(const float* x, float* y, dim_t size);
     static void sin(const float* x, float* y, dim_t size);
     static void gelu(const float* x, float* y, dim_t size);
