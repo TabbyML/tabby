@@ -12,6 +12,7 @@ option(WITH_DNNL "Compile with DNNL backend" OFF)
 option(WITH_ACCELERATE "Compile with Accelerate backend" OFF)
 option(WITH_OPENBLAS "Compile with OpenBLAS backend" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
+option(CUDA_DYNAMIC_LOADING "Dynamically load CUDA libraries at runtime" OFF)
 option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
 option(BUILD_CLI "Compile the clients" ON)
@@ -349,6 +350,17 @@ if (WITH_CUDA)
   thrust_create_target(Thrust)
 
   cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
+  if(CUDA_DYNAMIC_LOADING)
+    if(WIN32 OR APPLE)
+      message(FATAL_ERROR "Dynamic loading of CUDA libraries is only supported on Linux")
+    endif()
+    if(CUDA_VERSION_MAJOR LESS 11)
+      message(FATAL_ERROR "Dynamic loading of CUDA libraries requires CUDA 11 or above")
+    endif()
+    list(APPEND SOURCES src/cuda/cublas_stub.cc)
+  else()
+    list(APPEND LIBRARIES ${CUDA_CUBLAS_LIBRARIES})
+  endif()
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/allocator.cc
@@ -365,7 +377,6 @@ if (WITH_CUDA)
     )
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDA_INCLUDE_DIRECTORIES})
   list(APPEND LIBRARIES
-    ${CUDA_CUBLAS_LIBRARIES}
     Thrust
     )
 else()
