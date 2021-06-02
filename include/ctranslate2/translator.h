@@ -15,15 +15,6 @@ namespace ctranslate2 {
   class TranslatorPool;
 
   struct TranslationOptions {
-    // Maximum batch size to run the model on (set 0 to forward the input as is).
-    // When more inputs are passed to translate(), they will be internally sorted by length
-    // and split to batches of size max_batch_size. Having inputs with similar lengths in a
-    // batch reduces the padding and so increases the computation efficiency.
-    size_t max_batch_size = 0;
-
-    // Whether "max_batch_size" represents number of examples or tokens.
-    BatchType batch_type = BatchType::Examples;
-
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 2;
     // Length penalty value to apply during beam search.
@@ -49,7 +40,7 @@ namespace ctranslate2 {
     size_t num_hypotheses = 1;
 
     // Store scores in the TranslationResult class.
-    bool return_scores = true;
+    bool return_scores = false;
     // Store attention vectors in the TranslationResult class.
     bool return_attention = false;
 
@@ -62,6 +53,7 @@ namespace ctranslate2 {
     bool replace_unknowns = false;
 
     void validate() const;
+    bool support_batch_translation() const;
 
   private:
     // Internal options.
@@ -154,9 +146,5 @@ namespace ctranslate2 {
                 const std::vector<std::vector<std::string>>& target,
                 size_t max_batch_size,
                 BatchType batch_type = BatchType::Examples);
-  std::vector<Batch>
-  rebatch_input(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target_prefix,
-                const TranslationOptions& options);
 
 }

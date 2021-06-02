@@ -39,25 +39,36 @@ namespace ctranslate2 {
     ~TranslatorPool();
 
     // Run a translation job asynchronously.
-    std::future<std::vector<TranslationResult>>
-    translate_batch_async(std::vector<std::vector<std::string>> source,
-                          TranslationOptions options);
-    std::future<std::vector<TranslationResult>>
-    translate_batch_async(std::vector<std::vector<std::string>> source,
-                          std::vector<std::vector<std::string>> target_prefix,
-                          TranslationOptions options);
+    // To benefit from parallelism, you can set max_batch_size to a non zero value:
+    // the input will be split according to this value and each batch will be translated
+    // in parallel.
+    std::vector<std::future<TranslationResult>>
+    translate_batch_async(const std::vector<std::vector<std::string>>& source,
+                          const TranslationOptions& options = TranslationOptions(),
+                          const size_t max_batch_size = 0,
+                          const BatchType batch_type = BatchType::Examples);
+    std::vector<std::future<TranslationResult>>
+    translate_batch_async(const std::vector<std::vector<std::string>>& source,
+                          const std::vector<std::vector<std::string>>& target_prefix,
+                          const TranslationOptions& options = TranslationOptions(),
+                          const size_t max_batch_size = 0,
+                          const BatchType batch_type = BatchType::Examples);
 
     // Run a translation synchronously.
-    // To benefit from parallelism, you can set max_batch_size in the translation options:
+    // To benefit from parallelism, you can set max_batch_size to a non zero value:
     // the input will be split according to this value and each batch will be translated
     // in parallel.
     std::vector<TranslationResult>
     translate_batch(const std::vector<std::vector<std::string>>& source,
-                    const TranslationOptions& options);
+                    const TranslationOptions& options = TranslationOptions(),
+                    const size_t max_batch_size = 0,
+                    const BatchType batch_type = BatchType::Examples);
     std::vector<TranslationResult>
     translate_batch(const std::vector<std::vector<std::string>>& source,
                     const std::vector<std::vector<std::string>>& target_prefix,
-                    const TranslationOptions& options);
+                    const TranslationOptions& options = TranslationOptions(),
+                    const size_t max_batch_size = 0,
+                    const BatchType batch_type = BatchType::Examples);
 
     // Translate a stream in parallel.
     // Results will be written in order as they are available so the stream content is
@@ -66,31 +77,43 @@ namespace ctranslate2 {
     template <typename Reader, typename Writer>
     void consume_stream(std::istream& in,
                         std::ostream& out,
-                        size_t read_batch_size,
-                        const TranslationOptions& options,
                         Reader& reader,
-                        Writer& writer) {
-      return consume_stream(in, nullptr, out, read_batch_size, options, reader, nullptr, writer);
+                        Writer& writer,
+                        const TranslationOptions& options = TranslationOptions(),
+                        size_t max_batch_size = 32,
+                        size_t read_batch_size = 0,
+                        BatchType batch_type = BatchType::Examples) {
+      return consume_stream(in,
+                            nullptr,
+                            out,
+                            reader,
+                            nullptr,
+                            writer,
+                            options,
+                            max_batch_size,
+                            read_batch_size,
+                            batch_type);
     }
 
     template <typename SourceReader, typename TargetReader, typename TargetWriter>
     void consume_stream(std::istream& source,
                         std::istream* target,
                         std::ostream& output,
-                        size_t read_batch_size,
-                        const TranslationOptions& options,
                         SourceReader& source_reader,
-                        TargetReader& target_reader,
-                        TargetWriter& target_writer) {
-      std::queue<std::future<std::vector<TranslationResult>>> results;
+                        TargetReader* target_reader,
+                        TargetWriter& target_writer,
+                        const TranslationOptions& options = TranslationOptions(),
+                        size_t max_batch_size = 32,
+                        size_t read_batch_size = 0,
+                        BatchType batch_type = BatchType::Examples) {
+      std::queue<std::future<TranslationResult>> results;
 
       auto pop_results = [&results, &output, &target_writer](bool blocking) {
         static const auto zero_sec = std::chrono::seconds(0);
         while (!results.empty()
                && (blocking
                    || results.front().wait_for(zero_sec) == std::future_status::ready)) {
-          for (const auto& result : results.front().get())
-            target_writer(output, result);
+          target_writer(output, results.front().get());
           results.pop();
         }
       };
@@ -98,19 +121,24 @@ namespace ctranslate2 {
       ParallelBatchReader batch_reader;
       batch_reader.add(std::make_unique<StreamReader<SourceReader>>(source, source_reader));
       if (target) {
-        batch_reader.add(std::make_unique<StreamReader<TargetReader>>(*target, target_reader));
+        batch_reader.add(std::make_unique<StreamReader<TargetReader>>(*target, *target_reader));
       }
 
+      if (read_batch_size == 0)
+        read_batch_size = max_batch_size;
+
       while (true) {
-        auto batch = batch_reader.get_next(read_batch_size, options.batch_type);
+        auto batch = batch_reader.get_next(read_batch_size, batch_type);
         if (batch[0].empty())
           break;
-        results.emplace(post(std::move(batch[0]),
-                             target
-                             ? std::move(batch[1])
-                             : std::vector<std::vector<std::string>>(),
-                             options,
-                             /*throttle=*/true));
+        auto futures = post(batch[0],
+                            target ? batch[1] : std::vector<std::vector<std::string>>(),
+                            options,
+                            max_batch_size,
+                            batch_type,
+                            /*throttle=*/true);
+        for (auto& future : futures)
+          results.emplace(std::move(future));
 
         pop_results(/*blocking=*/false);
       }
@@ -123,15 +151,19 @@ namespace ctranslate2 {
     // The returned value is the total number of produced tokens.
     TranslationStats consume_text_file(const std::string& source_file,
                                        const std::string& output_file,
-                                       size_t read_batch_size,
-                                       const TranslationOptions& options,
+                                       const TranslationOptions& options = TranslationOptions(),
+                                       size_t max_batch_size = 32,
+                                       size_t read_batch_size = 0,
+                                       BatchType batch_type = BatchType::Examples,
                                        bool with_scores = false,
                                        const std::string* target_file = nullptr);
 
     TranslationStats consume_text_file(std::istream& source,
                                        std::ostream& output,
-                                       size_t read_batch_size,
-                                       const TranslationOptions& options,
+                                       const TranslationOptions& options = TranslationOptions(),
+                                       size_t max_batch_size = 32,
+                                       size_t read_batch_size = 0,
+                                       BatchType batch_type = BatchType::Examples,
                                        bool with_scores = false,
                                        std::istream* target = nullptr);
 
@@ -140,8 +172,10 @@ namespace ctranslate2 {
                                            const std::string& out_file,
                                            Tokenizer& tokenizer,
                                            Detokenizer& detokenizer,
-                                           const size_t read_batch_size,
-                                           const TranslationOptions& options,
+                                           const TranslationOptions& options = TranslationOptions(),
+                                           const size_t max_batch_size = 32,
+                                           const size_t read_batch_size = 0,
+                                           const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
       std::ifstream in;
       open_input_file(in_file, in);
@@ -151,8 +185,10 @@ namespace ctranslate2 {
                                    out,
                                    tokenizer,
                                    detokenizer,
-                                   read_batch_size,
                                    options,
+                                   max_batch_size,
+                                   read_batch_size,
+                                   batch_type,
                                    with_scores);
 
     }
@@ -162,8 +198,10 @@ namespace ctranslate2 {
                                            std::ostream& out,
                                            Tokenizer& tokenizer,
                                            Detokenizer& detokenizer,
-                                           const size_t read_batch_size,
-                                           const TranslationOptions& options,
+                                           const TranslationOptions& options = TranslationOptions(),
+                                           const size_t max_batch_size = 32,
+                                           const size_t read_batch_size = 0,
+                                           const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
       return consume_raw_text_file(in,
                                    nullptr,
@@ -183,8 +221,10 @@ namespace ctranslate2 {
                                            SourceTokenizer& source_tokenizer,
                                            TargetTokenizer& target_tokenizer,
                                            TargetDetokenizer& detokenizer,
-                                           const size_t read_batch_size,
-                                           const TranslationOptions& options,
+                                           const TranslationOptions& options = TranslationOptions(),
+                                           const size_t max_batch_size = 32,
+                                           const size_t read_batch_size = 0,
+                                           const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
       std::ifstream source;
       open_input_file(source_file, source);
@@ -203,8 +243,10 @@ namespace ctranslate2 {
                                    source_tokenizer,
                                    target_tokenizer,
                                    detokenizer,
-                                   read_batch_size,
                                    options,
+                                   max_batch_size,
+                                   read_batch_size,
+                                   batch_type,
                                    with_scores);
     }
 
@@ -215,8 +257,10 @@ namespace ctranslate2 {
                                            SourceTokenizer& source_tokenizer,
                                            TargetTokenizer& target_tokenizer,
                                            TargetDetokenizer& detokenizer,
-                                           const size_t read_batch_size,
-                                           const TranslationOptions& options,
+                                           const TranslationOptions& options = TranslationOptions(),
+                                           const size_t max_batch_size = 32,
+                                           const size_t read_batch_size = 0,
+                                           const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
       TranslationStats stats;
 
@@ -232,8 +276,8 @@ namespace ctranslate2 {
 
       auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
                                                          const TranslationResult& result) {
-        const auto& hypotheses = result.hypotheses();
-        const auto& scores = result.scores();
+        const auto& hypotheses = result.hypotheses;
+        const auto& scores = result.scores;
         stats.num_examples += 1;
         stats.num_tokens += hypotheses[0].size();
         for (size_t n = 0; n < hypotheses.size(); ++n) {
@@ -248,11 +292,13 @@ namespace ctranslate2 {
       consume_stream(source,
                      target,
                      output,
-                     read_batch_size,
-                     options,
                      source_reader,
-                     target_reader,
-                     writer);
+                     &target_reader,
+                     writer,
+                     options,
+                     max_batch_size,
+                     read_batch_size,
+                     batch_type);
       output.flush();
 
       const auto t2 = std::chrono::high_resolution_clock::now();
@@ -265,17 +311,6 @@ namespace ctranslate2 {
     size_t num_translators() const;
     const std::vector<Translator>& get_translators() const;
 
-    // With throttle=true it will block if there is already too much work pending.
-    std::future<std::vector<TranslationResult>>
-    post(std::vector<std::vector<std::string>> source,
-         TranslationOptions options,
-         bool throttle = false);
-    std::future<std::vector<TranslationResult>>
-    post(std::vector<std::vector<std::string>> source,
-         std::vector<std::vector<std::string>> target_prefix,
-         TranslationOptions options,
-         bool throttle = false);
-
   private:
     class Job {
     public:
@@ -283,39 +318,89 @@ namespace ctranslate2 {
       virtual void run(Translator& translator) = 0;
     };
 
-    template <typename ResultType>
-    class BaseJob : public Job {
+    // Base class for consuming job results.
+    template <typename Result>
+    class JobResultConsumer {
     public:
-      std::future<ResultType> get_future() {
-        return _promise.get_future();
+      JobResultConsumer(size_t num_results)
+        : _promises(num_results)
+      {
       }
 
-      void run(Translator& translator) override;
+      JobResultConsumer(std::vector<std::promise<Result>> promises)
+        : _promises(std::move(promises))
+      {
+      }
 
-    protected:
-      virtual ResultType compute(Translator& translator) const = 0;
+      std::vector<std::future<Result>> get_futures() {
+        std::vector<std::future<Result>> futures;
+        futures.reserve(_promises.size());
+        for (auto& promise : _promises)
+          futures.emplace_back(promise.get_future());
+        return futures;
+      }
+
+      void set_result(size_t index, Result result) {
+        _promises[index].set_value(std::move(result));
+      }
+
+      void set_exception(size_t index, std::exception_ptr exception) {
+        _promises[index].set_exception(exception);
+      }
 
     private:
-      std::promise<ResultType> _promise;
+      std::vector<std::promise<Result>> _promises;
     };
 
-    class TranslationJob : public BaseJob<std::vector<TranslationResult>> {
+    template <typename Result>
+    class BatchJob : public Job {
     public:
-      TranslationJob(std::vector<std::vector<std::string>> source,
-                     std::vector<std::vector<std::string>> target_prefix,
-                     TranslationOptions options)
-        : _source(std::move(source))
-        , _target_prefix(std::move(target_prefix))
-        , _options(std::move(options)) {
+      BatchJob(Batch batch, std::shared_ptr<JobResultConsumer<Result>> consumer)
+        : _batch(std::move(batch))
+        , _consumer(std::move(consumer))
+      {
+      }
+
+      void run(Translator& translator) override {
+        std::vector<Result> results;
+        std::exception_ptr exception;
+
+        try {
+          results = get_results(translator, _batch);
+        } catch (...) {
+          exception = std::current_exception();
+        }
+
+        for (size_t i = 0; i < _batch.source.size(); ++i) {
+          const size_t index = (_batch.example_index.empty() ? i : _batch.example_index[i]);
+          if (exception)
+            _consumer->set_exception(index, exception);
+          else
+            _consumer->set_result(index, std::move(results[i]));
+        }
       }
 
     protected:
-      std::vector<TranslationResult> compute(Translator& translator) const override;
+      virtual std::vector<Result>
+      get_results(Translator& translator, const Batch& batch) const = 0;
 
     private:
-      std::vector<std::vector<std::string>> _source;
-      std::vector<std::vector<std::string>> _target_prefix;
-      TranslationOptions _options;
+      const Batch _batch;
+      const std::shared_ptr<JobResultConsumer<Result>> _consumer;
+    };
+
+    class TranslateJob : public BatchJob<TranslationResult> {
+    public:
+      TranslateJob(Batch batch,
+                   TranslationOptions options,
+                   std::shared_ptr<JobResultConsumer<TranslationResult>> consumer);
+
+    protected:
+      std::vector<TranslationResult>
+      get_results(Translator& translator, const Batch& batch) const override;
+
+    private:
+      const TranslationOptions _options;
     };
 
     void create_translators(size_t num_translators_per_device,
@@ -325,7 +410,15 @@ namespace ctranslate2 {
                             std::vector<int> device_indices,
                             const ComputeType compute_type);
 
-    void post_job(std::unique_ptr<Job> job, bool throttle = false);
+    // With throttle=true it will block if there is already too much work pending.
+    std::vector<std::future<TranslationResult>>
+    post(const std::vector<std::vector<std::string>>& source,
+         const std::vector<std::vector<std::string>>& target_prefix,
+         TranslationOptions options,
+         size_t max_batch_size,
+         BatchType batch_type,
+         bool throttle);
+    void post_job(std::unique_ptr<Job> job, bool throttle);
     void work_loop(Translator& translator, size_t num_threads);
 
     void open_input_file(const std::string& file, std::ifstream& stream) const;

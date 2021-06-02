@@ -27,7 +27,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
 * **Parallel and asynchronous translations**<br/>Translations can be run efficiently in parallel and asynchronously using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 400MB.
+* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 500MB (with CUDA 10.0).
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 * **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
@@ -70,8 +70,7 @@ pip install OpenNMT-py
 wget https://s3.amazonaws.com/opennmt-models/transformer-ende-wmt-pyOnmt.tar.gz
 tar xf transformer-ende-wmt-pyOnmt.tar.gz
 
-ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec TransformerBase \
-    --output_dir ende_ctranslate2
+ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --output_dir ende_ctranslate2
 ```
 
 *b. OpenNMT-tf*
@@ -79,11 +78,13 @@ ct2-opennmt-py-converter --model_path averaged-10-epoch.pt --model_spec Transfor
 ```bash
 pip install OpenNMT-tf
 
-wget https://s3.amazonaws.com/opennmt-models/averaged-ende-export500k-v2.tar.gz
-tar xf averaged-ende-export500k-v2.tar.gz
+wget https://s3.amazonaws.com/opennmt-models/averaged-ende-ckpt500k-v2.tar.gz
+tar xf averaged-ende-ckpt500k-v2.tar.gz
 
-ct2-opennmt-tf-converter --model_path averaged-ende-export500k-v2 --model_spec TransformerBase \
-    --output_dir ende_ctranslate2
+ct2-opennmt-tf-converter --model_path averaged-ende-ckpt500k-v2 --output_dir ende_ctranslate2 \
+    --src_vocab averaged-ende-ckpt500k-v2/wmtende.vocab \
+    --tgt_vocab averaged-ende-ckpt500k-v2/wmtende.vocab \
+    --model_type TransformerBase
 ```
 
 3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
@@ -104,28 +105,30 @@ Python packages are published on [PyPI](https://pypi.org/project/ctranslate2/) f
 pip install ctranslate2
 ```
 
-All software dependencies are included in the package, including CUDA libraries for GPU support on Linux. The macOS version only supports CPU execution.
+To translate on GPU you should install the CUDA 11.x toolkit. The macOS version only supports CPU execution.
 
 **Requirements:**
 
 * OS: Linux, macOS
 * Python version: >= 3.6
 * pip version: >= 19.3
-* GPU driver version: >= 418.39
+* (optional) CUDA version: 11.x
+* (optional) GPU driver version: >= 450.80.02
 
 ### Docker images
 
-The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images for multiple Linux distributions, with or without GPU support:
+The [`opennmt/ctranslate2`](https://hub.docker.com/r/opennmt/ctranslate2) repository contains images with prebuilt libraries and clients:
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu18-cuda11.0
+docker pull opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2
 ```
 
-The images include:
+The library is installed in `/opt/ctranslate2` and a Python package is installed on the system.
 
-* a translation client to directly translate files
-* Python 3 packages
-* `libctranslate2.so` library development files
+**Requirements:**
+
+* Docker
+* (optional) GPU driver version: >= 460.32.03
 
 ### Manual compilation
 
@@ -204,10 +207,10 @@ The examples use the English-German model converted in the [Quickstart](#quickst
 
 ```bash
 echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --model /data/ende_ctranslate2 --device cuda
+    opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cuda
 ```
 
-*See `docker run --rm opennmt/ctranslate2:latest-ubuntu18-cuda11.0 --help` for additional options.*
+*See `docker run --rm opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help` for additional options.*
 
 ### With the Python API
 
@@ -258,10 +261,8 @@ Some environment variables can be configured to customize the execution:
 The Docker images build all translation clients presented in [Translating](#translating). The `build` command should be run from the project root directory, e.g.:
 
 ```bash
-docker build -t opennmt/ctranslate2:latest-ubuntu18 -f docker/Dockerfile.ubuntu .
+docker build -t opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 -f docker/Dockerfile .
 ```
-
-When building GPU images, the CUDA version can be selected with `--build-arg CUDA_VERSION=11.0`.
 
 See the `docker/` directory for available images.
 
@@ -271,11 +272,12 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 
 | CMake option | Accepted values (default in bold) | Description |
 | --- | --- | --- |
+| BUILD_CLI | OFF, **ON** | Compiles the translation clients |
 | BUILD_TESTS | **OFF**, ON | Compiles the tests |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
+| CUDA_DYNAMIC_LOADING | **OFF**, ON | Enables the dynamic loading of CUDA libraries at runtime instead of linking against them. Requires Linux and CUDA >= 11. |
 | ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
-| LIB_ONLY | **OFF**, ON | Disables the translation client |
 | OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime (INTEL: Intel OpenMP; COMP: OpenMP runtime provided by the compiler; NONE: no OpenMP runtime) |
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |
@@ -323,7 +325,7 @@ See the [NVIDIA documentation](https://docs.nvidia.com/cuda/cuda-installation-gu
 Under the project root, run the following commands:
 
 ```bash
-git submodule update --init
+git submodule update --init --recursive
 mkdir build && cd build
 cmake -DWITH_MKL=ON -DWITH_CUDA=ON ..
 make -j4
@@ -494,7 +496,7 @@ Prebuilt binaries are designed to run on any x86-64 processors supporting at lea
 
 **GPU**
 
-CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.0 (Kepler). FP16 execution requires a Compute Capability greater or equal to 7.0.
+CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.5. FP16 execution requires a Compute Capability greater or equal to 7.0.
 
 The driver requirement depends on the CUDA version. See the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
 

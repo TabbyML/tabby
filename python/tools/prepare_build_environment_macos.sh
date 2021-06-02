@@ -17,7 +17,7 @@ brew install libomp
 pip install "cmake==3.18.4"
 
 mkdir build-release && cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release -DLIB_ONLY=ON -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_CXX_FLAGS="-Wno-unused-command-line-argument" ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON -DCMAKE_CXX_FLAGS="-Wno-unused-command-line-argument" ..
 make -j$(sysctl -n hw.physicalcpu_max) install
 cd ..
 rm -r build-release

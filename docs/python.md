@@ -8,9 +8,10 @@ import ctranslate2
 
 ```python
 converter = ctranslate2.converters.OpenNMTTFConverter(
-    model_path: str = None,  # Path to a OpenNMT-tf checkpoint or SavedModel (mutually exclusive with variables)
-    src_vocab: str = None,   # Path to the source vocabulary (required for checkpoints).
-    tgt_vocab: str = None,   # Path to the target vocabulary (required for checkpoints).
+    model_spec: ModelSpec,   # Specification of the model to convert.
+    src_vocab: str,          # Path to the source vocabulary.
+    tgt_vocab: str,          # Path to the target vocabulary.
+    model_path: str = None,  # Path to a OpenNMT-tf checkpoint (mutually exclusive with variables)
     variables: dict = None,  # Dict of variables name to value (mutually exclusive with model_path).
 )
 
@@ -20,7 +21,6 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
-    model_spec: ModelSpec,    # A model specification instance from ctranslate2.specs.
     vmap: str = None,         # Path to a vocabulary mapping file.
     quantization: str = None, # Weights quantization: "int8" or "int16".
     force: bool = False,      # Override output_dir if it exists.
@@ -33,6 +33,7 @@ output_dir = converter.convert(
 translator = ctranslate2.Translator(
     model_path: str                 # Path to the CTranslate2 model directory.
     device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
+    *,
 
     # The device ID, or list of device IDs, where to place this translator on.
     device_index: Union[int, List[int]] = 0,
@@ -58,6 +59,7 @@ translator.num_queued_batches  # Number of batches waiting to be translated.
 output = translator.translate_batch(
     source: list,                      # A list of list of string.
     target_prefix: list = None,        # An optional list of list of string.
+    *,
     max_batch_size: int = 0,           # Maximum batch size to run the model on.
     batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
     beam_size: int = 2,                # Beam size (set 1 to run greedy search).
@@ -68,7 +70,7 @@ output = translator.translate_batch(
     max_decoding_length: int = 250,    # Maximum prediction length.
     min_decoding_length: int = 1,      # Minimum prediction length.
     use_vmap: bool = False,            # Use the vocabulary mapping file saved in this model.
-    return_scores: bool = True,        # Include the prediction scores in the output.
+    return_scores: bool = False,       # Include the prediction scores in the output.
     return_attention: bool = False,    # Include the attention vectors in the output.
     return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
     sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates (with beam_size=1).
@@ -81,8 +83,10 @@ output = translator.translate_batch(
 # 2. the number of translated examples
 # 3. the total translation time in milliseconds
 stats = translator.translate_file(
-    input_path: str,                # Input file.
+    source_path: str,               # Source file.
     output_path: str,               # Output file.
+    target_path: str = "",          # Target prefix file.
+    *,
     max_batch_size: int = 32,       # Maximum batch size to run the model on.
     read_batch_size: int = 0,       # Number of sentences to read at once.
     batch_type: str = "examples",   # Whether the batch size is the number of examples or tokens.
@@ -96,11 +100,10 @@ stats = translator.translate_file(
     with_scores: bool = False,
     sampling_topk: int = 1,
     sampling_temperature: float = 1,
-    tokenize_fn: callable = None,   # Function with signature: string -> list of strings
-    detokenize_fn: callable = None, # Function with signature: list of strings -> string
-    target_path: str = "",          # Target prefix file.
-    target_tokenize_fn: callable = None,  # Same as tokenize_fn but for the target.
-    replace_unknowns: bool = False,  # Replace unknown target tokens by the source token with the highest attention.
+    replace_unknowns: bool = False,
+    source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_detokenize_fn: callable = None, # Function with signature: list of strings -> string
 )
 ```
 

@@ -12,9 +12,10 @@ option(WITH_DNNL "Compile with DNNL backend" OFF)
 option(WITH_ACCELERATE "Compile with Accelerate backend" OFF)
 option(WITH_OPENBLAS "Compile with OpenBLAS backend" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
+option(CUDA_DYNAMIC_LOADING "Dynamically load CUDA libraries at runtime" OFF)
 option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
-option(LIB_ONLY "Do not compile clients" OFF)
+option(BUILD_CLI "Compile the clients" ON)
 option(BUILD_TESTS "Compile the tests" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
@@ -82,7 +83,6 @@ set(SOURCES
   src/cpu/primitives.cc
   src/decoding.cc
   src/devices.cc
-  src/generation_result.cc
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
@@ -324,15 +324,15 @@ if (WITH_CUDA)
   add_definitions(-DCT2_WITH_CUDA)
   if(MSVC)
     if(BUILD_SHARED_LIBS)
-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MD$<$<CONFIG:Debug>:d>")
+      list(APPEND CUDA_NVCC_FLAGS "-Xcompiler=/MD$<$<CONFIG:Debug>:d>")
     else()
-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=/MT$<$<CONFIG:Debug>:d>")
+      list(APPEND CUDA_NVCC_FLAGS "-Xcompiler=/MT$<$<CONFIG:Debug>:d>")
     endif()
   else()
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++14")
   endif()
   if(OpenMP_CXX_FOUND)
-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -Xcompiler=${OpenMP_CXX_FLAGS}")
+    list(APPEND CUDA_NVCC_FLAGS "-Xcompiler=${OpenMP_CXX_FLAGS}")
   endif()
 
   if(NOT CUDA_ARCH_LIST)
@@ -341,31 +341,26 @@ if (WITH_CUDA)
 
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
   list(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+  set(CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
 
+  message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
-  find_path(CUB_INCLUDE_DIR NAMES cub/cub.cuh PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/cub)
-  if(NOT CUB_INCLUDE_DIR)
-    message(FATAL_ERROR "CUB library not found")
-  else()
-    message(STATUS "Found CUB include directory: ${CUB_INCLUDE_DIR}")
-  endif()
-
-  find_path(THRUST_INCLUDE_DIR
-    NAMES thrust/device_vector.h
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust ${CUDA_TOOLKIT_ROOT_DIR}/include)
-  if(NOT THRUST_INCLUDE_DIR)
-    message(FATAL_ERROR "Thrust library not found")
-  else()
-    message(STATUS "Found Thrust include directory: ${THRUST_INCLUDE_DIR}")
-  endif()
-
-  set(CUDA_INCLUDE_DIRECTORIES
-    ${CUB_INCLUDE_DIR}
-    ${THRUST_INCLUDE_DIR}
-    )
+  add_subdirectory(third_party/thrust EXCLUDE_FROM_ALL)
+  thrust_create_target(Thrust)
 
   cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
+  if(CUDA_DYNAMIC_LOADING)
+    if(WIN32 OR APPLE)
+      message(FATAL_ERROR "Dynamic loading of CUDA libraries is only supported on Linux")
+    endif()
+    if(CUDA_VERSION_MAJOR LESS 11)
+      message(FATAL_ERROR "Dynamic loading of CUDA libraries requires CUDA 11 or above")
+    endif()
+    list(APPEND SOURCES src/cuda/cublas_stub.cc)
+  else()
+    list(APPEND LIBRARIES ${CUDA_CUBLAS_LIBRARIES})
+  endif()
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/allocator.cc
@@ -382,7 +377,7 @@ if (WITH_CUDA)
     )
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDA_INCLUDE_DIRECTORIES})
   list(APPEND LIBRARIES
-    ${CUDA_CUBLAS_LIBRARIES}
+    Thrust
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})
@@ -400,7 +395,7 @@ endif()
 
 include(GNUInstallDirs)
 
-if (NOT LIB_ONLY)
+if (BUILD_CLI)
   add_subdirectory(cli)
 endif()
 

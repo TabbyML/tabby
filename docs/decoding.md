@@ -23,12 +23,6 @@ print(detokenize(results[0][0]["tokens"]))
 
 > Dieses Projekt ist auf die effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
-If you do not need `results` to include meaningful prediction scores, you can set the flag `return_scores=False`. In this case, we can skip the last softmax layer and increase performance of greedy search.
-
-```python
-translator.translate_batch(batch, beam_size=1, return_scores=False)
-```
-
 ## Beam search
 
 Beam search is a common decoding strategy for sequence models. The algorithm keeps N hypotheses at all times. This negatively impacts decoding speed and memory but allow finding a better final hypothesis.

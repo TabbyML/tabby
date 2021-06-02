@@ -4,6 +4,7 @@ each required variable of the specification is set.
 """
 
 import os
+import shutil
 import struct
 import numpy as np
 
@@ -230,10 +231,15 @@ class SequenceToSequenceModelSpec(ModelSpec):
         self.with_source_bos = False
         self.with_source_eos = False
         self._vocabularies = {}
+        self._vmap = None
 
     def register_vocabulary(self, name, tokens):
         """Registers a vocabulary of tokens."""
         self._vocabularies[name] = tokens
+
+    def register_vocabulary_mapping(self, path):
+        """Registers a vocabulary mapping file."""
+        self._vmap = path
 
     @property
     def vocabulary_size(self):
@@ -255,6 +261,9 @@ class SequenceToSequenceModelSpec(ModelSpec):
                     "of size %d" % (name.capitalize(), len(vocabulary), expected_size)
                 )
 
+        if self._vmap is not None and not os.path.exists(self._vmap):
+            raise ValueError("Vocabulary mapping file %s does not exist" % self._vmap)
+
         # Validate the rest of the model.
         super().validate()
 
@@ -269,6 +278,9 @@ class SequenceToSequenceModelSpec(ModelSpec):
         for name, tokens in vocabularies.items():
             path = os.path.join(output_dir, "%s_vocabulary.txt" % name)
             _save_lines(path, tokens)
+
+        if self._vmap is not None:
+            shutil.copy(self._vmap, os.path.join(output_dir, "vmap.txt"))
 
         # Save the rest of the model.
         super().save(output_dir)

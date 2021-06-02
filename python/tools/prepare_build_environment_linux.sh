@@ -5,19 +5,15 @@ set -x
 
 yum install -y yum-utils
 
-# Install CUDA 10.1, see:
-# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos7-x86_64/base/Dockerfile
-# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/10.1/centos7-x86_64/devel/Dockerfile
-CUDA_VERSION=10.1.243
-CUDA_PKG_VERSION=10-1-$CUDA_VERSION-1
-CUBLAS_PKG_VERSION=10.2.1.243-1
+# Install CUDA 11.2, see:
+# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/base/Dockerfile
+# * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/devel/Dockerfile
 yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
-yum install --setopt=obsoletes=0 -y cuda-nvcc-$CUDA_PKG_VERSION cuda-cudart-dev-$CUDA_PKG_VERSION libcublas-devel-$CUBLAS_PKG_VERSION libcublas10-$CUBLAS_PKG_VERSION
-ln -s cuda-10.1 /usr/local/cuda
-
-# Maximum GCC version supported by CUDA 10.1 is GCC 8.
-yum install -y devtoolset-8
-source /opt/rh/devtoolset-8/enable
+yum install --setopt=obsoletes=0 -y \
+    cuda-nvcc-11-2-11.2.152-1 \
+    cuda-cudart-devel-11-2-11.2.152-1 \
+    libcublas-devel-11-2-11.4.1.1043-1
+ln -s cuda-11.2 /usr/local/cuda
 
 ONEAPI_VERSION=2021.2.0
 MKL_BUILD=296
@@ -31,7 +27,7 @@ ldconfig
 pip install "cmake==3.18.4"
 
 mkdir build-release && cd build-release
-cmake -DCMAKE_BUILD_TYPE=Release -DLIB_ONLY=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DCUDA_NVCC_FLAGS="-Xfatbin -compress-all" -DCUDA_ARCH_LIST="Common" ..
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP -DWITH_CUDA=ON -DCUDA_DYNAMIC_LOADING=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common" ..
 make -j$(nproc) install
 cd ..
 rm -r build-release

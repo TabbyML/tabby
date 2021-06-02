@@ -47,9 +47,9 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("coverage_penalty", "Coverage penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
-    ("max_sent_length", "Maximum sentence length to produce.",
+    ("max_decoding_length", "Maximum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("250"))
-    ("min_sent_length", "Minimum sentence length to produce.",
+    ("min_decoding_length", "Minimum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("1"))
     ("log_throughput", "Log average tokens per second at the end of the translation.",
      cxxopts::value<bool>()->default_value("false"))
@@ -101,15 +101,13 @@ int main(int argc, char* argv[]) {
                                               compute_type);
 
   auto options = ctranslate2::TranslationOptions();
-  options.max_batch_size = args["batch_size"].as<size_t>();
-  options.batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.coverage_penalty = args["coverage_penalty"].as<float>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();
   options.sampling_temperature = args["sampling_temperature"].as<float>();
-  options.max_decoding_length = args["max_sent_length"].as<size_t>();
-  options.min_decoding_length = args["min_sent_length"].as<size_t>();
+  options.max_decoding_length = args["max_decoding_length"].as<size_t>();
+  options.min_decoding_length = args["min_decoding_length"].as<size_t>();
   options.num_hypotheses = args["n_best"].as<size_t>();
   options.use_vmap = args["use_vmap"].as<bool>();
   options.return_scores = args["with_score"].as<bool>();
@@ -139,14 +137,13 @@ int main(int argc, char* argv[]) {
   auto log_profiling = args["log_profiling"].as<bool>();
   if (log_profiling)
     ctranslate2::init_profiling(device, translator_pool.num_translators());
-  auto read_batch_size = args["read_batch_size"].as<size_t>();
-  if (read_batch_size == 0)
-    read_batch_size = options.max_batch_size;
   const ctranslate2::TranslationStats stats = translator_pool.consume_text_file(
     *source,
     *output,
-    read_batch_size,
     options,
+    args["batch_size"].as<size_t>(),
+    args["read_batch_size"].as<size_t>(),
+    ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>()),
     args["with_score"].as<bool>(),
     target);
   if (log_profiling)

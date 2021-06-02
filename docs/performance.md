@@ -8,7 +8,7 @@ Below are some recommendations to further improve translation performance. Many 
 
 * Set the compute type to "auto" to automatically select the fastest execution path on the current system
 * Reduce the beam size to the minimum value that meets your quality requirement
-* When using a beam size of 1, disable `return_scores` if you are not using prediction scores: the final softmax layer can be skipped
+* When using a beam size of 1, keep `return_scores` disabled if you are not using prediction scores: the final softmax layer can be skipped
 * Set `max_batch_size` and pass a larger batch to `translate_batch`: the input sentences will be sorted by length and split by chunk of `max_batch_size` elements for improved efficiency
 * Prefer the "tokens" `batch_type` to make the total number of elements in a batch more constant
 

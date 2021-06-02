@@ -8,116 +8,36 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
-def _register_gather_tree_op(tf, tf_version):
-    if tf_version == 1:
-        from tensorflow.contrib.seq2seq.python.ops import beam_search_ops
-    elif tf_version == 2:
-        import tensorflow_addons as tfa
-
-        tfa.register_all()
-    else:
-        raise ValueError("Unsupported TensorFlow version %d" % tf_version)
-
-
-def load_model(model_path, src_vocab=None, tgt_vocab=None):
-    """Loads variables and vocabularies from a TensorFlow checkpoint or SavedModel."""
+def load_model(model_path):
+    """Loads variables from a TensorFlow checkpoint."""
     import tensorflow as tf
 
-    def _extract_variables(structure, scope=""):
-        from tensorflow.python.training.tracking import tracking
+    if tf.saved_model.contains_saved_model(model_path):
+        raise RuntimeError(
+            "Converting the SavedModel format is not supported, "
+            "please convert a TensorFlow checkpoint instead"
+        )
 
-        variables = {}
-        if isinstance(structure, tf.Variable):
-            variables[scope] = structure
-        elif isinstance(structure, list):
-            for i, value in enumerate(structure):
-                variables.update(_extract_variables(value, scope="%s/%d" % (scope, i)))
-        elif isinstance(structure, tracking.AutoTrackable):
-            for key, value in structure.__dict__.items():
-                if key.startswith("_") or key == "keras_api":
-                    continue
-                variables.update(
-                    _extract_variables(
-                        value, scope="%s/%s" % (scope, key) if scope else key
-                    )
-                )
-        return variables
+    if os.path.isdir(model_path):
+        checkpoint = tf.train.latest_checkpoint(model_path)
+    else:
+        checkpoint = model_path
 
-    def _get_asset_path(inputter):
-        lookup_table = getattr(inputter, "tokens_to_ids", None)
-        if lookup_table is None:
-            return None
-        # TODO: retrieve the asset path without using private attributes.
-        asset = getattr(lookup_table._initializer, "_filename", None)
-        if asset is None:
-            return None
-        return asset.asset_path.numpy()
+    reader = tf.train.load_checkpoint(checkpoint)
+    variables = {
+        name: reader.get_tensor(name)
+        for name in reader.get_variable_to_shape_map().keys()
+    }
 
     model_version = 1
-    tf_version = int(tf.version.VERSION[0])
-
-    if tf.saved_model.contains_saved_model(model_path):
-        # Force beam search kernel loading.
-        _register_gather_tree_op(tf, tf_version)
-        if tf_version == 2:
-            model_version = 2
-            imported = tf.saved_model.load(model_path)
-            if src_vocab is None:
-                src_vocab = _get_asset_path(
-                    imported.examples_inputter.features_inputter
-                )
-            if tgt_vocab is None:
-                tgt_vocab = _get_asset_path(imported.examples_inputter.labels_inputter)
-            if src_vocab is None or tgt_vocab is None:
-                raise ValueError(
-                    "src_vocab and tgt_vocab are required as the SavedModel "
-                    "does not include vocabulary assets"
-                )
-            variables = {
-                "model/%s" % scope: variable.numpy()
-                for scope, variable in _extract_variables(imported).items()
-            }
-        elif tf_version == 1:
-            config = tf.compat.v1.ConfigProto(device_count={"GPU": 0})
-            with tf.compat.v1.Graph().as_default():
-                with tf.compat.v1.Session(config=config) as sess:
-                    tf.compat.v1.saved_model.loader.load(sess, ["serve"], model_path)
-                    variables = sess.run(
-                        {
-                            variable.op.name: variable
-                            for variable in tf.compat.v1.global_variables()
-                        }
-                    )
-                    assets = sess.run(
-                        tf.compat.v1.get_collection(tf.GraphKeys.ASSET_FILEPATHS)
-                    )
-            src_vocab = os.path.join(
-                model_path.encode("utf-8"), b"assets", os.path.basename(assets[0])
-            )
-            tgt_vocab = os.path.join(
-                model_path.encode("utf-8"), b"assets", os.path.basename(assets[1])
-            )
-    else:
-        if src_vocab is None or tgt_vocab is None:
-            raise ValueError(
-                "vocabularies must be passed as argument when converting checkpoint"
-            )
-        if os.path.isdir(model_path):
-            checkpoint = tf.train.latest_checkpoint(model_path)
-        else:
-            checkpoint = model_path
-        reader = tf.train.load_checkpoint(checkpoint)
+    if os.path.basename(checkpoint).startswith("ckpt"):
+        model_version = 2
         variables = {
-            name: reader.get_tensor(name)
-            for name in reader.get_variable_to_shape_map().keys()
+            name.replace("/.ATTRIBUTES/VARIABLE_VALUE", ""): value
+            for name, value in variables.items()
         }
-        if os.path.basename(checkpoint).startswith("ckpt"):
-            model_version = 2
-            variables = {
-                name.replace("/.ATTRIBUTES/VARIABLE_VALUE", ""): value
-                for name, value in variables.items()
-            }
-    return model_version, variables, src_vocab, tgt_vocab
+
+    return model_version, variables
 
 
 def _load_vocab(path):
@@ -131,43 +51,43 @@ def _load_vocab(path):
 class OpenNMTTFConverter(Converter):
     """Converts models generated by OpenNMT-tf."""
 
-    def __init__(self, model_path=None, src_vocab=None, tgt_vocab=None, variables=None):
+    def __init__(
+        self,
+        model_spec,
+        src_vocab,
+        tgt_vocab,
+        model_path=None,
+        variables=None,
+    ):
         if (model_path is None) == (variables is None):
             raise ValueError("Exactly one of model_path and variables should be set")
-        if variables is not None:
-            if not isinstance(variables, dict):
-                raise ValueError(
-                    "variables should be a dict mapping variable name to value"
-                )
-            if src_vocab is None or tgt_vocab is None:
-                raise ValueError(
-                    "src_vocab and tgt_vocab are required when directly "
-                    "passing variables."
-                )
+        if variables is not None and not isinstance(variables, dict):
+            raise ValueError(
+                "variables should be a dict mapping variable name to value"
+            )
+        self._model_spec = model_spec
         self._model_path = model_path
         self._src_vocab = src_vocab
         self._tgt_vocab = tgt_vocab
         self._variables = variables
 
-    def _load(self, model_spec):
+    def _load(self):
+        model_spec = self._model_spec
         if self._model_path is not None:
-            version, variables, src_vocab, tgt_vocab = load_model(
-                self._model_path, src_vocab=self._src_vocab, tgt_vocab=self._tgt_vocab
-            )
+            version, variables = load_model(self._model_path)
         else:
             version = 2  # Assume we are passing V2 variables.
             variables = self._variables
-            src_vocab = self._src_vocab
-            tgt_vocab = self._tgt_vocab
         if isinstance(model_spec, transformer_spec.TransformerSpec):
             if version == 2:
                 set_transformer_spec_v2(model_spec, variables)
             else:
                 set_transformer_spec(model_spec, variables)
         else:
-            raise NotImplementedError()
-        model_spec.register_vocabulary("source", _load_vocab(src_vocab))
-        model_spec.register_vocabulary("target", _load_vocab(tgt_vocab))
+            return None
+        model_spec.register_vocabulary("source", _load_vocab(self._src_vocab))
+        model_spec.register_vocabulary("target", _load_vocab(self._tgt_vocab))
+        return model_spec
 
 
 def set_transformer_spec_v2(spec, variables):
