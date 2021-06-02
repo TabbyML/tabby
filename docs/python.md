@@ -151,4 +151,5 @@ Note: parallelization with Python threads is made possible because the `Translat
 
 ## Utility API
 
+* `ctranslate2.__version__`<br/>Version of the Python package.
 * `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.
