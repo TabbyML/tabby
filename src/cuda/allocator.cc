@@ -104,7 +104,7 @@ namespace ctranslate2 {
 #else
         for (int i = 0; i < get_gpu_count(); ++i) {
           int supported = 0;
-          CUDA_CHECK(cudaDeviceGetAttribute(&supported, cudaDevAttrMemoryPoolsSupported, i));
+          cudaDeviceGetAttribute(&supported, cudaDevAttrMemoryPoolsSupported, i);
           if (!supported)
             throw std::runtime_error("Asynchronous allocation is not supported by the current GPU");
         }
