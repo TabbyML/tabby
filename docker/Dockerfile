@@ -54,7 +54,7 @@ RUN mkdir build && \
           -DWITH_CUDA=ON \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
-    VERBOSE=1 make -j4 install
+    VERBOSE=1 make -j$(nproc) install
 
 ENV LANG=en_US.UTF-8
 COPY README.md .
