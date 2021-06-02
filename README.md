@@ -147,12 +147,7 @@ The following frameworks and models are currently supported:
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
-Conversion scripts are parts of the Python package and should be run in the same environment as the selected training framework:
-
-* `ct2-opennmt-py-converter`
-* `ct2-opennmt-tf-converter`
-
-The [converter Python API](docs/python.md#model-conversion-api) can also be used to convert Transformer models with any number of layers, hidden dimensions, and attention heads.
+The Python package includes conversion scripts and a [conversion API](docs/python.md#model-conversion-api). They should be run in the same environment as the selected training framework.
 
 ### Integrated model conversion
 
