@@ -147,7 +147,12 @@ The following frameworks and models are currently supported:
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
-The Python package includes conversion scripts and a [conversion API](docs/python.md#model-conversion-api). They should be run in the same environment as the selected training framework.
+The Python package includes the following conversion scripts:
+
+* `ct2-opennmt-py-converter`
+* `ct2-opennmt-tf-converter`
+
+and a [conversion API](docs/python.md#model-conversion-api). The conversion should be run in the same environment as the selected training framework.
 
 ### Integrated model conversion
 
