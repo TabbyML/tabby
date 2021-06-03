@@ -504,7 +504,7 @@ namespace ctranslate2 {
     __device__
     __half operator()(__half x) { return hlog(x); }
   };
-#else 
+#else
   struct hlog_func {
     __host__ __device__
     __half operator()(__half x) { return __half(logf(float(x))); }
