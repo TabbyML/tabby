@@ -66,6 +66,30 @@ The prefix effectively changes the target context and the rest of the translatio
 
 > Dieses Projekt ist auf das effiziente **Servieren** von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
+## Biased decoding
+
+Instead of using [Autocompletion](#Autocompletion) to force a translation to start with a `target_prefix` argument, we can "bias" a translation towards a prefix by setting `prefix_bias_beta` to a value in (0, 1).  The higher `prefix_bias_beta` is, the stronger the bias. A translation can diverge from a prefix when `prefix_bias_beta` is low and the translator is confident in decoding tokens that are different from the prefix's tokens.  See [section 4.2](https://arxiv.org/abs/1912.03393) for more details on the biasing algorithm.
+
+```python
+results = translator.translate_batch(
+    [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.5, beam_size=4)
+print(detokenize(results[0][0]["tokens"]))
+```
+
+Setting `prefix_bias_beta=0.5` effectively enforces the `target_prefix` and changes the rest of the translation:
+
+> Dieses Projekt ist auf das effiziente Servieren von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
+
+```python
+results = translator.translate_batch(
+    [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.1, beam_size=4)
+print(detokenize(results[0][0]["tokens"]))
+```
+
+Lowering the bias by setting `prefix_bias_beta=0.1` results in a divergence in the prefix from `das` to `die`:
+
+> Dieses Projekt ist auf **die** effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
+
 ## Alternatives at a position
 
 Combining `target_prefix` with the `return_alternatives` flag returns alternative words just after the prefix:

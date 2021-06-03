@@ -67,6 +67,7 @@ output = translator.translate_batch(
                                        # unless return_alternatives is set).
     length_penalty: float = 0,         # Length penalty constant to use during beam search.
     coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
+    prefix_bias_beta: float = 0,       # Parameter for biasing translations towards given prefix.
     max_decoding_length: int = 250,    # Maximum prediction length.
     min_decoding_length: int = 1,      # Minimum prediction length.
     use_vmap: bool = False,            # Use the vocabulary mapping file saved in this model.

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #include <numeric>
 
 #include "ctranslate2/ops/ops.h"
@@ -137,10 +138,79 @@ namespace ctranslate2 {
   }
 
 
-  BeamSearch::BeamSearch(const dim_t beam_size, const float length_penalty, const float coverage_penalty)
+  void BiasedDecoder::decode(const float prefix_bias_beta,
+                             const dim_t cur_batch_size,
+                             const size_t step,
+                             const std::vector<dim_t>& batch_offset,
+                             const std::vector<std::vector<bool>>& beams_diverged_from_prefix,
+                             const std::vector<std::vector<size_t>>& prefix_ids,
+                             const StorageView& logits,
+                             StorageView& log_probs) {
+    const dim_t num_beams = logits.dim(0);
+    const Device device = logits.device();
+    const DataType dtype = logits.dtype();
+
+    if (_spare_beam.dtype() != dtype || _spare_beam.device() != device) {
+      _spare_beam = StorageView(device, dtype);
+    }
+
+    std::vector<StorageView> logit_beam_view_storage(num_beams, StorageView(device, dtype));
+    std::vector<StorageView*> logit_beam_views(num_beams);
+    std::vector<StorageView> log_prob_beam_view_storage(num_beams, StorageView(device, dtype));
+    std::vector<StorageView*> log_prob_beam_views(num_beams);
+    for (dim_t i = 0; i < num_beams; ++i) {
+      logit_beam_views[i] = &(logit_beam_view_storage[i]);
+      log_prob_beam_views[i] = &(log_prob_beam_view_storage[i]);
+    }
+    ops::Split(0, /*no_copy=*/true)(logits, logit_beam_views);
+    log_probs.resize_as(logits);
+    log_probs.reshape(logits.shape());
+    ops::Split(0, /*no_copy=*/true)(log_probs, log_prob_beam_views);
+
+    // Scalar's need to be allocated on CPUs.
+    StorageView scalar_discount(1 - prefix_bias_beta, Device::CPU);
+    assert (num_beams % cur_batch_size == 0);
+    const dim_t cur_beam_size = num_beams / cur_batch_size;
+    for (dim_t b = 0; b < num_beams; ++b) {
+      StorageView &logit_beam = *(logit_beam_views[b]);
+      StorageView &log_prob_beam = *(log_prob_beam_views[b]);
+      const dim_t index_batch = b / cur_beam_size;
+      const dim_t index_beam = b % cur_beam_size;
+      const auto& prefix = prefix_ids[batch_offset[index_batch]];
+      if (static_cast<size_t>(step) < prefix.size()
+          && !(beams_diverged_from_prefix[index_batch][index_beam])) {
+        ops::SoftMax()(logit_beam, log_prob_beam);
+        ops::Mul()(log_prob_beam,
+                   scalar_discount.to(log_prob_beam.dtype()),
+                   _spare_beam);
+        const size_t biased_word_id = prefix[step];
+        StorageView spare_scalar_view;
+        TYPE_DISPATCH(
+          _spare_beam.dtype(),
+          spare_scalar_view = StorageView({1}, _spare_beam.data<T>() + biased_word_id, device));
+        const StorageView spare_scalar_copy(spare_scalar_view);
+        StorageView beta_scalar;
+        TYPE_DISPATCH(
+          _spare_beam.dtype(),
+          // Scalar's need to be allocated on CPUs.
+          beta_scalar = StorageView(static_cast<T>(prefix_bias_beta), Device::CPU));
+        ops::Add()(spare_scalar_copy, beta_scalar, spare_scalar_view);
+        ops::Log()(_spare_beam, log_prob_beam);
+      } else {
+        ops::LogSoftMax()(logit_beam, log_prob_beam);
+      }
+    }
+  }
+
+
+  BeamSearch::BeamSearch(const dim_t beam_size,
+                         const float length_penalty,
+                         const float coverage_penalty,
+                         const float prefix_bias_beta)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
-    , _coverage_penalty(coverage_penalty) {
+    , _coverage_penalty(coverage_penalty)
+    , _prefix_bias_beta(prefix_bias_beta) {
   }
 
   std::vector<GenerationResult<size_t>>
@@ -178,6 +248,14 @@ namespace ctranslate2 {
       TYPE_DISPATCH(dtype, initialize_cum_log_probs<T>(topk_log_probs, batch_size, _beam_size));
     }
 
+    std::vector<std::vector<bool>> beams_diverged_from_prefix;
+    bool bias_towards_prefix = prefix_ids && _prefix_bias_beta > 0;
+    if (bias_towards_prefix) {
+      beams_diverged_from_prefix = std::vector<std::vector<bool>>(
+        batch_size, std::vector<bool>(_beam_size, false));
+    }
+    const bool use_hard_prefix = prefix_ids && !bias_towards_prefix;
+
     std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
     std::vector<GenerationResult<size_t>> results(batch_size);
@@ -193,15 +271,31 @@ namespace ctranslate2 {
     StorageView attention_step_device(dtype, device);
 
     StorageView coverage;
-
+    std::unique_ptr<BiasedDecoder> biased_decoder;
     for (dim_t step = start_step; step < max_step; ++step) {
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
               state,
-              &logits,
+              &logits,  // output shape: (cur_batch_size*beam_size x 1 x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
-      ops::LogSoftMax()(logits, log_probs);
+
+      if (bias_towards_prefix) {
+        if (!biased_decoder) {
+          biased_decoder = std::make_unique<BiasedDecoder>();
+        }
+        biased_decoder->decode(_prefix_bias_beta,
+                               cur_batch_size,
+                               step,
+                               batch_offset,
+                               beams_diverged_from_prefix,
+                               *prefix_ids,
+                               logits,
+                               log_probs);
+      } else {
+        ops::LogSoftMax()(logits, log_probs);
+      }
+
       const dim_t vocabulary_size = log_probs.dim(-1);
       const bool is_expanded = (!expand_after_first_step || step > start_step);
 
@@ -234,7 +328,7 @@ namespace ctranslate2 {
 
       // TopK candidates.
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
-      if (prefix_ids)
+      if (use_hard_prefix)
         update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, end_id, batch_offset);
 
       topk_log_probs = topk_scores;
@@ -246,6 +340,9 @@ namespace ctranslate2 {
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * _beam_size});
+      std::vector<std::vector<bool>> prev_beams_diverged_from_prefix;
+      if (bias_towards_prefix)
+        prev_beams_diverged_from_prefix = beams_diverged_from_prefix;
       for (dim_t i = 0; i < topk_ids.size(); ++i) {
         auto flat_id = topk_ids.at<int32_t>(i);
         auto beam_id = flat_id / vocabulary_size;
@@ -253,6 +350,15 @@ namespace ctranslate2 {
         auto batch_id = i / _beam_size;
         if (output_ids_map)
           word_id = output_ids_map->at(word_id);
+        if (bias_towards_prefix) {
+          const auto& prefix = (*prefix_ids)[batch_offset[batch_id]];
+          bool diverged = true;
+          if (static_cast<size_t>(step) < prefix.size()) {
+            diverged = (prev_beams_diverged_from_prefix[batch_id][beam_id]
+                        || static_cast<size_t>(word_id) != prefix[step]);
+          }
+          beams_diverged_from_prefix[batch_id][i % _beam_size] = diverged;
+        }
         topk_ids.at<int32_t>(i) = word_id;
         // On the first step, batches are not yet replicated beam_size times.
         gather_indices.at<int32_t>(i) = (is_expanded
@@ -378,6 +484,8 @@ namespace ctranslate2 {
         cur_batch_size = next_batch_size;
         batch_offset = index_vector(batch_offset, non_finished_index);
         top_beam_finished = index_vector(top_beam_finished, non_finished_index);
+        if (bias_towards_prefix)
+          beams_diverged_from_prefix = index_vector(beams_diverged_from_prefix, non_finished_index);
 
         StorageView keep_batches({cur_batch_size}, non_finished_index);
         gather(topk_ids, keep_batches);
@@ -416,6 +524,19 @@ namespace ctranslate2 {
         alive_attention.reshape({cur_batch_size * _beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
+      if (bias_towards_prefix) {
+        bias_towards_prefix = false;
+        for (const auto& batch : beams_diverged_from_prefix) {
+          for (const bool beam_diverged : batch) {
+            if (!beam_diverged) {
+              bias_towards_prefix = true;
+              break;
+            }
+          }
+          if (bias_towards_prefix)
+            break;
+        }
+      }
     }
 
     return results;

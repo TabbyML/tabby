@@ -233,7 +233,7 @@ def test_invalid_translation_options():
         )
 
 
-def test_target_prefix():
+def test_hard_target_prefix():
     translator = _get_transliterator()
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
@@ -241,6 +241,42 @@ def test_target_prefix():
     )
     assert output[0][0]["tokens"][:3] == ["a", "t", "s"]
     assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
+
+
+def test_strongly_biased_target_prefix():
+    translator = _get_transliterator()
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
+        target_prefix=[["a", "t", "s"], None],
+        prefix_bias_beta=0.9999999,
+    )
+    assert output[0][0]["tokens"][:3] == ["a", "t", "s"]
+    assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
+
+
+def test_weakly_biased_target_prefix():
+    translator = _get_transliterator()
+    unconstrained_output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
+        return_scores=True,
+    )
+    weakly_biased_output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
+        target_prefix=[["a", "t", "s"], ["s", "i", "o"]],
+        prefix_bias_beta=0.0000001,
+        return_scores=True,
+    )
+    assert unconstrained_output[0][0]["tokens"] == weakly_biased_output[0][0]["tokens"]
+    assert (
+        abs(unconstrained_output[0][0]["score"] - weakly_biased_output[0][0]["score"])
+        < 0.00001
+    )
+
+    assert unconstrained_output[1][0]["tokens"] == weakly_biased_output[1][0]["tokens"]
+    assert (
+        abs(unconstrained_output[1][0]["score"] - weakly_biased_output[1][0]["score"])
+        < 0.00001
+    )
 
 
 def test_num_hypotheses():

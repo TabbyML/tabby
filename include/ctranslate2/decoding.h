@@ -1,7 +1,9 @@
 #pragma once
 
+#include "ctranslate2/devices.h"
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/sampling.h"
+#include "ctranslate2/storage_view.h"
 #include "ctranslate2/generation_result.h"
 
 namespace ctranslate2 {
@@ -27,7 +29,10 @@ namespace ctranslate2 {
 
   class BeamSearch : public SearchStrategy {
   public:
-    BeamSearch(const dim_t beam_size, const float length_penalty = 0, const float coverage_penalty = 0);
+    BeamSearch(const dim_t beam_size,
+               const float length_penalty = 0,
+               const float coverage_penalty = 0,
+               const float prefix_bias_beta = 0);
 
     std::vector<GenerationResult<size_t>>
     search(layers::Decoder& decoder,
@@ -48,7 +53,26 @@ namespace ctranslate2 {
     const dim_t _beam_size;
     const float _length_penalty;
     const float _coverage_penalty;
+    const float _prefix_bias_beta;
   };
+
+  class BiasedDecoder {
+  public:
+    BiasedDecoder() = default;
+
+    void
+    decode(const float prefix_bias_beta,
+           const dim_t cur_batch_size,
+           const size_t step,
+           const std::vector<dim_t>& batch_offset,
+           const std::vector<std::vector<bool>>& beams_diverged_from_prefix,
+           const std::vector<std::vector<size_t>>& prefix_ids,
+           const StorageView& logits,
+           StorageView& log_probs);
+  private:
+    StorageView _spare_beam;
+  };
+
 
   class GreedySearch : public SearchStrategy {
   public:

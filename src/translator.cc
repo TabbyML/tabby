@@ -23,7 +23,8 @@ namespace ctranslate2 {
     else
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
-                                          options.coverage_penalty);
+                                          options.coverage_penalty,
+                                          options.prefix_bias_beta);
   }
 
 
@@ -38,6 +39,12 @@ namespace ctranslate2 {
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (min_decoding_length > max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
+    if (prefix_bias_beta >= 1)
+      throw std::invalid_argument("prefix_bias_beta must be less than 1.0");
+    if (prefix_bias_beta > 0 && return_alternatives)
+      throw std::invalid_argument("prefix_bias_beta is not compatible with return_alternatives");
+    if (prefix_bias_beta > 0 && beam_size <= 1)
+      throw std::invalid_argument("prefix_bias_beta is not compatible with greedy-search");
   }
 
   bool TranslationOptions::support_batch_translation() const {

@@ -1,4 +1,5 @@
 #include <ctranslate2/translator.h>
+#include <ctranslate2/decoding.h>
 
 #include <algorithm>
 
@@ -98,8 +99,8 @@ INSTANTIATE_TEST_CASE_P(
 class SearchVariantTest : public ::testing::TestWithParam<size_t> {
 };
 
-static Translator default_translator() {
-  return Translator(g_data_dir + "/models/v2/aren-transliteration", Device::CPU);
+static Translator default_translator(Device device = Device::CPU) {
+  return Translator(g_data_dir + "/models/v2/aren-transliteration", device);
 }
 
 TEST_P(SearchVariantTest, SetMaxDecodingLength) {
@@ -298,7 +299,7 @@ TEST(TranslatorTest, TranslateEmptySourceWithoutScore) {
   EXPECT_FALSE(translator.translate(std::vector<std::string>{}, options).has_scores());
 }
 
-TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {
+TEST(TranslatorTest, TranslateBatchWithHardPrefixAndEmpty) {
   Translator translator = default_translator();
   const TranslationOptions options;
   const std::vector<std::vector<std::string>> input = {
@@ -320,6 +321,283 @@ TEST(TranslatorTest, TranslateBatchWithPrefixAndEmpty) {
   EXPECT_TRUE(result[3].output().empty());
   EXPECT_EQ(result[4].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
 }
+
+TEST(TranslatorTest, TranslateBatchWithStronglyBiasedPrefix) {
+  // This test should produce the same results as TranslateBatchWithHardPrefixAndEmpty
+  // because prefix_bias_beta is set to 0.99, which is almost equivalent to using a hard prefix.
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.prefix_bias_beta = 0.99;
+  options.beam_size = 2;
+  const std::vector<std::vector<std::string>> input = {
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ز" ,"ا"}};
+  const std::vector<std::vector<std::string>> prefix = {
+    {"a", "t", "s"},
+    {},
+    {"a", "t", "z", "o"},
+    {}};
+  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
+  EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "o", "m", "o", "n"}));
+  EXPECT_EQ(result[3].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
+}
+
+TEST(TranslatorTest, TranslateBatchWithWeaklyBiasedPrefix) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.prefix_bias_beta = 0.01;
+  options.beam_size = 2;
+  const std::vector<std::vector<std::string>> input = {
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ز" ,"ا"}
+  };
+  const std::vector<std::vector<std::string>> prefix = {
+    {"a", "t", "s", "s", "s"},   // Test divergence at divergence first 's'
+    {},
+    {"a", "t", "z", "o"},
+    {}
+  };
+  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(result[3].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
+}
+
+class BiasedDecodingDeviceFPTest : public ::testing::TestWithParam<std::pair<Device, DataType>> {
+};
+
+TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeam) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 1;
+    const dim_t beam_size = 1;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size},
+                       std::vector<float>{4, 6});
+    StorageView softmax;
+    ops::SoftMax()(logits, softmax);
+    std::vector<float> expected_log_probs_vec = {
+      std::log((1-prefix_bias_beta) * softmax.at<float>(0) + prefix_bias_beta),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(1)),
+    };
+    StorageView expected_log_probs(logits.shape(), expected_log_probs_vec, device);
+
+    StorageView log_probs(device, dtype);
+    const size_t step = 0;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{false}};
+    const std::vector<dim_t> batch_offset = {0};
+    const std::vector<std::vector<size_t>> prefix_ids = {{0}};
+    ctranslate2::BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(device).to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 2;
+    const dim_t beam_size = 2;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size}, std::vector<float>{
+        4, 6,  // batch1 beam1
+        7, 3,  // batch1 beam2
+        1, 9,  // batch2 beam1
+        8, 2   // batch2 beam2
+    });
+    StorageView softmax;
+    ops::SoftMax()(logits, softmax);
+    const std::vector<std::vector<size_t>> prefix_ids = {
+      {0},  // bias batch 1 towards token0
+      {1}}; // bias batch 2 towards token1
+    std::vector<float> expected_log_probs_vec = {
+      //batch1 beam1
+      std::log((1-prefix_bias_beta) * softmax.at<float>(0) + prefix_bias_beta),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(1)),
+      //batch1 beam2
+      std::log((1-prefix_bias_beta) * softmax.at<float>(2) + prefix_bias_beta),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(3)),
+      //batch2 beam1
+      std::log((1-prefix_bias_beta) * softmax.at<float>(4)),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(5) + prefix_bias_beta),
+      //batch2 beam2
+      std::log((1-prefix_bias_beta) * softmax.at<float>(6)),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(7) + prefix_bias_beta),
+    };
+    StorageView expected_log_probs(logits.shape(), expected_log_probs_vec, device);
+
+    StorageView log_probs(dtype, device);
+    const size_t step = 0;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{false, false}, {false, false}};
+    const std::vector<dim_t> batch_offset = {0, 1};
+    BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(device).to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+TEST_P(BiasedDecodingDeviceFPTest, BeamDiverged) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 1;
+    const dim_t beam_size = 1;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size}, std::vector<float>{4, 6}, device);
+    StorageView expected_log_probs(device);
+    ops::LogSoftMax()(logits, expected_log_probs);
+
+    StorageView log_probs(dtype, device);
+    const size_t step = 0;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{true}};
+    const std::vector<dim_t> batch_offset = {0};
+    const std::vector<std::vector<size_t>> prefix_ids = {{0}};
+    BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+TEST_P(BiasedDecodingDeviceFPTest, TimeStepPastPrefix) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 1;
+    const dim_t beam_size = 1;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size}, std::vector<float>{4, 6}, device);
+    StorageView expected_log_probs(device);
+    ops::LogSoftMax()(logits, expected_log_probs);
+
+    StorageView log_probs(dtype, device);
+    const size_t step = 1;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{false}};
+    const std::vector<dim_t> batch_offset = {0};
+    const std::vector<std::vector<size_t>> prefix_ids = {{0}};
+    BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepBias) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 1;
+    const dim_t beam_size = 1;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size}, std::vector<float>{4, 6});
+    StorageView softmax;
+    ops::SoftMax()(logits, softmax);
+    std::vector<float> expected_log_probs_vec = {
+      std::log((1-prefix_bias_beta) * softmax.at<float>(0)),
+      std::log((1-prefix_bias_beta) * softmax.at<float>(1) + prefix_bias_beta),
+    };
+    StorageView expected_log_probs(logits.shape(), expected_log_probs_vec, device);
+
+    StorageView log_probs(dtype, device);
+    const size_t step = 1;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{false}};
+    const std::vector<dim_t> batch_offset = {0};
+    const std::vector<std::vector<size_t>> prefix_ids = {{0, 1, 0}};
+    BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(device).to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
+    const Device device = GetParam().first;
+    const DataType dtype = GetParam().second;
+    const dim_t vocab_size = 2;
+    const dim_t batch_size = 1;
+    const dim_t beam_size = 1;
+    const float prefix_bias_beta = 0.35;
+
+    StorageView logits({batch_size * beam_size, 1, vocab_size}, std::vector<float>{4, 6}, device);
+    StorageView expected_log_probs(device);
+    ops::LogSoftMax()(logits, expected_log_probs);
+
+    StorageView log_probs(dtype, device);
+    const size_t step = 1;
+    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{true}};
+    const std::vector<dim_t> batch_offset = {0};
+    const std::vector<std::vector<size_t>> prefix_ids = {{0, 1, 0}};
+    BiasedDecoder biased_decoder;
+    biased_decoder.decode(prefix_bias_beta,
+                          batch_size,
+                          step,
+                          batch_offset,
+                          beams_diverged_from_prefix,
+                          prefix_ids,
+                          logits.to(dtype),
+                          log_probs);
+
+    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+}
+
+static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataType>> param_info) {
+  return dtype_name(param_info.param.second);
+}
+INSTANTIATE_TEST_CASE_P(CPU, BiasedDecodingDeviceFPTest,
+                        ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
+                        fp_test_name);
+#ifdef CT2_WITH_CUDA
+INSTANTIATE_TEST_CASE_P(CUDA, BiasedDecodingDeviceFPTest,
+                        ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
+                                          std::make_pair(Device::CUDA, DataType::FLOAT16)),
+                        fp_test_name);
+#endif
 
 TEST(TranslatorTest, TranslatePrefixWithLargeBeam) {
   // Related to issue https://github.com/OpenNMT/CTranslate2/issues/277
