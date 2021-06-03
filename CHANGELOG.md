@@ -4,6 +4,57 @@
 
 ### Fixes and improvements
 
+## [v2.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.0.0) (2021-06-03)
+
+This major version introduces some breaking changes to simplify model conversion, improve the consistency of user options, and update the Python package to CUDA 11.x. It also comes with internal improvements to facilitate future changes.
+
+### Breaking changes
+
+#### General
+
+* Disable `return_scores` by default as most applications do not use translation scores
+* Replace all Docker images by a single one: `<version>-ubuntu20.04-cuda11.2`
+* Replace CMake option `LIB_ONLY` by `BUILD_CLI`
+* Require CMake version >= 3.15 for GPU compilation
+
+#### Python
+
+* For GPU execution, the Linux Python wheels published on PyPI now require CUDA 11.x to be installed on the system. The CUDA dependencies (e.g. cuBLAS) are no longer included in the package and are loaded dynamically.
+* Remove support for converting the TensorFlow SavedModel format (checkpoints should be converted instead)
+* Remove the `model_spec` option for converters that can automatically detect it from the checkpoints
+* Force translation options to be set with keyword arguments only (see the API reference)
+* Rename tokenization callables arguments in `translate_file` for clarity:
+  * `tokenize_fn` to `source_tokenize_fn`
+  * `detokenize_fn` to `target_detokenize_fn`
+
+#### CLI
+
+* Rename length contraints options for consistency with other APIs:
+  * `max_sent_length` to `max_decoding_length`
+  * `min_sent_length` to `min_decoding_length`
+
+#### C++
+
+* Move the `max_batch_size` and `batch_type` options from the `TranslationOptions` structure to the translation methods of `TranslatorPool`
+* Simplify the `TranslationResult` structure with public attributes instead of methods
+* Asynchronous translation API now returns one future per example instead of a single future for the batch
+
+### New features
+
+* Add translation option `prefix_bias_beta` to bias the decoding towards the target prefix (see [Arivazhagan et al. 2020](https://arxiv.org/abs/1912.03393))
+* Automatically detect the model specification when converting OpenNMT-py models
+* Support conversion and execution of Post-Norm Transformers
+* Add an experimental asynchronous memory allocator for CUDA 11.2 and above (can be enabled with the environment variable `CT2_CUDA_ALLOCATOR=cuda_malloc_async`)
+* Expose the Python package version in `ctranslate2.__version__`
+
+### Fixes and improvements
+
+* Fix silent activation of `replace_unknowns` when enabling `return_attention`
+* Improve support for the NVIDIA Ampere architecture in prebuilt binaries
+* Reduce the size of the Python wheels published on PyPI
+* Define a custom CUDA kernel for the GEMM output dequantization instead of a Thrust-based implementation
+* Update Thrust to 1.12.0
+
 ## [v1.20.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v1.20.1) (2021-04-29)
 
 ### Fixes and improvements
