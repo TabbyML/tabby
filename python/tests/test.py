@@ -556,6 +556,24 @@ def test_opennmt_py_relative_transformer(tmpdir):
     assert output[1][0]["tokens"] == ["a", "r", "t", "h", "e", "r"]
 
 
+@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+def test_fairseq_model_conversion(tmpdir):
+    data_dir = os.path.join(
+        _TEST_DATA_DIR,
+        "models",
+        "transliteration-aren-all",
+        "fairseq",
+    )
+    converter = ctranslate2.converters.FairseqConverter(
+        os.path.join(data_dir, "model.pt"), data_dir
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
+    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+
+
 def test_layer_spec_validate():
     class SubSpec(ctranslate2.specs.LayerSpec):
         def __init__(self):

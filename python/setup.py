@@ -60,7 +60,7 @@ setup(
     name="ctranslate2",
     version=_get_project_version(),
     license="MIT",
-    description="Fast inference engine for OpenNMT models",
+    description="Fast inference engine for Transformer models",
     long_description=_get_long_description(),
     long_description_content_type="text/markdown",
     author="OpenNMT",
@@ -94,6 +94,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
+            "ct2-fairseq-converter=ctranslate2.bin.fairseq_converter:main",
             "ct2-opennmt-py-converter=ctranslate2.bin.opennmt_py_converter:main",
             "ct2-opennmt-tf-converter=ctranslate2.bin.opennmt_tf_converter:main",
         ],

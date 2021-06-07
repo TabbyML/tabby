@@ -230,6 +230,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
     def __init__(self):
         self.with_source_bos = False
         self.with_source_eos = False
+        self.with_target_bos = True
         self._vocabularies = {}
         self._vmap = None
 

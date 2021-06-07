@@ -2,7 +2,7 @@
 
 # CTranslate2
 
-CTranslate2 is a fast inference engine for [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py) and [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf) models supporting both CPU and GPU execution. The goal is to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems such as Transformer models.
+CTranslate2 is a fast inference engine for Transformer models supporting CPU and GPU execution. The goal is to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems.
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
@@ -61,7 +61,7 @@ pip install --upgrade pip
 pip install ctranslate2
 ```
 
-2\. **[Convert](#converting-models) a model trained with OpenNMT-py or OpenNMT-tf**, for example the pretrained Transformer model (choose one of the two models):
+2\. **[Convert](#converting-models) a trained Transformer model**, for example one of the pretrained OpenNMT Transformer models (choose one of the two models):
 
 *a. OpenNMT-py*
 
@@ -141,10 +141,10 @@ The core CTranslate2 implementation is framework agnostic. The framework specifi
 
 The following frameworks and models are currently supported:
 
-|     | OpenNMT-tf | OpenNMT-py |
-| --- | :---: | :---: |
-| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ |
-| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ |
+|     | OpenNMT-tf | OpenNMT-py | Fairseq |
+| --- | :---: | :---: | :---: |
+| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ | ✓ |
+| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ | |
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
@@ -152,6 +152,7 @@ The Python package includes a [conversion API](docs/python.md#model-conversion-a
 
 * `ct2-opennmt-py-converter`
 * `ct2-opennmt-tf-converter`
+* `ct2-fairseq-converter`
 
 The conversion should be run in the same environment as the selected training framework.
 
@@ -461,6 +462,7 @@ The implementation has been generously tested in [production environment](https:
 * Python converters options
 * Python symbols:
   * `ctranslate2.Translator`
+  * `ctranslate2.converters.FairseqConverter`
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
 * C++ symbols:

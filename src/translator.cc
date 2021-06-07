@@ -196,7 +196,9 @@ namespace ctranslate2 {
     layers::DecoderState state = _decoder->initial_state();
     state.emplace(std::string("memory"), std::move(encoded));
     state.emplace(std::string("memory_lengths"), std::move(lengths));
-    const size_t start_id = target_vocabulary.to_id(Vocabulary::bos_token);
+    const size_t start_id = target_vocabulary.to_id(_seq2seq_model->with_target_bos()
+                                                    ? Vocabulary::bos_token
+                                                    : Vocabulary::eos_token);
     const size_t end_id = target_vocabulary.to_id(Vocabulary::eos_token);
     const size_t batch_size = source.size();
     const std::vector<size_t> start_ids(batch_size, start_id);

@@ -38,6 +38,7 @@ namespace ctranslate2 {
       Model::finalize();
       _with_source_bos = get_flag_with_default("with_source_bos", false);
       _with_source_eos = get_flag_with_default("with_source_eos", false);
+      _with_target_bos = get_flag_with_default("with_target_bos", true);
     }
 
     const Vocabulary& SequenceToSequenceModel::get_source_vocabulary() const {

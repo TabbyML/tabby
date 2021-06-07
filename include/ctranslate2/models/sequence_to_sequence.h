@@ -29,6 +29,10 @@ namespace ctranslate2 {
         return _with_source_eos;
       }
 
+      bool with_target_bos() const {
+        return _with_target_bos;
+      }
+
     protected:
       SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
       virtual void finalize() override;
@@ -41,6 +45,7 @@ namespace ctranslate2 {
 
       bool _with_source_bos = false;
       bool _with_source_eos = false;
+      bool _with_target_bos = true;
     };
 
   }
