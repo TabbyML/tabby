@@ -28,6 +28,9 @@ namespace ctranslate2 {
     // If beta <= 0 and a non-empty prefix is given, then the prefix will be used as a
     // hard-prefix rather than a soft, biased-prefix.
     float prefix_bias_beta = 0;
+    // Allow the beam search to exit when the first beam finishes. Otherwise, the decoding
+    // continues until beam_size hypotheses are finished.
+    bool allow_early_exit = true;
 
     // Decoding length constraints.
     size_t max_decoding_length = 250;

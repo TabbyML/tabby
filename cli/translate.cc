@@ -47,6 +47,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("coverage_penalty", "Coverage penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
+    ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
+     cxxopts::value<bool>()->default_value("false"))
     ("max_decoding_length", "Maximum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("250"))
     ("min_decoding_length", "Minimum sentence length to generate.",
@@ -104,6 +106,7 @@ int main(int argc, char* argv[]) {
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.coverage_penalty = args["coverage_penalty"].as<float>();
+  options.allow_early_exit = !args["disable_early_exit"].as<bool>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();
   options.sampling_temperature = args["sampling_temperature"].as<float>();
   options.max_decoding_length = args["max_decoding_length"].as<size_t>();

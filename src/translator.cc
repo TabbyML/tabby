@@ -24,7 +24,8 @@ namespace ctranslate2 {
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
                                           options.coverage_penalty,
-                                          options.prefix_bias_beta);
+                                          options.prefix_bias_beta,
+                                          options.allow_early_exit);
   }
 
 

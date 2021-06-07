@@ -32,7 +32,8 @@ namespace ctranslate2 {
     BeamSearch(const dim_t beam_size,
                const float length_penalty = 0,
                const float coverage_penalty = 0,
-               const float prefix_bias_beta = 0);
+               const float prefix_bias_beta = 0,
+               const bool early_exit = true);
 
     std::vector<GenerationResult<size_t>>
     search(layers::Decoder& decoder,
@@ -54,6 +55,7 @@ namespace ctranslate2 {
     const float _length_penalty;
     const float _coverage_penalty;
     const float _prefix_bias_beta;
+    const bool _early_exit;
   };
 
   class BiasedDecoder {

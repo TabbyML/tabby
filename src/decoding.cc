@@ -206,11 +206,14 @@ namespace ctranslate2 {
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
-                         const float prefix_bias_beta)
+                         const float prefix_bias_beta,
+                         const bool early_exit)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
-    , _prefix_bias_beta(prefix_bias_beta) {
+    , _prefix_bias_beta(prefix_bias_beta)
+    , _early_exit(early_exit)
+  {
   }
 
   std::vector<GenerationResult<size_t>>
@@ -425,6 +428,7 @@ namespace ctranslate2 {
 
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
+        auto& result = results[batch_id];
         for (dim_t k = 0; k < _beam_size; ++k) {
           if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_id)
               || step + 1 == max_step) {
@@ -452,7 +456,6 @@ namespace ctranslate2 {
                 }
               }
 
-              auto& result = results[batch_id];
               result.scores.emplace_back(score);
               result.hypotheses.emplace_back(std::move(hypothesis));
               if (return_attention)
@@ -461,8 +464,9 @@ namespace ctranslate2 {
           }
         }
 
-        if (top_beam_finished[i] && results[batch_id].num_hypotheses() >= num_hypotheses) {
-          sort_hypotheses(results[batch_id], num_hypotheses, return_scores);
+        if ((_early_exit && top_beam_finished[i] && result.num_hypotheses() >= num_hypotheses)
+            || (!_early_exit && result.num_hypotheses() >= static_cast<size_t>(_beam_size))) {
+          sort_hypotheses(result, num_hypotheses, return_scores);
         } else {
           non_finished_index.emplace_back(i);
         }
