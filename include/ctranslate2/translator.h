@@ -49,6 +49,8 @@ namespace ctranslate2 {
     // beam_size unless return_alternatives is set).
     size_t num_hypotheses = 1;
 
+    // Normalize the score by the hypothesis length. The hypotheses are sorted accordingly.
+    bool normalize_scores = false;
     // Store scores in the TranslationResult class.
     bool return_scores = false;
     // Store attention vectors in the TranslationResult class.

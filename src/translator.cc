@@ -217,7 +217,8 @@ namespace ctranslate2 {
       options.num_hypotheses,
       options.return_alternatives,
       options.return_scores,
-      options.return_attention || options.replace_unknowns);
+      options.return_attention || options.replace_unknowns,
+      options.normalize_scores);
 
     // Convert generated ids to tokens.
     std::vector<TranslationResult> final_results;

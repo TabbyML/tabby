@@ -134,6 +134,7 @@ public:
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
+                           bool normalize_scores,
                            bool with_scores,
                            size_t sampling_topk,
                            float sampling_temperature,
@@ -168,6 +169,7 @@ public:
       options.min_decoding_length = min_decoding_length;
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
+      options.normalize_scores = normalize_scores;
       options.return_scores = with_scores;
       options.replace_unknowns = replace_unknowns;
 
@@ -227,6 +229,7 @@ public:
                            size_t max_decoding_length,
                            size_t min_decoding_length,
                            bool use_vmap,
+                           bool normalize_scores,
                            bool return_scores,
                            bool return_attention,
                            bool return_alternatives,
@@ -257,6 +260,7 @@ public:
       options.min_decoding_length = min_decoding_length;
       options.num_hypotheses = num_hypotheses;
       options.use_vmap = use_vmap;
+      options.normalize_scores = normalize_scores;
       options.return_scores = return_scores;
       options.return_attention = return_attention;
       options.return_alternatives = return_alternatives;
@@ -410,6 +414,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
+         py::arg("normalize_scores")=false,
          py::arg("return_scores")=false,
          py::arg("return_attention")=false,
          py::arg("return_alternatives")=false,
@@ -433,6 +438,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_decoding_length")=250,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
+         py::arg("normalize_scores")=false,
          py::arg("with_scores")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,

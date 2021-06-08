@@ -41,6 +41,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("1"))
     ("n_best", "Also output the n-best hypotheses.",
      cxxopts::value<size_t>()->default_value("1"))
+    ("normalize_scores", "Normalize the score by the hypothesis length",
+     cxxopts::value<bool>()->default_value("false"))
     ("with_score", "Also output translation scores.",
      cxxopts::value<bool>()->default_value("false"))
     ("length_penalty", "Length penalty to apply during beam search",
@@ -116,6 +118,7 @@ int main(int argc, char* argv[]) {
   options.min_decoding_length = args["min_decoding_length"].as<size_t>();
   options.num_hypotheses = args["n_best"].as<size_t>();
   options.use_vmap = args["use_vmap"].as<bool>();
+  options.normalize_scores = args["normalize_scores"].as<bool>();
   options.return_scores = args["with_score"].as<bool>();
   options.replace_unknowns = args["replace_unknowns"].as<bool>();
 

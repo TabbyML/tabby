@@ -226,6 +226,7 @@ namespace ctranslate2 {
                      const dim_t max_length,
                      const dim_t min_length,
                      const std::vector<size_t>* output_ids_map,
+                     const bool normalize_scores,
                      const bool return_scores,
                      const bool return_attention,
                      const size_t num_hypotheses,
@@ -426,6 +427,8 @@ namespace ctranslate2 {
       std::vector<int32_t> non_finished_index;
       non_finished_index.reserve(cur_batch_size);
 
+      const dim_t max_time = alive_seq.dim(-1);
+
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         auto& result = results[batch_id];
@@ -435,13 +438,14 @@ namespace ctranslate2 {
             if (k == 0)
               top_beam_finished[i] = true;
             float score = topk_scores.scalar_at<float>({i, k});
+            if (normalize_scores)
+              score /= max_time;
             // Prevent this beam from advancing in the next step.
             TYPE_DISPATCH(dtype, topk_log_probs.at<T>({i, k}) = T(-1e10));
 
             {
               std::vector<size_t> hypothesis;
               std::vector<std::vector<float>> attn;
-              const dim_t max_time = alive_seq.dim(-1);
               hypothesis.reserve(max_time);
               if (return_attention)
                 attn.reserve(max_time);
@@ -464,8 +468,12 @@ namespace ctranslate2 {
           }
         }
 
-        if ((_early_exit && top_beam_finished[i] && result.num_hypotheses() >= num_hypotheses)
-            || (!_early_exit && result.num_hypotheses() >= static_cast<size_t>(_beam_size))) {
+        const bool is_finished = (
+          _early_exit
+          ? top_beam_finished[i] && result.num_hypotheses() >= num_hypotheses
+          : result.num_hypotheses() >= static_cast<size_t>(_beam_size));
+
+        if (is_finished) {
           sort_hypotheses(result, num_hypotheses, return_scores);
         } else {
           non_finished_index.emplace_back(i);
@@ -556,6 +564,7 @@ namespace ctranslate2 {
                        const dim_t max_length,
                        const dim_t min_length,
                        const std::vector<size_t>* output_ids_map,
+                       const bool normalize_scores,
                        const bool return_scores,
                        const bool return_attention,
                        const size_t,
@@ -649,6 +658,11 @@ namespace ctranslate2 {
       }
     }
 
+    if (normalize_scores) {
+      for (auto& result : results)
+        result.scores[0] /= result.hypotheses[0].size() + 1;  // +1 for EOS.
+    }
+
     return results;
   }
 
@@ -691,7 +705,8 @@ namespace ctranslate2 {
          const size_t num_hypotheses,
          const bool return_alternatives,
          const bool return_scores,
-         const bool return_attention) {
+         const bool return_attention,
+         const bool normalize_scores) {
     const size_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
@@ -728,6 +743,7 @@ namespace ctranslate2 {
                                                             /*max_length=*/1,
                                                             /*min_length=*/1,
                                                             output_ids_map,
+                                                            normalize_scores,
                                                             return_scores,
                                                             return_attention,
                                                             num_hypotheses);
@@ -768,6 +784,7 @@ namespace ctranslate2 {
                                           max_length,
                                           min_length,
                                           output_ids_map,
+                                          normalize_scores,
                                           return_scores,
                                           return_attention,
                                           return_alternatives ? 1 : num_hypotheses,
@@ -787,8 +804,17 @@ namespace ctranslate2 {
             prefix.attention[i].insert(prefix.attention[i].end(),
                                        std::make_move_iterator(suffix.attention[0].begin()),
                                        std::make_move_iterator(suffix.attention[0].end()));
-          if (prefix.has_scores())
-            prefix.scores[i] += suffix.scores[0];
+          if (prefix.has_scores()) {
+            if (normalize_scores) {
+              const auto prefix_length = prefix.hypotheses[i].size();
+              const auto suffix_length = suffix.hypotheses[0].size() + 1;  // +1 for EOS.
+              prefix.scores[i] = (
+                (prefix.scores[i] * prefix_length + suffix.scores[0] * suffix_length)
+                / (prefix_length + suffix_length));
+            } else {
+              prefix.scores[i] += suffix.scores[0];
+            }
+          }
         }
       }
       results = std::move(expansion_results);

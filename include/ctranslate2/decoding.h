@@ -21,6 +21,7 @@ namespace ctranslate2 {
            const dim_t max_length,
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
+           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
@@ -45,6 +46,7 @@ namespace ctranslate2 {
            const dim_t max_length,
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
+           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
@@ -88,6 +90,7 @@ namespace ctranslate2 {
            const dim_t max_length,
            const dim_t min_length,
            const std::vector<size_t>* output_ids_map,
+           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
@@ -108,6 +111,7 @@ namespace ctranslate2 {
          const size_t num_hypotheses,
          const bool return_alternatives,
          const bool return_scores,
-         const bool return_attention);
+         const bool return_attention,
+         const bool normalize_scores);
 
 }

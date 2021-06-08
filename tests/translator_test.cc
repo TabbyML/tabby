@@ -233,6 +233,25 @@ TEST_P(SearchVariantTest, ReplaceUnknowns) {
   EXPECT_EQ(result.output(), expected);
 }
 
+TEST_P(SearchVariantTest, NormalizeScores) {
+  const auto beam_size = GetParam();
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  Translator translator = default_translator();
+
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.num_hypotheses = beam_size;
+  options.return_scores = true;
+  const auto result = translator.translate(input, options);
+  const auto score = result.scores[0];
+
+  options.normalize_scores = true;
+  const auto normalized_result = translator.translate(input, options);
+  const auto normalized_score = normalized_result.scores[0];
+
+  EXPECT_NEAR(normalized_score, score / (result.hypotheses[0].size() + 1), 1e-6);
+}
+
 
 INSTANTIATE_TEST_CASE_P(
   TranslatorTest,
