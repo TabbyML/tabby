@@ -171,9 +171,6 @@ public:
       options.return_scores = with_scores;
       options.replace_unknowns = replace_unknowns;
 
-      if (read_batch_size == 0)
-        read_batch_size = max_batch_size;
-
       if (source_tokenize_fn && target_detokenize_fn) {
         // Re-acquire the GIL before calling the tokenization functions.
         const auto safe_source_tokenize_fn = [&source_tokenize_fn](const std::string& text) {
