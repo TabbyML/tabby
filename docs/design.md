@@ -8,7 +8,7 @@ The core CTranslate2 implementation is framework-agnostic and does not depend on
 
 ### Model specification
 
-A model specification defines the structures and names of the model weights. Converters should fill out this specification with weights comming from a trained model.
+A model specification defines the structures and names of the model weights. Converters should fill out this specification with weights coming from a trained model.
 
 In the Python code, a model specification is represented as nested `LayerSpec` objects, where intermediate objects define weights scopes and leaf objects define the weights name and value. This is similar to how you would define a model in PyTorch (using `nn.Module`) or TensorFlow (using `tf.Module`).
 
