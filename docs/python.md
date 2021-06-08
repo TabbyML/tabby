@@ -96,6 +96,7 @@ stats = translator.translate_file(
     num_hypotheses: int = 1,
     length_penalty: float = 0,
     coverage_penalty: float = 0,
+    prefix_bias_beta: float = 0,
     allow_early_exit: bool = True,
     max_decoding_length: int = 250,
     min_decoding_length: int = 1,
