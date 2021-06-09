@@ -18,8 +18,6 @@ namespace ctranslate2 {
     double total_time_in_ms = 0;
   };
 
-  class BufferedTranslationWrapper;
-
   // A pool of Translators running in parallel.
   class TranslatorPool {
   public:
@@ -314,8 +312,6 @@ namespace ctranslate2 {
     const std::vector<Translator>& get_translators() const;
 
   private:
-    friend class BufferedTranslationWrapper;
-
     class Job {
     public:
       virtual ~Job() = default;
