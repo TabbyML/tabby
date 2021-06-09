@@ -4,23 +4,37 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
-def get_model_spec(opt):
-    """Creates a model specification from the model options."""
-    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
-    is_compatible = (
-        opt.encoder_type == "transformer"
-        and opt.decoder_type == "transformer"
-        and not getattr(opt, "aan_useffn", False)
-        and getattr(opt, "self_attn_type", "scaled-dot") == "scaled-dot"
-        and getattr(opt, "pos_ffn_activation_fn", "relu") == "relu"
-        and (
-            (opt.position_encoding and not with_relative_position)
-            or (with_relative_position and not opt.position_encoding)
+def _check_opt(opt):
+    reasons = []
+    if opt.encoder_type != "transformer" or opt.decoder_type != "transformer":
+        reasons.append(
+            "Options --encoder_type and --decoder_type must be 'transformer'"
         )
-    )
-    if not is_compatible:
-        return None
+    if getattr(opt, "self_attn_type", "scaled-dot") != "scaled-dot":
+        reasons.append(
+            "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
+            % opt.self_attn_type
+        )
+    if getattr(opt, "pos_ffn_activation_fn", "relu") != "relu":
+        reasons.append(
+            "Option --pos_ffn_activation_fn %s is not supported (supported activations are: relu)"
+            % opt.pos_ffn_activation_fn
+        )
+    if opt.position_encoding == (getattr(opt, "max_relative_positions", 0) > 0):
+        reasons.append(
+            "Options --position_encoding and --max_relative_positions cannot be both enabled "
+            "or both disabled"
+        )
+
+    if reasons:
+        utils.raise_unsupported(reasons)
+
+
+def _get_model_spec(opt):
+    """Creates a model specification from the model options."""
+    _check_opt(opt)
     num_heads = getattr(opt, "heads", 8)
+    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
     return transformer_spec.TransformerSpec(
         (opt.enc_layers, opt.dec_layers),
         num_heads,
@@ -38,17 +52,12 @@ class OpenNMTPyConverter(Converter):
         import torch
 
         checkpoint = torch.load(self._model_path, map_location="cpu")
-        model_spec = get_model_spec(checkpoint["opt"])
-        if model_spec is None:
-            return None
+        model_spec = _get_model_spec(checkpoint["opt"])
 
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"].get("0.bias")
-        if isinstance(model_spec, transformer_spec.TransformerSpec):
-            set_transformer_spec(model_spec, variables)
-        else:
-            return None
+
         vocab = checkpoint["vocab"]
         if isinstance(vocab, dict) and "src" in vocab:
             src_vocab = vocab["src"].fields[0][1].vocab
@@ -57,6 +66,8 @@ class OpenNMTPyConverter(Converter):
             # Compatibility with older models.
             src_vocab = vocab[0][1]
             tgt_vocab = vocab[1][1]
+
+        set_transformer_spec(model_spec, variables)
         model_spec.register_vocabulary("source", src_vocab.itos)
         model_spec.register_vocabulary("target", tgt_vocab.itos)
         return model_spec

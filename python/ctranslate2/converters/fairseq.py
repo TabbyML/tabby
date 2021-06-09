@@ -16,26 +16,39 @@ _SUPPORTED_ARCHS = {
 }
 
 
-def _get_model_spec(args):
+def _check_args(args):
+    reasons = []
     if args.arch not in _SUPPORTED_ARCHS:
-        raise ValueError("--arch %s is currently unsupported" % args.arch)
+        reasons.append(
+            "Option --arch %s is not supported (supported architectures are: %s)"
+            % (args.arch, ", ".join(_SUPPORTED_ARCHS))
+        )
     if args.encoder_normalize_before != args.decoder_normalize_before:
-        raise ValueError(
-            "--encoder-normalize-before and --decoder-normalize-before must have the same value"
+        reasons.append(
+            "Options --encoder-normalize-before and --decoder-normalize-before "
+            "must have the same value"
         )
     if args.encoder_attention_heads != args.decoder_attention_heads:
-        raise ValueError(
-            "--encoder-attention-heads and --decoder-attention-heads must have the same value"
+        reasons.append(
+            "Options --encoder-attention-heads and --decoder-attention-heads must "
+            "have the same value"
         )
     if getattr(args, "activation_fn", "relu") != "relu":
-        raise ValueError(
-            "--activation-fn %s is currently unsupported" % args.activation_fn
+        reasons.append(
+            "Option --activation-fn %s is not supported (supported activations are: relu)"
+            % args.activation_fn
         )
     if getattr(args, "no_token_positional_embeddings", False):
-        raise ValueError("--no-token-positional-embeddings is currently unsupported")
+        reasons.append("Option --no-token-positional-embeddings is not supported")
     if getattr(args, "layernorm_embedding", False):
-        raise ValueError("--layernorm-embedding is currently unsupported")
+        reasons.append("Option --layernorm-embedding is not supported")
 
+    if reasons:
+        utils.raise_unsupported(reasons)
+
+
+def _get_model_spec(args):
+    _check_args(args)
     return transformer_spec.TransformerSpec(
         (args.encoder_layers, args.decoder_layers),
         args.encoder_attention_heads,

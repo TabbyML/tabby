@@ -78,13 +78,10 @@ class OpenNMTTFConverter(Converter):
         else:
             version = 2  # Assume we are passing V2 variables.
             variables = self._variables
-        if isinstance(model_spec, transformer_spec.TransformerSpec):
-            if version == 2:
-                set_transformer_spec_v2(model_spec, variables)
-            else:
-                set_transformer_spec(model_spec, variables)
+        if version >= 2:
+            set_transformer_spec_v2(model_spec, variables)
         else:
-            return None
+            set_transformer_spec(model_spec, variables)
         model_spec.register_vocabulary("source", _load_vocab(self._src_vocab))
         model_spec.register_vocabulary("target", _load_vocab(self._tgt_vocab))
         return model_spec
