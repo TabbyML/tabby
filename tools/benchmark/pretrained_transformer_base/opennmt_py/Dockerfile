@@ -9,12 +9,10 @@ RUN apt-get update && \
 
 RUN wget -q https://opennmt-models.s3.amazonaws.com/transformer-ende-wmt-pyOnmt.tar.gz && \
     tar xf *.tar.gz && \
-    rm *.tar.gz sentencepiece.model
+    rm *.tar.gz
 
 # TODO: remove --no-deps once OpenNMT-py includes PyTorch 1.7 in its dependencies.
 RUN pip install --no-cache-dir --no-deps OpenNMT-py==2.0.0 && \
-    pip install --no-cache-dir torchtext==0.5.* configargparse==1.*
+    pip install --no-cache-dir torchtext==0.5.* configargparse==1.* pyonmttok==1.*
 
-COPY opennmt_py/run.sh /
-
-ENTRYPOINT ["/run.sh"]
+COPY *.sh /

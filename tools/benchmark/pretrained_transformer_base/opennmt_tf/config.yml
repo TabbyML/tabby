@@ -1,0 +1,8 @@
+model_dir: /averaged-ende-ckpt500k-v2
+data:
+  source_vocabulary: /averaged-ende-ckpt500k-v2/wmtende.vocab
+  target_vocabulary: /averaged-ende-ckpt500k-v2/wmtende.vocab
+params:
+  beam_width: 4
+infer:
+  batch_size: 32

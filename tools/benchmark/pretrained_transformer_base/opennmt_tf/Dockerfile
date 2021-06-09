@@ -15,9 +15,12 @@ RUN apt-get update && \
 RUN wget -q https://opennmt-models.s3.amazonaws.com/averaged-ende-ckpt500k-v2.tar.gz && \
     tar xf *.tar.gz && \
     rm *.tar.gz
+RUN cd averaged-ende-ckpt500k-v2 && \
+    wget -q https://opennmt-trainingdata.s3.amazonaws.com/wmtende.model
 
 RUN python3 -m pip install --no-cache-dir tensorflow==2.4.* OpenNMT-tf==2.14.*
 
-COPY opennmt_tf/run.sh /
+ENV LANG=C.UTF-8
 
-ENTRYPOINT ["/run.sh"]
+COPY *.yml /
+COPY *.sh /
