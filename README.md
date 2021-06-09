@@ -2,7 +2,7 @@
 
 # CTranslate2
 
-CTranslate2 is a fast inference engine for Transformer models supporting CPU and GPU execution. The goal is to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems.
+CTranslate2 is a fast and full-featured inference engine for Transformer models. It aims to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems on CPU and GPU. It currently supports Transformer models trained with [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py), [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf), and [Fairseq](https://github.com/pytorch/fairseq/).
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
