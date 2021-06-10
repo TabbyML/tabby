@@ -18,9 +18,10 @@ namespace ctranslate2 {
       virtual dim_t output_size() const = 0;
     };
 
+    // This enum order should remain fixed.
     enum class ActivationType {
-      GELU,
       ReLU,
+      GELU,
     };
 
     class Activation : public Layer {

@@ -26,6 +26,7 @@ namespace ctranslate2 {
       size_t _num_heads;
       bool _with_relative_position;
       bool _pre_norm;
+      layers::ActivationType _activation_type;
     };
 
   }

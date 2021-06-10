@@ -20,6 +20,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         num_heads,
         with_relative_position=False,
         pre_norm=True,
+        activation=common_spec.Activation.RELU,
     ):
         super().__init__()
         if isinstance(num_layers, (list, tuple)):
@@ -28,6 +29,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             num_encoder_layers, num_decoder_layers = num_layers, num_layers
         self.num_heads = np.dtype("int8").type(num_heads)
         self.pre_norm = np.dtype("int8").type(pre_norm)
+        self.activation = np.dtype("int8").type(activation)
         self.with_relative_position = with_relative_position
         self.encoder = TransformerEncoderSpec(num_encoder_layers, pre_norm=pre_norm)
         self.decoder = TransformerDecoderSpec(num_decoder_layers, pre_norm=pre_norm)

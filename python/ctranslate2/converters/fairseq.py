@@ -16,7 +16,17 @@ _SUPPORTED_ARCHS = {
 }
 
 
-def _check_args(args):
+_SUPPORTED_ACTIVATIONS = {
+    "gelu": common_spec.Activation.GELU,
+    "gelu_accurate": common_spec.Activation.GELU,
+    "gelu_fast": common_spec.Activation.GELU,
+    "relu": common_spec.Activation.RELU,
+}
+
+
+def _get_model_spec(args):
+    activation_fn = getattr(args, "activation_fn", "relu")
+
     reasons = []
     if args.arch not in _SUPPORTED_ARCHS:
         reasons.append(
@@ -33,10 +43,10 @@ def _check_args(args):
             "Options --encoder-attention-heads and --decoder-attention-heads must "
             "have the same value"
         )
-    if getattr(args, "activation_fn", "relu") != "relu":
+    if activation_fn not in _SUPPORTED_ACTIVATIONS.keys():
         reasons.append(
-            "Option --activation-fn %s is not supported (supported activations are: relu)"
-            % args.activation_fn
+            "Option --activation-fn %s is not supported (supported activations are: %s)"
+            % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys()))
         )
     if getattr(args, "no_token_positional_embeddings", False):
         reasons.append("Option --no-token-positional-embeddings is not supported")
@@ -46,13 +56,11 @@ def _check_args(args):
     if reasons:
         utils.raise_unsupported(reasons)
 
-
-def _get_model_spec(args):
-    _check_args(args)
     return transformer_spec.TransformerSpec(
         (args.encoder_layers, args.decoder_layers),
         args.encoder_attention_heads,
         pre_norm=args.encoder_normalize_before,
+        activation=_SUPPORTED_ACTIVATIONS[activation_fn],
     )
 
 

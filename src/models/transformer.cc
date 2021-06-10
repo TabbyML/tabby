@@ -71,6 +71,12 @@ namespace ctranslate2 {
         _num_heads = get_variable("num_heads").as_scalar<int8_t>();
       _with_relative_position = get_flag_with_default("with_relative_position", false);
       _pre_norm = get_flag_with_default("pre_norm", true);
+
+      const auto* activation_type = get_variable_if_exists("activation");
+      if (activation_type)
+        _activation_type = static_cast<layers::ActivationType>(activation_type->as_scalar<int8_t>());
+      else
+        _activation_type = layers::ActivationType::ReLU;
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
@@ -78,7 +84,8 @@ namespace ctranslate2 {
                                                           "encoder",
                                                           _num_heads,
                                                           !_with_relative_position,
-                                                          _pre_norm);
+                                                          _pre_norm,
+                                                          _activation_type);
     }
 
     std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {
@@ -87,7 +94,8 @@ namespace ctranslate2 {
                                                           _num_heads,
                                                           !_with_relative_position,
                                                           /*with_encoder_attention=*/true,
-                                                          _pre_norm);
+                                                          _pre_norm,
+                                                          _activation_type);
     }
 
   }

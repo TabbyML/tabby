@@ -4,7 +4,17 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
-def _check_opt(opt):
+_SUPPORTED_ACTIVATIONS = {
+    "gelu": common_spec.Activation.GELU,
+    "relu": common_spec.Activation.RELU,
+}
+
+
+def _get_model_spec(opt):
+    """Creates a model specification from the model options."""
+    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
+    activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
+
     reasons = []
     if opt.encoder_type != "transformer" or opt.decoder_type != "transformer":
         reasons.append(
@@ -15,12 +25,12 @@ def _check_opt(opt):
             "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
             % opt.self_attn_type
         )
-    if getattr(opt, "pos_ffn_activation_fn", "relu") != "relu":
+    if activation_fn not in _SUPPORTED_ACTIVATIONS.keys():
         reasons.append(
-            "Option --pos_ffn_activation_fn %s is not supported (supported activations are: relu)"
-            % opt.pos_ffn_activation_fn
+            "Option --pos_ffn_activation_fn %s is not supported (supported activations are: %s)"
+            % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys()))
         )
-    if opt.position_encoding == (getattr(opt, "max_relative_positions", 0) > 0):
+    if opt.position_encoding == with_relative_position:
         reasons.append(
             "Options --position_encoding and --max_relative_positions cannot be both enabled "
             "or both disabled"
@@ -29,16 +39,12 @@ def _check_opt(opt):
     if reasons:
         utils.raise_unsupported(reasons)
 
-
-def _get_model_spec(opt):
-    """Creates a model specification from the model options."""
-    _check_opt(opt)
     num_heads = getattr(opt, "heads", 8)
-    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
     return transformer_spec.TransformerSpec(
         (opt.enc_layers, opt.dec_layers),
         num_heads,
         with_relative_position=with_relative_position,
+        activation=_SUPPORTED_ACTIVATIONS[activation_fn],
     )
 
 
