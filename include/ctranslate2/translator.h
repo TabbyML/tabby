@@ -13,6 +13,7 @@ namespace ctranslate2 {
 
   class Translator;
   class TranslatorPool;
+  class BufferedTranslationWrapper;
 
   struct TranslationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
@@ -74,6 +75,7 @@ namespace ctranslate2 {
 
     friend class Translator;
     friend class TranslatorPool;
+    friend class BufferedTranslationWrapper;
   };
 
   // This class holds all information required to translate from a model. Copying
