@@ -24,11 +24,15 @@ Below are some recommendations to further improve translation performance. Many 
 
 ## Measuring performance
 
-### Throughput
+### Reporting the translation throughput
 
-The command line option `--log_throughput` reports *tokens generated per second* on the standard error output. This is the recommended metric to compare different runs (higher is better).
+The command line option `--log_throughput` reports the *tokens generated per second* on the standard error output. This is the recommended metric to compare different runs (higher is better).
 
-### Profiling
+### Benchmarking models
+
+See the [benchmark scripts](../tools/benchmark).
+
+### Profiling the execution
 
 The command line option `--log_profiling` reports an execution profile on the standard error output. It prints a list of selected functions in the format:
 
