@@ -183,4 +183,7 @@ def set_embeddings(spec, module, multiply_by_sqrt_depth=True):
 
 
 def set_position_encodings(spec, module):
-    spec.encodings = module.weights.numpy()[module.padding_idx + 1 :]
+    import torch
+
+    weight = module.weight if isinstance(module, torch.nn.Embedding) else module.weights
+    spec.encodings = weight.numpy()[module.padding_idx + 1 :]
