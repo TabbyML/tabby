@@ -111,11 +111,11 @@ namespace ctranslate2 {
                       const StorageView& lengths,
                       StorageView& output) override;
 
-      DataType output_type() const {
+      DataType output_type() const override {
         return _layers.back()->output_type();
       }
 
-      dim_t output_size() const {
+      dim_t output_size() const override {
         return _layers.back()->output_size();
       }
 
@@ -148,11 +148,11 @@ namespace ctranslate2 {
                       StorageView* logits = nullptr,
                       StorageView* attention = nullptr) override;
 
-      DataType output_type() const {
+      DataType output_type() const override {
         return _proj.output_type();
       }
 
-      dim_t output_size() const {
+      dim_t output_size() const override {
         return _proj.output_size();
       }
 
