@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v2.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.1.0) (2021-06-14)
+
+### New features
+
+* Support conversion of Transformer models trained with [Fairseq](https://github.com/pytorch/fairseq/) (see script `ct2-fairseq-converter`)
+* Support conversion of models using GELU activations
+* Add translation option `normalize_scores` to return scores normalized by the hypotheses length: enabling this option can improve the beam search output for some models
+* Add translation option `allow_early_exit` to toggle the beam search early exit optimization: disabling this option has a small negative impact on performance, but it can improve the beam search output when using penalties or normalized scores
+* [C++] Add class `BufferedTranslationWrapper` to buffer and batch independent inputs to the same model
+
+### Fixes and improvements
+
+* Read value of environment variable `OMP_NUM_THREADS` when `intra_threads` is not set
+* Improve file translation performance by enabling local sorting by default
+* [Python] Improve error message when converting unsupported models and list all options that are unuspported
+* [Python] Return statistics of `Translator.translate_file` as an object with named properties
+* [C++] Fix compilation of method `TranlatorPool::consume_raw_text_file` that takes streams as inputs
+
 ## [v2.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.0.0) (2021-06-03)
 
 This major version introduces some breaking changes to simplify model conversion, improve the consistency of user options, and update the Python package to CUDA 11.x. It also comes with internal improvements to facilitate future changes.
