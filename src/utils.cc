@@ -148,8 +148,9 @@ namespace ctranslate2 {
 
   void set_num_threads(size_t num_threads) {
 #ifdef _OPENMP
-    if (num_threads != 0)
-      omp_set_num_threads(num_threads);
+    if (num_threads == 0)
+      num_threads = read_int_from_env("OMP_NUM_THREADS", 4);
+    omp_set_num_threads(num_threads);
 #else
     (void)num_threads;
 #endif

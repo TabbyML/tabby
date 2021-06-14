@@ -395,7 +395,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("device_index")=0,
          py::arg("compute_type")="default",
          py::arg("inter_threads")=1,
-         py::arg("intra_threads")=4)
+         py::arg("intra_threads")=0)
     .def_property_readonly("device", &TranslatorWrapper::device)
     .def_property_readonly("device_index", &TranslatorWrapper::device_index)
     .def_property_readonly("num_translators", &TranslatorWrapper::num_translators)

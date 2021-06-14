@@ -43,7 +43,8 @@ translator = ctranslate2.Translator(
     compute_type: Union[str, Dict[str, str]] = "default",
 
     inter_threads: int = 1,         # Maximum number of parallel translations (CPU only).
-    intra_threads: int = 4,         # Threads to use per translation (CPU only).
+    intra_threads: int = 0,         # Threads to use per translation (CPU only).
+                                    # Set 0 to use a default value.
 )
 
 # Properties:
