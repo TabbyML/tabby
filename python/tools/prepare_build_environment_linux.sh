@@ -3,8 +3,6 @@
 set -e
 set -x
 
-yum install -y yum-utils
-
 # Install CUDA 11.2, see:
 # * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/base/Dockerfile
 # * https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/11.2.2/centos7-x86_64/devel/Dockerfile
