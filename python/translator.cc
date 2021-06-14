@@ -119,29 +119,30 @@ public:
   using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
   using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
 
-  py::tuple translate_file(const std::string& source_path,
-                           const std::string& output_path,
-                           const std::string& target_path,
-                           size_t max_batch_size,
-                           size_t read_batch_size,
-                           const std::string& batch_type_str,
-                           size_t beam_size,
-                           size_t num_hypotheses,
-                           float length_penalty,
-                           float coverage_penalty,
-                           float prefix_bias_beta,
-                           bool allow_early_exit,
-                           size_t max_decoding_length,
-                           size_t min_decoding_length,
-                           bool use_vmap,
-                           bool normalize_scores,
-                           bool with_scores,
-                           size_t sampling_topk,
-                           float sampling_temperature,
-                           bool replace_unknowns,
-                           const TokenizeFn& source_tokenize_fn,
-                           const TokenizeFn& target_tokenize_fn,
-                           const DetokenizeFn& target_detokenize_fn) {
+  ctranslate2::TranslationStats
+  translate_file(const std::string& source_path,
+                 const std::string& output_path,
+                 const std::string& target_path,
+                 size_t max_batch_size,
+                 size_t read_batch_size,
+                 const std::string& batch_type_str,
+                 size_t beam_size,
+                 size_t num_hypotheses,
+                 float length_penalty,
+                 float coverage_penalty,
+                 float prefix_bias_beta,
+                 bool allow_early_exit,
+                 size_t max_decoding_length,
+                 size_t min_decoding_length,
+                 bool use_vmap,
+                 bool normalize_scores,
+                 bool with_scores,
+                 size_t sampling_topk,
+                 float sampling_temperature,
+                 bool replace_unknowns,
+                 const TokenizeFn& source_tokenize_fn,
+                 const TokenizeFn& target_tokenize_fn,
+                 const DetokenizeFn& target_detokenize_fn) {
     if (bool(source_tokenize_fn) != bool(target_detokenize_fn))
       throw std::invalid_argument("source_tokenize_fn and target_detokenize_fn should both be set or none at all");
     const std::string* target_path_ptr = target_path.empty() ? nullptr : &target_path;
@@ -213,7 +214,7 @@ public:
       }
     }
 
-    return py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
+    return stats;
   }
 
   py::list translate_batch(const BatchTokens& source,
@@ -450,5 +451,17 @@ PYBIND11_MODULE(translator, m)
          py::arg("to_cpu")=false)
     .def("load_model", &TranslatorWrapper::load_model)
     .def_property_readonly("model_is_loaded", &TranslatorWrapper::model_is_loaded)
+    ;
+
+  py::class_<ctranslate2::TranslationStats>(m, "TranslationStats")
+    .def_readonly("num_tokens", &ctranslate2::TranslationStats::num_tokens)
+    .def_readonly("num_examples", &ctranslate2::TranslationStats::num_examples)
+    .def_readonly("total_time_in_ms", &ctranslate2::TranslationStats::total_time_in_ms)
+
+    // Backward compatibility with using translate_file output as a tuple.
+    .def("__getitem__", [](const ctranslate2::TranslationStats& stats, size_t index) {
+      auto tuple = py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
+      return py::object(tuple[index]);
+    })
     ;
 }

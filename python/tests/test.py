@@ -97,9 +97,15 @@ def test_file_translation(tmpdir):
         lines = output_file.readlines()
         assert lines[0].strip() == "a t z m o n"
         assert lines[1].strip() == "a c h i s o n"
-    assert stats[0] == 13  # Number of generated target tokens.
-    assert stats[1] == 2  # Number of translated examples.
-    assert isinstance(stats[2], float)  # Total time in milliseconds.
+    assert stats.num_tokens == 13
+    assert stats.num_examples == 2
+    assert isinstance(stats.total_time_in_ms, float)
+
+    # For backward compatibility, ensure that stats is tuple-like.
+    num_tokens, num_examples, total_time_in_ms = stats
+    assert stats[0] == num_tokens
+    assert stats[1] == num_examples
+    assert stats[2] == total_time_in_ms
 
 
 def test_raw_file_translation(tmpdir):

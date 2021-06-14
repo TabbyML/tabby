@@ -81,10 +81,10 @@ output = translator.translate_batch(
     replace_unknowns: bool = False,    # Replace unknown target tokens by the source token with the highest attention.
 )
 
-# stats is a tuple of file statistics containing in order:
-# 1. the number of generated target tokens
-# 2. the number of translated examples
-# 3. the total translation time in milliseconds
+# stats is an object with the following properties:
+# * num_tokens: the number of generated target tokens
+# * num_examples: the number of translated examples
+# * total_time_in_ms: the total translation time in milliseconds
 stats = translator.translate_file(
     source_path: str,               # Source file.
     output_path: str,               # Output file.
