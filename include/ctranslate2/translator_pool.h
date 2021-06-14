@@ -211,8 +211,10 @@ namespace ctranslate2 {
                                    tokenizer,
                                    tokenizer,
                                    detokenizer,
-                                   read_batch_size,
                                    options,
+                                   max_batch_size,
+                                   read_batch_size,
+                                   batch_type,
                                    with_scores);
     }
 
