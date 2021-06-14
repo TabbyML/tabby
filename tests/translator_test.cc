@@ -744,8 +744,6 @@ TEST(TranslatorTest, SameBeamAndGreedyScore) {
   EXPECT_NEAR(greedy_score, beam_score, 1e-5);
 }
 
-#ifndef CT2_ARM64_BUILD
-
 TEST(BufferedTranslationWrapperTest, Basic) {
   auto translator_pool = std::make_shared<TranslatorPool>(/*num_translators=*/1,
                                                           /*num_threads_per_translator=*/2,
@@ -762,5 +760,3 @@ TEST(BufferedTranslationWrapperTest, Basic) {
   EXPECT_EQ(future2.get().hypotheses[0],
             (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
-
-#endif

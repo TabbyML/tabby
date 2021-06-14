@@ -12,11 +12,12 @@ namespace ctranslate2 {
     , _max_batch_size(max_batch_size)
     , _max_buffer_size(max_buffer_size == 0 ? max_batch_size : max_buffer_size)
     , _buffer_timeout(buffer_timeout_in_micros)
-    , _background_thread(&BufferedTranslationWrapper::buffer_loop, this)
   {
     _options.validate();
     _options.validated = true;
     _options.rebatch_input = false;
+    _background_thread = std::make_unique<std::thread>(&BufferedTranslationWrapper::buffer_loop,
+                                                       this);
   }
 
   BufferedTranslationWrapper::~BufferedTranslationWrapper() {
@@ -24,7 +25,8 @@ namespace ctranslate2 {
       const std::lock_guard<std::mutex> lock(_mutex);
       _stop = true;
     }
-    _background_thread.join();
+    _cv.notify_one();
+    _background_thread->join();
   }
 
   std::future<TranslationResult>

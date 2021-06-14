@@ -34,7 +34,7 @@ namespace ctranslate2 {
     const size_t _max_batch_size;
     const size_t _max_buffer_size;
     const std::chrono::microseconds _buffer_timeout;
-    std::thread _background_thread;
+    std::unique_ptr<std::thread> _background_thread;
     bool _stop = false;
 
     std::mutex _mutex;
