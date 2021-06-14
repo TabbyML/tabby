@@ -89,7 +89,7 @@ output = translator.translate_batch(
 stats = translator.translate_file(
     source_path: str,               # Source file.
     output_path: str,               # Output file.
-    target_path: str = "",          # Target prefix file.
+    target_path: str = None,        # Target prefix file.
     *,
     max_batch_size: int = 32,       # Maximum batch size to run the model on.
     read_batch_size: int = 0,       # Number of sentences to read at once.

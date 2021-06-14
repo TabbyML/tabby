@@ -122,7 +122,7 @@ public:
   ctranslate2::TranslationStats
   translate_file(const std::string& source_path,
                  const std::string& output_path,
-                 const std::string& target_path,
+                 const std::optional<std::string>& target_path,
                  size_t max_batch_size,
                  size_t read_batch_size,
                  const std::string& batch_type_str,
@@ -145,7 +145,7 @@ public:
                  const DetokenizeFn& target_detokenize_fn) {
     if (bool(source_tokenize_fn) != bool(target_detokenize_fn))
       throw std::invalid_argument("source_tokenize_fn and target_detokenize_fn should both be set or none at all");
-    const std::string* target_path_ptr = target_path.empty() ? nullptr : &target_path;
+    const std::string* target_path_ptr = target_path ? &target_path.value() : nullptr;
     if (target_path_ptr && source_tokenize_fn && !target_tokenize_fn)
       throw std::invalid_argument("target_tokenize_fn should be set when passing a target file");
 
@@ -425,7 +425,7 @@ PYBIND11_MODULE(translator, m)
     .def("translate_file", &TranslatorWrapper::translate_file,
          py::arg("source_path"),
          py::arg("output_path"),
-         py::arg("target_path")="",
+         py::arg("target_path")=py::none(),
          py::kw_only(),
          py::arg("max_batch_size")=32,
          py::arg("read_batch_size")=0,
