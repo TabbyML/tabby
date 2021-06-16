@@ -396,8 +396,6 @@ We translate the test set *newstest2014* and report:
 * the maximum memory usage (lower is better)
 * the BLEU score of the detokenized output (higher is better)
 
-Translations are running beam search with a size of 4 and a maximum batch size of 32.
-
 See the directory [`tools/benchmark`](tools/benchmark) for more details about the benchmark procedure and how to run it. Also see the [Performance](docs/performance.md) document to further improve CTranslate2 performance.
 
 **Please note that the results presented below are only valid for the configuration used during this benchmark: absolute and relative performance may change with different settings.**
@@ -405,29 +403,28 @@ See the directory [`tools/benchmark`](tools/benchmark) for more details about th
 #### CPU
 
 | | Tokens per second | Max. memory | BLEU |
-| -- | --- | --- | --- |
-| OpenNMT-tf 2.14.0 (with TensorFlow 2.4.0) | 279.3 | 2308MB | 26.93 |
-| OpenNMT-py 2.0.0 (with PyTorch 1.7.0) | 292.9 | 1840MB | 26.77 |
-| - int8 | 383.3 | 1784MB | 26.86 |
-| CTranslate2 1.17.0 | 593.2 | 970MB | 26.77 |
-| - int16 | 777.2 | 718MB | 26.84 |
-| - int8 | 921.5 | 635MB | 26.92 |
-| - int8 + vmap | **1143.4** | 621MB | 26.75 |
+| --- | --- | --- | --- |
+| OpenNMT-tf 2.19.0 (with TensorFlow 2.5.0) | 364.1 | 2620MB | 26.93 |
+| OpenNMT-py 2.1.2 (with PyTorch 1.9.0) | 472.6 | 1856MB | 26.77 |
+| - int8 | 510.4 | 1712MB | 26.80 |
+| CTranslate2 2.1.0 | 1185.5 | 1091MB | 26.77 |
+| - int16 | 1531.2 | 944MB | 26.83 |
+| - int8 | 1758.6 | 795MB | 26.86 |
+| - int8 + vmap | 2167.8 | 788MB | 26.70 |
 
-Executed with 4 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
+Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
 
 #### GPU
 
 | | Tokens per second | Max. GPU memory | Max. CPU memory | BLEU |
-| -- | --- | --- | --- | --- |
-| OpenNMT-tf 2.14.0 (with TensorFlow 2.4.0) | 1753.4 | 4958MB | 2525MB | 26.93 |
-| OpenNMT-py 2.0.0 (with PyTorch 1.7.0) | 1189.4 | 2838MB | 2666MB | 26.77 |
-| CTranslate2 1.17.0 | 2721.1 | 1164MB | 954MB | 26.77 |
-| - int8 | 3710.0 | 882MB | 541MB | 26.86 |
-| - float16 | 3965.8 | 924MB | 590MB | 26.75 |
-| - float16 + local sorting | **4869.4** | 1148MB | 591MB | 26.75 |
+| --- | --- | --- | --- | --- |
+| OpenNMT-tf 2.19.0 (with TensorFlow 2.5.0) | 1815.2 | 2660MB | 1724MB | 26.93 |
+| OpenNMT-py 2.1.2 (with PyTorch 1.9.0) | 1536.7 | 3046MB | 2987MB | 26.77 |
+| CTranslate2 2.1.0 | 3726.4 | 1266MB | 676MB | 26.77 |
+| - int8 | 5190.3 | 978MB | 567MB | 26.82 |
+| - float16 | 5361.3 | 786MB | 606MB | 26.75 |
 
-Executed with CUDA 11.0 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 450.80.02).
+Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 460.73.01).
 
 ## Frequently asked questions
 

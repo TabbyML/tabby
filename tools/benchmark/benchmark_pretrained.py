@@ -8,7 +8,7 @@ from benchmark import benchmark_image
 
 test_set = "wmt14"
 langpair = "en-de"
-num_cpus = 4
+num_cpus = 8
 gpu = len(sys.argv) > 1 and sys.argv[1].lower() == "gpu"
 num_samples = 5 if gpu else 3
 
@@ -38,8 +38,10 @@ print("")
 
 if gpu:
     print("| | Tokens per second | Max. GPU memory | Max. CPU memory | BLEU |")
+    print("| --- | --- | --- | --- | --- |")
 else:
     print("| | Tokens per second | Max. memory | BLEU |")
+    print("| --- | --- | --- | --- |")
 
 
 def run(name, image, env=None):
@@ -56,7 +58,7 @@ def run(name, image, env=None):
 
     if gpu:
         print(
-            "| %s | %.1f | %d | %d | %.2f |"
+            "| %s | %.1f | %dMB | %dMB | %.2f |"
             % (
                 name,
                 tokens_per_sec,
@@ -67,7 +69,7 @@ def run(name, image, env=None):
         )
     else:
         print(
-            "| %s | %.1f | %d | %.2f |"
+            "| %s | %.1f | %dMB | %.2f |"
             % (
                 name,
                 tokens_per_sec,
