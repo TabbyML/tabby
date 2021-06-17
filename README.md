@@ -165,35 +165,7 @@ Models can also be converted directly from the supported training frameworks. Se
 
 ### Quantization and reduced precision
 
-The converters support reducing the weights precision to save on space and possibly accelerate the model execution. The `--quantization` option accepts the following values:
-
-* `int8`
-* `int16`
-* `float16`
-
-When loading a quantized model, the library tries to use the same type for computation. If the current platform or backend do not support optimized execution for this computation type (e.g. `int16` is not optimized on GPU), then the library converts the model weights to another optimized type. The tables below document the fallback types:
-
-**On CPU:**
-
-| Model | int8 | int16 | float16 |
-| --- | --- | --- | --- |
-| Intel | int8 | int16 | float |
-| other | int8 | int8 | float |
-
-*(This table only applies for prebuilt binaries or when compiling with both Intel MKL and oneDNN backends.)*
-
-**On GPU:**
-
-| Compute Capability | int8 | int16 | float16 |
-| --- | --- | --- | --- |
-| >= 7.0 | int8 | float16 | float16 |
-| 6.1 | int8 | float | float |
-| <= 6.0 | float | float | float |
-
-**Notes:**
-
-* The computation type can also be changed when creating a translation instance by setting the `--compute_type` argument.
-* Integer quantization is only applied for GEMM-based layers and embeddings.
+The converters support reducing the weights precision to save on space and possibly accelerate the model execution. See the [Quantization](docs/quantization.md) documentation.
 
 ### Adding converters
 
@@ -496,7 +468,7 @@ Prebuilt binaries are designed to run on any x86-64 processors supporting at lea
 
 **GPU**
 
-CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.5. FP16 execution requires a Compute Capability greater or equal to 7.0.
+CTranslate2 supports NVIDIA GPUs with a Compute Capability greater or equal to 3.5.
 
 The driver requirement depends on the CUDA version. See the [CUDA Compatibility guide](https://docs.nvidia.com/deploy/cuda-compatibility/index.html) for more information.
 
