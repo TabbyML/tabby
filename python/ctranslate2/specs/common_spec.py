@@ -3,7 +3,7 @@ import enum
 from ctranslate2.specs import model_spec
 
 
-# This enum should match the C++ equivalent in include/ctranslate2/layers/common.h.
+# This enum should match the C++ equivalent in include/ctranslate2/ops/activation.h.
 class Activation(enum.IntEnum):
     RELU = 0
     GELU = 1

@@ -4,6 +4,8 @@
 
 #include "sequence_to_sequence.h"
 
+#include "ctranslate2/ops/activation.h"
+
 namespace ctranslate2 {
   namespace models {
 
@@ -26,7 +28,7 @@ namespace ctranslate2 {
       size_t _num_heads;
       bool _with_relative_position;
       bool _pre_norm;
-      layers::ActivationType _activation_type;
+      ops::ActivationType _activation_type;
     };
 
   }

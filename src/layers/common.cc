@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "ctranslate2/ops/activation.h"
 #include "device_dispatch.h"
 #include "type_dispatch.h"
 
@@ -36,35 +37,6 @@ namespace ctranslate2 {
       }
 
       return std::make_pair(input.to(device), lengths.to(device));
-    }
-
-
-    static inline std::unique_ptr<const ops::UnaryOp>
-    make_activation_op(const ActivationType type) {
-      switch (type) {
-      case ActivationType::GELU:
-        return std::make_unique<ops::GELU>();
-      case ActivationType::ReLU:
-        return std::make_unique<ops::ReLU>();
-      }
-      return nullptr;
-    }
-
-    Activation::Activation(const ActivationType type)
-      : _type(type)
-      , _op(make_activation_op(type)) {
-    }
-
-    DataType Activation::output_type() const {
-      return DataType::FLOAT;
-    }
-
-    dim_t Activation::output_size() const {
-      return 0;
-    }
-
-    void Activation::operator()(const StorageView& x, StorageView& y) const {
-      (*_op)(x, y);
     }
 
 
@@ -225,7 +197,7 @@ namespace ctranslate2 {
 
     Dense::Dense(const models::Model& model,
                  const std::string& scope,
-                 const Activation* activation)
+                 const ops::ActivationType* activation_type)
       : _packed_weight(false)
       , _weight(get_linear_weight(model, scope, &_packed_weight))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
@@ -235,7 +207,7 @@ namespace ctranslate2 {
       , _partial_bias(_weight.device(), _bias ? _bias->dtype() : DataType::FLOAT)
       , _partial_qscale(_weight.device(), DataType::FLOAT)
       , _partial_u8_shift_compensation(_weight.device(), DataType::INT32)
-      , _activation(activation)
+      , _activation(activation_type ? ops::get_activation(*activation_type) : nullptr)
       , _gemm_op(/*alpha=*/1,
                  /*beta=*/0,
                  /*trans_a=*/false,

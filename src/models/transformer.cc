@@ -74,9 +74,9 @@ namespace ctranslate2 {
 
       const auto* activation_type = get_variable_if_exists("activation");
       if (activation_type)
-        _activation_type = static_cast<layers::ActivationType>(activation_type->as_scalar<int8_t>());
+        _activation_type = static_cast<ops::ActivationType>(activation_type->as_scalar<int8_t>());
       else
-        _activation_type = layers::ActivationType::ReLU;
+        _activation_type = ops::ActivationType::ReLU;
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {

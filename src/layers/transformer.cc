@@ -6,11 +6,10 @@ namespace ctranslate2 {
     FeedForwardNetwork::FeedForwardNetwork(const models::Model& model,
                                            const std::string& scope,
                                            const bool pre_norm,
-                                           const layers::ActivationType activation_type)
+                                           const ops::ActivationType activation_type)
       : _layer_norm(model, scope + "/layer_norm")
       , _pre_norm(pre_norm)
-      , _activation(activation_type)
-      , _ff1(model, scope + "/linear_0", &_activation)
+      , _ff1(model, scope + "/linear_0", &activation_type)
       , _ff2(model, scope + "/linear_1") {
     }
 
@@ -34,7 +33,7 @@ namespace ctranslate2 {
                                                      const std::string& scope,
                                                      const size_t num_heads,
                                                      const bool pre_norm,
-                                                     const layers::ActivationType activation_type)
+                                                     const ops::ActivationType activation_type)
       : _self_attention(model,
                         scope + "/self_attention",
                         num_heads,
@@ -59,7 +58,7 @@ namespace ctranslate2 {
                                                      const size_t num_heads,
                                                      const bool with_encoder_attention,
                                                      const bool pre_norm,
-                                                     const layers::ActivationType activation_type)
+                                                     const ops::ActivationType activation_type)
       : _self_attention(model,
                         scope + "/self_attention",
                         num_heads,
@@ -118,7 +117,7 @@ namespace ctranslate2 {
                                            const size_t num_heads,
                                            const bool with_position_encoding,
                                            const bool pre_norm,
-                                           const layers::ActivationType activation_type)
+                                           const ops::ActivationType activation_type)
       : _embeddings(model, scope + "/embeddings")
       , _compute_type(model.effective_compute_type())
       , _position_encoder(with_position_encoding
@@ -179,7 +178,7 @@ namespace ctranslate2 {
                                            const bool with_position_encoding,
                                            const bool with_encoder_attention,
                                            const bool pre_norm,
-                                           const layers::ActivationType activation_type)
+                                           const ops::ActivationType activation_type)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
       , _compute_type(model.effective_compute_type())
