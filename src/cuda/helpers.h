@@ -196,6 +196,23 @@ namespace ctranslate2 {
     };
 #endif
 
+    template <typename T>
+    struct relu_func : public bind_right<maximum, T> {
+      relu_func() : bind_right<maximum, T>(T(0)) {}
+    };
+
+    class gelu_func {
+    private:
+      float _scale;
+    public:
+      gelu_func() : _scale(std::sqrt(2.f / std::acos(-1.f))) {}
+
+      __host__ __device__
+      float operator()(float x) {
+        return 0.5f * x * (1.f + tanhf(_scale * (x + 0.044715f * powf(x, 3.f))));
+      }
+    };
+
     // The following kernels are adapted from:
     // https://github.com/pytorch/pytorch/blob/40eff454ce5638fbff638a7f4502e29ffb9a2f0d/aten/src/ATen/native/cuda/SoftMax.cu
     // They help define row-wise reduction where each block handles a single row.

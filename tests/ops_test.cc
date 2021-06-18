@@ -610,14 +610,6 @@ TEST_P(OpDeviceFPTest, LayerNorm) {
   expect_storage_eq(y.to_float(), expected, 1e-3);
 }
 
-TEST_P(OpDeviceTest, GELU) {
-  Device device = GetParam();
-  StorageView x({2}, std::vector<float>{0.2, -1.3}, device);
-  StorageView expected({2}, std::vector<float>{0.11585142, -0.12607098}, device);
-  ops::GELU()(x, x);
-  expect_storage_eq(x, expected, 1e-3);
-}
-
 TEST_P(OpDeviceTest, QuantizeINT8) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 5, 21, -3, 0}, device);
@@ -660,6 +652,16 @@ TEST_P(OpDeviceFPTest, ReLU) {
   StorageView output(dtype, device);
   ops::ReLU()(input.to(dtype), output);
   expect_storage_eq(output.to_float(), expected);
+}
+
+TEST_P(OpDeviceFPTest, GELU) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
+  StorageView expected({2}, std::vector<float>{0.11585142, -0.12607098}, device);
+  StorageView output(dtype, device);
+  ops::GELU()(input.to(dtype), output);
+  expect_storage_eq(output.to_float(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Log) {

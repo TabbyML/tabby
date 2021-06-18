@@ -161,29 +161,20 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CUDA>::relu(const T* x, T* y, dim_t size) {
-    max(T(0), x, y, size);
+    cuda::unary_transform(x, y, size, cuda::relu_func<cuda::device_type<T>>());
   }
 
   template void primitives<Device::CUDA>::relu(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::relu(const float16_t*, float16_t*, dim_t);
 
-  struct gelu_func {
-    float _scale;
-    gelu_func(float scale)
-      : _scale(scale) {
-    }
-    __host__ __device__
-    float operator()(float x) {
-      return 0.5f * x * (1.f + tanhf(_scale * (x + 0.044715f * powf(x, 3.f))));
-    }
-  };
-
   template<>
-  void primitives<Device::CUDA>::gelu(const float* x, float* y, dim_t size) {
-    static const float pi = std::acos(-1.f);
-    static const float scale = std::sqrt(2.f / pi);
-    cuda::unary_transform(x, y, size, gelu_func(scale));
+  template <typename T>
+  void primitives<Device::CUDA>::gelu(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::gelu_func());
   }
+
+  template void primitives<Device::CUDA>::gelu(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::gelu(const float16_t*, float16_t*, dim_t);
 
   template <typename T>
   struct perm_indices_2d {
