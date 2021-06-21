@@ -207,15 +207,18 @@ namespace ctranslate2 {
       , _partial_bias(_weight.device(), _bias ? _bias->dtype() : DataType::FLOAT)
       , _partial_qscale(_weight.device(), DataType::FLOAT)
       , _partial_u8_shift_compensation(_weight.device(), DataType::INT32)
-      , _activation(activation_type ? ops::get_activation(*activation_type) : nullptr)
+      , _quantized_gemm(_weight.dtype() == DataType::INT16 || _weight.dtype() == DataType::INT8)
       , _gemm_op(/*alpha=*/1,
                  /*beta=*/0,
                  /*trans_a=*/false,
                  /*trans_b=*/true,
                  /*a_is_packed=*/false,
-                 _packed_weight)
+                 _packed_weight,
+                 _quantized_gemm ? nullptr : activation_type)
       , _quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::GLOBAL,
-                     /*shift_to_uint8=*/bool(_u8_shift_compensation)) {
+                     /*shift_to_uint8=*/bool(_u8_shift_compensation))
+      , _dequantize_op(activation_type)
+    {
     }
 
     DataType Dense::output_type() const {
@@ -253,11 +256,8 @@ namespace ctranslate2 {
       const StorageView* compensation = (_partial_u8_shift_compensation.empty()
                                          ? _u8_shift_compensation
                                          : &_partial_u8_shift_compensation);
-      bool fused_bias = false;
-
-      if (_weight.dtype() == DataType::INT16 || _weight.dtype() == DataType::INT8) {
+      if (_quantized_gemm) {
         const auto device = input.device();
-        fused_bias = (device == Device::CUDA);
         StorageView qinput(_weight.dtype(), device);
         StorageView qinput_scale(_qscale->dtype(), device);
         StorageView qoutput(DataType::INT32, device);
@@ -269,22 +269,10 @@ namespace ctranslate2 {
                        /*trans_a=*/false,
                        /*trans_b=*/true,
                        output,
-                       fused_bias ? bias : nullptr);
+                       bias);
       } else {
-        _gemm_op(input, *weight, output);
+        _gemm_op(input, *weight, output, nullptr, bias);
       }
-
-      if (bias && !fused_bias) {
-        DEVICE_DISPATCH(output.device(),
-                        TYPE_DISPATCH(bias->dtype(),
-                                      primitives<D>::add_batch_broadcast(bias->data<T>(),
-                                                                         output.data<T>(),
-                                                                         bias->size(),
-                                                                         output.size())));
-      }
-
-      if (_activation)
-        (*_activation)(output, output);
     }
 
 

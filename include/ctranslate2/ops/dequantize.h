@@ -1,5 +1,6 @@
 #pragma once
 
+#include "activation.h"
 #include "op.h"
 
 namespace ctranslate2 {
@@ -7,6 +8,8 @@ namespace ctranslate2 {
 
     class Dequantize : public Op {
     public:
+      Dequantize(const ActivationType* activation_type = nullptr);
+
       void operator()(const StorageView& input,
                       const StorageView& scale,
                       StorageView& output) const;
@@ -35,6 +38,7 @@ namespace ctranslate2 {
                                   const StorageView* bias,
                                   StorageView& y) const;
 
+      const ActivationType* _activation_type;
     };
 
   }

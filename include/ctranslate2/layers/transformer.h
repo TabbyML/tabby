@@ -30,6 +30,7 @@ namespace ctranslate2 {
     private:
       const LayerNorm _layer_norm;
       const bool _pre_norm;
+      const ops::ActivationType _activation_type;
       const Dense _ff1;
       const Dense _ff2;
     };

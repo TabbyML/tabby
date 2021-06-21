@@ -9,7 +9,8 @@ namespace ctranslate2 {
                                            const ops::ActivationType activation_type)
       : _layer_norm(model, scope + "/layer_norm")
       , _pre_norm(pre_norm)
-      , _ff1(model, scope + "/linear_0", &activation_type)
+      , _activation_type(activation_type)
+      , _ff1(model, scope + "/linear_0", &_activation_type)
       , _ff2(model, scope + "/linear_1") {
     }
 

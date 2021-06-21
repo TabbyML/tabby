@@ -89,7 +89,7 @@ namespace ctranslate2 {
       StorageView _partial_bias;
       StorageView _partial_qscale;
       StorageView _partial_u8_shift_compensation;
-      const ops::UnaryOp* _activation;
+      const bool _quantized_gemm;
       const ops::Gemm _gemm_op;
       const ops::Quantize _quantize_op;
       const ops::Dequantize _dequantize_op;

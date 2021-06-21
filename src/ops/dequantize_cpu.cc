@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/dequantize.h"
 
+#include "ctranslate2/ops/gemm.h"
+
 #include "cpu/kernels.h"
 #include "cpu/parallel.h"
 
@@ -54,9 +56,6 @@ namespace ctranslate2 {
                                                          const bool transpose_b,
                                                          const StorageView* bias,
                                                          StorageView& y) const {
-      if (bias)
-        throw std::runtime_error("Fused dequantize and bias add is not implemented on CPU");
-
       const auto* c_data = c.data<int32_t>();
       auto* y_data = y.data<float>();
 
@@ -102,6 +101,11 @@ namespace ctranslate2 {
           }
         }
       }
+
+      if (bias)
+        add_bias(y, *bias);
+      if (_activation_type)
+        get_activation_op(*_activation_type)(y, y);
     }
 
   }

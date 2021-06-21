@@ -6,18 +6,18 @@
 namespace ctranslate2 {
   namespace ops {
 
-    const UnaryOp* get_activation(ActivationType type) {
+    const UnaryOp& get_activation_op(ActivationType type) {
       switch (type) {
       case ActivationType::ReLU: {
         static const ReLU relu;
-        return &relu;
+        return relu;
       }
       case ActivationType::GELU: {
         static const GELU gelu;
-        return &gelu;
+        return gelu;
       }
       }
-      return nullptr;
+      throw std::invalid_argument("invalid activation type");
     }
 
   }

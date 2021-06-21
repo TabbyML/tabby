@@ -11,7 +11,7 @@ namespace ctranslate2 {
       GELU,
     };
 
-    const UnaryOp* get_activation(ActivationType type);
+    const UnaryOp& get_activation_op(ActivationType type);
 
   }
 }

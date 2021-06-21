@@ -73,6 +73,8 @@ namespace ctranslate2 {
         bias ? bias->data<float>() : nullptr,
         y.data<float>(),
         depth);
+      if (_activation_type)
+        get_activation_op(*_activation_type)(y, y);
     }
 
   }

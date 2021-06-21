@@ -5,6 +5,11 @@
 namespace ctranslate2 {
   namespace ops {
 
+    Dequantize::Dequantize(const ActivationType* activation_type)
+      : _activation_type(activation_type)
+    {
+    }
+
     void Dequantize::operator()(const StorageView& input,
                                 const StorageView& scale,
                                 StorageView& output) const {
