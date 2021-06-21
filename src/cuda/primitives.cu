@@ -170,7 +170,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CUDA>::gelu(const T* x, T* y, dim_t size) {
-    cuda::unary_transform(x, y, size, cuda::gelu_func());
+    cuda::unary_transform(x, y, size, cuda::gelu_func<cuda::device_type<T>>());
   }
 
   template void primitives<Device::CUDA>::gelu(const float*, float*, dim_t);

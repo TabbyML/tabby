@@ -197,18 +197,30 @@ namespace ctranslate2 {
 #endif
 
     template <typename T>
-    struct relu_func : public bind_right<maximum, T> {
-      relu_func() : bind_right<maximum, T>(T(0)) {}
+    struct relu_func {
+      __host__ __device__ T operator()(T x) const {
+        return x > T(0) ? x : T(0);
+      }
     };
 
+#if !CUDA_CAN_USE_HALF
+    template<>
+    struct relu_func<__half> {
+      __host__ __device__ __half operator()(__half x) const {
+        return float(x) > float(0) ? x : __half(0);
+      }
+    };
+#endif
+
+    template <typename T>
     class gelu_func {
     private:
       float _scale;
     public:
       gelu_func() : _scale(std::sqrt(2.f / std::acos(-1.f))) {}
 
-      __host__ __device__
-      float operator()(float x) {
+      // Implicitly promote half to float in this function.
+      __host__ __device__ float operator()(float x) const {
         return 0.5f * x * (1.f + tanhf(_scale * (x + 0.044715f * powf(x, 3.f))));
       }
     };
