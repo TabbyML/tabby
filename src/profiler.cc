@@ -152,6 +152,10 @@ namespace ctranslate2 {
       return;
     _parent = current_scope;
     _name = name;
+#ifdef CT2_WITH_CUDA
+    if (profiler->device() == Device::CUDA)
+      cudaDeviceSynchronize();
+#endif
     _start = std::chrono::high_resolution_clock::now();
     current_scope = this;
   }
