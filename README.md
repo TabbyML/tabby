@@ -213,7 +213,7 @@ int main() {
 }
 ```
 
-*See the [Translator class](include/ctranslate2/translator.h) for more advanced usages, and the [TranslatorPool class](include/ctranslate2/translator_pool.h) for running translations in parallel.*
+*See the [`Translator`](include/ctranslate2/translator.h) class for more advanced usages, and the [`TranslatorPool`](include/ctranslate2/translator_pool.h) class for running translations in parallel and asynchronously.*
 
 ## Environment variables
 
