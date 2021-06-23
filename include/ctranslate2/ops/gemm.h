@@ -6,7 +6,9 @@
 namespace ctranslate2 {
   namespace ops {
 
-    void add_bias(StorageView& x, const StorageView& bias);
+    void apply_bias_and_activation(StorageView& x,
+                                   const StorageView* bias,
+                                   const ActivationType* activation_type);
 
     class Gemm : public Op {
     public:

@@ -1,18 +1,22 @@
 #include "ctranslate2/ops/gemm.h"
 
+#include "ctranslate2/ops/bias_add.h"
+
 #include "device_dispatch.h"
 #include "type_dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
 
-    void add_bias(StorageView& x, const StorageView& bias) {
-      DEVICE_DISPATCH(x.device(),
-                      TYPE_DISPATCH(bias.dtype(),
-                                    primitives<D>::add_batch_broadcast(bias.data<T>(),
-                                                                       x.data<T>(),
-                                                                       bias.size(),
-                                                                       x.size())));
+    void apply_bias_and_activation(StorageView& x,
+                                   const StorageView* bias,
+                                   const ActivationType* activation_type) {
+      if (bias) {
+        const ops::BiasAdd bias_add_op(activation_type);
+        bias_add_op(x, *bias, x);
+      } else if (activation_type) {
+        get_activation_op(*activation_type)(x, x);
+      }
     }
 
     template <Device D, typename In, typename Out>
@@ -125,10 +129,7 @@ namespace ctranslate2 {
         throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
       }
 
-      if (bias)
-        add_bias(y, *bias);
-      if (_activation_type)
-        get_activation_op(*_activation_type)(y, y);
+      apply_bias_and_activation(y, bias, _activation_type);
     }
 
   }

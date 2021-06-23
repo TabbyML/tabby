@@ -102,10 +102,7 @@ namespace ctranslate2 {
         }
       }
 
-      if (bias)
-        add_bias(y, *bias);
-      if (_activation_type)
-        get_activation_op(*_activation_type)(y, y);
+      apply_bias_and_activation(y, bias, _activation_type);
     }
 
   }

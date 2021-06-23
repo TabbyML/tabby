@@ -3,6 +3,7 @@
 // Operators following ONNX specifications.
 
 #include "add.h"
+#include "bias_add.h"
 #include "concat.h"
 #include "cos.h"
 #include "gather.h"
