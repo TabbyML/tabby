@@ -96,9 +96,9 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "ct2-fairseq-converter=ctranslate2.bin.fairseq_converter:main",
-            "ct2-opennmt-py-converter=ctranslate2.bin.opennmt_py_converter:main",
-            "ct2-opennmt-tf-converter=ctranslate2.bin.opennmt_tf_converter:main",
+            "ct2-fairseq-converter=ctranslate2.converters.fairseq:main",
+            "ct2-opennmt-py-converter=ctranslate2.converters.opennmt_py:main",
+            "ct2-opennmt-tf-converter=ctranslate2.converters.opennmt_tf:main",
         ],
     },
 )
