@@ -226,7 +226,14 @@ Some environment variables can be configured to customize the execution:
 * `CT2_TRANSLATORS_CORE_OFFSET`: If set to a non negative value, parallel translators are pinned to cores in the range `[offset, offset + inter_threads]`. Requires compilation with `-DOPENMP_RUNTIME=NONE`.
 * `CT2_USE_EXPERIMENTAL_PACKED_GEMM`: Enable the packed GEMM API for Intel MKL (see [Performance](docs/performance.md)).
 * `CT2_USE_MKL`: Force CTranslate2 to use (or not) Intel MKL. By default, the runtime automatically decides whether to use Intel MKL or not based on the CPU vendor.
-* `CT2_VERBOSE`: Enable some verbose logs to help debugging the run configuration.
+* `CT2_VERBOSE`: Configure the logs verbosity:
+  * -3 = off
+  * -2 = critical
+  * -1 = error
+  * 0 = warning (default)
+  * 1 = info
+  * 2 = debug
+  * 3 = trace
 
 ## Building
 

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <spdlog/spdlog.h>
+
 #include "ctranslate2/utils.h"
 
 #ifdef CT2_WITH_CUDA
@@ -265,7 +267,10 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   TranslatorPool::TranslateJob::get_results(Translator& translator, const Batch& batch) const {
-    return translator.translate_batch_with_prefix(batch.source, batch.target, _options);
+    spdlog::debug("Running batch translation on {} examples", batch.source.size());
+    auto results = translator.translate_batch_with_prefix(batch.source, batch.target, _options);
+    spdlog::debug("Finished batch translation");
+    return results;
   }
 
   void TranslatorPool::open_input_file(const std::string& file, std::ifstream& stream) const {

@@ -64,6 +64,7 @@ else()
 endif()
 
 find_package(Threads)
+add_subdirectory(third_party/spdlog EXCLUDE_FROM_ALL)
 
 set(PUBLIC_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -136,6 +137,7 @@ set(SOURCES
 set(LIBRARIES
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
+  spdlog::spdlog_header_only
   )
 
 macro(ct2_compile_kernels_for_isa isa flag)

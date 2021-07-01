@@ -10,3 +10,6 @@
 [submodule "third_party/cpu_features"]
 	path = third_party/cpu_features
 	url = https://github.com/google/cpu_features.git
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog.git

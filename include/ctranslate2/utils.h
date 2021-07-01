@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <random>
 #include <string>
 #include <thread>
@@ -15,8 +14,6 @@ namespace ctranslate2 {
   std::string read_string_from_env(const char* var, const std::string& default_value = "");
   bool read_bool_from_env(const char* var, const bool default_value = false);
   int read_int_from_env(const char* var, const int default_value = 0);
-
-  bool verbose_mode();
 
   // Check feature support.
   bool mayiuse_float16(Device device, int device_index = 0);
@@ -54,7 +51,5 @@ namespace ctranslate2 {
 #endif
 #define THROW_RUNTIME_ERROR(MESSAGE) THROW_EXCEPTION(std::runtime_error, MESSAGE)
 #define THROW_INVALID_ARGUMENT(MESSAGE) THROW_EXCEPTION(std::invalid_argument, MESSAGE)
-
-#define LOG() if (verbose_mode()) std::cerr << "[ct2_verbose] "
 
 }
