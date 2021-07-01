@@ -17,9 +17,9 @@ RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/c
     rm *.tar.gz
 ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
 
-ENV ONEAPI_VERSION=2021.2.0
-ENV MKL_BUILD=296
-ENV DNNL_BUILD=228
+ENV ONEAPI_VERSION=2021.3.0
+ENV MKL_BUILD=520
+ENV DNNL_BUILD=344
 RUN wget -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
     apt-key add *.PUB && \
     rm *.PUB && \

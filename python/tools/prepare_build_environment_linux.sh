@@ -13,9 +13,9 @@ yum install --setopt=obsoletes=0 -y \
     libcublas-devel-11-2-11.4.1.1043-1
 ln -s cuda-11.2 /usr/local/cuda
 
-ONEAPI_VERSION=2021.2.0
-MKL_BUILD=296
-DNNL_BUILD=228
+ONEAPI_VERSION=2021.3.0
+MKL_BUILD=520
+DNNL_BUILD=344
 yum-config-manager --add-repo https://yum.repos.intel.com/oneapi
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
 yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD
