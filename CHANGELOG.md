@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v2.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.2.0) (2021-07-06)
+
+### New features
+
+* Add Python utility functions to query the system capabilities:
+  * `ctranslate2.get_cuda_device_count`
+  * `ctranslate2.get_supported_compute_types`
+* Add option `fixed_dictionary` in the Fairseq converter to support multilingual models
+* Extend environment variable `CT2_VERBOSE` to configure more log levels (see README)
+
+### Fixes and improvements
+
+* Fuse activation with bias addition on GPU for a small performance increase
+* Make the GELU activation compatible with FP16 execution
+* Improve the log format using the [spdlog](https://github.com/gabime/spdlog) library
+* Improve the accuracy of the profiling results on GPU
+* Update Intel oneAPI to 2021.3
+
 ## [v2.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.1.0) (2021-06-14)
 
 ### New features
