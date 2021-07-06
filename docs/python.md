@@ -22,7 +22,7 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
     vmap: str = None,         # Path to a vocabulary mapping file.
-    quantization: str = None, # Weights quantization: "int8" or "int16".
+    quantization: str = None, # Weights quantization: "int8", "int16", or "float16".
     force: bool = False,      # Override output_dir if it exists.
 )
 ```
