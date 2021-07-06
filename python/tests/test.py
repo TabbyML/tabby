@@ -47,6 +47,10 @@ def test_contains_model(tmpdir):
     assert ctranslate2.contains_model(str(model_dir))
 
 
+def test_get_supported_compute_types():
+    assert ctranslate2.get_supported_compute_types("cpu") == {"float", "int16", "int8"}
+
+
 def test_translator_properties():
     translator = ctranslate2.Translator(_get_model_path(), inter_threads=2)
     assert translator.model_is_loaded

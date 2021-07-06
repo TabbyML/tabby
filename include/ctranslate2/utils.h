@@ -23,6 +23,8 @@ namespace ctranslate2 {
                                     Device device,
                                     int device_index = 0);
 
+  int get_gpu_count();
+
   void set_num_threads(size_t num_threads);
   void set_thread_affinity(std::thread& thread, int index);
 

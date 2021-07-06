@@ -153,6 +153,14 @@ namespace ctranslate2 {
     return 1;
   }
 
+  int get_gpu_count() {
+#ifdef CT2_WITH_CUDA
+    return cuda::get_gpu_count();
+#else
+    return 0;
+#endif
+  }
+
   void set_num_threads(size_t num_threads) {
 #ifdef _OPENMP
     if (num_threads == 0)

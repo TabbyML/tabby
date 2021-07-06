@@ -160,3 +160,5 @@ Note: parallelization with Python threads is made possible because the `Translat
 
 * `ctranslate2.__version__`<br/>Version of the Python package.
 * `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.
+* `ctranslate2.get_cuda_device_count()`<br/>Return the number of visible GPU devices.
+* `ctranslate2.get_supported_compute_types(device: str, device_index: int = 0)`<br/>Return the set of supported compute types on a device.

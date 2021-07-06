@@ -383,9 +383,27 @@ private:
   }
 };
 
+static py::set get_supported_compute_types(const std::string& device_str, const int device_index) {
+  const auto device = ctranslate2::str_to_device(device_str);
+
+  py::set compute_types;
+  compute_types.add("float");
+  if (ctranslate2::mayiuse_float16(device, device_index))
+    compute_types.add("float16");
+  if (ctranslate2::mayiuse_int16(device, device_index))
+    compute_types.add("int16");
+  if (ctranslate2::mayiuse_int8(device, device_index))
+    compute_types.add("int8");
+  return compute_types;
+}
+
 PYBIND11_MODULE(translator, m)
 {
   m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
+  m.def("get_cuda_device_count", &ctranslate2::get_gpu_count);
+  m.def("get_supported_compute_types", &get_supported_compute_types,
+        py::arg("device"),
+        py::arg("device_index")=0);
 
   py::class_<TranslatorWrapper>(m, "Translator")
     .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t>(),
