@@ -54,6 +54,8 @@ def _get_model_spec(args):
         reasons.append("Option --no-token-positional-embeddings is not supported")
     if getattr(args, "layernorm_embedding", False):
         reasons.append("Option --layernorm-embedding is not supported")
+    if getattr(args, "lang_tok_replacing_bos_eos", False):
+        reasons.append("Option --lang-tok-replacing-bos-eos is not supported")
 
     if reasons:
         utils.raise_unsupported(reasons)
@@ -73,9 +75,10 @@ def _get_vocab(dictionary):
 class FairseqConverter(Converter):
     """Converts models trained with Fairseq."""
 
-    def __init__(self, model_path, data_dir):
+    def __init__(self, model_path, data_dir, fixed_dictionary=None):
         self._model_path = model_path
         self._data_dir = data_dir
+        self._fixed_dictionary = fixed_dictionary
 
     def _load(self):
         import torch
@@ -86,6 +89,8 @@ class FairseqConverter(Converter):
             checkpoint = checkpoint_utils.load_checkpoint_to_cpu(self._model_path)
             args = checkpoint["args"]
             args.data = self._data_dir
+            if self._fixed_dictionary is not None:
+                args.fixed_dictionary = self._fixed_dictionary
 
             model_spec = _get_model_spec(args)
             model_spec.with_source_eos = True
@@ -93,6 +98,7 @@ class FairseqConverter(Converter):
 
             task = fairseq.tasks.setup_task(args)
             model = fairseq.models.build_model(args, task)
+            model.eval()
             model.load_state_dict(checkpoint["model"])
 
             set_transformer_spec(model_spec, model)
@@ -201,9 +207,18 @@ def main():
         required=True,
         help="Data directory containing the source and target vocabularies.",
     )
+    parser.add_argument(
+        "--fixed_dictionary",
+        help="Fixed dictionary for multilingual models.",
+    )
     Converter.declare_arguments(parser)
     args = parser.parse_args()
-    FairseqConverter(args.model_path, args.data_dir).convert_from_args(args)
+    converter = FairseqConverter(
+        args.model_path,
+        args.data_dir,
+        fixed_dictionary=args.fixed_dictionary,
+    )
+    converter.convert_from_args(args)
 
 
 if __name__ == "__main__":
