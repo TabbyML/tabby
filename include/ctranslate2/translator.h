@@ -78,9 +78,9 @@ namespace ctranslate2 {
     friend class BufferedTranslationWrapper;
   };
 
-  // This class holds all information required to translate from a model. Copying
-  // a Translator instance does not duplicate the model data and the copy can
-  // be safely executed in parallel.
+  // The Translator can run translations from a sequence-to-sequence model.
+  // In most cases, you should prefer using the higher level TranslatorPool class which
+  // supports parallel translations, asynchronous translations, and input rebatching.
   class Translator {
   public:
     Translator(const std::string& model_dir,
@@ -88,7 +88,13 @@ namespace ctranslate2 {
                int device_index = 0,
                ComputeType compute_type = ComputeType::DEFAULT);
     Translator(const std::shared_ptr<const models::Model>& model);
+
+    // Copy constructor.
+    // The copy shares the same model instance, but it can be safely used in another thread.
     Translator(const Translator& other);
+
+    // WARNING: The translator methods are not thread-safe. To run multiple translations in
+    // parallel, you should copy the Translator instance in each thread.
 
     TranslationResult
     translate(const std::vector<std::string>& tokens);
