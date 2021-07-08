@@ -38,12 +38,10 @@ def _maybe_add_library_root(lib_name):
 _maybe_add_library_root("CTRANSLATE2")
 
 cflags = ["-std=c++17"]
+ldflags = []
 if sys.platform == "darwin":
     # std::visit requires macOS 10.14
     cflags.append("-mmacosx-version-min=10.14")
-
-ldflags = []
-if sys.platform == "darwin":
     ldflags.append("-Wl,-rpath,/usr/local/lib")
 
 ctranslate2_module = Extension(
