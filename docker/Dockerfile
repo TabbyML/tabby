@@ -72,6 +72,7 @@ RUN apt-get update && \
         libcublas-11-2 \
         python3-pip \
         && \
+    apt-get purge -y cuda-compat-11-2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

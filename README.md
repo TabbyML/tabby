@@ -129,7 +129,7 @@ The library is installed in `/opt/ctranslate2` and a Python package is installed
 **Requirements:**
 
 * Docker
-* (optional) GPU driver version: >= 460.32.03
+* (optional) GPU driver version: >= 450.80.02
 
 ### Manual compilation
 
