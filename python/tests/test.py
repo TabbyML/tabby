@@ -407,7 +407,7 @@ def test_opennmt_tf_model_conversion(
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
-@pytest.mark.parametrize("quantization", ["float16", "int16", "int8"])
+@pytest.mark.parametrize("quantization", ["float16", "int16", "int8", "int8_float16"])
 def test_opennmt_tf_model_quantization(tmpdir, quantization):
     model_path = os.path.join(
         _TEST_DATA_DIR,

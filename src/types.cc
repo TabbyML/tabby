@@ -26,6 +26,8 @@ namespace ctranslate2 {
   ComputeType str_to_compute_type(const std::string& compute_type) {
     if (compute_type == "int8")
       return ComputeType::INT8;
+    if (compute_type == "int8_float16")
+      return ComputeType::INT8_FLOAT16;
     if (compute_type == "int16")
       return ComputeType::INT16;
     if (compute_type == "float")
@@ -44,12 +46,12 @@ namespace ctranslate2 {
                                 "or backend do not support efficient " + name + " computation.");
   }
 
-  ComputeType resolve_compute_type(const ComputeType compute_type,
-                                   const DataType weights_type,
+  ComputeType resolve_compute_type(const ComputeType requested_compute_type,
+                                   const ComputeType model_compute_type,
                                    const Device device,
                                    const int device_index,
                                    const bool enable_fallback) {
-    switch (compute_type) {
+    switch (requested_compute_type) {
 
     case ComputeType::FLOAT: {
       return ComputeType::FLOAT;
@@ -87,10 +89,24 @@ namespace ctranslate2 {
       return ComputeType::FLOAT;
     }
 
+    case ComputeType::INT8_FLOAT16: {
+      if (mayiuse_float16(device, device_index))
+        return ComputeType::INT8_FLOAT16;
+      if (!enable_fallback)
+        unsupported_compute_type("int8_float16");
+      if (device == Device::CPU) {
+        if (mayiuse_int8(device, device_index))
+          return ComputeType::INT8;
+        if (mayiuse_int16(device, device_index))
+          return ComputeType::INT16;
+      }
+      return ComputeType::FLOAT;
+    }
+
     case ComputeType::AUTO: {
       if (device == Device::CUDA) {
         if (mayiuse_float16(device, device_index))
-          return ComputeType::FLOAT16;
+          return ComputeType::INT8_FLOAT16;
         if (mayiuse_int8(device, device_index))
           return ComputeType::INT8;
       } else {
@@ -105,25 +121,8 @@ namespace ctranslate2 {
     default: {
       // By default, the compute type is the type of the saved model weights.
       // To ensure that any models can be loaded, we enable the fallback.
-
-      ComputeType inferred_compute_type = ComputeType::FLOAT;
-      switch (weights_type) {
-      case DataType::INT16:
-        inferred_compute_type = ComputeType::INT16;
-        break;
-      case DataType::INT8:
-        inferred_compute_type = ComputeType::INT8;
-        break;
-      case DataType::FLOAT16:
-        inferred_compute_type = ComputeType::FLOAT16;
-        break;
-      default:
-        inferred_compute_type = ComputeType::FLOAT;
-        break;
-      }
-
-      return resolve_compute_type(inferred_compute_type,
-                                  weights_type,
+      return resolve_compute_type(model_compute_type,
+                                  model_compute_type,
                                   device,
                                   device_index,
                                   /*enable_fallback=*/true);
@@ -137,9 +136,24 @@ namespace ctranslate2 {
     case ComputeType::FLOAT:
       return DataType::FLOAT;
     case ComputeType::INT8:
+    case ComputeType::INT8_FLOAT16:
       return DataType::INT8;
     case ComputeType::INT16:
       return DataType::INT16;
+    case ComputeType::FLOAT16:
+      return DataType::FLOAT16;
+    default:
+      throw std::invalid_argument("resolve_compute_type should be called first");
+    }
+  }
+
+  DataType get_default_float_type(const ComputeType compute_type) {
+    switch (compute_type) {
+    case ComputeType::FLOAT:
+    case ComputeType::INT8:
+    case ComputeType::INT16:
+      return DataType::FLOAT;
+    case ComputeType::INT8_FLOAT16:
     case ComputeType::FLOAT16:
       return DataType::FLOAT16;
     default:

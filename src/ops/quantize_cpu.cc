@@ -6,9 +6,9 @@ namespace ctranslate2 {
   namespace ops {
 
     template<>
-    void Quantize::quantize<Device::CPU, int8_t>(const StorageView& input,
-                                                 StorageView& output,
-                                                 StorageView& scale) const {
+    void Quantize::quantize<Device::CPU, float, int8_t>(const StorageView& input,
+                                                        StorageView& output,
+                                                        StorageView& scale) const {
       // INT8 quantization rescales based on the per batch absolute maximum.
       constexpr float int8_max = std::numeric_limits<int8_t>::max();
       constexpr float int8_min = std::numeric_limits<int8_t>::min();
@@ -38,9 +38,9 @@ namespace ctranslate2 {
     }
 
     template<>
-    void Quantize::quantize<Device::CPU, int16_t>(const StorageView& input,
-                                                  StorageView& output,
-                                                  StorageView& scale) const {
+    void Quantize::quantize<Device::CPU, float, int16_t>(const StorageView& input,
+                                                         StorageView& output,
+                                                         StorageView& scale) const {
       // INT16 quantization simply rescales by a constant.
 
       const dim_t size = input.size();

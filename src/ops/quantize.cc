@@ -1,6 +1,7 @@
 #include "ctranslate2/ops/quantize.h"
 
-#include "../device_dispatch.h"
+#include "device_dispatch.h"
+#include "type_dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -24,7 +25,7 @@ namespace ctranslate2 {
       case DataType::INT16: {
         if (input.device() != Device::CPU)
           throw std::invalid_argument("INT16 quantization is only supported on CPU");
-        quantize<Device::CPU, int16_t>(input, output, scale);
+        quantize<Device::CPU, float, int16_t>(input, output, scale);
         break;
       }
 
@@ -32,7 +33,26 @@ namespace ctranslate2 {
         const dim_t depth = input.dim(-1);
         const dim_t batch_size = input.size() / depth;
         scale.resize({batch_size});
-        DEVICE_DISPATCH(input.device(), (quantize<D, int8_t>(input, output, scale)));
+
+        switch (input.dtype()) {
+        case DataType::FLOAT: {
+          DEVICE_DISPATCH(input.device(), (quantize<D, float, int8_t>(input, output, scale)));
+          break;
+        }
+
+#ifdef CT2_WITH_CUDA
+        case DataType::FLOAT16: {
+          if (input.device() != Device::CUDA)
+            throw std::invalid_argument("Quantize: float16 input is only supported on CUDA");
+          quantize<Device::CUDA, float16_t, int8_t>(input, output, scale);
+          break;
+        }
+#endif
+
+        default:
+          throw std::invalid_argument("Quantize: input should have a float type");
+        }
+
         break;
       }
 

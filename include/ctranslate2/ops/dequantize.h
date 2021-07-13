@@ -24,12 +24,12 @@ namespace ctranslate2 {
                       const StorageView* bias = nullptr) const;
 
     private:
-      template <Device D, typename T>
+      template <Device D, typename InT, typename OutT>
       void dequantize(const StorageView& input,
                       const StorageView& scale,
                       StorageView& output) const;
 
-      template <Device D>
+      template <Device D, typename T>
       void dequantize_gemm_output(const StorageView& c,
                                   const StorageView& a_scale,
                                   const StorageView& b_scale,

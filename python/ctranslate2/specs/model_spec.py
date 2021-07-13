@@ -118,11 +118,7 @@ class LayerSpec(object):
         def _quantize(spec, name, value):
             if not isinstance(value, np.ndarray):
                 return
-            if quantization == "float16":
-                if value.dtype == np.float32:
-                    key = _split_scope(name)[-1]
-                    setattr(spec, key, value.astype(np.float16))
-            elif "weight" in name:
+            if "weight" in name and quantization != "float16":
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
@@ -134,7 +130,7 @@ class LayerSpec(object):
                         value, np.iinfo(np.int16).min, np.iinfo(np.int16).max
                     )
                     value = value.astype(np.int16)
-                elif quantization == "int8":
+                elif quantization in ("int8", "int8_float16"):
                     amax = np.amax(np.absolute(value), axis=1)
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
@@ -142,6 +138,10 @@ class LayerSpec(object):
                     value = value.astype(np.int8)
                 setattr(spec, "weight_scale", scale)
                 setattr(spec, "weight", value)
+            elif quantization in ("float16", "int8_float16"):
+                if value.dtype == np.float32:
+                    key = _split_scope(name)[-1]
+                    setattr(spec, key, value.astype(np.float16))
 
         self.visit(_quantize)
 

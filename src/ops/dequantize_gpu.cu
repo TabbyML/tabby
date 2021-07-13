@@ -5,64 +5,72 @@
 namespace ctranslate2 {
   namespace ops {
 
-    template <typename T>
+    template <typename InT, typename OutT>
     struct dequantize_func {
-      __device__
-      float operator()(float scale, T x) {
+      __device__ __forceinline__
+      OutT operator()(float scale, InT x) const {
         return __fdividef(static_cast<float>(x), scale);
       }
     };
 
-    template<>
-    void Dequantize::dequantize<Device::CUDA, int8_t>(const StorageView& input,
-                                                      const StorageView& scale,
-                                                      StorageView& output) const {
+    template <Device D, typename InT, typename OutT>
+    void Dequantize::dequantize(const StorageView& input,
+                                const StorageView& scale,
+                                StorageView& output) const {
       const dim_t depth = input.dim(-1);
       cuda::binary_transform(scale.data<float>(),
-                             input.data<int8_t>(),
-                             output.data<float>(),
+                             input.data<InT>(),
+                             output.data<OutT>(),
                              input.size(),
-                             dequantize_func<int8_t>(),
+                             dequantize_func<InT, cuda::device_type<OutT>>(),
                              cuda::repeat_vec_depth<dim_t>(depth));
     }
 
+    template void
+    Dequantize::dequantize<Device::CUDA, int8_t, float>(const StorageView&,
+                                                        const StorageView&,
+                                                        StorageView&) const;
+    template void
+    Dequantize::dequantize<Device::CUDA, int8_t, float16_t>(const StorageView&,
+                                                            const StorageView&,
+                                                            StorageView&) const;
 
-    __device__ __forceinline__ float rescale(const int32_t c,
-                                             const float a_scale,
-                                             const float b_scale) {
-      return __fdividef(__int2float_rn(c), a_scale * b_scale);
-    }
 
-    template <typename Epilogue>
+    template <typename Epilogue, typename T>
     __global__ void dequantize_gemm_output_kernel(const int32_t* c,
                                                   const float* a_scales,
                                                   const float* b_scales,
                                                   const bool transpose_a,
                                                   const bool transpose_b,
-                                                  const float* bias,
+                                                  const T* bias,
                                                   const Epilogue& epilogue,
-                                                  float* y,
+                                                  T* y,
                                                   dim_t depth) {
       // y = c / (expand_dims(a_scales, trans_a ? 0 : 1) * expand_dims(b_scales, trans_b ? 0 : 1)
       // if bias: y += expand_dims(bias, 0)
       // y = epilogue(y)
+      const auto add_func = cuda::plus<T>();
+      const auto rescale_func = dequantize_func<int32_t, T>();
       const dim_t i = blockIdx.x;
       for (dim_t j = threadIdx.x; j < depth; j += blockDim.x) {
         const dim_t index = i * depth + j;
-        y[index] = epilogue(rescale(c[index],
-                                    a_scales[transpose_a ? j : i],
-                                    b_scales[transpose_b ? j : i]) + (bias ? bias[j] : 0));
+        const float scale = a_scales[transpose_a ? j : i] * b_scales[transpose_b ? j : i];
+        T v = rescale_func(scale, c[index]);
+        if (bias)
+          v = add_func(v, bias[j]);
+        y[index] = epilogue(v);
       }
     }
 
+    template <typename T>
     static void dequantize_gemm_output_kernel_wrapper(const int32_t* c,
                                                       const float* a_scales,
                                                       const float* b_scales,
                                                       const bool transpose_a,
                                                       const bool transpose_b,
-                                                      const float* bias,
+                                                      const T* bias,
                                                       const ActivationType* activation_type,
-                                                      float* y,
+                                                      T* y,
                                                       dim_t batch_size,
                                                       dim_t depth) {
       const dim_t blocks = std::min(batch_size, cuda::max_blocks);
@@ -70,20 +78,20 @@ namespace ctranslate2 {
 
       if (!activation_type) {
         dequantize_gemm_output_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
-          c, a_scales, b_scales, transpose_a, transpose_b, bias, thrust::identity<float>(), y, depth);
+          c, a_scales, b_scales, transpose_a, transpose_b, bias, thrust::identity<T>(), y, depth);
 
       } else {
         switch (*activation_type) {
 
         case ActivationType::ReLU: {
           dequantize_gemm_output_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
-            c, a_scales, b_scales, transpose_a, transpose_b, bias, cuda::relu_func<float>(), y, depth);
+            c, a_scales, b_scales, transpose_a, transpose_b, bias, cuda::relu_func<T>(), y, depth);
           break;
         }
 
         case ActivationType::GELU: {
           dequantize_gemm_output_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
-            c, a_scales, b_scales, transpose_a, transpose_b, bias, cuda::gelu_func<float>(), y, depth);
+            c, a_scales, b_scales, transpose_a, transpose_b, bias, cuda::gelu_func<T>(), y, depth);
           break;
         }
 
@@ -91,14 +99,14 @@ namespace ctranslate2 {
       }
     }
 
-    template<>
-    void Dequantize::dequantize_gemm_output<Device::CUDA>(const StorageView& c,
-                                                          const StorageView& a_scale,
-                                                          const StorageView& b_scale,
-                                                          const bool transpose_a,
-                                                          const bool transpose_b,
-                                                          const StorageView* bias,
-                                                          StorageView& y) const {
+    template <Device D, typename T>
+    void Dequantize::dequantize_gemm_output(const StorageView& c,
+                                            const StorageView& a_scale,
+                                            const StorageView& b_scale,
+                                            const bool transpose_a,
+                                            const bool transpose_b,
+                                            const StorageView* bias,
+                                            StorageView& y) const {
       const dim_t batch_size = a_scale.size();
       const dim_t depth = c.dim(-1);
       dequantize_gemm_output_kernel_wrapper(
@@ -107,12 +115,29 @@ namespace ctranslate2 {
         b_scale.data<float>(),
         transpose_a,
         transpose_b,
-        bias ? bias->data<float>() : nullptr,
+        bias ? cuda::device_cast<T>(bias->data<T>()) : nullptr,
         _activation_type,
-        y.data<float>(),
+        cuda::device_cast<T>(y.data<T>()),
         batch_size,
         depth);
     }
+
+    template void
+    Dequantize::dequantize_gemm_output<Device::CUDA, float>(const StorageView&,
+                                                            const StorageView&,
+                                                            const StorageView&,
+                                                            const bool,
+                                                            const bool,
+                                                            const StorageView*,
+                                                            StorageView&) const;
+    template void
+    Dequantize::dequantize_gemm_output<Device::CUDA, float16_t>(const StorageView&,
+                                                                const StorageView&,
+                                                                const StorageView&,
+                                                                const bool,
+                                                                const bool,
+                                                                const StorageView*,
+                                                                StorageView&) const;
 
   }
 }

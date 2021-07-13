@@ -29,8 +29,9 @@ namespace ctranslate2 {
     private:
       const ops::Gather _gather_op;
       const StorageView& _embeddings;
+      const DataType _output_type;
       const StorageView* _qscale;
-      const std::unique_ptr<const StorageView> _scale;
+      std::unique_ptr<const StorageView> _scale;
     };
 
     // Base class for position encoders.
@@ -89,6 +90,7 @@ namespace ctranslate2 {
       StorageView _partial_bias;
       StorageView _partial_qscale;
       StorageView _partial_u8_shift_compensation;
+      const DataType _output_type;
       const bool _quantized_gemm;
       const ops::Gemm _gemm_op;
       const ops::Quantize _quantize_op;

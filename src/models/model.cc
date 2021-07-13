@@ -200,6 +200,10 @@ namespace ctranslate2 {
       return false;
     }
 
+    bool Model::is_convertible(const StorageView& variable, const std::string& name) const {
+      return !variable.is_scalar() && name.find("_scale") == std::string::npos;
+    }
+
     void
     Model::ensure_dtype(const std::string& name,
                         StorageView& variable,
@@ -272,30 +276,47 @@ namespace ctranslate2 {
       variable = std::move(target_variable);
     }
 
+    ComputeType Model::infer_compute_type() const {
+      DataType weight_type = DataType::FLOAT;
+      DataType other_type = DataType::FLOAT;
+
+      for (const auto& variable_pair : _variable_index) {
+        const std::string& name = variable_pair.first;
+        const StorageView& variable = variable_pair.second;
+        if (is_quantizable(name)) {
+          weight_type = variable.dtype();
+        } else if (is_convertible(variable, name)) {
+          other_type = variable.dtype();
+        }
+      }
+
+      switch (weight_type) {
+      case DataType::INT8:
+        return other_type == DataType::FLOAT16 ? ComputeType::INT8_FLOAT16 : ComputeType::INT8;
+      case DataType::INT16:
+        return ComputeType::INT16;
+      case DataType::FLOAT16:
+        return ComputeType::FLOAT16;
+      default:
+        return ComputeType::FLOAT;
+      }
+    }
+
     void Model::finalize() {
       auto scoped_device_setter = get_scoped_device_setter();
 
       std::vector<std::string> variables_to_remove;
       std::unordered_map<std::string, StorageView> variables_to_add;
 
-      DataType model_dtype = DataType::FLOAT;
-      for (const auto& variable_pair : _variable_index) {
-        const std::string& name = variable_pair.first;
-        const StorageView& variable = variable_pair.second;
-        if (is_quantizable(name)) {
-          model_dtype = variable.dtype();
-          break;
-        }
-      }
-
       _effective_compute_type = resolve_compute_type(_compute_type,
-                                                     model_dtype,
+                                                     infer_compute_type(),
                                                      _device,
                                                      _device_index);
       _preferred_size_multiple = get_preferred_size_multiple(_effective_compute_type,
                                                              _device,
                                                              _device_index);
       const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
+      const DataType float_dtype = get_default_float_type(_effective_compute_type);
 
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;
@@ -308,9 +329,9 @@ namespace ctranslate2 {
                        target_dtype,
                        variables_to_add,
                        variables_to_remove);
-        } else if (!variable.is_scalar() && name.find("_scale") == std::string::npos) {
+        } else if (is_convertible(variable, name)) {
           // Other parameters may be converted from or to float16 (e.g. bias).
-          if (target_dtype == DataType::FLOAT16) {
+          if (float_dtype == DataType::FLOAT16) {
             if (variable.dtype() == DataType::FLOAT) {
               variable = variable.to_float16();
             }

@@ -21,9 +21,9 @@ namespace ctranslate2 {
     }
 
     template<>
-    void Dequantize::dequantize<Device::CPU, int16_t>(const StorageView& input,
-                                                      const StorageView& scale,
-                                                      StorageView& output) const {
+    void Dequantize::dequantize<Device::CPU, int16_t, float>(const StorageView& input,
+                                                             const StorageView& scale,
+                                                             StorageView& output) const {
       dequantize_kernel(input.data<int16_t>(),
                         scale.as_scalar<float>(),
                         input.size(),
@@ -31,9 +31,9 @@ namespace ctranslate2 {
     }
 
     template<>
-    void Dequantize::dequantize<Device::CPU, int8_t>(const StorageView& input,
-                                                     const StorageView& scale,
-                                                     StorageView& output) const {
+    void Dequantize::dequantize<Device::CPU, int8_t, float>(const StorageView& input,
+                                                            const StorageView& scale,
+                                                            StorageView& output) const {
       const dim_t batch_size = scale.size();
       const dim_t depth = input.dim(-1);
 
@@ -49,13 +49,13 @@ namespace ctranslate2 {
     }
 
     template<>
-    void Dequantize::dequantize_gemm_output<Device::CPU>(const StorageView& c,
-                                                         const StorageView& a_scale,
-                                                         const StorageView& b_scale,
-                                                         const bool transpose_a,
-                                                         const bool transpose_b,
-                                                         const StorageView* bias,
-                                                         StorageView& y) const {
+    void Dequantize::dequantize_gemm_output<Device::CPU, float>(const StorageView& c,
+                                                                const StorageView& a_scale,
+                                                                const StorageView& b_scale,
+                                                                const bool transpose_a,
+                                                                const bool transpose_b,
+                                                                const StorageView* bias,
+                                                                StorageView& y) const {
       const auto* c_data = c.data<int32_t>();
       auto* y_data = y.data<float>();
 

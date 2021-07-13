@@ -5,15 +5,28 @@
 namespace ctranslate2 {
   namespace ops {
 
+    template <typename T>
     struct absolute_maximum_func {
+      __device__ __forceinline__ T operator()(T a, T b) const;
+    };
+
+    template<>
+    struct absolute_maximum_func<float> {
       __device__ __forceinline__ float operator()(float a, float b) const {
         return fmaxf(fabsf(a), fabsf(b));
       }
     };
 
-    struct maximum_func {
-      __device__ __forceinline__ float operator()(float a, float b) const {
-        return fmaxf(a, b);
+    template<>
+    struct absolute_maximum_func<__half> {
+      __device__ __forceinline__ __half operator()(__half a, __half b) const {
+#if CUDA_CAN_USE_HALF
+        a = __habs(a);
+        b = __habs(b);
+        return a > b ? a : b;
+#else
+        return fmaxf(fabsf(a), fabsf(b));
+#endif
       }
     };
 
@@ -30,18 +43,20 @@ namespace ctranslate2 {
       const float _scale;
     };
 
-    __global__ void quantize_kernel(const float* input,
+    template <typename T>
+    __global__ void quantize_kernel(const T* input,
                                     dim_t depth,
                                     float* scales,
                                     int8_t* output) {
       extern __shared__ unsigned char smem[];
-      auto sdata = reinterpret_cast<float*>(smem);
+      auto* sdata = reinterpret_cast<T*>(smem);
 
       input += blockIdx.x * depth;
       output += blockIdx.x * depth;
 
-      float thread_max = cuda::ilp_reduce(input, depth, absolute_maximum_func(), 0.f);
-      float max = cuda::block_reduce(sdata, thread_max, maximum_func(), 0.f);
+      T thread_max = cuda::ilp_reduce(input, depth, absolute_maximum_func<T>(), T(0));
+      T global_max = cuda::block_reduce(sdata, thread_max, cuda::maximum<T>(), T(0));
+      float max = global_max;
       float scale = max != 0.f ? 127.f / max : 1.f;
 
       scales[blockIdx.x] = scale;
@@ -49,10 +64,10 @@ namespace ctranslate2 {
       cuda::apply_epilogue(input, depth, quantize_func(scale), output);
     }
 
-    template<>
-    void Quantize::quantize<Device::CUDA, int8_t>(const StorageView& input,
-                                                  StorageView& output,
-                                                  StorageView& scale) const {
+    template <Device D, typename InT, typename OutT>
+    void Quantize::quantize(const StorageView& input,
+                            StorageView& output,
+                            StorageView& scale) const {
       if (_shift_to_uint8)
         throw std::invalid_argument("Shift to uin8_t is not defined on CUDA");
 
@@ -61,12 +76,21 @@ namespace ctranslate2 {
 
       const dim3 grid(batch_size);
       const dim3 block(cuda::get_block_size(depth));
-      quantize_kernel<<<grid, block, block.x * sizeof (float), cuda::get_cuda_stream()>>>(
-        input.data<float>(),
+      quantize_kernel<<<grid, block, block.x * sizeof (InT), cuda::get_cuda_stream()>>>(
+        cuda::device_cast<InT>(input.data<InT>()),
         depth,
         scale.data<float>(),
-        output.data<int8_t>());
+        cuda::device_cast<OutT>(output.data<OutT>()));
     }
+
+    template void
+    Quantize::quantize<Device::CUDA, float, int8_t>(const StorageView&,
+                                                    StorageView&,
+                                                    StorageView&) const;
+    template void
+    Quantize::quantize<Device::CUDA, float16_t, int8_t>(const StorageView&,
+                                                        StorageView&,
+                                                        StorageView&) const;
 
   }
 }

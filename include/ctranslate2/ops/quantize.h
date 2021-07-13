@@ -23,7 +23,7 @@ namespace ctranslate2 {
                       StorageView& scale) const;
 
     private:
-      template <Device D, typename T>
+      template <Device D, typename InT, typename OutT>
       void quantize(const StorageView& input,
                     StorageView& output,
                     StorageView& scale) const;

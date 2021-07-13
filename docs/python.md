@@ -22,7 +22,7 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
     vmap: str = None,         # Path to a vocabulary mapping file.
-    quantization: str = None, # Weights quantization: "int8", "int16", or "float16".
+    quantization: str = None, # Weights quantization: "int8", "int8_float16", "int16", or "float16".
     force: bool = False,      # Override output_dir if it exists.
 )
 ```
@@ -38,7 +38,7 @@ translator = ctranslate2.Translator(
     # The device ID, or list of device IDs, where to place this translator on.
     device_index: Union[int, List[int]] = 0,
 
-    # The computation type: "default", "auto", "int8", "int16", "float16", or "float",
+    # The computation type: "default", "auto", "int8", "int8_float16", "int16", "float16", or "float",
     # or a dict mapping a device to a computation type.
     compute_type: Union[str, Dict[str, str]] = "default",
 
