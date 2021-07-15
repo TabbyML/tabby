@@ -15,7 +15,6 @@ namespace ctranslate2 {
     class Decoder : public Layer {
     public:
       Decoder(Device device);
-      virtual ~Decoder() = default;
 
       virtual void set_vocabulary_mask(const StorageView&) {}
       virtual void reset_vocabulary_mask() {}

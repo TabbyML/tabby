@@ -9,8 +9,6 @@ namespace ctranslate2 {
     // Base class for encoders.
     class Encoder : public Layer {
     public:
-      virtual ~Encoder() = default;
-
       virtual void operator()(const StorageView& ids,
                               const StorageView& lengths,
                               StorageView& output) = 0;
