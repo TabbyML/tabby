@@ -420,7 +420,7 @@ namespace ctranslate2 {
     std::vector<std::future<TranslationResult>>
     post(const std::vector<std::vector<std::string>>& source,
          const std::vector<std::vector<std::string>>& target_prefix,
-         TranslationOptions options,
+         const TranslationOptions& options,
          size_t max_batch_size,
          BatchType batch_type,
          bool throttle);

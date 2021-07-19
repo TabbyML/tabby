@@ -30,7 +30,7 @@ namespace ctranslate2 {
 
   private:
     std::shared_ptr<TranslatorPool> _translator_pool;
-    TranslationOptions _options;
+    const TranslationOptions _options;
     const size_t _max_batch_size;
     const size_t _max_buffer_size;
     const std::chrono::microseconds _buffer_timeout;

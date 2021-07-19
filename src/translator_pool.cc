@@ -108,12 +108,11 @@ namespace ctranslate2 {
   std::vector<std::future<TranslationResult>>
   TranslatorPool::post(const std::vector<std::vector<std::string>>& source,
                        const std::vector<std::vector<std::string>>& target_prefix,
-                       TranslationOptions options,
+                       const TranslationOptions& options,
                        size_t max_batch_size,
                        BatchType batch_type,
                        bool throttle) {
     options.validate();
-    options.validated = true;
 
     if (source.empty())
       return {};
@@ -124,8 +123,6 @@ namespace ctranslate2 {
       batch_type = BatchType::Examples;
     }
     auto batches = rebatch_input(source, target_prefix, max_batch_size, batch_type);
-    options.rebatch_input = false;
-
     auto consumer = std::make_shared<JobResultConsumer<TranslationResult>>(source.size());
     auto futures = consumer->get_futures();
 

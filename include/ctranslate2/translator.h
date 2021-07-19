@@ -11,10 +11,6 @@ namespace ctranslate2 {
 
   using TranslationResult = GenerationResult<std::string>;
 
-  class Translator;
-  class TranslatorPool;
-  class BufferedTranslationWrapper;
-
   struct TranslationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 2;
@@ -67,15 +63,6 @@ namespace ctranslate2 {
 
     void validate() const;
     bool support_batch_translation() const;
-
-  private:
-    // Internal options.
-    bool validated = false;
-    bool rebatch_input = true;
-
-    friend class Translator;
-    friend class TranslatorPool;
-    friend class BufferedTranslationWrapper;
   };
 
   // The Translator can run translations from a sequence-to-sequence model.

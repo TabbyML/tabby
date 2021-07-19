@@ -28,6 +28,20 @@ namespace ctranslate2 {
                                           options.allow_early_exit);
   }
 
+  static bool should_rebatch(const std::vector<std::vector<std::string>>& source,
+                             const bool allow_batch = true) {
+    const size_t batch_size = source.size();
+    if (!allow_batch && batch_size > 1)
+      return true;
+    for (size_t i = 0; i < batch_size; ++i) {
+      if (source[i].empty())
+        return true;
+      if (i > 0 && source[i].size() > source[i - 1].size())
+        return true;
+    }
+    return false;
+  }
+
 
   void TranslationOptions::validate() const {
     if (num_hypotheses == 0)
@@ -102,9 +116,10 @@ namespace ctranslate2 {
   Translator::translate_batch_with_prefix(const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
-    if (!options.validated)
-      options.validate();
-    if (!options.rebatch_input)
+    options.validate();
+    if (source.empty())
+      return {};
+    if (!should_rebatch(source, options.support_batch_translation()))
       return run_batch_translation(source, target_prefix, options);
 
     // Rebatching is required to filter out empty inputs and sort by length.

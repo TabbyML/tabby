@@ -14,8 +14,6 @@ namespace ctranslate2 {
     , _buffer_timeout(buffer_timeout_in_micros)
   {
     _options.validate();
-    _options.validated = true;
-    _options.rebatch_input = false;
     _background_thread = std::make_unique<std::thread>(&BufferedTranslationWrapper::buffer_loop,
                                                        this);
   }
