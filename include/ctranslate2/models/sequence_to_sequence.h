@@ -38,9 +38,8 @@ namespace ctranslate2 {
       virtual void finalize() override;
 
     private:
-      std::unique_ptr<const Vocabulary> _source_vocabulary;
-      std::unique_ptr<const Vocabulary> _target_vocabulary;
-      std::unique_ptr<const Vocabulary> _shared_vocabulary;
+      std::shared_ptr<const Vocabulary> _source_vocabulary;
+      std::shared_ptr<const Vocabulary> _target_vocabulary;
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
 
       bool _with_source_bos = false;

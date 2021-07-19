@@ -13,15 +13,16 @@ namespace ctranslate2 {
       {
         auto shared_vocabulary = model_reader.get_file(shared_vocabulary_file);
         if (shared_vocabulary) {
-          _shared_vocabulary = std::make_unique<Vocabulary>(*shared_vocabulary);
+          _source_vocabulary = std::make_shared<Vocabulary>(*shared_vocabulary);
+          _target_vocabulary = _source_vocabulary;
         } else {
           {
             auto source_vocabulary = model_reader.get_required_file(source_vocabulary_file);
-            _source_vocabulary = std::make_unique<Vocabulary>(*source_vocabulary);
+            _source_vocabulary = std::make_shared<Vocabulary>(*source_vocabulary);
           }
           {
             auto target_vocabulary = model_reader.get_required_file(target_vocabulary_file);
-            _target_vocabulary = std::make_unique<Vocabulary>(*target_vocabulary);
+            _target_vocabulary = std::make_shared<Vocabulary>(*target_vocabulary);
           }
         }
       }
@@ -42,11 +43,11 @@ namespace ctranslate2 {
     }
 
     const Vocabulary& SequenceToSequenceModel::get_source_vocabulary() const {
-      return _shared_vocabulary ? *_shared_vocabulary : *_source_vocabulary;
+      return *_source_vocabulary;
     }
 
     const Vocabulary& SequenceToSequenceModel::get_target_vocabulary() const {
-      return _shared_vocabulary ? *_shared_vocabulary : *_target_vocabulary;
+      return *_target_vocabulary;
     }
 
     const VocabularyMap* SequenceToSequenceModel::get_vocabulary_map() const {
