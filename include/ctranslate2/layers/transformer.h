@@ -121,6 +121,7 @@ namespace ctranslate2 {
 
     private:
       const Embeddings _embeddings;
+      const dim_t _num_heads;
       const ComputeType _compute_type;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<LayerNorm> _output_norm;
@@ -161,6 +162,7 @@ namespace ctranslate2 {
 
     private:
       const bool _with_encoder_attention;
+      const dim_t _num_heads;
       const ComputeType _compute_type;
       const Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;

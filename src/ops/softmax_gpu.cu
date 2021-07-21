@@ -13,7 +13,6 @@ namespace ctranslate2 {
                                const int64_t rows,
                                const int64_t cols,
                                const int32_t* lengths,
-                               const int64_t lengths_size,
                                T* y);
 
     template <Device D, typename T>
@@ -28,7 +27,6 @@ namespace ctranslate2 {
                      batch_size,
                      depth,
                      lengths ? lengths->data<int32_t>() : nullptr,
-                     lengths ? lengths->dim(0) : 0,
                      output.data<T>());
     }
 
@@ -196,10 +194,8 @@ namespace at {
     __global__ void
     cunn_SoftMaxForward(outscalar_t *output,
                         const scalar_t *input,
-                        int batch_size,
                         int classes,
-                        const length_t *lengths,
-                        int lengths_size)
+                        const length_t *lengths)
     {
       extern __shared__ unsigned char smem[];
       auto sdata = reinterpret_cast<accscalar_t*>(smem);
@@ -213,7 +209,7 @@ namespace at {
       if (lengths)
       {
         // Directly set 0 in output for out of range positions.
-        size = lengths[row * lengths_size / batch_size];  // Broadcast length vector.
+        size = lengths[row];
         for (int i = size + threadIdx.x; i < classes; i += blockDim.x)
           output[i] = 0;
       }
@@ -247,17 +243,14 @@ namespace ctranslate2 {
                                     const int64_t rows,
                                     const int64_t cols,
                                     const int32_t* lengths,
-                                    const int64_t lengths_size,
                                     T* y) {
       const dim3 grid(rows);
       const dim3 block(cuda::get_block_size(cols));
       at::native::cunn_SoftMaxForward<T, float, T, int32_t, Epilogue>
         <<<grid, block, block.x * sizeof (float), stream>>>(y,
                                                             x,
-                                                            rows,
                                                             cols,
-                                                            lengths,
-                                                            lengths_size);
+                                                            lengths);
     }
 
     template <typename T>
@@ -267,14 +260,13 @@ namespace ctranslate2 {
                                const int64_t rows,
                                const int64_t cols,
                                const int32_t* lengths,
-                               const int64_t lengths_size,
                                T* y) {
       if (log_softmax)
         softmax_kernel_impl<cuda::device_type<T>, at::native::LogSoftMaxForwardEpilogue>(
-          stream, cuda::device_cast(x), rows, cols, lengths, lengths_size, cuda::device_cast(y));
+          stream, cuda::device_cast(x), rows, cols, lengths, cuda::device_cast(y));
       else
         softmax_kernel_impl<cuda::device_type<T>, at::native::SoftMaxForwardEpilogue>(
-          stream, cuda::device_cast(x), rows, cols, lengths, lengths_size, cuda::device_cast(y));
+          stream, cuda::device_cast(x), rows, cols, lengths, cuda::device_cast(y));
     }
 
   }

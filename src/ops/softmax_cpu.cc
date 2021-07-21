@@ -16,7 +16,6 @@ namespace ctranslate2 {
       CPU_ISA_DISPATCH((cpu::softmax<ISA>(input.data<T>(),
                                           lengths ? lengths->data<int32_t>() : nullptr,
                                           output.data<T>(),
-                                          lengths ? lengths->dim(0) : 0,
                                           batch_size,
                                           depth,
                                           _log,

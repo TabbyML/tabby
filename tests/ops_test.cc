@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "test_utils.h"
+#include "ctranslate2/layers/attention.h"
 #include "ctranslate2/ops/ops.h"
 
 TEST(OpTest, Transpose1D) {
@@ -590,6 +591,44 @@ TEST_P(OpDeviceFPTest, MaskedSoftMax) {
       0.777098, 0.211783, 0.009540, 0.001577, 0}, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x.to(dtype), lengths, y);
+  expect_storage_eq(y.to_float(), expected, 1e-3);
+}
+
+TEST_P(OpDeviceFPTest, MaskedSoftMaxTriangular) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView x({2, 2, 3, 3}, std::vector<float>{
+      0.08784354, 0.67030656, 0.8866086,
+      0.08053982, 0.9826797, 0.7965635,
+      0.48865926, 0.8635745, 0.21703207,
+      0.0742166, 0.0623771, 0.7590432,
+      0.43742728, 0.12613738, 0.53697634,
+      0.05396891, 0.04152167, 0.66332567,
+      0.6386628, 0.23325896, 0.6977577,
+      0.06948507, 0.10246396, 0.6232395,
+      0.7822603, 0.3168552, 0.11804962,
+      0.1133163, 0.29983068, 0.43074536,
+      0.7321733, 0.48709297, 0.35727918,
+      0.8421174, 0.9135181, 0.77135813
+    }, device);
+  StorageView lengths({2}, std::vector<int32_t>{3, 2}, device);
+  StorageView mask = layers::MultiHeadAttention::prepare_length_mask(lengths, 2, 3, true);
+  StorageView expected({2, 2, 3, 3}, std::vector<float>{
+      1, 0, 0,
+      0.28861094, 0.71138906, 0,
+      0.310848, 0.45224282, 0.23690917,
+      1, 0, 0,
+      0.57720006, 0.42279992, 0,
+      0.26130962, 0.25807717, 0.48061317,
+      1, 0, 0,
+      0.49175602, 0.508244, 0,
+      0.61429566, 0.3857044, 0,
+      1, 0, 0,
+      0.56096524, 0.43903476, 0,
+      0.48215744, 0.5178426, 0
+    }, device);
+  StorageView y(dtype, device);
+  ops::SoftMax()(x.to(dtype), mask, y);
   expect_storage_eq(y.to_float(), expected, 1e-3);
 }
 

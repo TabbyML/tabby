@@ -120,6 +120,7 @@ namespace ctranslate2 {
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type)
       : _embeddings(model, scope + "/embeddings")
+      , _num_heads(num_heads)
       , _compute_type(model.effective_compute_type())
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
@@ -154,15 +155,21 @@ namespace ctranslate2 {
       if (_position_encoder)
         (*_position_encoder)(input);
 
+      const dim_t max_time = input.dim(1);
+
       // Remove padding to reduce the amount of computation.
       std::unique_ptr<Padder> padder;
       if (Padder::allow_padding_removal(output.device(), _compute_type)) {
-        padder = std::make_unique<Padder>(lengths, input.dim(1));
+        padder = std::make_unique<Padder>(lengths, max_time);
         padder->remove_padding(input);
       }
 
+      const StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(lengths,
+                                                                                       _num_heads,
+                                                                                       max_time);
+
       for (size_t l = 0; l < _layers.size(); ++l) {
-        (*_layers[l])(input, lengths, output, padder.get());
+        (*_layers[l])(input, lengths_mask, output, padder.get());
         if (l + 1 < _layers.size())
           input = std::move(output);
       }
@@ -182,6 +189,7 @@ namespace ctranslate2 {
                                            const ops::ActivationType activation_type)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
+      , _num_heads(num_heads)
       , _compute_type(model.effective_compute_type())
       , _embeddings(model, scope + "/embeddings")
       , _position_encoder(with_position_encoding
@@ -252,24 +260,27 @@ namespace ctranslate2 {
         (*_position_encoder)(layer_in, step);
 
       StorageView* memory = nullptr;
-      const StorageView* memory_lengths = nullptr;
+      StorageView memory_lengths_mask;
       std::unique_ptr<Padder> memory_padder;
       if (_with_encoder_attention) {
-        memory_lengths = &state.at("memory_lengths");
+        const StorageView& memory_lengths = state.at("memory_lengths");
         if (step == 0) {
           memory = &state.at("memory");
           if (Padder::allow_padding_removal(memory->device(), _compute_type)) {
-            memory_padder = std::make_unique<Padder>(*memory_lengths, memory->dim(1));
+            memory_padder = std::make_unique<Padder>(memory_lengths, memory->dim(1));
             memory_padder->remove_padding(*memory);
           }
         }
+        memory_lengths_mask = layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
+                                                                              _num_heads,
+                                                                              /*num_queries=*/1);
       }
 
       for (size_t l = 0; l < _layers.size(); ++l) {
         const std::string l_str = std::to_string(l);
         (*_layers[l])(layer_in,
                       memory,
-                      memory_lengths,
+                      memory_lengths_mask ? &memory_lengths_mask : nullptr,
                       state.at("self_keys_" + l_str),
                       state.at("self_values_" + l_str),
                       _with_encoder_attention ? &state.at("memory_keys_" + l_str) : nullptr,

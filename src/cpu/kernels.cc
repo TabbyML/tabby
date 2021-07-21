@@ -264,7 +264,6 @@ namespace ctranslate2 {
     void softmax<TARGET_ISA>(const float* input,
                              const int32_t* lengths,
                              float* output,
-                             dim_t lengths_size,
                              dim_t batch_size,
                              dim_t depth,
                              bool log,
@@ -279,12 +278,7 @@ namespace ctranslate2 {
 
         dim_t size = depth;
         if (lengths) {
-          if (lengths_size == batch_size) {
-            size = lengths[i];
-          } else {
-            // Broadcast length vector.
-            size = lengths[i * lengths_size / batch_size];
-          }
+          size = lengths[i];
 
           // Directly set 0 in output for out of range positions.
           for (dim_t j = size; j < depth; ++j) {

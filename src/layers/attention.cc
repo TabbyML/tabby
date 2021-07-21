@@ -276,5 +276,27 @@ namespace ctranslate2 {
       y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
     }
 
+    StorageView MultiHeadAttention::prepare_length_mask(const StorageView& lengths,
+                                                        const dim_t num_heads,
+                                                        const dim_t num_queries,
+                                                        const bool mask_future) {
+      const dim_t batch_size = lengths.size();
+      const StorageView lengths_host(lengths.to(Device::CPU));
+      StorageView mask({batch_size, num_heads, num_queries}, lengths.dtype());
+
+      for (dim_t b = 0; b < batch_size; ++b) {
+        const auto length = lengths_host.at<int32_t>(b);
+        for (dim_t h = 0; h < num_heads; ++h) {
+          for (dim_t t = 0; t < num_queries; ++t) {
+            mask.at<int32_t>({b, h, t}) = (mask_future
+                                           ? std::min(length, static_cast<int32_t>(t + 1))
+                                           : length);
+          }
+        }
+      }
+
+      return mask.to(lengths.device());
+    }
+
   }
 }

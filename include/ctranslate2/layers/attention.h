@@ -28,6 +28,12 @@ namespace ctranslate2 {
                       StorageView* cached_values = nullptr,
                       StorageView* attention = nullptr,
                       const Padder* padder = nullptr) const;
+
+      static StorageView prepare_length_mask(const StorageView& lengths,
+                                             const dim_t num_heads,
+                                             const dim_t num_queries,
+                                             const bool mask_future = false);
+
     private:
       const dim_t _num_heads;
       const bool _self_attention;

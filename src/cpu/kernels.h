@@ -52,7 +52,6 @@ namespace ctranslate2 {
     void softmax(const float* input,
                  const int32_t* lengths,
                  float* output,
-                 dim_t lengths_size,
                  dim_t batch_size,
                  dim_t depth,
                  bool log,
