@@ -21,13 +21,14 @@ namespace ctranslate2 {
       DataType output_type() const override;
       dim_t output_size() const override;
       void operator()(const StorageView& queries,
-                      const StorageView* memory,
-                      const StorageView* memory_lengths,
+                      const StorageView& values,
+                      const StorageView* values_lengths,
                       StorageView& output,
                       StorageView* cached_keys = nullptr,
                       StorageView* cached_values = nullptr,
                       StorageView* attention = nullptr,
-                      const Padder* padder = nullptr) const;
+                      const Padder* queries_padder = nullptr,
+                      const Padder* values_padder = nullptr) const;
 
       static StorageView prepare_length_mask(const StorageView& lengths,
                                              const dim_t num_heads,

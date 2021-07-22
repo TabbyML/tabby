@@ -73,15 +73,17 @@ namespace ctranslate2 {
                               const ops::ActivationType activation_type = ops::ActivationType::ReLU);
 
       void operator()(const StorageView& input,
+                      const StorageView* input_lengths,
                       const StorageView* memory,
                       const StorageView* memory_lengths,
-                      StorageView& cached_self_attn_keys,
-                      StorageView& cached_self_attn_values,
+                      StorageView* cached_self_attn_keys,
+                      StorageView* cached_self_attn_values,
                       StorageView* cached_attn_keys,
                       StorageView* cached_attn_values,
                       StorageView& output,
                       StorageView* attention = nullptr,
-                      const Padder* padder = nullptr) const;
+                      const Padder* input_padder = nullptr,
+                      const Padder* memory_padder = nullptr) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -148,6 +150,10 @@ namespace ctranslate2 {
                       DecoderState& state,
                       StorageView* logits = nullptr,
                       StorageView* attention = nullptr) override;
+      void operator()(const StorageView& ids,
+                      const StorageView& lengths,
+                      DecoderState& state,
+                      StorageView& logits) override;
 
       DataType output_type() const override {
         return _proj.output_type();
@@ -161,6 +167,13 @@ namespace ctranslate2 {
       bool should_reorder_state(const std::string& name) const override;
 
     private:
+      void decode(const StorageView& ids,
+                  const StorageView* lengths,
+                  dim_t step,
+                  DecoderState& state,
+                  StorageView* logits = nullptr,
+                  StorageView* attention = nullptr);
+
       const bool _with_encoder_attention;
       const dim_t _num_heads;
       const ComputeType _compute_type;

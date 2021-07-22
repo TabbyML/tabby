@@ -19,11 +19,19 @@ namespace ctranslate2 {
       virtual void set_vocabulary_mask(const StorageView&) {}
       virtual void reset_vocabulary_mask() {}
       virtual DecoderState initial_state() const = 0;
+
+      // Forwards one step.
       virtual void operator()(dim_t step,
                               const StorageView& ids,
                               DecoderState& state,
                               StorageView* logits = nullptr,
                               StorageView* attention = nullptr) = 0;
+
+      // Forwards a full sequence.
+      virtual void operator()(const StorageView& ids,
+                              const StorageView& lengths,
+                              DecoderState& state,
+                              StorageView& logits) = 0;
 
       // Gathers states based on indices.
       void gather_state(DecoderState& state, const StorageView& indices) const;
