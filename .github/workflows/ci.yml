@@ -107,7 +107,7 @@ jobs:
       CT2_VERBOSE: 1
     strategy:
       matrix:
-        backend: [openblas, dnnl]
+        backend: [openblas]
 
     steps:
       - uses: actions/checkout@v2
@@ -139,41 +139,6 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$PWD/install \
             -DWITH_MKL=OFF \
             -DWITH_OPENBLAS=ON \
-            -DBUILD_TESTS=ON \
-            .
-          make -j $(nproc) install
-
-      - name: Build with DNNL
-        if: matrix.backend == 'dnnl'
-        run: |
-          wget https://github.com/oneapi-src/oneDNN/archive/v1.7.tar.gz
-          tar xzvf v1.7.tar.gz
-          cd oneDNN-1.7
-          cmake \
-            -DCMAKE_SYSTEM_NAME=Linux \
-            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-            -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu \
-            -DCMAKE_INSTALL_PREFIX=/usr/aarch64-linux-gnu \
-            -DDNNL_TARGET_ARCH="AARCH64" \
-            -DDNNL_CPU_RUNTIME=OMP \
-            -DDNNL_BUILD_TESTS=OFF \
-            .
-          make -j $(nproc)
-          sudo make install
-          cd ..
-
-          cmake \
-            -DCMAKE_SYSTEM_NAME=Linux \
-            -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
-            -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
-            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-            -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu \
-            -DOPENMP_RUNTIME=COMP \
-            -DCMAKE_INSTALL_PREFIX=$PWD/install \
-            -DWITH_MKL=OFF \
-            -DWITH_DNNL=ON \
             -DBUILD_TESTS=ON \
             .
           make -j $(nproc) install
