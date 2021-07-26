@@ -89,6 +89,7 @@ run("CTranslate2", ctranslate2)
 if gpu:
     run("- int8", ctranslate2, env={"COMPUTE_TYPE": "int8"})
     run("- float16", ctranslate2, env={"COMPUTE_TYPE": "float16"})
+    run("- int8 + float16", ctranslate2, env={"COMPUTE_TYPE": "int8_float16"})
 else:
     run("- int16", ctranslate2, env={"COMPUTE_TYPE": "int16"})
     run("- int8", ctranslate2, env={"COMPUTE_TYPE": "int8"})

@@ -365,6 +365,7 @@ We compare CTranslate2 with OpenNMT-py and OpenNMT-tf on their pretrained Englis
 | - int16 | 187MB |
 | - float16 | 182MB |
 | - int8 | 100MB |
+| - int8 + float16 | 95MB |
 
 CTranslate2 models are generally lighter and can go as low as 100MB when quantized to int8. This also results in a fast loading time and noticeable lower memory usage during runtime.
 
@@ -387,10 +388,10 @@ See the directory [`tools/benchmark`](tools/benchmark) for more details about th
 | OpenNMT-tf 2.19.0 (with TensorFlow 2.5.0) | 364.1 | 2620MB | 26.93 |
 | OpenNMT-py 2.1.2 (with PyTorch 1.9.0) | 472.6 | 1856MB | 26.77 |
 | - int8 | 510.4 | 1712MB | 26.80 |
-| CTranslate2 2.1.0 | 1185.5 | 1091MB | 26.77 |
-| - int16 | 1531.2 | 944MB | 26.83 |
-| - int8 | 1758.6 | 795MB | 26.86 |
-| - int8 + vmap | 2167.8 | 788MB | 26.70 |
+| CTranslate2 2.3.0 | 1182.3 | 1037MB | 26.77 |
+| - int16 | 1532.0 | 954MB | 26.83 |
+| - int8 | 1785.2 | 810MB | 26.86 |
+| - int8 + vmap | 2263.4 | 692MB | 26.70 |
 
 Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
 
@@ -400,9 +401,10 @@ Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-ty
 | --- | --- | --- | --- | --- |
 | OpenNMT-tf 2.19.0 (with TensorFlow 2.5.0) | 1815.2 | 2660MB | 1724MB | 26.93 |
 | OpenNMT-py 2.1.2 (with PyTorch 1.9.0) | 1536.7 | 3046MB | 2987MB | 26.77 |
-| CTranslate2 2.1.0 | 3726.4 | 1266MB | 676MB | 26.77 |
-| - int8 | 5190.3 | 978MB | 567MB | 26.82 |
-| - float16 | 5361.3 | 786MB | 606MB | 26.75 |
+| CTranslate2 2.3.0 | 3696.7 | 1234MB | 555MB | 26.77 |
+| - int8 | 5201.9 | 946MB | 565MB | 26.82 |
+| - float16 | 5303.5 | 818MB | 607MB | 26.75 |
+| - int8 + float16 | 5824.3 | 722MB | 566MB | 26.88 |
 
 Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 460.73.01).
 
