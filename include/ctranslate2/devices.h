@@ -21,18 +21,22 @@ namespace ctranslate2 {
     ScopedDeviceSetter(Device device, int index)
       : _device(device)
       , _prev_index(get_device_index(device))
+      , _new_index(index)
     {
-      set_device_index(device, index);
+      if (_prev_index != _new_index)
+        set_device_index(device, _new_index);
     }
 
     ~ScopedDeviceSetter() {
       // Set previous device index.
-      set_device_index(_device, _prev_index);
+      if (_prev_index != _new_index)
+        set_device_index(_device, _prev_index);
     }
 
   private:
     Device _device;
     int _prev_index;
+    int _new_index;
   };
 
 }
