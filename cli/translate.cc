@@ -13,6 +13,8 @@ int main(int argc, char* argv[]) {
   cmd_options.add_options()
     ("h,help", "Display available options.")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
+    ("task", "Task to run: translate, score.",
+     cxxopts::value<std::string>()->default_value("translate"))
     ("compute_type", "The type used for computation: default, auto, float, float16, int16, int8, or int8_float16",
      cxxopts::value<std::string>()->default_value("default"))
     ("cuda_compute_type", "Computation type on CUDA devices (overrides compute_type)",
@@ -146,15 +148,35 @@ int main(int argc, char* argv[]) {
   auto log_profiling = args["log_profiling"].as<bool>();
   if (log_profiling)
     ctranslate2::init_profiling(device, translator_pool.num_translators());
-  const ctranslate2::TranslationStats stats = translator_pool.consume_text_file(
-    *source,
-    *output,
-    options,
-    args["batch_size"].as<size_t>(),
-    args["read_batch_size"].as<size_t>(),
-    ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>()),
-    args["with_score"].as<bool>(),
-    target);
+
+  const auto task = args["task"].as<std::string>();
+  const auto max_batch_size = args["batch_size"].as<size_t>();
+  const auto read_batch_size = args["read_batch_size"].as<size_t>();
+  const auto batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
+  ctranslate2::TranslationStats stats;
+
+  if (task == "translate") {
+    stats = translator_pool.consume_text_file(*source,
+                                              *output,
+                                              options,
+                                              max_batch_size,
+                                              read_batch_size,
+                                              batch_type,
+                                              args["with_score"].as<bool>(),
+                                              target);
+  } else if (task == "score") {
+    if (source == &std::cin || !target)
+      throw std::invalid_argument("Score task requires both arguments --src and --tgt to be set");
+    stats = translator_pool.score_text_file(*source,
+                                            *target,
+                                            *output,
+                                            max_batch_size,
+                                            read_batch_size,
+                                            batch_type);
+  } else {
+    throw std::invalid_argument("Invalid task: " + task);
+  }
+
   if (log_profiling)
     ctranslate2::dump_profiling(std::cerr);
 

@@ -47,6 +47,7 @@ The translation API supports several decoding options:
 * approximating the generation using a pre-compiled [vocabulary map](#how-do-i-generate-a-vocabulary-mapping-file)
 * replacing unknown target tokens by source tokens with the highest attention
 * biasing translations towards a given prefix [see section 4.2](https://arxiv.org/abs/1912.03393)
+* scoring existing translations
 
 See the [Decoding](docs/decoding.md) documentation for examples.
 

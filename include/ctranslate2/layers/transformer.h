@@ -143,7 +143,7 @@ namespace ctranslate2 {
 
       void set_vocabulary_mask(const StorageView& ids) override;
       void reset_vocabulary_mask() override;
-      DecoderState initial_state() const override;
+      DecoderState initial_state(bool iterative_decoding = true) const override;
 
       void operator()(dim_t step,
                       const StorageView& ids,

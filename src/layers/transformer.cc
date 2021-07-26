@@ -243,16 +243,18 @@ namespace ctranslate2 {
       _proj.reset_mask();
     }
 
-    DecoderState TransformerDecoder::initial_state() const {
-      const DataType dtype = output_type();
+    DecoderState TransformerDecoder::initial_state(bool iterative_decoding) const {
       DecoderState state;
-      for (size_t i = 0; i < _layers.size(); ++i) {
-        const std::string i_str = std::to_string(i);
-        state.emplace("self_keys_" + i_str, StorageView(dtype, _device));
-        state.emplace("self_values_" + i_str, StorageView(dtype, _device));
-        if (_with_encoder_attention) {
-          state.emplace("memory_keys_" + i_str, StorageView(dtype, _device));
-          state.emplace("memory_values_" + i_str, StorageView(dtype, _device));
+      if (iterative_decoding) {
+        const DataType dtype = output_type();
+        for (size_t i = 0; i < _layers.size(); ++i) {
+          const std::string i_str = std::to_string(i);
+          state.emplace("self_keys_" + i_str, StorageView(dtype, _device));
+          state.emplace("self_values_" + i_str, StorageView(dtype, _device));
+          if (_with_encoder_attention) {
+            state.emplace("memory_keys_" + i_str, StorageView(dtype, _device));
+            state.emplace("memory_values_" + i_str, StorageView(dtype, _device));
+          }
         }
       }
       return state;

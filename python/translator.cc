@@ -51,6 +51,24 @@ using Tokens = std::vector<std::string>;
 using BatchTokens = std::vector<Tokens>;
 using BatchTokensOptional = std::optional<std::vector<std::optional<Tokens>>>;
 
+// This wrapper re-acquires the GIL before calling a Python function.
+template <typename Function>
+class SafeCaller {
+public:
+  SafeCaller(const Function& function)
+    : _function(function)
+  {
+  }
+
+  typename Function::result_type operator()(typename Function::argument_type input) const {
+    py::gil_scoped_acquire acquire;
+    return _function(input);
+  }
+
+private:
+  const Function& _function;
+};
+
 static BatchTokens finalize_optional_batch(const BatchTokensOptional& optional) {
   // Convert missing values to empty vectors.
   BatchTokens batch;
@@ -175,22 +193,9 @@ public:
       options.replace_unknowns = replace_unknowns;
 
       if (source_tokenize_fn && target_detokenize_fn) {
-        // Re-acquire the GIL before calling the tokenization functions.
-        const auto safe_source_tokenize_fn = [&source_tokenize_fn](const std::string& text) {
-          py::gil_scoped_acquire acquire;
-          return source_tokenize_fn(text);
-        };
-
-        const auto safe_target_tokenize_fn = [&target_tokenize_fn](const std::string& text) {
-          py::gil_scoped_acquire acquire;
-          return target_tokenize_fn(text);
-        };
-
-        const auto safe_target_detokenize_fn = [&target_detokenize_fn](const std::vector<std::string>& tokens) {
-          py::gil_scoped_acquire acquire;
-          return target_detokenize_fn(tokens);
-        };
-
+        const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
+        const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
+        const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
         stats = _translator_pool.consume_raw_text_file(source_path,
                                                        target_path_ptr,
                                                        output_path,
@@ -293,6 +298,72 @@ public:
     }
 
     return py_results;
+  }
+
+  std::vector<std::vector<float>>
+  score_batch(const BatchTokens& source,
+              const BatchTokens& target,
+              size_t max_batch_size,
+              const std::string& batch_type_str) {
+    py::gil_scoped_release release;
+
+    std::shared_lock lock(_mutex);
+    assert_model_is_ready();
+
+    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    auto results = _translator_pool.score_batch(source, target, max_batch_size, batch_type);
+
+    std::vector<std::vector<float>> scores;
+    scores.reserve(results.size());
+    for (auto& result : results)
+      scores.emplace_back(std::move(result.tokens_score));
+    return scores;
+  }
+
+  ctranslate2::TranslationStats score_file(const std::string& source_path,
+                                           const std::string& target_path,
+                                           const std::string& output_path,
+                                           size_t max_batch_size,
+                                           size_t read_batch_size,
+                                           const std::string& batch_type_str,
+                                           const TokenizeFn& source_tokenize_fn,
+                                           const TokenizeFn& target_tokenize_fn,
+                                           const DetokenizeFn& target_detokenize_fn) {
+    if (bool(source_tokenize_fn) != bool(target_tokenize_fn)
+        || bool(target_tokenize_fn) != bool(target_detokenize_fn))
+      throw std::invalid_argument("source_tokenize_fn, target_tokenize_fn, and target_detokenize_fn should all be set or none at all");
+
+    py::gil_scoped_release release;
+
+    std::shared_lock lock(_mutex);
+    assert_model_is_ready();
+
+    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::TranslationStats stats;
+
+    if (source_tokenize_fn) {
+      const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
+      const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
+      const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
+      stats = _translator_pool.score_raw_text_file(source_path,
+                                                   target_path,
+                                                   output_path,
+                                                   safe_source_tokenize_fn,
+                                                   safe_target_tokenize_fn,
+                                                   safe_target_detokenize_fn,
+                                                   max_batch_size,
+                                                   read_batch_size,
+                                                   batch_type);
+    } else {
+      stats = _translator_pool.score_text_file(source_path,
+                                               target_path,
+                                               output_path,
+                                               max_batch_size,
+                                               read_batch_size,
+                                               batch_type);
+    }
+
+    return stats;
   }
 
   void unload_model(const bool to_cpu) {
@@ -464,6 +535,23 @@ PYBIND11_MODULE(translator, m)
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
          py::arg("replace_unknowns")=false,
+         py::arg("source_tokenize_fn")=nullptr,
+         py::arg("target_tokenize_fn")=nullptr,
+         py::arg("target_detokenize_fn")=nullptr)
+    .def("score_batch", &TranslatorWrapper::score_batch,
+         py::arg("source"),
+         py::arg("target"),
+         py::kw_only(),
+         py::arg("max_batch_size")=0,
+         py::arg("batch_type")="examples")
+    .def("score_file", &TranslatorWrapper::score_file,
+         py::arg("source_path"),
+         py::arg("target_path"),
+         py::arg("output_path"),
+         py::kw_only(),
+         py::arg("max_batch_size")=32,
+         py::arg("read_batch_size")=0,
+         py::arg("batch_type")="examples",
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
          py::arg("target_detokenize_fn")=nullptr)

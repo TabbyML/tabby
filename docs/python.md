@@ -116,7 +116,43 @@ stats = translator.translate_file(
 
 Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.
 
-### Note on parallel translations
+## Scoring API
+
+The `Translator` object (see previous section) can also be used to score existing translations:
+
+```python
+# Batch scoring:
+scores = translator.score_batch(
+    source: List[List[str]],
+    target: List[List[str]],
+    *,
+    max_batch_size: int = 0,       # Maximum batch size to run the model on.
+    batch_type: str = "examples",  # Whether max_batch_size is the number of examples or tokens.
+)
+
+# File scoring:
+# Each line in output_path will have the format: <score> ||| <target>
+# The score is normalized by the target length.
+#
+# The returned stats object has the following properties:
+# * num_tokens: the number of scored target tokens
+# * num_examples: the number of scored examples
+# * total_time_in_ms: the total scoring time in milliseconds
+stats = translator.score_file(
+    source_path: str,              # Source file.
+    target_path: str,              # Target file.
+    output_path: str,              # Output file.
+    *,
+    max_batch_size: int = 32,      # Maximum batch size to run the model on.
+    read_batch_size: int = 0,      # Number of sentences to read at once.
+    batch_type: str = "examples",  # Whether the batch size is the number of examples or tokens.
+    source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
+    target_detokenize_fn: callable = None, # Function with signature: list of strings -> string
+)
+```
+
+### Note on parallel execution
 
 A `Translator` instance can be configured to process multiple batches in parallel:
 
@@ -130,9 +166,9 @@ translator = ctranslate2.Translator(model_path, device="cuda", device_index=[0, 
 
 Parallel translations are enabled in the following cases:
 
-* When calling `translate_file`.
-* When calling `translate_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
-* When calling `translate_batch` from multiple Python threads. If you are using a multithreaded HTTP server, this may already be the case. For other cases, you could use a [`ThreadPoolExecutor`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor) to submit multiple concurrent translations:
+* When calling `translate_file` (or `score_file`).
+* When calling `translate_batch` (or `score_batch`) and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
+* When calling `translate_batch` (or `score_batch`) from multiple Python threads. If you are using a multithreaded HTTP server, this may already be the case. For other cases, you could use a [`ThreadPoolExecutor`](https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.ThreadPoolExecutor) to submit multiple concurrent translations:
 
 ```python
 import concurrent.futures

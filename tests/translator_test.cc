@@ -760,3 +760,35 @@ TEST(BufferedTranslationWrapperTest, Basic) {
   EXPECT_EQ(future2.get().hypotheses[0],
             (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
+
+TEST(TranslatorTest, Scoring) {
+  const std::vector<std::vector<std::string>> source = {
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"},
+    {"آ" ,"ت" ,"ش" ,"ي" ,"س" ,"و" ,"ن"},
+    {"آ" ,"ر" ,"ب" ,"ا" ,"ك" ,"ه"},
+    {},
+    {"آ" ,"ر" ,"ث" ,"ر"},
+  };
+  const std::vector<std::vector<std::string>> target = {
+    {"a", "t", "z", "m", "o", "n"},
+    {"a", "c", "h", "i", "s", "o", "n"},
+    {"a", "r", "b", "a", "k", "e"},
+    {},
+    {"a", "r", "t", "h", "e", "r"},
+  };
+  const std::vector<std::vector<float>> expected_scores = {
+    {-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184},
+    {-0.072660, -0.300309, -0.181187, -0.395671, -0.025631, -0.123466, -0.002034},
+    {-0.103136, -0.089504, -0.063889, -0.007327, -0.452072, -0.060154},
+    {},
+    {-0.076704, -0.036037, -0.029253, -0.030273, -0.149276, -0.002440},
+  };
+  constexpr float abs_diff = 1e-5;
+
+  Translator translator = default_translator();
+  const auto scores = translator.score_batch(source, target);
+
+  ASSERT_EQ(scores.size(), expected_scores.size());
+  for (size_t i = 0; i < scores.size(); ++i)
+    expect_vector_eq(scores[i].tokens_score, expected_scores[i], abs_diff);
+}

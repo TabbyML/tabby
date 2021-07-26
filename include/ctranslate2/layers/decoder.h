@@ -18,7 +18,7 @@ namespace ctranslate2 {
 
       virtual void set_vocabulary_mask(const StorageView&) {}
       virtual void reset_vocabulary_mask() {}
-      virtual DecoderState initial_state() const = 0;
+      virtual DecoderState initial_state(bool iterative_decoding = true) const = 0;
 
       // Forwards one step.
       virtual void operator()(dim_t step,

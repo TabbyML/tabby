@@ -44,6 +44,12 @@ inline void expect_array_eq(const float* x, const float* y, size_t n, float abs_
 }
 
 template <typename T>
+void expect_vector_eq(const std::vector<T>& got, const std::vector<T>& expected, T abs_diff) {
+  ASSERT_EQ(got.size(), expected.size());
+  expect_array_eq(got.data(), expected.data(), got.size(), abs_diff);
+}
+
+template <typename T>
 void assert_vector_eq(const std::vector<T>& got, const std::vector<T>& expected) {
   ASSERT_EQ(got.size(), expected.size());
   for (size_t i = 0; i < got.size(); ++i) {

@@ -346,6 +346,50 @@ def test_return_alternatives():
     assert output[0][1]["tokens"] == ["a", "t", "s", "u", "m", "o", "n"]
 
 
+def test_score_api(tmpdir):
+    source = [
+        ["آ", "ت", "ز", "م", "و", "ن"],
+        ["آ", "ت", "ش", "ي", "س", "و", "ن"],
+    ]
+    target = [
+        ["a", "t", "z", "m", "o", "n"],
+        ["a", "c", "h", "i", "s", "o", "n"],
+    ]
+    expected = [
+        [-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184],
+        [-0.072660, -0.300309, -0.181187, -0.395671, -0.025631, -0.123466, -0.002034],
+    ]
+
+    translator = _get_transliterator()
+    all_scores = translator.score_batch(source, target)
+    for scores, expected_scores in zip(all_scores, expected):
+        np.testing.assert_allclose(scores, expected_scores, rtol=1e-4)
+
+    def _write_tokens(batch_tokens, path):
+        with open(path, "w") as f:
+            for tokens in batch_tokens:
+                f.write(" ".join(tokens))
+                f.write("\n")
+
+    source_path = str(tmpdir.join("source.txt"))
+    target_path = str(tmpdir.join("target.txt"))
+    output_path = str(tmpdir.join("output.txt"))
+    _write_tokens(source, source_path)
+    _write_tokens(target, target_path)
+
+    stats = translator.score_file(source_path, target_path, output_path)
+    assert stats.num_examples == 2
+    assert stats.num_tokens == 13
+
+    with open(output_path) as output_file:
+        scores = [np.mean(scores) for scores in expected]
+        for line, expected_tokens, expected_score in zip(output_file, target, scores):
+            tokens = line.strip().split()
+            assert float(tokens[0]) == pytest.approx(expected_score, 1e-4)
+            assert tokens[1] == "|||"
+            assert tokens[2:] == expected_tokens
+
+
 @pytest.mark.parametrize("to_cpu", [False, True])
 def test_model_unload(to_cpu):
     batch = [["آ", "ت", "ز", "م", "و", "ن"]]
