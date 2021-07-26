@@ -4,6 +4,17 @@
 
 ### Fixes and improvements
 
+## [v2.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.0) (2021-07-26)
+
+### New features
+
+* Add compute type `int8_float16` for mixed INT8 and FP16 computation on GPU (requires Compute Capability >= 7.0)
+* Add methods `Translator.score_batch` and `Translator.score_file` to score existing translations
+
+### Fixes and improvements
+
+* Relax the GPU driver requirement for running the Docker image to >= 450.80.02 (same as the published Python package)
+
 ## [v2.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.2.0) (2021-07-06)
 
 ### New features
