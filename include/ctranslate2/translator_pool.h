@@ -607,7 +607,7 @@ namespace ctranslate2 {
       std::queue<std::future<Result>> results;
 
       auto pop_results = [&results, &output, &target_writer](bool blocking) {
-        static const auto zero_sec = std::chrono::seconds(0);
+        constexpr std::chrono::seconds zero_sec(0);
         while (!results.empty()
                && (blocking
                    || results.front().wait_for(zero_sec) == std::future_status::ready)) {
