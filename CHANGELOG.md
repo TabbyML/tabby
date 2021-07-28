@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.3.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.1) (2021-07-28)
+
+### Fixes and improvements
+
+* Fix compilation with CUDA < 10.2
+
 ## [v2.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.0) (2021-07-26)
 
 ### New features
