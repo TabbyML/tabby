@@ -57,5 +57,13 @@ namespace ctranslate2 {
                  bool log,
                  float epsilon);
 
+    template <CpuIsa ISA>
+    void quantize_s8(const float* x,
+                     int8_t* y,
+                     float* scales,
+                     dim_t batch_size,
+                     dim_t depth,
+                     float shift);
+
   }
 }

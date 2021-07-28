@@ -318,5 +318,31 @@ namespace ctranslate2 {
       }
     }
 
+    template<>
+    void quantize_s8<TARGET_ISA>(const float* x,
+                                 int8_t* y,
+                                 float* scales,
+                                 dim_t batch_size,
+                                 dim_t depth,
+                                 float shift) {
+      constexpr float int8_max = std::numeric_limits<int8_t>::max();
+
+      #pragma omp parallel for
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const auto offset = i * depth;
+        const auto* src = x + offset;
+        auto* dst = y + offset;
+        const auto amax = reduce_amax<TARGET_ISA>(src, depth);
+        const auto scale = (amax != 0.f ? int8_max / amax : 1.f);
+
+        // This loop is automatically vectorized by the compiler.
+        for (dim_t j = 0; j < depth; ++j) {
+          dst[j] = src[j] * scale + shift;
+        }
+
+        scales[i] = scale;
+      }
+    }
+
   }
 }
