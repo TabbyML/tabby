@@ -170,6 +170,8 @@ namespace ctranslate2 {
     }
 
     StorageView& reshape(Shape new_shape);
+    StorageView& expand_dims(dim_t dim);
+    StorageView& squeeze(dim_t dim);
 
     // Resize methods (see also reserve() for information about reallocation policy).
     StorageView& resize_as(const StorageView& other);

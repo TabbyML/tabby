@@ -194,6 +194,27 @@ namespace ctranslate2 {
     return *this;
   }
 
+  StorageView& StorageView::expand_dims(dim_t dim) {
+    if (dim < 0)
+      dim = _shape.size() + dim + 1;
+    if (dim > rank())
+      throw std::out_of_range("can't insert dimension at index " + std::to_string(dim));
+    _shape.insert(_shape.begin() + dim, 1);
+    return *this;
+  }
+
+  StorageView& StorageView::squeeze(dim_t dim) {
+    if (dim < 0)
+      dim = _shape.size() + dim;
+    GUARD_DIM(dim, rank());
+    if (_shape[dim] != 1)
+      throw std::invalid_argument("dimension " + std::to_string(dim)
+                                  + " has size " + std::to_string(_shape[dim])
+                                  + " which can't be squeezed");
+    _shape.erase(_shape.begin() + dim);
+    return *this;
+  }
+
   StorageView& StorageView::resize(Shape new_shape) {
     const dim_t new_size = compute_size(new_shape);
     reserve(new_size);

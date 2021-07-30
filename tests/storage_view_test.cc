@@ -38,6 +38,28 @@ TEST(StorageViewTest, Reshape) {
   assert_vector_eq(a.shape(), Shape{16});
 }
 
+TEST(StorageViewTest, ExpandDimsAndSqueeze) {
+  {
+    StorageView a(Shape{4});
+    a.expand_dims(0);
+    assert_vector_eq(a.shape(), Shape{1, 4});
+    a.expand_dims(-1);
+    assert_vector_eq(a.shape(), Shape{1, 4, 1});
+    a.squeeze(0);
+    assert_vector_eq(a.shape(), Shape{4, 1});
+    a.squeeze(1);
+    assert_vector_eq(a.shape(), Shape{4});
+  }
+
+  {
+    StorageView a(Shape{4, 2});
+    a.expand_dims(1);
+    assert_vector_eq(a.shape(), Shape{4, 1, 2});
+    a.expand_dims(3);
+    assert_vector_eq(a.shape(), Shape{4, 1, 2, 1});
+  }
+}
+
 class StorageViewDeviceTest : public ::testing::TestWithParam<Device> {
 };
 

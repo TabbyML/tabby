@@ -291,6 +291,8 @@ namespace ctranslate2 {
       StorageView layer_out(output_type(), ids.device());
 
       _embeddings(ids, layer_in);
+      if (layer_in.rank() == 2)
+        layer_in.expand_dims(1);
       if (_position_encoder)
         (*_position_encoder)(layer_in, std::max(step, dim_t(0)));
 
@@ -370,10 +372,12 @@ namespace ctranslate2 {
         if (_output_norm)
           (*_output_norm)(layer_in, layer_in);
         _proj(layer_in, *logits);
-      }
 
-      if (input_padder)
-        input_padder->add_padding(*logits);
+        if (step >= 0)
+          logits->squeeze(1);
+        else if (input_padder)
+          input_padder->add_padding(*logits);
+      }
     }
 
   }

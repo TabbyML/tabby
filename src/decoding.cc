@@ -241,10 +241,17 @@ namespace ctranslate2 {
     dim_t cur_batch_size = batch_size;
 
     StorageView gather_indices(DataType::INT32);
-    StorageView topk_ids({batch_size, 1},
-                         std::vector<int32_t>(start_ids.begin(), start_ids.end()));
+    StorageView topk_ids({batch_size}, DataType::INT32);
     StorageView topk_scores(dtype);
     StorageView topk_log_probs(dtype);
+
+    std::vector<bool> top_beam_finished(batch_size, false);
+    std::vector<dim_t> batch_offset(batch_size);
+    std::vector<GenerationResult<size_t>> results(batch_size);
+    for (dim_t i = 0; i < batch_size; ++i) {
+      batch_offset[i] = i;
+      topk_ids.at<int32_t>(i) = start_ids[i];
+    }
 
     if (!expand_after_first_step) {
       expand_to_beam_size(state, _beam_size);
@@ -259,13 +266,6 @@ namespace ctranslate2 {
         batch_size, std::vector<bool>(_beam_size, false));
     }
     const bool use_hard_prefix = prefix_ids && !bias_towards_prefix;
-
-    std::vector<bool> top_beam_finished(batch_size, false);
-    std::vector<dim_t> batch_offset(batch_size);
-    std::vector<GenerationResult<size_t>> results(batch_size);
-    for (dim_t i = 0; i < batch_size; ++i) {
-      batch_offset[i] = i;
-    }
 
     StorageView logits(dtype, device);
     StorageView log_probs(dtype, device);
@@ -529,7 +529,7 @@ namespace ctranslate2 {
         decoder.gather_state(state, gather_indices.to(device));
       }
 
-      topk_ids.reshape({cur_batch_size * _beam_size, 1});
+      topk_ids.reshape({cur_batch_size * _beam_size});
       topk_log_probs.reshape({cur_batch_size * _beam_size});
       alive_seq.reshape({cur_batch_size * _beam_size, alive_seq.dim(-1)});
       if (return_attention)
@@ -575,9 +575,7 @@ namespace ctranslate2 {
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
     const dim_t batch_size = start_ids.size();
-    StorageView sample_from({batch_size, 1},
-                            std::vector<int32_t>(start_ids.begin(), start_ids.end()));
-
+    StorageView sample_from({batch_size}, DataType::INT32);
 
     StorageView logits(dtype, device);
     StorageView log_probs(dtype, device);
@@ -586,6 +584,7 @@ namespace ctranslate2 {
     results.reserve(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
+      sample_from.at<int32_t>(i) = start_ids[i];
       results.emplace_back(/*num_hypotheses=*/1, return_attention, return_scores);
     }
 
@@ -668,17 +667,18 @@ namespace ctranslate2 {
 
   static void initialize_decoder_with_prefix(layers::Decoder& decoder,
                                              layers::DecoderState& state,
-                                             const std::vector<size_t>& start_ids,
+                                             size_t start_id,
                                              const std::vector<size_t>& prefix_ids,
                                              std::vector<std::vector<float>>* prefix_attention) {
     const Device device = decoder.device();
     const size_t prefix_size = prefix_ids.size();
 
-    StorageView input({1, 1}, std::vector<int32_t>(start_ids.begin(), start_ids.end()));
+    StorageView input({1}, DataType::INT32);
     StorageView attention(device);
     if (prefix_attention)
       prefix_attention->reserve(prefix_size);
 
+    input.at<int32_t>(0) = start_id;
     for (size_t i = 0; i < prefix_size; ++i) {
       decoder(i,
               input.to(device),
@@ -721,7 +721,7 @@ namespace ctranslate2 {
           prefix_attention.resize(1);
         initialize_decoder_with_prefix(decoder,
                                        state,
-                                       start_ids,
+                                       start_ids[0],
                                        prefix_ids->front(),
                                        return_attention ? &prefix_attention[0] : nullptr);
         start_ids[0] = prefix_ids->front().back();
