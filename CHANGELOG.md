@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.3.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.2) (2021-08-05)
+
+### Fixes and improvements
+
+* Fix GPU execution that gets stuck when applying the GELU activation
+
 ## [v2.3.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.1) (2021-07-28)
 
 ### Fixes and improvements
