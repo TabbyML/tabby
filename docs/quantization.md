@@ -50,14 +50,14 @@ By default, the runtime tries to use the type that is saved in the converted mod
 **On CPU:**
 
 | CPU vendor | int8 | int8_float16 | int16 | float16 |
-| --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | Intel | int8 | int8 | int16 | float |
 | other | int8 | int8 | int8 | float |
 
 **On GPU:**
 
 | GPU Compute Capability | int8 | int8_float16 | int16 | float16 |
-| --- | --- | --- | --- |
+| --- | --- | --- | --- | --- |
 | >= 7.0 | int8 | int8_float16 | float16 | float16 |
 | 6.1 | int8 | int8 | float | float |
 | <= 6.0 | float | float | float | float |
