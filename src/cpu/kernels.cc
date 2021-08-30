@@ -1,5 +1,7 @@
 #include "cpu/kernels.h"
 
+#include <limits>
+
 #if defined(__AVX2__)
 #  define TARGET_ISA CpuIsa::AVX2
 #  include "cpu/vec_avx.h"
@@ -226,7 +228,7 @@ namespace ctranslate2 {
     T reduce_max(const T* x, dim_t size) {
       return vectorized_reduce_all<ISA>(x,
                                         size,
-                                        x[0],
+                                        std::numeric_limits<T>::lowest(),
                                         Vec<T, ISA>::max,
                                         Vec<T>::max);
     }
