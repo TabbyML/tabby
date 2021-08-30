@@ -284,12 +284,10 @@ namespace ctranslate2 {
       return;
     }
 #endif
-    static const float pi = std::acos(-1.f);
-    static const float scale = std::sqrt(2.f / pi);
     cpu::parallel_unary_transform(
       x, y, size, /*work_size=*/14,
       [](float v) {
-        return 0.5f * v * (1.f + std::tanh(scale * (v + 0.044715f * std::pow(v, 3.f))));
+        return 0.5f * v * (1.f + std::tanh(0.7978845608028654f * (v + 0.044715f * std::pow(v, 3.f))));
       });
   }
 
