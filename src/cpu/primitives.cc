@@ -46,18 +46,10 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::strided_fill(T* x, T a, dim_t inc_x, dim_t size) {
-    for (dim_t i = 0, j = 0; i < size; i++, j += inc_x) {
-      x[j] = a;
+    for (dim_t i = 0; i < size; i++, x += inc_x) {
+      *x = a;
     }
   }
-
-#ifdef CT2_WITH_MKL
-  template<>
-  template<>
-  void primitives<Device::CPU>::strided_fill(float* x, float a, dim_t inc_x, dim_t size) {
-    cblas_scopy(size, &a, /*incx=*/0, x, inc_x);
-  }
-#endif
 
   template<>
   template <typename T>
