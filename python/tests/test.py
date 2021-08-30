@@ -105,6 +105,12 @@ def test_file_translation(tmpdir):
     assert stats.num_examples == 2
     assert isinstance(stats.total_time_in_ms, float)
 
+    expected_repr = (
+        "TranslationStats(num_tokens=13, num_examples=2, total_time_in_ms=%s)"
+        % stats.total_time_in_ms
+    )
+    assert repr(stats) == expected_repr
+
     # For backward compatibility, ensure that stats is tuple-like.
     num_tokens, num_examples, total_time_in_ms = stats
     assert stats[0] == num_tokens

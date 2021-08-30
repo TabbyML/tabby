@@ -565,6 +565,12 @@ PYBIND11_MODULE(translator, m)
     .def_readonly("num_tokens", &ctranslate2::TranslationStats::num_tokens)
     .def_readonly("num_examples", &ctranslate2::TranslationStats::num_examples)
     .def_readonly("total_time_in_ms", &ctranslate2::TranslationStats::total_time_in_ms)
+    .def("__repr__", [](const ctranslate2::TranslationStats& stats) {
+      return "TranslationStats(num_tokens=" + std::string(py::repr(py::cast(stats.num_tokens)))
+        + ", num_examples=" + std::string(py::repr(py::cast(stats.num_examples)))
+        + ", total_time_in_ms=" + std::string(py::repr(py::cast(stats.total_time_in_ms)))
+        + ")";
+    })
 
     // Backward compatibility with using translate_file output as a tuple.
     .def("__getitem__", [](const ctranslate2::TranslationStats& stats, size_t index) {
