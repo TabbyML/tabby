@@ -79,6 +79,18 @@ def test_batch_translation(max_batch_size):
         return_scores=True,
     )
     assert len(output) == 2
+    assert output[0].hypotheses == [["a", "t", "z", "m", "o", "n"]]
+    assert output[1].hypotheses == [["a", "c", "h", "i", "s", "o", "n"]]
+    assert output[0].scores[0] < 0
+    assert not output[0].attention
+
+    expected_repr = "TranslationResult(hypotheses=%s, scores=%s, attention=[])" % (
+        output[0].hypotheses,
+        output[0].scores,
+    )
+    assert repr(output[0]) == expected_repr
+
+    # Check backward compatibility with previous result format.
     assert len(output[0]) == 1  # One hypothesis.
     assert len(output[1]) == 1
     assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
@@ -255,8 +267,8 @@ def test_hard_target_prefix():
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
         target_prefix=[["a", "t", "s"], None],
     )
-    assert output[0][0]["tokens"][:3] == ["a", "t", "s"]
-    assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
+    assert output[0].hypotheses[0][:3] == ["a", "t", "s"]
+    assert output[1].hypotheses[0] == ["a", "c", "h", "i", "s", "o", "n"]
 
 
 def test_strongly_biased_target_prefix():
@@ -266,8 +278,8 @@ def test_strongly_biased_target_prefix():
         target_prefix=[["a", "t", "s"], None],
         prefix_bias_beta=0.9999999,
     )
-    assert output[0][0]["tokens"][:3] == ["a", "t", "s"]
-    assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
+    assert output[0].hypotheses[0][:3] == ["a", "t", "s"]
+    assert output[1].hypotheses[0] == ["a", "c", "h", "i", "s", "o", "n"]
 
 
 def test_weakly_biased_target_prefix():
@@ -282,15 +294,19 @@ def test_weakly_biased_target_prefix():
         prefix_bias_beta=0.0000001,
         return_scores=True,
     )
-    assert unconstrained_output[0][0]["tokens"] == weakly_biased_output[0][0]["tokens"]
     assert (
-        abs(unconstrained_output[0][0]["score"] - weakly_biased_output[0][0]["score"])
+        unconstrained_output[0].hypotheses[0] == weakly_biased_output[0].hypotheses[0]
+    )
+    assert (
+        abs(unconstrained_output[0].scores[0] - weakly_biased_output[0].scores[0])
         < 0.00001
     )
 
-    assert unconstrained_output[1][0]["tokens"] == weakly_biased_output[1][0]["tokens"]
     assert (
-        abs(unconstrained_output[1][0]["score"] - weakly_biased_output[1][0]["score"])
+        unconstrained_output[1].hypotheses[0] == weakly_biased_output[1].hypotheses[0]
+    )
+    assert (
+        abs(unconstrained_output[1].scores[0] - weakly_biased_output[1].scores[0])
         < 0.00001
     )
 
@@ -300,7 +316,7 @@ def test_num_hypotheses():
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], beam_size=4, num_hypotheses=2
     )
-    assert len(output[0]) == 2
+    assert len(output[0].hypotheses) == 2
 
 
 def test_max_decoding_length():
@@ -308,7 +324,7 @@ def test_max_decoding_length():
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], max_decoding_length=2
     )
-    assert output[0][0]["tokens"] == ["a", "t"]
+    assert output[0].hypotheses[0] == ["a", "t"]
 
 
 def test_min_decoding_length():
@@ -316,7 +332,7 @@ def test_min_decoding_length():
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], min_decoding_length=7
     )
-    assert len(output[0][0]["tokens"]) > 6  # 6 is the expected target length.
+    assert len(output[0].hypotheses[0]) > 6  # 6 is the expected target length.
 
 
 def test_return_attention():
@@ -324,7 +340,7 @@ def test_return_attention():
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], return_attention=True
     )
-    attention = output[0][0]["attention"]
+    attention = output[0].attention[0]
     assert len(attention) == 6  # Target length.
     for vector in attention:
         assert len(vector) == 6  # Source length.
@@ -336,7 +352,7 @@ def test_ignore_scores():
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], beam_size=1, return_scores=False
     )
-    assert "scores" not in output[0][0]
+    assert not output[0].scores
 
 
 def test_return_alternatives():
@@ -347,9 +363,9 @@ def test_return_alternatives():
         num_hypotheses=10,
         return_alternatives=True,
     )
-    assert len(output[0]) == 10
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
-    assert output[0][1]["tokens"] == ["a", "t", "s", "u", "m", "o", "n"]
+    assert len(output[0].hypotheses) == 10
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[1] == ["a", "t", "s", "u", "m", "o", "n"]
 
 
 def test_score_api(tmpdir):
@@ -407,7 +423,7 @@ def test_model_unload(to_cpu):
     translator.load_model()
     output = translator.translate_batch(batch)
     assert len(output) == 1
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 _FRAMEWORK_DATA_EXIST = os.path.isdir(
@@ -453,7 +469,7 @@ def test_opennmt_tf_model_conversion(
     assert os.path.isfile(os.path.join(output_dir, "target_vocabulary.txt"))
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
@@ -477,7 +493,7 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
     converter.convert(output_dir, quantization=quantization)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
@@ -503,7 +519,7 @@ def test_opennmt_tf_variables_conversion(tmpdir):
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
@@ -593,7 +609,7 @@ def test_opennmt_py_model_conversion(tmpdir):
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
@@ -612,8 +628,8 @@ def test_opennmt_py_relative_transformer(tmpdir):
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ر", "ث", "ر"]]
     )
-    assert output[0][0]["tokens"] == ["a", "t", "z", "o", "m", "o", "n"]
-    assert output[1][0]["tokens"] == ["a", "r", "t", "h", "e", "r"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "o", "m", "o", "n"]
+    assert output[1].hypotheses[0] == ["a", "r", "t", "h", "e", "r"]
 
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
@@ -631,7 +647,7 @@ def test_fairseq_model_conversion(tmpdir):
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0][0]["tokens"] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 def test_layer_spec_validate():

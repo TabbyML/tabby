@@ -53,11 +53,11 @@ translator.device_index        # List of device IDs where this translator is run
 translator.num_translators     # Number of translators backing this instance.
 translator.num_queued_batches  # Number of batches waiting to be translated.
 
-# output is a 2D list [batch x num_hypotheses] containing dict with keys:
-# * "tokens"
-# * "score" (if return_scores is set to True)
-# * "attention" (if return_attention is set to True)
-output = translator.translate_batch(
+# results is a list of TranslationResult instances that have the following properties:
+# * hypotheses
+# * scores (empty if return_scores is set to False)
+# * attention (empty if return_attention is set to False)
+results = translator.translate_batch(
     source: list,                      # A list of list of string.
     target_prefix: list = None,        # An optional list of list of string.
     *,
@@ -82,7 +82,7 @@ output = translator.translate_batch(
     replace_unknowns: bool = False,    # Replace unknown target tokens by the source token with the highest attention.
 )
 
-# stats is an object with the following properties:
+# stats is a TranslationStats instance that has the following properties:
 # * num_tokens: the number of generated target tokens
 # * num_examples: the number of translated examples
 # * total_time_in_ms: the total translation time in milliseconds
