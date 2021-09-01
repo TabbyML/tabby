@@ -90,6 +90,7 @@ set(SOURCES
   src/layers/decoder.cc
   src/layers/transformer.cc
   src/models/model.cc
+  src/models/model_reader.cc
   src/models/sequence_to_sequence.cc
   src/models/transformer.cc
   src/ops/activation.cc
