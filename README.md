@@ -486,7 +486,7 @@ The driver requirement depends on the CUDA version. See the [CUDA Compatibility 
 
 The current approach only exports the weights from existing models and redefines the computation graph via the code. This implies a strong assumption of the graph architecture executed by the original framework.
 
-We are actively looking to ease this assumption by supporting ONNX as model parts.
+We could ease this assumption by supporting ONNX as model parts.
 
 ### What are the future plans?
 
