@@ -33,21 +33,10 @@ namespace ctranslate2 {
     merge_batch_beam(data);
   }
 
-  static void tile(StorageView& input, const StorageView& repeats) {
-    static const ops::Tile tile_op{};
-    tile_op(input, repeats);
-  }
-
   static void expand_to_beam_size(StorageView& input, dim_t beam_size) {
-    Shape original_shape(input.shape());
-    Shape tile_shape(input.shape());
-    tile_shape.insert(std::next(tile_shape.begin()), 1);
-    input.reshape(std::move(tile_shape));
-    StorageView repeats({input.rank()}, static_cast<int32_t>(1));
-    repeats.at<int32_t>(1) = beam_size;
-    tile(input, repeats);
-    original_shape[0] *= beam_size;
-    input.reshape(std::move(original_shape));
+    input.expand_dims(1);
+    ops::Tile(/*axis=*/1, beam_size)(input);
+    merge_batch_beam(input);
   }
 
   static void expand_to_beam_size(layers::DecoderState& state, dim_t beam_size) {

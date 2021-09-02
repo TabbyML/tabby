@@ -121,6 +121,7 @@ set(SOURCES
   src/ops/split.cc
   src/ops/sub.cc
   src/ops/tile.cc
+  src/ops/tile_cpu.cc
   src/ops/topk.cc
   src/ops/topk_cpu.cc
   src/ops/transpose.cc
@@ -380,6 +381,7 @@ if (WITH_CUDA)
     src/ops/layer_norm_gpu.cu
     src/ops/multinomial_gpu.cu
     src/ops/softmax_gpu.cu
+    src/ops/tile_gpu.cu
     src/ops/topk_gpu.cu
     src/ops/quantize_gpu.cu
     )

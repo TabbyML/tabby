@@ -179,40 +179,27 @@ TEST_P(OpDeviceTest, Sub) {
 TEST_P(OpDeviceTest, TileFirstDim) {
   Device device = GetParam();
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView repeats({2}, std::vector<int32_t>{2, 1});
   StorageView expected_output({4, 2}, std::vector<float>{1, 2, 3, 4, 1, 2, 3, 4}, device);
   StorageView output(device);
-  ops::Tile()(input, repeats, output);
+  ops::Tile(0, 2)(input, output);
   expect_storage_eq(output, expected_output);
 }
 
 TEST_P(OpDeviceTest, TileLastDim) {
   Device device = GetParam();
   StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView repeats({2}, std::vector<int32_t>{1, 2});
   StorageView expected_output({2, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4}, device);
   StorageView output(device);
-  ops::Tile()(input, repeats, output);
-  expect_storage_eq(output, expected_output);
-}
-
-TEST_P(OpDeviceTest, TileAll2D) {
-  Device device = GetParam();
-  StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView repeats({2}, std::vector<int32_t>{2, 2});
-  StorageView expected_output({4, 4}, std::vector<float>{1, 2, 1, 2, 3, 4, 3, 4, 1, 2, 1, 2, 3, 4, 3, 4}, device);
-  StorageView output(device);
-  ops::Tile()(input, repeats, output);
+  ops::Tile(1, 2)(input, output);
   expect_storage_eq(output, expected_output);
 }
 
 TEST_P(OpDeviceTest, TileMiddleDim) {
   Device device = GetParam();
   StorageView input({2, 1, 3}, std::vector<float>{1, 2, 3, 4, 5, 6}, device);
-  StorageView repeats({3}, std::vector<int32_t>{1, 3, 1});
   StorageView expected_output({2, 3, 3}, std::vector<float>{1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 6, 4, 5, 6, 4, 5, 6}, device);
   StorageView output(device);
-  ops::Tile()(input, repeats, output);
+  ops::Tile(1, 3)(input, output);
   expect_storage_eq(output, expected_output);
 }
 
