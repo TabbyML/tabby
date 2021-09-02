@@ -281,7 +281,7 @@ namespace ctranslate2 {
       decoder(step,
               topk_ids.to(device),
               state,
-              &logits,  // output shape: (cur_batch_size*beam_size x 1 x vocab_size), if not expanded beam_size is 1
+              &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
 
       if (bias_towards_prefix) {
