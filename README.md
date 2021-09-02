@@ -513,4 +513,14 @@ The [OpenNMT-py REST server](https://forum.opennmt.net/t/simple-opennmt-py-rest-
 
 ### How do I generate a vocabulary mapping file?
 
-See [here](https://github.com/OpenNMT/papers/tree/master/WNMT2018/vmap).
+The vocabulary mapping file (a.k.a. *vmap*) maps source N-grams to a list of target tokens. During translation, the target vocabulary will be dynamically reduced to the union of all target tokens associated with the N-grams from the batch to translate.
+
+It is a text file where each line has the following format:
+
+```text
+src_1 src_2 ... src_N<TAB>tgt_1 tgt_2 ... tgt_K
+```
+
+If the source N-gram is empty (N = 0), the assiocated target tokens will always be included in the reduced vocabulary.
+
+See [here](https://github.com/OpenNMT/papers/tree/master/WNMT2018/vmap) for an example on how to generate this file. The file can then be passed to the converter script to be included in the model directory (see option `--vocab_mapping`) and can be used during translation after enabling the `use_vmap` translation option.
