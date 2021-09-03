@@ -16,7 +16,13 @@ converter = ctranslate2.converters.OpenNMTTFConverter(
 )
 
 converter = ctranslate2.converters.OpenNMTPyConverter(
-    model_path: str,         # Path to the OpenNMT-py model.
+    model_path: str,         # Path to the OpenNMT-py model (.pt file).
+)
+
+converter = ctranslate2.converters.FairseqConverter(
+    model_path: str,              # Path to the Fairseq model (.pt file).
+    data_dir: str,                # Path to the Fairseq data directory.
+    fixed_dictionary: str = None, # Path to the fixed dictionary for multilingual models.
 )
 
 output_dir = converter.convert(
