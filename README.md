@@ -236,7 +236,7 @@ Some environment variables can be configured to customize the execution:
   * 2 = debug
   * 3 = trace
 
-When using Python, theses variables should be set before importing the `ctranslate2` module, e.g.:
+When using Python, these variables should be set before importing the `ctranslate2` module, e.g.:
 
 ```python
 import os
