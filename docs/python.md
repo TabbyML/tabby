@@ -22,6 +22,8 @@ converter = ctranslate2.converters.OpenNMTPyConverter(
 converter = ctranslate2.converters.FairseqConverter(
     model_path: str,              # Path to the Fairseq model (.pt file).
     data_dir: str,                # Path to the Fairseq data directory.
+    source_lang: str = None,      # Source language (may be required if not declared in the model).
+    target_lang: str = None,      # Target language (may be required if not declared in the model).
     fixed_dictionary: str = None, # Path to the fixed dictionary for multilingual models.
 )
 
