@@ -99,6 +99,18 @@ def test_batch_translation(max_batch_size):
     assert output[1][0]["tokens"] == ["a", "c", "h", "i", "s", "o", "n"]
 
 
+def test_batch_translation_async():
+    translator = _get_transliterator()
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
+        asynchronous=True,
+    )
+    assert output[0].result().hypotheses == [["a", "t", "z", "m", "o", "n"]]
+    assert output[1].result().hypotheses == [["a", "c", "h", "i", "s", "o", "n"]]
+    assert output[0].done()
+    assert output[1].done()
+
+
 def test_file_translation(tmpdir):
     input_path = str(tmpdir.join("input.txt"))
     output_path = str(tmpdir.join("output.txt"))

@@ -91,6 +91,37 @@ get_translators_location(const std::vector<ctranslate2::Translator>& translators
 }
 
 
+template <typename T>
+class AsyncResult {
+public:
+  AsyncResult(std::future<T> future)
+    : _future(std::move(future))
+  {
+  }
+
+  const T& result() {
+    if (!_done) {
+      {
+        py::gil_scoped_release release;
+        _result = _future.get();
+      }
+      _done = true;  // Assign done attribute while the GIL is held.
+    }
+    return _result;
+  }
+
+  bool done() {
+    constexpr std::chrono::seconds zero_sec(0);
+    return _done || _future.wait_for(zero_sec) == std::future_status::ready;
+  }
+
+private:
+  std::future<T> _future;
+  T _result;
+  bool _done = false;
+};
+
+
 class TranslatorWrapper
 {
 public:
@@ -222,11 +253,13 @@ public:
     return stats;
   }
 
-  std::vector<ctranslate2::TranslationResult>
+  std::variant<std::vector<ctranslate2::TranslationResult>,
+               std::vector<AsyncResult<ctranslate2::TranslationResult>>>
   translate_batch(const BatchTokens& source,
                   const BatchTokensOptional& target_prefix,
                   size_t max_batch_size,
                   const std::string& batch_type_str,
+                  bool asynchronous,
                   size_t beam_size,
                   size_t num_hypotheses,
                   float length_penalty,
@@ -270,11 +303,25 @@ public:
     options.return_alternatives = return_alternatives;
     options.replace_unknowns = replace_unknowns;
 
-    return _translator_pool.translate_batch(source,
-                                            finalize_optional_batch(target_prefix),
-                                            options,
-                                            max_batch_size,
-                                            batch_type);
+    auto futures = _translator_pool.translate_batch_async(source,
+                                                          finalize_optional_batch(target_prefix),
+                                                          options,
+                                                          max_batch_size,
+                                                          batch_type);
+
+    if (asynchronous) {
+      std::vector<AsyncResult<ctranslate2::TranslationResult>> results;
+      results.reserve(futures.size());
+      for (auto& future : futures)
+        results.emplace_back(std::move(future));
+      return std::move(results);
+    } else {
+      std::vector<ctranslate2::TranslationResult> results;
+      results.reserve(futures.size());
+      for (auto& future : futures)
+        results.emplace_back(future.get());
+      return std::move(results);
+    }
   }
 
   std::vector<std::vector<float>>
@@ -447,6 +494,14 @@ static py::set get_supported_compute_types(const std::string& device_str, const 
   return compute_types;
 }
 
+template <typename T>
+static void declare_async_wrapper(py::module& m, const char* name) {
+  py::class_<AsyncResult<T>>(m, name)
+    .def("result", &AsyncResult<T>::result)
+    .def("done", &AsyncResult<T>::done)
+    ;
+}
+
 PYBIND11_MODULE(translator, m)
 {
   m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
@@ -481,6 +536,8 @@ PYBIND11_MODULE(translator, m)
     })
     ;
 
+  declare_async_wrapper<ctranslate2::TranslationResult>(m, "AsyncTranslationResult");
+
   py::class_<TranslatorWrapper>(m, "Translator")
     .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t>(),
          py::arg("model_path"),
@@ -500,6 +557,7 @@ PYBIND11_MODULE(translator, m)
          py::kw_only(),
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
+         py::arg("asynchronous")=false,
          py::arg("beam_size")=2,
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
