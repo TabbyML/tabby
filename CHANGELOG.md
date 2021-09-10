@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v2.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.4.0) (2021-09-10)
+
+### New features
+
+* [Python] Support asynchronous translation: `translate_batch` can return future-like objects with argument `asynchronous=True`
+* [Python] `translate_batch` now returns a list of `TranslationResult` objects instead of a list of dictionaries (this object can also be indexed as a list of dictionaries for backward compatibility)
+* Add options `--source_lang` and `--target_lang` to the Fairseq converter for models that do not include these information
+
+### Fixes and improvements
+
+* Fix Fairseq model conversion when the model options are stored in `model["cfg"]["model"]`
+* Compile the CPU INT8 quantization kernel with FMA instructions
+* Enable packing of the last linear weight when not using dynamic vocabulary reduction
+* Replace the generic `Tile` implementation by dedicated CPU and CUDA kernels
+* [Python] Implement `__repr__` method for `TranslationStats` objects
+* [Python] Update pybind11 to 2.7.1
+
 ## [v2.3.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.3.2) (2021-08-05)
 
 ### Fixes and improvements
