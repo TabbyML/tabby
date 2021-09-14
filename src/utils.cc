@@ -169,6 +169,11 @@ namespace ctranslate2 {
 #else
     (void)num_threads;
 #endif
+#ifdef CT2_WITH_RUY
+    if (num_threads == 0)
+      num_threads = 4;
+    cpu::get_ruy_context()->set_max_num_threads(num_threads);
+#endif
   }
 
   void set_thread_affinity(std::thread& thread, int index) {

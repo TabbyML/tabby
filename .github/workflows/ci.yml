@@ -119,7 +119,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y g++-aarch64-linux-gnu gfortran-aarch64-linux-gnu qemu-user-static
 
-      - name: Build with OpenBLAS
+      - name: Build with OpenBLAS and Ruy
         if: matrix.backend == 'openblas'
         run: |
           wget https://github.com/xianyi/OpenBLAS/archive/v0.3.13.tar.gz
@@ -139,6 +139,7 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=$PWD/install \
             -DWITH_MKL=OFF \
             -DWITH_OPENBLAS=ON \
+            -DWITH_RUY=ON \
             -DBUILD_TESTS=ON \
             .
           make -j $(nproc) install

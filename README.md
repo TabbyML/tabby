@@ -275,6 +275,7 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 | WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
 | WITH_ACCELERATE | **OFF**, ON | Compiles with the Apple Accelerate backend |
 | WITH_OPENBLAS | **OFF**, ON | Compiles with the OpenBLAS backend |
+| WITH_RUY | **OFF**, ON | Compiles with the Ruy backend |
 
 Some build options require external dependencies:
 

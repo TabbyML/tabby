@@ -55,6 +55,8 @@ namespace ctranslate2 {
         return "Accelerate";
       case GemmBackend::OPENBLAS:
         return "OpenBLAS";
+      case GemmBackend::RUY:
+        return "Ruy";
       default:
         return "NONE";
       }
@@ -85,6 +87,12 @@ namespace ctranslate2 {
       }
 #endif
 
+#ifdef CT2_WITH_RUY
+      if (compute_type == ComputeType::INT8) {
+        return GemmBackend::RUY;
+      }
+#endif
+
       return GemmBackend::NONE;
     }
 
@@ -102,5 +110,11 @@ namespace ctranslate2 {
       return should_pack;
     }
 
+#ifdef CT2_WITH_RUY
+    ruy::Context *get_ruy_context() {
+      static thread_local ruy::Context context;
+      return &context;
+    }
+#endif
   }
 }

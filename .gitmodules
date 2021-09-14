@@ -13,3 +13,6 @@
 [submodule "third_party/spdlog"]
 	path = third_party/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "third_party/ruy"]
+	path = third_party/ruy
+	url = https://github.com/google/ruy.git
