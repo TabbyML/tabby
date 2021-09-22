@@ -58,6 +58,15 @@ namespace ctranslate2 {
                  float epsilon);
 
     template <CpuIsa ISA>
+    void layer_norm(const float* input,
+                    const float* gamma,
+                    const float* beta,
+                    float* output,
+                    dim_t batch_size,
+                    dim_t depth,
+                    float epsilon);
+
+    template <CpuIsa ISA>
     void quantize_s8(const float* x,
                      int8_t* y,
                      float* scales,

@@ -321,6 +321,34 @@ namespace ctranslate2 {
     }
 
     template<>
+    void layer_norm<TARGET_ISA>(const float* input,
+                                const float* gamma,
+                                const float* beta,
+                                float* output,
+                                dim_t batch_size,
+                                dim_t depth,
+                                float epsilon) {
+      #pragma omp parallel for
+      for (dim_t i = 0; i < batch_size; ++i) {
+        const auto offset = i * depth;
+        const auto* x = input + offset;
+        auto* y = output + offset;
+        float mean = 0;  // sum(x)/n
+        float rstd = 0;  // 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
+        for (dim_t j = 0; j < depth; ++j) {
+          mean += x[j];
+          rstd += x[j] * x[j];
+        }
+        mean /= depth;
+        rstd = std::max(rstd / depth - mean * mean, 0.f);
+        rstd = 1.f / std::sqrt(rstd + epsilon);
+        for (dim_t j = 0; j < depth; ++j) {
+          y[j] = (x[j] - mean) * rstd * gamma[j] + beta[j];
+        }
+      }
+    }
+
+    template<>
     void quantize_s8<TARGET_ISA>(const float* x,
                                  int8_t* y,
                                  float* scales,
