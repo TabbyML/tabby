@@ -16,10 +16,11 @@ Below are some recommendations to further improve translation performance. Many 
 
 * Use an Intel CPU supporting AVX512
 * If you are translating a large volume of data, prefer increasing `inter_threads` over `intra_threads` to improve scalability
-* Avoid setting `intra_threads` to a value that is greater than the number of physical cores
+* Avoid the total number of threads `inter_threads * intra_threads` to be larger than the number of physical cores
 
 ### GPU
 
+* Use a NVIDIA GPU with Tensor Cores (Compute Capability >= 7.0) 
 * Pass multiple GPU IDs to `device_index` to run translations on multiple GPUs
 
 ## Measuring performance
