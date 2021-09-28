@@ -174,9 +174,6 @@ namespace ctranslate2 {
       StorageView queries_proj(dtype, device);
       StorageView keys_proj(dtype, device);
       StorageView values_proj(dtype, device);
-      StorageView split_queries(dtype, device);
-      StorageView split_keys(dtype, device);
-      StorageView split_values(dtype, device);
 
       const StorageView* q = &queries;
       if (_pre_norm) {
@@ -187,64 +184,50 @@ namespace ctranslate2 {
       _linear[0](*q, fused_proj);
 
       if (!_self_attention) {
-        if (queries_padder)
-          queries_padder->add_padding(fused_proj);
-        split_heads(fused_proj, split_queries);
+        queries_proj = std::move(fused_proj);
+        split_heads(queries_proj, queries_padder);
 
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](values, fused_proj);
           ops::Split(-1)(fused_proj, keys_proj, values_proj);
-          if (values_padder) {
-            // From now on the time dimension is required.
-            values_padder->add_padding(keys_proj);
-            values_padder->add_padding(values_proj);
-          }
-          split_heads(keys_proj, split_keys);
-          split_heads(values_proj, split_values);
+          split_heads(keys_proj, values_padder);
+          split_heads(values_proj, values_padder);
 
           if (cached_keys != nullptr) {
-            *cached_keys = std::move(split_keys);
-            *cached_values = std::move(split_values);
-            split_keys.shallow_copy(*cached_keys);
-            split_values.shallow_copy(*cached_values);
+            *cached_keys = std::move(keys_proj);
+            *cached_values = std::move(values_proj);
           }
-        } else {
-          split_keys.shallow_copy(*cached_keys);
-          split_values.shallow_copy(*cached_values);
         }
 
       } else {
         ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
-        if (queries_padder) {
-          // From now on the time dimension is required.
-          queries_padder->add_padding(queries_proj);
-          queries_padder->add_padding(keys_proj);
-          queries_padder->add_padding(values_proj);
-        }
-        split_heads(queries_proj, split_queries);
-        split_heads(keys_proj, split_keys);
-        split_heads(values_proj, split_values);
+        split_heads(queries_proj, queries_padder);
+        split_heads(keys_proj, queries_padder);
+        split_heads(values_proj, queries_padder);
 
         if (cached_keys != nullptr) {
           if (cached_keys->empty()) {
-            *cached_keys = std::move(split_keys);
-            *cached_values = std::move(split_values);
+            *cached_keys = std::move(keys_proj);
+            *cached_values = std::move(values_proj);
           } else {
-            StorageView& tmp = keys_proj;  // Reuse storage.
+            StorageView& tmp = fused_proj;  // Reuse storage.
             tmp = std::move(*cached_keys);
-            ops::Concat(2)({&tmp, &split_keys}, *cached_keys);
+            ops::Concat(2)({&tmp, &keys_proj}, *cached_keys);
             tmp = std::move(*cached_values);
-            ops::Concat(2)({&tmp, &split_values}, *cached_values);
+            ops::Concat(2)({&tmp, &values_proj}, *cached_values);
           }
-          split_keys.shallow_copy(*cached_keys);
-          split_values.shallow_copy(*cached_values);
         }
       }
 
-      StorageView& context = queries_proj;  // Reuse storage.
-      dot_product_attention(split_queries,
-                            split_keys,
-                            split_values,
+      if (cached_keys) {
+        keys_proj.shallow_copy(*cached_keys);
+        values_proj.shallow_copy(*cached_values);
+      }
+
+      StorageView& context = fused_proj;  // Reuse storage.
+      dot_product_attention(queries_proj,
+                            keys_proj,
+                            values_proj,
                             values_lengths,
                             _relative_position_keys,
                             _relative_position_values,
@@ -254,31 +237,48 @@ namespace ctranslate2 {
                             _queries_scale,
                             bool(cached_keys));
 
-      StorageView& combined = values_proj;  // Reuse storage.
-      combine_heads(context, combined);
-
-      if (queries_padder) {
-        // The time dimension is no longer needed.
-        queries_padder->remove_padding(combined);
-      }
-
-      _linear.back()(combined, output);
+      combine_heads(context, queries_padder);
+      _linear.back()(context, output);
       ops::Add()(queries, output, output);
       if (!_pre_norm) {
         _layer_norm(output, output);
       }
     }
 
-    void MultiHeadAttention::split_heads(StorageView& x, StorageView& y) const {
-      Shape original_shape = x.shape();
-      x.reshape({x.dim(0), x.dim(1), _num_heads, x.dim(2) / _num_heads});
-      _transpose_op(x, y);
-      x.reshape(std::move(original_shape));
+    void MultiHeadAttention::split_heads(StorageView& x, const Padder* padder) const {
+      if (padder)
+        padder->add_padding(x);
+
+      // x has shape [batch_size, time, depth]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(1);
+      const dim_t head_dim = x.dim(2) / _num_heads;
+
+      if (time == 1) {
+        x.reshape({batch_size, _num_heads, 1, head_dim});
+      } else {
+        x.reshape({batch_size, time, _num_heads, head_dim});
+        StorageView y(x.device(), x.dtype());
+        _transpose_op(x, y);
+        x = std::move(y);
+      }
     }
 
-    void MultiHeadAttention::combine_heads(const StorageView& x, StorageView& y) const {
-      _transpose_op(x, y);
-      y.reshape({y.dim(0), y.dim(1), y.dim(-1) * _num_heads});
+    void MultiHeadAttention::combine_heads(StorageView& x, const Padder* padder) const {
+      // x has shape [batch_size, num_heads, time, head_dim]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(2);
+      const dim_t depth = x.dim(3) * _num_heads;
+
+      if (time > 1) {
+        StorageView y(x.device(), x.dtype());
+        _transpose_op(x, y);
+        x = std::move(y);
+      }
+
+      x.reshape({batch_size, time, depth});
+      if (padder)
+        padder->remove_padding(x);
     }
 
     StorageView MultiHeadAttention::prepare_length_mask(const StorageView& lengths,

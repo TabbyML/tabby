@@ -47,8 +47,8 @@ namespace ctranslate2 {
       const float _queries_scale;
       const ops::Transpose _transpose_op;
 
-      void split_heads(StorageView& x, StorageView& y) const;
-      void combine_heads(const StorageView& x, StorageView& y) const;
+      void split_heads(StorageView& x, const Padder* padder = nullptr) const;
+      void combine_heads(StorageView& x, const Padder* padder = nullptr) const;
     };
 
   }
