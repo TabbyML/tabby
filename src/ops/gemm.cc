@@ -19,30 +19,6 @@ namespace ctranslate2 {
       }
     }
 
-    template <Device D, typename In, typename Out>
-    static void run_gemm(const StorageView& a, const StorageView& b,
-                         bool a_is_packed, bool b_is_packed,
-                         bool transpose_a, bool transpose_b,
-                         dim_t m, dim_t n, dim_t k,
-                         float alpha, float beta,
-                         StorageView& y,
-                         const StorageView* a_shift_compensation = nullptr) {
-      const In* a_data = a.data<In>();
-      const In* b_data = b.data<In>();
-      Out* y_data = y.data<Out>();
-      const Out* a_shift_compensation_data = (a_shift_compensation
-                                              ? a_shift_compensation->data<Out>()
-                                              : nullptr);
-
-      primitives<D>::gemm(a_data, b_data,
-                          a_is_packed, b_is_packed,
-                          transpose_a, transpose_b,
-                          m, n, k,
-                          alpha, beta,
-                          y_data,
-                          a_shift_compensation_data);
-    }
-
 
     Gemm::Gemm(float alpha,
                float beta,
@@ -63,65 +39,31 @@ namespace ctranslate2 {
 
     void Gemm::operator()(const StorageView& a,
                           const StorageView& b,
-                          StorageView& y,
+                          StorageView& c,
                           const StorageView* a_shift_compensation,
                           const StorageView* bias) const {
       PROFILE("Gemm");
 
-      const dim_t k = a.dim(_trans_a ? -2 : -1);
-      const dim_t n = b.dim(_trans_b ? -2 : -1);
-      const dim_t m = a.size() / k;  // Collapse leading dimensions.
-
-      Shape output_shape(a.shape());
-      output_shape[output_shape.size() - 1] = n;
-      y.resize(std::move(output_shape));
-
       switch (a.dtype()) {
       case DataType::INT8:
-        DEVICE_DISPATCH(a.device(),
-                        (run_gemm<D, int8_t, int32_t>(a, b,
-                                                      _a_is_packed, _b_is_packed,
-                                                      _trans_a, _trans_b,
-                                                      m, n, k,
-                                                      _alpha, _beta,
-                                                      y,
-                                                      a_shift_compensation)));
+        DEVICE_DISPATCH(a.device(), (compute<D, int8_t, int32_t>(a, b, c, a_shift_compensation)));
         break;
 
       case DataType::INT16:
         if (a.device() != Device::CPU)
           throw std::invalid_argument("INT16 GEMM is only supported on CPU");
-        run_gemm<Device::CPU, int16_t, int32_t>(a, b,
-                                                _a_is_packed, _b_is_packed,
-                                                _trans_a, _trans_b,
-                                                m, n, k,
-                                                _alpha, _beta,
-                                                y,
-                                                a_shift_compensation);
+        compute<Device::CPU, int16_t, int32_t>(a, b, c, a_shift_compensation);
         break;
 
       case DataType::FLOAT:
-        DEVICE_DISPATCH(a.device(),
-                        (run_gemm<D, float, float>(a, b,
-                                                   _a_is_packed, _b_is_packed,
-                                                   _trans_a, _trans_b,
-                                                   m, n, k,
-                                                   _alpha, _beta,
-                                                   y,
-                                                   a_shift_compensation)));
+        DEVICE_DISPATCH(a.device(), (compute<D, float, float>(a, b, c, a_shift_compensation)));
         break;
 
 #ifdef CT2_WITH_CUDA
       case DataType::FLOAT16:
         if (a.device() != Device::CUDA)
           throw std::invalid_argument("FP16 GEMM is only supported on GPU");
-        run_gemm<Device::CUDA, float16_t, float16_t>(a, b,
-                                                     _a_is_packed, _b_is_packed,
-                                                     _trans_a, _trans_b,
-                                                     m, n, k,
-                                                     _alpha, _beta,
-                                                     y,
-                                                     a_shift_compensation);
+        compute<Device::CUDA, float16_t, float16_t>(a, b, c, a_shift_compensation);
         break;
 #endif
 
@@ -129,7 +71,36 @@ namespace ctranslate2 {
         throw std::invalid_argument("unsupported compute type " + dtype_name(a.dtype()));
       }
 
-      apply_bias_and_activation(y, bias, _activation_type);
+      apply_bias_and_activation(c, bias, _activation_type);
+    }
+
+    template <Device D, typename In, typename Out>
+    void Gemm::compute(const StorageView& a,
+                       const StorageView& b,
+                       StorageView& c,
+                       const StorageView* a_shift_compensation) const {
+      const dim_t k = a.dim(_trans_a ? -2 : -1);
+      const dim_t n = b.dim(_trans_b ? -2 : -1);
+      const dim_t m = a.size() / k;  // Collapse leading dimensions.
+      const dim_t lda = _trans_a ? m : k;
+      const dim_t ldb = _trans_b ? k : n;
+      const dim_t ldc = n;
+
+      {
+        Shape output_shape(a.shape());
+        output_shape[output_shape.size() - 1] = n;
+        c.resize(std::move(output_shape));
+      }
+
+      primitives<D>::gemm(_a_is_packed, _b_is_packed,
+                          _trans_a, _trans_b,
+                          m, n, k,
+                          _alpha,
+                          a.data<In>(), lda,
+                          b.data<In>(), ldb,
+                          _beta,
+                          c.data<Out>(), ldc,
+                          a_shift_compensation ? a_shift_compensation->data<Out>() : nullptr);
     }
 
   }

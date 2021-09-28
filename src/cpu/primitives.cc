@@ -515,17 +515,15 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CPU>::gemm(const float* a, const float* b,
-                                     bool a_is_packed, bool b_is_packed,
+  void primitives<Device::CPU>::gemm(bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
-                                     float alpha, float beta,
-                                     float* c,
+                                     float alpha,
+                                     const float* a, dim_t lda,
+                                     const float* b, dim_t ldb,
+                                     float beta,
+                                     float* c, dim_t ldc,
                                      const float*) {
-    const dim_t lda = transpose_a ? m : k;
-    const dim_t ldb = transpose_b ? k : n;
-    const dim_t ldc = n;
-
     switch (sgemm_backend) {
 
 #ifdef CT2_WITH_MKL
@@ -571,11 +569,9 @@ namespace ctranslate2 {
 
 #ifdef CT2_WITH_ACCELERATE
     case cpu::GemmBackend::ACCELERATE: {
-      CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
-      CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
-
       cblas_sgemm(CblasRowMajor,
-                  trans_a, trans_b,
+                  transpose_a ? CblasTrans : CblasNoTrans,
+                  transpose_b ? CblasTrans : CblasNoTrans,
                   m, n, k,
                   alpha,
                   a, lda,
@@ -588,11 +584,9 @@ namespace ctranslate2 {
 
 #ifdef CT2_WITH_OPENBLAS
     case cpu::GemmBackend::OPENBLAS: {
-      CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
-      CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
-
       cblas_sgemm(CblasRowMajor,
-                  trans_a, trans_b,
+                  transpose_a ? CblasTrans : CblasNoTrans,
+                  transpose_b ? CblasTrans : CblasNoTrans,
                   m, n, k,
                   alpha,
                   a, lda,
@@ -610,21 +604,19 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CPU>::gemm(const int16_t* a, const int16_t* b,
-                                     bool a_is_packed, bool b_is_packed,
+  void primitives<Device::CPU>::gemm(bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
-                                     float alpha, float beta,
-                                     int32_t* c,
+                                     float alpha,
+                                     const int16_t* a, dim_t lda,
+                                     const int16_t* b, dim_t ldb,
+                                     float beta,
+                                     int32_t* c, dim_t ldc,
                                      const int32_t*) {
     switch (gemm_s16_backend) {
 
 #ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
-      MKL_INT lda = transpose_a ? m : k;
-      MKL_INT ldb = transpose_b ? k : n;
-      MKL_INT ldc = n;
-
       CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
       CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
       CBLAS_OFFSET offsetc = CblasFixOffset;
@@ -702,17 +694,15 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CPU>::gemm(const int8_t* a, const int8_t* b,
-                                     bool a_is_packed, bool b_is_packed,
+  void primitives<Device::CPU>::gemm(bool a_is_packed, bool b_is_packed,
                                      bool transpose_a, bool transpose_b,
                                      dim_t m, dim_t n, dim_t k,
-                                     float alpha, float beta,
-                                     int32_t* c,
+                                     float alpha,
+                                     const int8_t* a, dim_t lda,
+                                     const int8_t* b, dim_t ldb,
+                                     float beta,
+                                     int32_t* c, dim_t ldc,
                                      const int32_t* a_shift_compensation) {
-    const dim_t lda = transpose_a ? m : k;
-    const dim_t ldb = transpose_b ? k : n;
-    const dim_t ldc = n;
-
     switch (gemm_s8_backend) {
 
 #ifdef CT2_WITH_MKL
@@ -810,6 +800,11 @@ namespace ctranslate2 {
 
 #ifdef CT2_WITH_RUY
     case cpu::GemmBackend::RUY: {
+      if (lda != (transpose_a ? m : k)
+          || ldb != (transpose_b ? k : n)
+          || ldc != n)
+        throw std::invalid_argument("Ruy GEMM does not support custom leading dimensions");
+
       ruy::Context *context = cpu::get_ruy_context();
 
       const ruy::Order order_a = transpose_a ? ruy::Order::kColMajor : ruy::Order::kRowMajor;
@@ -866,29 +861,18 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CPU>::gemm_batch(const float* a, const float* b,
-                                           bool transpose_a, bool transpose_b,
-                                           dim_t batch_size,
-                                           dim_t m, dim_t n, dim_t k,
-                                           float alpha, float beta,
-                                           float* c) {
+  void primitives<Device::CPU>::gemm_batch_strided(bool transpose_a, bool transpose_b,
+                                                   dim_t m, dim_t n, dim_t k,
+                                                   float alpha,
+                                                   const float* a, dim_t lda, dim_t stridea,
+                                                   const float* b, dim_t ldb, dim_t strideb,
+                                                   float beta,
+                                                   float* c, dim_t ldc, dim_t stridec,
+                                                   dim_t batch_size) {
     switch (sgemm_backend) {
 
 #ifdef CT2_WITH_MKL
     case cpu::GemmBackend::MKL: {
-      MKL_INT lda = transpose_a ? m : k;
-      MKL_INT ldb = transpose_b ? k : n;
-      MKL_INT ldc = n;
-
-      MKL_INT b_ = batch_size;
-      MKL_INT m_ = m;
-      MKL_INT n_ = n;
-      MKL_INT k_ = k;
-
-      MKL_INT stridea = m_ * k_;
-      MKL_INT strideb = k_ * n_;
-      MKL_INT stridec = m_ * n_;
-
       CBLAS_TRANSPOSE trans_a = transpose_a ? CblasTrans : CblasNoTrans;
       CBLAS_TRANSPOSE trans_b = transpose_b ? CblasTrans : CblasNoTrans;
 
@@ -901,8 +885,17 @@ namespace ctranslate2 {
                                 b, ldb, strideb,
                                 beta,
                                 c, ldc, stridec,
-                                b_);
+                                batch_size);
 #  else
+      MKL_INT lda_ = lda;
+      MKL_INT ldb_ = ldb;
+      MKL_INT ldc_ = ldc;
+
+      MKL_INT b_ = batch_size;
+      MKL_INT m_ = m;
+      MKL_INT n_ = n;
+      MKL_INT k_ = k;
+
       auto ptr_array = static_cast<float**>(allocator.allocate(3 * batch_size * sizeof (float*)));
       auto a_array = const_cast<const float**>(ptr_array);
       auto b_array = const_cast<const float**>(ptr_array + batch_size);
@@ -916,9 +909,9 @@ namespace ctranslate2 {
       cblas_sgemm_batch(CblasRowMajor,
                         &trans_a, &trans_b,
                         &m_, &n_, &k_,
-                        &alpha, a_array, &lda,
-                        b_array, &ldb,
-                        &beta, c_array, &ldc,
+                        &alpha, a_array, &lda_,
+                        b_array, &ldb_,
+                        &beta, c_array, &ldc_,
                         1 /* group_count */, &b_);
 
       allocator.free(ptr_array);
@@ -930,16 +923,18 @@ namespace ctranslate2 {
     default: {
       #pragma omp parallel for
       for (dim_t i = 0; i < batch_size; ++i) {
-        const float* a_i = a + (i * m * k);
-        const float* b_i = b + (i * k * n);
-        float* c_i = c + (i * m * n);
+        const float* a_i = a + (i * stridea);
+        const float* b_i = b + (i * strideb);
+        float* c_i = c + (i * stridec);
 
-        gemm(a_i, b_i,
-             /*a_is_packed=*/false, /*b_is_packed=*/false,
+        gemm(/*a_is_packed=*/false, /*b_is_packed=*/false,
              transpose_a, transpose_b,
              m, n, k,
-             alpha, beta,
-             c_i);
+             alpha,
+             a_i, lda,
+             b_i, ldb,
+             beta,
+             c_i, ldc);
       }
       break;
     }

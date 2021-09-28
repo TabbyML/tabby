@@ -34,6 +34,12 @@ namespace ctranslate2 {
       bool _a_is_packed;
       bool _b_is_packed;
       const ActivationType* _activation_type;
+
+      template <Device D, typename In, typename Out>
+      void compute(const StorageView& a,
+                   const StorageView& b,
+                   StorageView& c,
+                   const StorageView* a_shift_compensation) const;
     };
 
   }

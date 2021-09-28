@@ -311,24 +311,19 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::gemm(const float* a, const float* b,
-                                      bool, bool,
+  void primitives<Device::CUDA>::gemm(bool, bool,
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
-                                      float alpha, float beta,
-                                      float* c,
+                                      float alpha,
+                                      const float* a, dim_t lda,
+                                      const float* b, dim_t ldb,
+                                      float beta,
+                                      float* c, dim_t ldc,
                                       const float*) {
-    // Memo: cuBLAS assumes column-major storage.
-
-    const int lda = transpose_a ? m : k;
-    const int ldb = transpose_b ? k : n;
-    const int ldc = n;
-
-    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-
+    // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasSgemm(cuda::get_cublas_handle(),
-                             transb, transa,
+                             transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                             transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                              n, m, k,
                              &alpha,
                              b, ldb,
@@ -339,26 +334,22 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::gemm(const float16_t* a, const float16_t* b,
-                                      bool, bool,
+  void primitives<Device::CUDA>::gemm(bool, bool,
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
-                                      float alpha, float beta,
-                                      float16_t* c,
+                                      float alpha,
+                                      const float16_t* a, dim_t lda,
+                                      const float16_t* b, dim_t ldb,
+                                      float beta,
+                                      float16_t* c, dim_t ldc,
                                       const float16_t*) {
-    const int lda = transpose_a ? m : k;
-    const int ldb = transpose_b ? k : n;
-    const int ldc = n;
-
-    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-
     const __half alpha_h = alpha;
     const __half beta_h = beta;
 
     // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasGemmEx(cuda::get_cublas_handle(),
-                              transb, transa,
+                              transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                              transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                               n, m, k,
                               &alpha_h,
                               b, CUDA_R_16F, ldb,
@@ -371,26 +362,22 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::gemm(const int8_t* a, const int8_t* b,
-                                      bool, bool,
+  void primitives<Device::CUDA>::gemm(bool, bool,
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
-                                      float alpha, float beta,
-                                      int32_t* c,
+                                      float alpha,
+                                      const int8_t* a, dim_t lda,
+                                      const int8_t* b, dim_t ldb,
+                                      float beta,
+                                      int32_t* c, dim_t ldc,
                                       const int32_t*) {
-    const int lda = transpose_a ? m : k;
-    const int ldb = transpose_b ? k : n;
-    const int ldc = n;
-
-    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-
     int32_t alpha_i = alpha;
     int32_t beta_i = beta;
 
     // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasGemmEx(cuda::get_cublas_handle(),
-                              transb, transa,
+                              transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                              transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                               n, m, k,
                               &alpha_i,
                               b, CUDA_R_8I, ldb,
@@ -403,27 +390,18 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::gemm_batch(const float* a, const float* b,
-                                            bool transpose_a, bool transpose_b,
-                                            dim_t batch_size,
-                                            dim_t m, dim_t n, dim_t k,
-                                            float alpha, float beta,
-                                            float* c) {
-    // Memo: cuBLAS assumes column-major storage.
-
-    const int lda = transpose_a ? m : k;
-    const int ldb = transpose_b ? k : n;
-    const int ldc = n;
-
-    const long long int stridea = m * k;
-    const long long int strideb = k * n;
-    const long long int stridec = m * n;
-
-    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-
+  void primitives<Device::CUDA>::gemm_batch_strided(bool transpose_a, bool transpose_b,
+                                                    dim_t m, dim_t n, dim_t k,
+                                                    float alpha,
+                                                    const float* a, dim_t lda, dim_t stridea,
+                                                    const float* b, dim_t ldb, dim_t strideb,
+                                                    float beta,
+                                                    float* c, dim_t ldc, dim_t stridec,
+                                                    dim_t batch_size) {
+    // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasSgemmStridedBatched(cuda::get_cublas_handle(),
-                                           transb, transa,
+                                           transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                           transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                                            n, m, k,
                                            &alpha,
                                            b, ldb, strideb,
@@ -435,29 +413,21 @@ namespace ctranslate2 {
 
   template<>
   template<>
-  void primitives<Device::CUDA>::gemm_batch(const float16_t* a, const float16_t* b,
-                                            bool transpose_a, bool transpose_b,
-                                            dim_t batch_size,
-                                            dim_t m, dim_t n, dim_t k,
-                                            float alpha, float beta,
-                                            float16_t* c) {
-    const int lda = transpose_a ? m : k;
-    const int ldb = transpose_b ? k : n;
-    const int ldc = n;
-
-    const long long int stridea = m * k;
-    const long long int strideb = k * n;
-    const long long int stridec = m * n;
-
-    const cublasOperation_t transa = transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N;
-    const cublasOperation_t transb = transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N;
-
+  void primitives<Device::CUDA>::gemm_batch_strided(bool transpose_a, bool transpose_b,
+                                                    dim_t m, dim_t n, dim_t k,
+                                                    float alpha,
+                                                    const float16_t* a, dim_t lda, dim_t stridea,
+                                                    const float16_t* b, dim_t ldb, dim_t strideb,
+                                                    float beta,
+                                                    float16_t* c, dim_t ldc, dim_t stridec,
+                                                    dim_t batch_size) {
     const __half alpha_h = alpha;
     const __half beta_h = beta;
 
     // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasGemmStridedBatchedEx(cuda::get_cublas_handle(),
-                                            transb, transa,
+                                            transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                            transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                                             n, m, k,
                                             &alpha_h,
                                             b, CUDA_R_16F, ldb, strideb,

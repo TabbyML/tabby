@@ -167,21 +167,25 @@ namespace ctranslate2 {
                              T* dest = nullptr);
 
     template <typename In, typename Out>
-    static void gemm(const In* a, const In* b,
-                     bool a_is_packed, bool b_is_packed,
+    static void gemm(bool a_is_packed, bool b_is_packed,
                      bool transpose_a, bool transpose_b,
                      dim_t m, dim_t n, dim_t k,
-                     float alpha, float beta,
-                     Out* c,
+                     float alpha,
+                     const In* a, dim_t lda,
+                     const In* b, dim_t ldb,
+                     float beta,
+                     Out* c, dim_t ldc,
                      const Out* a_shift_compensation = nullptr);
 
     template <typename In, typename Out>
-    static void gemm_batch(const In* a, const In* b,
-                           bool transpose_a, bool transpose_b,
-                           dim_t batch_size,
-                           dim_t m, dim_t n, dim_t k,
-                           float alpha, float beta,
-                           Out* c);
+    static void gemm_batch_strided(bool transpose_a, bool transpose_b,
+                                   dim_t m, dim_t n, dim_t k,
+                                   float alpha,
+                                   const In* a, dim_t lda, dim_t stridea,
+                                   const In* b, dim_t ldb, dim_t strideb,
+                                   float beta,
+                                   Out* c, dim_t ldc, dim_t stridec,
+                                   dim_t batch_size);
   };
 
   template <Device D1, Device D2>
