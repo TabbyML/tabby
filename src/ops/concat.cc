@@ -10,13 +10,13 @@ namespace ctranslate2 {
       : _axis(axis) {
     }
 
-    void Concat::operator()(const std::vector<StorageView*>& inputs,
+    void Concat::operator()(const std::vector<const StorageView*>& inputs,
                             StorageView& output) const {
       PROFILE("Concat");
       const dim_t rank = inputs.front()->rank();
       const dim_t axis = _axis < 0 ? rank + _axis : _axis;
       dim_t concat_dims = 0;
-      for (const auto& x : inputs) {
+      for (const StorageView* x : inputs) {
         assert(x->rank() == rank);
         concat_dims += x->dim(axis);
       }

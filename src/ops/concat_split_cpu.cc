@@ -21,7 +21,7 @@ namespace ctranslate2 {
     }
 
     template <Device D, typename T>
-    void Concat::compute(const std::vector<StorageView*>& inputs,
+    void Concat::compute(const std::vector<const StorageView*>& inputs,
                          StorageView& output) const {
       const dim_t axis = _axis < 0 ? output.rank() + _axis : _axis;
       const dim_t step_size = output.dim(axis) * output.stride(axis);
@@ -68,7 +68,7 @@ namespace ctranslate2 {
 
 #define DECLARE_IMPL(T)                                                 \
     template void                                                       \
-    Concat::compute<Device::CPU, T>(const std::vector<StorageView*>& inputs, \
+    Concat::compute<Device::CPU, T>(const std::vector<const StorageView*>& inputs, \
                                     StorageView& output) const;         \
     template void                                                       \
     Split::compute<Device::CPU, T>(const StorageView& input,            \

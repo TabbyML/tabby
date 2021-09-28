@@ -8,14 +8,14 @@ namespace ctranslate2 {
     class Concat : public Op {
     public:
       Concat(int axis);
-      void operator()(const std::vector<StorageView*>& inputs,
+      void operator()(const std::vector<const StorageView*>& inputs,
                       StorageView& output) const;
 
     private:
       int _axis;
 
       template <Device D, typename T>
-      void compute(const std::vector<StorageView*>& inputs, StorageView& output) const;
+      void compute(const std::vector<const StorageView*>& inputs, StorageView& output) const;
     };
 
   }

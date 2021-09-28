@@ -55,11 +55,11 @@ namespace ctranslate2 {
     };
 
     template <Device D, typename T>
-    void Concat::compute(const std::vector<StorageView*>& inputs,
+    void Concat::compute(const std::vector<const StorageView*>& inputs,
                          StorageView& output) const {
       const dim_t axis = _axis < 0 ? output.rank() + _axis : _axis;
       dim_t offset = 0;
-      for (const auto& x : inputs) {
+      for (const StorageView* x : inputs) {
         if (axis == 0) {
           primitives<D>::copy(x->data<T>(), output.data<T>() + offset, x->size());
           offset += x->size();
@@ -117,7 +117,7 @@ namespace ctranslate2 {
 
 #define DECLARE_IMPL(T)                                                 \
     template void                                                       \
-    Concat::compute<Device::CUDA, T>(const std::vector<StorageView*>& inputs, \
+    Concat::compute<Device::CUDA, T>(const std::vector<const StorageView*>& inputs, \
                                      StorageView& output) const;        \
     template void                                                       \
     Split::compute<Device::CUDA, T>(const StorageView& input,           \
