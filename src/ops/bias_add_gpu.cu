@@ -10,12 +10,12 @@ namespace ctranslate2 {
     __global__ void bias_add_kernel(const T* value,
                                     const T* bias,
                                     T* output,
-                                    dim_t depth,
+                                    cuda::index_t depth,
                                     const AddFunc& add_func,
                                     const Epilogue& epilogue) {
-      const dim_t i = blockIdx.x;
-      for (dim_t j = threadIdx.x; j < depth; j += blockDim.x) {
-        const dim_t index = i * depth + j;
+      const cuda::index_t i = blockIdx.x;
+      for (cuda::index_t j = threadIdx.x; j < depth; j += blockDim.x) {
+        const cuda::index_t index = i * depth + j;
         output[index] = epilogue(add_func(value[index], bias[j]));
       }
     }

@@ -4,6 +4,7 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 
+#include "cuda/helpers.h"
 #include "cuda/utils.h"
 #include "type_dispatch.h"
 
@@ -11,40 +12,42 @@ namespace ctranslate2 {
   namespace ops {
 
     // Functor mapping output index to data index for Gather(axis=0, batch_dims=0).
+    template <typename T>
     class batch_gather_index_map {
     private:
       const int32_t* _offsets;
-      const int32_t _stride;
+      const T _stride;
     public:
-      batch_gather_index_map(const int32_t* offsets, const int32_t stride)
+      batch_gather_index_map(const int32_t* offsets, const T stride)
         : _offsets(offsets)
         , _stride(stride) {
       }
       __host__ __device__
-      int32_t operator()(const int32_t i) const {
-        const int32_t row = i / _stride;
-        const int32_t col = i % _stride;
+      T operator()(const T i) const {
+        const T row = i / _stride;
+        const T col = i % _stride;
         return _offsets[row] * _stride + col;
       }
     };
 
     // Functor mapping output index to data index for Gather(axis=rank - 1, batch_dims=rank - 1).
+    template <typename T>
     class depth_gather_index_map {
     private:
       const int32_t* _offsets;
-      const int32_t _depth;
-      const int32_t _gather_size;
+      const T _depth;
+      const T _gather_size;
     public:
       depth_gather_index_map(const int32_t* offsets,
-                             const int32_t depth,
-                             const int32_t gather_size)
+                             const T depth,
+                             const T gather_size)
         : _offsets(offsets)
         , _depth(depth)
         , _gather_size(gather_size) {
       }
       __host__ __device__
-      int32_t operator()(const int32_t i) const {
-        const int32_t row = i / _gather_size;
+      T operator()(const T i) const {
+        const T row = i / _gather_size;
         return row * _depth + _offsets[i];
       }
     };
@@ -54,7 +57,7 @@ namespace ctranslate2 {
                     const T* src,
                     T* dst,
                     const dim_t dst_size) {
-      auto gather_ids = thrust::make_transform_iterator(thrust::counting_iterator<int32_t>(0),
+      auto gather_ids = thrust::make_transform_iterator(thrust::counting_iterator<cuda::index_t>(0),
                                                         index_map);
       THRUST_CALL(thrust::gather, gather_ids, gather_ids + dst_size, src, dst);
     }
@@ -71,14 +74,14 @@ namespace ctranslate2 {
       T* dst = output.data<T>();
 
       if (axis == 0 && batch_dims == 0) {
-        run_gather(batch_gather_index_map(indices, data.stride(0)),
+        run_gather(batch_gather_index_map<cuda::index_t>(indices, data.stride(0)),
                    src, dst, dst_size);
 
       } else if (axis == data.rank() - 1 && batch_dims == data.rank() - 1) {
         const dim_t depth = data.dim(-1);
         const dim_t batch_size = data.size() / depth;
         const dim_t gather_size = input.size() / batch_size;  // Num. elements to gather per batch.
-        run_gather(depth_gather_index_map(indices, depth, gather_size),
+        run_gather(depth_gather_index_map<cuda::index_t>(indices, depth, gather_size),
                    src, dst, dst_size);
 
       } else {

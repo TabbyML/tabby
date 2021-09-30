@@ -10,8 +10,8 @@ namespace ctranslate2 {
     static void softmax_kernel(cudaStream_t stream,
                                const bool log_softmax,
                                const T* x,
-                               const int64_t rows,
-                               const int64_t cols,
+                               const dim_t rows,
+                               const dim_t cols,
                                const int32_t* lengths,
                                T* y);
 
@@ -189,28 +189,29 @@ namespace at {
     template <typename scalar_t,
               typename accscalar_t,
               typename outscalar_t,
+              typename index_t,
               typename length_t,
               template <typename, typename, typename> class Epilogue>
     __global__ void
     cunn_SoftMaxForward(outscalar_t *output,
                         const scalar_t *input,
-                        int classes,
+                        const index_t classes,
                         const length_t *lengths)
     {
       extern __shared__ unsigned char smem[];
       auto sdata = reinterpret_cast<accscalar_t*>(smem);
       // forward pointers to batch[blockIdx.x]
       // each block handles a sample in the mini-batch
-      const int row = blockIdx.x;
+      const index_t row = blockIdx.x;
       input += row * classes;
       output += row * classes;
 
-      int size = classes;
+      index_t size = classes;
       if (lengths)
       {
         // Directly set 0 in output for out of range positions.
         size = lengths[row];
-        for (int i = size + threadIdx.x; i < classes; i += blockDim.x)
+        for (index_t i = size + threadIdx.x; i < classes; i += blockDim.x)
           output[i] = 0;
       }
 
@@ -240,13 +241,13 @@ namespace ctranslate2 {
     template <typename T, template <typename, typename, typename> class Epilogue>
     static void softmax_kernel_impl(cudaStream_t stream,
                                     const T* x,
-                                    const int64_t rows,
-                                    const int64_t cols,
+                                    const dim_t rows,
+                                    const dim_t cols,
                                     const int32_t* lengths,
                                     T* y) {
       const dim3 grid(rows);
       const dim3 block(cuda::get_block_size(cols));
-      at::native::cunn_SoftMaxForward<T, float, T, int32_t, Epilogue>
+      at::native::cunn_SoftMaxForward<T, float, T, cuda::index_t, int32_t, Epilogue>
         <<<grid, block, block.x * sizeof (float), stream>>>(y,
                                                             x,
                                                             cols,
@@ -257,8 +258,8 @@ namespace ctranslate2 {
     static void softmax_kernel(cudaStream_t stream,
                                const bool log_softmax,
                                const T* x,
-                               const int64_t rows,
-                               const int64_t cols,
+                               const dim_t rows,
+                               const dim_t cols,
                                const int32_t* lengths,
                                T* y) {
       if (log_softmax)

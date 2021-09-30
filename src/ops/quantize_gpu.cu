@@ -45,7 +45,7 @@ namespace ctranslate2 {
 
     template <typename T>
     __global__ void quantize_kernel(const T* input,
-                                    dim_t depth,
+                                    cuda::index_t depth,
                                     float* scales,
                                     int8_t* output) {
       extern __shared__ unsigned char smem[];

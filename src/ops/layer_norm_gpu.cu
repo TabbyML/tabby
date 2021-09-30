@@ -7,14 +7,14 @@ namespace at {
   namespace native {
 
     // Forward declaration of the CUDA kernels.
-    template <typename T>
-    __global__ void RowwiseMomentsCUDAKernel(int64_t N,
+    template <typename T, typename SizeT>
+    __global__ void RowwiseMomentsCUDAKernel(SizeT N,
                                              T eps,
                                              const T* X,
                                              T* mean,
                                              T* rstd);
-    template <typename T>
-    __global__ void LayerNormForwardCUDAKernel(int64_t N,
+    template <typename T, typename SizeT>
+    __global__ void LayerNormForwardCUDAKernel(SizeT N,
                                                const T* X,
                                                const T* mean,
                                                const T* rstd,
@@ -46,14 +46,14 @@ namespace ctranslate2 {
       const T* input_data = input.data<T>();
 
       auto stream = cuda::get_cuda_stream();
-      at::native::RowwiseMomentsCUDAKernel<cuda::device_type<T>>
+      at::native::RowwiseMomentsCUDAKernel<cuda::device_type<T>, cuda::index_t>
         <<<batch_size, CUDA_BLOCK_REDUCE_NUM_THREADS, 0, stream>>>(
           depth,
           cuda::device_type<T>(epsilon),
           cuda::device_cast(input_data),
           cuda::device_cast(mean_data),
           cuda::device_cast(rstd_data));
-      at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>>
+      at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>, cuda::index_t>
         <<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
           depth,
           cuda::device_cast(input_data),
@@ -184,19 +184,19 @@ namespace at {
       return val;
     }
 
-    template <typename T>
-    __global__ void RowwiseMomentsCUDAKernel(int64_t N,
+    template <typename T, typename SizeT>
+    __global__ void RowwiseMomentsCUDAKernel(SizeT N,
                                              T eps,
                                              const T* X,
                                              T* mean,
                                              T* rstd) {
       __shared__ float m_shared[WARP_SIZE];
       __shared__ float v_shared[WARP_SIZE];
-      const int64_t i = blockIdx.x;
+      const SizeT i = blockIdx.x;
       float sum1 = 0;
       float sum2 = 0;
-      for (int64_t j = threadIdx.x; j < N; j += blockDim.x) {
-        const int64_t index = i * N + j;
+      for (SizeT j = threadIdx.x; j < N; j += blockDim.x) {
+        const SizeT index = i * N + j;
         sum1 += static_cast<float>(X[index]);
         sum2 += static_cast<float>(X[index]) * static_cast<float>(X[index]);
       }
@@ -211,17 +211,17 @@ namespace at {
       }
     }
 
-    template <typename T>
-    __global__ void LayerNormForwardCUDAKernel(int64_t N,
+    template <typename T, typename SizeT>
+    __global__ void LayerNormForwardCUDAKernel(SizeT N,
                                                const T* X,
                                                const T* mean,
                                                const T* rstd,
                                                const T* gamma,
                                                const T* beta,
                                                T* Y) {
-      const int64_t i = blockIdx.x;
-      for (int64_t j = threadIdx.x; j < N; j += blockDim.x) {
-        const int64_t index = i * N + j;
+      const SizeT i = blockIdx.x;
+      for (SizeT j = threadIdx.x; j < N; j += blockDim.x) {
+        const SizeT index = i * N + j;
         const float gamma_v = gamma == nullptr ? float(1) : static_cast<float>(gamma[j]);
         const float beta_v = beta == nullptr ? float(0) : static_cast<float>(beta[j]);
         Y[index] = ((static_cast<float>(X[index]) - static_cast<float>(mean[i]))

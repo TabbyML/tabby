@@ -18,6 +18,10 @@
 namespace ctranslate2 {
   namespace cuda {
 
+    // The index type used in CUDA kernels.
+    // Currently set to a 32-bit type to maximize performance.
+    using index_t = unsigned int;
+
     constexpr dim_t max_threads = 1024;
     constexpr dim_t max_blocks = 65535;
 
@@ -47,7 +51,7 @@ namespace ctranslate2 {
     }
 
     template <typename T1, typename T2, typename UnaryFunction>
-    inline void unary_transform(const T1* x, T2* y, dim_t size, const UnaryFunction& op) {
+    inline void unary_transform(const T1* x, T2* y, index_t size, const UnaryFunction& op) {
       THRUST_CALL(thrust::transform, device_cast(x), device_cast(x) + size, device_cast(y), op);
     }
 
@@ -55,7 +59,7 @@ namespace ctranslate2 {
     inline void binary_transform(const T1* a,
                                  const T2* b,
                                  T3* c,
-                                 dim_t size,
+                                 index_t size,
                                  const BinaryFunction& op) {
       THRUST_CALL(thrust::transform,
                   device_cast(a), device_cast(a) + size, device_cast(b), device_cast(c), op);
@@ -65,10 +69,10 @@ namespace ctranslate2 {
     inline void binary_transform(const T1* a,
                                  const T2* b,
                                  T3* c,
-                                 dim_t size,
+                                 index_t size,
                                  const BinaryFunction& op,
                                  const IndexFunction& index_a) {
-      auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<dim_t>(0), index_a);
+      auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<index_t>(0), index_a);
       auto a_it = thrust::make_permutation_iterator(device_cast(a), index_it);
       THRUST_CALL(thrust::transform, a_it, a_it + size, device_cast(b), device_cast(c), op);
     }
@@ -76,16 +80,18 @@ namespace ctranslate2 {
     // perm_fun is a functor that takes the index in the permuted iterator and
     // return the index in the original iterator.
     template <typename T, typename PermFunction>
-    inline void permute(const T* x, T* y, dim_t size, const PermFunction& perm_fun) {
-      auto ind_it = thrust::counting_iterator<dim_t>(0);
+    inline void permute(const T* x, T* y, index_t size, const PermFunction& perm_fun) {
+      auto ind_it = thrust::counting_iterator<index_t>(0);
       auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
       auto perm_it = thrust::make_permutation_iterator(device_cast(x), perm_ind_it);
       THRUST_CALL(thrust::copy, perm_it, perm_it + size, device_cast(y));
     }
 
     template <typename T>
-    struct repeat_vec {
+    class repeat_vec {
+    private:
       T _size;
+    public:
       repeat_vec(T size)
         : _size(size) {
       }
@@ -96,8 +102,10 @@ namespace ctranslate2 {
     };
 
     template <typename T>
-    struct repeat_vec_depth {
+    class repeat_vec_depth {
+    private:
       T _size;
+    public:
       repeat_vec_depth(T size)
         : _size(size) {
       }
@@ -226,14 +234,14 @@ namespace ctranslate2 {
 
 #define C10_WARP_SIZE 32
 
-    template <int ILP = 2>
-    inline dim3 get_block_size(dim_t dim_size) {
-      dim_t block_size = 1;
-      dim_t max_block_size = std::min(dim_size / ILP, max_threads);
+    template <index_t ILP = 2>
+    inline dim3 get_block_size(index_t dim_size) {
+      index_t block_size = 1;
+      index_t max_block_size = std::min(dim_size / ILP, static_cast<index_t>(max_threads));
       while (block_size < max_block_size)
         block_size *= 2;
       // Launch at least a single warp - the kernel assumes that.
-      block_size = std::max(block_size, static_cast<dim_t>(C10_WARP_SIZE));
+      block_size = std::max(static_cast<index_t>(block_size), static_cast<index_t>(C10_WARP_SIZE));
       return dim3(block_size);
     }
 
@@ -255,10 +263,10 @@ namespace ctranslate2 {
       // First warp will perform per-warp reductions for the remaining warps
       uint32_t mask = (((uint64_t)1) << (blockDim.x / C10_WARP_SIZE)) - 1;
       if (threadIdx.x < C10_WARP_SIZE) {
-        int lane = threadIdx.x % C10_WARP_SIZE;
+        index_t lane = threadIdx.x % C10_WARP_SIZE;
         if (lane < blockDim.x / C10_WARP_SIZE) {
           #pragma unroll
-          for (int i = 0; i < C10_WARP_SIZE; ++i) {
+          for (index_t i = 0; i < C10_WARP_SIZE; ++i) {
             warpVal = r(warpVal, smem[lane * C10_WARP_SIZE + i]);
           }
           __syncwarp(mask);
@@ -272,7 +280,7 @@ namespace ctranslate2 {
       AccumT blockVal = defaultVal;
 
       if (threadIdx.x == 0) {
-        for (int i = 0; i < blockDim.x / C10_WARP_SIZE; ++i) {
+        for (index_t i = 0; i < blockDim.x / C10_WARP_SIZE; ++i) {
           blockVal = r(blockVal, smem[i]);
         }
         smem[0] = blockVal;
@@ -286,27 +294,26 @@ namespace ctranslate2 {
     template <typename Reduction,
               typename T,
               typename AccumT = T,
-              int ILP = 2>
+              index_t ILP = 2>
     __device__ __forceinline__ AccumT ilp_reduce(const T* data,
-                                                 int size,
+                                                 index_t size,
                                                  const Reduction& r,
                                                  AccumT defaultVal)
     {
       AccumT threadVal = defaultVal;
-      int offset = threadIdx.x;
-
-      int last = size % (ILP * blockDim.x);
+      index_t offset = threadIdx.x;
+      index_t last = size % (ILP * blockDim.x);
 
       // Body (unroll by ILP times)
       for (; offset < size - last; offset += blockDim.x * ILP) {
         T tmp[ILP];
 
         #pragma unroll
-        for (int j = 0; j < ILP; ++j)
+        for (index_t j = 0; j < ILP; ++j)
           tmp[j] = data[offset + j * blockDim.x];
 
         #pragma unroll
-        for (int j = 0; j < ILP; ++j)
+        for (index_t j = 0; j < ILP; ++j)
           threadVal = r(threadVal, tmp[j]);
       }
 
@@ -320,23 +327,23 @@ namespace ctranslate2 {
     template <typename Epilogue,
               typename scalar_t,
               typename outscalar_t,
-              int ILP = 2>
+              index_t ILP = 2>
     __device__ __forceinline__ void
     apply_epilogue(const scalar_t* input,
-                   int depth,
+                   index_t depth,
                    const Epilogue& epilogue,
                    outscalar_t* output) {
-      int offset = threadIdx.x;
-      int last = depth % (ILP * blockDim.x);
+      index_t offset = threadIdx.x;
+      index_t last = depth % (ILP * blockDim.x);
       for (; offset < depth - last; offset += blockDim.x * ILP) {
         scalar_t tmp[ILP];
 
         #pragma unroll
-        for (int j = 0; j < ILP; ++j)
+        for (index_t j = 0; j < ILP; ++j)
           tmp[j] = input[offset + j * blockDim.x];
 
         #pragma unroll
-        for (int j = 0; j < ILP; ++j)
+        for (index_t j = 0; j < ILP; ++j)
           output[offset + j * blockDim.x] = epilogue(tmp[j]);
       }
 

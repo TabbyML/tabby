@@ -45,15 +45,15 @@ namespace ctranslate2 {
                                                   const T* bias,
                                                   const Epilogue& epilogue,
                                                   T* y,
-                                                  dim_t depth) {
+                                                  cuda::index_t depth) {
       // y = c / (expand_dims(a_scales, trans_a ? 0 : 1) * expand_dims(b_scales, trans_b ? 0 : 1)
       // if bias: y += expand_dims(bias, 0)
       // y = epilogue(y)
       const auto add_func = cuda::plus<T>();
       const auto rescale_func = dequantize_func<int32_t, T>();
-      const dim_t i = blockIdx.x;
-      for (dim_t j = threadIdx.x; j < depth; j += blockDim.x) {
-        const dim_t index = i * depth + j;
+      const cuda::index_t i = blockIdx.x;
+      for (cuda::index_t j = threadIdx.x; j < depth; j += blockDim.x) {
+        const cuda::index_t index = i * depth + j;
         const float scale = a_scales[transpose_a ? j : i] * b_scales[transpose_b ? j : i];
         T v = rescale_func(scale, c[index]);
         if (bias)

@@ -25,7 +25,7 @@ namespace ctranslate2 {
   template <typename T>
   void primitives<Device::CUDA>::strided_fill(T* x, T a, dim_t inc_x, dim_t size) {
     auto it = thrust::make_permutation_iterator(
-      x, thrust::make_transform_iterator(thrust::counting_iterator<dim_t>(0),
+      x, thrust::make_transform_iterator(thrust::counting_iterator<cuda::index_t>(0),
                                          thrust::placeholders::_1 * inc_x));
     THRUST_CALL(thrust::fill, it, it + size, a);
   }
@@ -92,7 +92,7 @@ namespace ctranslate2 {
                                                      dim_t a_size, dim_t b_size) {
     cuda::binary_transform(a, b, c, b_size,
                            cuda::plus<cuda::device_type<T>>(),
-                           cuda::repeat_vec<dim_t>(a_size));
+                           cuda::repeat_vec<cuda::index_t>(a_size));
   }
 
   template<>
@@ -101,7 +101,7 @@ namespace ctranslate2 {
                                                      dim_t a_size, dim_t b_size) {
     cuda::binary_transform(a, b, c, b_size,
                            cuda::plus<cuda::device_type<T>>(),
-                           cuda::repeat_vec_depth<dim_t>(b_size / a_size));
+                           cuda::repeat_vec_depth<cuda::index_t>(b_size / a_size));
   }
 
   template<>
@@ -155,7 +155,7 @@ namespace ctranslate2 {
                                                      dim_t a_size, dim_t b_size) {
     cuda::binary_transform(a, b, c, b_size,
                            cuda::multiplies<cuda::device_type<T>>(),
-                           cuda::repeat_vec<dim_t>(a_size));
+                           cuda::repeat_vec<cuda::index_t>(a_size));
   }
 
   template<>
@@ -194,7 +194,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CUDA>::transpose_2d(const T* a, const dim_t* dims, T* b) {
-    cuda::permute(a, b, dims[0] * dims[1], perm_indices_2d<dim_t>(dims[0], dims[1]));
+    cuda::permute(a, b, dims[0] * dims[1], perm_indices_2d<cuda::index_t>(dims[0], dims[1]));
   }
 
   template <typename T>
@@ -202,8 +202,8 @@ namespace ctranslate2 {
     T _a_ps0, _a_ps1, _a_ps2; // Permuted strides of the original array.
     T _b_d0, _b_d1, _b_d2;    // Dimension of the permutated array.
     T _b_s0, _b_s1, _b_s2;    // Strides of the permutated array.
-    perm_indices_3d(const T* dims, const T* perm) {
-      const T a_stride[3] = {dims[1] * dims[2], dims[2], 1};
+    perm_indices_3d(const dim_t* dims, const dim_t* perm) {
+      const dim_t a_stride[3] = {dims[1] * dims[2], dims[2], 1};
       _a_ps0 = a_stride[perm[0]];
       _a_ps1 = a_stride[perm[1]];
       _a_ps2 = a_stride[perm[2]];
@@ -229,7 +229,7 @@ namespace ctranslate2 {
                                               const dim_t* dims,
                                               const dim_t* perm,
                                               T* b) {
-    cuda::permute(a, b, dims[0] * dims[1] * dims[2], perm_indices_3d<dim_t>(dims, perm));
+    cuda::permute(a, b, dims[0] * dims[1] * dims[2], perm_indices_3d<cuda::index_t>(dims, perm));
   }
 
   template <typename T>
@@ -237,8 +237,8 @@ namespace ctranslate2 {
     T _a_ps0, _a_ps1, _a_ps2, _a_ps3; // Permuted strides of the original array.
     T _b_d0, _b_d1, _b_d2, _b_d3;    // Dimension of the permutated array.
     T _b_s0, _b_s1, _b_s2, _b_s3;    // Strides of the permutated array.
-    perm_indices_4d(const T* dims, const T* perm) {
-      const T a_stride[4] = {dims[1] * dims[2] * dims[3], dims[2] * dims[3], dims[3], 1};
+    perm_indices_4d(const dim_t* dims, const dim_t* perm) {
+      const dim_t a_stride[4] = {dims[1] * dims[2] * dims[3], dims[2] * dims[3], dims[3], 1};
       _a_ps0 = a_stride[perm[0]];
       _a_ps1 = a_stride[perm[1]];
       _a_ps2 = a_stride[perm[2]];
@@ -264,22 +264,22 @@ namespace ctranslate2 {
 
   template <typename T>
   __global__ void transpose_0213(const T* in,
-                                 const dim_t rows,
-                                 const dim_t cols,
-                                 const dim_t stride1,
-                                 const dim_t stride2,
+                                 const cuda::index_t rows,
+                                 const cuda::index_t cols,
+                                 const cuda::index_t stride1,
+                                 const cuda::index_t stride2,
                                  T* out) {
-    const dim_t stride = stride1 * stride2;
-    for (dim_t j = blockIdx.x; j < rows; j += gridDim.x) {
-      const dim_t z = j / stride;
-      const dim_t y = (j % stride) / stride1;
-      const dim_t x = (j % stride) % stride1;
-      const dim_t j2 = z * stride + x * stride2 + y;
+    const cuda::index_t stride = stride1 * stride2;
+    for (cuda::index_t j = blockIdx.x; j < rows; j += gridDim.x) {
+      const cuda::index_t z = j / stride;
+      const cuda::index_t y = (j % stride) / stride1;
+      const cuda::index_t x = (j % stride) % stride1;
+      const cuda::index_t j2 = z * stride + x * stride2 + y;
 
       const T* row_in = in + j2 * cols;
       T* row_out = out + j * cols;
 
-      for (dim_t i = threadIdx.x; i < cols; i += blockDim.x) {
+      for (cuda::index_t i = threadIdx.x; i < cols; i += blockDim.x) {
         row_out[i] = row_in[i];
       }
     }
@@ -306,7 +306,8 @@ namespace ctranslate2 {
       return;
     }
 
-    cuda::permute(a, b, dims[0] * dims[1] * dims[2] * dims[3], perm_indices_4d<dim_t>(dims, perm));
+    cuda::permute(a, b, dims[0] * dims[1] * dims[2] * dims[3],
+                  perm_indices_4d<cuda::index_t>(dims, perm));
   }
 
   template<>
