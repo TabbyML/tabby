@@ -67,6 +67,8 @@ RUN cd python && \
 
 FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 
+# We remove the cuda-compat package because it conflicts with the CUDA Enhanced Compatibility.
+# See e.g. https://github.com/NVIDIA/nvidia-docker/issues/1515
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libcublas-11-2 \
