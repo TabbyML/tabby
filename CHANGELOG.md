@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v2.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.5.0) (2021-10-01)
+
+### New features
+
+* Add an 8-bit GEMM backend on AArch64 using [Ruy](https://github.com/google/ruy)
+
+### Fixes and improvements
+
+* Skip unnecessary transpositions of the projected decoder queries in the multi-head attention
+* Use 32-bit indexing in all CUDA kernels to slightly improve performance
+* Let the compiler auto-vectorize the `LayerNorm` CPU kernel
+* Update Intel oneAPI to 2021.4
+
 ## [v2.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.4.0) (2021-09-10)
 
 ### New features
