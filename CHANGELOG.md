@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.5.1) (2021-10-04)
+
+### Fixes and improvements
+
+* Fix logic error in the in-place implementation of the `Gather` op that could lead to incorrect beam search outputs
+
 ## [v2.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.5.0) (2021-10-01)
 
 ### New features
