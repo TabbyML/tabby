@@ -19,10 +19,12 @@ namespace ctranslate2 {
 
     static bool support_gather_batch_inplace(const StorageView& data, const StorageView& input) {
       // We can gather in place if the output is not larger than data and indices are in
-      // increasing order (i.e. we never need to gather from a previous index).
+      // strictly increasing order (i.e. we never need to gather from a previous index).
+      const auto* input_begin = input.data<int32_t>();
+      const auto* input_end = input.data<int32_t>() + input.size();
       return (input.device() == Device::CPU
               && input.size() <= data.dim(0)
-              && std::is_sorted(input.data<int32_t>(), input.data<int32_t>() + input.size()));
+              && std::adjacent_find(input_begin, input_end, std::greater_equal<int32_t>()) == input_end);
     }
 
     template <typename T>

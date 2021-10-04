@@ -67,11 +67,11 @@ TEST(OpDeviceTest, GatherInPlaceStrictlyIncreasing) {
 TEST(OpDeviceTest, GatherInPlaceIncreasing) {
   StorageView data({4, 2}, std::vector<float>{1, 1, 2, 2, 3, 3, 4, 4});
   void* data_ptr = data.buffer();
-  StorageView ids({3}, std::vector<int32_t>{1, 1, 3});
-  StorageView expected({3, 2}, std::vector<float>{2, 2, 2, 2, 4, 4});
+  StorageView ids({3}, std::vector<int32_t>{0, 0, 1});
+  StorageView expected({3, 2}, std::vector<float>{1, 1, 1, 1, 2, 2});
   ops::Gather(0)(data, ids);
   expect_storage_eq(data, expected);
-  EXPECT_EQ(data.buffer(), data_ptr);
+  EXPECT_NE(data.buffer(), data_ptr);
 }
 
 TEST(OpDeviceTest, GatherInPlaceDecreasing) {
