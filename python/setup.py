@@ -78,6 +78,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
@@ -88,7 +89,7 @@ setup(
     keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.6,<3.10",
+    python_requires=">=3.6,<3.11",
     install_requires=[
         "numpy",
     ],

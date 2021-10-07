@@ -173,7 +173,7 @@ jobs:
           python-version: 3.6
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: pypa/cibuildwheel@v2.1.3
         with:
           package-dir: python
           output-dir: python/wheelhouse
