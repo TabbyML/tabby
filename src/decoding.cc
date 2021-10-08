@@ -440,13 +440,13 @@ namespace ctranslate2 {
                 attn.reserve(max_time);
               for (dim_t t = 0; t < max_time; ++t) {
                 const int32_t id = alive_seq.at<int32_t>({i, k, t});
-                if (id == static_cast<int32_t>(end_id))
-                  break;
                 hypothesis.push_back(id);
                 if (return_attention) {
                   const auto* attn_vec = alive_attention.index<float>({i, k, t});
                   attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
                 }
+                if (id == static_cast<int32_t>(end_id))
+                  break;
               }
 
               result.scores.emplace_back(score);
@@ -615,17 +615,17 @@ namespace ctranslate2 {
         if (output_ids_map)
           true_id = output_ids_map->at(true_id);
         dim_t batch_id = batch_offset[i];
+        results[batch_id].hypotheses[0].push_back(true_id);
         if (return_scores) {
           results[batch_id].scores[0] += best_probs.scalar_at<float>({i});
+        }
+        if (return_attention) {
+          const auto* attn = attention_step.index<float>({i});
+          results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
         }
         if (true_id != static_cast<int32_t>(end_id)) {
           non_finished_index.emplace_back(i);
           sample_from.at<int32_t>(i) = true_id;
-          results[batch_id].hypotheses[0].push_back(true_id);
-          if (return_attention) {
-            const auto* attn = attention_step.index<float>({i});
-            results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
-          }
         }
       }
 
@@ -648,7 +648,7 @@ namespace ctranslate2 {
 
     if (normalize_scores) {
       for (auto& result : results)
-        result.scores[0] /= result.hypotheses[0].size() + 1;  // +1 for EOS.
+        result.scores[0] /= result.hypotheses[0].size();
     }
 
     return results;
@@ -786,17 +786,10 @@ namespace ctranslate2 {
         for (size_t i = 0; i < num_hypotheses; ++i) {
           auto& suffix = results[b * num_hypotheses + i];
 
-          prefix.hypotheses[i].insert(prefix.hypotheses[i].end(),
-                                      std::make_move_iterator(suffix.hypotheses[0].begin()),
-                                      std::make_move_iterator(suffix.hypotheses[0].end()));
-          if (prefix.has_attention())
-            prefix.attention[i].insert(prefix.attention[i].end(),
-                                       std::make_move_iterator(suffix.attention[0].begin()),
-                                       std::make_move_iterator(suffix.attention[0].end()));
           if (prefix.has_scores()) {
             if (normalize_scores) {
               const auto prefix_length = prefix.hypotheses[i].size();
-              const auto suffix_length = suffix.hypotheses[0].size() + 1;  // +1 for EOS.
+              const auto suffix_length = suffix.hypotheses[0].size();
               prefix.scores[i] = (
                 (prefix.scores[i] * prefix_length + suffix.scores[0] * suffix_length)
                 / (prefix_length + suffix_length));
@@ -804,9 +797,28 @@ namespace ctranslate2 {
               prefix.scores[i] += suffix.scores[0];
             }
           }
+
+          prefix.hypotheses[i].insert(prefix.hypotheses[i].end(),
+                                      std::make_move_iterator(suffix.hypotheses[0].begin()),
+                                      std::make_move_iterator(suffix.hypotheses[0].end()));
+          if (prefix.has_attention())
+            prefix.attention[i].insert(prefix.attention[i].end(),
+                                       std::make_move_iterator(suffix.attention[0].begin()),
+                                       std::make_move_iterator(suffix.attention[0].end()));
         }
       }
       results = std::move(expansion_results);
+    }
+
+    // Remove EOS token.
+    for (auto& result : results) {
+      for (size_t i = 0; i < result.num_hypotheses(); ++i) {
+        while (result.hypotheses[i].back() == end_id) {
+          result.hypotheses[i].pop_back();
+          if (result.has_attention())
+            result.attention[i].pop_back();
+        }
+      }
     }
 
     return results;

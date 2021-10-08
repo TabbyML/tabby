@@ -237,23 +237,49 @@ TEST_P(SearchVariantTest, ReplaceUnknowns) {
   EXPECT_EQ(result.output(), expected);
 }
 
-TEST_P(SearchVariantTest, NormalizeScores) {
-  const auto beam_size = GetParam();
-  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+static void check_normalized_score(const std::vector<std::string>& input,
+                                   TranslationOptions options,
+                                   bool output_has_eos = true) {
   Translator translator = default_translator();
-
-  TranslationOptions options;
-  options.beam_size = beam_size;
-  options.num_hypotheses = beam_size;
   options.return_scores = true;
-  const auto result = translator.translate(input, options);
-  const auto score = result.scores[0];
+  const auto score = translator.translate(input, options).scores[0];
 
   options.normalize_scores = true;
   const auto normalized_result = translator.translate(input, options);
   const auto normalized_score = normalized_result.scores[0];
+  auto normalized_length = normalized_result.hypotheses[0].size();
+  if (output_has_eos)
+    normalized_length += 1;
 
-  EXPECT_NEAR(normalized_score, score / (result.hypotheses[0].size() + 1), 1e-6);
+  EXPECT_NEAR(normalized_score, score / normalized_length, 1e-6);
+}
+
+TEST_P(SearchVariantTest, NormalizeScores) {
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  check_normalized_score({"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}, options);
+}
+
+TEST_P(SearchVariantTest, NormalizeScoresNoEos) {
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.max_decoding_length = 6;
+  check_normalized_score({"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}, options, false);
+}
+
+TEST_P(SearchVariantTest, NormalizeScoresAlternatives) {
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.return_alternatives = true;
+  check_normalized_score({"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}, options);
+}
+
+TEST_P(SearchVariantTest, NormalizeScoresAlternativesNoEos) {
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.return_alternatives = true;
+  options.max_decoding_length = 6;
+  check_normalized_score({"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}, options, false);
 }
 
 
