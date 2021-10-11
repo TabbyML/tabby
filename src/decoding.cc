@@ -646,7 +646,7 @@ namespace ctranslate2 {
       }
     }
 
-    if (normalize_scores) {
+    if (return_scores && normalize_scores) {
       for (auto& result : results)
         result.scores[0] /= result.hypotheses[0].size();
     }
