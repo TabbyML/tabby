@@ -41,12 +41,21 @@ def load_model(model_path):
     return model_version, variables
 
 
-def _load_vocab(path):
-    with open(path) as vocab:
-        tokens = [line.rstrip("\r\n") for line in vocab]
-        if "<unk>" not in tokens:
-            tokens.append("<unk>")
-        return tokens
+def _load_vocab(vocab, unk_token="<unk>"):
+    import opennmt
+
+    if isinstance(vocab, opennmt.data.Vocab):
+        tokens = list(vocab.words)
+    elif isinstance(vocab, list):
+        tokens = list(vocab)
+    elif isinstance(vocab, str):
+        tokens = opennmt.data.Vocab.from_file(vocab).words
+    else:
+        raise TypeError("Invalid vocabulary type")
+
+    if unk_token not in tokens:
+        tokens.append(unk_token)
+    return tokens
 
 
 class OpenNMTTFConverter(Converter):

@@ -9,8 +9,8 @@ import ctranslate2
 ```python
 converter = ctranslate2.converters.OpenNMTTFConverter(
     model_spec: ModelSpec,   # Specification of the model to convert.
-    src_vocab: str,          # Path to the source vocabulary.
-    tgt_vocab: str,          # Path to the target vocabulary.
+    src_vocab: Union[str, opennmt.data.Vocab, List[str]],  # Source vocabulary.
+    tgt_vocab: Union[str, opennmt.data.Vocab, List[str]],  # Target vocabulary.
     model_path: str = None,  # Path to a OpenNMT-tf checkpoint (mutually exclusive with variables)
     variables: dict = None,  # Dict of variables name to value (mutually exclusive with model_path).
 )

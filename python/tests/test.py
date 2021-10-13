@@ -510,6 +510,8 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
 
 @pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
 def test_opennmt_tf_variables_conversion(tmpdir):
+    import opennmt
+
     model_path = os.path.join(
         _TEST_DATA_DIR,
         "models",
@@ -518,8 +520,9 @@ def test_opennmt_tf_variables_conversion(tmpdir):
         "v2",
         "checkpoint",
     )
-    src_vocab = os.path.join(model_path, "ar.vocab")
-    tgt_vocab = os.path.join(model_path, "en.vocab")
+
+    src_vocab = opennmt.data.Vocab.from_file(os.path.join(model_path, "ar.vocab"))
+    tgt_vocab = opennmt.data.Vocab.from_file(os.path.join(model_path, "en.vocab"))
     _, variables = opennmt_tf.load_model(model_path)
     converter = ctranslate2.converters.OpenNMTTFConverter(
         ctranslate2.specs.TransformerSpec(6, 8),
