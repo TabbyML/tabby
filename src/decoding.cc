@@ -494,6 +494,8 @@ namespace ctranslate2 {
         gather(alive_seq, keep_batches);
         if (return_attention)
           gather(alive_attention, keep_batches);
+        if (_coverage_penalty != 0)
+          gather_batch(coverage, keep_batches, _beam_size);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
         // finished batches from the reorder indices and then reorder. The motivation for this
@@ -509,11 +511,6 @@ namespace ctranslate2 {
           decoder.gather_state(state, gather_indices.to(device));
         }
 
-        if(_coverage_penalty != 0){
-          coverage.reshape({-1, _beam_size, coverage.dim(1), coverage.dim(2)});
-          gather(coverage, keep_batches);
-          coverage.reshape({cur_batch_size * _beam_size, coverage.dim(2), coverage.dim(3)});
-        }
       } else {
         decoder.gather_state(state, gather_indices.to(device));
       }
