@@ -170,9 +170,7 @@ namespace ctranslate2 {
     }
 
     void Model::register_variable(const std::string& name, StorageView& variable) {
-      _variable_index.emplace(std::piecewise_construct,
-                              std::forward_as_tuple(name),
-                              std::forward_as_tuple(std::move(variable)));
+      _variable_index.emplace(name, std::move(variable));
     }
 
     void Model::register_variable_alias(const std::string& alias,
