@@ -10,10 +10,24 @@ namespace ctranslate2 {
 
     static const std::string binary_file = "model.bin";
 
+    static inline void report_stream_error(const std::streampos position,
+                                           const size_t read_size,
+                                           const std::string& read_type) {
+      throw std::runtime_error("File " + binary_file + " is incomplete: "
+                               + "failed to read a " + read_type + " of size "
+                               + std::to_string(read_size)
+                               + " at position "
+                               + std::to_string(position));
+    }
+
     template <typename T>
     T consume(std::istream& in) {
+      const std::streampos position = in.tellg();
+      const size_t read_size = sizeof (T);
       T val;
-      in.read(reinterpret_cast<char*>(&val), sizeof (T));
+      in.read(reinterpret_cast<char*>(&val), read_size);
+      if (!in)
+        report_stream_error(position, read_size, "value");
       return val;
     }
 
@@ -21,10 +35,16 @@ namespace ctranslate2 {
     T* consume(std::istream& in, size_t n, T* data = nullptr) {
       if (n == 0)
         return nullptr;
-      if (data == nullptr)
-        data = new T[n];
-      in.read(reinterpret_cast<char*>(data), n * sizeof (T));
-      return data;
+      const std::streampos position = in.tellg();
+      const size_t read_size = n * sizeof (T);
+      T* dst = data ? data : new T[n];
+      in.read(reinterpret_cast<char*>(dst), read_size);
+      if (!in) {
+        if (dst != data)
+          delete [] dst;
+        report_stream_error(position, read_size, "buffer");
+      }
+      return dst;
     }
 
     template<>
@@ -511,6 +531,8 @@ namespace ctranslate2 {
         const auto name = consume<std::string>(model_file);
         const size_t rank = consume<uint8_t>(model_file);
         const auto* dimensions = consume<uint32_t>(model_file, rank);
+        Shape shape(dimensions, dimensions + rank);
+        delete [] dimensions;
 
         DataType dtype;
         dim_t num_bytes = 0;
@@ -524,11 +546,9 @@ namespace ctranslate2 {
           num_bytes = consume<uint32_t>(model_file) * item_size;
         }
 
-        StorageView variable({dimensions, dimensions + rank}, dtype);
+        StorageView variable(std::move(shape), dtype);
         consume<char>(model_file, num_bytes, static_cast<char*>(variable.buffer()));
         model->register_variable(name, variable);
-
-        delete [] dimensions;
       }
 
       model->finalize();
