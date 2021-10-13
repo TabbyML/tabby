@@ -623,7 +623,7 @@ namespace ctranslate2 {
       }
 
       if (read_batch_size == 0)
-        read_batch_size = max_batch_size * 16;
+        read_batch_size = (max_batch_size == 1 ? max_batch_size : max_batch_size * 16);
 
       while (true) {
         auto batch = batch_reader.get_next(read_batch_size, batch_type);
