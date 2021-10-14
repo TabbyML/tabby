@@ -129,15 +129,15 @@ namespace ctranslate2 {
                                                              dim_t depth,
                                                              DataType dtype,
                                                              Device device) {
-      float log_timescale_increment = log(10000) / (depth / 2 - 1);
+      const float log_timescale_increment = std::log(10000.f) / static_cast<float>(depth / 2 - 1);
       StorageView timescales({depth / 2}, -log_timescale_increment);
       for (dim_t i = 0; i < timescales.size(); ++i)
-        timescales.data<float>()[i] = exp(timescales.data<float>()[i] * i);
+        timescales.at<float>(i) = std::exp(timescales.at<float>(i) * i);
 
       StorageView scaled_time({max_time, depth / 2});
       for (dim_t i = 0; i < scaled_time.dim(0); ++i) {
         for (dim_t j = 0; j < scaled_time.dim(1); ++j) {
-          *scaled_time.index<float>({i, j}) = (i + 1) * timescales.data<float>()[j];
+          scaled_time.at<float>({i, j}) = (i + 1) * timescales.at<float>(j);
         }
       }
 
