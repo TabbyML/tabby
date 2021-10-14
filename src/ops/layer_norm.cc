@@ -1,7 +1,6 @@
 #include "ctranslate2/ops/layer_norm.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {

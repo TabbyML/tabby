@@ -2,8 +2,7 @@
 
 #include <algorithm>
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -82,12 +81,8 @@ namespace ctranslate2 {
 
       const dim_t axis = _axis < 0 ? data.rank() + _axis : _axis;
       output.resize(compute_output_shape(data, input, axis));
-      DEVICE_DISPATCH(data.device(),
-                      TYPE_DISPATCH(data.dtype(), (compute<D, T>(data,
-                                                                 input,
-                                                                 axis,
-                                                                 _batch_dims,
-                                                                 output))));
+      DEVICE_AND_TYPE_DISPATCH(data.device(), data.dtype(),
+                               (compute<D, T>(data, input, axis, _batch_dims, output)));
     }
 
   }

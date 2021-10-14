@@ -60,9 +60,9 @@ namespace ctranslate2 {
   }
 
 #define SINGLE_ARG(...) __VA_ARGS__
-#define TYPE_DISPATCH(TYPE_ENUM, STMTS) \
-  switch (TYPE_ENUM) {                  \
-    TYPE_CASE(float, SINGLE_ARG(STMTS)) \
+#define TYPE_DISPATCH(TYPE_ENUM, STMTS)             \
+  switch (TYPE_ENUM) {                              \
+    TYPE_CASE(float, SINGLE_ARG(STMTS))             \
     TYPE_CASE(int8_t, SINGLE_ARG(STMTS))            \
     TYPE_CASE(int16_t, SINGLE_ARG(STMTS))           \
     TYPE_CASE(int32_t, SINGLE_ARG(STMTS))           \

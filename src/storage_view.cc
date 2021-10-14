@@ -2,8 +2,7 @@
 
 #include "ctranslate2/primitives.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 #define PRINT_MAX_VALUES 6
 
@@ -335,8 +334,7 @@ namespace ctranslate2 {
   template <typename U>
   U StorageView::scalar_at(std::initializer_list<dim_t> indices) const {
     auto scalar = U();
-    DEVICE_DISPATCH(_device,
-                    TYPE_DISPATCH(_dtype, scalar = primitives<D>::at(index<T>(indices), 0)));
+    DEVICE_AND_TYPE_DISPATCH(_device, _dtype, scalar = primitives<D>::at(index<T>(indices), 0));
     return scalar;
   }
 
@@ -358,8 +356,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::zero() {
-    DEVICE_DISPATCH(_device,
-                    TYPE_DISPATCH(_dtype, primitives<D>::fill(data<T>(), T(0), _size)));
+    DEVICE_AND_TYPE_DISPATCH(_device, _dtype, primitives<D>::fill(data<T>(), T(0), _size));
     return *this;
   }
 

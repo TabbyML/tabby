@@ -2,8 +2,7 @@
 
 #include "ctranslate2/ops/bias_add.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {

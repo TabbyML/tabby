@@ -3,8 +3,7 @@
 #include <cmath>
 
 #include "ctranslate2/ops/activation.h"
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace layers {
@@ -95,12 +94,11 @@ namespace ctranslate2 {
                            + ", but got position "
                            + std::to_string(max_time - 1));
 
-      DEVICE_DISPATCH(input.device(),
-                      TYPE_DISPATCH(input.dtype(),
-                                    primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
-                                                                       input.data<T>(),
-                                                                       time * depth,
-                                                                       input.size())));
+      DEVICE_AND_TYPE_DISPATCH(input.device(), input.dtype(),
+                               primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
+                                                                  input.data<T>(),
+                                                                  time * depth,
+                                                                  input.size()));
     }
 
     void PositionEncoder::operator()(const StorageView& input, StorageView& output, dim_t index) {

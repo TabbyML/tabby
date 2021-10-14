@@ -1,10 +1,10 @@
 #include "ctranslate2/devices.h"
 
 #ifdef CT2_WITH_CUDA
-#  include "./cuda/utils.h"
+#  include "cuda/utils.h"
 #endif
 
-#include "./device_dispatch.h"
+#include "device_dispatch.h"
 
 namespace ctranslate2 {
 

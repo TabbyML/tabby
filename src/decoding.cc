@@ -6,8 +6,7 @@
 #include <numeric>
 
 #include "ctranslate2/ops/ops.h"
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
 
@@ -294,13 +293,11 @@ namespace ctranslate2 {
 
       // Multiply by the current beam log probs.
       if (is_expanded) {
-        DEVICE_DISPATCH(
-          log_probs.device(),
-          TYPE_DISPATCH(log_probs.dtype(),
-                        primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<T>(),
-                                                           log_probs.data<T>(),
-                                                           topk_log_probs.size(),
-                                                           log_probs.size())));
+        DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
+                                 primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<T>(),
+                                                                    log_probs.data<T>(),
+                                                                    topk_log_probs.size(),
+                                                                    log_probs.size()));
       }
 
       // Penalize by the length, if enabled.

@@ -1,7 +1,6 @@
 #include "ctranslate2/ops/tile.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -33,11 +32,8 @@ namespace ctranslate2 {
       for (dim_t i = axis; i < input.rank(); ++i)
         inner_size *= input.dim(i);
 
-      DEVICE_DISPATCH(input.device(),
-                      TYPE_DISPATCH(input.dtype(), (compute<D, T>(input,
-                                                                  outer_size,
-                                                                  inner_size,
-                                                                  output))));
+      DEVICE_AND_TYPE_DISPATCH(input.device(), input.dtype(),
+                               (compute<D, T>(input, outer_size, inner_size, output)));
     }
 
     void Tile::operator()(StorageView& input) const {

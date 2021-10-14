@@ -2,8 +2,7 @@
 
 #include <numeric>
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -74,8 +73,7 @@ namespace ctranslate2 {
       }
 
       if (!_no_copy) {
-        DEVICE_DISPATCH(input.device(),
-                        TYPE_DISPATCH(input.dtype(), (compute<D, T>(input, outputs))));
+        DEVICE_AND_TYPE_DISPATCH(input.device(), input.dtype(), (compute<D, T>(input, outputs)));
       }
     }
 

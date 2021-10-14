@@ -1,7 +1,6 @@
 #include "ctranslate2/ops/softmax.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {

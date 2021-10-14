@@ -1,7 +1,6 @@
 #include "ctranslate2/ops/transpose.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -40,7 +39,7 @@ namespace ctranslate2 {
         return;
       }
 
-      DEVICE_DISPATCH(x.device(), TYPE_DISPATCH(x.dtype(), (compute<D, T>(x, perm, y))));
+      DEVICE_AND_TYPE_DISPATCH(x.device(), x.dtype(), (compute<D, T>(x, perm, y)));
     }
 
   }

@@ -1,7 +1,6 @@
 #include "ctranslate2/ops/concat.h"
 
-#include "device_dispatch.h"
-#include "type_dispatch.h"
+#include "dispatch.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -25,8 +24,7 @@ namespace ctranslate2 {
       output_shape[axis] = concat_dims;
       output.resize(std::move(output_shape));
 
-      DEVICE_DISPATCH(output.device(),
-                      TYPE_DISPATCH(output.dtype(), (compute<D, T>(inputs, output))));
+      DEVICE_AND_TYPE_DISPATCH(output.device(), output.dtype(), (compute<D, T>(inputs, output)));
     }
 
   }
