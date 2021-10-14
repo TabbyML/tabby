@@ -46,12 +46,11 @@ namespace ctranslate2 {
   }
 
   static void penalize_token(StorageView& log_probs, const size_t id) {
-    DEVICE_DISPATCH(log_probs.device(),
-                    TYPE_DISPATCH(log_probs.dtype(),
-                                  primitives<D>::strided_fill(log_probs.data<T>() + id,
-                                                              static_cast<T>(-1e10),
-                                                              log_probs.dim(-1),
-                                                              log_probs.dim(0))));
+    DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
+                             primitives<D>::strided_fill(log_probs.data<T>() + id,
+                                                         static_cast<T>(-1e10),
+                                                         log_probs.dim(-1),
+                                                         log_probs.dim(0)));
   }
 
   static void update_sample_with_prefix(const dim_t step,
