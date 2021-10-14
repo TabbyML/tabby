@@ -18,18 +18,18 @@ Greedy search is the most basic and fastest decoding strategy. It simply takes t
 
 ```python
 results = translator.translate_batch([tokenize(input)], beam_size=1)
-print(detokenize(results[0][0]["tokens"]))
+print(detokenize(results[0].tokens[0]))
 ```
 
 > Dieses Projekt ist auf die effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
 ## Beam search
 
-Beam search is a common decoding strategy for sequence models. The algorithm keeps N hypotheses at all times. This negatively impacts decoding speed and memory but allow finding a better final hypothesis.
+Beam search is a common decoding strategy for sequence models. The algorithm keeps N hypotheses at all times. This negatively impacts decoding speed and memory but allows finding a better final hypothesis.
 
 ```python
 results = translator.translate_batch([tokenize(input)], beam_size=4)
-print(detokenize(results[0][0]["tokens"]))
+print(detokenize(results[0].tokens[0]))
 ```
 
 > Dieses Projekt ist auf die effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
@@ -42,14 +42,14 @@ The arguments `min_decoding_length` and `max_decoding_length` control the minimu
 
 ```python
 results = translator.translate_batch([tokenize(input)], max_decoding_length=10)
-assert len(results[0][0]["tokens"]) == 10
+assert len(results[0].tokens[0]) == 10
 ```
 
 These length constraints do **not** apply to empty inputs. Empty inputs are not forwarded into the model and always return an empty output. This is why `min_decoding_length` is set by default to 1 as we expect non empty inputs to generate at least one token:
 
 ```python
 results = translator.translate_batch([[]], min_decoding_length=1)
-assert len(results[0][0]["tokens"]) == 0
+assert len(results[0].tokens[0]) == 0
 ```
 
 ## Autocompletion
@@ -59,7 +59,7 @@ The `target_prefix` argument can be used to force the start of the translation. 
 ```python
 results = translator.translate_batch(
     [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")])
-print(detokenize(results[0][0]["tokens"]))
+print(detokenize(results[0].tokens[0]))
 ```
 
 The prefix effectively changes the target context and the rest of the translation:
@@ -73,7 +73,7 @@ Instead of using [Autocompletion](#Autocompletion) to force a translation to sta
 ```python
 results = translator.translate_batch(
     [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.5, beam_size=4)
-print(detokenize(results[0][0]["tokens"]))
+print(detokenize(results[0].tokens[0]))
 ```
 
 Setting `prefix_bias_beta=0.5` effectively enforces the `target_prefix` and changes the rest of the translation:
@@ -83,7 +83,7 @@ Setting `prefix_bias_beta=0.5` effectively enforces the `target_prefix` and chan
 ```python
 results = translator.translate_batch(
     [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.1, beam_size=4)
-print(detokenize(results[0][0]["tokens"]))
+print(detokenize(results[0].tokens[0]))
 ```
 
 Lowering the bias by setting `prefix_bias_beta=0.1` results in a divergence in the prefix from `das` to `die`:
@@ -100,8 +100,8 @@ results = translator.translate_batch(
     target_prefix=[tokenize("Dieses Projekt ist auf die")],
     num_hypotheses=5,
     return_alternatives=True)
-for hypothesis in results[0]:
-    print(detokenize(hypothesis["tokens"]))
+for hypothesis in results[0].tokens:
+    print(detokenize(hypothesis))
 ```
 
 > Dieses Projekt ist auf die **effiziente** Bedienung von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
@@ -124,7 +124,7 @@ all_results = [
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10)]
 for results in all_results:
-    print(detokenize(results[0][0]["tokens"]))
+    print(detokenize(results[0].tokens[0]))
 ```
 
 > Dieses Programm ist auf eine effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet und ermöglicht gleichzeitig einen Einsatzort für Experimente rund um die Modellkompression oder das Beschleunigen der Schlussfolgerung.
