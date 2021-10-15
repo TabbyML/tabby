@@ -255,7 +255,6 @@ namespace ctranslate2 {
     const bool use_hard_prefix = prefix_ids && !bias_towards_prefix;
 
     StorageView logits(dtype, device);
-    StorageView log_probs(dtype, device);
     StorageView alive_seq(topk_ids.dtype());
     StorageView alive_attention;
     StorageView attention_step;
@@ -271,6 +270,7 @@ namespace ctranslate2 {
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
 
+      StorageView log_probs(dtype, device);
       if (bias_towards_prefix) {
         if (!biased_decoder) {
           biased_decoder = std::make_unique<BiasedDecoder>();
@@ -284,7 +284,8 @@ namespace ctranslate2 {
                                logits,
                                log_probs);
       } else {
-        ops::LogSoftMax()(logits, log_probs);
+        ops::LogSoftMax()(logits);
+        log_probs.shallow_copy(logits);
       }
 
       const dim_t vocabulary_size = log_probs.dim(-1);
@@ -560,7 +561,6 @@ namespace ctranslate2 {
     StorageView sample_from({batch_size}, DataType::INT32);
 
     StorageView logits(dtype, device);
-    StorageView log_probs(dtype, device);
     std::vector<dim_t> batch_offset(batch_size);
     std::vector<GenerationResult<size_t>> results;
     results.reserve(batch_size);
@@ -583,11 +583,10 @@ namespace ctranslate2 {
               return_attention ? &attention_step_device : nullptr);
 
       // Compute log probs only if scores should be returned.
-      if (return_scores) {
-        ops::LogSoftMax()(logits, log_probs);
-      } else {
-        log_probs.shallow_copy(logits);
-      }
+      StorageView log_probs(dtype, device);
+      if (return_scores)
+        ops::LogSoftMax()(logits);
+      log_probs.shallow_copy(logits);
 
       // Penalize end_id, if configured.
       if (step < min_step)

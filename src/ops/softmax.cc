@@ -13,6 +13,10 @@ namespace ctranslate2 {
       : _log(log) {
     }
 
+    void SoftMax::operator()(StorageView& x) const {
+      operator()(x, nullptr, x);
+    }
+
     void SoftMax::operator()(const StorageView& x, StorageView& y) const {
       operator()(x, nullptr, y);
     }

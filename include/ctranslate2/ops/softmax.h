@@ -10,6 +10,7 @@ namespace ctranslate2 {
       SoftMax(bool log = false);
 
       using UnaryOp::operator();
+      void operator()(StorageView& x) const;
       void operator()(const StorageView& x, StorageView& y) const override;
       void operator()(const StorageView& x, const StorageView& lengths, StorageView& y) const;
       void operator()(const StorageView& x, const StorageView* lengths, StorageView& y) const;
