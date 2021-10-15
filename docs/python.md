@@ -1,8 +1,8 @@
 # Python
 
-```python
-import ctranslate2
-```
+## Installation
+
+See the [Installation](../README.md#installation) section in the main README.
 
 ## Model conversion API
 
@@ -163,6 +163,23 @@ stats = translator.score_file(
 )
 ```
 
+## Memory management API
+
+* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if the translator is used simultaneously in another thread.
+  * `to_cpu`: If `True`, the model is moved to the CPU memory and not fully unloaded.
+* `translator.load_model()`<br/>Load the model back to the initial device.
+* `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.
+* `del translator`<br/>Release the translator resources.
+
+## Utility API
+
+* `ctranslate2.__version__`<br/>Version of the Python package.
+* `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.
+* `ctranslate2.get_cuda_device_count()`<br/>Return the number of visible GPU devices.
+* `ctranslate2.get_supported_compute_types(device: str, device_index: int = 0)`<br/>Return the set of supported compute types on a device.
+
+## Additional information
+
 ### Note on parallel execution
 
 A `Translator` instance can be configured to process multiple batches in parallel:
@@ -190,18 +207,3 @@ for batch in batch_generator():
 for async_result in async_results:
     print(async_result.result())  # This method blocks until the result is available.
 ```
-
-## Memory management API
-
-* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if the translator is used simultaneously in another thread.
-  * `to_cpu`: If `True`, the model is moved to the CPU memory and not fully unloaded.
-* `translator.load_model()`<br/>Load the model back to the initial device.
-* `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.
-* `del translator`<br/>Release the translator resources.
-
-## Utility API
-
-* `ctranslate2.__version__`<br/>Version of the Python package.
-* `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.
-* `ctranslate2.get_cuda_device_count()`<br/>Return the number of visible GPU devices.
-* `ctranslate2.get_supported_compute_types(device: str, device_index: int = 0)`<br/>Return the set of supported compute types on a device.

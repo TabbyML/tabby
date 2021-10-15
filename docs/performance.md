@@ -20,7 +20,7 @@ Below are some recommendations to further improve translation performance. Many 
 
 ### GPU
 
-* Use a NVIDIA GPU with Tensor Cores (Compute Capability >= 7.0) 
+* Use a NVIDIA GPU with Tensor Cores (Compute Capability >= 7.0)
 * Pass multiple GPU IDs to `device_index` to run translations on multiple GPUs
 
 ## Measuring performance
@@ -55,7 +55,7 @@ The list is ordered on 5. from the largest to smallest time.
 
 ### CUDA caching allocator
 
-Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 integrates caching allocators which enables a fast reuse of previously allocated buffers. The allocator can be selected with the environment variable `CT2_CUDA_ALLOCATOR`:
+Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 integrates caching allocators which enable a fast reuse of previously allocated buffers. The allocator can be selected with the environment variable `CT2_CUDA_ALLOCATOR`:
 
 #### `cub_caching` (default)
 

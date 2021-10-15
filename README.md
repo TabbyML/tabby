@@ -2,7 +2,11 @@
 
 # CTranslate2
 
-CTranslate2 is a fast and full-featured inference engine for Transformer models. It aims to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems on CPU and GPU. It currently supports Transformer models trained with [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py), [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf), and [Fairseq](https://github.com/pytorch/fairseq/).
+CTranslate2 is a fast and full-featured inference engine for Transformer models. It aims to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems on CPU and GPU. It currently supports Transformer models trained with:
+
+* [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py)
+* [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf)
+* [Fairseq](https://github.com/pytorch/fairseq/)
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
@@ -21,13 +25,13 @@ The project is production-oriented and comes with [backward compatibility guaran
 
 ## Key features
 
-* **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks.
-* **Quantization and reduced precision**<br/>The model serialization and computation support weights with reduced precision: 16-bit floating points (FP16), 16-bit integers, and 8-bit integers.
+* **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks thanks to many advanced optimizations: padding removal, batch reordering, in-place operations, caching mechanism, etc.
+* **Quantization and reduced precision**<br/>The model serialization and computation support weights with [reduced precision](docs/quantization.md): 16-bit floating points (FP16), 16-bit integers (INT16), and 8-bit integers (INT8).
 * **Multiple CPU architectures support**<br/>The project supports x86-64 and ARM64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), [Ruy](https://github.com/google/ruy), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
 * **Parallel and asynchronous translations**<br/>Translations can be run efficiently in parallel and asynchronously using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
-* **Lightweight on disk**<br/>Models can be quantized below 100MB with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 500MB (with CUDA 10.0).
+* **Lightweight on disk**<br/>Quantization can make the models 4 times smaller on disk with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 500MB (with CUDA 10.0).
 * **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
 * **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
 
@@ -46,7 +50,7 @@ The translation API supports several decoding options:
 * returning attention vectors
 * approximating the generation using a pre-compiled [vocabulary map](#how-do-i-generate-a-vocabulary-mapping-file)
 * replacing unknown target tokens by source tokens with the highest attention
-* biasing translations towards a given prefix [see section 4.2](https://arxiv.org/abs/1912.03393)
+* biasing translations towards a given prefix (see section 4.2 in [Arivazhagan et al. 2020](https://arxiv.org/abs/1912.03393))
 * scoring existing translations
 
 See the [Decoding](docs/decoding.md) documentation for examples.
@@ -55,14 +59,14 @@ See the [Decoding](docs/decoding.md) documentation for examples.
 
 The steps below assume a Linux OS and a Python installation (3.6 or above).
 
-1\. **[Install](#installation) the Python package**:
+**1\. [Install](#installation) the Python package:**
 
 ```bash
 pip install --upgrade pip
 pip install ctranslate2
 ```
 
-2\. **[Convert](#converting-models) a trained Transformer model**, for example one of the pretrained OpenNMT Transformer models (choose one of the two models):
+**2\. [Convert](#converting-models) a Transformer model trained with OpenNMT-py, OpenNMT-tf, or Fairseq:**
 
 *a. OpenNMT-py*
 
@@ -89,12 +93,31 @@ ct2-opennmt-tf-converter --model_path averaged-ende-ckpt500k-v2 --output_dir end
     --model_type TransformerBase
 ```
 
-3\. **[Translate](#translating) tokenized inputs**, for example with the Python API:
+*c. Fairseq*
+
+```bash
+pip install fairseq
+
+wget https://dl.fbaipublicfiles.com/fairseq/models/wmt16.en-de.joined-dict.transformer.tar.bz2
+tar xf wmt16.en-de.joined-dict.transformer.tar.bz2
+
+ct2-fairseq-converter --model_path wmt16.en-de.joined-dict.transformer/model.pt \
+    --data_dir wmt16.en-de.joined-dict.transformer \
+    --output_dir ende_ctranslate2
+```
+
+**3\. [Translate](#translating) tokenized inputs with the Python API:**
 
 ```python
 import ctranslate2
-translator = ctranslate2.Translator("ende_ctranslate2/")
+
+translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
+
+# The OpenNMT-py and OpenNMT-tf models use a SentencePiece tokenization:
 translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+
+# The Fairseq model uses a BPE tokenization:
+translator.translate_batch([["H@@", "ello", "world@@", "!"]])
 ```
 
 ## Installation
@@ -176,14 +199,16 @@ See the existing converters implementation which could be used as a template.
 
 ## Translating
 
-The examples use the English-German model converted in the [Quickstart](#quickstart). This model requires a SentencePiece tokenization.
+The examples use the English-German OpenNMT model converted in the [Quickstart](#quickstart). This model requires a SentencePiece tokenization.
 
 ### With the translation client
 
 ```bash
-echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cuda
+echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
+    opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cpu
 ```
+
+To translate on GPU, use `docker run --gpus all` and set the option `--device cuda`.
 
 *See `docker run --rm opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help` for additional options.*
 
@@ -191,7 +216,7 @@ echo "▁H ello ▁world !" | docker run --gpus=all -i --rm -v $PWD:/data \
 
 ```python
 import ctranslate2
-translator = ctranslate2.Translator("ende_ctranslate2/")
+translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
@@ -201,20 +226,27 @@ translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 
 ```cpp
 #include <iostream>
-#include <ctranslate2/translator.h>
+#include <ctranslate2/translator_pool.h>
 
 int main() {
-  ctranslate2::Translator translator("ende_ctranslate2/");
-  ctranslate2::TranslationResult result = translator.translate({"▁H", "ello", "▁world", "!"});
+  const size_t num_translators = 1;
+  const size_t num_threads_per_translator = 4;
+  ctranslate2::TranslatorPool translator(num_translators,
+                                         num_threads_per_translator,
+                                         "ende_ctranslate2/",
+                                         ctranslate2::Device::CPU);
 
-  for (const auto& token : result.output())
+  const std::vector<std::vector<std::string>> batch = {{"▁H", "ello", "▁world", "!"}};
+  const std::vector<ctranslate2::TranslationResult> results = translator.translate_batch(batch);
+
+  for (const auto& token : results[0].output())
     std::cout << token << ' ';
   std::cout << std::endl;
   return 0;
 }
 ```
 
-*See the [`Translator`](include/ctranslate2/translator.h) class for more advanced usages, and the [`TranslatorPool`](include/ctranslate2/translator_pool.h) class for running translations in parallel and asynchronously.*
+*See the [`TranslatorPool`](include/ctranslate2/translator_pool.h) class for more advanced usages such as asynchronous translations.*
 
 ## Environment variables
 
@@ -249,7 +281,7 @@ import ctranslate2
 
 ### Docker images
 
-The Docker images build all translation clients presented in [Translating](#translating). The `build` command should be run from the project root directory, e.g.:
+The Docker images build the C++ shared libraries, the translation client, and the Python package. The `docker build` command should be run from the project root directory, e.g.:
 
 ```bash
 docker build -t opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 -f docker/Dockerfile .
@@ -509,11 +541,7 @@ There are many ways to make this project better and even faster. See the open is
 * `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency.
 * `inter_threads` is the maximum number of CPU translations executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
 
-The total number of computing threads launched by the process is summarized by this formula:
-
-```text
-num_threads = inter_threads * intra_threads
-```
+The total number of computing threads launched by the process is `inter_threads * intra_threads`.
 
 Note that these options are only defined for CPU translation and are forced to 1 when executing on GPU. Parallel translations on GPU require multiple GPUs. See the option `device_index` that accepts multiple device IDs.
 
