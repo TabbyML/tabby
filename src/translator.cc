@@ -40,6 +40,8 @@ namespace ctranslate2 {
       throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (min_decoding_length > max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
+    if (max_decoding_length == 0)
+      throw std::invalid_argument("max_decoding_length must be > 0");
     if (prefix_bias_beta >= 1)
       throw std::invalid_argument("prefix_bias_beta must be less than 1.0");
     if (prefix_bias_beta > 0 && return_alternatives)
