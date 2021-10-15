@@ -49,10 +49,17 @@ namespace ctranslate2 {
     // Maybe restrict scores to the best K candidates.
     StorageView top_ids(DataType::INT32, device);
     StorageView top_scores(dtype, device);
-    if (_from_topk > 0) {
+    const dim_t total_candidates = scores.dim(-1);
+    if (_from_topk > 0 && _from_topk < total_candidates) {
       const ops::TopK topk_op(_from_topk);
       topk_op(scores, top_scores, top_ids);
       final_scores = &top_scores;
+    } else if (_from_topk > total_candidates) {
+      throw std::invalid_argument("sampling_topk option ("
+                                  + std::to_string(_from_topk)
+                                  + ") is greater than the vocabulary size ("
+                                  + std::to_string(total_candidates)
+                                  + ")");
     } else {
       final_scores = &scores;
     }
@@ -72,7 +79,7 @@ namespace ctranslate2 {
     const ops::Multinomial multinomial_op(num_samples);
     multinomial_op(probs, sampled_ids);
 
-    if (_from_topk > 0)  // Return ids relative to the initial distribution.
+    if (top_ids)  // Return ids relative to the initial distribution.
       ops::Gather(-1, top_ids.rank() - 1)(top_ids, sampled_ids, sampled_ids);
     ops::Gather(-1, scores.rank() - 1)(scores, sampled_ids, sampled_scores);
   }
