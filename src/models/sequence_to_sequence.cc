@@ -91,9 +91,8 @@ namespace ctranslate2 {
                                                             _preferred_size_multiple);
 
 
-      StorageView logits(decoder.output_type(), _device);
-      decoder(ids, lengths, state, logits);
-      ops::LogSoftMax()(logits, log_probs);
+      decoder(ids, lengths, state, log_probs);
+      ops::LogSoftMax()(log_probs);
     }
 
     void SequenceToSequenceModel::forward(layers::Encoder& encoder,
