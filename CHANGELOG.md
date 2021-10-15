@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v2.6.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.6.0) (2021-10-15)
+
+### New features
+
+* Build wheels for Python 3.10
+* Accept passing the vocabulary as a `opennmt.data.Vocab` object or a list of tokens in the OpenNMT-tf converter
+
+### Fixes and improvements
+
+* Fix segmentation fault in greedy search when `normalize_scores` is enabled but not `return_scores`
+* Fix segmentation fault when `min_decoding_length` and `max_decoding_length` are both set to 0
+* Fix segmentation fault when option `sampling_topk` is larger than the vocabulary size
+* Fix incorrect score normalization in greedy search when `max_decoding_length` is reached
+* Fix incorrect score normalization in the `return_alternatives` translation mode
+* Improve error checking when reading the binary model file
+* Apply `LogSoftMax` in-place during decoding and scoring
+
 ## [v2.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.5.1) (2021-10-04)
 
 ### Fixes and improvements
