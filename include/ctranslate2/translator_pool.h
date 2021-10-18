@@ -311,13 +311,15 @@ namespace ctranslate2 {
                                      const std::string& output_file,
                                      size_t max_batch_size = 32,
                                      size_t read_batch_size = 0,
-                                     BatchType batch_type = BatchType::Examples);
+                                     BatchType batch_type = BatchType::Examples,
+                                     bool with_tokens_score = false);
     TranslationStats score_text_file(std::istream& source,
                                      std::istream& target,
                                      std::ostream& output,
                                      size_t max_batch_size = 32,
                                      size_t read_batch_size = 0,
-                                     BatchType batch_type = BatchType::Examples);
+                                     BatchType batch_type = BatchType::Examples,
+                                     bool with_tokens_score = false);
 
     template <typename SourceTokenizer, typename TargetTokenizer, typename TargetDetokenizer>
     TranslationStats score_raw_text_file(const std::string& source_file,
@@ -328,7 +330,8 @@ namespace ctranslate2 {
                                          TargetDetokenizer& target_detokenizer,
                                          const size_t max_batch_size = 32,
                                          const size_t read_batch_size = 0,
-                                         const BatchType batch_type = BatchType::Examples) {
+                                         const BatchType batch_type = BatchType::Examples,
+                                         bool with_tokens_score = false) {
       std::ifstream source;
       open_input_file(source_file, source);
       std::ifstream target;
@@ -343,7 +346,8 @@ namespace ctranslate2 {
                                  target_detokenizer,
                                  max_batch_size,
                                  read_batch_size,
-                                 batch_type);
+                                 batch_type,
+                                 with_tokens_score);
     }
 
     template <typename SourceTokenizer, typename TargetTokenizer, typename TargetDetokenizer>
@@ -355,15 +359,23 @@ namespace ctranslate2 {
                                          TargetDetokenizer& target_detokenizer,
                                          const size_t max_batch_size = 32,
                                          const size_t read_batch_size = 0,
-                                         const BatchType batch_type = BatchType::Examples) {
+                                         const BatchType batch_type = BatchType::Examples,
+                                         bool with_token_scores = false) {
       TokensReader<SourceTokenizer> source_reader(source_tokenizer);
       TokensReader<TargetTokenizer> target_reader(target_tokenizer);
       TranslationStats stats;
 
-      auto writer = [&target_detokenizer, &stats](std::ostream& out, const ScoringResult& result) {
+      auto writer = [&target_detokenizer, &stats, with_token_scores](std::ostream& out,
+                                                                     const ScoringResult& result) {
         stats.num_examples += 1;
         stats.num_tokens += result.tokens_score.size();
-        out << result.normalized_score() << " ||| " << target_detokenizer(result.tokens) << '\n';
+        out << result.normalized_score() << " ||| " << target_detokenizer(result.tokens);
+        if (with_token_scores) {
+          out << " |||";
+          for (const auto score : result.tokens_score)
+            out << ' ' << score;
+        }
+        out << '\n';
       };
 
       const auto t1 = std::chrono::high_resolution_clock::now();

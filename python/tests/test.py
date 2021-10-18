@@ -411,17 +411,29 @@ def test_score_api(tmpdir):
     _write_tokens(source, source_path)
     _write_tokens(target, target_path)
 
-    stats = translator.score_file(source_path, target_path, output_path)
+    stats = translator.score_file(
+        source_path,
+        target_path,
+        output_path,
+        with_tokens_score=True,
+    )
     assert stats.num_examples == 2
     assert stats.num_tokens == 13
 
     with open(output_path) as output_file:
-        scores = [np.mean(scores) for scores in expected]
-        for line, expected_tokens, expected_score in zip(output_file, target, scores):
-            tokens = line.strip().split()
-            assert float(tokens[0]) == pytest.approx(expected_score, 1e-4)
-            assert tokens[1] == "|||"
-            assert tokens[2:] == expected_tokens
+        for line, expected_tokens, expected_scores in zip(
+            output_file, target, expected
+        ):
+            parts = line.strip().split("|||")
+            assert len(parts) == 3
+
+            mean_score = float(parts[0].strip())
+            tokens = parts[1].split()
+            scores = list(map(float, parts[2].split()))
+
+            assert tokens == expected_tokens
+            assert mean_score == pytest.approx(np.mean(expected_scores), 1e-4)
+            assert scores == pytest.approx(expected_scores, 1e-4)
 
 
 @pytest.mark.parametrize("to_cpu", [False, True])

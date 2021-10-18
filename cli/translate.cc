@@ -45,7 +45,9 @@ int main(int argc, char* argv[]) {
      cxxopts::value<size_t>()->default_value("1"))
     ("normalize_scores", "Normalize the score by the hypothesis length",
      cxxopts::value<bool>()->default_value("false"))
-    ("with_score", "Also output translation scores.",
+    ("with_score", "Also output the translation scores (for the translate task).",
+     cxxopts::value<bool>()->default_value("false"))
+    ("with_tokens_score", "Also output the token-level scores (for the score task).",
      cxxopts::value<bool>()->default_value("false"))
     ("length_penalty", "Length penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
@@ -172,7 +174,8 @@ int main(int argc, char* argv[]) {
                                             *output,
                                             max_batch_size,
                                             read_batch_size,
-                                            batch_type);
+                                            batch_type,
+                                            args["with_tokens_score"].as<bool>());
   } else {
     throw std::invalid_argument("Invalid task: " + task);
   }

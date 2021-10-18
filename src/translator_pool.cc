@@ -361,14 +361,21 @@ namespace ctranslate2 {
                                                    const std::string& output_file,
                                                    size_t max_batch_size,
                                                    size_t read_batch_size,
-                                                   BatchType batch_type) {
+                                                   BatchType batch_type,
+                                                   bool with_tokens_score) {
     std::ifstream source;
     open_input_file(source_file, source);
     std::ifstream target;
     open_input_file(target_file, target);
     std::ofstream output;
     open_output_file(output_file, output);
-    return score_text_file(source, target, output, max_batch_size, read_batch_size, batch_type);
+    return score_text_file(source,
+                           target,
+                           output,
+                           max_batch_size,
+                           read_batch_size,
+                           batch_type,
+                           with_tokens_score);
   }
 
   TranslationStats TranslatorPool::score_text_file(std::istream& source,
@@ -376,7 +383,8 @@ namespace ctranslate2 {
                                                    std::ostream& output,
                                                    size_t max_batch_size,
                                                    size_t read_batch_size,
-                                                   BatchType batch_type) {
+                                                   BatchType batch_type,
+                                                   bool with_tokens_score) {
     return score_raw_text_file(source,
                                target,
                                output,
@@ -385,7 +393,8 @@ namespace ctranslate2 {
                                join_tokens,
                                max_batch_size,
                                read_batch_size,
-                               batch_type);
+                               batch_type,
+                               with_tokens_score);
   }
 
   size_t TranslatorPool::num_queued_batches() {

@@ -350,6 +350,7 @@ public:
                                            size_t max_batch_size,
                                            size_t read_batch_size,
                                            const std::string& batch_type_str,
+                                           bool with_tokens_score,
                                            const TokenizeFn& source_tokenize_fn,
                                            const TokenizeFn& target_tokenize_fn,
                                            const DetokenizeFn& target_detokenize_fn) {
@@ -377,14 +378,16 @@ public:
                                                    safe_target_detokenize_fn,
                                                    max_batch_size,
                                                    read_batch_size,
-                                                   batch_type);
+                                                   batch_type,
+                                                   with_tokens_score);
     } else {
       stats = _translator_pool.score_text_file(source_path,
                                                target_path,
                                                output_path,
                                                max_batch_size,
                                                read_batch_size,
-                                               batch_type);
+                                               batch_type,
+                                               with_tokens_score);
     }
 
     return stats;
@@ -613,6 +616,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_batch_size")=32,
          py::arg("read_batch_size")=0,
          py::arg("batch_type")="examples",
+         py::arg("with_tokens_score")=false,
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
          py::arg("target_detokenize_fn")=nullptr)
