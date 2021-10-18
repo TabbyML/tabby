@@ -17,7 +17,7 @@ docker_minor_version = int(docker_version_numbers[1])
 
 def _get_bleu_score(hyp_file, ref_file):
     with open(hyp_file) as hyp, open(ref_file) as ref:
-        bleu = sacrebleu.corpus_bleu(hyp, [ref])
+        bleu = sacrebleu.corpus_bleu(hyp, [ref], force=True)
         return bleu.score
 
 
