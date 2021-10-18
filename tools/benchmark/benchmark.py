@@ -202,15 +202,18 @@ def benchmark_image(
                 num_cpus,
                 use_gpu,
             )
-            start = time.time()
-            container.wait()
-            end = time.time()
-            elapsed_time = end - start
-            initialization_time = (
-                elapsed_time
-                if initialization_time is None
-                else min(initialization_time, elapsed_time)
-            )
+            try:
+                start = time.time()
+                container.wait()
+                end = time.time()
+                elapsed_time = end - start
+                initialization_time = (
+                    elapsed_time
+                    if initialization_time is None
+                    else min(initialization_time, elapsed_time)
+                )
+            finally:
+                container.remove(force=True)
 
     total_time = None
     num_tokens = 0
