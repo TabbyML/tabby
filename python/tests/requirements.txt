@@ -1,4 +1,4 @@
 fairseq==0.10.2
-OpenNMT-py==2.0.*
-OpenNMT-tf[tensorflow]==2.17.*
+OpenNMT-py==2.2.*
+OpenNMT-tf[tensorflow]==2.22.*
 pytest
