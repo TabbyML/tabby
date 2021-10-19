@@ -167,11 +167,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.6
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.1.3
         with:
