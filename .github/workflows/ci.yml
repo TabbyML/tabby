@@ -225,7 +225,7 @@ jobs:
 
       - name: Run tests
         run: |
-          ./python/tools/run_test.sh $PWD
+          pytest -v python/tests/test.py
 
 
   check-python-style:

@@ -3,11 +3,6 @@
 set -e
 set -x
 
-# Skip tests on Python 3.8 or greater for now
-if python -c "import sys; assert sys.version_info >= (3, 8)"; then
-    exit
-fi
-
 # Install test rquirements
 pip install -r python/tests/requirements.txt
 pip uninstall -y ctranslate2
