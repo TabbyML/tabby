@@ -29,6 +29,11 @@ opennmt_tf, _ = client.images.build(
     path=os.path.join(pretrained_dir, "opennmt_tf"),
     tag="opennmt/opennmt-tf-benchmark",
 )
+if gpu:
+    fastertransformer, _ = client.images.build(
+        path=os.path.join(pretrained_dir, "fastertransformer"),
+        tag="opennmt/fastertransformer-benchmark",
+    )
 
 print("Downloading the test files...")
 source_file = sacrebleu.get_source_file(test_set, langpair=langpair)
@@ -84,6 +89,10 @@ run("OpenNMT-tf", opennmt_tf)
 run("OpenNMT-py", opennmt_py)
 if not gpu:
     run("- int8", opennmt_py, env={"INT8": "1"})
+
+if gpu:
+    run("FasterTransformer", fastertransformer)
+    run("- float16", fastertransformer, env={"FP16": "1"})
 
 run("CTranslate2", ctranslate2)
 if gpu:

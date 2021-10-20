@@ -1,7 +1,7 @@
-model_dir: /averaged-ende-ckpt500k-v2
+auto_config: true
 data:
-  source_vocabulary: /averaged-ende-ckpt500k-v2/wmtende.vocab
-  target_vocabulary: /averaged-ende-ckpt500k-v2/wmtende.vocab
+  source_vocabulary: wmtende.vocab
+  target_vocabulary: wmtende.vocab
 params:
   beam_width: 4
 infer:
