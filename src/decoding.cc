@@ -300,15 +300,6 @@ namespace ctranslate2 {
                                                                     log_probs.size()));
       }
 
-      // Penalize by the length, if enabled.
-      float length_penalty_weight = 1.0;
-      if (_length_penalty != 0) {
-        length_penalty_weight = std::pow((5.0 + static_cast<float>(step + 1)) / 6.0, _length_penalty);
-        ops::Mul()(log_probs,
-                   StorageView(1.f / length_penalty_weight).to(log_probs.dtype()),
-                   log_probs);
-      }
-
       // Penalize end_id, if configured.
       if (step < min_step)
         penalize_token(log_probs, end_id);
@@ -322,11 +313,6 @@ namespace ctranslate2 {
         update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, end_id, batch_offset);
 
       topk_log_probs = topk_scores;
-      // Recover the true log probs if length penalty was applied.
-      if (_length_penalty != 0)
-        ops::Mul()(topk_log_probs,
-                   StorageView(length_penalty_weight).to(topk_log_probs.dtype()),
-                   topk_log_probs);
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * _beam_size});
@@ -423,9 +409,15 @@ namespace ctranslate2 {
               || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
+
             float score = topk_scores.scalar_at<float>({i, k});
-            if (normalize_scores)
+            if (_length_penalty != 0) {
+              const float base = normalize_scores ? max_time : (5.f + max_time) / 6.f;
+              score /= std::pow(base, _length_penalty);
+            } else if (normalize_scores) {
               score /= max_time;
+            }
+
             // Prevent this beam from advancing in the next step.
             TYPE_DISPATCH(dtype, topk_log_probs.at<T>({i, k}) = T(-1e10));
 
