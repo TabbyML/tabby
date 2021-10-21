@@ -236,7 +236,6 @@ namespace ctranslate2 {
     const DataType dtype = decoder.output_type();
     const bool expand_after_first_step = (device == Device::CPU);
     const dim_t batch_size = start_ids.size();
-    dim_t cur_batch_size = batch_size;
 
     StorageView gather_indices(DataType::INT32);
     StorageView topk_ids({batch_size}, DataType::INT32);
@@ -273,12 +272,17 @@ namespace ctranslate2 {
     StorageView coverage;
 
     for (dim_t step = start_step; step < max_step; ++step) {
+      const bool is_expanded = (!expand_after_first_step || step > start_step);
+
       // Compute log probs for the current step.
       decoder(step,
               topk_ids.to(device),
               state,
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
+
+      const dim_t cur_batch_size = is_expanded ? logits.dim(0) / _beam_size : logits.dim(0);
+      const dim_t vocabulary_size = logits.dim(-1);
 
       StorageView log_probs(dtype, device);
       if (bias_towards_prefix) {
@@ -294,9 +298,6 @@ namespace ctranslate2 {
         ops::LogSoftMax()(logits);
         log_probs.shallow_copy(logits);
       }
-
-      const dim_t vocabulary_size = log_probs.dim(-1);
-      const bool is_expanded = (!expand_after_first_step || step > start_step);
 
       // Multiply by the current beam log probs.
       if (is_expanded) {
@@ -475,13 +476,12 @@ namespace ctranslate2 {
 
       // If some sentences finished on this step, ignore them for the next step.
       if (next_batch_size != cur_batch_size) {
-        cur_batch_size = next_batch_size;
         batch_offset = index_vector(batch_offset, non_finished_index);
         top_beam_finished = index_vector(top_beam_finished, non_finished_index);
         if (bias_towards_prefix)
           beams_diverged_from_prefix = index_vector(beams_diverged_from_prefix, non_finished_index);
 
-        StorageView keep_batches({cur_batch_size}, non_finished_index);
+        StorageView keep_batches({next_batch_size}, non_finished_index);
         gather(topk_ids, keep_batches);
         gather(topk_scores, keep_batches);
         gather(alive_seq, keep_batches);
@@ -508,11 +508,11 @@ namespace ctranslate2 {
         decoder.gather_state(state, gather_indices.to(device));
       }
 
-      topk_ids.reshape({cur_batch_size * _beam_size});
-      topk_scores.reshape({cur_batch_size * _beam_size});
-      alive_seq.reshape({cur_batch_size * _beam_size, alive_seq.dim(-1)});
+      topk_ids.reshape({next_batch_size * _beam_size});
+      topk_scores.reshape({next_batch_size * _beam_size});
+      alive_seq.reshape({next_batch_size * _beam_size, alive_seq.dim(-1)});
       if (return_attention)
-        alive_attention.reshape({cur_batch_size * _beam_size,
+        alive_attention.reshape({next_batch_size * _beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
 
