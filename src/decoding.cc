@@ -189,6 +189,17 @@ namespace ctranslate2 {
     }
   }
 
+  static inline bool
+  all_beams_diverged_from_prefix(const std::vector<std::vector<bool>>& beams_diverged_from_prefix) {
+    for (const auto& batch : beams_diverged_from_prefix) {
+      for (const bool beam_diverged : batch) {
+        if (!beam_diverged)
+          return false;
+      }
+    }
+    return true;
+  }
+
 
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
@@ -245,11 +256,12 @@ namespace ctranslate2 {
       TYPE_DISPATCH(dtype, initialize_beam_scores<T>(topk_scores, batch_size, _beam_size));
     }
 
+    std::unique_ptr<BiasedDecoder> biased_decoder;
     std::vector<std::vector<bool>> beams_diverged_from_prefix;
     bool bias_towards_prefix = prefix_ids && _prefix_bias_beta > 0;
     if (bias_towards_prefix) {
-      beams_diverged_from_prefix = std::vector<std::vector<bool>>(
-        batch_size, std::vector<bool>(_beam_size, false));
+      biased_decoder = std::make_unique<BiasedDecoder>();
+      beams_diverged_from_prefix.resize(batch_size, std::vector<bool>(_beam_size, false));
     }
     const bool use_hard_prefix = prefix_ids && !bias_towards_prefix;
 
@@ -258,9 +270,8 @@ namespace ctranslate2 {
     StorageView alive_attention;
     StorageView attention_step;
     StorageView attention_step_device(dtype, device);
-
     StorageView coverage;
-    std::unique_ptr<BiasedDecoder> biased_decoder;
+
     for (dim_t step = start_step; step < max_step; ++step) {
       // Compute log probs for the current step.
       decoder(step,
@@ -271,9 +282,6 @@ namespace ctranslate2 {
 
       StorageView log_probs(dtype, device);
       if (bias_towards_prefix) {
-        if (!biased_decoder) {
-          biased_decoder = std::make_unique<BiasedDecoder>();
-        }
         biased_decoder->decode(_prefix_bias_beta,
                                cur_batch_size,
                                step,
@@ -323,20 +331,20 @@ namespace ctranslate2 {
         auto batch_id = i / _beam_size;
         if (output_ids_map)
           word_id = output_ids_map->at(word_id);
-        if (bias_towards_prefix) {
-          const auto& prefix = (*prefix_ids)[batch_offset[batch_id]];
-          bool diverged = true;
-          if (static_cast<size_t>(step) < prefix.size()) {
-            diverged = (prev_beams_diverged_from_prefix[batch_id][beam_id]
-                        || static_cast<size_t>(word_id) != prefix[step]);
-          }
-          beams_diverged_from_prefix[batch_id][i % _beam_size] = diverged;
-        }
+
         topk_ids.at<int32_t>(i) = word_id;
         // On the first step, batches are not yet replicated beam_size times.
         gather_indices.at<int32_t>(i) = (is_expanded
                                          ? beam_id + batch_id * _beam_size
                                          : batch_id);
+
+        if (bias_towards_prefix) {
+          const auto& prefix = (*prefix_ids)[batch_offset[batch_id]];
+          beams_diverged_from_prefix[batch_id][i % _beam_size] = (
+            static_cast<size_t>(step) >= prefix.size()
+            || prev_beams_diverged_from_prefix[batch_id][beam_id]
+            || static_cast<size_t>(word_id) != prefix[step]);
+        }
       }
 
       // Append last prediction.
@@ -507,19 +515,9 @@ namespace ctranslate2 {
         alive_attention.reshape({cur_batch_size * _beam_size,
                                  alive_attention.dim(2),
                                  alive_attention.dim(3)});
-      if (bias_towards_prefix) {
-        bias_towards_prefix = false;
-        for (const auto& batch : beams_diverged_from_prefix) {
-          for (const bool beam_diverged : batch) {
-            if (!beam_diverged) {
-              bias_towards_prefix = true;
-              break;
-            }
-          }
-          if (bias_towards_prefix)
-            break;
-        }
-      }
+
+      if (bias_towards_prefix)
+        bias_towards_prefix = !all_beams_diverged_from_prefix(beams_diverged_from_prefix);
     }
 
     return results;
