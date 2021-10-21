@@ -91,12 +91,12 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  static void initialize_cum_log_probs(StorageView& cum_log_probs,
-                                       const dim_t batch_size,
-                                       const dim_t beam_size) {
+  static void initialize_beam_scores(StorageView& scores,
+                                     const dim_t batch_size,
+                                     const dim_t beam_size) {
     const dim_t size = batch_size * beam_size;
-    cum_log_probs.resize({size});
-    auto* data = cum_log_probs.data<T>();
+    scores.resize({size});
+    auto* data = scores.data<T>();
     for (dim_t i = 0; i < size; ++i) {
       data[i] = (i % beam_size == 0 ? T(0) : std::numeric_limits<T>::lowest());
     }
@@ -230,7 +230,6 @@ namespace ctranslate2 {
     StorageView gather_indices(DataType::INT32);
     StorageView topk_ids({batch_size}, DataType::INT32);
     StorageView topk_scores(dtype);
-    StorageView topk_log_probs(dtype);
 
     std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
@@ -243,7 +242,7 @@ namespace ctranslate2 {
     if (!expand_after_first_step) {
       expand_to_beam_size(state, _beam_size);
       expand_to_beam_size(topk_ids, _beam_size);
-      TYPE_DISPATCH(dtype, initialize_cum_log_probs<T>(topk_log_probs, batch_size, _beam_size));
+      TYPE_DISPATCH(dtype, initialize_beam_scores<T>(topk_scores, batch_size, _beam_size));
     }
 
     std::vector<std::vector<bool>> beams_diverged_from_prefix;
@@ -294,9 +293,9 @@ namespace ctranslate2 {
       // Multiply by the current beam log probs.
       if (is_expanded) {
         DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
-                                 primitives<D>::add_depth_broadcast(topk_log_probs.to(device).data<T>(),
+                                 primitives<D>::add_depth_broadcast(topk_scores.to(device).data<T>(),
                                                                     log_probs.data<T>(),
-                                                                    topk_log_probs.size(),
+                                                                    topk_scores.size(),
                                                                     log_probs.size()));
       }
 
@@ -311,8 +310,6 @@ namespace ctranslate2 {
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
       if (use_hard_prefix)
         update_sample_with_prefix(step, topk_ids, topk_scores, *prefix_ids, end_id, batch_offset);
-
-      topk_log_probs = topk_scores;
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * _beam_size});
@@ -353,7 +350,6 @@ namespace ctranslate2 {
         alive_seq = topk_ids;
       }
 
-      topk_log_probs.reshape({cur_batch_size, _beam_size});
       topk_scores.reshape({cur_batch_size, _beam_size});
       topk_ids.reshape({cur_batch_size, _beam_size});
 
@@ -419,7 +415,7 @@ namespace ctranslate2 {
             }
 
             // Prevent this beam from advancing in the next step.
-            TYPE_DISPATCH(dtype, topk_log_probs.at<T>({i, k}) = T(-1e10));
+            TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
 
             {
               std::vector<size_t> hypothesis;
@@ -479,7 +475,7 @@ namespace ctranslate2 {
 
         StorageView keep_batches({cur_batch_size}, non_finished_index);
         gather(topk_ids, keep_batches);
-        gather(topk_log_probs, keep_batches);
+        gather(topk_scores, keep_batches);
         gather(alive_seq, keep_batches);
         if (return_attention)
           gather(alive_attention, keep_batches);
@@ -505,7 +501,7 @@ namespace ctranslate2 {
       }
 
       topk_ids.reshape({cur_batch_size * _beam_size});
-      topk_log_probs.reshape({cur_batch_size * _beam_size});
+      topk_scores.reshape({cur_batch_size * _beam_size});
       alive_seq.reshape({cur_batch_size * _beam_size, alive_seq.dim(-1)});
       if (return_attention)
         alive_attention.reshape({cur_batch_size * _beam_size,
