@@ -409,12 +409,16 @@ namespace ctranslate2 {
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         auto& result = results[batch_id];
+
         for (dim_t k = 0; k < _beam_size; ++k) {
-          if (topk_ids.at<int32_t>({i, k}) == static_cast<int32_t>(end_id)
-              || step + 1 == max_step) {
+          const auto* hypothesis = alive_seq.index<int32_t>({i, k});
+          const size_t last_id = hypothesis[max_time - 1];
+
+          if (last_id == end_id || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
 
+            // Finalize the score.
             float score = topk_scores.scalar_at<float>({i, k});
             if (_length_penalty != 0) {
               const float base = normalize_scores ? max_time : (5.f + max_time) / 6.f;
@@ -426,27 +430,16 @@ namespace ctranslate2 {
             // Prevent this beam from advancing in the next step.
             TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
 
-            {
-              std::vector<size_t> hypothesis;
-              std::vector<std::vector<float>> attn;
-              hypothesis.reserve(max_time);
-              if (return_attention)
-                attn.reserve(max_time);
+            // Register this hypothesis.
+            result.scores.emplace_back(score);
+            result.hypotheses.emplace_back(hypothesis, hypothesis + max_time);
+            if (return_attention) {
+              result.attention.emplace_back();
+              result.attention.back().reserve(max_time);
               for (dim_t t = 0; t < max_time; ++t) {
-                const int32_t id = alive_seq.at<int32_t>({i, k, t});
-                hypothesis.push_back(id);
-                if (return_attention) {
-                  const auto* attn_vec = alive_attention.index<float>({i, k, t});
-                  attn.emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
-                }
-                if (id == static_cast<int32_t>(end_id))
-                  break;
+                const auto* attn_vec = alive_attention.index<float>({i, k, t});
+                result.attention.back().emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
               }
-
-              result.scores.emplace_back(score);
-              result.hypotheses.emplace_back(std::move(hypothesis));
-              if (return_attention)
-                result.attention.emplace_back(std::move(attn));
             }
           }
         }
