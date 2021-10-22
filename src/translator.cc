@@ -24,6 +24,7 @@ namespace ctranslate2 {
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
                                           options.coverage_penalty,
+                                          options.repetition_penalty,
                                           options.prefix_bias_beta,
                                           options.allow_early_exit);
   }
@@ -42,6 +43,8 @@ namespace ctranslate2 {
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
     if (max_decoding_length == 0)
       throw std::invalid_argument("max_decoding_length must be > 0");
+    if (repetition_penalty <= 0)
+      throw std::invalid_argument("repetition_penalty must be > 0");
     if (prefix_bias_beta >= 1)
       throw std::invalid_argument("prefix_bias_beta must be less than 1.0");
     if (prefix_bias_beta > 0 && return_alternatives)

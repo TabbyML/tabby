@@ -132,6 +132,13 @@ namespace ctranslate2 {
     }
 
     template <typename T>
+    static void penalize_tokens(T* scores,
+                                const int32_t* ids,
+                                T penalty,
+                                dim_t batch_size,
+                                dim_t vocabulary_size);
+
+    template <typename T>
     static void transpose_2d(const T* a, const dim_t* dims, T* b);
     template <typename T>
     static void transpose_3d(const T* a, const dim_t* dims, const dim_t* perm, T* b);

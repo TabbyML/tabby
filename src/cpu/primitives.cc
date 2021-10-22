@@ -334,6 +334,19 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CPU>::penalize_tokens(T* scores,
+                                                const int32_t* ids,
+                                                T penalty,
+                                                dim_t batch_size,
+                                                dim_t vocabulary_size) {
+    for (dim_t i = 0; i < batch_size; ++i) {
+      auto& score = scores[i * vocabulary_size + ids[i]];
+      score = (score < T(0) ? score * penalty : score / penalty);
+    }
+  }
+
+  template<>
+  template <typename T>
   void primitives<Device::CPU>::transpose_2d(const T* a, const dim_t* dims, T* b) {
     #pragma omp parallel for
     for (dim_t i0 = 0; i0 < dims[0]; ++i0) {
@@ -987,6 +1000,12 @@ namespace ctranslate2 {
   template void                                                         \
   primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c, \
                                                dim_t a_size, dim_t b_size); \
+  template void                                                         \
+  primitives<Device::CPU>::penalize_tokens(T*,                          \
+                                           const int32_t*,              \
+                                           T,                           \
+                                           dim_t,                       \
+                                           dim_t);                      \
   template void                                                         \
   primitives<Device::CPU>::transpose_2d(const T* a,                     \
                                         const dim_t* dims,              \

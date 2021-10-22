@@ -45,12 +45,21 @@ namespace ctranslate2 {
     }
   }
 
-  static void penalize_token(StorageView& log_probs, const size_t id) {
+  static void disable_token(StorageView& log_probs, const size_t id) {
     DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
                              primitives<D>::strided_fill(log_probs.data<T>() + id,
                                                          static_cast<T>(-1e10),
                                                          log_probs.dim(-1),
                                                          log_probs.dim(0)));
+  }
+
+  static void penalize_tokens(StorageView& log_probs, const StorageView& ids, const float penalty) {
+    DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
+                             primitives<D>::penalize_tokens(log_probs.data<T>(),
+                                                            ids.data<int32_t>(),
+                                                            static_cast<T>(penalty),
+                                                            log_probs.dim(0),
+                                                            log_probs.dim(-1)));
   }
 
   static void update_sample_with_prefix(const dim_t step,
@@ -204,11 +213,13 @@ namespace ctranslate2 {
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
+                         const float repetition_penalty,
                          const float prefix_bias_beta,
                          const bool early_exit)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
+    , _repetition_penalty(repetition_penalty)
     , _prefix_bias_beta(prefix_bias_beta)
     , _early_exit(early_exit)
   {
@@ -275,8 +286,9 @@ namespace ctranslate2 {
       const bool is_expanded = (!expand_after_first_step || step > start_step);
 
       // Compute log probs for the current step.
+      const auto topk_ids_device = topk_ids.to(device);
       decoder(step,
-              topk_ids.to(device),
+              topk_ids_device,
               state,
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
@@ -299,6 +311,12 @@ namespace ctranslate2 {
         log_probs.shallow_copy(logits);
       }
 
+      // Prevent the generation of end_id until the minimum length is reached.
+      if (step < min_step)
+        disable_token(log_probs, end_id);
+      if (_repetition_penalty != 1)
+        penalize_tokens(log_probs, topk_ids_device, _repetition_penalty);
+
       // Multiply by the current beam log probs.
       if (is_expanded) {
         DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
@@ -307,10 +325,6 @@ namespace ctranslate2 {
                                                                     topk_scores.size(),
                                                                     log_probs.size()));
       }
-
-      // Penalize end_id, if configured.
-      if (step < min_step)
-        penalize_token(log_probs, end_id);
 
       // Flatten the probs into a list of candidates.
       log_probs.reshape({cur_batch_size, -1});
@@ -567,9 +581,9 @@ namespace ctranslate2 {
         ops::LogSoftMax()(logits);
       log_probs.shallow_copy(logits);
 
-      // Penalize end_id, if configured.
+      // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
-        penalize_token(log_probs, end_id);
+        disable_token(log_probs, end_id);
 
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)

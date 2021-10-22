@@ -53,6 +53,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("coverage_penalty", "Coverage penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
+    ("repetition_penalty", "Repetition penalty to apply during beam search",
+     cxxopts::value<float>()->default_value("1"))
     ("prefix_bias_beta", "Parameter for biasing translations towards given prefix",
      cxxopts::value<float>()->default_value("0"))
     ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
@@ -114,6 +116,7 @@ int main(int argc, char* argv[]) {
   options.beam_size = args["beam_size"].as<size_t>();
   options.length_penalty = args["length_penalty"].as<float>();
   options.coverage_penalty = args["coverage_penalty"].as<float>();
+  options.repetition_penalty = args["repetition_penalty"].as<float>();
   options.prefix_bias_beta = args["prefix_bias_beta"].as<float>();
   options.allow_early_exit = !args["disable_early_exit"].as<bool>();
   options.sampling_topk = args["sampling_topk"].as<size_t>();

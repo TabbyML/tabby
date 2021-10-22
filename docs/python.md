@@ -79,6 +79,7 @@ results = translator.translate_batch(
                                        # unless return_alternatives is set).
     length_penalty: float = 0,         # Length penalty constant to use during beam search.
     coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
+    repetition_penalty: float = 1,     # Repetition penalty constant to use during beam search.
     prefix_bias_beta: float = 0,       # Parameter for biasing translations towards given prefix.
     allow_early_exit: bool = True,     # Allow the beam search to exit early when the first beam finishes.
     max_decoding_length: int = 250,    # Maximum prediction length.
@@ -109,6 +110,7 @@ stats = translator.translate_file(
     num_hypotheses: int = 1,
     length_penalty: float = 0,
     coverage_penalty: float = 0,
+    repetition_penalty: float = 1,
     prefix_bias_beta: float = 0,
     allow_early_exit: bool = True,
     max_decoding_length: int = 250,

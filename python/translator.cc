@@ -179,6 +179,7 @@ public:
                  size_t num_hypotheses,
                  float length_penalty,
                  float coverage_penalty,
+                 float repetition_penalty,
                  float prefix_bias_beta,
                  bool allow_early_exit,
                  size_t max_decoding_length,
@@ -211,6 +212,7 @@ public:
       options.beam_size = beam_size;
       options.length_penalty = length_penalty;
       options.coverage_penalty = coverage_penalty;
+      options.repetition_penalty = repetition_penalty;
       options.prefix_bias_beta = prefix_bias_beta;
       options.allow_early_exit = allow_early_exit;
       options.sampling_topk = sampling_topk;
@@ -264,6 +266,7 @@ public:
                   size_t num_hypotheses,
                   float length_penalty,
                   float coverage_penalty,
+                  float repetition_penalty,
                   float prefix_bias_beta,
                   bool allow_early_exit,
                   size_t max_decoding_length,
@@ -289,6 +292,7 @@ public:
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
     options.coverage_penalty = coverage_penalty;
+    options.repetition_penalty = repetition_penalty;
     options.prefix_bias_beta = prefix_bias_beta;
     options.allow_early_exit = allow_early_exit;
     options.sampling_topk = sampling_topk;
@@ -565,6 +569,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
+         py::arg("repetition_penalty")=1,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
          py::arg("max_decoding_length")=250,
@@ -589,6 +594,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
+         py::arg("repetition_penalty")=1,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
          py::arg("max_decoding_length")=250,
