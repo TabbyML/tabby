@@ -51,6 +51,10 @@ namespace ctranslate2 {
                                    const Device device,
                                    const int device_index,
                                    const bool enable_fallback) {
+    const bool support_float16 = mayiuse_float16(device, device_index);
+    const bool support_int16 = mayiuse_int16(device, device_index);
+    const bool support_int8 = mayiuse_int8(device, device_index);
+
     switch (requested_compute_type) {
 
     case ComputeType::FLOAT: {
@@ -58,7 +62,7 @@ namespace ctranslate2 {
     }
 
     case ComputeType::FLOAT16: {
-      if (mayiuse_float16(device, device_index))
+      if (support_float16)
         return ComputeType::FLOAT16;
       if (!enable_fallback)
         unsupported_compute_type("float16");
@@ -66,53 +70,55 @@ namespace ctranslate2 {
     }
 
     case ComputeType::INT16: {
-      if (mayiuse_int16(device, device_index))
+      if (support_int16)
         return ComputeType::INT16;
       if (!enable_fallback)
         unsupported_compute_type("int16");
-      if (device == Device::CPU && mayiuse_int8(device, device_index))
+      if (device == Device::CPU && support_int8)
         return ComputeType::INT8;
-      if (device == Device::CUDA && mayiuse_float16(device, device_index))
+      if (device == Device::CUDA && support_float16)
         return ComputeType::FLOAT16;
       return ComputeType::FLOAT;
     }
 
     case ComputeType::INT8: {
-      if (mayiuse_int8(device, device_index))
+      if (support_int8)
         return ComputeType::INT8;
       if (!enable_fallback)
         unsupported_compute_type("int8");
-      if (device == Device::CPU && mayiuse_int16(device, device_index))
+      if (device == Device::CPU && support_int16)
         return ComputeType::INT16;
-      if (device == Device::CUDA && mayiuse_float16(device, device_index))
+      if (device == Device::CUDA && support_float16)
         return ComputeType::FLOAT16;
       return ComputeType::FLOAT;
     }
 
     case ComputeType::INT8_FLOAT16: {
-      if (mayiuse_float16(device, device_index))
+      if (support_int8 && support_float16)
         return ComputeType::INT8_FLOAT16;
       if (!enable_fallback)
         unsupported_compute_type("int8_float16");
-      if (device == Device::CPU) {
-        if (mayiuse_int8(device, device_index))
-          return ComputeType::INT8;
-        if (mayiuse_int16(device, device_index))
-          return ComputeType::INT16;
-      }
+      if (support_int8)
+        return ComputeType::INT8;
+      if (support_float16)
+        return ComputeType::FLOAT16;
+      if (support_int16)
+        return ComputeType::INT16;
       return ComputeType::FLOAT;
     }
 
     case ComputeType::AUTO: {
       if (device == Device::CUDA) {
-        if (mayiuse_float16(device, device_index))
+        if (support_int8 && support_float16)
           return ComputeType::INT8_FLOAT16;
-        if (mayiuse_int8(device, device_index))
+        if (support_int8)
           return ComputeType::INT8;
+        if (support_float16)
+          return ComputeType::FLOAT16;
       } else {
-        if (mayiuse_int8(device, device_index))
+        if (support_int8)
           return ComputeType::INT8;
-        if (mayiuse_int16(device, device_index))
+        if (support_int16)
           return ComputeType::INT16;
       }
       return ComputeType::FLOAT;

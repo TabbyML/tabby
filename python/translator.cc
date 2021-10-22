@@ -488,16 +488,20 @@ private:
 static py::set get_supported_compute_types(const std::string& device_str, const int device_index) {
   const auto device = ctranslate2::str_to_device(device_str);
 
+  const bool support_float16 = ctranslate2::mayiuse_float16(device, device_index);
+  const bool support_int16 = ctranslate2::mayiuse_int16(device, device_index);
+  const bool support_int8 = ctranslate2::mayiuse_int8(device, device_index);
+
   py::set compute_types;
   compute_types.add("float");
-  if (ctranslate2::mayiuse_float16(device, device_index)) {
-    compute_types.add("int8_float16");
+  if (support_float16)
     compute_types.add("float16");
-  }
-  if (ctranslate2::mayiuse_int16(device, device_index))
+  if (support_int16)
     compute_types.add("int16");
-  if (ctranslate2::mayiuse_int8(device, device_index))
+  if (support_int8)
     compute_types.add("int8");
+  if (support_int8 && support_float16)
+    compute_types.add("int8_float16");
   return compute_types;
 }
 
