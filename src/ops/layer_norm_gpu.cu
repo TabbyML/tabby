@@ -8,16 +8,9 @@ namespace at {
 
     // Forward declaration of the CUDA kernels.
     template <typename T, typename SizeT>
-    __global__ void RowwiseMomentsCUDAKernel(SizeT N,
-                                             T eps,
-                                             const T* X,
-                                             T* mean,
-                                             T* rstd);
-    template <typename T, typename SizeT>
     __global__ void LayerNormForwardCUDAKernel(SizeT N,
+                                               T eps,
                                                const T* X,
-                                               const T* mean,
-                                               const T* rstd,
                                                const T* gamma,
                                                const T* beta,
                                                T* Y);
@@ -28,37 +21,20 @@ namespace at {
 namespace ctranslate2 {
   namespace ops {
 
-#define CUDA_NUM_THREADS 256
-#define CUDA_BLOCK_REDUCE_NUM_THREADS 512
+#define CUDA_NUM_THREADS 512
 
     template <Device D, typename T>
     void LayerNorm::compute(const StorageView& beta,
                             const StorageView& gamma,
                             const StorageView& input,
                             StorageView& output) const {
-      const auto epsilon = T(1e-4);
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / depth;
-
-      StorageView moments({2 * batch_size}, input.dtype(), input.device());
-      T* mean_data = moments.data<T>();
-      T* rstd_data = mean_data + batch_size;
-      const T* input_data = input.data<T>();
-
-      auto stream = cuda::get_cuda_stream();
-      at::native::RowwiseMomentsCUDAKernel<cuda::device_type<T>, cuda::index_t>
-        <<<batch_size, CUDA_BLOCK_REDUCE_NUM_THREADS, 0, stream>>>(
-          depth,
-          cuda::device_type<T>(epsilon),
-          cuda::device_cast(input_data),
-          cuda::device_cast(mean_data),
-          cuda::device_cast(rstd_data));
       at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>, cuda::index_t>
-        <<<batch_size, CUDA_NUM_THREADS, 0, stream>>>(
+        <<<batch_size, CUDA_NUM_THREADS, 0, cuda::get_cuda_stream()>>>(
           depth,
-          cuda::device_cast(input_data),
-          cuda::device_cast(mean_data),
-          cuda::device_cast(rstd_data),
+          cuda::device_type<T>(1e-4),
+          cuda::device_cast(input.data<T>()),
           cuda::device_cast(gamma.data<T>()),
           cuda::device_cast(beta.data<T>()),
           cuda::device_cast(output.data<T>()));
@@ -185,47 +161,41 @@ namespace at {
     }
 
     template <typename T, typename SizeT>
-    __global__ void RowwiseMomentsCUDAKernel(SizeT N,
-                                             T eps,
-                                             const T* X,
-                                             T* mean,
-                                             T* rstd) {
+    __global__ void LayerNormForwardCUDAKernel(SizeT N,
+                                               T eps,
+                                               const T* X,
+                                               const T* gamma,
+                                               const T* beta,
+                                               T* Y) {
       __shared__ float m_shared[WARP_SIZE];
       __shared__ float v_shared[WARP_SIZE];
+      __shared__ float s_mean;
+      __shared__ float s_variance;
+
       const SizeT i = blockIdx.x;
+
       float sum1 = 0;
       float sum2 = 0;
       for (SizeT j = threadIdx.x; j < N; j += blockDim.x) {
         const SizeT index = i * N + j;
-        sum1 += static_cast<float>(X[index]);
-        sum2 += static_cast<float>(X[index]) * static_cast<float>(X[index]);
+        sum1 += float(X[index]);
+        sum2 += float(X[index]) * float(X[index]);
       }
       sum1 = BlockReduceSum(sum1, m_shared);
       sum2 = BlockReduceSum(sum2, v_shared);
       if (threadIdx.x == 0) {
-        const float scale = float(1) / static_cast<float>(N);
+        const float scale = float(1) / float(N);
         sum1 *= scale;
         sum2 = fmaxf(sum2 * scale - sum1 * sum1, float(0));
-        mean[i] = sum1;
-        rstd[i] = rsqrtf(sum2 + static_cast<float>(eps));
+        s_mean = sum1;
+        s_variance = rsqrtf(sum2 + float(eps));
       }
-    }
 
-    template <typename T, typename SizeT>
-    __global__ void LayerNormForwardCUDAKernel(SizeT N,
-                                               const T* X,
-                                               const T* mean,
-                                               const T* rstd,
-                                               const T* gamma,
-                                               const T* beta,
-                                               T* Y) {
-      const SizeT i = blockIdx.x;
+      __syncthreads();
+
       for (SizeT j = threadIdx.x; j < N; j += blockDim.x) {
         const SizeT index = i * N + j;
-        const float gamma_v = gamma == nullptr ? float(1) : static_cast<float>(gamma[j]);
-        const float beta_v = beta == nullptr ? float(0) : static_cast<float>(beta[j]);
-        Y[index] = ((static_cast<float>(X[index]) - static_cast<float>(mean[i]))
-                    * static_cast<float>(rstd[i]) * gamma_v + beta_v);
+        Y[index] = (float(X[index]) - s_mean) * s_variance * float(gamma[j]) + float(beta[j]);
       }
     }
 
