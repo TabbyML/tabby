@@ -43,7 +43,8 @@ namespace ctranslate2 {
       score(layers::Encoder& encoder,
             layers::Decoder& decoder,
             const std::vector<std::vector<std::string>>& source,
-            const std::vector<std::vector<std::string>>& target) const;
+            const std::vector<std::vector<std::string>>& target,
+            const size_t max_input_length = 0) const;
 
       std::vector<GenerationResult<std::string>>
       sample(layers::Encoder& encoder,
@@ -53,8 +54,9 @@ namespace ctranslate2 {
              const SearchStrategy& search_strategy = GreedySearch(),
              const Sampler& sampler = BestSampler(),
              const bool use_vmap = false,
-             const size_t max_length = 250,
-             const size_t min_length = 1,
+             const size_t max_input_length = 0,
+             const size_t max_output_length = 256,
+             const size_t min_output_length = 1,
              const size_t num_hypotheses = 1,
              const bool return_alternatives = false,
              const bool return_scores = false,

@@ -33,8 +33,11 @@ namespace ctranslate2 {
     // continues until beam_size hypotheses are finished.
     bool allow_early_exit = true;
 
+    // Truncate the inputs after this many tokens (set 0 to disable truncation).
+    size_t max_input_length = 1024;
+
     // Decoding length constraints.
-    size_t max_decoding_length = 250;
+    size_t max_decoding_length = 256;
     size_t min_decoding_length = 1;
 
     // Randomly sample from the top K candidates (not compatible with beam search, set to 0
@@ -67,6 +70,11 @@ namespace ctranslate2 {
 
     void validate() const;
     bool support_batch_translation() const;
+  };
+
+  struct ScoringOptions {
+    // Truncate the inputs after this many tokens (set 0 to disable truncation).
+    size_t max_input_length = 1024;
   };
 
   // The Translator can run translations from a sequence-to-sequence model.
@@ -109,7 +117,8 @@ namespace ctranslate2 {
 
     std::vector<ScoringResult>
     score_batch(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target);
+                const std::vector<std::vector<std::string>>& target,
+                const ScoringOptions& options = ScoringOptions());
 
     Device device() const;
     int device_index() const;

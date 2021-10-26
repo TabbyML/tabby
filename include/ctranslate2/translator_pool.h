@@ -70,11 +70,13 @@ namespace ctranslate2 {
     std::vector<std::future<ScoringResult>>
     score_batch_async(const std::vector<std::vector<std::string>>& source,
                       const std::vector<std::vector<std::string>>& target,
+                      const ScoringOptions& options = ScoringOptions(),
                       const size_t max_batch_size = 0,
                       const BatchType batch_type = BatchType::Examples);
     std::vector<ScoringResult>
     score_batch(const std::vector<std::vector<std::string>>& source,
                 const std::vector<std::vector<std::string>>& target,
+                const ScoringOptions& options = ScoringOptions(),
                 const size_t max_batch_size = 0,
                 const BatchType batch_type = BatchType::Examples);
 
@@ -288,10 +290,11 @@ namespace ctranslate2 {
                       SourceReader& source_reader,
                       TargetReader& target_reader,
                       TargetWriter& target_writer,
+                      const ScoringOptions& options = ScoringOptions(),
                       size_t max_batch_size = 32,
                       size_t read_batch_size = 0,
                       BatchType batch_type = BatchType::Examples) {
-      ScoreJobCreator job_creator;
+      ScoreJobCreator job_creator(options);
       consume_stream(source,
                      &target,
                      output,
@@ -309,6 +312,7 @@ namespace ctranslate2 {
     TranslationStats score_text_file(const std::string& source_file,
                                      const std::string& target_file,
                                      const std::string& output_file,
+                                     const ScoringOptions& options = ScoringOptions(),
                                      size_t max_batch_size = 32,
                                      size_t read_batch_size = 0,
                                      BatchType batch_type = BatchType::Examples,
@@ -316,6 +320,7 @@ namespace ctranslate2 {
     TranslationStats score_text_file(std::istream& source,
                                      std::istream& target,
                                      std::ostream& output,
+                                     const ScoringOptions& options = ScoringOptions(),
                                      size_t max_batch_size = 32,
                                      size_t read_batch_size = 0,
                                      BatchType batch_type = BatchType::Examples,
@@ -328,6 +333,7 @@ namespace ctranslate2 {
                                          SourceTokenizer& source_tokenizer,
                                          TargetTokenizer& target_tokenizer,
                                          TargetDetokenizer& target_detokenizer,
+                                         const ScoringOptions& options = ScoringOptions(),
                                          const size_t max_batch_size = 32,
                                          const size_t read_batch_size = 0,
                                          const BatchType batch_type = BatchType::Examples,
@@ -344,6 +350,7 @@ namespace ctranslate2 {
                                  source_tokenizer,
                                  target_tokenizer,
                                  target_detokenizer,
+                                 options,
                                  max_batch_size,
                                  read_batch_size,
                                  batch_type,
@@ -357,6 +364,7 @@ namespace ctranslate2 {
                                          SourceTokenizer& source_tokenizer,
                                          TargetTokenizer& target_tokenizer,
                                          TargetDetokenizer& target_detokenizer,
+                                         const ScoringOptions& options = ScoringOptions(),
                                          const size_t max_batch_size = 32,
                                          const size_t read_batch_size = 0,
                                          const BatchType batch_type = BatchType::Examples,
@@ -385,6 +393,7 @@ namespace ctranslate2 {
                    source_reader,
                    target_reader,
                    writer,
+                   options,
                    max_batch_size,
                    read_batch_size,
                    batch_type);
@@ -494,11 +503,16 @@ namespace ctranslate2 {
 
     class ScoreJob : public BatchJob<ScoringResult> {
     public:
-      ScoreJob(Batch batch, std::shared_ptr<JobResultConsumer<ScoringResult>> consumer);
+      ScoreJob(Batch batch,
+               ScoringOptions options,
+               std::shared_ptr<JobResultConsumer<ScoringResult>> consumer);
 
     protected:
       std::vector<ScoringResult>
       get_results(Translator& translator, const Batch& batch) const override;
+
+    private:
+      const ScoringOptions _options;
     };
 
     template <typename Result>
@@ -594,12 +608,19 @@ namespace ctranslate2 {
     };
 
     class ScoreJobCreator : public JobCreator<ScoringResult> {
+    public:
+      ScoreJobCreator(ScoringOptions options)
+        : _options(std::move(options))
+      {
+      }
     protected:
       std::unique_ptr<Job>
       create_job(Batch batch,
                  std::shared_ptr<JobResultConsumer<ScoringResult>> consumer) const override {
-        return std::make_unique<ScoreJob>(std::move(batch), std::move(consumer));
+        return std::make_unique<ScoreJob>(std::move(batch), _options, std::move(consumer));
       }
+    private:
+      const ScoringOptions _options;
     };
 
     template <typename SourceReader,

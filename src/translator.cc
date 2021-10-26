@@ -128,6 +128,7 @@ namespace ctranslate2 {
                                                   *make_search_strategy(options),
                                                   *make_sampler(options),
                                                   options.use_vmap,
+                                                  options.max_input_length,
                                                   options.max_decoding_length,
                                                   options.min_decoding_length,
                                                   options.num_hypotheses,
@@ -146,12 +147,13 @@ namespace ctranslate2 {
 
   std::vector<ScoringResult>
   Translator::score_batch(const std::vector<std::vector<std::string>>& source,
-                          const std::vector<std::vector<std::string>>& target) {
+                          const std::vector<std::vector<std::string>>& target,
+                          const ScoringOptions& options) {
     assert_has_model();
     register_current_allocator();
     if (source.empty())
       return {};
-    return _seq2seq_model->score(*_encoder, *_decoder, source, target);
+    return _seq2seq_model->score(*_encoder, *_decoder, source, target, options.max_input_length);
   }
 
   Device Translator::device() const {

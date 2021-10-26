@@ -76,14 +76,15 @@ namespace ctranslate2 {
   std::vector<std::future<ScoringResult>>
   TranslatorPool::score_batch_async(const std::vector<std::vector<std::string>>& source,
                                     const std::vector<std::vector<std::string>>& target,
+                                    const ScoringOptions& options,
                                     const size_t max_batch_size,
                                     const BatchType batch_type) {
-    return ScoreJobCreator().post(*this,
-                                  source,
-                                  target,
-                                  max_batch_size,
-                                  batch_type,
-                                  /*throttle=*/false);
+    return ScoreJobCreator(options).post(*this,
+                                         source,
+                                         target,
+                                         max_batch_size,
+                                         batch_type,
+                                         /*throttle=*/false);
   }
 
   void TranslatorPool::post_job(std::unique_ptr<Job> job, bool throttle) {
@@ -132,9 +133,10 @@ namespace ctranslate2 {
   std::vector<ScoringResult>
   TranslatorPool::score_batch(const std::vector<std::vector<std::string>>& source,
                               const std::vector<std::vector<std::string>>& target,
+                              const ScoringOptions& options,
                               const size_t max_batch_size,
                               const BatchType batch_type) {
-    return get_results_from_futures(score_batch_async(source, target, max_batch_size, batch_type));
+    return get_results_from_futures(score_batch_async(source, target, options, max_batch_size, batch_type));
   }
 
   template <typename T>
@@ -267,15 +269,17 @@ namespace ctranslate2 {
   }
 
   TranslatorPool::ScoreJob::ScoreJob(Batch batch,
+                                     ScoringOptions options,
                                      std::shared_ptr<JobResultConsumer<ScoringResult>> consumer)
     : BatchJob(std::move(batch), std::move(consumer))
+    , _options(std::move(options))
   {
   }
 
   std::vector<ScoringResult>
   TranslatorPool::ScoreJob::get_results(Translator& translator, const Batch& batch) const {
     spdlog::debug("Running batch scoring on {} examples", batch.source.size());
-    auto results = translator.score_batch(batch.source, batch.target);
+    auto results = translator.score_batch(batch.source, batch.target, _options);
     spdlog::debug("Finished batch scoring");
     return results;
   }
@@ -359,6 +363,7 @@ namespace ctranslate2 {
   TranslationStats TranslatorPool::score_text_file(const std::string& source_file,
                                                    const std::string& target_file,
                                                    const std::string& output_file,
+                                                   const ScoringOptions& options,
                                                    size_t max_batch_size,
                                                    size_t read_batch_size,
                                                    BatchType batch_type,
@@ -372,6 +377,7 @@ namespace ctranslate2 {
     return score_text_file(source,
                            target,
                            output,
+                           options,
                            max_batch_size,
                            read_batch_size,
                            batch_type,
@@ -381,6 +387,7 @@ namespace ctranslate2 {
   TranslationStats TranslatorPool::score_text_file(std::istream& source,
                                                    std::istream& target,
                                                    std::ostream& output,
+                                                   const ScoringOptions& options,
                                                    size_t max_batch_size,
                                                    size_t read_batch_size,
                                                    BatchType batch_type,
@@ -391,6 +398,7 @@ namespace ctranslate2 {
                                split_tokens,
                                split_tokens,
                                join_tokens,
+                               options,
                                max_batch_size,
                                read_batch_size,
                                batch_type,

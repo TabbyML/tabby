@@ -59,8 +59,10 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
      cxxopts::value<bool>()->default_value("false"))
+    ("max_input_length", "Truncate inputs after this many tokens (set 0 to disable).",
+     cxxopts::value<size_t>()->default_value("1024"))
     ("max_decoding_length", "Maximum sentence length to generate.",
-     cxxopts::value<size_t>()->default_value("250"))
+     cxxopts::value<size_t>()->default_value("256"))
     ("min_decoding_length", "Minimum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("1"))
     ("log_throughput", "Log average tokens per second at the end of the translation.",
@@ -112,23 +114,6 @@ int main(int argc, char* argv[]) {
                                               args["device_index"].as<std::vector<int>>(),
                                               compute_type);
 
-  auto options = ctranslate2::TranslationOptions();
-  options.beam_size = args["beam_size"].as<size_t>();
-  options.length_penalty = args["length_penalty"].as<float>();
-  options.coverage_penalty = args["coverage_penalty"].as<float>();
-  options.repetition_penalty = args["repetition_penalty"].as<float>();
-  options.prefix_bias_beta = args["prefix_bias_beta"].as<float>();
-  options.allow_early_exit = !args["disable_early_exit"].as<bool>();
-  options.sampling_topk = args["sampling_topk"].as<size_t>();
-  options.sampling_temperature = args["sampling_temperature"].as<float>();
-  options.max_decoding_length = args["max_decoding_length"].as<size_t>();
-  options.min_decoding_length = args["min_decoding_length"].as<size_t>();
-  options.num_hypotheses = args["n_best"].as<size_t>();
-  options.use_vmap = args["use_vmap"].as<bool>();
-  options.normalize_scores = args["normalize_scores"].as<bool>();
-  options.return_scores = args["with_score"].as<bool>();
-  options.replace_unknowns = args["replace_unknowns"].as<bool>();
-
   std::istream* source = &std::cin;
   std::istream* target = nullptr;
   std::ostream* output = &std::cout;
@@ -161,6 +146,23 @@ int main(int argc, char* argv[]) {
   ctranslate2::TranslationStats stats;
 
   if (task == "translate") {
+    ctranslate2::TranslationOptions options;
+    options.beam_size = args["beam_size"].as<size_t>();
+    options.length_penalty = args["length_penalty"].as<float>();
+    options.coverage_penalty = args["coverage_penalty"].as<float>();
+    options.repetition_penalty = args["repetition_penalty"].as<float>();
+    options.prefix_bias_beta = args["prefix_bias_beta"].as<float>();
+    options.allow_early_exit = !args["disable_early_exit"].as<bool>();
+    options.sampling_topk = args["sampling_topk"].as<size_t>();
+    options.sampling_temperature = args["sampling_temperature"].as<float>();
+    options.max_input_length = args["max_input_length"].as<size_t>();
+    options.max_decoding_length = args["max_decoding_length"].as<size_t>();
+    options.min_decoding_length = args["min_decoding_length"].as<size_t>();
+    options.num_hypotheses = args["n_best"].as<size_t>();
+    options.use_vmap = args["use_vmap"].as<bool>();
+    options.normalize_scores = args["normalize_scores"].as<bool>();
+    options.return_scores = args["with_score"].as<bool>();
+    options.replace_unknowns = args["replace_unknowns"].as<bool>();
     stats = translator_pool.consume_text_file(*source,
                                               *output,
                                               options,
@@ -172,9 +174,13 @@ int main(int argc, char* argv[]) {
   } else if (task == "score") {
     if (source == &std::cin || !target)
       throw std::invalid_argument("Score task requires both arguments --src and --tgt to be set");
+
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = args["max_input_length"].as<size_t>();
     stats = translator_pool.score_text_file(*source,
                                             *target,
                                             *output,
+                                            options,
                                             max_batch_size,
                                             read_batch_size,
                                             batch_type,

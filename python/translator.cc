@@ -182,6 +182,7 @@ public:
                  float repetition_penalty,
                  float prefix_bias_beta,
                  bool allow_early_exit,
+                 size_t max_input_length,
                  size_t max_decoding_length,
                  size_t min_decoding_length,
                  bool use_vmap,
@@ -217,6 +218,7 @@ public:
       options.allow_early_exit = allow_early_exit;
       options.sampling_topk = sampling_topk;
       options.sampling_temperature = sampling_temperature;
+      options.max_input_length = max_input_length;
       options.max_decoding_length = max_decoding_length;
       options.min_decoding_length = min_decoding_length;
       options.num_hypotheses = num_hypotheses;
@@ -269,6 +271,7 @@ public:
                   float repetition_penalty,
                   float prefix_bias_beta,
                   bool allow_early_exit,
+                  size_t max_input_length,
                   size_t max_decoding_length,
                   size_t min_decoding_length,
                   bool use_vmap,
@@ -297,6 +300,7 @@ public:
     options.allow_early_exit = allow_early_exit;
     options.sampling_topk = sampling_topk;
     options.sampling_temperature = sampling_temperature;
+    options.max_input_length = max_input_length;
     options.max_decoding_length = max_decoding_length;
     options.min_decoding_length = min_decoding_length;
     options.num_hypotheses = num_hypotheses;
@@ -332,14 +336,17 @@ public:
   score_batch(const BatchTokens& source,
               const BatchTokens& target,
               size_t max_batch_size,
-              const std::string& batch_type_str) {
+              const std::string& batch_type_str,
+              size_t max_input_length) {
     py::gil_scoped_release release;
 
     std::shared_lock lock(_mutex);
     assert_model_is_ready();
 
     const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
-    auto results = _translator_pool.score_batch(source, target, max_batch_size, batch_type);
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = max_input_length;
+    auto results = _translator_pool.score_batch(source, target, options, max_batch_size, batch_type);
 
     std::vector<std::vector<float>> scores;
     scores.reserve(results.size());
@@ -354,6 +361,7 @@ public:
                                            size_t max_batch_size,
                                            size_t read_batch_size,
                                            const std::string& batch_type_str,
+                                           size_t max_input_length,
                                            bool with_tokens_score,
                                            const TokenizeFn& source_tokenize_fn,
                                            const TokenizeFn& target_tokenize_fn,
@@ -369,6 +377,8 @@ public:
 
     const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
     ctranslate2::TranslationStats stats;
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = max_input_length;
 
     if (source_tokenize_fn) {
       const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
@@ -380,6 +390,7 @@ public:
                                                    safe_source_tokenize_fn,
                                                    safe_target_tokenize_fn,
                                                    safe_target_detokenize_fn,
+                                                   options,
                                                    max_batch_size,
                                                    read_batch_size,
                                                    batch_type,
@@ -388,6 +399,7 @@ public:
       stats = _translator_pool.score_text_file(source_path,
                                                target_path,
                                                output_path,
+                                               options,
                                                max_batch_size,
                                                read_batch_size,
                                                batch_type,
@@ -576,7 +588,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("repetition_penalty")=1,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
-         py::arg("max_decoding_length")=250,
+         py::arg("max_input_length")=1024,
+         py::arg("max_decoding_length")=256,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
          py::arg("normalize_scores")=false,
@@ -601,7 +614,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("repetition_penalty")=1,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
-         py::arg("max_decoding_length")=250,
+         py::arg("max_input_length")=1024,
+         py::arg("max_decoding_length")=256,
          py::arg("min_decoding_length")=1,
          py::arg("use_vmap")=false,
          py::arg("normalize_scores")=false,
@@ -617,7 +631,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("target"),
          py::kw_only(),
          py::arg("max_batch_size")=0,
-         py::arg("batch_type")="examples")
+         py::arg("batch_type")="examples",
+         py::arg("max_input_length")=1024)
     .def("score_file", &TranslatorWrapper::score_file,
          py::arg("source_path"),
          py::arg("target_path"),
@@ -626,6 +641,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_batch_size")=32,
          py::arg("read_batch_size")=0,
          py::arg("batch_type")="examples",
+         py::arg("max_input_length")=1024,
          py::arg("with_tokens_score")=false,
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,

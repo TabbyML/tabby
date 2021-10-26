@@ -127,6 +127,28 @@ TEST_P(SearchVariantTest, SetMinDecodingLength) {
   EXPECT_EQ(result.output().size(), options.min_decoding_length);
 }
 
+TEST_P(SearchVariantTest, SetMaxInputLength) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = GetParam();
+  options.max_input_length = 3;
+  options.return_attention = true;
+
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+
+  EXPECT_EQ(result.hypotheses[0].size(), options.max_input_length);
+
+  // Check that attention vectors have the size of the original input.
+  ASSERT_TRUE(result.has_attention());
+  for (size_t i = 0; i < result.attention[0].size(); ++i) {
+    ASSERT_EQ(result.attention[0][i].size(), input.size());
+    for (size_t t = options.max_input_length; t < input.size(); ++t) {
+      EXPECT_EQ(result.attention[0][i][t], 0);
+    }
+  }
+}
+
 TEST_P(SearchVariantTest, ReturnAllHypotheses) {
   auto beam_size = GetParam();
   Translator translator = default_translator();
@@ -817,4 +839,21 @@ TEST(TranslatorTest, Scoring) {
   ASSERT_EQ(scores.size(), expected_scores.size());
   for (size_t i = 0; i < scores.size(); ++i)
     expect_vector_eq(scores[i].tokens_score, expected_scores[i], abs_diff);
+}
+
+TEST(TranslatorTest, ScoringMaxInputLength) {
+  const std::vector<std::string> source = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::string> target = {"a", "t", "z", "m", "o", "n"};
+
+  ScoringOptions options;
+  options.max_input_length = 3;
+  Translator translator = default_translator();
+  const auto result = translator.score_batch({source}, {target}, options)[0];
+
+  // Check the result has the size of the original input even though it was truncated.
+  EXPECT_EQ(result.tokens, target);
+  ASSERT_EQ(result.tokens_score.size(), target.size());
+  for (size_t i = options.max_input_length; i < target.size(); ++i) {
+    EXPECT_EQ(result.tokens_score[i], 0);
+  }
 }

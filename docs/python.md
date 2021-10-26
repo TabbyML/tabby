@@ -82,7 +82,8 @@ results = translator.translate_batch(
     repetition_penalty: float = 1,     # Repetition penalty constant to use during beam search.
     prefix_bias_beta: float = 0,       # Parameter for biasing translations towards given prefix.
     allow_early_exit: bool = True,     # Allow the beam search to exit early when the first beam finishes.
-    max_decoding_length: int = 250,    # Maximum prediction length.
+    max_input_length: int = 1024,      # Truncate inputs after this many tokens (set 0 to disable).
+    max_decoding_length: int = 256,    # Maximum prediction length.
     min_decoding_length: int = 1,      # Minimum prediction length.
     use_vmap: bool = False,            # Use the vocabulary mapping file saved in this model.
     normalize_scores: bool = False,    # Normalize the score by the hypothesis length.
@@ -113,7 +114,8 @@ stats = translator.translate_file(
     repetition_penalty: float = 1,
     prefix_bias_beta: float = 0,
     allow_early_exit: bool = True,
-    max_decoding_length: int = 250,
+    max_input_length: int = 1024,
+    max_decoding_length: int = 256,
     min_decoding_length: int = 1,
     use_vmap: bool = False,
     normalize_scores: bool = False,
@@ -141,6 +143,7 @@ scores = translator.score_batch(
     *,
     max_batch_size: int = 0,       # Maximum batch size to run the model on.
     batch_type: str = "examples",  # Whether max_batch_size is the number of examples or tokens.
+    max_input_length: int = 1024,  # Truncate inputs after this many tokens (set 0 to disable).
 )
 
 # File scoring:
@@ -159,6 +162,8 @@ stats = translator.score_file(
     max_batch_size: int = 32,      # Maximum batch size to run the model on.
     read_batch_size: int = 0,      # Number of sentences to read at once.
     batch_type: str = "examples",  # Whether the batch size is the number of examples or tokens.
+    max_input_length: int = 1024,  # Truncate inputs after this many tokens (set 0 to disable).
+    with_tokens_score: bool = False,       # Include token-level scores in the output.
     source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_detokenize_fn: callable = None, # Function with signature: list of strings -> string

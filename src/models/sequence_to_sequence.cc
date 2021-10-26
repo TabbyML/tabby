@@ -10,6 +10,17 @@ namespace ctranslate2 {
     static const std::string target_vocabulary_file = "target_vocabulary.txt";
     static const std::string vmap_file = "vmap.txt";
 
+    template <typename T>
+    static std::vector<std::vector<T>>
+    truncate_inputs(const std::vector<std::vector<T>>& inputs, size_t max_length) {
+      std::vector<std::vector<T>> truncated_inputs;
+      truncated_inputs.reserve(inputs.size());
+      for (const auto& input : inputs)
+        truncated_inputs.emplace_back(input.begin(),
+                                      input.begin() + std::min(input.size(), max_length));
+      return truncated_inputs;
+    }
+
     SequenceToSequenceModel::SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision)
       : Model(model_reader, spec_revision) {
       {
@@ -116,13 +127,22 @@ namespace ctranslate2 {
     SequenceToSequenceModel::score(layers::Encoder& encoder,
                                    layers::Decoder& decoder,
                                    const std::vector<std::vector<std::string>>& source,
-                                   const std::vector<std::vector<std::string>>& target) const {
+                                   const std::vector<std::vector<std::string>>& target,
+                                   const size_t max_input_length) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::score");
-      StorageView log_probs(decoder.output_type(), _device);
-      forward(encoder, decoder, source, target, log_probs);
 
-      const auto target_ids_out = _target_vocabulary->to_ids(target,
+      auto source_inputs = source;
+      auto target_inputs = target;
+      if (max_input_length > 0) {
+        source_inputs = truncate_inputs(source_inputs, max_input_length);
+        target_inputs = truncate_inputs(target_inputs, max_input_length);
+      }
+
+      StorageView log_probs(decoder.output_type(), _device);
+      forward(encoder, decoder, source_inputs, target_inputs, log_probs);
+
+      const auto target_ids_out = _target_vocabulary->to_ids(target_inputs,
                                                              /*add_bos=*/false,
                                                              /*add_eos=*/true);
 
@@ -142,11 +162,12 @@ namespace ctranslate2 {
       const dim_t batch_size = scores.dim(0);
       std::vector<ScoringResult> results(batch_size);
       for (dim_t b = 0; b < batch_size; ++b) {
-        const dim_t max_time = target[b].size();
+        const dim_t original_length = target[b].size();
+        const dim_t output_length = target_inputs[b].size();
         auto& result = results[b];
         result.tokens = target[b];
-        result.tokens_score.resize(max_time);
-        for (dim_t t = 0; t < max_time; ++t)
+        result.tokens_score.resize(original_length, 0);
+        for (dim_t t = 0; t < output_length; ++t)
           result.tokens_score[t] = scores.at<float>({b, t});
       }
 
@@ -176,8 +197,9 @@ namespace ctranslate2 {
                                     const SearchStrategy& search_strategy,
                                     const Sampler& sampler,
                                     const bool use_vmap,
-                                    const size_t max_length,
-                                    const size_t min_length,
+                                    const size_t max_input_length,
+                                    const size_t max_output_length,
+                                    const size_t min_output_length,
                                     const size_t num_hypotheses,
                                     const bool return_alternatives,
                                     const bool return_scores,
@@ -187,10 +209,17 @@ namespace ctranslate2 {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::sample");
 
+      auto source_inputs = source;
+      auto target_prefix_inputs = target_prefix;
+      if (max_input_length > 0) {
+        source_inputs = truncate_inputs(source_inputs, max_input_length);
+        target_prefix_inputs = truncate_inputs(target_prefix_inputs, max_input_length);
+      }
+
       // Encode the sequence.
       StorageView memory(encoder.output_type(), _device);
       StorageView memory_lengths(DataType::INT32, _device);
-      forward_encoder(encoder, source, memory, memory_lengths);
+      forward_encoder(encoder, source_inputs, memory, memory_lengths);
 
       layers::DecoderState state = decoder.initial_state();
       state.emplace("memory", std::move(memory));
@@ -218,7 +247,7 @@ namespace ctranslate2 {
       }
 
       // Decode.
-      const auto target_prefix_ids = _target_vocabulary->to_ids(target_prefix);
+      const auto target_prefix_ids = _target_vocabulary->to_ids(target_prefix_inputs);
       const size_t start_id = _target_vocabulary->to_id(_with_target_bos
                                                         ? Vocabulary::bos_token
                                                         : Vocabulary::eos_token);
@@ -234,8 +263,8 @@ namespace ctranslate2 {
         !target_prefix_ids.empty() ? &target_prefix_ids : nullptr,
         !output_ids_map.empty() ? &output_ids_map : nullptr,
         end_id,
-        max_length,
-        min_length,
+        max_output_length,
+        min_output_length,
         num_hypotheses,
         return_alternatives,
         return_scores,
@@ -253,13 +282,16 @@ namespace ctranslate2 {
         if (result.has_attention()) {
           // Remove padding and special tokens in attention vectors.
           const size_t offset = size_t(_with_source_bos);
-          const size_t length = source[i].size();
+          const size_t source_original_length = source[i].size();
+          const size_t source_input_length = source_inputs[i].size();
 
           for (size_t h = 0; h < result.attention.size(); ++h) {
             auto& attention = result.attention[h];
 
             for (auto& vector : attention) {
-              vector = std::vector<float>(vector.begin() + offset, vector.begin() + offset + length);
+              vector = std::vector<float>(vector.begin() + offset,
+                                          vector.begin() + offset + source_input_length);
+              vector.resize(source_original_length, 0);
             }
 
             if (replace_unknowns)
