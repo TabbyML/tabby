@@ -12,6 +12,8 @@ library_dirs = []
 
 def _get_long_description():
     readme_path = os.path.join(base_dir, "README.md")
+    if not os.path.exists(readme_path):
+        return ""
     with open(readme_path, encoding="utf-8") as readme_file:
         return readme_file.read()
 

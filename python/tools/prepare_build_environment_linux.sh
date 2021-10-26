@@ -30,4 +30,4 @@ make -j$(nproc) install
 cd ..
 rm -r build-release
 
-/usr/bin/cp --remove-destination README.md python/README.md
+cp README.md python/

@@ -22,4 +22,4 @@ make -j$(sysctl -n hw.physicalcpu_max) install
 cd ..
 rm -r build-release
 
-rm python/README.md && cp README.md python/README.md
+cp README.md python/
