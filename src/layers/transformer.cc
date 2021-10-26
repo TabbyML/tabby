@@ -368,6 +368,9 @@ namespace ctranslate2 {
         state.erase("memory");
       }
 
+      if (attention && step >= 0)
+        attention->squeeze(1);
+
       if (logits) {
         if (_output_norm)
           (*_output_norm)(layer_in, layer_in);

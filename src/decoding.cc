@@ -12,14 +12,14 @@ namespace ctranslate2 {
 
   static const ops::Gather gather;
 
-  static void split_batch_beam(StorageView& input, dim_t beam_size) {
+  static inline void split_batch_beam(StorageView& input, dim_t beam_size) {
     Shape shape = input.shape();
     shape.insert(shape.begin() + 1, beam_size);
     shape[0] /= beam_size;
     input.reshape(std::move(shape));
   }
 
-  static void merge_batch_beam(StorageView& input) {
+  static inline void merge_batch_beam(StorageView& input) {
     Shape shape = input.shape();
     shape[0] *= shape[1];
     shape.erase(shape.begin() + 1);
@@ -108,6 +108,23 @@ namespace ctranslate2 {
     auto* data = scores.data<T>();
     for (dim_t i = 0; i < size; ++i) {
       data[i] = (i % beam_size == 0 ? T(0) : std::numeric_limits<T>::lowest());
+    }
+  }
+
+  static void append_step_output(StorageView& sequence,    // [batch, beam, time, ...]
+                                 StorageView step_output,  // [batch, beam, ...]
+                                 const StorageView& beam_origins) {
+    step_output.expand_dims(2);  // Insert time dimension.
+
+    if (sequence) {
+      const dim_t beam_size = sequence.dim(1);
+      merge_batch_beam(sequence);
+      gather(sequence, beam_origins);
+      split_batch_beam(sequence, beam_size);
+      const StorageView cur_sequence(std::move(sequence));
+      ops::Concat(2)({&cur_sequence, &step_output}, sequence);
+    } else {
+      sequence = std::move(step_output);
     }
   }
 
@@ -278,20 +295,19 @@ namespace ctranslate2 {
     StorageView logits(dtype, device);
     StorageView alive_seq(topk_ids.dtype());
     StorageView alive_attention;
-    StorageView attention_step;
-    StorageView attention_step_device(dtype, device);
     StorageView coverage;
 
     for (dim_t step = start_step; step < max_step; ++step) {
       const bool is_expanded = (!expand_after_first_step || step > start_step);
 
       // Compute log probs for the current step.
+      StorageView attention_step(dtype, device);
       const auto topk_ids_device = topk_ids.to(device);
       decoder(step,
               topk_ids_device,
               state,
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
-              (return_attention || _coverage_penalty != 0) ? &attention_step_device : nullptr);
+              (return_attention || _coverage_penalty != 0) ? &attention_step : nullptr);
 
       const dim_t cur_batch_size = is_expanded ? logits.dim(0) / _beam_size : logits.dim(0);
       const dim_t vocabulary_size = logits.dim(-1);
@@ -363,55 +379,37 @@ namespace ctranslate2 {
       }
 
       // Append last prediction.
-      topk_ids.reshape({cur_batch_size, _beam_size, 1});
-      if (alive_seq) {
-        gather(alive_seq, gather_indices);
-        alive_seq.reshape({cur_batch_size, _beam_size, alive_seq.dim(-1)});
-        StorageView cur_alive_seq(std::move(alive_seq));
-        ops::Concat(-1)({&cur_alive_seq, &topk_ids}, alive_seq);
-      } else {
-        alive_seq = topk_ids;
-      }
+      append_step_output(alive_seq, topk_ids, gather_indices);
 
-      topk_scores.reshape({cur_batch_size, _beam_size});
-      topk_ids.reshape({cur_batch_size, _beam_size});
-
-      if (attention_step_device) {
-        attention_step.copy_from(attention_step_device.to_float());
+      if (attention_step) {
         if (!is_expanded) {
           expand_to_beam_size(attention_step, _beam_size);
         }
-      }
 
-      if (_coverage_penalty != 0) {
-        if (!coverage) {
-          coverage = attention_step;
-        } else {
-          gather(coverage, gather_indices);
-          ops::Add()(attention_step, coverage, coverage);
-        }
-        StorageView tmp;
-        ops::Min()(coverage, 1.0f, tmp);
-        ops::Log()(tmp, tmp);
-        tmp.reshape({-1, tmp.dim(-1)});
-        StorageView penalty;
-        ops::MatMul()(tmp, StorageView({tmp.dim(-1), 1}, 1.0f), penalty);
-        ops::Mul()(penalty, StorageView(_coverage_penalty), penalty);
-        ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
-      }
+        attention_step = attention_step.to_float().to(Device::CPU);
 
-      if (return_attention) {
-        if (!alive_attention) {
-          alive_attention = attention_step;
-        } else {
-          gather(alive_attention, gather_indices);
-          StorageView cur_alive_attention(std::move(alive_attention));
-          ops::Concat(1)({&cur_alive_attention, &attention_step}, alive_attention);
+        if (return_attention) {
+          split_batch_beam(attention_step, _beam_size);
+          append_step_output(alive_attention, attention_step, gather_indices);
+          merge_batch_beam(attention_step);
         }
-        alive_attention.reshape({cur_batch_size,
-                                 _beam_size,
-                                 alive_attention.dim(1),
-                                 alive_attention.dim(2)});
+
+        if (_coverage_penalty != 0) {
+          if (!coverage) {
+            coverage = attention_step;
+          } else {
+            gather(coverage, gather_indices);
+            ops::Add()(attention_step, coverage, coverage);
+          }
+          StorageView tmp;
+          ops::Min()(coverage, 1.0f, tmp);
+          ops::Log()(tmp, tmp);
+          tmp.reshape({-1, tmp.dim(-1)});
+          StorageView penalty;
+          ops::MatMul()(tmp, StorageView({tmp.dim(-1), 1}, 1.0f), penalty);
+          ops::Mul()(penalty, StorageView(_coverage_penalty), penalty);
+          ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
+        }
       }
 
       // Check if some hypotheses are finished.
@@ -517,11 +515,6 @@ namespace ctranslate2 {
 
       topk_ids.reshape({next_batch_size * _beam_size});
       topk_scores.reshape({next_batch_size * _beam_size});
-      alive_seq.reshape({next_batch_size * _beam_size, alive_seq.dim(-1)});
-      if (return_attention)
-        alive_attention.reshape({next_batch_size * _beam_size,
-                                 alive_attention.dim(2),
-                                 alive_attention.dim(3)});
 
       if (bias_towards_prefix)
         bias_towards_prefix = !all_beams_diverged_from_prefix(beams_diverged_from_prefix);
