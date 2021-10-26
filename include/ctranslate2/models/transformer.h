@@ -21,7 +21,8 @@ namespace ctranslate2 {
       bool is_quantizable(const std::string& variable_name) const override;
       bool is_linear_weight(const std::string& variable_name) const override;
       bool is_packable(const std::string& variable_name) const override;
-      void register_variable(const std::string& name, StorageView& variable) override;
+      void register_variable(std::string name, StorageView variable) override;
+      void register_variable_alias(std::string alias, std::string variable_name) override;
       void finalize() override;
 
     private:

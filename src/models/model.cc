@@ -56,46 +56,18 @@ namespace ctranslate2 {
       return str;
     }
 
-    static void move_variables_to_device(std::unordered_map<std::string, StorageView>& variables,
-                                         const Device device) {
-      // Some variables can be shallow copies of others. Those variables should not be
-      // moved but updated to point to the new location.
-      std::unordered_map<void*, std::vector<StorageView*>> buffer_to_aliases;
-      std::vector<StorageView*> variables_to_move;
-
-      buffer_to_aliases.reserve(variables.size());
-      variables_to_move.reserve(variables.size());
-
-      // First pass to select the variables to move and map the aliases to the buffer they alias.
+    template <typename VariablesCollection>
+    static void move_variables_to_device(VariablesCollection& variables, const Device device) {
       for (auto& pair : variables) {
-        StorageView& variable = pair.second;
+        StorageView& variable = *pair.second;
         if (variable.is_scalar() || variable.device() == device)
           continue;
-
-        if (variable.owns_data()) {
-          variables_to_move.push_back(&variable);
-        } else {
-          buffer_to_aliases[variable.buffer()].push_back(&variable);
-        }
-      }
-
-      // Second pass to move variables and update the associated aliases.
-      for (auto* variable : variables_to_move) {
-        void* prev_buffer = variable->buffer();
-        *variable = variable->to(device);
-
-        auto it = buffer_to_aliases.find(prev_buffer);
-        if (it != buffer_to_aliases.end()) {
-          for (StorageView* alias : it->second) {
-            StorageView new_alias(alias->dtype(), device);
-            new_alias.shallow_copy(*variable);
-            *alias = std::move(new_alias);
-          }
-        }
+        variable = variable.to(device);
       }
     }
 
-    static void move_variables(std::unordered_map<std::string, StorageView>& variables,
+    template <typename VariablesCollection>
+    static void move_variables(VariablesCollection& variables,
                                const Device src_device, const int src_device_index,
                                const Device dst_device, const int dst_device_index) {
       if (variables.empty())
@@ -171,7 +143,7 @@ namespace ctranslate2 {
       auto it = _variable_index.find(name);
       if (it == _variable_index.end())
         return nullptr;
-      return &it->second;
+      return it->second.get();
     }
 
     const StorageView& Model::get_variable(const std::string& name) const {
@@ -181,27 +153,27 @@ namespace ctranslate2 {
       return *var;
     }
 
-    const std::unordered_map<std::string, StorageView>& Model::get_variables() const {
-      return _variable_index;
+    std::unordered_map<std::string, StorageView> Model::get_variables() const {
+      std::unordered_map<std::string, StorageView> variables;
+      variables.reserve(_variable_index.size());
+      for (const auto& pair : _variable_index)
+        variables.emplace(pair.first, *pair.second);
+      return variables;
     }
 
     bool Model::get_flag_with_default(const std::string& name, bool default_value) const {
       return get_attribute_with_default(name, static_cast<int8_t>(default_value));
     }
 
-    void Model::register_variable(const std::string& name, StorageView& variable) {
-      _variable_index.emplace(name, std::move(variable));
+    void Model::register_variable(std::string name, StorageView variable) {
+      _variable_index.emplace(std::move(name), std::make_shared<StorageView>(std::move(variable)));
     }
 
-    void Model::register_variable_alias(const std::string& alias,
-                                        const std::string& variable_name) {
+    void Model::register_variable_alias(std::string alias, std::string variable_name) {
       auto it = _variable_index.find(variable_name);
       if (it == _variable_index.end())
         return;
-      StorageView& variable = it->second;
-      StorageView view(variable.dtype(), variable.device());
-      view.shallow_copy(variable);
-      register_variable(alias, view);
+      _variable_index.emplace(std::move(alias), it->second);
     }
 
     bool Model::is_quantizable(const std::string&) const {
@@ -237,7 +209,7 @@ namespace ctranslate2 {
         // Check that the quantization scale of the variable exists.
         auto it = _variable_index.find(scale_name);
         if (it != _variable_index.end()) {
-          saved_scale = &it->second;
+          saved_scale = it->second.get();
         } else if (is_int16) {
           // Backward compatibility with int16 models without a saved scale.
           saved_scale = &variables_to_add.emplace(scale_name,
@@ -298,7 +270,7 @@ namespace ctranslate2 {
 
       for (const auto& variable_pair : _variable_index) {
         const std::string& name = variable_pair.first;
-        const StorageView& variable = variable_pair.second;
+        const StorageView& variable = *variable_pair.second;
         if (is_quantizable(name)) {
           weight_type = variable.dtype();
         } else if (is_convertible(variable, name)) {
@@ -336,7 +308,7 @@ namespace ctranslate2 {
 
       for (auto& variable_pair : _variable_index) {
         const auto& name = variable_pair.first;
-        auto& variable = variable_pair.second;
+        auto& variable = *variable_pair.second;
 
         // Convert "weight" variables to the expected compute type.
         if (is_quantizable(name)) {
@@ -361,7 +333,8 @@ namespace ctranslate2 {
 
       // Add needed variables.
       for (auto& variable_pair : variables_to_add)
-        _variable_index.emplace(std::move(variable_pair));
+        _variable_index.emplace(std::move(variable_pair.first),
+                                std::make_shared<StorageView>(std::move(variable_pair.second)));
 
       // Remove no longer needed variables.
       for (const auto& name : variables_to_remove)
@@ -388,7 +361,7 @@ namespace ctranslate2 {
         if (!is_linear_weight(name))
           continue;
 
-        const StorageView& weight = pair.second;
+        const StorageView& weight = *pair.second;
         const DataType dtype = weight.dtype();
         const dim_t k = weight.dim(1);
         const dim_t n = weight.dim(0);
@@ -433,7 +406,8 @@ namespace ctranslate2 {
       }
 
       for (auto& pair : variables_to_add)
-        _variable_index.emplace(std::move(pair));
+        _variable_index.emplace(std::move(pair.first),
+                                std::make_shared<StorageView>(std::move(pair.second)));
       for (const auto& name : variables_to_remove)
         _variable_index.erase(name);
     }
@@ -548,7 +522,7 @@ namespace ctranslate2 {
 
         StorageView variable(std::move(shape), dtype);
         consume<char>(model_file, num_bytes, static_cast<char*>(variable.buffer()));
-        model->register_variable(name, variable);
+        model->register_variable(std::move(name), std::move(variable));
       }
 
       model->finalize();

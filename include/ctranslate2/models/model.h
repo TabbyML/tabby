@@ -64,7 +64,7 @@ namespace ctranslate2 {
 
       const StorageView* get_variable_if_exists(const std::string& name) const;
       const StorageView& get_variable(const std::string& name) const;
-      const std::unordered_map<std::string, StorageView>& get_variables() const;
+      std::unordered_map<std::string, StorageView> get_variables() const;
 
       // Attributes are saved as scalar variables.
       template <typename T>
@@ -95,14 +95,12 @@ namespace ctranslate2 {
 
       // Models can override these methods to execute some transformations if needed
       // (e.g. a variable name changed in a newer spec revision).
-      virtual void register_variable(const std::string& name, StorageView& variable);
-      virtual void register_variable_alias(const std::string& alias,
-                                           const std::string& variable_name);
+      virtual void register_variable(std::string name, StorageView variable);
+      virtual void register_variable_alias(std::string alias, std::string variable_name);
       virtual void finalize();
 
       Device _device;
       int _device_index;
-      std::unordered_map<std::string, StorageView> _variable_index;
       size_t _spec_revision;
       ComputeType _compute_type = ComputeType::DEFAULT;
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
@@ -117,6 +115,8 @@ namespace ctranslate2 {
                         std::unordered_map<std::string, StorageView>& variables_to_add,
                         std::vector<std::string>& variables_to_remove);
       ComputeType infer_compute_type() const;
+
+      std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;
     };
 
     // Load a model replica on each device ID configured in device_indices.
