@@ -96,7 +96,7 @@ namespace ctranslate2 {
         : _size(size) {
       }
       __host__ __device__
-      T operator()(const T i) {
+      T operator()(const T i) const {
         return i % _size;
       }
     };
@@ -110,7 +110,7 @@ namespace ctranslate2 {
         : _size(size) {
       }
       __host__ __device__
-      T operator()(const T i) {
+      T operator()(const T i) const {
         return i / _size;
       }
     };
