@@ -18,8 +18,6 @@ namespace ctranslate2 {
     double total_time_in_ms = 0;
   };
 
-  class BufferedTranslationWrapper;
-
   // TranslatorPool is the high-level class for running translations. It supports parallel
   // and asynchronous translations.
   class TranslatorPool {
