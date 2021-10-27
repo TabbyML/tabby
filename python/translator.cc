@@ -200,61 +200,53 @@ public:
     if (target_path_ptr && source_tokenize_fn && !target_tokenize_fn)
       throw std::invalid_argument("target_tokenize_fn should be set when passing a target file");
 
-    ctranslate2::TranslationStats stats;
+    ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::TranslationOptions options;
+    options.beam_size = beam_size;
+    options.length_penalty = length_penalty;
+    options.coverage_penalty = coverage_penalty;
+    options.repetition_penalty = repetition_penalty;
+    options.prefix_bias_beta = prefix_bias_beta;
+    options.allow_early_exit = allow_early_exit;
+    options.sampling_topk = sampling_topk;
+    options.sampling_temperature = sampling_temperature;
+    options.max_input_length = max_input_length;
+    options.max_decoding_length = max_decoding_length;
+    options.min_decoding_length = min_decoding_length;
+    options.num_hypotheses = num_hypotheses;
+    options.use_vmap = use_vmap;
+    options.normalize_scores = normalize_scores;
+    options.return_scores = with_scores;
+    options.replace_unknowns = replace_unknowns;
 
-    {
-      py::gil_scoped_release release;
+    std::shared_lock lock(_mutex);
+    assert_model_is_ready();
 
-      std::shared_lock lock(_mutex);
-      assert_model_is_ready();
-
-      ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
-      ctranslate2::TranslationOptions options;
-      options.beam_size = beam_size;
-      options.length_penalty = length_penalty;
-      options.coverage_penalty = coverage_penalty;
-      options.repetition_penalty = repetition_penalty;
-      options.prefix_bias_beta = prefix_bias_beta;
-      options.allow_early_exit = allow_early_exit;
-      options.sampling_topk = sampling_topk;
-      options.sampling_temperature = sampling_temperature;
-      options.max_input_length = max_input_length;
-      options.max_decoding_length = max_decoding_length;
-      options.min_decoding_length = min_decoding_length;
-      options.num_hypotheses = num_hypotheses;
-      options.use_vmap = use_vmap;
-      options.normalize_scores = normalize_scores;
-      options.return_scores = with_scores;
-      options.replace_unknowns = replace_unknowns;
-
-      if (source_tokenize_fn && target_detokenize_fn) {
-        const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
-        const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
-        const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
-        stats = _translator_pool.consume_raw_text_file(source_path,
-                                                       target_path_ptr,
-                                                       output_path,
-                                                       safe_source_tokenize_fn,
-                                                       safe_target_tokenize_fn,
-                                                       safe_target_detokenize_fn,
-                                                       options,
-                                                       max_batch_size,
-                                                       read_batch_size,
-                                                       batch_type,
-                                                       with_scores);
-      } else {
-        stats = _translator_pool.consume_text_file(source_path,
-                                                   output_path,
-                                                   options,
-                                                   max_batch_size,
-                                                   read_batch_size,
-                                                   batch_type,
-                                                   with_scores,
-                                                   target_path_ptr);
-      }
+    if (source_tokenize_fn && target_detokenize_fn) {
+      const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
+      const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
+      const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
+      return _translator_pool.consume_raw_text_file(source_path,
+                                                    target_path_ptr,
+                                                    output_path,
+                                                    safe_source_tokenize_fn,
+                                                    safe_target_tokenize_fn,
+                                                    safe_target_detokenize_fn,
+                                                    options,
+                                                    max_batch_size,
+                                                    read_batch_size,
+                                                    batch_type,
+                                                    with_scores);
+    } else {
+      return _translator_pool.consume_text_file(source_path,
+                                                output_path,
+                                                options,
+                                                max_batch_size,
+                                                read_batch_size,
+                                                batch_type,
+                                                with_scores,
+                                                target_path_ptr);
     }
-
-    return stats;
   }
 
   std::variant<std::vector<ctranslate2::TranslationResult>,
@@ -285,11 +277,6 @@ public:
     if (source.empty())
       return {};
 
-    py::gil_scoped_release release;
-
-    std::shared_lock lock(_mutex);
-    assert_model_is_ready();
-
     ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
     ctranslate2::TranslationOptions options;
     options.beam_size = beam_size;
@@ -310,6 +297,9 @@ public:
     options.return_attention = return_attention;
     options.return_alternatives = return_alternatives;
     options.replace_unknowns = replace_unknowns;
+
+    std::shared_lock lock(_mutex);
+    assert_model_is_ready();
 
     auto futures = _translator_pool.translate_batch_async(source,
                                                           finalize_optional_batch(target_prefix),
@@ -338,14 +328,13 @@ public:
               size_t max_batch_size,
               const std::string& batch_type_str,
               size_t max_input_length) {
-    py::gil_scoped_release release;
+    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = max_input_length;
 
     std::shared_lock lock(_mutex);
     assert_model_is_ready();
 
-    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
-    ctranslate2::ScoringOptions options;
-    options.max_input_length = max_input_length;
     auto results = _translator_pool.score_batch(source, target, options, max_batch_size, batch_type);
 
     std::vector<std::vector<float>> scores;
@@ -370,50 +359,43 @@ public:
         || bool(target_tokenize_fn) != bool(target_detokenize_fn))
       throw std::invalid_argument("source_tokenize_fn, target_tokenize_fn, and target_detokenize_fn should all be set or none at all");
 
-    py::gil_scoped_release release;
+    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = max_input_length;
 
     std::shared_lock lock(_mutex);
     assert_model_is_ready();
-
-    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
-    ctranslate2::TranslationStats stats;
-    ctranslate2::ScoringOptions options;
-    options.max_input_length = max_input_length;
 
     if (source_tokenize_fn) {
       const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
       const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
       const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
-      stats = _translator_pool.score_raw_text_file(source_path,
-                                                   target_path,
-                                                   output_path,
-                                                   safe_source_tokenize_fn,
-                                                   safe_target_tokenize_fn,
-                                                   safe_target_detokenize_fn,
-                                                   options,
-                                                   max_batch_size,
-                                                   read_batch_size,
-                                                   batch_type,
-                                                   with_tokens_score);
+      return _translator_pool.score_raw_text_file(source_path,
+                                                  target_path,
+                                                  output_path,
+                                                  safe_source_tokenize_fn,
+                                                  safe_target_tokenize_fn,
+                                                  safe_target_detokenize_fn,
+                                                  options,
+                                                  max_batch_size,
+                                                  read_batch_size,
+                                                  batch_type,
+                                                  with_tokens_score);
     } else {
-      stats = _translator_pool.score_text_file(source_path,
-                                               target_path,
-                                               output_path,
-                                               options,
-                                               max_batch_size,
-                                               read_batch_size,
-                                               batch_type,
-                                               with_tokens_score);
+      return _translator_pool.score_text_file(source_path,
+                                              target_path,
+                                              output_path,
+                                              options,
+                                              max_batch_size,
+                                              read_batch_size,
+                                              batch_type,
+                                              with_tokens_score);
     }
-
-    return stats;
   }
 
   void unload_model(const bool to_cpu) {
     if (to_cpu && _device == ctranslate2::Device::CPU)
       return;
-
-    py::gil_scoped_release release;
 
     // If the lock is not acquired immediately it means the model is being used
     // in another thread and we can't unload it at this time.
@@ -444,8 +426,6 @@ public:
   }
 
   void load_model() {
-    py::gil_scoped_release release;
-
     std::unique_lock lock(_mutex);
     if (_model_is_loaded)
       return;
@@ -598,7 +578,8 @@ PYBIND11_MODULE(translator, m)
          py::arg("return_alternatives")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
-         py::arg("replace_unknowns")=false)
+         py::arg("replace_unknowns")=false,
+         py::call_guard<py::gil_scoped_release>())
     .def("translate_file", &TranslatorWrapper::translate_file,
          py::arg("source_path"),
          py::arg("output_path"),
@@ -625,14 +606,16 @@ PYBIND11_MODULE(translator, m)
          py::arg("replace_unknowns")=false,
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
-         py::arg("target_detokenize_fn")=nullptr)
+         py::arg("target_detokenize_fn")=nullptr,
+         py::call_guard<py::gil_scoped_release>())
     .def("score_batch", &TranslatorWrapper::score_batch,
          py::arg("source"),
          py::arg("target"),
          py::kw_only(),
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
-         py::arg("max_input_length")=1024)
+         py::arg("max_input_length")=1024,
+         py::call_guard<py::gil_scoped_release>())
     .def("score_file", &TranslatorWrapper::score_file,
          py::arg("source_path"),
          py::arg("target_path"),
@@ -645,10 +628,13 @@ PYBIND11_MODULE(translator, m)
          py::arg("with_tokens_score")=false,
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
-         py::arg("target_detokenize_fn")=nullptr)
+         py::arg("target_detokenize_fn")=nullptr,
+         py::call_guard<py::gil_scoped_release>())
     .def("unload_model", &TranslatorWrapper::unload_model,
-         py::arg("to_cpu")=false)
-    .def("load_model", &TranslatorWrapper::load_model)
+         py::arg("to_cpu")=false,
+         py::call_guard<py::gil_scoped_release>())
+    .def("load_model", &TranslatorWrapper::load_model,
+         py::call_guard<py::gil_scoped_release>())
     .def_property_readonly("model_is_loaded", &TranslatorWrapper::model_is_loaded)
     ;
 
