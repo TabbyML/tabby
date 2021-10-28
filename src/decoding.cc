@@ -128,6 +128,24 @@ namespace ctranslate2 {
     }
   }
 
+  static float compute_coverage_penalty(const StorageView& attention,
+                                        const float beta,
+                                        const dim_t batch,
+                                        const dim_t beam) {
+    const dim_t target_length = attention.dim(2);
+    const dim_t source_length = attention.dim(3);
+
+    float penalty = 0;
+    for (dim_t i = 0; i < source_length; ++i) {
+      float coverage = 0;
+      for (dim_t j = 0; j < target_length; ++j)
+        coverage += attention.at<float>({batch, beam, j, i});
+      penalty += std::log(std::min(coverage, 1.f));
+    }
+
+    return beta * penalty;
+  }
+
   // Sort hypotheses from best to worst score, in the limit of max_hypotheses.
   template <typename T>
   static inline void sort_hypotheses(GenerationResult<T>& result,
@@ -295,7 +313,6 @@ namespace ctranslate2 {
     StorageView logits(dtype, device);
     StorageView alive_seq(topk_ids.dtype());
     StorageView alive_attention;
-    StorageView coverage;
 
     for (dim_t step = start_step; step < max_step; ++step) {
       const bool is_expanded = (!expand_after_first_step || step > start_step);
@@ -382,34 +399,12 @@ namespace ctranslate2 {
       append_step_output(alive_seq, topk_ids, gather_indices);
 
       if (attention_step) {
-        if (!is_expanded) {
+        if (!is_expanded)
           expand_to_beam_size(attention_step, _beam_size);
-        }
-
-        attention_step = attention_step.to_float().to(Device::CPU);
-
-        if (return_attention) {
-          split_batch_beam(attention_step, _beam_size);
-          append_step_output(alive_attention, attention_step, gather_indices);
-          merge_batch_beam(attention_step);
-        }
-
-        if (_coverage_penalty != 0) {
-          if (!coverage) {
-            coverage = attention_step;
-          } else {
-            gather(coverage, gather_indices);
-            ops::Add()(attention_step, coverage, coverage);
-          }
-          StorageView tmp;
-          ops::Min()(coverage, 1.0f, tmp);
-          ops::Log()(tmp, tmp);
-          tmp.reshape({-1, tmp.dim(-1)});
-          StorageView penalty;
-          ops::MatMul()(tmp, StorageView({tmp.dim(-1), 1}, 1.0f), penalty);
-          ops::Mul()(penalty, StorageView(_coverage_penalty), penalty);
-          ops::Add()(penalty.to(topk_scores.dtype()), topk_scores, topk_scores);
-        }
+        split_batch_beam(attention_step, _beam_size);
+        append_step_output(alive_attention,
+                           attention_step.to_float().to(Device::CPU),
+                           gather_indices);
       }
 
       // Check if some hypotheses are finished.
@@ -438,6 +433,8 @@ namespace ctranslate2 {
             } else if (normalize_scores) {
               score /= max_time;
             }
+            if (_coverage_penalty != 0)
+              score += compute_coverage_penalty(alive_attention, _coverage_penalty, i, k);
 
             // Prevent this beam from advancing in the next step.
             TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
@@ -490,10 +487,8 @@ namespace ctranslate2 {
         gather(topk_ids, keep_batches);
         gather(topk_scores, keep_batches);
         gather(alive_seq, keep_batches);
-        if (return_attention)
+        if (alive_attention)
           gather(alive_attention, keep_batches);
-        if (_coverage_penalty != 0)
-          gather_batch(coverage, keep_batches, _beam_size);
 
         // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
         // finished batches from the reorder indices and then reorder. The motivation for this
