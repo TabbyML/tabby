@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v2.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.7.0) (2021-11-03)
+
+### Changes
+
+* Inputs are now truncated after 1024 tokens by default (see translation option `max_input_length`)
+
+### New features
+
+* Add translation option `max_input_length` to limit the model input length
+* Add translation option `repetition_penalty` to apply an exponential penalty on repeated sequences
+* Add scoring option `with_tokens_score` to also output token-level scores when scoring a file
+
+### Fixes and improvements
+
+* Adapt the length penalty formula when using `normalize_scores` to match other implementations: the scores are divided by `pow(length, length_penalty)`
+* Implement `LayerNorm` with a single CUDA kernel instead of 2
+* Simplify the beam search implementation
+
 ## [v2.6.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.6.0) (2021-10-15)
 
 ### New features
