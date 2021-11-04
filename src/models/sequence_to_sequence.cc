@@ -88,7 +88,7 @@ namespace ctranslate2 {
     void SequenceToSequenceModel::forward_decoder(layers::Decoder& decoder,
                                                   layers::DecoderState& state,
                                                   const std::vector<std::vector<std::string>>& target,
-                                                  StorageView& log_probs) const {
+                                                  StorageView& logits) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::forward_decoder");
       const auto target_ids = _target_vocabulary->to_ids(target,
@@ -102,15 +102,14 @@ namespace ctranslate2 {
                                                             _preferred_size_multiple);
 
 
-      decoder(ids, lengths, state, log_probs);
-      ops::LogSoftMax()(log_probs);
+      decoder(ids, lengths, state, logits);
     }
 
     void SequenceToSequenceModel::forward(layers::Encoder& encoder,
                                           layers::Decoder& decoder,
                                           const std::vector<std::vector<std::string>>& source,
                                           const std::vector<std::vector<std::string>>& target,
-                                          StorageView& log_probs) const {
+                                          StorageView& logits) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::forward");
       StorageView memory(encoder.output_type(), _device);
@@ -120,7 +119,7 @@ namespace ctranslate2 {
       layers::DecoderState state = decoder.initial_state(/*iterative_decoding=*/false);
       state.emplace("memory", std::move(memory));
       state.emplace("memory_lengths", std::move(memory_lengths));
-      forward_decoder(decoder, state, target, log_probs);
+      forward_decoder(decoder, state, target, logits);
     }
 
     std::vector<ScoringResult>
@@ -139,8 +138,10 @@ namespace ctranslate2 {
         target_inputs = truncate_inputs(target_inputs, max_input_length);
       }
 
-      StorageView log_probs(decoder.output_type(), _device);
-      forward(encoder, decoder, source_inputs, target_inputs, log_probs);
+      StorageView logits(decoder.output_type(), _device);
+      forward(encoder, decoder, source_inputs, target_inputs, logits);
+      StorageView log_probs = std::move(logits);
+      ops::LogSoftMax()(log_probs);
 
       const auto target_ids_out = _target_vocabulary->to_ids(target_inputs,
                                                              /*add_bos=*/false,

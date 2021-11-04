@@ -31,13 +31,13 @@ namespace ctranslate2 {
       void forward_decoder(layers::Decoder& decoder,
                            layers::DecoderState& state,
                            const std::vector<std::vector<std::string>>& target,
-                           StorageView& log_probs) const;
+                           StorageView& logits) const;
 
       void forward(layers::Encoder& encoder,
                    layers::Decoder& decoder,
                    const std::vector<std::vector<std::string>>& source,
                    const std::vector<std::vector<std::string>>& target,
-                   StorageView& log_probs) const;
+                   StorageView& logits) const;
 
       std::vector<ScoringResult>
       score(layers::Encoder& encoder,
