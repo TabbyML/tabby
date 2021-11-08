@@ -233,6 +233,25 @@ namespace ctranslate2 {
     }
   }
 
+  static inline std::vector<std::vector<bool>>
+  get_beams_divergence_from_prefix(const std::vector<std::vector<bool>>& beams_diverged_from_prefix,
+                                   const size_t step,
+                                   const StorageView& sampled_ids,
+                                   const std::vector<std::vector<size_t>>& prefix_ids,
+                                   const std::vector<dim_t>& batch_offset) {
+    auto updated = beams_diverged_from_prefix;
+    for (dim_t i = 0; i < sampled_ids.dim(0); ++i) {
+      for (dim_t k = 0; k < sampled_ids.dim(1); ++k) {
+        const size_t word_id = sampled_ids.at<int32_t>({i, k});
+        const auto& prefix = prefix_ids[batch_offset[i]];
+        updated[i][k] = (step >= prefix.size()
+                         || beams_diverged_from_prefix[i][k]
+                         || word_id != prefix[step]);
+      }
+    }
+    return updated;
+  }
+
   static inline bool
   all_beams_diverged_from_prefix(const std::vector<std::vector<bool>>& beams_diverged_from_prefix) {
     for (const auto& batch : beams_diverged_from_prefix) {
@@ -369,9 +388,6 @@ namespace ctranslate2 {
 
       // Unflatten the ids.
       gather_indices.resize({cur_batch_size * _beam_size});
-      std::vector<std::vector<bool>> prev_beams_diverged_from_prefix;
-      if (bias_towards_prefix)
-        prev_beams_diverged_from_prefix = beams_diverged_from_prefix;
       for (dim_t i = 0; i < topk_ids.size(); ++i) {
         auto flat_id = topk_ids.at<int32_t>(i);
         auto beam_id = flat_id / vocabulary_size;
@@ -385,15 +401,14 @@ namespace ctranslate2 {
         gather_indices.at<int32_t>(i) = (is_expanded
                                          ? beam_id + batch_id * _beam_size
                                          : batch_id);
-
-        if (bias_towards_prefix) {
-          const auto& prefix = (*prefix_ids)[batch_offset[batch_id]];
-          beams_diverged_from_prefix[batch_id][i % _beam_size] = (
-            static_cast<size_t>(step) >= prefix.size()
-            || prev_beams_diverged_from_prefix[batch_id][beam_id]
-            || static_cast<size_t>(word_id) != prefix[step]);
-        }
       }
+
+      if (bias_towards_prefix)
+        beams_diverged_from_prefix = get_beams_divergence_from_prefix(beams_diverged_from_prefix,
+                                                                      step,
+                                                                      topk_ids,
+                                                                      *prefix_ids,
+                                                                      batch_offset);
 
       // Append last prediction.
       append_step_output(alive_seq, topk_ids, gather_indices);
