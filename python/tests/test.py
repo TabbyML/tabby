@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 import numpy as np
 
 import ctranslate2
@@ -279,6 +280,23 @@ def test_hard_target_prefix():
     )
     assert output[0].hypotheses[0][:3] == ["a", "t", "s"]
     assert output[1].hypotheses[0] == ["a", "c", "h", "i", "s", "o", "n"]
+
+
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_hard_target_prefix_with_vmap(tmpdir, beam_size):
+    model_dir = str(tmpdir.join("model"))
+    shutil.copytree(_get_model_path(), model_dir)
+    with open(os.path.join(model_dir, "vmap.txt"), "w") as vmap:
+        vmap.write("ن\tt z m o n\n")
+
+    translator = ctranslate2.Translator(model_dir)
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        target_prefix=[["a", "t", "z"]],
+        beam_size=beam_size,
+        use_vmap=True,
+    )
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 def test_strongly_biased_target_prefix():
