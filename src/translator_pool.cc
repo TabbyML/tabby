@@ -18,7 +18,9 @@ namespace ctranslate2 {
                                  const std::string& model_dir,
                                  const Device device,
                                  const int device_index,
-                                 const ComputeType compute_type) {
+                                 const ComputeType compute_type)
+    : _num_active_jobs(0)
+  {
     create_translators(num_translators,
                        num_threads_per_translator,
                        model_dir,
@@ -32,7 +34,9 @@ namespace ctranslate2 {
                                  const std::string& model_dir,
                                  const Device device,
                                  const std::vector<int>& device_indices,
-                                 const ComputeType compute_type) {
+                                 const ComputeType compute_type)
+    : _num_active_jobs(0)
+  {
     create_translators(num_translators_per_device,
                        num_threads_per_translator,
                        model_dir,
@@ -95,6 +99,7 @@ namespace ctranslate2 {
     // locked again here
 
     _work.emplace(std::move(job));
+    _num_active_jobs++;
 
     lock.unlock();
     _can_get_job.notify_one();
@@ -249,6 +254,7 @@ namespace ctranslate2 {
       _can_add_job.notify_one();
 
       job->run(translator);
+      _num_active_jobs--;
     }
   }
 
@@ -408,6 +414,10 @@ namespace ctranslate2 {
   size_t TranslatorPool::num_queued_batches() {
     const std::lock_guard<std::mutex> lock(_mutex);
     return _work.size();
+  }
+
+  size_t TranslatorPool::num_active_batches() const {
+    return _num_active_jobs;
   }
 
   size_t TranslatorPool::num_translators() const {

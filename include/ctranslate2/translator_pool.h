@@ -401,7 +401,11 @@ namespace ctranslate2 {
       return stats;
     }
 
+    // Number of batches in the work queue.
     size_t num_queued_batches();
+    // Number of batches in the work queue or currently processed by a worker.
+    size_t num_active_batches() const;
+
     size_t num_translators() const;
     const std::vector<Translator>& get_translators() const;
 
@@ -695,6 +699,7 @@ namespace ctranslate2 {
     std::queue<std::unique_ptr<Job>> _work;
     std::vector<std::thread> _workers;
     std::vector<Translator> _translators;
+    std::atomic<size_t> _num_active_jobs;
     std::mutex _mutex;
     bool _request_end = false;
 

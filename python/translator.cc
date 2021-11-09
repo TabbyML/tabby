@@ -165,6 +165,10 @@ public:
     return _translator_pool.num_queued_batches();
   }
 
+  size_t num_active_batches() const {
+    return _translator_pool.num_active_batches();
+  }
+
   using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
   using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
 
@@ -397,6 +401,10 @@ public:
     if (to_cpu && _device == ctranslate2::Device::CPU)
       return;
 
+    // Do not unload the model if some batches are still being processed.
+    if (_translator_pool.num_active_batches() > 0)
+      return;
+
     // If the lock is not acquired immediately it means the model is being used
     // in another thread and we can't unload it at this time.
     std::unique_lock lock(_mutex, std::try_to_lock);
@@ -554,6 +562,7 @@ PYBIND11_MODULE(translator, m)
     .def_property_readonly("device_index", &TranslatorWrapper::device_index)
     .def_property_readonly("num_translators", &TranslatorWrapper::num_translators)
     .def_property_readonly("num_queued_batches", &TranslatorWrapper::num_queued_batches)
+    .def_property_readonly("num_active_batches", &TranslatorWrapper::num_active_batches)
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          py::arg("source"),
          py::arg("target_prefix")=py::none(),

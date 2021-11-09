@@ -60,6 +60,7 @@ translator.device              # Device this translator is running on.
 translator.device_index        # List of device IDs where this translator is running on.
 translator.num_translators     # Number of translators backing this instance.
 translator.num_queued_batches  # Number of batches waiting to be translated.
+translator.num_active_batches  # Number of batches waiting to be translated or currently in translation.
 
 # results is a list of TranslationResult instances that have the following properties:
 # * hypotheses
@@ -172,7 +173,7 @@ stats = translator.score_file(
 
 ## Memory management API
 
-* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if the translator is used simultaneously in another thread.
+* `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if translations are running concurrently.
   * `to_cpu`: If `True`, the model is moved to the CPU memory and not fully unloaded.
 * `translator.load_model()`<br/>Load the model back to the initial device.
 * `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.

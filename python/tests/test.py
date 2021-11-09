@@ -104,6 +104,7 @@ def test_batch_translation_async():
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
         asynchronous=True,
     )
+    assert translator.num_active_batches == 1
     assert output[0].result().hypotheses == [["a", "t", "z", "m", "o", "n"]]
     assert output[1].result().hypotheses == [["a", "c", "h", "i", "s", "o", "n"]]
     assert output[0].done()
@@ -458,12 +459,26 @@ def test_model_unload(to_cpu):
     translator = _get_transliterator()
     translator.unload_model(to_cpu=to_cpu)
     if not to_cpu:
+        assert not translator.model_is_loaded
         with pytest.raises(RuntimeError, match="unloaded"):
             translator.translate_batch(batch)
+    else:
+        assert translator.model_is_loaded
     translator.load_model()
+    assert translator.model_is_loaded
     output = translator.translate_batch(batch)
     assert len(output) == 1
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+
+
+def test_model_unload_while_async_translation():
+    translator = _get_transliterator()
+    outputs = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]], asynchronous=True
+    )
+    translator.unload_model()
+    assert translator.model_is_loaded
+    assert outputs[0].result().hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 _FRAMEWORK_DATA_EXIST = os.path.isdir(
