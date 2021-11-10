@@ -20,7 +20,7 @@ namespace ctranslate2 {
       // We can gather in place if the output is not larger than data and indices are in
       // strictly increasing order (i.e. we never need to gather from a previous index).
       const auto* input_begin = input.data<int32_t>();
-      const auto* input_end = input.data<int32_t>() + input.size();
+      const auto* input_end = input_begin + input.size();
       return (input.device() == Device::CPU
               && input.size() <= data.dim(0)
               && std::adjacent_find(input_begin, input_end, std::greater_equal<int32_t>()) == input_end);
@@ -30,12 +30,12 @@ namespace ctranslate2 {
     void gather_batch_inplace(StorageView& data, const StorageView& input) {
       const auto* indices = input.data<int32_t>();
       auto* dst = data.data<T>();
+      const auto* src = dst;
       const auto copy_dim = data.stride(0);
       for (dim_t i = 0; i < input.size(); ++i) {
-        if (static_cast<dim_t>(indices[i]) != i) {
-          const auto* src = data.data<T>() + indices[i] * copy_dim;
-          primitives<Device::CPU>::copy(src, dst, copy_dim);
-        }
+        const dim_t index = indices[i];
+        if (index != i)
+          primitives<Device::CPU>::copy(src + index * copy_dim, dst, copy_dim);
         dst += copy_dim;
       }
     }
