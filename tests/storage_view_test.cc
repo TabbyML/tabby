@@ -1,12 +1,6 @@
 #include "test_utils.h"
 #include "ctranslate2/storage_view.h"
 
-TEST(StorageViewTest, Strides) {
-  Shape shape{2, 4, 6};
-  auto strides = get_strides(shape);
-  EXPECT_EQ(strides, (std::vector<dim_t>{24, 6, 1}));
-}
-
 TEST(StorageViewTest, ZeroDim) {
   StorageView a({2, 0, 2});
   EXPECT_EQ(a.size(), 0);

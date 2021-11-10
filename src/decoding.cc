@@ -460,7 +460,7 @@ namespace ctranslate2 {
         auto& result = results[batch_id];
 
         for (dim_t k = 0; k < _beam_size; ++k) {
-          const auto* hypothesis = alive_seq.index<int32_t>({i, k});
+          const auto* hypothesis = alive_seq.index<int32_t>({i, k, 0});
           const size_t last_id = hypothesis[max_time - 1];
 
           if (last_id == end_id || step + 1 == max_step) {
@@ -488,7 +488,7 @@ namespace ctranslate2 {
               result.attention.emplace_back();
               result.attention.back().reserve(max_time);
               for (dim_t t = 0; t < max_time; ++t) {
-                const auto* attn_vec = alive_attention.index<float>({i, k, t});
+                const auto* attn_vec = alive_attention.index<float>({i, k, t, 0});
                 result.attention.back().emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
               }
             }
@@ -634,7 +634,7 @@ namespace ctranslate2 {
         if (return_scores)
           results[batch_id].scores[0] += best_probs.at<float>(i);
         if (return_attention) {
-          const auto* attn = attention_step.index<float>({i});
+          const auto* attn = attention_step.index<float>({i, 0});
           results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
         }
         if (word_id != end_id) {

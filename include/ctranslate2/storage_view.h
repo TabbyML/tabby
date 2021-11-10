@@ -56,17 +56,6 @@ namespace ctranslate2 {
     return stride;
   }
 
-  inline std::vector<dim_t> get_strides(const Shape& shape) {
-    const dim_t rank = shape.size();
-    if (rank == 0)
-      return {};
-    std::vector<dim_t> strides(rank);
-    strides[rank - 1] = 1;
-    for (dim_t i = rank - 2; i >= 0; --i)
-      strides[i] = strides[i + 1] * shape[i + 1];
-    return strides;
-  }
-
   // This class is a light wrapper around an allocated buffer which adds shape information.
   //
   // 1. it can be resized, reshaped, copied, and assigned;

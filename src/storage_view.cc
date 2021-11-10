@@ -313,11 +313,24 @@ namespace ctranslate2 {
   template <typename T>
   const T* StorageView::index(std::initializer_list<dim_t> indices) const {
     ASSERT_DTYPE(DataTypeToEnum<T>::value);
+    const dim_t num_indices = indices.size();
+    if (num_indices != rank())
+      THROW_INVALID_ARGUMENT("number of indexed dimensions ("
+                             + std::to_string(indices.size())
+                             + ") does not match the storage rank ("
+                             + std::to_string(rank()) + ")");
+
     dim_t offset = 0;
-    dim_t i = 0;
-    const auto strides = get_strides(_shape);
-    for (const dim_t index : indices)
-      offset += index * strides[i++];
+    if (num_indices > 0) {
+      dim_t stride = 1;
+      auto index_it = std::crbegin(indices);
+      auto dim_it = std::crbegin(_shape);
+      for (; index_it != std::crend(indices); ++index_it, ++dim_it) {
+        offset += *index_it * stride;
+        stride *= *dim_it;
+      }
+    }
+
     if (offset >= _size)
       THROW_INVALID_ARGUMENT("computed index is out of bounds ("
                              + std::to_string(offset) + " >= "
