@@ -299,7 +299,6 @@ namespace ctranslate2 {
   std::vector<T> StorageView::to_vector() const {
     if (_device != Device::CPU)
       return to(Device::CPU).to_vector<T>();
-    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     const T* begin = data<T>();
     const T* end = begin + _size;
     return std::vector<T>(begin, end);
@@ -312,7 +311,6 @@ namespace ctranslate2 {
 
   template <typename T>
   const T* StorageView::index(std::initializer_list<dim_t> indices) const {
-    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     const dim_t num_indices = indices.size();
     if (num_indices != rank())
       THROW_INVALID_ARGUMENT("number of indexed dimensions ("
@@ -363,7 +361,6 @@ namespace ctranslate2 {
 
   template <typename T>
   StorageView& StorageView::fill(T value) {
-    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));
     return *this;
   }
@@ -375,7 +372,6 @@ namespace ctranslate2 {
 
   template <typename T>
   StorageView& StorageView::copy_from(const T* data, dim_t size, Device device) {
-    ASSERT_DTYPE(DataTypeToEnum<T>::value);
     if (size != _size)
       THROW_INVALID_ARGUMENT("buffer to copy is of size " + std::to_string(size)
                              + " but current storage size is " + std::to_string(_size));

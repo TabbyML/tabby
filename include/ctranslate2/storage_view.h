@@ -17,18 +17,6 @@ namespace ctranslate2 {
                            + dtype_name(_dtype));                       \
   }
 
-#define ASSERT_DEVICE(DEVICE)                                           \
-  if (_device != DEVICE) {                                              \
-    THROW_INVALID_ARGUMENT("expected storage to be on device "          \
-                           + device_to_str(DEVICE)                      \
-                           + ", but is on device "                      \
-                           + device_to_str(_device));                   \
-  }
-
-#define ASSERT_COMPATIBLE(DTYPE, DEVICE)      \
-  ASSERT_DTYPE(DTYPE);                        \
-  ASSERT_DEVICE(DEVICE)
-
 #define GUARD_DIM(DIM, RANK)                                            \
   do {                                                                  \
     if (DIM >= RANK)                                                    \
