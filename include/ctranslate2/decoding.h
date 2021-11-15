@@ -25,6 +25,7 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const float repetition_penalty = 1,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
 
@@ -33,7 +34,6 @@ namespace ctranslate2 {
     BeamSearch(const dim_t beam_size,
                const float length_penalty = 0,
                const float coverage_penalty = 0,
-               const float repetition_penalty = 1,
                const float prefix_bias_beta = 0,
                const bool early_exit = true);
 
@@ -51,13 +51,13 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const float repetition_penalty = 1,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
     const dim_t _beam_size;
     const float _length_penalty;
     const float _coverage_penalty;
-    const float _repetition_penalty;
     const float _prefix_bias_beta;
     const bool _early_exit;
   };
@@ -96,6 +96,7 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const float repetition_penalty = 1,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
@@ -114,6 +115,7 @@ namespace ctranslate2 {
          const bool return_alternatives,
          const bool return_scores,
          const bool return_attention,
-         const bool normalize_scores);
+         const bool normalize_scores,
+         const float repetition_penalty);
 
 }

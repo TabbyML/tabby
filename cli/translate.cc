@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("coverage_penalty", "Coverage penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
-    ("repetition_penalty", "Repetition penalty to apply during beam search",
+    ("repetition_penalty", "Penalty applied to the score of previously generated tokens (set > 1 to penalize)",
      cxxopts::value<float>()->default_value("1"))
     ("prefix_bias_beta", "Parameter for biasing translations towards given prefix",
      cxxopts::value<float>()->default_value("0"))

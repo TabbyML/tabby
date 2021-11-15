@@ -53,13 +53,20 @@ namespace ctranslate2 {
                                                          log_probs.dim(0)));
   }
 
-  static void penalize_tokens(StorageView& log_probs, const StorageView& ids, const float penalty) {
+  static void penalize_previous_tokens(StorageView& log_probs,
+                                       const StorageView& previous_ids,
+                                       const float penalty) {
+    StorageView previous_scores(log_probs.device(), log_probs.dtype());
+    ops::Gather(/*axis=*/-1, /*batch_dims=*/1)(log_probs, previous_ids, previous_scores);
+
     DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
-                             primitives<D>::penalize_tokens(log_probs.data<T>(),
-                                                            ids.data<int32_t>(),
-                                                            static_cast<T>(penalty),
-                                                            log_probs.dim(0),
-                                                            log_probs.dim(-1)));
+                             primitives<D>::penalize_previous_tokens(log_probs.data<T>(),
+                                                                     previous_scores.data<T>(),
+                                                                     previous_ids.data<int32_t>(),
+                                                                     static_cast<T>(penalty),
+                                                                     log_probs.dim(0),
+                                                                     previous_ids.dim(-1),
+                                                                     log_probs.dim(-1)));
   }
 
   static void update_sample_with_prefix(const size_t step,
@@ -284,13 +291,11 @@ namespace ctranslate2 {
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
-                         const float repetition_penalty,
                          const float prefix_bias_beta,
                          const bool early_exit)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
-    , _repetition_penalty(repetition_penalty)
     , _prefix_bias_beta(prefix_bias_beta)
     , _early_exit(early_exit)
   {
@@ -310,6 +315,7 @@ namespace ctranslate2 {
                      const bool return_scores,
                      const bool return_attention,
                      const size_t num_hypotheses,
+                     const float repetition_penalty,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
     const dim_t min_step = start_step + min_length;
@@ -355,15 +361,20 @@ namespace ctranslate2 {
 
       // Compute log probs for the current step.
       StorageView attention_step(dtype, device);
-      const auto topk_ids_device = topk_ids.to(device);
       decoder(step,
-              topk_ids_device,
+              topk_ids.to(device),
               state,
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
               (return_attention || _coverage_penalty != 0) ? &attention_step : nullptr);
 
       const dim_t cur_batch_size = is_expanded ? logits.dim(0) / _beam_size : logits.dim(0);
       const dim_t vocabulary_size = logits.dim(-1);
+
+      if (repetition_penalty != 1 && alive_seq) {
+        merge_batch_beam(alive_seq);
+        penalize_previous_tokens(logits, alive_seq.to(device), repetition_penalty);
+        split_batch_beam(alive_seq, _beam_size);
+      }
 
       StorageView log_probs(dtype, device);
       if (bias_towards_prefix) {
@@ -383,8 +394,6 @@ namespace ctranslate2 {
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
         disable_token(log_probs, end_id);
-      if (_repetition_penalty != 1)
-        penalize_tokens(log_probs, topk_ids_device, _repetition_penalty);
 
       // Multiply by the current beam log probs.
       if (is_expanded) {
@@ -574,6 +583,7 @@ namespace ctranslate2 {
                        const bool return_scores,
                        const bool return_attention,
                        const size_t,
+                       const float repetition_penalty,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
     const dim_t min_step = start_step + min_length;
@@ -595,6 +605,7 @@ namespace ctranslate2 {
 
     StorageView best_ids(DataType::INT32);
     StorageView best_probs(dtype);
+    StorageView alive_seq(DataType::INT32);
     StorageView attention_step;
     StorageView attention_step_device(dtype, device);
 
@@ -604,6 +615,9 @@ namespace ctranslate2 {
               state,
               &logits,
               return_attention ? &attention_step_device : nullptr);
+
+      if (repetition_penalty != 1 && alive_seq)
+        penalize_previous_tokens(logits, alive_seq.to(device), repetition_penalty);
 
       // Compute log probs only if scores should be returned.
       StorageView log_probs(dtype, device);
@@ -622,6 +636,16 @@ namespace ctranslate2 {
         update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
       if (return_attention)
         attention_step.copy_from(attention_step_device.to_float());
+
+      // When repetition penalty is enabled, we should keep the previously generated tokens.
+      if (repetition_penalty != 1) {
+        if (alive_seq) {
+          const StorageView cur_alive_seq = std::move(alive_seq);
+          ops::Concat(-1)({&cur_alive_seq, &best_ids}, alive_seq);
+        } else {
+          alive_seq = best_ids;
+        }
+      }
 
       const dim_t cur_batch_size = log_probs.dim(0);
       std::vector<int32_t> non_finished_index;
@@ -654,6 +678,8 @@ namespace ctranslate2 {
         batch_offset = index_vector(batch_offset, non_finished_index);
 
         StorageView alive({count_alive}, non_finished_index);
+        if (alive_seq)
+          gather(alive_seq, alive);
         gather(sample_from, alive);
         auto alive_device = alive.to(device);
         decoder.gather_state(state, alive_device);
@@ -709,7 +735,8 @@ namespace ctranslate2 {
          const bool return_alternatives,
          const bool return_scores,
          const bool return_attention,
-         const bool normalize_scores) {
+         const bool normalize_scores,
+         const float repetition_penalty) {
     const size_t batch_size = start_ids.size();
     dim_t start_step = 0;
 
@@ -791,6 +818,7 @@ namespace ctranslate2 {
                                           return_scores,
                                           return_attention,
                                           return_alternatives ? 1 : num_hypotheses,
+                                          repetition_penalty,
                                           return_alternatives ? nullptr : prefix_ids);
 
     if (return_alternatives) {

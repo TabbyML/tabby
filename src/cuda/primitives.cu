@@ -192,34 +192,40 @@ namespace ctranslate2 {
   };
 
   template <typename T>
-  __global__ void penalize_tokens_kernel(T* scores,
-                                         const int32_t* ids,
-                                         float penalty,
-                                         cuda::index_t batch_size,
-                                         cuda::index_t vocabulary_size) {
-    for (cuda::index_t batch = blockIdx.x * blockDim.x + threadIdx.x;
-         batch < batch_size;
-         batch += blockDim.x * gridDim.x) {
-      const cuda::index_t i = batch * vocabulary_size + ids[batch];
-      const float score = scores[i];
-      scores[i] = (score < 0.f ? score * penalty : score / penalty);
+  __global__ void penalize_previous_tokens_kernel(T* scores,
+                                                  const T* previous_scores,
+                                                  const int32_t* previous_ids,
+                                                  float penalty,
+                                                  cuda::index_t batch_size,
+                                                  cuda::index_t length,
+                                                  cuda::index_t vocabulary_size) {
+    for (cuda::index_t i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < batch_size * length;
+         i += blockDim.x * gridDim.x) {
+      const cuda::index_t write_index = (i / length) * vocabulary_size + previous_ids[i];
+      const float score = previous_scores[i];
+      scores[write_index] = (score < 0.f ? score * penalty : score / penalty);
     }
   }
 
   template<>
   template <typename T>
-  void primitives<Device::CUDA>::penalize_tokens(T* scores,
-                                                 const int32_t* ids,
-                                                 T penalty,
-                                                 dim_t batch_size,
-                                                 dim_t vocabulary_size) {
+  void primitives<Device::CUDA>::penalize_previous_tokens(T* scores,
+                                                          const T* previous_scores,
+                                                          const int32_t* previous_ids,
+                                                          T penalty,
+                                                          dim_t batch_size,
+                                                          dim_t length,
+                                                          dim_t vocabulary_size) {
     dim3 block(32);
-    dim3 grid((batch_size + block.x - 1) / block.x);
-    penalize_tokens_kernel<<<grid, block, 0, cuda::get_cuda_stream()>>>(
+    dim3 grid((batch_size * length + block.x - 1) / block.x);
+    penalize_previous_tokens_kernel<<<grid, block, 0, cuda::get_cuda_stream()>>>(
       cuda::device_cast(scores),
-      ids,
+      cuda::device_cast(previous_scores),
+      previous_ids,
       penalty,
       batch_size,
+      length,
       vocabulary_size);
   }
 
@@ -566,11 +572,13 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::mul_batch_broadcast(const T* a, const T* b, \
                                                 T* c, dim_t a_size, dim_t b_size); \
   template void                                                         \
-  primitives<Device::CUDA>::penalize_tokens(T*,                         \
-                                            const int32_t*,             \
-                                            T,                          \
-                                            dim_t,                      \
-                                            dim_t);                     \
+  primitives<Device::CUDA>::penalize_previous_tokens(T*,                \
+                                                     const T*,          \
+                                                     const int32_t*,    \
+                                                     T,                 \
+                                                     dim_t,             \
+                                                     dim_t,             \
+                                                     dim_t);            \
   template void                                                         \
   primitives<Device::CUDA>::transpose_2d(const T* a,                    \
                                          const dim_t* dims,             \

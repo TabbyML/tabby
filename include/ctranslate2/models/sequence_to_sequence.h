@@ -62,7 +62,8 @@ namespace ctranslate2 {
              const bool return_scores = false,
              const bool return_attention = false,
              const bool replace_unknowns = false,
-             const bool normalize_scores = false) const;
+             const bool normalize_scores = false,
+             const float repetition_penalty = 1) const;
 
       bool with_source_bos() const {
         return _with_source_bos;

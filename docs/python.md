@@ -80,7 +80,7 @@ results = translator.translate_batch(
                                        # unless return_alternatives is set).
     length_penalty: float = 0,         # Length penalty constant to use during beam search.
     coverage_penalty: float = 0,       # Converage penalty constant to use during beam search.
-    repetition_penalty: float = 1,     # Repetition penalty constant to use during beam search.
+    repetition_penalty: float = 1,     # Penalty applied to the score of previously generated tokens (set > 1 to penalize).
     prefix_bias_beta: float = 0,       # Parameter for biasing translations towards given prefix.
     allow_early_exit: bool = True,     # Allow the beam search to exit early when the first beam finishes.
     max_input_length: int = 1024,      # Truncate inputs after this many tokens (set 0 to disable).

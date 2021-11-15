@@ -334,14 +334,21 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
-  void primitives<Device::CPU>::penalize_tokens(T* scores,
-                                                const int32_t* ids,
-                                                T penalty,
-                                                dim_t batch_size,
-                                                dim_t vocabulary_size) {
+  void primitives<Device::CPU>::penalize_previous_tokens(T* scores,
+                                                         const T* previous_scores,
+                                                         const int32_t* previous_ids,
+                                                         T penalty,
+                                                         dim_t batch_size,
+                                                         dim_t length,
+                                                         dim_t vocabulary_size) {
+    #pragma omp parallel for
     for (dim_t i = 0; i < batch_size; ++i) {
-      auto& score = scores[i * vocabulary_size + ids[i]];
-      score = (score < T(0) ? score * penalty : score / penalty);
+      for (dim_t j = 0; j < length; ++j) {
+        const dim_t read_index = i * length + j;
+        const dim_t write_index = i * vocabulary_size + previous_ids[read_index];
+        const auto score = previous_scores[read_index];
+        scores[write_index] = (score < T(0) ? score * penalty : score / penalty);
+      }
     }
   }
 
@@ -1001,11 +1008,13 @@ namespace ctranslate2 {
   primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c, \
                                                dim_t a_size, dim_t b_size); \
   template void                                                         \
-  primitives<Device::CPU>::penalize_tokens(T*,                          \
-                                           const int32_t*,              \
-                                           T,                           \
-                                           dim_t,                       \
-                                           dim_t);                      \
+  primitives<Device::CPU>::penalize_previous_tokens(T*,                 \
+                                                    const T*,           \
+                                                    const int32_t*,     \
+                                                    T,                  \
+                                                    dim_t,              \
+                                                    dim_t,              \
+                                                    dim_t);             \
   template void                                                         \
   primitives<Device::CPU>::transpose_2d(const T* a,                     \
                                         const dim_t* dims,              \

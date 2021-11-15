@@ -206,7 +206,8 @@ namespace ctranslate2 {
                                     const bool return_scores,
                                     const bool return_attention,
                                     const bool replace_unknowns,
-                                    const bool normalize_scores) const {
+                                    const bool normalize_scores,
+                                    const float repetition_penalty) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::sample");
 
@@ -270,7 +271,8 @@ namespace ctranslate2 {
         return_alternatives,
         return_scores,
         return_attention || replace_unknowns,
-        normalize_scores);
+        normalize_scores,
+        repetition_penalty);
 
       // Convert generated ids to tokens.
       std::vector<GenerationResult<std::string>> final_results;

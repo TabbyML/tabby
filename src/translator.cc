@@ -24,7 +24,6 @@ namespace ctranslate2 {
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
                                           options.coverage_penalty,
-                                          options.repetition_penalty,
                                           options.prefix_bias_beta,
                                           options.allow_early_exit);
   }
@@ -45,6 +44,8 @@ namespace ctranslate2 {
       throw std::invalid_argument("max_decoding_length must be > 0");
     if (repetition_penalty <= 0)
       throw std::invalid_argument("repetition_penalty must be > 0");
+    if (repetition_penalty != 1 && use_vmap)
+      throw std::invalid_argument("repetition_penalty is currently not supported with use_vmap");
     if (prefix_bias_beta >= 1)
       throw std::invalid_argument("prefix_bias_beta must be less than 1.0");
     if (prefix_bias_beta > 0 && return_alternatives)
@@ -136,7 +137,8 @@ namespace ctranslate2 {
                                                   options.return_scores,
                                                   options.return_attention,
                                                   options.replace_unknowns,
-                                                  options.normalize_scores);
+                                                  options.normalize_scores,
+                                                  options.repetition_penalty);
 
       for (size_t i = 0; i < batch_results.size(); ++i)
         results[batch.example_index[i]] = std::move(batch_results[i]);
