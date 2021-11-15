@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v2.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.8.0) (2021-11-15)
+
+### Changes
+
+* The Linux Python wheels now use Intel OpenMP instead of GNU OpenMP for consistency with other published binaries
+
+### New features
+
+* Build Python wheels for Windows
+
+### Fixes and improvements
+
+* Fix segmentation fault when calling `Translator.unload_model` while an asynchronous translation is running
+* Fix implementation of repetition penalty that should be applied to all previously generated tokens and not just the tokens of the last step
+* Fix missing application of repetition penalty in greedy search
+* Fix incorrect token index when using a target prefix and a vocabulary mapping file
+* Set the OpenMP flag when compiling on Windows with `-DOPENMP_RUNTIME=INTEL` or `-DOPENMP_RUNTIME=COMP`
+
 ## [v2.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.7.0) (2021-11-03)
 
 ### Changes
