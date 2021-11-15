@@ -1,4 +1,5 @@
 import os
+import sys
 import pytest
 import shutil
 import numpy as np
@@ -114,14 +115,14 @@ def test_batch_translation_async():
 def test_file_translation(tmpdir):
     input_path = str(tmpdir.join("input.txt"))
     output_path = str(tmpdir.join("output.txt"))
-    with open(input_path, "w") as input_file:
+    with open(input_path, "w", encoding="utf-8") as input_file:
         input_file.write("آ ت ز م و ن")
         input_file.write("\n")
         input_file.write("آ ت ش ي س و ن")
         input_file.write("\n")
     translator = _get_transliterator()
     stats = translator.translate_file(input_path, output_path)
-    with open(output_path) as output_file:
+    with open(output_path, encoding="utf-8") as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "a t z m o n"
         assert lines[1].strip() == "a c h i s o n"
@@ -145,7 +146,7 @@ def test_file_translation(tmpdir):
 def test_raw_file_translation(tmpdir):
     input_path = str(tmpdir.join("input.txt"))
     output_path = str(tmpdir.join("output.txt"))
-    with open(input_path, "w") as input_file:
+    with open(input_path, "w", encoding="utf-8") as input_file:
         input_file.write("آتزمون")
         input_file.write("\n")
         input_file.write("آتشيسون")
@@ -171,7 +172,7 @@ def test_raw_file_translation(tmpdir):
         target_detokenize_fn=detokenize_fn,
     )
 
-    with open(output_path) as output_file:
+    with open(output_path, encoding="utf-8") as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "atzmon"
         assert lines[1].strip() == "achison"
@@ -181,12 +182,12 @@ def test_file_translation_with_prefix(tmpdir):
     source_path = str(tmpdir.join("input.txt"))
     target_path = str(tmpdir.join("target.txt"))
     output_path = str(tmpdir.join("output.txt"))
-    with open(source_path, "w") as source_file:
+    with open(source_path, "w", encoding="utf-8") as source_file:
         source_file.write("آ ت ز م و ن")
         source_file.write("\n")
         source_file.write("آ ت ش ي س و ن")
         source_file.write("\n")
-    with open(target_path, "w") as target_file:
+    with open(target_path, "w", encoding="utf-8") as target_file:
         target_file.write("a t s\n")
 
     translator = _get_transliterator()
@@ -199,7 +200,7 @@ def test_file_translation_with_prefix(tmpdir):
             target_path=target_path,
         )
 
-    with open(target_path, "a") as target_file:
+    with open(target_path, "a", encoding="utf-8") as target_file:
         target_file.write("\n")  # No prefix.
 
     translator.translate_file(
@@ -208,7 +209,7 @@ def test_file_translation_with_prefix(tmpdir):
         target_path=target_path,
     )
 
-    with open(output_path) as output_file:
+    with open(output_path, encoding="utf-8") as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "a t s u m o n"
         assert lines[1].strip() == "a c h i s o n"
@@ -218,12 +219,12 @@ def test_raw_file_translation_with_prefix(tmpdir):
     source_path = str(tmpdir.join("input.txt"))
     target_path = str(tmpdir.join("target.txt"))
     output_path = str(tmpdir.join("output.txt"))
-    with open(source_path, "w") as source_file:
+    with open(source_path, "w", encoding="utf-8") as source_file:
         source_file.write("آتزمون")
         source_file.write("\n")
         source_file.write("آتشيسون")
         source_file.write("\n")
-    with open(target_path, "w") as target_file:
+    with open(target_path, "w", encoding="utf-8") as target_file:
         # Write target in reverse to use a different tokenization.
         target_file.write("sta\n")
         target_file.write("\n")
@@ -252,7 +253,7 @@ def test_raw_file_translation_with_prefix(tmpdir):
         target_detokenize_fn=detokenize_fn,
     )
 
-    with open(output_path) as output_file:
+    with open(output_path, encoding="utf-8") as output_file:
         lines = output_file.readlines()
         assert lines[0].strip() == "atsumon"
         assert lines[1].strip() == "achison"
@@ -287,7 +288,7 @@ def test_hard_target_prefix():
 def test_hard_target_prefix_with_vmap(tmpdir, beam_size):
     model_dir = str(tmpdir.join("model"))
     shutil.copytree(_get_model_path(), model_dir)
-    with open(os.path.join(model_dir, "vmap.txt"), "w") as vmap:
+    with open(os.path.join(model_dir, "vmap.txt"), "w", encoding="utf-8") as vmap:
         vmap.write("ن\tt z m o n\n")
 
     translator = ctranslate2.Translator(model_dir)
@@ -417,7 +418,7 @@ def test_score_api(tmpdir):
         np.testing.assert_allclose(scores, expected_scores, rtol=1e-4)
 
     def _write_tokens(batch_tokens, path):
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             for tokens in batch_tokens:
                 f.write(" ".join(tokens))
                 f.write("\n")
@@ -437,7 +438,7 @@ def test_score_api(tmpdir):
     assert stats.num_examples == 2
     assert stats.num_tokens == 13
 
-    with open(output_path) as output_file:
+    with open(output_path, encoding="utf-8") as output_file:
         for line, expected_tokens, expected_scores in zip(
             output_file, target, expected
         ):
@@ -481,12 +482,18 @@ def test_model_unload_while_async_translation():
     assert outputs[0].result().hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-_FRAMEWORK_DATA_EXIST = os.path.isdir(
-    os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")
+skip_if_data_missing = pytest.mark.skipif(
+    not os.path.isdir(
+        os.path.join(_TEST_DATA_DIR, "models", "transliteration-aren-all")
+    ),
+    reason="Data files are not available",
+)
+skip_on_windows = pytest.mark.skipif(
+    sys.platform == "win32", reason="Test case disabled on Windows"
 )
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
 @pytest.mark.parametrize(
     "model_path,src_vocab,tgt_vocab,model_spec",
     [
@@ -527,7 +534,7 @@ def test_opennmt_tf_model_conversion(
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
 @pytest.mark.parametrize("quantization", ["float16", "int16", "int8", "int8_float16"])
 def test_opennmt_tf_model_quantization(tmpdir, quantization):
     model_path = os.path.join(
@@ -551,7 +558,7 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
 def test_opennmt_tf_variables_conversion(tmpdir):
     import opennmt
 
@@ -580,7 +587,7 @@ def test_opennmt_tf_variables_conversion(tmpdir):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
 def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR,
@@ -653,7 +660,8 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
+@skip_on_windows
 def test_opennmt_py_model_conversion(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR,
@@ -670,7 +678,8 @@ def test_opennmt_py_model_conversion(tmpdir):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
+@skip_on_windows
 def test_opennmt_py_relative_transformer(tmpdir):
     model_path = os.path.join(
         _TEST_DATA_DIR,
@@ -690,7 +699,8 @@ def test_opennmt_py_relative_transformer(tmpdir):
     assert output[1].hypotheses[0] == ["a", "r", "t", "h", "e", "r"]
 
 
-@pytest.mark.skipif(not _FRAMEWORK_DATA_EXIST, reason="Data files are not available")
+@skip_if_data_missing
+@skip_on_windows
 def test_fairseq_model_conversion(tmpdir):
     data_dir = os.path.join(
         _TEST_DATA_DIR,

@@ -1,4 +1,4 @@
-fairseq==0.10.2
-OpenNMT-py==2.2.*
+fairseq==0.10.2;platform_system=='Linux' or platform_system=='Darwin'
+OpenNMT-py==2.2.*;platform_system=='Linux' or platform_system=='Darwin'
 OpenNMT-tf[tensorflow]==2.22.*
 pytest

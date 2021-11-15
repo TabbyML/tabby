@@ -124,21 +124,19 @@ translator.translate_batch([["H@@", "ello", "world@@", "!"]])
 
 ### Python package
 
-Python packages are published on [PyPI](https://pypi.org/project/ctranslate2/) for Linux and macOS:
+Python packages are published on [PyPI](https://pypi.org/project/ctranslate2/):
 
 ```bash
 pip install ctranslate2
 ```
 
-To translate on GPU you should install the CUDA 11.x toolkit. The macOS version only supports CPU execution.
-
 **Requirements:**
 
-* OS: Linux, macOS
+* OS: Linux, macOS, Windows
 * Python version: >= 3.6
 * pip version: >= 19.3
-* (optional) CUDA version: 11.x
-* (optional) GPU driver version: >= 450.80.02
+* (optional, Linux only) CUDA version: 11.x
+* (optional, Linux only) GPU driver version: >= 450.80.02
 
 ### Docker images
 

@@ -11,20 +11,6 @@ on:
       - master
 
 jobs:
-  build-windows-minimal:
-    runs-on: windows-2019
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Compile without backend
-        run: |
-          cmake -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE .
-          cmake --build .
-
-
   build-and-test-cpp-x86_64:
     runs-on: ${{ matrix.os }}
     env:
@@ -160,7 +146,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
 
     steps:
       - uses: actions/checkout@v2
@@ -173,8 +159,10 @@ jobs:
           package-dir: python
           output-dir: python/wheelhouse
         env:
+          CIBW_ENVIRONMENT_WINDOWS: CTRANSLATE2_ROOT='${{ github.workspace }}\install'
           CIBW_BEFORE_ALL_LINUX: python/tools/prepare_build_environment_linux.sh
           CIBW_BEFORE_ALL_MACOS: python/tools/prepare_build_environment_macos.sh
+          CIBW_BEFORE_ALL_WINDOWS: bash python/tools/prepare_build_environment_windows.sh
           CIBW_BEFORE_BUILD: pip install -r python/install_requirements.txt
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
           CIBW_ARCHS: auto64
@@ -194,7 +182,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
 
     steps:
       - name: Set up Python 3.6
@@ -205,6 +193,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Prepare test environment
+        shell: bash
         run: |
           ./python/tools/prepare_test_environment.sh
 
@@ -223,7 +212,14 @@ jobs:
         run: |
           pip install *cp36*macosx*.whl
 
+      - name: Install wheel
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          pip install *cp36*win*.whl
+
       - name: Run tests
+        shell: bash
         run: |
           pytest -v python/tests/test.py
 

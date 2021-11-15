@@ -41,10 +41,14 @@ _maybe_add_library_root("CTRANSLATE2")
 
 cflags = ["-std=c++17"]
 ldflags = []
+package_data = {}
 if sys.platform == "darwin":
     # std::visit requires macOS 10.14
     cflags.append("-mmacosx-version-min=10.14")
     ldflags.append("-Wl,-rpath,/usr/local/lib")
+elif sys.platform == "win32":
+    cflags = ["/std:c++17", "/d2FH4-"]
+    package_data["ctranslate2"] = ["*.dll"]
 
 ctranslate2_module = Extension(
     "ctranslate2.translator",
@@ -90,6 +94,7 @@ setup(
     },
     keywords="opennmt nmt neural machine translation cuda mkl inference quantization",
     packages=find_packages(exclude=["bin"]),
+    package_data=package_data,
     ext_modules=[ctranslate2_module],
     python_requires=">=3.6,<3.11",
     install_requires=[

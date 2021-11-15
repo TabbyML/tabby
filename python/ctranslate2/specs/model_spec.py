@@ -288,7 +288,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
 
 
 def _save_lines(path, lines):
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         for line in lines:
             f.write(line)
             f.write("\n")
