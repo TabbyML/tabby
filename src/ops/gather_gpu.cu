@@ -22,7 +22,7 @@ namespace ctranslate2 {
         : _offsets(offsets)
         , _stride(stride) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         const T row = i / _stride;
         const T col = i % _stride;
@@ -45,7 +45,7 @@ namespace ctranslate2 {
         , _depth(depth)
         , _gather_size(gather_size) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         const T row = i / _gather_size;
         return row * _depth + _offsets[i];

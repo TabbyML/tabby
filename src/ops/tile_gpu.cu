@@ -24,7 +24,7 @@ namespace ctranslate2 {
         , _num_tiles(num_tiles)
       {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         const T r = i / (_inner_size * _num_tiles);
         const T c = i % _inner_size;

@@ -183,7 +183,7 @@ namespace ctranslate2 {
       : _rows(rows)
       , _cols(cols) {
     }
-    __host__ __device__
+    __device__
     T operator()(const T i) const {
       const T i0 = i / _rows;
       const T i1 = i % _rows;
@@ -252,7 +252,7 @@ namespace ctranslate2 {
       _b_s1 = _b_d2;
       _b_s2 = 1;
     }
-    __host__ __device__
+    __device__
     T operator()(const T i) const {
       const T i0 = i / _b_s0;
       const T i1 = i / _b_s1 % _b_d1;
@@ -290,7 +290,7 @@ namespace ctranslate2 {
       _b_s2 = _b_d3;
       _b_s3 = 1;
     }
-    __host__ __device__
+    __device__
     T operator()(const T i) const {
       const T i0 = i / _b_s0;
       const T i1 = i / _b_s1 % _b_d1;
@@ -479,7 +479,7 @@ namespace ctranslate2 {
   }
 
   struct exp_func {
-    __host__ __device__
+    __device__
     float operator()(float x) { return expf(x); }
   };
 
@@ -489,7 +489,7 @@ namespace ctranslate2 {
   }
 
   struct log_func {
-    __host__ __device__
+    __device__
     float operator()(float x) { return logf(x); }
   };
 
@@ -506,7 +506,7 @@ namespace ctranslate2 {
   };
 #else
   struct hlog_func {
-    __host__ __device__
+    __device__
     __half operator()(__half x) { return __half(logf(float(x))); }
   };
 #endif

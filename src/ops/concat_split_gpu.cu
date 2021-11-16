@@ -25,7 +25,7 @@ namespace ctranslate2 {
         , _depth(depth)
         , _total_depth(total_depth) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         const T row = i / _depth;
         const T col = i % _depth;
@@ -50,7 +50,7 @@ namespace ctranslate2 {
         , _outer_dim(outer_dim)
         , _total_inner_dim(total_inner_dim) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         const T i0 = i / (_inner_dim * _outer_dim);
         const T i1 = (i / _outer_dim) % _inner_dim;

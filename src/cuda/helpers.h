@@ -95,7 +95,7 @@ namespace ctranslate2 {
       repeat_vec(T size)
         : _size(size) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         return i % _size;
       }
@@ -109,7 +109,7 @@ namespace ctranslate2 {
       repeat_vec_depth(T size)
         : _size(size) {
       }
-      __host__ __device__
+      __device__
       T operator()(const T i) const {
         return i / _size;
       }
@@ -125,7 +125,7 @@ namespace ctranslate2 {
       bind_right(const T& y)
         : _y(y) {
       }
-      __host__ __device__ T operator()(const T& x) const {
+      __device__ T operator()(const T& x) const {
         return _op(x, _y);
       }
     };
@@ -134,35 +134,35 @@ namespace ctranslate2 {
 
     template <typename T>
     struct plus {
-      __host__ __device__ T operator()(const T& lhs, const T& rhs) const {
+      __device__ T operator()(const T& lhs, const T& rhs) const {
         return lhs + rhs;
       }
     };
 
     template <typename T>
     struct minus {
-      __host__ __device__ T operator()(const T& lhs, const T& rhs) const {
+      __device__ T operator()(const T& lhs, const T& rhs) const {
         return lhs - rhs;
       }
     };
 
     template <typename T>
     struct multiplies {
-      __host__ __device__ T operator()(const T& lhs, const T& rhs) const {
+      __device__ T operator()(const T& lhs, const T& rhs) const {
         return lhs * rhs;
       }
     };
 
     template <typename T>
     struct maximum {
-      __host__ __device__ T operator()(const T& lhs, const T& rhs) const {
+      __device__ T operator()(const T& lhs, const T& rhs) const {
         return lhs < rhs ? rhs : lhs;
       }
     };
 
     template <typename T>
     struct minimum {
-      __host__ __device__ T operator()(const T& lhs, const T& rhs) const {
+      __device__ T operator()(const T& lhs, const T& rhs) const {
         return lhs < rhs ? lhs : rhs;
       }
     };
@@ -170,35 +170,35 @@ namespace ctranslate2 {
 #if !CUDA_CAN_USE_HALF
     template<>
     struct plus<__half> {
-      __host__ __device__ __half operator()(const __half& lhs, const __half& rhs) const {
+      __device__ __half operator()(const __half& lhs, const __half& rhs) const {
         return __half(float(lhs) + float(rhs));
       }
     };
 
     template<>
     struct minus<__half> {
-      __host__ __device__ __half operator()(const __half& lhs, const __half& rhs) const {
+      __device__ __half operator()(const __half& lhs, const __half& rhs) const {
         return __half(float(lhs) - float(rhs));
       }
     };
 
     template<>
     struct multiplies<__half> {
-      __host__ __device__ __half operator()(const __half& lhs, const __half& rhs) const {
+      __device__ __half operator()(const __half& lhs, const __half& rhs) const {
         return __half(float(lhs) * float(rhs));
       }
     };
 
     template<>
     struct maximum<__half> {
-      __host__ __device__ __half operator()(const __half& lhs, const __half& rhs) const {
+      __device__ __half operator()(const __half& lhs, const __half& rhs) const {
         return float(lhs) < float(rhs) ? rhs : lhs;
       }
     };
 
     template<>
     struct minimum<__half> {
-      __host__ __device__ __half operator()(const __half& lhs, const __half& rhs) const {
+      __device__ __half operator()(const __half& lhs, const __half& rhs) const {
         return float(lhs) < float(rhs) ? lhs : rhs;
       }
     };
@@ -206,7 +206,7 @@ namespace ctranslate2 {
 
     template <typename T>
     struct relu_func {
-      __host__ __device__ T operator()(T x) const {
+      __device__ T operator()(T x) const {
         return x > T(0) ? x : T(0);
       }
     };
@@ -214,7 +214,7 @@ namespace ctranslate2 {
 #if !CUDA_CAN_USE_HALF
     template<>
     struct relu_func<__half> {
-      __host__ __device__ __half operator()(__half x) const {
+      __device__ __half operator()(__half x) const {
         return float(x) > float(0) ? x : __half(0);
       }
     };
@@ -223,7 +223,7 @@ namespace ctranslate2 {
     template <typename T>
     struct gelu_func {
       // Implicitly promote half to float in this function.
-      __host__ __device__ float operator()(float x) const {
+      __device__ float operator()(float x) const {
         return 0.5f * x * (1.f + tanhf(0.7978845608028654f * (x + 0.044715f * powf(x, 3.f))));
       }
     };
