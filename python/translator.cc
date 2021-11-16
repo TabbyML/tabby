@@ -39,7 +39,7 @@ public:
 
 struct DeviceIndexResolver {
   std::vector<int> operator()(int device_index) const {
-    return std::vector<int>(1, device_index);
+    return {device_index};
   }
 
   std::vector<int> operator()(const std::vector<int>& device_index) const {
