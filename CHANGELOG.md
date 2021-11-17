@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v2.8.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.8.1) (2021-11-17)
+
+### Fixes and improvements
+
+* Fix dtype error when reading float16 scores in greedy search
+* Fix usage of MSVC linker option `/nodefaultlib` that was not correctly passed to the linker
+
 ## [v2.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.8.0) (2021-11-15)
 
 ### Changes
