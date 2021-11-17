@@ -656,7 +656,7 @@ namespace ctranslate2 {
         const size_t batch_id = batch_offset[i];
         results[batch_id].hypotheses[0].push_back(word_id);
         if (return_scores)
-          results[batch_id].scores[0] += best_probs.at<float>(i);
+          results[batch_id].scores[0] += best_probs.scalar_at<float>({i, 0});
         if (return_attention) {
           const auto* attn = attention_step.index<float>({i, 0});
           results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
