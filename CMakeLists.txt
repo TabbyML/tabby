@@ -110,6 +110,8 @@ set(SOURCES
   src/ops/layer_norm_cpu.cc
   src/ops/log.cc
   src/ops/matmul.cc
+  src/ops/mean.cc
+  src/ops/mean_cpu.cc
   src/ops/min_max.cc
   src/ops/mul.cc
   src/ops/multinomial.cc
@@ -394,6 +396,7 @@ if (WITH_CUDA)
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/layer_norm_gpu.cu
+    src/ops/mean_gpu.cu
     src/ops/multinomial_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/tile_gpu.cu

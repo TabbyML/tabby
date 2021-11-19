@@ -139,7 +139,9 @@ namespace ctranslate2 {
                          const bool with_position_encoding = true,
                          const bool with_encoder_attention = true,
                          const bool pre_norm = true,
-                         const ops::ActivationType activation_type = ops::ActivationType::ReLU);
+                         const ops::ActivationType activation_type = ops::ActivationType::ReLU,
+                         const dim_t alignment_layer = -1,
+                         const dim_t alignment_heads = 1);
 
       void set_vocabulary_mask(const StorageView& ids) override;
       void reset_vocabulary_mask() override;
@@ -176,6 +178,8 @@ namespace ctranslate2 {
 
       const bool _with_encoder_attention;
       const dim_t _num_heads;
+      dim_t _alignment_layer;
+      dim_t _alignment_heads;
       const ComputeType _compute_type;
       const Embeddings _embeddings;
       const std::unique_ptr<PositionEncoder> _position_encoder;

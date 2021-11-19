@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include "type_dispatch.h"
-
 namespace ctranslate2 {
   namespace layers {
 
@@ -26,6 +24,27 @@ namespace ctranslate2 {
       }
 
       return positions;
+    }
+
+    StorageView reduce_multi_head_attention(const StorageView& attention,
+                                            dim_t num_heads_to_average) {
+      const DataType dtype = attention.dtype();
+      const Device device = attention.device();
+      const dim_t num_heads = attention.dim(1);
+
+      StorageView reduced_attention(dtype, device);
+
+      if (num_heads_to_average == num_heads)
+        ops::Mean(1)(attention, reduced_attention);
+      else {
+        StorageView heads_to_average(dtype, device);
+        StorageView heads_to_ignore(dtype, device);
+        const std::vector<dim_t> split_size{num_heads_to_average, num_heads - num_heads_to_average};
+        ops::Split(1, split_size)(attention, heads_to_average, heads_to_ignore);
+        ops::Mean(1)(heads_to_average, reduced_attention);
+      }
+
+      return reduced_attention;
     }
 
     static void matmul_with_relative_representations(const ops::MatMul& matmul_op,
@@ -100,15 +119,6 @@ namespace ctranslate2 {
 
       StorageView attn(values.dtype(), values.device());
       ops::SoftMax()(output, values_lengths, attn);
-      if (attention != nullptr) {
-        // Transpose attn to make first head data contiguous.
-        ops::Transpose({1, 0, 2, 3})(attn, output);
-        attention->resize({attn.dim(0), attn.dim(2), attn.dim(3)});
-        TYPE_DISPATCH(output.dtype(),
-                      attention->copy_from(output.data<T>(),
-                                           attention->size(),
-                                           attention->device()));
-      }
 
       const ops::MatMul values_matmul;
       values_matmul(attn, values, output);
@@ -118,6 +128,9 @@ namespace ctranslate2 {
                                      *relative_position_values,
                                      values_matmul,
                                      output);
+
+      if (attention)
+        *attention = std::move(attn);
     }
 
     static std::vector<Dense> make_linear_layers(const models::Model& model,

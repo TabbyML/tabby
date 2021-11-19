@@ -84,6 +84,9 @@ namespace ctranslate2 {
         _activation_type = static_cast<ops::ActivationType>(activation_type->as_scalar<int8_t>());
       else
         _activation_type = ops::ActivationType::ReLU;
+
+      _alignment_layer = get_attribute_with_default<int16_t>("alignment_layer", -1);
+      _alignment_heads = get_attribute_with_default<int16_t>("alignment_heads", 1);
     }
 
     std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
@@ -102,7 +105,9 @@ namespace ctranslate2 {
                                                           !_with_relative_position,
                                                           /*with_encoder_attention=*/true,
                                                           _pre_norm,
-                                                          _activation_type);
+                                                          _activation_type,
+                                                          _alignment_layer,
+                                                          _alignment_heads);
     }
 
   }

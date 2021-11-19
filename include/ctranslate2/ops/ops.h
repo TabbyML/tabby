@@ -12,6 +12,7 @@
 #include "identity.h"
 #include "layer_norm.h"
 #include "matmul.h"
+#include "mean.h"
 #include "mul.h"
 #include "multinomial.h"
 #include "quantize.h"

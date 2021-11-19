@@ -203,7 +203,9 @@ namespace ctranslate2 {
                                            const bool with_position_encoding,
                                            const bool with_encoder_attention,
                                            const bool pre_norm,
-                                           const ops::ActivationType activation_type)
+                                           const ops::ActivationType activation_type,
+                                           const dim_t alignment_layer,
+                                           const dim_t alignment_heads)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
       , _num_heads(num_heads)
@@ -233,6 +235,9 @@ namespace ctranslate2 {
             break;
         }
       }
+
+      _alignment_layer = (alignment_layer < 0 ? _layers.size() + alignment_layer : alignment_layer);
+      _alignment_heads = (alignment_heads == 0 ? _num_heads : alignment_heads);
     }
 
     void TransformerDecoder::set_vocabulary_mask(const StorageView& ids) {
@@ -357,7 +362,7 @@ namespace ctranslate2 {
                       cached_attn_keys,
                       cached_attn_values,
                       layer_out,
-                      l + 1 == _layers.size() ? attention : nullptr,
+                      l == size_t(_alignment_layer) ? attention : nullptr,
                       input_padder.get(),
                       memory_padder.get());
         layer_in = std::move(layer_out);
@@ -368,8 +373,11 @@ namespace ctranslate2 {
         state.erase("memory");
       }
 
-      if (attention && step >= 0)
-        attention->squeeze(1);
+      if (attention) {
+        *attention = reduce_multi_head_attention(*attention, _alignment_heads);
+        if (step >= 0)
+          attention->squeeze(1);
+      }
 
       if (logits) {
         if (_output_norm)

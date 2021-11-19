@@ -8,12 +8,14 @@ from ctranslate2.specs import transformer_spec
 
 _SUPPORTED_ARCHS = {
     "transformer",
+    "transformer_align",
     "transformer_iwslt_de_en",
     "transformer_tiny",
     "transformer_vaswani_wmt_en_de_big",
     "transformer_vaswani_wmt_en_fr_big",
     "transformer_wmt_en_de",
     "transformer_wmt_en_de_big",
+    "transformer_wmt_en_de_big_align",
     "transformer_wmt_en_de_big_t2t",
 }
 
@@ -65,6 +67,8 @@ def _get_model_spec(args):
         args.encoder_attention_heads,
         pre_norm=args.encoder_normalize_before,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+        alignment_layer=getattr(args, "alignment_layer", -1),
+        alignment_heads=getattr(args, "alignment_heads", 0),
     )
 
 

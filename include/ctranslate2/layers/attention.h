@@ -9,6 +9,8 @@ namespace ctranslate2 {
     StorageView make_relative_positions(dim_t length,
                                         dim_t max_position,
                                         bool with_cache = false);
+    StorageView reduce_multi_head_attention(const StorageView& attention,
+                                            dim_t num_heads_to_average);
 
     class MultiHeadAttention : public Layer
     {

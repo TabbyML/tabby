@@ -47,6 +47,8 @@ def _get_model_spec(opt):
         num_heads,
         with_relative_position=with_relative_position,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+        alignment_layer=getattr(opt, "alignment_layer", -1),
+        alignment_heads=getattr(opt, "alignment_heads", 1),
     )
 
 

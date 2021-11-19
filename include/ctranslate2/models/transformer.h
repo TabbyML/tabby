@@ -30,6 +30,8 @@ namespace ctranslate2 {
       bool _with_relative_position;
       bool _pre_norm;
       ops::ActivationType _activation_type;
+      dim_t _alignment_layer;
+      dim_t _alignment_heads;
     };
 
   }

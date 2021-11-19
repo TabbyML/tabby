@@ -319,6 +319,33 @@ TEST_P(OpDeviceTest, SplitNoCopyEqualParts) {
   EXPECT_EQ(z.data<float>(), x.data<float>() + 4);
 }
 
+TEST_P(OpDeviceTest, Mean) {
+  const Device device = GetParam();
+  const StorageView input({2, 3, 2}, std::vector<float>{
+      1, 2, 3, 4, 5, 6,
+      7, 8, 9, 10, 11, 12
+    }, device);
+  StorageView output(device);
+
+  {
+    ops::Mean(0)(input, output);
+    const StorageView expected({3, 2}, std::vector<float>{4, 5, 6, 7, 8, 9}, device);
+    expect_storage_eq(output, expected);
+  }
+
+  {
+    ops::Mean(1)(input, output);
+    const StorageView expected({2, 2}, std::vector<float>{3, 4, 9, 10}, device);
+    expect_storage_eq(output, expected);
+  }
+
+  {
+    ops::Mean(-1)(input, output);
+    const StorageView expected({2, 3}, std::vector<float>{1.5, 3.5, 5.5, 7.5, 9.5, 11.5}, device);
+    expect_storage_eq(output, expected);
+  }
+}
+
 TEST_P(OpDeviceTest, GatherData1D) {
   Device device = GetParam();
   StorageView data({4}, std::vector<float>{1, 2, 3, 4}, device);
