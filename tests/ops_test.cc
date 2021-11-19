@@ -693,11 +693,23 @@ TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
 TEST_P(OpDeviceFPTest, Multinomial) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;
-  StorageView input({2, 4}, std::vector<float>{0, 0, 1, 0, 0, 0, 0, 1}, device);
+  StorageView input({2, 4}, std::vector<float>{0.2, 0.1, 0.6, 0.1, 0.7, 0.2, 0.0, 0.1}, device);
   StorageView output(DataType::INT32, device);
-  StorageView expected({2, 2}, std::vector<int32_t>{2, 2, 3, 3}, device);
-  ops::Multinomial(2)(input.to(dtype), output);
-  expect_storage_eq(output, expected);
+  StorageView counts(input.shape(), int32_t(0));
+
+  constexpr dim_t num_draws = 5000;
+  for (dim_t i = 0; i < num_draws; ++i) {
+    ops::Multinomial(1)(input.to(dtype), output);
+    for (dim_t b = 0; b < output.dim(0); ++b)
+      counts.at<int32_t>({b, output.scalar_at<int32_t>({b, 0})}) += 1;
+  }
+
+  std::vector<int32_t> counts_vec = counts.to_vector<int32_t>();
+  std::vector<float> frequencies(counts_vec.begin(), counts_vec.end());
+  for (auto& frequency : frequencies)
+    frequency /= num_draws;
+
+  expect_storage_eq(StorageView(input.shape(), frequencies), input, 0.05);
 }
 
 TEST_P(OpDeviceFPTest, ReLU) {

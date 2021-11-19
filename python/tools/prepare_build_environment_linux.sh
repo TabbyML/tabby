@@ -10,6 +10,7 @@ yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda
 yum install --setopt=obsoletes=0 -y \
     cuda-nvcc-11-2-11.2.152-1 \
     cuda-cudart-devel-11-2-11.2.152-1 \
+    libcurand-devel-11-2-10.2.3.152-1 \
     libcublas-devel-11-2-11.4.1.1043-1
 ln -s cuda-11.2 /usr/local/cuda
 
