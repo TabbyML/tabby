@@ -1,29 +1,53 @@
-#include <dlfcn.h>
 #include <stdexcept>
 
 #include <cublas_v2.h>
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
-#define CUBLAS_SONAME "libcublas.so." STR(CUBLAS_VER_MAJOR)
+
+#ifdef _WIN32
+#  include <windows.h>
+#  define CUBLAS_LIBNAME "cublas64_" STR(CUBLAS_VER_MAJOR) ".dll"
+#else
+#  include <dlfcn.h>
+#  define CUBLAS_LIBNAME "libcublas.so." STR(CUBLAS_VER_MAJOR)
+#endif
+
+#include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
 
   static void* get_so_handle() {
-    static auto handle = []() {
-      void* handle = dlopen(CUBLAS_SONAME, RTLD_LAZY);
+    static auto so_handle = []() {
+#ifdef _WIN32
+      std::string cuda_path = read_string_from_env("CUDA_PATH");
+      if (!cuda_path.empty()) {
+        cuda_path += "\\bin";
+        SetDllDirectoryA(cuda_path.c_str());
+      }
+      void* handle = static_cast<void*>(LoadLibraryA(CUBLAS_LIBNAME));
+#else
+      void* handle = dlopen(CUBLAS_LIBNAME, RTLD_LAZY);
+#endif
       if (!handle)
-        throw std::runtime_error(dlerror());
+        throw std::runtime_error("Library " + std::string(CUBLAS_LIBNAME)
+                                 + " is not found or cannot be loaded");
       return handle;
     }();
-    return handle;
+    return so_handle;
   }
 
   template <typename Signature>
   Signature load_symbol(const char* name) {
-    void* symbol = dlsym(get_so_handle(), name);
+    void* handle = get_so_handle();
+#ifdef _WIN32
+    void* symbol = reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle), name));
+#else
+    void* symbol = dlsym(handle, name);
+#endif
     if (!symbol)
-      throw std::runtime_error(dlerror());
+      throw std::runtime_error("Cannot load symbol " + std::string(name)
+                               + " from library " + std::string(CUBLAS_LIBNAME));
     return reinterpret_cast<Signature>(symbol);
   }
 
