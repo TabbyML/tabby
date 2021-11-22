@@ -353,6 +353,24 @@ namespace ctranslate2 {
   }
 
   template<>
+  void primitives<Device::CPU>::prepare_length_mask(const int32_t* lengths,
+                                                    dim_t batch_size,
+                                                    dim_t num_heads,
+                                                    dim_t num_queries,
+                                                    bool mask_future,
+                                                    int32_t* mask) {
+    for (dim_t b = 0; b < batch_size; ++b) {
+      const auto length = lengths[b];
+      auto* batch_mask = mask + b * num_heads * num_queries;
+      for (dim_t i = 0; i < num_heads * num_queries; ++i) {
+        batch_mask[i] = (mask_future
+                         ? std::min(length, int32_t((i % num_queries) + 1))
+                         : length);
+      }
+    }
+  }
+
+  template<>
   template <typename T>
   void primitives<Device::CPU>::transpose_2d(const T* a, const dim_t* dims, T* b) {
     #pragma omp parallel for

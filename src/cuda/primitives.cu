@@ -229,6 +229,33 @@ namespace ctranslate2 {
       vocabulary_size);
   }
 
+  __global__ void prepare_length_mask_kernel(const int32_t* lengths,
+                                             cuda::index_t num_heads,
+                                             cuda::index_t num_queries,
+                                             bool mask_future,
+                                             int32_t* mask) {
+    const auto length = lengths[blockIdx.x];
+    mask += blockIdx.x * num_heads * num_queries;
+    for (cuda::index_t i = threadIdx.x; i < num_heads * num_queries; i += blockDim.x)
+      mask[i] = (mask_future ? min(length, int32_t((i % num_queries) + 1)) : length);
+  }
+
+  template<>
+  void primitives<Device::CUDA>::prepare_length_mask(const int32_t* lengths,
+                                                     dim_t batch_size,
+                                                     dim_t num_heads,
+                                                     dim_t num_queries,
+                                                     bool mask_future,
+                                                     int32_t* mask) {
+    const dim_t blocks = std::min(batch_size, cuda::max_blocks);
+    const dim_t threads = std::min(num_heads * num_queries, cuda::max_threads);
+    prepare_length_mask_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(lengths,
+                                                                                num_heads,
+                                                                                num_queries,
+                                                                                mask_future,
+                                                                                mask);
+  }
+
   template<>
   template <typename T>
   void primitives<Device::CUDA>::transpose_2d(const T* a, const dim_t* dims, T* b) {
