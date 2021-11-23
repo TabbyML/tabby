@@ -15,7 +15,10 @@ namespace ctranslate2 {
     }
 
     float normalized_score() const {
-      return cumulated_score() / static_cast<float>(tokens_score.size());
+      const size_t num_tokens = tokens_score.size();
+      if (num_tokens == 0)
+        return 0.f;
+      return cumulated_score() / static_cast<float>(num_tokens);
     }
   };
 
