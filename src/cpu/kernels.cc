@@ -92,7 +92,7 @@ namespace ctranslate2 {
 
       auto vec_accu = Vec<T, ISA>::load(init);
       for (dim_t i = 0; i < size; i += Vec<T, ISA>::width) {
-        auto v = Vec<T, ISA>::load(x + i, Vec<T, ISA>::width, init);
+        auto v = Vec<T, ISA>::load(x + i);
         vec_accu = vec_reduce_func(vec_accu, vec_map_func(v));
       }
 

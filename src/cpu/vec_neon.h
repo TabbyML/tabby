@@ -24,7 +24,11 @@ namespace ctranslate2 {
         return vdupq_n_f32(value);
       }
 
-      static inline value_type load(const float* ptr, dim_t count = width, float default_value = 0) {
+      static inline value_type load(const float* ptr) {
+        return vld1q_f32(ptr);
+      }
+
+      static inline value_type load(const float* ptr, dim_t count, float default_value = 0) {
         if (count == width) {
           return vld1q_f32(ptr);
         } else {
@@ -35,7 +39,11 @@ namespace ctranslate2 {
         }
       }
 
-      static inline void store(value_type value, float* ptr, dim_t count = width) {
+      static inline void store(value_type value, float* ptr) {
+        vst1q_f32(ptr, value);
+      }
+
+      static inline void store(value_type value, float* ptr, dim_t count) {
         if (count == width) {
           vst1q_f32(ptr, value);
         } else {

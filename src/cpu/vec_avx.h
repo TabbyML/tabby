@@ -26,7 +26,11 @@ namespace ctranslate2 {
         return _mm256_set1_ps(value);
       }
 
-      static inline value_type load(const float* ptr, dim_t count = width, float default_value = 0) {
+      static inline value_type load(const float* ptr) {
+        return _mm256_loadu_ps(ptr);
+      }
+
+      static inline value_type load(const float* ptr, dim_t count, float default_value = 0) {
         if (count == width) {
           return _mm256_loadu_ps(ptr);
         } else {
@@ -37,7 +41,11 @@ namespace ctranslate2 {
         }
       }
 
-      static inline void store(value_type value, float* ptr, dim_t count = width) {
+      static inline void store(value_type value, float* ptr) {
+        _mm256_storeu_ps(ptr, value);
+      }
+
+      static inline void store(value_type value, float* ptr, dim_t count) {
         if (count == width) {
           _mm256_storeu_ps(ptr, value);
         } else {

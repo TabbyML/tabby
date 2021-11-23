@@ -20,13 +20,21 @@ namespace ctranslate2 {
         return value;
       }
 
-      static inline value_type load(const T* ptr, dim_t count = width, T default_value = T(0)) {
+      static inline value_type load(const T* ptr) {
+        return *ptr;
+      }
+
+      static inline value_type load(const T* ptr, dim_t count, T default_value = T(0)) {
         (void)count;
         (void)default_value;
         return *ptr;
       }
 
-      static inline void store(value_type value, T* ptr, dim_t count = width) {
+      static inline void store(value_type value, T* ptr) {
+        *ptr = value;
+      }
+
+      static inline void store(value_type value, T* ptr, dim_t count) {
         (void)count;
         *ptr = value;
       }
