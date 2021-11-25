@@ -262,7 +262,7 @@ namespace ctranslate2 {
                                              TranslationOptions options,
                                              std::shared_ptr<JobResultConsumer<TranslationResult>> consumer)
     : BatchJob(std::move(batch), std::move(consumer))
-    , _options(std::move(options))
+    , _options(options)
   {
   }
 
@@ -278,7 +278,7 @@ namespace ctranslate2 {
                                      ScoringOptions options,
                                      std::shared_ptr<JobResultConsumer<ScoringResult>> consumer)
     : BatchJob(std::move(batch), std::move(consumer))
-    , _options(std::move(options))
+    , _options(options)
   {
   }
 

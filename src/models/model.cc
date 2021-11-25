@@ -332,9 +332,8 @@ namespace ctranslate2 {
       }
 
       // Add needed variables.
-      for (auto& variable_pair : variables_to_add)
-        _variable_index.emplace(std::move(variable_pair.first),
-                                std::make_shared<StorageView>(std::move(variable_pair.second)));
+      for (auto& pair : variables_to_add)
+        _variable_index.emplace(pair.first, std::make_shared<StorageView>(std::move(pair.second)));
 
       // Remove no longer needed variables.
       for (const auto& name : variables_to_remove)
@@ -406,8 +405,7 @@ namespace ctranslate2 {
       }
 
       for (auto& pair : variables_to_add)
-        _variable_index.emplace(std::move(pair.first),
-                                std::make_shared<StorageView>(std::move(pair.second)));
+        _variable_index.emplace(pair.first, std::make_shared<StorageView>(std::move(pair.second)));
       for (const auto& name : variables_to_remove)
         _variable_index.erase(name);
     }
@@ -502,7 +500,7 @@ namespace ctranslate2 {
       const auto num_variables = consume<uint32_t>(model_file);
       model->_variable_index.reserve(num_variables);
       for (uint32_t i = 0; i < num_variables; ++i) {
-        const auto name = consume<std::string>(model_file);
+        auto name = consume<std::string>(model_file);
         const size_t rank = consume<uint8_t>(model_file);
         const auto* dimensions = consume<uint32_t>(model_file, rank);
         Shape shape(dimensions, dimensions + rank);

@@ -94,7 +94,7 @@ namespace ctranslate2 {
         // and set the highest probability to the first beam.
         if (step < prefix.size()) {
           new_id = prefix[step];
-          new_score = (k == 0 ? 0 : -1e10);
+          new_score = (k == 0 ? 0.f : float(-1e10));
 
         // When step == prefix_length (the first unconstrained decoding step),
         // only the first beam is expanded. It happens that </s> appears in the topk,

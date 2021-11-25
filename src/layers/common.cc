@@ -89,10 +89,10 @@ namespace ctranslate2 {
       const dim_t num_encodings = encodings.dim(0);
 
       if (max_time > num_encodings)
-        std::runtime_error("No position encodings are defined for positions >= "
-                           + std::to_string(num_encodings)
-                           + ", but got position "
-                           + std::to_string(max_time - 1));
+        throw std::runtime_error("No position encodings are defined for positions >= "
+                                 + std::to_string(num_encodings)
+                                 + ", but got position "
+                                 + std::to_string(max_time - 1));
 
       DEVICE_AND_TYPE_DISPATCH(input.device(), input.dtype(),
                                primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,

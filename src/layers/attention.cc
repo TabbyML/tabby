@@ -110,7 +110,7 @@ namespace ctranslate2 {
                                   with_cache).to(queries.device()));
       }
 
-      const ops::MatMul keys_matmul(/*transpose_a=*/false, /*transpose_b=*/true, queries_scale);
+      const ops::MatMul keys_matmul(/*trans_a=*/false, /*trans_b=*/true, queries_scale);
       keys_matmul(queries, keys, output);
       if (relative_position_keys)
         add_relative_representations(queries,

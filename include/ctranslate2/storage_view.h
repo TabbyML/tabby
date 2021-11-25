@@ -77,7 +77,7 @@ namespace ctranslate2 {
     // Copy constructor.
     StorageView(const StorageView& other);
     // Move constructor (swap of each attribute).
-    StorageView(StorageView&& other);
+    StorageView(StorageView&& other) noexcept;
     ~StorageView();
 
     // Device management.
@@ -159,7 +159,7 @@ namespace ctranslate2 {
 
     // Assignment operators.
     StorageView& operator=(const StorageView& other);
-    StorageView& operator=(StorageView&& other);
+    StorageView& operator=(StorageView&& other) noexcept;
 
     StorageView& shallow_copy(StorageView& other);
 

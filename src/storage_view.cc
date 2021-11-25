@@ -69,7 +69,7 @@ namespace ctranslate2 {
     copy_from(other);
   }
 
-  StorageView::StorageView(StorageView&& other)
+  StorageView::StorageView(StorageView&& other) noexcept
     : _dtype(other._dtype)
     , _device(other._device)
     , _device_index(other._device_index)
@@ -246,15 +246,18 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::operator=(const StorageView& other) {
-    if (_device != other._device || _device_index != other._device_index)
-      release();
-    _device = other._device;
-    _device_index = other._device_index;
-    _dtype = other._dtype;
-    return copy_from(other);
+    if (this != &other) {
+      if (_device != other._device || _device_index != other._device_index)
+        release();
+      _device = other._device;
+      _device_index = other._device_index;
+      _dtype = other._dtype;
+      copy_from(other);
+    }
+    return *this;
   }
 
-  StorageView& StorageView::operator=(StorageView&& other) {
+  StorageView& StorageView::operator=(StorageView&& other) noexcept {
     std::swap(_dtype, other._dtype);
     std::swap(_device, other._device);
     std::swap(_device_index, other._device_index);

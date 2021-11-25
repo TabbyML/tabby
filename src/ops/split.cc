@@ -17,7 +17,7 @@ namespace ctranslate2 {
     Split::Split(dim_t axis, const std::vector<dim_t>& split, bool no_copy)
       : _axis(axis)
       , _split(split)
-      , _total_size(std::accumulate(split.begin(), split.end(), 0))
+      , _total_size(std::accumulate(split.begin(), split.end(), dim_t(0)))
       , _no_copy(no_copy) {
       check_arguments();
     }
