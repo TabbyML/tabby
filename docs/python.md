@@ -39,7 +39,7 @@ output_dir = converter.convert(
 
 ```python
 translator = ctranslate2.Translator(
-    model_path: str                 # Path to the CTranslate2 model directory.
+    model_path: str,                # Path to the CTranslate2 model directory.
     device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
     *,
 
