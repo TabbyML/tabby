@@ -3,6 +3,7 @@
 #include <chrono>
 #include <memory>
 
+#include <cub/cub.cuh>
 #include <curand_kernel.h>
 
 #include "type_dispatch.h"

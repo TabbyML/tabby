@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/mean.h"
 
+#include <cub/cub.cuh>
+
 #include "type_dispatch.h"
 #include "cuda/helpers.h"
 
