@@ -10,7 +10,7 @@
 namespace ctranslate2 {
   namespace cuda {
 
-    std::string cublasGetStatusString(cublasStatus_t status)
+    const char* cublasGetStatusName(cublasStatus_t status)
     {
       switch (status)
       {

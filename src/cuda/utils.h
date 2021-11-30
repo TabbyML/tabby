@@ -25,10 +25,10 @@ namespace ctranslate2 {
       cublasStatus_t status = (ans);                                    \
       if (status != CUBLAS_STATUS_SUCCESS)                              \
         THROW_RUNTIME_ERROR("cuBLAS failed with status "                \
-                            + ctranslate2::cuda::cublasGetStatusString(status)); \
+                            + std::string(ctranslate2::cuda::cublasGetStatusName(status))); \
     }
 
-    std::string cublasGetStatusString(cublasStatus_t status);
+    const char* cublasGetStatusName(cublasStatus_t status);
 
     cudaStream_t get_cuda_stream();
     cublasHandle_t get_cublas_handle();
