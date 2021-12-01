@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/layer_norm.h"
 
+#include <cub/cub.cuh>
+
 #include "cuda/helpers.h"
 #include "cuda/utils.h"
 
@@ -133,33 +135,6 @@ namespace ctranslate2 {
 namespace at {
   namespace native {
 
-#define WARP_SIZE 32
-
-    template <typename T>
-    __inline__ __device__ T WarpReduceSum(T val) {
-      #pragma unroll
-      for (int offset = (WARP_SIZE >> 1); offset > 0; offset >>= 1) {
-        val += __shfl_down_sync(0xffffffff, val, offset, WARP_SIZE);
-      }
-      return val;
-    }
-
-    template <typename T>
-    __inline__ __device__ T BlockReduceSum(T val, T* shared) {
-      const int lid = threadIdx.x % WARP_SIZE;
-      const int wid = threadIdx.x / WARP_SIZE;
-      val = WarpReduceSum(val);
-      if (lid == 0) {
-        shared[wid] = val;
-      }
-      __syncthreads();
-      val = (threadIdx.x < blockDim.x / WARP_SIZE) ? shared[lid] : 0;
-      if (wid == 0) {
-        val = WarpReduceSum(val);
-      }
-      return val;
-    }
-
     template <typename T, typename SizeT>
     __global__ void LayerNormForwardCUDAKernel(SizeT N,
                                                T eps,
@@ -167,8 +142,9 @@ namespace at {
                                                const T* gamma,
                                                const T* beta,
                                                T* Y) {
-      __shared__ float m_shared[WARP_SIZE];
-      __shared__ float v_shared[WARP_SIZE];
+      typedef cub::BlockReduce<float, CUDA_NUM_THREADS> BlockReduce;
+      __shared__ typename BlockReduce::TempStorage m_temp_storage;
+      __shared__ typename BlockReduce::TempStorage v_temp_storage;
       __shared__ float s_mean;
       __shared__ float s_variance;
 
@@ -181,8 +157,8 @@ namespace at {
         sum1 += float(X[index]);
         sum2 += float(X[index]) * float(X[index]);
       }
-      sum1 = BlockReduceSum(sum1, m_shared);
-      sum2 = BlockReduceSum(sum2, v_shared);
+      sum1 = BlockReduce(m_temp_storage).Sum(sum1);
+      sum2 = BlockReduce(v_temp_storage).Sum(sum2);
       if (threadIdx.x == 0) {
         const float scale = float(1) / float(N);
         sum1 *= scale;
