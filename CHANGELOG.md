@@ -4,6 +4,22 @@
 
 ### Fixes and improvements
 
+## [v2.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.9.0) (2021-12-01)
+
+### New features
+
+* Add GPU support to the Windows Python wheels
+* Support OpenNMT-py and Fairseq options `--alignment_layer` and `--alignment_heads` which specify how the multi-head attention is reduced and returned by the Transformer decoder
+* Support dynamic loading of CUDA libraries on Windows
+
+### Fixes and improvements
+
+* Fix division by zero when normalizing the score of an empty target
+* Fix error that was not raised when the input length is greater than the number of position encodings
+* Improve performance of random sampling on GPU for large values of `sampling_topk` or when sampling over the full vocabulary
+* Include `transformer_align` and `transformer_wmt_en_de_big_align` in the list of supported Fairseq architectures
+* Add a CUDA kernel to prepare the length mask to avoid moving back to the CPU
+
 ## [v2.8.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.8.1) (2021-11-17)
 
 ### Fixes and improvements
