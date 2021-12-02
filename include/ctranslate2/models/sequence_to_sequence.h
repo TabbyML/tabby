@@ -65,18 +65,6 @@ namespace ctranslate2 {
              const bool normalize_scores = false,
              const float repetition_penalty = 1) const;
 
-      bool with_source_bos() const {
-        return _with_source_bos;
-      }
-
-      bool with_source_eos() const {
-        return _with_source_eos;
-      }
-
-      bool with_target_bos() const {
-        return _with_target_bos;
-      }
-
     protected:
       SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
       virtual void finalize() override;
