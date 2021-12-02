@@ -8,6 +8,9 @@
 
 using namespace ctranslate2;
 
+const std::string& get_data_dir();
+std::string default_model_dir();
+
 #define ASSERT_RAISES(STMT, EXCEPT)                     \
   do {                                                  \
     try {                                               \

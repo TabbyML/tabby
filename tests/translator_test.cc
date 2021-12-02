@@ -6,8 +6,6 @@
 
 #include "test_utils.h"
 
-extern std::string g_data_dir;
-
 static std::string
 path_to_test_name(::testing::TestParamInfo<std::pair<std::string, DataType>> param_info) {
   std::string name = param_info.param.first;
@@ -53,7 +51,7 @@ class ModelVariantTest : public ::testing::TestWithParam<std::pair<std::string, 
 
 TEST_P(ModelVariantTest, Transliteration) {
   auto params = GetParam();
-  const std::string model_path = g_data_dir + "/models/" + params.first;
+  const std::string model_path = get_data_dir() + "/models/" + params.first;
   const DataType model_dtype = params.second;
   const Device device = Device::CPU;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
@@ -99,10 +97,6 @@ INSTANTIATE_TEST_CASE_P(
 
 class SearchVariantTest : public ::testing::TestWithParam<size_t> {
 };
-
-static std::string default_model_dir() {
-  return g_data_dir + "/models/v2/aren-transliteration";
-}
 
 static Translator default_translator(Device device = Device::CPU) {
   return Translator(default_model_dir(), device);
@@ -769,8 +763,7 @@ TEST(TranslatorTest, DetachModel) {
   EXPECT_THROW(translator.translate(input), std::runtime_error);
   Translator clone(translator);
   EXPECT_THROW(clone.translate(input), std::runtime_error);
-  translator.set_model(models::Model::load(g_data_dir + "/models/v2/aren-transliteration",
-                                           Device::CPU));
+  translator.set_model(models::Model::load(default_model_dir()));
   translator.translate(input);
 }
 

@@ -2,8 +2,6 @@
 
 #include "test_utils.h"
 
-extern std::string g_data_dir;
-
 TEST(ModelTest, ContainsModel) {
-  ASSERT_TRUE(models::contains_model(g_data_dir + "/models/v2/aren-transliteration"));
+  ASSERT_TRUE(models::contains_model(default_model_dir()));
 }
