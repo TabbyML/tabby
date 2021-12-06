@@ -11,12 +11,6 @@ RUN apt-get update && \
 
 WORKDIR /root
 
-ENV CMAKE_VERSION=3.19.7
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz && \
-    tar xf *.tar.gz && \
-    rm *.tar.gz
-ENV PATH=$PATH:/root/cmake-$CMAKE_VERSION-Linux-x86_64/bin
-
 ENV ONEAPI_VERSION=2021.4.0
 ENV MKL_BUILD=640
 ENV DNNL_BUILD=467
@@ -31,6 +25,8 @@ RUN wget -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PROD
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip --no-cache-dir install cmake==3.22.*
 
 COPY third_party third_party
 COPY cli cli
