@@ -27,7 +27,7 @@ namespace ctranslate2 {
         , _states(static_cast<curandState*>(_allocator.allocate(num_states * sizeof (curandState))))
       {
         constexpr size_t num_init_threads = 32;
-        const size_t blocks = num_states / num_init_threads;
+        const size_t blocks = std::max(num_states / num_init_threads, size_t(1));
         init_curand_states_kernel<<<blocks, num_init_threads, 0, cuda::get_cuda_stream()>>>(
           _states, std::chrono::system_clock::now().time_since_epoch().count());
       }
