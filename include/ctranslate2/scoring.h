@@ -6,6 +6,11 @@
 
 namespace ctranslate2 {
 
+  struct ScoringOptions {
+    // Truncate the inputs after this many tokens (set 0 to disable truncation).
+    size_t max_input_length = 1024;
+  };
+
   struct ScoringResult {
     std::vector<std::string> tokens;
     std::vector<float> tokens_score;

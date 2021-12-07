@@ -73,11 +73,6 @@ namespace ctranslate2 {
     bool support_batch_translation() const;
   };
 
-  struct ScoringOptions {
-    // Truncate the inputs after this many tokens (set 0 to disable truncation).
-    size_t max_input_length = 1024;
-  };
-
   // The Translator can run translations from a sequence-to-sequence model.
   // In most cases, you should prefer using the higher level TranslatorPool class which
   // supports parallel translations, asynchronous translations, and input rebatching.
