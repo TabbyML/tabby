@@ -71,6 +71,9 @@ namespace ctranslate2 {
 
     void validate() const;
     bool support_batch_translation() const;
+
+    std::unique_ptr<const Sampler> make_sampler() const;
+    std::unique_ptr<const SearchStrategy> make_search_strategy() const;
   };
 
   // The Translator can run translations from a sequence-to-sequence model.

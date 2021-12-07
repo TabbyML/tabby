@@ -9,26 +9,6 @@
 
 namespace ctranslate2 {
 
-  static std::unique_ptr<const Sampler> make_sampler(const TranslationOptions& options) {
-    if (options.sampling_topk != 1)
-      return std::make_unique<RandomSampler>(options.sampling_topk, options.sampling_temperature);
-    else
-      return std::make_unique<BestSampler>();
-  }
-
-  static std::unique_ptr<const SearchStrategy>
-  make_search_strategy(const TranslationOptions& options) {
-    if (options.beam_size == 1)
-      return std::make_unique<GreedySearch>();
-    else
-      return std::make_unique<BeamSearch>(options.beam_size,
-                                          options.length_penalty,
-                                          options.coverage_penalty,
-                                          options.prefix_bias_beta,
-                                          options.allow_early_exit);
-  }
-
-
   void TranslationOptions::validate() const {
     if (num_hypotheses == 0)
       throw std::invalid_argument("num_hypotheses must be > 0");
@@ -56,6 +36,24 @@ namespace ctranslate2 {
 
   bool TranslationOptions::support_batch_translation() const {
     return !return_alternatives;
+  }
+
+  std::unique_ptr<const Sampler> TranslationOptions::make_sampler() const {
+    if (sampling_topk == 1)
+      return std::make_unique<BestSampler>();
+    else
+      return std::make_unique<RandomSampler>(sampling_topk, sampling_temperature);
+  }
+
+  std::unique_ptr<const SearchStrategy> TranslationOptions::make_search_strategy() const {
+    if (beam_size == 1)
+      return std::make_unique<GreedySearch>();
+    else
+      return std::make_unique<BeamSearch>(beam_size,
+                                          length_penalty,
+                                          coverage_penalty,
+                                          prefix_bias_beta,
+                                          allow_early_exit);
   }
 
 
@@ -126,8 +124,8 @@ namespace ctranslate2 {
                                                   *_decoder,
                                                   batch.source,
                                                   batch.target,
-                                                  *make_search_strategy(options),
-                                                  *make_sampler(options),
+                                                  *options.make_search_strategy(),
+                                                  *options.make_sampler(),
                                                   options.use_vmap,
                                                   options.max_input_length,
                                                   options.max_decoding_length,
