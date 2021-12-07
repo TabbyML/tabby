@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 
-#include "batch_reader.h"
 #include "models/sequence_to_sequence.h"
 
 namespace ctranslate2 {
@@ -151,20 +150,5 @@ namespace ctranslate2 {
     const models::SequenceToSequenceModel* _seq2seq_model = nullptr;
     Allocator* _allocator = nullptr;
   };
-
-  struct Batch {
-    std::vector<std::vector<std::string>> source;
-    std::vector<std::vector<std::string>> target;
-    std::vector<size_t> example_index;  // Index of each example in the original input.
-  };
-
-  // Rebatch the input according to the translation options.
-  // This function can also reorder the examples to improve efficiency.
-  std::vector<Batch>
-  rebatch_input(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target,
-                size_t max_batch_size = 0,
-                BatchType batch_type = BatchType::Examples,
-                bool filter_empty = true);
 
 }

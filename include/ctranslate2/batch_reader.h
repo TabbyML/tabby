@@ -106,4 +106,20 @@ namespace ctranslate2 {
     std::vector<std::unique_ptr<BatchReader>> _readers;
   };
 
+
+  struct Batch {
+    std::vector<std::vector<std::string>> source;
+    std::vector<std::vector<std::string>> target;
+    std::vector<size_t> example_index;  // Index of each example in the original input.
+  };
+
+  // Rebatch the input with a new batch size.
+  // This function also reorders the examples to improve efficiency.
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target,
+                size_t max_batch_size = 0,
+                BatchType batch_type = BatchType::Examples,
+                bool filter_empty = true);
+
 }

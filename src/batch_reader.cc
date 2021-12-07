@@ -1,5 +1,10 @@
 #include "ctranslate2/batch_reader.h"
 
+#include <algorithm>
+#include <numeric>
+
+#include "ctranslate2/utils.h"
+
 namespace ctranslate2 {
 
   BatchType str_to_batch_type(const std::string& batch_type) {
@@ -75,6 +80,76 @@ namespace ctranslate2 {
       batches[i] = _readers[i]->get_next(batch_size);
       if (batches[i].size() != batch_size)
         throw std::runtime_error("One input stream has less elements than the others");
+    }
+
+    return batches;
+  }
+
+
+  std::vector<Batch>
+  rebatch_input(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target,
+                size_t max_batch_size,
+                BatchType batch_type,
+                bool filter_empty) {
+    if (!target.empty() && target.size() != source.size())
+      throw std::invalid_argument("Batch size mismatch: got "
+                                  + std::to_string(source.size()) + " for source and "
+                                  + std::to_string(target.size()) + " for target");
+
+    const size_t global_batch_size = source.size();
+    if (max_batch_size == 0) {
+      max_batch_size = global_batch_size;
+      batch_type = BatchType::Examples;
+    }
+
+    // Sorting the source inputs from the longest to the shortest has 2 benefits:
+    //
+    // 1. When max_batch_size is smaller that the number of inputs, we prefer translating
+    //    together sentences that have a similar length for improved efficiency.
+    // 2. Decoding functions remove finished translations from the batch. On CPU, arrays are
+    //    updated in place so it is more efficient to remove content at the end. Shorter sentences
+    //    are more likely to finish first so we sort the batch accordingly.
+    std::vector<size_t> example_index(global_batch_size);
+    std::iota(example_index.begin(), example_index.end(), 0);
+    std::sort(example_index.begin(), example_index.end(),
+              [&source](size_t i1, size_t i2) {
+                return source[i1].size() > source[i2].size();
+              });
+
+    // Ignore empty examples.
+    // As example_index is sorted from longest to shortest, we simply pop empty examples
+    // from the back.
+    while (filter_empty && !example_index.empty() && source[example_index.back()].empty())
+      example_index.pop_back();
+
+    std::vector<Batch> batches;
+    if (example_index.empty())
+      return batches;
+    batches.reserve(example_index.size());
+
+    ParallelBatchReader batch_reader;
+    batch_reader.add(std::make_unique<VectorReader>(index_vector(source, example_index)));
+    if (!target.empty())
+      batch_reader.add(std::make_unique<VectorReader>(index_vector(target, example_index)));
+
+    for (size_t offset = 0;;) {
+      auto batch_tokens = batch_reader.get_next(max_batch_size, batch_type);
+      if (batch_tokens[0].empty())
+        break;
+
+      Batch batch;
+      batch.source = std::move(batch_tokens[0]);
+      if (batch_tokens.size() > 1)
+        batch.target = std::move(batch_tokens[1]);
+
+      const size_t batch_size = batch.source.size();
+      batch.example_index.insert(batch.example_index.begin(),
+                                 example_index.begin() + offset,
+                                 example_index.begin() + offset + batch_size);
+      offset += batch_size;
+
+      batches.emplace_back(std::move(batch));
     }
 
     return batches;
