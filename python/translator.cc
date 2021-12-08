@@ -520,6 +520,7 @@ PYBIND11_MODULE(translator, m)
   m.def("get_supported_compute_types", &get_supported_compute_types,
         py::arg("device"),
         py::arg("device_index")=0);
+  m.def("set_random_seed", &ctranslate2::set_random_seed, py::arg("seed"));
 
   py::class_<ctranslate2::TranslationResult>(m, "TranslationResult")
     .def_readonly("hypotheses", &ctranslate2::TranslationResult::hypotheses)

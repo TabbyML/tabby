@@ -398,6 +398,15 @@ def test_return_alternatives():
     assert output[0].hypotheses[1] == ["a", "t", "s", "u", "m", "o", "n"]
 
 
+def test_random_sampling():
+    ctranslate2.set_random_seed(46)
+    translator = _get_transliterator()
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]], beam_size=1, sampling_topk=0
+    )
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "u", "n"]
+
+
 def test_score_api(tmpdir):
     source = [
         ["آ", "ت", "ز", "م", "و", "ن"],

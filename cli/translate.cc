@@ -79,6 +79,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<std::vector<int>>()->default_value("0"))
     ("replace_unknowns", "Replace unknown target tokens by the original source token with the highest attention.",
      cxxopts::value<bool>()->default_value("false"))
+    ("seed", "Seed value of the random generators.",
+     cxxopts::value<unsigned int>()->default_value("0"))
     ;
 
   auto args = cmd_options.parse(argc, argv);
@@ -90,6 +92,8 @@ int main(int argc, char* argv[]) {
   if (!args.count("model")) {
     throw std::invalid_argument("Option --model is required to run translation");
   }
+  if (args.count("seed") != 0)
+    ctranslate2::set_random_seed(args["seed"].as<unsigned int>());
 
   size_t inter_threads = args["inter_threads"].as<size_t>();
   size_t intra_threads = args["intra_threads"].as<size_t>();

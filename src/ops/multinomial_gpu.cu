@@ -1,10 +1,11 @@
 #include "ctranslate2/ops/multinomial.h"
 
-#include <chrono>
 #include <memory>
 
 #include <cub/cub.cuh>
 #include <curand_kernel.h>
+
+#include "ctranslate2/utils.h"
 
 #include "type_dispatch.h"
 #include "cuda/helpers.h"
@@ -29,7 +30,7 @@ namespace ctranslate2 {
         constexpr size_t num_init_threads = 32;
         const size_t blocks = std::max(num_states / num_init_threads, size_t(1));
         init_curand_states_kernel<<<blocks, num_init_threads, 0, cuda::get_cuda_stream()>>>(
-          _states, std::chrono::system_clock::now().time_since_epoch().count());
+          _states, get_random_seed());
       }
 
       ~ScopedCurandStates() {

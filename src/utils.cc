@@ -1,6 +1,5 @@
 #include "ctranslate2/utils.h"
 
-#include <chrono>
 #include <cstdlib>
 
 #ifdef _OPENMP
@@ -222,9 +221,19 @@ namespace ctranslate2 {
     return parts;
   }
 
+  constexpr unsigned int default_seed = static_cast<unsigned int>(-1);
+  static std::atomic<unsigned int> g_seed(default_seed);
+
+  void set_random_seed(const unsigned int seed) {
+    g_seed = seed;
+  }
+
+  unsigned int get_random_seed() {
+    return g_seed == default_seed ? std::random_device{}() : g_seed.load();
+  }
+
   std::mt19937& get_random_generator() {
-    static thread_local std::mt19937 generator(
-      std::chrono::system_clock::now().time_since_epoch().count());
+    static thread_local std::mt19937 generator(get_random_seed());
     return generator;
   }
 
