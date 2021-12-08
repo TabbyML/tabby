@@ -13,7 +13,6 @@ WORKDIR /root
 
 ENV ONEAPI_VERSION=2021.4.0
 ENV MKL_BUILD=640
-ENV DNNL_BUILD=467
 RUN wget -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
     apt-key add *.PUB && \
     rm *.PUB && \
@@ -21,12 +20,21 @@ RUN wget -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PROD
     apt-get update && \
     apt-get install -y --no-install-recommends \
         intel-oneapi-mkl-devel=$ONEAPI_VERSION-$MKL_BUILD \
-        intel-oneapi-dnnl-devel=$ONEAPI_VERSION-$DNNL_BUILD \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m pip --no-cache-dir install cmake==3.22.*
+
+ENV ONEDNN_VERSION=2.4.4
+RUN wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz && \
+    tar xf *.tar.gz && \
+    rm *.tar.gz && \
+    cd oneDNN-* && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DDNNL_LIBRARY_TYPE=STATIC -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF -DDNNL_ENABLE_WORKLOAD=INFERENCE -DDNNL_ENABLE_PRIMITIVE= . && \
+    make -j$(nproc) install && \
+    cd .. && \
+    rm -r oneDNN-*
 
 COPY third_party third_party
 COPY cli cli
@@ -50,8 +58,7 @@ RUN mkdir build && \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j$(nproc) install
 
-RUN cp -P /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/*.so* $CTRANSLATE2_ROOT/lib && \
-    cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so $CTRANSLATE2_ROOT/lib
+RUN cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so $CTRANSLATE2_ROOT/lib
 
 ENV LANG=en_US.UTF-8
 COPY README.md .

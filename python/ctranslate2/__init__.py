@@ -12,7 +12,7 @@ if sys.platform == "win32":
     if add_dll_directory is not None:
         add_dll_directory(package_dir)
 
-    for library in ("libiomp5md", "dnnl", "ctranslate2"):
+    for library in ("libiomp5md", "ctranslate2"):
         ctypes.CDLL(os.path.join(package_dir, "%s.dll" % library))
 
 try:

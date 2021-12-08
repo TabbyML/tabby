@@ -16,15 +16,22 @@ ln -s cuda-11.2 /usr/local/cuda
 
 ONEAPI_VERSION=2021.4.0
 MKL_BUILD=640
-DNNL_BUILD=467
 yum-config-manager --add-repo https://yum.repos.intel.com/oneapi
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD intel-oneapi-dnnl-devel-$ONEAPI_VERSION-$DNNL_BUILD
+yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD
 echo "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin" > /etc/ld.so.conf.d/libiomp5.conf
-echo "/opt/intel/oneapi/dnnl/latest/cpu_iomp/lib" > /etc/ld.so.conf.d/intel-dnnl.conf
 ldconfig
 
 pip install "cmake==3.18.4"
+
+ONEDNN_VERSION=2.4.4
+curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
+tar xf *.tar.gz && rm *.tar.gz
+cd oneDNN-*
+cmake -DCMAKE_BUILD_TYPE=Release -DDNNL_LIBRARY_TYPE=STATIC -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF -DDNNL_ENABLE_WORKLOAD=INFERENCE -DDNNL_ENABLE_PRIMITIVE= .
+make -j$(nproc) install
+cd ..
+rm -r oneDNN-*
 
 mkdir build-release && cd build-release
 cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL -DWITH_CUDA=ON -DCUDA_DYNAMIC_LOADING=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common" ..
