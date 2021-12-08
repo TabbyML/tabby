@@ -371,8 +371,15 @@ if (WITH_CUDA)
   message(STATUS "NVCC host compiler: ${CUDA_HOST_COMPILER}")
   message(STATUS "NVCC compilation flags: ${CUDA_NVCC_FLAGS}")
 
-  add_subdirectory(third_party/thrust EXCLUDE_FROM_ALL)
-  thrust_create_target(Thrust)
+  # We should ensure that the Thrust include directories appear before
+  # -I/usr/local/cuda/include for both GCC and NVCC, so that the headers
+  # are coming from the submodule and not the system.
+  set(THRUST_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust/dependencies/cub
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/thrust
+    )
+  cuda_include_directories(${THRUST_INCLUDE_DIRS})
+  list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${THRUST_INCLUDE_DIRS})
 
   if(CUDA_DYNAMIC_LOADING)
     if(CUDA_VERSION_MAJOR LESS 11)
@@ -398,10 +405,6 @@ if (WITH_CUDA)
     src/ops/tile_gpu.cu
     src/ops/topk_gpu.cu
     src/ops/quantize_gpu.cu
-    )
-  list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDA_INCLUDE_DIRECTORIES})
-  list(APPEND LIBRARIES
-    Thrust
     )
 else()
   add_library(${PROJECT_NAME} ${SOURCES})

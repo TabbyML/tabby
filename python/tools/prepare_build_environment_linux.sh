@@ -35,7 +35,7 @@ rm -r oneDNN-*
 
 mkdir build-release && cd build-release
 cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL -DWITH_CUDA=ON -DCUDA_DYNAMIC_LOADING=ON -DCUDA_NVCC_FLAGS="-Xfatbin=-compress-all" -DCUDA_ARCH_LIST="Common" ..
-make -j$(nproc) install
+VERBOSE=1 make -j$(nproc) install
 cd ..
 rm -r build-release
 
