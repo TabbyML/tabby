@@ -374,7 +374,6 @@ if (WITH_CUDA)
   add_subdirectory(third_party/thrust EXCLUDE_FROM_ALL)
   thrust_create_target(Thrust)
 
-  cuda_include_directories(${CUDA_INCLUDE_DIRECTORIES})
   if(CUDA_DYNAMIC_LOADING)
     if(CUDA_VERSION_MAJOR LESS 11)
       message(FATAL_ERROR "Dynamic loading of CUDA libraries requires CUDA 11 or above")
