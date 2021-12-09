@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("repetition_penalty", "Penalty applied to the score of previously generated tokens (set > 1 to penalize)",
      cxxopts::value<float>()->default_value("1"))
+    ("disable_unk", "Disable the generation of the unknown token",
+     cxxopts::value<bool>()->default_value("false"))
     ("prefix_bias_beta", "Parameter for biasing translations towards given prefix",
      cxxopts::value<float>()->default_value("0"))
     ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
@@ -155,6 +157,7 @@ int main(int argc, char* argv[]) {
     options.length_penalty = args["length_penalty"].as<float>();
     options.coverage_penalty = args["coverage_penalty"].as<float>();
     options.repetition_penalty = args["repetition_penalty"].as<float>();
+    options.disable_unk = args["disable_unk"].as<bool>();
     options.prefix_bias_beta = args["prefix_bias_beta"].as<float>();
     options.allow_early_exit = !args["disable_early_exit"].as<bool>();
     options.sampling_topk = args["sampling_topk"].as<size_t>();

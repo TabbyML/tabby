@@ -1,5 +1,6 @@
 #include "ctranslate2/models/sequence_to_sequence.h"
 
+#include <algorithm>
 #include <numeric>
 
 namespace ctranslate2 {
@@ -207,7 +208,8 @@ namespace ctranslate2 {
                                     const bool return_attention,
                                     const bool replace_unknowns,
                                     const bool normalize_scores,
-                                    const float repetition_penalty) const {
+                                    const float repetition_penalty,
+                                    bool disable_unk) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::sample");
 
@@ -233,6 +235,16 @@ namespace ctranslate2 {
       } else if (_target_vocabulary->size() % _preferred_size_multiple != 0) {
         output_ids_map.resize(_target_vocabulary->size());
         std::iota(output_ids_map.begin(), output_ids_map.end(), size_t(0));
+      }
+
+      // If UNK generation is disabled, we can directly remove the token from the
+      // reduced vocabulary instead of handling that during decoding.
+      const size_t unk_id = _target_vocabulary->to_id(Vocabulary::unk_token);
+      if (disable_unk && !output_ids_map.empty()) {
+        auto it = std::lower_bound(output_ids_map.begin(), output_ids_map.end(), unk_id);
+        if (it != output_ids_map.end() && *it == unk_id)
+          output_ids_map.erase(it);
+        disable_unk = false;
       }
 
       if (!output_ids_map.empty()) {
@@ -265,6 +277,7 @@ namespace ctranslate2 {
         !target_prefix_ids.empty() ? &target_prefix_ids : nullptr,
         !output_ids_map.empty() ? &output_ids_map : nullptr,
         end_id,
+        unk_id,
         max_output_length,
         min_output_length,
         num_hypotheses,
@@ -272,7 +285,8 @@ namespace ctranslate2 {
         return_scores,
         return_attention || replace_unknowns,
         normalize_scores,
-        repetition_penalty);
+        repetition_penalty,
+        disable_unk);
 
       // Convert generated ids to tokens.
       std::vector<GenerationResult<std::string>> final_results;

@@ -22,6 +22,7 @@ namespace ctranslate2 {
 
     bool empty() const;
 
+    // The returned vector is ordered.
     std::vector<size_t>
     get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const;
 

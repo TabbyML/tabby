@@ -17,6 +17,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const size_t end_id,
+           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -26,6 +27,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const bool disable_unk = false,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
 
@@ -43,6 +45,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const size_t end_id,
+           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -52,6 +55,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const bool disable_unk = false,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
@@ -88,6 +92,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const size_t end_id,
+           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -97,6 +102,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const bool disable_unk = false,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
@@ -109,6 +115,7 @@ namespace ctranslate2 {
          const std::vector<std::vector<size_t>>* prefix_ids,
          const std::vector<size_t>* output_ids_map,
          const size_t end_id,
+         const size_t unk_id,
          dim_t max_length,
          dim_t min_length,
          const size_t num_hypotheses,
@@ -116,6 +123,7 @@ namespace ctranslate2 {
          const bool return_scores,
          const bool return_attention,
          const bool normalize_scores,
-         const float repetition_penalty);
+         const float repetition_penalty,
+         const bool disable_unk);
 
 }

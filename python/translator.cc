@@ -184,6 +184,7 @@ public:
                  float length_penalty,
                  float coverage_penalty,
                  float repetition_penalty,
+                 bool disable_unk,
                  float prefix_bias_beta,
                  bool allow_early_exit,
                  size_t max_input_length,
@@ -210,6 +211,7 @@ public:
     options.length_penalty = length_penalty;
     options.coverage_penalty = coverage_penalty;
     options.repetition_penalty = repetition_penalty;
+    options.disable_unk = disable_unk;
     options.prefix_bias_beta = prefix_bias_beta;
     options.allow_early_exit = allow_early_exit;
     options.sampling_topk = sampling_topk;
@@ -265,6 +267,7 @@ public:
                   float length_penalty,
                   float coverage_penalty,
                   float repetition_penalty,
+                  bool disable_unk,
                   float prefix_bias_beta,
                   bool allow_early_exit,
                   size_t max_input_length,
@@ -287,6 +290,7 @@ public:
     options.length_penalty = length_penalty;
     options.coverage_penalty = coverage_penalty;
     options.repetition_penalty = repetition_penalty;
+    options.disable_unk = disable_unk;
     options.prefix_bias_beta = prefix_bias_beta;
     options.allow_early_exit = allow_early_exit;
     options.sampling_topk = sampling_topk;
@@ -576,6 +580,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
          py::arg("repetition_penalty")=1,
+         py::arg("disable_unk")=false,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
          py::arg("max_input_length")=1024,
@@ -603,6 +608,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
          py::arg("repetition_penalty")=1,
+         py::arg("disable_unk")=false,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
          py::arg("max_input_length")=1024,

@@ -131,7 +131,8 @@ namespace ctranslate2 {
                                                   options.return_attention,
                                                   options.replace_unknowns,
                                                   options.normalize_scores,
-                                                  options.repetition_penalty);
+                                                  options.repetition_penalty,
+                                                  options.disable_unk);
 
       for (size_t i = 0; i < batch_results.size(); ++i)
         results[batch.example_index[i]] = std::move(batch_results[i]);

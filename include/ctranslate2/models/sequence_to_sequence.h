@@ -63,7 +63,8 @@ namespace ctranslate2 {
              const bool return_attention = false,
              const bool replace_unknowns = false,
              const bool normalize_scores = false,
-             const float repetition_penalty = 1) const;
+             const float repetition_penalty = 1,
+             bool disable_unk = false) const;
 
     protected:
       SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);

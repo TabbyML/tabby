@@ -22,6 +22,8 @@ namespace ctranslate2 {
     // Penalty applied to the score of previously generated tokens, as described in
     // https://arxiv.org/abs/1909.05858 (set > 1 to penalize).
     float repetition_penalty = 1;
+    // Disable the generation of the unknown token.
+    bool disable_unk = false;
     // Biases decoding towards a given prefix, see https://arxiv.org/abs/1912.03393 --section 4.2
     // Only activates biased-decoding when beta is in range (0, 1) and SearchStrategy is set to BeamSearch.
     // The closer beta is to 1, the stronger the bias is towards the given prefix.
