@@ -1,7 +1,5 @@
 #include "ctranslate2/vocabulary.h"
 
-#include <fstream>
-
 namespace ctranslate2 {
 
   const std::string Vocabulary::pad_token = "<blank>";
