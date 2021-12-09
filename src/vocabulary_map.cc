@@ -1,7 +1,5 @@
 #include "ctranslate2/vocabulary_map.h"
 
-#include <fstream>
-
 namespace ctranslate2 {
 
   VocabularyMap::VocabularyMap(std::istream& map_file, const Vocabulary& vocabulary)
