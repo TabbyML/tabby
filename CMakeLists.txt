@@ -140,7 +140,6 @@ set(SOURCES
   src/vocabulary_map.cc
   )
 set(LIBRARIES
-  ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
   spdlog::spdlog_header_only
   )
@@ -410,6 +409,7 @@ else()
   add_library(${PROJECT_NAME} ${SOURCES})
 endif()
 
+list(APPEND LIBRARIES ${CMAKE_DL_LIBS})
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} BEFORE
   PUBLIC ${PUBLIC_INCLUDE_DIRECTORIES}
