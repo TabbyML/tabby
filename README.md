@@ -532,12 +532,12 @@ There are many ways to make this project better and even faster. See the open is
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency.
-* `inter_threads` is the maximum number of CPU translations executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
+* `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency of CPU translations.
+* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
 
 The total number of computing threads launched by the process is `inter_threads * intra_threads`.
 
-Note that these options are only defined for CPU translation and are forced to 1 when executing on GPU. Parallel translations on GPU require multiple GPUs. See the option `device_index` that accepts multiple device IDs.
+On GPU, translations executed in parallel are using separate CUDA streams. Depending on the workload and GPU specifications this may or may not improve the translation throughput. For better parallelism on GPU, consider running the translation on multiple GPUs. See the option `device_index` that accepts multiple device IDs.
 
 ### Do you provide a translation server?
 

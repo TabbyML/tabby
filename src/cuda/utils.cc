@@ -39,36 +39,45 @@ namespace ctranslate2 {
       }
     }
 
-    cudaStream_t get_cuda_stream() {
-      // Only use the default stream for now.
-      return static_cast<cudaStream_t>(0);
-    }
-
-    class CublasHandle {
+    class CudaContext {
     public:
-      CublasHandle() {
+      CudaContext() {
         CUDA_CHECK(cudaGetDevice(&_device));
+        CUDA_CHECK(cudaStreamCreateWithFlags(&_stream, cudaStreamNonBlocking));
         CUBLAS_CHECK(cublasCreate(&_handle));
-        CUBLAS_CHECK(cublasSetStream(_handle, get_cuda_stream()));
+        CUBLAS_CHECK(cublasSetStream(_handle, _stream));
       }
-      ~CublasHandle() {
+      ~CudaContext() {
         ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
         cublasDestroy(_handle);
+        cudaStreamDestroy(_stream);
       }
-      cublasHandle_t get() const {
+      cudaStream_t cuda_stream() const {
+        return _stream;
+      }
+      cublasHandle_t cublas_handle() const {
         return _handle;
       }
     private:
       int _device;
+      cudaStream_t _stream;
       cublasHandle_t _handle;
     };
 
     // We create one cuBLAS/cuDNN handle per host thread. The handle is destroyed
     // when the thread exits.
 
+    static const CudaContext& get_cuda_context() {
+      static thread_local const CudaContext cuda_context;
+      return cuda_context;
+    }
+
+    cudaStream_t get_cuda_stream() {
+      return get_cuda_context().cuda_stream();
+    }
+
     cublasHandle_t get_cublas_handle() {
-      static thread_local CublasHandle cublas_handle;
-      return cublas_handle.get();
+      return get_cuda_context().cublas_handle();
     }
 
     int get_gpu_count() {

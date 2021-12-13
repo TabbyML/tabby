@@ -22,8 +22,8 @@ namespace ctranslate2 {
   // and asynchronous translations.
   class TranslatorPool {
   public:
-    // num_translators (a.k.a. inter_threads) and num_threads_per_translator (a.k.a. intra_threads)
-    // are forced to 1 when the translator is running on a CUDA device.
+    // num_threads_per_translator (a.k.a. intra_threads) is forced to 1 when the translator
+    // is running on a CUDA device.
     TranslatorPool(size_t num_translators,
                    size_t num_threads_per_translator,
                    const std::string& model_dir,

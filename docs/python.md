@@ -50,8 +50,8 @@ translator = ctranslate2.Translator(
     # or a dict mapping a device to a computation type.
     compute_type: Union[str, Dict[str, str]] = "default",
 
-    inter_threads: int = 1,         # Maximum number of parallel translations (CPU only).
-    intra_threads: int = 0,         # Threads to use per translation (CPU only).
+    inter_threads: int = 1,         # Maximum number of parallel translations.
+    intra_threads: int = 0,         # Number of OpenMP threads to use per translation (CPU only).
                                     # Set 0 to use a default value.
 )
 
@@ -201,6 +201,9 @@ translator = ctranslate2.Translator(model_path, device="cpu", inter_threads=4, i
 
 # Create a GPU translator with 4 workers each running on a separate GPU:
 translator = ctranslate2.Translator(model_path, device="cuda", device_index=[0, 1, 2, 3])
+
+# Create a GPU translator with 4 workers each using a different CUDA stream:
+translator = ctranslate2.Translator(model_path, device="cuda", inter_threads=4)
 ```
 
 Parallel translations are enabled in the following cases:

@@ -1,6 +1,5 @@
 #include "ctranslate2/translator_pool.h"
 
-#include <algorithm>
 #include <stdexcept>
 
 #include <spdlog/spdlog.h>
@@ -179,12 +178,6 @@ namespace ctranslate2 {
   }
 
   template <typename T>
-  static bool all_unique(std::vector<T> v) {
-    std::sort(v.begin(), v.end());
-    return std::adjacent_find(v.begin(), v.end()) == v.end();
-  }
-
-  template <typename T>
   static std::vector<T> repeat_elements(const std::vector<T>& v, const size_t repeat) {
     std::vector<int> repeated;
     repeated.reserve(v.size() * repeat);
@@ -228,14 +221,9 @@ namespace ctranslate2 {
       throw std::invalid_argument("At least one device index should be set");
 
     if (device == Device::CUDA) {
-      // On GPU, we currently don't benefit much from running translators in parallel
-      // on the same device. This could be revisited/improved in the future.
-      num_translators_per_device = 1;
       // Most computation will run on GPU so multiple CPU computation threads are not useful.
       num_threads_per_translator = 1;
 
-      if (!all_unique(device_indices))
-        throw std::invalid_argument("GPU IDs in device_index should be unique");
       if (!have_same_compute_capability(device_indices))
         throw std::invalid_argument("All GPU used in parallel must have the same Compute Capability");
     }
