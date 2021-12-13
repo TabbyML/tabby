@@ -4,7 +4,29 @@
 
 ### Fixes and improvements
 
-* Add constructors in `Translator` and `TranslatorPool` classes with `ModelReader` parameter
+## [v2.10.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.10.0) (2021-12-13)
+
+### Changes
+
+* `inter_threads` now also applies to GPU translation, where each translation thread is using a different CUDA stream to allow some parts of the GPU execution to overlap
+
+### New features
+
+* Add option `disable_unk` to disable the generation of unknown tokens
+* Add function `set_random_seed` to fix the seed in random sampling
+* [C++] Add constructors in `Translator` and `TranslatorPool` classes with `ModelReader` parameter
+
+### Fixes and improvements
+
+* Fix incorrect output from the Multinomial op when running on GPU with a small batch size
+* Fix Thrust and CUB headers that were included from the CUDA installation instead of the submodule
+* Fix static library compilation with the default build options (`cmake -DBUILD_SHARED_LIBS=OFF`)
+* Compile the Docker image and the Linux Python wheels with SSE 4.1 (vectorized kernels are still compiled for AVX and AVX2 with automatic dispatch, but other source files are now compiled with SSE 4.1)
+* Enable `/fp:fast` for MSVC to mirror `-ffast-math` that is enabled for GCC and Clang
+* Statically link against oneDNN to reduce the size of published binaries:
+  * Linux Python wheels: 43MB -> 17MB
+  * Windows Python wheels: 41MB -> 11MB
+  * Docker image: 733MB -> 600MB
 
 ## [v2.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.9.0) (2021-12-01)
 
