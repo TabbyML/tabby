@@ -31,10 +31,26 @@ namespace ctranslate2 {
                    const int device_index = 0,
                    const ComputeType compute_type = ComputeType::DEFAULT);
 
+    // Constructor with ModelReader.
+    TranslatorPool(size_t num_translators,
+                   size_t num_threads_per_translator,
+                   models::ModelReader& model_reader,
+                   const Device device,
+                   const int device_index,
+                   const ComputeType compute_type = ComputeType::DEFAULT);
+
     // Multi-device constructor.
     TranslatorPool(size_t num_translators_per_device,
                    size_t num_threads_per_translator,
                    const std::string& model_dir,
+                   const Device device,
+                   const std::vector<int>& device_indices,
+                   const ComputeType compute_type = ComputeType::DEFAULT);
+
+    // Multi-device constructor with ModelReader.
+    TranslatorPool(size_t num_translators_per_device,
+                   size_t num_threads_per_translator,
+                   models::ModelReader& model_reader,
                    const Device device,
                    const std::vector<int>& device_indices,
                    const ComputeType compute_type = ComputeType::DEFAULT);
@@ -682,7 +698,7 @@ namespace ctranslate2 {
 
     void create_translators(size_t num_translators_per_device,
                             size_t num_threads_per_translator,
-                            const std::string& model_dir,
+                            models::ModelReader& model_reader,
                             const Device device,
                             std::vector<int> device_indices,
                             const ComputeType compute_type);

@@ -86,6 +86,10 @@ namespace ctranslate2 {
                Device device = Device::CPU,
                int device_index = 0,
                ComputeType compute_type = ComputeType::DEFAULT);
+    Translator(models::ModelReader& model_reader,
+               Device device = Device::CPU,
+               int device_index = 0,
+               ComputeType compute_type = ComputeType::DEFAULT);
     Translator(const std::shared_ptr<const models::Model>& model);
 
     // Copy constructor.

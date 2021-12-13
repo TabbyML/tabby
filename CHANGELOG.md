@@ -4,6 +4,8 @@
 
 ### Fixes and improvements
 
+* Add constructors in `Translator` and `TranslatorPool` classes with `ModelReader` parameter
+
 ## [v2.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.9.0) (2021-12-01)
 
 ### New features

@@ -21,9 +21,26 @@ namespace ctranslate2 {
                                  const ComputeType compute_type)
     : _num_active_jobs(0)
   {
+    models::ModelFileReader model_reader(model_dir);
     create_translators(num_translators,
                        num_threads_per_translator,
-                       model_dir,
+                       model_reader,
+                       device,
+                       {device_index},
+                       compute_type);
+  }
+
+  TranslatorPool::TranslatorPool(size_t num_translators,
+                                 size_t num_threads_per_translator,
+                                 models::ModelReader& model_reader,
+                                 const Device device,
+                                 const int device_index,
+                                 const ComputeType compute_type)
+    : _num_active_jobs(0)
+  {
+    create_translators(num_translators,
+                       num_threads_per_translator,
+                       model_reader,
                        device,
                        {device_index},
                        compute_type);
@@ -37,9 +54,26 @@ namespace ctranslate2 {
                                  const ComputeType compute_type)
     : _num_active_jobs(0)
   {
+    models::ModelFileReader model_reader(model_dir);
     create_translators(num_translators_per_device,
                        num_threads_per_translator,
-                       model_dir,
+                       model_reader,
+                       device,
+                       device_indices,
+                       compute_type);
+  }
+
+  TranslatorPool::TranslatorPool(size_t num_translators_per_device,
+                                 size_t num_threads_per_translator,
+                                 models::ModelReader& model_reader,
+                                 const Device device,
+                                 const std::vector<int>& device_indices,
+                                 const ComputeType compute_type)
+    : _num_active_jobs(0)
+  {
+    create_translators(num_translators_per_device,
+                       num_threads_per_translator,
+                       model_reader,
                        device,
                        device_indices,
                        compute_type);
@@ -186,7 +220,7 @@ namespace ctranslate2 {
 
   void TranslatorPool::create_translators(size_t num_translators_per_device,
                                           size_t num_threads_per_translator,
-                                          const std::string& model_dir,
+                                          models::ModelReader& model_reader,
                                           const Device device,
                                           std::vector<int> device_indices,
                                           const ComputeType compute_type) {
@@ -211,7 +245,7 @@ namespace ctranslate2 {
 
     // The same number of OpenMP threads should be used for loading and running model.
     set_num_threads(num_threads_per_translator);
-    const auto models = models::load_replicas(model_dir, device, device_indices, compute_type);
+    const auto models = models::load_replicas(model_reader, device, device_indices, compute_type);
 
     static const int core_offset = read_int_from_env("CT2_TRANSLATORS_CORE_OFFSET", -1);
 
