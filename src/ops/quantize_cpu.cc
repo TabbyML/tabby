@@ -11,18 +11,14 @@ namespace ctranslate2 {
                                                         StorageView& output,
                                                         StorageView& scale) const {
       // INT8 quantization rescales based on the per batch absolute maximum.
-      constexpr float int8_min = std::numeric_limits<int8_t>::min();
-
       const dim_t batch_size = scale.size();
       const dim_t depth = input.dim(-1);
-      const float shift = (_shift_to_uint8 ? -int8_min : 0);
-
       CPU_ISA_DISPATCH(cpu::quantize_s8<ISA>(input.data<float>(),
                                              output.data<int8_t>(),
                                              scale.data<float>(),
                                              batch_size,
                                              depth,
-                                             shift));
+                                             _shift_to_uint8));
     }
 
     template<>

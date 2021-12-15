@@ -72,7 +72,7 @@ namespace ctranslate2 {
                      float* scales,
                      dim_t batch_size,
                      dim_t depth,
-                     float shift);
+                     bool shift_to_uint8);
 
   }
 }
