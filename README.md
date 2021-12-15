@@ -466,7 +466,6 @@ The original [CTranslate](https://github.com/OpenNMT/CTranslate) project shares 
 CTranslate2 addresses these issues in several ways:
 
 * the core implementation is framework agnostic, moving the framework specific logic to a model conversion step;
-* the internal operators follow the ONNX specifications as much as possible for better future-proofing;
 * the call to external libraries (Intel MKL, cuBLAS, etc.) occurs as late as possible in the execution to not rely on a library specific logic.
 
 ### What is the state of this project?
@@ -522,13 +521,9 @@ The driver requirement depends on the CUDA version. See the [CUDA Compatibility 
 
 The current approach only exports the weights from existing models and redefines the computation graph via the code. This implies a strong assumption of the graph architecture executed by the original framework.
 
-We could ease this assumption by supporting ONNX as model parts.
-
 ### What are the future plans?
 
-There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features. Here are some things we would like to get to:
-
-* Support of running ONNX graphs
+There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features.
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
