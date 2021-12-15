@@ -1,5 +1,6 @@
 #include "./utils.h"
 
+#include <atomic>
 #include <cstdlib>
 #include <memory>
 #include <stdexcept>
@@ -39,45 +40,66 @@ namespace ctranslate2 {
       }
     }
 
-    class CudaContext {
+    // We assign the default CUDA stream to the main thread since it can interact with
+    // multiple devices (e.g. load replicas on each GPU). The main thread is created
+    // before the others, so it will be the first to see the flag below set to true.
+    static std::atomic<bool> is_main_thread(true);
+
+    class CudaStream {
     public:
-      CudaContext() {
-        CUDA_CHECK(cudaGetDevice(&_device));
-        CUDA_CHECK(cudaStreamCreateWithFlags(&_stream, cudaStreamNonBlocking));
-        CUBLAS_CHECK(cublasCreate(&_handle));
-        CUBLAS_CHECK(cublasSetStream(_handle, _stream));
+      CudaStream() {
+        if (is_main_thread) {
+          is_main_thread = false;
+          _stream = cudaStreamDefault;
+        } else {
+          CUDA_CHECK(cudaGetDevice(&_device));
+          CUDA_CHECK(cudaStreamCreate(&_stream));
+        }
       }
-      ~CudaContext() {
-        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
-        cublasDestroy(_handle);
-        cudaStreamDestroy(_stream);
+      ~CudaStream() {
+        if (_stream != cudaStreamDefault) {
+          ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
+          cudaStreamDestroy(_stream);
+        }
       }
-      cudaStream_t cuda_stream() const {
+      cudaStream_t get() const {
         return _stream;
-      }
-      cublasHandle_t cublas_handle() const {
-        return _handle;
       }
     private:
       int _device;
       cudaStream_t _stream;
+    };
+
+    class CublasHandle {
+    public:
+      CublasHandle() {
+        CUDA_CHECK(cudaGetDevice(&_device));
+        CUBLAS_CHECK(cublasCreate(&_handle));
+        CUBLAS_CHECK(cublasSetStream(_handle, get_cuda_stream()));
+      }
+      ~CublasHandle() {
+        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
+        cublasDestroy(_handle);
+      }
+      cublasHandle_t get() const {
+        return _handle;
+      }
+    private:
+      int _device;
       cublasHandle_t _handle;
     };
 
     // We create one cuBLAS/cuDNN handle per host thread. The handle is destroyed
     // when the thread exits.
 
-    static const CudaContext& get_cuda_context() {
-      static thread_local const CudaContext cuda_context;
-      return cuda_context;
-    }
-
     cudaStream_t get_cuda_stream() {
-      return get_cuda_context().cuda_stream();
+      static thread_local CudaStream cuda_stream;
+      return cuda_stream.get();
     }
 
     cublasHandle_t get_cublas_handle() {
-      return get_cuda_context().cublas_handle();
+      static thread_local CublasHandle cublas_handle;
+      return cublas_handle.get();
     }
 
     int get_gpu_count() {
