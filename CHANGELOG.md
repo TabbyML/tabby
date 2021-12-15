@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v2.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.10.1) (2021-12-15)
+
+### Fixes and improvements
+
+* Fix stuck execution when loading a model on a second GPU
+* Fix numerical error in INT8 quantization on macOS
+
 ## [v2.10.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.10.0) (2021-12-13)
 
 ### Changes
