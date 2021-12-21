@@ -430,12 +430,12 @@ namespace ctranslate2 {
       // Empty spec name, TransformerBase, and TransformerBig are there for backward
       // compatibility. Now all Transformer variants are saved under TransformerSpec.
 
-      if (spec.empty() || spec == "TransformerBase")
+      if (spec == "TransformerSpec")
+        return std::make_shared<TransformerModel>(model_reader, spec_revision);
+      else if (spec == "TransformerBase" || spec.empty())
         return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/8);
       else if (spec == "TransformerBig")
         return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/16);
-      else if (spec == "TransformerSpec")
-        return std::make_shared<TransformerModel>(model_reader, spec_revision);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
     }
