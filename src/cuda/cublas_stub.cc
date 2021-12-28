@@ -13,9 +13,42 @@
 #  define CUBLAS_LIBNAME "libcublas.so." STR(CUBLAS_VER_MAJOR)
 #endif
 
+#include <spdlog/spdlog.h>
+
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
+
+  template <typename Signature>
+  static Signature load_symbol(void* handle, const char* name, const char* library_name) {
+#ifdef _WIN32
+    void* symbol = reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle), name));
+#else
+    void* symbol = dlsym(handle, name);
+#endif
+    if (!symbol)
+      throw std::runtime_error("Cannot load symbol " + std::string(name)
+                               + " from library " + std::string(library_name));
+    return reinterpret_cast<Signature>(symbol);
+  }
+
+  static inline void log_cublas_version(void* handle) {
+    using Signature = cublasStatus_t(*)(libraryPropertyType, int*);
+    const auto cublas_get_property = load_symbol<Signature>(handle,
+                                                            "cublasGetProperty",
+                                                            CUBLAS_LIBNAME);
+
+    int major_version = 0;
+    int minor_version = 0;
+    int patch_level = 0;
+
+    cublas_get_property(MAJOR_VERSION, &major_version);
+    cublas_get_property(MINOR_VERSION, &minor_version);
+    cublas_get_property(PATCH_LEVEL, &patch_level);
+
+    spdlog::info("Loaded cuBLAS library version {}.{}.{}",
+                 major_version, minor_version, patch_level);
+  }
 
   static void* get_so_handle() {
     static auto so_handle = []() {
@@ -32,23 +65,16 @@ namespace ctranslate2 {
       if (!handle)
         throw std::runtime_error("Library " + std::string(CUBLAS_LIBNAME)
                                  + " is not found or cannot be loaded");
+      log_cublas_version(handle);
       return handle;
     }();
     return so_handle;
   }
 
   template <typename Signature>
-  Signature load_symbol(const char* name) {
+  static Signature load_symbol(const char* name) {
     void* handle = get_so_handle();
-#ifdef _WIN32
-    void* symbol = reinterpret_cast<void*>(GetProcAddress(static_cast<HMODULE>(handle), name));
-#else
-    void* symbol = dlsym(handle, name);
-#endif
-    if (!symbol)
-      throw std::runtime_error("Cannot load symbol " + std::string(name)
-                               + " from library " + std::string(CUBLAS_LIBNAME));
-    return reinterpret_cast<Signature>(symbol);
+    return load_symbol<Signature>(handle, name, CUBLAS_LIBNAME);
   }
 
 }
