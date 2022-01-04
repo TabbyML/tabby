@@ -24,7 +24,7 @@ ldconfig
 
 pip install "cmake==3.18.4"
 
-ONEDNN_VERSION=2.4.4
+ONEDNN_VERSION=2.5.1
 curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
 tar xf *.tar.gz && rm *.tar.gz
 cd oneDNN-*
