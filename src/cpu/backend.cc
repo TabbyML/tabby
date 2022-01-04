@@ -58,7 +58,7 @@ namespace ctranslate2 {
       case GemmBackend::RUY:
         return "Ruy";
       default:
-        return "NONE";
+        return "none";
       }
     }
 
