@@ -74,8 +74,18 @@ namespace ctranslate2 {
       T* dst = output.data<T>();
 
       if (axis == 0 && batch_dims == 0) {
-        run_gather(batch_gather_index_map<cuda::index_t>(indices, data.stride(0)),
-                   src, dst, dst_size);
+        const dim_t gather_size = data.stride(0);
+        const dim_t gather_bytes = gather_size * sizeof (T);
+        const dim_t dst_bytes = dst_size * sizeof (T);
+        if (gather_bytes % sizeof (uint4) == 0) {
+          run_gather(batch_gather_index_map<cuda::index_t>(indices, gather_bytes / sizeof (uint4)),
+                     reinterpret_cast<const uint4*>(src),
+                     reinterpret_cast<uint4*>(dst),
+                     dst_bytes / sizeof (uint4));
+        } else {
+          run_gather(batch_gather_index_map<cuda::index_t>(indices, gather_size),
+                     src, dst, dst_size);
+        }
 
       } else if (axis == data.rank() - 1 && batch_dims == data.rank() - 1) {
         const dim_t depth = data.dim(-1);
