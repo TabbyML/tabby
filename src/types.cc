@@ -41,6 +41,26 @@ namespace ctranslate2 {
     throw std::invalid_argument("Invalid compute type: " + compute_type);
   }
 
+  std::string compute_type_to_str(const ComputeType compute_type) {
+    switch (compute_type) {
+    case ComputeType::DEFAULT:
+      return "default";
+    case ComputeType::AUTO:
+      return "auto";
+    case ComputeType::FLOAT:
+      return "float";
+    case ComputeType::INT8:
+      return "int8";
+    case ComputeType::INT8_FLOAT16:
+      return "int8_float16";
+    case ComputeType::INT16:
+      return "int16";
+    case ComputeType::FLOAT16:
+      return "float16";
+    };
+    throw std::invalid_argument("Invalid compute type value");
+  }
+
   static inline void unsupported_compute_type(const std::string& name) {
     throw std::invalid_argument("Requested " + name + " compute type, but the target device "
                                 "or backend do not support efficient " + name + " computation.");

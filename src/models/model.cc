@@ -1,5 +1,7 @@
 #include "ctranslate2/models/model.h"
 
+#include <spdlog/spdlog.h>
+
 #include "ctranslate2/models/transformer.h"
 #include "ctranslate2/utils.h"
 
@@ -566,8 +568,15 @@ namespace ctranslate2 {
         if (main_replica_on_device != device_to_main_replica.end()) {
           models.emplace_back(models[main_replica_on_device->second]);
         } else {
-          models.emplace_back(Model::load(model_reader, device, device_index, compute_type));
+          const auto model = Model::load(model_reader, device, device_index, compute_type);
+          models.emplace_back(model);
           device_to_main_replica.emplace(device_index, i);
+
+          spdlog::info("Loaded model {} on device {}:{} (selected compute type: {})",
+                       model_reader.get_model_id(),
+                       device_to_str(device),
+                       device_index,
+                       compute_type_to_str(model->effective_compute_type()));
         }
       }
 

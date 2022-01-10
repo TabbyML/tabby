@@ -30,6 +30,7 @@ namespace ctranslate2 {
   };
 
   ComputeType str_to_compute_type(const std::string& compute_type);
+  std::string compute_type_to_str(const ComputeType compute_type);
 
   // Returns the final compute type based on model weights and device information.
   ComputeType resolve_compute_type(const ComputeType requested_compute_type,
