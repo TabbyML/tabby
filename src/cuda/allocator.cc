@@ -123,7 +123,9 @@ namespace ctranslate2 {
       } else if (allocator_name == "cuda_malloc_async") {
         if (!cuda_malloc_async_is_supported)
           throw std::runtime_error("The asynchronous CUDA allocator requires CUDA >= 11.2");
+#if CUDA_VERSION >= 11020
         allocator = std::make_unique<CudaAsyncAllocator>();
+#endif
       } else {
         throw std::invalid_argument("Invalid CUDA allocator " + allocator_name);
       }
