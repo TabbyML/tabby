@@ -250,7 +250,9 @@ int main() {
 
 Some environment variables can be configured to customize the execution:
 
-* `CT2_CUDA_ALLOCATOR`: Select the CUDA memory allocator. Possible values are: `cub_caching` (default), `cuda_malloc_async` (requires CUDA >= 11.2).
+* `CT2_CUDA_ALLOCATOR`: Select the CUDA memory allocator. Possible values are: `cub_caching`, `cuda_malloc_async` (requires CUDA >= 11.2). The default allocator depends on the CUDA version:
+  * CUDA >= 11.2: `cuda_malloc_async`
+  * CUDA < 11.2: `cub_caching`
 * `CT2_CUDA_ALLOW_FP16`: Allow using FP16 computation on GPU even if the device does not have efficient FP16 support.
 * `CT2_CUDA_CACHING_ALLOCATOR_CONFIG`: Tune the CUDA caching allocator (see [Performance](docs/performance.md)).
 * `CT2_FORCE_CPU_ISA`: Force CTranslate2 to select a specific instruction set architecture (ISA). Possible values are: `GENERIC`, `AVX`, `AVX2`. Note: this does not impact backend libraries (such as Intel MKL) which usually have their own environment variables to configure ISA dispatching.

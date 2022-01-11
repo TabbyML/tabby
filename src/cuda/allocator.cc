@@ -1,12 +1,14 @@
 #include "ctranslate2/allocator.h"
 
 #include <memory>
+#include <mutex>
 
 #include "ctranslate2/utils.h"
 #include "cuda/utils.h"
 
 #include <cuda.h>
 #include <cub/util_allocator.cuh>
+#include <spdlog/spdlog.h>
 
 namespace ctranslate2 {
   namespace cuda {
@@ -93,27 +95,45 @@ namespace ctranslate2 {
     };
 #endif
 
-    static std::unique_ptr<Allocator> create_allocator() {
-      const auto allocator = read_string_from_env("CT2_CUDA_ALLOCATOR", "cub_caching");
-
-      if (allocator == "cub_caching") {
-        return std::make_unique<CubCachingAllocator>();
-      } else if (allocator == "cuda_malloc_async") {
+    static bool support_cuda_malloc_async() {
 #if CUDA_VERSION < 11020
-        throw std::runtime_error("The asynchronous CUDA allocator requires CUDA >= 11.2");
+      return false;
 #else
-        for (int i = 0; i < get_gpu_count(); ++i) {
-          int supported = 0;
-          cudaDeviceGetAttribute(&supported, cudaDevAttrMemoryPoolsSupported, i);
-          if (!supported)
-            throw std::runtime_error("Asynchronous allocation is not supported by the current GPU");
-        }
-
-        return std::make_unique<CudaAsyncAllocator>();
+      for (int i = 0; i < get_gpu_count(); ++i) {
+        int supported = 0;
+        cudaDeviceGetAttribute(&supported, cudaDevAttrMemoryPoolsSupported, i);
+        if (!supported)
+          return false;
+      }
+      return true;
 #endif
+    }
+
+    static std::unique_ptr<Allocator> create_allocator() {
+      const bool cuda_malloc_async_is_supported = support_cuda_malloc_async();
+      const auto allocator_name = read_string_from_env("CT2_CUDA_ALLOCATOR",
+                                                       cuda_malloc_async_is_supported
+                                                       ? "cuda_malloc_async"
+                                                       : "cub_caching");
+
+      std::unique_ptr<Allocator> allocator;
+
+      if (allocator_name == "cub_caching") {
+        allocator = std::make_unique<CubCachingAllocator>();
+      } else if (allocator_name == "cuda_malloc_async") {
+        if (!cuda_malloc_async_is_supported)
+          throw std::runtime_error("The asynchronous CUDA allocator requires CUDA >= 11.2");
+        allocator = std::make_unique<CudaAsyncAllocator>();
+      } else {
+        throw std::invalid_argument("Invalid CUDA allocator " + allocator_name);
       }
 
-      throw std::invalid_argument("Invalid CUDA allocator " + allocator);
+      static std::once_flag log_once_flag;
+      std::call_once(log_once_flag, [&allocator_name]() {
+        spdlog::info("Using CUDA allocator: {}", allocator_name);
+      });
+
+      return allocator;
     }
 
   }

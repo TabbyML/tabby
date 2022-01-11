@@ -57,7 +57,11 @@ The list is ordered on 5. from the largest to smallest time.
 
 Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 integrates caching allocators which enable a fast reuse of previously allocated buffers. The allocator can be selected with the environment variable `CT2_CUDA_ALLOCATOR`:
 
-#### `cub_caching` (default)
+#### `cuda_malloc_async`
+
+CUDA 11.2 introduced an [asynchronous allocator with memory pools](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html). This allocator is used by default with CUDA >= 11.2.
+
+#### `cub_caching`
 
 This caching allocator from the [CUB project](https://github.com/NVIDIA/cub) can be tuned to tradeoff memory usage and speed. By default, CTranslate2 uses the following values which have been selected experimentally:
 
@@ -73,10 +77,6 @@ export CT2_CUDA_CACHING_ALLOCATOR_CONFIG=8,3,7,6291455
 ```
 
 See the description of each value in the [allocator implementation](https://github.com/NVIDIA/cub/blob/main/cub/util_allocator.cuh).
-
-#### `cuda_malloc_async`
-
-CUDA 11.2 introduced an [asynchronous allocator with memory pools](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html). It is usually faster than `cub_caching` but uses more memory.
 
 ## CPU performance
 
