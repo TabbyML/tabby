@@ -49,10 +49,11 @@ By default, the runtime tries to use the type that is saved in the converted mod
 
 **On CPU:**
 
-| CPU vendor | int8 | int8_float16 | int16 | float16 |
+| CPU type | int8 | int8_float16 | int16 | float16 |
 | --- | --- | --- | --- | --- |
-| Intel | int8 | int8 | int16 | float |
-| other | int8 | int8 | int8 | float |
+| x86-64 (Intel) | int8 | int8 | int16 | float |
+| x86-64 (other) | int8 | int8 | int8 | float |
+| AArch64 | int8 | int8 | int8 | float |
 
 **On GPU:**
 
@@ -72,6 +73,7 @@ You can get more information about the detected capabilities of your system by s
 
 * NVIDIA GPU with Compute Capability >= 6.1
 * x86-64 CPU with the Intel MKL or oneDNN backends
+* AArch64 CPU with the Ruy backend
 
 The implementation applies the equation from [Wu et al. 2016](https://arxiv.org/abs/1609.08144) to compute the quantized weights:
 
