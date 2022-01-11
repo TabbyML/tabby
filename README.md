@@ -407,13 +407,13 @@ We translate the test set *newstest2014* and report the number of target tokens 
 
 | | Tokens per second | Max. memory | BLEU |
 | --- | --- | --- | --- |
-| OpenNMT-tf 2.22.0 (with TensorFlow 2.6.0) | 356.2 | 2641MB | 26.93 |
-| OpenNMT-py 2.2.0 (with PyTorch 1.9.0) | 466.5 | 1830MB | 26.77 |
-| - int8 | 505.0 | 1510MB | 26.80 |
-| CTranslate2 2.6.0 | 1202.3 | 1129MB | 26.77 |
-| - int16 | 1591.2 | 935MB | 26.84 |
-| - int8 | 1870.6 | 839MB | 26.88 |
-| - int8 + vmap | 2319.3 | 792MB | 26.65 |
+| OpenNMT-tf 2.24.0 (with TensorFlow 2.7.0) | 335.9 | 2679MB | 26.93 |
+| OpenNMT-py 2.2.0 (with PyTorch 1.9.1) | 462.3 | 1650MB | 26.77 |
+| - int8 | 500.6 | 1527MB | 26.72 |
+| CTranslate2 2.11.0 | 1218.6 | 1069MB | 26.77 |
+| - int16 | 1593.0 | 973MB | 26.84 |
+| - int8 | 1872.7 | 854MB | 26.88 |
+| - int8 + vmap | 2312.3 | 726MB | 26.65 |
 
 Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
 
@@ -421,16 +421,16 @@ Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-ty
 
 | | Tokens per second | Max. GPU memory | Max. CPU memory | BLEU |
 | --- | --- | --- | --- | --- |
-| OpenNMT-tf 2.22.0 (with TensorFlow 2.6.0) | 1361.4 | 2660MB | 1737MB | 26.93 |
-| OpenNMT-py 2.2.0 (with PyTorch 1.9.0) | 1280.5 | 3046MB | 3523MB | 26.77 |
-| FasterTransformer 4.0 | 2782.9 | 5868MB | 2977MB | 26.77 |
-| - float16 | 6346.2 | 3916MB | 2976MB | 26.83 |
-| CTranslate2 2.6.0 | 3399.3 | 1234MB | 669MB | 26.77 |
-| - int8 | 5106.6 | 1010MB | 566MB | 26.82 |
-| - float16 | 5020.6 | 818MB | 604MB | 26.75 |
-| - int8 + float16 | 5625.5 | 658MB | 568MB | 26.88 |
+| OpenNMT-tf 2.24.0 (with TensorFlow 2.7.0) | 1424.2 | 2670MB | 2377MB | 26.93 |
+| OpenNMT-py 2.2.0 (with PyTorch 1.9.1) | 1373.2 | 3082MB | 3965MB | 26.77 |
+| FasterTransformer 4.0 | 3263.5 | 5868MB | 2633MB | 26.77 |
+| - float16 | 6750.7 | 3916MB | 2613MB | 26.83 |
+| CTranslate2 2.11.0 | 3906.8 | 1264MB | 673MB | 26.77 |
+| - int8 | 5586.3 | 976MB | 562MB | 26.90 |
+| - float16 | 5805.0 | 816MB | 599MB | 26.78 |
+| - int8 + float16 | 6409.9 | 688MB | 560MB | 26.88 |
 
-Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 460.91.03).
+Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 470.82.01).
 
 ### Model size
 
