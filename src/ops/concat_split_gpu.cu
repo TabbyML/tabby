@@ -13,49 +13,51 @@
 namespace ctranslate2 {
   namespace ops {
 
+    // Map indices into a larger output with an offset in the depth dimension.
     template <typename T>
-    class depth_select {
+    class depth_offset_map {
     private:
       const T _offset;
-      const T _depth;
-      const T _total_depth;
+      const T _input_depth;
+      const T _output_depth;
     public:
-      depth_select(const T offset, const T depth, const T total_depth)
+      depth_offset_map(const T offset, const T input_depth, const T output_depth)
         : _offset(offset)
-        , _depth(depth)
-        , _total_depth(total_depth) {
+        , _input_depth(input_depth)
+        , _output_depth(output_depth) {
       }
       __device__
       T operator()(const T i) const {
-        const T row = i / _depth;
-        const T col = i % _depth;
-        return row * _total_depth + col + _offset;
+        const T row = i / _input_depth;
+        const T col = i % _input_depth;
+        return row * _output_depth + col + _offset;
       }
     };
 
+    // Map indices into a larger output with an offset in an inner dimension.
     template <typename T>
-    class inner_dim_select {
+    class inner_dim_offset_map {
     private:
       const T _offset;
-      const T _inner_dim;
-      const T _outer_dim;
-      const T _total_inner_dim;
+      const T _input_dim;
+      const T _output_dim;
+      const T _inner_size;
     public:
-      inner_dim_select(const T offset,
-                       const T inner_dim,
-                       const T outer_dim,
-                       const T total_inner_dim)
+      inner_dim_offset_map(const T offset,
+                           const T input_dim,
+                           const T output_dim,
+                           const T inner_size)
         : _offset(offset)
-        , _inner_dim(inner_dim)
-        , _outer_dim(outer_dim)
-        , _total_inner_dim(total_inner_dim) {
+        , _input_dim(input_dim)
+        , _output_dim(output_dim)
+        , _inner_size(inner_size) {
       }
       __device__
       T operator()(const T i) const {
-        const T i0 = i / (_inner_dim * _outer_dim);
-        const T i1 = (i / _outer_dim) % _inner_dim;
-        const T i2 = i % _outer_dim;
-        return i0 * (_total_inner_dim * _outer_dim) + (i1 + _offset) * _outer_dim + i2;
+        const T i0 = i / (_input_dim * _inner_size);
+        const T i1 = (i / _inner_size) % _input_dim;
+        const T i2 = i % _inner_size;
+        return i0 * (_output_dim * _inner_size) + (i1 + _offset) * _inner_size + i2;
       }
     };
 
@@ -63,28 +65,35 @@ namespace ctranslate2 {
     void Concat::compute(const std::vector<const StorageView*>& inputs,
                          StorageView& output) const {
       const dim_t axis = _axis < 0 ? output.rank() + _axis : _axis;
+      const dim_t output_dim = output.dim(axis);
+      const dim_t inner_size = output.stride(axis);
+      T* output_data = output.data<T>();
       dim_t offset = 0;
-      for (const StorageView* x : inputs) {
+
+      for (const StorageView* input : inputs) {
+        const T* input_data = input->data<T>();
+        const dim_t input_size = input->size();
+
         if (axis == 0) {
-          primitives<D>::copy(x->data<T>(), output.data<T>() + offset, x->size());
-          offset += x->size();
-        } else if (axis == output.rank() - 1) {
-          auto map_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
-            depth_select<cuda::index_t>(offset, x->dim(-1), output.dim(-1)));
-          THRUST_CALL(thrust::scatter,
-                      x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
-          offset += x->dim(-1);
+          primitives<D>::copy(input_data, output_data + offset, input_size);
+          offset += input_size;
+
         } else {
-          dim_t outer_dim = 1;
-          for (dim_t i = axis + 1; i < output.rank(); ++i)
-            outer_dim *= output.dim(i);
-          auto map_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
-            inner_dim_select<cuda::index_t>(offset, x->dim(axis), outer_dim, output.dim(axis)));
-          THRUST_CALL(thrust::scatter,
-                      x->data<T>(), x->data<T>() + x->size(), map_ids, output.data<T>());
-          offset += x->dim(axis);
+          const dim_t input_dim = input->dim(axis);
+
+          if (inner_size == 1) {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              depth_offset_map<cuda::index_t>(offset, input_dim, output_dim));
+            THRUST_CALL(thrust::scatter, input_data, input_data + input_size, map_ids, output_data);
+          } else {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              inner_dim_offset_map<cuda::index_t>(offset, input_dim, output_dim, inner_size));
+            THRUST_CALL(thrust::scatter, input_data, input_data + input_size, map_ids, output_data);
+          }
+
+          offset += input_dim;
         }
       }
     }
@@ -93,29 +102,35 @@ namespace ctranslate2 {
     void Split::compute(const StorageView& input,
                         std::vector<StorageView*>& outputs) const {
       const dim_t axis = _axis < 0 ? input.rank() + _axis : _axis;
+      const dim_t input_dim = input.dim(axis);
+      const dim_t inner_size = input.stride(axis);
+      const T* input_data = input.data<T>();
       dim_t offset = 0;
-      for (auto* output : outputs) {
-        auto& x = *output;
-        if (axis == 0) { // First outer dim.
-          primitives<D>::copy(input.data<T>() + offset, x.data<T>(), x.size());
-          offset += x.size();
-        } else if (axis == input.rank() - 1) { // Last outer dim.
-          auto gather_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
-            depth_select<cuda::index_t>(offset, x.dim(-1), input.dim(-1)));
-          THRUST_CALL(thrust::gather,
-                      gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
-          offset += x.dim(-1);
-        } else { // Inner dim.
-          dim_t outer_dim = 1;
-          for (dim_t i = axis + 1; i < input.rank(); ++i)
-            outer_dim *= input.dim(i);
-          auto gather_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
-            inner_dim_select<cuda::index_t>(offset, x.dim(axis), outer_dim, input.dim(axis)));
-          THRUST_CALL(thrust::gather,
-                      gather_ids, gather_ids + x.size(), input.data<T>(), x.data<T>());
-          offset += x.dim(axis);
+
+      for (StorageView* output : outputs) {
+        T* output_data = output->data<T>();
+        const dim_t output_size = output->size();
+
+        if (axis == 0) {
+          primitives<D>::copy(input_data + offset, output_data, output_size);
+          offset += output_size;
+
+        } else {
+          const dim_t output_dim = output->dim(axis);
+
+          if (inner_size == 1) {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              depth_offset_map<cuda::index_t>(offset, output_dim, input_dim));
+            THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
+          } else {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              inner_dim_offset_map<cuda::index_t>(offset, output_dim, input_dim, inner_size));
+            THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
+          }
+
+          offset += output_dim;
         }
       }
     }

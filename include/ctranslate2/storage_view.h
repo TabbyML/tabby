@@ -37,7 +37,6 @@ namespace ctranslate2 {
 
   inline dim_t compute_stride(const Shape& shape, dim_t dim) {
     const dim_t rank = shape.size();
-    GUARD_DIM(dim, rank);
     dim_t stride = 1;
     for (dim_t i = rank - 1; i > dim; --i)
       stride *= shape[i];
