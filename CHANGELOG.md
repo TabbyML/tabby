@@ -4,6 +4,26 @@
 
 ### Fixes and improvements
 
+## [v2.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.11.0) (2022-01-11)
+
+### Changes
+
+* With CUDA >= 11.2, the environment variable `CT2_CUDA_ALLOCATOR` now defaults to `cuda_malloc_async` which should improve performance on GPU.
+
+### New features
+
+* Build Python wheels for AArch64 Linux
+
+### Fixes and improvements
+
+* Improve performance of Gather CUDA kernel by using vectorized copy
+* Update Intel oneAPI to 2022.1
+* Update oneDNN to 2.5.1
+* Log some additional information with `CT2_VERBOSE` >= 1:
+  * Location and compute type of loaded models
+  * Version of the dynamically loaded cuBLAS library
+  * Selected CUDA memory allocator
+
 ## [v2.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.10.1) (2021-12-15)
 
 ### Fixes and improvements
