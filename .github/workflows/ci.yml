@@ -142,6 +142,27 @@ jobs:
           QEMU_LD_PREFIX: /usr/aarch64-linux-gnu
 
 
+  build-cuda-10-0:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install CUDA 10.0
+        run: |
+          curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | sudo apt-key add -
+          echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" | sudo tee /etc/apt/sources.list.d/cuda.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cuda-libraries-dev-10-0 cuda-minimal-build-10-0
+
+      - name: Compile
+        run: |
+          cmake -DWITH_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE .
+          make -j $(nproc)
+
+
   build-python-wheels:
     runs-on: ${{ matrix.os }}
     strategy:
