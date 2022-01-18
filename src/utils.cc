@@ -160,17 +160,25 @@ namespace ctranslate2 {
 #endif
   }
 
+  static inline size_t get_default_num_threads() {
+    constexpr size_t default_num_threads = 4;
+    const size_t max_num_threads = std::thread::hardware_concurrency();
+    if (max_num_threads == 0)
+      return default_num_threads;
+    return std::min(default_num_threads, max_num_threads);
+  }
+
   void set_num_threads(size_t num_threads) {
 #ifdef _OPENMP
     if (num_threads == 0)
-      num_threads = read_int_from_env("OMP_NUM_THREADS", 4);
+      num_threads = read_int_from_env("OMP_NUM_THREADS", get_default_num_threads());
     omp_set_num_threads(num_threads);
 #else
     (void)num_threads;
 #endif
 #ifdef CT2_WITH_RUY
     if (num_threads == 0)
-      num_threads = 4;
+      num_threads = get_default_num_threads();
     cpu::get_ruy_context()->set_max_num_threads(num_threads);
 #endif
   }
