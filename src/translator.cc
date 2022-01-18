@@ -126,11 +126,11 @@ namespace ctranslate2 {
     std::vector<TranslationResult> results(source.size(), empty_result);
 
     const size_t max_batch_size = options.support_batch_translation() ? 0 : 1;
-    for (const auto& batch : rebatch_input(source, target_prefix, max_batch_size)) {
+    for (const auto& batch : rebatch_input(load_examples({source, target_prefix}), max_batch_size)) {
       auto batch_results = _seq2seq_model->sample(*_encoder,
                                                   *_decoder,
-                                                  batch.source,
-                                                  batch.target,
+                                                  batch.get_stream(0),
+                                                  batch.get_stream(1),
                                                   *options.make_search_strategy(),
                                                   *options.make_sampler(),
                                                   options.use_vmap,

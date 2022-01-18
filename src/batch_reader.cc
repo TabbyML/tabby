@@ -15,52 +15,72 @@ namespace ctranslate2 {
     throw std::invalid_argument("Invalid batch type: " + batch_type);
   }
 
-  template <typename T>
-  static size_t get_batch_size_increment(const std::vector<T>& example,
-                                         const BatchType batch_type) {
+  static inline size_t get_batch_size_increment(const Example& example,
+                                                const BatchType batch_type) {
     switch (batch_type) {
     case BatchType::Tokens:
-      return example.size();
+      return example.length();
     default:
       return 1;
     };
   }
 
-  std::vector<std::vector<std::string>>
+  std::vector<std::vector<std::string>> Batch::get_stream(size_t index) const {
+    std::vector<std::vector<std::string>> stream;
+    if (examples.empty() || index >= examples.front().num_streams())
+      return stream;
+    stream.reserve(examples.size());
+    for (const auto& example : examples)
+      stream.emplace_back(example.streams[index]);
+    return stream;
+  }
+
+  std::vector<Example>
   BatchReader::get_next(const size_t max_batch_size,
                         const BatchType batch_type) {
-    std::vector<std::vector<std::string>> batch;
+    if (max_batch_size == 0)
+      throw std::invalid_argument("BatchReader: max_batch_size must be > 0");
+
+    if (!_initialized) {
+      _next = get_next_example();
+      _initialized = true;
+    }
+
+    std::vector<Example> batch;
+    if (_next.empty())
+      return batch;
+
     batch.reserve(max_batch_size);
 
     size_t batch_size = 0;
 
-    while (has_next_element()) {
-      const size_t batch_size_increment = get_batch_size_increment(peek_next_element(),
-                                                                   batch_type);
+    while (!_next.empty()) {
+      const size_t batch_size_increment = get_batch_size_increment(_next, batch_type);
       if (batch_size > 0 && batch_size + batch_size_increment > max_batch_size)
         break;
-      batch.emplace_back(get_next_element());
+      batch.emplace_back(std::move(_next));
       batch_size += batch_size_increment;
+      _next = get_next_example();
     }
 
     return batch;
   }
 
   VectorReader::VectorReader(std::vector<std::vector<std::string>> examples)
+  {
+    _examples.reserve(examples.size());
+    for (auto& example : examples)
+      _examples.emplace_back(std::move(example));
+  }
+
+  VectorReader::VectorReader(std::vector<Example> examples)
     : _examples(std::move(examples))
-    , _index(0)
   {
   }
 
-  bool VectorReader::has_next_element() const {
-    return _index < _examples.size();
-  }
-
-  const std::vector<std::string>& VectorReader::peek_next_element() {
-    return _examples[_index];
-  }
-
-  std::vector<std::string> VectorReader::get_next_element() {
+  Example VectorReader::get_next_example() {
+    if (_index >= _examples.size())
+      return Example();
     return std::move(_examples[_index++]);
   }
 
@@ -68,36 +88,62 @@ namespace ctranslate2 {
     _readers.emplace_back(std::move(reader));
   }
 
-  std::vector<std::vector<std::vector<std::string>>>
-  ParallelBatchReader::get_next(const size_t max_batch_size,
-                                const BatchType batch_type) {
-    std::vector<std::vector<std::vector<std::string>>> batches;
-    batches.resize(_readers.size());
-    batches[0] = _readers[0]->get_next(max_batch_size, batch_type);
+  Example ParallelBatchReader::get_next_example() {
+    Example example;
 
-    const size_t batch_size = batches[0].size();
-    for (size_t i = 1; i < _readers.size(); ++i) {
-      batches[i] = _readers[i]->get_next(batch_size);
-      if (batches[i].size() != batch_size)
-        throw std::runtime_error("One input stream has less elements than the others");
+    for (const auto& reader : _readers) {
+      auto stream_example = reader->get_next_example();
+
+      if (example.empty()) {
+        if (stream_example.empty())
+          break;
+        example.streams.reserve(_readers.size());
+      } else if (stream_example.empty()) {
+        throw std::runtime_error("One input stream has less examples than the others");
+      }
+
+      for (auto& stream : stream_example.streams)
+        example.streams.emplace_back(std::move(stream));
     }
 
-    return batches;
+    return example;
+  }
+
+  size_t ParallelBatchReader::num_examples() const {
+    for (const auto& reader : _readers) {
+      const size_t num = reader->num_examples();
+      if (num != 0)
+        return num;
+    }
+    return 0;
   }
 
 
+  std::vector<Example>
+  load_examples(std::vector<std::vector<std::vector<std::string>>> streams) {
+    ParallelBatchReader reader;
+
+    for (auto& stream : streams) {
+      if (stream.empty())
+        continue;
+      reader.add(std::make_unique<VectorReader>(std::move(stream)));
+    }
+
+    const size_t num_examples = reader.num_examples();
+    if (num_examples == 0)
+      return {};
+    return reader.get_next(num_examples);
+  }
+
   std::vector<Batch>
-  rebatch_input(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target,
+  rebatch_input(const std::vector<Example>& examples,
                 size_t max_batch_size,
                 BatchType batch_type,
                 bool filter_empty) {
-    if (!target.empty() && target.size() != source.size())
-      throw std::invalid_argument("Batch size mismatch: got "
-                                  + std::to_string(source.size()) + " for source and "
-                                  + std::to_string(target.size()) + " for target");
+    if (examples.empty())
+      return {};
 
-    const size_t global_batch_size = source.size();
+    const size_t global_batch_size = examples.size();
     if (max_batch_size == 0) {
       max_batch_size = global_batch_size;
       batch_type = BatchType::Examples;
@@ -113,14 +159,14 @@ namespace ctranslate2 {
     std::vector<size_t> example_index(global_batch_size);
     std::iota(example_index.begin(), example_index.end(), 0);
     std::sort(example_index.begin(), example_index.end(),
-              [&source](size_t i1, size_t i2) {
-                return source[i1].size() > source[i2].size();
+              [&examples](size_t i1, size_t i2) {
+                return examples[i1].length() > examples[i2].length();
               });
 
     // Ignore empty examples.
     // As example_index is sorted from longest to shortest, we simply pop empty examples
     // from the back.
-    while (filter_empty && !example_index.empty() && source[example_index.back()].empty())
+    while (filter_empty && !example_index.empty() && examples[example_index.back()].length() == 0)
       example_index.pop_back();
 
     std::vector<Batch> batches;
@@ -128,22 +174,17 @@ namespace ctranslate2 {
       return batches;
     batches.reserve(example_index.size());
 
-    ParallelBatchReader batch_reader;
-    batch_reader.add(std::make_unique<VectorReader>(index_vector(source, example_index)));
-    if (!target.empty())
-      batch_reader.add(std::make_unique<VectorReader>(index_vector(target, example_index)));
+    VectorReader batch_reader(index_vector(examples, example_index));
 
     for (size_t offset = 0;;) {
-      auto batch_tokens = batch_reader.get_next(max_batch_size, batch_type);
-      if (batch_tokens[0].empty())
+      auto examples_part = batch_reader.get_next(max_batch_size, batch_type);
+      if (examples_part.empty())
         break;
 
-      Batch batch;
-      batch.source = std::move(batch_tokens[0]);
-      if (batch_tokens.size() > 1)
-        batch.target = std::move(batch_tokens[1]);
+      const size_t batch_size = examples_part.size();
 
-      const size_t batch_size = batch.source.size();
+      Batch batch;
+      batch.examples = std::move(examples_part);
       batch.example_index.insert(batch.example_index.begin(),
                                  example_index.begin() + offset,
                                  example_index.begin() + offset + batch_size);

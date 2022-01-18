@@ -14,24 +14,52 @@ namespace ctranslate2 {
 
   BatchType str_to_batch_type(const std::string& batch_type);
 
+
+  // An example is a collection of sequences or streams (e.g. source and target).
+  struct Example {
+    std::vector<std::vector<std::string>> streams;
+
+    Example() = default;
+    Example(std::vector<std::string> sequence) {
+      streams.emplace_back(std::move(sequence));
+    }
+
+    size_t num_streams() const {
+      return streams.size();
+    }
+
+    bool empty() const {
+      return streams.empty();
+    }
+
+    size_t length(size_t index = 0) const {
+      if (index >= streams.size())
+        return 0;
+      return streams[index].size();
+    }
+  };
+
+
   // Base class to produce batches.
   class BatchReader {
   public:
     virtual ~BatchReader() = default;
 
-    std::vector<std::vector<std::string>>
+    std::vector<Example>
     get_next(const size_t max_batch_size,
              const BatchType batch_type = BatchType::Examples);
 
-  protected:
-    // Returns true if there are still elements to read.
-    virtual bool has_next_element() const = 0;
+    // Consumes and returns the next example.
+    virtual Example get_next_example() = 0;
 
-    // Returns the next element but does not consume it.
-    virtual const std::vector<std::string>& peek_next_element() = 0;
+    // Returns the total number of examples, or 0 if not known.
+    virtual size_t num_examples() const {
+      return 0;
+    }
 
-    // Consumes and returns the next element.
-    virtual std::vector<std::string> get_next_element() = 0;
+  private:
+    bool _initialized = false;
+    Example _next;
   };
 
   // Read batches from a stream.
@@ -41,66 +69,45 @@ namespace ctranslate2 {
     StreamReader(std::istream& stream, Reader& reader)
       : _stream(stream)
       , _reader(reader)
-      , _end(false)
     {
-      advance();
+    }
+
+    Example get_next_example() override {
+      Example example;
+      example.streams.resize(1);
+      if (!_reader(_stream, example.streams[0]))
+        example.streams.clear();
+      return example;
     }
 
   private:
     std::istream& _stream;
     Reader& _reader;
-    std::vector<std::string> _next;
-    bool _end;
-
-    void advance() {
-      _next.clear();
-      if (!_reader(_stream, _next)) {
-        _end = true;
-        _next.clear();
-      }
-    }
-
-  protected:
-    bool has_next_element() const override {
-      return !_end;
-    }
-
-    const std::vector<std::string>& peek_next_element() override {
-      return _next;
-    }
-
-    std::vector<std::string> get_next_element() override {
-      auto next = std::move(_next);
-      advance();
-      return next;
-    }
   };
 
-  // Read batches from a vector of elements.
+  // Read batches from a vector of examples.
   class VectorReader : public BatchReader {
   public:
     VectorReader(std::vector<std::vector<std::string>> examples);
+    VectorReader(std::vector<Example> examples);
 
-  protected:
-    bool has_next_element() const override;
-    const std::vector<std::string>& peek_next_element() override;
-    std::vector<std::string> get_next_element() override;
+    Example get_next_example() override;
+    size_t num_examples() const override {
+      return _examples.size();
+    }
 
   private:
-    std::vector<std::vector<std::string>> _examples;
-    size_t _index;
+    std::vector<Example> _examples;
+    size_t _index = 0;
   };
 
   // Read batches from multiple sources.
-  class ParallelBatchReader {
+  class ParallelBatchReader : public BatchReader {
   public:
     void add(std::unique_ptr<BatchReader> reader);
 
-    // batch_type is applied to the first stream and then the function takes the same
-    // number of examples from the other streams.
-    std::vector<std::vector<std::vector<std::string>>>
-    get_next(const size_t max_batch_size,
-             const BatchType batch_type = BatchType::Examples);
+    Example get_next_example() override;
+    size_t num_examples() const override;
 
   private:
     std::vector<std::unique_ptr<BatchReader>> _readers;
@@ -108,16 +115,28 @@ namespace ctranslate2 {
 
 
   struct Batch {
-    std::vector<std::vector<std::string>> source;
-    std::vector<std::vector<std::string>> target;
+    std::vector<Example> examples;
     std::vector<size_t> example_index;  // Index of each example in the original input.
+
+    size_t num_examples() const {
+      return examples.size();
+    }
+
+    bool empty() const {
+      return examples.empty();
+    }
+
+    std::vector<std::vector<std::string>> get_stream(size_t index) const;
   };
+
+
+  std::vector<Example>
+  load_examples(std::vector<std::vector<std::vector<std::string>>> streams);
 
   // Rebatch the input with a new batch size.
   // This function also reorders the examples to improve efficiency.
   std::vector<Batch>
-  rebatch_input(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target,
+  rebatch_input(const std::vector<Example>& examples,
                 size_t max_batch_size = 0,
                 BatchType batch_type = BatchType::Examples,
                 bool filter_empty = true);

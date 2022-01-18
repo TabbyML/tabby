@@ -5,6 +5,7 @@ option(INSTALL_GTEST "" OFF)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/googletest ${CMAKE_CURRENT_BINARY_DIR}/googletest)
 
 add_executable(ctranslate2_test
+  batching_test.cc
   layers_test.cc
   model_test.cc
   storage_view_test.cc

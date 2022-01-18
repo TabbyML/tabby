@@ -103,8 +103,7 @@ namespace ctranslate2 {
                                         const size_t max_batch_size,
                                         const BatchType batch_type) {
     return TranslateJobCreator(options).post(*this,
-                                             source,
-                                             target_prefix,
+                                             load_examples({source, target_prefix}),
                                              max_batch_size,
                                              batch_type,
                                              /*throttle=*/false);
@@ -117,8 +116,7 @@ namespace ctranslate2 {
                                     const size_t max_batch_size,
                                     const BatchType batch_type) {
     return ScoreJobCreator(options).post(*this,
-                                         source,
-                                         target,
+                                         load_examples({source, target}),
                                          max_batch_size,
                                          batch_type,
                                          /*throttle=*/false);
@@ -290,8 +288,10 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   TranslatorPool::TranslateJob::get_results(Translator& translator, const Batch& batch) const {
-    spdlog::debug("Running batch translation on {} examples", batch.source.size());
-    auto results = translator.translate_batch_with_prefix(batch.source, batch.target, _options);
+    spdlog::debug("Running batch translation on {} examples", batch.num_examples());
+    auto results = translator.translate_batch_with_prefix(batch.get_stream(0),
+                                                          batch.get_stream(1),
+                                                          _options);
     spdlog::debug("Finished batch translation");
     return results;
   }
@@ -306,8 +306,8 @@ namespace ctranslate2 {
 
   std::vector<ScoringResult>
   TranslatorPool::ScoreJob::get_results(Translator& translator, const Batch& batch) const {
-    spdlog::debug("Running batch scoring on {} examples", batch.source.size());
-    auto results = translator.score_batch(batch.source, batch.target, _options);
+    spdlog::debug("Running batch scoring on {} examples", batch.num_examples());
+    auto results = translator.score_batch(batch.get_stream(0), batch.get_stream(1), _options);
     spdlog::debug("Finished batch scoring");
     return results;
   }

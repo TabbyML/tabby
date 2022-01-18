@@ -487,7 +487,7 @@ namespace ctranslate2 {
           exception = std::current_exception();
         }
 
-        for (size_t i = 0; i < _batch.source.size(); ++i) {
+        for (size_t i = 0; i < _batch.num_examples(); ++i) {
           const size_t index = (_batch.example_index.empty() ? i : _batch.example_index[i]);
           if (exception)
             _consumer->set_exception(index, exception);
@@ -539,16 +539,15 @@ namespace ctranslate2 {
       virtual ~JobCreator() = default;
 
       std::vector<std::future<Result>> post(TranslatorPool& pool,
-                                            const std::vector<std::vector<std::string>>& source,
-                                            const std::vector<std::vector<std::string>>& target,
+                                            const std::vector<Example>& examples,
                                             size_t max_batch_size,
                                             BatchType batch_type,
                                             bool throttle) const {
-        if (source.empty())
+        if (examples.empty())
           return {};
 
-        auto batches = create_batches(source, target, max_batch_size, batch_type);
-        auto consumer = create_consumer(source, target);
+        auto batches = create_batches(examples, max_batch_size, batch_type);
+        auto consumer = create_consumer(examples);
         auto futures = consumer->get_futures();
 
         for (auto& batch : batches)
@@ -559,18 +558,15 @@ namespace ctranslate2 {
 
     protected:
       virtual std::shared_ptr<JobResultConsumer<Result>>
-      create_consumer(const std::vector<std::vector<std::string>>& source,
-                      const std::vector<std::vector<std::string>>& target) const {
-        (void)target;
-        return std::make_shared<JobResultConsumer<Result>>(source.size());
+      create_consumer(const std::vector<Example>& examples) const {
+        return std::make_shared<JobResultConsumer<Result>>(examples.size());
       }
 
       virtual std::vector<Batch>
-      create_batches(const std::vector<std::vector<std::string>>& source,
-                     const std::vector<std::vector<std::string>>& target,
+      create_batches(const std::vector<Example>& examples,
                      size_t max_batch_size,
                      BatchType batch_type) const {
-        return rebatch_input(source, target, max_batch_size, batch_type, /*filter_empty=*/false);
+        return rebatch_input(examples, max_batch_size, batch_type, /*filter_empty=*/false);
       }
 
       virtual std::unique_ptr<Job>
@@ -587,13 +583,12 @@ namespace ctranslate2 {
 
     protected:
       std::shared_ptr<JobResultConsumer<TranslationResult>>
-      create_consumer(const std::vector<std::vector<std::string>>& source,
-                      const std::vector<std::vector<std::string>>& target) const override {
-        auto consumer = JobCreator<TranslationResult>::create_consumer(source, target);
+      create_consumer(const std::vector<Example>& examples) const override {
+        auto consumer = JobCreator<TranslationResult>::create_consumer(examples);
 
         // Directly set an empty result for empty inputs.
-        for (size_t i = 0; i < source.size(); ++i) {
-          if (source[i].empty()) {
+        for (size_t i = 0; i < examples.size(); ++i) {
+          if (examples[i].length() == 0) {
             consumer->set_result(i, TranslationResult(_options.num_hypotheses,
                                                       _options.return_attention,
                                                       _options.return_scores));
@@ -604,15 +599,14 @@ namespace ctranslate2 {
       }
 
       std::vector<Batch>
-      create_batches(const std::vector<std::vector<std::string>>& source,
-                     const std::vector<std::vector<std::string>>& target,
+      create_batches(const std::vector<Example>& examples,
                      size_t max_batch_size,
                      BatchType batch_type) const override {
         if (!_options.support_batch_translation()) {
           max_batch_size = 1;
           batch_type = BatchType::Examples;
         }
-        return rebatch_input(source, target, max_batch_size, batch_type);
+        return rebatch_input(examples, max_batch_size, batch_type);
       }
 
       std::unique_ptr<Job>
@@ -667,22 +661,25 @@ namespace ctranslate2 {
         }
       };
 
-      ParallelBatchReader batch_reader;
-      batch_reader.add(std::make_unique<StreamReader<SourceReader>>(source, source_reader));
+      std::unique_ptr<BatchReader> batch_reader;
       if (target) {
-        batch_reader.add(std::make_unique<StreamReader<TargetReader>>(*target, *target_reader));
+        auto parallel_reader = std::make_unique<ParallelBatchReader>();
+        parallel_reader->add(std::make_unique<StreamReader<SourceReader>>(source, source_reader));
+        parallel_reader->add(std::make_unique<StreamReader<TargetReader>>(*target, *target_reader));
+        batch_reader = std::move(parallel_reader);
+      } else {
+        batch_reader = std::make_unique<StreamReader<SourceReader>>(source, source_reader);
       }
 
       if (read_batch_size == 0)
         read_batch_size = (max_batch_size == 1 ? max_batch_size : max_batch_size * 16);
 
       while (true) {
-        auto batch = batch_reader.get_next(read_batch_size, batch_type);
-        if (batch[0].empty())
+        auto examples = batch_reader->get_next(read_batch_size, batch_type);
+        if (examples.empty())
           break;
         auto futures = job_creator.post(*this,
-                                        batch[0],
-                                        target ? batch[1] : std::vector<std::vector<std::string>>(),
+                                        examples,
                                         max_batch_size,
                                         batch_type,
                                         /*throttle=*/true);

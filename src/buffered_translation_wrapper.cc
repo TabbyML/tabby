@@ -108,7 +108,7 @@ namespace ctranslate2 {
           std::move(promises));
 
         // Rebatch buffered examples and post jobs in the pool.
-        for (auto& batch : rebatch_input(source, target, _max_batch_size)) {
+        for (auto& batch : rebatch_input(load_examples({source, target}), _max_batch_size)) {
           auto job = std::make_unique<TranslatorPool::TranslateJob>(std::move(batch),
                                                                     _options,
                                                                     consumer);
