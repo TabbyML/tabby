@@ -63,7 +63,7 @@ namespace ctranslate2 {
     StorageView(Shape shape, T init = T(), Device device = Device::CPU);
 
     template <typename T>
-    StorageView(T scalar, Device device = Device::CPU);
+    explicit StorageView(T scalar, Device device = Device::CPU);
 
     // Create from a std::vector (copy).
     template <typename T>
