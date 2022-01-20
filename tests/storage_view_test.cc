@@ -8,6 +8,13 @@ TEST(StorageViewTest, ZeroDim) {
   EXPECT_EQ(a.dim(0), 2);
   EXPECT_EQ(a.dim(1), 0);
   EXPECT_EQ(a.dim(2), 2);
+
+  StorageView b(a);
+  EXPECT_EQ(b.size(), 0);
+  EXPECT_EQ(b.rank(), 3);
+  EXPECT_EQ(b.dim(0), 2);
+  EXPECT_EQ(b.dim(1), 0);
+  EXPECT_EQ(b.dim(2), 2);
 }
 
 TEST(StorageViewTest, BoolOperator) {

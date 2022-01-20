@@ -240,7 +240,7 @@ namespace ctranslate2 {
   }
 
   StorageView& StorageView::resize_as(const StorageView& other) {
-    if (other.empty())
+    if (other.empty() && other.rank() == 0)
       return clear();
     return resize(other.shape());
   }
