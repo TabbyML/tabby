@@ -78,10 +78,10 @@ namespace ctranslate2 {
                                                          _with_source_bos,
                                                          _with_source_eos);
 
-      StorageView ids;
-      std::tie(ids, memory_lengths) = layers::make_sequence_inputs(source_ids,
-                                                                   _device,
-                                                                   _preferred_size_multiple);
+      const StorageView ids = layers::make_sequence_inputs(source_ids,
+                                                           _device,
+                                                           _preferred_size_multiple,
+                                                           &memory_lengths);
 
       encoder(ids, memory_lengths, memory);
     }
@@ -96,12 +96,11 @@ namespace ctranslate2 {
                                                          /*add_bos=*/true,
                                                          /*add_eos=*/false);
 
-      StorageView ids;
       StorageView lengths;
-      std::tie(ids, lengths) = layers::make_sequence_inputs(target_ids,
-                                                            _device,
-                                                            _preferred_size_multiple);
-
+      const StorageView ids = layers::make_sequence_inputs(target_ids,
+                                                           _device,
+                                                           _preferred_size_multiple,
+                                                           &lengths);
 
       decoder(ids, lengths, state, logits);
     }
@@ -148,10 +147,9 @@ namespace ctranslate2 {
                                                              /*add_bos=*/false,
                                                              /*add_eos=*/true);
 
-      StorageView gather_ids;
-      std::tie(gather_ids, std::ignore) = layers::make_sequence_inputs(target_ids_out,
-                                                                       _device,
-                                                                       _preferred_size_multiple);
+      const StorageView gather_ids = layers::make_sequence_inputs(target_ids_out,
+                                                                  _device,
+                                                                  _preferred_size_multiple);
 
       StorageView scores(log_probs.dtype(), _device);
       ops::Gather(/*axis=*/-1, /*batch_dims=*/2)(log_probs, gather_ids, scores);

@@ -8,18 +8,22 @@
 namespace ctranslate2 {
   namespace layers {
 
-    std::pair<StorageView, StorageView>
+    StorageView
     make_sequence_inputs(const std::vector<std::vector<size_t>>& ids,
                          const Device device,
-                         const dim_t length_multiple_of) {
+                         const dim_t length_multiple_of,
+                         StorageView* lengths) {
       const dim_t batch_size = ids.size();
+
+      if (lengths)
+        *lengths = StorageView({batch_size}, DataType::INT32);
 
       // Record lengths and maximum length.
       dim_t max_length = 0;
-      StorageView lengths({batch_size}, DataType::INT32);
       for (dim_t i = 0; i < batch_size; ++i) {
         const dim_t length = ids[i].size();
-        lengths.at<int32_t>(i) = length;
+        if (lengths)
+          lengths->at<int32_t>(i) = length;
         max_length = std::max(max_length, length);
       }
 
@@ -35,7 +39,9 @@ namespace ctranslate2 {
           input.at<int32_t>({i, t}) = ids[i][t];
       }
 
-      return std::make_pair(input.to(device), lengths.to(device));
+      if (lengths)
+        *lengths = lengths->to(device);
+      return input.to(device);
     }
 
 

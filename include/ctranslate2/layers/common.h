@@ -7,10 +7,11 @@
 namespace ctranslate2 {
   namespace layers {
 
-    std::pair<StorageView, StorageView>
+    StorageView
     make_sequence_inputs(const std::vector<std::vector<size_t>>& ids,
                          const Device device,
-                         const dim_t length_multiple_of = 1);
+                         const dim_t length_multiple_of = 1,
+                         StorageView* lengths = nullptr);
 
     class Layer {
     public:
