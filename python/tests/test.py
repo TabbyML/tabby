@@ -24,6 +24,13 @@ def _get_transliterator():
     return ctranslate2.Translator(_get_model_path())
 
 
+def _write_tokens(batch_tokens, path):
+    with open(path, "w", encoding="utf-8") as f:
+        for tokens in batch_tokens:
+            f.write(" ".join(tokens))
+            f.write("\n")
+
+
 def test_invalid_model_path():
     with pytest.raises(RuntimeError):
         ctranslate2.Translator("xxx")
@@ -426,12 +433,6 @@ def test_score_api(tmpdir):
     for scores, expected_scores in zip(all_scores, expected):
         np.testing.assert_allclose(scores, expected_scores, rtol=1e-4)
 
-    def _write_tokens(batch_tokens, path):
-        with open(path, "w", encoding="utf-8") as f:
-            for tokens in batch_tokens:
-                f.write(" ".join(tokens))
-                f.write("\n")
-
     source_path = str(tmpdir.join("source.txt"))
     target_path = str(tmpdir.join("target.txt"))
     output_path = str(tmpdir.join("output.txt"))
@@ -706,6 +707,64 @@ def test_opennmt_py_relative_transformer(tmpdir):
     )
     assert output[0].hypotheses[0] == ["a", "t", "z", "o", "m", "o", "n"]
     assert output[1].hypotheses[0] == ["a", "r", "t", "h", "e", "r"]
+
+
+@skip_if_data_missing
+@skip_on_windows
+@pytest.mark.parametrize(
+    "filename", ["aren_features_concat_10000.pt", "aren_features_sum_10000.pt"]
+)
+def test_opennmt_py_source_features(tmpdir, filename):
+    model_path = os.path.join(
+        _TEST_DATA_DIR,
+        "models",
+        "transliteration-aren-all",
+        "opennmt_py",
+        filename,
+    )
+    converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.txt"))
+
+    source = [
+        ["آ", "ت", "ز", "م", "و", "ن"],
+        ["آ", "ت", "ش", "ي", "س", "و", "ن"],
+    ]
+    source_features = [
+        ["0", "1", "2", "3", "4", "5"],
+        ["0", "1", "2", "3", "4", "5", "6"],
+    ]
+    expected_target = [
+        ["a", "t", "z", "m", "o", "n"],
+        ["a", "c", "h", "i", "s", "o", "n"],
+    ]
+
+    source_w_features = []
+    for tokens, features in zip(source, source_features):
+        source_w_features.append(["%s￨%s" % pair for pair in zip(tokens, features)])
+
+    translator = ctranslate2.Translator(output_dir)
+    with pytest.raises(ValueError, match="features"):
+        translator.translate_batch(source)
+
+    outputs = translator.translate_batch(source_w_features)
+    for output, expected_hypothesis in zip(outputs, expected_target):
+        assert output.hypotheses[0] == expected_hypothesis
+
+    input_path = str(tmpdir.join("input.txt"))
+    output_path = str(tmpdir.join("output.txt"))
+
+    _write_tokens(source, input_path)
+    with pytest.raises(ValueError, match="features"):
+        translator.translate_file(input_path, output_path)
+
+    _write_tokens(source_w_features, input_path)
+    translator.translate_file(input_path, output_path)
+    with open(output_path) as output_file:
+        for line, expected_hypothesis in zip(output_file, expected_target):
+            assert line.strip().split() == expected_hypothesis
 
 
 @skip_if_data_missing

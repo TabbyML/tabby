@@ -32,6 +32,7 @@ namespace ctranslate2 {
   bool starts_with(const std::string& str, const std::string& prefix);
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
+  std::vector<std::string> split_string(const std::string& str, const std::string& delimiter);
 
   template <typename T, typename I>
   static std::vector<T> index_vector(const std::vector<T>& v,

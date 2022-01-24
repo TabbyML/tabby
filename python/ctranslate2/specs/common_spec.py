@@ -9,6 +9,12 @@ class Activation(enum.IntEnum):
     GELU = 1
 
 
+# This enum should match the C++ equivalent in include/ctranslate2/layers/common.h.
+class EmbeddingsMerge(enum.IntEnum):
+    CONCAT = 0
+    ADD = 1
+
+
 class LayerNormSpec(model_spec.LayerSpec):
     def __init__(self):
         self.gamma = None

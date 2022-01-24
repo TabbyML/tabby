@@ -212,20 +212,24 @@ namespace ctranslate2 {
   }
 
   std::vector<std::string> split_string(const std::string& str, char delimiter) {
+    return split_string(str, std::string(1, delimiter));
+  }
+
+  std::vector<std::string> split_string(const std::string& str, const std::string& delimiter) {
     std::vector<std::string> parts;
-    std::string part;
-    for (const char c : str) {
-      if (c == delimiter) {
-        if (!part.empty()) {
-          parts.emplace_back(std::move(part));
-          part.clear();
-        }
-      } else {
-        part += c;
-      }
+    parts.reserve(str.size() / 2);
+    size_t offset = 0;
+
+    while (offset < str.size()) {
+      size_t pos = str.find(delimiter, offset);
+      if (pos == std::string::npos)
+        pos = str.size();
+      const size_t length = pos - offset;
+      if (length > 0)
+        parts.emplace_back(str.substr(offset, length));
+      offset = pos + delimiter.size();
     }
-    if (!part.empty())
-      parts.emplace_back(std::move(part));
+
     return parts;
   }
 

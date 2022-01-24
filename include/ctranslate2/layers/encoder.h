@@ -9,7 +9,11 @@ namespace ctranslate2 {
     // Base class for encoders.
     class Encoder : public Layer {
     public:
-      virtual void operator()(const StorageView& ids,
+      virtual size_t num_input_features() const {
+        return 1;
+      }
+
+      virtual void operator()(const std::vector<StorageView>& ids,
                               const StorageView& lengths,
                               StorageView& output) = 0;
     };

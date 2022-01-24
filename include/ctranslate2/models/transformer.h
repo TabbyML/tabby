@@ -32,6 +32,7 @@ namespace ctranslate2 {
       ops::ActivationType _activation_type;
       dim_t _alignment_layer;
       dim_t _alignment_heads;
+      layers::EmbeddingsMerge _embeddings_merge;
     };
 
   }

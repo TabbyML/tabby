@@ -24,7 +24,7 @@ namespace ctranslate2 {
       virtual std::unique_ptr<layers::Decoder> make_decoder() const = 0;
 
       void forward_encoder(layers::Encoder& encoder,
-                           const std::vector<std::vector<std::string>>& source,
+                           const std::vector<std::vector<std::vector<std::string>>>& source,
                            StorageView& memory,
                            StorageView& memory_lengths) const;
 
@@ -35,7 +35,7 @@ namespace ctranslate2 {
 
       void forward(layers::Encoder& encoder,
                    layers::Decoder& decoder,
-                   const std::vector<std::vector<std::string>>& source,
+                   const std::vector<std::vector<std::vector<std::string>>>& source,
                    const std::vector<std::vector<std::string>>& target,
                    StorageView& logits) const;
 
@@ -71,7 +71,7 @@ namespace ctranslate2 {
       virtual void finalize() override;
 
     private:
-      std::shared_ptr<const Vocabulary> _source_vocabulary;
+      std::vector<std::shared_ptr<const Vocabulary>> _source_vocabularies;
       std::shared_ptr<const Vocabulary> _target_vocabulary;
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
 

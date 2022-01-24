@@ -457,6 +457,7 @@ The table below compares the model size on disk of the pretrained Transformer mo
 * [What is the difference between `intra_threads` and `inter_threads`?](#what-is-the-difference-between-intra_threads-and-inter_threads)
 * [Do you provide a translation server?](#do-you-provide-a-translation-server)
 * [How do I generate a vocabulary mapping file?](#how-do-i-generate-a-vocabulary-mapping-file)
+* [Are additional source features supported?](#are-additional-source-features-supported)
 
 ### How does it relate to the original CTranslate project?
 
@@ -554,3 +555,11 @@ src_1 src_2 ... src_N<TAB>tgt_1 tgt_2 ... tgt_K
 If the source N-gram is empty (N = 0), the assiocated target tokens will always be included in the reduced vocabulary.
 
 See [here](https://github.com/OpenNMT/papers/tree/master/WNMT2018/vmap) for an example on how to generate this file. The file can then be passed to the converter script to be included in the model directory (see option `--vocab_mapping`) and can be used during translation after enabling the `use_vmap` translation option.
+
+### Are additional source features supported?
+
+Yes, models using additional source features (a.k.a. source factors) are supported. The features should be added directly to the source input tokens using the special separator ￨ in both the file and batch translations APIs. For example:
+
+```text
+hello￨C world￨L !￨N
+```

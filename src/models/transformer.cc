@@ -40,7 +40,7 @@ namespace ctranslate2 {
     }
 
     size_t TransformerModel::current_spec_revision() const {
-      return 3;
+      return 4;
     }
 
     bool TransformerModel::is_quantizable(const std::string& variable_name) const {
@@ -78,13 +78,10 @@ namespace ctranslate2 {
         _num_heads = get_variable("num_heads").as_scalar<int8_t>();
       _with_relative_position = get_flag_with_default("with_relative_position", false);
       _pre_norm = get_flag_with_default("pre_norm", true);
-
-      const auto* activation_type = get_variable_if_exists("activation");
-      if (activation_type)
-        _activation_type = static_cast<ops::ActivationType>(activation_type->as_scalar<int8_t>());
-      else
-        _activation_type = ops::ActivationType::ReLU;
-
+      _activation_type = static_cast<ops::ActivationType>(
+        get_attribute_with_default<int8_t>("activation", 0));
+      _embeddings_merge = static_cast<layers::EmbeddingsMerge>(
+        get_attribute_with_default<int8_t>("embeddings_merge", 0));
       _alignment_layer = get_attribute_with_default<int16_t>("alignment_layer", -1);
       _alignment_heads = get_attribute_with_default<int16_t>("alignment_heads", 1);
     }
@@ -95,7 +92,8 @@ namespace ctranslate2 {
                                                           _num_heads,
                                                           !_with_relative_position,
                                                           _pre_norm,
-                                                          _activation_type);
+                                                          _activation_type,
+                                                          _embeddings_merge);
     }
 
     std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {

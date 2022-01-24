@@ -92,14 +92,14 @@ class OpenNMTTFConverter(Converter):
             set_transformer_spec_v2(model_spec, variables)
         else:
             set_transformer_spec(model_spec, variables)
-        model_spec.register_vocabulary("source", _load_vocab(self._src_vocab))
-        model_spec.register_vocabulary("target", _load_vocab(self._tgt_vocab))
+        model_spec.register_source_vocabulary(_load_vocab(self._src_vocab))
+        model_spec.register_target_vocabulary(_load_vocab(self._tgt_vocab))
         return model_spec
 
 
 def set_transformer_spec_v2(spec, variables):
     set_embeddings(
-        spec.encoder.embeddings,
+        spec.encoder.embeddings[0],
         variables,
         "model/examples_inputter/features_inputter",
         version=2,
@@ -232,10 +232,10 @@ def set_transformer_spec(spec, variables):
 def set_transformer_encoder(spec, variables):
     set_layer_norm(spec.layer_norm, variables, "transformer/encoder/LayerNorm")
     try:
-        set_embeddings(spec.embeddings, variables, "transformer/encoder")
+        set_embeddings(spec.embeddings[0], variables, "transformer/encoder")
     except KeyError:
         # Try shared embeddings scope instead.
-        set_embeddings(spec.embeddings, variables, "transformer/shared_embeddings")
+        set_embeddings(spec.embeddings[0], variables, "transformer/shared_embeddings")
     for i, layer in enumerate(spec.layer):
         set_transformer_encoder_layer(
             layer, variables, "transformer/encoder/layer_%d" % i
@@ -325,7 +325,6 @@ def set_embeddings(spec, variables, scope, version=1):
         name = "w_embs"
     variable_name = "%s/%s" % (scope, name)
     spec.weight = variables[variable_name]
-    spec.multiply_by_sqrt_depth = True
     return variable_name
 
 

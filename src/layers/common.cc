@@ -87,6 +87,84 @@ namespace ctranslate2 {
     }
 
 
+    ParallelEmbeddings::ParallelEmbeddings(const models::Model& model,
+                                           const std::string& scope,
+                                           const EmbeddingsMerge merge)
+      : _merge(merge)
+    {
+      const bool compat_mode = model.get_variable_if_exists(scope + "/weight");
+      if (compat_mode) {
+        _layers.emplace_back(std::make_unique<Embeddings>(model, scope));
+      } else {
+        for (size_t i = 0;; ++i) {
+          const std::string layer_scope = scope + "_" + std::to_string(i);
+          try {
+            _layers.emplace_back(std::make_unique<Embeddings>(model, layer_scope));
+          } catch (...) {
+            if (i == 0)
+              throw;
+            else
+              break;
+          }
+        }
+      }
+    }
+
+    DataType ParallelEmbeddings::output_type() const {
+      return _layers[0]->output_type();
+    }
+
+    dim_t ParallelEmbeddings::output_size() const {
+      dim_t size = 0;
+
+      switch (_merge) {
+      case EmbeddingsMerge::Concat:
+        for (const auto& layer : _layers)
+          size += layer->output_size();
+        break;
+      case EmbeddingsMerge::Add:
+        size = _layers[0]->output_size();
+        break;
+      };
+
+      return size;
+    }
+
+    void ParallelEmbeddings::operator()(const std::vector<StorageView>& ids,
+                                        StorageView& output) const {
+      if (ids.size() != _layers.size())
+        throw std::invalid_argument("Expected "
+                                    + std::to_string(_layers.size())
+                                    + " input features (including the main tokens), but got "
+                                    + std::to_string(ids.size())
+                                    + " input features instead");
+
+      for (size_t i = 0; i < _layers.size(); ++i) {
+        StorageView intermediate(output.device(), output.dtype());
+        (*_layers[i])(ids[i], intermediate);
+
+        if (i == 0) {
+          output = std::move(intermediate);
+        } else {
+
+          switch (_merge) {
+          case EmbeddingsMerge::Add: {
+            ops::Add()(intermediate, output, output);
+            break;
+          }
+
+          case EmbeddingsMerge::Concat: {
+            StorageView tmp = std::move(output);
+            ops::Concat(-1)({&tmp, &intermediate}, output);
+            break;
+          }
+          }
+
+        }
+      }
+    }
+
+
     void PositionEncoder::operator()(StorageView& input, dim_t index) {
       const dim_t time = input.dim(1);
       const dim_t depth = input.dim(-1);

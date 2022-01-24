@@ -11,11 +11,17 @@ _SUPPORTED_ACTIVATIONS = {
     "relu": common_spec.Activation.RELU,
 }
 
+_SUPPORTED_FEATURES_MERGE = {
+    "concat": common_spec.EmbeddingsMerge.CONCAT,
+    "sum": common_spec.EmbeddingsMerge.ADD,
+}
 
-def _get_model_spec(opt):
+
+def _get_model_spec(opt, num_source_embeddings):
     """Creates a model specification from the model options."""
     with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
+    feat_merge = getattr(opt, "feat_merge", "concat")
 
     reasons = []
     if opt.encoder_type != "transformer" or opt.decoder_type != "transformer":
@@ -27,7 +33,7 @@ def _get_model_spec(opt):
             "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
             % opt.self_attn_type
         )
-    if activation_fn not in _SUPPORTED_ACTIVATIONS.keys():
+    if activation_fn not in _SUPPORTED_ACTIVATIONS:
         reasons.append(
             "Option --pos_ffn_activation_fn %s is not supported (supported activations are: %s)"
             % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys()))
@@ -36,6 +42,11 @@ def _get_model_spec(opt):
         reasons.append(
             "Options --position_encoding and --max_relative_positions cannot be both enabled "
             "or both disabled"
+        )
+    if num_source_embeddings > 1 and feat_merge not in _SUPPORTED_FEATURES_MERGE:
+        reasons.append(
+            "Option --feat_merge %s is not supported (supported merge modes are: %s)"
+            % (feat_merge, " ".join(_SUPPORTED_FEATURES_MERGE.keys()))
         )
 
     if reasons:
@@ -49,6 +60,8 @@ def _get_model_spec(opt):
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
         alignment_layer=getattr(opt, "alignment_layer", -1),
         alignment_heads=getattr(opt, "alignment_heads", 1),
+        num_source_embeddings=num_source_embeddings,
+        embeddings_merge=_SUPPORTED_FEATURES_MERGE[feat_merge],
     )
 
 
@@ -62,24 +75,29 @@ class OpenNMTPyConverter(Converter):
         import torch
 
         checkpoint = torch.load(self._model_path, map_location="cpu")
-        model_spec = _get_model_spec(checkpoint["opt"])
+
+        vocab = checkpoint["vocab"]
+        if isinstance(vocab, dict) and "src" in vocab:
+            src_vocabs = [field[1].vocab.itos for field in vocab["src"].fields]
+            tgt_vocabs = [field[1].vocab.itos for field in vocab["tgt"].fields]
+        else:
+            # Compatibility with older models.
+            src_vocabs = [vocab[0][1].itos]
+            tgt_vocabs = [vocab[1][1].itos]
+
+        model_spec = _get_model_spec(
+            checkpoint["opt"], num_source_embeddings=len(src_vocabs)
+        )
 
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"].get("0.bias")
 
-        vocab = checkpoint["vocab"]
-        if isinstance(vocab, dict) and "src" in vocab:
-            src_vocab = vocab["src"].fields[0][1].vocab
-            tgt_vocab = vocab["tgt"].fields[0][1].vocab
-        else:
-            # Compatibility with older models.
-            src_vocab = vocab[0][1]
-            tgt_vocab = vocab[1][1]
-
         set_transformer_spec(model_spec, variables)
-        model_spec.register_vocabulary("source", src_vocab.itos)
-        model_spec.register_vocabulary("target", tgt_vocab.itos)
+        for src_vocab in src_vocabs:
+            model_spec.register_source_vocabulary(src_vocab)
+        for tgt_vocab in tgt_vocabs:
+            model_spec.register_target_vocabulary(tgt_vocab)
         return model_spec
 
 
@@ -118,17 +136,22 @@ def set_input_layers(spec, variables, scope, relative=False):
             variables,
             "%s.embeddings.make_embedding.pe" % scope,
         )
-        with_pe = True
     except KeyError:
         if not relative:
             raise
-        with_pe = False
-    set_embeddings(
-        spec.embeddings,
-        variables,
-        "%s.embeddings.make_embedding.emb_luts.0" % scope,
-        multiply_by_sqrt_depth=with_pe,
-    )
+        # See https://github.com/OpenNMT/OpenNMT-py/issues/1722
+        spec.scale_embeddings = False
+
+    embeddings_specs = spec.embeddings
+    if not isinstance(embeddings_specs, list):
+        embeddings_specs = [embeddings_specs]
+
+    for i, embeddings_spec in enumerate(embeddings_specs):
+        set_embeddings(
+            embeddings_spec,
+            variables,
+            "%s.embeddings.make_embedding.emb_luts.%d" % (scope, i),
+        )
 
 
 def set_transformer_encoder_layer(spec, variables, scope, relative=False):
@@ -203,9 +226,8 @@ def set_linear(spec, variables, scope):
         spec.bias = bias.numpy()
 
 
-def set_embeddings(spec, variables, scope, multiply_by_sqrt_depth=True):
+def set_embeddings(spec, variables, scope):
     spec.weight = _get_variable(variables, "%s.weight" % scope)
-    spec.multiply_by_sqrt_depth = multiply_by_sqrt_depth
 
 
 def set_position_encodings(spec, variables, scope):

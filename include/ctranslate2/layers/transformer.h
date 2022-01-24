@@ -107,11 +107,16 @@ namespace ctranslate2 {
                          const size_t num_heads,
                          const bool with_position_encoding = true,
                          const bool pre_norm = true,
-                         const ops::ActivationType activation_type = ops::ActivationType::ReLU);
+                         const ops::ActivationType activation_type = ops::ActivationType::ReLU,
+                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat);
 
-      void operator()(const StorageView& ids,
+      void operator()(const std::vector<StorageView>& ids,
                       const StorageView& lengths,
                       StorageView& output) override;
+
+      size_t num_input_features() const override {
+        return _embeddings.num_inputs();
+      }
 
       DataType output_type() const override {
         return _layers.back()->output_type();
@@ -122,7 +127,8 @@ namespace ctranslate2 {
       }
 
     private:
-      const Embeddings _embeddings;
+      const ParallelEmbeddings _embeddings;
+      const std::unique_ptr<const StorageView> _embeddings_scale;
       const dim_t _num_heads;
       const ComputeType _compute_type;
       const std::unique_ptr<PositionEncoder> _position_encoder;
@@ -182,6 +188,7 @@ namespace ctranslate2 {
       dim_t _alignment_heads;
       const ComputeType _compute_type;
       const Embeddings _embeddings;
+      const std::unique_ptr<const StorageView> _embeddings_scale;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<LayerNorm> _output_norm;
       std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;

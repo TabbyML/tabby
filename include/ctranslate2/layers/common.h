@@ -35,6 +35,28 @@ namespace ctranslate2 {
       std::unique_ptr<const StorageView> _scale;
     };
 
+    // This enum order should remain fixed.
+    enum class EmbeddingsMerge {
+      Concat,
+      Add,
+    };
+
+    class ParallelEmbeddings : public Layer {
+    public:
+      ParallelEmbeddings(const models::Model& model,
+                         const std::string& scope,
+                         const EmbeddingsMerge merge);
+      size_t num_inputs() const {
+        return _layers.size();
+      }
+      DataType output_type() const override;
+      dim_t output_size() const override;
+      void operator()(const std::vector<StorageView>& ids, StorageView& output) const;
+    private:
+      const EmbeddingsMerge _merge;
+      std::vector<std::unique_ptr<const Embeddings>> _layers;
+    };
+
     // Base class for position encoders.
     class PositionEncoder : public Layer {
     public:

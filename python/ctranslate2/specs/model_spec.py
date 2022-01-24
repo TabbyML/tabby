@@ -68,6 +68,8 @@ class LayerSpec(object):
                 # Use float32 as the working floating point type.
                 if value.dtype in (np.float16, np.float64):
                     setattr(spec, attr_name, value.astype(np.float32))
+            elif isinstance(value, float):
+                setattr(spec, attr_name, np.dtype("float32").type(value))
             elif isinstance(value, bool):
                 # Convert bool to an integer type.
                 setattr(spec, attr_name, np.dtype("int8").type(value))
@@ -224,43 +226,69 @@ class ModelSpec(LayerSpec):
                 _write_string(variable_name)
 
 
+def _flatten_vocabularies(vocabularies):
+    for name, vocabulary in vocabularies.items():
+        if len(vocabulary) == 1:
+            yield name, vocabulary[0]
+        else:
+            for i, vocab in enumerate(vocabulary):
+                yield "%s_%d" % (name, i + 1), vocab
+
+
 class SequenceToSequenceModelSpec(ModelSpec):
     """Base specification for sequence to sequence models."""
 
-    def __init__(self):
+    def __init__(self, source_embeddings_specs, target_embeddings_specs):
+        """Initializes a sequence to sequence model specification.
+
+        Args:
+          source_embeddings_specs: List of source EmbeddingsSpec modules.
+          target_embeddings_specs: List of target EmbeddingsSpec modules.
+        """
         self.with_source_bos = False
         self.with_source_eos = False
         self.with_target_bos = True
-        self._vocabularies = {}
+        self._embeddings_specs = {
+            "source": source_embeddings_specs,
+            "target": target_embeddings_specs,
+        }
+        self._vocabularies = {
+            "source": [],
+            "target": [],
+        }
         self._vmap = None
 
-    def register_vocabulary(self, name, tokens):
-        """Registers a vocabulary of tokens."""
-        self._vocabularies[name] = tokens
+    def register_source_vocabulary(self, tokens):
+        """Registers a source vocabulary of tokens."""
+        self._vocabularies["source"].append(tokens)
+
+    def register_target_vocabulary(self, tokens):
+        """Registers a target vocabulary of tokens."""
+        self._vocabularies["target"].append(tokens)
 
     def register_vocabulary_mapping(self, path):
         """Registers a vocabulary mapping file."""
         self._vmap = path
 
-    @property
-    def vocabulary_size(self):
-        """Vocabulary sizes based on the model weights."""
-        return {
-            "source": None,
-            "target": None,
-        }
-
     def validate(self):
         # Check that vocabularies are registered and have the correct size.
-        for name, expected_size in self.vocabulary_size.items():
-            vocabulary = self._vocabularies.get(name)
-            if vocabulary is None:
-                raise ValueError("No %s vocabulary has been registered" % name)
-            if expected_size is not None and len(vocabulary) != expected_size:
+        for name, embeddings_specs in self._embeddings_specs.items():
+            vocabularies = self._vocabularies[name]
+            if len(vocabularies) != len(embeddings_specs):
                 raise ValueError(
-                    "%s vocabulary has size %d but the model expected a vocabulary "
-                    "of size %d" % (name.capitalize(), len(vocabulary), expected_size)
+                    "Incorrect number of %s vocabularies: %d registered, but expected %d"
+                    % (name, len(vocabularies), len(embeddings_specs))
                 )
+            for i, (vocabulary, embeddings_spec) in enumerate(
+                zip(vocabularies, embeddings_specs)
+            ):
+                expected_size = embeddings_spec.weight.shape[0]
+                if len(vocabulary) != expected_size:
+                    raise ValueError(
+                        "%s vocabulary %d has size %d but the model expected a vocabulary "
+                        "of size %d"
+                        % (name.capitalize(), i, len(vocabulary), expected_size)
+                    )
 
         if self._vmap is not None and not os.path.exists(self._vmap):
             raise ValueError("Vocabulary mapping file %s does not exist" % self._vmap)
@@ -270,11 +298,10 @@ class SequenceToSequenceModelSpec(ModelSpec):
 
     def save(self, output_dir):
         # Save the vocabularies.
-        all_vocabularies = list(self._vocabularies.values())
+        vocabularies = dict(_flatten_vocabularies(self._vocabularies))
+        all_vocabularies = list(vocabularies.values())
         if all(vocabulary == all_vocabularies[0] for vocabulary in all_vocabularies):
             vocabularies = {"shared": all_vocabularies[0]}
-        else:
-            vocabularies = self._vocabularies
 
         for name, tokens in vocabularies.items():
             path = os.path.join(output_dir, "%s_vocabulary.txt" % name)

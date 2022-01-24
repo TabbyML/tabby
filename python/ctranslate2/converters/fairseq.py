@@ -122,8 +122,8 @@ class FairseqConverter(Converter):
             model.load_state_dict(checkpoint["model"])
 
             set_transformer_spec(model_spec, model)
-            model_spec.register_vocabulary("source", _get_vocab(task.source_dictionary))
-            model_spec.register_vocabulary("target", _get_vocab(task.target_dictionary))
+            model_spec.register_source_vocabulary(_get_vocab(task.source_dictionary))
+            model_spec.register_target_vocabulary(_get_vocab(task.target_dictionary))
             return model_spec
 
 
@@ -152,10 +152,10 @@ def set_transformer_decoder(spec, module):
 def set_input_layers(spec, module):
     set_position_encodings(spec.position_encodings, module.embed_positions)
     set_embeddings(
-        spec.embeddings,
+        spec.embeddings[0] if isinstance(spec.embeddings, list) else spec.embeddings,
         module.embed_tokens,
-        multiply_by_sqrt_depth=module.embed_scale != 1.0,
     )
+    spec.scale_embeddings = module.embed_scale
 
 
 def set_transformer_encoder_layer(spec, module):
@@ -205,9 +205,8 @@ def set_linear(spec, module):
         spec.bias = module.bias.numpy()
 
 
-def set_embeddings(spec, module, multiply_by_sqrt_depth=True):
+def set_embeddings(spec, module):
     spec.weight = module.weight.numpy()
-    spec.multiply_by_sqrt_depth = multiply_by_sqrt_depth
 
 
 def set_position_encodings(spec, module):
