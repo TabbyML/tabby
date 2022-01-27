@@ -97,6 +97,7 @@ namespace ctranslate2 {
       // (e.g. a variable name changed in a newer spec revision).
       virtual void register_variable(std::string name, StorageView variable);
       virtual void register_variable_alias(std::string alias, std::string variable_name);
+      virtual void remove_variable(const std::string& name);
       virtual void finalize();
 
       Device _device;
@@ -111,9 +112,7 @@ namespace ctranslate2 {
       void set_compute_type(ComputeType type);
       void ensure_dtype(const std::string& name,
                         StorageView& variable,
-                        const DataType target_dtype,
-                        std::unordered_map<std::string, StorageView>& variables_to_add,
-                        std::vector<std::string>& variables_to_remove);
+                        const DataType target_dtype);
       ComputeType infer_compute_type() const;
 
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;

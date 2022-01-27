@@ -178,6 +178,10 @@ namespace ctranslate2 {
       _variable_index.emplace(std::move(alias), it->second);
     }
 
+    void Model::remove_variable(const std::string& name) {
+      _variable_index.erase(name);
+    }
+
     bool Model::is_quantizable(const std::string&) const {
       return false;
     }
@@ -194,30 +198,27 @@ namespace ctranslate2 {
       return !variable.is_scalar() && name.find("_scale") == std::string::npos;
     }
 
-    void
-    Model::ensure_dtype(const std::string& name,
-                        StorageView& variable,
-                        const DataType target_dtype,
-                        std::unordered_map<std::string, StorageView>& variables_to_add,
-                        std::vector<std::string>& variables_to_remove) {
+    void Model::ensure_dtype(const std::string& name,
+                             StorageView& variable,
+                             const DataType target_dtype) {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
       const bool is_float = variable.dtype() == DataType::FLOAT;
       const bool is_float16 = variable.dtype() == DataType::FLOAT16;
 
       const std::string scale_name = name + "_scale";
-      StorageView* saved_scale = nullptr;
+      const StorageView* saved_scale = nullptr;
       if (is_int8 || is_int16) {
         // Check that the quantization scale of the variable exists.
-        auto it = _variable_index.find(scale_name);
-        if (it != _variable_index.end()) {
-          saved_scale = it->second.get();
-        } else if (is_int16) {
-          // Backward compatibility with int16 models without a saved scale.
-          saved_scale = &variables_to_add.emplace(scale_name,
-                                                  ops::Quantize::global_int16_scale).first->second;
-        } else {
-          throw std::runtime_error("variable " + scale_name + " not found");
+        saved_scale = get_variable_if_exists(scale_name);
+        if (!saved_scale) {
+          if (is_int16) {
+            // Backward compatibility with int16 models without a saved scale.
+            register_variable(scale_name, StorageView(ops::Quantize::global_int16_scale));
+            saved_scale = get_variable_if_exists(scale_name);
+          } else {
+            throw std::runtime_error("variable " + scale_name + " not found");
+          }
         }
       }
 
@@ -238,7 +239,7 @@ namespace ctranslate2 {
           // Dequantize int8 or int16 back to float32.
           StorageView dequantized;
           dequantize_op(variable, *saved_scale, dequantized);
-          variables_to_remove.emplace_back(scale_name);  // The scale is no longer needed.
+          remove_variable(scale_name);  // The scale is no longer needed.
           if (target_dtype == DataType::FLOAT16) {
             target_variable = dequantized.to_float16();
           } else {
@@ -254,13 +255,16 @@ namespace ctranslate2 {
         } else {
           quantize_op(variable, target_variable, scale);
         }
-        variables_to_add.emplace(scale_name, scale);
+        register_variable(scale_name, std::move(scale));
 
       } else {
         // Convert int8 -> float32 -> int16 or int16 -> float32 -> int8.
         StorageView tmp_variable;
+        StorageView new_scale;
         dequantize_op(variable, *saved_scale, tmp_variable);
-        quantize_op(tmp_variable, target_variable, *saved_scale);
+        quantize_op(tmp_variable, target_variable, new_scale);
+        remove_variable(scale_name);
+        register_variable(scale_name, std::move(new_scale));
       }
 
       variable = std::move(target_variable);
@@ -295,9 +299,6 @@ namespace ctranslate2 {
     void Model::finalize() {
       auto scoped_device_setter = get_scoped_device_setter();
 
-      std::vector<std::string> variables_to_remove;
-      std::unordered_map<std::string, StorageView> variables_to_add;
-
       _effective_compute_type = resolve_compute_type(_compute_type,
                                                      infer_compute_type(),
                                                      _device,
@@ -308,17 +309,14 @@ namespace ctranslate2 {
       const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
       const DataType float_dtype = get_default_float_type(_effective_compute_type);
 
-      for (auto& variable_pair : _variable_index) {
+      const auto variable_index = _variable_index;
+      for (auto& variable_pair : variable_index) {
         const auto& name = variable_pair.first;
         auto& variable = *variable_pair.second;
 
         // Convert "weight" variables to the expected compute type.
         if (is_quantizable(name)) {
-          ensure_dtype(name,
-                       variable,
-                       target_dtype,
-                       variables_to_add,
-                       variables_to_remove);
+          ensure_dtype(name, variable, target_dtype);
         } else if (is_convertible(variable, name)) {
           // Other parameters may be converted from or to float16 (e.g. bias).
           if (float_dtype == DataType::FLOAT16) {
@@ -333,14 +331,6 @@ namespace ctranslate2 {
         }
       }
 
-      // Add needed variables.
-      for (auto& pair : variables_to_add)
-        _variable_index.emplace(pair.first, std::make_shared<StorageView>(std::move(pair.second)));
-
-      // Remove no longer needed variables.
-      for (const auto& name : variables_to_remove)
-        _variable_index.erase(name);
-
       // Second pass to move variables on the target device.
       move_variables_to_device(_variable_index, _device);
     }
@@ -354,10 +344,8 @@ namespace ctranslate2 {
       const bool transpose = true;
       const float alpha = 1;
 
-      std::vector<std::string> variables_to_remove;
-      std::unordered_map<std::string, StorageView> variables_to_add;
-
-      for (const auto& pair : _variable_index) {
+      const auto variable_index = _variable_index;
+      for (const auto& pair : variable_index) {
         const std::string& name = pair.first;
         if (!is_linear_weight(name))
           continue;
@@ -378,7 +366,7 @@ namespace ctranslate2 {
                                                            k, n,
                                                            alpha,
                                                            compensation.data<int32_t>());
-          variables_to_add.emplace(name + "_compensation", std::move(compensation));
+          register_variable(name + "_compensation", std::move(compensation));
         }
 
         // If requested, linear weights can be packed for the Gemm call.
@@ -400,16 +388,11 @@ namespace ctranslate2 {
           }
 
           if (!packed_weight.empty()) {
-            variables_to_add.emplace(name + "_packed", std::move(packed_weight));
-            variables_to_remove.emplace_back(name);  // The original weight is no longer needed.
+            register_variable(name + "_packed", std::move(packed_weight));
+            remove_variable(name);  // The original weight is no longer needed.
           }
         }
       }
-
-      for (auto& pair : variables_to_add)
-        _variable_index.emplace(pair.first, std::make_shared<StorageView>(std::move(pair.second)));
-      for (const auto& name : variables_to_remove)
-        _variable_index.erase(name);
     }
 
     static DataType get_dtype_from_item_size(uint8_t item_size) {
