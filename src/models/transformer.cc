@@ -74,8 +74,7 @@ namespace ctranslate2 {
 
     void TransformerModel::finalize() {
       SequenceToSequenceModel::finalize();
-      if (_spec_revision >= 3)
-        _num_heads = get_variable("num_heads").as_scalar<int8_t>();
+      _num_heads = get_attribute_with_default<int8_t>("num_heads", _num_heads);
       _with_relative_position = get_flag_with_default("with_relative_position", false);
       _pre_norm = get_flag_with_default("pre_norm", true);
       _activation_type = static_cast<ops::ActivationType>(
