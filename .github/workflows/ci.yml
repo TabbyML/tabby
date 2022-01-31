@@ -268,7 +268,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install black==20.8b1 flake8==3.8.*
+          python -m pip install black==22.* flake8==3.8.*
 
       - name: Check code format with Black
         working-directory: python
