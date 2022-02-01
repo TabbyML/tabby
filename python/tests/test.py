@@ -851,7 +851,7 @@ def test_int8_quantization():
     spec = Spec()
     spec.optimize(quantization="int8")
     assert np.array_equal(
-        spec.weight, np.array([[-127, -38, 63, 25], [0, 0, 0, 0]], dtype=np.int8)
+        spec.weight, np.array([[-127, -38, 64, 25], [0, 0, 0, 0]], dtype=np.int8)
     )
     assert np.array_equal(spec.weight_scale, np.array([12.7, 1], dtype=np.float32))
 

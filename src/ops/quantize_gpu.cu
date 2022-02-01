@@ -30,15 +30,24 @@ namespace ctranslate2 {
       }
     };
 
-    struct quantize_func {
-      __device__ __forceinline__ quantize_func(float scale)
+    struct rescale_func {
+      __device__ __forceinline__ rescale_func(float scale)
         : _scale(scale) {
       }
-
-      __device__ __forceinline__ int8_t operator()(float v) const {
-        return static_cast<int8_t>(v * _scale);
+      __device__ __forceinline__ float operator()(float v) const {
+        return v * _scale;
       }
+    private:
+      const float _scale;
+    };
 
+    struct rescale_and_round_func {
+      __device__ __forceinline__ rescale_and_round_func(float scale)
+        : _scale(scale) {
+      }
+      __device__ __forceinline__ float operator()(float v) const {
+        return nearbyintf(v * _scale);
+      }
     private:
       const float _scale;
     };
@@ -47,7 +56,8 @@ namespace ctranslate2 {
     __global__ void quantize_kernel(const T* input,
                                     cuda::index_t depth,
                                     float* scales,
-                                    int8_t* output) {
+                                    int8_t* output,
+                                    bool round_before_cast) {
       extern __shared__ unsigned char smem[];
       auto* sdata = reinterpret_cast<T*>(smem);
 
@@ -66,7 +76,10 @@ namespace ctranslate2 {
 
       __syncthreads();
 
-      cuda::apply_epilogue(input, depth, quantize_func(scale), output);
+      if (round_before_cast)
+        cuda::apply_epilogue(input, depth, rescale_and_round_func(scale), output);
+      else
+        cuda::apply_epilogue(input, depth, rescale_func(scale), output);
     }
 
     template <Device D, typename InT, typename OutT>
@@ -85,7 +98,8 @@ namespace ctranslate2 {
         cuda::device_cast<InT>(input.data<InT>()),
         depth,
         scale.data<float>(),
-        cuda::device_cast<OutT>(output.data<OutT>()));
+        cuda::device_cast<OutT>(output.data<OutT>()),
+        _round_before_cast);
     }
 
     template void

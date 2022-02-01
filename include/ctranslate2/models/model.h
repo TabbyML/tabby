@@ -9,7 +9,7 @@
 namespace ctranslate2 {
   namespace models {
 
-    static const size_t current_binary_version = 4;
+    static const size_t current_binary_version = 5;
 
     // Checks whether the provided path could contain a CTranslate2 model.
     bool contains_model(const std::string& path);
@@ -53,6 +53,10 @@ namespace ctranslate2 {
 
       dim_t preferred_size_multiple() const {
         return _preferred_size_multiple;
+      }
+
+      bool round_before_cast_in_quantization() const {
+        return _binary_version >= 5;
       }
 
       ScopedDeviceSetter get_scoped_device_setter() const {
@@ -102,6 +106,7 @@ namespace ctranslate2 {
 
       Device _device;
       int _device_index;
+      size_t _binary_version;
       size_t _spec_revision;
       ComputeType _compute_type = ComputeType::DEFAULT;
       ComputeType _effective_compute_type = ComputeType::DEFAULT;

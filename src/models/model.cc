@@ -226,7 +226,9 @@ namespace ctranslate2 {
         return;
 
       // Use the same quantization logic as in model_spec.py.
-      const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER);
+      const ops::Quantize quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::PER_LAYER,
+                                      /*shift_to_uint8=*/false,
+                                      /*round_before_cast=*/round_before_cast_in_quantization());
       const ops::Dequantize dequantize_op{};
       StorageView target_variable(target_dtype);
 
@@ -464,7 +466,7 @@ namespace ctranslate2 {
       std::istream& model_file = *model_file_ptr;
 
       // See the model serialization in python/ctranslate2/specs/model_spec.py.
-      const auto binary_version = consume<uint32_t>(model_file);
+      const size_t binary_version = consume<uint32_t>(model_file);
       check_version(binary_version, current_binary_version, "binary version");
 
       std::string spec;
@@ -477,6 +479,7 @@ namespace ctranslate2 {
       }
 
       auto model = create_model(model_reader, spec, spec_revision);
+      model->_binary_version = binary_version;
       model->set_device(device, device_index);
       model->set_compute_type(compute_type);
 

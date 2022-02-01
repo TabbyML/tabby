@@ -77,7 +77,11 @@ You can get more information about the detected capabilities of your system by s
 
 The implementation applies the equation from [Wu et al. 2016](https://arxiv.org/abs/1609.08144) to compute the quantized weights:
 
-![INT8 quantization equation](_static/int8_equation.png)
+```text
+scale[i] = 127 / max(abs(W[i,:]))
+
+WQ[i,j] = round(scale[i] * W[i,j])
+```
 
 Note that this corresponds to a symmetric quantization (absolute maximum of the input range instead of separate min/max values). We only quantize the weights of the embedding and linear layers.
 

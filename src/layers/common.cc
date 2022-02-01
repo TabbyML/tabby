@@ -293,7 +293,8 @@ namespace ctranslate2 {
                  _packed_weight,
                  _quantized_gemm ? nullptr : activation_type)
       , _quantize_op(/*int16_scale_type=*/ops::Quantize::ScaleType::GLOBAL,
-                     /*shift_to_uint8=*/bool(_u8_shift_compensation))
+                     /*shift_to_uint8=*/bool(_u8_shift_compensation),
+                     /*round_before_cast=*/model.round_before_cast_in_quantization())
       , _dequantize_op(activation_type)
     {
     }

@@ -72,7 +72,15 @@ namespace ctranslate2 {
                      float* scales,
                      dim_t batch_size,
                      dim_t depth,
-                     bool shift_to_uint8);
+                     bool shift_to_uint8,
+                     bool round_before_cast);
+
+    struct identity {
+      template <typename T>
+      constexpr T&& operator()(T&& v) const noexcept {
+        return std::forward<T>(v);
+      }
+    };
 
   }
 }

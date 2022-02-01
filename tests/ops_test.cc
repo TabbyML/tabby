@@ -672,10 +672,22 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
   StorageView scale(DataType::FLOAT, device);
   StorageView qa(DataType::INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 6.047619}, device);
-  StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 30, 127, -18, 0});
-  ops::Quantize()(a, qa, scale);
-  expect_storage_eq(scale, expected_scale);
-  expect_storage_eq(qa, expected_qa);
+
+  // With rounding before cast.
+  {
+    StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 64, 25, 30, 127, -18, 0});
+    ops::Quantize(ops::Quantize::ScaleType::GLOBAL, false, true)(a, qa, scale);
+    expect_storage_eq(scale, expected_scale);
+    expect_storage_eq(qa, expected_qa);
+  }
+
+  // Without rounding before cast (legacy behavior).
+  {
+    StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 30, 127, -18, 0});
+    ops::Quantize(ops::Quantize::ScaleType::GLOBAL, false, false)(a, qa, scale);
+    expect_storage_eq(scale, expected_scale);
+    expect_storage_eq(qa, expected_qa);
+  }
 }
 
 TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
@@ -684,10 +696,22 @@ TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
   StorageView scale(DataType::FLOAT, device);
   StorageView qa(DataType::INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 1}, device);
-  StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 0, 0, 0, 0});
-  ops::Quantize()(a, qa, scale);
-  expect_storage_eq(scale, expected_scale);
-  expect_storage_eq(qa, expected_qa);
+
+  // With rounding before cast.
+  {
+    StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 64, 25, 0, 0, 0, 0});
+    ops::Quantize(ops::Quantize::ScaleType::GLOBAL, false, true)(a, qa, scale);
+    expect_storage_eq(scale, expected_scale);
+    expect_storage_eq(qa, expected_qa);
+  }
+
+  // Without rounding before cast (legacy behavior).
+  {
+    StorageView expected_qa(a.shape(), std::vector<int8_t>{-127, -38, 63, 25, 0, 0, 0, 0});
+    ops::Quantize(ops::Quantize::ScaleType::GLOBAL, false, false)(a, qa, scale);
+    expect_storage_eq(scale, expected_scale);
+    expect_storage_eq(qa, expected_qa);
+  }
 }
 
 TEST_P(OpDeviceFPTest, Multinomial) {

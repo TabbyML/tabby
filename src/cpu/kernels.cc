@@ -59,13 +59,6 @@ namespace ctranslate2 {
       }
     }
 
-    struct identity {
-      template <typename T>
-      constexpr T&& operator()(T&& v) const noexcept {
-        return std::forward<T>(v);
-      }
-    };
-
     template <CpuIsa ISA,
               typename T,
               typename VecMapFunc,
@@ -348,13 +341,14 @@ namespace ctranslate2 {
       }
     }
 
-    template<>
-    void quantize_s8<TARGET_ISA>(const float* x,
+    template <typename RoundFunc>
+    static void quantize_s8_impl(const float* x,
                                  int8_t* y,
                                  float* scales,
                                  dim_t batch_size,
                                  dim_t depth,
-                                 bool shift_to_uint8) {
+                                 bool shift_to_uint8,
+                                 const RoundFunc& round_func) {
       constexpr float int8_min = std::numeric_limits<int8_t>::min();
       constexpr float int8_max = std::numeric_limits<int8_t>::max();
 
@@ -368,15 +362,29 @@ namespace ctranslate2 {
         if (shift_to_uint8) {
           auto* dst = reinterpret_cast<uint8_t*>(y) + offset;
           for (dim_t j = 0; j < depth; ++j)
-            dst[j] = src[j] * scale - int8_min;
+            dst[j] = round_func(src[j] * scale - int8_min);
         } else {
           auto* dst = y + offset;
           for (dim_t j = 0; j < depth; ++j)
-            dst[j] = src[j] * scale;
+            dst[j] = round_func(src[j] * scale);
         }
 
         scales[i] = scale;
       }
+    }
+
+    template<>
+    void quantize_s8<TARGET_ISA>(const float* x,
+                                 int8_t* y,
+                                 float* scales,
+                                 dim_t batch_size,
+                                 dim_t depth,
+                                 bool shift_to_uint8,
+                                 bool round_before_cast) {
+      if (round_before_cast)
+        quantize_s8_impl(x, y, scales, batch_size, depth, shift_to_uint8, std::nearbyintf);
+      else
+        quantize_s8_impl(x, y, scales, batch_size, depth, shift_to_uint8, identity());
     }
 
   }

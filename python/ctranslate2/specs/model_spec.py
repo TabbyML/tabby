@@ -9,6 +9,7 @@ import struct
 import numpy as np
 
 OPTIONAL = "optional"
+CURRENT_BINARY_VERSION = 5
 
 
 def _join_scope(scope, name):
@@ -128,6 +129,7 @@ class LayerSpec(object):
                         2**10 / np.amax(np.absolute(value))
                     )
                     value *= scale
+                    value = np.rint(value)
                     value = np.clip(
                         value, np.iinfo(np.int16).min, np.iinfo(np.int16).max
                     )
@@ -137,6 +139,7 @@ class LayerSpec(object):
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
                     value *= np.expand_dims(scale, 1)
+                    value = np.rint(value)
                     value = value.astype(np.int8)
                 setattr(spec, "weight_scale", scale)
                 setattr(spec, "weight", value)
@@ -208,7 +211,7 @@ class ModelSpec(LayerSpec):
                 model.write(string.encode("utf-8"))
                 model.write(struct.pack("B", 0))
 
-            model.write(struct.pack("I", 4))  # Binary version.
+            model.write(struct.pack("I", CURRENT_BINARY_VERSION))
             _write_string(self.name)
             model.write(struct.pack("I", self.revision))
             model.write(struct.pack("I", len(variables)))

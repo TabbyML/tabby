@@ -7,9 +7,13 @@ namespace ctranslate2 {
 
     const float Quantize::global_int16_scale = 1000;
 
-    Quantize::Quantize(const ScaleType int16_scale_type, const bool shift_to_uint8)
+    Quantize::Quantize(const ScaleType int16_scale_type,
+                       const bool shift_to_uint8,
+                       const bool round_before_cast)
       : _int16_scale_type(int16_scale_type)
-      , _shift_to_uint8(shift_to_uint8) {
+      , _shift_to_uint8(shift_to_uint8)
+      , _round_before_cast(round_before_cast)
+    {
       if (int16_scale_type != ScaleType::GLOBAL && int16_scale_type != ScaleType::PER_LAYER)
         throw std::invalid_argument("INT16 quantization only supports GLOBAL and PER_LAYER scales");
     }

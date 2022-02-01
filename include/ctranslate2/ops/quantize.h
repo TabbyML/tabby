@@ -16,7 +16,8 @@ namespace ctranslate2 {
       static const float global_int16_scale;
 
       Quantize(const ScaleType int16_scale_type = ScaleType::GLOBAL,
-               const bool shift_to_uint8 = false);
+               const bool shift_to_uint8 = false,
+               const bool round_before_cast = true);
 
       void operator()(const StorageView& input,
                       StorageView& output,
@@ -30,6 +31,7 @@ namespace ctranslate2 {
 
       const ScaleType _int16_scale_type;
       const bool _shift_to_uint8;
+      const bool _round_before_cast;
     };
 
   }

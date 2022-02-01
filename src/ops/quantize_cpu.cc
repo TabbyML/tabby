@@ -18,7 +18,24 @@ namespace ctranslate2 {
                                              scale.data<float>(),
                                              batch_size,
                                              depth,
-                                             _shift_to_uint8));
+                                             _shift_to_uint8,
+                                             _round_before_cast));
+    }
+
+    template <typename RoundFunc>
+    static void quantize_s16_kernel(const float* x,
+                                    const float scale,
+                                    int16_t* y,
+                                    dim_t size,
+                                    const RoundFunc& round_func) {
+      constexpr float int16_min = std::numeric_limits<int16_t>::lowest();
+      constexpr float int16_max = std::numeric_limits<int16_t>::max();
+
+      cpu::parallel_unary_transform(
+        x, y, size, /*work_size=*/5,
+        [scale, int16_min, int16_max, &round_func](float v) {
+          return std::max(std::min(round_func(v * scale), int16_max), int16_min);
+        });
     }
 
     template<>
@@ -41,15 +58,10 @@ namespace ctranslate2 {
 
       scale = StorageView(scale_value);
 
-      cpu::parallel_unary_transform(
-        input_data, output_data, size, /*work_size=*/5,
-        [scale_value](float v) {
-          return static_cast<int16_t>(
-            std::max(
-              std::min(v * scale_value,
-                       static_cast<float>(std::numeric_limits<int16_t>::max())),
-              static_cast<float>(std::numeric_limits<int16_t>::lowest())));
-        });
+      if (_round_before_cast)
+        quantize_s16_kernel(input_data, scale_value, output_data, size, std::nearbyintf);
+      else
+        quantize_s16_kernel(input_data, scale_value, output_data, size, cpu::identity());
     }
 
   }

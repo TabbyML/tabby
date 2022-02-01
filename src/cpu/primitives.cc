@@ -720,7 +720,7 @@ namespace ctranslate2 {
       }
 
       if (alpha != 1) {
-        val = static_cast<int32_t>(static_cast<float>(val) * alpha * -128.0);
+        val = std::nearbyintf(static_cast<float>(val) * alpha * -128.f);
       } else {
         val *= -128;
       }
