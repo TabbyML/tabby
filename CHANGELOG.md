@@ -4,6 +4,20 @@
 
 ### Fixes and improvements
 
+## [v2.12.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.12.0) (2022-02-01)
+
+### New features
+
+* Support models using additional source features (a.k.a. factors)
+
+### Fixes and improvements
+
+* Fix compilation with CUDA < 11.2
+* Fix incorrect revision number reported in the error message for unsupported model revisions
+* Improve quantization correctness by rounding the value instead of truncating (this change will only apply to newly converted models)
+* Improve default value of `intra_threads` when the system has less than 4 logical cores
+* Update oneDNN to 2.5.2
+
 ## [v2.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.11.0) (2022-01-11)
 
 ### Changes
