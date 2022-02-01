@@ -39,7 +39,7 @@ else
     echo "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin" > /etc/ld.so.conf.d/libiomp5.conf
     ldconfig
 
-    ONEDNN_VERSION=2.5.1
+    ONEDNN_VERSION=2.5.2
     curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
     tar xf *.tar.gz && rm *.tar.gz
     cd oneDNN-*
