@@ -558,10 +558,13 @@ namespace ctranslate2 {
           models.emplace_back(model);
           device_to_main_replica.emplace(device_index, i);
 
-          spdlog::info("Loaded model {} on device {}:{} (selected compute type: {})",
+          spdlog::info("Loaded model {} on device {}:{}",
                        model_reader.get_model_id(),
                        device_to_str(device),
-                       device_index,
+                       device_index);
+          spdlog::info(" - Binary version: {}", model->binary_version());
+          spdlog::info(" - Model specification revision: {}", model->spec_revision());
+          spdlog::info(" - Selected compute type: {}",
                        compute_type_to_str(model->effective_compute_type()));
         }
       }
