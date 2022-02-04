@@ -10,31 +10,61 @@
 
 int main(int argc, char* argv[]) {
   cxxopts::Options cmd_options("translate", "CTranslate2 translation client");
-  cmd_options.add_options()
+  cmd_options.custom_help("--model <directory> [OPTIONS]");
+
+  cmd_options.add_options("General")
     ("h,help", "Display available options.")
-    ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
     ("task", "Task to run: translate, score.",
      cxxopts::value<std::string>()->default_value("translate"))
+    ("seed", "Seed value of the random generators.",
+     cxxopts::value<unsigned int>()->default_value("0"))
+    ("log_throughput", "Log average tokens per second at the end of the translation.",
+     cxxopts::value<bool>()->default_value("false"))
+    ("log_profiling", "Log execution profiling.",
+     cxxopts::value<bool>()->default_value("false"))
+    ;
+
+  cmd_options.add_options("Device")
+    ("inter_threads", "Maximum number of CPU translations to run in parallel.",
+     cxxopts::value<size_t>()->default_value("1"))
+    ("intra_threads", "Number of OpenMP threads (set to 0 to use the default value).",
+     cxxopts::value<size_t>()->default_value("0"))
+    ("device", "Device to use (can be cpu, cuda, auto).",
+     cxxopts::value<std::string>()->default_value("cpu"))
+    ("device_index", "Comma-separated list of device IDs to use.",
+     cxxopts::value<std::vector<int>>()->default_value("0"))
+    ;
+
+  cmd_options.add_options("Model")
+    ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
     ("compute_type", "The type used for computation: default, auto, float, float16, int16, int8, or int8_float16",
      cxxopts::value<std::string>()->default_value("default"))
     ("cuda_compute_type", "Computation type on CUDA devices (overrides compute_type)",
      cxxopts::value<std::string>())
     ("cpu_compute_type", "Computation type on CPU devices (overrides compute_type)",
      cxxopts::value<std::string>())
+    ;
+
+  cmd_options.add_options("Data")
     ("src", "Path to the source file (read from the standard input if not set).",
      cxxopts::value<std::string>())
     ("tgt", "Path to the target file.",
      cxxopts::value<std::string>())
     ("out", "Path to the output file (write to the standard output if not set).",
      cxxopts::value<std::string>())
-    ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
-     cxxopts::value<bool>()->default_value("false"))
     ("batch_size", "Size of the batch to forward into the model at once.",
      cxxopts::value<size_t>()->default_value("32"))
     ("read_batch_size", "Size of the batch to read at once (defaults to batch_size).",
      cxxopts::value<size_t>()->default_value("0"))
     ("batch_type", "Batch type (can be examples, tokens).",
      cxxopts::value<std::string>()->default_value("examples"))
+    ("max_input_length", "Truncate inputs after this many tokens (set 0 to disable).",
+     cxxopts::value<size_t>()->default_value("1024"))
+    ;
+
+  cmd_options.add_options("Translation")
+    ("use_vmap", "Use the vocabulary map included in the model to restrict the target candidates.",
+     cxxopts::value<bool>()->default_value("false"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
      cxxopts::value<size_t>()->default_value("2"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
@@ -45,9 +75,7 @@ int main(int argc, char* argv[]) {
      cxxopts::value<size_t>()->default_value("1"))
     ("normalize_scores", "Normalize the score by the hypothesis length",
      cxxopts::value<bool>()->default_value("false"))
-    ("with_score", "Also output the translation scores (for the translate task).",
-     cxxopts::value<bool>()->default_value("false"))
-    ("with_tokens_score", "Also output the token-level scores (for the score task).",
+    ("with_score", "Also output the translation scores.",
      cxxopts::value<bool>()->default_value("false"))
     ("length_penalty", "Length penalty to apply during beam search",
      cxxopts::value<float>()->default_value("0"))
@@ -61,28 +89,17 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("0"))
     ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
      cxxopts::value<bool>()->default_value("false"))
-    ("max_input_length", "Truncate inputs after this many tokens (set 0 to disable).",
-     cxxopts::value<size_t>()->default_value("1024"))
     ("max_decoding_length", "Maximum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("256"))
     ("min_decoding_length", "Minimum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("1"))
-    ("log_throughput", "Log average tokens per second at the end of the translation.",
-     cxxopts::value<bool>()->default_value("false"))
-    ("log_profiling", "Log execution profiling.",
-     cxxopts::value<bool>()->default_value("false"))
-    ("inter_threads", "Maximum number of CPU translations to run in parallel.",
-     cxxopts::value<size_t>()->default_value("1"))
-    ("intra_threads", "Number of OpenMP threads (set to 0 to use the default value).",
-     cxxopts::value<size_t>()->default_value("0"))
-    ("device", "Device to use (can be cpu, cuda, auto).",
-     cxxopts::value<std::string>()->default_value("cpu"))
-    ("device_index", "Comma-separated list of device IDs to use.",
-     cxxopts::value<std::vector<int>>()->default_value("0"))
     ("replace_unknowns", "Replace unknown target tokens by the original source token with the highest attention.",
      cxxopts::value<bool>()->default_value("false"))
-    ("seed", "Seed value of the random generators.",
-     cxxopts::value<unsigned int>()->default_value("0"))
+    ;
+
+  cmd_options.add_options("Scoring")
+    ("with_tokens_score", "Also output the token-level scores.",
+     cxxopts::value<bool>()->default_value("false"))
     ;
 
   auto args = cmd_options.parse(argc, argv);
