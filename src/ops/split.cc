@@ -66,10 +66,10 @@ namespace ctranslate2 {
         if (_no_copy) {
           TYPE_DISPATCH(input.dtype(),
                         x.view(const_cast<T*>(input.data<T>() + offset), std::move(shape)));
+          offset += input.stride(0) * split_size;
         } else {
           x.resize(std::move(shape));
         }
-        offset += input.stride(0) * split_size;
       }
 
       if (!_no_copy) {
