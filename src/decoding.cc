@@ -135,39 +135,98 @@ namespace ctranslate2 {
     }
   }
 
-  static void append_step_output(StorageView& sequence,    // [batch, beam, time, ...]
+  static StorageView unflatten_ids(StorageView& ids,
+                                   const dim_t beam_size,
+                                   const dim_t vocabulary_size,
+                                   const bool is_expanded) {
+    const dim_t num_ids = ids.size();
+    StorageView beam_origins({num_ids}, DataType::INT32);
+
+    auto* ids_data = ids.data<int32_t>();
+    auto* origins_data = beam_origins.data<int32_t>();
+
+    for (dim_t i = 0; i < num_ids; ++i) {
+      const auto flat_id = ids_data[i];
+      const auto beam_id = flat_id / vocabulary_size;
+      const auto word_id = flat_id % vocabulary_size;
+      const auto batch_id = i / ids.dim(-1);
+      ids_data[i] = word_id;
+      origins_data[i] = is_expanded ? batch_id * beam_size + beam_id : batch_id;
+    }
+
+    return beam_origins;
+  }
+
+  static void append_step_output(StorageView& history,    // [batch, beam, time, ...]
                                  StorageView step_output,  // [batch, beam, ...]
                                  const StorageView& beam_origins) {
     step_output.expand_dims(2);  // Insert time dimension.
 
-    if (sequence) {
-      const dim_t beam_size = sequence.dim(1);
-      merge_batch_beam(sequence);
-      gather(sequence, beam_origins);
-      split_batch_beam(sequence, beam_size);
-      const StorageView cur_sequence(std::move(sequence));
-      ops::Concat(2)({&cur_sequence, &step_output}, sequence);
+    if (history) {
+      const dim_t beam_size = history.dim(1);
+      merge_batch_beam(history);
+      gather(history, beam_origins);
+      split_batch_beam(history, beam_size);
+      const StorageView cur_history(std::move(history));
+      ops::Concat(2)({&cur_history, &step_output}, history);
     } else {
-      sequence = std::move(step_output);
+      history = std::move(step_output);
     }
   }
 
-  static float compute_coverage_penalty(const StorageView& attention,
-                                        const float beta,
-                                        const dim_t batch,
-                                        const dim_t beam) {
-    const dim_t target_length = attention.dim(2);
-    const dim_t source_length = attention.dim(3);
+  static std::vector<size_t> build_hypothesis(const StorageView& history,
+                                              const dim_t batch,
+                                              const dim_t beam) {
+    const auto length = history.dim(-1);
+    const auto* ids = history.index<int32_t>({batch, beam, 0});
+    return std::vector<size_t>(ids, ids + length);
+  }
 
+  static std::vector<std::vector<float>> build_attention(const StorageView& history,
+                                                         const dim_t batch,
+                                                         const dim_t beam) {
+    if (!history)
+      return {};
+
+    const auto source_length = history.dim(-1);
+    const auto target_length = history.dim(-2);
+
+    std::vector<std::vector<float>> attention;
+    attention.reserve(target_length);
+    for (dim_t t = 0; t < target_length; ++t) {
+      const auto* vector = history.index<float>({batch, beam, t, 0});
+      attention.emplace_back(vector, vector + source_length);
+    }
+    return attention;
+  }
+
+  static float compute_coverage_penalty(const std::vector<std::vector<float>>& attention,
+                                        const float beta) {
     float penalty = 0;
-    for (dim_t i = 0; i < source_length; ++i) {
-      float coverage = 0;
-      for (dim_t j = 0; j < target_length; ++j)
-        coverage += attention.at<float>({batch, beam, j, i});
+    for (const auto& vector : attention) {
+      const float coverage = std::accumulate(vector.begin(), vector.end(), 0.f);
       penalty += std::log(std::min(coverage, 1.f));
     }
-
     return beta * penalty;
+  }
+
+  static float finalize_hypothesis_score(float score,
+                                         const bool normalize_score,
+                                         const float length,
+                                         const float length_penalty,
+                                         const float coverage_penalty,
+                                         const std::vector<std::vector<float>>& attention) {
+    if (length_penalty != 0) {
+      const float base = normalize_score ? length : (5.f + length) / 6.f;
+      score /= std::pow(base, length_penalty);
+    } else if (normalize_score) {
+      score /= length;
+    }
+
+    if (coverage_penalty != 0)
+      score += compute_coverage_penalty(attention, coverage_penalty);
+
+    return score;
   }
 
   // Sort hypotheses from best to worst score, in the limit of max_hypotheses.
@@ -327,7 +386,6 @@ namespace ctranslate2 {
     const bool expand_after_first_step = (device == Device::CPU);
     const dim_t batch_size = start_ids.size();
 
-    StorageView gather_indices(DataType::INT32);
     StorageView topk_ids({batch_size}, DataType::INT32);
     StorageView topk_scores(dtype);
 
@@ -400,7 +458,7 @@ namespace ctranslate2 {
         disable_token(log_probs, unk_id);
 
       // Multiply by the current beam log probs.
-      if (is_expanded) {
+      if (topk_scores) {
         DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
                                  primitives<D>::add_depth_broadcast(topk_scores.to(device).data<T>(),
                                                                     log_probs.data<T>(),
@@ -415,19 +473,7 @@ namespace ctranslate2 {
       sampler(log_probs, topk_ids, topk_scores, _beam_size);
 
       // Unflatten the ids.
-      gather_indices.resize({cur_batch_size * _beam_size});
-      for (dim_t i = 0; i < topk_ids.size(); ++i) {
-        auto flat_id = topk_ids.at<int32_t>(i);
-        auto beam_id = flat_id / vocabulary_size;
-        auto word_id = flat_id % vocabulary_size;
-        auto batch_id = i / _beam_size;
-
-        topk_ids.at<int32_t>(i) = word_id;
-        // On the first step, batches are not yet replicated beam_size times.
-        gather_indices.at<int32_t>(i) = (is_expanded
-                                         ? beam_id + batch_id * _beam_size
-                                         : batch_id);
-      }
+      StorageView gather_indices = unflatten_ids(topk_ids, _beam_size, vocabulary_size, is_expanded);
 
       if (output_ids_map)
         convert_to_original_word_ids(topk_ids, *output_ids_map);
@@ -466,45 +512,35 @@ namespace ctranslate2 {
       std::vector<int32_t> non_finished_index;
       non_finished_index.reserve(cur_batch_size);
 
-      const dim_t max_time = alive_seq.dim(-1);
-
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         auto& result = results[batch_id];
 
         for (dim_t k = 0; k < _beam_size; ++k) {
-          const auto* hypothesis = alive_seq.index<int32_t>({i, k, 0});
-          const size_t last_id = hypothesis[max_time - 1];
+          const size_t last_id = topk_ids.at<int32_t>({i, k});
 
           if (last_id == end_id || step + 1 == max_step) {
             if (k == 0)
               top_beam_finished[i] = true;
 
-            // Finalize the score.
-            float score = topk_scores.scalar_at<float>({i, k});
-            if (_length_penalty != 0) {
-              const float base = normalize_scores ? max_time : (5.f + max_time) / 6.f;
-              score /= std::pow(base, _length_penalty);
-            } else if (normalize_scores) {
-              score /= max_time;
-            }
-            if (_coverage_penalty != 0)
-              score += compute_coverage_penalty(alive_attention, _coverage_penalty, i, k);
-
-            // Prevent this beam from advancing in the next step.
-            TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
+            // Build the hypothesis and compute its score.
+            auto hypothesis = build_hypothesis(alive_seq, i, k);
+            auto attention = build_attention(alive_attention, i, k);
+            auto score = finalize_hypothesis_score(topk_scores.scalar_at<float>({i, k}),
+                                                   normalize_scores,
+                                                   hypothesis.size(),
+                                                   _length_penalty,
+                                                   _coverage_penalty,
+                                                   attention);
 
             // Register this hypothesis.
             result.scores.emplace_back(score);
-            result.hypotheses.emplace_back(hypothesis, hypothesis + max_time);
-            if (return_attention) {
-              result.attention.emplace_back();
-              result.attention.back().reserve(max_time);
-              for (dim_t t = 0; t < max_time; ++t) {
-                const auto* attn_vec = alive_attention.index<float>({i, k, t, 0});
-                result.attention.back().emplace_back(attn_vec, attn_vec + alive_attention.dim(-1));
-              }
-            }
+            result.hypotheses.emplace_back(std::move(hypothesis));
+            if (return_attention)
+              result.attention.emplace_back(std::move(attention));
+
+            // Prevent this beam from advancing in the next step.
+            TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
           }
         }
 
