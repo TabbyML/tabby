@@ -34,7 +34,14 @@ print(detokenize(results[0].hypotheses[0]))
 
 > Dieses Projekt ist auf die effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
-By default, only the final best hypothesis is returned but more hypotheses can be returned by setting the `num_hypotheses` argument.
+More hypotheses can be returned by setting the `num_hypotheses` argument.
+
+By default, the beam search compares cumulated scores and exits when the first beam finishes. You can configure this behavior with the options:
+
+* `normalize_scores` (defaults to `False`)
+* `allow_early_exit` (defaults to `True`)
+
+For example, Fairseq uses `normalize_scores=True` and `allow_early_exit=False`.
 
 ## Length constraints
 
@@ -52,13 +59,17 @@ results = translator.translate_batch([[]], min_decoding_length=1)
 assert len(results[0].hypotheses[0]) == 0
 ```
 
+Also note that the input is truncated after 1024 tokens by default to limit the maximum memory usage of the model. See the option `max_input_length`.
+
 ## Autocompletion
 
 The `target_prefix` argument can be used to force the start of the translation. Let's say we want to replace the first occurence of `die` by `das` in the translation:
 
 ```python
 results = translator.translate_batch(
-    [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")])
+    [tokenize(input)],
+    target_prefix=[tokenize("Dieses Projekt ist auf das")],
+)
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -72,7 +83,11 @@ Instead of using [Autocompletion](#Autocompletion) to force a translation to sta
 
 ```python
 results = translator.translate_batch(
-    [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.5, beam_size=4)
+    [tokenize(input)],
+    target_prefix=[tokenize("Dieses Projekt ist auf das")],
+    prefix_bias_beta=0.5,
+    beam_size=4,
+)
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -82,7 +97,11 @@ Setting `prefix_bias_beta=0.5` effectively enforces the `target_prefix` and chan
 
 ```python
 results = translator.translate_batch(
-    [tokenize(input)], target_prefix=[tokenize("Dieses Projekt ist auf das")], prefix_bias_beta=0.1, beam_size=4)
+    [tokenize(input)],
+    target_prefix=[tokenize("Dieses Projekt ist auf das")],
+    prefix_bias_beta=0.1,
+    beam_size=4,
+)
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -92,14 +111,15 @@ Lowering the bias by setting `prefix_bias_beta=0.1` results in a divergence in t
 
 ## Alternatives at a position
 
-Combining `target_prefix` with the `return_alternatives` flag returns alternative words just after the prefix:
+Combining `target_prefix` with the `return_alternatives` flag returns alternative sequences just after the prefix:
 
 ```python
 results = translator.translate_batch(
     [tokenize(input)],
     target_prefix=[tokenize("Dieses Projekt ist auf die")],
     num_hypotheses=5,
-    return_alternatives=True)
+    return_alternatives=True,
+)
 for hypothesis in results[0].hypotheses:
     print(detokenize(hypothesis))
 ```
@@ -114,6 +134,8 @@ for hypothesis in results[0].hypotheses:
 >
 > Dieses Projekt ist auf die **Effizienz** des Servierens von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
+In practice, the decoding extracts the `num_hypotheses` tokens that are most likely to appear after the target prefix. These tokens are then included in the prefix and the decoding completes each hypothesis independently.
+
 ## Random sampling
 
 This decoding mode randomly samples tokens from the model output distribution. This strategy is frequently used in back-translation techniques ([Edunov et al. 2018](https://www.aclweb.org/anthology/D18-1045/)). The example below restricts the sampling to the best 10 candidates at each timestep:
@@ -122,7 +144,8 @@ This decoding mode randomly samples tokens from the model output distribution. T
 all_results = [
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
-    translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10)]
+    translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
+]
 for results in all_results:
     print(detokenize(results[0].hypotheses[0]))
 ```
