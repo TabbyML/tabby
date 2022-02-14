@@ -2,6 +2,10 @@
 
 #include <spdlog/spdlog.h>
 
+#ifdef CT2_WITH_CUDA
+#  include <cuda_runtime.h>
+#endif
+
 #include "ctranslate2/models/transformer.h"
 #include "ctranslate2/utils.h"
 
@@ -125,6 +129,17 @@ namespace ctranslate2 {
 
     Model::Model(ModelReader&, size_t spec_revision)
       : _spec_revision(spec_revision) {
+    }
+
+    Model::~Model() {
+#ifdef CT2_WITH_CUDA
+      if (_device == Device::CUDA) {
+        // Run synchronous deallocations to ensure the model weights are actually unloaded.
+        const auto scoped_device_setter = get_scoped_device_setter();
+        _variable_index.clear();
+        cudaDeviceSynchronize();
+      }
+#endif
     }
 
     size_t Model::current_spec_revision() const {

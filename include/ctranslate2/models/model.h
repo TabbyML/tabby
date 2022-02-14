@@ -30,7 +30,7 @@ namespace ctranslate2 {
                                                int device_index,
                                                const std::string& compute_type);
 
-      virtual ~Model() = default;
+      virtual ~Model();
 
       size_t binary_version() const {
         return _binary_version;
