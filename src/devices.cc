@@ -76,4 +76,16 @@ namespace ctranslate2 {
     DEVICE_DISPATCH(device, set_device_index<D>(index));
   }
 
+  void synchronize_device(Device device, int index) {
+#ifdef CT2_WITH_CUDA
+    if (device == Device::CUDA) {
+      const ScopedDeviceSetter scoped_device_setter(device, index);
+      cudaDeviceSynchronize();
+    }
+#else
+    (void)device;
+    (void)index;
+#endif
+  }
+
 }

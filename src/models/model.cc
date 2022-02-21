@@ -127,12 +127,18 @@ namespace ctranslate2 {
       : _spec_revision(spec_revision) {
     }
 
+    Model::~Model() {
+      _variable_index.clear();
+      synchronize_device(_device, _device_index);  // Wait for asynchronous deallocations.
+    }
+
     size_t Model::current_spec_revision() const {
       return 1;
     }
 
     void Model::set_device(const Device device, const int index) {
       move_variables(_variable_index, _device, _device_index, device, index);
+      synchronize_device(_device, _device_index);  // Wait for asynchronous deallocations.
       _device = device;
       _device_index = index;
     }

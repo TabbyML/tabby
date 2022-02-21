@@ -420,13 +420,14 @@ public:
       _cached_models.reserve(translators.size());
 
     for (const auto& translator : translators) {
-      if (to_cpu) {
-        const auto& model = translator.get_model();
-        const_cast<ctranslate2::models::Model&>(*model).set_device(ctranslate2::Device::CPU);
-        _cached_models.emplace_back(model);
-      }
+      {
+        const auto model = const_cast<ctranslate2::Translator&>(translator).detach_model();
 
-      const_cast<ctranslate2::Translator&>(translator).detach_model();
+        if (to_cpu) {
+          const_cast<ctranslate2::models::Model&>(*model).set_device(ctranslate2::Device::CPU);
+          _cached_models.emplace_back(model);
+        }
+      }
 
       // Clear cache of memory allocator associated with this translator.
       auto* allocator = translator.get_allocator();

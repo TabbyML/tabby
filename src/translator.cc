@@ -1,9 +1,5 @@
 #include "ctranslate2/translator.h"
 
-#ifdef CT2_WITH_CUDA
-#  include <cuda_runtime.h>
-#endif
-
 #include "ctranslate2/batch_reader.h"
 
 namespace ctranslate2 {
@@ -207,18 +203,13 @@ namespace ctranslate2 {
     _decoder = seq2seq_model->make_decoder();
   }
 
-  void Translator::detach_model() {
-    if (!_model)
-      return;
-    auto scoped_device_setter = _model->get_scoped_device_setter();
+  std::shared_ptr<const models::Model> Translator::detach_model() {
+    auto model = _model;
     _encoder.reset();
     _decoder.reset();
     _model.reset();
     _seq2seq_model = nullptr;
-#ifdef CT2_WITH_CUDA
-    // We synchronize the device to ensure all asynchronous memory deallocations are completed.
-    cudaDeviceSynchronize();
-#endif
+    return model;
   }
 
   void Translator::assert_has_model() const {

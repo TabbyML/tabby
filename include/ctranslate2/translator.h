@@ -138,7 +138,7 @@ namespace ctranslate2 {
     void set_model(const std::shared_ptr<const models::Model>& model);
 
     // Detach the model from this translator, which becomes unusable until set_model is called.
-    void detach_model();
+    std::shared_ptr<const models::Model> detach_model();
 
     // Return the memory allocator associated with this translator.
     // The allocator is registered on the first translation.

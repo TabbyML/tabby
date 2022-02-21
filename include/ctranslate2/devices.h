@@ -16,6 +16,8 @@ namespace ctranslate2 {
   int get_device_index(Device device);
   void set_device_index(Device device, int index);
 
+  void synchronize_device(Device device, int index);
+
   class ScopedDeviceSetter {
   public:
     ScopedDeviceSetter(Device device, int index)
