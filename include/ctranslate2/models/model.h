@@ -113,14 +113,6 @@ namespace ctranslate2 {
       virtual void remove_variable(const std::string& name);
       virtual void finalize();
 
-      Device _device;
-      int _device_index;
-      size_t _binary_version;
-      size_t _spec_revision;
-      ComputeType _compute_type = ComputeType::DEFAULT;
-      ComputeType _effective_compute_type = ComputeType::DEFAULT;
-      dim_t _preferred_size_multiple = 1;
-
     private:
       void process_linear_weights();
       void set_compute_type(ComputeType type);
@@ -129,6 +121,13 @@ namespace ctranslate2 {
                         const DataType target_dtype);
       ComputeType infer_compute_type() const;
 
+      Device _device;
+      int _device_index;
+      size_t _binary_version;
+      size_t _spec_revision;
+      ComputeType _compute_type = ComputeType::DEFAULT;
+      ComputeType _effective_compute_type = ComputeType::DEFAULT;
+      dim_t _preferred_size_multiple = 1;
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;
     };
 

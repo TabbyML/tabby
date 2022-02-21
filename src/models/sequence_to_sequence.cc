@@ -141,8 +141,8 @@ namespace ctranslate2 {
                                                                 _with_source_bos,
                                                                 _with_source_eos);
         ids.emplace_back(layers::make_sequence_inputs(tokens_ids,
-                                                      _device,
-                                                      _preferred_size_multiple,
+                                                      device(),
+                                                      preferred_size_multiple(),
                                                       i == 0 ? &memory_lengths : nullptr));
       }
 
@@ -161,8 +161,8 @@ namespace ctranslate2 {
 
       StorageView lengths;
       const StorageView ids = layers::make_sequence_inputs(target_ids,
-                                                           _device,
-                                                           _preferred_size_multiple,
+                                                           device(),
+                                                           preferred_size_multiple(),
                                                            &lengths);
 
       decoder(ids, lengths, state, logits);
@@ -175,8 +175,8 @@ namespace ctranslate2 {
                                           StorageView& logits) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::forward");
-      StorageView memory(encoder.output_type(), _device);
-      StorageView memory_lengths(DataType::INT32, _device);
+      StorageView memory(encoder.output_type(), device());
+      StorageView memory_lengths(DataType::INT32, device());
       forward_encoder(encoder, source, memory, memory_lengths);
 
       layers::DecoderState state = decoder.initial_state(/*iterative_decoding=*/false);
@@ -204,7 +204,7 @@ namespace ctranslate2 {
       const auto source_features = extract_features(std::move(source_inputs),
                                                     encoder.num_input_features());
 
-      StorageView logits(decoder.output_type(), _device);
+      StorageView logits(decoder.output_type(), device());
       forward(encoder, decoder, source_features, target_inputs, logits);
       StorageView log_probs = std::move(logits);
       ops::LogSoftMax()(log_probs);
@@ -214,10 +214,10 @@ namespace ctranslate2 {
                                                              /*add_eos=*/true);
 
       const StorageView gather_ids = layers::make_sequence_inputs(target_ids_out,
-                                                                  _device,
-                                                                  _preferred_size_multiple);
+                                                                  device(),
+                                                                  preferred_size_multiple());
 
-      StorageView scores(log_probs.dtype(), _device);
+      StorageView scores(log_probs.dtype(), device());
       ops::Gather(/*axis=*/-1, /*batch_dims=*/2)(log_probs, gather_ids, scores);
 
       if (scores.device() != Device::CPU)
@@ -288,8 +288,8 @@ namespace ctranslate2 {
                                                     encoder.num_input_features());
 
       // Encode the sequence.
-      StorageView memory(encoder.output_type(), _device);
-      StorageView memory_lengths(DataType::INT32, _device);
+      StorageView memory(encoder.output_type(), device());
+      StorageView memory_lengths(DataType::INT32, device());
       forward_encoder(encoder, source_features, memory, memory_lengths);
 
       layers::DecoderState state = decoder.initial_state();
@@ -299,7 +299,7 @@ namespace ctranslate2 {
       std::vector<size_t> output_ids_map;
       if (use_vmap && _vocabulary_map) {
         output_ids_map = _vocabulary_map->get_candidates(source_features[0]);
-      } else if (_target_vocabulary->size() % _preferred_size_multiple != 0) {
+      } else if (_target_vocabulary->size() % preferred_size_multiple() != 0) {
         output_ids_map.resize(_target_vocabulary->size());
         std::iota(output_ids_map.begin(), output_ids_map.end(), size_t(0));
       }
@@ -316,13 +316,13 @@ namespace ctranslate2 {
 
       if (!output_ids_map.empty()) {
         // Pad vocabulary size to the preferred size multiple.
-        while (output_ids_map.size() % _preferred_size_multiple != 0)
+        while (output_ids_map.size() % preferred_size_multiple() != 0)
           output_ids_map.push_back(0);
 
         decoder.set_vocabulary_mask(
           StorageView({static_cast<dim_t>(output_ids_map.size())},
                       std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
-                      _device));
+                      device()));
       } else {
         decoder.reset_vocabulary_mask();
       }
