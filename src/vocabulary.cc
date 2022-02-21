@@ -7,13 +7,7 @@ namespace ctranslate2 {
   const std::string Vocabulary::bos_token = "<s>";
   const std::string Vocabulary::eos_token = "</s>";
 
-  // Most vocabularies are typically smaller than this size. This hint is used to reserve
-  // memory upfront and avoid multiple re-allocations and copies.
-  constexpr size_t VOCABULARY_SIZE_HINT = 50000;
-
   Vocabulary::Vocabulary(std::istream& in) {
-    _token_to_id.reserve(VOCABULARY_SIZE_HINT);
-    _id_to_token.reserve(VOCABULARY_SIZE_HINT);
     std::string line;
     while (std::getline(in, line)) {
       const auto result = _token_to_id.emplace(std::move(line), _id_to_token.size());
