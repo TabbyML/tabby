@@ -121,10 +121,10 @@ namespace ctranslate2 {
                         const DataType target_dtype);
       ComputeType infer_compute_type() const;
 
-      Device _device;
-      int _device_index;
-      size_t _binary_version;
-      size_t _spec_revision;
+      Device _device = Device::CPU;
+      int _device_index = 0;
+      size_t _binary_version = 0;
+      size_t _spec_revision = 0;
       ComputeType _compute_type = ComputeType::DEFAULT;
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
       dim_t _preferred_size_multiple = 1;

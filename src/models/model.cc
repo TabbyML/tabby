@@ -88,6 +88,8 @@ namespace ctranslate2 {
         ScopedDeviceSetter scoped_device_setter(dst_device, dst_device_index);
         move_variables_to_device(variables, dst_device);
       }
+
+      synchronize_device(src_device, src_device_index);  // Wait for asynchronous deallocations.
     }
 
     template <typename T>
@@ -128,8 +130,10 @@ namespace ctranslate2 {
     }
 
     Model::~Model() {
-      _variable_index.clear();
-      synchronize_device(_device, _device_index);  // Wait for asynchronous deallocations.
+      if (!_variable_index.empty()) {
+        _variable_index.clear();
+        synchronize_device(_device, _device_index);  // Wait for asynchronous deallocations.
+      }
     }
 
     size_t Model::current_spec_revision() const {
@@ -138,7 +142,6 @@ namespace ctranslate2 {
 
     void Model::set_device(const Device device, const int index) {
       move_variables(_variable_index, _device, _device_index, device, index);
-      synchronize_device(_device, _device_index);  // Wait for asynchronous deallocations.
       _device = device;
       _device_index = index;
     }
