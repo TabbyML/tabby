@@ -32,15 +32,15 @@ def _write_tokens(batch_tokens, path):
 
 
 def test_invalid_model_path():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="open file"):
         ctranslate2.Translator("xxx")
 
 
 def test_invalid_device_settings():
     model_path = _get_model_path()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="device index"):
         ctranslate2.Translator(model_path, device_index=[])
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="device index"):
         ctranslate2.Translator(model_path, device_index=[0, 1])
 
 
@@ -69,9 +69,9 @@ def test_translator_properties():
 
 def test_compute_type():
     model_path = _get_model_path()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="compute type"):
         ctranslate2.Translator(model_path, compute_type="float64")
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="incompatible constructor arguments"):
         ctranslate2.Translator(model_path, compute_type=["int8", "int16"])
     ctranslate2.Translator(model_path, compute_type="int8")
     ctranslate2.Translator(model_path, compute_type={"cuda": "float16", "cpu": "int8"})
@@ -163,11 +163,11 @@ def test_raw_file_translation(tmpdir):
     tokenize_fn = lambda text: list(text)
     detokenize_fn = lambda tokens: "".join(tokens)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="target_detokenize_fn"):
         translator.translate_file(
             input_path, output_path, source_tokenize_fn=tokenize_fn
         )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="source_tokenize_fn"):
         translator.translate_file(
             input_path, output_path, target_detokenize_fn=detokenize_fn
         )
@@ -199,7 +199,7 @@ def test_file_translation_with_prefix(tmpdir):
 
     translator = _get_transliterator()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="has less examples"):
         # One line is missing from target_path.
         translator.translate_file(
             source_path,
@@ -241,7 +241,7 @@ def test_raw_file_translation_with_prefix(tmpdir):
     target_tokenize_fn = lambda text: list(reversed(list(text)))
     detokenize_fn = lambda tokens: "".join(tokens)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="target_tokenize_fn"):
         # Target tokenization is missing.
         translator.translate_file(
             source_path,
@@ -273,7 +273,7 @@ def test_empty_translation():
 
 def test_invalid_translation_options():
     translator = _get_transliterator()
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="is greater than"):
         translator.translate_batch(
             [["آ", "ت", "ز", "م", "و", "ن"]],
             min_decoding_length=10,
@@ -615,7 +615,7 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
         model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="expected a vocabulary of size"):
         converter.convert(output_dir)
 
 
