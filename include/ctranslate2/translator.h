@@ -128,7 +128,7 @@ namespace ctranslate2 {
     int device_index() const;
     ComputeType compute_type() const;
 
-    const std::shared_ptr<const models::Model>& get_model() const {
+    std::shared_ptr<const models::Model> get_model() const {
       return _model;
     }
 
@@ -150,10 +150,9 @@ namespace ctranslate2 {
     void assert_has_model() const;
     void register_current_allocator();
 
-    std::shared_ptr<const models::Model> _model;
+    std::shared_ptr<const models::SequenceToSequenceModel> _model;
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
-    const models::SequenceToSequenceModel* _seq2seq_model = nullptr;
     Allocator* _allocator = nullptr;
   };
 

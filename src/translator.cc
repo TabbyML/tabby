@@ -123,24 +123,24 @@ namespace ctranslate2 {
 
     const size_t max_batch_size = options.support_batch_translation() ? 0 : 1;
     for (const auto& batch : rebatch_input(load_examples({source, target_prefix}), max_batch_size)) {
-      auto batch_results = _seq2seq_model->sample(*_encoder,
-                                                  *_decoder,
-                                                  batch.get_stream(0),
-                                                  batch.get_stream(1),
-                                                  *options.make_search_strategy(),
-                                                  *options.make_sampler(),
-                                                  options.use_vmap,
-                                                  options.max_input_length,
-                                                  options.max_decoding_length,
-                                                  options.min_decoding_length,
-                                                  options.num_hypotheses,
-                                                  options.return_alternatives,
-                                                  options.return_scores,
-                                                  options.return_attention,
-                                                  options.replace_unknowns,
-                                                  options.normalize_scores,
-                                                  options.repetition_penalty,
-                                                  options.disable_unk);
+      auto batch_results = _model->sample(*_encoder,
+                                          *_decoder,
+                                          batch.get_stream(0),
+                                          batch.get_stream(1),
+                                          *options.make_search_strategy(),
+                                          *options.make_sampler(),
+                                          options.use_vmap,
+                                          options.max_input_length,
+                                          options.max_decoding_length,
+                                          options.min_decoding_length,
+                                          options.num_hypotheses,
+                                          options.return_alternatives,
+                                          options.return_scores,
+                                          options.return_attention,
+                                          options.replace_unknowns,
+                                          options.normalize_scores,
+                                          options.repetition_penalty,
+                                          options.disable_unk);
 
       for (size_t i = 0; i < batch_results.size(); ++i)
         results[batch.example_index[i]] = std::move(batch_results[i]);
@@ -157,7 +157,7 @@ namespace ctranslate2 {
     register_current_allocator();
     if (source.empty())
       return {};
-    return _seq2seq_model->score(*_encoder, *_decoder, source, target, options.max_input_length);
+    return _model->score(*_encoder, *_decoder, source, target, options.max_input_length);
   }
 
   Device Translator::device() const {
@@ -193,14 +193,12 @@ namespace ctranslate2 {
   }
 
   void Translator::set_model(const std::shared_ptr<const models::Model>& model) {
-    const auto* seq2seq_model = dynamic_cast<const models::SequenceToSequenceModel*>(model.get());
-    if (!seq2seq_model)
+    _model = std::dynamic_pointer_cast<const models::SequenceToSequenceModel>(model);
+    if (!_model)
       throw std::invalid_argument("Translator expects a model of type SequenceToSequenceModel");
-    _model = model;
-    _seq2seq_model = seq2seq_model;
     auto scoped_device_setter = _model->get_scoped_device_setter();
-    _encoder = seq2seq_model->make_encoder();
-    _decoder = seq2seq_model->make_decoder();
+    _encoder = _model->make_encoder();
+    _decoder = _model->make_decoder();
   }
 
   std::shared_ptr<const models::Model> Translator::detach_model() {
@@ -208,7 +206,6 @@ namespace ctranslate2 {
     _encoder.reset();
     _decoder.reset();
     _model.reset();
-    _seq2seq_model = nullptr;
     return model;
   }
 
