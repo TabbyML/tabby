@@ -2,7 +2,8 @@
 
 #include <memory>
 
-#include <cub/cub.cuh>
+#include <cub/block/block_reduce.cuh>
+#include <cub/block/block_scan.cuh>
 #include <curand_kernel.h>
 
 #include "ctranslate2/utils.h"

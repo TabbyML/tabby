@@ -40,22 +40,8 @@ namespace ctranslate2 {
     bool gpu_has_int8_tensor_cores(int device = -1);
     bool gpu_has_fp16_tensor_cores(int device = -1);
 
-    // Define a custom execution policy to set the default stream and disable synchronization.
-    struct thrust_execution_policy : thrust::device_execution_policy<thrust_execution_policy> {
-    private:
-      cudaStream_t _stream = get_cuda_stream();
-
-      friend __host__ __device__ cudaStream_t get_stream(thrust_execution_policy& policy) {
-        return policy._stream;
-      }
-
-      friend __host__ __device__ cudaError_t synchronize_stream(thrust_execution_policy&) {
-        return cudaSuccess;
-      }
-    };
-
 // Convenience macro to call Thrust functions with a default execution policy.
-#define THRUST_CALL(FUN, ...) FUN(ctranslate2::cuda::thrust_execution_policy(), __VA_ARGS__)
+#define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 
   }
 }

@@ -115,7 +115,7 @@ namespace ctranslate2 {
   SOFTWARE.
 */
 
-#include <cub/cub.cuh>
+#include <cub/block/block_reduce.cuh>
 
 namespace fastertransformer {
 

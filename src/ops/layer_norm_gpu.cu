@@ -1,7 +1,5 @@
 #include "ctranslate2/ops/layer_norm.h"
 
-#include <cub/cub.cuh>
-
 #include "cuda/helpers.h"
 #include "cuda/utils.h"
 
@@ -131,6 +129,8 @@ namespace ctranslate2 {
   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
   POSSIBILITY OF SUCH DAMAGE.
 */
+
+#include <cub/block/block_reduce.cuh>
 
 namespace at {
   namespace native {
