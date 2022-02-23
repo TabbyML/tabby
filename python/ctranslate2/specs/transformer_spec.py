@@ -25,6 +25,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         alignment_heads=1,
         num_source_embeddings=1,
         embeddings_merge=common_spec.EmbeddingsMerge.CONCAT,
+        layernorm_embedding=False,
     ):
         """Initializes a Transformer model specification.
 
@@ -40,6 +41,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           num_source_embeddings: Number of source embeddings.
           embeddings_merge: When num_source_embeddings > 1, specify how the
             embeddings are merged.
+          layernorm_embedding: Apply layer normalization after the embedding layer.
         """
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
@@ -52,12 +54,18 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         self.alignment_heads = np.dtype("int16").type(alignment_heads)
         self.with_relative_position = with_relative_position
         self.embeddings_merge = np.dtype("int8").type(embeddings_merge)
+        self.layernorm_embedding = np.dtype("int8").type(layernorm_embedding)
         self.encoder = TransformerEncoderSpec(
             num_encoder_layers,
             pre_norm=pre_norm,
             num_source_embeddings=num_source_embeddings,
+            layernorm_embedding=layernorm_embedding,
         )
-        self.decoder = TransformerDecoderSpec(num_decoder_layers, pre_norm=pre_norm)
+        self.decoder = TransformerDecoderSpec(
+            num_decoder_layers,
+            pre_norm=pre_norm,
+            layernorm_embedding=layernorm_embedding,
+        )
         super().__init__(
             source_embeddings_specs=self.encoder.embeddings,
             target_embeddings_specs=[self.decoder.embeddings],
@@ -73,7 +81,13 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
 
 class TransformerEncoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, pre_norm=True, num_source_embeddings=1):
+    def __init__(
+        self,
+        num_layers,
+        pre_norm=True,
+        num_source_embeddings=1,
+        layernorm_embedding=False,
+    ):
         self.embeddings = [
             common_spec.EmbeddingsSpec() for _ in range(num_source_embeddings)
         ]
@@ -82,16 +96,22 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         self.layer_norm = (
             common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
         )
+        self.layernorm_embedding = (
+            common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
+        )
         self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
 
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, pre_norm=True):
+    def __init__(self, num_layers, pre_norm=True, layernorm_embedding=False):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
         self.position_encodings = PositionEncoderSpec()
         self.layer_norm = (
             common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
+        )
+        self.layernorm_embedding = (
+            common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
         )
         self.projection = common_spec.LinearSpec()
         self.layer = [TransformerDecoderLayerSpec() for _ in range(num_layers)]

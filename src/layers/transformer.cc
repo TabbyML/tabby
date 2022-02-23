@@ -157,7 +157,8 @@ namespace ctranslate2 {
                                            const bool with_position_encoding,
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type,
-                                           const EmbeddingsMerge embeddings_merge)
+                                           const EmbeddingsMerge embeddings_merge,
+                                           const bool layernorm_embedding)
       : _embeddings(model, scope + "/embeddings", embeddings_merge)
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _num_heads(num_heads)
@@ -165,6 +166,9 @@ namespace ctranslate2 {
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
                           : nullptr)
+      , _layernorm_embedding(layernorm_embedding
+                             ? std::make_unique<LayerNorm>(model, scope + "/layernorm_embedding")
+                             : nullptr)
       , _output_norm(pre_norm
                      ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
                      : nullptr) {
@@ -196,6 +200,8 @@ namespace ctranslate2 {
         ops::Mul()(input, *_embeddings_scale, input);
       if (_position_encoder)
         (*_position_encoder)(input);
+      if (_layernorm_embedding)
+        (*_layernorm_embedding)(input, input);
 
       const dim_t max_time = input.dim(1);
 
@@ -230,7 +236,8 @@ namespace ctranslate2 {
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type,
                                            const dim_t alignment_layer,
-                                           const dim_t alignment_heads)
+                                           const dim_t alignment_heads,
+                                           const bool layernorm_embedding)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
       , _num_heads(num_heads)
@@ -240,6 +247,9 @@ namespace ctranslate2 {
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
                           : nullptr)
+      , _layernorm_embedding(layernorm_embedding
+                             ? std::make_unique<LayerNorm>(model, scope + "/layernorm_embedding")
+                             : nullptr)
       , _output_norm(pre_norm
                      ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
                      : nullptr)
@@ -328,6 +338,8 @@ namespace ctranslate2 {
         layer_in.expand_dims(1);
       if (_position_encoder)
         (*_position_encoder)(layer_in, std::max(step, dim_t(0)));
+      if (_layernorm_embedding)
+        (*_layernorm_embedding)(layer_in, layer_in);
 
       const dim_t max_time = layer_in.dim(1);
       const bool allow_padding_removal = Padder::allow_padding_removal(_device, _compute_type);

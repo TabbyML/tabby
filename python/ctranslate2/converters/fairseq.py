@@ -54,8 +54,6 @@ def _get_model_spec(args):
         )
     if getattr(args, "no_token_positional_embeddings", False):
         reasons.append("Option --no-token-positional-embeddings is not supported")
-    if getattr(args, "layernorm_embedding", False):
-        reasons.append("Option --layernorm-embedding is not supported")
     if getattr(args, "lang_tok_replacing_bos_eos", False):
         reasons.append("Option --lang-tok-replacing-bos-eos is not supported")
 
@@ -69,6 +67,7 @@ def _get_model_spec(args):
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
         alignment_layer=getattr(args, "alignment_layer", -1),
         alignment_heads=getattr(args, "alignment_heads", 0),
+        layernorm_embedding=getattr(args, "layernorm_embedding", False),
     )
 
 
@@ -138,6 +137,8 @@ def set_transformer_encoder(spec, module):
         set_transformer_encoder_layer(layer_spec, layer)
     if module.layer_norm is not None:
         set_layer_norm(spec.layer_norm, module.layer_norm)
+    if module.layernorm_embedding is not None:
+        set_layer_norm(spec.layernorm_embedding, module.layernorm_embedding)
 
 
 def set_transformer_decoder(spec, module):
@@ -147,6 +148,8 @@ def set_transformer_decoder(spec, module):
         set_transformer_decoder_layer(layer_spec, layer)
     if module.layer_norm is not None:
         set_layer_norm(spec.layer_norm, module.layer_norm)
+    if module.layernorm_embedding is not None:
+        set_layer_norm(spec.layernorm_embedding, module.layernorm_embedding)
 
 
 def set_input_layers(spec, module):

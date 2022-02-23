@@ -33,6 +33,7 @@ namespace ctranslate2 {
       dim_t _alignment_layer;
       dim_t _alignment_heads;
       layers::EmbeddingsMerge _embeddings_merge;
+      bool _layernorm_embedding;
     };
 
   }

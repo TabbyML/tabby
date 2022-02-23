@@ -108,7 +108,8 @@ namespace ctranslate2 {
                          const bool with_position_encoding = true,
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
-                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat);
+                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat,
+                         const bool layernorm_embedding = false);
 
       void operator()(const std::vector<StorageView>& ids,
                       const StorageView& lengths,
@@ -132,6 +133,7 @@ namespace ctranslate2 {
       const dim_t _num_heads;
       const ComputeType _compute_type;
       const std::unique_ptr<PositionEncoder> _position_encoder;
+      const std::unique_ptr<LayerNorm> _layernorm_embedding;
       const std::unique_ptr<LayerNorm> _output_norm;
       std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
     };
@@ -147,7 +149,8 @@ namespace ctranslate2 {
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
                          const dim_t alignment_layer = -1,
-                         const dim_t alignment_heads = 1);
+                         const dim_t alignment_heads = 1,
+                         const bool layernorm_embedding = false);
 
       void set_vocabulary_mask(const StorageView& ids) override;
       void reset_vocabulary_mask() override;
@@ -190,6 +193,7 @@ namespace ctranslate2 {
       const Embeddings _embeddings;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       const std::unique_ptr<PositionEncoder> _position_encoder;
+      const std::unique_ptr<LayerNorm> _layernorm_embedding;
       const std::unique_ptr<LayerNorm> _output_norm;
       std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       Dense _proj;
