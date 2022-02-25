@@ -78,6 +78,7 @@ namespace ctranslate2 {
       bool _with_source_bos = false;
       bool _with_source_eos = false;
       bool _with_target_bos = true;
+      bool _user_decoder_start_tokens = false;
     };
 
   }

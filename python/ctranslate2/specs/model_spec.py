@@ -251,6 +251,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         self.with_source_bos = False
         self.with_source_eos = False
         self.with_target_bos = True
+        self.user_decoder_start_tokens = False
         self._embeddings_specs = {
             "source": source_embeddings_specs,
             "target": target_embeddings_specs,
