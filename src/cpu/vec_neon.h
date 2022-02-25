@@ -57,6 +57,10 @@ namespace ctranslate2 {
         return vabsq_f32(a);
       }
 
+      static inline value_type neg(value_type a) {
+        return vnegq_f32(a);
+      }
+
       static inline value_type rcp(value_type a) {
         return vrecpeq_f32(a);
       }
@@ -95,6 +99,10 @@ namespace ctranslate2 {
 
       static inline value_type mul(value_type a, value_type b) {
         return vmulq_f32(a, b);
+      }
+
+      static inline value_type div(value_type a, value_type b) {
+        return vdivq_f32(a, b);
       }
 
     };

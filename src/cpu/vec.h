@@ -43,6 +43,10 @@ namespace ctranslate2 {
         return static_cast<value_type>(std::abs(a));
       }
 
+      static inline value_type neg(value_type a) {
+        return -a;
+      }
+
       static inline value_type rcp(value_type a) {
         return static_cast<T>(1) / a;
       }
@@ -81,6 +85,10 @@ namespace ctranslate2 {
 
       static inline value_type mul(value_type a, value_type b) {
         return a * b;
+      }
+
+      static inline value_type div(value_type a, value_type b) {
+        return a / b;
       }
 
     };

@@ -228,6 +228,14 @@ namespace ctranslate2 {
       }
     };
 
+    template <typename T>
+    struct swish_func {
+      // Implicitly promote half to float in this function.
+      __device__ float operator()(float x) const {
+        return x / (1.f + expf(-x));
+      }
+    };
+
     // The following kernels are adapted from:
     // https://github.com/pytorch/pytorch/blob/40eff454ce5638fbff638a7f4502e29ffb9a2f0d/aten/src/ATen/native/cuda/SoftMax.cu
     // They help define row-wise reduction where each block handles a single row.

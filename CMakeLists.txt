@@ -123,6 +123,7 @@ set(SOURCES
   src/ops/softmax_cpu.cc
   src/ops/split.cc
   src/ops/sub.cc
+  src/ops/swish.cc
   src/ops/tile.cc
   src/ops/tile_cpu.cc
   src/ops/topk.cc

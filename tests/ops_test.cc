@@ -756,6 +756,16 @@ TEST_P(OpDeviceFPTest, GELU) {
   expect_storage_eq(output.to_float(), expected, 1e-3);
 }
 
+TEST_P(OpDeviceFPTest, Swish) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
+  StorageView expected({2}, std::vector<float>{0.10996679, -0.27841452}, device);
+  StorageView output(dtype, device);
+  ops::Swish()(input.to(dtype), output);
+  expect_storage_eq(output.to_float(), expected, 1e-4);
+}
+
 TEST_P(OpDeviceFPTest, Log) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;

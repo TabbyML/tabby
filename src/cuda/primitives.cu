@@ -176,6 +176,15 @@ namespace ctranslate2 {
   template void primitives<Device::CUDA>::gelu(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::gelu(const float16_t*, float16_t*, dim_t);
 
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::swish(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::swish_func<cuda::device_type<T>>());
+  }
+
+  template void primitives<Device::CUDA>::swish(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::swish(const float16_t*, float16_t*, dim_t);
+
   template <typename T>
   struct perm_indices_2d {
     T _rows, _cols;

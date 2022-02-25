@@ -147,6 +147,16 @@ namespace ctranslate2 {
       vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::cos);
     }
 
+    template<>
+    void swish<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      using VecType = Vec<float, TARGET_ISA>;
+      vectorized_unary_transform<TARGET_ISA>(
+        x, y, size,
+        [](vec_type<float, TARGET_ISA> v) {
+          return VecType::div(v, VecType::add(VecType::load(1.f), VecType::exp(VecType::neg(v))));
+        });
+    }
+
     template <CpuIsa ISA, typename T>
     void add(T a, const T* x, T* y, dim_t size) {
       auto vec_a = Vec<T, ISA>::load(a);

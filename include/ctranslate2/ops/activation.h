@@ -9,6 +9,7 @@ namespace ctranslate2 {
     enum class ActivationType {
       ReLU,
       GELU,
+      Swish,
     };
 
     const UnaryOp& get_activation_op(ActivationType type);

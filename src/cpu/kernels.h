@@ -17,6 +17,8 @@ namespace ctranslate2 {
     void sin(const float* x, float* y, dim_t size);
     template <CpuIsa ISA>
     void cos(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
+    void swish(const float* x, float* y, dim_t size);
 
     template <CpuIsa ISA, typename T>
     void add(T a, const T* x, T* y, dim_t size);

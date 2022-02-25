@@ -60,6 +60,10 @@ namespace ctranslate2 {
         return _mm256_andnot_ps(mask, a);
       }
 
+      static inline value_type neg(value_type a) {
+        return _mm256_xor_ps(a, _mm256_set1_ps(-0.f));
+      }
+
       static inline value_type rcp(value_type a) {
         return _mm256_rcp_ps(a);
       }
@@ -98,6 +102,10 @@ namespace ctranslate2 {
 
       static inline value_type mul(value_type a, value_type b) {
         return _mm256_mul_ps(a, b);
+      }
+
+      static inline value_type div(value_type a, value_type b) {
+        return _mm256_div_ps(a, b);
       }
 
     };

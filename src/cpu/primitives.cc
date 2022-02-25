@@ -296,6 +296,15 @@ namespace ctranslate2 {
   }
 
   template<>
+  template<>
+  void primitives<Device::CPU>::swish(const float* x, float* y, dim_t size) {
+    cpu::parallel_for(0, size, /*work_size=*/10,
+                      [x, y](dim_t begin, dim_t end) {
+                        CPU_ISA_DISPATCH((cpu::swish<ISA>(x + begin, y + begin, end - begin)));
+                      });
+  }
+
+  template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
 #ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())

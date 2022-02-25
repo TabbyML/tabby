@@ -7,6 +7,7 @@ from ctranslate2.specs import model_spec
 class Activation(enum.IntEnum):
     RELU = 0
     GELU = 1
+    SWISH = 2
 
 
 # This enum should match the C++ equivalent in include/ctranslate2/layers/common.h.

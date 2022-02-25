@@ -25,6 +25,7 @@ _SUPPORTED_ACTIVATIONS = {
     "gelu_accurate": common_spec.Activation.GELU,
     "gelu_fast": common_spec.Activation.GELU,
     "relu": common_spec.Activation.RELU,
+    "swish": common_spec.Activation.SWISH,
 }
 
 
