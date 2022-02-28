@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v2.13.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.13.0) (2022-02-28)
+
+### New features
+
+* Add converter for [Marian](https://github.com/marian-nmt/marian) and support the collection of [OPUS-MT pretrained models](https://github.com/Helsinki-NLP/Opus-MT-train/tree/master/models)
+* Support models applying a layer normalization after the embedding layer (cf. option `--layernorm-embedding` in Fairseq)
+* Support models using the Swish (a.k.a SiLU) activation function
+* Support models using custom decoder start tokens, which can be passed in the target prefix
+
+### Fixes and improvements
+
+* Remove unexcepted call to a CUDA function in CPU execution when unloading models
+* Add option groups in the translation client help output
+* Use new `thrust::cuda::par_nosync` execution policy when calling Thrust functions
+* Update Thrust to 1.16.0
+* Update pybind11 to 2.9.1
+
 ## [v2.12.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.12.0) (2022-02-01)
 
 ### New features
