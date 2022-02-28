@@ -7,6 +7,7 @@ CTranslate2 is a fast and full-featured inference engine for Transformer models.
 * [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py)
 * [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf)
 * [Fairseq](https://github.com/pytorch/fairseq/)
+* [Marian](https://github.com/marian-nmt/marian)
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
@@ -66,7 +67,7 @@ pip install --upgrade pip
 pip install ctranslate2
 ```
 
-**2\. [Convert](#converting-models) a Transformer model trained with OpenNMT-py, OpenNMT-tf, or Fairseq:**
+**2\. [Convert](#converting-models) a Transformer model trained with OpenNMT-py, OpenNMT-tf, Fairseq, or Marian:**
 
 *a. OpenNMT-py*
 
@@ -106,6 +107,20 @@ ct2-fairseq-converter --model_path wmt16.en-de.joined-dict.transformer/model.pt 
     --output_dir ende_ctranslate2
 ```
 
+*d. Marian*
+
+```bash
+wget https://object.pouta.csc.fi/OPUS-MT-models/en-de/opus-2020-02-26.zip
+unzip opus-2020-02-26.zip
+
+ct2-marian-converter --model_path opus.spm32k-spm32k.transformer-align.model1.npz.best-perplexity.npz \
+    --vocab_paths opus.spm32k-spm32k.vocab.yml opus.spm32k-spm32k.vocab.yml \
+    --output_dir ende_ctranslate2
+
+# For OPUS-MT models, you can use ct2-opus-mt-converter instead:
+ct2-opus-mt-converter --model_dir . --output_dir ende_ctranslate2
+```
+
 **3\. [Translate](#translating) tokenized inputs with the Python API:**
 
 ```python
@@ -113,11 +128,11 @@ import ctranslate2
 
 translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 
-# The OpenNMT-py and OpenNMT-tf models use a SentencePiece tokenization:
-translator.translate_batch([["▁H", "ello", "▁world", "!"]])
+batch = [["▁H", "ello", "▁world", "!"]]      # OpenNMT model input
+# batch = [["H@@", "ello", "world@@", "!"]]  # Fairseq model input
+# batch = [["▁Hello", "▁world", "!"]]        # Marian model input
 
-# The Fairseq model uses a BPE tokenization:
-translator.translate_batch([["H@@", "ello", "world@@", "!"]])
+translator.translate_batch(batch)
 ```
 
 ## Installation
@@ -163,10 +178,10 @@ The core CTranslate2 implementation is framework agnostic. The framework specifi
 
 The following frameworks and models are currently supported:
 
-|     | OpenNMT-tf | OpenNMT-py | Fairseq |
-| --- | :---: | :---: | :---: |
-| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ | ✓ |
-| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ | |
+|     | OpenNMT-tf | OpenNMT-py | Fairseq | Marian |
+| --- | :---: | :---: | :---: | :---: |
+| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ | ✓ | ✓ |
+| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ | | |
 
 *If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
 
@@ -175,6 +190,8 @@ The Python package includes a [conversion API](docs/python.md#model-conversion-a
 * `ct2-opennmt-py-converter`
 * `ct2-opennmt-tf-converter`
 * `ct2-fairseq-converter`
+* `ct2-marian-converter`
+* `ct2-opus-mt-converter` (based on `ct2-marian-converter`)
 
 The conversion should be run in the same environment as the selected training framework.
 
@@ -480,8 +497,10 @@ The implementation has been generously tested in [production environment](https:
 * Python symbols:
   * `ctranslate2.Translator`
   * `ctranslate2.converters.FairseqConverter`
+  * `ctranslate2.converters.MarianConverter`
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
+  * `ctranslate2.converters.OpusMTConverter`
 * C++ symbols:
   * `ctranslate2::models::Model`
   * `ctranslate2::TranslationOptions`

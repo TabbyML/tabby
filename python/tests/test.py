@@ -814,6 +814,17 @@ def test_fairseq_user_start_token(tmpdir):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
+@skip_if_data_missing
+def test_marian_model_conversion(tmpdir):
+    model_dir = os.path.join(_TEST_DATA_DIR, "models", "opus-mt-ende")
+    converter = ctranslate2.converters.OpusMTConverter(model_dir)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([["▁Hello", "▁world", "!"]])
+    assert output[0].hypotheses[0] == ["▁Hallo", "▁Welt", "!"]
+
+
 def test_layer_spec_validate():
     class SubSpec(ctranslate2.specs.LayerSpec):
         def __init__(self):

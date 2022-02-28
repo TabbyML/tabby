@@ -115,6 +115,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         )
         self.projection = common_spec.LinearSpec()
         self.layer = [TransformerDecoderLayerSpec() for _ in range(num_layers)]
+        self.start_from_zero_embedding = False
 
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):

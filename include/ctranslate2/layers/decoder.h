@@ -11,6 +11,8 @@ namespace ctranslate2 {
 
     using DecoderState = std::unordered_map<std::string, StorageView>;
 
+    void zero_first_timestep(StorageView& x, dim_t step);
+
     // Base class for decoders.
     class Decoder : public Layer {
     public:

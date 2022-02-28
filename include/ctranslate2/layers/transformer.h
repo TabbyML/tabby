@@ -191,6 +191,7 @@ namespace ctranslate2 {
       dim_t _alignment_heads;
       const ComputeType _compute_type;
       const Embeddings _embeddings;
+      const bool _start_from_zero_embedding;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<LayerNorm> _layernorm_embedding;

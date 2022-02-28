@@ -32,34 +32,36 @@ _SUPPORTED_ACTIVATIONS = {
 def _get_model_spec(args):
     activation_fn = getattr(args, "activation_fn", "relu")
 
-    reasons = []
-    if args.arch not in _SUPPORTED_ARCHS:
-        reasons.append(
-            "Option --arch %s is not supported (supported architectures are: %s)"
-            % (args.arch, ", ".join(_SUPPORTED_ARCHS))
-        )
-    if args.encoder_normalize_before != args.decoder_normalize_before:
-        reasons.append(
-            "Options --encoder-normalize-before and --decoder-normalize-before "
-            "must have the same value"
-        )
-    if args.encoder_attention_heads != args.decoder_attention_heads:
-        reasons.append(
-            "Options --encoder-attention-heads and --decoder-attention-heads must "
-            "have the same value"
-        )
-    if activation_fn not in _SUPPORTED_ACTIVATIONS.keys():
-        reasons.append(
-            "Option --activation-fn %s is not supported (supported activations are: %s)"
-            % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys()))
-        )
-    if getattr(args, "no_token_positional_embeddings", False):
-        reasons.append("Option --no-token-positional-embeddings is not supported")
-    if getattr(args, "lang_tok_replacing_bos_eos", False):
-        reasons.append("Option --lang-tok-replacing-bos-eos is not supported")
-
-    if reasons:
-        utils.raise_unsupported(reasons)
+    check = utils.ConfigurationChecker()
+    check(
+        args.arch in _SUPPORTED_ARCHS,
+        "Option --arch %s is not supported (supported architectures are: %s)"
+        % (args.arch, ", ".join(_SUPPORTED_ARCHS)),
+    )
+    check(
+        args.encoder_normalize_before == args.decoder_normalize_before,
+        "Options --encoder-normalize-before and --decoder-normalize-before "
+        "must have the same value",
+    )
+    check(
+        args.encoder_attention_heads == args.decoder_attention_heads,
+        "Options --encoder-attention-heads and --decoder-attention-heads "
+        "must have the same value",
+    )
+    check(
+        activation_fn in _SUPPORTED_ACTIVATIONS,
+        "Option --activation-fn %s is not supported (supported activations are: %s)"
+        % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
+    )
+    check(
+        not getattr(args, "no_token_positional_embeddings", False),
+        "Option --no-token-positional-embeddings is not supported",
+    )
+    check(
+        not getattr(args, "lang_tok_replacing_bos_eos", False),
+        "Option --lang-tok-replacing-bos-eos is not supported",
+    )
+    check.validate()
 
     return transformer_spec.TransformerSpec(
         (args.encoder_layers, args.decoder_layers),

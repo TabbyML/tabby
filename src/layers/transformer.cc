@@ -243,6 +243,8 @@ namespace ctranslate2 {
       , _num_heads(num_heads)
       , _compute_type(model.effective_compute_type())
       , _embeddings(model, scope + "/embeddings")
+      , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
+                                                               false))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _position_encoder(with_position_encoding
                           ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
@@ -332,7 +334,9 @@ namespace ctranslate2 {
       StorageView layer_out(output_type(), ids.device());
 
       _embeddings(ids, layer_in);
-      if (_embeddings_scale)
+      if (_start_from_zero_embedding)
+        zero_first_timestep(layer_in, step);
+      if (_embeddings_scale && (!_start_from_zero_embedding || step != 0))
         ops::Mul()(layer_in, *_embeddings_scale, layer_in);
       if (layer_in.rank() == 2)
         layer_in.expand_dims(1);

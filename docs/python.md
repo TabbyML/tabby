@@ -27,6 +27,15 @@ converter = ctranslate2.converters.FairseqConverter(
     fixed_dictionary: str = None, # Path to the fixed dictionary for multilingual models.
 )
 
+converter = ctranslate2.converters.MarianConverter(
+    model_path: str,         # Path to the Marian model (.npz file).
+    vocab_paths: List[str],  # Paths to the vocabularies (.yml files).
+)
+
+converter = ctranslate2.converters.OpusMTConverter(
+    model_dir: str,  # Path to the OPUS-MT model directory.
+)
+
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
     vmap: str = None,         # Path to a vocabulary mapping file.

@@ -23,34 +23,32 @@ def _get_model_spec(opt, num_source_embeddings):
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     feat_merge = getattr(opt, "feat_merge", "concat")
 
-    reasons = []
-    if opt.encoder_type != "transformer" or opt.decoder_type != "transformer":
-        reasons.append(
-            "Options --encoder_type and --decoder_type must be 'transformer'"
-        )
-    if getattr(opt, "self_attn_type", "scaled-dot") != "scaled-dot":
-        reasons.append(
-            "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
-            % opt.self_attn_type
-        )
-    if activation_fn not in _SUPPORTED_ACTIVATIONS:
-        reasons.append(
-            "Option --pos_ffn_activation_fn %s is not supported (supported activations are: %s)"
-            % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys()))
-        )
-    if opt.position_encoding == with_relative_position:
-        reasons.append(
-            "Options --position_encoding and --max_relative_positions cannot be both enabled "
-            "or both disabled"
-        )
-    if num_source_embeddings > 1 and feat_merge not in _SUPPORTED_FEATURES_MERGE:
-        reasons.append(
-            "Option --feat_merge %s is not supported (supported merge modes are: %s)"
-            % (feat_merge, " ".join(_SUPPORTED_FEATURES_MERGE.keys()))
-        )
-
-    if reasons:
-        utils.raise_unsupported(reasons)
+    check = utils.ConfigurationChecker()
+    check(
+        opt.encoder_type == "transformer" and opt.decoder_type == "transformer",
+        "Options --encoder_type and --decoder_type must be 'transformer'",
+    )
+    check(
+        getattr(opt, "self_attn_type", "scaled-dot") == "scaled-dot",
+        "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
+        % opt.self_attn_type,
+    )
+    check(
+        activation_fn in _SUPPORTED_ACTIVATIONS,
+        "Option --pos_ffn_activation_fn %s is not supported (supported activations are: %s)"
+        % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
+    )
+    check(
+        opt.position_encoding != with_relative_position,
+        "Options --position_encoding and --max_relative_positions cannot be both enabled "
+        "or both disabled",
+    )
+    check(
+        num_source_embeddings == 1 or feat_merge in _SUPPORTED_FEATURES_MERGE,
+        "Option --feat_merge %s is not supported (supported merge modes are: %s)"
+        % (feat_merge, " ".join(_SUPPORTED_FEATURES_MERGE.keys())),
+    )
+    check.validate()
 
     num_heads = getattr(opt, "heads", 8)
     return transformer_spec.TransformerSpec(

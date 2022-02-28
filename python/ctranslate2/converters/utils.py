@@ -14,3 +14,16 @@ def raise_unsupported(reasons):
     for reason in reasons:
         message += "\n- " + reason
     raise ValueError(message)
+
+
+class ConfigurationChecker:
+    def __init__(self):
+        self._unsupported_reasons = []
+
+    def __call__(self, assert_condition, error_message):
+        if not assert_condition:
+            self._unsupported_reasons.append(error_message)
+
+    def validate(self):
+        if self._unsupported_reasons:
+            raise_unsupported(self._unsupported_reasons)
