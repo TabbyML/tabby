@@ -22,6 +22,7 @@ def _get_model_spec(opt, num_source_embeddings):
     with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     feat_merge = getattr(opt, "feat_merge", "concat")
+    self_attn_type = getattr(opt, "self_attn_type", "scaled-dot")
 
     check = utils.ConfigurationChecker()
     check(
@@ -29,9 +30,9 @@ def _get_model_spec(opt, num_source_embeddings):
         "Options --encoder_type and --decoder_type must be 'transformer'",
     )
     check(
-        getattr(opt, "self_attn_type", "scaled-dot") == "scaled-dot",
+        self_attn_type == "scaled-dot",
         "Option --self_attn_type %s is not supported (supported values are: scaled-dot)"
-        % opt.self_attn_type,
+        % self_attn_type,
     )
     check(
         activation_fn in _SUPPORTED_ACTIVATIONS,
