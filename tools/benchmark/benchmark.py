@@ -83,8 +83,7 @@ def _start_translation(
     use_gpu,
 ):
     kwargs = {}
-    if environment is None:
-        environment = {}
+    environment = environment.copy() if environment else {}
     environment["OMP_NUM_THREADS"] = str(num_cpus)
 
     if use_gpu:
