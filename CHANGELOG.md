@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.13.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.13.1) (2022-03-02)
+
+### Fixes and improvements
+
+* Fix conversion error for old OpenNMT-py models that do not have the option `self_attn_type`
+
 ## [v2.13.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.13.0) (2022-02-28)
 
 ### New features
