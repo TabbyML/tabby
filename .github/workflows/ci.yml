@@ -296,8 +296,8 @@ jobs:
       - name: Publish Python wheels to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
-          user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PYPI_PASSWORD }}
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
           packages_dir: .
 
 
