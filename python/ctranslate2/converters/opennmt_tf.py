@@ -7,6 +7,7 @@ from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
+from ctranslate2.specs.model_spec import OPTIONAL
 
 
 def load_model(model_path):
@@ -131,7 +132,8 @@ def set_transformer_spec_v2(spec, variables):
 
 
 def set_transformer_encoder_v2(spec, variables, scope, relative=False):
-    set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
+    if spec.layer_norm != OPTIONAL:
+        set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
         set_transformer_encoder_layer_v2(
             layer, variables, "%s/layers/%d" % (scope, i), relative=relative
@@ -158,7 +160,8 @@ def set_transformer_decoder_v2(
             weight_name=target_embedding_name,
             transpose=False,
         )
-    set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
+    if spec.layer_norm != OPTIONAL:
+        set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer_v2(
             layer, variables, "%s/layers/%d" % (scope, i), relative=relative
@@ -191,7 +194,10 @@ def set_transformer_decoder_layer_v2(spec, variables, scope, relative=False):
 
 
 def set_ffn_v2(spec, variables, scope):
-    set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
+    try:
+        set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
+    except KeyError:
+        set_layer_norm(spec.layer_norm, variables, "%s/output_layer_norm" % scope)
     set_linear(spec.linear_0, variables, "%s/layer/inner" % scope)
     set_linear(spec.linear_1, variables, "%s/layer/outer" % scope)
 
@@ -199,7 +205,10 @@ def set_ffn_v2(spec, variables, scope):
 def set_multi_head_attention_v2(
     spec, variables, scope, self_attention=False, relative=False
 ):
-    set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
+    try:
+        set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
+    except KeyError:
+        set_layer_norm(spec.layer_norm, variables, "%s/output_layer_norm" % scope)
     if self_attention:
         split_layers = [common_spec.LinearSpec() for _ in range(3)]
         set_linear(split_layers[0], variables, "%s/layer/linear_queries" % scope)

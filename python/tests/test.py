@@ -619,8 +619,9 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
         converter.convert(output_dir)
 
 
-def _build_model_with_shared_embeddings(tmpdir):
+def _create_checkpoint(model, tmpdir):
     import opennmt
+    import tensorflow as tf
 
     vocab = opennmt.data.Vocab()
     for i in range(10):
@@ -628,37 +629,36 @@ def _build_model_with_shared_embeddings(tmpdir):
     vocab_path = str(tmpdir.join("vocab.txt"))
     vocab.serialize(vocab_path)
 
-    num_layers = 3
-    num_heads = 4
-    model = opennmt.models.Transformer(
-        opennmt.inputters.WordEmbedder(32),
-        opennmt.inputters.WordEmbedder(32),
-        num_layers,
-        num_units=32,
-        num_heads=num_heads,
-        ffn_inner_dim=64,
-        share_embeddings=opennmt.models.EmbeddingsSharingLevel.ALL,
-    )
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
     model.create_variables()
-    return model, vocab_path
+
+    checkpoint_prefix = str(tmpdir.join("ckpt"))
+    checkpoint = tf.train.Checkpoint(model=model)
+    checkpoint_path = checkpoint.write(checkpoint_prefix)
+    return checkpoint_path, vocab_path
 
 
 def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     # Issue https://github.com/OpenNMT/CTranslate2/issues/118
-    import tensorflow as tf
+    import opennmt
 
-    model, vocab_path = _build_model_with_shared_embeddings(tmpdir)
+    model = opennmt.models.Transformer(
+        opennmt.inputters.WordEmbedder(32),
+        opennmt.inputters.WordEmbedder(32),
+        num_layers=3,
+        num_units=32,
+        num_heads=4,
+        ffn_inner_dim=64,
+        share_embeddings=opennmt.models.EmbeddingsSharingLevel.ALL,
+    )
 
-    checkpoint_prefix = str(tmpdir.join("ckpt"))
-    checkpoint = tf.train.Checkpoint(model=model)
-    checkpoint.write(checkpoint_prefix)
+    model_path, vocab_path = _create_checkpoint(model, tmpdir)
 
     converter = ctranslate2.converters.OpenNMTTFConverter(
         model.ctranslate2_spec,
         vocab_path,
         vocab_path,
-        model_path=checkpoint_prefix,
+        model_path=model_path,
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
@@ -668,6 +668,30 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     # Check that the translation runs.
     translator = ctranslate2.Translator(output_dir)
     translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
+
+
+def test_opennmt_tf_postnorm_transformer_conversion(tmpdir):
+    import opennmt
+
+    model = opennmt.models.Transformer(
+        opennmt.inputters.WordEmbedder(32),
+        opennmt.inputters.WordEmbedder(32),
+        num_layers=3,
+        num_units=32,
+        num_heads=4,
+        ffn_inner_dim=64,
+        pre_norm=False,
+    )
+
+    model_path, vocab_path = _create_checkpoint(model, tmpdir)
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        model.ctranslate2_spec,
+        vocab_path,
+        vocab_path,
+        model_path=model_path,
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
 
 
 @skip_if_data_missing
