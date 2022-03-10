@@ -60,6 +60,7 @@ By default, the runtime tries to use the type that is saved in the converted mod
 | GPU Compute Capability | int8 | int8_float16 | int16 | float16 |
 | --- | --- | --- | --- | --- |
 | >= 7.0 | int8 | int8_float16 | float16 | float16 |
+| 6.2 | float | float | float | float |
 | 6.1 | int8 | int8 | float | float |
 | <= 6.0 | float | float | float | float |
 
@@ -71,7 +72,7 @@ You can get more information about the detected capabilities of your system by s
 
 **Supported on:**
 
-* NVIDIA GPU with Compute Capability >= 6.1
+* NVIDIA GPU with Compute Capability >= 7.0 or Compute Capability 6.1
 * x86-64 CPU with the Intel MKL or oneDNN backends
 * AArch64 CPU with the Ruy backend
 
