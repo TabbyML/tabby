@@ -1,4 +1,5 @@
 import argparse
+import os
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
@@ -7,6 +8,11 @@ from ctranslate2.specs import transformer_spec
 
 
 _SUPPORTED_ARCHS = {
+    "bart_base",
+    "bart_large",
+    "mbart_base",
+    "mbart_base_wmt20",
+    "mbart_large",
     "transformer",
     "transformer_align",
     "transformer_iwslt_de_en",
@@ -88,12 +94,14 @@ class FairseqConverter(Converter):
         source_lang=None,
         target_lang=None,
         fixed_dictionary=None,
+        no_default_special_tokens=False,
     ):
         self._model_path = model_path
         self._data_dir = data_dir
         self._fixed_dictionary = fixed_dictionary
         self._source_lang = source_lang
         self._target_lang = target_lang
+        self._no_default_special_tokens = no_default_special_tokens
 
     def _load(self):
         import torch
@@ -107,6 +115,10 @@ class FairseqConverter(Converter):
             args.data = self._data_dir
             if self._fixed_dictionary is not None:
                 args.fixed_dictionary = self._fixed_dictionary
+            if hasattr(args, "lang_dict") and args.lang_dict:
+                args.lang_dict = os.path.join(
+                    self._data_dir, os.path.basename(args.lang_dict)
+                )
 
             if self._source_lang is not None:
                 args.source_lang = self._source_lang
@@ -115,8 +127,12 @@ class FairseqConverter(Converter):
                 args.target_lang = self._target_lang
 
             model_spec = _get_model_spec(args)
-            model_spec.with_source_eos = True
-            model_spec.with_target_bos = False
+
+            if self._no_default_special_tokens:
+                model_spec.user_decoder_start_tokens = True
+            else:
+                model_spec.with_source_eos = True
+                model_spec.with_target_bos = False
 
             task = fairseq.tasks.setup_task(args)
             model = fairseq.models.build_model(args, task)
@@ -244,6 +260,14 @@ def main():
         "--target_lang",
         help="Target language. This argument is used to find dictionary file from `data_dir`.",
     )
+    parser.add_argument(
+        "--no_default_special_tokens",
+        action="store_true",
+        help=(
+            "Require all special tokens to be provided by the user during inference, "
+            "including the decoder start token."
+        ),
+    )
     Converter.declare_arguments(parser)
     args = parser.parse_args()
     converter = FairseqConverter(
@@ -252,6 +276,7 @@ def main():
         source_lang=args.source_lang,
         target_lang=args.target_lang,
         fixed_dictionary=args.fixed_dictionary,
+        no_default_special_tokens=args.no_default_special_tokens,
     )
     converter.convert_from_args(args)
 

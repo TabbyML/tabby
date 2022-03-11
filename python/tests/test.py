@@ -813,28 +813,25 @@ def test_fairseq_model_conversion(tmpdir):
 @skip_if_data_missing
 @skip_on_windows
 def test_fairseq_user_start_token(tmpdir):
-    class _CustomFairseqConverter(ctranslate2.converters.FairseqConverter):
-        def _load(self):
-            model_spec = super()._load()
-            model_spec.user_decoder_start_tokens = True
-            return model_spec
-
     data_dir = os.path.join(
         _TEST_DATA_DIR,
         "models",
         "transliteration-aren-all",
         "fairseq",
     )
-    converter = _CustomFairseqConverter(os.path.join(data_dir, "model.pt"), data_dir)
+    converter = ctranslate2.converters.FairseqConverter(
+        os.path.join(data_dir, "model.pt"), data_dir, no_default_special_tokens=True
+    )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
-    tokens = [["آ", "ت", "ز", "م", "و", "ن"]]
+    tokens = ["آ", "ت", "ز", "م", "و", "ن"]
+    tokens += ["</s>"]
 
     with pytest.raises(ValueError, match="start token"):
-        translator.translate_batch(tokens)
+        translator.translate_batch([tokens])
 
-    output = translator.translate_batch(tokens, target_prefix=[["</s>"]])
+    output = translator.translate_batch([tokens], target_prefix=[["</s>"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
