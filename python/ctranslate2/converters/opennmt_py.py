@@ -51,14 +51,22 @@ def _get_model_spec(opt, num_source_embeddings):
     )
     check.validate()
 
+    # Return the first head of the last layer unless the model was trained with alignments.
+    if getattr(opt, "lambda_align", 0) == 0:
+        alignment_layer = -1
+        alignment_heads = 1
+    else:
+        alignment_layer = opt.alignment_layer
+        alignment_heads = opt.alignment_heads
+
     num_heads = getattr(opt, "heads", 8)
     return transformer_spec.TransformerSpec(
         (opt.enc_layers, opt.dec_layers),
         num_heads,
         with_relative_position=with_relative_position,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
-        alignment_layer=getattr(opt, "alignment_layer", -1),
-        alignment_heads=getattr(opt, "alignment_heads", 1),
+        alignment_layer=alignment_layer,
+        alignment_heads=alignment_heads,
         num_source_embeddings=num_source_embeddings,
         embeddings_merge=_SUPPORTED_FEATURES_MERGE[feat_merge],
     )
