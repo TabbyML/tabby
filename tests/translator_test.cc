@@ -715,6 +715,26 @@ TEST(TranslatorTest, AlternativesFromPrefix) {
   EXPECT_EQ(result.attention[0].size(), 6);
 }
 
+TEST(TranslatorTest, AlternativesFromPrefixBatch) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 10;
+  options.return_alternatives = true;
+  const std::vector<std::vector<std::string>> input = {
+    {"آ", "ز", "ا"},
+    {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}
+  };
+  const std::vector<std::vector<std::string>> prefix = {{"a"}, {"a", "t"}};
+  const auto results = translator.translate_batch_with_prefix(input, prefix, options);
+  ASSERT_EQ(results.size(), 2);
+  ASSERT_EQ(results[0].num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(results[0].hypotheses[0], (std::vector<std::string>{"a", "z", "z", "a"}));
+  EXPECT_EQ(results[0].hypotheses[1], (std::vector<std::string>{"a", "s", "z", "a"}));
+  ASSERT_EQ(results[1].num_hypotheses(), options.num_hypotheses);
+  EXPECT_EQ(results[1].hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
+  EXPECT_EQ(results[1].hypotheses[1], (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
+}
+
 TEST(TranslatorTest, AlternativesFromScratch) {
   Translator translator = default_translator();
   TranslationOptions options;

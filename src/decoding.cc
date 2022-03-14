@@ -764,6 +764,29 @@ namespace ctranslate2 {
     }
   }
 
+  static layers::DecoderState get_batch_state(const layers::DecoderState& state,
+                                              const int32_t batch_id) {
+    const Device device = state.begin()->second.device();
+    const ops::Gather gather_op;
+
+    StorageView indices(batch_id, device);
+    indices.reshape({1});
+
+    layers::DecoderState batch_state;
+    batch_state.reserve(state.size());
+
+    for (const auto& pair : state) {
+      const auto& name = pair.first;
+      const auto& value = pair.second;
+      StorageView batch_value(value.dtype(), device);
+      if (value)
+        gather_op(value, indices, batch_value);
+      batch_state.emplace(name, std::move(batch_value));
+    }
+
+    return batch_state;
+  }
+
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
@@ -784,15 +807,45 @@ namespace ctranslate2 {
          const float repetition_penalty,
          const bool disable_unk) {
     const size_t batch_size = start_ids.size();
+
+    if (return_alternatives && batch_size > 1) {
+      // return_alternatives mode currently does not support batch decoding.
+      std::vector<GenerationResult<size_t>> results;
+      results.reserve(batch_size);
+      for (size_t i = 0; i < batch_size; ++i) {
+        layers::DecoderState batch_state = get_batch_state(state, i);
+        std::vector<size_t> batch_start_ids{start_ids[i]};
+        std::vector<std::vector<size_t>> batch_prefix_ids;
+        if (prefix_ids)
+          batch_prefix_ids.emplace_back(prefix_ids->at(i));
+        results.emplace_back(decode(decoder,
+                                    batch_state,
+                                    search_strategy,
+                                    sampler,
+                                    batch_start_ids,
+                                    batch_prefix_ids.empty() ? nullptr : &batch_prefix_ids,
+                                    output_ids_map,
+                                    end_id,
+                                    unk_id,
+                                    max_length,
+                                    min_length,
+                                    num_hypotheses,
+                                    return_alternatives,
+                                    return_scores,
+                                    return_attention,
+                                    normalize_scores,
+                                    repetition_penalty,
+                                    disable_unk)[0]);
+      }
+      return results;
+    }
+
     dim_t start_step = 0;
 
     std::vector<GenerationResult<size_t>> expansion_results;
     if (return_alternatives) {
       std::vector<std::vector<std::vector<float>>> prefix_attention;
       if (prefix_ids) {
-        if (prefix_ids->size() > 1)
-          throw std::invalid_argument("Returning alternatives from a prefix is not supported "
-                                      "in batch mode");
         if (return_attention)
           prefix_attention.resize(1);
         initialize_decoder_with_prefix(decoder,

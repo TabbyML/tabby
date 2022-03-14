@@ -27,10 +27,6 @@ namespace ctranslate2 {
       throw std::invalid_argument("prefix_bias_beta is not compatible with greedy-search");
   }
 
-  bool TranslationOptions::support_batch_translation() const {
-    return !return_alternatives;
-  }
-
   std::unique_ptr<const Sampler> TranslationOptions::make_sampler() const {
     if (sampling_topk == 1)
       return std::make_unique<BestSampler>();

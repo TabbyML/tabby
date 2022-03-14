@@ -602,10 +602,6 @@ namespace ctranslate2 {
       create_batches(const std::vector<Example>& examples,
                      size_t max_batch_size,
                      BatchType batch_type) const override {
-        if (!_options.support_batch_translation()) {
-          max_batch_size = 1;
-          batch_type = BatchType::Examples;
-        }
         return rebatch_input(examples, max_batch_size, batch_type);
       }
 

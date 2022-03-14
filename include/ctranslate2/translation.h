@@ -68,7 +68,6 @@ namespace ctranslate2 {
     bool replace_unknowns = false;
 
     void validate() const;
-    bool support_batch_translation() const;
 
     std::unique_ptr<const Sampler> make_sampler() const;
     std::unique_ptr<const SearchStrategy> make_search_strategy() const;

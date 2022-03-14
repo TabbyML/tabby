@@ -73,8 +73,7 @@ namespace ctranslate2 {
                                          options.return_scores);
     std::vector<TranslationResult> results(source.size(), empty_result);
 
-    const size_t max_batch_size = options.support_batch_translation() ? 0 : 1;
-    for (const auto& batch : rebatch_input(load_examples({source, target_prefix}), max_batch_size)) {
+    for (const auto& batch : rebatch_input(load_examples({source, target_prefix}), 0)) {
       auto batch_results = _model->sample(*_encoder,
                                           *_decoder,
                                           batch.get_stream(0),
