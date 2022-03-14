@@ -141,7 +141,7 @@ stats = translator.translate_file(
 )
 ```
 
-Also see the [`TranslationOptions`](../include/ctranslate2/translator.h) structure for more details about the options.
+Also see the [`TranslationOptions`](../include/ctranslate2/translation.h) structure for more details about the options.
 
 ## Scoring API
 

@@ -133,6 +133,7 @@ set(SOURCES
   src/profiler.cc
   src/sampling.cc
   src/storage_view.cc
+  src/translation.cc
   src/translator.cc
   src/translator_pool.cc
   src/types.cc
