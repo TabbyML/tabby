@@ -25,6 +25,7 @@ converter = ctranslate2.converters.FairseqConverter(
     source_lang: str = None,      # Source language (may be required if not declared in the model).
     target_lang: str = None,      # Target language (may be required if not declared in the model).
     fixed_dictionary: str = None, # Path to the fixed dictionary for multilingual models.
+    no_default_special_tokens: bool: False,  # Require all special tokens to be provided by the user.
 )
 
 converter = ctranslate2.converters.MarianConverter(
