@@ -26,10 +26,6 @@ namespace ctranslate2 {
       return info.features.avx2;
     }
 
-    bool cpu_supports_neon() {
-      return false;
-    }
-
   }
 }
 
@@ -41,18 +37,6 @@ namespace ctranslate2 {
     const std::string& cpu_vendor() {
       static const std::string vendor = "ARM";
       return vendor;
-    }
-
-    bool cpu_supports_sse41() {
-      return false;
-    }
-
-    bool cpu_supports_avx() {
-      return false;
-    }
-
-    bool cpu_supports_avx2() {
-      return false;
     }
 
     bool cpu_supports_neon() {

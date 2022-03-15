@@ -23,12 +23,15 @@ namespace ctranslate2 {
 
     std::string isa_to_str(CpuIsa isa) {
       switch (isa) {
+#if defined(CT2_X86_BUILD)
       case CpuIsa::AVX:
         return "AVX";
       case CpuIsa::AVX2:
         return "AVX2";
+#elif defined(CT2_ARM64_BUILD)
       case CpuIsa::NEON:
         return "NEON";
+#endif
       default:
         return "GENERIC";
       }
@@ -37,27 +40,31 @@ namespace ctranslate2 {
     static CpuIsa init_isa() {
       const std::string env_isa = read_string_from_env("CT2_FORCE_CPU_ISA");
       if (!env_isa.empty()) {
-        if (env_isa == "AVX2") {
+#if defined(CT2_X86_BUILD)
+        if (env_isa == "AVX2")
           return try_isa(env_isa, CpuIsa::AVX2, cpu_supports_avx2());
-        } else if (env_isa == "AVX") {
+        if (env_isa == "AVX")
           return try_isa(env_isa, CpuIsa::AVX, cpu_supports_avx());
-        } else if (env_isa == "NEON") {
+#elif defined(CT2_ARM64_BUILD)
+        if (env_isa == "NEON")
           return try_isa(env_isa, CpuIsa::NEON, cpu_supports_neon());
-        } else if (env_isa == "GENERIC") {
+#endif
+        if (env_isa == "GENERIC")
           return CpuIsa::GENERIC;
-        } else {
-          throw std::invalid_argument("Invalid CPU ISA: " + env_isa);
-        }
+
+        throw std::invalid_argument("Invalid CPU ISA: " + env_isa);
       }
 
 #ifdef CT2_WITH_CPU_DISPATCH
-      if (cpu_supports_avx2()) {
+#  if defined(CT2_X86_BUILD)
+      if (cpu_supports_avx2())
         return CpuIsa::AVX2;
-      } else if (cpu_supports_avx()) {
+      if (cpu_supports_avx())
         return CpuIsa::AVX;
-      } else if (cpu_supports_neon()) {
+#  elif defined(CT2_ARM64_BUILD)
+      if (cpu_supports_neon())
         return CpuIsa::NEON;
-      }
+#  endif
 #endif
 
       return CpuIsa::GENERIC;

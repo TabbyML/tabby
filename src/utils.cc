@@ -45,12 +45,17 @@ namespace ctranslate2 {
     if (!spdlog::should_log(spdlog::level::info))
       return;
 
-    spdlog::info("CPU: {} (SSE4.1={}, AVX={}, AVX2={}, NEON={})",
+#if defined(CT2_X86_BUILD)
+    spdlog::info("CPU: {} (SSE4.1={}, AVX={}, AVX2={})",
                  cpu::cpu_vendor(),
                  cpu::cpu_supports_sse41(),
                  cpu::cpu_supports_avx(),
-                 cpu::cpu_supports_avx2(),
+                 cpu::cpu_supports_avx2());
+#elif defined(CT2_ARM64_BUILD)
+    spdlog::info("CPU: {} (NEON={})",
+                 cpu::cpu_vendor(),
                  cpu::cpu_supports_neon());
+#endif
     spdlog::info(" - Selected ISA: {}", cpu::isa_to_str(cpu::get_cpu_isa()));
     spdlog::info(" - Use Intel MKL: {}", cpu::mayiuse_mkl());
     spdlog::info(" - SGEMM backend: {}",

@@ -7,9 +7,12 @@ namespace ctranslate2 {
 
     enum class CpuIsa {
       GENERIC,
+#if defined(CT2_X86_BUILD)
       AVX,
       AVX2,
+#elif defined(CT2_ARM64_BUILD)
       NEON,
+#endif
     };
 
     std::string isa_to_str(CpuIsa isa);
