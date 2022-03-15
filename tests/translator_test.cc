@@ -851,11 +851,11 @@ TEST(TranslatorTest, Scoring) {
     {"a", "r", "t", "h", "e", "r"},
   };
   const std::vector<std::vector<float>> expected_scores = {
-    {-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184},
-    {-0.072660, -0.300309, -0.181187, -0.395671, -0.025631, -0.123466, -0.002034},
-    {-0.103136, -0.089504, -0.063889, -0.007327, -0.452072, -0.060154},
-    {},
-    {-0.076704, -0.036037, -0.029253, -0.030273, -0.149276, -0.002440},
+    {-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184, -0.063463},
+    {-0.072660, -0.300309, -0.181187, -0.395671, -0.025631, -0.123466, -0.002034, -0.012639},
+    {-0.103136, -0.089504, -0.063889, -0.007327, -0.452072, -0.060154, -0.016636},
+    {-6.00171},
+    {-0.076704, -0.036037, -0.029253, -0.030273, -0.149276, -0.002440, -0.003742},
   };
   constexpr float abs_diff = 1e-5;
 
@@ -875,11 +875,8 @@ TEST(TranslatorTest, ScoringMaxInputLength) {
   options.max_input_length = 3;
   Translator translator = default_translator();
   const auto result = translator.score_batch({source}, {target}, options)[0];
+  constexpr float abs_diff = 1e-5;
 
-  // Check the result has the size of the original input even though it was truncated.
-  EXPECT_EQ(result.tokens, target);
-  ASSERT_EQ(result.tokens_score.size(), target.size());
-  for (size_t i = options.max_input_length; i < target.size(); ++i) {
-    EXPECT_EQ(result.tokens_score[i], 0);
-  }
+  EXPECT_EQ(result.tokens, (std::vector<std::string>{"a", "t", "z", "</s>"}));
+  expect_vector_eq(result.tokens_score, {-0.081900, -0.037582, -0.145343, -0.024944}, abs_diff);
 }

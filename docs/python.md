@@ -149,6 +149,7 @@ The `Translator` object (see previous section) can also be used to score existin
 
 ```python
 # Batch scoring:
+# The returned score sequences include the score of the end of sentence token </s>.
 scores = translator.score_batch(
     source: List[List[str]],
     target: List[List[str]],
@@ -160,7 +161,7 @@ scores = translator.score_batch(
 
 # File scoring:
 # Each line in output_path will have the format: <score> ||| <target>
-# The score is normalized by the target length.
+# The score is normalized by the target length which includes the end of sentence token </s>.
 #
 # The returned stats object has the following properties:
 # * num_tokens: the number of scored target tokens

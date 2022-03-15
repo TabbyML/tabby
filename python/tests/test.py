@@ -424,8 +424,17 @@ def test_score_api(tmpdir):
         ["a", "c", "h", "i", "s", "o", "n"],
     ]
     expected = [
-        [-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184],
-        [-0.072660, -0.300309, -0.181187, -0.395671, -0.025631, -0.123466, -0.002034],
+        [-0.106023, -0.065410, -0.056002, -0.447953, -0.230714, -0.092184, -0.063463],
+        [
+            -0.072660,
+            -0.300309,
+            -0.181187,
+            -0.395671,
+            -0.025631,
+            -0.123466,
+            -0.002034,
+            -0.012639,
+        ],
     ]
 
     translator = _get_transliterator()
@@ -446,7 +455,7 @@ def test_score_api(tmpdir):
         with_tokens_score=True,
     )
     assert stats.num_examples == 2
-    assert stats.num_tokens == 13
+    assert stats.num_tokens == 15
 
     with open(output_path, encoding="utf-8") as output_file:
         for line, expected_tokens, expected_scores in zip(
@@ -459,7 +468,7 @@ def test_score_api(tmpdir):
             tokens = parts[1].split()
             scores = list(map(float, parts[2].split()))
 
-            assert tokens == expected_tokens
+            assert tokens == expected_tokens + ["</s>"]
             assert mean_score == pytest.approx(np.mean(expected_scores), 1e-4)
             assert scores == pytest.approx(expected_scores, 1e-4)
 

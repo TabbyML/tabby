@@ -229,13 +229,14 @@ namespace ctranslate2 {
       const dim_t batch_size = scores.dim(0);
       std::vector<ScoringResult> results(batch_size);
       for (dim_t b = 0; b < batch_size; ++b) {
-        const dim_t original_length = target[b].size();
-        const dim_t output_length = target_inputs[b].size();
+        const dim_t output_length = target_ids_out[b].size();
         auto& result = results[b];
-        result.tokens = target[b];
-        result.tokens_score.resize(original_length, 0);
-        for (dim_t t = 0; t < output_length; ++t)
-          result.tokens_score[t] = scores.at<float>({b, t});
+        result.tokens.reserve(output_length);
+        result.tokens_score.reserve(output_length);
+        for (dim_t t = 0; t < output_length; ++t) {
+          result.tokens.emplace_back(_target_vocabulary->to_token(target_ids_out[b][t]));
+          result.tokens_score.emplace_back(scores.at<float>({b, t}));
+        }
       }
 
       return results;
