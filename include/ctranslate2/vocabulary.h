@@ -29,6 +29,10 @@ namespace ctranslate2 {
     to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
            const bool add_bos = false,
            const bool add_eos = false) const;
+    std::vector<std::vector<size_t>>
+    to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+           const std::string* prefix,
+           const std::string* suffix) const;
 
   private:
     std::vector<const std::string*> _id_to_token;

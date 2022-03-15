@@ -156,9 +156,12 @@ namespace ctranslate2 {
                                                   StorageView& logits) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::forward_decoder");
-      const auto target_ids = _target_vocabulary->to_ids(target,
-                                                         /*add_bos=*/true,
-                                                         /*add_eos=*/false);
+
+      const std::string* suffix = nullptr;
+      const std::string* prefix = nullptr;
+      if (!_user_decoder_start_tokens)
+        prefix = _with_target_bos ? &Vocabulary::bos_token : &Vocabulary::eos_token;
+      const auto target_ids = _target_vocabulary->to_ids(target, prefix, suffix);
 
       StorageView lengths;
       const StorageView ids = layers::make_sequence_inputs(target_ids,
@@ -210,9 +213,14 @@ namespace ctranslate2 {
       StorageView log_probs = std::move(logits);
       ops::LogSoftMax()(log_probs);
 
-      const auto target_ids_out = _target_vocabulary->to_ids(target_inputs,
-                                                             /*add_bos=*/false,
-                                                             /*add_eos=*/true);
+      auto target_ids_out = _target_vocabulary->to_ids(target_inputs,
+                                                       /*add_bos=*/false,
+                                                       /*add_eos=*/true);
+      if (_user_decoder_start_tokens) {
+        // Remove the user start tokens.
+        for (auto& sequence : target_ids_out)
+          sequence.erase(sequence.begin());
+      }
 
       const StorageView gather_ids = layers::make_sequence_inputs(target_ids_out,
                                                                   device(),

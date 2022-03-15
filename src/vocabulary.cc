@@ -93,4 +93,11 @@ namespace ctranslate2 {
                                              add_eos ? &eos_token : nullptr);
   }
 
+  std::vector<std::vector<size_t>>
+  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+                     const std::string* prefix,
+                     const std::string* suffix) const {
+    return lookup_batch<std::string, size_t>(*this, batch_tokens, prefix, suffix);
+  }
+
 }

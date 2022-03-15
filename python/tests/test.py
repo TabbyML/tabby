@@ -818,6 +818,23 @@ def test_fairseq_model_conversion(tmpdir):
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
+    scores = translator.score_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]], [["a", "t", "z", "m", "o", "n"]]
+    )
+
+    # Scored tokens: a t z m o n </s>
+    expected_scores = [
+        -0.036438941955566406,
+        -0.20800018310546875,
+        -0.06881046295166016,
+        -0.5400338172912598,
+        -0.12033462524414062,
+        -0.1102609634399414,
+        -0.044970035552978516,
+    ]
+
+    assert scores[0] == pytest.approx(expected_scores, 1e-5)
+
 
 @skip_if_data_missing
 @skip_on_windows
@@ -842,6 +859,21 @@ def test_fairseq_user_start_token(tmpdir):
 
     output = translator.translate_batch([tokens], target_prefix=[["</s>"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+
+    scores = translator.score_batch([tokens], [["</s>", "a", "t", "z", "m", "o", "n"]])
+
+    # Scored tokens: a t z m o n </s>
+    expected_scores = [
+        -0.036438941955566406,
+        -0.20800018310546875,
+        -0.06881046295166016,
+        -0.5400338172912598,
+        -0.12033462524414062,
+        -0.1102609634399414,
+        -0.044970035552978516,
+    ]
+
+    assert scores[0] == pytest.approx(expected_scores, 1e-5)
 
 
 @skip_if_data_missing
