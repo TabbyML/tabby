@@ -137,6 +137,7 @@ namespace ctranslate2 {
     void log<TARGET_ISA>(const float* x, float* y, dim_t size) {
       vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::log);
     }
+
     template<>
     void sin<TARGET_ISA>(const float* x, float* y, dim_t size) {
       vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::sin);
