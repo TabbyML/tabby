@@ -4,6 +4,26 @@
 
 ### Fixes and improvements
 
+## [v2.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.14.0) (2022-03-16)
+
+### New features
+
+* Include BART and MBART in the list of supported Fairseq architectures
+* Add Fairseq converter option `--no_default_special_tokens` to require all special tokens to be set by the user during inference, including the decoder start tokens (for example, this is required by MBART-25 to properly set the language tokens)
+
+### Fixes and improvements
+
+* Fix conversion of Post-Norm Transformers trained with OpenNMT-tf
+* Fix scoring with Fairseq models that used an incorrect decoder start token (Fairseq uses `</s>` as the decoder start token, not `<s>`)
+* Fix scoring result to include the end of sentence token
+* Ignore OpenNMT-py options `--alignment_layer` and `--alignment_heads` for models that are not trained with alignments
+* Enable batch encoding in `return_alternatives` translation mode (the decoding still runs sequentially)
+* Make enumerations `ctranslate2.specs.Activation` and `ctranslate2.specs.EmbeddingsMerge` public since they could be used to configure the Transformer specification
+* Update oneDNN to 2.5.3
+* Update cpu_features to 0.7.0
+* Update cxxopts to 3.0.0
+* Update spdlog to 1.9.2
+
 ## [v2.13.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.13.1) (2022-03-02)
 
 ### Fixes and improvements
