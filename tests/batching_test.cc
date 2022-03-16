@@ -23,7 +23,7 @@ TEST(BatchingTest, RebatchInput) {
   const std::vector<std::vector<size_t>> expected_batches = {
     {5, 4},
     {1, 0},
-    {2}
+    {2, 3}
   };
 
   const auto batches = rebatch_input(load_examples({source, target}), 2, BatchType::Examples);

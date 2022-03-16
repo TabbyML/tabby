@@ -138,8 +138,7 @@ namespace ctranslate2 {
   std::vector<Batch>
   rebatch_input(const std::vector<Example>& examples,
                 size_t max_batch_size,
-                BatchType batch_type,
-                bool filter_empty) {
+                BatchType batch_type) {
     if (examples.empty())
       return {};
 
@@ -162,12 +161,6 @@ namespace ctranslate2 {
               [&examples](size_t i1, size_t i2) {
                 return examples[i1].length() > examples[i2].length();
               });
-
-    // Ignore empty examples.
-    // As example_index is sorted from longest to shortest, we simply pop empty examples
-    // from the back.
-    while (filter_empty && !example_index.empty() && examples[example_index.back()].length() == 0)
-      example_index.pop_back();
 
     std::vector<Batch> batches;
     if (example_index.empty())

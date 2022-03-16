@@ -34,11 +34,8 @@ namespace ctranslate2 {
     auto future = promise.get_future();
 
     bool notify = false;
-    if (source.empty()) {
-      promise.set_value(TranslationResult(_options.num_hypotheses,
-                                          _options.return_attention,
-                                          _options.return_scores));
-    } else {
+
+    {
       const std::lock_guard<std::mutex> lock(_mutex);
 
       _promises.emplace(std::move(promise));

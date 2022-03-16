@@ -138,7 +138,6 @@ namespace ctranslate2 {
   std::vector<Batch>
   rebatch_input(const std::vector<Example>& examples,
                 size_t max_batch_size = 0,
-                BatchType batch_type = BatchType::Examples,
-                bool filter_empty = true);
+                BatchType batch_type = BatchType::Examples);
 
 }

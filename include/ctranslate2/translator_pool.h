@@ -546,8 +546,8 @@ namespace ctranslate2 {
         if (examples.empty())
           return {};
 
-        auto batches = create_batches(examples, max_batch_size, batch_type);
-        auto consumer = create_consumer(examples);
+        auto batches = rebatch_input(examples, max_batch_size, batch_type);
+        auto consumer = std::make_shared<JobResultConsumer<Result>>(examples.size());
         auto futures = consumer->get_futures();
 
         for (auto& batch : batches)
@@ -557,18 +557,6 @@ namespace ctranslate2 {
       }
 
     protected:
-      virtual std::shared_ptr<JobResultConsumer<Result>>
-      create_consumer(const std::vector<Example>& examples) const {
-        return std::make_shared<JobResultConsumer<Result>>(examples.size());
-      }
-
-      virtual std::vector<Batch>
-      create_batches(const std::vector<Example>& examples,
-                     size_t max_batch_size,
-                     BatchType batch_type) const {
-        return rebatch_input(examples, max_batch_size, batch_type, /*filter_empty=*/false);
-      }
-
       virtual std::unique_ptr<Job>
       create_job(Batch batch, std::shared_ptr<JobResultConsumer<Result>> consumer) const = 0;
     };
@@ -582,29 +570,6 @@ namespace ctranslate2 {
       }
 
     protected:
-      std::shared_ptr<JobResultConsumer<TranslationResult>>
-      create_consumer(const std::vector<Example>& examples) const override {
-        auto consumer = JobCreator<TranslationResult>::create_consumer(examples);
-
-        // Directly set an empty result for empty inputs.
-        for (size_t i = 0; i < examples.size(); ++i) {
-          if (examples[i].length() == 0) {
-            consumer->set_result(i, TranslationResult(_options.num_hypotheses,
-                                                      _options.return_attention,
-                                                      _options.return_scores));
-          }
-        }
-
-        return consumer;
-      }
-
-      std::vector<Batch>
-      create_batches(const std::vector<Example>& examples,
-                     size_t max_batch_size,
-                     BatchType batch_type) const override {
-        return rebatch_input(examples, max_batch_size, batch_type);
-      }
-
       std::unique_ptr<Job>
       create_job(Batch batch,
                  std::shared_ptr<JobResultConsumer<TranslationResult>> consumer) const override {
