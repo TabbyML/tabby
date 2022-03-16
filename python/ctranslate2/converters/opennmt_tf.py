@@ -22,6 +22,12 @@ def load_model(model_path):
 
     if os.path.isdir(model_path):
         checkpoint = tf.train.latest_checkpoint(model_path)
+        if checkpoint is None:
+            raise ValueError(
+                "Checkpoint not found in directory %s. You may need to include "
+                "the checkpoint prefix in the path (e.g. model_dir/ckpt-100000)."
+                % model_path
+            )
     else:
         checkpoint = model_path
 

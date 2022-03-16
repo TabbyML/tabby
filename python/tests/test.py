@@ -628,16 +628,22 @@ def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
         converter.convert(output_dir)
 
 
+def _create_vocab(tmpdir, name="vocab", size=10):
+    import opennmt
+
+    vocab = opennmt.data.Vocab()
+    for i in range(size):
+        vocab.add(str(i))
+    vocab_path = str(tmpdir.join("%s.txt" % name))
+    vocab.serialize(vocab_path)
+    return vocab_path
+
+
 def _create_checkpoint(model, tmpdir):
     import opennmt
     import tensorflow as tf
 
-    vocab = opennmt.data.Vocab()
-    for i in range(10):
-        vocab.add(str(i))
-    vocab_path = str(tmpdir.join("vocab.txt"))
-    vocab.serialize(vocab_path)
-
+    vocab_path = _create_vocab(tmpdir)
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
     model.create_variables()
 
@@ -645,6 +651,20 @@ def _create_checkpoint(model, tmpdir):
     checkpoint = tf.train.Checkpoint(model=model)
     checkpoint_path = checkpoint.write(checkpoint_prefix)
     return checkpoint_path, vocab_path
+
+
+def test_opennmt_tf_model_conversion_invalid_dir(tmpdir):
+    model_path = str(tmpdir.join("model").ensure(dir=1))
+    vocab_path = _create_vocab(tmpdir)
+    converter = ctranslate2.converters.OpenNMTTFConverter(
+        ctranslate2.specs.TransformerSpec(6, 8),
+        vocab_path,
+        vocab_path,
+        model_path=model_path,
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    with pytest.raises(ValueError, match="not found"):
+        converter.convert(output_dir)
 
 
 def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
