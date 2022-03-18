@@ -1,5 +1,6 @@
 #include "ctranslate2/ops/mean.h"
 
+#include "cpu/parallel.h"
 #include "type_dispatch.h"
 
 namespace ctranslate2 {
@@ -14,16 +15,17 @@ namespace ctranslate2 {
       const auto* src = input.data<T>();
       auto* dst = output.data<T>();
 
-      #pragma omp parallel for
-      for (dim_t i = 0; i < outer_size; ++i) {
-        for (dim_t j = 0; j < inner_size; ++j) {
-          float sum = 0.f;
-          for (dim_t k = 0; k < axis_size; ++k) {
-            sum += src[i * axis_size * inner_size + k * inner_size + j];
+      cpu::parallel_for(0, outer_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          for (dim_t j = 0; j < inner_size; ++j) {
+            float sum = 0.f;
+            for (dim_t k = 0; k < axis_size; ++k) {
+              sum += src[i * axis_size * inner_size + k * inner_size + j];
+            }
+            dst[i * inner_size + j] = sum / float(axis_size);
           }
-          dst[i * inner_size + j] = sum / float(axis_size);
         }
-      }
+      });
     }
 
 #define DECLARE_IMPL(T)                                         \

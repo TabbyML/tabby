@@ -1,6 +1,7 @@
 #include "ctranslate2/ops/concat.h"
 #include "ctranslate2/ops/split.h"
 
+#include "cpu/parallel.h"
 #include "type_dispatch.h"
 
 namespace ctranslate2 {
@@ -35,9 +36,10 @@ namespace ctranslate2 {
         const dim_t iter_size = compute_iter_size(x, axis);
         const T* x_data = x.data<T>();
 
-        #pragma omp parallel for
-        for (dim_t i = 0; i < iter_size; ++i)
-          primitives<D>::copy(x_data + i * copy_size, output_data + i * step_size, copy_size);
+        cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+          for (dim_t i = begin; i < end; ++i)
+            primitives<D>::copy(x_data + i * copy_size, output_data + i * step_size, copy_size);
+        });
 
         output_data += copy_size;  // Copy next input with an offset.
       }
@@ -58,9 +60,10 @@ namespace ctranslate2 {
         const dim_t iter_size = compute_iter_size(x, axis);
         T* x_data = x.data<T>();
 
-        #pragma omp parallel for
-        for (dim_t i = 0; i < iter_size; ++i)
-          primitives<D>::copy(input_data + i * step_size, x_data + i * copy_size, copy_size);
+        cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+          for (dim_t i = begin; i < end; ++i)
+            primitives<D>::copy(input_data + i * step_size, x_data + i * copy_size, copy_size);
+        });
 
         input_data += copy_size;  // Read next with an offset.
       }

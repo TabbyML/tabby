@@ -139,11 +139,12 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::add_batch_broadcast(const T* a, const T* b, T* c,
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = b_size / a_size;
-    #pragma omp parallel for
-    for (dim_t i = 0; i < iter_size; ++i) {
-      const dim_t offset = i * a_size;
-      add(a, b + offset, c + offset, a_size);
-    }
+    cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i = begin; i < end; ++i) {
+        const dim_t offset = i * a_size;
+        add(a, b + offset, c + offset, a_size);
+      }
+    });
   }
 
   template<>
@@ -152,11 +153,12 @@ namespace ctranslate2 {
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = a_size;
     const dim_t depth = b_size / a_size;
-    #pragma omp parallel for
-    for (dim_t i = 0; i < iter_size; ++i) {
-      const dim_t offset = i * depth;
-      add(a[i], b + offset, c + offset, depth);
-    }
+    cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i = begin; i < end; ++i) {
+        const dim_t offset = i * depth;
+        add(a[i], b + offset, c + offset, depth);
+      }
+    });
   }
 
   template<>
@@ -256,17 +258,18 @@ namespace ctranslate2 {
   void primitives<Device::CPU>::mul_batch_broadcast(const T* a, const T* b, T* c,
                                                     dim_t a_size, dim_t b_size) {
     const dim_t iter_size = b_size / a_size;
-    #pragma omp parallel for
-    for (dim_t i = 0; i < iter_size; ++i) {
-      const dim_t offset = i * a_size;
-      mul(a, b + offset, c + offset, a_size);
-    }
+    cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i = begin; i < end; ++i) {
+        const dim_t offset = i * a_size;
+        mul(a, b + offset, c + offset, a_size);
+      }
+    });
   }
 
   template<>
   template<>
   void primitives<Device::CPU>::relu(const float* x, float* y, dim_t size) {
-    cpu::parallel_for(0, size, /*work_size=*/1,
+    cpu::parallel_for(0, size, cpu::GRAIN_SIZE,
                       [x, y](dim_t begin, dim_t end) {
                         max(float(0), x + begin, y + begin, end - begin);
                       });
@@ -298,7 +301,7 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::swish(const float* x, float* y, dim_t size) {
-    cpu::parallel_for(0, size, /*work_size=*/10,
+    cpu::parallel_for(0, size, cpu::GRAIN_SIZE / 10,
                       [x, y](dim_t begin, dim_t end) {
                         CPU_ISA_DISPATCH((cpu::swish<ISA>(x + begin, y + begin, end - begin)));
                       });
@@ -350,15 +353,16 @@ namespace ctranslate2 {
                                                          dim_t batch_size,
                                                          dim_t length,
                                                          dim_t vocabulary_size) {
-    #pragma omp parallel for
-    for (dim_t i = 0; i < batch_size; ++i) {
-      for (dim_t j = 0; j < length; ++j) {
-        const dim_t read_index = i * length + j;
-        const dim_t write_index = i * vocabulary_size + previous_ids[read_index];
-        const auto score = previous_scores[read_index];
-        scores[write_index] = (score < T(0) ? score * penalty : score / penalty);
+    cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i = begin; i < end; ++i) {
+        for (dim_t j = 0; j < length; ++j) {
+          const dim_t read_index = i * length + j;
+          const dim_t write_index = i * vocabulary_size + previous_ids[read_index];
+          const auto score = previous_scores[read_index];
+          scores[write_index] = (score < T(0) ? score * penalty : score / penalty);
+        }
       }
-    }
+    });
   }
 
   template<>
@@ -382,12 +386,13 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   void primitives<Device::CPU>::transpose_2d(const T* a, const dim_t* dims, T* b) {
-    #pragma omp parallel for
-    for (dim_t i0 = 0; i0 < dims[0]; ++i0) {
-      for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
-        b[i1 * dims[0] + i0] = a[i0 * dims[1] + i1];
+    cpu::parallel_for(0, dims[0], 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i0 = begin; i0 < end; ++i0) {
+        for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
+          b[i1 * dims[0] + i0] = a[i0 * dims[1] + i1];
+        }
       }
-    }
+    });
   }
 
 #ifdef CT2_WITH_MKL
@@ -414,18 +419,19 @@ namespace ctranslate2 {
     const dim_t perm_b_stride[3] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
                                     b_stride[perm_ind[2]]};
 
-    #pragma omp parallel for
-    for (dim_t i0 = 0; i0 < dims[0]; ++i0) {
-      for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
-        for (dim_t i2 = 0; i2 < dims[2]; ++i2) {
-          const dim_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
-                             i2 * perm_b_stride[2]);
-          const dim_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
-                             i2 * a_stride[2]);
-          b[b_i] = a[a_i];
+    cpu::parallel_for(0, dims[0], 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i0 = begin; i0 < end; ++i0) {
+        for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
+          for (dim_t i2 = 0; i2 < dims[2]; ++i2) {
+            const dim_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
+                               i2 * perm_b_stride[2]);
+            const dim_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
+                               i2 * a_stride[2]);
+            b[b_i] = a[a_i];
+          }
         }
       }
-    }
+    });
   }
 
   template<>
@@ -440,15 +446,16 @@ namespace ctranslate2 {
       const dim_t r2 = dims[1];
       const dim_t depth = dims[3];
 
-      #pragma omp parallel for
-      for (dim_t i = 0; i < dims[0]; ++i) {
-        const dim_t offset = i * r1 * r2;
-        for (dim_t j = 0; j < r1 * r2; ++j) {
-          const dim_t a_offset = depth * (offset + j);
-          const dim_t b_offset = depth * (offset + j / r1 + (j % r1) * r2);
-          copy(a + a_offset, b + b_offset, depth);
+      cpu::parallel_for(0, dims[0], 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const dim_t offset = i * r1 * r2;
+          for (dim_t j = 0; j < r1 * r2; ++j) {
+            const dim_t a_offset = depth * (offset + j);
+            const dim_t b_offset = depth * (offset + j / r1 + (j % r1) * r2);
+            copy(a + a_offset, b + b_offset, depth);
+          }
         }
-      }
+      });
 
       return;
     }
@@ -462,20 +469,21 @@ namespace ctranslate2 {
     const dim_t perm_b_stride[4] = {b_stride[perm_ind[0]], b_stride[perm_ind[1]],
                                     b_stride[perm_ind[2]], b_stride[perm_ind[3]]};
 
-    #pragma omp parallel for
-    for (dim_t i0 = 0; i0 < dims[0]; ++i0) {
-      for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
-        for (dim_t i2 = 0; i2 < dims[2]; ++i2) {
-          for (dim_t i3 = 0; i3 < dims[3]; ++i3) {
-            const dim_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
-                               i2 * perm_b_stride[2] + i3 * perm_b_stride[3]);
-            const dim_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
-                               i2 * a_stride[2] + i3 * a_stride[3]);
-            b[b_i] = a[a_i];
+    cpu::parallel_for(0, dims[0], 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i0 = begin; i0 < end; ++i0) {
+        for (dim_t i1 = 0; i1 < dims[1]; ++i1) {
+          for (dim_t i2 = 0; i2 < dims[2]; ++i2) {
+            for (dim_t i3 = 0; i3 < dims[3]; ++i3) {
+              const dim_t b_i = (i0 * perm_b_stride[0] + i1 * perm_b_stride[1] +
+                                 i2 * perm_b_stride[2] + i3 * perm_b_stride[3]);
+              const dim_t a_i = (i0 * a_stride[0] + i1 * a_stride[1] +
+                                 i2 * a_stride[2] + i3 * a_stride[3]);
+              b[b_i] = a[a_i];
+            }
           }
         }
       }
-    }
+    });
   }
 
   static cpu::GemmBackend sgemm_backend = cpu::get_gemm_backend(ComputeType::FLOAT);
@@ -715,27 +723,28 @@ namespace ctranslate2 {
                                                         dim_t n,
                                                         float alpha,
                                                         int32_t* compensation) {
-    #pragma omp parallel for
-    for (dim_t i = 0; i < n; ++i) {
-      int32_t val = 0;
+    cpu::parallel_for(0, n, 1, [&](dim_t begin, dim_t end) {
+      for (dim_t i = begin; i < end; ++i) {
+        int32_t val = 0;
 
-      if (transpose_b) {
-        const int8_t* row = b + i * k;
-        val = std::accumulate(row, row + k, static_cast<int32_t>(0));
-      } else {
-        for (dim_t j = 0; j < k; ++j) {
-          val += b[j * n + i];
+        if (transpose_b) {
+          const int8_t* row = b + i * k;
+          val = std::accumulate(row, row + k, static_cast<int32_t>(0));
+        } else {
+          for (dim_t j = 0; j < k; ++j) {
+            val += b[j * n + i];
+          }
         }
-      }
 
-      if (alpha != 1) {
-        val = std::nearbyintf(static_cast<float>(val) * alpha * -128.f);
-      } else {
-        val *= -128;
-      }
+        if (alpha != 1) {
+          val = std::nearbyintf(static_cast<float>(val) * alpha * -128.f);
+        } else {
+          val *= -128;
+        }
 
-      compensation[i] = val;
-    }
+        compensation[i] = val;
+      }
+    });
   }
 
 
@@ -880,17 +889,19 @@ namespace ctranslate2 {
       ruy::Mul(lhs, rhs, mul_params, context, &dst);
 
       if (alpha != 1.0f) {
-        #pragma omp parallel for
-        for (dim_t i = 0; i < m * n; ++i) {
-          c[i] = static_cast<int32_t>(alpha * c[i]);
-        }
+        cpu::parallel_for(0, m * n, cpu::GRAIN_SIZE / 2, [&](dim_t begin, dim_t end) {
+          for (dim_t i = begin; i < end; ++i) {
+            c[i] = static_cast<int32_t>(alpha * c[i]);
+          }
+        });
       }
 
       if (beta != 0.0f) {
-        #pragma omp parallel for
-        for (dim_t i = 0; i < m * n; ++i) {
-          c[i] += static_cast<int32_t>(beta * tmp_c[i]);
-        }
+        cpu::parallel_for(0, m * n, cpu::GRAIN_SIZE / 2, [&](dim_t begin, dim_t end) {
+          for (dim_t i = begin; i < end; ++i) {
+            c[i] += static_cast<int32_t>(beta * tmp_c[i]);
+          }
+        });
       }
 
       if (tmp_c) {
@@ -968,21 +979,22 @@ namespace ctranslate2 {
 #endif
 
     default: {
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const float* a_i = a + (i * stridea);
-        const float* b_i = b + (i * strideb);
-        float* c_i = c + (i * stridec);
+      cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const float* a_i = a + (i * stridea);
+          const float* b_i = b + (i * strideb);
+          float* c_i = c + (i * stridec);
 
-        gemm(/*a_is_packed=*/false, /*b_is_packed=*/false,
-             transpose_a, transpose_b,
-             m, n, k,
-             alpha,
-             a_i, lda,
-             b_i, ldb,
-             beta,
-             c_i, ldc);
-      }
+          gemm(/*a_is_packed=*/false, /*b_is_packed=*/false,
+               transpose_a, transpose_b,
+               m, n, k,
+               alpha,
+               a_i, lda,
+               b_i, ldb,
+               beta,
+               c_i, ldc);
+        }
+      });
       break;
     }
 

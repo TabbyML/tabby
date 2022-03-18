@@ -23,19 +23,17 @@ namespace ctranslate2 {
     // the number of computations per indices increases.
     constexpr dim_t GRAIN_SIZE = 32768;
 
-    // work_size is an estimation of the amount of work per index (for example,
-    // 1 for a basic operator + - *, 2 for /, and 4 for exp, log, etc.).
     template <typename Function>
     inline void parallel_for(const dim_t begin,
                              const dim_t end,
-                             const dim_t work_size,
+                             const dim_t grain_size,
                              const Function& f) {
       if (begin >= end) {
         return;
       }
 #ifdef _OPENMP
-      const dim_t grain_size = GRAIN_SIZE / work_size;
-      if (omp_get_max_threads() == 1 || omp_in_parallel() || (end - begin) <= grain_size) {
+      const dim_t size = end - begin;
+      if (omp_get_max_threads() == 1 || omp_in_parallel() || size <= grain_size) {
         f(begin, end);
         return;
       }
@@ -43,18 +41,18 @@ namespace ctranslate2 {
       {
         dim_t num_threads = omp_get_num_threads();
         if (grain_size > 0) {
-          num_threads = std::min(num_threads, ceil_divide((end - begin), grain_size));
+          num_threads = std::min(num_threads, ceil_divide(size, grain_size));
         }
 
         const dim_t tid = omp_get_thread_num();
-        const dim_t chunk_size = ceil_divide((end - begin), num_threads);
+        const dim_t chunk_size = ceil_divide(size, num_threads);
         const dim_t begin_tid = begin + tid * chunk_size;
         if (begin_tid < end) {
           f(begin_tid, std::min(end, chunk_size + begin_tid));
         }
       }
 #else
-      (void)work_size;
+      (void)grain_size;
       f(begin, end);
 #endif
     }
@@ -73,7 +71,7 @@ namespace ctranslate2 {
                                          dim_t size,
                                          dim_t work_size,
                                          const Function& func) {
-      parallel_for(0, size, work_size,
+      parallel_for(0, size, GRAIN_SIZE / work_size,
                    [x, y, &func](dim_t begin, dim_t end) {
                      std::transform(x + begin, x + end, y + begin, func);
                    });
@@ -95,7 +93,7 @@ namespace ctranslate2 {
                                           dim_t size,
                                           dim_t work_size,
                                           const Function& func) {
-      parallel_for(0, size, work_size,
+      parallel_for(0, size, GRAIN_SIZE / work_size,
                    [a, b, c, &func](dim_t begin, dim_t end) {
                      std::transform(a + begin, a + end, b + begin, c + begin, func);
                    });

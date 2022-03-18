@@ -41,11 +41,12 @@ namespace ctranslate2 {
       const auto* scale_data = scale.data<float>();
       auto* output_data = output.data<float>();
 
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const dim_t offset = i * depth;
-        dequantize_kernel(input_data + offset, scale_data[i], depth, output_data + offset);
-      }
+      cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const dim_t offset = i * depth;
+          dequantize_kernel(input_data + offset, scale_data[i], depth, output_data + offset);
+        }
+      });
     }
 
     template<>
@@ -76,29 +77,31 @@ namespace ctranslate2 {
           auto* r_b_scale = static_cast<float*>(allocator.allocate(depth * sizeof (float)));
           CPU_ISA_DISPATCH((cpu::rcp<ISA>(b_scale_data, r_b_scale, depth)));
 
-          #pragma omp parallel for
-          for (dim_t i = 0; i < batch_size; ++i) {
-            const float r_a_scale = 1.f / a_scale_data[i];
-            const dim_t offset = i * depth;
-            cpu::binary_transform(c_data + offset, r_b_scale, y_data + offset, depth,
-                                  [r_a_scale](int32_t v, float r_b_scale) {
-                                    return static_cast<float>(v) * r_a_scale * r_b_scale;
-                                  });
-          }
+          cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+            for (dim_t i = begin; i < end; ++i) {
+              const float r_a_scale = 1.f / a_scale_data[i];
+              const dim_t offset = i * depth;
+              cpu::binary_transform(c_data + offset, r_b_scale, y_data + offset, depth,
+                                    [r_a_scale](int32_t v, float r_b_scale) {
+                                      return static_cast<float>(v) * r_a_scale * r_b_scale;
+                                    });
+            }
+          });
 
           allocator.free(r_b_scale);
 
         } else {
           // Generic implementation.
-          #pragma omp parallel for
-          for (dim_t i = 0; i < batch_size; ++i) {
-            for (dim_t j = 0; j < depth; ++j) {
-              const dim_t index = j + i * depth;
-              const float scale_a = transpose_a ? a_scale_data[j] : a_scale_data[i];
-              const float scale_b = transpose_b ? b_scale_data[j] : b_scale_data[i];
-              y_data[index] = static_cast<float>(c_data[index]) / (scale_a * scale_b);
+          cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+            for (dim_t i = begin; i < end; ++i) {
+              for (dim_t j = 0; j < depth; ++j) {
+                const dim_t index = j + i * depth;
+                const float scale_a = transpose_a ? a_scale_data[j] : a_scale_data[i];
+                const float scale_b = transpose_b ? b_scale_data[j] : b_scale_data[i];
+                y_data[index] = static_cast<float>(c_data[index]) / (scale_a * scale_b);
+              }
             }
-          }
+          });
         }
       }
 

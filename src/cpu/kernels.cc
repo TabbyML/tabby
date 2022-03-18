@@ -16,6 +16,7 @@
 #  include "cpu/vec.h"
 #endif
 
+#include "cpu/parallel.h"
 #include "type_dispatch.h"
 
 namespace ctranslate2 {
@@ -276,52 +277,53 @@ namespace ctranslate2 {
                              float epsilon) {
       using VecType = Vec<float, TARGET_ISA>;
 
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const dim_t offset = i * depth;
-        const float* x = input + offset;
-        float* y = output + offset;
+      parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const dim_t offset = i * depth;
+          const float* x = input + offset;
+          float* y = output + offset;
 
-        dim_t size = depth;
-        if (lengths) {
-          size = lengths[i];
+          dim_t size = depth;
+          if (lengths) {
+            size = lengths[i];
 
-          // Directly set 0 in output for out of range positions.
-          for (dim_t j = size; j < depth; ++j) {
-            y[j] = 0;
+            // Directly set 0 in output for out of range positions.
+            for (dim_t j = size; j < depth; ++j) {
+              y[j] = 0;
+            }
+
+            if (size == 0) {
+              continue;
+            }
           }
 
-          if (size == 0) {
-            continue;
+          const auto x_max = reduce_max<TARGET_ISA>(x, size);
+          const auto vec_x_max = VecType::load(x_max);
+
+          const auto scalar_exp_func = [x_max](vec_type<float> v) {
+            return Vec<float>::exp(Vec<float>::sub(v, x_max));
+          };
+          const auto vec_exp_func = [vec_x_max](vec_type<float, TARGET_ISA> v) {
+            return VecType::exp(VecType::sub(v, vec_x_max));
+          };
+
+          if (log) {
+            const auto exp_sum = vectorized_map_reduce_all<TARGET_ISA>(
+              x,
+              size,
+              static_cast<float>(0),
+              vec_exp_func,
+              VecType::add,
+              scalar_exp_func,
+              Vec<float>::add);
+            add<TARGET_ISA>(-x_max - std::log(exp_sum), x, y, size);
+          } else {
+            vectorized_unary_transform<TARGET_ISA>(x, y, size, vec_exp_func);
+            const auto exp_sum = reduce_sum<TARGET_ISA>(y, size);
+            mul<TARGET_ISA>(static_cast<float>(1) / (exp_sum + epsilon), y, y, size);
           }
         }
-
-        const auto x_max = reduce_max<TARGET_ISA>(x, size);
-        const auto vec_x_max = VecType::load(x_max);
-
-        const auto scalar_exp_func = [x_max](vec_type<float> v) {
-                                       return Vec<float>::exp(Vec<float>::sub(v, x_max));
-                                     };
-        const auto vec_exp_func = [vec_x_max](vec_type<float, TARGET_ISA> v) {
-                                    return VecType::exp(VecType::sub(v, vec_x_max));
-                                  };
-
-        if (log) {
-          const auto exp_sum = vectorized_map_reduce_all<TARGET_ISA>(
-            x,
-            size,
-            static_cast<float>(0),
-            vec_exp_func,
-            VecType::add,
-            scalar_exp_func,
-            Vec<float>::add);
-          add<TARGET_ISA>(-x_max - std::log(exp_sum), x, y, size);
-        } else {
-          vectorized_unary_transform<TARGET_ISA>(x, y, size, vec_exp_func);
-          const auto exp_sum = reduce_sum<TARGET_ISA>(y, size);
-          mul<TARGET_ISA>(static_cast<float>(1) / (exp_sum + epsilon), y, y, size);
-        }
-      }
+      });
     }
 
     template<>
@@ -332,56 +334,67 @@ namespace ctranslate2 {
                                 dim_t batch_size,
                                 dim_t depth,
                                 float epsilon) {
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const auto offset = i * depth;
-        const auto* x = input + offset;
-        auto* y = output + offset;
-        float mean = 0;  // sum(x)/n
-        float rstd = 0;  // 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
-        for (dim_t j = 0; j < depth; ++j) {
-          mean += x[j];
-          rstd += x[j] * x[j];
+      parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const auto offset = i * depth;
+          const auto* x = input + offset;
+          auto* y = output + offset;
+          float mean = 0;  // sum(x)/n
+          float rstd = 0;  // 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
+          for (dim_t j = 0; j < depth; ++j) {
+            mean += x[j];
+            rstd += x[j] * x[j];
+          }
+          mean /= depth;
+          rstd = std::max(rstd / depth - mean * mean, 0.f);
+          rstd = 1.f / std::sqrt(rstd + epsilon);
+          for (dim_t j = 0; j < depth; ++j) {
+            y[j] = (x[j] - mean) * rstd * gamma[j] + beta[j];
+          }
         }
-        mean /= depth;
-        rstd = std::max(rstd / depth - mean * mean, 0.f);
-        rstd = 1.f / std::sqrt(rstd + epsilon);
-        for (dim_t j = 0; j < depth; ++j) {
-          y[j] = (x[j] - mean) * rstd * gamma[j] + beta[j];
-        }
-      }
+      });
     }
 
     template <typename RoundFunc>
-    static void quantize_s8_impl(const float* x,
+    static float quantize_s8_row(const float* x,
                                  int8_t* y,
-                                 float* scales,
-                                 dim_t batch_size,
                                  dim_t depth,
                                  bool shift_to_uint8,
                                  const RoundFunc& round_func) {
       constexpr float int8_min = std::numeric_limits<int8_t>::min();
       constexpr float int8_max = std::numeric_limits<int8_t>::max();
 
-      #pragma omp parallel for
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const auto offset = i * depth;
-        const auto* src = x + offset;
-        const auto amax = reduce_amax<TARGET_ISA>(src, depth);
-        const auto scale = (amax != 0.f ? int8_max / amax : 1.f);
+      const auto amax = reduce_amax<TARGET_ISA>(x, depth);
+      const auto scale = (amax != 0.f ? int8_max / amax : 1.f);
 
-        if (shift_to_uint8) {
-          auto* dst = reinterpret_cast<uint8_t*>(y) + offset;
-          for (dim_t j = 0; j < depth; ++j)
-            dst[j] = round_func(src[j] * scale - int8_min);
-        } else {
-          auto* dst = y + offset;
-          for (dim_t j = 0; j < depth; ++j)
-            dst[j] = round_func(src[j] * scale);
-        }
-
-        scales[i] = scale;
+      if (shift_to_uint8) {
+        auto* dst = reinterpret_cast<uint8_t*>(y);
+        for (dim_t j = 0; j < depth; ++j)
+          dst[j] = round_func(x[j] * scale - int8_min);
+      } else {
+        for (dim_t j = 0; j < depth; ++j)
+          y[j] = round_func(x[j] * scale);
       }
+
+      return scale;
+    }
+
+    template <typename RoundFunc>
+    static void quantize_s8_batch(const float* x,
+                                  int8_t* y,
+                                  float* scales,
+                                  dim_t batch_size,
+                                  dim_t depth,
+                                  bool shift_to_uint8,
+                                  const RoundFunc& round_func) {
+      parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const auto offset = i * depth;
+          const auto* src = x + offset;
+          auto* dst = y + offset;
+          scales[i] = quantize_s8_row(src, dst, depth, shift_to_uint8, round_func);
+        }
+      });
     }
 
     template<>
@@ -393,9 +406,9 @@ namespace ctranslate2 {
                                  bool shift_to_uint8,
                                  bool round_before_cast) {
       if (round_before_cast)
-        quantize_s8_impl(x, y, scales, batch_size, depth, shift_to_uint8, std::nearbyintf);
+        quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, std::nearbyintf);
       else
-        quantize_s8_impl(x, y, scales, batch_size, depth, shift_to_uint8, identity());
+        quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, identity());
     }
 
   }
