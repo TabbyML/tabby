@@ -546,8 +546,16 @@ def test_opennmt_tf_model_conversion(
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
-    assert os.path.isfile(os.path.join(output_dir, "source_vocabulary.txt"))
-    assert os.path.isfile(os.path.join(output_dir, "target_vocabulary.txt"))
+
+    src_vocab_path = os.path.join(output_dir, "source_vocabulary.txt")
+    tgt_vocab_path = os.path.join(output_dir, "target_vocabulary.txt")
+
+    # Check lines end with \n on all platforms.
+    with open(src_vocab_path, encoding="utf-8", newline="") as vocab_file:
+        assert vocab_file.readline() == "<blank>\n"
+    with open(tgt_vocab_path, encoding="utf-8", newline="") as vocab_file:
+        assert vocab_file.readline() == "<blank>\n"
+
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]

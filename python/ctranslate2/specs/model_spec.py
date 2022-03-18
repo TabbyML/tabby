@@ -319,7 +319,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
 
 
 def _save_lines(path, lines):
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline="") as f:
         for line in lines:
             f.write(line)
             f.write("\n")
