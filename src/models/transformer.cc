@@ -43,10 +43,6 @@ namespace ctranslate2 {
       return 4;
     }
 
-    bool TransformerModel::is_quantizable(const std::string& variable_name) const {
-      return ends_with(variable_name, "weight");
-    }
-
     bool TransformerModel::is_linear_weight(const std::string& variable_name) const {
       // Linear weights are all variables that are quantizable and not under the "embeddings" scope.
       return is_quantizable(variable_name) && variable_name.find("embeddings") == std::string::npos;

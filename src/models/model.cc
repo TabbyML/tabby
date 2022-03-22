@@ -191,8 +191,8 @@ namespace ctranslate2 {
       _variable_index.erase(name);
     }
 
-    bool Model::is_quantizable(const std::string&) const {
-      return false;
+    bool Model::is_quantizable(const std::string& variable_name) const {
+      return ends_with(variable_name, "weight");
     }
 
     bool Model::is_linear_weight(const std::string&) const {
