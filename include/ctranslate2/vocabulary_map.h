@@ -20,8 +20,6 @@ namespace ctranslate2 {
   public:
     VocabularyMap(std::istream& map_file, const Vocabulary& vocabulary);
 
-    bool empty() const;
-
     // The returned vector is ordered.
     std::vector<size_t>
     get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const;

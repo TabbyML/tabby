@@ -122,7 +122,7 @@ namespace ctranslate2 {
     }
 
     const VocabularyMap* SequenceToSequenceModel::get_vocabulary_map() const {
-      return _vocabulary_map && !_vocabulary_map->empty() ? _vocabulary_map.get() : nullptr;
+      return _vocabulary_map.get();
     }
 
     void SequenceToSequenceModel::forward_encoder(layers::Encoder& encoder,

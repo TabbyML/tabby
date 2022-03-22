@@ -48,10 +48,6 @@ namespace ctranslate2 {
       _fixed_candidates.insert(it->second.begin(), it->second.end());
   }
 
-  bool VocabularyMap::empty() const {
-    return _map_rules.empty();
-  }
-
   std::vector<size_t>
   VocabularyMap::get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const {
     std::set<size_t> candidates = _fixed_candidates;
