@@ -75,6 +75,8 @@ namespace ctranslate2 {
       std::shared_ptr<const Vocabulary> _target_vocabulary;
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
 
+      const std::string* decoder_start_token() const;
+
       bool _with_source_bos = false;
       bool _with_source_eos = false;
       bool _with_target_bos = true;

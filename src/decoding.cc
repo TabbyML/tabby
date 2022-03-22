@@ -787,13 +787,39 @@ namespace ctranslate2 {
     return batch_state;
   }
 
+  static std::pair<std::vector<size_t>, std::vector<std::vector<size_t>>>
+  split_start_tokens(const std::vector<std::vector<size_t>>& start_tokens) {
+    if (start_tokens.empty())
+      throw std::invalid_argument("No decoder start tokens are set");
+
+    std::vector<size_t> start_ids;
+    std::vector<std::vector<size_t>> prefix_ids;
+    start_ids.reserve(start_tokens.size());
+    prefix_ids.reserve(start_tokens.size());
+    bool only_start_token = true;
+
+    for (const auto& tokens : start_tokens) {
+      if (tokens.empty())
+        throw std::invalid_argument("One input has no decoder start token");
+      if (tokens.size() > 1)
+        only_start_token = false;
+
+      start_ids.emplace_back(tokens.front());
+      prefix_ids.emplace_back(tokens.begin() + 1, tokens.end());
+    }
+
+    if (only_start_token)
+      prefix_ids.clear();
+
+    return std::make_pair(std::move(start_ids), std::move(prefix_ids));
+  }
+
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
          const SearchStrategy& search_strategy,
          const Sampler& sampler,
-         std::vector<size_t> start_ids,
-         const std::vector<std::vector<size_t>>* prefix_ids,
+         const std::vector<std::vector<size_t>>& start_tokens,
          const std::vector<size_t>* output_ids_map,
          const size_t end_id,
          const size_t unk_id,
@@ -806,7 +832,7 @@ namespace ctranslate2 {
          const bool normalize_scores,
          const float repetition_penalty,
          const bool disable_unk) {
-    const size_t batch_size = start_ids.size();
+    const size_t batch_size = start_tokens.size();
 
     if (return_alternatives && batch_size > 1) {
       // return_alternatives mode currently does not support batch decoding.
@@ -814,16 +840,11 @@ namespace ctranslate2 {
       results.reserve(batch_size);
       for (size_t i = 0; i < batch_size; ++i) {
         layers::DecoderState batch_state = get_batch_state(state, i);
-        std::vector<size_t> batch_start_ids{start_ids[i]};
-        std::vector<std::vector<size_t>> batch_prefix_ids;
-        if (prefix_ids)
-          batch_prefix_ids.emplace_back(prefix_ids->at(i));
         results.emplace_back(decode(decoder,
                                     batch_state,
                                     search_strategy,
                                     sampler,
-                                    batch_start_ids,
-                                    batch_prefix_ids.empty() ? nullptr : &batch_prefix_ids,
+                                    {start_tokens[i]},
                                     output_ids_map,
                                     end_id,
                                     unk_id,
@@ -840,21 +861,25 @@ namespace ctranslate2 {
       return results;
     }
 
+    std::vector<size_t> start_ids;
+    std::vector<std::vector<size_t>> prefix_ids;
+    std::tie(start_ids, prefix_ids) = split_start_tokens(start_tokens);
+
     dim_t start_step = 0;
 
     std::vector<GenerationResult<size_t>> expansion_results;
     if (return_alternatives) {
       std::vector<std::vector<std::vector<float>>> prefix_attention;
-      if (prefix_ids) {
+      if (!prefix_ids.empty()) {
         if (return_attention)
           prefix_attention.resize(1);
         initialize_decoder_with_prefix(decoder,
                                        state,
                                        start_ids[0],
-                                       prefix_ids->front(),
+                                       prefix_ids[0],
                                        return_attention ? &prefix_attention[0] : nullptr);
-        start_ids[0] = prefix_ids->front().back();
-        const dim_t prefix_length = prefix_ids->front().size();
+        start_ids[0] = prefix_ids[0].back();
+        const dim_t prefix_length = prefix_ids[0].size();
         start_step += prefix_length;
         max_length = std::max(max_length - prefix_length, dim_t(0));
         min_length = std::max(min_length - prefix_length, dim_t(0));
@@ -889,10 +914,10 @@ namespace ctranslate2 {
           start_ids[b * num_hypotheses + i] = result.hypotheses[i].back();
 
           // Prepend expansion result with the prefix.
-          if (prefix_ids) {
+          if (!prefix_ids.empty()) {
             result.hypotheses[i].insert(result.hypotheses[i].begin(),
-                                        prefix_ids->at(b).begin(),
-                                        prefix_ids->at(b).end());
+                                        prefix_ids[b].begin(),
+                                        prefix_ids[b].end());
             if (return_attention) {
               result.attention[i].insert(result.attention[i].begin(),
                                          prefix_attention[b].begin(),
@@ -923,7 +948,7 @@ namespace ctranslate2 {
                                           return_alternatives ? 1 : num_hypotheses,
                                           repetition_penalty,
                                           disable_unk,
-                                          return_alternatives ? nullptr : prefix_ids);
+                                          return_alternatives ? nullptr : &prefix_ids);
 
     if (return_alternatives) {
       // Append to expansion results.

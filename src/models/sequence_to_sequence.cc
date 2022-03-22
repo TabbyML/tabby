@@ -107,6 +107,12 @@ namespace ctranslate2 {
       _user_decoder_start_tokens = get_flag_with_default("user_decoder_start_tokens", false);
     }
 
+    const std::string* SequenceToSequenceModel::decoder_start_token() const {
+      if (_user_decoder_start_tokens)
+        return nullptr;
+      return _with_target_bos ? &Vocabulary::bos_token : &Vocabulary::eos_token;
+    }
+
     const Vocabulary& SequenceToSequenceModel::get_source_vocabulary() const {
       return *_source_vocabularies[0];
     }
@@ -157,11 +163,7 @@ namespace ctranslate2 {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::forward_decoder");
 
-      const std::string* suffix = nullptr;
-      const std::string* prefix = nullptr;
-      if (!_user_decoder_start_tokens)
-        prefix = _with_target_bos ? &Vocabulary::bos_token : &Vocabulary::eos_token;
-      const auto target_ids = _target_vocabulary->to_ids(target, prefix, suffix);
+      const auto target_ids = _target_vocabulary->to_ids(target, decoder_start_token(), nullptr);
 
       StorageView lengths;
       const StorageView ids = layers::make_sequence_inputs(target_ids,
@@ -268,37 +270,6 @@ namespace ctranslate2 {
       }
     }
 
-    static inline void raise_prefix_is_required() {
-      throw std::invalid_argument("This model requires a target prefix with at least "
-                                  "one token corresponding to the decoder start token");
-    }
-
-    static std::vector<size_t>
-    get_start_ids_from_prefix(std::vector<std::vector<size_t>>& target_prefix) {
-      if (target_prefix.empty())
-        raise_prefix_is_required();
-
-      std::vector<size_t> start_ids;
-      start_ids.reserve(target_prefix.size());
-      bool prefix_has_only_start_token = true;
-
-      for (auto& prefix : target_prefix) {
-        if (prefix.empty())
-          raise_prefix_is_required();
-
-        start_ids.emplace_back(prefix.front());
-        prefix.erase(prefix.begin());
-
-        if (!prefix.empty())
-          prefix_has_only_start_token = false;
-      }
-
-      if (prefix_has_only_start_token)
-        target_prefix.clear();
-
-      return start_ids;
-    }
-
     std::vector<GenerationResult<std::string>>
     SequenceToSequenceModel::sample(layers::Encoder& encoder,
                                     layers::Decoder& decoder,
@@ -396,17 +367,12 @@ namespace ctranslate2 {
       }
 
       // Decode.
-      auto target_prefix_ids = _target_vocabulary->to_ids(target_prefix_inputs);
-      const size_t start_id = _target_vocabulary->to_id(_with_target_bos
-                                                        ? Vocabulary::bos_token
-                                                        : Vocabulary::eos_token);
+      if (target_prefix_inputs.empty())
+        target_prefix_inputs.resize(batch_size);
+      const auto start_ids = _target_vocabulary->to_ids(target_prefix_inputs,
+                                                        decoder_start_token(),
+                                                        nullptr);
       const size_t end_id = _target_vocabulary->to_id(Vocabulary::eos_token);
-
-      std::vector<size_t> start_ids;
-      if (_user_decoder_start_tokens)
-        start_ids = get_start_ids_from_prefix(target_prefix_ids);
-      else
-        start_ids.assign(batch_size, start_id);
 
       std::vector<GenerationResult<size_t>> results = decode(
         decoder,
@@ -414,7 +380,6 @@ namespace ctranslate2 {
         search_strategy,
         sampler,
         start_ids,
-        !target_prefix_ids.empty() ? &target_prefix_ids : nullptr,
         !output_ids_map.empty() ? &output_ids_map : nullptr,
         end_id,
         unk_id,
