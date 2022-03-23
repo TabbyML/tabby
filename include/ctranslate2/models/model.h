@@ -111,11 +111,13 @@ namespace ctranslate2 {
       virtual void register_variable(std::string name, StorageView variable);
       virtual void register_variable_alias(std::string alias, std::string variable_name);
       virtual void remove_variable(const std::string& name);
-      virtual void finalize();
+
+      // Runs some initialization after the model is loaded.
+      virtual void initialize();
 
     private:
       void process_linear_weights();
-      void set_compute_type(ComputeType type);
+      void set_compute_type(ComputeType type, Device device, int device_index);
       void ensure_dtype(const std::string& name,
                         StorageView& variable,
                         const DataType target_dtype);

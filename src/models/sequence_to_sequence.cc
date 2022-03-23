@@ -99,8 +99,8 @@ namespace ctranslate2 {
       }
     }
 
-    void SequenceToSequenceModel::finalize() {
-      Model::finalize();
+    void SequenceToSequenceModel::initialize() {
+      Model::initialize();
       _with_source_bos = get_flag_with_default("with_source_bos", false);
       _with_source_eos = get_flag_with_default("with_source_eos", false);
       _with_target_bos = get_flag_with_default("with_target_bos", true);

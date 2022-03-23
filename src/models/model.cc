@@ -146,8 +146,36 @@ namespace ctranslate2 {
       _device_index = index;
     }
 
-    void Model::set_compute_type(ComputeType type) {
+    void Model::set_compute_type(ComputeType type, Device device, int device_index) {
+      if (_device != Device::CPU)
+        throw std::runtime_error("set_compute_type expects the variables to be on CPU");
+
       _compute_type = type;
+      _effective_compute_type = resolve_compute_type(type,
+                                                     infer_compute_type(),
+                                                     device,
+                                                     device_index);
+      _preferred_size_multiple = get_preferred_size_multiple(_effective_compute_type,
+                                                             device,
+                                                             device_index);
+
+      const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
+      const DataType float_dtype = get_default_float_type(_effective_compute_type);
+
+      const auto variable_index = _variable_index;
+      for (auto& variable_pair : variable_index) {
+        const auto& name = variable_pair.first;
+        auto& variable = *variable_pair.second;
+
+        // Convert "weight" variables to the expected compute type.
+        // Other float variables (e.g. biases) may be converted from or to float16.
+        if (is_quantizable(name))
+          ensure_dtype(name, variable, target_dtype);
+        else if (is_convertible(variable, name)
+                 && is_float_type(variable.dtype())
+                 && variable.dtype() != float_dtype)
+          variable = variable.to(float_dtype);
+      }
     }
 
     const StorageView* Model::get_variable_if_exists(const std::string& name) const {
@@ -307,43 +335,8 @@ namespace ctranslate2 {
       }
     }
 
-    void Model::finalize() {
-      auto scoped_device_setter = get_scoped_device_setter();
-
-      _effective_compute_type = resolve_compute_type(_compute_type,
-                                                     infer_compute_type(),
-                                                     _device,
-                                                     _device_index);
-      _preferred_size_multiple = get_preferred_size_multiple(_effective_compute_type,
-                                                             _device,
-                                                             _device_index);
-      const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
-      const DataType float_dtype = get_default_float_type(_effective_compute_type);
-
-      const auto variable_index = _variable_index;
-      for (auto& variable_pair : variable_index) {
-        const auto& name = variable_pair.first;
-        auto& variable = *variable_pair.second;
-
-        // Convert "weight" variables to the expected compute type.
-        if (is_quantizable(name)) {
-          ensure_dtype(name, variable, target_dtype);
-        } else if (is_convertible(variable, name)) {
-          // Other parameters may be converted from or to float16 (e.g. bias).
-          if (float_dtype == DataType::FLOAT16) {
-            if (variable.dtype() == DataType::FLOAT) {
-              variable = variable.to_float16();
-            }
-          } else {
-            if (variable.dtype() == DataType::FLOAT16) {
-              variable = variable.to_float();
-            }
-          }
-        }
-      }
-
-      // Second pass to move variables on the target device.
-      move_variables_to_device(_variable_index, _device);
+    void Model::initialize() {
+      process_linear_weights();
     }
 
     // This method runs some precomputations on linear weights when possible.
@@ -470,11 +463,18 @@ namespace ctranslate2 {
                                              Device device,
                                              int device_index,
                                              ComputeType compute_type) {
+      {
+        // Check that the device and device index are valid.
+        ScopedDeviceSetter(device, device_index);
+      }
+
       std::unique_ptr<std::istream> model_file_ptr = model_reader.get_required_file(binary_file,
                                                                                     /*binary=*/true);
       std::istream& model_file = *model_file_ptr;
 
       // See the model serialization in python/ctranslate2/specs/model_spec.py.
+
+      // Check the binary version and spec revision.
       const size_t binary_version = consume<uint32_t>(model_file);
       check_version(binary_version, current_binary_version, "binary version");
 
@@ -489,11 +489,10 @@ namespace ctranslate2 {
 
       auto model = create_model(model_reader, spec, spec_revision);
       model->_binary_version = binary_version;
-      model->set_device(device, device_index);
-      model->set_compute_type(compute_type);
 
       check_version(spec_revision, model->current_spec_revision(), "revision");
 
+      // Load the variables.
       const auto num_variables = consume<uint32_t>(model_file);
       model->_variable_index.reserve(num_variables);
       for (uint32_t i = 0; i < num_variables; ++i) {
@@ -520,9 +519,13 @@ namespace ctranslate2 {
         model->register_variable(std::move(name), std::move(variable));
       }
 
-      model->finalize();
+      // Maybe quantize/dequantize/convert the variables to match the requested compute type.
+      model->set_compute_type(compute_type, device, device_index);
 
-      // Register aliases, which are shallow copies of finalized variables.
+      // Move variables to the target device.
+      model->set_device(device, device_index);
+
+      // Register variable aliases.
       if (binary_version >= 3) {
         const auto num_aliases = consume<uint32_t>(model_file);
         for (uint32_t i = 0; i < num_aliases; ++i) {
@@ -534,7 +537,8 @@ namespace ctranslate2 {
         }
       }
 
-      model->process_linear_weights();
+      // Run additional model initialization.
+      model->initialize();
       return model;
     }
 

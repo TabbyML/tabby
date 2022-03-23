@@ -18,6 +18,7 @@ namespace ctranslate2 {
   };
 
   std::string dtype_name(DataType type);
+  bool is_float_type(DataType type);
 
   enum class ComputeType {
     DEFAULT,

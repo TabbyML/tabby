@@ -68,7 +68,7 @@ namespace ctranslate2 {
 
     protected:
       SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
-      virtual void finalize() override;
+      virtual void initialize() override;
 
     private:
       std::vector<std::shared_ptr<const Vocabulary>> _source_vocabularies;

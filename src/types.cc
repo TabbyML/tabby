@@ -23,6 +23,16 @@ namespace ctranslate2 {
     }
   }
 
+  bool is_float_type(DataType type) {
+    switch (type) {
+    case DataType::FLOAT:
+    case DataType::FLOAT16:
+      return true;
+    default:
+      return false;
+    }
+  }
+
   ComputeType str_to_compute_type(const std::string& compute_type) {
     if (compute_type == "int8")
       return ComputeType::INT8;

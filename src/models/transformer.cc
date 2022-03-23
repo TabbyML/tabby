@@ -68,8 +68,8 @@ namespace ctranslate2 {
       SequenceToSequenceModel::register_variable_alias(std::move(alias), std::move(variable_name));
     }
 
-    void TransformerModel::finalize() {
-      SequenceToSequenceModel::finalize();
+    void TransformerModel::initialize() {
+      SequenceToSequenceModel::initialize();
       _num_heads = get_attribute_with_default<int8_t>("num_heads", _num_heads);
       _with_relative_position = get_flag_with_default("with_relative_position", false);
       _pre_norm = get_flag_with_default("pre_norm", true);
