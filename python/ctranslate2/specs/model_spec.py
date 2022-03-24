@@ -8,7 +8,7 @@ import shutil
 import struct
 import numpy as np
 
-OPTIONAL = "optional"
+OPTIONAL = "__optional"
 CURRENT_BINARY_VERSION = 5
 
 
@@ -64,16 +64,22 @@ class LayerSpec(object):
         def _check(spec, name, value):
             if value is None:
                 raise ValueError("Missing value for attribute %s" % name)
-            attr_name = _split_scope(name)[-1]
+
             if isinstance(value, np.ndarray):
                 # Use float32 as the working floating point type.
                 if value.dtype in (np.float16, np.float64):
-                    setattr(spec, attr_name, value.astype(np.float32))
+                    value = value.astype(np.float32)
             elif isinstance(value, float):
-                setattr(spec, attr_name, np.dtype("float32").type(value))
+                value = np.dtype("float32").type(value)
             elif isinstance(value, bool):
                 # Convert bool to an integer type.
-                setattr(spec, attr_name, np.dtype("int8").type(value))
+                value = np.dtype("int8").type(value)
+            elif isinstance(value, str):
+                if value != OPTIONAL:
+                    value = np.frombuffer(value.encode("utf-8"), dtype=np.int8)
+
+            attr_name = _split_scope(name)[-1]
+            setattr(spec, attr_name, value)
 
         self.visit(_check)
 
@@ -248,6 +254,9 @@ class SequenceToSequenceModelSpec(ModelSpec):
           source_embeddings_specs: List of source EmbeddingsSpec modules.
           target_embeddings_specs: List of target EmbeddingsSpec modules.
         """
+        self.unk_token = "<unk>"
+        self.bos_token = "<s>"
+        self.eos_token = "</s>"
         self.with_source_bos = False
         self.with_source_eos = False
         self.with_target_bos = True

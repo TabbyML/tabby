@@ -67,14 +67,14 @@ namespace ctranslate2 {
              bool disable_unk = false) const;
 
     protected:
-      SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision);
-      virtual void initialize() override;
+      virtual void initialize(ModelReader& model_reader) override;
 
     private:
       std::vector<std::shared_ptr<const Vocabulary>> _source_vocabularies;
       std::shared_ptr<const Vocabulary> _target_vocabulary;
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
 
+      void load_vocabularies(ModelReader& model_reader);
       const std::string* decoder_start_token() const;
 
       bool _with_source_bos = false;

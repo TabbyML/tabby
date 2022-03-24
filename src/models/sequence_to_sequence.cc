@@ -56,26 +56,32 @@ namespace ctranslate2 {
     }
 
 
-    SequenceToSequenceModel::SequenceToSequenceModel(ModelReader& model_reader, size_t spec_revision)
-      : Model(model_reader, spec_revision) {
+    void SequenceToSequenceModel::load_vocabularies(ModelReader& model_reader) {
       {
+        VocabularyInfo vocab_info;
+        vocab_info.unk_token = get_attribute_with_default<std::string>("unk_token", "<unk>");
+        vocab_info.bos_token = get_attribute_with_default<std::string>("bos_token", "<s>");
+        vocab_info.eos_token = get_attribute_with_default<std::string>("eos_token", "</s>");
+
         auto shared_vocabulary = model_reader.get_file(shared_vocabulary_file);
         if (shared_vocabulary) {
-          _target_vocabulary = std::make_shared<Vocabulary>(*shared_vocabulary);
+          _target_vocabulary = std::make_shared<Vocabulary>(*shared_vocabulary, vocab_info);
           _source_vocabularies.emplace_back(_target_vocabulary);
         } else {
 
           {
             auto source_vocabulary = model_reader.get_file(source_vocabulary_file);
             if (source_vocabulary)
-              _source_vocabularies.emplace_back(std::make_shared<Vocabulary>(*source_vocabulary));
+              _source_vocabularies.emplace_back(std::make_shared<Vocabulary>(*source_vocabulary,
+                                                                             vocab_info));
             else {
               for (size_t i = 1;; i++) {
                 const std::string filename = "source_" + std::to_string(i) + "_vocabulary.txt";
                 const auto vocabulary_file = model_reader.get_file(filename);
                 if (!vocabulary_file)
                   break;
-                _source_vocabularies.emplace_back(std::make_shared<Vocabulary>(*vocabulary_file));
+                _source_vocabularies.emplace_back(std::make_shared<Vocabulary>(*vocabulary_file,
+                                                                               vocab_info));
               }
             }
 
@@ -86,7 +92,7 @@ namespace ctranslate2 {
 
           {
             auto target_vocabulary = model_reader.get_required_file(target_vocabulary_file);
-            _target_vocabulary = std::make_shared<Vocabulary>(*target_vocabulary);
+            _target_vocabulary = std::make_shared<Vocabulary>(*target_vocabulary, vocab_info);
           }
         }
       }
@@ -99,8 +105,9 @@ namespace ctranslate2 {
       }
     }
 
-    void SequenceToSequenceModel::initialize() {
-      Model::initialize();
+    void SequenceToSequenceModel::initialize(ModelReader& model_reader) {
+      Model::initialize(model_reader);
+      load_vocabularies(model_reader);
       _with_source_bos = get_flag_with_default("with_source_bos", false);
       _with_source_eos = get_flag_with_default("with_source_eos", false);
       _with_target_bos = get_flag_with_default("with_target_bos", true);
@@ -110,7 +117,7 @@ namespace ctranslate2 {
     const std::string* SequenceToSequenceModel::decoder_start_token() const {
       if (_user_decoder_start_tokens)
         return nullptr;
-      return _with_target_bos ? &Vocabulary::bos_token : &Vocabulary::eos_token;
+      return _with_target_bos ? &_target_vocabulary->bos_token() : &_target_vocabulary->eos_token();
     }
 
     const Vocabulary& SequenceToSequenceModel::get_source_vocabulary() const {
@@ -257,9 +264,10 @@ namespace ctranslate2 {
 
     static void replace_unknown_tokens(const std::vector<std::string>& source,
                                        std::vector<std::string>& hypotheses,
-                                       const std::vector<std::vector<float>>& attention) {
+                                       const std::vector<std::vector<float>>& attention,
+                                       const std::string& unk_token) {
       for (size_t t = 0; t < hypotheses.size(); ++t) {
-        if (hypotheses[t] == Vocabulary::unk_token) {
+        if (hypotheses[t] == unk_token) {
           const std::vector<float>& attention_values = attention[t];
           const size_t pos = std::distance(attention_values.begin(),
                                            std::max_element(attention_values.begin(),
@@ -345,7 +353,7 @@ namespace ctranslate2 {
 
       // If UNK generation is disabled, we can directly remove the token from the
       // reduced vocabulary instead of handling that during decoding.
-      const size_t unk_id = _target_vocabulary->to_id(Vocabulary::unk_token);
+      const size_t unk_id = _target_vocabulary->unk_id();
       if (disable_unk && !output_ids_map.empty()) {
         auto it = std::lower_bound(output_ids_map.begin(), output_ids_map.end(), unk_id);
         if (it != output_ids_map.end() && *it == unk_id)
@@ -372,7 +380,7 @@ namespace ctranslate2 {
       const auto start_ids = _target_vocabulary->to_ids(target_prefix_inputs,
                                                         decoder_start_token(),
                                                         nullptr);
-      const size_t end_id = _target_vocabulary->to_id(Vocabulary::eos_token);
+      const size_t end_id = _target_vocabulary->eos_id();
 
       std::vector<GenerationResult<size_t>> results = decode(
         decoder,
@@ -415,7 +423,10 @@ namespace ctranslate2 {
             }
 
             if (replace_unknowns)
-              replace_unknown_tokens(source_input, hypotheses[h], attention);
+              replace_unknown_tokens(source_input,
+                                     hypotheses[h],
+                                     attention,
+                                     _target_vocabulary->unk_token());
           }
 
           if (!return_attention)

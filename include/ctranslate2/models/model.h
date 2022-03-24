@@ -92,8 +92,6 @@ namespace ctranslate2 {
       bool get_flag_with_default(const std::string& name, bool default_value) const;
 
     protected:
-      Model(ModelReader& model_reader, size_t spec_revision);
-
       // Returns true if the variable is quantizable and should respect compute_type.
       virtual bool is_quantizable(const std::string& variable_name) const;
 
@@ -113,7 +111,7 @@ namespace ctranslate2 {
       virtual void remove_variable(const std::string& name);
 
       // Runs some initialization after the model is loaded.
-      virtual void initialize();
+      virtual void initialize(ModelReader& model_reader);
 
     private:
       void process_linear_weights();
@@ -132,6 +130,17 @@ namespace ctranslate2 {
       dim_t _preferred_size_multiple = 1;
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;
     };
+
+    template<>
+    inline std::string Model::get_attribute_with_default(const std::string& name,
+                                                         std::string default_value) const {
+      const StorageView* attribute = get_variable_if_exists(name);
+      if (!attribute)
+        return default_value;
+      StorageView attribute_host = attribute->to(Device::CPU);
+      return std::string(reinterpret_cast<const char*>(attribute_host.data<int8_t>()),
+                         attribute_host.size());
+    }
 
     // Load a model replica on each device ID configured in device_indices.
     // Replicas on the same device ID will reference the same model instance.

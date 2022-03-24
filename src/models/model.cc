@@ -125,10 +125,6 @@ namespace ctranslate2 {
     }
 
 
-    Model::Model(ModelReader&, size_t spec_revision)
-      : _spec_revision(spec_revision) {
-    }
-
     Model::~Model() {
       if (!_variable_index.empty()) {
         _variable_index.clear();
@@ -335,7 +331,7 @@ namespace ctranslate2 {
       }
     }
 
-    void Model::initialize() {
+    void Model::initialize(ModelReader&) {
       process_linear_weights();
     }
 
@@ -413,18 +409,16 @@ namespace ctranslate2 {
       }
     }
 
-    static std::shared_ptr<Model> create_model(ModelReader& model_reader,
-                                               const std::string& spec,
-                                               size_t spec_revision) {
+    static std::shared_ptr<Model> create_model(const std::string& spec) {
       // Empty spec name, TransformerBase, and TransformerBig are there for backward
       // compatibility. Now all Transformer variants are saved under TransformerSpec.
 
       if (spec == "TransformerSpec")
-        return std::make_shared<TransformerModel>(model_reader, spec_revision);
+        return std::make_shared<TransformerModel>();
       else if (spec == "TransformerBase" || spec.empty())
-        return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/8);
+        return std::make_shared<TransformerModel>(/*num_heads=*/8);
       else if (spec == "TransformerBig")
-        return std::make_shared<TransformerModel>(model_reader, spec_revision, /*num_heads=*/16);
+        return std::make_shared<TransformerModel>(/*num_heads=*/16);
       else
         throw std::invalid_argument("Unsupported model spec " + spec);
     }
@@ -487,8 +481,9 @@ namespace ctranslate2 {
         spec_revision = 1;
       }
 
-      auto model = create_model(model_reader, spec, spec_revision);
+      auto model = create_model(spec);
       model->_binary_version = binary_version;
+      model->_spec_revision = spec_revision;
 
       check_version(spec_revision, model->current_spec_revision(), "revision");
 
@@ -538,7 +533,7 @@ namespace ctranslate2 {
       }
 
       // Run additional model initialization.
-      model->initialize();
+      model->initialize(model_reader);
       return model;
     }
 

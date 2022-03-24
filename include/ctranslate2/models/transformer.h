@@ -9,10 +9,9 @@
 namespace ctranslate2 {
   namespace models {
 
-    class TransformerModel : public SequenceToSequenceModel
-    {
+    class TransformerModel : public SequenceToSequenceModel {
     public:
-      TransformerModel(ModelReader& model_reader, size_t spec_revision, size_t num_heads = 0);
+      TransformerModel(size_t num_heads = 0);
       size_t current_spec_revision() const override;
       std::unique_ptr<layers::Encoder> make_encoder() const override;
       std::unique_ptr<layers::Decoder> make_decoder() const override;
@@ -22,7 +21,7 @@ namespace ctranslate2 {
       bool is_packable(const std::string& variable_name) const override;
       void register_variable(std::string name, StorageView variable) override;
       void register_variable_alias(std::string alias, std::string variable_name) override;
-      void initialize() override;
+      void initialize(ModelReader& model_reader) override;
 
     private:
       size_t _num_heads;

@@ -37,10 +37,9 @@ namespace ctranslate2 {
       _map_rules[ngram - 1][key] = values;
     }
 
-    _fixed_candidates.insert(vocabulary.to_id(Vocabulary::unk_token));
-    _fixed_candidates.insert(vocabulary.to_id(Vocabulary::bos_token));
-    _fixed_candidates.insert(vocabulary.to_id(Vocabulary::eos_token));
-    _fixed_candidates.insert(vocabulary.to_id(Vocabulary::pad_token));
+    _fixed_candidates.insert(vocabulary.unk_id());
+    _fixed_candidates.insert(vocabulary.bos_id());
+    _fixed_candidates.insert(vocabulary.eos_id());
 
     // The field marked by the empty string are common tokens that are always candidates.
     auto it = _map_rules[0].find("");

@@ -7,17 +7,19 @@
 
 namespace ctranslate2 {
 
+  struct VocabularyInfo {
+    std::string unk_token = "<unk>";
+    std::string bos_token = "<s>";
+    std::string eos_token = "</s>";
+  };
+
   // Implements a standard indexed vocabulary.
   class Vocabulary
   {
   public:
-    static const std::string pad_token;
-    static const std::string unk_token;
-    static const std::string bos_token;
-    static const std::string eos_token;
+    Vocabulary(std::istream& in, VocabularyInfo info = VocabularyInfo());
 
-    Vocabulary(std::istream& in);
-
+    bool contains(const std::string& token) const;
     const std::string& to_token(size_t id) const;
     size_t to_id(const std::string& token) const;
     size_t size() const;
@@ -34,9 +36,32 @@ namespace ctranslate2 {
            const std::string* prefix,
            const std::string* suffix) const;
 
+    const std::string& unk_token() const {
+      return _info.unk_token;
+    }
+    const std::string& bos_token() const {
+      return _info.bos_token;
+    }
+    const std::string& eos_token() const {
+      return _info.eos_token;
+    }
+
+    size_t unk_id() const {
+      return to_id(_info.unk_token);
+    }
+    size_t bos_id() const {
+      return to_id(_info.bos_token);
+    }
+    size_t eos_id() const {
+      return to_id(_info.eos_token);
+    }
+
   private:
     std::vector<const std::string*> _id_to_token;
     std::unordered_map<std::string, size_t> _token_to_id;
+    const VocabularyInfo _info;
+
+    void add_token(std::string token);
   };
 
 }

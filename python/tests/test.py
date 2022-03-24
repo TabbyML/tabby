@@ -928,6 +928,7 @@ def test_layer_spec_validate():
             self.d = OPTIONAL
             self.e = SubSpec()
             self.f = True
+            self.g = "hello"
 
     spec = Spec()
     spec.validate()
@@ -936,7 +937,8 @@ def test_layer_spec_validate():
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float32
-    assert spec.f.dtype == np.int8
+    assert spec.f.dtype == np.int8 and np.array_equal(spec.f, 1)
+    assert spec.g.dtype == np.int8 and np.array_equal(spec.g, [104, 101, 108, 108, 111])
 
 
 def test_layer_spec_optimize():

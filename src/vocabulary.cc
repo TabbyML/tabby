@@ -2,22 +2,25 @@
 
 namespace ctranslate2 {
 
-  const std::string Vocabulary::pad_token = "<blank>";
-  const std::string Vocabulary::unk_token = "<unk>";
-  const std::string Vocabulary::bos_token = "<s>";
-  const std::string Vocabulary::eos_token = "</s>";
-
-  Vocabulary::Vocabulary(std::istream& in) {
+  Vocabulary::Vocabulary(std::istream& in, VocabularyInfo info)
+    : _info(std::move(info))
+  {
     std::string line;
-    while (std::getline(in, line)) {
-      const auto result = _token_to_id.emplace(std::move(line), _id_to_token.size());
-      _id_to_token.emplace_back(&result.first->first);
-    }
+    while (std::getline(in, line))
+      add_token(std::move(line));
+
     // Append the unknown token if not found in the vocabulary file.
-    if (_token_to_id.find(unk_token) == _token_to_id.end()) {
-      _token_to_id.emplace(unk_token, _id_to_token.size());
-      _id_to_token.emplace_back(&unk_token);
-    }
+    if (!contains(_info.unk_token))
+      add_token(_info.unk_token);
+  }
+
+  void Vocabulary::add_token(std::string token) {
+    const auto result = _token_to_id.emplace(std::move(token), _id_to_token.size());
+    _id_to_token.emplace_back(&result.first->first);
+  }
+
+  bool Vocabulary::contains(const std::string& token) const {
+    return _token_to_id.find(token) != _token_to_id.end();
   }
 
   const std::string& Vocabulary::to_token(size_t id) const {
@@ -30,7 +33,7 @@ namespace ctranslate2 {
   size_t Vocabulary::to_id(const std::string& token) const {
     auto it = _token_to_id.find(token);
     if (it == _token_to_id.end())
-      return _token_to_id.at(unk_token);
+      return _token_to_id.at(_info.unk_token);
     return it->second;
   }
 
@@ -89,8 +92,8 @@ namespace ctranslate2 {
                      const bool add_eos) const {
     return lookup_batch<std::string, size_t>(*this,
                                              batch_tokens,
-                                             add_bos ? &bos_token : nullptr,
-                                             add_eos ? &eos_token : nullptr);
+                                             add_bos ? &_info.bos_token : nullptr,
+                                             add_eos ? &_info.eos_token : nullptr);
   }
 
   std::vector<std::vector<size_t>>
