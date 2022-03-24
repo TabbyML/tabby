@@ -208,47 +208,23 @@ namespace ctranslate2 {
 
       const auto source_features = extract_features(std::move(source_inputs),
                                                     encoder.num_input_features());
+      const auto target_ids = _target_vocabulary->to_ids(target_inputs,
+                                                         decoder_start_token(),
+                                                         &_target_vocabulary->eos_token());
 
-      StorageView logits(decoder.output_type(), device());
-      forward(encoder, decoder, source_features, target_inputs, logits);
-      StorageView log_probs = std::move(logits);
-      ops::LogSoftMax()(log_probs);
+      StorageView memory(encoder.output_type(), device());
+      StorageView memory_lengths(DataType::INT32, device());
+      forward_encoder(encoder, source_features, memory, memory_lengths);
 
-      auto target_ids_out = _target_vocabulary->to_ids(target_inputs,
-                                                       /*add_bos=*/false,
-                                                       /*add_eos=*/true);
-      if (_user_decoder_start_tokens) {
-        // Remove the user start tokens.
-        for (auto& sequence : target_ids_out)
-          sequence.erase(sequence.begin());
-      }
+      layers::DecoderState state = decoder.initial_state(/*iterative_decoding=*/false);
+      state.emplace("memory", std::move(memory));
+      state.emplace("memory_lengths", std::move(memory_lengths));
 
-      const StorageView gather_ids = layers::make_sequence_inputs(target_ids_out,
-                                                                  device(),
-                                                                  preferred_size_multiple());
-
-      StorageView scores(log_probs.dtype(), device());
-      ops::Gather(/*axis=*/-1, /*batch_dims=*/2)(log_probs, gather_ids, scores);
-
-      if (scores.device() != Device::CPU)
-        scores = scores.to(Device::CPU);
-      if (scores.dtype() != DataType::FLOAT)
-        scores = scores.to_float();
-
-      const dim_t batch_size = scores.dim(0);
-      std::vector<ScoringResult> results(batch_size);
-      for (dim_t b = 0; b < batch_size; ++b) {
-        const dim_t output_length = target_ids_out[b].size();
-        auto& result = results[b];
-        result.tokens.reserve(output_length);
-        result.tokens_score.reserve(output_length);
-        for (dim_t t = 0; t < output_length; ++t) {
-          result.tokens.emplace_back(_target_vocabulary->to_token(target_ids_out[b][t]));
-          result.tokens_score.emplace_back(scores.at<float>({b, t}));
-        }
-      }
-
-      return results;
+      return score_sequences(decoder,
+                             state,
+                             target_ids,
+                             *_target_vocabulary,
+                             preferred_size_multiple());
     }
 
     static void replace_unknown_tokens(const std::vector<std::string>& source,

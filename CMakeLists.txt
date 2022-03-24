@@ -132,6 +132,7 @@ set(SOURCES
   src/padder.cc
   src/profiler.cc
   src/sampling.cc
+  src/scoring.cc
   src/storage_view.cc
   src/translation.cc
   src/translator.cc
