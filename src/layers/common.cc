@@ -304,7 +304,7 @@ namespace ctranslate2 {
     }
 
     dim_t Dense::output_size() const {
-      return _weight.dim(0);
+      return _partial_weight ? _partial_weight.dim(0) : _weight.dim(0);
     }
 
     void Dense::mask_weights(const StorageView& index) {
