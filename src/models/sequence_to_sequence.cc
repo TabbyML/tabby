@@ -12,17 +12,6 @@ namespace ctranslate2 {
     static const std::string vmap_file = "vmap.txt";
     static const std::string features_separator = "￨";
 
-    template <typename T>
-    static std::vector<std::vector<T>>
-    truncate_inputs(const std::vector<std::vector<T>>& inputs, size_t max_length) {
-      std::vector<std::vector<T>> truncated_inputs;
-      truncated_inputs.reserve(inputs.size());
-      for (const auto& input : inputs)
-        truncated_inputs.emplace_back(input.begin(),
-                                      input.begin() + std::min(input.size(), max_length));
-      return truncated_inputs;
-    }
-
     static std::vector<std::vector<std::vector<std::string>>>
     extract_features(std::vector<std::vector<std::string>> batch, size_t num_features) {
       std::vector<std::vector<std::vector<std::string>>> features;
@@ -213,8 +202,8 @@ namespace ctranslate2 {
       auto source_inputs = source;
       auto target_inputs = target;
       if (max_input_length > 0) {
-        source_inputs = truncate_inputs(source_inputs, max_input_length);
-        target_inputs = truncate_inputs(target_inputs, max_input_length);
+        truncate_sequences(source_inputs, max_input_length);
+        truncate_sequences(target_inputs, max_input_length);
       }
 
       const auto source_features = extract_features(std::move(source_inputs),
@@ -327,8 +316,8 @@ namespace ctranslate2 {
           target_prefix_inputs = index_vector(target_prefix_inputs, non_empty_index);
       }
       if (max_input_length > 0) {
-        source_inputs = truncate_inputs(source_inputs, max_input_length);
-        target_prefix_inputs = truncate_inputs(target_prefix_inputs, max_input_length);
+        truncate_sequences(source_inputs, max_input_length);
+        truncate_sequences(target_prefix_inputs, max_input_length);
       }
 
       const auto source_features = extract_features(std::move(source_inputs),

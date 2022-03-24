@@ -44,6 +44,14 @@ namespace ctranslate2 {
     return new_v;
   }
 
+  template <typename T>
+  void truncate_sequences(std::vector<std::vector<T>>& sequences, size_t max_length) {
+    for (auto& sequence : sequences) {
+      if (sequence.size() > max_length)
+        sequence.resize(max_length);
+    }
+  }
+
   void set_random_seed(const unsigned int seed);
   unsigned int get_random_seed();
   std::mt19937& get_random_generator();
