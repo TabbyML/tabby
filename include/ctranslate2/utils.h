@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <random>
 #include <string>
 #include <thread>
@@ -33,6 +34,14 @@ namespace ctranslate2 {
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
   std::vector<std::string> split_string(const std::string& str, const std::string& delimiter);
+
+  template <typename Stream>
+  Stream open_file(const std::string& path) {
+    Stream stream(path);
+    if (!stream)
+      throw std::runtime_error("Failed to open file: " + path);
+    return stream;
+  }
 
   template <typename T, typename I>
   static std::vector<T> index_vector(const std::vector<T>& v,

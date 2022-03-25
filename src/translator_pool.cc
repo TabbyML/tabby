@@ -312,18 +312,6 @@ namespace ctranslate2 {
     return results;
   }
 
-  void TranslatorPool::open_input_file(const std::string& file, std::ifstream& stream) const {
-    stream.open(file);
-    if (!stream)
-      throw std::runtime_error("failed to open input file " + file);
-  }
-
-  void TranslatorPool::open_output_file(const std::string& file, std::ofstream& stream) const {
-    stream.open(file);
-    if (!stream)
-      throw std::runtime_error("failed to open output file " + file);
-  }
-
   TranslationStats TranslatorPool::consume_text_file(const std::string& source_file,
                                                      const std::string& output_file,
                                                      const TranslationOptions& options,
@@ -332,16 +320,11 @@ namespace ctranslate2 {
                                                      BatchType batch_type,
                                                      bool with_scores,
                                                      const std::string* target_file) {
-    std::ifstream source;
-    open_input_file(source_file, source);
-    std::ofstream output;
-    open_output_file(output_file, output);
-
-    std::unique_ptr<std::ifstream> target;
-    if (target_file) {
-      target = std::make_unique<std::ifstream>();
-      open_input_file(*target_file, *target);
-    }
+    auto source = open_file<std::ifstream>(source_file);
+    auto output = open_file<std::ofstream>(output_file);
+    auto target = (target_file
+                   ? std::make_unique<std::ifstream>(open_file<std::ifstream>(*target_file))
+                   : nullptr);
 
     return consume_text_file(source,
                              output,
@@ -396,12 +379,9 @@ namespace ctranslate2 {
                                                    size_t read_batch_size,
                                                    BatchType batch_type,
                                                    bool with_tokens_score) {
-    std::ifstream source;
-    open_input_file(source_file, source);
-    std::ifstream target;
-    open_input_file(target_file, target);
-    std::ofstream output;
-    open_output_file(output_file, output);
+    auto source = open_file<std::ifstream>(source_file);
+    auto target = open_file<std::ifstream>(target_file);
+    auto output = open_file<std::ofstream>(output_file);
     return score_text_file(source,
                            target,
                            output,
