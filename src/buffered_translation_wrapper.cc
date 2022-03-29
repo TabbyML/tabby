@@ -109,7 +109,7 @@ namespace ctranslate2 {
           auto job = std::make_unique<TranslatorPool::TranslateJob>(std::move(batch),
                                                                     _options,
                                                                     consumer);
-          _translator_pool->post_job(std::move(job), /*throttle=*/false);
+          _translator_pool->_thread_pool->post(std::move(job));
         }
       }
 

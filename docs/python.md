@@ -63,6 +63,9 @@ translator = ctranslate2.Translator(
     inter_threads: int = 1,         # Maximum number of parallel translations.
     intra_threads: int = 0,         # Number of OpenMP threads to use per translation (CPU only).
                                     # Set 0 to use a default value.
+
+    max_queued_batches: int = 0,    # Maximum number of batches in the translation queue (set -1 for unlimited, 0 for an automatic value).
+                                    # When the queue is full, future requests will block until a free slot is available.
 )
 
 # Properties:

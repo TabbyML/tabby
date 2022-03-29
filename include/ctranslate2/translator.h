@@ -71,20 +71,12 @@ namespace ctranslate2 {
     // Detach the model from this translator, which becomes unusable until set_model is called.
     std::shared_ptr<const models::Model> detach_model();
 
-    // Return the memory allocator associated with this translator.
-    // The allocator is registered on the first translation.
-    Allocator* get_allocator() const {
-      return _allocator;
-    }
-
   private:
     void assert_has_model() const;
-    void register_current_allocator();
 
     std::shared_ptr<const models::SequenceToSequenceModel> _model;
     std::unique_ptr<layers::Encoder> _encoder;
     std::unique_ptr<layers::Decoder> _decoder;
-    Allocator* _allocator = nullptr;
   };
 
 }

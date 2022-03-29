@@ -56,6 +56,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<size_t>()->default_value("32"))
     ("read_batch_size", "Size of the batch to read at once (defaults to batch_size).",
      cxxopts::value<size_t>()->default_value("0"))
+    ("max_queued_batches", "Maximum number of batches to load in advance (set -1 for unlimited, 0 for an automatic value).",
+     cxxopts::value<long>()->default_value("0"))
     ("batch_type", "Batch type (can be examples, tokens).",
      cxxopts::value<std::string>()->default_value("examples"))
     ("max_input_length", "Truncate inputs after this many tokens (set 0 to disable).",
@@ -135,7 +137,8 @@ int main(int argc, char* argv[]) {
                                               args["model"].as<std::string>(),
                                               device,
                                               args["device_index"].as<std::vector<int>>(),
-                                              compute_type);
+                                              compute_type,
+                                              args["max_queued_batches"].as<long>());
 
   std::istream* source = &std::cin;
   std::istream* target = nullptr;

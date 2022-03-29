@@ -134,6 +134,7 @@ set(SOURCES
   src/sampling.cc
   src/scoring.cc
   src/storage_view.cc
+  src/thread_pool.cc
   src/translation.cc
   src/translator.cc
   src/translator_pool.cc

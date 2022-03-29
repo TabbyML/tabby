@@ -64,7 +64,6 @@ namespace ctranslate2 {
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
     assert_has_model();
-    register_current_allocator();
     options.validate();
     return _model->sample(*_encoder,
                           *_decoder,
@@ -91,7 +90,6 @@ namespace ctranslate2 {
                           const std::vector<std::vector<std::string>>& target,
                           const ScoringOptions& options) {
     assert_has_model();
-    register_current_allocator();
     return _model->score(*_encoder, *_decoder, source, target, options.max_input_length);
   }
 
@@ -147,11 +145,6 @@ namespace ctranslate2 {
   void Translator::assert_has_model() const {
     if (!_model)
       throw std::runtime_error("No model is attached to this translator");
-  }
-
-  void Translator::register_current_allocator() {
-    if (!_allocator)
-      _allocator = &ctranslate2::get_allocator(_model->device());
   }
 
 }

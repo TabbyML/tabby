@@ -1,7 +1,5 @@
 #include "ctranslate2/translator_pool.h"
 
-#include <stdexcept>
-
 #include <spdlog/spdlog.h>
 
 #include "ctranslate2/utils.h"
@@ -17,8 +15,8 @@ namespace ctranslate2 {
                                  const std::string& model_dir,
                                  const Device device,
                                  const int device_index,
-                                 const ComputeType compute_type)
-    : _num_active_jobs(0)
+                                 const ComputeType compute_type,
+                                 const long max_queued_batches)
   {
     models::ModelFileReader model_reader(model_dir);
     create_translators(num_translators,
@@ -26,7 +24,8 @@ namespace ctranslate2 {
                        model_reader,
                        device,
                        {device_index},
-                       compute_type);
+                       compute_type,
+                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators,
@@ -34,15 +33,16 @@ namespace ctranslate2 {
                                  models::ModelReader& model_reader,
                                  const Device device,
                                  const int device_index,
-                                 const ComputeType compute_type)
-    : _num_active_jobs(0)
+                                 const ComputeType compute_type,
+                                 const long max_queued_batches)
   {
     create_translators(num_translators,
                        num_threads_per_translator,
                        model_reader,
                        device,
                        {device_index},
-                       compute_type);
+                       compute_type,
+                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators_per_device,
@@ -50,8 +50,8 @@ namespace ctranslate2 {
                                  const std::string& model_dir,
                                  const Device device,
                                  const std::vector<int>& device_indices,
-                                 const ComputeType compute_type)
-    : _num_active_jobs(0)
+                                 const ComputeType compute_type,
+                                 const long max_queued_batches)
   {
     models::ModelFileReader model_reader(model_dir);
     create_translators(num_translators_per_device,
@@ -59,7 +59,8 @@ namespace ctranslate2 {
                        model_reader,
                        device,
                        device_indices,
-                       compute_type);
+                       compute_type,
+                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators_per_device,
@@ -67,25 +68,16 @@ namespace ctranslate2 {
                                  models::ModelReader& model_reader,
                                  const Device device,
                                  const std::vector<int>& device_indices,
-                                 const ComputeType compute_type)
-    : _num_active_jobs(0)
+                                 const ComputeType compute_type,
+                                 const long max_queued_batches)
   {
     create_translators(num_translators_per_device,
                        num_threads_per_translator,
                        model_reader,
                        device,
                        device_indices,
-                       compute_type);
-  }
-
-  TranslatorPool::~TranslatorPool() {
-    {
-      std::lock_guard<std::mutex> lock(_mutex);
-      _request_end = true;
-    }
-    _can_get_job.notify_all();  // Request all workers to end their loop.
-    for (auto& worker : _workers)
-      worker.join();
+                       compute_type,
+                       max_queued_batches);
   }
 
   std::vector<std::future<TranslationResult>>
@@ -102,11 +94,10 @@ namespace ctranslate2 {
                                         const TranslationOptions& options,
                                         const size_t max_batch_size,
                                         const BatchType batch_type) {
-    return TranslateJobCreator(options).post(*this,
+    return TranslateJobCreator(options).post(*_thread_pool,
                                              load_examples({source, target_prefix}),
                                              max_batch_size,
-                                             batch_type,
-                                             /*throttle=*/false);
+                                             batch_type);
   }
 
   std::vector<std::future<ScoringResult>>
@@ -115,25 +106,10 @@ namespace ctranslate2 {
                                     const ScoringOptions& options,
                                     const size_t max_batch_size,
                                     const BatchType batch_type) {
-    return ScoreJobCreator(options).post(*this,
+    return ScoreJobCreator(options).post(*_thread_pool,
                                          load_examples({source, target}),
                                          max_batch_size,
-                                         batch_type,
-                                         /*throttle=*/false);
-  }
-
-  void TranslatorPool::post_job(std::unique_ptr<Job> job, bool throttle) {
-    std::unique_lock<std::mutex> lock(_mutex);
-    if (throttle)
-      _can_add_job.wait(lock, [this]{ return _work.size() < 2 * _workers.size(); });
-
-    // locked again here
-
-    _work.emplace(std::move(job));
-    _num_active_jobs++;
-
-    lock.unlock();
-    _can_get_job.notify_one();
+                                         batch_type);
   }
 
   std::vector<TranslationResult>
@@ -214,7 +190,8 @@ namespace ctranslate2 {
                                           models::ModelReader& model_reader,
                                           const Device device,
                                           std::vector<int> device_indices,
-                                          const ComputeType compute_type) {
+                                          const ComputeType compute_type,
+                                          const long max_queued_batches) {
     if (device_indices.empty())
       throw std::invalid_argument("At least one device index should be set");
 
@@ -233,49 +210,21 @@ namespace ctranslate2 {
     set_num_threads(num_threads_per_translator);
     const auto models = models::load_replicas(model_reader, device, device_indices, compute_type);
 
+    const size_t num_workers = models.size();
+    std::vector<std::unique_ptr<Worker>> workers;
+    workers.reserve(num_workers);
+    for (const auto& model : models)
+      workers.emplace_back(std::make_unique<TranslatorWorker>(model, num_threads_per_translator));
+
     static const int core_offset = read_int_from_env("CT2_TRANSLATORS_CORE_OFFSET", -1);
 
-    const size_t num_translators = models.size();
-    _translators.reserve(num_translators);
-    _workers.reserve(num_translators);
-    for (size_t i = 0; i < num_translators; ++i) {
-      const auto& model = models[i];
-      _translators.emplace_back(model);
-      _workers.emplace_back(&TranslatorPool::work_loop,
-                            this,
-                            std::ref(_translators.back()),
-                            num_threads_per_translator);
-      if (core_offset >= 0)
-        set_thread_affinity(_workers.back(), core_offset + i);
-    }
-  }
+    size_t max_queue_size = std::numeric_limits<size_t>::max();
+    if (max_queued_batches == 0)
+      max_queue_size = 4 * num_workers;
+    else if (max_queued_batches > 0)
+      max_queue_size = max_queued_batches;
 
-  void TranslatorPool::work_loop(Translator& translator, size_t num_threads) {
-    // set_num_threads is called here because it sets the number of OpenMP threads for
-    // the current thread.
-    set_num_threads(num_threads);
-
-    while (true) {
-      std::unique_lock<std::mutex> lock(_mutex);
-      _can_get_job.wait(lock, [this]{ return !_work.empty() || _request_end; });
-
-      if (_request_end) {
-        lock.unlock();
-        // The CUDA context is destroyed when the thread exits, so we clear the translation
-        // resources now when the CUDA context is still active.
-        translator.detach_model();
-        break;
-      }
-
-      auto job = std::move(_work.front());
-      _work.pop();
-      lock.unlock();
-
-      _can_add_job.notify_one();
-
-      job->run(translator);
-      _num_active_jobs--;
-    }
+    _thread_pool = std::make_unique<ThreadPool>(std::move(workers), max_queue_size, core_offset);
   }
 
   TranslatorPool::TranslateJob::TranslateJob(Batch batch,
@@ -287,11 +236,11 @@ namespace ctranslate2 {
   }
 
   std::vector<TranslationResult>
-  TranslatorPool::TranslateJob::get_results(Translator& translator, const Batch& batch) const {
-    spdlog::debug("Running batch translation on {} examples", batch.num_examples());
-    auto results = translator.translate_batch_with_prefix(batch.get_stream(0),
-                                                          batch.get_stream(1),
-                                                          _options);
+  TranslatorPool::TranslateJob::get_results() const {
+    spdlog::debug("Running batch translation on {} examples", _batch.num_examples());
+    auto results = TranslatorPool::get_translator()->translate_batch_with_prefix(_batch.get_stream(0),
+                                                                                 _batch.get_stream(1),
+                                                                                 _options);
     spdlog::debug("Finished batch translation");
     return results;
   }
@@ -305,9 +254,11 @@ namespace ctranslate2 {
   }
 
   std::vector<ScoringResult>
-  TranslatorPool::ScoreJob::get_results(Translator& translator, const Batch& batch) const {
-    spdlog::debug("Running batch scoring on {} examples", batch.num_examples());
-    auto results = translator.score_batch(batch.get_stream(0), batch.get_stream(1), _options);
+  TranslatorPool::ScoreJob::get_results() const {
+    spdlog::debug("Running batch scoring on {} examples", _batch.num_examples());
+    auto results = TranslatorPool::get_translator()->score_batch(_batch.get_stream(0),
+                                                                 _batch.get_stream(1),
+                                                                 _options);
     spdlog::debug("Finished batch scoring");
     return results;
   }
@@ -414,20 +365,65 @@ namespace ctranslate2 {
   }
 
   size_t TranslatorPool::num_queued_batches() {
-    const std::lock_guard<std::mutex> lock(_mutex);
-    return _work.size();
+    return _thread_pool->num_queued_jobs();
   }
 
   size_t TranslatorPool::num_active_batches() const {
-    return _num_active_jobs;
+    return _thread_pool->num_active_jobs();
   }
 
   size_t TranslatorPool::num_translators() const {
-    return _translators.size();
+    return _thread_pool->num_threads();
   }
 
-  const std::vector<Translator>& TranslatorPool::get_translators() const {
-    return _translators;
+  TranslatorPool::TranslatorWorker& TranslatorPool::get_worker(size_t index) const {
+    return static_cast<TranslatorWorker&>(_thread_pool->get_worker(index));
+  }
+
+  const Translator& TranslatorPool::get_translator(size_t index) const {
+    return get_worker(index).translator();
+  }
+
+  void TranslatorPool::clear_cache() const {
+    for (size_t i = 0; i < num_translators(); ++i) {
+      auto* allocator = get_worker(i).allocator();
+      if (allocator)
+        allocator->clear_cache();
+    }
+  }
+
+  static thread_local Translator* local_translator = nullptr;
+
+  Translator* TranslatorPool::get_translator() {
+    return local_translator;
+  }
+
+
+  TranslatorPool::TranslatorWorker::TranslatorWorker(const std::shared_ptr<const models::Model>& model,
+                                                     size_t num_threads)
+    : _translator(model)
+    , _allocator(nullptr)
+    , _device(model->device())
+    , _num_threads(num_threads)
+  {
+  }
+
+  void TranslatorPool::TranslatorWorker::initialize() {
+    // Set the number of OpenMP threads for the current thread.
+    set_num_threads(_num_threads);
+
+    // Register the memory allocator used in this thread.
+    _allocator = &get_allocator(_device);
+
+    local_translator = &_translator;
+  }
+
+  void TranslatorPool::TranslatorWorker::finalize() {
+    // The CUDA context is destroyed when the thread exits, so we clear the translation
+    // resources now when the CUDA context is still active.
+    _translator.detach_model();
+
+    local_translator = nullptr;
   }
 
 }
