@@ -2,7 +2,12 @@
 
 #include <stdexcept>
 
-#include "ctranslate2/utils.h"
+#ifdef CT2_WITH_CUDA
+#  include "./cuda/utils.h"
+#endif
+
+#include "cpu/backend.h"
+#include "env.h"
 
 namespace ctranslate2 {
 
@@ -69,6 +74,47 @@ namespace ctranslate2 {
       return "float16";
     };
     throw std::invalid_argument("Invalid compute type value");
+  }
+
+  bool mayiuse_float16(const Device device, const int device_index) {
+    switch (device) {
+    case Device::CUDA: {
+#ifdef CT2_WITH_CUDA
+      static const bool allow_float16 = read_bool_from_env("CT2_CUDA_ALLOW_FP16");
+      return allow_float16 || cuda::gpu_has_fp16_tensor_cores(device_index);
+#else
+      (void)device_index;
+      return false;
+#endif
+    }
+    default:
+      return false;
+    }
+  }
+
+  bool mayiuse_int16(const Device device, const int) {
+    switch (device) {
+    case Device::CPU:
+      return cpu::has_gemm_backend(ComputeType::INT16);
+    default:
+      return false;
+    }
+  }
+
+  bool mayiuse_int8(const Device device, const int device_index) {
+    switch (device) {
+    case Device::CUDA:
+#ifdef CT2_WITH_CUDA
+      return cuda::gpu_supports_int8(device_index);
+#else
+      (void)device_index;
+      return false;
+#endif
+    case Device::CPU:
+      return cpu::has_gemm_backend(ComputeType::INT8);
+    default:
+      return false;
+    }
   }
 
   static inline void unsupported_compute_type(const std::string& name) {
@@ -195,6 +241,22 @@ namespace ctranslate2 {
     default:
       throw std::invalid_argument("resolve_compute_type should be called first");
     }
+  }
+
+  dim_t get_preferred_size_multiple(const ComputeType compute_type,
+                                    const Device device,
+                                    const int device_index) {
+#ifdef CT2_WITH_CUDA
+    if (device == Device::CUDA) {
+      if (compute_type == ComputeType::FLOAT16 && cuda::gpu_has_fp16_tensor_cores(device_index))
+        return 8;
+    }
+#else
+    (void)compute_type;
+    (void)device;
+    (void)device_index;
+#endif
+    return 1;
   }
 
 }

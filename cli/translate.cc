@@ -5,6 +5,7 @@
 
 #include <ctranslate2/translator_pool.h>
 #include <ctranslate2/utils.h>
+#include <ctranslate2/random.h>
 #include <ctranslate2/devices.h>
 #include <ctranslate2/profiler.h>
 

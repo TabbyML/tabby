@@ -253,8 +253,8 @@ namespace ctranslate2 {
                                            const bool with_scores = false) {
       TranslationStats stats;
 
-      TokensReader<SourceTokenizer> source_reader(source_tokenizer);
-      TokensReader<TargetTokenizer> target_reader(target_tokenizer);
+      TextLineReader<SourceTokenizer> source_reader(source_tokenizer);
+      TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
 
       auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
                                                          const TranslationResult& result) {
@@ -373,8 +373,8 @@ namespace ctranslate2 {
                                          const size_t read_batch_size = 0,
                                          const BatchType batch_type = BatchType::Examples,
                                          bool with_token_scores = false) {
-      TokensReader<SourceTokenizer> source_reader(source_tokenizer);
-      TokensReader<TargetTokenizer> target_reader(target_tokenizer);
+      TextLineReader<SourceTokenizer> source_reader(source_tokenizer);
+      TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
       TranslationStats stats;
 
       auto writer = [&target_detokenizer, &stats, with_token_scores](std::ostream& out,
@@ -672,26 +672,6 @@ namespace ctranslate2 {
                             const long max_queued_batches);
 
     std::unique_ptr<ThreadPool> _thread_pool;
-
-    template <typename Tokenizer>
-    class TokensReader {
-    public:
-      TokensReader(Tokenizer& tokenizer)
-        : _tokenizer(tokenizer)
-      {
-      }
-
-      bool operator()(std::istream& in, std::vector<std::string>& tokens) {
-        std::string line;
-        if (!std::getline(in, line))
-          return false;
-        tokens = _tokenizer(line);
-        return true;
-      }
-
-    private:
-      Tokenizer& _tokenizer;
-    };
   };
 
 }

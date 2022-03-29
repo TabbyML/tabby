@@ -16,6 +16,8 @@ namespace ctranslate2 {
   int get_device_index(Device device);
   void set_device_index(Device device, int index);
 
+  int get_gpu_count();
+
   void synchronize_device(Device device, int index);
 
   class ScopedDeviceSetter {

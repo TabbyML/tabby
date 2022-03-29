@@ -1,7 +1,9 @@
 #include "cpu_isa.h"
 
-#include "ctranslate2/utils.h"
+#include <stdexcept>
+
 #include "cpu_info.h"
+#include "env.h"
 
 namespace ctranslate2 {
   namespace cpu {

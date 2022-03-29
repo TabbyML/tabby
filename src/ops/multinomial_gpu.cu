@@ -6,7 +6,7 @@
 #include <cub/block/block_scan.cuh>
 #include <curand_kernel.h>
 
-#include "ctranslate2/utils.h"
+#include "ctranslate2/random.h"
 
 #include "type_dispatch.h"
 #include "cuda/helpers.h"

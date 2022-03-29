@@ -5,6 +5,7 @@
 
 #include "ctranslate2/utils.h"
 #include "cuda/utils.h"
+#include "env.h"
 
 #include <cuda.h>
 #include <cub/util_allocator.cuh>

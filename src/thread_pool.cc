@@ -67,6 +67,24 @@ namespace ctranslate2 {
   }
 
 
+  static void set_thread_affinity(std::thread& thread, int index) {
+#if !defined(__linux__) || defined(_OPENMP)
+    (void)thread;
+    (void)index;
+    throw std::runtime_error("Setting thread affinity is only supported in Linux binaries built "
+                             "with -DOPENMP_RUNTIME=NONE");
+#else
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(index, &cpuset);
+    const int status = pthread_setaffinity_np(thread.native_handle(), sizeof (cpu_set_t), &cpuset);
+    if (status != 0) {
+      throw std::runtime_error("Error calling pthread_setaffinity_np: "
+                               + std::to_string(status));
+    }
+#endif
+  }
+
   void Worker::start(JobQueue& job_queue, int thread_affinity) {
     _thread = std::thread(&Worker::run, this, std::ref(job_queue));
     if (thread_affinity >= 0)

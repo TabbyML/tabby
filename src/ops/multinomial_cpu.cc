@@ -1,6 +1,6 @@
 #include "ctranslate2/ops/multinomial.h"
 
-#include "ctranslate2/utils.h"
+#include "ctranslate2/random.h"
 
 #include "type_dispatch.h"
 

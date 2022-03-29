@@ -33,11 +33,15 @@ namespace ctranslate2 {
   ComputeType str_to_compute_type(const std::string& compute_type);
   std::string compute_type_to_str(const ComputeType compute_type);
 
+  bool mayiuse_float16(const Device device, const int device_index = 0);
+  bool mayiuse_int16(const Device device, const int device_index = 0);
+  bool mayiuse_int8(const Device device, const int device_index = 0);
+
   // Returns the final compute type based on model weights and device information.
   ComputeType resolve_compute_type(const ComputeType requested_compute_type,
                                    const ComputeType model_compute_type,
                                    const Device device,
-                                   const int device_index,
+                                   const int device_index = 0,
                                    const bool enable_fallback = false);
 
   // Gets the weights data type for the given compute type.
@@ -45,5 +49,10 @@ namespace ctranslate2 {
 
   // Gets the default floating point type for the given compute type.
   DataType get_default_float_type(const ComputeType compute_type);
+
+  // Gets the preferred size multiple for this compute type.
+  dim_t get_preferred_size_multiple(const ComputeType compute_type,
+                                    const Device device,
+                                    const int device_index = 0);
 
 }

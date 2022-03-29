@@ -6,6 +6,7 @@
 
 #include "ctranslate2/utils.h"
 #include "cpu_info.h"
+#include "env.h"
 
 namespace ctranslate2 {
   namespace cpu {

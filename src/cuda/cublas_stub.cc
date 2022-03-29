@@ -15,7 +15,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "ctranslate2/utils.h"
+#include "env.h"
 
 namespace ctranslate2 {
 

@@ -2,11 +2,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include "ctranslate2/utils.h"
-
 #ifdef CT2_WITH_CUDA
 #  include "cuda/utils.h"
 #endif
+
+#include "env.h"
 
 namespace ctranslate2 {
 
@@ -285,20 +285,6 @@ namespace ctranslate2 {
                              batch_type,
                              with_scores,
                              target.get());
-  }
-
-  static std::vector<std::string> split_tokens(const std::string& text) {
-    return split_string(text, ' ');
-  }
-
-  static std::string join_tokens(const std::vector<std::string>& tokens) {
-    std::string text;
-    for (const auto& token : tokens) {
-      if (!text.empty())
-        text += ' ';
-      text += token;
-    }
-    return text;
   }
 
   TranslationStats TranslatorPool::consume_text_file(std::istream& source,

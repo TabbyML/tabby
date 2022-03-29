@@ -1,5 +1,7 @@
 #include "ctranslate2/ops/quantize.h"
 
+#include <cmath>
+
 #include "cpu/kernels.h"
 #include "cpu/parallel.h"
 

@@ -9,6 +9,7 @@
 #include <pybind11/stl.h>
 
 #include <ctranslate2/translator_pool.h>
+#include <ctranslate2/random.h>
 
 namespace py = pybind11;
 

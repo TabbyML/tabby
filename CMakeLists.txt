@@ -86,6 +86,7 @@ set(SOURCES
   src/cpu/primitives.cc
   src/decoding.cc
   src/devices.cc
+  src/env.cc
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
@@ -131,6 +132,7 @@ set(SOURCES
   src/ops/transpose.cc
   src/padder.cc
   src/profiler.cc
+  src/random.cc
   src/sampling.cc
   src/scoring.cc
   src/storage_view.cc

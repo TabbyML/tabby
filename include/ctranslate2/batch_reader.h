@@ -39,6 +39,27 @@ namespace ctranslate2 {
     }
   };
 
+  // Helper class to read tokens from a text stream.
+  template <typename Tokenizer>
+  class TextLineReader {
+  public:
+    TextLineReader(Tokenizer& tokenizer)
+      : _tokenizer(tokenizer)
+    {
+    }
+
+    bool operator()(std::istream& in, std::vector<std::string>& tokens) {
+      std::string line;
+      if (!std::getline(in, line))
+        return false;
+      tokens = _tokenizer(line);
+      return true;
+    }
+
+  private:
+    Tokenizer& _tokenizer;
+  };
+
 
   // Base class to produce batches.
   class BatchReader {

@@ -76,6 +76,14 @@ namespace ctranslate2 {
     DEVICE_DISPATCH(device, set_device_index<D>(index));
   }
 
+  int get_gpu_count() {
+#ifdef CT2_WITH_CUDA
+    return cuda::get_gpu_count();
+#else
+    return 0;
+#endif
+  }
+
   void synchronize_device(Device device, int index) {
 #ifdef CT2_WITH_CUDA
     if (device == Device::CUDA) {
