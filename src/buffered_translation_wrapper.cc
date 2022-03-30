@@ -101,16 +101,12 @@ namespace ctranslate2 {
         // Release the lock as soon as the buffer is flushed.
         lock.unlock();
 
-        auto consumer = std::make_shared<TranslatorPool::JobResultConsumer<TranslationResult>>(
-          std::move(promises));
-
-        // Rebatch buffered examples and post jobs in the pool.
-        for (auto& batch : rebatch_input(load_examples({source, target}), _max_batch_size)) {
-          auto job = std::make_unique<TranslatorPool::TranslateJob>(std::move(batch),
-                                                                    _options,
-                                                                    consumer);
-          _translator_pool->_thread_pool->post(std::move(job));
-        }
+        _translator_pool->post_examples<TranslationResult>(
+          load_examples({source, target}),
+          _max_batch_size,
+          BatchType::Examples,
+          TranslatorPool::TranslationJobCreator(_options),
+          std::make_shared<PromiseSetter<TranslationResult>>(std::move(promises)));
       }
 
       if (stop)

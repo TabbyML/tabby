@@ -1,11 +1,9 @@
 #pragma once
 
 #include <chrono>
-#include <future>
 #include <fstream>
 
-#include "batch_reader.h"
-#include "thread_pool.h"
+#include "async.h"
 #include "translator.h"
 
 namespace ctranslate2 {
@@ -128,14 +126,13 @@ namespace ctranslate2 {
                         size_t max_batch_size = 32,
                         size_t read_batch_size = 0,
                         BatchType batch_type = BatchType::Examples) {
-      TranslateJobCreator job_creator(options);
       consume_stream(source,
                      target,
                      output,
                      source_reader,
                      target_reader,
                      target_writer,
-                     job_creator,
+                     TranslationJobCreator(options),
                      max_batch_size,
                      read_batch_size,
                      batch_type);
@@ -256,16 +253,15 @@ namespace ctranslate2 {
       TextLineReader<SourceTokenizer> source_reader(source_tokenizer);
       TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
 
-      auto writer = [&detokenizer, &stats, &with_scores](std::ostream& out,
-                                                         const TranslationResult& result) {
+      auto writer = [&detokenizer, &stats, &output, &with_scores](const TranslationResult& result) {
         const auto& hypotheses = result.hypotheses;
         const auto& scores = result.scores;
         stats.num_examples += 1;
         stats.num_tokens += hypotheses[0].size();
         for (size_t n = 0; n < hypotheses.size(); ++n) {
           if (with_scores)
-            out << (result.has_scores() ? scores[n] : 0) << " ||| ";
-          out << detokenizer(hypotheses[n]) << '\n';
+            output << (result.has_scores() ? scores[n] : 0) << " ||| ";
+          output << detokenizer(hypotheses[n]) << '\n';
         }
       };
 
@@ -301,14 +297,13 @@ namespace ctranslate2 {
                       size_t max_batch_size = 32,
                       size_t read_batch_size = 0,
                       BatchType batch_type = BatchType::Examples) {
-      ScoreJobCreator job_creator(options);
       consume_stream(source,
                      &target,
                      output,
                      source_reader,
                      &target_reader,
                      target_writer,
-                     job_creator,
+                     ScoringJobCreator(options),
                      max_batch_size,
                      read_batch_size,
                      batch_type);
@@ -377,17 +372,16 @@ namespace ctranslate2 {
       TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
       TranslationStats stats;
 
-      auto writer = [&target_detokenizer, &stats, with_token_scores](std::ostream& out,
-                                                                     const ScoringResult& result) {
+      auto writer = [&target_detokenizer, &stats, &output, with_token_scores](const ScoringResult& result) {
         stats.num_examples += 1;
         stats.num_tokens += result.tokens_score.size();
-        out << result.normalized_score() << " ||| " << target_detokenizer(result.tokens);
+        output << result.normalized_score() << " ||| " << target_detokenizer(result.tokens);
         if (with_token_scores) {
-          out << " |||";
+          output << " |||";
           for (const auto score : result.tokens_score)
-            out << ' ' << score;
+            output << ' ' << score;
         }
-        out << '\n';
+        output << '\n';
       };
 
       const auto t1 = std::chrono::high_resolution_clock::now();
@@ -423,163 +417,86 @@ namespace ctranslate2 {
   private:
     friend class BufferedTranslationWrapper;
 
-    // Base class for consuming job results.
-    template <typename Result>
-    class JobResultConsumer {
+    class TranslationJobCreator : public BatchJobCreator<TranslationResult> {
     public:
-      JobResultConsumer(size_t num_results)
-        : _promises(num_results)
-      {
-      }
-
-      JobResultConsumer(std::vector<std::promise<Result>> promises)
-        : _promises(std::move(promises))
-      {
-      }
-
-      std::vector<std::future<Result>> get_futures() {
-        std::vector<std::future<Result>> futures;
-        futures.reserve(_promises.size());
-        for (auto& promise : _promises)
-          futures.emplace_back(promise.get_future());
-        return futures;
-      }
-
-      void set_result(size_t index, Result result) {
-        _promises[index].set_value(std::move(result));
-      }
-
-      void set_exception(size_t index, std::exception_ptr exception) {
-        _promises[index].set_exception(exception);
-      }
-
-    private:
-      std::vector<std::promise<Result>> _promises;
-    };
-
-    template <typename Result>
-    class BatchJob : public Job {
-    public:
-      BatchJob(Batch batch, std::shared_ptr<JobResultConsumer<Result>> consumer)
-        : _batch(std::move(batch))
-        , _consumer(std::move(consumer))
-      {
-      }
-
-      void run() override {
-        std::vector<Result> results;
-        std::exception_ptr exception;
-
-        try {
-          results = get_results();
-        } catch (...) {
-          exception = std::current_exception();
-        }
-
-        for (size_t i = 0; i < _batch.num_examples(); ++i) {
-          const size_t index = (_batch.example_index.empty() ? i : _batch.example_index[i]);
-          if (exception)
-            _consumer->set_exception(index, exception);
-          else
-            _consumer->set_result(index, std::move(results[i]));
-        }
-      }
-
-    protected:
-      virtual std::vector<Result> get_results() const = 0;
-      const Batch _batch;
-
-    private:
-      const std::shared_ptr<JobResultConsumer<Result>> _consumer;
-    };
-
-    class TranslateJob : public BatchJob<TranslationResult> {
-    public:
-      TranslateJob(Batch batch,
-                   TranslationOptions options,
-                   std::shared_ptr<JobResultConsumer<TranslationResult>> consumer);
-
-    protected:
-      std::vector<TranslationResult> get_results() const override;
+      TranslationJobCreator(TranslationOptions options);
+      std::unique_ptr<BatchJob<TranslationResult>> operator()(Batch batch) const override;
 
     private:
       const TranslationOptions _options;
     };
 
-    class ScoreJob : public BatchJob<ScoringResult> {
+    class ScoringJobCreator : public BatchJobCreator<ScoringResult> {
     public:
-      ScoreJob(Batch batch,
-               ScoringOptions options,
-               std::shared_ptr<JobResultConsumer<ScoringResult>> consumer);
-
-    protected:
-      std::vector<ScoringResult> get_results() const override;
+      ScoringJobCreator(ScoringOptions options);
+      std::unique_ptr<BatchJob<ScoringResult>> operator()(Batch batch) const override;
 
     private:
       const ScoringOptions _options;
     };
 
     template <typename Result>
-    class JobCreator {
-    public:
-      virtual ~JobCreator() = default;
+    void post_examples(const std::vector<Example>& examples,
+                       size_t max_batch_size,
+                       BatchType batch_type,
+                       const BatchJobCreator<Result>& job_creator,
+                       const std::shared_ptr<ResultConsumer<Result>>& result_consumer) {
+      for (auto& batch : rebatch_input(examples, max_batch_size, batch_type)) {
+        auto job = job_creator(std::move(batch));
+        job->set_result_consumer(result_consumer);
+        _thread_pool->post(std::move(job));
+      }
+    }
 
-      std::vector<std::future<Result>> post(ThreadPool& pool,
-                                            const std::vector<Example>& examples,
-                                            size_t max_batch_size,
-                                            BatchType batch_type) const {
+    template <typename Result>
+    std::vector<std::future<Result>> post_examples(const std::vector<Example>& examples,
+                                                   size_t max_batch_size,
+                                                   BatchType batch_type,
+                                                   const BatchJobCreator<Result>& job_creator) {
+      auto result_consumer = std::make_shared<PromiseSetter<Result>>(examples.size());
+      auto futures = result_consumer->get_futures();
+      post_examples<Result>(examples, max_batch_size, batch_type, job_creator, result_consumer);
+      return futures;
+    }
+
+    template <typename ResultWriter, typename Result>
+    void consume_stream(BatchReader& batch_reader,
+                        ResultWriter& result_writer,
+                        const BatchJobCreator<Result>& job_creator,
+                        size_t max_batch_size,
+                        size_t read_batch_size,
+                        BatchType batch_type) {
+      std::queue<std::future<Result>> results;
+
+      auto pop_results = [&results, &result_writer](bool blocking) {
+        constexpr std::chrono::seconds zero_sec(0);
+        while (!results.empty()
+               && (blocking
+                   || results.front().wait_for(zero_sec) == std::future_status::ready)) {
+          result_writer(results.front().get());
+          results.pop();
+        }
+      };
+
+      if (read_batch_size == 0)
+        read_batch_size = (max_batch_size == 1 ? max_batch_size : max_batch_size * 16);
+
+      while (true) {
+        auto examples = batch_reader.get_next(read_batch_size, batch_type);
         if (examples.empty())
-          return {};
+          break;
+        auto futures = post_examples(examples,
+                                     max_batch_size,
+                                     batch_type,
+                                     job_creator);
+        for (auto& future : futures)
+          results.emplace(std::move(future));
 
-        auto batches = rebatch_input(examples, max_batch_size, batch_type);
-        auto consumer = std::make_shared<JobResultConsumer<Result>>(examples.size());
-        auto futures = consumer->get_futures();
-
-        for (auto& batch : batches)
-          pool.post(create_job(std::move(batch), consumer));
-
-        return futures;
+        pop_results(/*blocking=*/false);
       }
 
-    protected:
-      virtual std::unique_ptr<Job>
-      create_job(Batch batch, std::shared_ptr<JobResultConsumer<Result>> consumer) const = 0;
-    };
-
-    class TranslateJobCreator : public JobCreator<TranslationResult> {
-    public:
-      TranslateJobCreator(TranslationOptions options)
-        : _options(std::move(options))
-      {
-        _options.validate();
-      }
-
-    protected:
-      std::unique_ptr<Job>
-      create_job(Batch batch,
-                 std::shared_ptr<JobResultConsumer<TranslationResult>> consumer) const override {
-        return std::make_unique<TranslateJob>(std::move(batch), _options, std::move(consumer));
-      }
-
-    private:
-      const TranslationOptions _options;
-    };
-
-    class ScoreJobCreator : public JobCreator<ScoringResult> {
-    public:
-      ScoreJobCreator(ScoringOptions options)
-        : _options(std::move(options))
-      {
-      }
-    protected:
-      std::unique_ptr<Job>
-      create_job(Batch batch,
-                 std::shared_ptr<JobResultConsumer<ScoringResult>> consumer) const override {
-        return std::make_unique<ScoreJob>(std::move(batch), _options, std::move(consumer));
-      }
-    private:
-      const ScoringOptions _options;
-    };
+      pop_results(/*blocking=*/true);
+    }
 
     template <typename SourceReader,
               typename TargetReader,
@@ -591,22 +508,10 @@ namespace ctranslate2 {
                         SourceReader& source_reader,
                         TargetReader* target_reader,
                         TargetWriter& target_writer,
-                        const JobCreator<Result>& job_creator,
+                        const BatchJobCreator<Result>& job_creator,
                         size_t max_batch_size,
                         size_t read_batch_size,
                         BatchType batch_type) {
-      std::queue<std::future<Result>> results;
-
-      auto pop_results = [&results, &output, &target_writer](bool blocking) {
-        constexpr std::chrono::seconds zero_sec(0);
-        while (!results.empty()
-               && (blocking
-                   || results.front().wait_for(zero_sec) == std::future_status::ready)) {
-          target_writer(output, results.front().get());
-          results.pop();
-        }
-      };
-
       std::unique_ptr<BatchReader> batch_reader;
       if (target) {
         auto parallel_reader = std::make_unique<ParallelBatchReader>();
@@ -617,24 +522,13 @@ namespace ctranslate2 {
         batch_reader = std::make_unique<StreamReader<SourceReader>>(source, source_reader);
       }
 
-      if (read_batch_size == 0)
-        read_batch_size = (max_batch_size == 1 ? max_batch_size : max_batch_size * 16);
+      consume_stream(*batch_reader,
+                     target_writer,
+                     job_creator,
+                     max_batch_size,
+                     read_batch_size,
+                     batch_type);
 
-      while (true) {
-        auto examples = batch_reader->get_next(read_batch_size, batch_type);
-        if (examples.empty())
-          break;
-        auto futures = job_creator.post(*_thread_pool,
-                                        examples,
-                                        max_batch_size,
-                                        batch_type);
-        for (auto& future : futures)
-          results.emplace(std::move(future));
-
-        pop_results(/*blocking=*/false);
-      }
-
-      pop_results(/*blocking=*/true);
       output.flush();
     }
 
