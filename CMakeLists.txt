@@ -384,6 +384,15 @@ if (WITH_CUDA)
 
   if(NOT CUDA_ARCH_LIST)
     set(CUDA_ARCH_LIST "Auto")
+  elseif(CUDA_ARCH_LIST STREQUAL "Common")
+    set(CUDA_ARCH_LIST ${CUDA_COMMON_GPU_ARCHITECTURES})
+    # Keep deprecated but not yet dropped Compute Capabilities.
+    if(CUDA_VERSION_MAJOR EQUAL 10)
+      list(INSERT CUDA_ARCH_LIST 0 "3.0")
+    elseif(CUDA_VERSION_MAJOR EQUAL 11)
+      list(INSERT CUDA_ARCH_LIST 0 "3.5" "5.0")
+    endif()
+    list(REMOVE_DUPLICATES CUDA_ARCH_LIST)
   endif()
 
   cuda_select_nvcc_arch_flags(ARCH_FLAGS ${CUDA_ARCH_LIST})
