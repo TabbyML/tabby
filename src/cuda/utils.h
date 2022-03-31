@@ -39,6 +39,7 @@ namespace ctranslate2 {
     bool gpu_supports_int8(int device = -1);
     bool gpu_has_int8_tensor_cores(int device = -1);
     bool gpu_has_fp16_tensor_cores(int device = -1);
+    bool have_same_compute_capability(const std::vector<int>& devices);
 
 // Convenience macro to call Thrust functions with a default execution policy.
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)

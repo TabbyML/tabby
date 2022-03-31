@@ -150,5 +150,24 @@ namespace ctranslate2 {
       return device_prop.major >= 7;
     }
 
+    bool have_same_compute_capability(const std::vector<int>& devices) {
+      if (devices.size() > 1) {
+        int ref_major = -1;
+        int ref_minor = -1;
+        for (const int device : devices) {
+          const cudaDeviceProp& device_prop = get_device_properties(device);
+          const int major = device_prop.major;
+          const int minor = device_prop.minor;
+          if (ref_major < 0) {
+            ref_major = major;
+            ref_minor = minor;
+          } else if (major != ref_major || minor != ref_minor)
+            return false;
+        }
+      }
+
+      return true;
+    }
+
   }
 }
