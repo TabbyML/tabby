@@ -11,6 +11,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
+#include "ctranslate2/devices.h"
+
 #include "cpu/backend.h"
 #include "cpu/cpu_info.h"
 #include "cpu/cpu_isa.h"
@@ -82,6 +84,10 @@ namespace ctranslate2 {
       log_config();
     }
   } logger_init;
+
+  int get_gpu_count() {
+    return get_device_count(Device::CUDA);
+  }
 
   static inline size_t get_default_num_threads() {
     constexpr size_t default_num_threads = 4;

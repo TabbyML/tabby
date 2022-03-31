@@ -36,6 +36,20 @@ namespace ctranslate2 {
     return "";
   }
 
+  int get_device_count(Device device) {
+    switch (device) {
+    case Device::CUDA:
+#ifdef CT2_WITH_CUDA
+      return cuda::get_gpu_count();
+#else
+      return 0;
+#endif
+    case Device::CPU:
+      return 1;
+    }
+    return 0;
+  }
+
   template <Device D>
   int get_device_index();
   template <Device D>
@@ -74,14 +88,6 @@ namespace ctranslate2 {
 
   void set_device_index(Device device, int index) {
     DEVICE_DISPATCH(device, set_device_index<D>(index));
-  }
-
-  int get_gpu_count() {
-#ifdef CT2_WITH_CUDA
-    return cuda::get_gpu_count();
-#else
-    return 0;
-#endif
   }
 
   void synchronize_device(Device device, int index) {
