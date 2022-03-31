@@ -150,8 +150,11 @@ pip install ctranslate2
 * OS: Linux (x86-64, AArch64), macOS (x86-64), Windows (x86-64)
 * Python version: >= 3.6
 * pip version: >= 19.3
-* (optional) CUDA version: 11.x
-* (optional) GPU driver version: >= 450.80.02
+
+Additional requirements for GPU execution (on Linux x86-64 and Windows x86-64):
+
+* CUDA version: 11.x
+* GPU driver version: >= 450.80.02
 
 ### Docker images
 
@@ -166,7 +169,10 @@ The library is installed in `/opt/ctranslate2` and a Python package is installed
 **Requirements:**
 
 * Docker
-* (optional) GPU driver version: >= 450.80.02
+
+Additional requirements for GPU execution:
+
+* GPU driver version: >= 450.80.02
 
 ### Manual compilation
 
