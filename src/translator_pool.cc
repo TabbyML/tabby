@@ -2,10 +2,6 @@
 
 #include <spdlog/spdlog.h>
 
-#ifdef CT2_WITH_CUDA
-#  include "cuda/utils.h"
-#endif
-
 #include "env.h"
 
 namespace ctranslate2 {
@@ -151,17 +147,6 @@ namespace ctranslate2 {
     return get_results_from_futures(score_batch_async(source, target, options, max_batch_size, batch_type));
   }
 
-  template <typename T>
-  static std::vector<T> repeat_elements(const std::vector<T>& v, const size_t repeat) {
-    std::vector<int> repeated;
-    repeated.reserve(v.size() * repeat);
-    for (const T& e : v) {
-      for (size_t i = 0; i < repeat; ++i)
-        repeated.emplace_back(e);
-    }
-    return repeated;
-  }
-
   void TranslatorPool::create_translators(size_t num_translators_per_device,
                                           size_t num_threads_per_translator,
                                           models::ModelReader& model_reader,
@@ -169,25 +154,14 @@ namespace ctranslate2 {
                                           std::vector<int> device_indices,
                                           const ComputeType compute_type,
                                           const long max_queued_batches) {
-    if (device_indices.empty())
-      throw std::invalid_argument("At least one device index should be set");
-
-#ifdef CT2_WITH_CUDA
-    if (device == Device::CUDA) {
-      // Most computation will run on GPU so multiple CPU computation threads are not useful.
-      num_threads_per_translator = 1;
-
-      if (!cuda::have_same_compute_capability(device_indices))
-        throw std::invalid_argument("All GPU used in parallel must have the same Compute Capability");
-    }
-#endif
-
-    // Repeat each device index by the number of translators running on each device.
-    device_indices = repeat_elements(device_indices, num_translators_per_device);
-
     // The same number of OpenMP threads should be used for loading and running model.
-    set_num_threads(num_threads_per_translator);
-    const auto models = models::load_replicas(model_reader, device, device_indices, compute_type);
+    set_num_threads(device == Device::CPU ? num_threads_per_translator : 1);
+
+    const auto models = models::load_replicas(model_reader,
+                                              device,
+                                              device_indices,
+                                              compute_type,
+                                              num_translators_per_device);
 
     const size_t num_workers = models.size();
     std::vector<std::unique_ptr<Worker>> workers;

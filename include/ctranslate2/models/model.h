@@ -156,5 +156,12 @@ namespace ctranslate2 {
                   const std::vector<int>& device_indices,
                   const ComputeType compute_type);
 
+    std::vector<std::shared_ptr<const Model>>
+    load_replicas(models::ModelReader& model_reader,
+                  const Device device,
+                  const std::vector<int>& device_indices,
+                  const ComputeType compute_type,
+                  const size_t num_replicas_per_device);
+
   }
 }

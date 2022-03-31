@@ -5,6 +5,10 @@
 #include "ctranslate2/models/transformer.h"
 #include "ctranslate2/utils.h"
 
+#ifdef CT2_WITH_CUDA
+#  include "cuda/utils.h"
+#endif
+
 #include "cpu/backend.h"
 
 namespace ctranslate2 {
@@ -546,10 +550,15 @@ namespace ctranslate2 {
                   const Device device,
                   const std::vector<int>& device_indices,
                   const ComputeType compute_type) {
-      std::vector<std::shared_ptr<const Model>> models;
       if (device_indices.empty())
-        return models;
+        throw std::invalid_argument("At least one device index should be set");
+#ifdef CT2_WITH_CUDA
+      if (device == Device::CUDA && !cuda::have_same_compute_capability(device_indices))
+        throw std::invalid_argument("Cannot use multiple GPUs with different Compute Capabilities "
+                                    "for the same model");
+#endif
 
+      std::vector<std::shared_ptr<const Model>> models;
       models.reserve(device_indices.size());
 
       std::unordered_map<int, size_t> device_to_main_replica;
@@ -580,12 +589,29 @@ namespace ctranslate2 {
       return models;
     }
 
-    std::vector<std::shared_ptr<const Model> > load_replicas(const std::string& model_path,
-                                                             const Device device,
-                                                             const std::vector<int>& device_indices,
-                                                             const ComputeType compute_type) {
-      ctranslate2::models::ModelFileReader model_reader(model_path);
+    std::vector<std::shared_ptr<const Model>>
+    load_replicas(const std::string& model_path,
+                  const Device device,
+                  const std::vector<int>& device_indices,
+                  const ComputeType compute_type) {
+      ModelFileReader model_reader(model_path);
       return load_replicas(model_reader, device, device_indices, compute_type);
+    }
+
+    std::vector<std::shared_ptr<const Model>>
+    load_replicas(models::ModelReader& model_reader,
+                  const Device device,
+                  const std::vector<int>& device_indices,
+                  const ComputeType compute_type,
+                  const size_t num_replicas_per_device) {
+      std::vector<int> repeated_device_indices;
+      repeated_device_indices.reserve(device_indices.size() * num_replicas_per_device);
+      for (const int index : device_indices) {
+        for (size_t i = 0; i < num_replicas_per_device; ++i)
+          repeated_device_indices.emplace_back(index);
+      }
+
+      return load_replicas(model_reader, device, repeated_device_indices, compute_type);
     }
 
   }
