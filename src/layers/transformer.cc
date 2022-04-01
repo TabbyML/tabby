@@ -365,22 +365,24 @@ namespace ctranslate2 {
       }
 
       StorageView* memory = nullptr;
+      StorageView* memory_lengths_mask = nullptr;
       std::unique_ptr<const Padder> memory_padder;
-      std::unique_ptr<const StorageView> memory_lengths_mask;
       if (_with_encoder_attention) {
-        const StorageView& memory_lengths = state.at("memory_lengths");
-        memory_lengths_mask = std::make_unique<StorageView>(
-          layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
-                                                          _num_heads,
-                                                          max_time));
-        auto it = state.find("memory");
-        if (it != state.end()) {
-          memory = &it->second;
+        if (step <= 0) {
+          const StorageView& memory_lengths = state.at("memory_lengths");
+          memory = &state.at("memory");
           if (allow_padding_removal) {
             memory_padder = std::make_unique<Padder>(memory_lengths, memory->dim(1));
             memory_padder->remove_padding(*memory);
           }
+
+          state.emplace("memory_mask",
+                        layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
+                                                                        _num_heads,
+                                                                        max_time));
         }
+
+        memory_lengths_mask = &state.at("memory_mask");
       }
 
       for (size_t l = 0; l < _layers.size(); ++l) {
@@ -402,7 +404,7 @@ namespace ctranslate2 {
         (*_layers[l])(layer_in,
                       input_lengths_mask.get(),
                       memory,
-                      memory_lengths_mask.get(),
+                      memory_lengths_mask,
                       cached_self_attn_keys,
                       cached_self_attn_values,
                       cached_attn_keys,
@@ -417,6 +419,7 @@ namespace ctranslate2 {
       if (step == 0) {
         // The memory is no longer needed as its projections were cached in the first step.
         state.erase("memory");
+        state.erase("memory_lengths");
       }
 
       if (attention) {
