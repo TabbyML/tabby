@@ -20,6 +20,7 @@ Below are some recommendations to further improve translation performance. Many 
 
 ### GPU
 
+* Use a larger batch size
 * Use a NVIDIA GPU with Tensor Cores (Compute Capability >= 7.0)
 * Pass multiple GPU IDs to `device_index` to run translations on multiple GPUs
 
