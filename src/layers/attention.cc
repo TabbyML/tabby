@@ -135,6 +135,44 @@ namespace ctranslate2 {
         *attention = std::move(attn);
     }
 
+    static const ops::Transpose transpose_op({0, 2, 1, 3});
+
+    static void split_heads(StorageView& x, dim_t num_heads, const Padder* padder = nullptr) {
+      if (padder)
+        padder->add_padding(x);
+
+      // x has shape [batch_size, time, depth]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(1);
+      const dim_t head_dim = x.dim(2) / num_heads;
+
+      if (time == 1) {
+        x.reshape({batch_size, num_heads, 1, head_dim});
+      } else {
+        x.reshape({batch_size, time, num_heads, head_dim});
+        StorageView y(x.device(), x.dtype());
+        transpose_op(x, y);
+        x = std::move(y);
+      }
+    }
+
+    static void combine_heads(StorageView& x, dim_t num_heads, const Padder* padder = nullptr) {
+      // x has shape [batch_size, num_heads, time, head_dim]
+      const dim_t batch_size = x.dim(0);
+      const dim_t time = x.dim(2);
+      const dim_t depth = x.dim(3) * num_heads;
+
+      if (time > 1) {
+        StorageView y(x.device(), x.dtype());
+        transpose_op(x, y);
+        x = std::move(y);
+      }
+
+      x.reshape({batch_size, time, depth});
+      if (padder)
+        padder->remove_padding(x);
+    }
+
     static std::vector<Dense> make_linear_layers(const models::Model& model,
                                                  const std::string& scope,
                                                  bool self_attention) {
@@ -162,7 +200,7 @@ namespace ctranslate2 {
       , _maximum_relative_position(_relative_position_keys
                                    ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
       , _queries_scale(1.f / std::sqrt(static_cast<float>(_layer_norm.output_size() / num_heads)))
-      , _transpose_op({0, 2, 1, 3}) {
+    {
     }
 
     DataType MultiHeadAttention::output_type() const {
@@ -200,13 +238,12 @@ namespace ctranslate2 {
 
       if (!_self_attention) {
         queries_proj = std::move(fused_proj);
-        split_heads(queries_proj, queries_padder);
+        split_heads(queries_proj, _num_heads, queries_padder);
 
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](values, fused_proj);
-          ops::Split(-1)(fused_proj, keys_proj, values_proj);
-          split_heads(keys_proj, values_padder);
-          split_heads(values_proj, values_padder);
+          split_heads(fused_proj, 2 * _num_heads, values_padder);
+          ops::Split(1)(fused_proj, keys_proj, values_proj);
 
           if (cached_keys != nullptr) {
             *cached_keys = std::move(keys_proj);
@@ -215,10 +252,8 @@ namespace ctranslate2 {
         }
 
       } else {
-        ops::Split(-1)(fused_proj, queries_proj, keys_proj, values_proj);
-        split_heads(queries_proj, queries_padder);
-        split_heads(keys_proj, queries_padder);
-        split_heads(values_proj, queries_padder);
+        split_heads(fused_proj, 3 * _num_heads, queries_padder);
+        ops::Split(1)(fused_proj, queries_proj, keys_proj, values_proj);
 
         if (cached_keys != nullptr) {
           if (cached_keys->empty()) {
@@ -252,48 +287,12 @@ namespace ctranslate2 {
                             _queries_scale,
                             bool(cached_keys));
 
-      combine_heads(context, queries_padder);
+      combine_heads(context, _num_heads, queries_padder);
       _linear.back()(context, output);
       ops::Add()(queries, output, output);
       if (!_pre_norm) {
         _layer_norm(output, output);
       }
-    }
-
-    void MultiHeadAttention::split_heads(StorageView& x, const Padder* padder) const {
-      if (padder)
-        padder->add_padding(x);
-
-      // x has shape [batch_size, time, depth]
-      const dim_t batch_size = x.dim(0);
-      const dim_t time = x.dim(1);
-      const dim_t head_dim = x.dim(2) / _num_heads;
-
-      if (time == 1) {
-        x.reshape({batch_size, _num_heads, 1, head_dim});
-      } else {
-        x.reshape({batch_size, time, _num_heads, head_dim});
-        StorageView y(x.device(), x.dtype());
-        _transpose_op(x, y);
-        x = std::move(y);
-      }
-    }
-
-    void MultiHeadAttention::combine_heads(StorageView& x, const Padder* padder) const {
-      // x has shape [batch_size, num_heads, time, head_dim]
-      const dim_t batch_size = x.dim(0);
-      const dim_t time = x.dim(2);
-      const dim_t depth = x.dim(3) * _num_heads;
-
-      if (time > 1) {
-        StorageView y(x.device(), x.dtype());
-        _transpose_op(x, y);
-        x = std::move(y);
-      }
-
-      x.reshape({batch_size, time, depth});
-      if (padder)
-        padder->remove_padding(x);
     }
 
     StorageView MultiHeadAttention::prepare_length_mask(const StorageView& lengths,

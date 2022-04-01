@@ -47,10 +47,6 @@ namespace ctranslate2 {
       const StorageView* _relative_position_values;
       const dim_t _maximum_relative_position;
       const float _queries_scale;
-      const ops::Transpose _transpose_op;
-
-      void split_heads(StorageView& x, const Padder* padder = nullptr) const;
-      void combine_heads(StorageView& x, const Padder* padder = nullptr) const;
     };
 
   }
