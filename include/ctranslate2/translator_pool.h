@@ -402,7 +402,7 @@ namespace ctranslate2 {
     }
 
     // Number of batches in the work queue.
-    size_t num_queued_batches();
+    size_t num_queued_batches() const;
     // Number of batches in the work queue or currently processed by a worker.
     size_t num_active_batches() const;
 

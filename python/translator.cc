@@ -165,7 +165,7 @@ public:
     return _translator_pool.num_translators();
   }
 
-  size_t num_queued_batches() {
+  size_t num_queued_batches() const {
     return _translator_pool.num_queued_batches();
   }
 

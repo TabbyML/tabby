@@ -267,7 +267,7 @@ namespace ctranslate2 {
                                with_tokens_score);
   }
 
-  size_t TranslatorPool::num_queued_batches() {
+  size_t TranslatorPool::num_queued_batches() const {
     return _thread_pool->num_queued_jobs();
   }
 
