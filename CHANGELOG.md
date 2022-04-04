@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.15.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.15.1) (2022-04-04)
+
+### Fixes and improvements
+
+* Fix missing deactivation of OpenMP threading in GPU execution (regression introduced in version 2.15.0)
+
 ## [v2.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.15.0) (2022-04-04)
 
 ### New features
