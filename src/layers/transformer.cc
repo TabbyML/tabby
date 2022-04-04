@@ -280,14 +280,6 @@ namespace ctranslate2 {
       _alignment_heads = (alignment_heads == 0 ? _num_heads : alignment_heads);
     }
 
-    void TransformerDecoder::set_vocabulary_mask(const StorageView& ids) {
-      _proj.mask_weights(ids);
-    }
-
-    void TransformerDecoder::reset_vocabulary_mask() {
-      _proj.reset_mask();
-    }
-
     DecoderState TransformerDecoder::initial_state(bool iterative_decoding) const {
       DecoderState state;
       if (iterative_decoding) {

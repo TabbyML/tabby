@@ -101,8 +101,7 @@ namespace ctranslate2 {
       DataType output_type() const override;
       dim_t output_size() const override;
       void operator()(const StorageView& input, StorageView& output) const;
-      void mask_weights(const StorageView& index);
-      void reset_mask();
+      void select_weights(const StorageView* index);
     private:
       bool _packed_weight;
       const StorageView& _weight;

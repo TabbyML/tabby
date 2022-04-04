@@ -64,7 +64,7 @@ namespace ctranslate2 {
              const bool replace_unknowns = false,
              const bool normalize_scores = false,
              const float repetition_penalty = 1,
-             bool disable_unk = false) const;
+             const bool disable_unk = false) const;
 
     protected:
       virtual void initialize(ModelReader& model_reader) override;

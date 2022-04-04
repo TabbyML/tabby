@@ -307,23 +307,23 @@ namespace ctranslate2 {
       return _partial_weight ? _partial_weight.dim(0) : _weight.dim(0);
     }
 
-    void Dense::mask_weights(const StorageView& index) {
-      if (_packed_weight)
-        throw std::runtime_error("Can't mask pre-packed weight");
-      ops::Gather()(_weight, index, _partial_weight);
-      if (_u8_shift_compensation)
-        ops::Gather()(*_u8_shift_compensation, index, _partial_u8_shift_compensation);
-      if (_bias)
-        ops::Gather()(*_bias, index, _partial_bias);
-      if (_qscale && !_qscale->is_scalar())
-        ops::Gather()(*_qscale, index, _partial_qscale);
-    }
-
-    void Dense::reset_mask() {
-      _partial_weight.clear();
-      _partial_bias.clear();
-      _partial_qscale.clear();
-      _partial_u8_shift_compensation.clear();
+    void Dense::select_weights(const StorageView* index) {
+      if (index) {
+        if (_packed_weight)
+          throw std::runtime_error("Can't select pre-packed weight");
+        ops::Gather()(_weight, *index, _partial_weight);
+        if (_u8_shift_compensation)
+          ops::Gather()(*_u8_shift_compensation, *index, _partial_u8_shift_compensation);
+        if (_bias)
+          ops::Gather()(*_bias, *index, _partial_bias);
+        if (_qscale && !_qscale->is_scalar())
+          ops::Gather()(*_qscale, *index, _partial_qscale);
+      } else {
+        _partial_weight.clear();
+        _partial_bias.clear();
+        _partial_qscale.clear();
+        _partial_u8_shift_compensation.clear();
+      }
     }
 
     void Dense::operator()(const StorageView& input, StorageView& output) const {

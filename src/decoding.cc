@@ -366,7 +366,6 @@ namespace ctranslate2 {
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
                      const size_t end_id,
-                     const size_t unk_id,
                      const dim_t start_step,
                      const dim_t max_length,
                      const dim_t min_length,
@@ -376,7 +375,6 @@ namespace ctranslate2 {
                      const bool return_attention,
                      const size_t num_hypotheses,
                      const float repetition_penalty,
-                     const bool disable_unk,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
     const dim_t min_step = start_step + min_length;
@@ -454,8 +452,6 @@ namespace ctranslate2 {
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
         disable_token(log_probs, end_id);
-      if (disable_unk)
-        disable_token(log_probs, unk_id);
 
       // Multiply by the current beam log probs.
       if (topk_scores) {
@@ -615,7 +611,6 @@ namespace ctranslate2 {
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
                        const size_t end_id,
-                       const size_t unk_id,
                        const dim_t start_step,
                        const dim_t max_length,
                        const dim_t min_length,
@@ -625,7 +620,6 @@ namespace ctranslate2 {
                        const bool return_attention,
                        const size_t,
                        const float repetition_penalty,
-                       const bool disable_unk,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
     const dim_t min_step = start_step + min_length;
@@ -670,8 +664,6 @@ namespace ctranslate2 {
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
         disable_token(log_probs, end_id);
-      if (disable_unk)
-        disable_token(log_probs, unk_id);
 
       sampler(log_probs, best_ids, best_probs);
       if (output_ids_map)
@@ -822,7 +814,6 @@ namespace ctranslate2 {
          const std::vector<std::vector<size_t>>& start_tokens,
          const std::vector<size_t>* output_ids_map,
          const size_t end_id,
-         const size_t unk_id,
          dim_t max_length,
          dim_t min_length,
          const size_t num_hypotheses,
@@ -830,8 +821,7 @@ namespace ctranslate2 {
          const bool return_scores,
          const bool return_attention,
          const bool normalize_scores,
-         const float repetition_penalty,
-         const bool disable_unk) {
+         const float repetition_penalty) {
     const size_t batch_size = start_tokens.size();
 
     if (return_alternatives && batch_size > 1) {
@@ -847,7 +837,6 @@ namespace ctranslate2 {
                                     {start_tokens[i]},
                                     output_ids_map,
                                     end_id,
-                                    unk_id,
                                     max_length,
                                     min_length,
                                     num_hypotheses,
@@ -855,8 +844,7 @@ namespace ctranslate2 {
                                     return_scores,
                                     return_attention,
                                     normalize_scores,
-                                    repetition_penalty,
-                                    disable_unk)[0]);
+                                    repetition_penalty)[0]);
       }
       return results;
     }
@@ -893,7 +881,6 @@ namespace ctranslate2 {
                                                             BestSampler(),
                                                             start_ids,
                                                             end_id,
-                                                            unk_id,
                                                             start_step,
                                                             /*max_length=*/1,
                                                             /*min_length=*/1,
@@ -902,8 +889,7 @@ namespace ctranslate2 {
                                                             return_scores,
                                                             return_attention,
                                                             num_hypotheses,
-                                                            /*repetition_penalty=*/1,
-                                                            disable_unk);
+                                                            /*repetition_penalty=*/1);
 
       start_ids.resize(batch_size * num_hypotheses);
       for (size_t b = 0; b < batch_size; ++b) {
@@ -937,7 +923,6 @@ namespace ctranslate2 {
                                           sampler,
                                           start_ids,
                                           end_id,
-                                          unk_id,
                                           start_step,
                                           max_length,
                                           min_length,
@@ -947,7 +932,6 @@ namespace ctranslate2 {
                                           return_attention,
                                           return_alternatives ? 1 : num_hypotheses,
                                           repetition_penalty,
-                                          disable_unk,
                                           return_alternatives ? nullptr : &prefix_ids);
 
     if (return_alternatives) {

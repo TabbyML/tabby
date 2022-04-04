@@ -152,8 +152,6 @@ namespace ctranslate2 {
                          const dim_t alignment_heads = 1,
                          const bool layernorm_embedding = false);
 
-      void set_vocabulary_mask(const StorageView& ids) override;
-      void reset_vocabulary_mask() override;
       DecoderState initial_state(bool iterative_decoding = true) const override;
 
       void operator()(dim_t step,
@@ -166,16 +164,12 @@ namespace ctranslate2 {
                       DecoderState& state,
                       StorageView& logits) override;
 
-      DataType output_type() const override {
-        return _proj.output_type();
-      }
-
-      dim_t output_size() const override {
-        return _proj.output_size();
-      }
-
     protected:
       bool should_reorder_state(const std::string& name) const override;
+
+      Dense& output_layer() override {
+        return _proj;
+      }
 
     private:
       void decode(const StorageView& ids,

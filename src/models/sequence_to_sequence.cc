@@ -1,7 +1,6 @@
 #include "ctranslate2/models/sequence_to_sequence.h"
 
 #include <algorithm>
-#include <numeric>
 
 namespace ctranslate2 {
   namespace models {
@@ -261,7 +260,7 @@ namespace ctranslate2 {
                                     const bool replace_unknowns,
                                     const bool normalize_scores,
                                     const float repetition_penalty,
-                                    bool disable_unk) const {
+                                    const bool disable_unk) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::sample");
 
@@ -308,36 +307,15 @@ namespace ctranslate2 {
       state.emplace("memory", std::move(memory));
       state.emplace("memory_lengths", std::move(memory_lengths));
 
-      std::vector<size_t> output_ids_map;
-      if (use_vmap && _vocabulary_map) {
-        output_ids_map = _vocabulary_map->get_candidates(source_features[0]);
-      } else if (_target_vocabulary->size() % preferred_size_multiple() != 0) {
-        output_ids_map.resize(_target_vocabulary->size());
-        std::iota(output_ids_map.begin(), output_ids_map.end(), size_t(0));
-      }
-
-      // If UNK generation is disabled, we can directly remove the token from the
-      // reduced vocabulary instead of handling that during decoding.
-      const size_t unk_id = _target_vocabulary->unk_id();
-      if (disable_unk && !output_ids_map.empty()) {
-        auto it = std::lower_bound(output_ids_map.begin(), output_ids_map.end(), unk_id);
-        if (it != output_ids_map.end() && *it == unk_id)
-          output_ids_map.erase(it);
-        disable_unk = false;
-      }
-
-      if (!output_ids_map.empty()) {
-        // Pad vocabulary size to the preferred size multiple.
-        while (output_ids_map.size() % preferred_size_multiple() != 0)
-          output_ids_map.push_back(0);
-
-        decoder.set_vocabulary_mask(
-          StorageView({static_cast<dim_t>(output_ids_map.size())},
-                      std::vector<int32_t>(output_ids_map.begin(), output_ids_map.end()),
-                      device()));
-      } else {
-        decoder.reset_vocabulary_mask();
-      }
+      std::vector<size_t> include_ids;
+      std::vector<size_t> exclude_ids;
+      if (use_vmap && _vocabulary_map)
+        include_ids = _vocabulary_map->get_candidates(source_features[0]);
+      if (disable_unk)
+        exclude_ids = {_target_vocabulary->unk_id()};
+      const auto* output_ids_map = decoder.update_output_layer(preferred_size_multiple(),
+                                                               include_ids,
+                                                               exclude_ids);
 
       // Decode.
       if (target_prefix_inputs.empty())
@@ -353,9 +331,8 @@ namespace ctranslate2 {
         search_strategy,
         sampler,
         start_ids,
-        !output_ids_map.empty() ? &output_ids_map : nullptr,
+        output_ids_map,
         end_id,
-        unk_id,
         max_output_length,
         min_output_length,
         num_hypotheses,
@@ -363,8 +340,7 @@ namespace ctranslate2 {
         return_scores,
         return_attention || replace_unknowns,
         normalize_scores,
-        repetition_penalty,
-        disable_unk);
+        repetition_penalty);
 
       // Convert generated ids to tokens.
       for (size_t i = 0; i < batch_size; ++i) {
