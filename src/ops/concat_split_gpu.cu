@@ -67,12 +67,14 @@ namespace ctranslate2 {
       const dim_t axis = _axis < 0 ? output.rank() + _axis : _axis;
       const dim_t output_dim = output.dim(axis);
       const dim_t inner_size = output.stride(axis);
+      const dim_t inner_bytes = inner_size * sizeof (T);
       T* output_data = output.data<T>();
       dim_t offset = 0;
 
       for (const StorageView* input : inputs) {
         const T* input_data = input->data<T>();
         const dim_t input_size = input->size();
+        const dim_t input_bytes = input_size * sizeof (T);
 
         if (axis == 0) {
           primitives<D>::copy(input_data, output_data + offset, input_size);
@@ -86,6 +88,18 @@ namespace ctranslate2 {
               thrust::counting_iterator<cuda::index_t>(0),
               depth_offset_map<cuda::index_t>(offset, input_dim, output_dim));
             THRUST_CALL(thrust::scatter, input_data, input_data + input_size, map_ids, output_data);
+          } else if (inner_bytes % sizeof (uint4) == 0 && input_bytes % sizeof (uint4) == 0) {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              inner_dim_offset_map<cuda::index_t>(offset,
+                                                  input_dim,
+                                                  output_dim,
+                                                  inner_bytes / sizeof (uint4)));
+            THRUST_CALL(thrust::scatter,
+                        reinterpret_cast<const uint4*>(input_data),
+                        reinterpret_cast<const uint4*>(input_data + input_size),
+                        map_ids,
+                        reinterpret_cast<uint4*>(output_data));
           } else {
             auto map_ids = thrust::make_transform_iterator(
               thrust::counting_iterator<cuda::index_t>(0),
@@ -104,12 +118,14 @@ namespace ctranslate2 {
       const dim_t axis = _axis < 0 ? input.rank() + _axis : _axis;
       const dim_t input_dim = input.dim(axis);
       const dim_t inner_size = input.stride(axis);
+      const dim_t inner_bytes = inner_size * sizeof (T);
       const T* input_data = input.data<T>();
       dim_t offset = 0;
 
       for (StorageView* output : outputs) {
         T* output_data = output->data<T>();
         const dim_t output_size = output->size();
+        const dim_t output_bytes = output_size * sizeof (T);
 
         if (axis == 0) {
           primitives<D>::copy(input_data + offset, output_data, output_size);
@@ -123,6 +139,18 @@ namespace ctranslate2 {
               thrust::counting_iterator<cuda::index_t>(0),
               depth_offset_map<cuda::index_t>(offset, output_dim, input_dim));
             THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
+          } else if (inner_bytes % sizeof (uint4) == 0 && output_bytes % sizeof (uint4) == 0) {
+            auto map_ids = thrust::make_transform_iterator(
+              thrust::counting_iterator<cuda::index_t>(0),
+              inner_dim_offset_map<cuda::index_t>(offset,
+                                                  output_dim,
+                                                  input_dim,
+                                                  inner_bytes / sizeof (uint4)));
+            THRUST_CALL(thrust::gather,
+                        map_ids,
+                        map_ids + output_bytes / sizeof (uint4),
+                        reinterpret_cast<const uint4*>(input_data),
+                        reinterpret_cast<uint4*>(output_data));
           } else {
             auto map_ids = thrust::make_transform_iterator(
               thrust::counting_iterator<cuda::index_t>(0),
