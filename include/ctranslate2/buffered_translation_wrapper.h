@@ -39,8 +39,7 @@ namespace ctranslate2 {
 
     std::mutex _mutex;
     std::condition_variable _cv;
-    std::queue<std::vector<std::string>> _source;
-    std::queue<std::vector<std::string>> _target;
+    std::queue<Example> _examples;
     std::queue<std::promise<TranslationResult>> _promises;
 
     void buffer_loop();

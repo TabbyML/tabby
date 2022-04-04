@@ -39,10 +39,9 @@ namespace ctranslate2 {
       const std::lock_guard<std::mutex> lock(_mutex);
 
       _promises.emplace(std::move(promise));
-      _source.emplace(std::move(source));
-      _target.emplace(std::move(target));
+      _examples.emplace(std::move(source), std::move(target));
 
-      notify = (_source.size() >= _max_buffer_size);
+      notify = (_examples.size() >= _max_buffer_size);
     }
 
     if (notify)
@@ -71,30 +70,26 @@ namespace ctranslate2 {
     while (true) {
       std::unique_lock<std::mutex> lock(_mutex);
       _cv.wait_for(lock, _buffer_timeout,
-                   [this]{ return _source.size() >= _max_buffer_size || _stop; });
+                   [this]{ return _examples.size() >= _max_buffer_size || _stop; });
 
       // Get the stop flag value when we hold the lock.
       const bool stop = _stop;
 
-      if (!_source.empty()) {
+      if (!_examples.empty()) {
         // Build full batches unless the timeout is reached or we are stopping the process.
-        size_t flush_size = _source.size();
+        size_t flush_size = _examples.size();
         if (!stop && flush_size > _max_batch_size)
           flush_size -= flush_size % _max_batch_size;
 
-        std::vector<std::vector<std::string>> source;
-        std::vector<std::vector<std::string>> target;
+        std::vector<Example> examples;
         std::vector<std::promise<TranslationResult>> promises;
-        source.reserve(flush_size);
-        target.reserve(flush_size);
+        examples.reserve(flush_size);
         promises.reserve(flush_size);
 
         for (size_t i = 0; i < flush_size; ++i) {
-          source.emplace_back(std::move(_source.front()));
-          target.emplace_back(std::move(_target.front()));
+          examples.emplace_back(std::move(_examples.front()));
           promises.emplace_back(std::move(_promises.front()));
-          _source.pop();
-          _target.pop();
+          _examples.pop();
           _promises.pop();
         }
 
@@ -102,7 +97,7 @@ namespace ctranslate2 {
         lock.unlock();
 
         _translator_pool->post_examples<TranslationResult>(
-          load_examples({source, target}),
+          examples,
           _max_batch_size,
           BatchType::Examples,
           TranslatorPool::TranslationJobCreator(_options),

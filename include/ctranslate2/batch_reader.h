@@ -20,8 +20,15 @@ namespace ctranslate2 {
     std::vector<std::vector<std::string>> streams;
 
     Example() = default;
+
     Example(std::vector<std::string> sequence) {
       streams.emplace_back(std::move(sequence));
+    }
+
+    Example(std::vector<std::string> source, std::vector<std::string> target) {
+      streams.reserve(2);
+      streams.emplace_back(std::move(source));
+      streams.emplace_back(std::move(target));
     }
 
     size_t num_streams() const {
