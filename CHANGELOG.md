@@ -4,6 +4,26 @@
 
 ### Fixes and improvements
 
+## [v2.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.15.0) (2022-04-04)
+
+### New features
+
+* Expose translator option `max_queued_batches` to configure the maximum number of queued batches (when the queue is full, future requests will block until a free slot is available)
+* Allow converters to customize the vocabulary special tokens `<unk>`, `<s>`, and `</s>`
+
+### Fixes and improvements
+
+* Fix compatibility of models converted on Windows with other platforms by saving the vocabulary files with the newline character "\n" instead of "\r\n"
+* Clarify conversion error when no TensorFlow checkpoints are found in the configured model directory
+* Enable fused QKV transposition by switching the heads and time dimensions before the QKV split
+* Cache the prepared source lengths mask in the Transformer decoder state and reuse it in the next decoding steps
+* Pad the output layer to enable Tensor Cores only once instead of updating the layer on each batch
+* Vectorize copy in Concat and Split ops on GPU
+* Factorize all OpenMP parallel for loops to call the `parallel_for` function
+* Compile CUDA kernels for deprecated Compute Capabilities that are not yet dropped by CUDA:
+  * CUDA 11: 3.5 and 5.0
+  * CUDA 10: 3.0
+
 ## [v2.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.14.0) (2022-03-16)
 
 ### New features
