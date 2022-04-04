@@ -155,7 +155,9 @@ namespace ctranslate2 {
                                           const ComputeType compute_type,
                                           const long max_queued_batches) {
     // The same number of OpenMP threads should be used for loading and running model.
-    set_num_threads(device == Device::CPU ? num_threads_per_translator : 1);
+    if (device == Device::CUDA)
+      num_threads_per_translator = 1;
+    set_num_threads(num_threads_per_translator);
 
     const auto models = models::load_replicas(model_reader,
                                               device,
