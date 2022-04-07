@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ctranslate2/decoding.h"
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/layers/encoder.h"
 #include "ctranslate2/models/model.h"
 #include "ctranslate2/scoring.h"
+#include "ctranslate2/translation.h"
 #include "ctranslate2/vocabulary.h"
 #include "ctranslate2/vocabulary_map.h"
 
@@ -44,27 +44,14 @@ namespace ctranslate2 {
             layers::Decoder& decoder,
             const std::vector<std::vector<std::string>>& source,
             const std::vector<std::vector<std::string>>& target,
-            const size_t max_input_length = 0) const;
+            const ScoringOptions& options = ScoringOptions()) const;
 
       std::vector<GenerationResult<std::string>>
-      sample(layers::Encoder& encoder,
-             layers::Decoder& decoder,
-             const std::vector<std::vector<std::string>>& source,
-             const std::vector<std::vector<std::string>>& target_prefix = {},
-             const SearchStrategy& search_strategy = GreedySearch(),
-             const Sampler& sampler = BestSampler(),
-             const bool use_vmap = false,
-             const size_t max_input_length = 0,
-             const size_t max_output_length = 256,
-             const size_t min_output_length = 1,
-             const size_t num_hypotheses = 1,
-             const bool return_alternatives = false,
-             const bool return_scores = false,
-             const bool return_attention = false,
-             const bool replace_unknowns = false,
-             const bool normalize_scores = false,
-             const float repetition_penalty = 1,
-             const bool disable_unk = false) const;
+      translate(layers::Encoder& encoder,
+                layers::Decoder& decoder,
+                const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target_prefix = {},
+                const TranslationOptions& options = TranslationOptions()) const;
 
     protected:
       virtual void initialize(ModelReader& model_reader) override;

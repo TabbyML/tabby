@@ -191,7 +191,7 @@ namespace ctranslate2 {
                                    layers::Decoder& decoder,
                                    const std::vector<std::vector<std::string>>& source,
                                    const std::vector<std::vector<std::string>>& target,
-                                   const size_t max_input_length) const {
+                                   const ScoringOptions& options) const {
       const auto scoped_device_setter = get_scoped_device_setter();
       PROFILE("SequenceToSequenceModel::score");
 
@@ -200,9 +200,9 @@ namespace ctranslate2 {
 
       auto source_inputs = source;
       auto target_inputs = target;
-      if (max_input_length > 0) {
-        truncate_sequences(source_inputs, max_input_length);
-        truncate_sequences(target_inputs, max_input_length);
+      if (options.max_input_length > 0) {
+        truncate_sequences(source_inputs, options.max_input_length);
+        truncate_sequences(target_inputs, options.max_input_length);
       }
 
       const auto source_features = extract_features(std::move(source_inputs),
@@ -243,34 +243,24 @@ namespace ctranslate2 {
     }
 
     std::vector<GenerationResult<std::string>>
-    SequenceToSequenceModel::sample(layers::Encoder& encoder,
-                                    layers::Decoder& decoder,
-                                    const std::vector<std::vector<std::string>>& source,
-                                    const std::vector<std::vector<std::string>>& target_prefix,
-                                    const SearchStrategy& search_strategy,
-                                    const Sampler& sampler,
-                                    const bool use_vmap,
-                                    const size_t max_input_length,
-                                    const size_t max_output_length,
-                                    const size_t min_output_length,
-                                    const size_t num_hypotheses,
-                                    const bool return_alternatives,
-                                    const bool return_scores,
-                                    const bool return_attention,
-                                    const bool replace_unknowns,
-                                    const bool normalize_scores,
-                                    const float repetition_penalty,
-                                    const bool disable_unk) const {
+    SequenceToSequenceModel::translate(layers::Encoder& encoder,
+                                       layers::Decoder& decoder,
+                                       const std::vector<std::vector<std::string>>& source,
+                                       const std::vector<std::vector<std::string>>& target_prefix,
+                                       const TranslationOptions& options) const {
+      options.validate();
+
       const auto scoped_device_setter = get_scoped_device_setter();
-      PROFILE("SequenceToSequenceModel::sample");
+      PROFILE("SequenceToSequenceModel::translate");
 
       const size_t original_batch_size = source.size();
       if (original_batch_size == 0)
         return {};
 
-      std::vector<GenerationResult<std::string>> final_results(
-        original_batch_size,
-        GenerationResult<std::string>(num_hypotheses, return_attention, return_scores));
+      const GenerationResult<std::string> empty_result(options.num_hypotheses,
+                                                       options.return_attention,
+                                                       options.return_scores);
+      std::vector<GenerationResult<std::string>> final_results(original_batch_size, empty_result);
 
       std::vector<size_t> non_empty_index;
       non_empty_index.reserve(original_batch_size);
@@ -290,9 +280,9 @@ namespace ctranslate2 {
         if (!target_prefix.empty())
           target_prefix_inputs = index_vector(target_prefix_inputs, non_empty_index);
       }
-      if (max_input_length > 0) {
-        truncate_sequences(source_inputs, max_input_length);
-        truncate_sequences(target_prefix_inputs, max_input_length);
+      if (options.max_input_length > 0) {
+        truncate_sequences(source_inputs, options.max_input_length);
+        truncate_sequences(target_prefix_inputs, options.max_input_length);
       }
 
       const auto source_features = extract_features(std::move(source_inputs),
@@ -309,9 +299,9 @@ namespace ctranslate2 {
 
       std::vector<size_t> include_ids;
       std::vector<size_t> exclude_ids;
-      if (use_vmap && _vocabulary_map)
+      if (options.use_vmap && _vocabulary_map)
         include_ids = _vocabulary_map->get_candidates(source_features[0]);
-      if (disable_unk)
+      if (options.disable_unk)
         exclude_ids = {_target_vocabulary->unk_id()};
       const auto* output_ids_map = decoder.update_output_layer(preferred_size_multiple(),
                                                                include_ids,
@@ -328,19 +318,19 @@ namespace ctranslate2 {
       std::vector<GenerationResult<size_t>> results = decode(
         decoder,
         state,
-        search_strategy,
-        sampler,
+        *options.make_search_strategy(),
+        *options.make_sampler(),
         start_ids,
         output_ids_map,
         end_id,
-        max_output_length,
-        min_output_length,
-        num_hypotheses,
-        return_alternatives,
-        return_scores,
-        return_attention || replace_unknowns,
-        normalize_scores,
-        repetition_penalty);
+        options.max_decoding_length,
+        options.min_decoding_length,
+        options.num_hypotheses,
+        options.return_alternatives,
+        options.return_scores,
+        options.return_attention || options.replace_unknowns,
+        options.normalize_scores,
+        options.repetition_penalty);
 
       // Convert generated ids to tokens.
       for (size_t i = 0; i < batch_size; ++i) {
@@ -363,14 +353,14 @@ namespace ctranslate2 {
               vector.resize(source_original.size(), 0);
             }
 
-            if (replace_unknowns)
+            if (options.replace_unknowns)
               replace_unknown_tokens(source_input,
                                      hypotheses[h],
                                      attention,
                                      _target_vocabulary->unk_token());
           }
 
-          if (!return_attention)
+          if (!options.return_attention)
             result.attention.clear();
         }
 

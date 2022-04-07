@@ -64,25 +64,7 @@ namespace ctranslate2 {
                                           const std::vector<std::vector<std::string>>& target_prefix,
                                           const TranslationOptions& options) {
     assert_has_model();
-    options.validate();
-    return _model->sample(*_encoder,
-                          *_decoder,
-                          source,
-                          target_prefix,
-                          *options.make_search_strategy(),
-                          *options.make_sampler(),
-                          options.use_vmap,
-                          options.max_input_length,
-                          options.max_decoding_length,
-                          options.min_decoding_length,
-                          options.num_hypotheses,
-                          options.return_alternatives,
-                          options.return_scores,
-                          options.return_attention,
-                          options.replace_unknowns,
-                          options.normalize_scores,
-                          options.repetition_penalty,
-                          options.disable_unk);
+    return _model->translate(*_encoder, *_decoder, source, target_prefix, options);
   }
 
   std::vector<ScoringResult>
@@ -90,7 +72,7 @@ namespace ctranslate2 {
                           const std::vector<std::vector<std::string>>& target,
                           const ScoringOptions& options) {
     assert_has_model();
-    return _model->score(*_encoder, *_decoder, source, target, options.max_input_length);
+    return _model->score(*_encoder, *_decoder, source, target, options);
   }
 
   Device Translator::device() const {
