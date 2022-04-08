@@ -6,6 +6,57 @@
 
 namespace ctranslate2 {
 
+  static thread_local Translator* local_translator = nullptr;
+
+  Translator* TranslatorPool::get_translator() {
+    return local_translator;
+  }
+
+  class TranslatorWorker : public Worker {
+  public:
+    TranslatorWorker(const std::shared_ptr<const models::Model>& model, size_t num_threads)
+      : _translator(model)
+      , _allocator(nullptr)
+      , _device(model->device())
+      , _num_threads(num_threads)
+    {
+    }
+
+    Translator& translator() {
+      return _translator;
+    }
+
+    Allocator* allocator() {
+      return _allocator;
+    }
+
+  protected:
+    void initialize() override {
+      // Set the number of OpenMP threads for the current thread.
+      set_num_threads(_num_threads);
+
+      // Register the memory allocator used in this thread.
+      _allocator = &get_allocator(_device);
+
+      local_translator = &_translator;
+    }
+
+    void finalize() override {
+      // The CUDA context is destroyed when the thread exits, so we clear the translation
+      // resources now when the CUDA context is still active.
+      _translator.detach_model();
+
+      local_translator = nullptr;
+    }
+
+  private:
+    Translator _translator;
+    Allocator* _allocator;
+    const Device _device;
+    const size_t _num_threads;
+  };
+
+
   TranslatorPool::TranslatorPool(size_t num_translators,
                                  size_t num_threads_per_translator,
                                  const std::string& model_dir,
@@ -281,15 +332,13 @@ namespace ctranslate2 {
     return _thread_pool->num_threads();
   }
 
-  TranslatorPool::TranslatorWorker& TranslatorPool::get_worker(size_t index) const {
-    return static_cast<TranslatorWorker&>(_thread_pool->get_worker(index));
-  }
-
   std::vector<std::shared_ptr<const models::Model>> TranslatorPool::detach_models() {
     std::vector<std::shared_ptr<const models::Model>> models;
     models.reserve(num_translators());
-    for (size_t i = 0; i < num_translators(); ++i)
-      models.emplace_back(get_worker(i).translator().detach_model());
+    for (size_t i = 0; i < num_translators(); ++i) {
+      auto& translator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).translator();
+      models.emplace_back(translator.detach_model());
+    }
     return models;
   }
 
@@ -298,50 +347,18 @@ namespace ctranslate2 {
       throw std::invalid_argument("The number of models does not match the number "
                                   "of parallel translators");
 
-    for (size_t i = 0; i < num_translators(); ++i)
-      get_worker(i).translator().set_model(models[i]);
+    for (size_t i = 0; i < num_translators(); ++i) {
+      auto& translator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).translator();
+      translator.set_model(models[i]);
+    }
   }
 
   void TranslatorPool::clear_cache() const {
     for (size_t i = 0; i < num_translators(); ++i) {
-      auto* allocator = get_worker(i).allocator();
+      auto* allocator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).allocator();
       if (allocator)
         allocator->clear_cache();
     }
-  }
-
-  static thread_local Translator* local_translator = nullptr;
-
-  Translator* TranslatorPool::get_translator() {
-    return local_translator;
-  }
-
-
-  TranslatorPool::TranslatorWorker::TranslatorWorker(const std::shared_ptr<const models::Model>& model,
-                                                     size_t num_threads)
-    : _translator(model)
-    , _allocator(nullptr)
-    , _device(model->device())
-    , _num_threads(num_threads)
-  {
-  }
-
-  void TranslatorPool::TranslatorWorker::initialize() {
-    // Set the number of OpenMP threads for the current thread.
-    set_num_threads(_num_threads);
-
-    // Register the memory allocator used in this thread.
-    _allocator = &get_allocator(_device);
-
-    local_translator = &_translator;
-  }
-
-  void TranslatorPool::TranslatorWorker::finalize() {
-    // The CUDA context is destroyed when the thread exits, so we clear the translation
-    // resources now when the CUDA context is still active.
-    _translator.detach_model();
-
-    local_translator = nullptr;
   }
 
 

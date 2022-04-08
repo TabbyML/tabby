@@ -534,31 +534,6 @@ namespace ctranslate2 {
       output.flush();
     }
 
-    class TranslatorWorker : public Worker {
-    public:
-      TranslatorWorker(const std::shared_ptr<const models::Model>& model, size_t num_threads);
-
-      Translator& translator() {
-        return _translator;
-      }
-
-      Allocator* allocator() {
-        return _allocator;
-      }
-
-    protected:
-      void initialize() override;
-      void finalize() override;
-
-    private:
-      Translator _translator;
-      Allocator* _allocator;
-      const Device _device;
-      const size_t _num_threads;
-    };
-
-    TranslatorWorker& get_worker(size_t index) const;
-
     void create_translators(size_t num_translators_per_device,
                             size_t num_threads_per_translator,
                             models::ModelReader& model_reader,
