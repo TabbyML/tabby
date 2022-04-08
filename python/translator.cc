@@ -38,14 +38,29 @@ public:
   }
 };
 
-struct DeviceIndexResolver {
+class DeviceIndexResolver {
+public:
+  DeviceIndexResolver(size_t replicate_index = 1)
+    : _replicate_index(replicate_index)
+  {
+  }
+
   std::vector<int> operator()(int device_index) const {
-    return {device_index};
+    return std::vector<int>(_replicate_index, device_index);
   }
 
   std::vector<int> operator()(const std::vector<int>& device_index) const {
-    return device_index;
+    std::vector<int> index;
+    index.reserve(device_index.size() * _replicate_index);
+    for (const int device : device_index) {
+      for (size_t i = 0; i < _replicate_index; ++i)
+        index.emplace_back(device);
+    }
+    return index;
   }
+
+private:
+  const size_t _replicate_index;
 };
 
 using Tokens = std::vector<std::string>;
@@ -80,16 +95,6 @@ static BatchTokens finalize_optional_batch(const BatchTokensOptional& optional) 
     batch.emplace_back(tokens.value_or(Tokens()));
   }
   return batch;
-}
-
-static inline std::vector<int>
-get_translators_location(const ctranslate2::TranslatorPool& translator_pool) {
-  const size_t num_translators = translator_pool.num_translators();
-  std::vector<int> ids;
-  ids.reserve(num_translators);
-  for (size_t i = 0; i < num_translators; ++i)
-    ids.emplace_back(translator_pool.get_translator(i).device_index());
-  return ids;
 }
 
 
@@ -136,15 +141,15 @@ public:
                     long max_queued_batches)
     : _model_path(model_path)
     , _device(ctranslate2::str_to_device(device))
+    , _device_index(std::visit(DeviceIndexResolver(inter_threads), device_index))
     , _compute_type(std::visit(ComputeTypeResolver(device), compute_type))
-    , _translator_pool(inter_threads,
+    , _translator_pool(1,
                        intra_threads,
                        model_path,
                        _device,
-                       std::visit(DeviceIndexResolver(), device_index),
+                       _device_index,
                        _compute_type,
                        max_queued_batches)
-    , _device_index(get_translators_location(_translator_pool))
     , _model_is_loaded(true) {
   }
 
@@ -419,22 +424,11 @@ public:
     if (!lock || !_model_is_loaded)
       return;
 
-    const size_t num_translators = _translator_pool.num_translators();
+    _cached_models = _translator_pool.detach_models();
     if (to_cpu)
-      _cached_models.reserve(num_translators);
-
-    for (size_t i = 0; i < num_translators; ++i) {
-      const auto& translator = _translator_pool.get_translator(i);
-
-      {
-        const auto model = const_cast<ctranslate2::Translator&>(translator).detach_model();
-
-        if (to_cpu) {
-          const_cast<ctranslate2::models::Model&>(*model).set_device(ctranslate2::Device::CPU);
-          _cached_models.emplace_back(model);
-        }
-      }
-    }
+      move_cached_models(ctranslate2::Device::CPU, std::vector<int>(_cached_models.size(), 0));
+    else
+      _cached_models.clear();
 
     // We clear the CUDA allocator cache to further reduce the memory after unloading the model.
     if (_device == ctranslate2::Device::CUDA)
@@ -453,20 +447,11 @@ public:
                                                           _device,
                                                           _device_index,
                                                           _compute_type);
+    } else {
+      move_cached_models(_device, _device_index);
     }
 
-    for (size_t i = 0; i < _cached_models.size(); ++i) {
-      const auto& model = _cached_models[i];
-      const auto& translator = _translator_pool.get_translator(i);
-
-      // If the model was unloaded to the system memory, move it back to the initial device.
-      if (model->device() != _device)
-        const_cast<ctranslate2::models::Model&>(*model).set_device(_device, _device_index[i]);
-
-      // Reattach the model to the translator instance.
-      const_cast<ctranslate2::Translator&>(translator).set_model(model);
-    }
-
+    _translator_pool.set_models(_cached_models);
     _cached_models.clear();
     _model_is_loaded = true;
   }
@@ -474,10 +459,10 @@ public:
 private:
   const std::string _model_path;
   const ctranslate2::Device _device;
+  const std::vector<int> _device_index;
   const ctranslate2::ComputeType _compute_type;
 
   ctranslate2::TranslatorPool _translator_pool;
-  const std::vector<int> _device_index;
 
   std::vector<std::shared_ptr<const ctranslate2::models::Model>> _cached_models;
   bool _model_is_loaded;
@@ -490,6 +475,13 @@ private:
   void assert_model_is_ready() const {
     if (!_model_is_loaded)
       throw std::runtime_error("The model for this translator was unloaded");
+  }
+
+  void move_cached_models(ctranslate2::Device device, const std::vector<int>& device_index) {
+    for (size_t i = 0; i < _cached_models.size(); ++i) {
+      auto& model = const_cast<ctranslate2::models::Model&>(*_cached_models[i]);
+      model.set_device(device, device_index[i]);
+    }
   }
 };
 

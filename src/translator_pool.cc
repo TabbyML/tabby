@@ -285,8 +285,21 @@ namespace ctranslate2 {
     return static_cast<TranslatorWorker&>(_thread_pool->get_worker(index));
   }
 
-  const Translator& TranslatorPool::get_translator(size_t index) const {
-    return get_worker(index).translator();
+  std::vector<std::shared_ptr<const models::Model>> TranslatorPool::detach_models() {
+    std::vector<std::shared_ptr<const models::Model>> models;
+    models.reserve(num_translators());
+    for (size_t i = 0; i < num_translators(); ++i)
+      models.emplace_back(get_worker(i).translator().detach_model());
+    return models;
+  }
+
+  void TranslatorPool::set_models(const std::vector<std::shared_ptr<const models::Model>>& models) {
+    if (models.size() != num_translators())
+      throw std::invalid_argument("The number of models does not match the number "
+                                  "of parallel translators");
+
+    for (size_t i = 0; i < num_translators(); ++i)
+      get_worker(i).translator().set_model(models[i]);
   }
 
   void TranslatorPool::clear_cache() const {

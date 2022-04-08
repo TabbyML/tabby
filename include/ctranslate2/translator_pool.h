@@ -407,11 +407,13 @@ namespace ctranslate2 {
     size_t num_active_batches() const;
 
     size_t num_translators() const;
-    const Translator& get_translator(size_t index) const;
 
     // Return the translator local to the current thread.
     static Translator* get_translator();
 
+    // The methods below are not thread-safe.
+    std::vector<std::shared_ptr<const models::Model>> detach_models();
+    void set_models(const std::vector<std::shared_ptr<const models::Model>>& models);
     void clear_cache() const;
 
   private:
