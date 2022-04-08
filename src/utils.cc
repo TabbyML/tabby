@@ -158,4 +158,38 @@ namespace ctranslate2 {
     return text;
   }
 
+  std::vector<std::vector<std::vector<std::string>>>
+  extract_features(std::vector<std::vector<std::string>> batch,
+                   size_t num_features,
+                   const std::string& features_separator) {
+    std::vector<std::vector<std::vector<std::string>>> features;
+    features.resize(num_features);
+
+    if (num_features == 1) {
+      features[0] = std::move(batch);
+      return features;
+    }
+
+    for (const auto& tokens : batch) {
+      for (auto& stream : features) {
+        stream.emplace_back();
+        stream.back().reserve(tokens.size());
+      }
+
+      for (const auto& token : tokens) {
+        auto fields = split_string(token, features_separator);
+        if (fields.size() != num_features)
+          throw std::invalid_argument("Expected " + std::to_string(num_features)
+                                      + " input features, but token '" + token
+                                      + "' has " + std::to_string(fields.size())
+                                      + " features");
+
+        for (size_t i = 0; i < fields.size(); ++i)
+          features[i].back().emplace_back(std::move(fields[i]));
+      }
+    }
+
+    return features;
+  }
+
 }
