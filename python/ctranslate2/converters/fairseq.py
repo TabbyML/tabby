@@ -23,6 +23,7 @@ _SUPPORTED_ARCHS = {
     "transformer_wmt_en_de_big",
     "transformer_wmt_en_de_big_align",
     "transformer_wmt_en_de_big_t2t",
+    "multilingual_transformer_iwslt_de_en",
 }
 
 
