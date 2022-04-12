@@ -53,7 +53,8 @@ By default, the runtime tries to use the type that is saved in the converted mod
 | --- | --- | --- | --- | --- |
 | x86-64 (Intel) | int8 | int8 | int16 | float |
 | x86-64 (other) | int8 | int8 | int8 | float |
-| AArch64 | int8 | int8 | int8 | float |
+| AArch64/ARM64 (Apple) | float | float | float | float |
+| AArch64/ARM64 (other) | int8 | int8 | int8 | float |
 
 **On GPU:**
 
@@ -74,7 +75,7 @@ You can get more information about the detected capabilities of your system by s
 
 * NVIDIA GPU with Compute Capability >= 7.0 or Compute Capability 6.1
 * x86-64 CPU with the Intel MKL or oneDNN backends
-* AArch64 CPU with the Ruy backend
+* AArch64/ARM64 CPU with the Ruy backend
 
 The implementation applies the equation from [Wu et al. 2016](https://arxiv.org/abs/1609.08144) to compute the quantized weights:
 

@@ -28,7 +28,7 @@ The project is production-oriented and comes with [backward compatibility guaran
 
 * **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks thanks to many advanced optimizations: padding removal, batch reordering, in-place operations, caching mechanism, etc.
 * **Quantization and reduced precision**<br/>The model serialization and computation support weights with [reduced precision](docs/quantization.md): 16-bit floating points (FP16), 16-bit integers (INT16), and 8-bit integers (INT8).
-* **Multiple CPU architectures support**<br/>The project supports x86-64 and AArch64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), [Ruy](https://github.com/google/ruy), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
+* **Multiple CPU architectures support**<br/>The project supports x86-64 and AArch64/ARM64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), [Ruy](https://github.com/google/ruy), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
 * **Parallel and asynchronous translations**<br/>Translations can be run efficiently in parallel and asynchronously using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
@@ -147,7 +147,7 @@ pip install ctranslate2
 
 **Requirements:**
 
-* OS: Linux (x86-64, AArch64), macOS (x86-64), Windows (x86-64)
+* OS: Linux (x86-64, AArch64), macOS (x86-64, ARM64), Windows (x86-64)
 * Python version: >= 3.6
 * pip version: >= 19.3
 
@@ -558,7 +558,7 @@ However, you should probably **not** use this project when:
 **CPU**
 
 * x86-64 processors supporting at least SSE 4.1
-* AArch64 processors
+* AArch64/ARM64 processors
 
 On x86-64, prebuilt binaries are configured to automatically select the best backend and instruction set architecture for the platform (AVX, AVX2, or AVX512). In particular, they are compiled with both [Intel MKL](https://software.intel.com/en-us/mkl) and [oneDNN](https://github.com/oneapi-src/oneDNN) so that Intel MKL is only used on Intel processors where it performs best, whereas oneDNN is used on other x86-64 processors such as AMD.
 

@@ -161,7 +161,11 @@ macro(ct2_compile_kernels_for_isa isa flag)
   list(APPEND SOURCES ${CMAKE_CURRENT_BINARY_DIR}/kernels_${isa}.cc)
 endmacro()
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(amd64)|(AMD64)")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(aarch64)"
+    OR (APPLE AND CMAKE_OSX_ARCHITECTURES STREQUAL "arm64"))
+  add_definitions(-DCT2_ARM64_BUILD)
+  set(CT2_BUILD_ARCH "arm64")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(amd64)|(AMD64)")
   add_definitions(-DCT2_X86_BUILD)
   set(CT2_BUILD_ARCH "x86_64")
 
@@ -174,9 +178,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(amd64)|(AMD64)")
   add_subdirectory(third_party/cpu_features EXCLUDE_FROM_ALL)
   set(BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS_SAVED}")
   list(APPEND LIBRARIES cpu_features)
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(arm64)|(aarch64)")
-  add_definitions(-DCT2_ARM64_BUILD)
-  set(CT2_BUILD_ARCH "arm64")
 endif()
 
 if(ENABLE_CPU_DISPATCH)

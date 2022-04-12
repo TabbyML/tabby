@@ -102,13 +102,17 @@ namespace ctranslate2 {
     if (num_threads == 0)
       num_threads = read_int_from_env("OMP_NUM_THREADS", get_default_num_threads());
     omp_set_num_threads(num_threads);
-#else
-    (void)num_threads;
 #endif
+
 #ifdef CT2_WITH_RUY
     if (num_threads == 0)
       num_threads = get_default_num_threads();
     cpu::get_ruy_context()->set_max_num_threads(num_threads);
+#endif
+
+#if !defined(_OPENMP) && !defined(CT2_WITH_RUY)
+    if (num_threads > 0)
+      spdlog::warn("The number of threads (intra_threads) is ignored in this build");
 #endif
   }
 

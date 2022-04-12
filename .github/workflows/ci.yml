@@ -172,6 +172,8 @@ jobs:
         include:
         - os: ubuntu-20.04
           arch: aarch64
+        - os: macos-10.15
+          arch: arm64
 
     steps:
       - uses: actions/checkout@v2
@@ -190,6 +192,7 @@ jobs:
         env:
           CIBW_ENVIRONMENT_PASS_LINUX: CIBW_ARCHS
           CIBW_ENVIRONMENT_WINDOWS: CTRANSLATE2_ROOT='${{ github.workspace }}\install'
+          CIBW_ENVIRONMENT_MACOS: CTRANSLATE2_ROOT='/usr/local'
           CIBW_BEFORE_ALL_LINUX: python/tools/prepare_build_environment_linux.sh
           CIBW_BEFORE_ALL_MACOS: python/tools/prepare_build_environment_macos.sh
           CIBW_BEFORE_ALL_WINDOWS: bash python/tools/prepare_build_environment_windows.sh
