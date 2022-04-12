@@ -13,45 +13,26 @@ namespace ctranslate2 {
 
     class SequenceToSequenceModel : public Model {
     public:
-      const Vocabulary& get_source_vocabulary() const;
+      size_t num_source_vocabularies() const;
+      const Vocabulary& get_source_vocabulary(size_t index = 0) const;
       const Vocabulary& get_target_vocabulary() const;
       const VocabularyMap* get_vocabulary_map() const;
 
-      // Makes new graph to execute this model. Graphs returned by these function
-      // should support being executed in parallel without duplicating the model
-      // data (i.e. the weights).
-      virtual std::unique_ptr<layers::Encoder> make_encoder() const = 0;
-      virtual std::unique_ptr<layers::Decoder> make_decoder() const = 0;
+      bool with_source_bos() const {
+        return _with_source_bos;
+      }
 
-      void forward_encoder(layers::Encoder& encoder,
-                           const std::vector<std::vector<std::vector<std::string>>>& source,
-                           StorageView& memory,
-                           StorageView& memory_lengths) const;
+      bool with_source_eos() const {
+        return _with_source_eos;
+      }
 
-      void forward_decoder(layers::Decoder& decoder,
-                           layers::DecoderState& state,
-                           const std::vector<std::vector<std::string>>& target,
-                           StorageView& logits) const;
+      bool with_target_bos() const {
+        return _with_target_bos;
+      }
 
-      void forward(layers::Encoder& encoder,
-                   layers::Decoder& decoder,
-                   const std::vector<std::vector<std::vector<std::string>>>& source,
-                   const std::vector<std::vector<std::string>>& target,
-                   StorageView& logits) const;
-
-      std::vector<ScoringResult>
-      score(layers::Encoder& encoder,
-            layers::Decoder& decoder,
-            const std::vector<std::vector<std::string>>& source,
-            const std::vector<std::vector<std::string>>& target,
-            const ScoringOptions& options = ScoringOptions()) const;
-
-      std::vector<GenerationResult<std::string>>
-      translate(layers::Encoder& encoder,
-                layers::Decoder& decoder,
-                const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target_prefix = {},
-                const TranslationOptions& options = TranslationOptions()) const;
+      bool user_decoder_start_tokens() const {
+        return _user_decoder_start_tokens;
+      }
 
     protected:
       virtual void initialize(ModelReader& model_reader) override;
@@ -62,12 +43,70 @@ namespace ctranslate2 {
       std::unique_ptr<const VocabularyMap> _vocabulary_map;
 
       void load_vocabularies(ModelReader& model_reader);
-      const std::string* decoder_start_token() const;
 
       bool _with_source_bos = false;
       bool _with_source_eos = false;
       bool _with_target_bos = true;
       bool _user_decoder_start_tokens = false;
+    };
+
+
+    class SequenceToSequenceReplica : public ModelReplica {
+    public:
+      SequenceToSequenceReplica(const std::shared_ptr<const Model>& model)
+        : ModelReplica(model)
+      {
+      }
+
+      virtual std::vector<ScoringResult>
+      score(const std::vector<std::vector<std::string>>& source,
+            const std::vector<std::vector<std::string>>& target,
+            const ScoringOptions& options = ScoringOptions()) = 0;
+
+      virtual std::vector<TranslationResult>
+      translate(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target_prefix = {},
+                const TranslationOptions& options = TranslationOptions()) = 0;
+    };
+
+
+    class EncoderDecoderReplica : public SequenceToSequenceReplica {
+    public:
+      EncoderDecoderReplica(const std::shared_ptr<const SequenceToSequenceModel>& model,
+                            std::unique_ptr<layers::Encoder> encoder,
+                            std::unique_ptr<layers::Decoder> decoder);
+
+      layers::Encoder& encoder() {
+        return *_encoder;
+      }
+
+      layers::Decoder& decoder() {
+        return *_decoder;
+      }
+
+      std::vector<ScoringResult>
+      score(const std::vector<std::vector<std::string>>& source,
+            const std::vector<std::vector<std::string>>& target,
+            const ScoringOptions& options = ScoringOptions()) override;
+
+      std::vector<TranslationResult>
+      translate(const std::vector<std::vector<std::string>>& source,
+                const std::vector<std::vector<std::string>>& target_prefix = {},
+                const TranslationOptions& options = TranslationOptions()) override;
+
+    private:
+      std::vector<std::vector<size_t>>
+      make_source_ids(const std::vector<std::vector<std::string>>& source, size_t index) const;
+      std::vector<std::vector<size_t>>
+      make_target_ids(const std::vector<std::vector<std::string>>& target, bool partial) const;
+
+      void encode(const std::vector<std::vector<std::vector<std::string>>>& source,
+                  StorageView& memory,
+                  StorageView& memory_lengths);
+
+      const std::shared_ptr<const SequenceToSequenceModel> _model;
+      const std::unique_ptr<layers::Encoder> _encoder;
+      const std::unique_ptr<layers::Decoder> _decoder;
     };
 
   }

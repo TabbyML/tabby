@@ -129,6 +129,10 @@ namespace ctranslate2 {
     }
 
 
+    std::unique_ptr<SequenceToSequenceReplica> Model::as_sequence_to_sequence() const {
+      throw std::runtime_error("This model cannot be used as a sequence-to-sequence model");
+    }
+
     Model::~Model() {
       if (!_variable_index.empty()) {
         _variable_index.clear();

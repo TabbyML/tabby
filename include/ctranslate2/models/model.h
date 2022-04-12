@@ -14,8 +14,10 @@ namespace ctranslate2 {
     // Checks whether the provided path could contain a CTranslate2 model.
     bool contains_model(const std::string& path);
 
+    class SequenceToSequenceReplica;
+
     // Base class for models.
-    class Model {
+    class Model : public std::enable_shared_from_this<Model> {
     public:
       static std::shared_ptr<const Model> load(const std::string& path,
                                                Device device = Device::CPU,
@@ -29,6 +31,8 @@ namespace ctranslate2 {
                                                const std::string& device,
                                                int device_index,
                                                const std::string& compute_type);
+
+      virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
 
       virtual ~Model();
 
@@ -162,6 +166,25 @@ namespace ctranslate2 {
                   const std::vector<int>& device_indices,
                   const ComputeType compute_type,
                   const size_t num_replicas_per_device);
+
+    // Base class for replicas.
+    // A replica colocates runtime resources with a model instance.
+    class ModelReplica {
+    public:
+      virtual ~ModelReplica() = default;
+
+      ModelReplica(const std::shared_ptr<const Model>& model)
+        : _model(model)
+      {
+      }
+
+      const std::shared_ptr<const Model>& model() const {
+        return _model;
+      }
+
+    private:
+      const std::shared_ptr<const Model> _model;
+    };
 
   }
 }

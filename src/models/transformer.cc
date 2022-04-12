@@ -79,28 +79,30 @@ namespace ctranslate2 {
       _layernorm_embedding = get_flag_with_default("layernorm_embedding", false);
     }
 
-    std::unique_ptr<layers::Encoder> TransformerModel::make_encoder() const {
-      return std::make_unique<layers::TransformerEncoder>(*this,
-                                                          "encoder",
-                                                          _num_heads,
-                                                          !_with_relative_position,
-                                                          _pre_norm,
-                                                          _activation_type,
-                                                          _embeddings_merge,
-                                                          _layernorm_embedding);
-    }
+    std::unique_ptr<SequenceToSequenceReplica> TransformerModel::as_sequence_to_sequence() const {
+      const auto scoped_device_setter = get_scoped_device_setter();
 
-    std::unique_ptr<layers::Decoder> TransformerModel::make_decoder() const {
-      return std::make_unique<layers::TransformerDecoder>(*this,
-                                                          "decoder",
-                                                          _num_heads,
-                                                          !_with_relative_position,
-                                                          /*with_encoder_attention=*/true,
-                                                          _pre_norm,
-                                                          _activation_type,
-                                                          _alignment_layer,
-                                                          _alignment_heads,
-                                                          _layernorm_embedding);
+      auto encoder = std::make_unique<layers::TransformerEncoder>(*this,
+                                                                  "encoder",
+                                                                  _num_heads,
+                                                                  !_with_relative_position,
+                                                                  _pre_norm,
+                                                                  _activation_type,
+                                                                  _embeddings_merge,
+                                                                  _layernorm_embedding);
+      auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
+                                                                  "decoder",
+                                                                  _num_heads,
+                                                                  !_with_relative_position,
+                                                                  /*with_encoder_attention=*/true,
+                                                                  _pre_norm,
+                                                                  _activation_type,
+                                                                  _alignment_layer,
+                                                                  _alignment_heads,
+                                                                  _layernorm_embedding);
+
+      const auto model = std::static_pointer_cast<const TransformerModel>(shared_from_this());
+      return std::make_unique<EncoderDecoderReplica>(model, std::move(encoder), std::move(decoder));
     }
 
   }

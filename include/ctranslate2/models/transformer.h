@@ -1,7 +1,5 @@
 #pragma once
 
-// This file defines the execution engine for a TransformerSpec model.
-
 #include "sequence_to_sequence.h"
 
 #include "ctranslate2/ops/activation.h"
@@ -13,8 +11,7 @@ namespace ctranslate2 {
     public:
       TransformerModel(size_t num_heads = 0);
       size_t current_spec_revision() const override;
-      std::unique_ptr<layers::Encoder> make_encoder() const override;
-      std::unique_ptr<layers::Decoder> make_decoder() const override;
+      std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const override;
 
     protected:
       bool is_linear_weight(const std::string& variable_name) const override;

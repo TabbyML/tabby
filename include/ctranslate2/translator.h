@@ -60,7 +60,7 @@ namespace ctranslate2 {
     ComputeType compute_type() const;
 
     std::shared_ptr<const models::Model> get_model() const {
-      return _model;
+      return _replica ? _replica->model() : nullptr;
     }
 
     // Change the model while keeping the same device and compute type as the previous model.
@@ -74,9 +74,7 @@ namespace ctranslate2 {
   private:
     void assert_has_model() const;
 
-    std::shared_ptr<const models::SequenceToSequenceModel> _model;
-    std::unique_ptr<layers::Encoder> _encoder;
-    std::unique_ptr<layers::Decoder> _decoder;
+    std::unique_ptr<models::SequenceToSequenceReplica> _replica;
   };
 
 }
