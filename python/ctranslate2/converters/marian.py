@@ -113,9 +113,11 @@ def _load_vocab(path):
         tokens = []
         for i, line in enumerate(vocab):
             line = line.rstrip("\n\r")
+            if not line:
+                continue
             token, idx = line.rsplit(":", 1)
             try:
-                int(idx.strip())
+                idx = int(idx.strip())
             except ValueError as e:
                 raise ValueError(
                     "Unexpected format at line %d: '%s'" % (i + 1, line)
@@ -124,8 +126,11 @@ def _load_vocab(path):
                 # Unescape characters and remove quotes.
                 token = re.sub(r"\\(.)", r"\1", token)
                 token = token[1:-1]
-            tokens.append(token)
-        return tokens
+            elif token.startswith("'") and token.endswith("'"):
+                token = token[1:-1]
+                token = token.replace("''", "'")
+            tokens.append((idx, token))
+    return [token for _, token in sorted(tokens, key=lambda item: item[0])]
 
 
 def set_transformer_spec(spec, weights):
