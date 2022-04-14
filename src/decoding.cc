@@ -806,25 +806,63 @@ namespace ctranslate2 {
     return std::make_pair(std::move(start_ids), std::move(prefix_ids));
   }
 
+  static void validate_decoding_options(const DecodingOptions& options, bool with_vocabulary_map) {
+    if (options.beam_size == 0)
+      throw std::invalid_argument("The beam size must be > 0");
+    if (options.num_hypotheses == 0)
+      throw std::invalid_argument("The number of hypotheses must be > 0");
+    if (options.num_hypotheses > options.beam_size && !options.return_alternatives)
+      throw std::invalid_argument("The number of hypotheses cannot be greater than the beam size");
+    if (options.min_length > options.max_length)
+      throw std::invalid_argument("The minimum decoding length is greater than "
+                                  "the maximum decoding length");
+    if (options.max_length == 0)
+      throw std::invalid_argument("The maximum decoding length must be > 0");
+    if (options.repetition_penalty <= 0)
+      throw std::invalid_argument("The repetition penalty must be > 0");
+    if (options.repetition_penalty != 1 && with_vocabulary_map)
+      throw std::invalid_argument("The repetition penalty is currently not supported with "
+                                  "dynamic vocabulary reduction");
+    if (options.prefix_bias_beta >= 1)
+      throw std::invalid_argument("The beta value in biased decoding must be < 1");
+    if (options.prefix_bias_beta > 0 && options.return_alternatives)
+      throw std::invalid_argument("Biased decoding is not compatible with the return_alternatives "
+                                  "mode");
+    if (options.prefix_bias_beta > 0 && options.beam_size == 1)
+      throw std::invalid_argument("Biased decoding is not compatible with greedy search");
+  }
+
+  static std::unique_ptr<const Sampler>
+  make_sampler(const DecodingOptions& options) {
+    if (options.sampling_topk == 1)
+      return std::make_unique<BestSampler>();
+    else
+      return std::make_unique<RandomSampler>(options.sampling_topk, options.sampling_temperature);
+  }
+
+  static std::unique_ptr<const SearchStrategy>
+  make_search_strategy(const DecodingOptions& options) {
+    if (options.beam_size == 1)
+      return std::make_unique<GreedySearch>();
+    else
+      return std::make_unique<BeamSearch>(options.beam_size,
+                                          options.length_penalty,
+                                          options.coverage_penalty,
+                                          options.prefix_bias_beta,
+                                          options.allow_early_exit);
+  }
+
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
-         const SearchStrategy& search_strategy,
-         const Sampler& sampler,
          const std::vector<std::vector<size_t>>& start_tokens,
-         const std::vector<size_t>* output_ids_map,
          const size_t end_id,
-         dim_t max_length,
-         dim_t min_length,
-         const size_t num_hypotheses,
-         const bool return_alternatives,
-         const bool return_scores,
-         const bool return_attention,
-         const bool normalize_scores,
-         const float repetition_penalty) {
+         const DecodingOptions& options,
+         const std::vector<size_t>* output_ids_map) {
+    validate_decoding_options(options, output_ids_map);
     const size_t batch_size = start_tokens.size();
 
-    if (return_alternatives && batch_size > 1) {
+    if (options.return_alternatives && batch_size > 1) {
       // return_alternatives mode currently does not support batch decoding.
       std::vector<GenerationResult<size_t>> results;
       results.reserve(batch_size);
@@ -832,19 +870,10 @@ namespace ctranslate2 {
         layers::DecoderState batch_state = get_batch_state(state, i);
         results.emplace_back(decode(decoder,
                                     batch_state,
-                                    search_strategy,
-                                    sampler,
                                     {start_tokens[i]},
-                                    output_ids_map,
                                     end_id,
-                                    max_length,
-                                    min_length,
-                                    num_hypotheses,
-                                    return_alternatives,
-                                    return_scores,
-                                    return_attention,
-                                    normalize_scores,
-                                    repetition_penalty)[0]);
+                                    options,
+                                    output_ids_map)[0]);
       }
       return results;
     }
@@ -854,18 +883,20 @@ namespace ctranslate2 {
     std::tie(start_ids, prefix_ids) = split_start_tokens(start_tokens);
 
     dim_t start_step = 0;
+    dim_t min_length = options.min_length;
+    dim_t max_length = options.max_length;
 
     std::vector<GenerationResult<size_t>> expansion_results;
-    if (return_alternatives) {
+    if (options.return_alternatives) {
       std::vector<std::vector<std::vector<float>>> prefix_attention;
       if (!prefix_ids.empty()) {
-        if (return_attention)
+        if (options.return_attention)
           prefix_attention.resize(1);
         initialize_decoder_with_prefix(decoder,
                                        state,
                                        start_ids[0],
                                        prefix_ids[0],
-                                       return_attention ? &prefix_attention[0] : nullptr);
+                                       options.return_attention ? &prefix_attention[0] : nullptr);
         start_ids[0] = prefix_ids[0].back();
         const dim_t prefix_length = prefix_ids[0].size();
         start_step += prefix_length;
@@ -876,35 +907,35 @@ namespace ctranslate2 {
       // In this translation mode, we first expand the next "num_hypotheses" candidate words
       // before running the full decoding on each prefix. This is to ensure that we get unique
       // alternatives at this decoding position.
-      expansion_results = BeamSearch(num_hypotheses).search(decoder,
-                                                            state,
-                                                            BestSampler(),
-                                                            start_ids,
-                                                            end_id,
-                                                            start_step,
-                                                            /*max_length=*/1,
-                                                            /*min_length=*/1,
-                                                            output_ids_map,
-                                                            normalize_scores,
-                                                            return_scores,
-                                                            return_attention,
-                                                            num_hypotheses,
-                                                            /*repetition_penalty=*/1);
+      expansion_results = BeamSearch(options.num_hypotheses).search(decoder,
+                                                                    state,
+                                                                    BestSampler(),
+                                                                    start_ids,
+                                                                    end_id,
+                                                                    start_step,
+                                                                    /*max_length=*/1,
+                                                                    /*min_length=*/1,
+                                                                    output_ids_map,
+                                                                    options.normalize_scores,
+                                                                    options.return_scores,
+                                                                    options.return_attention,
+                                                                    options.num_hypotheses,
+                                                                    /*repetition_penalty=*/1);
 
-      start_ids.resize(batch_size * num_hypotheses);
+      start_ids.resize(batch_size * options.num_hypotheses);
       for (size_t b = 0; b < batch_size; ++b) {
         auto& result = expansion_results[b];
 
-        for (size_t i = 0; i < num_hypotheses; ++i) {
+        for (size_t i = 0; i < options.num_hypotheses; ++i) {
           // The next input is the words we just expanded.
-          start_ids[b * num_hypotheses + i] = result.hypotheses[i].back();
+          start_ids[b * options.num_hypotheses + i] = result.hypotheses[i].back();
 
           // Prepend expansion result with the prefix.
           if (!prefix_ids.empty()) {
             result.hypotheses[i].insert(result.hypotheses[i].begin(),
                                         prefix_ids[b].begin(),
                                         prefix_ids[b].end());
-            if (return_attention) {
+            if (options.return_attention) {
               result.attention[i].insert(result.attention[i].begin(),
                                          prefix_attention[b].begin(),
                                          prefix_attention[b].end());
@@ -918,31 +949,33 @@ namespace ctranslate2 {
       min_length = std::max(min_length - 1, dim_t(0));
     }
 
-    auto results = search_strategy.search(decoder,
-                                          state,
-                                          sampler,
-                                          start_ids,
-                                          end_id,
-                                          start_step,
-                                          max_length,
-                                          min_length,
-                                          output_ids_map,
-                                          normalize_scores,
-                                          return_scores,
-                                          return_attention,
-                                          return_alternatives ? 1 : num_hypotheses,
-                                          repetition_penalty,
-                                          return_alternatives ? nullptr : &prefix_ids);
+    const auto search_strategy = make_search_strategy(options);
+    const auto sampler = make_sampler(options);
+    auto results = search_strategy->search(decoder,
+                                           state,
+                                           *sampler,
+                                           start_ids,
+                                           end_id,
+                                           start_step,
+                                           max_length,
+                                           min_length,
+                                           output_ids_map,
+                                           options.normalize_scores,
+                                           options.return_scores,
+                                           options.return_attention,
+                                           options.return_alternatives ? 1 : options.num_hypotheses,
+                                           options.repetition_penalty,
+                                           options.return_alternatives ? nullptr : &prefix_ids);
 
-    if (return_alternatives) {
+    if (options.return_alternatives) {
       // Append to expansion results.
       for (size_t b = 0; b < batch_size; ++b) {
         auto& prefix = expansion_results[b];
-        for (size_t i = 0; i < num_hypotheses; ++i) {
-          auto& suffix = results[b * num_hypotheses + i];
+        for (size_t i = 0; i < options.num_hypotheses; ++i) {
+          auto& suffix = results[b * options.num_hypotheses + i];
 
           if (prefix.has_scores()) {
-            if (normalize_scores) {
+            if (options.normalize_scores) {
               const auto prefix_length = prefix.hypotheses[i].size();
               const auto suffix_length = suffix.hypotheses[0].size();
               prefix.scores[i] = (

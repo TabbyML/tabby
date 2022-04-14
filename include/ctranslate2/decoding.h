@@ -100,21 +100,31 @@ namespace ctranslate2 {
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
+
+  struct DecodingOptions {
+    size_t beam_size = 1;
+    float length_penalty = 0;
+    float coverage_penalty = 0;
+    float repetition_penalty = 1;
+    float prefix_bias_beta = 0;
+    bool allow_early_exit = true;
+    size_t max_length = 256;
+    size_t min_length = 0;
+    size_t sampling_topk = 1;
+    float sampling_temperature = 1;
+    size_t num_hypotheses = 1;
+    bool normalize_scores = false;
+    bool return_scores = false;
+    bool return_attention = false;
+    bool return_alternatives = false;
+  };
+
   std::vector<GenerationResult<size_t>>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
-         const SearchStrategy& search_strategy,
-         const Sampler& sampler,
          const std::vector<std::vector<size_t>>& start_tokens,
-         const std::vector<size_t>* output_ids_map,
          const size_t end_id,
-         dim_t max_length,
-         dim_t min_length,
-         const size_t num_hypotheses,
-         const bool return_alternatives,
-         const bool return_scores,
-         const bool return_attention,
-         const bool normalize_scores,
-         const float repetition_penalty);
+         const DecodingOptions& options = DecodingOptions(),
+         const std::vector<size_t>* output_ids_map = nullptr);
 
 }

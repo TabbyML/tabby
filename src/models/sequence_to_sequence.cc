@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "ctranslate2/decoding.h"
+
 namespace ctranslate2 {
   namespace models {
 
@@ -200,8 +202,6 @@ namespace ctranslate2 {
     EncoderDecoderReplica::translate(const std::vector<std::vector<std::string>>& source,
                                      const std::vector<std::vector<std::string>>& target_prefix,
                                      const TranslationOptions& options) {
-      options.validate();
-
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto device = _model->device();
       PROFILE("EncoderDecoderReplica::translate");
@@ -267,22 +267,29 @@ namespace ctranslate2 {
       const auto start_ids = make_target_ids(target_prefix_inputs, /*partial=*/true);
       const size_t end_id = target_vocabulary.eos_id();
 
-      std::vector<GenerationResult<size_t>> results = decode(
-        *_decoder,
-        state,
-        *options.make_search_strategy(),
-        *options.make_sampler(),
-        start_ids,
-        output_ids_map,
-        end_id,
-        options.max_decoding_length,
-        options.min_decoding_length,
-        options.num_hypotheses,
-        options.return_alternatives,
-        options.return_scores,
-        options.return_attention || options.replace_unknowns,
-        options.normalize_scores,
-        options.repetition_penalty);
+      DecodingOptions decoding_options;
+      decoding_options.beam_size = options.beam_size;
+      decoding_options.length_penalty = options.length_penalty;
+      decoding_options.coverage_penalty = options.coverage_penalty;
+      decoding_options.repetition_penalty = options.repetition_penalty;
+      decoding_options.prefix_bias_beta = options.prefix_bias_beta;
+      decoding_options.allow_early_exit = options.allow_early_exit;
+      decoding_options.max_length = options.max_decoding_length;
+      decoding_options.min_length = options.min_decoding_length;
+      decoding_options.sampling_topk = options.sampling_topk;
+      decoding_options.sampling_temperature = options.sampling_temperature;
+      decoding_options.num_hypotheses = options.num_hypotheses;
+      decoding_options.normalize_scores = options.normalize_scores;
+      decoding_options.return_scores = options.return_scores;
+      decoding_options.return_attention = options.return_attention || options.replace_unknowns;
+      decoding_options.return_alternatives = options.return_alternatives;
+
+      std::vector<GenerationResult<size_t>> results = decode(*_decoder,
+                                                             state,
+                                                             start_ids,
+                                                             end_id,
+                                                             decoding_options,
+                                                             output_ids_map);
 
       // Convert generated ids to tokens.
       for (size_t i = 0; i < batch_size; ++i) {

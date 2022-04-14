@@ -139,7 +139,6 @@ set(SOURCES
   src/scoring.cc
   src/storage_view.cc
   src/thread_pool.cc
-  src/translation.cc
   src/translator.cc
   src/translator_pool.cc
   src/types.cc

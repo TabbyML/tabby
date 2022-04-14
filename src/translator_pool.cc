@@ -388,7 +388,6 @@ namespace ctranslate2 {
   TranslatorPool::TranslationJobCreator::TranslationJobCreator(TranslationOptions options)
     : _options(std::move(options))
   {
-    _options.validate();
   }
 
   std::unique_ptr<BatchJob<TranslationResult>>

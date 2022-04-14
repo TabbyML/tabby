@@ -1,6 +1,6 @@
 #pragma once
 
-#include "decoding.h"
+#include "generation_result.h"
 
 namespace ctranslate2 {
 
@@ -65,11 +65,6 @@ namespace ctranslate2 {
 
     // Replace unknown target tokens by the original source token with the highest attention.
     bool replace_unknowns = false;
-
-    void validate() const;
-
-    std::unique_ptr<const Sampler> make_sampler() const;
-    std::unique_ptr<const SearchStrategy> make_search_strategy() const;
   };
 
 }

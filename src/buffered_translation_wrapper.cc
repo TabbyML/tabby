@@ -13,7 +13,6 @@ namespace ctranslate2 {
     , _max_buffer_size(max_buffer_size == 0 ? max_batch_size : max_buffer_size)
     , _buffer_timeout(buffer_timeout_in_micros)
   {
-    _options.validate();
     _background_thread = std::make_unique<std::thread>(&BufferedTranslationWrapper::buffer_loop,
                                                        this);
   }
