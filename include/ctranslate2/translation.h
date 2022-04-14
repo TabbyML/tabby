@@ -1,10 +1,10 @@
 #pragma once
 
-#include "generation_result.h"
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace ctranslate2 {
-
-  using TranslationResult = GenerationResult<std::string>;
 
   struct TranslationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
@@ -65,6 +65,63 @@ namespace ctranslate2 {
 
     // Replace unknown target tokens by the original source token with the highest attention.
     bool replace_unknowns = false;
+  };
+
+  struct TranslationResult {
+    std::vector<std::vector<std::string>> hypotheses;
+    std::vector<float> scores;
+    std::vector<std::vector<std::vector<float>>> attention;
+
+    TranslationResult(std::vector<std::vector<std::string>> hypotheses_)
+      : hypotheses(std::move(hypotheses_))
+    {
+    }
+
+    TranslationResult(std::vector<std::vector<std::string>> hypotheses_,
+                      std::vector<float> scores_,
+                      std::vector<std::vector<std::vector<float>>> attention_)
+      : hypotheses(std::move(hypotheses_))
+      , scores(std::move(scores_))
+      , attention(std::move(attention_))
+    {
+    }
+
+    // Construct an empty result.
+    TranslationResult(const size_t num_hypotheses,
+                      const bool with_attention,
+                      const bool with_score)
+      : hypotheses(num_hypotheses)
+      , scores(with_score ? num_hypotheses : 0, static_cast<float>(0))
+      , attention(with_attention ? num_hypotheses : 0)
+    {
+    }
+
+    // Construct an uninitialized result.
+    TranslationResult() = default;
+
+    const std::vector<std::string>& output() const {
+      if (hypotheses.empty())
+        throw std::runtime_error("This result is empty");
+      return hypotheses[0];
+    }
+
+    float score() const {
+      if (scores.empty())
+        throw std::runtime_error("This result has no scores");
+      return scores[0];
+    }
+
+    size_t num_hypotheses() const {
+      return hypotheses.size();
+    }
+
+    bool has_scores() const {
+      return !scores.empty();
+    }
+
+    bool has_attention() const {
+      return !attention.empty();
+    }
   };
 
 }

@@ -4,14 +4,20 @@
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/sampling.h"
 #include "ctranslate2/storage_view.h"
-#include "ctranslate2/generation_result.h"
 
 namespace ctranslate2 {
+
+  struct DecodingResult {
+    std::vector<std::vector<size_t>> hypotheses;
+    std::vector<float> scores;
+    std::vector<std::vector<std::vector<float>>> attention;
+  };
+
 
   class SearchStrategy {
   public:
     virtual ~SearchStrategy() = default;
-    virtual std::vector<GenerationResult<size_t>>
+    virtual std::vector<DecodingResult>
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
@@ -37,7 +43,7 @@ namespace ctranslate2 {
                const float prefix_bias_beta = 0,
                const bool early_exit = true);
 
-    std::vector<GenerationResult<size_t>>
+    std::vector<DecodingResult>
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
@@ -82,7 +88,7 @@ namespace ctranslate2 {
 
   class GreedySearch : public SearchStrategy {
   public:
-    std::vector<GenerationResult<size_t>>
+    std::vector<DecodingResult>
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
            const Sampler& sampler,
@@ -119,7 +125,7 @@ namespace ctranslate2 {
     bool return_alternatives = false;
   };
 
-  std::vector<GenerationResult<size_t>>
+  std::vector<DecodingResult>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
          const std::vector<std::vector<size_t>>& start_tokens,

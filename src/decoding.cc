@@ -230,11 +230,10 @@ namespace ctranslate2 {
   }
 
   // Sort hypotheses from best to worst score, in the limit of max_hypotheses.
-  template <typename T>
-  static inline void sort_hypotheses(GenerationResult<T>& result,
+  static inline void sort_hypotheses(DecodingResult& result,
                                      size_t max_hypotheses,
                                      bool keep_scores) {
-    std::vector<size_t> idx(result.num_hypotheses());
+    std::vector<size_t> idx(result.hypotheses.size());
     std::iota(idx.begin(), idx.end(), 0);
     std::sort(idx.begin(), idx.end(),
               [&result](size_t i1, size_t i2) { return result.scores[i1] > result.scores[i2]; });
@@ -247,7 +246,7 @@ namespace ctranslate2 {
       result.scores = index_vector(result.scores, idx);
     else
       result.scores.clear();
-    if (result.has_attention())
+    if (!result.attention.empty())
       result.attention = index_vector(result.attention, idx);
   }
 
@@ -360,7 +359,7 @@ namespace ctranslate2 {
   {
   }
 
-  std::vector<GenerationResult<size_t>>
+  std::vector<DecodingResult>
   BeamSearch::search(layers::Decoder& decoder,
                      layers::DecoderState& state,
                      const Sampler& sampler,
@@ -389,7 +388,7 @@ namespace ctranslate2 {
 
     std::vector<bool> top_beam_finished(batch_size, false);
     std::vector<dim_t> batch_offset(batch_size);
-    std::vector<GenerationResult<size_t>> results(batch_size);
+    std::vector<DecodingResult> results(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       topk_ids.at<int32_t>(i) = start_ids[i];
@@ -542,8 +541,8 @@ namespace ctranslate2 {
 
         const bool is_finished = (
           _early_exit
-          ? top_beam_finished[i] && result.num_hypotheses() >= num_hypotheses
-          : result.num_hypotheses() >= static_cast<size_t>(_beam_size));
+          ? top_beam_finished[i] && result.hypotheses.size() >= num_hypotheses
+          : result.hypotheses.size() >= static_cast<size_t>(_beam_size));
 
         if (is_finished) {
           sort_hypotheses(result, num_hypotheses, return_scores);
@@ -605,7 +604,7 @@ namespace ctranslate2 {
     return results;
   }
 
-  std::vector<GenerationResult<size_t>>
+  std::vector<DecodingResult>
   GreedySearch::search(layers::Decoder& decoder,
                        layers::DecoderState& state,
                        const Sampler& sampler,
@@ -631,12 +630,15 @@ namespace ctranslate2 {
 
     StorageView logits(dtype, device);
     std::vector<dim_t> batch_offset(batch_size);
-    std::vector<GenerationResult<size_t>> results;
-    results.reserve(batch_size);
+    std::vector<DecodingResult> results(batch_size);
     for (dim_t i = 0; i < batch_size; ++i) {
       batch_offset[i] = i;
       sample_from.at<int32_t>(i) = start_ids[i];
-      results.emplace_back(/*num_hypotheses=*/1, return_attention, return_scores);
+      results[i].hypotheses.resize(1);
+      if (return_scores)
+        results[i].scores.resize(1, 0.f);
+      if (return_attention)
+        results[i].attention.resize(1);
     }
 
     StorageView best_ids(DataType::INT32);
@@ -852,7 +854,7 @@ namespace ctranslate2 {
                                           options.allow_early_exit);
   }
 
-  std::vector<GenerationResult<size_t>>
+  std::vector<DecodingResult>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
          const std::vector<std::vector<size_t>>& start_tokens,
@@ -864,7 +866,7 @@ namespace ctranslate2 {
 
     if (options.return_alternatives && batch_size > 1) {
       // return_alternatives mode currently does not support batch decoding.
-      std::vector<GenerationResult<size_t>> results;
+      std::vector<DecodingResult> results;
       results.reserve(batch_size);
       for (size_t i = 0; i < batch_size; ++i) {
         layers::DecoderState batch_state = get_batch_state(state, i);
@@ -886,7 +888,7 @@ namespace ctranslate2 {
     dim_t min_length = options.min_length;
     dim_t max_length = options.max_length;
 
-    std::vector<GenerationResult<size_t>> expansion_results;
+    std::vector<DecodingResult> expansion_results;
     if (options.return_alternatives) {
       std::vector<std::vector<std::vector<float>>> prefix_attention;
       if (!prefix_ids.empty()) {
@@ -974,7 +976,7 @@ namespace ctranslate2 {
         for (size_t i = 0; i < options.num_hypotheses; ++i) {
           auto& suffix = results[b * options.num_hypotheses + i];
 
-          if (prefix.has_scores()) {
+          if (!prefix.scores.empty()) {
             if (options.normalize_scores) {
               const auto prefix_length = prefix.hypotheses[i].size();
               const auto suffix_length = suffix.hypotheses[0].size();
@@ -989,7 +991,7 @@ namespace ctranslate2 {
           prefix.hypotheses[i].insert(prefix.hypotheses[i].end(),
                                       std::make_move_iterator(suffix.hypotheses[0].begin()),
                                       std::make_move_iterator(suffix.hypotheses[0].end()));
-          if (prefix.has_attention())
+          if (!prefix.attention.empty())
             prefix.attention[i].insert(prefix.attention[i].end(),
                                        std::make_move_iterator(suffix.attention[0].begin()),
                                        std::make_move_iterator(suffix.attention[0].end()));
@@ -1000,10 +1002,10 @@ namespace ctranslate2 {
 
     // Remove EOS token.
     for (auto& result : results) {
-      for (size_t i = 0; i < result.num_hypotheses(); ++i) {
+      for (size_t i = 0; i < result.hypotheses.size(); ++i) {
         while (result.hypotheses[i].back() == end_id) {
           result.hypotheses[i].pop_back();
-          if (result.has_attention())
+          if (!result.attention.empty())
             result.attention[i].pop_back();
         }
       }

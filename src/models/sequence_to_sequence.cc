@@ -284,20 +284,20 @@ namespace ctranslate2 {
       decoding_options.return_attention = options.return_attention || options.replace_unknowns;
       decoding_options.return_alternatives = options.return_alternatives;
 
-      std::vector<GenerationResult<size_t>> results = decode(*_decoder,
-                                                             state,
-                                                             start_ids,
-                                                             end_id,
-                                                             decoding_options,
-                                                             output_ids_map);
+      std::vector<DecodingResult> results = decode(*_decoder,
+                                                   state,
+                                                   start_ids,
+                                                   end_id,
+                                                   decoding_options,
+                                                   output_ids_map);
 
       // Convert generated ids to tokens.
       for (size_t i = 0; i < batch_size; ++i) {
         const size_t original_index = non_empty_index[i];
-        GenerationResult<size_t>& result = results[i];
+        DecodingResult& result = results[i];
         auto hypotheses = target_vocabulary.to_tokens(result.hypotheses);
 
-        if (result.has_attention()) {
+        if (!result.attention.empty()) {
           // Remove padding and special tokens in attention vectors.
           const size_t offset = size_t(_model->with_source_bos());
           const auto& source_original = source[original_index];
