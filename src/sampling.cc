@@ -71,13 +71,19 @@ namespace ctranslate2 {
       final_scores = &scaled_scores;
     }
 
-    // Convert scores to probabilities.
-    StorageView probs(dtype, device);
-    ops::SoftMax()(*final_scores, probs);
-
-    // Generate samples.
-    const ops::Multinomial multinomial_op(num_samples);
-    multinomial_op(probs, sampled_ids);
+    // The current Multinomial operator samples with replacement. We can use it when
+    // only 1 sample should be returned, otherwise we use the Gumbel-max trick.
+    if (num_samples > 1) {
+      StorageView log_probs(dtype, device);
+      ops::LogSoftMax()(*final_scores, log_probs);
+      const ops::GumbelMax gumbel_max_op(num_samples);
+      gumbel_max_op(log_probs, sampled_ids);
+    } else {
+      StorageView probs(dtype, device);
+      ops::SoftMax()(*final_scores, probs);
+      const ops::Multinomial multinomial_op(num_samples);
+      multinomial_op(probs, sampled_ids);
+    }
 
     if (top_ids)  // Return ids relative to the initial distribution.
       ops::Gather(-1, top_ids.rank() - 1)(top_ids, sampled_ids, sampled_ids);

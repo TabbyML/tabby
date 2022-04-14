@@ -5,6 +5,7 @@
 namespace ctranslate2 {
   namespace ops {
 
+    // Implements multinomial sampling with replacement.
     class Multinomial : public UnaryOp {
     public:
       Multinomial(dim_t sample_size = 1);

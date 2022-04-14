@@ -107,6 +107,8 @@ set(SOURCES
   src/ops/gather_cpu.cc
   src/ops/gelu.cc
   src/ops/gemm.cc
+  src/ops/gumbel_max.cc
+  src/ops/gumbel_max_cpu.cc
   src/ops/layer_norm.cc
   src/ops/layer_norm_cpu.cc
   src/ops/log.cc
@@ -425,11 +427,13 @@ if (WITH_CUDA)
     ${SOURCES}
     src/cuda/allocator.cc
     src/cuda/primitives.cu
+    src/cuda/random.cu
     src/cuda/utils.cc
     src/ops/bias_add_gpu.cu
     src/ops/concat_split_gpu.cu
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu
+    src/ops/gumbel_max_gpu.cu
     src/ops/layer_norm_gpu.cu
     src/ops/mean_gpu.cu
     src/ops/multinomial_gpu.cu

@@ -105,7 +105,7 @@ results = translator.translate_batch(
     return_scores: bool = False,       # Include the prediction scores in the output.
     return_attention: bool = False,    # Include the attention vectors in the output.
     return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
-    sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates (with beam_size=1).
+    sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates.
     sampling_temperature: float = 1,   # Sampling temperature to generate more random samples.
     replace_unknowns: bool = False,    # Replace unknown target tokens by the source token with the highest attention.
 )

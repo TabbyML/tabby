@@ -9,8 +9,6 @@ namespace ctranslate2 {
       throw std::invalid_argument("beam_size must be > 0");
     if (num_hypotheses > beam_size && !return_alternatives)
       throw std::invalid_argument("The number of hypotheses can not be greater than the beam size");
-    if (sampling_topk != 1 && beam_size != 1)
-      throw std::invalid_argument("Random sampling should be used with beam_size = 1");
     if (min_decoding_length > max_decoding_length)
       throw std::invalid_argument("min_decoding_length is greater than max_decoding_length");
     if (max_decoding_length == 0)

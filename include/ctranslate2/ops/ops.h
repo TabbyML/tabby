@@ -9,6 +9,7 @@
 #include "gather.h"
 #include "gelu.h"
 #include "gemm.h"
+#include "gumbel_max.h"
 #include "identity.h"
 #include "layer_norm.h"
 #include "matmul.h"

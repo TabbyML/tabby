@@ -39,8 +39,7 @@ namespace ctranslate2 {
     size_t max_decoding_length = 256;
     size_t min_decoding_length = 1;
 
-    // Randomly sample from the top K candidates (not compatible with beam search, set to 0
-    // to sample from the full output distribution).
+    // Randomly sample from the top K candidates (set 0 to sample from the full output distribution).
     size_t sampling_topk = 1;
     // High temperature increase randomness.
     float sampling_temperature = 1;
