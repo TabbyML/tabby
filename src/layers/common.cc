@@ -96,16 +96,10 @@ namespace ctranslate2 {
       if (compat_mode) {
         _layers.emplace_back(std::make_unique<Embeddings>(model, scope));
       } else {
-        for (size_t i = 0;; ++i) {
-          const std::string layer_scope = scope + "_" + std::to_string(i);
-          try {
-            _layers.emplace_back(std::make_unique<Embeddings>(model, layer_scope));
-          } catch (...) {
-            if (i == 0)
-              throw;
-            else
-              break;
-          }
+        const std::string layer_prefix = scope + "_";
+        for (size_t i = 0; i < model.count_layers(layer_prefix); ++i) {
+          const std::string layer_scope = layer_prefix + std::to_string(i);
+          _layers.emplace_back(std::make_unique<Embeddings>(model, layer_scope));
         }
       }
     }

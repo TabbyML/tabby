@@ -174,21 +174,15 @@ namespace ctranslate2 {
       , _output_norm(pre_norm
                      ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
                      : nullptr) {
-      for (size_t l = 0;; ++l) {
-        const std::string layer_scope = scope + "/layer_" + std::to_string(l);
-        try {
-          auto layer = std::make_unique<TransformerEncoderLayer>(model,
-                                                                 layer_scope,
-                                                                 num_heads,
-                                                                 pre_norm,
-                                                                 activation_type);
-          _layers.emplace_back(std::move(layer));
-        } catch (std::exception&) {
-          if (l == 0)
-            throw;
-          else
-            break;
-        }
+      const std::string layer_prefix = scope + "/layer_";
+      for (size_t l = 0; l < model.count_layers(layer_prefix); ++l) {
+        const std::string layer_scope = layer_prefix + std::to_string(l);
+        auto layer = std::make_unique<TransformerEncoderLayer>(model,
+                                                               layer_scope,
+                                                               num_heads,
+                                                               pre_norm,
+                                                               activation_type);
+        _layers.emplace_back(std::move(layer));
       }
     }
 
@@ -258,22 +252,16 @@ namespace ctranslate2 {
                      ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
                      : nullptr)
       , _proj(model, scope + "/projection") {
-      for (size_t l = 0;; ++l) {
-        const std::string layer_scope = scope + "/layer_" + std::to_string(l);
-        try {
-          auto layer = std::make_unique<TransformerDecoderLayer>(model,
-                                                                 layer_scope,
-                                                                 num_heads,
-                                                                 with_encoder_attention,
-                                                                 pre_norm,
-                                                                 activation_type);
-          _layers.emplace_back(std::move(layer));
-        } catch (std::exception&) {
-          if (l == 0)
-            throw;
-          else
-            break;
-        }
+      const std::string layer_prefix = scope + "/layer_";
+      for (size_t l = 0; l < model.count_layers(layer_prefix); ++l) {
+        const std::string layer_scope = layer_prefix + std::to_string(l);
+        auto layer = std::make_unique<TransformerDecoderLayer>(model,
+                                                               layer_scope,
+                                                               num_heads,
+                                                               with_encoder_attention,
+                                                               pre_norm,
+                                                               activation_type);
+        _layers.emplace_back(std::move(layer));
       }
 
       _alignment_layer = (alignment_layer < 0 ? _layers.size() + alignment_layer : alignment_layer);
