@@ -7,23 +7,11 @@ from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
 
 
-_SUPPORTED_ARCHS = {
-    "bart_base",
-    "bart_large",
-    "mbart_base",
-    "mbart_base_wmt20",
-    "mbart_large",
+_SUPPORTED_MODELS = {
+    "bart",
+    "multilingual_transformer",
     "transformer",
     "transformer_align",
-    "transformer_iwslt_de_en",
-    "transformer_tiny",
-    "transformer_vaswani_wmt_en_de_big",
-    "transformer_vaswani_wmt_en_fr_big",
-    "transformer_wmt_en_de",
-    "transformer_wmt_en_de_big",
-    "transformer_wmt_en_de_big_align",
-    "transformer_wmt_en_de_big_t2t",
-    "multilingual_transformer_iwslt_de_en",
 }
 
 
@@ -37,13 +25,16 @@ _SUPPORTED_ACTIVATIONS = {
 
 
 def _get_model_spec(args):
+    import fairseq
+
     activation_fn = getattr(args, "activation_fn", "relu")
+    model_name = fairseq.models.ARCH_MODEL_NAME_REGISTRY[args.arch]
 
     check = utils.ConfigurationChecker()
     check(
-        args.arch in _SUPPORTED_ARCHS,
-        "Option --arch %s is not supported (supported architectures are: %s)"
-        % (args.arch, ", ".join(_SUPPORTED_ARCHS)),
+        model_name in _SUPPORTED_MODELS,
+        "Model '%s' used by architecture '%s' is not supported (supported models are: %s)"
+        % (model_name, args.arch, ", ".join(_SUPPORTED_MODELS)),
     )
     check(
         args.encoder_normalize_before == args.decoder_normalize_before,
@@ -96,6 +87,7 @@ class FairseqConverter(Converter):
         target_lang=None,
         fixed_dictionary=None,
         no_default_special_tokens=False,
+        user_dir=None,
     ):
         self._model_path = model_path
         self._data_dir = data_dir
@@ -103,11 +95,17 @@ class FairseqConverter(Converter):
         self._source_lang = source_lang
         self._target_lang = target_lang
         self._no_default_special_tokens = no_default_special_tokens
+        self._user_dir = user_dir
 
     def _load(self):
         import torch
         import fairseq
         from fairseq import checkpoint_utils
+
+        if self._user_dir:
+            from fairseq.utils import import_user_module
+
+            import_user_module(argparse.Namespace(user_dir=self._user_dir))
 
         with torch.no_grad():
             checkpoint = checkpoint_utils.load_checkpoint_to_cpu(self._model_path)
@@ -250,6 +248,10 @@ def main():
         help="Data directory containing the source and target vocabularies.",
     )
     parser.add_argument(
+        "--user_dir",
+        help="Directory containing custom extensions.",
+    )
+    parser.add_argument(
         "--fixed_dictionary",
         help="Fixed dictionary for multilingual models.",
     )
@@ -278,6 +280,7 @@ def main():
         target_lang=args.target_lang,
         fixed_dictionary=args.fixed_dictionary,
         no_default_special_tokens=args.no_default_special_tokens,
+        user_dir=args.user_dir,
     )
     converter.convert_from_args(args)
 
