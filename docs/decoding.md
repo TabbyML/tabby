@@ -1,6 +1,6 @@
 # Decoding
 
-This page describes CTranslate2 decoding features. The Python API is used for demonstration but all features are also supported with the C++ API.
+This page describes CTranslate2 decoding features. The text translation API is used for demonstration but most features are also available for text generation.
 
 The examples use the following symbols that are left unspecified:
 

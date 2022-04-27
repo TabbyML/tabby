@@ -15,6 +15,7 @@ namespace ctranslate2 {
     bool contains_model(const std::string& path);
 
     class SequenceToSequenceReplica;
+    class SequenceGeneratorReplica;
 
     // Base class for models.
     class Model : public std::enable_shared_from_this<Model> {
@@ -33,6 +34,7 @@ namespace ctranslate2 {
                                                const std::string& compute_type);
 
       virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
+      virtual std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const;
 
       virtual ~Model();
 

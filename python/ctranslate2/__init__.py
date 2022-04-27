@@ -16,6 +16,12 @@ if sys.platform == "win32":
         ctypes.CDLL(os.path.join(package_dir, "%s.dll" % library))
 
 try:
+    from ctranslate2.translator import AsyncGenerationResult
+    from ctranslate2.translator import AsyncTranslationResult
+    from ctranslate2.translator import GenerationResult
+    from ctranslate2.translator import Generator
+    from ctranslate2.translator import TranslationResult
+    from ctranslate2.translator import TranslationStats
     from ctranslate2.translator import Translator
     from ctranslate2.translator import contains_model
     from ctranslate2.translator import get_cuda_device_count

@@ -133,6 +133,10 @@ namespace ctranslate2 {
       throw std::runtime_error("This model cannot be used as a sequence-to-sequence model");
     }
 
+    std::unique_ptr<SequenceGeneratorReplica> Model::as_sequence_generator() const {
+      throw std::runtime_error("This model cannot be used as a sequence generator");
+    }
+
     Model::~Model() {
       if (!_variable_index.empty()) {
         _variable_index.clear();
@@ -438,6 +442,8 @@ namespace ctranslate2 {
 
       if (spec == "TransformerSpec")
         return std::make_shared<TransformerModel>();
+      else if (spec == "TransformerDecoderSpec")
+        return std::make_shared<TransformerDecoderModel>();
       else if (spec == "TransformerBase" || spec.empty())
         return std::make_shared<TransformerModel>(/*num_heads=*/8);
       else if (spec == "TransformerBig")

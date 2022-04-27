@@ -9,6 +9,7 @@
 #include <pybind11/stl.h>
 
 #include <ctranslate2/translator_pool.h>
+#include <ctranslate2/generator_pool.h>
 #include <ctranslate2/random.h>
 
 namespace py = pybind11;
@@ -485,6 +486,128 @@ private:
   }
 };
 
+
+class GeneratorWrapper {
+public:
+  GeneratorWrapper(const std::string& model_path,
+                   const std::string& device,
+                   const std::variant<int, std::vector<int>>& device_index,
+                   const StringOrMap& compute_type,
+                   size_t inter_threads,
+                   size_t intra_threads,
+                   long max_queued_batches)
+    : _device(ctranslate2::str_to_device(device))
+    , _device_index(std::visit(DeviceIndexResolver(inter_threads), device_index))
+    , _generator_pool(1,
+                      intra_threads,
+                      model_path,
+                      _device,
+                      _device_index,
+                      std::visit(ComputeTypeResolver(device), compute_type),
+                      max_queued_batches)
+  {
+  }
+
+  std::string device() const {
+    return ctranslate2::device_to_str(_device);
+  }
+
+  const std::vector<int>& device_index() const {
+    return _device_index;
+  }
+
+  size_t num_generators() const {
+    return _generator_pool.num_replicas();
+  }
+
+  size_t num_queued_batches() const {
+    return _generator_pool.num_queued_batches();
+  }
+
+  size_t num_active_batches() const {
+    return _generator_pool.num_active_batches();
+  }
+
+  std::variant<std::vector<ctranslate2::GenerationResult>,
+               std::vector<AsyncResult<ctranslate2::GenerationResult>>>
+  generate_batch(const BatchTokens& tokens,
+                 size_t max_batch_size,
+                 const std::string& batch_type_str,
+                 bool asynchronous,
+                 size_t beam_size,
+                 size_t num_hypotheses,
+                 float length_penalty,
+                 float repetition_penalty,
+                 bool disable_unk,
+                 bool allow_early_exit,
+                 size_t max_length,
+                 size_t min_length,
+                 bool normalize_scores,
+                 bool return_scores,
+                 bool return_alternatives,
+                 size_t sampling_topk,
+                 float sampling_temperature) {
+    if (tokens.empty())
+      return {};
+
+    ctranslate2::BatchType batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::GenerationOptions options;
+    options.beam_size = beam_size;
+    options.length_penalty = length_penalty;
+    options.repetition_penalty = repetition_penalty;
+    options.disable_unk = disable_unk;
+    options.allow_early_exit = allow_early_exit;
+    options.sampling_topk = sampling_topk;
+    options.sampling_temperature = sampling_temperature;
+    options.max_length = max_length;
+    options.min_length = min_length;
+    options.num_hypotheses = num_hypotheses;
+    options.normalize_scores = normalize_scores;
+    options.return_scores = return_scores;
+    options.return_alternatives = return_alternatives;
+
+    auto futures = _generator_pool.generate_batch_async(tokens, options, max_batch_size, batch_type);
+
+    if (asynchronous) {
+      std::vector<AsyncResult<ctranslate2::GenerationResult>> results;
+      results.reserve(futures.size());
+      for (auto& future : futures)
+        results.emplace_back(std::move(future));
+      return std::move(results);
+    } else {
+      std::vector<ctranslate2::GenerationResult> results;
+      results.reserve(futures.size());
+      for (auto& future : futures)
+        results.emplace_back(future.get());
+      return std::move(results);
+    }
+  }
+
+  std::vector<std::vector<float>>
+  score_batch(const BatchTokens& tokens,
+              size_t max_batch_size,
+              const std::string& batch_type_str,
+              size_t max_input_length) {
+    const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
+    ctranslate2::ScoringOptions options;
+    options.max_input_length = max_input_length;
+
+    auto futures = _generator_pool.score_batch_async(tokens, options, max_batch_size, batch_type);
+
+    std::vector<std::vector<float>> scores;
+    scores.reserve(futures.size());
+    for (auto& future : futures)
+      scores.emplace_back(std::move(future.get().tokens_score));
+    return scores;
+  }
+
+private:
+  const ctranslate2::Device _device;
+  const std::vector<int> _device_index;
+  ctranslate2::GeneratorPool _generator_pool;
+};
+
+
 static py::set get_supported_compute_types(const std::string& device_str, const int device_index) {
   const auto device = ctranslate2::str_to_device(device_str);
 
@@ -668,4 +791,61 @@ PYBIND11_MODULE(translator, m)
       return py::object(tuple[index]);
     })
     ;
+
+  py::class_<ctranslate2::GenerationResult>(m, "GenerationResult")
+    .def_readonly("sequences", &ctranslate2::GenerationResult::sequences)
+    .def_readonly("scores", &ctranslate2::GenerationResult::scores)
+    .def("__repr__", [](const ctranslate2::GenerationResult& result) {
+      return "GenerationResult(sequences=" + std::string(py::repr(py::cast(result.sequences)))
+        + ", scores=" + std::string(py::repr(py::cast(result.scores)))
+        + ")";
+    })
+    ;
+
+  declare_async_wrapper<ctranslate2::GenerationResult>(m, "AsyncGenerationResult");
+
+  py::class_<GeneratorWrapper>(m, "Generator")
+    .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long>(),
+         py::arg("model_path"),
+         py::arg("device")="cpu",
+         py::kw_only(),
+         py::arg("device_index")=0,
+         py::arg("compute_type")="default",
+         py::arg("inter_threads")=1,
+         py::arg("intra_threads")=0,
+         py::arg("max_queued_batches")=0)
+    .def_property_readonly("device", &GeneratorWrapper::device)
+    .def_property_readonly("device_index", &GeneratorWrapper::device_index)
+    .def_property_readonly("num_generators", &GeneratorWrapper::num_generators)
+    .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches)
+    .def_property_readonly("num_active_batches", &GeneratorWrapper::num_active_batches)
+      .def("generate_batch", &GeneratorWrapper::generate_batch,
+         py::arg("start_tokens"),
+         py::kw_only(),
+         py::arg("max_batch_size")=0,
+         py::arg("batch_type")="examples",
+         py::arg("asynchronous")=false,
+         py::arg("beam_size")=1,
+         py::arg("num_hypotheses")=1,
+         py::arg("length_penalty")=0,
+         py::arg("repetition_penalty")=1,
+         py::arg("disable_unk")=false,
+         py::arg("allow_early_exit")=true,
+         py::arg("max_length")=512,
+         py::arg("min_length")=0,
+         py::arg("normalize_scores")=false,
+         py::arg("return_scores")=false,
+         py::arg("return_alternatives")=false,
+         py::arg("sampling_topk")=1,
+         py::arg("sampling_temperature")=1,
+         py::call_guard<py::gil_scoped_release>())
+    .def("score_batch", &GeneratorWrapper::score_batch,
+         py::arg("tokens"),
+         py::kw_only(),
+         py::arg("max_batch_size")=0,
+         py::arg("batch_type")="examples",
+         py::arg("max_input_length")=1024,
+         py::call_guard<py::gil_scoped_release>())
+    ;
+
 }

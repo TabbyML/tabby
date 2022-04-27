@@ -87,10 +87,12 @@ set(SOURCES
   src/decoding.cc
   src/devices.cc
   src/env.cc
+  src/generator_pool.cc
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
   src/layers/transformer.cc
+  src/models/language_model.cc
   src/models/model.cc
   src/models/model_reader.cc
   src/models/sequence_to_sequence.cc
@@ -135,6 +137,7 @@ set(SOURCES
   src/padder.cc
   src/profiler.cc
   src/random.cc
+  src/replica_pool.cc
   src/sampling.cc
   src/scoring.cc
   src/storage_view.cc

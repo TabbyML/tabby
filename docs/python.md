@@ -1,5 +1,14 @@
 # Python
 
+**Table of contents**
+
+1. [Installation](#installation)
+1. [Model conversion API](#model-conversion-api)
+1. [Translation API](#translation-api)
+1. [Generation API](#generation-api)
+1. [Utilities API](#utilities-api)
+1. [Additional information](#additional-information)
+
 ## Installation
 
 See the [Installation](../README.md#installation) section in the main README.
@@ -38,6 +47,10 @@ converter = ctranslate2.converters.OpusMTConverter(
     model_dir: str,  # Path to the OPUS-MT model directory.
 )
 
+converter = ctranslate2.converters.OpenAIGPT2Converter(
+    model_dir: str,  # Path to the GPT-2 model directory.
+)
+
 output_dir = converter.convert(
     output_dir: str,          # Path to the output directory.
     vmap: str = None,         # Path to a vocabulary mapping file.
@@ -47,6 +60,8 @@ output_dir = converter.convert(
 ```
 
 ## Translation API
+
+### Constructor
 
 ```python
 translator = ctranslate2.Translator(
@@ -68,21 +83,22 @@ translator = ctranslate2.Translator(
     max_queued_batches: int = 0,    # Maximum number of batches in the translation queue (set -1 for unlimited, 0 for an automatic value).
                                     # When the queue is full, future requests will block until a free slot is available.
 )
+```
 
-# Properties:
+### Properties
+
+```python
 translator.device              # Device this translator is running on.
 translator.device_index        # List of device IDs where this translator is running on.
 translator.num_translators     # Number of translators backing this instance.
 translator.num_queued_batches  # Number of batches waiting to be translated.
 translator.num_active_batches  # Number of batches waiting to be translated or currently in translation.
+```
 
-# results is a list of TranslationResult instances that have the following properties:
-# * hypotheses
-# * scores (empty if return_scores is set to False)
-# * attention (empty if return_attention is set to False)
-# With asynchronous=True, the function returns a list of AsyncTranslationResult instances.
-# The actual TranslationResult instance can be retrieved by calling .result() on the async wrapper.
-results = translator.translate_batch(
+### Batch translation
+
+```python
+translator.translate_batch(
     source: list,                      # A list of list of string.
     target_prefix: list = None,        # An optional list of list of string.
     *,
@@ -109,13 +125,23 @@ results = translator.translate_batch(
     sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates.
     sampling_temperature: float = 1,   # Sampling temperature to generate more random samples.
     replace_unknowns: bool = False,    # Replace unknown target tokens by the source token with the highest attention.
-)
+) -> Union[List[ctranslate2.TranslationResult], List[ctranslate2.AsyncTranslationResult]]
+```
 
-# stats is a TranslationStats instance that has the following properties:
-# * num_tokens: the number of generated target tokens
-# * num_examples: the number of translated examples
-# * total_time_in_ms: the total translation time in milliseconds
-stats = translator.translate_file(
+The result `ctranslate2.TranslationResult` has the following properties:
+
+* `hypotheses`
+* `scores` (empty if `return_scores` is set to `False`)
+* `attention` (empty if `return_attention` is set to `False`)
+
+With `asynchronous=True`, the function returns a list of `ctranslate2.AsyncTranslationResult` instances. The actual `ctranslate2.TranslationResult` instance can be retrieved by calling `.result()` on the asynchronous wrapper.
+
+Also see the [`TranslationOptions`](../include/ctranslate2/translation.h) structure for more details about the options.
+
+### File translation
+
+```python
+translator.translate_file(
     source_path: str,               # Source file.
     output_path: str,               # Output file.
     target_path: str = None,        # Target prefix file.
@@ -143,36 +169,34 @@ stats = translator.translate_file(
     source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_detokenize_fn: callable = None, # Function with signature: list of strings -> string
-)
+) -> ctranslate2.TranslationStats
 ```
 
-Also see the [`TranslationOptions`](../include/ctranslate2/translation.h) structure for more details about the options.
+The returned statistics object has the following properties:
 
-## Scoring API
+* `num_tokens`: the number of generated target tokens
+* `num_examples`: the number of translated examples
+* `total_time_in_ms`: the total translation time in milliseconds
 
-The `Translator` object (see previous section) can also be used to score existing translations:
+### Batch scoring
 
 ```python
-# Batch scoring:
-# The returned score sequences include the score of the end of sentence token </s>.
-scores = translator.score_batch(
+translator.score_batch(
     source: List[List[str]],
     target: List[List[str]],
     *,
     max_batch_size: int = 0,       # Maximum batch size to run the model on.
     batch_type: str = "examples",  # Whether max_batch_size is the number of examples or tokens.
     max_input_length: int = 1024,  # Truncate inputs after this many tokens (set 0 to disable).
-)
+) -> List[List[float]]
+```
 
-# File scoring:
-# Each line in output_path will have the format: <score> ||| <target>
-# The score is normalized by the target length which includes the end of sentence token </s>.
-#
-# The returned stats object has the following properties:
-# * num_tokens: the number of scored target tokens
-# * num_examples: the number of scored examples
-# * total_time_in_ms: the total scoring time in milliseconds
-stats = translator.score_file(
+The returned score sequences include the score of the end of sentence token `</s>`.
+
+### File scoring
+
+```python
+translator.score_file(
     source_path: str,              # Source file.
     target_path: str,              # Target file.
     output_path: str,              # Output file.
@@ -185,10 +209,22 @@ stats = translator.score_file(
     source_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_tokenize_fn: callable = None,   # Function with signature: string -> list of strings
     target_detokenize_fn: callable = None, # Function with signature: list of strings -> string
-)
+) -> ctranslate2.TranslationStats
 ```
 
-## Memory management API
+Each line in `output_path` will have the format:
+
+```text
+<score> ||| <target>
+```
+
+The score is normalized by the target length which includes the end of sentence token `</s>`. The returned statistics object has the following properties:
+
+* `num_tokens`: the number of scored target tokens
+* `num_examples`: the number of scored examples
+* `total_time_in_ms`: the total scoring time in milliseconds
+
+### Memory management
 
 * `translator.unload_model(to_cpu: bool = False)`<br/>Unload the model attached to this translator but keep enough runtime context to quickly resume translation on the initial device. The model is not guaranteed to be unloaded if translations are running concurrently.
   * `to_cpu`: If `True`, the model is moved to the CPU memory and not fully unloaded.
@@ -196,7 +232,94 @@ stats = translator.score_file(
 * `translator.model_is_loaded`<br/>Property set to `True` when the model is loaded on the initial device and ready to be used.
 * `del translator`<br/>Release the translator resources.
 
-## Utility API
+## Generation API
+
+### Constructor
+
+```python
+generator = ctranslate2.Generator(
+    model_path: str,                # Path to the CTranslate2 model directory.
+    device: str = "cpu",            # The device to use: "cpu", "cuda", or "auto".
+    *,
+
+    # The device ID, or list of device IDs, where to place this generator on.
+    device_index: Union[int, List[int]] = 0,
+
+    # The computation type: "default", "auto", "int8", "int8_float16", "int16", "float16", or "float",
+    # or a dict mapping a device to a computation type.
+    compute_type: Union[str, Dict[str, str]] = "default",
+
+    inter_threads: int = 1,         # Maximum number of parallel generations.
+    intra_threads: int = 0,         # Number of OpenMP threads to use per generator (CPU only).
+                                    # Set 0 to use a default value.
+
+    max_queued_batches: int = 0,    # Maximum number of batches in the generation queue (set -1 for unlimited, 0 for an automatic value).
+                                    # When the queue is full, future requests will block until a free slot is available.
+)
+```
+
+### Properties
+
+```python
+generator.device              # Device this generator is running on.
+generator.device_index        # List of device IDs where this generator is running on.
+generator.num_generators      # Number of generators backing this instance.
+generator.num_queued_batches  # Number of batches waiting to be processed.
+generator.num_active_batches  # Number of batches waiting to be processed or currently processed.
+```
+
+### Batch generation
+
+If the decoder starts from a special start token like `<s>`, this token should be included in the start tokens.
+
+```python
+generator.generate_batch(
+    start_tokens: List[List[str]],     # A list of list of string.
+    *,
+    max_batch_size: int = 0,           # Maximum batch size to run the model on.
+    batch_type: str = "examples",      # Whether max_batch_size is the number of examples or tokens.
+    asynchronous: bool = False,        # Run the generation asynchronously.
+    beam_size: int = 1,                # Beam size (set 1 to run greedy search).
+    num_hypotheses: int = 1,           # Number of hypotheses to return (should be <= beam_size
+                                       # unless return_alternatives is set).
+    length_penalty: float = 0,         # Length penalty constant to use during beam search.
+    repetition_penalty: float = 1,     # Penalty applied to the score of previously generated tokens (set > 1 to penalize).
+    disable_unk: bool = False,         # Disable the generation of the unknown token.
+    allow_early_exit: bool = True,     # Allow the beam search to exit early when the first beam finishes.
+    max_length: int = 512,             # Maximum generation length.
+    min_length: int = 0,               # Minimum generation length.
+    normalize_scores: bool = False,    # Normalize the score by the sequence length.
+    return_scores: bool = False,       # Include the scores in the output.
+    return_alternatives: bool = False, # Return alternatives at the first unconstrained decoding position.
+    sampling_topk: int = 1,            # Randomly sample predictions from the top K candidates.
+    sampling_temperature: float = 1,   # Sampling temperature to generate more random samples.
+) -> Union[List[ctranslate2.GenerationResult], List[ctranslate2.AsyncGenerationResult]]
+```
+
+The result `ctranslate2.GenerationResult` has the following properties:
+
+* `sequences`
+* `scores` (empty if `return_scores` is set to `False`)
+
+With `asynchronous=True`, the function returns a list of `ctranslate2.AsyncGenerationResult` instances. The actual `ctranslate2.GenerationResult` instance can be retrieved by calling `.result()` on the asynchronous wrapper.
+
+Also see the [`GenerationOptions`](../include/ctranslate2/generation.h) structure for more details about the options.
+
+### Batch scoring
+
+Contrary to scoring with a translator, no special tokens are added to the input. If the model expects start or end tokens, the input should include these tokens.
+
+```python
+generator.score_batch(
+    tokens: List[List[str]],
+    *,
+    max_batch_size: int = 0,       # Maximum batch size to run the model on.
+    batch_type: str = "examples",  # Whether max_batch_size is the number of examples or tokens.
+    max_input_length: int = 1024,  # Truncate inputs after this many tokens (set 0 to disable).
+) -> List[List[float]]
+```
+
+## Utilities API
 
 * `ctranslate2.__version__`<br/>Version of the Python package.
 * `ctranslate2.contains_model(path: str)`<br/>Helper function to check if a directory seems to contain a CTranslate2 model.
@@ -208,7 +331,7 @@ stats = translator.score_file(
 
 ### Note on parallel execution
 
-A `Translator` instance can be configured to process multiple batches in parallel:
+The `Translator` and `Generator` instances can be configured to process multiple batches in parallel:
 
 ```python
 # Create a CPU translator with 4 workers each using 1 thread:
@@ -223,10 +346,10 @@ translator = ctranslate2.Translator(model_path, device="cuda", inter_threads=4)
 
 Parallel translations are enabled in the following cases:
 
-* When calling `translate_file` (or `score_file`).
-* When calling `translate_batch` (or `score_batch`) and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
-* When calling `translate_batch` (or `score_batch`) from multiple Python threads: parallelization with Python threads is made possible because the `Translator` methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
-* When calling `translate_batch` multiple times with `asynchronous=True`:
+* When calling `{translate,score}_file`.
+* When calling `{translate,score,generate}_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
+* When calling `{translate,score,generate}_batch` from multiple Python threads: parallelization with Python threads is made possible because the `Translator` methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
+* When calling `{translate,generate}_batch` multiple times with `asynchronous=True`:
 
 ```python
 async_results = []

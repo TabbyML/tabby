@@ -36,6 +36,11 @@ def test_invalid_model_path():
         ctranslate2.Translator("xxx")
 
 
+def test_invalid_model_type():
+    with pytest.raises(RuntimeError, match="cannot be used"):
+        ctranslate2.Generator(_get_model_path())
+
+
 def test_invalid_device_settings():
     model_path = _get_model_path()
     with pytest.raises(ValueError, match="device index"):

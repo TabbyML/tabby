@@ -2,12 +2,18 @@
 
 # CTranslate2
 
-CTranslate2 is a fast and full-featured inference engine for Transformer models. It aims to provide comprehensive inference features and be the most efficient and cost-effective solution to deploy standard neural machine translation systems on CPU and GPU. It currently supports Transformer models trained with:
+CTranslate2 is a C++ and Python library for efficient inference with Transformer models. The project implements a custom runtime that applies many performance optimization techniques such as weights quantization, layers fusion, batch reordering, etc., to accelerate and reduce the memory usage of Transformer models on CPU and GPU. The following model types are currently supported:
+
+* Encoder-decoder models: Transformer base/big, M2M-100, BART, mBART
+* Decoder-only models: GPT-2
+
+Compatible models should be first converted into an optimized model format. The library includes converters for multiple frameworks:
 
 * [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py)
 * [OpenNMT-tf](https://github.com/OpenNMT/OpenNMT-tf)
 * [Fairseq](https://github.com/pytorch/fairseq/)
 * [Marian](https://github.com/marian-nmt/marian)
+* [OpenAI GPT-2](https://github.com/openai/gpt-2)
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
@@ -26,35 +32,17 @@ The project is production-oriented and comes with [backward compatibility guaran
 
 ## Key features
 
-* **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks thanks to many advanced optimizations: padding removal, batch reordering, in-place operations, caching mechanism, etc.
+* **Fast and efficient execution on CPU and GPU**<br/>The execution [is significantly faster and requires less resources](#benchmarks) than general-purpose deep learning frameworks on supported models and tasks thanks to many advanced optimizations: layer fusion, padding removal, batch reordering, in-place operations, caching mechanism, etc.
 * **Quantization and reduced precision**<br/>The model serialization and computation support weights with [reduced precision](docs/quantization.md): 16-bit floating points (FP16), 16-bit integers (INT16), and 8-bit integers (INT8).
 * **Multiple CPU architectures support**<br/>The project supports x86-64 and AArch64/ARM64 processors and integrates multiple backends that are optimized for these platforms: [Intel MKL](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html), [oneDNN](https://github.com/oneapi-src/oneDNN), [OpenBLAS](https://www.openblas.net/), [Ruy](https://github.com/google/ruy), and [Apple Accelerate](https://developer.apple.com/documentation/accelerate).
 * **Automatic CPU detection and code dispatch**<br/>One binary can include multiple backends (e.g. Intel MKL and oneDNN) and instruction set architectures (e.g. AVX, AVX2) that are automatically selected at runtime based on the CPU information.
-* **Parallel and asynchronous translations**<br/>Translations can be run efficiently in parallel and asynchronously using multiple GPUs or CPU cores.
+* **Parallel and asynchronous execution**<br/>Multiple batches can be processed in parallel and asynchronously using multiple GPUs or CPU cores.
 * **Dynamic memory usage**<br/>The memory usage changes dynamically depending on the request size while still meeting performance requirements thanks to caching allocators on both CPU and GPU.
 * **Lightweight on disk**<br/>Quantization can make the models 4 times smaller on disk with minimal accuracy loss. A full featured Docker image supporting GPU and CPU requires less than 500MB (with CUDA 10.0).
-* **Simple integration**<br/>The project has few dependencies and exposes [translation APIs](#translating) in Python and C++ to cover most integration needs.
-* **Interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial translation and returning alternatives at a specific location in the translation.
+* **Simple integration**<br/>The project has few dependencies and exposes simple APIs in [Python](docs/python.md) and C++ to cover most integration needs.
+* **Configurable and interactive decoding**<br/>[Advanced decoding features](docs/decoding.md) allow autocompleting a partial sequence and returning alternatives at a specific location in the sequence.
 
 Some of these features are difficult to achieve with standard deep learning frameworks and are the motivation for this project.
-
-### Supported decoding options
-
-The translation API supports several decoding options:
-
-* decoding with greedy or beam search
-* random sampling from the output distribution
-* translating with a known target prefix
-* returning alternatives at a specific location in the target
-* constraining the decoding length
-* returning multiple translation hypotheses
-* returning attention vectors
-* approximating the generation using a pre-compiled [vocabulary map](#how-do-i-generate-a-vocabulary-mapping-file)
-* replacing unknown target tokens by source tokens with the highest attention
-* biasing translations towards a given prefix (see section 4.2 in [Arivazhagan et al. 2020](https://arxiv.org/abs/1912.03393))
-* scoring existing translations
-
-See the [Decoding](docs/decoding.md) documentation for examples.
 
 ## Quickstart
 
@@ -67,7 +55,7 @@ pip install --upgrade pip
 pip install ctranslate2
 ```
 
-**2\. [Convert](#converting-models) a Transformer model trained with OpenNMT-py, OpenNMT-tf, Fairseq, or Marian:**
+**2\. [Convert](#converting-models) a Transformer model trained with a supported framework:**
 
 *a. OpenNMT-py*
 
@@ -135,6 +123,8 @@ batch = [["▁H", "ello", "▁world", "!"]]      # OpenNMT model input
 translator.translate_batch(batch)
 ```
 
+*See the [Python reference](docs/python.md) for more advanced usages.*
+
 ## Installation
 
 ### Python package
@@ -182,15 +172,6 @@ See [Building](#building).
 
 The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models into a simple binary format.
 
-The following frameworks and models are currently supported:
-
-|     | OpenNMT-tf | OpenNMT-py | Fairseq | Marian |
-| --- | :---: | :---: | :---: | :---: |
-| Transformer ([Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)) | ✓ | ✓ | ✓ | ✓ |
-| + relative position representations ([Shaw et al. 2018](https://arxiv.org/abs/1803.02155)) | ✓ | ✓ | | |
-
-*If you are using a model that is not listed above, consider opening an issue to discuss future integration.*
-
 The Python package includes a [conversion API](docs/python.md#model-conversion-api) and conversion scripts:
 
 * `ct2-opennmt-py-converter`
@@ -198,6 +179,7 @@ The Python package includes a [conversion API](docs/python.md#model-conversion-a
 * `ct2-fairseq-converter`
 * `ct2-marian-converter`
 * `ct2-opus-mt-converter` (based on `ct2-marian-converter`)
+* `ct2-openai-gpt2-converter`
 
 The conversion should be run in the same environment as the selected training framework.
 
@@ -318,7 +300,7 @@ The project uses [CMake](https://cmake.org/) for compilation. The following opti
 
 | CMake option | Accepted values (default in bold) | Description |
 | --- | --- | --- |
-| BUILD_CLI | OFF, **ON** | Compiles the translation clients |
+| BUILD_CLI | OFF, **ON** | Compiles the command line clients |
 | BUILD_TESTS | **OFF**, ON | Compiles the tests |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
 | CUDA_DYNAMIC_LOADING | **OFF**, ON | Enables the dynamic loading of CUDA libraries at runtime instead of linking against them. Requires CUDA >= 11. |
@@ -524,11 +506,13 @@ The implementation has been generously tested in [production environment](https:
 * Python converters options
 * Python symbols:
   * `ctranslate2.Translator`
+  * `ctranslate2.Generator`
   * `ctranslate2.converters.FairseqConverter`
   * `ctranslate2.converters.MarianConverter`
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
   * `ctranslate2.converters.OpusMTConverter`
+  * `ctranslate2.converters.OpenAIGPT2Converter`
 * C++ symbols:
   * `ctranslate2::models::Model`
   * `ctranslate2::TranslationOptions`
@@ -543,8 +527,8 @@ Other APIs are expected to evolve to increase efficiency, genericity, and model 
 
 Here are some scenarios where this project could be used:
 
-* You want to accelarate standard translation models for production usage, especially on CPUs.
-* You need to embed translation models in an existing C++ application without adding large dependencies.
+* You want to accelarate Transformer models for production usage, especially on CPUs.
+* You need to embed models in an existing C++ application without adding large dependencies.
 * Your application requires custom threading and memory usage control.
 * You want to reduce the model size on disk and/or memory.
 
@@ -578,12 +562,12 @@ There are many ways to make this project better and even faster. See the open is
 
 ### What is the difference between `intra_threads` and `inter_threads`?
 
-* `intra_threads` is the number of OpenMP threads that is used per translation: increase this value to decrease the latency of CPU translations.
-* `inter_threads` is the maximum number of translations executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
+* `intra_threads` is the number of OpenMP threads that is used per batch: increase this value to decrease the latency on CPU.
+* `inter_threads` is the maximum number of batches executed in parallel: increase this value to increase the throughput. Even though the model data are shared, this execution mode will increase the memory usage as some internal buffers are duplicated for thread safety.
 
 The total number of computing threads launched by the process is `inter_threads * intra_threads`.
 
-On GPU, translations executed in parallel are using separate CUDA streams. Depending on the workload and GPU specifications this may or may not improve the translation throughput. For better parallelism on GPU, consider running the translation on multiple GPUs. See the option `device_index` that accepts multiple device IDs.
+On GPU, batches processed in parallel are using separate CUDA streams. Depending on the workload and GPU specifications this may or may not improve the global throughput. For better parallelism on GPU, consider using multiple GPUs. See the option `device_index` that accepts multiple device IDs.
 
 ### Do you provide a translation server?
 

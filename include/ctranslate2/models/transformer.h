@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sequence_to_sequence.h"
+#include "language_model.h"
 
 #include "ctranslate2/ops/activation.h"
 
@@ -29,6 +30,24 @@ namespace ctranslate2 {
       dim_t _alignment_heads;
       layers::EmbeddingsMerge _embeddings_merge;
       bool _layernorm_embedding;
+    };
+
+
+    class TransformerDecoderModel : public LanguageModel {
+    public:
+      size_t current_spec_revision() const override;
+      std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const override;
+
+    protected:
+      bool is_linear_weight(const std::string& variable_name) const override;
+      bool is_packable(const std::string& variable_name) const override;
+      void initialize(ModelReader& model_reader) override;
+
+    private:
+      size_t _num_heads;
+      bool _pre_norm;
+      bool _layernorm_embedding;
+      ops::ActivationType _activation_type;
     };
 
   }

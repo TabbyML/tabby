@@ -105,5 +105,46 @@ namespace ctranslate2 {
       return std::make_unique<EncoderDecoderReplica>(model, std::move(encoder), std::move(decoder));
     }
 
+
+    size_t TransformerDecoderModel::current_spec_revision() const {
+      return 1;
+    }
+
+    void TransformerDecoderModel::initialize(ModelReader& model_reader) {
+      LanguageModel::initialize(model_reader);
+      _num_heads = get_attribute_with_default<int16_t>("num_heads", 0);
+      _pre_norm = get_flag_with_default("pre_norm", true);
+      _layernorm_embedding = get_flag_with_default("layernorm_embedding", false);
+      _activation_type = static_cast<ops::ActivationType>(
+        get_attribute_with_default<int8_t>("activation", 0));
+    }
+
+    std::unique_ptr<SequenceGeneratorReplica>
+    TransformerDecoderModel::as_sequence_generator() const {
+      const auto scoped_device_setter = get_scoped_device_setter();
+
+      auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
+                                                                  "decoder",
+                                                                  _num_heads,
+                                                                  /*with_position_encoding=*/true,
+                                                                  /*with_encoder_attention=*/false,
+                                                                  _pre_norm,
+                                                                  _activation_type,
+                                                                  /*alignment_layer=*/-1,
+                                                                  /*alignment_heads=*/1,
+                                                                  _layernorm_embedding);
+
+      const auto model = std::static_pointer_cast<const TransformerDecoderModel>(shared_from_this());
+      return std::make_unique<DecoderReplica>(model, std::move(decoder));
+    }
+
+    bool TransformerDecoderModel::is_linear_weight(const std::string& variable_name) const {
+      return is_quantizable(variable_name) && variable_name.find("embeddings") == std::string::npos;
+    }
+
+    bool TransformerDecoderModel::is_packable(const std::string& variable_name) const {
+      return is_linear_weight(variable_name);
+    }
+
   }
 }

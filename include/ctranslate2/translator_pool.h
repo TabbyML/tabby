@@ -1,9 +1,8 @@
 #pragma once
 
-#include <chrono>
 #include <fstream>
 
-#include "async.h"
+#include "replica_pool.h"
 #include "translator.h"
 
 namespace ctranslate2 {
@@ -16,7 +15,7 @@ namespace ctranslate2 {
 
   // TranslatorPool is the high-level class for running translations. It supports parallel
   // and asynchronous translations.
-  class TranslatorPool {
+  class TranslatorPool : public ReplicaPool {
   public:
     // num_threads_per_translator (a.k.a. intra_threads) is forced to 1 when the translator
     // is running on a CUDA device.
@@ -401,11 +400,6 @@ namespace ctranslate2 {
       return stats;
     }
 
-    // Number of batches in the work queue.
-    size_t num_queued_batches() const;
-    // Number of batches in the work queue or currently processed by a worker.
-    size_t num_active_batches() const;
-
     size_t num_translators() const;
 
     // Return the translator local to the current thread.
@@ -437,69 +431,6 @@ namespace ctranslate2 {
       const ScoringOptions _options;
     };
 
-    template <typename Result>
-    void post_examples(const std::vector<Example>& examples,
-                       size_t max_batch_size,
-                       BatchType batch_type,
-                       const BatchJobCreator<Result>& job_creator,
-                       const std::shared_ptr<ResultConsumer<Result>>& result_consumer) {
-      for (auto& batch : rebatch_input(examples, max_batch_size, batch_type)) {
-        auto job = job_creator(std::move(batch));
-        job->set_result_consumer(result_consumer);
-        _thread_pool->post(std::move(job));
-      }
-    }
-
-    template <typename Result>
-    std::vector<std::future<Result>> post_examples(const std::vector<Example>& examples,
-                                                   size_t max_batch_size,
-                                                   BatchType batch_type,
-                                                   const BatchJobCreator<Result>& job_creator) {
-      auto result_consumer = std::make_shared<PromiseSetter<Result>>(examples.size());
-      auto futures = result_consumer->get_futures();
-      post_examples<Result>(examples, max_batch_size, batch_type, job_creator, result_consumer);
-      return futures;
-    }
-
-    template <typename ResultWriter, typename Result>
-    void consume_stream(BatchReader& batch_reader,
-                        ResultWriter& result_writer,
-                        const BatchJobCreator<Result>& job_creator,
-                        size_t max_batch_size,
-                        size_t read_batch_size,
-                        BatchType batch_type) {
-      std::queue<std::future<Result>> results;
-
-      auto pop_results = [&results, &result_writer](bool blocking) {
-        constexpr std::chrono::seconds zero_sec(0);
-        while (!results.empty()
-               && (blocking
-                   || results.front().wait_for(zero_sec) == std::future_status::ready)) {
-          result_writer(results.front().get());
-          results.pop();
-        }
-      };
-
-      if (read_batch_size == 0)
-        read_batch_size = (max_batch_size == 1 ? max_batch_size : max_batch_size * 16);
-
-      while (true) {
-        auto examples = batch_reader.get_next(read_batch_size, batch_type);
-        if (examples.empty())
-          break;
-        auto futures = post_examples(examples,
-                                     max_batch_size,
-                                     batch_type,
-                                     job_creator);
-        for (auto& future : futures)
-          results.emplace(std::move(future));
-
-        pop_results(/*blocking=*/false);
-      }
-
-      pop_results(/*blocking=*/true);
-    }
-
     template <typename SourceReader,
               typename TargetReader,
               typename TargetWriter,
@@ -524,25 +455,15 @@ namespace ctranslate2 {
         batch_reader = std::make_unique<StreamReader<SourceReader>>(source, source_reader);
       }
 
-      consume_stream(*batch_reader,
-                     target_writer,
-                     job_creator,
-                     max_batch_size,
-                     read_batch_size,
-                     batch_type);
+      consume_batches(*batch_reader,
+                      target_writer,
+                      job_creator,
+                      max_batch_size,
+                      read_batch_size,
+                      batch_type);
 
       output.flush();
     }
-
-    void create_translators(size_t num_translators_per_device,
-                            size_t num_threads_per_translator,
-                            models::ModelReader& model_reader,
-                            const Device device,
-                            std::vector<int> device_indices,
-                            const ComputeType compute_type,
-                            const long max_queued_batches);
-
-    std::unique_ptr<ThreadPool> _thread_pool;
   };
 
 }

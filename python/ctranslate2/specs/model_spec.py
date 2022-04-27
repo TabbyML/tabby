@@ -327,6 +327,44 @@ class SequenceToSequenceModelSpec(ModelSpec):
         super().save(output_dir)
 
 
+class LanguageModelSpec(ModelSpec):
+    """Base specification for language models."""
+
+    def __init__(self, embeddings_spec):
+        """Initializes a language model specification.
+
+        Args:
+          embeddings_spec: Input EmbeddingsSpec module.
+        """
+        self.unk_token = "<unk>"
+        self.bos_token = "<s>"
+        self.eos_token = "</s>"
+        self._embeddings_spec = embeddings_spec
+        self._vocabulary = []
+
+    def register_vocabulary(self, tokens):
+        """Registers the vocabulary of tokens."""
+        self._vocabulary = list(tokens)
+
+    def validate(self):
+        expected_vocabulary_size = self._embeddings_spec.weight.shape[0]
+        if len(self._vocabulary) != expected_vocabulary_size:
+            raise ValueError(
+                "Vocabulary has size %d but the model expected a vocabulary of size %d"
+                % (len(self._vocabulary), expected_vocabulary_size)
+            )
+
+        super().validate()
+
+    def save(self, output_dir):
+        # Save the vocabulary.
+        vocabulary_path = os.path.join(output_dir, "vocabulary.txt")
+        _save_lines(vocabulary_path, self._vocabulary)
+
+        # Save the rest of the model.
+        super().save(output_dir)
+
+
 def _save_lines(path, lines):
     with open(path, "w", encoding="utf-8", newline="") as f:
         for line in lines:

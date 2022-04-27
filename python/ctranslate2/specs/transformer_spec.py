@@ -80,6 +80,45 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         return 4
 
 
+class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
+    def __init__(
+        self,
+        num_layers,
+        num_heads,
+        pre_norm=True,
+        activation=common_spec.Activation.RELU,
+        layernorm_embedding=False,
+    ):
+        """Initializes a Transformer decoder model specification.
+
+        Args:
+          num_layers: Number of decoder layers.
+          num_heads: Number of attention heads.
+          pre_norm: Enable the pre-norm Transformer architecture.
+          activation: Activation to apply in the feed-forward network.
+          layernorm_embedding: Apply layer normalization after the embedding layer.
+        """
+        self.num_heads = np.dtype("int16").type(num_heads)
+        self.pre_norm = pre_norm
+        self.activation = np.dtype("int8").type(activation)
+        self.layernorm_embedding = layernorm_embedding
+        self.decoder = TransformerDecoderSpec(
+            num_layers,
+            pre_norm=pre_norm,
+            layernorm_embedding=layernorm_embedding,
+            with_encoder_attention=False,
+        )
+        super().__init__(self.decoder.embeddings)
+
+    @property
+    def name(self):
+        return "TransformerDecoderSpec"
+
+    @property
+    def revision(self):
+        return 1
+
+
 class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(
         self,
@@ -103,7 +142,13 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
 
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
-    def __init__(self, num_layers, pre_norm=True, layernorm_embedding=False):
+    def __init__(
+        self,
+        num_layers,
+        pre_norm=True,
+        layernorm_embedding=False,
+        with_encoder_attention=True,
+    ):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
         self.position_encodings = PositionEncoderSpec()
@@ -114,7 +159,10 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
         )
         self.projection = common_spec.LinearSpec()
-        self.layer = [TransformerDecoderLayerSpec() for _ in range(num_layers)]
+        self.layer = [
+            TransformerDecoderLayerSpec(with_encoder_attention=with_encoder_attention)
+            for _ in range(num_layers)
+        ]
         self.start_from_zero_embedding = False
 
 
@@ -125,9 +173,13 @@ class TransformerEncoderLayerSpec(model_spec.LayerSpec):
 
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self):
+    def __init__(self, with_encoder_attention=True):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
-        self.attention = attention_spec.MultiHeadAttentionSpec()
+        self.attention = (
+            attention_spec.MultiHeadAttentionSpec()
+            if with_encoder_attention
+            else model_spec.OPTIONAL
+        )
         self.ffn = FeedForwardSpec()
 
 

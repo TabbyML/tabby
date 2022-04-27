@@ -2,8 +2,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include "env.h"
-
 namespace ctranslate2 {
 
   static thread_local Translator* local_translator = nullptr;
@@ -64,15 +62,14 @@ namespace ctranslate2 {
                                  const int device_index,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
+    : ReplicaPool(create_workers<TranslatorWorker>(num_translators,
+                                                   num_threads_per_translator,
+                                                   model_dir,
+                                                   device,
+                                                   {device_index},
+                                                   compute_type),
+                  max_queued_batches)
   {
-    models::ModelFileReader model_reader(model_dir);
-    create_translators(num_translators,
-                       num_threads_per_translator,
-                       model_reader,
-                       device,
-                       {device_index},
-                       compute_type,
-                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators,
@@ -82,14 +79,14 @@ namespace ctranslate2 {
                                  const int device_index,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
+    : ReplicaPool(create_workers<TranslatorWorker>(num_translators,
+                                                   num_threads_per_translator,
+                                                   model_reader,
+                                                   device,
+                                                   {device_index},
+                                                   compute_type),
+                  max_queued_batches)
   {
-    create_translators(num_translators,
-                       num_threads_per_translator,
-                       model_reader,
-                       device,
-                       {device_index},
-                       compute_type,
-                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators_per_device,
@@ -99,15 +96,14 @@ namespace ctranslate2 {
                                  const std::vector<int>& device_indices,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
+    : ReplicaPool(create_workers<TranslatorWorker>(num_translators_per_device,
+                                                   num_threads_per_translator,
+                                                   model_dir,
+                                                   device,
+                                                   device_indices,
+                                                   compute_type),
+                  max_queued_batches)
   {
-    models::ModelFileReader model_reader(model_dir);
-    create_translators(num_translators_per_device,
-                       num_threads_per_translator,
-                       model_reader,
-                       device,
-                       device_indices,
-                       compute_type,
-                       max_queued_batches);
   }
 
   TranslatorPool::TranslatorPool(size_t num_translators_per_device,
@@ -117,14 +113,14 @@ namespace ctranslate2 {
                                  const std::vector<int>& device_indices,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
+    : ReplicaPool(create_workers<TranslatorWorker>(num_translators_per_device,
+                                                   num_threads_per_translator,
+                                                   model_reader,
+                                                   device,
+                                                   device_indices,
+                                                   compute_type),
+                  max_queued_batches)
   {
-    create_translators(num_translators_per_device,
-                       num_threads_per_translator,
-                       model_reader,
-                       device,
-                       device_indices,
-                       compute_type,
-                       max_queued_batches);
   }
 
   std::vector<std::future<TranslationResult>>
@@ -196,41 +192,6 @@ namespace ctranslate2 {
                               const size_t max_batch_size,
                               const BatchType batch_type) {
     return get_results_from_futures(score_batch_async(source, target, options, max_batch_size, batch_type));
-  }
-
-  void TranslatorPool::create_translators(size_t num_translators_per_device,
-                                          size_t num_threads_per_translator,
-                                          models::ModelReader& model_reader,
-                                          const Device device,
-                                          std::vector<int> device_indices,
-                                          const ComputeType compute_type,
-                                          const long max_queued_batches) {
-    // The same number of OpenMP threads should be used for loading and running model.
-    if (device == Device::CUDA)
-      num_threads_per_translator = 1;
-    set_num_threads(num_threads_per_translator);
-
-    const auto models = models::load_replicas(model_reader,
-                                              device,
-                                              device_indices,
-                                              compute_type,
-                                              num_translators_per_device);
-
-    const size_t num_workers = models.size();
-    std::vector<std::unique_ptr<Worker>> workers;
-    workers.reserve(num_workers);
-    for (const auto& model : models)
-      workers.emplace_back(std::make_unique<TranslatorWorker>(model, num_threads_per_translator));
-
-    static const int core_offset = read_int_from_env("CT2_TRANSLATORS_CORE_OFFSET", -1);
-
-    size_t max_queue_size = std::numeric_limits<size_t>::max();
-    if (max_queued_batches == 0)
-      max_queue_size = 4 * num_workers;
-    else if (max_queued_batches > 0)
-      max_queue_size = max_queued_batches;
-
-    _thread_pool = std::make_unique<ThreadPool>(std::move(workers), max_queue_size, core_offset);
   }
 
   TranslationStats TranslatorPool::consume_text_file(const std::string& source_file,
@@ -318,14 +279,6 @@ namespace ctranslate2 {
                                read_batch_size,
                                batch_type,
                                with_tokens_score);
-  }
-
-  size_t TranslatorPool::num_queued_batches() const {
-    return _thread_pool->num_queued_jobs();
-  }
-
-  size_t TranslatorPool::num_active_batches() const {
-    return _thread_pool->num_active_jobs();
   }
 
   size_t TranslatorPool::num_translators() const {
