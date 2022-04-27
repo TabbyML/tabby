@@ -3,11 +3,13 @@ import os
 
 import numpy as np
 
+from typing import Dict, List, Optional, Union
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec
 from ctranslate2.specs import transformer_spec
-from ctranslate2.specs.model_spec import OPTIONAL
+from ctranslate2.specs.model_spec import OPTIONAL, ModelSpec
 
 
 def load_model(model_path):
@@ -70,12 +72,26 @@ class OpenNMTTFConverter(Converter):
 
     def __init__(
         self,
-        model_spec,
-        src_vocab,
-        tgt_vocab,
-        model_path=None,
-        variables=None,
+        model_spec: ModelSpec,
+        src_vocab: Union[str, List[str]],
+        tgt_vocab: Union[str, List[str]],
+        model_path: Optional[str] = None,
+        variables: Optional[Dict[str, np.ndarray]] = None,
     ):
+        """Initializes the OpenNMT-tf converter.
+
+        Arguments:
+          model_spec: Specification of the model to convert.
+          src_vocab: Path to the source vocabulary or list of tokens.
+          tgt_vocab: Path to the target vocabulary or list of tokens.
+          model_path: Path to the OpenNMT-tf checkpoint
+            (mutually exclusive with :obj:`variables`).
+          variables: Dictionary of variables name to value
+            (mutually exclusive with :obj:`model_path`).
+
+        Raises:
+          ValueError: If none or both of :obj:`model_path` and :obj:`variables` are set.
+        """
         if (model_path is None) == (variables is None):
             raise ValueError("Exactly one of model_path and variables should be set")
         if variables is not None and not isinstance(variables, dict):

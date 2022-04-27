@@ -8,6 +8,8 @@ import shutil
 import struct
 import numpy as np
 
+from typing import List
+
 OPTIONAL = "__optional"
 CURRENT_BINARY_VERSION = 5
 
@@ -56,10 +58,14 @@ def index_spec(spec, index):
 
 
 class LayerSpec(object):
-    """Layer specification."""
+    """A layer specification declares the weights that should be set by the converters."""
 
     def validate(self):
-        """Checks that required variables are set to a valid value."""
+        """Verify that the required weights are set.
+
+        Raises:
+          ValueError: If a required weight is not set in the specification.
+        """
 
         def _check(spec, name, value):
             if value is None:
@@ -81,11 +87,17 @@ class LayerSpec(object):
             attr_name = _split_scope(name)[-1]
             setattr(spec, attr_name, value)
 
-        self.visit(_check)
+        self._visit(_check)
 
-    def variables(self, prefix="", ordered=False):
-        """Returns a dict mapping variables name to value. If ordered is True,
-        returns an ordered list of (name, value) pairs instead.
+    def variables(self, prefix: str = "", ordered: bool = False):
+        """Recursively returns the weights from this layer and its children.
+
+        Arguments:
+          prefix: Prefix to prepend to all variable names.
+          ordered: If set, an ordered list is returned instead.
+
+        Returns:
+          Dictionary mapping variables name to value.
         """
         var = {}
 
@@ -94,7 +106,7 @@ class LayerSpec(object):
                 return
             var[_join_scope(prefix, name)] = value
 
-        self.visit(_register_var)
+        self._visit(_register_var)
         if ordered:
             return list(sorted(var.items(), key=lambda x: x[0]))
         return var
@@ -154,15 +166,23 @@ class LayerSpec(object):
                     key = _split_scope(name)[-1]
                     setattr(spec, key, value.astype(np.float16))
 
-        self.visit(_quantize)
+        self._visit(_quantize)
 
-    def optimize(self, quantization=None):
-        """Applies some optimizations on this layer."""
+    def optimize(self, quantization: str = None):
+        """Recursively applies some optimizations to this layer:
+
+        * Alias variables with the same shape and value.
+        * Quantize weights.
+
+        Arguments:
+          quantization: Weight quantization scheme
+            (possible values are: int8, int8_float16, int16, float16).
+        """
         self._alias_variables()
         if quantization is not None:
             self._quantize(quantization)
 
-    def visit(self, fn):
+    def _visit(self, fn):
         """Recursively visits this layer and its children."""
         visit_spec(self, fn)
 
@@ -196,11 +216,15 @@ class ModelSpec(LayerSpec):
         """
         return 1
 
-    def save(self, output_dir):
-        """Saves this model specification."""
-        self.serialize(os.path.join(output_dir, "model.bin"))
+    def save(self, output_dir: str):
+        """Saves this model on disk.
 
-    def serialize(self, path):
+        Arguments:
+          output_dir: Output directory where the model is saved.
+        """
+        self._serialize(os.path.join(output_dir, "model.bin"))
+
+    def _serialize(self, path):
         """Serializes the model variables."""
         variables = []
         aliases = []
@@ -271,16 +295,28 @@ class SequenceToSequenceModelSpec(ModelSpec):
         }
         self._vmap = None
 
-    def register_source_vocabulary(self, tokens):
-        """Registers a source vocabulary of tokens."""
+    def register_source_vocabulary(self, tokens: List[str]):
+        """Registers a source vocabulary of tokens.
+
+        Arguments:
+          tokens: List of source tokens.
+        """
         self._vocabularies["source"].append(tokens)
 
-    def register_target_vocabulary(self, tokens):
-        """Registers a target vocabulary of tokens."""
+    def register_target_vocabulary(self, tokens: List[str]):
+        """Registers a target vocabulary of tokens.
+
+        Arguments:
+          tokens: List of target tokens.
+        """
         self._vocabularies["target"].append(tokens)
 
-    def register_vocabulary_mapping(self, path):
-        """Registers a vocabulary mapping file."""
+    def register_vocabulary_mapping(self, path: str):
+        """Registers a vocabulary mapping file.
+
+        Arguments:
+          path: Path to the vocabulary mapping file.
+        """
         self._vmap = path
 
     def validate(self):
@@ -309,7 +345,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         # Validate the rest of the model.
         super().validate()
 
-    def save(self, output_dir):
+    def save(self, output_dir: str):
         # Save the vocabularies.
         vocabularies = dict(_flatten_vocabularies(self._vocabularies))
         all_vocabularies = list(vocabularies.values())
@@ -342,8 +378,12 @@ class LanguageModelSpec(ModelSpec):
         self._embeddings_spec = embeddings_spec
         self._vocabulary = []
 
-    def register_vocabulary(self, tokens):
-        """Registers the vocabulary of tokens."""
+    def register_vocabulary(self, tokens: List[str]):
+        """Registers the vocabulary of tokens.
+
+        Arguments:
+          tokens: List of tokens.
+        """
         self._vocabulary = list(tokens)
 
     def validate(self):
@@ -356,7 +396,7 @@ class LanguageModelSpec(ModelSpec):
 
         super().validate()
 
-    def save(self, output_dir):
+    def save(self, output_dir: str):
         # Save the vocabulary.
         vocabulary_path = os.path.join(output_dir, "vocabulary.txt")
         _save_lines(vocabulary_path, self._vocabulary)

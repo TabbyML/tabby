@@ -16,16 +16,16 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     def __init__(
         self,
-        num_layers,
-        num_heads,
-        with_relative_position=False,
-        pre_norm=True,
-        activation=common_spec.Activation.RELU,
-        alignment_layer=-1,
-        alignment_heads=1,
-        num_source_embeddings=1,
-        embeddings_merge=common_spec.EmbeddingsMerge.CONCAT,
-        layernorm_embedding=False,
+        num_layers: int,
+        num_heads: int,
+        with_relative_position: bool = False,
+        pre_norm: bool = True,
+        activation: common_spec.Activation = common_spec.Activation.RELU,
+        alignment_layer: int = -1,
+        alignment_heads: int = 1,
+        num_source_embeddings: int = 1,
+        embeddings_merge: common_spec.EmbeddingsMerge = common_spec.EmbeddingsMerge.CONCAT,
+        layernorm_embedding: bool = False,
     ):
         """Initializes a Transformer model specification.
 
@@ -39,7 +39,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           alignment_layer: Layer index selected for alignment.
           alignment_heads: Number of attention heads selected for alignment.
           num_source_embeddings: Number of source embeddings.
-          embeddings_merge: When num_source_embeddings > 1, specify how the
+          embeddings_merge: When :obj:`num_source_embeddings` > 1, specify how the
             embeddings are merged.
           layernorm_embedding: Apply layer normalization after the embedding layer.
         """
@@ -81,13 +81,15 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
 
 class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
+    """Describes a Transformer decoder model (e.g. GPT-2)."""
+
     def __init__(
         self,
-        num_layers,
-        num_heads,
-        pre_norm=True,
-        activation=common_spec.Activation.RELU,
-        layernorm_embedding=False,
+        num_layers: int,
+        num_heads: int,
+        pre_norm: bool = True,
+        activation: common_spec.Activation = common_spec.Activation.RELU,
+        layernorm_embedding: bool = False,
     ):
         """Initializes a Transformer decoder model specification.
 

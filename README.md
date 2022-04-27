@@ -123,7 +123,7 @@ batch = [["▁H", "ello", "▁world", "!"]]      # OpenNMT model input
 translator.translate_batch(batch)
 ```
 
-*See the [Python reference](docs/python.md) for more advanced usages.*
+*See the [Python documentation](docs/python.md) for more usages.*
 
 ## Installation
 
@@ -172,7 +172,7 @@ See [Building](#building).
 
 The core CTranslate2 implementation is framework agnostic. The framework specific logic is moved to a conversion step that serializes trained models into a simple binary format.
 
-The Python package includes a [conversion API](docs/python.md#model-conversion-api) and conversion scripts:
+The Python package includes a [conversion API](https://opennmt.net/CTranslate2/src/ctranslate2.converters.html) and conversion scripts:
 
 * `ct2-opennmt-py-converter`
 * `ct2-opennmt-tf-converter`
@@ -223,7 +223,7 @@ translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 translator.translate_batch([["▁H", "ello", "▁world", "!"]])
 ```
 
-*See the [Python reference](docs/python.md) for more advanced usages.*
+*See the [Python documentation](docs/python.md) for more usages.*
 
 ### With the C++ API
 

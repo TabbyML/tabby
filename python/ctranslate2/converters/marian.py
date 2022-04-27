@@ -4,6 +4,8 @@ import re
 import numpy as np
 import yaml
 
+from typing import List
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec, model_spec, transformer_spec
@@ -20,7 +22,13 @@ _SUPPORTED_POSTPROCESS_EMB = {"", "d", "n", "nd"}
 class MarianConverter(Converter):
     """Converts models trained with Marian."""
 
-    def __init__(self, model_path, vocab_paths):
+    def __init__(self, model_path: str, vocab_paths: List[str]):
+        """Initializes the Marian converter.
+
+        Arguments:
+          model_path: Path to the Marian model (.npz file).
+          vocab_paths: Paths to the vocabularies (.yml files).
+        """
         self._model_path = model_path
         self._vocab_paths = vocab_paths
 

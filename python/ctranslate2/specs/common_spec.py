@@ -5,6 +5,8 @@ from ctranslate2.specs import model_spec
 
 # This enum should match the C++ equivalent in include/ctranslate2/ops/activation.h.
 class Activation(enum.IntEnum):
+    """Activation type."""
+
     RELU = 0
     GELU = 1
     SWISH = 2
@@ -12,6 +14,8 @@ class Activation(enum.IntEnum):
 
 # This enum should match the C++ equivalent in include/ctranslate2/layers/common.h.
 class EmbeddingsMerge(enum.IntEnum):
+    """Merge strategy for factors embeddings."""
+
     CONCAT = 0
     ADD = 1
 

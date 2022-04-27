@@ -1,13 +1,23 @@
 import abc
+import argparse
 import os
 import shutil
+
+from typing import Optional
 
 from ctranslate2.specs.model_spec import ModelSpec
 
 
 class Converter(abc.ABC):
+    """Base class for model converters."""
+
     @staticmethod
-    def declare_arguments(parser):
+    def declare_arguments(parser: argparse.ArgumentParser):
+        """Adds common conversion options to the command line parser.
+
+        Arguments:
+          parser: Command line argument parser.
+        """
         parser.add_argument(
             "--output_dir", required=True, help="Output model directory."
         )
@@ -27,7 +37,16 @@ class Converter(abc.ABC):
         )
         return parser
 
-    def convert_from_args(self, args):
+    def convert_from_args(self, args: argparse.Namespace):
+        """Helper function to call :meth:`ctranslate2.converters.Converter.convert`
+        with the parsed command line options.
+
+        Arguments:
+          args: Namespace containing parsed arguments.
+
+        Returns:
+          Path to the output directory.
+        """
         return self.convert(
             args.output_dir,
             vmap=args.vocab_mapping,
@@ -35,7 +54,32 @@ class Converter(abc.ABC):
             force=args.force,
         )
 
-    def convert(self, output_dir, vmap=None, quantization=None, force=False):
+    def convert(
+        self,
+        output_dir: str,
+        vmap: Optional[str] = None,
+        quantization: Optional[str] = None,
+        force: bool = False,
+    ):
+        """Converts the model to the CTranslate2 format.
+
+        Arguments:
+          output_dir: Output directory where the CTranslate2 model is saved.
+          vmap: Optional path to a vocabulary mapping file that will be included
+            in the converted model directory.
+          quantization: Weight quantization scheme
+            (possible values are: int8, int8_float16, int16, float16).
+          force: Override the output directory if it already exists.
+
+        Returns:
+          Path to the output directory.
+
+        Raises:
+          RuntimeError: If the output directory already exists and :obj:`force`
+            is not set.
+          NotImplementedError: If the converter cannot convert this model to the
+            CTranslate2 format.
+        """
         if os.path.exists(output_dir) and not force:
             raise RuntimeError(
                 "output directory %s already exists, use --force to override"

@@ -1,6 +1,8 @@
 import argparse
 import os
 
+from typing import Optional
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec
@@ -81,14 +83,26 @@ class FairseqConverter(Converter):
 
     def __init__(
         self,
-        model_path,
-        data_dir,
-        source_lang=None,
-        target_lang=None,
-        fixed_dictionary=None,
-        no_default_special_tokens=False,
-        user_dir=None,
+        model_path: str,
+        data_dir: str,
+        source_lang: Optional[str] = None,
+        target_lang: Optional[str] = None,
+        fixed_dictionary: Optional[str] = None,
+        no_default_special_tokens: bool = False,
+        user_dir: Optional[str] = None,
     ):
+        """Initializes the Fairseq converter.
+
+        Arguments:
+          model_path: Path to the Fairseq PyTorch model (.pt file).
+          data_dir: Path to the Fairseq data directory containing vocabulary files.
+          source_lang: Source language (may be required if not declared in the model).
+          target_lang: Target language (may be required if not declared in the model).
+          fixed_dictionary: Path to the fixed dictionary for multilingual models.
+          no_default_special_tokens: Require all special tokens to be provided by the user
+            (e.g. encoder end token, decoder start token).
+          user_dir: Path to the user directory containing custom extensions.
+        """
         self._model_path = model_path
         self._data_dir = data_dir
         self._fixed_dictionary = fixed_dictionary

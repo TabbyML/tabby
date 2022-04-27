@@ -630,25 +630,32 @@ static py::set get_supported_compute_types(const std::string& device_str, const 
 
 template <typename T>
 static void declare_async_wrapper(py::module& m, const char* name) {
-  py::class_<AsyncResult<T>>(m, name)
-    .def("result", &AsyncResult<T>::result)
-    .def("done", &AsyncResult<T>::done)
+  py::class_<AsyncResult<T>>(m, name, "Asynchronous wrapper around a result object.")
+    .def("result", &AsyncResult<T>::result, "Blocks until the result is available and returns it.")
+    .def("done", &AsyncResult<T>::done, "Returns ``True`` if the result is ready.")
     ;
 }
 
 PYBIND11_MODULE(translator, m)
 {
-  m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"));
-  m.def("get_cuda_device_count", &ctranslate2::get_gpu_count);
+  m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"),
+        "Helper function to check if a directory seems to contain a CTranslate2 model.");
+  m.def("get_cuda_device_count", &ctranslate2::get_gpu_count,
+        "Returns the number of visible GPU devices.");
   m.def("get_supported_compute_types", &get_supported_compute_types,
         py::arg("device"),
-        py::arg("device_index")=0);
-  m.def("set_random_seed", &ctranslate2::set_random_seed, py::arg("seed"));
+        py::arg("device_index")=0,
+        "Returns the set of supported compute types on a device.");
+  m.def("set_random_seed", &ctranslate2::set_random_seed, py::arg("seed"),
+        "Sets the seed of random generators.");
 
-  py::class_<ctranslate2::TranslationResult>(m, "TranslationResult")
-    .def_readonly("hypotheses", &ctranslate2::TranslationResult::hypotheses)
-    .def_readonly("scores", &ctranslate2::TranslationResult::scores)
-    .def_readonly("attention", &ctranslate2::TranslationResult::attention)
+  py::class_<ctranslate2::TranslationResult>(m, "TranslationResult", "A translation result.")
+    .def_readonly("hypotheses", &ctranslate2::TranslationResult::hypotheses,
+                  "Translation hypotheses.")
+    .def_readonly("scores", &ctranslate2::TranslationResult::scores,
+                  "Score of each translation hypothesis (empty if :obj:`return_scores` was disabled).")
+    .def_readonly("attention", &ctranslate2::TranslationResult::attention,
+                  "Attention matrix of each translation hypothesis (empty if :obj:`return_attention` was disabled).")
     .def("__repr__", [](const ctranslate2::TranslationResult& result) {
       return "TranslationResult(hypotheses=" + std::string(py::repr(py::cast(result.hypotheses)))
         + ", scores=" + std::string(py::repr(py::cast(result.scores)))
@@ -673,7 +680,37 @@ PYBIND11_MODULE(translator, m)
 
   declare_async_wrapper<ctranslate2::TranslationResult>(m, "AsyncTranslationResult");
 
-  py::class_<TranslatorWrapper>(m, "Translator")
+  py::class_<ctranslate2::TranslationStats>(m, "TranslationStats",
+                                            "A ``namedtuple`` containing some file statistics.")
+    .def_readonly("num_tokens", &ctranslate2::TranslationStats::num_tokens,
+                  "Number of generated tokens.")
+    .def_readonly("num_examples", &ctranslate2::TranslationStats::num_examples,
+                  "Number of processed examples.")
+    .def_readonly("total_time_in_ms", &ctranslate2::TranslationStats::total_time_in_ms,
+                  "Total processing time in milliseconds.")
+    .def("__repr__", [](const ctranslate2::TranslationStats& stats) {
+      return "TranslationStats(num_tokens=" + std::string(py::repr(py::cast(stats.num_tokens)))
+        + ", num_examples=" + std::string(py::repr(py::cast(stats.num_examples)))
+        + ", total_time_in_ms=" + std::string(py::repr(py::cast(stats.total_time_in_ms)))
+        + ")";
+    })
+
+    // Backward compatibility with using translate_file output as a tuple.
+    .def("__getitem__", [](const ctranslate2::TranslationStats& stats, size_t index) {
+      auto tuple = py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
+      return py::object(tuple[index]);
+    })
+    ;
+
+  py::class_<TranslatorWrapper>(m, "Translator", R"pbdoc(
+             A text translator.
+
+             Example:
+
+                 >>> translator = ctranslate2.Translator("model/", device="cpu")
+                 >>> translator.translate_batch([["▁Hello", "▁world", "!"]])
+         )pbdoc")
+
     .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long>(),
          py::arg("model_path"),
          py::arg("device")="cpu",
@@ -682,12 +719,35 @@ PYBIND11_MODULE(translator, m)
          py::arg("compute_type")="default",
          py::arg("inter_threads")=1,
          py::arg("intra_threads")=0,
-         py::arg("max_queued_batches")=0)
-    .def_property_readonly("device", &TranslatorWrapper::device)
-    .def_property_readonly("device_index", &TranslatorWrapper::device_index)
-    .def_property_readonly("num_translators", &TranslatorWrapper::num_translators)
-    .def_property_readonly("num_queued_batches", &TranslatorWrapper::num_queued_batches)
-    .def_property_readonly("num_active_batches", &TranslatorWrapper::num_active_batches)
+         py::arg("max_queued_batches")=0,
+         R"pbdoc(
+             Initializes the translator.
+
+             Arguments:
+               model_path: Path to the CTranslate2 model directory.
+               device: Device to use (possible values are: cpu, cuda, auto).
+               device_index: Device IDs where to place this generator on.
+               compute_type: Model computation type or a dictionary mapping a device name
+                 to the computation type
+                 (possible values are: default, auto, int8, int8_float16, int16, float16, float).
+               inter_threads: Maximum number of parallel translations.
+               intra_threads: Number of OpenMP threads per translator (0 to use a default value).
+               max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,
+                 0 for an automatic value). When the queue is full, future requests will block
+                 until a free slot is available.
+         )pbdoc")
+
+    .def_property_readonly("device", &TranslatorWrapper::device,
+                           "Device this translator is running on.")
+    .def_property_readonly("device_index", &TranslatorWrapper::device_index,
+                           "List of device IDS where this translator is running on.")
+    .def_property_readonly("num_translators", &TranslatorWrapper::num_translators,
+                           "Number of translators backing this instance.")
+    .def_property_readonly("num_queued_batches", &TranslatorWrapper::num_queued_batches,
+                           "Number of batches waiting to be processed.")
+    .def_property_readonly("num_active_batches", &TranslatorWrapper::num_active_batches,
+                           "Number of batches waiting to be processed or currently processed.")
+
     .def("translate_batch", &TranslatorWrapper::translate_batch,
          py::arg("source"),
          py::arg("target_prefix")=py::none(),
@@ -714,7 +774,45 @@ PYBIND11_MODULE(translator, m)
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
          py::arg("replace_unknowns")=false,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Translates a batch of tokens.
+
+             Arguments:
+               source: Batch of source tokens.
+               target_prefix: Optional batch of target prefix tokens.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               asynchronous: Run the translation asynchronously.
+               beam_size: Beam size (1 for greedy search).
+               num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
+                 unless :obj:`return_alternatives` is set).
+               length_penalty: Length penalty constant to use during beam search.
+               coverage_penalty: Coverage penalty constant to use during beam search.
+               repetition_penalty: Penalty applied to the score of previously generated tokens
+                 (set > 1 to penalize).
+               disable_unk: Disable the generation of the unknown token.
+               prefix_bias_beta: Parameter for biasing translations towards given prefix.
+               allow_early_exit: Allow the beam search to exit early when the first beam finishes.
+               max_input_length: Truncate inputs after this many tokens (set 0 to disable).
+               max_decoding_length: Maximum prediction length.
+               min_decoding_length: Minimum prediction length.
+               use_vmap: Use the vocabulary mapping file saved in this model
+               normalize_scores: Normalize the score by the sequence length.
+               return_scores: Include the scores in the output.
+               return_attention: Include the attention vectors in the output.
+               return_alternatives: Return alternatives at the first unconstrained decoding position.
+               sampling_topk: Randomly sample predictions from the top K candidates.
+               sampling_temperature: Sampling temperature to generate more random samples.
+               replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
+
+             Returns:
+               A list of translation results.
+
+             See Also:
+               `TranslationOptions <https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translation.h>`_ structure in the C++ library.
+         )pbdoc")
+
     .def("translate_file", &TranslatorWrapper::translate_file,
          py::arg("source_path"),
          py::arg("output_path"),
@@ -743,7 +841,49 @@ PYBIND11_MODULE(translator, m)
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
          py::arg("target_detokenize_fn")=nullptr,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Translates a file.
+
+             Arguments:
+               source_path: Path to the source file.
+               output_path: Path to the output file.
+               target_path: Path to the target prefix file.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               asynchronous: Run the translation asynchronously.
+               beam_size: Beam size (1 for greedy search).
+               num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
+                 unless :obj:`return_alternatives` is set).
+               length_penalty: Length penalty constant to use during beam search.
+               coverage_penalty: Coverage penalty constant to use during beam search.
+               repetition_penalty: Penalty applied to the score of previously generated tokens
+                 (set > 1 to penalize).
+               disable_unk: Disable the generation of the unknown token.
+               prefix_bias_beta: Parameter for biasing translations towards given prefix.
+               allow_early_exit: Allow the beam search to exit early when the first beam finishes.
+               max_input_length: Truncate inputs after this many tokens (set 0 to disable).
+               max_decoding_length: Maximum prediction length.
+               min_decoding_length: Minimum prediction length.
+               use_vmap: Use the vocabulary mapping file saved in this model
+               normalize_scores: Normalize the score by the sequence length.
+               return_scores: Include the scores in the output.
+               return_attention: Include the attention vectors in the output.
+               return_alternatives: Return alternatives at the first unconstrained decoding position.
+               sampling_topk: Randomly sample predictions from the top K candidates.
+               sampling_temperature: Sampling temperature to generate more random samples.
+               replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
+               source_tokenize_fn: Function to tokenize source lines.
+               target_tokenize_fn: Function to tokenize target lines.
+               target_detokenize_fn: Function to detokenize target outputs.
+
+             Returns:
+               A statistics object.
+
+             See Also:
+               `TranslationOptions <https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translation.h>`_ structure in the C++ library.
+         )pbdoc")
+
     .def("score_batch", &TranslatorWrapper::score_batch,
          py::arg("source"),
          py::arg("target"),
@@ -751,7 +891,22 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
          py::arg("max_input_length")=1024,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Scores a batch of parallel tokens.
+
+             Arguments:
+               source: Batch of source tokens.
+               target: Batch of target tokens.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               max_input_length: Truncate inputs after this many tokens (0 to disable).
+
+             Returns:
+               The scores of each token. The length of each sequence of scores is limited to
+               :obj:`max_input_length` but includes the end of sentence token ``</s>``.
+         )pbdoc")
+
     .def("score_file", &TranslatorWrapper::score_file,
          py::arg("source_path"),
          py::arg("target_path"),
@@ -765,36 +920,60 @@ PYBIND11_MODULE(translator, m)
          py::arg("source_tokenize_fn")=nullptr,
          py::arg("target_tokenize_fn")=nullptr,
          py::arg("target_detokenize_fn")=nullptr,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Scores a parallel file.
+
+             Each line in :obj:`output_path` will have the format:
+
+             .. code-block:: text
+
+                 <score> ||| <target> [||| <score_token_0> <score_token_1> ...]
+
+             The score is normalized by the target length which includes the end of sentence
+             token ``</s>``.
+
+             Arguments:
+               source_path: Path to the source file.
+               target_path: Path to the target file.
+               output_path: Path to the output file.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               max_input_length: Truncate inputs after this many tokens (0 to disable).
+               with_tokens_score: Include the token-level scores in the output file.
+               source_tokenize_fn: Function to tokenize source lines.
+               target_tokenize_fn: Function to tokenize target lines.
+               target_detokenize_fn: Function to detokenize target outputs.
+
+             Returns:
+               A statistics object.
+         )pbdoc")
+
     .def("unload_model", &TranslatorWrapper::unload_model,
          py::arg("to_cpu")=false,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Unloads the model attached to this translator but keep enough runtime context
+             to quickly resume translation on the initial device. The model is not guaranteed
+             to be unloaded if translations are running concurrently.
+
+             Arguments:
+               to_cpu: If ``True``, the model is moved to the CPU memory and not fully unloaded.
+         )pbdoc")
+
     .def("load_model", &TranslatorWrapper::load_model,
-         py::call_guard<py::gil_scoped_release>())
-    .def_property_readonly("model_is_loaded", &TranslatorWrapper::model_is_loaded)
+         py::call_guard<py::gil_scoped_release>(),
+         "Loads the model back to the initial device.")
+
+    .def_property_readonly("model_is_loaded", &TranslatorWrapper::model_is_loaded,
+                           "Whether the model is loaded on the initial device and ready to be used.")
     ;
 
-  py::class_<ctranslate2::TranslationStats>(m, "TranslationStats")
-    .def_readonly("num_tokens", &ctranslate2::TranslationStats::num_tokens)
-    .def_readonly("num_examples", &ctranslate2::TranslationStats::num_examples)
-    .def_readonly("total_time_in_ms", &ctranslate2::TranslationStats::total_time_in_ms)
-    .def("__repr__", [](const ctranslate2::TranslationStats& stats) {
-      return "TranslationStats(num_tokens=" + std::string(py::repr(py::cast(stats.num_tokens)))
-        + ", num_examples=" + std::string(py::repr(py::cast(stats.num_examples)))
-        + ", total_time_in_ms=" + std::string(py::repr(py::cast(stats.total_time_in_ms)))
-        + ")";
-    })
-
-    // Backward compatibility with using translate_file output as a tuple.
-    .def("__getitem__", [](const ctranslate2::TranslationStats& stats, size_t index) {
-      auto tuple = py::make_tuple(stats.num_tokens, stats.num_examples, stats.total_time_in_ms);
-      return py::object(tuple[index]);
-    })
-    ;
-
-  py::class_<ctranslate2::GenerationResult>(m, "GenerationResult")
-    .def_readonly("sequences", &ctranslate2::GenerationResult::sequences)
-    .def_readonly("scores", &ctranslate2::GenerationResult::scores)
+  py::class_<ctranslate2::GenerationResult>(m, "GenerationResult", "A generation result.")
+    .def_readonly("sequences", &ctranslate2::GenerationResult::sequences,
+                  "Generated sequences of tokens.")
+    .def_readonly("scores", &ctranslate2::GenerationResult::scores,
+                  "Score of each sequence (empty if :obj:`return_scores` was disabled).")
     .def("__repr__", [](const ctranslate2::GenerationResult& result) {
       return "GenerationResult(sequences=" + std::string(py::repr(py::cast(result.sequences)))
         + ", scores=" + std::string(py::repr(py::cast(result.scores)))
@@ -804,7 +983,15 @@ PYBIND11_MODULE(translator, m)
 
   declare_async_wrapper<ctranslate2::GenerationResult>(m, "AsyncGenerationResult");
 
-  py::class_<GeneratorWrapper>(m, "Generator")
+  py::class_<GeneratorWrapper>(m, "Generator", R"pbdoc(
+             A text generator.
+
+             Example:
+
+                 >>> generator = ctranslate2.Generator("model/", device="cpu")
+                 >>> generator.generate_batch([["<s>"]], max_length=50, sampling_topk=20)
+         )pbdoc")
+
     .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long>(),
          py::arg("model_path"),
          py::arg("device")="cpu",
@@ -813,13 +1000,36 @@ PYBIND11_MODULE(translator, m)
          py::arg("compute_type")="default",
          py::arg("inter_threads")=1,
          py::arg("intra_threads")=0,
-         py::arg("max_queued_batches")=0)
-    .def_property_readonly("device", &GeneratorWrapper::device)
-    .def_property_readonly("device_index", &GeneratorWrapper::device_index)
-    .def_property_readonly("num_generators", &GeneratorWrapper::num_generators)
-    .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches)
-    .def_property_readonly("num_active_batches", &GeneratorWrapper::num_active_batches)
-      .def("generate_batch", &GeneratorWrapper::generate_batch,
+         py::arg("max_queued_batches")=0,
+         R"pbdoc(
+             Initializes the generator.
+
+             Arguments:
+               model_path: Path to the CTranslate2 model directory.
+               device: Device to use (possible values are: cpu, cuda, auto).
+               device_index: Device IDs where to place this generator on.
+               compute_type: Model computation type or a dictionary mapping a device name
+                 to the computation type
+                 (possible values are: default, auto, int8, int8_float16, int16, float16, float).
+               inter_threads: Maximum number of parallel generations.
+               intra_threads: Number of OpenMP threads per generator (0 to use a default value).
+               max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,
+                 0 for an automatic value). When the queue is full, future requests will block
+                 until a free slot is available.
+         )pbdoc")
+
+    .def_property_readonly("device", &GeneratorWrapper::device,
+                           "Device this generator is running on.")
+    .def_property_readonly("device_index", &GeneratorWrapper::device_index,
+                           "List of device IDS where this generator is running on.")
+    .def_property_readonly("num_generators", &GeneratorWrapper::num_generators,
+                           "Number of generators backing this instance.")
+    .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches,
+                           "Number of batches waiting to be processed.")
+    .def_property_readonly("num_active_batches", &GeneratorWrapper::num_active_batches,
+                           "Number of batches waiting to be processed or currently processed.")
+
+    .def("generate_batch", &GeneratorWrapper::generate_batch,
          py::arg("start_tokens"),
          py::kw_only(),
          py::arg("max_batch_size")=0,
@@ -838,14 +1048,60 @@ PYBIND11_MODULE(translator, m)
          py::arg("return_alternatives")=false,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Generates from a batch of start tokens.
+
+             Arguments:
+               start_tokens: Batch of start tokens. If the decoder starts from a special
+                 start token like ``<s>``, this token should be added to this input.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               asynchronous: Run the generation asynchronously.
+               beam_size: Beam size (1 for greedy search).
+               num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
+                 unless :obj:`return_alternatives` is set).
+               length_penalty: Length penalty constant to use during beam search.
+               repetition_penalty: Penalty applied to the score of previously generated tokens
+                 (set > 1 to penalize).
+               disable_unk: Disable the generation of the unknown token.
+               allow_early_exit: Allow the beam search to exit early when the first beam finishes.
+               max_length: Maximum generation length.
+               min_length: Minimum generation length.
+               normalize_scores: Normalize the score by the sequence length.
+               return_scores: Include the scores in the output.
+               return_alternatives: Return alternatives at the first unconstrained decoding position.
+               sampling_topk: Randomly sample predictions from the top K candidates.
+               sampling_temperature: Sampling temperature to generate more random samples.
+
+             Returns:
+               A list of generation results.
+
+             See Also:
+               `GenerationOptions <https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/generation.h>`_ structure in the C++ library.
+         )pbdoc")
+
     .def("score_batch", &GeneratorWrapper::score_batch,
          py::arg("tokens"),
          py::kw_only(),
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
          py::arg("max_input_length")=1024,
-         py::call_guard<py::gil_scoped_release>())
+         py::call_guard<py::gil_scoped_release>(),
+         R"pbdoc(
+             Scores a batch of tokens.
+
+             Arguments:
+               tokens: Batch of tokens to score. If the model expects special start or end tokens,
+                 they should also be added to this input.
+               max_batch_size: The maximum batch size.
+               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               max_input_length: Truncate inputs after this many tokens (0 to disable).
+
+             Returns:
+               The scores of each token. The length of each sequence of scores is limited to
+               :obj:`max_input_length`.
+         )pbdoc")
     ;
 
 }
