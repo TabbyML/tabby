@@ -8,6 +8,7 @@ from ctranslate2.specs import transformer_spec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
+    "fast_gelu": common_spec.Activation.GELU,
     "relu": common_spec.Activation.RELU,
 }
 
@@ -17,8 +18,7 @@ _SUPPORTED_FEATURES_MERGE = {
 }
 
 
-def _get_model_spec(opt, num_source_embeddings):
-    """Creates a model specification from the model options."""
+def check_opt(opt, num_source_embeddings):
     with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     feat_merge = getattr(opt, "feat_merge", "concat")
@@ -26,8 +26,10 @@ def _get_model_spec(opt, num_source_embeddings):
 
     check = utils.ConfigurationChecker()
     check(
-        opt.encoder_type == "transformer" and opt.decoder_type == "transformer",
-        "Options --encoder_type and --decoder_type must be 'transformer'",
+        opt.encoder_type == opt.decoder_type
+        and opt.decoder_type in {"transformer", "transformer_lm"},
+        "Options --encoder_type and --decoder_type must be"
+        " 'transformer' or 'transformer_lm",
     )
     check(
         self_attn_type == "scaled-dot",
@@ -51,6 +53,15 @@ def _get_model_spec(opt, num_source_embeddings):
     )
     check.validate()
 
+
+def _get_model_spec_seq2seq(
+    opt, variables, src_vocabs, tgt_vocabs, num_source_embeddings
+):
+    """Creates a model specification from the model options."""
+    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
+    activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
+    feat_merge = getattr(opt, "feat_merge", "concat")
+
     # Return the first head of the last layer unless the model was trained with alignments.
     if getattr(opt, "lambda_align", 0) == 0:
         alignment_layer = -1
@@ -60,7 +71,8 @@ def _get_model_spec(opt, num_source_embeddings):
         alignment_heads = opt.alignment_heads
 
     num_heads = getattr(opt, "heads", 8)
-    return transformer_spec.TransformerSpec(
+
+    model_spec = transformer_spec.TransformerSpec(
         (opt.enc_layers, opt.dec_layers),
         num_heads,
         with_relative_position=with_relative_position,
@@ -70,6 +82,55 @@ def _get_model_spec(opt, num_source_embeddings):
         num_source_embeddings=num_source_embeddings,
         embeddings_merge=_SUPPORTED_FEATURES_MERGE[feat_merge],
     )
+
+    set_transformer_spec(model_spec, variables)
+    for src_vocab in src_vocabs:
+        model_spec.register_source_vocabulary(src_vocab)
+    for tgt_vocab in tgt_vocabs:
+        model_spec.register_target_vocabulary(tgt_vocab)
+
+    return model_spec
+
+
+def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embeddings):
+    """Creates a model specification from the model options."""
+    with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
+    activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
+    num_heads = getattr(opt, "heads", 8)
+
+    model_spec = transformer_spec.TransformerDecoderModelSpec(
+        opt.dec_layers,
+        num_heads,
+        activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+    )
+
+    set_transformer_decoder(
+        model_spec.decoder,
+        variables,
+        with_relative_position,
+        with_encoder_attention=False,
+    )
+
+    for tgt_vocab in tgt_vocabs:
+        model_spec.register_vocabulary(tgt_vocab)
+
+    model_spec.unk_token = "<unk>"
+    model_spec.bos_token = "<s>"
+    model_spec.eos_token = "</s>"
+
+    return model_spec
+
+
+def get_vocabs(vocab):
+    if isinstance(vocab, dict) and "src" in vocab:
+        src_vocabs = [field[1].vocab.itos for field in vocab["src"].fields]
+        tgt_vocabs = [field[1].vocab.itos for field in vocab["tgt"].fields]
+    else:
+        # Compatibility with older models.
+        src_vocabs = [vocab[0][1].itos]
+        tgt_vocabs = [vocab[1][1].itos]
+
+    return src_vocabs, tgt_vocabs
 
 
 class OpenNMTPyConverter(Converter):
@@ -83,29 +144,30 @@ class OpenNMTPyConverter(Converter):
 
         checkpoint = torch.load(self._model_path, map_location="cpu")
 
-        vocab = checkpoint["vocab"]
-        if isinstance(vocab, dict) and "src" in vocab:
-            src_vocabs = [field[1].vocab.itos for field in vocab["src"].fields]
-            tgt_vocabs = [field[1].vocab.itos for field in vocab["tgt"].fields]
-        else:
-            # Compatibility with older models.
-            src_vocabs = [vocab[0][1].itos]
-            tgt_vocabs = [vocab[1][1].itos]
+        src_vocabs, tgt_vocabs = get_vocabs(checkpoint["vocab"])
 
-        model_spec = _get_model_spec(
-            checkpoint["opt"], num_source_embeddings=len(src_vocabs)
-        )
+        check_opt(checkpoint["opt"], num_source_embeddings=len(src_vocabs))
 
         variables = checkpoint["model"]
         variables["generator.weight"] = checkpoint["generator"]["0.weight"]
         variables["generator.bias"] = checkpoint["generator"].get("0.bias")
 
-        set_transformer_spec(model_spec, variables)
-        for src_vocab in src_vocabs:
-            model_spec.register_source_vocabulary(src_vocab)
-        for tgt_vocab in tgt_vocabs:
-            model_spec.register_target_vocabulary(tgt_vocab)
-        return model_spec
+        if checkpoint["opt"].decoder_type == "transformer_lm":
+            return _get_model_spec_lm(
+                checkpoint["opt"],
+                variables,
+                src_vocabs,
+                tgt_vocabs,
+                num_source_embeddings=len(src_vocabs),
+            )
+        else:
+            return _get_model_spec_seq2seq(
+                checkpoint["opt"],
+                variables,
+                src_vocabs,
+                tgt_vocabs,
+                num_source_embeddings=len(src_vocabs),
+            )
 
 
 def set_transformer_spec(spec, variables):
@@ -126,13 +188,19 @@ def set_transformer_encoder(spec, variables, relative=False):
         )
 
 
-def set_transformer_decoder(spec, variables, relative=False):
+def set_transformer_decoder(
+    spec, variables, relative=False, with_encoder_attention=True
+):
     set_input_layers(spec, variables, "decoder", relative=relative)
     set_linear(spec.projection, variables, "generator")
     set_layer_norm(spec.layer_norm, variables, "decoder.layer_norm")
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer(
-            layer, variables, "decoder.transformer_layers.%d" % i, relative=relative
+            layer,
+            variables,
+            "decoder.transformer_layers.%d" % i,
+            relative=relative,
+            with_encoder_attention=with_encoder_attention,
         )
 
 
@@ -173,7 +241,9 @@ def set_transformer_encoder_layer(spec, variables, scope, relative=False):
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm" % scope)
 
 
-def set_transformer_decoder_layer(spec, variables, scope, relative=False):
+def set_transformer_decoder_layer(
+    spec, variables, scope, relative=False, with_encoder_attention=True
+):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
     set_multi_head_attention(
         spec.self_attention,
@@ -183,8 +253,9 @@ def set_transformer_decoder_layer(spec, variables, scope, relative=False):
         relative=relative,
     )
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm_1" % scope)
-    set_multi_head_attention(spec.attention, variables, "%s.context_attn" % scope)
-    set_layer_norm(spec.attention.layer_norm, variables, "%s.layer_norm_2" % scope)
+    if with_encoder_attention:
+        set_multi_head_attention(spec.attention, variables, "%s.context_attn" % scope)
+        set_layer_norm(spec.attention.layer_norm, variables, "%s.layer_norm_2" % scope)
 
 
 def set_ffn(spec, variables, scope):
