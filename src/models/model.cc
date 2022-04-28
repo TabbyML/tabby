@@ -562,6 +562,7 @@ namespace ctranslate2 {
       }
 
       // Run additional model initialization.
+      const ScopedDeviceSetter scoped_device_setter(device, device_index);
       model->initialize(model_reader);
       return model;
     }
