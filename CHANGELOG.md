@@ -4,6 +4,27 @@
 
 ### Fixes and improvements
 
+## [v2.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.16.0) (2022-04-28)
+
+### New features
+
+* Initial support of language models:
+  * Add a high-level class `ctranslate2.Generator` to generate text with language models
+  * Add a converter for OpenAI GPT-2 models
+  * Update the OpenNMT-py converter to support `transformer_lm` decoders
+* Build ARM64 wheels for macOS
+* Allow loading custom Fairseq extensions and architectures during conversion with the option `--user_dir`
+* Enable conversion of the Fairseq architectures `multilingual_transformer` and `multilingual_transformer_iwslt_de_en`
+* Implement random sampling in beam search using the Gumbel-max trick
+* Generate and publish the Python API reference to https://opennmt.net/CTranslate2
+
+### Fixes and improvements
+
+* Fix model loading on a GPU with index > 0
+* Fix memory error when running random sampling on GPU with certain batch sizes
+* Fix incorrect tokens order in some converted Marian vocabularies
+* Properly count the number of layers before building the encoder/decoder instead of relying on runtime exceptions
+
 ## [v2.15.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.15.1) (2022-04-04)
 
 ### Fixes and improvements
