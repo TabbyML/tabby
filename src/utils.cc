@@ -111,8 +111,12 @@ namespace ctranslate2 {
 #endif
 
 #if !defined(_OPENMP) && !defined(CT2_WITH_RUY)
-    if (num_threads > 0)
-      spdlog::warn("The number of threads (intra_threads) is ignored in this build");
+    if (num_threads > 1) {
+      static std::once_flag warn_once;
+      std::call_once(warn_once, []() {
+        spdlog::warn("The number of threads (intra_threads) is ignored in this build");
+      });
+    }
 #endif
   }
 
