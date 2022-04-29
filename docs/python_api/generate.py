@@ -107,7 +107,7 @@ def document_module(module, module_path, module_map, output_dir):
         doc.write(".. automodule:: %s\n\n" % module_path)
 
         if classes:
-            doc.write("\nClasses\n")
+            doc.write("Classes\n")
             doc.write("-------\n\n")
             doc.write(".. toctree::\n\n")
             for class_info in annotate_classes(classes):
@@ -155,7 +155,7 @@ def document_module(module, module_path, module_map, output_dir):
             )
 
             if submodules:
-                doc.write("Submodules\n")
+                doc.write("\nSubmodules\n")
                 doc.write("----------\n\n")
                 doc.write(".. toctree::\n\n")
                 for module_path, module in submodules:
