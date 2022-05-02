@@ -30,6 +30,9 @@ html_favicon = "_static/favicon.png"
 autodoc_member_order = "groupwise"
 autodoc_typehints_format = "short"
 autodoc_class_signature = "separated"
+autodoc_default_options = {
+    "exclude-members": "__new__",
+}
 napoleon_include_init_with_doc = True
 napoleon_include_special_with_doc = True
 
