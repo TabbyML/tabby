@@ -357,7 +357,7 @@ jobs:
       - name: Build docs
         working-directory: docs/python_api
         run: |
-          python generate.py src
+          python generate.py python
           sphinx-build . build
 
       - name: Deploy docs

@@ -5,6 +5,6 @@ Build instructions:
 ```bash
 pip install ctranslate2
 pip install -r requirements.txt
-python generate.py src
+python generate.py python
 sphinx-build . build
 ```

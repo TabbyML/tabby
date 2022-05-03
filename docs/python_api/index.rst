@@ -6,4 +6,4 @@ This website contains the generated documentation for the CTranslate2 Python API
 .. toctree::
    :caption: Python reference
 
-   src/ctranslate2
+   python/ctranslate2
