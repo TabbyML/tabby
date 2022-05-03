@@ -76,17 +76,26 @@ namespace ctranslate2 {
       decoding_options.return_scores = options.return_scores;
       decoding_options.return_alternatives = options.return_alternatives;
 
+      const auto start_ids = vocabulary.to_ids(start_tokens);
       layers::DecoderState state = _decoder->initial_state();
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
-                                                   vocabulary.to_ids(start_tokens),
+                                                   start_ids,
                                                    vocabulary.eos_id(),
                                                    decoding_options,
                                                    output_ids_map);
 
       std::vector<GenerationResult> final_results;
       final_results.reserve(results.size());
-      for (auto& result : results) {
+      for (size_t i = 0; i < results.size(); ++i) {
+        auto& result = results[i];
+
+        // Forward the start token to the output if it is not the special BOS token.
+        if (!start_ids[i].empty() && start_ids[i][0] != vocabulary.bos_id()) {
+          for (auto& sequence : result.hypotheses)
+            sequence.insert(sequence.begin(), start_ids[i][0]);
+        }
+
         final_results.emplace_back(vocabulary.to_tokens(result.hypotheses),
                                    std::move(result.scores));
       }
