@@ -533,6 +533,12 @@ skip_on_windows = pytest.mark.skipif(
             "en.vocab",
             ctranslate2.specs.TransformerSpec(6, 8),
         ),
+        (
+            "v2/checkpoint",
+            "ar.vocab",
+            "en.vocab",
+            None,
+        ),
     ],
 )
 def test_opennmt_tf_model_conversion(
@@ -543,12 +549,20 @@ def test_opennmt_tf_model_conversion(
     )
     src_vocab = os.path.join(model_path, src_vocab)
     tgt_vocab = os.path.join(model_path, tgt_vocab)
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        model_spec,
-        src_vocab,
-        tgt_vocab,
-        model_path=model_path,
-    )
+
+    if model_spec is None:
+        config = {
+            "model_dir": model_path,
+            "data": {"source_vocabulary": src_vocab, "target_vocabulary": tgt_vocab},
+        }
+        converter = ctranslate2.converters.OpenNMTTFConverterV2.from_config(config)
+    else:
+        converter = ctranslate2.converters.OpenNMTTFConverter(
+            model_spec,
+            src_vocab,
+            tgt_vocab,
+            model_path=model_path,
+        )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
@@ -734,6 +748,41 @@ def test_opennmt_tf_postnorm_transformer_conversion(tmpdir):
     )
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
+
+
+def test_opennmt_tf_multi_features(tmpdir):
+    import opennmt
+
+    model = opennmt.models.Transformer(
+        opennmt.inputters.ParallelInputter(
+            [
+                opennmt.inputters.WordEmbedder(24),
+                opennmt.inputters.WordEmbedder(8),
+            ],
+            reducer=opennmt.layers.ConcatReducer(),
+        ),
+        opennmt.inputters.WordEmbedder(32),
+        num_layers=3,
+        num_units=32,
+        num_heads=4,
+        ffn_inner_dim=64,
+    )
+
+    model.initialize(
+        {
+            "source_1_vocabulary": _create_vocab(tmpdir, "source_1", 50),
+            "source_2_vocabulary": _create_vocab(tmpdir, "source_2", 10),
+            "target_vocabulary": _create_vocab(tmpdir, "target", 60),
+        }
+    )
+    model.create_variables()
+
+    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+
+    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.txt"))
 
 
 @skip_if_data_missing

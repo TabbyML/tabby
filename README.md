@@ -80,6 +80,9 @@ ct2-opennmt-tf-converter --model_path averaged-ende-ckpt500k-v2 --output_dir end
     --src_vocab averaged-ende-ckpt500k-v2/wmtende.vocab \
     --tgt_vocab averaged-ende-ckpt500k-v2/wmtende.vocab \
     --model_type TransformerBase
+
+# For other models, it is usually enough to only pass the configuration:
+ct2-opennmt-tf-converter --config config.yml --output_dir ende_ctranslate2
 ```
 
 *c. Fairseq*
@@ -511,6 +514,7 @@ The implementation has been generously tested in [production environment](https:
   * `ctranslate2.converters.MarianConverter`
   * `ctranslate2.converters.OpenNMTPyConverter`
   * `ctranslate2.converters.OpenNMTTFConverter`
+  * `ctranslate2.converters.OpenNMTTFConverterV2`
   * `ctranslate2.converters.OpusMTConverter`
   * `ctranslate2.converters.OpenAIGPT2Converter`
 * C++ symbols:
