@@ -109,6 +109,7 @@ setup(
             "ct2-opennmt-py-converter=ctranslate2.converters.opennmt_py:main",
             "ct2-opennmt-tf-converter=ctranslate2.converters.opennmt_tf:main",
             "ct2-opus-mt-converter=ctranslate2.converters.opus_mt:main",
+            "ct2-transformers-converter=ctranslate2.converters.transformers:main",
         ],
     },
 )

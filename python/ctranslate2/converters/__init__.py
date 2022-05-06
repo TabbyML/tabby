@@ -6,3 +6,4 @@ from ctranslate2.converters.opennmt_py import OpenNMTPyConverter
 from ctranslate2.converters.opennmt_tf import OpenNMTTFConverter
 from ctranslate2.converters.opennmt_tf import OpenNMTTFConverterV2
 from ctranslate2.converters.opus_mt import OpusMTConverter
+from ctranslate2.converters.transformers import TransformersConverter

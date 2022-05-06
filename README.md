@@ -14,6 +14,7 @@ Compatible models should be first converted into an optimized model format. The 
 * [Fairseq](https://github.com/pytorch/fairseq/)
 * [Marian](https://github.com/marian-nmt/marian)
 * [OpenAI GPT-2](https://github.com/openai/gpt-2)
+* [Transformers](https://github.com/huggingface/transformers)
 
 The project is production-oriented and comes with [backward compatibility guarantees](#what-is-the-state-of-this-project), but it also includes experimental features related to model compression and inference acceleration.
 
@@ -183,6 +184,7 @@ The Python package includes a [conversion API](https://opennmt.net/CTranslate2/s
 * `ct2-marian-converter`
 * `ct2-opus-mt-converter` (based on `ct2-marian-converter`)
 * `ct2-openai-gpt2-converter`
+* `ct2-transformers-converter`
 
 The conversion should be run in the same environment as the selected training framework.
 
@@ -517,6 +519,7 @@ The implementation has been generously tested in [production environment](https:
   * `ctranslate2.converters.OpenNMTTFConverterV2`
   * `ctranslate2.converters.OpusMTConverter`
   * `ctranslate2.converters.OpenAIGPT2Converter`
+  * `ctranslate2.converters.TransformersConverter`
 * C++ symbols:
   * `ctranslate2::models::Model`
   * `ctranslate2::TranslationOptions`
