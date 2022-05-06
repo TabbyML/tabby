@@ -114,10 +114,6 @@ def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embedd
     for tgt_vocab in tgt_vocabs:
         model_spec.register_vocabulary(tgt_vocab)
 
-    model_spec.unk_token = "<unk>"
-    model_spec.bos_token = "<s>"
-    model_spec.eos_token = "</s>"
-
     return model_spec
 
 
