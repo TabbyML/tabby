@@ -18,3 +18,19 @@ dl.class > dt:first-of-type {
 dl.py.property {
     display: block !important;
 }
+
+.rst-content a code.literal {
+    color: #2980B9;
+}
+.rst-content a:hover code.literal {
+    color: #3091d1;
+}
+.rst-content a:visited code.literal {
+    color: #9B59B6;
+}
+
+.rst-content blockquote {
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 5px solid #999;
+}

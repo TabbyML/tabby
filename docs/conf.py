@@ -12,12 +12,15 @@ release = ctranslate2.__version__  # The full version, including alpha/beta/rc t
 version = ".".join(release.split(".")[:2])  # The short X.Y version.
 
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.githubpages",
+    "sphinx.ext.napoleon",
 ]
 
-source_suffix = [".rst"]
+source_suffix = [".rst", ".md"]
+exclude_patterns = ["README.md"]
 
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {}
@@ -33,6 +36,9 @@ autodoc_class_signature = "separated"
 autodoc_default_options = {
     "exclude-members": "__new__",
 }
+
+autosectionlabel_prefix_document = True
+
 napoleon_include_init_with_doc = True
 napoleon_include_special_with_doc = True
 

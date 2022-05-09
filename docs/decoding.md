@@ -1,10 +1,10 @@
-# Decoding
+# Decoding features
 
 This page describes CTranslate2 decoding features. The text translation API is used for demonstration but most features are also available for text generation.
 
 The examples use the following symbols that are left unspecified:
 
-* `translator`: a `ctranslate2.Translator` instance
+* `translator`: a [`ctranslate2.Translator`](python/ctranslate2.Translator.rst) instance
 * `tokenize`: a function taking a string and returning a list of string
 * `detokenize`: a function taking a list of string and returning a string
 
@@ -34,7 +34,9 @@ print(detokenize(results[0].hypotheses[0]))
 
 > Dieses Projekt ist auf die effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet, ist aber auch ein Ort für Experimente rund um Modellkompression und Inferenzbeschleunigung.
 
+```{tip}
 More hypotheses can be returned by setting the `num_hypotheses` argument.
+```
 
 By default, the beam search compares cumulated scores and exits when the first beam finishes. You can configure this behavior with the options:
 
@@ -59,7 +61,9 @@ results = translator.translate_batch([[]], min_decoding_length=1)
 assert len(results[0].hypotheses[0]) == 0
 ```
 
-Also note that the input is truncated after 1024 tokens by default to limit the maximum memory usage of the model. See the option `max_input_length`.
+```{attention}
+By default, the input is truncated after 1024 tokens to limit the maximum memory usage of the model. See the option `max_input_length`.
+```
 
 ## Autocompletion
 
@@ -79,7 +83,7 @@ The prefix effectively changes the target context and the rest of the translatio
 
 ## Biased decoding
 
-Instead of using [Autocompletion](#Autocompletion) to force a translation to start with a `target_prefix` argument, we can "bias" a translation towards a prefix by setting `prefix_bias_beta` to a value in (0, 1).  The higher `prefix_bias_beta` is, the stronger the bias. A translation can diverge from a prefix when `prefix_bias_beta` is low and the translator is confident in decoding tokens that are different from the prefix's tokens.  See [section 4.2](https://arxiv.org/abs/1912.03393) for more details on the biasing algorithm.
+Instead of using {ref}`decoding:autocompletion` to force a translation to start with a `target_prefix` argument, we can "bias" a translation towards a prefix by setting `prefix_bias_beta` to a value in (0, 1).  The higher `prefix_bias_beta` is, the stronger the bias. A translation can diverge from a prefix when `prefix_bias_beta` is low and the translator is confident in decoding tokens that are different from the prefix's tokens.  See [section 4.2](https://arxiv.org/abs/1912.03393) for more details on the biasing algorithm.
 
 ```python
 results = translator.translate_batch(
@@ -156,4 +160,6 @@ for results in all_results:
 >
 > Das Projekt richtet sich zwar auf den effizienten Service von Standard-Übersetzungen-Modellen, ist aber auch ein Ort für Experimente rund um Modellkomprimierung und ineffektive Beschleunigung.
 
+```{tip}
 You can increase the randomness of the generation by increasing the value of the argument `sampling_temperature`.
+```

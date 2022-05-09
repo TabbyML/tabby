@@ -1,4 +1,4 @@
-The [Python API documentation](https://opennmt.net/CTranslate2) is generated with [Sphinx](http://www.sphinx-doc.org).
+The [documentation website](https://opennmt.net/CTranslate2) is generated with [Sphinx](http://www.sphinx-doc.org).
 
 Build instructions:
 

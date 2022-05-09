@@ -350,12 +350,12 @@ jobs:
           pip install *cp38*manylinux*x86_64.whl
 
       - name: Install dependencies to build docs
-        working-directory: docs/python_api
+        working-directory: docs
         run: |
           python -m pip install -r requirements.txt
 
       - name: Build docs
-        working-directory: docs/python_api
+        working-directory: docs
         run: |
           python generate.py python
           sphinx-build . build
@@ -366,5 +366,5 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages
-          FOLDER: docs/python_api/build
+          FOLDER: docs/build
           CLEAN: true

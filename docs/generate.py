@@ -8,8 +8,9 @@ import ctranslate2
 
 def document_class(output_dir, class_path, base_path=None, children_paths=None):
     with open(os.path.join(output_dir, "%s.rst" % class_path), "w") as doc:
-        doc.write("%s\n" % class_path)
-        doc.write("=" * len(class_path))
+        class_name = class_path.split(".")[-1]
+        doc.write("%s\n" % class_name)
+        doc.write("=" * len(class_name))
         doc.write("\n\n")
         doc.write(".. autoclass:: %s\n" % class_path)
         doc.write("    :members:\n")
@@ -25,8 +26,9 @@ def document_class(output_dir, class_path, base_path=None, children_paths=None):
 
 def document_function(output_dir, function_path):
     with open(os.path.join(output_dir, "%s.rst" % function_path), "w") as doc:
-        doc.write("%s\n" % function_path)
-        doc.write("=" * len(function_path))
+        function_name = function_path.split(".")[-1]
+        doc.write("%s\n" % function_name)
+        doc.write("=" * len(function_name))
         doc.write("\n\n")
         doc.write(".. autofunction:: %s\n" % function_path)
 
@@ -81,7 +83,8 @@ def annotate_classes(classes):
 
 def document_module(module, module_path, module_map, output_dir):
     if not module_is_public(module):
-        return False
+        return []
+    modules = [module_path]
     submodules = []
     classes = []
     functions = []
@@ -93,7 +96,11 @@ def document_module(module, module_path, module_map, output_dir):
         symbol_path = "%s.%s" % (module_path, symbol_name)
         if inspect.isclass(symbol):
             classes.append((symbol, symbol_path))
-        elif inspect.isfunction(symbol) or inspect.ismethod(symbol) or inspect.isroutine(symbol):
+        elif (
+            inspect.isfunction(symbol)
+            or inspect.ismethod(symbol)
+            or inspect.isroutine(symbol)
+        ):
             functions.append(symbol_path)
         elif inspect.ismodule(symbol):
             submodules.append((symbol_path, symbol))
@@ -101,15 +108,14 @@ def document_module(module, module_path, module_map, output_dir):
             constants.append(symbol_path)
 
     with open(os.path.join(output_dir, "%s.rst" % module_path), "w") as doc:
-        doc.write("%s module\n" % module_path)
-        doc.write("=" * (len(module_path) + 7))
+        doc.write("%s\n" % module_path)
+        doc.write("=" * (len(module_path)))
         doc.write("\n\n")
         doc.write(".. automodule:: %s\n\n" % module_path)
 
+        doc.write(".. toctree::\n\n")
+
         if classes:
-            doc.write("Classes\n")
-            doc.write("-------\n\n")
-            doc.write(".. toctree::\n\n")
             for class_info in annotate_classes(classes):
                 base = class_info["parent"]
                 base_path = module_map.get(
@@ -133,38 +139,31 @@ def document_module(module, module_path, module_map, output_dir):
                 )
 
         if functions:
-            doc.write("\nFunctions\n")
-            doc.write("---------\n\n")
-            doc.write(".. toctree::\n\n")
             for function_path in functions:
                 doc.write("   %s\n" % function_path)
                 document_function(output_dir, function_path)
 
         if constants:
-            doc.write("\nConstants\n")
-            doc.write("---------\n\n")
             for constant_path in constants:
                 doc.write("* %s\n" % constant_path)
 
         if submodules:
-            submodules = list(
-                filter(
-                    lambda x: document_module(x[1], x[0], module_map, output_dir),
-                    submodules,
+            for submodule_path, submodule in submodules:
+                modules.extend(
+                    document_module(submodule, submodule_path, module_map, output_dir)
                 )
-            )
 
-            if submodules:
-                doc.write("\nSubmodules\n")
-                doc.write("----------\n\n")
-                doc.write(".. toctree::\n\n")
-                for module_path, module in submodules:
-                    doc.write("   %s\n" % module_path)
-
-        return True
+        return modules
 
 
 output_dir = sys.argv[1]
 os.makedirs(output_dir)
 module_map = get_module_map(ctranslate2, "ctranslate2")
-document_module(ctranslate2, "ctranslate2", module_map, output_dir)
+module_paths = document_module(ctranslate2, "ctranslate2", module_map, output_dir)
+
+with open(os.path.join(output_dir, "overview.rst"), "w") as overview:
+    overview.write("Python\n")
+    overview.write("======\n\n")
+    overview.write(".. toctree::\n\n")
+    for module_path in module_paths:
+        overview.write("   %s\n" % module_path)

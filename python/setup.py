@@ -88,6 +88,7 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
+        "Documentation": "https://opennmt.net/CTranslate2",
         "Forum": "https://forum.opennmt.net",
         "Gitter": "https://gitter.im/OpenNMT/CTranslate2",
         "Source": "https://github.com/OpenNMT/CTranslate2",
