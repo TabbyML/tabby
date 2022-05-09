@@ -4,6 +4,25 @@
 
 ### Fixes and improvements
 
+## [v2.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.17.0) (2022-05-09)
+
+### New features
+
+* Add a converter for Hugging Face's [Transformers](https://github.com/huggingface/transformers). The following models are currently supported:
+  * BART
+  * M2M100
+  * MarianMT
+  * MBART
+  * OpenAI GPT2
+* Revisit the OpenNMT-tf converter to better support custom models and configurations:
+  * Extend the conversion script to accept the training configuration
+  * Add a new converter class `ctranslate2.converters.OpenNMTTFConverterV2`
+* Move all documentation and guides to the [website](https://opennmt.net/CTranslate2) to improve navigation and clarity
+
+### Fixes and improvements
+
+* In text generation, include the start token in the output if it is not the BOS token
+
 ## [v2.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.16.0) (2022-04-28)
 
 ### New features
