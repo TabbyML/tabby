@@ -120,6 +120,16 @@ namespace ctranslate2 {
       return target_vocabulary.to_ids(target, prefix, suffix);
     }
 
+    bool EncoderDecoderReplica::source_is_empty(const std::vector<std::string>& source) const {
+      const auto& vocabulary = _model->get_source_vocabulary(0);
+      return (source.empty()
+              || (source.size() == 1
+                  && source[0] == vocabulary.eos_token())
+              || (source.size() == 2
+                  && source[0] == vocabulary.bos_token()
+                  && source[1] == vocabulary.eos_token()));
+    }
+
     void
     EncoderDecoderReplica::encode(const std::vector<std::vector<std::vector<std::string>>>& source,
                                   StorageView& memory,
@@ -218,7 +228,7 @@ namespace ctranslate2 {
       std::vector<size_t> non_empty_index;
       non_empty_index.reserve(original_batch_size);
       for (size_t i = 0; i < original_batch_size; ++i) {
-        if (!source[i].empty())
+        if (!source_is_empty(source[i]))
           non_empty_index.emplace_back(i);
       }
 

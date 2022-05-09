@@ -945,6 +945,9 @@ def test_fairseq_user_start_token(tmpdir):
     output = translator.translate_batch([tokens], target_prefix=[["</s>"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
+    output = translator.translate_batch([["</s>"]], target_prefix=[["</s>"]])
+    assert output[0].hypotheses[0] == []
+
     scores = translator.score_batch([tokens], [["</s>", "a", "t", "z", "m", "o", "n"]])
 
     # Scored tokens: a t z m o n </s>

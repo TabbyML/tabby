@@ -99,6 +99,7 @@ namespace ctranslate2 {
       make_source_ids(const std::vector<std::vector<std::string>>& source, size_t index) const;
       std::vector<std::vector<size_t>>
       make_target_ids(const std::vector<std::vector<std::string>>& target, bool partial) const;
+      bool source_is_empty(const std::vector<std::string>& source) const;
 
       void encode(const std::vector<std::vector<std::vector<std::string>>>& source,
                   StorageView& memory,
