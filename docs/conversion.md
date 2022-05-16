@@ -34,7 +34,7 @@ The converters support reducing the weights precision to save on space and possi
 
 ## Backward compatibility
 
-Converted models are backward compatibility. This compatibility is rarely broken, even for major versions.
+New versions of CTranslate2 are backward compatible with models that were previously converted. This compatibility is rarely broken, even for major versions.
 
 ```{attention}
 Forward compatibility is not guaranteed, however. The version loading the model should not be older than the version that converted the model.
