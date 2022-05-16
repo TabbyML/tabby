@@ -235,6 +235,11 @@ class MarianMTLoader(BartLoader):
     def architecture_name(self):
         return "MarianMTModel"
 
+    def get_model_spec(self, model):
+        model.config.normalize_before = False
+        model.config.normalize_embedding = False
+        return super().get_model_spec(model)
+
     def set_decoder(self, spec, decoder):
         spec.start_from_zero_embedding = True
         super().set_decoder(spec, decoder)
