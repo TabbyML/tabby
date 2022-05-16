@@ -13,6 +13,7 @@ Compatible models should be first converted into an optimized model format. The 
 * [OpenNMT-tf](https://opennmt.net/CTranslate2/guides/opennmt_tf.html)
 * [Fairseq](https://opennmt.net/CTranslate2/guides/fairseq.html)
 * [Marian](https://opennmt.net/CTranslate2/guides/marian.html)
+* [OPUS-MT](https://opennmt.net/CTranslate2/guides/opus_mt.html)
 * [Transformers](https://opennmt.net/CTranslate2/guides/transformers.html)
 
 The project is production-oriented and comes with [backward compatibility guarantees](https://opennmt.net/CTranslate2/versioning.html), but it also includes experimental features related to model compression and inference acceleration.
