@@ -185,15 +185,16 @@ class BartLoader(ModelLoader):
                 layer.self_attn_layer_norm,
             )
 
-            self.set_attention(
-                layer_spec.attention,
-                layer.encoder_attn,
-                self_attention=False,
-            )
-            self.set_layer_norm(
-                layer_spec.attention.layer_norm,
-                layer.encoder_attn_layer_norm,
-            )
+            if hasattr(layer, "encoder_attn"):
+                self.set_attention(
+                    layer_spec.attention,
+                    layer.encoder_attn,
+                    self_attention=False,
+                )
+                self.set_layer_norm(
+                    layer_spec.attention.layer_norm,
+                    layer.encoder_attn_layer_norm,
+                )
 
             self.set_linear(layer_spec.ffn.linear_0, layer.fc1)
             self.set_linear(layer_spec.ffn.linear_1, layer.fc2)
@@ -280,6 +281,55 @@ class MBartLoader(BartLoader):
             spec.user_decoder_start_tokens = True
 
         return spec
+
+
+@register_loader("OPTConfig")
+class OPTLoader(BartLoader):
+    @property
+    def architecture_name(self):
+        return "OPTForCausalLM"
+
+    def get_model_spec(self, model):
+        spec = transformer_spec.TransformerDecoderModelSpec(
+            model.config.num_hidden_layers,
+            model.config.num_attention_heads,
+            pre_norm=model.config.do_layer_norm_before,
+            activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
+            no_final_norm=True,
+            project_in_out=model.config.word_embed_proj_dim != model.config.hidden_size,
+        )
+
+        self.set_decoder(spec.decoder, model.model.decoder)
+        self.set_linear(spec.decoder.projection, model.lm_head)
+        return spec
+
+    def set_decoder(self, spec, decoder):
+        super().set_decoder(spec, decoder)
+
+        if decoder.project_in is not None:
+            self.set_linear(spec.project_in, decoder.project_in)
+        if decoder.project_out is not None:
+            self.set_linear(spec.project_out, decoder.project_out)
+
+    def set_common_layers(self, spec, module):
+        spec.scale_embeddings = False
+        self.set_position_encodings(spec.position_encodings, module.embed_positions)
+        self.set_embeddings(spec.embeddings, module.embed_tokens)
+
+    def set_position_encodings(self, spec, module):
+        spec.encodings = module.weight.numpy()[module.padding_idx + 1 :]
+
+    def get_vocabulary(self, tokenizer):
+        tokens = super().get_vocabulary(tokenizer)
+
+        i = 0
+        while len(tokens) % 8 != 0:
+            symbol = "madeupword{:04d}".format(i)
+            if symbol not in tokens:
+                tokens.append(symbol)
+            i += 1
+
+        return tokens
 
 
 @register_loader("GPT2Config")

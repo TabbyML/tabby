@@ -1054,6 +1054,12 @@ _TRANSFORMERS_GENERATION_TESTS = [
         10,
         "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof",
     ),
+    (
+        "facebook/opt-350m",
+        "</s>",
+        10,
+        "Ċ The Ġfollowing Ġis Ġa Ġlist Ġof Ġthe Ġmost Ġpopular",
+    ),
 ]
 
 

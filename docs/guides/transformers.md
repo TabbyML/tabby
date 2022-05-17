@@ -7,6 +7,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * MarianMT
 * MBART
 * OpenAI GPT2
+* OPT
 
 The converter takes as argument the pretrained model name or the path to a model directory:
 
@@ -102,4 +103,29 @@ start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode("It is"))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
 output = results[0].sequences[0]
 print(tokenizer.decode(tokenizer.convert_tokens_to_ids(output)))
+```
+
+## OPT
+
+This example uses Meta's [OPT](https://huggingface.co/docs/transformers/model_doc/opt) model with 350M parameters. The usage is similar to GPT-2 but all inputs should start with the special token `</s>` which is automatically added by `GPT2Tokenizer`.
+
+```bash
+ct2-transformers-converter --model facebook/opt-350m --output_dir opt-350m-ct2
+```
+
+```python
+import ctranslate2
+import transformers
+
+tokenizer = transformers.GPT2Tokenizer.from_pretrained("facebook/opt-350m")
+generator = ctranslate2.Generator("opt-350m-ct2")
+
+prompt = "Hey, are you conscious? Can you talk to me?"
+start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch([start_tokens], max_length=30)
+output_tokens = results[0].sequences[0]
+
+output = tokenizer.decode(tokenizer.convert_tokens_to_ids(output_tokens))
+print(output)
 ```

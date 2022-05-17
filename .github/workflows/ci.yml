@@ -216,13 +216,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15, windows-2019]
+        os: [ubuntu-20.04, macos-10.15, windows-2019]
 
     steps:
-      - name: Set up Python 3.6
+      - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
-          python-version: 3.6
+          python-version: 3.8
 
       - uses: actions/checkout@v2
 
@@ -239,18 +239,18 @@ jobs:
       - name: Install wheel
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          pip install *cp36*manylinux*x86_64.whl
+          pip install *cp38*manylinux*x86_64.whl
 
       - name: Install wheel
         if: startsWith(matrix.os, 'macos')
         run: |
-          pip install *cp36*macosx*.whl
+          pip install *cp38*macosx*x86_64.whl
 
       - name: Install wheel
         if: startsWith(matrix.os, 'windows')
         shell: bash
         run: |
-          pip install *cp36*win*.whl
+          pip install *cp38*win*.whl
 
       - name: Run tests
         shell: bash
