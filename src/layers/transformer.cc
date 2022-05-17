@@ -233,7 +233,9 @@ namespace ctranslate2 {
                                            const ops::ActivationType activation_type,
                                            const dim_t alignment_layer,
                                            const dim_t alignment_heads,
-                                           const bool layernorm_embedding)
+                                           const bool layernorm_embedding,
+                                           const bool no_final_norm,
+                                           const bool project_in_out)
       : Decoder(model.device())
       , _with_encoder_attention(with_encoder_attention)
       , _num_heads(num_heads)
@@ -248,8 +250,14 @@ namespace ctranslate2 {
       , _layernorm_embedding(layernorm_embedding
                              ? std::make_unique<LayerNorm>(model, scope + "/layernorm_embedding")
                              : nullptr)
-      , _output_norm(pre_norm
+      , _output_norm(pre_norm && !no_final_norm
                      ? std::make_unique<LayerNorm>(model, scope + "/layer_norm")
+                     : nullptr)
+      , _project_in(project_in_out
+                    ? std::make_unique<Dense>(model, scope + "/project_in")
+                    : nullptr)
+      , _project_out(project_in_out
+                     ? std::make_unique<Dense>(model, scope + "/project_out")
                      : nullptr)
       , _proj(model, scope + "/projection") {
       const std::string layer_prefix = scope + "/layer_";
@@ -320,6 +328,10 @@ namespace ctranslate2 {
         zero_first_timestep(layer_in, step);
       if (_embeddings_scale && (!_start_from_zero_embedding || step != 0))
         ops::Mul()(layer_in, *_embeddings_scale, layer_in);
+      if (_project_in) {
+        (*_project_in)(layer_in, layer_out);
+        layer_in = std::move(layer_out);
+      }
       if (layer_in.rank() == 2)
         layer_in.expand_dims(1);
       if (_position_encoder)
@@ -411,6 +423,10 @@ namespace ctranslate2 {
       if (logits) {
         if (_output_norm)
           (*_output_norm)(layer_in, layer_in);
+        if (_project_out) {
+          (*_project_out)(layer_in, layer_out);
+          layer_in = std::move(layer_out);
+        }
         _proj(layer_in, *logits);
 
         if (step >= 0)

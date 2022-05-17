@@ -6,6 +6,7 @@ CTranslate2 supports some Transformer models trained with [Fairseq](https://gith
 * `multilingual_transformer`
 * `transformer`
 * `transformer_align`
+* `transformer_lm`
 
 The conversion minimally requires the PyTorch model path and the Fairseq data directory which contains the vocabulary files:
 
@@ -44,6 +45,39 @@ translator = ctranslate2.Translator("ende_ctranslate2/", device="cpu")
 results = translator.translate_batch([["H@@", "ello", "world@@", "!"]])
 
 print(results[0].hypotheses[0])
+```
+
+```{note}
+For simplicity, this example does not show how to tokenize the text. The tokens are obtained by running `sacremoses` and applying the BPE codes included in the model.
+```
+
+## WMT19 language model
+
+The FAIR team published [pretrained language models](https://github.com/pytorch/fairseq/blob/main/examples/language_model/README.md) as part of the WMT19 news translation task. They can be converted to the CTranslate2 format:
+
+```bash
+wget https://dl.fbaipublicfiles.com/fairseq/models/lm/wmt19.en.tar.gz
+tar xf wmt19.en.tar.gz
+
+ct2-fairseq-converter --data_dir wmt19.en/ --model_path wmt19.en/model.pt --output_dir wmt19_en_ct2
+```
+
+The model can then be used to sample or score sequences of tokens. All inputs should start with the special token `</s>`:
+
+```python
+import numpy as np
+import ctranslate2
+
+generator = ctranslate2.Generator("wmt19_en_ct2/", device="cpu")
+
+# Sample from the language model.
+results = generator.generate_batch([["</s>", "The"]], sampling_topk=10, max_length=50)
+print(results[0].sequences[0])
+
+# Compute the perplexity for a sentence.
+log_probs = generator.score_batch([["</s>", "The", "sky", "is", "blue", "."]])
+perplexity = np.exp(-np.mean(log_probs[0]))
+print(perplexity)
 ```
 
 ```{note}

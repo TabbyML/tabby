@@ -114,7 +114,9 @@ namespace ctranslate2 {
       LanguageModel::initialize(model_reader);
       _num_heads = get_attribute_with_default<int16_t>("num_heads", 0);
       _pre_norm = get_flag_with_default("pre_norm", true);
+      _no_final_norm = get_flag_with_default("no_final_norm", false);
       _layernorm_embedding = get_flag_with_default("layernorm_embedding", false);
+      _project_in_out = get_flag_with_default("project_in_out", false);
       _activation_type = static_cast<ops::ActivationType>(
         get_attribute_with_default<int8_t>("activation", 0));
     }
@@ -132,7 +134,9 @@ namespace ctranslate2 {
                                                                   _activation_type,
                                                                   /*alignment_layer=*/-1,
                                                                   /*alignment_heads=*/1,
-                                                                  _layernorm_embedding);
+                                                                  _layernorm_embedding,
+                                                                  _no_final_norm,
+                                                                  _project_in_out);
 
       const auto model = std::static_pointer_cast<const TransformerDecoderModel>(shared_from_this());
       return std::make_unique<DecoderReplica>(model, std::move(decoder));

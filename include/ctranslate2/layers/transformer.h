@@ -150,7 +150,9 @@ namespace ctranslate2 {
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
                          const dim_t alignment_layer = -1,
                          const dim_t alignment_heads = 1,
-                         const bool layernorm_embedding = false);
+                         const bool layernorm_embedding = false,
+                         const bool no_final_norm = false,
+                         const bool project_in_out = false);
 
       DecoderState initial_state(bool iterative_decoding = true) const override;
 
@@ -190,6 +192,8 @@ namespace ctranslate2 {
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<LayerNorm> _layernorm_embedding;
       const std::unique_ptr<LayerNorm> _output_norm;
+      const std::unique_ptr<Dense> _project_in;
+      const std::unique_ptr<Dense> _project_out;
       std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       Dense _proj;
     };

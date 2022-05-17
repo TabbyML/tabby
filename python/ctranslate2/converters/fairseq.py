@@ -14,6 +14,7 @@ _SUPPORTED_MODELS = {
     "multilingual_transformer",
     "transformer",
     "transformer_align",
+    "transformer_lm",
 }
 
 
@@ -39,16 +40,6 @@ def _get_model_spec(args):
         % (model_name, args.arch, ", ".join(_SUPPORTED_MODELS)),
     )
     check(
-        args.encoder_normalize_before == args.decoder_normalize_before,
-        "Options --encoder-normalize-before and --decoder-normalize-before "
-        "must have the same value",
-    )
-    check(
-        args.encoder_attention_heads == args.decoder_attention_heads,
-        "Options --encoder-attention-heads and --decoder-attention-heads "
-        "must have the same value",
-    )
-    check(
         activation_fn in _SUPPORTED_ACTIVATIONS,
         "Option --activation-fn %s is not supported (supported activations are: %s)"
         % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
@@ -61,17 +52,50 @@ def _get_model_spec(args):
         not getattr(args, "lang_tok_replacing_bos_eos", False),
         "Option --lang-tok-replacing-bos-eos is not supported",
     )
-    check.validate()
 
-    return transformer_spec.TransformerSpec(
-        (args.encoder_layers, args.decoder_layers),
-        args.encoder_attention_heads,
-        pre_norm=args.encoder_normalize_before,
-        activation=_SUPPORTED_ACTIVATIONS[activation_fn],
-        alignment_layer=getattr(args, "alignment_layer", -1),
-        alignment_heads=getattr(args, "alignment_heads", 0),
-        layernorm_embedding=getattr(args, "layernorm_embedding", False),
-    )
+    if model_name == "transformer_lm":
+        check(
+            not args.character_embeddings,
+            "Option --character-embeddings is not supported",
+        )
+        check(
+            not args.adaptive_input,
+            "Option --adaptive-input is not supported",
+        )
+        check.validate()
+
+        return transformer_spec.TransformerDecoderModelSpec(
+            args.decoder_layers,
+            args.decoder_attention_heads,
+            pre_norm=args.decoder_normalize_before,
+            activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+            layernorm_embedding=getattr(args, "layernorm_embedding", False),
+            no_final_norm=args.no_decoder_final_norm,
+            project_in_out=args.decoder_input_dim != args.decoder_embed_dim,
+        )
+
+    else:
+        check(
+            args.encoder_normalize_before == args.decoder_normalize_before,
+            "Options --encoder-normalize-before and --decoder-normalize-before "
+            "must have the same value",
+        )
+        check(
+            args.encoder_attention_heads == args.decoder_attention_heads,
+            "Options --encoder-attention-heads and --decoder-attention-heads "
+            "must have the same value",
+        )
+        check.validate()
+
+        return transformer_spec.TransformerSpec(
+            (args.encoder_layers, args.decoder_layers),
+            args.encoder_attention_heads,
+            pre_norm=args.encoder_normalize_before,
+            activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+            alignment_layer=getattr(args, "alignment_layer", -1),
+            alignment_heads=getattr(args, "alignment_heads", 0),
+            layernorm_embedding=getattr(args, "layernorm_embedding", False),
+        )
 
 
 def _get_vocab(dictionary):
@@ -139,28 +163,37 @@ class FairseqConverter(Converter):
             if self._target_lang is not None:
                 args.target_lang = self._target_lang
 
-            model_spec = _get_model_spec(args)
-
-            if self._no_default_special_tokens:
-                model_spec.user_decoder_start_tokens = True
-            else:
-                model_spec.with_source_eos = True
-                model_spec.with_target_bos = False
+            spec = _get_model_spec(args)
 
             task = fairseq.tasks.setup_task(args)
             model = fairseq.models.build_model(args, task)
             model.eval()
             model.load_state_dict(checkpoint["model"])
 
-            set_transformer_spec(model_spec, model)
-            model_spec.register_source_vocabulary(_get_vocab(task.source_dictionary))
-            model_spec.register_target_vocabulary(_get_vocab(task.target_dictionary))
-            return model_spec
+            if isinstance(spec, transformer_spec.TransformerDecoderModelSpec):
+                set_transformer_decoder(
+                    spec.decoder,
+                    model.decoder,
+                    with_encoder_attention=False,
+                )
 
+                spec.register_vocabulary(_get_vocab(task.dictionary))
+                if not args.add_bos_token:
+                    spec.bos_token = spec.eos_token
 
-def set_transformer_spec(spec, module):
-    set_transformer_encoder(spec.encoder, module.encoder)
-    set_transformer_decoder(spec.decoder, module.decoder)
+            else:
+                set_transformer_encoder(spec.encoder, model.encoder)
+                set_transformer_decoder(spec.decoder, model.decoder)
+
+                spec.register_source_vocabulary(_get_vocab(task.source_dictionary))
+                spec.register_target_vocabulary(_get_vocab(task.target_dictionary))
+                if self._no_default_special_tokens:
+                    spec.user_decoder_start_tokens = True
+                else:
+                    spec.with_source_eos = True
+                    spec.with_target_bos = False
+
+            return spec
 
 
 def set_transformer_encoder(spec, module):
@@ -173,15 +206,23 @@ def set_transformer_encoder(spec, module):
         set_layer_norm(spec.layernorm_embedding, module.layernorm_embedding)
 
 
-def set_transformer_decoder(spec, module):
+def set_transformer_decoder(spec, module, with_encoder_attention=True):
     set_input_layers(spec, module)
     set_linear(spec.projection, module.output_projection)
     for layer_spec, layer in zip(spec.layer, module.layers):
-        set_transformer_decoder_layer(layer_spec, layer)
+        set_transformer_decoder_layer(
+            layer_spec,
+            layer,
+            with_encoder_attention=with_encoder_attention,
+        )
     if module.layer_norm is not None:
         set_layer_norm(spec.layer_norm, module.layer_norm)
     if module.layernorm_embedding is not None:
         set_layer_norm(spec.layernorm_embedding, module.layernorm_embedding)
+    if module.project_in_dim is not None:
+        set_linear(spec.project_in, module.project_in_dim)
+    if module.project_out_dim is not None:
+        set_linear(spec.project_out, module.project_out_dim)
 
 
 def set_input_layers(spec, module):
@@ -199,12 +240,13 @@ def set_transformer_encoder_layer(spec, module):
     set_layer_norm(spec.self_attention.layer_norm, module.self_attn_layer_norm)
 
 
-def set_transformer_decoder_layer(spec, module):
+def set_transformer_decoder_layer(spec, module, with_encoder_attention=True):
     set_ffn(spec.ffn, module)
     set_multi_head_attention(spec.self_attention, module.self_attn, self_attention=True)
     set_layer_norm(spec.self_attention.layer_norm, module.self_attn_layer_norm)
-    set_multi_head_attention(spec.attention, module.encoder_attn)
-    set_layer_norm(spec.attention.layer_norm, module.encoder_attn_layer_norm)
+    if with_encoder_attention:
+        set_multi_head_attention(spec.attention, module.encoder_attn)
+        set_layer_norm(spec.attention.layer_norm, module.encoder_attn_layer_norm)
 
 
 def set_ffn(spec, module):

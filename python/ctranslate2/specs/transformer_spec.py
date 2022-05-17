@@ -90,6 +90,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         pre_norm: bool = True,
         activation: common_spec.Activation = common_spec.Activation.RELU,
         layernorm_embedding: bool = False,
+        no_final_norm: bool = False,
+        project_in_out: bool = False,
     ):
         """Initializes a Transformer decoder model specification.
 
@@ -99,16 +101,23 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
           pre_norm: Enable the pre-norm Transformer architecture.
           activation: Activation to apply in the feed-forward network.
           layernorm_embedding: Apply layer normalization after the embedding layer.
+          no_final_norm: Do not apply layer normalization after the last decoder block.
+          project_in_out: Add a linear layer after the embedding layer and another one
+            before the final output projection.
         """
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
         self.activation = np.dtype("int8").type(activation)
         self.layernorm_embedding = layernorm_embedding
+        self.no_final_norm = no_final_norm
+        self.project_in_out = project_in_out
         self.decoder = TransformerDecoderSpec(
             num_layers,
             pre_norm=pre_norm,
             layernorm_embedding=layernorm_embedding,
             with_encoder_attention=False,
+            no_final_norm=no_final_norm,
+            project_in_out=project_in_out,
         )
         super().__init__(self.decoder.embeddings)
 
@@ -150,12 +159,16 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         pre_norm=True,
         layernorm_embedding=False,
         with_encoder_attention=True,
+        no_final_norm=False,
+        project_in_out=False,
     ):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
         self.position_encodings = PositionEncoderSpec()
         self.layer_norm = (
-            common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
+            common_spec.LayerNormSpec()
+            if pre_norm and not no_final_norm
+            else model_spec.OPTIONAL
         )
         self.layernorm_embedding = (
             common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
@@ -166,6 +179,13 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             for _ in range(num_layers)
         ]
         self.start_from_zero_embedding = False
+
+        if project_in_out:
+            self.project_in = common_spec.LinearSpec()
+            self.project_out = common_spec.LinearSpec()
+        else:
+            self.project_in = model_spec.OPTIONAL
+            self.project_out = model_spec.OPTIONAL
 
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
