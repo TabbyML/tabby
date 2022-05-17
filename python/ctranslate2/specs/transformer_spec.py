@@ -1,5 +1,7 @@
 """Declares specification of the Transformer model."""
 
+from typing import Tuple, Union
+
 import numpy as np
 
 from ctranslate2.specs import attention_spec
@@ -16,7 +18,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     def __init__(
         self,
-        num_layers: int,
+        num_layers: Union[int, Tuple[int]],
         num_heads: int,
         with_relative_position: bool = False,
         pre_norm: bool = True,
