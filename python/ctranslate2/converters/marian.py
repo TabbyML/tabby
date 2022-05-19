@@ -176,7 +176,12 @@ def set_common_layers(spec, weights, scope):
         spec.position_encodings, weights, dim=embeddings_specs[0].weight.shape[1]
     )
     if spec.layernorm_embedding != model_spec.OPTIONAL:
-        set_layer_norm(spec.layernorm_embedding, weights, "%s_emb" % scope)
+        set_layer_norm(
+            spec.layernorm_embedding,
+            weights,
+            "%s_emb" % scope,
+            pre_norm=True,
+        )
     if spec.layer_norm != model_spec.OPTIONAL:
         set_layer_norm(spec.layer_norm, weights, "%s_top" % scope)
 
@@ -210,18 +215,26 @@ def set_multi_head_attention(spec, weights, scope, self_attention=False):
         utils.fuse_linear(spec.linear[1], split_layers[1:])
 
     set_linear(spec.linear[-1], weights, scope, "o")
-    set_layer_norm(spec.layer_norm, weights, "%s_Wo" % scope)
+    set_layer_norm_auto(spec.layer_norm, weights, "%s_Wo" % scope)
 
 
 def set_ffn(spec, weights, scope):
-    set_layer_norm(spec.layer_norm, weights, "%s_ffn" % scope)
+    set_layer_norm_auto(spec.layer_norm, weights, "%s_ffn" % scope)
     set_linear(spec.linear_0, weights, scope, "1")
     set_linear(spec.linear_1, weights, scope, "2")
 
 
-def set_layer_norm(spec, weights, scope):
-    spec.gamma = weights["%s_ln_scale" % scope].squeeze()
-    spec.beta = weights["%s_ln_bias" % scope].squeeze()
+def set_layer_norm_auto(spec, weights, scope):
+    try:
+        set_layer_norm(spec, weights, scope, pre_norm=True)
+    except KeyError:
+        set_layer_norm(spec, weights, scope)
+
+
+def set_layer_norm(spec, weights, scope, pre_norm=False):
+    suffix = "_pre" if pre_norm else ""
+    spec.gamma = weights["%s_ln_scale%s" % (scope, suffix)].squeeze()
+    spec.beta = weights["%s_ln_bias%s" % (scope, suffix)].squeeze()
 
 
 def set_linear(spec, weights, scope, suffix="", reuse_weight=None):
