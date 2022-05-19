@@ -244,13 +244,9 @@ def set_position_encodings(spec, weights, dim=None):
 
 
 def _make_sinusoidal_position_encodings(dim, num_positions=2048):
-    # Copied from https://github.com/huggingface/transformers/blob/v4.16.2/src/transformers/models/marian/modeling_marian.py  # noqa: E501
-    position_enc = np.array(
-        [
-            [pos / np.power(10000, 2 * (j // 2) / dim) for j in range(dim)]
-            for pos in range(num_positions)
-        ]
-    )
+    positions = np.arange(num_positions)
+    timescales = np.power(10000, 2 * (np.arange(dim) // 2) / dim)
+    position_enc = np.expand_dims(positions, 1) / np.expand_dims(timescales, 0)
     table = np.zeros_like(position_enc)
     table[:, : dim // 2] = np.sin(position_enc[:, 0::2])
     table[:, dim // 2 :] = np.cos(position_enc[:, 1::2])
