@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v2.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.18.0) (2022-05-23)
+
+### New features
+
+* Support Meta's OPT models via the Transformers converter
+* Extend the Fairseq converter to support `transformer_lm` models
+
+### Fixes and improvements
+
+* Fix conversion error for Marian's pre-norm Transformer models
+* Fix conversion error for Transformers' MarianMT models that are missing some configuration fields
+* Improve conversion speed of Marian models (optimize the generation of the sinusoidal position encodings)
+
 ## [v2.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.17.0) (2022-05-09)
 
 ### New features
