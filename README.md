@@ -69,21 +69,22 @@ The benchmark reports the number of target tokens generated per second (higher i
 | | Tokens per second | Max. memory | BLEU |
 | --- | --- | --- | --- |
 | **OpenNMT-tf WMT14 model** | | | |
-| OpenNMT-tf 2.25.0 (with TensorFlow 2.8.0) | 342.4 | 2600MB | 26.93 |
+| OpenNMT-tf 2.26.1 (with TensorFlow 2.9.0) | 283.0 | 3475MB | 26.93 |
 | **OpenNMT-py WMT14 model** | | | |
-| OpenNMT-py 2.2.0 (with PyTorch 1.9.1) | 458.8 | 1734MB | 26.77 |
-| - int8 | 500.1 | 1612MB | 26.72 |
-| CTranslate2 2.13.1 | 1217.8 | 1068MB | 26.77 |
-| - int16 | 1530.9 | 989MB | 26.82 |
-| - int8 | 1787.3 | 773MB | 26.89 |
-| - int8 + vmap | 2179.2 | 789MB | 26.62 |
+| OpenNMT-py 2.2.0 (with PyTorch 1.11.0) | 474.2 | 1543MB | 26.77 |
+| - int8 | 510.6 | 1455MB | 26.72 |
+| CTranslate2 2.17.0 | 1220.2 | 1072MB | 26.77 |
+| - int16 | 1534.8 | 920MB | 26.82 |
+| - int8 | 1737.5 | 771MB | 26.89 |
+| - int8 + vmap | 2122.4 | 666MB | 26.62 |
 | **OPUS-MT model** | | | |
-| Marian 1.11.0 | 756.7 | 13819MB | 27.93 |
-| - int16 | 723.6 | 10393MB | 27.65 |
-| - int8 | 857.3 | 8169MB | 27.27 |
-| CTranslate2 2.13.1 | 993.5 | 901MB | 27.92 |
-| - int16 | 1290.4 | 921MB | 27.51 |
-| - int8 | 1486.5 | 748MB | 27.71 |
+| Transformers 4.19.2 | 230.1 | 2840MB | 27.92 |
+| Marian 1.11.0 | 756.6 | 13819MB | 27.93 |
+| - int16 | 718.4 | 10395MB | 27.65 |
+| - int8 | 853.3 | 8166MB | 27.27 |
+| CTranslate2 2.17.0 | 988.0 | 995MB | 27.92 |
+| - int16 | 1285.7 | 847MB | 27.51 |
+| - int8 | 1469.1 | 847MB | 27.71 |
 
 Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
 
@@ -92,24 +93,25 @@ Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-ty
 | | Tokens per second | Max. GPU memory | Max. CPU memory | BLEU |
 | --- | --- | --- | --- | --- |
 | **OpenNMT-tf WMT14 model** | | | | |
-| OpenNMT-tf 2.25.0 (with TensorFlow 2.8.0) | 1285.7 | 2666MB | 2364MB | 26.93 |
+| OpenNMT-tf 2.26.1 (with TensorFlow 2.9.0) | 1289.3 | 2667MB | 2407MB | 26.93 |
 | **OpenNMT-py WMT14 model** | | | | |
-| OpenNMT-py 2.2.0 (with PyTorch 1.9.1) | 1220.9 | 3082MB | 3900MB | 26.77 |
-| FasterTransformer 4.0 | 2950.8 | 5868MB | 2436MB | 26.77 |
-| - float16 | 6499.3 | 3916MB | 2423MB | 26.83 |
-| CTranslate2 2.13.1 | 3747.1 | 1264MB | 676MB | 26.77 |
-| - int8 | 5306.4 | 976MB | 561MB | 26.83 |
-| - float16 | 5367.8 | 816MB | 607MB | 26.78 |
-| - int8 + float16 | 6158.7 | 688MB | 563MB | 26.80 |
+| OpenNMT-py 2.2.0 (with PyTorch 1.11.0) | 1271.4 | 2993MB | 3553MB | 26.77 |
+| FasterTransformer 4.0 | 2941.3 | 5869MB | 2327MB | 26.77 |
+| - float16 | 6497.4 | 3917MB | 2325MB | 26.83 |
+| CTranslate2 2.17.0 | 3644.1 | 1231MB | 646MB | 26.77 |
+| - int8 | 5393.6 | 975MB | 522MB | 26.83 |
+| - float16 | 5454.7 | 815MB | 550MB | 26.78 |
+| - int8 + float16 | 6158.6 | 687MB | 523MB | 26.80 |
 | **OPUS-MT model** | | | | |
-| Marian 1.11.0 | 2221.5 | 3128MB | 1932MB | 27.92 |
-| - float16 | 2832.7 | 2986MB | 1713MB | 27.93 |
-| CTranslate2 2.13.1 | 3136.3 | 1200MB | 481MB | 27.92 |
-| - int8 | 4634.4 | 1008MB | 519MB | 27.89 |
-| - float16 | 4708.7 | 816MB | 560MB | 27.85 |
-| - int8 + float16 | 5320.3 | 720MB | 515MB | 27.81 |
+| Transformers 4.19.2 | 811.1 | 4013MB | 3044MB | 27.92 |
+| Marian 1.11.0 | 2172.9 | 3127MB | 1869MB | 27.92 |
+| - float16 | 2722.0 | 2985MB | 1715MB | 27.93 |
+| CTranslate2 2.17.0 | 3042.5 | 1167MB | 486MB | 27.92 |
+| - int8 | 4573.1 | 1007MB | 511MB | 27.89 |
+| - float16 | 4718.4 | 783MB | 552MB | 27.85 |
+| - int8 + float16 | 5300.5 | 687MB | 508MB | 27.81 |
 
-Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 470.82.01).
+Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 510.47.03).
 
 ## Additional resources
 

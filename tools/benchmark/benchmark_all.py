@@ -99,6 +99,13 @@ images = [
         ],
     ),
     Image(
+        "opus_mt_ende/transformers",
+        [
+            ("cpu", {}),
+            ("gpu", {}),
+        ],
+    ),
+    Image(
         "opus_mt_ende/marian",
         [
             ("cpu", {"GEMM_TYPE": "float32"}),

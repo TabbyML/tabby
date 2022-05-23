@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+
+import transformers
+import torch
+import sys
+import os
+
+device = sys.argv[1]
+input_path = sys.argv[2]
+output_path = sys.argv[3]
+
+model_name = os.environ["MODEL_NAME"]
+tokenizer = transformers.MarianTokenizer.from_pretrained(model_name)
+model = transformers.MarianMTModel.from_pretrained(model_name)
+model.eval()
+if device == "GPU":
+    model.cuda()
+
+batch_size = 32
+beam_size = 4
+
+
+def batch_iter(lines):
+    batch = []
+    for line in lines:
+        ids = list(map(int, line.strip().split()))
+        tensor = torch.tensor(ids, device=model.device)
+        batch.append(tensor)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
+with open(input_path) as input_file, open(output_path, "w") as output_file:
+    for batch in batch_iter(input_file):
+        batch = torch.nn.utils.rnn.pad_sequence(
+            batch,
+            batch_first=True,
+            padding_value=tokenizer.pad_token_id,
+        )
+
+        outputs = model.generate(
+            input_ids=batch,
+            num_beams=beam_size,
+            length_penalty=0,
+        )
+
+        for tokens in outputs.tolist():
+            tokens = filter(
+                lambda token: (
+                    token not in (tokenizer.pad_token_id, tokenizer.eos_token_id)
+                ),
+                tokens,
+            )
+            output_file.write(" ".join(map(str, tokens)))
+            output_file.write("\n")
