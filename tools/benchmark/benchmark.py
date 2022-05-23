@@ -67,11 +67,11 @@ def _process_file(image_name, script, input_file, output_file):
 
 
 def _tokenize(image_name, input_file, output_file):
-    return _process_file(image_name, "/tokenize.sh", input_file, output_file)
+    return _process_file(image_name, "/tokenize", input_file, output_file)
 
 
 def _detokenize(image_name, input_file, output_file):
-    return _process_file(image_name, "/detokenize.sh", input_file, output_file)
+    return _process_file(image_name, "/detokenize", input_file, output_file)
 
 
 def _start_translation(
@@ -110,7 +110,7 @@ def _start_translation(
             os.path.join(data_dir, os.path.basename(source_file)),
             os.path.join(output_dir, os.path.basename(output_file)),
         ],
-        entrypoint="/translate.sh",
+        entrypoint="/translate",
         detach=True,
         mounts=[
             docker.types.Mount(data_dir, os.path.dirname(source_file), type="bind"),

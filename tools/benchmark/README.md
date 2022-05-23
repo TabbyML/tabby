@@ -17,11 +17,11 @@ python3 -m pip install -r requirements.txt
 python3 benchmark.py <IMAGE> <SOURCE> <REFERENCE>
 ```
 
-The Docker image must contain 3 scripts at its root:
+The Docker image must contain 3 executable files at its root:
 
-* `/tokenize.sh $input $output`
-* `/detokenize.sh $input $output`
-* `/translate.sh $device $input $output`, where:
+* `/tokenize $input $output`
+* `/detokenize $input $output`
+* `/translate $device $input $output`, where:
   * `$device` is "CPU" or "GPU"
   * `$input` is the path to the tokenized input file
   * `$output` is the path where the tokenized output should be written
