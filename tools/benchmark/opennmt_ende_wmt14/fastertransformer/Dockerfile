@@ -19,4 +19,4 @@ WORKDIR FasterTransformer/build
 RUN sed -i '121i\ \ \ \ \ \ \ \ ex_fields = {}' /opt/conda/lib/python3.8/site-packages/onmt/inputters/dataset_base.py
 RUN sed -i 's/report_time=True/report_time=False/g' pytorch/run_translation.py
 
-COPY *.sh /
+COPY tokenize detokenize translate /

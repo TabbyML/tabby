@@ -23,4 +23,4 @@ COPY --from=model_converter /model /model
 
 RUN pip install --no-cache-dir pyonmttok==1.*
 
-COPY *.sh /
+COPY tokenize detokenize translate /

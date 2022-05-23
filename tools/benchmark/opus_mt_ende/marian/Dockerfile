@@ -39,4 +39,4 @@ RUN wget -q https://object.pouta.csc.fi/OPUS-MT-models/en-de/opus-2020-02-26.zip
     unzip *.zip -d /model && \
     rm *.zip
 
-COPY *.sh /
+COPY tokenize detokenize translate /

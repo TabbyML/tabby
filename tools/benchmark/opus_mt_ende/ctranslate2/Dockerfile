@@ -32,4 +32,4 @@ RUN wget -q https://object.pouta.csc.fi/OPUS-MT-models/en-de/opus-2020-02-26.zip
     cp /marian-model/*.spm /model && \
     rm -r /marian-model
 
-COPY *.sh /
+COPY tokenize detokenize translate /

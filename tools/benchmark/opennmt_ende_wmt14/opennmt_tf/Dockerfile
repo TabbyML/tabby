@@ -9,4 +9,4 @@ RUN cd averaged-ende-ckpt500k-v2 && \
 RUN python3 -m pip install --no-cache-dir OpenNMT-tf==2.25.*
 
 COPY *.yml /
-COPY *.sh /
+COPY tokenize detokenize translate /
