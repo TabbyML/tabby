@@ -2,13 +2,13 @@
 
 CTranslate2 has 2 level of parallelization:
 
-* `inter_threads` which is the maximum number of batches executed in parallel.<br/>=> Increase this value to increase the throughput.
-* `intra_threads` which is the number of OpenMP threads that is used per batch.<br/>=> Increase this value to decrease the latency on CPU.
+* `inter_threads` which is the maximum number of batches executed in parallel.<br/>**=> Increase this value to increase the throughput.**
+* `intra_threads` which is the number of OpenMP threads that is used per batch.<br/>**=> Increase this value to decrease the latency on CPU.**
 
 The total number of computing threads launched by the process is `inter_threads * intra_threads`.
 
 ```{note}
-Even though the model data are shared, increasing `inter_threads` will still increase the memory usage as some internal buffers are duplicated for thread safety.
+Even though the model data are shared between parallel replicas, increasing `inter_threads` will still increase the memory usage as some internal buffers are duplicated for thread safety.
 ```
 
 On GPU, batches processed in parallel are using separate CUDA streams. Depending on the workload and GPU specifications this may or may not improve the global throughput. For better parallelism on GPU, consider using multiple GPUs as described below.
@@ -53,5 +53,5 @@ for async_result in async_results:
 ```
 
 ```{attention}
-The `Translator` and `Generator` objects have a limited queue size by default. When the queue of batches is full, the method will block even in asynchronous mode. See the parameter `max_queued_batches` in their constructor to configure the queue size.
+The `Translator` and `Generator` objects have a limited queue size by default. When the queue of batches is full, the method will block even with `asynchronous=True`. See the parameter `max_queued_batches` in their constructor to configure the queue size.
 ```

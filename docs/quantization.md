@@ -6,7 +6,9 @@ Quantization is a technique that can reduce the model size and accelerate its ex
 * 16-bit integers (INT16)
 * 16-bit floating points (FP16)
 
-See the benchmark results in the main [README](https://github.com/OpenNMT/CTranslate2#benchmarks) for a performance and memory usage comparison.
+```{tip}
+See the benchmark results in the main [README](https://github.com/OpenNMT/CTranslate2#benchmarks) to compare the performance and memory usage with and without quantization.
+```
 
 ## Quantize on model conversion
 

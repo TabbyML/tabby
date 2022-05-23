@@ -1,6 +1,6 @@
 # Model conversion
 
-The core CTranslate2 implementation is framework agnostic. The logic that is specific to each framework is moved to a conversion step that loads supported models into a unified representation. The weights can then be quantized and saved into an optimized binary format.
+The core CTranslate2 implementation is framework agnostic. The logic that is specific to each framework is moved to a conversion step that loads supported models into a unified representation. The weights are then optionally quantized and saved into an optimized binary format.
 
 ## Supported frameworks
 
@@ -37,7 +37,7 @@ The converters support reducing the weights precision to save on space and possi
 New versions of CTranslate2 are backward compatible with models that were previously converted. This compatibility is rarely broken, even for major versions.
 
 ```{attention}
-Forward compatibility is not guaranteed, however. The version loading the model should not be older than the version that converted the model.
+Forward compatibility is not guaranteed, however. The CTranslate2 version loading the model should not be older than the version that converted the model.
 ```
 
 ## Portability

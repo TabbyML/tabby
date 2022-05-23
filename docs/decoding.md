@@ -74,6 +74,7 @@ results = translator.translate_batch(
     [tokenize(input)],
     target_prefix=[tokenize("Dieses Projekt ist auf das")],
 )
+
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -92,6 +93,7 @@ results = translator.translate_batch(
     prefix_bias_beta=0.5,
     beam_size=4,
 )
+
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -106,6 +108,7 @@ results = translator.translate_batch(
     prefix_bias_beta=0.1,
     beam_size=4,
 )
+
 print(detokenize(results[0].hypotheses[0]))
 ```
 
@@ -124,6 +127,7 @@ results = translator.translate_batch(
     num_hypotheses=5,
     return_alternatives=True,
 )
+
 for hypothesis in results[0].hypotheses:
     print(detokenize(hypothesis))
 ```
@@ -150,6 +154,7 @@ all_results = [
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
     translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
 ]
+
 for results in all_results:
     print(detokenize(results[0].hypotheses[0]))
 ```

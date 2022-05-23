@@ -91,7 +91,9 @@ The following options can be set with `-DOPTION=VALUE` during the CMake configur
 | BUILD_TESTS | **OFF**, ON | Compiles the tests |
 | CMAKE_CXX_FLAGS | *compiler flags* | Defines additional compiler flags |
 | CMAKE_INSTALL_PREFIX | *path* | Defines the installation path of the library |
-| CUDA_DYNAMIC_LOADING | **OFF**, ON | Enables the dynamic loading of CUDA libraries at runtime instead of linking against them. Requires CUDA >= 11. |
+| CUDA_ARCH_LIST | **Auto** | List of CUDA architectures to compile for (see [`cuda_select_nvcc_arch_flags`](https://cmake.org/cmake/help/latest/module/FindCUDA.html) in the CMake documentation) |
+| CUDA_DYNAMIC_LOADING | **OFF**, ON | Enables the dynamic loading of CUDA libraries at runtime instead of linking against them (requires CUDA >= 11) |
+| CUDA_NVCC_FLAGS | *compiler flags* | Defines additional compilation flags for `nvcc` |
 | ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
 | OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime (INTEL: Intel OpenMP; COMP: OpenMP runtime provided by the compiler; NONE: no OpenMP runtime) |
@@ -104,9 +106,9 @@ The following options can be set with `-DOPTION=VALUE` during the CMake configur
 
 Some build options require additional dependencies. See their respective documentation for installation instructions.
 
-* `-DWITH_CUDA=ON` requires [CUDA](https://developer.nvidia.com/cuda-toolkit) >=10.0
-* `-DWITH_MKL=ON` requires [Intel MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) >=2019.5
-* `-DWITH_DNNL=ON` requires [oneDNN](https://github.com/oneapi-src/oneDNN) >=1.5
+* `-DWITH_CUDA=ON` requires [CUDA](https://developer.nvidia.com/cuda-toolkit) >= 10.0
+* `-DWITH_MKL=ON` requires [Intel MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) >= 2019.5
+* `-DWITH_DNNL=ON` requires [oneDNN](https://github.com/oneapi-src/oneDNN) >= 1.5
 * `-DWITH_ACCELERATE=ON` requires [Accelerate](https://developer.apple.com/documentation/accelerate)
 * `-DWITH_OPENBLAS=ON` requires [OpenBLAS](https://github.com/xianyi/OpenBLAS)
 
