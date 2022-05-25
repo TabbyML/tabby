@@ -1,15 +1,15 @@
 import os
-import sys
-import pytest
 import shutil
+import sys
+
 import numpy as np
+import pytest
 
 import ctranslate2
 
-from ctranslate2.specs.model_spec import OPTIONAL, index_spec
-from ctranslate2.specs import transformer_spec
 from ctranslate2.converters import opennmt_tf
-
+from ctranslate2.specs import transformer_spec
+from ctranslate2.specs.model_spec import OPTIONAL, index_spec
 
 _TEST_DATA_DIR = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "..", "..", "tests", "data"

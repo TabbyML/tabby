@@ -271,12 +271,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install black==22.* flake8==3.8.*
+          python -m pip install black==22.* flake8==3.8.* isort==5.*
 
       - name: Check code format with Black
         working-directory: python
         run: |
           black --check .
+
+      - name: Check imports order with isort
+        working-directory: python
+        run: |
+          isort --check-only .
 
       - name: Check code style with Flake8
         working-directory: python

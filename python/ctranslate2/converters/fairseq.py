@@ -5,9 +5,7 @@ from typing import Optional
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec
-from ctranslate2.specs import transformer_spec
-
+from ctranslate2.specs import common_spec, transformer_spec
 
 _SUPPORTED_MODELS = {
     "bart",
@@ -136,8 +134,9 @@ class FairseqConverter(Converter):
         self._user_dir = user_dir
 
     def _load(self):
-        import torch
         import fairseq
+        import torch
+
         from fairseq import checkpoint_utils
 
         if self._user_dir:

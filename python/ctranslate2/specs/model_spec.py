@@ -6,9 +6,10 @@ each required variable of the specification is set.
 import os
 import shutil
 import struct
-import numpy as np
 
 from typing import List
+
+import numpy as np
 
 OPTIONAL = "__optional"
 CURRENT_BINARY_VERSION = 5

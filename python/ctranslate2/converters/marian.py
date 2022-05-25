@@ -1,10 +1,10 @@
 import argparse
 import re
 
+from typing import List
+
 import numpy as np
 import yaml
-
-from typing import List
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter

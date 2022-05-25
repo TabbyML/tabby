@@ -2,9 +2,7 @@ import argparse
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec
-from ctranslate2.specs import transformer_spec
-
+from ctranslate2.specs import common_spec, transformer_spec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,

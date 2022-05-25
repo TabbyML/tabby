@@ -1,5 +1,4 @@
-from ctranslate2.specs import common_spec
-from ctranslate2.specs import model_spec
+from ctranslate2.specs import common_spec, model_spec
 
 
 class MultiHeadAttentionSpec(model_spec.LayerSpec):

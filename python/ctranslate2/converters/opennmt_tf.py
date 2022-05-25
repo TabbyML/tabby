@@ -2,16 +2,14 @@ import argparse
 import os
 import warnings
 
-import numpy as np
-
 from typing import Dict, List, Optional, Union
+
+import numpy as np
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec
-from ctranslate2.specs import transformer_spec
+from ctranslate2.specs import common_spec, transformer_spec
 from ctranslate2.specs.model_spec import OPTIONAL, ModelSpec
-
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,

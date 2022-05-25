@@ -4,9 +4,7 @@ from typing import Tuple, Union
 
 import numpy as np
 
-from ctranslate2.specs import attention_spec
-from ctranslate2.specs import common_spec
-from ctranslate2.specs import model_spec
+from ctranslate2.specs import attention_spec, common_spec, model_spec
 
 
 class TransformerSpec(model_spec.SequenceToSequenceModelSpec):

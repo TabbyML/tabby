@@ -1,9 +1,9 @@
 import os
 import sys
+
 import pybind11
 
-from setuptools import setup, find_packages, Extension
-
+from setuptools import Extension, find_packages, setup
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 include_dirs = [pybind11.get_include()]

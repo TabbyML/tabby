@@ -47,10 +47,11 @@ pip install -r tests/requirements.txt
 pytest tests/test.py
 ```
 
-The code should also be checked with `flake8` and reformatted with `black`:
+The code should also be checked with `black` (automatic formatting), `isort` (imports ordering), and `flake8` (code checking):
 
 ```bash
 black .
+isort .
 flake8 .
 ```
 
