@@ -12,7 +12,7 @@ class Converter(abc.ABC):
     """Base class for model converters."""
 
     @staticmethod
-    def declare_arguments(parser: argparse.ArgumentParser):
+    def declare_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
         """Adds common conversion options to the command line parser.
 
         Arguments:
@@ -37,7 +37,7 @@ class Converter(abc.ABC):
         )
         return parser
 
-    def convert_from_args(self, args: argparse.Namespace):
+    def convert_from_args(self, args: argparse.Namespace) -> str:
         """Helper function to call :meth:`ctranslate2.converters.Converter.convert`
         with the parsed command line options.
 
@@ -60,7 +60,7 @@ class Converter(abc.ABC):
         vmap: Optional[str] = None,
         quantization: Optional[str] = None,
         force: bool = False,
-    ):
+    ) -> str:
         """Converts the model to the CTranslate2 format.
 
         Arguments:

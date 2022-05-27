@@ -7,7 +7,7 @@ import os
 import shutil
 import struct
 
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 
@@ -61,7 +61,7 @@ def index_spec(spec, index):
 class LayerSpec(object):
     """A layer specification declares the weights that should be set by the converters."""
 
-    def validate(self):
+    def validate(self) -> None:
         """Verify that the required weights are set.
 
         Raises:
@@ -90,7 +90,11 @@ class LayerSpec(object):
 
         self._visit(_check)
 
-    def variables(self, prefix: str = "", ordered: bool = False):
+    def variables(
+        self,
+        prefix: str = "",
+        ordered: bool = False,
+    ) -> Dict[str, np.ndarray]:
         """Recursively returns the weights from this layer and its children.
 
         Arguments:
@@ -169,7 +173,7 @@ class LayerSpec(object):
 
         self._visit(_quantize)
 
-    def optimize(self, quantization: str = None):
+    def optimize(self, quantization: str = None) -> None:
         """Recursively applies some optimizations to this layer:
 
         * Alias variables with the same shape and value.
@@ -217,7 +221,7 @@ class ModelSpec(LayerSpec):
         """
         return 1
 
-    def save(self, output_dir: str):
+    def save(self, output_dir: str) -> None:
         """Saves this model on disk.
 
         Arguments:
@@ -296,7 +300,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         }
         self._vmap = None
 
-    def register_source_vocabulary(self, tokens: List[str]):
+    def register_source_vocabulary(self, tokens: List[str]) -> None:
         """Registers a source vocabulary of tokens.
 
         Arguments:
@@ -304,7 +308,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         """
         self._vocabularies["source"].append(tokens)
 
-    def register_target_vocabulary(self, tokens: List[str]):
+    def register_target_vocabulary(self, tokens: List[str]) -> None:
         """Registers a target vocabulary of tokens.
 
         Arguments:
@@ -312,7 +316,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         """
         self._vocabularies["target"].append(tokens)
 
-    def register_vocabulary_mapping(self, path: str):
+    def register_vocabulary_mapping(self, path: str) -> None:
         """Registers a vocabulary mapping file.
 
         Arguments:
@@ -320,7 +324,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         """
         self._vmap = path
 
-    def validate(self):
+    def validate(self) -> None:
         # Check that vocabularies are registered and have the correct size.
         for name, embeddings_specs in self._embeddings_specs.items():
             vocabularies = self._vocabularies[name]
@@ -346,7 +350,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         # Validate the rest of the model.
         super().validate()
 
-    def save(self, output_dir: str):
+    def save(self, output_dir: str) -> None:
         # Save the vocabularies.
         vocabularies = dict(_flatten_vocabularies(self._vocabularies))
         all_vocabularies = list(vocabularies.values())
@@ -379,7 +383,7 @@ class LanguageModelSpec(ModelSpec):
         self._embeddings_spec = embeddings_spec
         self._vocabulary = []
 
-    def register_vocabulary(self, tokens: List[str]):
+    def register_vocabulary(self, tokens: List[str]) -> None:
         """Registers the vocabulary of tokens.
 
         Arguments:
@@ -387,7 +391,7 @@ class LanguageModelSpec(ModelSpec):
         """
         self._vocabulary = list(tokens)
 
-    def validate(self):
+    def validate(self) -> None:
         expected_vocabulary_size = self._embeddings_spec.weight.shape[0]
         if len(self._vocabulary) != expected_vocabulary_size:
             raise ValueError(
@@ -397,7 +401,7 @@ class LanguageModelSpec(ModelSpec):
 
         super().validate()
 
-    def save(self, output_dir: str):
+    def save(self, output_dir: str) -> None:
         # Save the vocabulary.
         vocabulary_path = os.path.join(output_dir, "vocabulary.txt")
         _save_lines(vocabulary_path, self._vocabulary)
