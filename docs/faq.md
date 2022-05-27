@@ -24,7 +24,7 @@ Here are some scenarios where this project could be used:
 However, you should probably **not** use this project when:
 
 * You want to train custom architectures not covered by this project.
-* You see no value in the key features listed at the top of this document.
+* You see no value in the [project key features](https://github.com/OpenNMT/CTranslate2#key-features).
 
 ## What are the known limitations?
 
@@ -32,7 +32,7 @@ The current approach only exports the weights from existing models and redefines
 
 ## What are the future plans?
 
-There are many ways to make this project better and even faster. See the open issues for an overview of current and planned features.
+There are many ways to make this project better and even faster. See the [open issues](https://github.com/OpenNMT/CTranslate2/issues) for an overview of current and planned features.
 
 ## Do you provide a translation server?
 
