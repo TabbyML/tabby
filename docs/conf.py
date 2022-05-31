@@ -50,15 +50,18 @@ def fix_pybind11_signatures(
             arguments.pop(0)
         return "(%s)" % ", ".join(arguments)
 
-    def _hide_internal_module(content):
-        return content.replace("ctranslate2.translator", "ctranslate2")
+    def _reformat_typehints(content):
+        return content.replace(
+            "ctranslate2.translator.",
+            "ctranslate2." if autodoc_typehints_format == "fully-qualified" else "",
+        )
 
     if signature is not None:
         signature = _remove_self(signature)
-        signature = _hide_internal_module(signature)
+        signature = _reformat_typehints(signature)
 
     if return_annotation is not None:
-        return_annotation = _hide_internal_module(return_annotation)
+        return_annotation = _reformat_typehints(return_annotation)
 
     return (signature, return_annotation)
 
