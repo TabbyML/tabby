@@ -83,6 +83,8 @@ class ModelLoader(abc.ABC):
         spec = self.get_model_spec(model)
 
         tokens = self.get_vocabulary(tokenizer)
+        if model.config.vocab_size < len(tokens):
+            tokens = tokens[: model.config.vocab_size]
         if isinstance(spec, model_spec.SequenceToSequenceModelSpec):
             spec.register_source_vocabulary(tokens)
             spec.register_target_vocabulary(tokens)
@@ -141,7 +143,7 @@ class BartLoader(ModelLoader):
             model.config.encoder_attention_heads,
             pre_norm=model.config.normalize_before,
             activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
-            layernorm_embedding=model.config.normalize_embedding,
+            layernorm_embedding=getattr(model.config, "normalize_embedding", True),
         )
         spec.with_target_bos = False
 

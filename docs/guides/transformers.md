@@ -31,6 +31,36 @@ However, these special tokens are not implicitly added for Transformers models s
 
 If you are not using the Hugging Face tokenizers, make sure to add these special tokens when required.
 
+## BART
+
+This example uses the [BART](https://huggingface.co/facebook/bart-large-cnn) model that was fine-tuned on CNN Daily Mail for text summarization.
+
+```bash
+ct2-transformers-converter --model facebook/bart-large-cnn --output_dir bart-large-cnn
+```
+
+```python
+import ctranslate2
+import transformers
+
+translator = ctranslate2.Translator("bart-large-cnn")
+tokenizer = transformers.AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
+
+text = (
+    "PG&E stated it scheduled the blackouts in response to forecasts for high winds "
+    "amid dry conditions. "
+    "The aim is to reduce the risk of wildfires. "
+    "Nearly 800 thousand customers were scheduled to be affected by the shutoffs which "
+    "were expected to last through at least midday tomorrow."
+)
+
+source = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
+results = translator.translate_batch([source])
+target = results[0].hypotheses[0]
+
+print(tokenizer.decode(tokenizer.convert_tokens_to_ids(target), skip_special_tokens=True))
+```
+
 ## MarianMT
 
 This example uses the English-German model from [MarianMT](https://huggingface.co/docs/transformers/model_doc/marian).
