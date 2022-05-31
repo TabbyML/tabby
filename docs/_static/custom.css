@@ -35,3 +35,7 @@ dl.py.property {
     border-left: 5px solid #999;
     font-style: italic;
 }
+
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: inherit;
+}
