@@ -2,6 +2,8 @@
 
 #if defined(CT2_X86_BUILD)
 
+#include <cstring>
+
 #include <cpuinfo_x86.h>
 
 namespace ctranslate2 {
@@ -11,6 +13,10 @@ namespace ctranslate2 {
 
     const char* cpu_vendor() {
       return info.vendor;
+    }
+
+    bool cpu_is_genuine_intel() {
+      return strcmp(cpu_vendor(), CPU_FEATURES_VENDOR_GENUINE_INTEL) == 0;
     }
 
     bool cpu_supports_sse41() {

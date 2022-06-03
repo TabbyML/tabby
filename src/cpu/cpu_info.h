@@ -7,6 +7,7 @@ namespace ctranslate2 {
 
     const char* cpu_vendor();
 #if defined(CT2_X86_BUILD)
+    bool cpu_is_genuine_intel();
     bool cpu_supports_sse41();
     bool cpu_supports_avx();
     bool cpu_supports_avx2();
