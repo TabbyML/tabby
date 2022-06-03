@@ -41,66 +41,67 @@ namespace ctranslate2 {
     return _id_to_token.size();
   }
 
-  template <typename From, typename To>
-  To lookup(const Vocabulary& vocab, const From& from);
+  std::vector<std::vector<std::string>>
+  Vocabulary::to_tokens(const std::vector<std::vector<size_t>>& batch_ids) const {
+    std::vector<std::vector<std::string>> batch_tokens;
+    batch_tokens.reserve(batch_ids.size());
 
-  template<>
-  std::string lookup(const Vocabulary& vocab, const size_t& id) {
-    return vocab.to_token(id);
+    for (const auto& ids : batch_ids) {
+      std::vector<std::string> tokens;
+      tokens.reserve(ids.size());
+      for (const auto id : ids)
+        tokens.emplace_back(to_token(id));
+      batch_tokens.emplace_back(std::move(tokens));
+    }
+
+    return batch_tokens;
   }
 
-  template<>
-  size_t lookup(const Vocabulary& vocab, const std::string& token) {
-    return vocab.to_id(token);
+  std::vector<std::vector<size_t>>
+  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+                     const size_t max_length,
+                     const bool add_bos,
+                     const bool add_eos) const {
+    return to_ids(batch_tokens,
+                  max_length,
+                  add_bos ? &_info.bos_token : nullptr,
+                  add_eos ? &_info.eos_token : nullptr);
   }
 
-  template <typename From, typename To>
-  std::vector<std::vector<To>> lookup_batch(const Vocabulary& vocab,
-                                            const std::vector<std::vector<From>>& batch_from,
-                                            const From* prefix = nullptr,
-                                            const From* suffix = nullptr) {
-    std::vector<std::vector<To>> batch_to;
-    batch_to.reserve(batch_from.size());
+  std::vector<std::vector<size_t>>
+  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
+                     const size_t max_length,
+                     const std::string* prefix,
+                     const std::string* suffix) const {
+    std::vector<std::vector<size_t>> batch_ids;
+    batch_ids.reserve(batch_tokens.size());
 
     const size_t length_increment = size_t(bool(prefix)) + size_t(bool(suffix));
 
-    for (const auto& from : batch_from) {
-      std::vector<To> to;
-      to.reserve(from.size() + length_increment);
+    for (const auto& tokens : batch_tokens) {
+      std::vector<size_t> ids;
+      ids.reserve(tokens.size() + length_increment);
 
       if (prefix)
-        to.emplace_back(lookup<From, To>(vocab, *prefix));
-      for (const auto& element : from)
-        to.emplace_back(lookup<From, To>(vocab, element));
+        ids.emplace_back(to_id(*prefix));
+      for (const auto& token : tokens)
+        ids.emplace_back(to_id(token));
       if (suffix)
-        to.emplace_back(lookup<From, To>(vocab, *suffix));
+        ids.emplace_back(to_id(*suffix));
 
-      batch_to.emplace_back(std::move(to));
+      if (max_length > 0 && ids.size() > max_length) {
+        // Keep EOS at the last position.
+        const size_t eos = eos_id();
+        if (ids.back() == eos)
+          ids[max_length - 1] = eos;
+
+        ids.resize(max_length);
+      }
+
+      batch_ids.emplace_back(std::move(ids));
     }
 
-    return batch_to;
-  }
-
-  std::vector<std::vector<std::string>>
-  Vocabulary::to_tokens(const std::vector<std::vector<size_t>>& batch_ids) const {
-    return lookup_batch<size_t, std::string>(*this, batch_ids);
-  }
-
-  std::vector<std::vector<size_t>>
-  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
-                     const bool add_bos,
-                     const bool add_eos) const {
-    return lookup_batch<std::string, size_t>(*this,
-                                             batch_tokens,
-                                             add_bos ? &_info.bos_token : nullptr,
-                                             add_eos ? &_info.eos_token : nullptr);
-  }
-
-  std::vector<std::vector<size_t>>
-  Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
-                     const std::string* prefix,
-                     const std::string* suffix) const {
-    return lookup_batch<std::string, size_t>(*this, batch_tokens, prefix, suffix);
+    return batch_ids;
   }
 
 }

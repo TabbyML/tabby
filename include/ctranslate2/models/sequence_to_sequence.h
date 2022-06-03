@@ -139,15 +139,19 @@ namespace ctranslate2 {
                       const TranslationOptions& options) override;
 
     private:
+      std::vector<std::vector<std::vector<size_t>>>
+      make_source_ids(const std::vector<std::vector<std::vector<std::string>>>& source_features,
+                      size_t max_length = 0) const;
+
       std::vector<std::vector<size_t>>
-      make_source_ids(const std::vector<std::vector<std::string>>& source, size_t index) const;
-      std::vector<std::vector<size_t>>
-      make_target_ids(const std::vector<std::vector<std::string>>& target, bool partial) const;
+      make_target_ids(const std::vector<std::vector<std::string>>& target,
+                      size_t max_length = 0,
+                      bool is_prefix = false) const;
 
       size_t get_source_length(const std::vector<std::string>& source,
                                bool include_special_tokens) const;
 
-      void encode(const std::vector<std::vector<std::vector<std::string>>>& source,
+      void encode(const std::vector<std::vector<std::vector<size_t>>>& ids,
                   StorageView& memory,
                   StorageView& memory_lengths);
 

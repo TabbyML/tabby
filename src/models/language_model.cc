@@ -57,9 +57,7 @@ namespace ctranslate2 {
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
 
-      std::vector<std::vector<size_t>> ids = vocabulary.to_ids(tokens);
-      if (options.max_input_length > 0)
-        truncate_sequences(ids, options.max_input_length);
+      const auto ids = vocabulary.to_ids(tokens, options.max_input_length);
 
       layers::DecoderState state = _decoder->initial_state(/*iterative_decoding=*/false);
       return score_sequences(*_decoder,

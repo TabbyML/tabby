@@ -43,14 +43,6 @@ namespace ctranslate2 {
     return new_v;
   }
 
-  template <typename T>
-  void truncate_sequences(std::vector<std::vector<T>>& sequences, size_t max_length) {
-    for (auto& sequence : sequences) {
-      if (sequence.size() > max_length)
-        sequence.resize(max_length);
-    }
-  }
-
   // Helper function to only run the model on inputs without an immediate result.
   template <typename Result, typename SkipRun, typename GetBatchResults>
   std::vector<Result>

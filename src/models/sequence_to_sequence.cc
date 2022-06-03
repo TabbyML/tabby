@@ -108,21 +108,18 @@ namespace ctranslate2 {
     SequenceToSequenceReplica::translate(const std::vector<std::vector<std::string>>& source,
                                          const std::vector<std::vector<std::string>>& target_prefix,
                                          const TranslationOptions& options) {
+      auto target = target_prefix;
+      if (target.empty())
+        target.resize(source.size());
+
       return get_batch_results_helper<TranslationResult>(
         source.size(),
-        [this, &source, &target_prefix, &options](size_t i, TranslationResult& result) {
-          return skip_translation(source[i],
-                                  target_prefix.empty()
-                                  ? std::vector<std::string>()
-                                  : target_prefix[i],
-                                  options,
-                                  result);
+        [this, &source, &target, &options](size_t i, TranslationResult& result) {
+          return skip_translation(source[i], target[i], options, result);
         },
-        [this, &source, &target_prefix, &options](const std::vector<size_t>& index_to_run) {
+        [this, &source, &target, &options](const std::vector<size_t>& index_to_run) {
           return run_translation(index_vector(source, index_to_run),
-                                 target_prefix.empty()
-                                 ? target_prefix
-                                 : index_vector(target_prefix, index_to_run),
+                                 index_vector(target, index_to_run),
                                  options);
         });
     }
@@ -138,19 +135,37 @@ namespace ctranslate2 {
     {
     }
 
-    std::vector<std::vector<size_t>>
-    EncoderDecoderReplica::make_source_ids(const std::vector<std::vector<std::string>>& source,
-                                           size_t index) const {
-      return _model->get_source_vocabulary(index).to_ids(source,
-                                                         _model->with_source_bos(),
-                                                         _model->with_source_eos());
+    std::vector<std::vector<std::vector<size_t>>>
+    EncoderDecoderReplica::make_source_ids(const std::vector<std::vector<std::vector<std::string>>>& source_features,
+                                           size_t max_length) const {
+      const size_t num_input_features = source_features.size();
+      if (_model->num_source_vocabularies() != num_input_features)
+        throw std::runtime_error("The encoder expects "
+                                 + std::to_string(num_input_features)
+                                 + " input features, but "
+                                 + std::to_string(_model->num_source_vocabularies())
+                                 + " source vocabularies are loaded");
+
+      std::vector<std::vector<std::vector<size_t>>> ids;
+      ids.reserve(num_input_features);
+
+      for (size_t i = 0; i < num_input_features; ++i) {
+        const auto& vocabulary = _model->get_source_vocabulary(i);
+        ids.emplace_back(vocabulary.to_ids(source_features[i],
+                                           max_length,
+                                           _model->with_source_bos(),
+                                           _model->with_source_eos()));
+      }
+
+      return ids;
     }
 
     std::vector<std::vector<size_t>>
     EncoderDecoderReplica::make_target_ids(const std::vector<std::vector<std::string>>& target,
-                                           bool partial) const {
+                                           size_t max_length,
+                                           bool is_prefix) const {
       const auto& target_vocabulary = _model->get_target_vocabulary();
-      const std::string* suffix = partial ? nullptr : &target_vocabulary.eos_token();
+      const std::string* suffix = &target_vocabulary.eos_token();
       const std::string* prefix = nullptr;
       if (!_model->user_decoder_start_tokens()) {
         if (_model->with_target_bos())
@@ -158,7 +173,17 @@ namespace ctranslate2 {
         else
           prefix = &target_vocabulary.eos_token();
       }
-      return target_vocabulary.to_ids(target, prefix, suffix);
+
+      if (is_prefix) {
+        suffix = nullptr;
+        max_length = 0;
+      } else if (max_length > 0) {
+        // The method returns the full target "<s> a b c </s>" but the decoder input is "<s> a b c".
+        // So 1 additional token is allowed in the full target sequence.
+        max_length += 1;
+      }
+
+      return target_vocabulary.to_ids(target, max_length, prefix, suffix);
     }
 
     size_t EncoderDecoderReplica::get_source_length(const std::vector<std::string>& source,
@@ -188,22 +213,15 @@ namespace ctranslate2 {
     }
 
     void
-    EncoderDecoderReplica::encode(const std::vector<std::vector<std::vector<std::string>>>& source,
+    EncoderDecoderReplica::encode(const std::vector<std::vector<std::vector<size_t>>>& features_ids,
                                   StorageView& memory,
                                   StorageView& memory_lengths) {
-      const size_t num_input_features = source.size();
-      if (_model->num_source_vocabularies() != num_input_features)
-        throw std::runtime_error("The encoder expects "
-                                 + std::to_string(num_input_features)
-                                 + " input features, but "
-                                 + std::to_string(_model->num_source_vocabularies())
-                                 + " source vocabularies are loaded");
-
+      const size_t num_input_features = features_ids.size();
       std::vector<StorageView> ids;
       ids.reserve(num_input_features);
 
       for (size_t i = 0; i < num_input_features; ++i) {
-        const auto tokens_ids = make_source_ids(source[i], i);
+        const auto& tokens_ids = features_ids[i];
         ids.emplace_back(layers::make_sequence_inputs(tokens_ids,
                                                       _model->device(),
                                                       _model->preferred_size_multiple(),
@@ -221,19 +239,13 @@ namespace ctranslate2 {
       const auto device = _model->device();
       PROFILE("EncoderDecoderReplica::run_scoring");
 
-      auto source_inputs = source;
-      auto target_inputs = target;
-      if (options.max_input_length > 0) {
-        truncate_sequences(source_inputs, options.max_input_length);
-        truncate_sequences(target_inputs, options.max_input_length);
-      }
-
-      const auto source_features = extract_features(std::move(source_inputs),
-                                                    _encoder->num_input_features());
+      const auto source_features = extract_features(source, _encoder->num_input_features());
+      const auto source_ids = make_source_ids(source_features, options.max_input_length);
+      const auto target_ids = make_target_ids(target, options.max_input_length);
 
       StorageView memory(_encoder->output_type(), device);
       StorageView memory_lengths(DataType::INT32, device);
-      encode(source_features, memory, memory_lengths);
+      encode(source_ids, memory, memory_lengths);
 
       layers::DecoderState state = _decoder->initial_state(/*iterative_decoding=*/false);
       state.emplace("memory", std::move(memory));
@@ -241,14 +253,14 @@ namespace ctranslate2 {
 
       return score_sequences(*_decoder,
                              state,
-                             make_target_ids(target_inputs, /*partial=*/false),
+                             target_ids,
                              _model->get_target_vocabulary(),
                              _model->preferred_size_multiple());
     }
 
     bool EncoderDecoderReplica::skip_scoring(const std::vector<std::string>& source,
                                              const std::vector<std::string>& target,
-                                             const ScoringOptions&,
+                                             const ScoringOptions& options,
                                              ScoringResult& result) {
       if (_model->user_decoder_start_tokens() && target.empty()) {
         return true;
@@ -258,7 +270,7 @@ namespace ctranslate2 {
       // so we set a score of 0 for target tokens that would be scored by the model.
       if (get_source_length(source, /*include_special_tokens=*/true) == 0) {
         const auto& vocabulary = _model->get_target_vocabulary();
-        const auto target_ids = make_target_ids({target}, /*partial=*/false)[0];
+        const auto target_ids = make_target_ids({target}, options.max_input_length)[0];
         result.tokens.reserve(target_ids.size() - 1);
         result.tokens_score.reserve(target_ids.size() - 1);
         for (size_t i = 1; i < target_ids.size(); ++i) {
@@ -297,20 +309,16 @@ namespace ctranslate2 {
 
       const size_t batch_size = source.size();
 
-      auto source_inputs = source;
-      auto target_prefix_inputs = target_prefix;
-      if (options.max_input_length > 0) {
-        truncate_sequences(source_inputs, options.max_input_length);
-        truncate_sequences(target_prefix_inputs, options.max_input_length);
-      }
-
-      const auto source_features = extract_features(std::move(source_inputs),
-                                                    _encoder->num_input_features());
+      const auto source_features = extract_features(source, _encoder->num_input_features());
+      const auto source_ids = make_source_ids(source_features, options.max_input_length);
+      const auto target_ids = make_target_ids(target_prefix,
+                                              options.max_input_length,
+                                              /*is_prefix=*/true);
 
       // Encode the sequence.
       StorageView memory(_encoder->output_type(), device);
       StorageView memory_lengths(DataType::INT32, device);
-      encode(source_features, memory, memory_lengths);
+      encode(source_ids, memory, memory_lengths);
 
       layers::DecoderState state = _decoder->initial_state();
       state.emplace("memory", std::move(memory));
@@ -328,11 +336,6 @@ namespace ctranslate2 {
                                                                  exclude_ids);
 
       // Decode.
-      if (target_prefix_inputs.empty())
-        target_prefix_inputs.resize(batch_size);
-      const auto start_ids = make_target_ids(target_prefix_inputs, /*partial=*/true);
-      const size_t end_id = target_vocabulary.eos_id();
-
       DecodingOptions decoding_options;
       decoding_options.beam_size = options.beam_size;
       decoding_options.length_penalty = options.length_penalty;
@@ -352,8 +355,8 @@ namespace ctranslate2 {
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
-                                                   start_ids,
-                                                   end_id,
+                                                   target_ids,
+                                                   target_vocabulary.eos_id(),
                                                    decoding_options,
                                                    output_ids_map);
 
@@ -366,22 +369,26 @@ namespace ctranslate2 {
         auto hypotheses = target_vocabulary.to_tokens(result.hypotheses);
 
         if (!result.attention.empty()) {
-          // Remove padding and special tokens in attention vectors.
-          const size_t offset = size_t(_model->with_source_bos());
-          const auto& source_original = source[i];
-          const auto& source_input = source_features[0][i];
+          const auto& source_original = source_features[0][i];
+          const auto& source_input = source_ids[0][i];
 
           for (size_t h = 0; h < result.attention.size(); ++h) {
             auto& attention = result.attention[h];
 
             for (auto& vector : attention) {
-              vector = std::vector<float>(vector.begin() + offset,
-                                          vector.begin() + offset + source_input.size());
+              // Remove attenton positions for padding and implicit special tokens.
+              vector.resize(source_input.size());
+              if (_model->with_source_bos())
+                vector.erase(vector.begin());
+              if (_model->with_source_eos())
+                vector.pop_back();
+
+              // Resize to the original input size.
               vector.resize(source_original.size(), 0);
             }
 
             if (options.replace_unknowns)
-              replace_unknown_tokens(source_input,
+              replace_unknown_tokens(source_original,
                                      hypotheses[h],
                                      attention,
                                      target_vocabulary.unk_token());
