@@ -9,9 +9,8 @@ namespace ctranslate2 {
 
     static const cpu_features::X86Info info = cpu_features::GetX86Info();
 
-    const std::string& cpu_vendor() {
-      static const std::string vendor = info.vendor;
-      return vendor;
+    const char* cpu_vendor() {
+      return info.vendor;
     }
 
     bool cpu_supports_sse41() {
@@ -34,9 +33,8 @@ namespace ctranslate2 {
 namespace ctranslate2 {
   namespace cpu {
 
-    const std::string& cpu_vendor() {
-      static const std::string vendor = "ARM";
-      return vendor;
+    const char* cpu_vendor() {
+      return "ARM";
     }
 
     bool cpu_supports_neon() {

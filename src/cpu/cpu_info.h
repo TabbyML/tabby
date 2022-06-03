@@ -1,13 +1,11 @@
 #pragma once
 
-#include <string>
-
 namespace ctranslate2 {
   namespace cpu {
 
     // Functions returning some info about the current CPU.
 
-    const std::string& cpu_vendor();
+    const char* cpu_vendor();
 #if defined(CT2_X86_BUILD)
     bool cpu_supports_sse41();
     bool cpu_supports_avx();

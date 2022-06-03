@@ -1,5 +1,7 @@
 #include "backend.h"
 
+#include <cstring>
+
 #ifdef CT2_WITH_MKL
 #  include <mkl.h>
 #endif
@@ -27,7 +29,7 @@ namespace ctranslate2 {
       const std::string use_mkl_env = read_string_from_env("CT2_USE_MKL");
       if (use_mkl_env.empty()) {
 #ifdef CT2_WITH_MKL
-        return cpu_vendor() == "GenuineIntel";
+        return strcmp(cpu_vendor(), "GenuineIntel") == 0;
 #else
         return false;
 #endif
