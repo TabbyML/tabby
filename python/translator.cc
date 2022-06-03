@@ -634,7 +634,7 @@ template <typename T>
 static void declare_async_wrapper(py::module& m, const char* name) {
   py::class_<AsyncResult<T>>(m, name, "Asynchronous wrapper around a result object.")
     .def("result", &AsyncResult<T>::result, "Blocks until the result is available and returns it.")
-    .def("done", &AsyncResult<T>::done, "Returns ``True`` if the result is ready.")
+    .def("done", &AsyncResult<T>::done, "Returns ``True`` if the result is available.")
     ;
 }
 
