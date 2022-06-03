@@ -58,15 +58,48 @@ namespace ctranslate2 {
       {
       }
 
-      virtual std::vector<ScoringResult>
+      std::vector<ScoringResult>
       score(const std::vector<std::vector<std::string>>& source,
             const std::vector<std::vector<std::string>>& target,
-            const ScoringOptions& options = ScoringOptions()) = 0;
+            const ScoringOptions& options = ScoringOptions());
 
-      virtual std::vector<TranslationResult>
+      std::vector<TranslationResult>
       translate(const std::vector<std::vector<std::string>>& source,
                 const std::vector<std::vector<std::string>>& target_prefix = {},
-                const TranslationOptions& options = TranslationOptions()) = 0;
+                const TranslationOptions& options = TranslationOptions());
+
+    protected:
+      virtual bool skip_scoring(const std::vector<std::string>& source,
+                                const std::vector<std::string>& target,
+                                const ScoringOptions& options,
+                                ScoringResult& result) {
+        (void)source;
+        (void)target;
+        (void)options;
+        (void)result;
+        return false;
+      }
+
+      virtual bool skip_translation(const std::vector<std::string>& source,
+                                    const std::vector<std::string>& target_prefix,
+                                    const TranslationOptions& options,
+                                    TranslationResult& result) {
+        (void)source;
+        (void)target_prefix;
+        (void)options;
+        (void)result;
+        return false;
+      }
+
+      virtual std::vector<ScoringResult>
+      run_scoring(const std::vector<std::vector<std::string>>& source,
+                  const std::vector<std::vector<std::string>>& target,
+                  const ScoringOptions& options) = 0;
+
+      virtual std::vector<TranslationResult>
+      run_translation(const std::vector<std::vector<std::string>>& source,
+                      const std::vector<std::vector<std::string>>& target_prefix,
+                      const TranslationOptions& options) = 0;
     };
 
 
@@ -84,22 +117,35 @@ namespace ctranslate2 {
         return *_decoder;
       }
 
+    protected:
+      bool skip_scoring(const std::vector<std::string>& source,
+                        const std::vector<std::string>& target,
+                        const ScoringOptions& options,
+                        ScoringResult& result) override;
+
+      bool skip_translation(const std::vector<std::string>& source,
+                            const std::vector<std::string>& target_prefix,
+                            const TranslationOptions& options,
+                            TranslationResult& result) override;
+
       std::vector<ScoringResult>
-      score(const std::vector<std::vector<std::string>>& source,
-            const std::vector<std::vector<std::string>>& target,
-            const ScoringOptions& options = ScoringOptions()) override;
+      run_scoring(const std::vector<std::vector<std::string>>& source,
+                  const std::vector<std::vector<std::string>>& target,
+                  const ScoringOptions& options) override;
 
       std::vector<TranslationResult>
-      translate(const std::vector<std::vector<std::string>>& source,
-                const std::vector<std::vector<std::string>>& target_prefix = {},
-                const TranslationOptions& options = TranslationOptions()) override;
+      run_translation(const std::vector<std::vector<std::string>>& source,
+                      const std::vector<std::vector<std::string>>& target_prefix,
+                      const TranslationOptions& options) override;
 
     private:
       std::vector<std::vector<size_t>>
       make_source_ids(const std::vector<std::vector<std::string>>& source, size_t index) const;
       std::vector<std::vector<size_t>>
       make_target_ids(const std::vector<std::vector<std::string>>& target, bool partial) const;
-      bool source_is_empty(const std::vector<std::string>& source) const;
+
+      size_t get_source_length(const std::vector<std::string>& source,
+                               bool include_special_tokens) const;
 
       void encode(const std::vector<std::vector<std::vector<std::string>>>& source,
                   StorageView& memory,

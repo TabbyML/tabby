@@ -20,6 +20,28 @@ namespace ctranslate2 {
     }
 
 
+    std::vector<ScoringResult>
+    SequenceGeneratorReplica::score(const std::vector<std::vector<std::string>>& tokens,
+                                    const ScoringOptions& options) {
+      return get_batch_results_helper<ScoringResult>(
+        tokens.size(),
+        [this, &tokens, &options](size_t i, ScoringResult& result) {
+          return skip_scoring(tokens[i], options, result);
+        },
+        [this, &tokens, &options](const std::vector<size_t>& index_to_run) {
+          return run_scoring(index_vector(tokens, index_to_run), options);
+        });
+    }
+
+    std::vector<GenerationResult>
+    SequenceGeneratorReplica::generate(const std::vector<std::vector<std::string>>& start_tokens,
+                                       const GenerationOptions& options) {
+      if (start_tokens.empty())
+        return {};
+      return run_generation(start_tokens, options);
+    }
+
+
     DecoderReplica::DecoderReplica(const std::shared_ptr<const LanguageModel>& model,
                                    std::unique_ptr<layers::Decoder> decoder)
       : SequenceGeneratorReplica(model)
@@ -29,9 +51,9 @@ namespace ctranslate2 {
     }
 
     std::vector<ScoringResult>
-    DecoderReplica::score(const std::vector<std::vector<std::string>>& tokens,
-                          const ScoringOptions& options) {
-      PROFILE("DecoderReplica::score");
+    DecoderReplica::run_scoring(const std::vector<std::vector<std::string>>& tokens,
+                                const ScoringOptions& options) {
+      PROFILE("DecoderReplica::run_scoring");
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
 
@@ -47,10 +69,16 @@ namespace ctranslate2 {
                              _model->preferred_size_multiple());
     }
 
+    bool DecoderReplica::skip_scoring(const std::vector<std::string>& tokens,
+                                      const ScoringOptions&,
+                                      ScoringResult&) {
+      return tokens.size() < 2;
+    }
+
     std::vector<GenerationResult>
-    DecoderReplica::generate(const std::vector<std::vector<std::string>>& start_tokens,
-                             const GenerationOptions& options) {
-      PROFILE("DecoderReplica::generate");
+    DecoderReplica::run_generation(const std::vector<std::vector<std::string>>& start_tokens,
+                                   const GenerationOptions& options) {
+      PROFILE("DecoderReplica::run_generation");
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
 

@@ -87,6 +87,47 @@ namespace ctranslate2 {
       return _vocabulary_map.get();
     }
 
+
+    std::vector<ScoringResult>
+    SequenceToSequenceReplica::score(const std::vector<std::vector<std::string>>& source,
+                                     const std::vector<std::vector<std::string>>& target,
+                                     const ScoringOptions& options) {
+      return get_batch_results_helper<ScoringResult>(
+        source.size(),
+        [this, &source, &target, &options](size_t i, ScoringResult& result) {
+          return skip_scoring(source[i], target[i], options, result);
+        },
+        [this, &source, &target, &options](const std::vector<size_t>& index_to_run) {
+          return run_scoring(index_vector(source, index_to_run),
+                             index_vector(target, index_to_run),
+                             options);
+        });
+    }
+
+    std::vector<TranslationResult>
+    SequenceToSequenceReplica::translate(const std::vector<std::vector<std::string>>& source,
+                                         const std::vector<std::vector<std::string>>& target_prefix,
+                                         const TranslationOptions& options) {
+      return get_batch_results_helper<TranslationResult>(
+        source.size(),
+        [this, &source, &target_prefix, &options](size_t i, TranslationResult& result) {
+          return skip_translation(source[i],
+                                  target_prefix.empty()
+                                  ? std::vector<std::string>()
+                                  : target_prefix[i],
+                                  options,
+                                  result);
+        },
+        [this, &source, &target_prefix, &options](const std::vector<size_t>& index_to_run) {
+          return run_translation(index_vector(source, index_to_run),
+                                 target_prefix.empty()
+                                 ? target_prefix
+                                 : index_vector(target_prefix, index_to_run),
+                                 options);
+        });
+    }
+
+
     EncoderDecoderReplica::EncoderDecoderReplica(const std::shared_ptr<const SequenceToSequenceModel>& model,
                                                  std::unique_ptr<layers::Encoder> encoder,
                                                  std::unique_ptr<layers::Decoder> decoder)
@@ -120,14 +161,30 @@ namespace ctranslate2 {
       return target_vocabulary.to_ids(target, prefix, suffix);
     }
 
-    bool EncoderDecoderReplica::source_is_empty(const std::vector<std::string>& source) const {
-      const auto& vocabulary = _model->get_source_vocabulary(0);
-      return (source.empty()
-              || (source.size() == 1
-                  && source[0] == vocabulary.eos_token())
-              || (source.size() == 2
-                  && source[0] == vocabulary.bos_token()
-                  && source[1] == vocabulary.eos_token()));
+    size_t EncoderDecoderReplica::get_source_length(const std::vector<std::string>& source,
+                                                    bool include_special_tokens) const {
+      size_t length = source.size();
+
+      if (include_special_tokens) {
+        if (_model->with_source_bos())
+          ++length;
+        if (_model->with_source_eos())
+          ++length;
+
+      } else {
+        const auto& vocabulary = _model->get_source_vocabulary(0);
+        if (source.size() == 1) {
+          if (vocabulary.bos_token() == source[0] || vocabulary.eos_token() == source[0])
+            --length;
+        } else if (source.size() >= 2) {
+          if (vocabulary.bos_token() == source[0])
+            --length;
+          if (vocabulary.eos_token() == source[source.size() - 1])
+            --length;
+        }
+      }
+
+      return length;
     }
 
     void
@@ -157,15 +214,12 @@ namespace ctranslate2 {
     }
 
     std::vector<ScoringResult>
-    EncoderDecoderReplica::score(const std::vector<std::vector<std::string>>& source,
-                                 const std::vector<std::vector<std::string>>& target,
-                                 const ScoringOptions& options) {
+    EncoderDecoderReplica::run_scoring(const std::vector<std::vector<std::string>>& source,
+                                       const std::vector<std::vector<std::string>>& target,
+                                       const ScoringOptions& options) {
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto device = _model->device();
-      PROFILE("EncoderDecoderReplica::score");
-
-      if (source.empty())
-        return {};
+      PROFILE("EncoderDecoderReplica::run_scoring");
 
       auto source_inputs = source;
       auto target_inputs = target;
@@ -192,6 +246,31 @@ namespace ctranslate2 {
                              _model->preferred_size_multiple());
     }
 
+    bool EncoderDecoderReplica::skip_scoring(const std::vector<std::string>& source,
+                                             const std::vector<std::string>& target,
+                                             const ScoringOptions&,
+                                             ScoringResult& result) {
+      if (_model->user_decoder_start_tokens() && target.empty()) {
+        return true;
+      }
+
+      // If the source is empty even with special tokens, we can't run the model on this input
+      // so we set a score of 0 for target tokens that would be scored by the model.
+      if (get_source_length(source, /*include_special_tokens=*/true) == 0) {
+        const auto& vocabulary = _model->get_target_vocabulary();
+        const auto target_ids = make_target_ids({target}, /*partial=*/false)[0];
+        result.tokens.reserve(target_ids.size() - 1);
+        result.tokens_score.reserve(target_ids.size() - 1);
+        for (size_t i = 1; i < target_ids.size(); ++i) {
+          result.tokens.emplace_back(vocabulary.to_token(target_ids[i]));
+          result.tokens_score.emplace_back(0);
+        }
+        return true;
+      }
+
+      return false;
+    }
+
     static void replace_unknown_tokens(const std::vector<std::string>& source,
                                        std::vector<std::string>& hypotheses,
                                        const std::vector<std::vector<float>>& attention,
@@ -209,40 +288,17 @@ namespace ctranslate2 {
     }
 
     std::vector<TranslationResult>
-    EncoderDecoderReplica::translate(const std::vector<std::vector<std::string>>& source,
-                                     const std::vector<std::vector<std::string>>& target_prefix,
-                                     const TranslationOptions& options) {
+    EncoderDecoderReplica::run_translation(const std::vector<std::vector<std::string>>& source,
+                                           const std::vector<std::vector<std::string>>& target_prefix,
+                                           const TranslationOptions& options) {
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto device = _model->device();
-      PROFILE("EncoderDecoderReplica::translate");
+      PROFILE("EncoderDecoderReplica::run_translation");
 
-      const size_t original_batch_size = source.size();
-      if (original_batch_size == 0)
-        return {};
-
-      const TranslationResult empty_result(options.num_hypotheses,
-                                           options.return_attention,
-                                           options.return_scores);
-      std::vector<TranslationResult> final_results(original_batch_size, empty_result);
-
-      std::vector<size_t> non_empty_index;
-      non_empty_index.reserve(original_batch_size);
-      for (size_t i = 0; i < original_batch_size; ++i) {
-        if (!source_is_empty(source[i]))
-          non_empty_index.emplace_back(i);
-      }
-
-      const size_t batch_size = non_empty_index.size();
-      if (batch_size == 0)
-        return final_results;
+      const size_t batch_size = source.size();
 
       auto source_inputs = source;
       auto target_prefix_inputs = target_prefix;
-      if (batch_size != original_batch_size) {
-        source_inputs = index_vector(source_inputs, non_empty_index);
-        if (!target_prefix.empty())
-          target_prefix_inputs = index_vector(target_prefix_inputs, non_empty_index);
-      }
       if (options.max_input_length > 0) {
         truncate_sequences(source_inputs, options.max_input_length);
         truncate_sequences(target_prefix_inputs, options.max_input_length);
@@ -302,15 +358,17 @@ namespace ctranslate2 {
                                                    output_ids_map);
 
       // Convert generated ids to tokens.
+      std::vector<TranslationResult> final_results;
+      final_results.reserve(batch_size);
+
       for (size_t i = 0; i < batch_size; ++i) {
-        const size_t original_index = non_empty_index[i];
         DecodingResult& result = results[i];
         auto hypotheses = target_vocabulary.to_tokens(result.hypotheses);
 
         if (!result.attention.empty()) {
           // Remove padding and special tokens in attention vectors.
           const size_t offset = size_t(_model->with_source_bos());
-          const auto& source_original = source[original_index];
+          const auto& source_original = source[i];
           const auto& source_input = source_features[0][i];
 
           for (size_t h = 0; h < result.attention.size(); ++h) {
@@ -333,12 +391,26 @@ namespace ctranslate2 {
             result.attention.clear();
         }
 
-        final_results[original_index] = TranslationResult(std::move(hypotheses),
-                                                          std::move(result.scores),
-                                                          std::move(result.attention));
+        final_results.emplace_back(std::move(hypotheses),
+                                   std::move(result.scores),
+                                   std::move(result.attention));
       }
 
       return final_results;
+    }
+
+    bool EncoderDecoderReplica::skip_translation(const std::vector<std::string>& source,
+                                                 const std::vector<std::string>&,
+                                                 const TranslationOptions& options,
+                                                 TranslationResult& result) {
+      // If the source content is empty, we assume the translation is empty.
+      if (get_source_length(source, /*include_special_tokens=*/false) == 0) {
+        result = TranslationResult(options.num_hypotheses,
+                                   options.return_attention,
+                                   options.return_scores);
+        return true;
+      }
+      return false;
     }
 
   }

@@ -477,6 +477,14 @@ def test_score_api(tmpdir):
             assert mean_score == pytest.approx(np.mean(expected_scores), 1e-4)
             assert scores == pytest.approx(expected_scores, 1e-4)
 
+    # Test empty inputs.
+    assert translator.score_batch([], []) == []
+    assert translator.score_batch([[]], [[]])[0] == [0]
+    assert translator.score_batch([[], []], target) == [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+    ]
+
 
 @pytest.mark.parametrize("to_cpu", [False, True])
 def test_model_unload(to_cpu):
@@ -963,6 +971,9 @@ def test_fairseq_user_start_token(tmpdir):
 
     assert scores[0] == pytest.approx(expected_scores, 1e-5)
 
+    # In this mode, an empty target is not enough tokens to run the score so the output is empty.
+    assert translator.score_batch([tokens], [[]])[0] == []
+
 
 @skip_if_data_missing
 def test_marian_model_conversion(tmpdir):
@@ -1085,6 +1096,29 @@ def test_transformers_generation(
     results = generator.generate_batch([start_tokens.split()], max_length=max_length)
     output_tokens = results[0].sequences[0]
     assert output_tokens == expected_tokens.split()
+
+    # Test empty inputs.
+    assert generator.generate_batch([]) == []
+
+    with pytest.raises(ValueError, match="start token"):
+        generator.generate_batch([[]])
+
+
+@only_on_linux
+def test_transformers_lm_scoring(tmpdir):
+    converter = ctranslate2.converters.TransformersConverter("gpt2")
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+    generator = ctranslate2.Generator(output_dir)
+
+    tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
+    scores = generator.score_batch([tokens])[0]
+    assert len(scores) == len(tokens) - 1
+
+    # Test empty inputs.
+    assert generator.score_batch([]) == []
+    assert generator.score_batch([[], tokens])[0] == []
+    assert generator.score_batch([["<|endoftext|>"]])[0] == []
 
 
 def test_layer_spec_validate():

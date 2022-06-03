@@ -30,13 +30,32 @@ namespace ctranslate2 {
       {
       }
 
-      virtual std::vector<ScoringResult>
+      std::vector<ScoringResult>
       score(const std::vector<std::vector<std::string>>& tokens,
-            const ScoringOptions& options = ScoringOptions()) = 0;
+            const ScoringOptions& options = ScoringOptions());
+
+      std::vector<GenerationResult>
+      generate(const std::vector<std::vector<std::string>>& start_tokens,
+               const GenerationOptions& options = GenerationOptions());
+
+    protected:
+      virtual bool skip_scoring(const std::vector<std::string>& tokens,
+                                const ScoringOptions& options,
+                                ScoringResult& result) {
+        (void)tokens;
+        (void)options;
+        (void)result;
+        return false;
+      }
+
+      virtual std::vector<ScoringResult>
+      run_scoring(const std::vector<std::vector<std::string>>& tokens,
+                  const ScoringOptions& options) = 0;
 
       virtual std::vector<GenerationResult>
-      generate(const std::vector<std::vector<std::string>>& start_tokens,
-               const GenerationOptions& options = GenerationOptions()) = 0;
+      run_generation(const std::vector<std::vector<std::string>>& start_tokens,
+                     const GenerationOptions& options) = 0;
+
     };
 
 
@@ -46,13 +65,18 @@ namespace ctranslate2 {
       DecoderReplica(const std::shared_ptr<const LanguageModel>& model,
                      std::unique_ptr<layers::Decoder> decoder);
 
+    protected:
+      bool skip_scoring(const std::vector<std::string>& tokens,
+                        const ScoringOptions& options,
+                        ScoringResult& result) override;
+
       std::vector<ScoringResult>
-      score(const std::vector<std::vector<std::string>>& tokens,
-            const ScoringOptions& options = ScoringOptions()) override;
+      run_scoring(const std::vector<std::vector<std::string>>& tokens,
+                  const ScoringOptions& options) override;
 
       std::vector<GenerationResult>
-      generate(const std::vector<std::vector<std::string>>& start_tokens,
-               const GenerationOptions& options = GenerationOptions()) override;
+      run_generation(const std::vector<std::vector<std::string>>& start_tokens,
+                     const GenerationOptions& options) override;
 
     private:
       const std::shared_ptr<const LanguageModel> _model;
