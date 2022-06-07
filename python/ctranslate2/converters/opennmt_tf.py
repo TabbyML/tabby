@@ -78,73 +78,189 @@ class OpenNMTTFConverterV2(Converter):
         self._model = model
 
     def _load(self):
-        model_spec = _get_model_spec_from_model(self._model)
-        _set_transformer_spec_from_model(model_spec, self._model)
+        import opennmt
 
-        source_inputters = _get_inputters(self._model.features_inputter)
-        target_inputters = _get_inputters(self._model.labels_inputter)
-        model_spec.with_source_bos = bool(source_inputters[0].mark_start)
-        model_spec.with_source_eos = bool(source_inputters[0].mark_end)
+        if isinstance(self._model, opennmt.models.LanguageModel):
+            spec_builder = TransformerDecoderSpecBuilder()
+        else:
+            spec_builder = TransformerSpecBuilder()
+
+        return spec_builder(self._model)
+
+
+class TransformerSpecBuilder:
+    def __call__(self, model):
+        import opennmt
+
+        check = utils.ConfigurationChecker()
+        check(
+            isinstance(model, opennmt.models.Transformer),
+            "Only Transformer models are supported",
+        )
+        check.validate()
+
+        check(
+            isinstance(model.encoder, opennmt.encoders.SelfAttentionEncoder),
+            "Parallel encoders are not supported",
+        )
+        check(
+            isinstance(
+                model.features_inputter,
+                (opennmt.inputters.WordEmbedder, opennmt.inputters.ParallelInputter),
+            ),
+            "Source inputter must be a WordEmbedder or a ParallelInputter",
+        )
+        check.validate()
+
+        mha = model.encoder.layers[0].self_attention.layer
+        ffn = model.encoder.layers[0].ffn.layer
+        with_relative_position = mha.maximum_relative_position is not None
+        activation_name = ffn.inner.activation.__name__
+
+        check(
+            activation_name in _SUPPORTED_ACTIVATIONS,
+            "Activation %s is not supported (supported activations are: %s)"
+            % (activation_name, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
+        )
+        check(
+            with_relative_position != bool(model.encoder.position_encoder),
+            "Relative position representation and position encoding cannot be both enabled "
+            "or both disabled",
+        )
+        check(
+            model.decoder.attention_reduction
+            != opennmt.layers.MultiHeadAttentionReduction.AVERAGE_ALL_LAYERS,
+            "Averaging all multi-head attention matrices is not supported",
+        )
+
+        source_inputters = _get_inputters(model.features_inputter)
+        target_inputters = _get_inputters(model.labels_inputter)
+        num_source_embeddings = len(source_inputters)
+        if num_source_embeddings == 1:
+            embeddings_merge = common_spec.EmbeddingsMerge.CONCAT
+        else:
+            reducer = model.features_inputter.reducer
+            embeddings_merge = None
+            if reducer is not None:
+                if isinstance(reducer, opennmt.layers.ConcatReducer):
+                    embeddings_merge = common_spec.EmbeddingsMerge.CONCAT
+                elif isinstance(reducer, opennmt.layers.SumReducer):
+                    embeddings_merge = common_spec.EmbeddingsMerge.ADD
+
+            check(
+                all(
+                    isinstance(inputter, opennmt.inputters.WordEmbedder)
+                    for inputter in source_inputters
+                ),
+                "All source inputters must WordEmbedders",
+            )
+            check(
+                embeddings_merge is not None,
+                "Unsupported embeddings reducer %s" % reducer,
+            )
+
+        alignment_layer = -1
+        alignment_heads = 1
+        if (
+            model.decoder.attention_reduction
+            == opennmt.layers.MultiHeadAttentionReduction.AVERAGE_LAST_LAYER
+        ):
+            alignment_heads = 0
+
+        check.validate()
+
+        spec = transformer_spec.TransformerSpec(
+            (len(model.encoder.layers), len(model.decoder.layers)),
+            mha.num_heads,
+            with_relative_position=with_relative_position,
+            pre_norm=model.encoder.layer_norm is not None,
+            activation=_SUPPORTED_ACTIVATIONS[activation_name],
+            alignment_layer=alignment_layer,
+            alignment_heads=alignment_heads,
+            num_source_embeddings=num_source_embeddings,
+            embeddings_merge=embeddings_merge,
+        )
+
+        spec.with_source_bos = bool(source_inputters[0].mark_start)
+        spec.with_source_eos = bool(source_inputters[0].mark_end)
         for inputter in source_inputters:
-            model_spec.register_source_vocabulary(_load_vocab(inputter.vocabulary_file))
+            spec.register_source_vocabulary(_load_vocab(inputter.vocabulary_file))
         for inputter in target_inputters:
-            model_spec.register_target_vocabulary(_load_vocab(inputter.vocabulary_file))
-        return model_spec
+            spec.register_target_vocabulary(_load_vocab(inputter.vocabulary_file))
 
+        self.set_transformer_encoder(
+            spec.encoder,
+            model.encoder,
+            model.features_inputter,
+        )
+        self.set_transformer_decoder(
+            spec.decoder,
+            model.decoder,
+            model.labels_inputter,
+        )
 
-def _set_transformer_spec_from_model(model_spec, model):
-    import opennmt
+        return spec
 
-    def set_encoder(spec, module, inputter):
+    def set_transformer_encoder(self, spec, module, inputter):
         for embedding_spec, inputter in zip(spec.embeddings, _get_inputters(inputter)):
-            set_embeddings(embedding_spec, inputter)
+            self.set_embeddings(embedding_spec, inputter)
         if module.position_encoder is not None:
-            set_position_encodings(spec.position_encodings, module.position_encoder)
+            self.set_position_encodings(
+                spec.position_encodings,
+                module.position_encoder,
+            )
 
         for layer_spec, layer in zip(spec.layer, module.layers):
-            set_multi_head_attention(
+            self.set_multi_head_attention(
                 layer_spec.self_attention,
                 layer.self_attention,
                 self_attention=True,
             )
-            set_ffn(layer_spec.ffn, layer.ffn)
+
+            self.set_ffn(layer_spec.ffn, layer.ffn)
 
         if module.layer_norm is not None:
-            set_layer_norm(spec.layer_norm, module.layer_norm)
+            self.set_layer_norm(spec.layer_norm, module.layer_norm)
 
-    def set_decoder(spec, module, inputter):
-        set_embeddings(spec.embeddings, inputter)
+    def set_transformer_decoder(self, spec, module, inputter):
+        self.set_embeddings(spec.embeddings, inputter)
         if module.position_encoder is not None:
-            set_position_encodings(spec.position_encodings, module.position_encoder)
+            self.set_position_encodings(
+                spec.position_encodings,
+                module.position_encoder,
+            )
 
         for layer_spec, layer in zip(spec.layer, module.layers):
-            set_multi_head_attention(
+            self.set_multi_head_attention(
                 layer_spec.self_attention,
                 layer.self_attention,
                 self_attention=True,
             )
-            set_multi_head_attention(
-                layer_spec.attention,
-                layer.attention[0],
-                self_attention=False,
-            )
-            set_ffn(layer_spec.ffn, layer.ffn)
+
+            if layer.attention:
+                self.set_multi_head_attention(
+                    layer_spec.attention,
+                    layer.attention[0],
+                    self_attention=False,
+                )
+
+            self.set_ffn(layer_spec.ffn, layer.ffn)
 
         if module.layer_norm is not None:
-            set_layer_norm(spec.layer_norm, module.layer_norm)
+            self.set_layer_norm(spec.layer_norm, module.layer_norm)
 
-        set_linear(spec.projection, module.output_layer)
+        self.set_linear(spec.projection, module.output_layer)
 
-    def set_ffn(spec, module):
-        set_linear(spec.linear_0, module.layer.inner)
-        set_linear(spec.linear_1, module.layer.outer)
-        set_layer_norm_from_wrapper(spec.layer_norm, module)
+    def set_ffn(self, spec, module):
+        self.set_linear(spec.linear_0, module.layer.inner)
+        self.set_linear(spec.linear_1, module.layer.outer)
+        self.set_layer_norm_from_wrapper(spec.layer_norm, module)
 
-    def set_multi_head_attention(spec, module, self_attention=False):
+    def set_multi_head_attention(self, spec, module, self_attention=False):
         split_layers = [common_spec.LinearSpec() for _ in range(3)]
-        set_linear(split_layers[0], module.layer.linear_queries)
-        set_linear(split_layers[1], module.layer.linear_keys)
-        set_linear(split_layers[2], module.layer.linear_values)
+        self.set_linear(split_layers[0], module.layer.linear_queries)
+        self.set_linear(split_layers[1], module.layer.linear_keys)
+        self.set_linear(split_layers[2], module.layer.linear_values)
 
         if self_attention:
             utils.fuse_linear(spec.linear[0], split_layers)
@@ -159,129 +275,75 @@ def _set_transformer_spec_from_model(model_spec, model):
             utils.fuse_linear(spec.linear[0], split_layers[:1])
             utils.fuse_linear(spec.linear[1], split_layers[1:])
 
-        set_linear(spec.linear[-1], module.layer.linear_output)
-        set_layer_norm_from_wrapper(spec.layer_norm, module)
+        self.set_linear(spec.linear[-1], module.layer.linear_output)
+        self.set_layer_norm_from_wrapper(spec.layer_norm, module)
 
-    def set_layer_norm_from_wrapper(spec, module):
-        set_layer_norm(
+    def set_layer_norm_from_wrapper(self, spec, module):
+        self.set_layer_norm(
             spec,
             module.output_layer_norm
             if module.input_layer_norm is None
             else module.input_layer_norm,
         )
 
-    def set_layer_norm(spec, module):
+    def set_layer_norm(self, spec, module):
         spec.gamma = module.gamma.numpy()
         spec.beta = module.beta.numpy()
 
-    def set_linear(spec, module):
+    def set_linear(self, spec, module):
         spec.weight = module.kernel.numpy()
         if not module.transpose:
             spec.weight = spec.weight.transpose()
         if module.bias is not None:
             spec.bias = module.bias.numpy()
 
-    def set_embeddings(spec, module):
+    def set_embeddings(self, spec, module):
         spec.weight = module.embedding.numpy()
 
-    def set_position_encodings(spec, module):
+    def set_position_encodings(self, spec, module):
+        import opennmt
+
         if isinstance(module, opennmt.layers.PositionEmbedder):
             spec.encoding = module.embedding.numpy()
 
-    set_encoder(model_spec.encoder, model.encoder, model.features_inputter)
-    set_decoder(model_spec.decoder, model.decoder, model.labels_inputter)
 
+class TransformerDecoderSpecBuilder(TransformerSpecBuilder):
+    def __call__(self, model):
+        import opennmt
 
-def _get_model_spec_from_model(model):
-    import opennmt
+        check = utils.ConfigurationChecker()
+        check(
+            isinstance(model.decoder, opennmt.decoders.SelfAttentionDecoder),
+            "Only self-attention decoders are supported",
+        )
+        check.validate()
 
-    check = utils.ConfigurationChecker()
-    check(
-        isinstance(model, opennmt.models.Transformer),
-        "Only Transformer models are supported",
-    )
-    check.validate()
+        mha = model.decoder.layers[0].self_attention.layer
+        ffn = model.decoder.layers[0].ffn.layer
+        activation_name = ffn.inner.activation.__name__
 
-    check(
-        isinstance(model.encoder, opennmt.encoders.SelfAttentionEncoder),
-        "Parallel encoders are not supported",
-    )
-    check(
-        isinstance(
+        check(
+            activation_name in _SUPPORTED_ACTIVATIONS,
+            "Activation %s is not supported (supported activations are: %s)"
+            % (activation_name, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
+        )
+        check.validate()
+
+        spec = transformer_spec.TransformerDecoderModelSpec(
+            len(model.decoder.layers),
+            mha.num_heads,
+            pre_norm=model.decoder.layer_norm is not None,
+            activation=_SUPPORTED_ACTIVATIONS[activation_name],
+        )
+
+        spec.register_vocabulary(_load_vocab(model.features_inputter.vocabulary_file))
+        self.set_transformer_decoder(
+            spec.decoder,
+            model.decoder,
             model.features_inputter,
-            (opennmt.inputters.WordEmbedder, opennmt.inputters.ParallelInputter),
-        ),
-        "Source inputter must be a WordEmbedder or a ParallelInputter",
-    )
-    check.validate()
-
-    mha = model.encoder.layers[0].self_attention.layer
-    ffn = model.encoder.layers[0].ffn.layer
-    with_relative_position = mha.maximum_relative_position is not None
-    activation_name = ffn.inner.activation.__name__
-
-    check(
-        activation_name in _SUPPORTED_ACTIVATIONS,
-        "Activation %s is not supported (supported activations are: %s)"
-        % (activation_name, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
-    )
-    check(
-        with_relative_position != bool(model.encoder.position_encoder),
-        "Relative position representation and position encoding cannot be both enabled "
-        "or both disabled",
-    )
-    check(
-        model.decoder.attention_reduction
-        != opennmt.layers.MultiHeadAttentionReduction.AVERAGE_ALL_LAYERS,
-        "Averaging all multi-head attention matrices is not supported",
-    )
-
-    source_inputters = _get_inputters(model.features_inputter)
-    num_source_embeddings = len(source_inputters)
-    if num_source_embeddings == 1:
-        embeddings_merge = common_spec.EmbeddingsMerge.CONCAT
-    else:
-        reducer = model.features_inputter.reducer
-        embeddings_merge = None
-        if reducer is not None:
-            if isinstance(reducer, opennmt.layers.ConcatReducer):
-                embeddings_merge = common_spec.EmbeddingsMerge.CONCAT
-            elif isinstance(reducer, opennmt.layers.SumReducer):
-                embeddings_merge = common_spec.EmbeddingsMerge.ADD
-
-        check(
-            all(
-                isinstance(inputter, opennmt.inputters.WordEmbedder)
-                for inputter in source_inputters
-            ),
-            "All source inputters must WordEmbedders",
-        )
-        check(
-            embeddings_merge is not None,
-            "Unsupported embeddings reducer %s" % reducer,
         )
 
-    alignment_layer = -1
-    alignment_heads = 1
-    if (
-        model.decoder.attention_reduction
-        == opennmt.layers.MultiHeadAttentionReduction.AVERAGE_LAST_LAYER
-    ):
-        alignment_heads = 0
-
-    check.validate()
-
-    return transformer_spec.TransformerSpec(
-        (len(model.encoder.layers), len(model.decoder.layers)),
-        mha.num_heads,
-        with_relative_position=with_relative_position,
-        pre_norm=model.encoder.layer_norm is not None,
-        activation=_SUPPORTED_ACTIVATIONS[activation_name],
-        alignment_layer=alignment_layer,
-        alignment_heads=alignment_heads,
-        num_source_embeddings=num_source_embeddings,
-        embeddings_merge=embeddings_merge,
-    )
+        return spec
 
 
 def _get_inputters(inputter):

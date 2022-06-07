@@ -761,6 +761,21 @@ def test_opennmt_tf_postnorm_transformer_conversion(tmpdir):
     converter.convert(output_dir)
 
 
+def test_opennmt_tf_gpt_conversion(tmpdir):
+    import opennmt
+
+    vocabulary = _create_vocab(tmpdir, "vocab")
+    model = opennmt.models.GPT2Small()
+    model.initialize(dict(vocabulary=vocabulary))
+    model.create_variables()
+
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    converter.convert(output_dir)
+
+    assert os.path.isfile(os.path.join(output_dir, "vocabulary.txt"))
+
+
 def test_opennmt_tf_multi_features(tmpdir):
     import opennmt
 
