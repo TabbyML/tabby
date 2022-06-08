@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v2.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.19.0) (2022-06-08)
+
+### New features
+
+* Support conversion of decoder-only Transformer models trained with OpenNMT-tf
+
+### Fixes and improvements
+
+* Fix conversion error for Transformers' model `facebook/bart-large-cnn`
+* Fix crash when scoring empty sequences
+* Apply `max_input_length` after all special tokens have been added to the input
+* Clear the GPU memory cache when no new batches are immediately available for execution
+* Improve functions signature in the generated Python API documentation
+* Update oneDNN to 2.6
+* Update spdlog to 1.10.0
+* Update OpenBLAS to 0.3.20
+
 ## [v2.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.18.0) (2022-05-23)
 
 ### New features
