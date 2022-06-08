@@ -425,6 +425,7 @@ if (WITH_CUDA)
   else()
     list(APPEND LIBRARIES ${CUDA_CUBLAS_LIBRARIES})
   endif()
+  set(CUDA_LINK_LIBRARIES_KEYWORD PRIVATE)
   cuda_add_library(${PROJECT_NAME}
     ${SOURCES}
     src/cuda/allocator.cc
@@ -449,7 +450,7 @@ else()
 endif()
 
 list(APPEND LIBRARIES ${CMAKE_DL_LIBS})
-target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} BEFORE
   PUBLIC ${PUBLIC_INCLUDE_DIRECTORIES}
   PRIVATE ${PRIVATE_INCLUDE_DIRECTORIES}
