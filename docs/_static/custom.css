@@ -39,3 +39,10 @@ dl.py.property {
 .wy-table-responsive table td, .wy-table-responsive table th {
     white-space: inherit;
 }
+
+#build-options table td {
+    vertical-align: top;
+}
+#build-options table ul {
+    margin: 0;
+}
