@@ -30,6 +30,10 @@ namespace ctranslate2 {
     return _queue.size();
   }
 
+  bool JobQueue::can_get_job() const {
+    return !_queue.empty() || _request_end;
+  }
+
   void JobQueue::put(std::unique_ptr<Job> job) {
     std::unique_lock<std::mutex> lock(_mutex);
     _can_put_job.wait(lock, [this]{ return _queue.size() < _maximum_size; });
@@ -39,9 +43,14 @@ namespace ctranslate2 {
     _can_get_job.notify_one();
   }
 
-  std::unique_ptr<Job> JobQueue::get() {
+  std::unique_ptr<Job> JobQueue::get(const std::function<void()>& before_wait) {
     std::unique_lock<std::mutex> lock(_mutex);
-    _can_get_job.wait(lock, [this]{ return !_queue.empty() || _request_end; });
+
+    if (!can_get_job()) {
+      if (before_wait)
+        before_wait();
+      _can_get_job.wait(lock, [this]{ return can_get_job(); });
+    }
 
     if (!_queue.empty()) {
       auto job = std::move(_queue.front());
@@ -98,8 +107,10 @@ namespace ctranslate2 {
   void Worker::run(JobQueue& job_queue) {
     initialize();
 
+    const std::function<void()> before_wait = [this]{ return idle(); };
+
     while (true) {
-      auto job = job_queue.get();
+      auto job = job_queue.get(before_wait);
       if (!job)
         break;
       job->run();

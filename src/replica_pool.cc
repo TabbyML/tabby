@@ -4,6 +4,29 @@
 
 namespace ctranslate2 {
 
+  ReplicaWorker::ReplicaWorker(Device device, int device_index, size_t num_threads)
+    : _device(device)
+    , _device_index(device_index)
+    , _num_threads(num_threads)
+    , _allocator(nullptr)
+  {
+  }
+
+  void ReplicaWorker::initialize() {
+    // Set the number of OpenMP threads for the current thread.
+    set_num_threads(_num_threads);
+
+    // Register the memory allocator used in this thread.
+    _allocator = &get_allocator(_device);
+  }
+
+  void ReplicaWorker::idle() {
+    // When no new jobs are immediately available, we synchronize the CUDA device
+    // so that the CudaAsyncAllocator can release some memory.
+    synchronize_device(_device, _device_index);
+  }
+
+
   ReplicaPool::ReplicaPool(std::vector<std::unique_ptr<Worker>> workers,
                            const long max_queued_batches)
   {

@@ -8,6 +8,26 @@
 
 namespace ctranslate2 {
 
+  // Base class for model replica workers.
+  class ReplicaWorker : public Worker {
+  public:
+    ReplicaWorker(Device device, int device_index, size_t num_threads);
+
+    Allocator* allocator() {
+      return _allocator;
+    }
+
+  protected:
+    virtual void initialize() override;
+    virtual void idle() override;
+
+  private:
+    const Device _device;
+    const int _device_index;
+    const size_t _num_threads;
+    Allocator* _allocator;
+  };
+
   // Base class to implement a pool of model replicas that can run in parallel.
   class ReplicaPool {
   public:

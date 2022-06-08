@@ -8,17 +8,17 @@ namespace ctranslate2 {
 
     static thread_local models::SequenceGeneratorReplica* local_generator = nullptr;
 
-    class GeneratorWorker : public Worker {
+    class GeneratorWorker : public ReplicaWorker {
     public:
       GeneratorWorker(const std::shared_ptr<const models::Model>& model, size_t num_threads)
-        : _generator(model->as_sequence_generator())
-        , _num_threads(num_threads)
+        : ReplicaWorker(model->device(), model->device_index(), num_threads)
+        , _generator(model->as_sequence_generator())
       {
       }
 
     protected:
       void initialize() override {
-        set_num_threads(_num_threads);
+        ReplicaWorker::initialize();
         local_generator = _generator.get();
       }
 
@@ -28,7 +28,6 @@ namespace ctranslate2 {
 
     private:
       std::unique_ptr<models::SequenceGeneratorReplica> _generator;
-      const size_t _num_threads;
     };
 
 

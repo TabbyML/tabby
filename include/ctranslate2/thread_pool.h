@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -37,11 +38,13 @@ namespace ctranslate2 {
 
     // Gets a job from the queue. The method blocks until a job is available.
     // If the queue is closed, the method returns a null pointer.
-    std::unique_ptr<Job> get();
+    std::unique_ptr<Job> get(const std::function<void()>& before_wait = nullptr);
 
     void close();
 
   private:
+    bool can_get_job() const;
+
     mutable std::mutex _mutex;
     std::queue<std::unique_ptr<Job>> _queue;
     std::condition_variable _can_put_job;
@@ -64,6 +67,9 @@ namespace ctranslate2 {
 
     // Called after the work loop.
     virtual void finalize() {}
+
+    // Called before waiting for new jobs.
+    virtual void idle() {}
 
   private:
     void run(JobQueue& job_queue);

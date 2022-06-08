@@ -10,13 +10,11 @@ namespace ctranslate2 {
     return local_translator;
   }
 
-  class TranslatorWorker : public Worker {
+  class TranslatorWorker : public ReplicaWorker {
   public:
     TranslatorWorker(const std::shared_ptr<const models::Model>& model, size_t num_threads)
-      : _translator(model)
-      , _allocator(nullptr)
-      , _device(model->device())
-      , _num_threads(num_threads)
+      : ReplicaWorker(model->device(), model->device_index(), num_threads)
+      , _translator(model)
     {
     }
 
@@ -24,17 +22,9 @@ namespace ctranslate2 {
       return _translator;
     }
 
-    Allocator* allocator() {
-      return _allocator;
-    }
-
   protected:
     void initialize() override {
-      // Set the number of OpenMP threads for the current thread.
-      set_num_threads(_num_threads);
-
-      // Register the memory allocator used in this thread.
-      _allocator = &get_allocator(_device);
+      ReplicaWorker::initialize();
 
       local_translator = &_translator;
     }
@@ -49,9 +39,6 @@ namespace ctranslate2 {
 
   private:
     Translator _translator;
-    Allocator* _allocator;
-    const Device _device;
-    const size_t _num_threads;
   };
 
 
