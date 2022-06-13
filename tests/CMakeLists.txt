@@ -29,3 +29,7 @@ add_executable(benchmark_ops
 target_link_libraries(benchmark_ops
   ${PROJECT_NAME}
   )
+
+if(WITH_CUDA)
+  target_link_libraries(benchmark_ops ${CUDA_LIBRARIES})
+endif()
