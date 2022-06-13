@@ -150,6 +150,11 @@ class BartLoader(ModelLoader):
         self.set_encoder(spec.encoder, model.model.encoder)
         self.set_decoder(spec.decoder, model.model.decoder)
         self.set_linear(spec.decoder.projection, model.lm_head)
+
+        final_logits_bias = getattr(model, "final_logits_bias", None)
+        if final_logits_bias is not None and final_logits_bias.nonzero().numel() != 0:
+            spec.decoder.projection.bias = final_logits_bias.squeeze().numpy()
+
         return spec
 
     def set_encoder(self, spec, encoder):

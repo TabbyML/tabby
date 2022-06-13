@@ -1020,6 +1020,12 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "▁Hallo ▁Welt !",
     ),
     (
+        "Helsinki-NLP/opus-mt-en-roa",
+        ">>ind<< ▁The ▁Prime ▁Minister ▁is ▁coming ▁back ▁tomorrow . </s>",
+        "",
+        "▁Per da na ▁Men teri ▁akan ▁kembali ▁besok .",
+    ),
+    (
         "facebook/m2m100_418M",
         "__en__ ▁Hello ▁world ! </s>",
         "__de__",
