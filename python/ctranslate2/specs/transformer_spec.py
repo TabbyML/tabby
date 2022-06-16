@@ -16,7 +16,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     def __init__(
         self,
-        num_layers: Union[int, Tuple[int]],
+        num_layers: Union[int, Tuple[int, int]],
         num_heads: int,
         with_relative_position: bool = False,
         pre_norm: bool = True,
