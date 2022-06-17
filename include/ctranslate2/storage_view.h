@@ -133,6 +133,8 @@ namespace ctranslate2 {
       return _size;
     }
 
+    dim_t item_size() const;
+
     bool is_scalar() const {
       return _size == 1 && _shape.empty();
     }
