@@ -73,8 +73,8 @@ class LayerSpec(object):
                 raise ValueError("Missing value for attribute %s" % name)
 
             if isinstance(value, np.ndarray):
-                # Use float32 as the working floating point type.
-                if value.dtype in (np.float16, np.float64):
+                # float64 is not a supported type.
+                if value.dtype == np.float64:
                     value = value.astype(np.float32)
             elif isinstance(value, float):
                 value = np.dtype("float32").type(value)
@@ -144,13 +144,17 @@ class LayerSpec(object):
         def _quantize(spec, name, value):
             if not isinstance(value, np.ndarray):
                 return
-            if "weight" in name and quantization != "float16":
+
+            scale = None
+            is_quantizable = "weight" in name
+
+            if is_quantizable:
                 if quantization == "int16":
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
-                    scale = np.dtype(value.dtype).type(
-                        2**10 / np.amax(np.absolute(value))
-                    )
+                    scale = np.float32(2**10 / np.amax(np.absolute(value)))
+                    if value.dtype != scale.dtype:
+                        value = value.astype(scale.dtype)
                     value *= scale
                     value = np.rint(value)
                     value = np.clip(
@@ -158,18 +162,26 @@ class LayerSpec(object):
                     )
                     value = value.astype(np.int16)
                 elif quantization in ("int8", "int8_float16"):
-                    amax = np.amax(np.absolute(value), axis=1)
+                    amax = np.amax(np.absolute(value), axis=1).astype(np.float32)
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
+                    if value.dtype != scale.dtype:
+                        value = value.astype(scale.dtype)
                     value *= np.expand_dims(scale, 1)
                     value = np.rint(value)
                     value = value.astype(np.int8)
-                setattr(spec, "weight_scale", scale)
-                setattr(spec, "weight", value)
-            elif quantization in ("float16", "int8_float16"):
+
+            if quantization in ("float16", "int8_float16"):
                 if value.dtype == np.float32:
-                    key = _split_scope(name)[-1]
-                    setattr(spec, key, value.astype(np.float16))
+                    value = value.astype(np.float16)
+            else:
+                if value.dtype == np.float16:
+                    value = value.astype(np.float32)
+
+            key = _split_scope(name)[-1]
+            setattr(spec, key, value)
+            if scale is not None:
+                setattr(spec, "%s_scale" % key, scale)
 
         self._visit(_quantize)
 
@@ -184,8 +196,7 @@ class LayerSpec(object):
             (possible values are: int8, int8_float16, int16, float16).
         """
         self._alias_variables()
-        if quantization is not None:
-            self._quantize(quantization)
+        self._quantize(quantization)
 
     def _visit(self, fn):
         """Recursively visits this layer and its children."""

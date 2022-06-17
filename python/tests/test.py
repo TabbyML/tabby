@@ -1142,6 +1142,10 @@ def test_transformers_lm_scoring(tmpdir):
     assert generator.score_batch([["<|endoftext|>"]])[0] == []
 
 
+def _array_equal(a, b):
+    return a.dtype == b.dtype and np.array_equal(a, b)
+
+
 def test_layer_spec_validate():
     class SubSpec(ctranslate2.specs.LayerSpec):
         def __init__(self):
@@ -1160,12 +1164,12 @@ def test_layer_spec_validate():
     spec = Spec()
     spec.validate()
     assert spec.a.dtype == np.float32
-    assert spec.b.dtype == np.float32
+    assert spec.b.dtype == np.float16
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
-    assert spec.e.a.dtype == np.float32
-    assert spec.f.dtype == np.int8 and np.array_equal(spec.f, 1)
-    assert spec.g.dtype == np.int8 and np.array_equal(spec.g, [104, 101, 108, 108, 111])
+    assert spec.e.a.dtype == np.float16
+    assert _array_equal(spec.f, np.int8(1))
+    assert _array_equal(spec.g, np.array([104, 101, 108, 108, 111], dtype=np.int8))
 
 
 def test_layer_spec_optimize():
@@ -1208,10 +1212,76 @@ def test_int8_quantization():
 
     spec = Spec()
     spec.optimize(quantization="int8")
-    assert np.array_equal(
+    assert _array_equal(
         spec.weight, np.array([[-127, -38, 64, 25], [0, 0, 0, 0]], dtype=np.int8)
     )
-    assert np.array_equal(spec.weight_scale, np.array([12.7, 1], dtype=np.float32))
+    assert _array_equal(spec.weight_scale, np.array([12.7, 1], dtype=np.float32))
+
+
+@pytest.mark.parametrize(
+    "quantization,expected_weight,expected_weight_scale,expected_bias",
+    [
+        (
+            None,
+            np.array([[-10, -3, 5, 2]], dtype=np.float32),
+            None,
+            np.array([4], dtype=np.float32),
+        ),
+        (
+            "float16",
+            np.array([[-10, -3, 5, 2]], dtype=np.float16),
+            None,
+            np.array([4], dtype=np.float16),
+        ),
+        (
+            "int8",
+            np.array([[-127, -38, 64, 25]], dtype=np.int8),
+            np.array([12.7], dtype=np.float32),
+            np.array([4], dtype=np.float32),
+        ),
+        (
+            "int8_float16",
+            np.array([[-127, -38, 64, 25]], dtype=np.int8),
+            np.array([12.7], dtype=np.float32),
+            np.array([4], dtype=np.float16),
+        ),
+        (
+            "int16",
+            np.array([[-1024, -307, 512, 205]], dtype=np.int16),
+            np.float32(102.4),
+            np.array([4], dtype=np.float32),
+        ),
+    ],
+)
+def test_fp16_weights(
+    quantization, expected_weight, expected_weight_scale, expected_bias
+):
+    class Spec(ctranslate2.specs.LayerSpec):
+        def __init__(self, weight, bias):
+            self.weight = weight
+            self.bias = bias
+
+    weight = np.array([[-10, -3, 5, 2]], dtype=np.float16)
+    bias = np.array([4], dtype=np.float16)
+
+    spec = Spec(weight, bias)
+    spec.validate()
+    spec.optimize(quantization=quantization)
+
+    assert _array_equal(spec.weight, expected_weight)
+    assert _array_equal(spec.bias, expected_bias)
+
+    # Check the weights were not copied or converted.
+    if quantization == "float16":
+        assert spec.weight is weight
+        assert spec.bias is bias
+    elif quantization == "int8_float16":
+        assert spec.bias is bias
+
+    if expected_weight_scale is None:
+        assert not hasattr(spec, "weight_scale")
+    else:
+        assert _array_equal(spec.weight_scale, expected_weight_scale)
 
 
 def test_index_spec():
