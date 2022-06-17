@@ -7,7 +7,7 @@ import os
 import shutil
 import struct
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -185,7 +185,7 @@ class LayerSpec(object):
 
         self._visit(_quantize)
 
-    def optimize(self, quantization: str = None) -> None:
+    def optimize(self, quantization: Optional[str] = None) -> None:
         """Recursively applies some optimizations to this layer:
 
         * Alias variables with the same shape and value.
