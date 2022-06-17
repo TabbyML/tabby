@@ -136,13 +136,15 @@ namespace ctranslate2 {
                            const std::string& scope,
                            const Layer& embeddings) {
       const auto* scale = model.get_variable_if_exists(scope + "/scale_embeddings");
+
+      // Backward compatibility with older models.
       if (!scale)
-        return nullptr;
+        scale = model.get_variable_if_exists(scope + "/embeddings/multiply_by_sqrt_depth");
 
       StorageView value;
 
       // The attribute can either be a boolean flag or the actual scale value.
-      if (scale->dtype() == DataType::INT8 && scale->as_scalar<int8_t>())
+      if (!scale || (scale->dtype() == DataType::INT8 && scale->as_scalar<int8_t>()))
         value = StorageView(std::sqrt(static_cast<float>(embeddings.output_size())));
       else if (scale->dtype() != DataType::INT8 && scale->as_scalar<float>() != 1.f)
         value = *scale;

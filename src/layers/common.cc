@@ -50,10 +50,6 @@ namespace ctranslate2 {
       , _output_type(get_default_float_type(model.effective_compute_type()))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
     {
-      if (model.get_flag_with_default(scope + "/multiply_by_sqrt_depth", true)) {
-        const StorageView scale(std::sqrt(static_cast<float>(_embeddings.dim(1))));
-        _scale = std::make_unique<StorageView>(scale.to(_output_type));
-      }
     }
 
     DataType Embeddings::output_type() const {
@@ -81,9 +77,6 @@ namespace ctranslate2 {
       } else {
         _gather_op(_embeddings, ids, output);
       }
-
-      if (_scale)
-        ops::Mul()(output, *_scale, output);
     }
 
 
