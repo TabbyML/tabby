@@ -35,4 +35,3 @@ class LinearSpec(model_spec.LayerSpec):
 class EmbeddingsSpec(model_spec.LayerSpec):
     def __init__(self):
         self.weight = None
-        self.multiply_by_sqrt_depth = False
