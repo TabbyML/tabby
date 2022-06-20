@@ -16,7 +16,6 @@ add_executable(ctranslate2_test
   test.cc)
 target_include_directories(ctranslate2_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/../src
-  ${CMAKE_CURRENT_SOURCE_DIR}/../third_party
   )
 target_link_libraries(ctranslate2_test
   ${PROJECT_NAME}

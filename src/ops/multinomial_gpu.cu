@@ -3,7 +3,6 @@
 #include <cub/block/block_reduce.cuh>
 #include <cub/block/block_scan.cuh>
 
-#include "type_dispatch.h"
 #include "cuda/helpers.h"
 #include "cuda/random.h"
 

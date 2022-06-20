@@ -1,12 +1,8 @@
 #pragma once
 
-#include <half_float/half.hpp>
-
 #include "ctranslate2/types.h"
 
 namespace ctranslate2 {
-
-  using float16_t = half_float::half;
 
   // Inspired by
   // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/types.h

@@ -2,8 +2,6 @@
 
 #include "ctranslate2/random.h"
 
-#include "type_dispatch.h"
-
 namespace ctranslate2 {
   namespace ops {
 

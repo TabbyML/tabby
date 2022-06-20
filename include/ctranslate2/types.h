@@ -3,11 +3,14 @@
 #include <cstdint>
 #include <string>
 
+#include <half_float/half.hpp>
+
 #include "devices.h"
 
 namespace ctranslate2 {
 
   using dim_t = int64_t;  // This type should be signed.
+  using float16_t = half_float::half;
 
   enum class DataType {
     FLOAT,
