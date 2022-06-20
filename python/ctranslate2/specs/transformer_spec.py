@@ -43,6 +43,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             embeddings are merged.
           layernorm_embedding: Apply layer normalization after the embedding layer.
         """
+        super().__init__()
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
         else:
@@ -68,10 +69,6 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
         )
-        super().__init__(
-            source_embeddings_specs=self.encoder.embeddings,
-            target_embeddings_specs=[self.decoder.embeddings],
-        )
 
     @property
     def name(self):
@@ -80,6 +77,12 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
     @property
     def revision(self):
         return 4
+
+    def get_source_vocabulary_size(self):
+        return [spec.weight.shape[0] for spec in self.encoder.embeddings]
+
+    def get_target_vocabulary_size(self):
+        return self.decoder.embeddings.weight.shape[0]
 
 
 class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
@@ -107,6 +110,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
           project_in_out: Add a linear layer after the embedding layer and another one
             before the final output projection.
         """
+        super().__init__()
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
         self.activation = np.dtype("int8").type(activation)
@@ -121,7 +125,6 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             no_final_norm=no_final_norm,
             project_in_out=project_in_out,
         )
-        super().__init__(self.decoder.embeddings)
 
     @property
     def name(self):
@@ -130,6 +133,9 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
     @property
     def revision(self):
         return 1
+
+    def get_vocabulary_size(self):
+        return self.decoder.embeddings.weight.shape[0]
 
 
 class TransformerEncoderSpec(model_spec.LayerSpec):

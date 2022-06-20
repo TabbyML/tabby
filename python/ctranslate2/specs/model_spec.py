@@ -3,6 +3,7 @@ that do not load a computation graph. The model converter should make sure that
 each required variable of the specification is set.
 """
 
+import abc
 import os
 import shutil
 import struct
@@ -287,13 +288,8 @@ def _flatten_vocabularies(vocabularies):
 class SequenceToSequenceModelSpec(ModelSpec):
     """Base specification for sequence to sequence models."""
 
-    def __init__(self, source_embeddings_specs, target_embeddings_specs):
-        """Initializes a sequence to sequence model specification.
-
-        Args:
-          source_embeddings_specs: List of source EmbeddingsSpec modules.
-          target_embeddings_specs: List of target EmbeddingsSpec modules.
-        """
+    def __init__(self):
+        """Initializes a sequence to sequence model specification."""
         self.unk_token = "<unk>"
         self.bos_token = "<s>"
         self.eos_token = "</s>"
@@ -301,15 +297,21 @@ class SequenceToSequenceModelSpec(ModelSpec):
         self.with_source_eos = False
         self.with_target_bos = True
         self.user_decoder_start_tokens = False
-        self._embeddings_specs = {
-            "source": source_embeddings_specs,
-            "target": target_embeddings_specs,
-        }
         self._vocabularies = {
             "source": [],
             "target": [],
         }
         self._vmap = None
+
+    @abc.abstractmethod
+    def get_source_vocabulary_size(self):
+        """Returns the source vocabulary size expected by the model."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_target_vocabulary_size(self):
+        """Returns the target vocabulary size expected by the model."""
+        raise NotImplementedError()
 
     def register_source_vocabulary(self, tokens: List[str]) -> None:
         """Registers a source vocabulary of tokens.
@@ -337,17 +339,21 @@ class SequenceToSequenceModelSpec(ModelSpec):
 
     def validate(self) -> None:
         # Check that vocabularies are registered and have the correct size.
-        for name, embeddings_specs in self._embeddings_specs.items():
+        vocabulary_sizes = {
+            "source": self.get_source_vocabulary_size(),
+            "target": self.get_target_vocabulary_size(),
+        }
+
+        for name, sizes in vocabulary_sizes.items():
+            if not isinstance(sizes, list):
+                sizes = [sizes]
             vocabularies = self._vocabularies[name]
-            if len(vocabularies) != len(embeddings_specs):
+            if len(vocabularies) != len(sizes):
                 raise ValueError(
                     "Incorrect number of %s vocabularies: %d registered, but expected %d"
-                    % (name, len(vocabularies), len(embeddings_specs))
+                    % (name, len(vocabularies), len(sizes))
                 )
-            for i, (vocabulary, embeddings_spec) in enumerate(
-                zip(vocabularies, embeddings_specs)
-            ):
-                expected_size = embeddings_spec.weight.shape[0]
+            for i, (vocabulary, expected_size) in enumerate(zip(vocabularies, sizes)):
                 if len(vocabulary) != expected_size:
                     raise ValueError(
                         "%s vocabulary %d has size %d but the model expected a vocabulary "
@@ -382,17 +388,17 @@ class SequenceToSequenceModelSpec(ModelSpec):
 class LanguageModelSpec(ModelSpec):
     """Base specification for language models."""
 
-    def __init__(self, embeddings_spec):
-        """Initializes a language model specification.
-
-        Args:
-          embeddings_spec: Input EmbeddingsSpec module.
-        """
+    def __init__(self):
+        """Initializes a language model specification."""
         self.unk_token = "<unk>"
         self.bos_token = "<s>"
         self.eos_token = "</s>"
-        self._embeddings_spec = embeddings_spec
         self._vocabulary = []
+
+    @abc.abstractmethod
+    def get_vocabulary_size(self):
+        """Returns the vocabulary size expected by the model."""
+        raise NotImplementedError()
 
     def register_vocabulary(self, tokens: List[str]) -> None:
         """Registers the vocabulary of tokens.
@@ -403,7 +409,7 @@ class LanguageModelSpec(ModelSpec):
         self._vocabulary = list(tokens)
 
     def validate(self) -> None:
-        expected_vocabulary_size = self._embeddings_spec.weight.shape[0]
+        expected_vocabulary_size = self.get_vocabulary_size()
         if len(self._vocabulary) != expected_vocabulary_size:
             raise ValueError(
                 "Vocabulary has size %d but the model expected a vocabulary of size %d"
