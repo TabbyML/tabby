@@ -60,11 +60,13 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             pre_norm=pre_norm,
             num_source_embeddings=num_source_embeddings,
             layernorm_embedding=layernorm_embedding,
+            relative_position=with_relative_position,
         )
         self.decoder = TransformerDecoderSpec(
             num_decoder_layers,
             pre_norm=pre_norm,
             layernorm_embedding=layernorm_embedding,
+            relative_position=with_relative_position,
         )
         super().__init__(
             source_embeddings_specs=self.encoder.embeddings,
@@ -137,6 +139,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         pre_norm=True,
         num_source_embeddings=1,
         layernorm_embedding=False,
+        relative_position=False,
     ):
         self.embeddings = [
             common_spec.EmbeddingsSpec() for _ in range(num_source_embeddings)
@@ -149,7 +152,10 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         self.layernorm_embedding = (
             common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
         )
-        self.layer = [TransformerEncoderLayerSpec() for _ in range(num_layers)]
+        self.layer = [
+            TransformerEncoderLayerSpec(relative_position=relative_position)
+            for _ in range(num_layers)
+        ]
 
 
 class TransformerDecoderSpec(model_spec.LayerSpec):
@@ -161,6 +167,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         with_encoder_attention=True,
         no_final_norm=False,
         project_in_out=False,
+        relative_position=False,
     ):
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
@@ -175,7 +182,10 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         )
         self.projection = common_spec.LinearSpec()
         self.layer = [
-            TransformerDecoderLayerSpec(with_encoder_attention=with_encoder_attention)
+            TransformerDecoderLayerSpec(
+                with_encoder_attention=with_encoder_attention,
+                relative_position=relative_position,
+            )
             for _ in range(num_layers)
         ]
         self.start_from_zero_embedding = False
@@ -189,14 +199,18 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
 
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self):
-        self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
+    def __init__(self, relative_position=False):
+        self.self_attention = attention_spec.MultiHeadAttentionSpec(
+            self_attention=True, relative_position=relative_position
+        )
         self.ffn = FeedForwardSpec()
 
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self, with_encoder_attention=True):
-        self.self_attention = attention_spec.MultiHeadAttentionSpec(self_attention=True)
+    def __init__(self, with_encoder_attention=True, relative_position=False):
+        self.self_attention = attention_spec.MultiHeadAttentionSpec(
+            self_attention=True, relative_position=relative_position
+        )
         self.attention = (
             attention_spec.MultiHeadAttentionSpec()
             if with_encoder_attention

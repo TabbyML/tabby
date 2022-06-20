@@ -170,27 +170,19 @@ class OpenNMTPyConverter(Converter):
 
 
 def set_transformer_spec(spec, variables):
-    set_transformer_encoder(
-        spec.encoder, variables, relative=spec.with_relative_position
-    )
-    set_transformer_decoder(
-        spec.decoder, variables, relative=spec.with_relative_position
-    )
+    set_transformer_encoder(spec.encoder, variables)
+    set_transformer_decoder(spec.decoder, variables)
 
 
-def set_transformer_encoder(spec, variables, relative=False):
-    set_input_layers(spec, variables, "encoder", relative=relative)
+def set_transformer_encoder(spec, variables):
+    set_input_layers(spec, variables, "encoder")
     set_layer_norm(spec.layer_norm, variables, "encoder.layer_norm")
     for i, layer in enumerate(spec.layer):
-        set_transformer_encoder_layer(
-            layer, variables, "encoder.transformer.%d" % i, relative=relative
-        )
+        set_transformer_encoder_layer(layer, variables, "encoder.transformer.%d" % i)
 
 
-def set_transformer_decoder(
-    spec, variables, relative=False, with_encoder_attention=True
-):
-    set_input_layers(spec, variables, "decoder", relative=relative)
+def set_transformer_decoder(spec, variables, with_encoder_attention=True):
+    set_input_layers(spec, variables, "decoder")
     set_linear(spec.projection, variables, "generator")
     set_layer_norm(spec.layer_norm, variables, "decoder.layer_norm")
     for i, layer in enumerate(spec.layer):
@@ -198,12 +190,11 @@ def set_transformer_decoder(
             layer,
             variables,
             "decoder.transformer_layers.%d" % i,
-            relative=relative,
             with_encoder_attention=with_encoder_attention,
         )
 
 
-def set_input_layers(spec, variables, scope, relative=False):
+def set_input_layers(spec, variables, scope):
     try:
         set_position_encodings(
             spec.position_encodings,
@@ -211,8 +202,6 @@ def set_input_layers(spec, variables, scope, relative=False):
             "%s.embeddings.make_embedding.pe" % scope,
         )
     except KeyError:
-        if not relative:
-            raise
         # See https://github.com/OpenNMT/OpenNMT-py/issues/1722
         spec.scale_embeddings = False
 
@@ -228,28 +217,24 @@ def set_input_layers(spec, variables, scope, relative=False):
         )
 
 
-def set_transformer_encoder_layer(spec, variables, scope, relative=False):
+def set_transformer_encoder_layer(spec, variables, scope):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
     set_multi_head_attention(
         spec.self_attention,
         variables,
         "%s.self_attn" % scope,
         self_attention=True,
-        relative=relative,
     )
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm" % scope)
 
 
-def set_transformer_decoder_layer(
-    spec, variables, scope, relative=False, with_encoder_attention=True
-):
+def set_transformer_decoder_layer(spec, variables, scope, with_encoder_attention=True):
     set_ffn(spec.ffn, variables, "%s.feed_forward" % scope)
     set_multi_head_attention(
         spec.self_attention,
         variables,
         "%s.self_attn" % scope,
         self_attention=True,
-        relative=relative,
     )
     set_layer_norm(spec.self_attention.layer_norm, variables, "%s.layer_norm_1" % scope)
     if with_encoder_attention:
@@ -263,9 +248,7 @@ def set_ffn(spec, variables, scope):
     set_linear(spec.linear_1, variables, "%s.w_2" % scope)
 
 
-def set_multi_head_attention(
-    spec, variables, scope, self_attention=False, relative=False
-):
+def set_multi_head_attention(spec, variables, scope, self_attention=False):
     if self_attention:
         split_layers = [common_spec.LinearSpec() for _ in range(3)]
         set_linear(split_layers[0], variables, "%s.linear_query" % scope)
@@ -279,7 +262,7 @@ def set_multi_head_attention(
         set_linear(split_layers[1], variables, "%s.linear_values" % scope)
         utils.fuse_linear(spec.linear[1], split_layers)
     set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
-    if relative:
+    if spec.relative_position_keys is None:
         spec.relative_position_keys = _get_variable(
             variables, "%s.relative_positions_embeddings.weight" % scope
         )

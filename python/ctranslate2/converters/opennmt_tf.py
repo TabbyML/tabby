@@ -498,30 +498,23 @@ def set_transformer_spec_v2(spec, variables):
             "model/examples_inputter/features_inputter",
             version=2,
         )
-    set_transformer_encoder_v2(
-        spec.encoder, variables, "model/encoder", relative=spec.with_relative_position
-    )
+    set_transformer_encoder_v2(spec.encoder, variables, "model/encoder")
     set_transformer_decoder_v2(
         spec.decoder,
         variables,
         "model/decoder",
         target_embedding_name,
-        relative=spec.with_relative_position,
     )
 
 
-def set_transformer_encoder_v2(spec, variables, scope, relative=False):
+def set_transformer_encoder_v2(spec, variables, scope):
     if spec.layer_norm != OPTIONAL:
         set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
-        set_transformer_encoder_layer_v2(
-            layer, variables, "%s/layers/%d" % (scope, i), relative=relative
-        )
+        set_transformer_encoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
 
 
-def set_transformer_decoder_v2(
-    spec, variables, scope, target_embedding_name, relative=False
-):
+def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name):
     try:
         set_linear(
             spec.projection,
@@ -542,34 +535,28 @@ def set_transformer_decoder_v2(
     if spec.layer_norm != OPTIONAL:
         set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
     for i, layer in enumerate(spec.layer):
-        set_transformer_decoder_layer_v2(
-            layer, variables, "%s/layers/%d" % (scope, i), relative=relative
-        )
+        set_transformer_decoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
 
 
-def set_transformer_encoder_layer_v2(spec, variables, scope, relative=False):
+def set_transformer_encoder_layer_v2(spec, variables, scope):
     set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
     set_multi_head_attention_v2(
         spec.self_attention,
         variables,
         "%s/self_attention" % scope,
         self_attention=True,
-        relative=relative,
     )
 
 
-def set_transformer_decoder_layer_v2(spec, variables, scope, relative=False):
+def set_transformer_decoder_layer_v2(spec, variables, scope):
     set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
     set_multi_head_attention_v2(
         spec.self_attention,
         variables,
         "%s/self_attention" % scope,
         self_attention=True,
-        relative=relative,
     )
-    set_multi_head_attention_v2(
-        spec.attention, variables, "%s/attention/0" % scope, relative=relative
-    )
+    set_multi_head_attention_v2(spec.attention, variables, "%s/attention/0" % scope)
 
 
 def set_ffn_v2(spec, variables, scope):
@@ -581,9 +568,7 @@ def set_ffn_v2(spec, variables, scope):
     set_linear(spec.linear_1, variables, "%s/layer/outer" % scope)
 
 
-def set_multi_head_attention_v2(
-    spec, variables, scope, self_attention=False, relative=False
-):
+def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
     try:
         set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
     except KeyError:
@@ -594,7 +579,7 @@ def set_multi_head_attention_v2(
         set_linear(split_layers[1], variables, "%s/layer/linear_keys" % scope)
         set_linear(split_layers[2], variables, "%s/layer/linear_values" % scope)
         utils.fuse_linear(spec.linear[0], split_layers)
-        if relative:
+        if spec.relative_position_keys is None:
             spec.relative_position_keys = variables[
                 "%s/layer/relative_position_keys" % scope
             ]
