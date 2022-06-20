@@ -59,13 +59,14 @@ class OpenNMTTFConverterV2(Converter):
         if auto_config:
             config_util.merge_config(config, model.auto_config())
 
+        data_config = config_util.try_prefix_paths(config["model_dir"], config["data"])
+        model.initialize(data_config)
+
         checkpoint = Checkpoint.from_config(config, model)
         checkpoint_path = checkpoint.restore(checkpoint_path=checkpoint_path)
         if checkpoint_path is None:
             raise RuntimeError("No checkpoint was restored")
 
-        data_config = config_util.try_prefix_paths(config["model_dir"], config["data"])
-        model.initialize(data_config)
         model.create_variables()
         return cls(model)
 

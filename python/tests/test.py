@@ -539,6 +539,12 @@ only_on_linux = pytest.mark.skipif(
             ctranslate2.specs.TransformerSpec(6, 8),
         ),
         (
+            "v1/checkpoint",
+            "ar.vocab",
+            "en.vocab",
+            None,
+        ),
+        (
             "v2/checkpoint",
             "ar.vocab",
             "en.vocab",
