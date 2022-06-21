@@ -29,7 +29,6 @@ namespace ctranslate2 {
       dim_t _alignment_layer;
       dim_t _alignment_heads;
       layers::EmbeddingsMerge _embeddings_merge;
-      bool _layernorm_embedding;
     };
 
 
@@ -46,9 +45,6 @@ namespace ctranslate2 {
     private:
       size_t _num_heads;
       bool _pre_norm;
-      bool _no_final_norm;
-      bool _layernorm_embedding;
-      bool _project_in_out;
       ops::ActivationType _activation_type;
     };
 

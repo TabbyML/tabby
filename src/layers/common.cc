@@ -85,16 +85,11 @@ namespace ctranslate2 {
                                            const EmbeddingsMerge merge)
       : _merge(merge)
     {
-      const bool compat_mode = model.get_variable_if_exists(scope + "/weight");
-      if (compat_mode) {
-        _layers.emplace_back(std::make_unique<Embeddings>(model, scope));
-      } else {
-        const std::string layer_prefix = scope + "_";
-        for (size_t i = 0; i < model.count_layers(layer_prefix); ++i) {
-          const std::string layer_scope = layer_prefix + std::to_string(i);
-          _layers.emplace_back(std::make_unique<Embeddings>(model, layer_scope));
-        }
-      }
+      auto single_layer = build_optional_layer<Embeddings>(model, scope);
+      if (single_layer)
+        _layers.emplace_back(std::move(single_layer));
+      else
+        _layers = build_layers_list<const Embeddings>(model, scope);
     }
 
     DataType ParallelEmbeddings::output_type() const {

@@ -38,3 +38,10 @@ TEST(ModelTest, UpdateDecoderOutputLayer) {
   EXPECT_EQ(decoder.update_output_layer(), nullptr);
   EXPECT_EQ(decoder.output_size(), 43);
 }
+
+TEST(ModelTest, LayerExists) {
+  const auto model = models::Model::load(default_model_dir());
+  EXPECT_TRUE(model->layer_exists("encoder/layer_0"));
+  EXPECT_TRUE(model->layer_exists("encoder/layer_0/"));
+  EXPECT_FALSE(model->layer_exists("encoder/layer"));
+}

@@ -68,7 +68,6 @@ namespace ctranslate2 {
       TransformerDecoderLayer(const models::Model& model,
                               const std::string& scope,
                               const size_t num_heads,
-                              const bool with_encoder_attention = true,
                               const bool pre_norm = true,
                               const ops::ActivationType activation_type = ops::ActivationType::ReLU);
 
@@ -93,6 +92,10 @@ namespace ctranslate2 {
         return _ff.output_size();
       }
 
+      bool has_cross_attention() const {
+        return bool(_encoder_attention);
+      }
+
     private:
       const MultiHeadAttention _self_attention;
       const std::unique_ptr<const MultiHeadAttention> _encoder_attention;
@@ -108,8 +111,7 @@ namespace ctranslate2 {
                          const bool with_position_encoding = true,
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
-                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat,
-                         const bool layernorm_embedding = false);
+                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat);
 
       void operator()(const std::vector<StorageView>& ids,
                       const StorageView& lengths,
@@ -133,9 +135,9 @@ namespace ctranslate2 {
       const dim_t _num_heads;
       const ComputeType _compute_type;
       const std::unique_ptr<PositionEncoder> _position_encoder;
-      const std::unique_ptr<LayerNorm> _layernorm_embedding;
-      const std::unique_ptr<LayerNorm> _output_norm;
-      std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
+      const std::unique_ptr<const LayerNorm> _layernorm_embedding;
+      const std::unique_ptr<const LayerNorm> _output_norm;
+      const std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
     };
 
     class TransformerDecoder : public Decoder
@@ -145,14 +147,10 @@ namespace ctranslate2 {
                          const std::string& scope,
                          const size_t num_heads,
                          const bool with_position_encoding = true,
-                         const bool with_encoder_attention = true,
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
                          const dim_t alignment_layer = -1,
-                         const dim_t alignment_heads = 1,
-                         const bool layernorm_embedding = false,
-                         const bool no_final_norm = false,
-                         const bool project_in_out = false);
+                         const dim_t alignment_heads = 1);
 
       DecoderState initial_state(bool iterative_decoding = true) const override;
 
@@ -181,20 +179,20 @@ namespace ctranslate2 {
                   StorageView* logits = nullptr,
                   StorageView* attention = nullptr);
 
-      const bool _with_encoder_attention;
       const dim_t _num_heads;
-      dim_t _alignment_layer;
-      dim_t _alignment_heads;
       const ComputeType _compute_type;
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       const std::unique_ptr<PositionEncoder> _position_encoder;
-      const std::unique_ptr<LayerNorm> _layernorm_embedding;
-      const std::unique_ptr<LayerNorm> _output_norm;
-      const std::unique_ptr<Dense> _project_in;
-      const std::unique_ptr<Dense> _project_out;
-      std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
+      const std::unique_ptr<const LayerNorm> _layernorm_embedding;
+      const std::unique_ptr<const LayerNorm> _output_norm;
+      const std::unique_ptr<const Dense> _project_in;
+      const std::unique_ptr<const Dense> _project_out;
+      const std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
+      const bool _with_encoder_attention;
+      const dim_t _alignment_layer;
+      const dim_t _alignment_heads;
       Dense _proj;
     };
 

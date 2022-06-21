@@ -13,6 +13,36 @@ namespace ctranslate2 {
                          const dim_t length_multiple_of = 1,
                          StorageView* lengths = nullptr);
 
+    template <typename Layer, typename... Args>
+    std::unique_ptr<Layer> build_optional_layer(const models::Model& model,
+                                                const std::string& scope,
+                                                Args&&... args) {
+      if (!model.layer_exists(scope))
+        return nullptr;
+      return std::make_unique<Layer>(model, scope, std::forward<Args>(args)...);
+    }
+
+    template <typename Layer, typename... Args>
+    std::vector<std::unique_ptr<Layer>> build_layers_list(const models::Model& model,
+                                                          const std::string& prefix,
+                                                          Args... args) {
+      std::vector<std::unique_ptr<Layer>> layers;
+
+      for (size_t i = 0;; ++i) {
+        const std::string layer_scope = prefix + "_" + std::to_string(i);
+        if (i == 0)
+          layers.emplace_back(std::make_unique<Layer>(model, layer_scope, args...));
+        else {
+          auto layer = build_optional_layer<Layer>(model, layer_scope, args...);
+          if (!layer)
+            break;
+          layers.emplace_back(std::move(layer));
+        }
+      }
+
+      return layers;
+    }
+
     class Layer {
     public:
       virtual ~Layer() = default;

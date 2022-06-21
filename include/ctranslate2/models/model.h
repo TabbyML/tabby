@@ -84,7 +84,7 @@ namespace ctranslate2 {
       const StorageView* get_variable_if_exists(const std::string& name) const;
       const StorageView& get_variable(const std::string& name) const;
       std::unordered_map<std::string, StorageView> get_variables() const;
-      size_t count_layers(const std::string& prefix) const;
+      bool layer_exists(std::string prefix) const;
 
       // Attributes are saved as scalar variables.
       template <typename T>

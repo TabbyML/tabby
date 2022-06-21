@@ -208,19 +208,15 @@ namespace ctranslate2 {
       return variables;
     }
 
-    size_t Model::count_layers(const std::string& prefix) const {
-      int max_layer_id = -1;
+    bool Model::layer_exists(std::string prefix) const {
+      if (!prefix.empty() && prefix.back() != '/')
+        prefix += '/';
       for (const auto& pair : _variable_index) {
         const auto& name = pair.first;
-        if (!starts_with(name, prefix))
-          continue;
-        const auto suffix = name.substr(prefix.length());
-        if (suffix.empty() || !std::isdigit(suffix[0]))
-          continue;
-        const int layer_id = std::stoi(suffix);
-        max_layer_id = std::max(max_layer_id, layer_id);
+        if (starts_with(name, prefix))
+          return true;
       }
-      return max_layer_id + 1;
+      return false;
     }
 
     bool Model::get_flag_with_default(const std::string& name, bool default_value) const {
