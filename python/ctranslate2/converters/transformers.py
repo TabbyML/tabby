@@ -76,9 +76,7 @@ class ModelLoader(abc.ABC):
 
         model_class = getattr(transformers, self.architecture_name)
         model = model_class.from_pretrained(model_name_or_path)
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_name_or_path, verbose=False
-        )
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name_or_path)
 
         spec = self.get_model_spec(model)
 
