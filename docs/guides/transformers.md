@@ -139,6 +139,10 @@ print(tokenizer.decode(tokenizer.convert_tokens_to_ids(output)))
 
 This example uses Meta's [OPT](https://huggingface.co/docs/transformers/model_doc/opt) model with 350M parameters. The usage is similar to GPT-2 but all inputs should start with the special token `</s>` which is automatically added by `GPT2Tokenizer`.
 
+```{important}
+Converting OPT models requires `transformers>=4.20.1`.
+```
+
 ```bash
 ct2-transformers-converter --model facebook/opt-350m --output_dir opt-350m-ct2
 ```

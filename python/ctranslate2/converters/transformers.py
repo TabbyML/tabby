@@ -76,7 +76,9 @@ class ModelLoader(abc.ABC):
 
         model_class = getattr(transformers, self.architecture_name)
         model = model_class.from_pretrained(model_name_or_path)
-        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name_or_path)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(
+            model_name_or_path, use_fast=False
+        )
 
         spec = self.get_model_spec(model)
 
@@ -297,7 +299,6 @@ class OPTLoader(BartLoader):
             model.config.num_attention_heads,
             pre_norm=model.config.do_layer_norm_before,
             activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
-            no_final_norm=True,
             project_in_out=model.config.word_embed_proj_dim != model.config.hidden_size,
         )
 
@@ -312,14 +313,13 @@ class OPTLoader(BartLoader):
             self.set_linear(spec.project_in, decoder.project_in)
         if decoder.project_out is not None:
             self.set_linear(spec.project_out, decoder.project_out)
+        if decoder.final_layer_norm is not None:
+            self.set_layer_norm(spec.layer_norm, decoder.final_layer_norm)
 
     def set_common_layers(self, spec, module):
         spec.scale_embeddings = False
         self.set_position_encodings(spec.position_encodings, module.embed_positions)
         self.set_embeddings(spec.embeddings, module.embed_tokens)
-
-    def set_position_encodings(self, spec, module):
-        spec.encodings = module.weight.numpy()[module.padding_idx + 1 :]
 
     def get_vocabulary(self, tokenizer):
         tokens = super().get_vocabulary(tokenizer)

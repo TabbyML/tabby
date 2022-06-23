@@ -1,4 +1,4 @@
-transformers==4.19.*;platform_system=='Linux'
+transformers==4.20.1;platform_system=='Linux'
 fairseq==0.10.2;platform_system=='Linux' or platform_system=='Darwin'
 OpenNMT-py==2.2.*;platform_system=='Linux' or platform_system=='Darwin'
 OpenNMT-tf[tensorflow]==2.22.*
