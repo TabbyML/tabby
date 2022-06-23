@@ -68,7 +68,6 @@ namespace ctranslate2 {
     void TransformerModel::initialize(ModelReader& model_reader) {
       SequenceToSequenceModel::initialize(model_reader);
       _num_heads = get_attribute_with_default<int8_t>("num_heads", _num_heads);
-      _with_relative_position = get_flag_with_default("with_relative_position", false);
       _pre_norm = get_flag_with_default("pre_norm", true);
       _activation_type = static_cast<ops::ActivationType>(
         get_attribute_with_default<int8_t>("activation", 0));
@@ -84,14 +83,12 @@ namespace ctranslate2 {
       auto encoder = std::make_unique<layers::TransformerEncoder>(*this,
                                                                   "encoder",
                                                                   _num_heads,
-                                                                  !_with_relative_position,
                                                                   _pre_norm,
                                                                   _activation_type,
                                                                   _embeddings_merge);
       auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
                                                                   "decoder",
                                                                   _num_heads,
-                                                                  !_with_relative_position,
                                                                   _pre_norm,
                                                                   _activation_type,
                                                                   _alignment_layer,
@@ -121,7 +118,6 @@ namespace ctranslate2 {
       auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
                                                                   "decoder",
                                                                   _num_heads,
-                                                                  /*with_position_encoding=*/true,
                                                                   _pre_norm,
                                                                   _activation_type);
 

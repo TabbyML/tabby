@@ -57,6 +57,10 @@ namespace ctranslate2 {
         return _ff.output_size();
       }
 
+      bool has_relative_position() const {
+        return _self_attention.has_relative_position();
+      }
+
     private:
       const MultiHeadAttention _self_attention;
       const FeedForwardNetwork _ff;
@@ -96,6 +100,10 @@ namespace ctranslate2 {
         return bool(_encoder_attention);
       }
 
+      bool has_relative_position() const {
+        return _self_attention.has_relative_position();
+      }
+
     private:
       const MultiHeadAttention _self_attention;
       const std::unique_ptr<const MultiHeadAttention> _encoder_attention;
@@ -108,7 +116,6 @@ namespace ctranslate2 {
       TransformerEncoder(const models::Model& model,
                          const std::string& scope,
                          const size_t num_heads,
-                         const bool with_position_encoding = true,
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
                          const EmbeddingsMerge merge = EmbeddingsMerge::Concat);
@@ -134,10 +141,10 @@ namespace ctranslate2 {
       const std::unique_ptr<const StorageView> _embeddings_scale;
       const dim_t _num_heads;
       const ComputeType _compute_type;
-      const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;
       const std::unique_ptr<const LayerNorm> _output_norm;
       const std::vector<std::unique_ptr<const TransformerEncoderLayer>> _layers;
+      const std::unique_ptr<PositionEncoder> _position_encoder;
     };
 
     class TransformerDecoder : public Decoder
@@ -146,7 +153,6 @@ namespace ctranslate2 {
       TransformerDecoder(const models::Model& model,
                          const std::string& scope,
                          const size_t num_heads,
-                         const bool with_position_encoding = true,
                          const bool pre_norm = true,
                          const ops::ActivationType activation_type = ops::ActivationType::ReLU,
                          const dim_t alignment_layer = -1,
@@ -184,12 +190,12 @@ namespace ctranslate2 {
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
       const std::unique_ptr<const StorageView> _embeddings_scale;
-      const std::unique_ptr<PositionEncoder> _position_encoder;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;
       const std::unique_ptr<const LayerNorm> _output_norm;
       const std::unique_ptr<const Dense> _project_in;
       const std::unique_ptr<const Dense> _project_out;
       const std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
+      const std::unique_ptr<PositionEncoder> _position_encoder;
       const bool _with_encoder_attention;
       const dim_t _alignment_layer;
       const dim_t _alignment_heads;

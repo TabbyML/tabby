@@ -23,7 +23,6 @@ namespace ctranslate2 {
 
     private:
       size_t _num_heads;
-      bool _with_relative_position;
       bool _pre_norm;
       ops::ActivationType _activation_type;
       dim_t _alignment_layer;

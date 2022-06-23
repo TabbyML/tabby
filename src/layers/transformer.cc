@@ -155,7 +155,6 @@ namespace ctranslate2 {
     TransformerEncoder::TransformerEncoder(const models::Model& model,
                                            const std::string& scope,
                                            const size_t num_heads,
-                                           const bool with_position_encoding,
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type,
                                            const EmbeddingsMerge embeddings_merge)
@@ -163,9 +162,6 @@ namespace ctranslate2 {
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _num_heads(num_heads)
       , _compute_type(model.effective_compute_type())
-      , _position_encoder(with_position_encoding
-                          ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
-                          : nullptr)
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _layers(build_layers_list<const TransformerEncoderLayer>(model,
@@ -173,6 +169,9 @@ namespace ctranslate2 {
                                                                  num_heads,
                                                                  pre_norm,
                                                                  activation_type))
+      , _position_encoder(_layers.front()->has_relative_position()
+                          ? nullptr
+                          : build_position_encoder(model, scope + "/position_encodings", _embeddings))
     {
     }
 
@@ -217,7 +216,6 @@ namespace ctranslate2 {
     TransformerDecoder::TransformerDecoder(const models::Model& model,
                                            const std::string& scope,
                                            const size_t num_heads,
-                                           const bool with_position_encoding,
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type,
                                            const dim_t alignment_layer,
@@ -229,9 +227,6 @@ namespace ctranslate2 {
       , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
                                                                false))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
-      , _position_encoder(with_position_encoding
-                          ? build_position_encoder(model, scope + "/position_encodings", _embeddings)
-                          : nullptr)
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _project_in(build_optional_layer<Dense>(model, scope + "/project_in"))
@@ -241,6 +236,9 @@ namespace ctranslate2 {
                                                                  num_heads,
                                                                  pre_norm,
                                                                  activation_type))
+      , _position_encoder(_layers.front()->has_relative_position()
+                          ? nullptr
+                          : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
       , _alignment_layer(alignment_layer < 0 ? _layers.size() + alignment_layer : alignment_layer)
       , _alignment_heads(alignment_heads == 0 ? _num_heads : alignment_heads)

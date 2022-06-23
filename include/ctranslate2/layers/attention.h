@@ -32,6 +32,10 @@ namespace ctranslate2 {
                       const Padder* queries_padder = nullptr,
                       const Padder* values_padder = nullptr) const;
 
+      bool has_relative_position() const {
+        return _relative_position_keys;
+      }
+
       static StorageView prepare_length_mask(const StorageView& lengths,
                                              const dim_t num_heads,
                                              const dim_t num_queries,
