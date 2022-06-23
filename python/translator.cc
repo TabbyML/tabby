@@ -754,7 +754,7 @@ PYBIND11_MODULE(translator, m)
     .def_property_readonly("device", &TranslatorWrapper::device,
                            "Device this translator is running on.")
     .def_property_readonly("device_index", &TranslatorWrapper::device_index,
-                           "List of device IDS where this translator is running on.")
+                           "List of device IDs where this translator is running on.")
     .def_property_readonly("num_translators", &TranslatorWrapper::num_translators,
                            "Number of translators backing this instance.")
     .def_property_readonly("num_queued_batches", &TranslatorWrapper::num_queued_batches,
@@ -1035,7 +1035,7 @@ PYBIND11_MODULE(translator, m)
     .def_property_readonly("device", &GeneratorWrapper::device,
                            "Device this generator is running on.")
     .def_property_readonly("device_index", &GeneratorWrapper::device_index,
-                           "List of device IDS where this generator is running on.")
+                           "List of device IDs where this generator is running on.")
     .def_property_readonly("num_generators", &GeneratorWrapper::num_generators,
                            "Number of generators backing this instance.")
     .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches,
