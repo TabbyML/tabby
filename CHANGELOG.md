@@ -4,6 +4,17 @@
 
 ### Fixes and improvements
 
+## [v2.19.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.19.1) (2022-06-23)
+
+### Fixes and improvements
+
+* Fix missing final bias in some MarianMT models converted from Transformers
+* Fix missing final layer normalization in OPT models converted from Transformers
+* Fix error when converting OpenNMT-tf V1 checkpoints with the new OpenNMT-tf converter
+* Reduce model conversion memory usage when the loaded weights are in FP16 and the model is converted with quantization
+* Add missing C++ type `ctranslate2::float16_t` in the public headers that is required to use some functions
+* Fix some Python typing annotations
+
 ## [v2.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.19.0) (2022-06-08)
 
 ### New features
