@@ -17,7 +17,7 @@ jobs:
       CT2_VERBOSE: 1
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15]
+        os: [ubuntu-20.04, macos-11]
         backend: [mkl, dnnl]
 
     steps:
@@ -143,7 +143,7 @@ jobs:
 
 
   build-cuda-10-0:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v2
@@ -155,9 +155,12 @@ jobs:
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-keyring_1.0-1_all.deb
           sudo dpkg -i cuda-keyring*.deb
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends cuda-libraries-dev-10-0 cuda-minimal-build-10-0
+          sudo apt-get install -y --no-install-recommends gcc-7 g++-7 cuda-libraries-dev-10-0 cuda-minimal-build-10-0
 
       - name: Compile
+        env:
+          CC: gcc-7
+          CXX: g++-7
         run: |
           cmake -DWITH_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 -DCUDA_ARCH_LIST=Common -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE .
           make -j $(nproc)
@@ -167,12 +170,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-10.15, windows-2019]
+        os: [ubuntu-20.04, macos-11, windows-2019]
         arch: [auto64]
         include:
         - os: ubuntu-20.04
           arch: aarch64
-        - os: macos-10.15
+        - os: macos-11
           arch: arm64
 
     steps:
@@ -216,7 +219,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-10.15, windows-2019]
+        os: [ubuntu-20.04, macos-11, windows-2019]
 
     steps:
       - name: Set up Python 3.8
@@ -293,7 +296,7 @@ jobs:
   publish-python-wheels-on-pypi:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [build-and-test-cpp-x86_64, build-python-wheels, test-python-wheels, check-python-style]
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Download Python wheels
