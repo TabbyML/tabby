@@ -305,7 +305,7 @@ class TransformerSpecBuilder:
         import opennmt
 
         if isinstance(module, opennmt.layers.PositionEmbedder):
-            spec.encoding = module.embedding.numpy()
+            spec.encodings = module.embedding.numpy()[1:]
 
 
 class TransformerDecoderSpecBuilder(TransformerSpecBuilder):
