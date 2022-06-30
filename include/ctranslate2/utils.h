@@ -16,6 +16,7 @@ namespace ctranslate2 {
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
   std::vector<std::string> split_string(const std::string& str, const std::string& delimiter);
+  std::string join_string(const std::vector<std::string>& tokens, const std::string& separator = "");
 
   std::vector<std::string> split_tokens(const std::string& text);
   std::string join_tokens(const std::vector<std::string>& tokens);

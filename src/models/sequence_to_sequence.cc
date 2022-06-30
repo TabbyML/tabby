@@ -341,6 +341,7 @@ namespace ctranslate2 {
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.coverage_penalty = options.coverage_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
+      decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
       decoding_options.prefix_bias_beta = options.prefix_bias_beta;
       decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_decoding_length;

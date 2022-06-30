@@ -2,6 +2,7 @@
 
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <thrust/device_ptr.h>
 
 #include "cuda/helpers.h"
 #include "type_dispatch.h"
@@ -21,6 +22,7 @@ namespace ctranslate2 {
   void primitives<Device::CUDA>::fill(T* x, T a, dim_t size) {
     THRUST_CALL(thrust::fill, x, x + size, a);
   }
+
   template<>
   template <typename T>
   void primitives<Device::CUDA>::strided_fill(T* x, T a, dim_t inc_x, dim_t size) {
@@ -28,6 +30,15 @@ namespace ctranslate2 {
       x, thrust::make_transform_iterator(thrust::counting_iterator<cuda::index_t>(0),
                                          thrust::placeholders::_1 * inc_x));
     THRUST_CALL(thrust::fill, it, it + size, a);
+  }
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::indexed_fill(T* x, T a, const int32_t* indices, dim_t num_indices) {
+    auto element_it = thrust::device_pointer_cast(cuda::device_cast(x));
+    auto index_it = thrust::device_pointer_cast(indices);
+    auto it = thrust::make_permutation_iterator(element_it, index_it);
+    THRUST_CALL(thrust::fill, it, it + num_indices, cuda::device_type<T>(a));
   }
 
   template<>
@@ -572,6 +583,8 @@ namespace ctranslate2 {
   primitives<Device::CUDA>::fill(T* x, T a, dim_t size);                \
   template void                                                         \
   primitives<Device::CUDA>::strided_fill(T* x, T a, dim_t inc_x, dim_t size); \
+  template void                                                         \
+  primitives<Device::CUDA>::indexed_fill(T*, T, const int32_t*, dim_t); \
   template void                                                         \
   primitives<Device::CUDA>::copy<T>(const T* x, T* y, dim_t size);      \
   template T                                                            \

@@ -13,6 +13,15 @@ TEST_P(PrimitiveTest, StridedFill) {
   expect_storage_eq(x, expected);
 }
 
+TEST_P(PrimitiveTest, IndexedFill) {
+  const Device device = GetParam();
+  StorageView x({6}, float(0), device);
+  StorageView ids({3}, std::vector<int32_t>{0, 2, 5}, device);
+  StorageView expected({6}, std::vector<float>{1, 0, 1, 0, 0, 1}, device);
+  DEVICE_DISPATCH(device, primitives<D>::indexed_fill(x.data<float>(), 1.f, ids.data<int32_t>(), 3));
+  expect_storage_eq(x, expected);
+}
+
 TEST_P(PrimitiveTest, PenalizePreviousTokens) {
   const Device device = GetParam();
   const float penalty = 1.2f;

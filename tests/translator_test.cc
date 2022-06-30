@@ -266,6 +266,23 @@ TEST_P(SearchVariantTest, RepetitionPenalty) {
   EXPECT_EQ(unique_tokens.size(), tokens.size());
 }
 
+TEST_P(SearchVariantTest, NoRepeatNgram) {
+  const auto beam_size = GetParam();
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.no_repeat_ngram_size = 3;
+  const std::vector<std::string> input(50, "ن");
+  const auto result = translator.translate(input, options);
+  const auto output = join_string(result.output());
+
+  std::unordered_set<std::string> ngrams;
+  for (size_t i = 0; i < output.size() - options.no_repeat_ngram_size; ++i)
+    ngrams.emplace(output.substr(i, options.no_repeat_ngram_size));
+
+  EXPECT_EQ(ngrams.size(), output.size() - options.no_repeat_ngram_size);
+}
+
 static void check_normalized_score(const std::vector<std::string>& input,
                                    TranslationOptions options,
                                    bool output_has_eos = true) {

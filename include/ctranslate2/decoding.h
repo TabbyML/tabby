@@ -32,6 +32,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const dim_t no_repeat_ngram_size = 0,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
 
@@ -58,6 +59,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const dim_t no_repeat_ngram_size = 0,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
@@ -103,6 +105,7 @@ namespace ctranslate2 {
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
+           const dim_t no_repeat_ngram_size = 0,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
   };
 
@@ -112,6 +115,7 @@ namespace ctranslate2 {
     float length_penalty = 0;
     float coverage_penalty = 0;
     float repetition_penalty = 1;
+    size_t no_repeat_ngram_size = 0;
     float prefix_bias_beta = 0;
     bool allow_early_exit = true;
     size_t max_length = 256;

@@ -195,6 +195,7 @@ public:
                  float length_penalty,
                  float coverage_penalty,
                  float repetition_penalty,
+                 size_t no_repeat_ngram_size,
                  bool disable_unk,
                  float prefix_bias_beta,
                  bool allow_early_exit,
@@ -222,6 +223,7 @@ public:
     options.length_penalty = length_penalty;
     options.coverage_penalty = coverage_penalty;
     options.repetition_penalty = repetition_penalty;
+    options.no_repeat_ngram_size = no_repeat_ngram_size;
     options.disable_unk = disable_unk;
     options.prefix_bias_beta = prefix_bias_beta;
     options.allow_early_exit = allow_early_exit;
@@ -278,6 +280,7 @@ public:
                   float length_penalty,
                   float coverage_penalty,
                   float repetition_penalty,
+                  size_t no_repeat_ngram_size,
                   bool disable_unk,
                   float prefix_bias_beta,
                   bool allow_early_exit,
@@ -301,6 +304,7 @@ public:
     options.length_penalty = length_penalty;
     options.coverage_penalty = coverage_penalty;
     options.repetition_penalty = repetition_penalty;
+    options.no_repeat_ngram_size = no_repeat_ngram_size;
     options.disable_unk = disable_unk;
     options.prefix_bias_beta = prefix_bias_beta;
     options.allow_early_exit = allow_early_exit;
@@ -539,6 +543,7 @@ public:
                  size_t num_hypotheses,
                  float length_penalty,
                  float repetition_penalty,
+                 size_t no_repeat_ngram_size,
                  bool disable_unk,
                  bool allow_early_exit,
                  size_t max_length,
@@ -556,6 +561,7 @@ public:
     options.beam_size = beam_size;
     options.length_penalty = length_penalty;
     options.repetition_penalty = repetition_penalty;
+    options.no_repeat_ngram_size = no_repeat_ngram_size;
     options.disable_unk = disable_unk;
     options.allow_early_exit = allow_early_exit;
     options.sampling_topk = sampling_topk;
@@ -774,6 +780,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
          py::arg("repetition_penalty")=1,
+         py::arg("no_repeat_ngram_size")=0,
          py::arg("disable_unk")=false,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
@@ -805,6 +812,8 @@ PYBIND11_MODULE(translator, m)
                coverage_penalty: Coverage penalty constant to use during beam search.
                repetition_penalty: Penalty applied to the score of previously generated tokens
                  (set > 1 to penalize).
+               no_repeat_ngram_size: Prevent repetitions of ngrams with this size
+                 (set 0 to disable).
                disable_unk: Disable the generation of the unknown token.
                prefix_bias_beta: Parameter for biasing translations towards given prefix.
                allow_early_exit: Allow the beam search to exit early when the first beam finishes.
@@ -840,6 +849,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("length_penalty")=0,
          py::arg("coverage_penalty")=0,
          py::arg("repetition_penalty")=1,
+         py::arg("no_repeat_ngram_size")=0,
          py::arg("disable_unk")=false,
          py::arg("prefix_bias_beta")=0,
          py::arg("allow_early_exit")=true,
@@ -873,6 +883,8 @@ PYBIND11_MODULE(translator, m)
                coverage_penalty: Coverage penalty constant to use during beam search.
                repetition_penalty: Penalty applied to the score of previously generated tokens
                  (set > 1 to penalize).
+               no_repeat_ngram_size: Prevent repetitions of ngrams with this size
+                 (set 0 to disable).
                disable_unk: Disable the generation of the unknown token.
                prefix_bias_beta: Parameter for biasing translations towards given prefix.
                allow_early_exit: Allow the beam search to exit early when the first beam finishes.
@@ -1053,6 +1065,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("num_hypotheses")=1,
          py::arg("length_penalty")=0,
          py::arg("repetition_penalty")=1,
+         py::arg("no_repeat_ngram_size")=0,
          py::arg("disable_unk")=false,
          py::arg("allow_early_exit")=true,
          py::arg("max_length")=512,
@@ -1078,6 +1091,8 @@ PYBIND11_MODULE(translator, m)
                length_penalty: Length penalty constant to use during beam search.
                repetition_penalty: Penalty applied to the score of previously generated tokens
                  (set > 1 to penalize).
+               no_repeat_ngram_size: Prevent repetitions of ngrams with this size
+                 (set 0 to disable).
                disable_unk: Disable the generation of the unknown token.
                allow_early_exit: Allow the beam search to exit early when the first beam finishes.
                max_length: Maximum generation length.

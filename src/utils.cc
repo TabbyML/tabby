@@ -150,18 +150,22 @@ namespace ctranslate2 {
     return parts;
   }
 
-  std::vector<std::string> split_tokens(const std::string& text) {
-    return split_string(text, ' ');
-  }
-
-  std::string join_tokens(const std::vector<std::string>& tokens) {
+  std::string join_string(const std::vector<std::string>& tokens, const std::string& separator) {
     std::string text;
     for (const auto& token : tokens) {
       if (!text.empty())
-        text += ' ';
+        text += separator;
       text += token;
     }
     return text;
+  }
+
+  std::vector<std::string> split_tokens(const std::string& text) {
+    return split_string(text, " ");
+  }
+
+  std::string join_tokens(const std::vector<std::string>& tokens) {
+    return join_string(tokens, " ");
   }
 
   std::vector<std::vector<std::vector<std::string>>>

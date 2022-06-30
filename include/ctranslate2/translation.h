@@ -19,6 +19,8 @@ namespace ctranslate2 {
     // Penalty applied to the score of previously generated tokens, as described in
     // https://arxiv.org/abs/1909.05858 (set > 1 to penalize).
     float repetition_penalty = 1;
+    // Prevent repetitions of ngrams with this size (set 0 to disable).
+    size_t no_repeat_ngram_size = 0;
     // Disable the generation of the unknown token.
     bool disable_unk = false;
     // Biases decoding towards a given prefix, see https://arxiv.org/abs/1912.03393 --section 4.2
