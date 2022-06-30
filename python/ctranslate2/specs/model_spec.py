@@ -59,8 +59,20 @@ def index_spec(spec, index):
     return spec
 
 
-class LayerSpec(object):
+class FrozenMeta(type):
+    def __call__(self, *args, **kwargs):
+        instance = super().__call__(*args, **kwargs)
+        instance._frozen = True
+        return instance
+
+
+class LayerSpec(metaclass=FrozenMeta):
     """A layer specification declares the weights that should be set by the converters."""
+
+    def __setattr__(self, key, value):
+        if hasattr(self, "_frozen") and not hasattr(self, key):
+            raise AttributeError("Attribute %s does not exist" % key)
+        super().__setattr__(key, value)
 
     def validate(self) -> None:
         """Verify that the required weights are set.

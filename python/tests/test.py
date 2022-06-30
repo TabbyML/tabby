@@ -1177,6 +1177,9 @@ def test_layer_spec_validate():
     assert _array_equal(spec.f, np.int8(1))
     assert _array_equal(spec.g, np.array([104, 101, 108, 108, 111], dtype=np.int8))
 
+    with pytest.raises(AttributeError, match="Attribute z does not exist"):
+        spec.z = True
+
 
 def test_layer_spec_optimize():
     class SubSpec(ctranslate2.specs.LayerSpec):
@@ -1190,6 +1193,7 @@ def test_layer_spec_optimize():
             self.c = np.zeros([5], dtype=np.int32)
             self.d = np.dtype("float32").type(3.14)
             self.weight = np.ones([5, 4], dtype=np.float32)
+            self.weight_scale = OPTIONAL
             self.sub = SubSpec()
 
     spec = Spec()
@@ -1215,6 +1219,7 @@ def test_int8_quantization():
     class Spec(ctranslate2.specs.LayerSpec):
         def __init__(self):
             self.weight = np.array([[-10, -3, 5, 2], [0, 0, 0, 0]], dtype=np.float32)
+            self.weight_scale = OPTIONAL
 
     spec = Spec()
     spec.optimize(quantization="int8")
@@ -1265,6 +1270,7 @@ def test_fp16_weights(
     class Spec(ctranslate2.specs.LayerSpec):
         def __init__(self, weight, bias):
             self.weight = weight
+            self.weight_scale = OPTIONAL
             self.bias = bias
 
     weight = np.array([[-10, -3, 5, 2]], dtype=np.float16)
@@ -1285,7 +1291,7 @@ def test_fp16_weights(
         assert spec.bias is bias
 
     if expected_weight_scale is None:
-        assert not hasattr(spec, "weight_scale")
+        assert spec.weight_scale == OPTIONAL
     else:
         assert _array_equal(spec.weight_scale, expected_weight_scale)
 
