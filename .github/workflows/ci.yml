@@ -44,10 +44,6 @@ jobs:
           wget -q $ONEAPI_INSTALLER_URL
           hdiutil attach -noverify -noautofsck $(basename $ONEAPI_INSTALLER_URL)
 
-      - name: Install libomp
-        if: startsWith(matrix.os, 'macos')
-        run: brew install libomp
-
       - name: Configure with MKL
         if: startsWith(matrix.os, 'ubuntu') && matrix.backend == 'mkl'
         run: |
