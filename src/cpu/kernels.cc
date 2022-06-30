@@ -64,6 +64,7 @@ namespace ctranslate2 {
               typename T,
               typename VecMapFunc,
               typename VecReduceFunc,
+              typename VecHorizontalReduceFunc,
               typename ScalarMapFunc,
               typename ScalarReduceFunc>
     static T vectorized_map_reduce_all(const T* x,
@@ -71,6 +72,7 @@ namespace ctranslate2 {
                                        T init,
                                        const VecMapFunc& vec_map_func,
                                        const VecReduceFunc& vec_reduce_func,
+                                       const VecHorizontalReduceFunc& vec_horizontal_reduce_func,
                                        const ScalarMapFunc& scalar_map_func,
                                        const ScalarReduceFunc& scalar_reduce_func) {
       if (Vec<T, ISA>::width == 1 || size <= Vec<T, ISA>::width) {
@@ -90,36 +92,32 @@ namespace ctranslate2 {
         vec_accu = vec_reduce_func(vec_accu, vec_map_func(v));
       }
 
-      T values[Vec<T, ISA>::width];
-      Vec<T, ISA>::store(vec_accu, values);
-      const auto accu = vectorized_map_reduce_all<ISA>(values,
-                                                       Vec<T, ISA>::width,
-                                                       init,
-                                                       identity(),
-                                                       vec_reduce_func,
-                                                       identity(),
-                                                       scalar_reduce_func);
+      auto accu = vec_horizontal_reduce_func(vec_accu);
+      if (remaining != 0) {
+        for (dim_t i = size; i < size + remaining; ++i)
+          accu = scalar_reduce_func(accu, scalar_map_func(x[i]));
+      }
 
-      return vectorized_map_reduce_all<ISA>(x + size,
-                                            remaining,
-                                            accu,
-                                            vec_map_func,
-                                            vec_reduce_func,
-                                            scalar_map_func,
-                                            scalar_reduce_func);
+      return accu;
     }
 
-    template <CpuIsa ISA, typename T, typename VecReduceFunc, typename ScalarReduceFunc>
+    template <CpuIsa ISA,
+              typename T,
+              typename VecReduceFunc,
+              typename VecHorizontalReduceFunc,
+              typename ScalarReduceFunc>
     static T vectorized_reduce_all(const T* x,
                                    dim_t size,
                                    T init,
                                    const VecReduceFunc& vec_reduce_func,
+                                   const VecHorizontalReduceFunc& vec_horizontal_reduce_func,
                                    const ScalarReduceFunc& scalar_reduce_func) {
       return vectorized_map_reduce_all<ISA>(x,
                                             size,
                                             init,
                                             identity(),
                                             vec_reduce_func,
+                                            vec_horizontal_reduce_func,
                                             identity(),
                                             scalar_reduce_func);
     }
@@ -226,6 +224,7 @@ namespace ctranslate2 {
                                         size,
                                         static_cast<T>(0),
                                         Vec<T, ISA>::add,
+                                        Vec<T, ISA>::reduce_add,
                                         Vec<T>::add);
     }
 
@@ -235,6 +234,7 @@ namespace ctranslate2 {
                                         size,
                                         std::numeric_limits<T>::lowest(),
                                         Vec<T, ISA>::max,
+                                        Vec<T, ISA>::reduce_max,
                                         Vec<T>::max);
     }
 
@@ -245,6 +245,7 @@ namespace ctranslate2 {
                                             static_cast<T>(0),
                                             Vec<T, ISA>::abs,
                                             Vec<T, ISA>::max,
+                                            Vec<T, ISA>::reduce_max,
                                             Vec<T>::abs,
                                             Vec<T>::max);
     }
@@ -314,6 +315,7 @@ namespace ctranslate2 {
               static_cast<float>(0),
               vec_exp_func,
               VecType::add,
+              VecType::reduce_add,
               scalar_exp_func,
               Vec<float>::add);
             add<TARGET_ISA>(-x_max - std::log(exp_sum), x, y, size);

@@ -91,6 +91,14 @@ namespace ctranslate2 {
         return a / b;
       }
 
+      static inline T reduce_add(value_type a) {
+        return a;
+      }
+
+      static inline T reduce_max(value_type a) {
+        return a;
+      }
+
     };
 
     template <typename T, CpuIsa ISA = CpuIsa::GENERIC>

@@ -105,6 +105,14 @@ namespace ctranslate2 {
         return vdivq_f32(a, b);
       }
 
+      static inline float reduce_add(value_type a) {
+        return vaddvq_f32(a);
+      }
+
+      static inline float reduce_max(value_type a) {
+        return vmaxvq_f32(a);
+      }
+
     };
 
   }

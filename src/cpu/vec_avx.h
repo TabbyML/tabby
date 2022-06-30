@@ -16,6 +16,22 @@
 namespace ctranslate2 {
   namespace cpu {
 
+    template <typename Func>
+    float reduce_m256(__m256 v, const Func& func) {
+      // Code adapted from https://github.com/pytorch/pytorch/blob/v1.12.0/aten/src/ATen/cpu/vec/functional_base.h#L41-L54
+
+      // 128-bit shuffle
+      auto v1 = _mm256_permute2f128_ps(v, v, 0x1);
+      v = func(v, v1);
+      // 64-bit shuffle
+      v1 = _mm256_shuffle_ps(v, v, 0x4E);
+      v = func(v, v1);
+      // 32-bit shuffle
+      v1 = _mm256_shuffle_ps(v, v, 0xB1);
+      v = func(v, v1);
+      return _mm256_cvtss_f32(v);
+    }
+
     template<>
     struct Vec<float, TARGET_ISA> {
 
@@ -106,6 +122,14 @@ namespace ctranslate2 {
 
       static inline value_type div(value_type a, value_type b) {
         return _mm256_div_ps(a, b);
+      }
+
+      static inline float reduce_add(value_type a) {
+        return reduce_m256(a, add);
+      }
+
+      static inline float reduce_max(value_type a) {
+        return reduce_m256(a, max);
       }
 
     };
