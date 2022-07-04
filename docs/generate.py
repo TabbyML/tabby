@@ -6,7 +6,7 @@ import sys
 import ctranslate2
 
 
-def document_class(output_dir, class_path, base_path=None, children_paths=None):
+def document_class(cls, output_dir, class_path, base_path=None, children_paths=None):
     with open(os.path.join(output_dir, "%s.rst" % class_path), "w") as doc:
         class_name = class_path.split(".")[-1]
         doc.write("%s\n" % class_name)
@@ -22,6 +22,20 @@ def document_class(output_dir, class_path, base_path=None, children_paths=None):
             doc.write("\n    **Extended by:**\n\n")
             for path in children_paths:
                 doc.write("    - :class:`%s`\n" % path)
+
+        def _list_members(category, predicate):
+            names = [
+                name
+                for name, _ in inspect.getmembers(cls, predicate=predicate)
+                if not name.startswith("_")
+            ]
+            if names:
+                doc.write("\n    **%s:**\n\n" % category)
+                for name in names:
+                    doc.write("    - :obj:`~%s.%s`\n" % (class_path, name))
+
+        _list_members("Attributes", lambda member: isinstance(member, property))
+        _list_members("Methods", lambda member: inspect.isroutine(member))
 
 
 def document_function(output_dir, function_path):
@@ -132,6 +146,7 @@ def document_module(module, module_path, module_map, output_dir):
                 class_path = class_info["path"]
                 doc.write("   %s\n" % class_path)
                 document_class(
+                    class_info["cls"],
                     output_dir,
                     class_path,
                     base_path=base_path,
