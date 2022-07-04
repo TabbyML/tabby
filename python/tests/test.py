@@ -1,3 +1,4 @@
+import copy
 import os
 import shutil
 import sys
@@ -572,7 +573,13 @@ def test_opennmt_tf_model_conversion(
             "model_dir": model_path,
             "data": {"source_vocabulary": src_vocab, "target_vocabulary": tgt_vocab},
         }
-        converter = ctranslate2.converters.OpenNMTTFConverterV2.from_config(config)
+        original_config = copy.deepcopy(config)
+        converter = ctranslate2.converters.OpenNMTTFConverterV2.from_config(
+            config, auto_config=True
+        )
+
+        # auto_config should not update the configuration in place.
+        assert config == original_config
     else:
         converter = ctranslate2.converters.OpenNMTTFConverter(
             model_spec,

@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 import warnings
 
@@ -48,6 +49,8 @@ class OpenNMTTFConverterV2(Converter):
 
         if isinstance(config, str):
             config = config_util.load_config([config])
+        else:
+            config = copy.deepcopy(config)
 
         if model is None:
             model = config_util.load_model(config["model_dir"])
