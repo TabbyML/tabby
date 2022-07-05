@@ -287,6 +287,22 @@ def test_invalid_translation_options():
         )
 
 
+def test_invalid_translation_options_async():
+    translator = _get_transliterator()
+    outputs = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        min_decoding_length=10,
+        max_decoding_length=5,
+        asynchronous=True,
+    )
+
+    # All calls to result() should raise the exception.
+    for _ in range(2):
+        with pytest.raises(ValueError, match="is greater than"):
+            outputs[0].result()
+        assert outputs[0].done()
+
+
 def test_hard_target_prefix():
     translator = _get_transliterator()
     output = translator.translate_batch(

@@ -112,10 +112,16 @@ public:
     if (!_done) {
       {
         py::gil_scoped_release release;
-        _result = _future.get();
+        try {
+          _result = _future.get();
+        } catch (...) {
+          _exception = std::current_exception();
+        }
       }
       _done = true;  // Assign done attribute while the GIL is held.
     }
+    if (_exception)
+      std::rethrow_exception(_exception);
     return _result;
   }
 
@@ -128,6 +134,7 @@ private:
   std::future<T> _future;
   T _result;
   bool _done = false;
+  std::exception_ptr _exception;
 };
 
 
@@ -639,7 +646,13 @@ get_supported_compute_types(const std::string& device_str, const int device_inde
 template <typename T>
 static void declare_async_wrapper(py::module& m, const char* name) {
   py::class_<AsyncResult<T>>(m, name, "Asynchronous wrapper around a result object.")
-    .def("result", &AsyncResult<T>::result, "Blocks until the result is available and returns it.")
+    .def("result", &AsyncResult<T>::result,
+         R"pbdoc(
+             Blocks until the result is available and returns it.
+
+             If an exception was raised when computing the result,
+             this method raises the exception.
+         )pbdoc")
     .def("done", &AsyncResult<T>::done, "Returns ``True`` if the result is available.")
     ;
 }
