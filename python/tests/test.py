@@ -1055,6 +1055,12 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "▁Per da na ▁Men teri ▁akan ▁kembali ▁besok .",
     ),
     (
+        "Helsinki-NLP/opus-mt-mul-en",
+        "▁Bon jo ur ▁le ▁mo nde </s>",
+        "",
+        "▁Welcome ▁to ▁the ▁World",
+    ),
+    (
         "facebook/m2m100_418M",
         "__en__ ▁Hello ▁world ! </s>",
         "__de__",
@@ -1122,6 +1128,20 @@ _TRANSFORMERS_GENERATION_TESTS = [
         "Ċ The Ġfollowing Ġis Ġa Ġlist Ġof Ġthe Ġmost Ġpopular",
     ),
 ]
+
+
+@only_on_linux
+def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
+    converter = ctranslate2.converters.TransformersConverter(
+        "Helsinki-NLP/opus-mt-en-de"
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    with open(os.path.join(output_dir, "shared_vocabulary.txt")) as vocab_file:
+        vocab = list(line.rstrip("\n") for line in vocab_file)
+
+    assert vocab[-1] != "<pad>"
 
 
 @only_on_linux

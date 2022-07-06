@@ -1,6 +1,8 @@
 import abc
 import argparse
 
+import numpy as np
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec, model_spec, transformer_spec
@@ -243,11 +245,43 @@ class MarianMTLoader(BartLoader):
     def get_model_spec(self, model):
         model.config.normalize_before = False
         model.config.normalize_embedding = False
-        return super().get_model_spec(model)
+        spec = super().get_model_spec(model)
+        self._remove_pad_weights(spec)
+        return spec
 
     def set_decoder(self, spec, decoder):
         spec.start_from_zero_embedding = True
         super().set_decoder(spec, decoder)
+
+    def get_vocabulary(self, tokenizer):
+        # The <pad> token is added by Transformers to start the decoder from a zero embedding,
+        # but we already have a dedicated option "start_from_zero_embedding". We remove this token
+        # to match the original Marian vocabulary and prevent this token from being generated.
+        tokens = super().get_vocabulary(tokenizer)
+        if tokens[-1] == "<pad>":
+            tokens.pop()
+        return tokens
+
+    def _remove_pad_weights(self, spec):
+        vocab_specs = [
+            spec.encoder.embeddings[0],
+            spec.decoder.embeddings,
+            spec.decoder.projection,
+        ]
+
+        # Weights may be shared so we check against the expected size to prevent
+        # updating the same weight multiple times.
+        new_vocab_size = vocab_specs[0].weight.shape[0] - 1
+
+        for vocab_spec in vocab_specs:
+            if vocab_spec.weight.shape[0] == new_vocab_size + 1:
+                vocab_spec.weight = vocab_spec.weight[:-1]
+            if (
+                isinstance(vocab_spec, common_spec.LinearSpec)
+                and isinstance(vocab_spec.bias, np.ndarray)
+                and vocab_spec.bias.shape[0] == new_vocab_size + 1
+            ):
+                vocab_spec.bias = vocab_spec.bias[:-1]
 
 
 @register_loader("M2M100Config")
