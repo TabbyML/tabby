@@ -29,7 +29,9 @@ However, these special tokens are not implicitly added for Transformers models s
 ['▁Hello', '▁world', '!', '</s>']
 ```
 
+```{important}
 If you are not using the Hugging Face tokenizers, make sure to add these special tokens when required.
+```
 
 ## BART
 
