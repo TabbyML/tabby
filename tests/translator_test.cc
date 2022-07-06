@@ -793,6 +793,40 @@ TEST(TranslatorTest, AlternativesFromFullTarget) {
   EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n", "e"}));
 }
 
+TEST(TranslatorTest, AlternativesMaxDecodingLength) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 4;
+  options.max_decoding_length = 2;
+  options.return_alternatives = true;
+  options.return_scores = true;
+  options.return_attention = true;
+
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::vector<std::string>> target_samples = {
+    {}, {"a"}, {"a", "t"}, {"a", "t", "z"}
+  };
+
+  for (const auto& target : target_samples) {
+    const auto result = translator.translate_with_prefix(input, target, options);
+
+    for (size_t i = 0; i < result.num_hypotheses(); ++i) {
+      EXPECT_EQ(result.hypotheses[i].size(), options.max_decoding_length);
+      EXPECT_EQ(result.attention[i].size(), options.max_decoding_length);
+
+      for (size_t t = 0; t < std::min(target.size(), options.max_decoding_length); ++t) {
+        EXPECT_EQ(result.hypotheses[i][t], target[t]);
+      }
+
+      if (target.size() < options.max_decoding_length) {
+        EXPECT_NE(result.scores[i], 0);
+      } else {
+        EXPECT_EQ(result.scores[i], 0);
+      }
+    }
+  }
+}
+
 TEST(TranslatorTest, DetachModel) {
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   Translator translator = default_translator();
