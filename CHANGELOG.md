@@ -4,6 +4,22 @@
 
 ### Fixes and improvements
 
+## [v2.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.20.0) (2022-07-06)
+
+### New features
+
+* Generation option `no_repeat_ngram_size` to prevent the repetitions of N-grams with a minimum size
+
+### Fixes and improvements
+
+* Fix conversion of OpenNMT-tf models that use static position embeddings
+* Fix a segmentation fault in `return_alternatives` mode when the target prefix is longer than `max_decoding_length`
+* Fix inconsistent state of asynchronous results in Python when a runtime exception is raised
+* Remove `<pad>` token when converting MarianMT models from Transformers: this token is only used to start the decoder from a zero embedding, but it is not included in the original Marian model
+* Optimize CPU kernels with vectorized reduction of accumulated values
+* Do not modify the configuration passed to `OpenNMTTFConverterV2.from_config`
+* Improve Python classes documentation by listing members at the top
+
 ## [v2.19.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.19.1) (2022-06-23)
 
 ### Fixes and improvements
