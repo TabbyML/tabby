@@ -36,6 +36,7 @@ namespace ctranslate2 {
     struct Vec<float, TARGET_ISA> {
 
       using value_type = __m256;
+      using mask_type = value_type;
       static constexpr dim_t width = 8;
 
       static inline value_type load(float value) {
@@ -71,6 +72,14 @@ namespace ctranslate2 {
         }
       }
 
+      static inline value_type lt(value_type a, value_type b) {
+        return _mm256_cmp_ps(a, b, _CMP_LT_OQ);
+      }
+
+      static inline value_type select(value_type mask, value_type a, value_type b) {
+        return _mm256_blendv_ps(b, a, mask);
+      }
+
       static inline value_type abs(value_type a) {
         auto mask = _mm256_set1_ps(-0.f);
         return _mm256_andnot_ps(mask, a);
@@ -100,6 +109,10 @@ namespace ctranslate2 {
         return cos256_ps(a);
       }
 
+      static inline value_type tanh(value_type a) {
+        return vec_tanh<TARGET_ISA>(a);
+      }
+
       static inline value_type max(value_type a, value_type b) {
         return _mm256_max_ps(a, b);
       }
@@ -122,6 +135,14 @@ namespace ctranslate2 {
 
       static inline value_type div(value_type a, value_type b) {
         return _mm256_div_ps(a, b);
+      }
+
+      static inline value_type mul_add(value_type a, value_type b, value_type c) {
+#ifdef __FMA__
+        return _mm256_fmadd_ps(a, b, c);
+#else
+        return _mm256_add_ps(_mm256_mul_ps(a, b), c);
+#endif
       }
 
       static inline float reduce_add(value_type a) {

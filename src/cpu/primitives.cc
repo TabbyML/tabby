@@ -285,24 +285,10 @@ namespace ctranslate2 {
   template<>
   template<>
   void primitives<Device::CPU>::gelu(const float* x, float* y, dim_t size) {
-#ifdef CT2_WITH_MKL
-    if (cpu::mayiuse_mkl()) {
-      const bool inplace = (x == y);
-      float* tmp = y;
-      if (inplace)
-        tmp = static_cast<float*>(allocator.allocate(size * sizeof (float)));
-      vsCdfNorm(size, x, tmp);
-      vsMul(size, x, tmp, y);
-      if (inplace)
-        allocator.free(tmp);
-      return;
-    }
-#endif
-    cpu::parallel_unary_transform(
-      x, y, size, /*work_size=*/14,
-      [](float v) {
-        return 0.5f * v * (1.f + std::tanh(0.7978845608028654f * (v + 0.044715f * std::pow(v, 3.f))));
-      });
+    cpu::parallel_for(0, size, /*grain_size=*/512,
+                      [x, y](dim_t begin, dim_t end) {
+                        CPU_ISA_DISPATCH((cpu::gelu<ISA>(x + begin, y + begin, end - begin)));
+                      });
   }
 
   template<>
