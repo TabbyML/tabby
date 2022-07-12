@@ -193,22 +193,23 @@ namespace ctranslate2 {
       : _num_heads(num_heads)
       , _self_attention(self_attention)
       , _linear(make_linear_layers(model, scope, self_attention))
+      , _d_model(_linear.back().output_size())
       , _pre_norm(pre_norm)
       , _layer_norm(model, scope + "/layer_norm")
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
       , _maximum_relative_position(_relative_position_keys
                                    ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
-      , _queries_scale(1.f / std::sqrt(static_cast<float>(_layer_norm.output_size() / num_heads)))
+      , _queries_scale(1.f / std::sqrt(static_cast<float>(_d_model / _num_heads)))
     {
     }
 
     DataType MultiHeadAttention::output_type() const {
-      return _layer_norm.output_type();
+      return _linear.back().output_type();
     }
 
     dim_t MultiHeadAttention::output_size() const {
-      return _layer_norm.output_size();
+      return _d_model;
     }
 
     void MultiHeadAttention::operator()(const StorageView& queries,

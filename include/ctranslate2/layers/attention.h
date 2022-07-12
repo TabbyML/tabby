@@ -45,6 +45,7 @@ namespace ctranslate2 {
       const dim_t _num_heads;
       const bool _self_attention;
       const std::vector<Dense> _linear;
+      const dim_t _d_model;
       const bool _pre_norm;
       const LayerNorm _layer_norm;
       const StorageView* _relative_position_keys;
