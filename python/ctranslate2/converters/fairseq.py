@@ -37,6 +37,7 @@ def _get_model_spec(args):
         "Model '%s' used by architecture '%s' is not supported (supported models are: %s)"
         % (model_name, args.arch, ", ".join(_SUPPORTED_MODELS)),
     )
+    check.validate()
     check(
         activation_fn in _SUPPORTED_ACTIVATIONS,
         "Option --activation-fn %s is not supported (supported activations are: %s)"
