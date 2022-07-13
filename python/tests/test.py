@@ -1131,20 +1131,6 @@ _TRANSFORMERS_GENERATION_TESTS = [
 
 
 @only_on_linux
-def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
-    converter = ctranslate2.converters.TransformersConverter(
-        "Helsinki-NLP/opus-mt-en-de"
-    )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-
-    with open(os.path.join(output_dir, "shared_vocabulary.txt")) as vocab_file:
-        vocab = list(line.rstrip("\n") for line in vocab_file)
-
-    assert vocab[-1] != "<pad>"
-
-
-@only_on_linux
 @pytest.mark.parametrize(
     "model,start_tokens,max_length,expected_tokens",
     _TRANSFORMERS_GENERATION_TESTS,
@@ -1172,6 +1158,20 @@ def test_transformers_generation(
 
     with pytest.raises(ValueError, match="start token"):
         generator.generate_batch([[]])
+
+
+@only_on_linux
+def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
+    converter = ctranslate2.converters.TransformersConverter(
+        "Helsinki-NLP/opus-mt-en-de"
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    with open(os.path.join(output_dir, "shared_vocabulary.txt")) as vocab_file:
+        vocab = list(line.rstrip("\n") for line in vocab_file)
+
+    assert vocab[-1] != "<pad>"
 
 
 @only_on_linux
