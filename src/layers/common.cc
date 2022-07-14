@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "ctranslate2/ops/activation.h"
+#include "cpu/backend.h"
 #include "dispatch.h"
 
 namespace ctranslate2 {
@@ -260,7 +261,11 @@ namespace ctranslate2 {
       , _weight(get_linear_weight(model, scope, &_packed_weight))
       , _bias(model.get_variable_if_exists(scope + "/bias"))
       , _qscale(model.get_variable_if_exists(scope + "/weight_scale"))
-      , _u8_shift_compensation(model.get_variable_if_exists(scope + "/weight_compensation"))
+      , _u8_shift_compensation((_weight.device() == Device::CPU
+                                && _weight.dtype() == DataType::INT8
+                                && cpu::prefer_u8s8s32_gemm())
+                               ? &model.get_variable(scope + "/weight_compensation")
+                               : nullptr)
       , _partial_weight(_weight.device(), _weight.dtype())
       , _partial_bias(_weight.device(), _bias ? _bias->dtype() : DataType::FLOAT)
       , _partial_qscale(_weight.device(), DataType::FLOAT)

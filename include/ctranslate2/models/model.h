@@ -118,7 +118,7 @@ namespace ctranslate2 {
       virtual void remove_variable(const std::string& name);
 
       // Runs some initialization after the model is loaded.
-      virtual void initialize(ModelReader& model_reader);
+      virtual void initialize(ModelReader&) {}
 
     private:
       void process_linear_weights();

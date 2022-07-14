@@ -354,10 +354,6 @@ namespace ctranslate2 {
       }
     }
 
-    void Model::initialize(ModelReader&) {
-      process_linear_weights();
-    }
-
     // This method runs some precomputations on linear weights when possible.
     void Model::process_linear_weights() {
       if (_device != Device::CPU)
@@ -559,6 +555,7 @@ namespace ctranslate2 {
 
       // Run additional model initialization.
       const ScopedDeviceSetter scoped_device_setter(device, device_index);
+      model->process_linear_weights();
       model->initialize(model_reader);
       return model;
     }

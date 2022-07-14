@@ -63,7 +63,6 @@ namespace ctranslate2 {
     }
 
     void SequenceToSequenceModel::initialize(ModelReader& model_reader) {
-      Model::initialize(model_reader);
       load_vocabularies(model_reader);
       _with_source_bos = get_flag_with_default("with_source_bos", false);
       _with_source_eos = get_flag_with_default("with_source_eos", false);
