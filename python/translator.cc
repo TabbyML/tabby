@@ -815,7 +815,10 @@ PYBIND11_MODULE(translator, m)
              Arguments:
                source: Batch of source tokens.
                target_prefix: Optional batch of target prefix tokens.
-               max_batch_size: The maximum batch size.
+               max_batch_size: The maximum batch size. If the number of inputs is greater than
+                 :obj:`max_batch_size`, the inputs are sorted by length and split by chunks of
+                 :obj:`max_batch_size` examples so that the number of padding positions is
+                 minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                asynchronous: Run the translation asynchronously.
                beam_size: Beam size (1 for greedy search).
@@ -887,7 +890,11 @@ PYBIND11_MODULE(translator, m)
                output_path: Path to the output file.
                target_path: Path to the target prefix file.
                max_batch_size: The maximum batch size.
-               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               read_batch_size: The number of examples to read from the file before sorting
+                 by length and splitting by chunks of :obj:`max_batch_size` examples
+                 (set 0 for an automatic value).
+               batch_type: Whether :obj:`max_batch_size` and :obj:`read_batch_size` are the
+                 numbers of "examples" or "tokens".
                asynchronous: Run the translation asynchronously.
                beam_size: Beam size (1 for greedy search).
                num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
@@ -937,7 +944,10 @@ PYBIND11_MODULE(translator, m)
              Arguments:
                source: Batch of source tokens.
                target: Batch of target tokens.
-               max_batch_size: The maximum batch size.
+               max_batch_size: The maximum batch size. If the number of inputs is greater than
+                 :obj:`max_batch_size`, the inputs are sorted by length and split by chunks of
+                 :obj:`max_batch_size` examples so that the number of padding positions is
+                 minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                max_input_length: Truncate inputs after this many tokens (0 to disable).
 
@@ -977,7 +987,11 @@ PYBIND11_MODULE(translator, m)
                target_path: Path to the target file.
                output_path: Path to the output file.
                max_batch_size: The maximum batch size.
-               batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
+               read_batch_size: The number of examples to read from the file before sorting
+                 by length and splitting by chunks of :obj:`max_batch_size` examples
+                 (set 0 for an automatic value).
+               batch_type: Whether :obj:`max_batch_size` and :obj:`read_batch_size` are the
+                 number of "examples" or "tokens".
                max_input_length: Truncate inputs after this many tokens (0 to disable).
                with_tokens_score: Include the token-level scores in the output file.
                source_tokenize_fn: Function to tokenize source lines.
@@ -1095,7 +1109,10 @@ PYBIND11_MODULE(translator, m)
              Arguments:
                start_tokens: Batch of start tokens. If the decoder starts from a special
                  start token like ``<s>``, this token should be added to this input.
-               max_batch_size: The maximum batch size.
+               max_batch_size: The maximum batch size. If the number of inputs is greater than
+                 :obj:`max_batch_size`, the inputs are sorted by length and split by chunks of
+                 :obj:`max_batch_size` examples so that the number of padding positions is
+                 minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                asynchronous: Run the generation asynchronously.
                beam_size: Beam size (1 for greedy search).
@@ -1136,7 +1153,10 @@ PYBIND11_MODULE(translator, m)
              Arguments:
                tokens: Batch of tokens to score. If the model expects special start or end tokens,
                  they should also be added to this input.
-               max_batch_size: The maximum batch size.
+               max_batch_size: The maximum batch size. If the number of inputs is greater than
+                 :obj:`max_batch_size`, the inputs are sorted by length and split by chunks of
+                 :obj:`max_batch_size` examples so that the number of padding positions is
+                 minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                max_input_length: Truncate inputs after this many tokens (0 to disable).
 
