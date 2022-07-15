@@ -1,5 +1,7 @@
 import enum
 
+import numpy as np
+
 from ctranslate2.specs import model_spec
 
 
@@ -31,6 +33,9 @@ class LinearSpec(model_spec.LayerSpec):
         self.weight = None
         self.weight_scale = model_spec.OPTIONAL
         self.bias = model_spec.OPTIONAL
+
+    def has_bias(self):
+        return isinstance(self.bias, np.ndarray)
 
 
 class EmbeddingsSpec(model_spec.LayerSpec):

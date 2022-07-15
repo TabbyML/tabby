@@ -9,7 +9,8 @@ import pytest
 import ctranslate2
 
 from ctranslate2.converters import opennmt_tf
-from ctranslate2.specs import transformer_spec
+from ctranslate2.converters import utils as conversion_utils
+from ctranslate2.specs import common_spec, transformer_spec
 from ctranslate2.specs.model_spec import OPTIONAL, index_spec
 
 _TEST_DATA_DIR = os.path.join(
@@ -1348,3 +1349,21 @@ def test_index_spec():
     assert isinstance(
         index_spec(spec, "encoder/layer_5/ffn"), transformer_spec.FeedForwardSpec
     )
+
+
+def test_fuse_linear_no_bias():
+    layers = []
+    for _ in range(3):
+        spec = common_spec.LinearSpec()
+        spec.weight = np.zeros([64, 64], dtype=np.float32)
+        layers.append(spec)
+
+    spec = common_spec.LinearSpec()
+    conversion_utils.fuse_linear(spec, layers)
+    assert spec.weight.shape[0] == 64 * 3
+    assert spec.bias == OPTIONAL
+
+    spec = common_spec.LinearSpec()
+    layers[1].bias = np.zeros([64])
+    with pytest.raises(ValueError, match="Cannot fuse linear layers"):
+        conversion_utils.fuse_linear(spec, layers)

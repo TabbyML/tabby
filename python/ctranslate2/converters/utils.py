@@ -2,8 +2,18 @@ import numpy as np
 
 
 def fuse_linear(spec, layers):
+    if not layers:
+        raise ValueError("Cannot fuse linear layers: at least one layer is required")
+
     spec.weight = np.concatenate([layer.weight for layer in layers])
-    spec.bias = np.concatenate([layer.bias for layer in layers])
+
+    with_bias = layers[0].has_bias()
+    if not all(layer.has_bias() == with_bias for layer in layers):
+        raise ValueError(
+            "Cannot fuse linear layers: some layers have a bias while others don't"
+        )
+    if with_bias:
+        spec.bias = np.concatenate([layer.bias for layer in layers])
 
 
 def raise_unsupported(reasons):
