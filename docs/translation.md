@@ -43,7 +43,7 @@ int main() {
 }
 ```
 
-See the [`TranslatorPool`](https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translator_pool.h) class for more advanced usages such as asynchronous translations.*
+See the [`TranslatorPool`](https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translator_pool.h) class for more advanced usages such as asynchronous translations.
 
 ### Translation client
 
