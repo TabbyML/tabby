@@ -18,7 +18,7 @@ Boolean environment variables can be enabled with `"1"` or `"true"`.
 Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in high-performance code. For this reason CTranslate2 integrates caching allocators which enable a fast reuse of previously allocated buffers. The following allocators are integrated:
 
 * `cuda_malloc_async` (default for CUDA >= 11.2)<br/>Uses the [asynchronous allocator with memory pools](https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__MEMORY__POOLS.html) introduced in CUDA 11.2.
-* `cub_caching` (default for CUDA < 11.2)<br/>Use the caching allocator from the [CUB project](https://github.com/NVIDIA/cub).
+* `cub_caching` (default for CUDA < 11.2)<br/>Uses the caching allocator from the [CUB project](https://github.com/NVIDIA/cub).
 
 ## `CT2_CUDA_ALLOW_FP16`
 
