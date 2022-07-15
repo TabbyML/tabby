@@ -57,14 +57,6 @@ namespace ctranslate2 {
       SequenceToSequenceModel::register_variable(std::move(name), std::move(variable));
     }
 
-    void TransformerModel::register_variable_alias(std::string alias, std::string variable_name) {
-      if (spec_revision() == 1) {
-        alias = map_v1_variable_name(std::move(alias));
-        variable_name = map_v1_variable_name(std::move(variable_name));
-      }
-      SequenceToSequenceModel::register_variable_alias(std::move(alias), std::move(variable_name));
-    }
-
     void TransformerModel::initialize(ModelReader& model_reader) {
       SequenceToSequenceModel::initialize(model_reader);
       _num_heads = get_attribute_with_default<int8_t>("num_heads", _num_heads);

@@ -227,7 +227,7 @@ namespace ctranslate2 {
       _variable_index.emplace(std::move(name), std::make_shared<StorageView>(std::move(variable)));
     }
 
-    void Model::register_variable_alias(std::string alias, std::string variable_name) {
+    void Model::register_variable_alias(std::string alias, const std::string& variable_name) {
       auto it = _variable_index.find(variable_name);
       if (it == _variable_index.end())
         return;
