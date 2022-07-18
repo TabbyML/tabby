@@ -938,6 +938,22 @@ def test_opennmt_py_source_features(tmpdir, filename):
             assert line.strip().split() == expected_hypothesis
 
 
+@skip_on_windows
+def test_opennmt_py_transformer_lm(tmpdir):
+    model_path = os.path.join(_TEST_DATA_DIR, "models", "pi_lm_step_5000.pt")
+    if not os.path.exists(model_path):
+        pytest.skip("Checkpoint file is not available")
+
+    converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+
+    generator = ctranslate2.Generator(output_dir)
+    results = generator.generate_batch([["<s>", "3", ".", "1", "4"]], max_length=12)
+
+    assert "".join(results[0].sequences[0]) == "3.1415926535"
+
+
 @skip_if_data_missing
 @skip_on_windows
 def test_fairseq_model_conversion(tmpdir):

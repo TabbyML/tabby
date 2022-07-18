@@ -74,9 +74,11 @@ jobs:
           make install
 
       - name: Download test data
+        working-directory: tests/data/models
         run: |
+          wget https://opennmt-models.s3.amazonaws.com/pi_lm_step_5000.pt
           wget https://opennmt-models.s3.amazonaws.com/transliteration-aren-all.tar.gz
-          tar xf transliteration-aren-all.tar.gz -C tests/data/models/
+          tar xf transliteration-aren-all.tar.gz
 
       - name: Test
         run: |
