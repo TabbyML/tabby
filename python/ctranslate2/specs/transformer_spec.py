@@ -97,6 +97,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         layernorm_embedding: bool = False,
         no_final_norm: bool = False,
         project_in_out: bool = False,
+        with_relative_position: bool = False,
     ):
         """Initializes a Transformer decoder model specification.
 
@@ -109,6 +110,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
           no_final_norm: Do not apply layer normalization after the last decoder block.
           project_in_out: Add a linear layer after the embedding layer and another one
             before the final output projection.
+          with_relative_position: Enable relative position representations modules.
         """
         super().__init__()
         self.num_heads = np.dtype("int16").type(num_heads)
@@ -117,6 +119,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         self.layernorm_embedding = layernorm_embedding
         self.no_final_norm = no_final_norm
         self.project_in_out = project_in_out
+        self.with_relative_position = with_relative_position
         self.decoder = TransformerDecoderSpec(
             num_layers,
             pre_norm=pre_norm,
@@ -124,6 +127,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             with_encoder_attention=False,
             no_final_norm=no_final_norm,
             project_in_out=project_in_out,
+            relative_position=with_relative_position,
         )
 
     @property

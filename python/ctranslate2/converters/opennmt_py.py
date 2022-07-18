@@ -100,12 +100,12 @@ def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embedd
         opt.dec_layers,
         num_heads,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+        with_relative_position=with_relative_position,
     )
 
     set_transformer_decoder(
         model_spec.decoder,
         variables,
-        with_relative_position,
         with_encoder_attention=False,
     )
 
