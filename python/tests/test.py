@@ -1144,6 +1144,12 @@ _TRANSFORMERS_GENERATION_TESTS = [
         10,
         "Ċ The Ġfollowing Ġis Ġa Ġlist Ġof Ġthe Ġmost Ġpopular",
     ),
+    (
+        "microsoft/DialoGPT-medium",
+        "Hello <|endoftext|>",
+        100,
+        "Hello <|endoftext|> Hello Ġ! Ġ: D",
+    ),
 ]
 
 
