@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v2.21.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.21.0) (2022-07-27)
+
+### New features
+
+* Support NLLB multilingual models via the Transformers converter
+* Support Pegasus summarization models via the Transformers converter
+
+### Fixes and improvements
+
+* Do not stop decoding when the EOS token is coming from the user input: this is required by some text generation models like `microsoft/DialoGPT` where EOS is used as a separator
+* Fix conversion error for language models trained with OpenNMT-py
+* Fix conversion of models that are not using bias terms in the multi-head attention
+* Fix data type error when enabling the translation options `return_alternatives` and `return_attention` with a `float16` model
+* Improve CPU performance of language models quantized to `int8`
+* Implement a new vectorized GELU operator on CPU
+* Raise a more explicit error when trying to convert a unsupported Fairseq model
+* Update pybind11 to 2.10.0
+
 ## [v2.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.20.0) (2022-07-06)
 
 ### New features
