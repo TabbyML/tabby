@@ -804,10 +804,11 @@ namespace ctranslate2 {
                                              const std::vector<size_t>& prefix_ids,
                                              std::vector<std::vector<float>>* prefix_attention) {
     const Device device = decoder.device();
+    const DataType dtype = decoder.output_type();
     const size_t prefix_size = prefix_ids.size();
 
     StorageView input({1}, DataType::INT32);
-    StorageView attention(device);
+    StorageView attention(dtype, device);
     if (prefix_attention)
       prefix_attention->reserve(prefix_size);
 
@@ -819,7 +820,7 @@ namespace ctranslate2 {
               /*logits=*/nullptr,
               prefix_attention ? &attention : nullptr);
       if (prefix_attention)
-        prefix_attention->emplace_back(attention.to_vector<float>());
+        prefix_attention->emplace_back(attention.to_float().to_vector<float>());
       input.at<int32_t>(0) = prefix_ids[i];
     }
   }
