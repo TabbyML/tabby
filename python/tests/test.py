@@ -1112,6 +1112,12 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "▁California ' s ▁largest ▁electricity ▁provider ▁has ▁turned ▁off ▁power ▁to "
         "▁hundreds ▁of ▁thousands ▁of ▁customers .",
     ),
+    (
+        "facebook/nllb-200-distilled-600M",
+        "▁Hello ▁world ! </s> eng_Latn",
+        "fra_Latn",
+        "fra_Latn ▁Bon jour ▁le ▁monde ▁!",
+    ),
 ]
 
 

@@ -4,7 +4,7 @@
 
 CTranslate2 is a C++ and Python library for efficient inference with Transformer models. The project implements a custom runtime that applies many performance optimization techniques such as weights quantization, layers fusion, batch reordering, etc., to [accelerate and reduce the memory usage](#benchmarks) of Transformer models on CPU and GPU. The following model types are currently supported:
 
-* Encoder-decoder models: Transformer base/big, M2M-100, BART, mBART, Pegasus
+* Encoder-decoder models: Transformer base/big, M2M-100, NLLB, BART, mBART, Pegasus
 * Decoder-only models: GPT-2, OPT
 
 Compatible models should be first converted into an optimized model format. The library includes converters for multiple frameworks:
