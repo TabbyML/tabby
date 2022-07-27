@@ -8,6 +8,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * MBART
 * OpenAI GPT2
 * OPT
+* Pegasus
 
 The converter takes as argument the pretrained model name or the path to a model directory:
 

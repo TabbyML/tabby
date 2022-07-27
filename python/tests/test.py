@@ -1101,6 +1101,17 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "",
         "<s> UN ĠChief ĠSays ĠThere ĠIs ĠNo ĠWar Ġin ĠSyria",
     ),
+    (
+        "google/pegasus-xsum",
+        "▁PG & E ▁stated ▁it ▁scheduled ▁the ▁blackout s ▁in ▁response ▁to ▁forecasts "
+        "▁for ▁high ▁winds ▁amid ▁dry ▁conditions . ▁The ▁aim ▁is ▁to ▁reduce ▁the "
+        "▁risk ▁of ▁wildfires . ▁Nearly ▁800 ▁thousand ▁customers ▁were ▁scheduled ▁to "
+        "▁be ▁affected ▁by ▁the ▁shutoff s ▁which ▁were ▁expected ▁to ▁last ▁through "
+        "▁at ▁least ▁midday ▁tomorrow . </s>",
+        "",
+        "▁California ' s ▁largest ▁electricity ▁provider ▁has ▁turned ▁off ▁power ▁to "
+        "▁hundreds ▁of ▁thousands ▁of ▁customers .",
+    ),
 ]
 
 

@@ -84,7 +84,7 @@ class ModelLoader(abc.ABC):
 
         spec = self.get_model_spec(model)
 
-        tokens = self.get_vocabulary(tokenizer)
+        tokens = self.get_vocabulary(model, tokenizer)
         if model.config.vocab_size < len(tokens):
             tokens = tokens[: model.config.vocab_size]
         if isinstance(spec, model_spec.SequenceToSequenceModelSpec):
@@ -102,7 +102,7 @@ class ModelLoader(abc.ABC):
 
         return spec
 
-    def get_vocabulary(self, tokenizer):
+    def get_vocabulary(self, model, tokenizer):
         return [
             token
             for token, _ in sorted(
@@ -253,11 +253,11 @@ class MarianMTLoader(BartLoader):
         spec.start_from_zero_embedding = True
         super().set_decoder(spec, decoder)
 
-    def get_vocabulary(self, tokenizer):
+    def get_vocabulary(self, model, tokenizer):
         # The <pad> token is added by Transformers to start the decoder from a zero embedding,
         # but we already have a dedicated option "start_from_zero_embedding". We remove this token
         # to match the original Marian vocabulary and prevent this token from being generated.
-        tokens = super().get_vocabulary(tokenizer)
+        tokens = super().get_vocabulary(model, tokenizer)
         if tokens[-1] == "<pad>":
             tokens.pop()
         return tokens
@@ -298,8 +298,8 @@ class M2M100Loader(BartLoader):
     def set_position_encodings(self, spec, module):
         spec.encodings = module.weights.numpy()[module.offset :]
 
-    def get_vocabulary(self, tokenizer):
-        tokens = super().get_vocabulary(tokenizer)
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
         tokens += tokenizer.additional_special_tokens
         tokens += ["madeupword%d" % i for i in range(tokenizer.num_madeup_words)]
         return tokens
@@ -319,6 +319,23 @@ class MBartLoader(BartLoader):
             spec.user_decoder_start_tokens = True
 
         return spec
+
+
+@register_loader("PegasusConfig")
+class PegasusLoader(BartLoader):
+    @property
+    def architecture_name(self):
+        return "PegasusForConditionalGeneration"
+
+    def get_model_spec(self, model):
+        spec = super().get_model_spec(model)
+        spec.with_target_bos = True
+        return spec
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+        tokenizer.bos_token = tokens[model.config.pad_token_id]
+        return tokens
 
 
 @register_loader("OPTConfig")
@@ -355,8 +372,8 @@ class OPTLoader(BartLoader):
         self.set_position_encodings(spec.position_encodings, module.embed_positions)
         self.set_embeddings(spec.embeddings, module.embed_tokens)
 
-    def get_vocabulary(self, tokenizer):
-        tokens = super().get_vocabulary(tokenizer)
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
 
         i = 0
         while len(tokens) % 8 != 0:
