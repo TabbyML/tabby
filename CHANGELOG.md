@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v2.21.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.21.1) (2022-07-29)
+
+### Fixes and improvements
+
+* Fix conversion of NLLB models when `tokenizer_class` is missing from the configuration
+
 ## [v2.21.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.21.0) (2022-07-27)
 
 ### New features
