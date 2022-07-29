@@ -301,12 +301,13 @@ class M2M100Loader(BartLoader):
     def get_vocabulary(self, model, tokenizer):
         tokens = super().get_vocabulary(model, tokenizer)
 
-        if model.config.tokenizer_class == "NllbTokenizer":
-            num_madeup_words = model.config.vocab_size - len(tokens)
-        else:
-            num_madeup_words = tokenizer.num_madeup_words
-            tokens += tokenizer.additional_special_tokens
+        for token in tokenizer.additional_special_tokens:
+            if token not in tokens:
+                tokens.append(token)
 
+        num_madeup_words = getattr(
+            tokenizer, "num_madeup_words", model.config.vocab_size - len(tokens)
+        )
         if num_madeup_words > 0:
             tokens += ["madeupword%d" % i for i in range(num_madeup_words)]
 
