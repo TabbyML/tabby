@@ -899,6 +899,11 @@ namespace ctranslate2 {
                                   "mode");
     if (options.prefix_bias_beta > 0 && options.beam_size == 1)
       throw std::invalid_argument("Biased decoding is not compatible with greedy search");
+    if (options.return_alternatives
+        && (options.min_alternative_expansion_prob < 0
+            || options.min_alternative_expansion_prob > 1))
+      throw std::invalid_argument("The minimum alternative expansion probability must be "
+                                  "between 0 and 1");
   }
 
   static std::unique_ptr<const Sampler>
@@ -977,14 +982,18 @@ namespace ctranslate2 {
                                                   /*max_length=*/1,
                                                   /*min_length=*/1,
                                                   output_ids_map,
-                                                  options.normalize_scores,
-                                                  options.return_scores,
+                                                  /*normalize_scores=*/false,
+                                                  /*return_scores=*/true,
                                                   options.return_attention,
                                                   options.num_hypotheses)[0];
 
-    start_ids.resize(options.num_hypotheses);
+    start_ids.clear();
 
     for (size_t i = 0; i < options.num_hypotheses; ++i) {
+      const float prob = std::exp(expansion_result.scores[i]);
+      if (prob < options.min_alternative_expansion_prob)
+        break;
+
       // Add expanded word to the result.
       result.hypotheses[i].emplace_back(expansion_result.hypotheses[i].back());
       if (options.return_attention)
@@ -993,7 +1002,20 @@ namespace ctranslate2 {
         result.scores[i] = expansion_result.scores[i];
 
       // The next input is the words we just expanded.
-      start_ids[i] = result.hypotheses[i].back();
+      start_ids.push_back(result.hypotheses[i].back());
+    }
+
+    if (start_ids.size() < options.num_hypotheses) {
+      // Reduce state to the effective number of alternatives.
+      const dim_t num_alternatives = start_ids.size();
+      for (auto& pair : state)
+        pair.second.resize(0, num_alternatives);
+
+      result.hypotheses.resize(num_alternatives);
+      if (options.return_scores)
+        result.scores.resize(num_alternatives);
+      if (options.return_attention)
+        result.attention.resize(num_alternatives);
     }
 
     start_step += 1;
@@ -1020,7 +1042,7 @@ namespace ctranslate2 {
                                                   options.no_repeat_ngram_size);
 
     // Update the result with the suffix decoding.
-    for (size_t i = 0; i < options.num_hypotheses; ++i) {
+    for (size_t i = 0; i < suffix_results.size(); ++i) {
       auto& suffix = suffix_results[i];
 
       if (options.return_scores) {

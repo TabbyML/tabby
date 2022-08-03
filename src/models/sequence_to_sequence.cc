@@ -352,6 +352,7 @@ namespace ctranslate2 {
       decoding_options.return_scores = options.return_scores;
       decoding_options.return_attention = options.return_attention || options.replace_unknowns;
       decoding_options.return_alternatives = options.return_alternatives;
+      decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,

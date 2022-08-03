@@ -299,6 +299,7 @@ public:
                   bool return_scores,
                   bool return_attention,
                   bool return_alternatives,
+                  float min_alternative_expansion_prob,
                   size_t sampling_topk,
                   float sampling_temperature,
                   bool replace_unknowns) {
@@ -326,6 +327,7 @@ public:
     options.return_scores = return_scores;
     options.return_attention = return_attention;
     options.return_alternatives = return_alternatives;
+    options.min_alternative_expansion_prob = min_alternative_expansion_prob;
     options.replace_unknowns = replace_unknowns;
 
     std::shared_lock lock(_mutex);
@@ -558,6 +560,7 @@ public:
                  bool normalize_scores,
                  bool return_scores,
                  bool return_alternatives,
+                 float min_alternative_expansion_prob,
                  size_t sampling_topk,
                  float sampling_temperature) {
     if (tokens.empty())
@@ -579,6 +582,7 @@ public:
     options.normalize_scores = normalize_scores;
     options.return_scores = return_scores;
     options.return_alternatives = return_alternatives;
+    options.min_alternative_expansion_prob = min_alternative_expansion_prob;
 
     auto futures = _generator_pool.generate_batch_async(tokens, options, max_batch_size, batch_type);
 
@@ -805,6 +809,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("return_scores")=false,
          py::arg("return_attention")=false,
          py::arg("return_alternatives")=false,
+         py::arg("min_alternative_expansion_prob")=0,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
          py::arg("replace_unknowns")=false,
@@ -841,6 +846,7 @@ PYBIND11_MODULE(translator, m)
                return_scores: Include the scores in the output.
                return_attention: Include the attention vectors in the output.
                return_alternatives: Return alternatives at the first unconstrained decoding position.
+               min_alternative_expansion_prob: Minimum initial probability to expand an alternative.
                sampling_topk: Randomly sample predictions from the top K candidates.
                sampling_temperature: Sampling temperature to generate more random samples.
                replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
@@ -1097,6 +1103,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("normalize_scores")=false,
          py::arg("return_scores")=false,
          py::arg("return_alternatives")=false,
+         py::arg("min_alternative_expansion_prob")=0,
          py::arg("sampling_topk")=1,
          py::arg("sampling_temperature")=1,
          py::call_guard<py::gil_scoped_release>(),
@@ -1127,6 +1134,7 @@ PYBIND11_MODULE(translator, m)
                normalize_scores: Normalize the score by the sequence length.
                return_scores: Include the scores in the output.
                return_alternatives: Return alternatives at the first unconstrained decoding position.
+               min_alternative_expansion_prob: Minimum initial probability to expand an alternative.
                sampling_topk: Randomly sample predictions from the top K candidates.
                sampling_temperature: Sampling temperature to generate more random samples.
 

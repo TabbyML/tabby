@@ -127,6 +127,7 @@ namespace ctranslate2 {
     bool return_scores = false;
     bool return_attention = false;
     bool return_alternatives = false;
+    float min_alternative_expansion_prob = 0;
   };
 
   std::vector<DecodingResult>

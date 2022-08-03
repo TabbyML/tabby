@@ -45,6 +45,8 @@ namespace ctranslate2 {
     // Return alternatives at the first unconstrained decoding position. This is typically
     // used with a prefix to provide alternatives at a specifc location.
     bool return_alternatives = false;
+    // Minimum probability to expand an alternative.
+    float min_alternative_expansion_prob = 0;
   };
 
   struct GenerationResult {

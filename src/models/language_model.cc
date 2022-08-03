@@ -102,6 +102,7 @@ namespace ctranslate2 {
       decoding_options.normalize_scores = options.normalize_scores;
       decoding_options.return_scores = options.return_scores;
       decoding_options.return_alternatives = options.return_alternatives;
+      decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
 
       const auto start_ids = vocabulary.to_ids(start_tokens);
       layers::DecoderState state = _decoder->initial_state();

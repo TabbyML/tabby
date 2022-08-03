@@ -64,6 +64,8 @@ namespace ctranslate2 {
     // used with a target prefix to provide alternatives at a specifc location in the
     // translation.
     bool return_alternatives = false;
+    // Minimum probability to expand an alternative.
+    float min_alternative_expansion_prob = 0;
 
     // Replace unknown target tokens by the original source token with the highest attention.
     bool replace_unknowns = false;

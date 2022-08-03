@@ -732,6 +732,23 @@ TEST(TranslatorTest, AlternativesFromPrefix) {
   EXPECT_EQ(result.attention[0].size(), 6);
 }
 
+TEST(TranslatorTest, AlternativesFromPrefixMinExpansionProb) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.num_hypotheses = 10;
+  options.return_scores = true;
+  options.return_attention = true;
+  options.return_alternatives = true;
+  options.min_alternative_expansion_prob = 0.001;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::string> prefix = {"a", "t"};
+  const size_t expected_alternatives = 6;
+  const TranslationResult result = translator.translate_with_prefix(input, prefix, options);
+  EXPECT_EQ(result.hypotheses.size(), expected_alternatives);
+  EXPECT_EQ(result.scores.size(), expected_alternatives);
+  EXPECT_EQ(result.attention.size(), expected_alternatives);
+}
+
 TEST(TranslatorTest, AlternativesFromPrefixBatch) {
   Translator translator = default_translator();
   TranslationOptions options;
