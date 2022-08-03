@@ -897,8 +897,7 @@ PYBIND11_MODULE(translator, m)
                  numbers of "examples" or "tokens".
                asynchronous: Run the translation asynchronously.
                beam_size: Beam size (1 for greedy search).
-               num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
-                 unless :obj:`return_alternatives` is set).
+               num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`).
                length_penalty: Length penalty constant to use during beam search.
                coverage_penalty: Coverage penalty constant to use during beam search.
                repetition_penalty: Penalty applied to the score of previously generated tokens
@@ -913,9 +912,7 @@ PYBIND11_MODULE(translator, m)
                min_decoding_length: Minimum prediction length.
                use_vmap: Use the vocabulary mapping file saved in this model
                normalize_scores: Normalize the score by the sequence length.
-               return_scores: Include the scores in the output.
-               return_attention: Include the attention vectors in the output.
-               return_alternatives: Return alternatives at the first unconstrained decoding position.
+               with_scores: Include the scores in the output.
                sampling_topk: Randomly sample predictions from the top K candidates.
                sampling_temperature: Sampling temperature to generate more random samples.
                replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
