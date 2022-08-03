@@ -90,10 +90,14 @@ namespace ctranslate2 {
         ids.emplace_back(to_id(*suffix));
 
       if (max_length > 0 && ids.size() > max_length) {
-        // Keep EOS at the last position.
+        // Keep EOS and optional lang code in the last positions.
         const size_t eos = eos_id();
-        if (ids.back() == eos)
+        if (ids[ids.size() - 1] == eos)
           ids[max_length - 1] = eos;
+        else if (ids[ids.size() - 2] == eos && max_length >= 2) {
+          ids[max_length - 2] = eos;
+          ids[max_length - 1] = ids.back();
+        }
 
         ids.resize(max_length);
       }

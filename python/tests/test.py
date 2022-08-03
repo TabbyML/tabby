@@ -1017,6 +1017,16 @@ def test_fairseq_user_start_token(tmpdir):
     output = translator.translate_batch([["</s>"]], target_prefix=[["</s>"]])
     assert output[0].hypotheses[0] == []
 
+    output = translator.translate_batch(
+        [["</s>"]],
+        target_prefix=[["</s>", "oovtoken"]],
+        return_scores=True,
+        return_attention=True,
+    )
+    assert output[0].hypotheses[0] == ["<unk>"]
+    assert output[0].scores[0] == 0
+    assert output[0].attention[0] == [[0]]
+
     scores = translator.score_batch([tokens], [["</s>", "a", "t", "z", "m", "o", "n"]])
 
     # Scored tokens: a t z m o n </s>
@@ -1114,9 +1124,9 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
     ),
     (
         "facebook/nllb-200-distilled-600M",
-        "▁Hello ▁world ! </s> eng_Latn",
-        "fra_Latn",
-        "fra_Latn ▁Bon jour ▁le ▁monde ▁!",
+        ["▁Hello ▁world ! </s> eng_Latn", "</s> eng_Latn"],
+        ["fra_Latn", "fra_Latn"],
+        ["fra_Latn ▁Bon jour ▁le ▁monde ▁!", "fra_Latn"],
     ),
 ]
 
@@ -1139,13 +1149,20 @@ def test_transformers_translation(
     output_dir = str(tmpdir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
+    if not isinstance(expected_tokens, list):
+        expected_tokens = [expected_tokens]
+    if not isinstance(source_tokens, list):
+        source_tokens = [source_tokens]
+    if target_tokens and not isinstance(target_tokens, list):
+        target_tokens = [target_tokens]
+
     translator = ctranslate2.Translator(output_dir)
     results = translator.translate_batch(
-        [source_tokens.split()],
-        target_prefix=[target_tokens.split()] if target_tokens else None,
+        [line.split() for line in source_tokens],
+        [line.split() for line in target_tokens] if target_tokens else None,
     )
-    output_tokens = results[0].hypotheses[0]
-    assert output_tokens == expected_tokens.split()
+    output_tokens = [" ".join(result.hypotheses[0]) for result in results]
+    assert output_tokens == expected_tokens
 
 
 _TRANSFORMERS_GENERATION_TESTS = [
@@ -1190,8 +1207,8 @@ def test_transformers_generation(
 
     generator = ctranslate2.Generator(output_dir)
     results = generator.generate_batch([start_tokens.split()], max_length=max_length)
-    output_tokens = results[0].sequences[0]
-    assert output_tokens == expected_tokens.split()
+    output_tokens = " ".join(results[0].sequences[0])
+    assert output_tokens == expected_tokens
 
     # Test empty inputs.
     assert generator.generate_batch([]) == []
