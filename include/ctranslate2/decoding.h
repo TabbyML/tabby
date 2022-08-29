@@ -72,19 +72,21 @@ namespace ctranslate2 {
 
   class BiasedDecoder {
   public:
-    BiasedDecoder() = default;
+    BiasedDecoder(const float prefix_bias_beta,
+                  const std::vector<std::vector<size_t>>& prefix_ids,
+                  const std::vector<size_t>* output_ids_map = nullptr);
 
     void
-    decode(const float prefix_bias_beta,
-           const dim_t cur_batch_size,
+    decode(const dim_t cur_batch_size,
            const size_t step,
            const std::vector<dim_t>& batch_offset,
            const std::vector<std::vector<bool>>& beams_diverged_from_prefix,
-           const std::vector<std::vector<size_t>>& prefix_ids,
            const StorageView& logits,
            StorageView& log_probs);
   private:
     StorageView _spare_beam;
+    const float _prefix_bias_beta;
+    std::vector<std::vector<size_t>> _prefix_ids;
   };
 
 
