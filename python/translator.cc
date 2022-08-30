@@ -137,6 +137,24 @@ private:
   std::exception_ptr _exception;
 };
 
+template <typename Result>
+std::variant<std::vector<Result>, std::vector<AsyncResult<Result>>>
+maybe_wait_on_futures(std::vector<std::future<Result>> futures, bool asynchronous) {
+  if (asynchronous) {
+    std::vector<AsyncResult<Result>> results;
+    results.reserve(futures.size());
+    for (auto& future : futures)
+      results.emplace_back(std::move(future));
+    return std::move(results);
+  } else {
+    std::vector<Result> results;
+    results.reserve(futures.size());
+    for (auto& future : futures)
+      results.emplace_back(future.get());
+    return std::move(results);
+  }
+}
+
 
 class TranslatorWrapper
 {
@@ -339,27 +357,17 @@ public:
                                                           max_batch_size,
                                                           batch_type);
 
-    if (asynchronous) {
-      std::vector<AsyncResult<ctranslate2::TranslationResult>> results;
-      results.reserve(futures.size());
-      for (auto& future : futures)
-        results.emplace_back(std::move(future));
-      return std::move(results);
-    } else {
-      std::vector<ctranslate2::TranslationResult> results;
-      results.reserve(futures.size());
-      for (auto& future : futures)
-        results.emplace_back(future.get());
-      return std::move(results);
-    }
+    return maybe_wait_on_futures(std::move(futures), asynchronous);
   }
 
-  std::vector<std::vector<float>>
+  std::variant<std::vector<ctranslate2::ScoringResult>,
+               std::vector<AsyncResult<ctranslate2::ScoringResult>>>
   score_batch(const BatchTokens& source,
               const BatchTokens& target,
               size_t max_batch_size,
               const std::string& batch_type_str,
-              size_t max_input_length) {
+              size_t max_input_length,
+              bool asynchronous) {
     const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
     ctranslate2::ScoringOptions options;
     options.max_input_length = max_input_length;
@@ -367,13 +375,13 @@ public:
     std::shared_lock lock(_mutex);
     assert_model_is_ready();
 
-    auto results = _translator_pool.score_batch(source, target, options, max_batch_size, batch_type);
+    auto futures = _translator_pool.score_batch_async(source,
+                                                      target,
+                                                      options,
+                                                      max_batch_size,
+                                                      batch_type);
 
-    std::vector<std::vector<float>> scores;
-    scores.reserve(results.size());
-    for (auto& result : results)
-      scores.emplace_back(std::move(result.tokens_score));
-    return scores;
+    return maybe_wait_on_futures(std::move(futures), asynchronous);
   }
 
   ctranslate2::TranslationStats score_file(const std::string& source_path,
@@ -585,38 +593,22 @@ public:
     options.min_alternative_expansion_prob = min_alternative_expansion_prob;
 
     auto futures = _generator_pool.generate_batch_async(tokens, options, max_batch_size, batch_type);
-
-    if (asynchronous) {
-      std::vector<AsyncResult<ctranslate2::GenerationResult>> results;
-      results.reserve(futures.size());
-      for (auto& future : futures)
-        results.emplace_back(std::move(future));
-      return std::move(results);
-    } else {
-      std::vector<ctranslate2::GenerationResult> results;
-      results.reserve(futures.size());
-      for (auto& future : futures)
-        results.emplace_back(future.get());
-      return std::move(results);
-    }
+    return maybe_wait_on_futures(std::move(futures), asynchronous);
   }
 
-  std::vector<std::vector<float>>
+  std::variant<std::vector<ctranslate2::ScoringResult>,
+               std::vector<AsyncResult<ctranslate2::ScoringResult>>>
   score_batch(const BatchTokens& tokens,
               size_t max_batch_size,
               const std::string& batch_type_str,
-              size_t max_input_length) {
+              size_t max_input_length,
+              bool asynchronous) {
     const auto batch_type = ctranslate2::str_to_batch_type(batch_type_str);
     ctranslate2::ScoringOptions options;
     options.max_input_length = max_input_length;
 
     auto futures = _generator_pool.score_batch_async(tokens, options, max_batch_size, batch_type);
-
-    std::vector<std::vector<float>> scores;
-    scores.reserve(futures.size());
-    for (auto& future : futures)
-      scores.emplace_back(std::move(future.get().tokens_score));
-    return scores;
+    return maybe_wait_on_futures(std::move(futures), asynchronous);
   }
 
 private:
@@ -716,6 +708,33 @@ PYBIND11_MODULE(translator, m)
     ;
 
   declare_async_wrapper<ctranslate2::TranslationResult>(m, "AsyncTranslationResult");
+
+  py::class_<ctranslate2::ScoringResult>(m, "ScoringResult", "A scoring result.")
+    .def_readonly("tokens", &ctranslate2::ScoringResult::tokens,
+                  "The scored tokens.")
+    .def_readonly("log_probs", &ctranslate2::ScoringResult::tokens_score,
+                  "Log probability of each token")
+    .def("__repr__", [](const ctranslate2::ScoringResult& result) {
+      return "ScoringResult(tokens=" + std::string(py::repr(py::cast(result.tokens)))
+        + ", log_probs=" + std::string(py::repr(py::cast(result.tokens_score)))
+        + ")";
+    })
+
+    // Backward compatibility with reading the result as a list of log probabilities.
+    .def("__len__", [](const ctranslate2::ScoringResult& result) {
+      return result.tokens_score.size();
+    })
+    .def("__iter__", [](const ctranslate2::ScoringResult& result) {
+      return py::make_iterator(result.tokens_score.begin(), result.tokens_score.end());
+    })
+    .def("__getitem__", [](const ctranslate2::ScoringResult& result, size_t i) {
+      if (i >= result.tokens_score.size())
+        throw py::index_error();
+      return result.tokens_score[i];
+    })
+  ;
+
+  declare_async_wrapper<ctranslate2::ScoringResult>(m, "AsyncScoringResult");
 
   py::class_<ctranslate2::TranslationStats>(m, "TranslationStats",
                                             "A ``namedtuple`` containing some file statistics.")
@@ -940,6 +959,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
          py::arg("max_input_length")=1024,
+         py::arg("asynchronous")=false,
          py::call_guard<py::gil_scoped_release>(),
          R"pbdoc(
              Scores a batch of parallel tokens.
@@ -953,10 +973,10 @@ PYBIND11_MODULE(translator, m)
                  minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                max_input_length: Truncate inputs after this many tokens (0 to disable).
+               asynchronous: Run the scoring asynchronously.
 
              Returns:
-               The scores of each token. The length of each sequence of scores is limited to
-               :obj:`max_input_length` but includes the end of sentence token ``</s>``.
+               A list of scoring results.
          )pbdoc")
 
     .def("score_file", &TranslatorWrapper::score_file,
@@ -1151,6 +1171,7 @@ PYBIND11_MODULE(translator, m)
          py::arg("max_batch_size")=0,
          py::arg("batch_type")="examples",
          py::arg("max_input_length")=1024,
+         py::arg("asynchronous")=false,
          py::call_guard<py::gil_scoped_release>(),
          R"pbdoc(
              Scores a batch of tokens.
@@ -1164,10 +1185,10 @@ PYBIND11_MODULE(translator, m)
                  minimized.
                batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                max_input_length: Truncate inputs after this many tokens (0 to disable).
+               asynchronous: Run the scoring asynchronously.
 
              Returns:
-               The scores of each token. The length of each sequence of scores is limited to
-               :obj:`max_input_length`.
+               A list of scoring results.
          )pbdoc")
     ;
 

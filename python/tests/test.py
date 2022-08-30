@@ -461,9 +461,23 @@ def test_score_api(tmpdir):
     ]
 
     translator = _get_transliterator()
-    all_scores = translator.score_batch(source, target)
-    for scores, expected_scores in zip(all_scores, expected):
-        np.testing.assert_allclose(scores, expected_scores, rtol=1e-4)
+
+    # Check the different ways of getting the log probs.
+    all_log_probs = [
+        # Backward compatibility with reading the result as a list of log probs.
+        translator.score_batch(source, target),
+        [result.log_probs for result in translator.score_batch(source, target)],
+        [
+            async_result.result().log_probs
+            for async_result in translator.score_batch(
+                source, target, asynchronous=True
+            )
+        ],
+    ]
+
+    for batch_log_probs in all_log_probs:
+        for log_probs, expected_log_probs in zip(batch_log_probs, expected):
+            np.testing.assert_allclose(log_probs, expected_log_probs, rtol=1e-4)
 
     source_path = str(tmpdir.join("source.txt"))
     target_path = str(tmpdir.join("target.txt"))
@@ -497,11 +511,16 @@ def test_score_api(tmpdir):
 
     # Test empty inputs.
     assert translator.score_batch([], []) == []
-    assert translator.score_batch([[]], [[]])[0] == [0]
-    assert translator.score_batch([[], []], target) == [
-        [0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0],
-    ]
+
+    output = translator.score_batch([[]], [[]])
+    assert output[0].tokens == ["</s>"]
+    assert output[0].log_probs == [0]
+
+    output = translator.score_batch([[], []], target)
+    assert output[0].tokens == ["a", "t", "z", "m", "o", "n", "</s>"]
+    assert output[0].log_probs == [0, 0, 0, 0, 0, 0, 0]
+    assert output[1].tokens == ["a", "c", "h", "i", "s", "o", "n", "</s>"]
+    assert output[1].log_probs == [0, 0, 0, 0, 0, 0, 0, 0]
 
 
 @pytest.mark.parametrize("to_cpu", [False, True])
@@ -972,12 +991,11 @@ def test_fairseq_model_conversion(tmpdir):
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
-    scores = translator.score_batch(
+    output = translator.score_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]], [["a", "t", "z", "m", "o", "n"]]
     )
 
-    # Scored tokens: a t z m o n </s>
-    expected_scores = [
+    expected_log_probs = [
         -0.036438941955566406,
         -0.20800018310546875,
         -0.06881046295166016,
@@ -987,7 +1005,8 @@ def test_fairseq_model_conversion(tmpdir):
         -0.044970035552978516,
     ]
 
-    assert scores[0] == pytest.approx(expected_scores, 1e-5)
+    assert output[0].tokens == ["a", "t", "z", "m", "o", "n", "</s>"]
+    assert output[0].log_probs == pytest.approx(expected_log_probs, 1e-5)
 
 
 @skip_if_data_missing
@@ -1027,10 +1046,9 @@ def test_fairseq_user_start_token(tmpdir):
     assert output[0].scores[0] == 0
     assert output[0].attention[0] == [[0]]
 
-    scores = translator.score_batch([tokens], [["</s>", "a", "t", "z", "m", "o", "n"]])
+    output = translator.score_batch([tokens], [["</s>", "a", "t", "z", "m", "o", "n"]])
 
-    # Scored tokens: a t z m o n </s>
-    expected_scores = [
+    expected_log_probs = [
         -0.036438941955566406,
         -0.20800018310546875,
         -0.06881046295166016,
@@ -1040,10 +1058,13 @@ def test_fairseq_user_start_token(tmpdir):
         -0.044970035552978516,
     ]
 
-    assert scores[0] == pytest.approx(expected_scores, 1e-5)
+    assert output[0].tokens == ["a", "t", "z", "m", "o", "n", "</s>"]
+    assert output[0].log_probs == pytest.approx(expected_log_probs, 1e-5)
 
     # In this mode, an empty target is not enough tokens to run the score so the output is empty.
-    assert translator.score_batch([tokens], [[]])[0] == []
+    output = translator.score_batch([tokens], [[]])
+    assert not output[0].tokens
+    assert not output[0].log_probs
 
 
 @skip_if_data_missing
@@ -1239,13 +1260,20 @@ def test_transformers_lm_scoring(tmpdir):
     generator = ctranslate2.Generator(output_dir)
 
     tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
-    scores = generator.score_batch([tokens])[0]
-    assert len(scores) == len(tokens) - 1
+    output = generator.score_batch([tokens])[0]
+    assert output.tokens == tokens[1:]
+    assert len(output.log_probs) == len(output.tokens)
 
     # Test empty inputs.
     assert generator.score_batch([]) == []
-    assert generator.score_batch([[], tokens])[0] == []
-    assert generator.score_batch([["<|endoftext|>"]])[0] == []
+
+    output = generator.score_batch([[], tokens])[0]
+    assert not output.tokens
+    assert not output.log_probs
+
+    output = generator.score_batch([["<|endoftext|>"]])[0]
+    assert not output.tokens
+    assert not output.log_probs
 
 
 def _array_equal(a, b):

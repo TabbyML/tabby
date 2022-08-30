@@ -75,8 +75,8 @@ results = generator.generate_batch([["</s>", "The"]], sampling_topk=10, max_leng
 print(results[0].sequences[0])
 
 # Compute the perplexity for a sentence.
-log_probs = generator.score_batch([["</s>", "The", "sky", "is", "blue", "."]])
-perplexity = np.exp(-np.mean(log_probs[0]))
+outputs = generator.score_batch([["</s>", "The", "sky", "is", "blue", "."]])
+perplexity = np.exp(-np.mean(outputs[0].log_probs))
 print(perplexity)
 ```
 

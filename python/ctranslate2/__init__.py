@@ -19,9 +19,11 @@ if sys.platform == "win32":
 try:
     from ctranslate2.translator import (
         AsyncGenerationResult,
+        AsyncScoringResult,
         AsyncTranslationResult,
         GenerationResult,
         Generator,
+        ScoringResult,
         TranslationResult,
         TranslationStats,
         Translator,

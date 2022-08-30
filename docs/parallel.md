@@ -33,7 +33,7 @@ Multiple batches should be submitted concurrently to enable this parallelization
 * When calling `{translate,score}_file`
 * When calling `{translate,score,generate}_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
 * When calling `{translate,score,generate}_batch` from multiple Python threads.
-* When calling `{translate,generate}_batch` multiple times with `asynchronous=True`.
+* When calling `{translate,score,generate}_batch` multiple times with `asynchronous=True`.
 
 ```{note}
 Parallelization with multiple Python threads is possible because all computation methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
@@ -41,7 +41,7 @@ Parallelization with multiple Python threads is possible because all computation
 
 ## Asynchronous execution
 
-The methods `translate_batch` and `generate_batch` can run asynchronously with `asynchronous=True`. In this mode, the method returns immediately and the result can be retrieved later:
+The methods `translate_batch`, `score_batch`, and `generate_batch` can run asynchronously with `asynchronous=True`. In this mode, the method returns immediately and the result can be retrieved later:
 
 ```python
 async_results = []
