@@ -704,7 +704,7 @@ PYBIND11_MODULE(translator, m)
     .def("__len__", &ctranslate2::TranslationResult::num_hypotheses)
     .def("__getitem__", [](const ctranslate2::TranslationResult& result, size_t i) {
       if (i >= result.num_hypotheses())
-        throw std::out_of_range("list index out of range");
+        throw py::index_error();
       py::dict hypothesis;
       hypothesis["tokens"] = result.hypotheses[i];
       if (result.has_scores())
