@@ -31,6 +31,7 @@ translator = ctranslate2.Translator(model_path, device="cuda", inter_threads=4)
 Multiple batches should be submitted concurrently to enable this parallelization. Parallel translations are enabled in the following cases:
 
 * When calling `{translate,score}_file`
+* When calling `{translate,score,generate}_iterable`
 * When calling `{translate,score,generate}_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
 * When calling `{translate,score,generate}_batch` from multiple Python threads.
 * When calling `{translate,score,generate}_batch` multiple times with `asynchronous=True`.

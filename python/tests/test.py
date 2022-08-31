@@ -1,4 +1,5 @@
 import copy
+import inspect
 import os
 import shutil
 import sys
@@ -124,6 +125,29 @@ def test_batch_translation_async():
     assert output[1].result().hypotheses == [["a", "c", "h", "i", "s", "o", "n"]]
     assert output[0].done()
     assert output[1].done()
+
+
+def test_iterable_translation():
+    source = [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]]
+    translator = _get_transliterator()
+    results = translator.translate_iterable(iter(source), return_scores=True)
+    assert inspect.isgenerator(results)
+    results = list(results)
+    assert results[0].hypotheses == [["a", "t", "z", "m", "o", "n"]]
+    assert results[0].scores
+    assert results[1].hypotheses == [["a", "c", "h", "i", "s", "o", "n"]]
+    assert results[1].scores
+
+    target_prefix = [["a", "t", "s"], ["a", "c", "h", "e"]]
+    results = translator.translate_iterable(iter(source), iter(target_prefix))
+    results = list(results)
+    assert results[0].hypotheses == [["a", "t", "s", "u", "m", "o", "n"]]
+    assert not results[0].scores
+    assert results[1].hypotheses == [["a", "c", "h", "e", "s", "o", "n"]]
+    assert not results[1].scores
+
+    with pytest.raises(StopIteration):
+        next(translator.translate_iterable(iter([])))
 
 
 def test_file_translation(tmpdir):
@@ -473,6 +497,10 @@ def test_score_api(tmpdir):
                 source, target, asynchronous=True
             )
         ],
+        [
+            result.log_probs
+            for result in translator.score_iterable(iter(source), iter(target))
+        ],
     ]
 
     for batch_log_probs in all_log_probs:
@@ -511,6 +539,9 @@ def test_score_api(tmpdir):
 
     # Test empty inputs.
     assert translator.score_batch([], []) == []
+
+    with pytest.raises(StopIteration):
+        next(translator.score_iterable(iter([]), iter([])))
 
     output = translator.score_batch([[]], [[]])
     assert output[0].tokens == ["</s>"]
@@ -1274,6 +1305,29 @@ def test_transformers_lm_scoring(tmpdir):
     output = generator.score_batch([["<|endoftext|>"]])[0]
     assert not output.tokens
     assert not output.log_probs
+
+
+@only_on_linux
+def test_transformers_generator_on_iterables(tmpdir):
+    converter = ctranslate2.converters.TransformersConverter("gpt2")
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+    generator = ctranslate2.Generator(output_dir)
+
+    start_tokens = ["<|endoftext|>"]
+    tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
+    output = next(generator.generate_iterable(iter([start_tokens]), max_length=10))
+    assert output.sequences[0] == tokens
+
+    output = next(generator.score_iterable(iter([tokens])))
+    assert output.tokens == tokens[1:]
+    assert len(output.log_probs) == len(output.tokens)
+
+    # Test empty iterables.
+    with pytest.raises(StopIteration):
+        next(generator.score_iterable(iter([])))
+    with pytest.raises(StopIteration):
+        next(generator.generate_iterable(iter([])))
 
 
 def _array_equal(a, b):

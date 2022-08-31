@@ -17,6 +17,7 @@ if sys.platform == "win32":
         ctypes.CDLL(os.path.join(package_dir, "%s.dll" % library))
 
 try:
+    from ctranslate2.extensions import register_extensions
     from ctranslate2.translator import (
         AsyncGenerationResult,
         AsyncScoringResult,
@@ -32,6 +33,9 @@ try:
         get_supported_compute_types,
         set_random_seed,
     )
+
+    register_extensions()
+    del register_extensions
 except ImportError as e:
     # Allow using the Python package without the compiled translator extension.
     if "No module named" in str(e):
