@@ -326,15 +326,10 @@ namespace ctranslate2 {
       state.emplace("memory_lengths", std::move(memory_lengths));
 
       const auto& target_vocabulary = _model->get_target_vocabulary();
-      std::vector<size_t> include_ids;
-      std::vector<size_t> exclude_ids;
+      std::vector<size_t> restrict_ids;
       if (options.use_vmap && _model->get_vocabulary_map())
-        include_ids = _model->get_vocabulary_map()->get_candidates(source_features[0]);
-      if (options.disable_unk)
-        exclude_ids = {target_vocabulary.unk_id()};
-      const auto* output_ids_map = _decoder->update_output_layer(_model->preferred_size_multiple(),
-                                                                 include_ids,
-                                                                 exclude_ids);
+        restrict_ids = _model->get_vocabulary_map()->get_candidates(source_features[0], target_ids);
+      _decoder->update_output_layer(_model->preferred_size_multiple(), restrict_ids);
 
       // Decode.
       DecodingOptions decoding_options;
@@ -343,6 +338,7 @@ namespace ctranslate2 {
       decoding_options.coverage_penalty = options.coverage_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
+      decoding_options.disable_unk = options.disable_unk;
       decoding_options.prefix_bias_beta = options.prefix_bias_beta;
       decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_decoding_length;
@@ -360,8 +356,8 @@ namespace ctranslate2 {
                                                    state,
                                                    target_ids,
                                                    target_vocabulary.eos_id(),
-                                                   decoding_options,
-                                                   output_ids_map);
+                                                   target_vocabulary.unk_id(),
+                                                   decoding_options);
 
       // Convert generated ids to tokens.
       std::vector<TranslationResult> final_results;

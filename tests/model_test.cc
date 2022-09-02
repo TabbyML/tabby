@@ -10,32 +10,33 @@ TEST(ModelTest, UpdateDecoderOutputLayer) {
   auto model = models::Model::load(default_model_dir())->as_sequence_to_sequence();
   auto& decoder = dynamic_cast<models::EncoderDecoderReplica&>(*model).decoder();
 
-  EXPECT_EQ(decoder.update_output_layer(), nullptr);
+  decoder.update_output_layer();
+  EXPECT_FALSE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 43);
 
   // Pad to a multiple of 5.
-  EXPECT_NE(decoder.update_output_layer(5), nullptr);
+  decoder.update_output_layer(5);
+  EXPECT_TRUE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 45);
 
-  // Exclude index 1 and pad to a multiple of 2.
-  EXPECT_NE(decoder.update_output_layer(2, {}, {1}), nullptr);
-  EXPECT_EQ(decoder.output_size(), 42);
-
-  // Exclude index 1 and pad to a multiple of 43.
-  EXPECT_NE(decoder.update_output_layer(43, {}, {1}), nullptr);
-  EXPECT_EQ(decoder.output_size(), 43);
-
   // Reset output layer.
-  EXPECT_EQ(decoder.update_output_layer(), nullptr);
+  decoder.update_output_layer();
+  EXPECT_FALSE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 43);
 
-  // Restrict to {0, 1, 2, 5} - {1} and pad to a multiple of 5.
-  EXPECT_EQ(*decoder.update_output_layer(5, {0, 1, 2, 5}, {1}),
-            (std::vector<size_t>{0, 2, 5, 0, 0}));
+  // Restrict to {0, 1, 2, 5} and pad to a multiple of 5.
+  decoder.update_output_layer(5, {0, 1, 2, 5});
+  EXPECT_TRUE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 5);
+  EXPECT_EQ(decoder.to_original_word_id(0), 0);
+  EXPECT_EQ(decoder.to_original_word_id(1), 1);
+  EXPECT_EQ(decoder.to_original_word_id(2), 2);
+  EXPECT_EQ(decoder.to_original_word_id(3), 5);
+  EXPECT_EQ(decoder.to_original_word_id(4), 0);
 
   // Remove restriction.
-  EXPECT_EQ(decoder.update_output_layer(), nullptr);
+  decoder.update_output_layer();
+  EXPECT_FALSE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 43);
 }
 

@@ -79,20 +79,14 @@ namespace ctranslate2 {
       PROFILE("DecoderReplica::run_generation");
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
-
-      std::vector<size_t> include_ids;
-      std::vector<size_t> exclude_ids;
-      if (options.disable_unk)
-        exclude_ids = {vocabulary.unk_id()};
-      const auto* output_ids_map = _decoder->update_output_layer(_model->preferred_size_multiple(),
-                                                                 include_ids,
-                                                                 exclude_ids);
+      _decoder->update_output_layer(_model->preferred_size_multiple());
 
       DecodingOptions decoding_options;
       decoding_options.beam_size = options.beam_size;
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
+      decoding_options.disable_unk = options.disable_unk;
       decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_length;
       decoding_options.min_length = options.min_length;
@@ -110,8 +104,8 @@ namespace ctranslate2 {
                                                    state,
                                                    start_ids,
                                                    vocabulary.eos_id(),
-                                                   decoding_options,
-                                                   output_ids_map);
+                                                   vocabulary.unk_id(),
+                                                   decoding_options);
 
       std::vector<GenerationResult> final_results;
       final_results.reserve(results.size());

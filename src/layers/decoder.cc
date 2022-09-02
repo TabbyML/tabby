@@ -55,43 +55,35 @@ namespace ctranslate2 {
       return _device;
     }
 
-    const std::vector<size_t>*
-    Decoder::update_output_layer(const dim_t size_multiple,
-                                 const std::vector<size_t>& include_ids,
-                                 const std::vector<size_t>& exclude_ids) {
+    void Decoder::update_output_layer(const dim_t size_multiple,
+                                      const std::vector<size_t>& restrict_ids) {
       const dim_t current_output_size = output_size();
 
       if (_vocabulary_size == 0)
         _vocabulary_size = current_output_size;
 
-      std::vector<size_t> ids = include_ids;
+      std::vector<size_t> ids = restrict_ids;
 
       if (ids.empty()) {
-        dim_t target_output_size = _vocabulary_size - exclude_ids.size();
+        dim_t target_output_size = _vocabulary_size;
         if (target_output_size % size_multiple != 0)
           target_output_size += size_multiple - (target_output_size % size_multiple);
 
         // Do not update the layer if the output size is unchanged.
-        if (target_output_size == current_output_size && exclude_ids == _previous_exclude_ids)
-          return _output_layer_index.empty() ? nullptr : &_output_layer_index;
+        if (target_output_size == current_output_size)
+          return;
 
         // Reset the output layer if the output size is the vocabulary size.
-        if (target_output_size == _vocabulary_size && exclude_ids.empty()) {
+        if (target_output_size == _vocabulary_size) {
           output_layer().select_weights(nullptr);
-          _output_layer_index.clear();
-          _previous_exclude_ids.clear();
-          return nullptr;
+          _to_output_word_id.clear();
+          _to_original_word_id.clear();
+          return;
         }
 
         ids.reserve(target_output_size);
         ids.resize(_vocabulary_size);
         std::iota(ids.begin(), ids.end(), size_t(0));
-      }
-
-      for (const size_t exclude_id : exclude_ids) {
-        const auto it = std::lower_bound(ids.begin(), ids.end(), exclude_id);
-        if (it != ids.end() && *it == exclude_id)
-          ids.erase(it);
       }
 
       // Pad size to the next multiple.
@@ -108,9 +100,10 @@ namespace ctranslate2 {
         index = index.to(_device);
       output_layer().select_weights(&index);
 
-      _output_layer_index = std::move(ids);
-      _previous_exclude_ids = exclude_ids;
-      return &_output_layer_index;
+      _to_original_word_id = std::move(ids);
+      _to_output_word_id.reserve(_to_original_word_id.size());
+      for (size_t i = 0; i < _to_original_word_id.size(); ++i)
+        _to_output_word_id.emplace(_to_original_word_id[i], i);
     }
 
   }

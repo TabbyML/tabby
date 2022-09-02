@@ -37,13 +37,21 @@ namespace ctranslate2 {
       void gather_state(DecoderState& state, const StorageView& indices) const;
 
       // Restrict the output layer to a set of ids and/or resize it to a preferred size multiple.
-      // Elements in include_ids and exclude_ids must be unique and sorted.
-      // If the output layer is updated, the returned vector is not null and maps new indices
-      // to original indices.
-      const std::vector<size_t>*
-      update_output_layer(const dim_t size_multiple = 1,
-                          const std::vector<size_t>& include_ids = {},
-                          const std::vector<size_t>& exclude_ids = {});
+      // Elements in restrict_ids must be unique and sorted.
+      void update_output_layer(const dim_t size_multiple = 1,
+                               const std::vector<size_t>& restrict_ids = {});
+
+      bool output_layer_is_updated() const {
+        return !_to_original_word_id.empty();
+      }
+
+      size_t to_output_word_id(size_t original_id) const {
+        return _to_output_word_id.empty() ? original_id : _to_output_word_id.at(original_id);
+      }
+
+      size_t to_original_word_id(size_t output_id) const {
+        return _to_original_word_id.empty() ? output_id : _to_original_word_id.at(output_id);
+      }
 
       Device device() const;
 
@@ -66,8 +74,8 @@ namespace ctranslate2 {
       const Device _device;
 
     private:
-      std::vector<size_t> _output_layer_index;
-      std::vector<size_t> _previous_exclude_ids;
+      std::vector<size_t> _to_original_word_id;
+      std::unordered_map<size_t, size_t> _to_output_word_id;
       dim_t _vocabulary_size = 0;
     };
 

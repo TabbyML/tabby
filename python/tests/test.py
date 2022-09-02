@@ -23,6 +23,14 @@ def _get_model_path():
     return os.path.join(_TEST_DATA_DIR, "models", "v2", "aren-transliteration")
 
 
+def _get_model_path_with_vmap(tmpdir, tokens):
+    model_dir = str(tmpdir.join("model"))
+    shutil.copytree(_get_model_path(), model_dir)
+    with open(os.path.join(model_dir, "vmap.txt"), "w", encoding="utf-8") as vmap:
+        vmap.write("\t%s\n" % " ".join(tokens))
+    return model_dir
+
+
 def _get_transliterator():
     return ctranslate2.Translator(_get_model_path())
 
@@ -340,11 +348,7 @@ def test_hard_target_prefix():
 
 @pytest.mark.parametrize("beam_size", [1, 2])
 def test_hard_target_prefix_with_vmap(tmpdir, beam_size):
-    model_dir = str(tmpdir.join("model"))
-    shutil.copytree(_get_model_path(), model_dir)
-    with open(os.path.join(model_dir, "vmap.txt"), "w", encoding="utf-8") as vmap:
-        vmap.write("ن\tt z m o n\n")
-
+    model_dir = _get_model_path_with_vmap(tmpdir, ["t", "z", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]],
@@ -395,6 +399,40 @@ def test_weakly_biased_target_prefix():
     )
 
 
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_repetition_penalty_with_vmap(tmpdir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+    translator = ctranslate2.Translator(model_dir)
+    output = translator.translate_batch(
+        [["ن"] * 3],
+        repetition_penalty=100,
+        max_decoding_length=3,
+        beam_size=beam_size,
+        use_vmap=True,
+    )
+    tokens = output[0].hypotheses[0]
+    assert len(tokens) == len(set(tokens))
+
+
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_no_repeat_ngram_size_with_vmap(tmpdir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+    translator = ctranslate2.Translator(model_dir)
+    no_repeat_ngram_size = 3
+    output = translator.translate_batch(
+        [["ن"] * 50],
+        no_repeat_ngram_size=no_repeat_ngram_size,
+        beam_size=beam_size,
+        use_vmap=True,
+    )
+    tokens = output[0].hypotheses[0]
+    ngrams = [
+        "".join(tokens[i : i + no_repeat_ngram_size])
+        for i in range(len(tokens) - no_repeat_ngram_size + 1)
+    ]
+    assert len(ngrams) == len(set(ngrams))
+
+
 def test_num_hypotheses():
     translator = _get_transliterator()
     output = translator.translate_batch(
@@ -417,6 +455,19 @@ def test_min_decoding_length():
         [["آ", "ت", "ز", "م", "و", "ن"]], min_decoding_length=7
     )
     assert len(output[0].hypotheses[0]) > 6  # 6 is the expected target length.
+
+
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_min_decoding_length_with_vmap(tmpdir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+    translator = ctranslate2.Translator(model_dir)
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        min_decoding_length=1,
+        beam_size=beam_size,
+        use_vmap=True,
+    )
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
 def test_return_attention():
@@ -448,6 +499,21 @@ def test_return_alternatives():
         return_alternatives=True,
     )
     assert len(output[0].hypotheses) == 10
+    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[1] == ["a", "t", "s", "u", "m", "o", "n"]
+
+
+def test_return_alternatives_with_vmap(tmpdir):
+    model_dir = _get_model_path_with_vmap(tmpdir, ["z", "s", "u", "m", "o", "n"])
+    translator = ctranslate2.Translator(model_dir)
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        target_prefix=[["a", "t"]],
+        num_hypotheses=2,
+        return_alternatives=True,
+        use_vmap=True,
+    )
+    assert len(output[0].hypotheses) == 2
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
     assert output[0].hypotheses[1] == ["a", "t", "s", "u", "m", "o", "n"]
 
@@ -1281,6 +1347,21 @@ def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
         vocab = list(line.rstrip("\n") for line in vocab_file)
 
     assert vocab[-1] != "<pad>"
+
+
+@only_on_linux
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_transformers_marianmt_disable_unk(clear_transformers_cache, tmpdir, beam_size):
+    converter = ctranslate2.converters.TransformersConverter(
+        "Helsinki-NLP/opus-mt-en-roa"
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    tokens = ">>ind<< ▁The ▁Prime <unk> ▁is ▁coming ▁back ▁tomorrow . </s>".split()
+    translator = ctranslate2.Translator(output_dir)
+    output = translator.translate_batch([tokens], beam_size=beam_size, disable_unk=True)
+    assert "<unk>" not in output[0].hypotheses[0]
 
 
 @only_on_linux

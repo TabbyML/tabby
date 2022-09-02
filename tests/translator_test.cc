@@ -502,41 +502,6 @@ TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeam) {
     expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
 }
 
-TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeamOutputMap) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
-    const dim_t vocab_size = 2;
-    const dim_t batch_size = 1;
-    const dim_t beam_size = 1;
-    const float prefix_bias_beta = 0.35;
-
-    StorageView logits({batch_size * beam_size, 1, vocab_size},
-                       std::vector<float>{4, 6});
-    StorageView softmax;
-    ops::SoftMax()(logits, softmax);
-    std::vector<float> expected_log_probs_vec = {
-      std::log((1-prefix_bias_beta) * softmax.at<float>(0) + prefix_bias_beta),
-      std::log((1-prefix_bias_beta) * softmax.at<float>(1)),
-    };
-    StorageView expected_log_probs(logits.shape(), expected_log_probs_vec, device);
-
-    StorageView log_probs(device, dtype);
-    const size_t step = 0;
-    const std::vector<std::vector<bool>> beams_diverged_from_prefix = {{false}};
-    const std::vector<dim_t> batch_offset = {0};
-    const std::vector<std::vector<size_t>> prefix_ids = {{64}};
-    const std::vector<size_t> output_ids_map = {64, 65};
-    ctranslate2::BiasedDecoder biased_decoder(prefix_bias_beta, prefix_ids, &output_ids_map);
-    biased_decoder.decode(batch_size,
-                          step,
-                          batch_offset,
-                          beams_diverged_from_prefix,
-                          logits.to(device).to(dtype),
-                          log_probs);
-
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
-}
-
 TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
     const Device device = GetParam().first;
     const DataType dtype = GetParam().second;

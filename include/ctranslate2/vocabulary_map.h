@@ -22,7 +22,8 @@ namespace ctranslate2 {
 
     // The returned vector is ordered.
     std::vector<size_t>
-    get_candidates(const std::vector<std::vector<std::string>>& batch_tokens) const;
+    get_candidates(const std::vector<std::vector<std::string>>& source_tokens,
+                   const std::vector<std::vector<size_t>>& target_prefix_ids) const;
 
   private:
     const size_t _vocabulary_size;
