@@ -4,6 +4,36 @@
 
 ### Fixes and improvements
 
+## [v2.22.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.22.0) (2022-09-02)
+
+### Changes
+
+* `score_batch` methods now return a list of `ScoringResult` instances instead of plain lists of probabilities. In most cases you should not need to update your code: the result object implements the methods `__len__`, `__iter__`, and `__getitem__` so that it can still be used as a list.
+
+### New features
+
+* Add methods to efficiently process long iterables:
+  * `Translator.translate_iterable`
+  * `Translator.score_iterable`
+  * `Generator.generate_iterable`
+  * `Generator.score_iterable`
+* Add decoding option `min_alternative_expansion_prob` to filter out unlikely alternatives in `return_alternatives` mode
+* Return `ScoringResult` instances from `score_batch` to include additional outputs. The current attributes are:
+  * `tokens`: the list of tokens that were actually scored (including special tokens)
+  * `log_probs`: the log probability of each scored token
+* Support running `score_batch` asynchronously by setting the `asynchronous` flag
+
+### Fixes and improvements
+
+* Fix possibly incorrect results when using `disable_unk` or `use_vmap` with one of the following options:
+  * `min_decoding_length`
+  * `no_repeat_ngram_size`
+  * `prefix_bias_beta`
+  * `repetition_penalty`
+* Also pad the output layer during scoring to enable Tensor Cores
+* Improve the correctness of the model output probabilities when the output layer is padded
+* Skip translation when the NLLB input is empty (i.e. when the input only contains EOS and the language token)
+
 ## [v2.21.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.21.1) (2022-07-29)
 
 ### Fixes and improvements
