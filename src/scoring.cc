@@ -36,6 +36,8 @@ namespace ctranslate2 {
                                                                 device,
                                                                 preferred_size_multiple);
 
+    decoder.update_output_layer(preferred_size_multiple);
+
     StorageView logits(decoder.output_type(), device);
     decoder(input_ids, lengths, state, logits);
     ops::LogSoftMax()(logits);

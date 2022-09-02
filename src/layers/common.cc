@@ -294,15 +294,22 @@ namespace ctranslate2 {
       return _partial_weight ? _partial_weight.dim(0) : _weight.dim(0);
     }
 
-    void Dense::select_weights(const StorageView* index) {
+    void Dense::select_weights(const StorageView* index, const StorageView* extra_bias) {
       if (index) {
         if (_packed_weight)
           throw std::runtime_error("Can't select pre-packed weight");
         ops::Gather()(_weight, *index, _partial_weight);
+
+        if (_bias) {
+          ops::Gather()(*_bias, *index, _partial_bias);
+          if (extra_bias)
+            ops::Add()(_partial_bias, *extra_bias, _partial_bias);
+        } else if (extra_bias) {
+          _partial_bias = *extra_bias;
+        }
+
         if (_u8_shift_compensation)
           ops::Gather()(*_u8_shift_compensation, *index, _partial_u8_shift_compensation);
-        if (_bias)
-          ops::Gather()(*_bias, *index, _partial_bias);
         if (_qscale && !_qscale->is_scalar())
           ops::Gather()(*_qscale, *index, _partial_qscale);
       } else {
