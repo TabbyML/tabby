@@ -53,7 +53,9 @@ namespace ctranslate2 {
         return _to_original_word_id.empty() ? output_id : _to_original_word_id.at(output_id);
       }
 
-      Device device() const;
+      Device device() const {
+        return _device;
+      }
 
       DataType output_type() const override {
         return const_cast<Decoder&>(*this).output_layer().output_type();

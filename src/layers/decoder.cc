@@ -52,10 +52,6 @@ namespace ctranslate2 {
       return true;
     }
 
-    Device Decoder::device() const {
-      return _device;
-    }
-
     void Decoder::update_output_layer(const dim_t size_multiple,
                                       const std::vector<size_t>& restrict_ids) {
       const dim_t current_output_size = output_size();
