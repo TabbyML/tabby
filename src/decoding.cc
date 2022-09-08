@@ -181,14 +181,16 @@ namespace ctranslate2 {
 
   static void append_step_output(StorageView& history,    // [batch, beam, time, ...]
                                  StorageView step_output,  // [batch, beam, ...]
-                                 const StorageView& beam_origins) {
+                                 const StorageView* beam_origins = nullptr) {
     step_output.expand_dims(2);  // Insert time dimension.
 
     if (history) {
-      const dim_t beam_size = history.dim(1);
-      merge_batch_beam(history);
-      gather(history, beam_origins);
-      split_batch_beam(history, beam_size);
+      if (beam_origins) {
+        const dim_t beam_size = history.dim(1);
+        merge_batch_beam(history);
+        gather(history, *beam_origins);
+        split_batch_beam(history, beam_size);
+      }
       const StorageView cur_history(std::move(history));
       ops::Concat(2)({&cur_history, &step_output}, history);
     } else {
@@ -556,15 +558,16 @@ namespace ctranslate2 {
       }
 
       // Append last prediction.
-      append_step_output(alive_seq, topk_ids, gather_indices);
+      append_step_output(alive_seq, topk_ids, &gather_indices);
 
       if (attention_step) {
         if (!is_expanded)
           expand_to_beam_size(attention_step, _beam_size);
         split_batch_beam(attention_step, _beam_size);
-        append_step_output(alive_attention,
-                           attention_step.to_float().to(Device::CPU),
-                           gather_indices);
+        append_step_output(alive_attention, attention_step.to_float().to(Device::CPU));
+        merge_batch_beam(alive_attention);
+        gather(alive_attention, gather_indices);
+        split_batch_beam(alive_attention, _beam_size);
       }
 
       // Check if some hypotheses are finished.
