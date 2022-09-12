@@ -7,7 +7,7 @@ pip install "cmake==3.22.*"
 
 if [ "$CIBW_ARCHS" == "aarch64" ]; then
 
-    OPENBLAS_VERSION=0.3.20
+    OPENBLAS_VERSION=0.3.21
     curl -L -O https://github.com/xianyi/OpenBLAS/releases/download/v${OPENBLAS_VERSION}/OpenBLAS-${OPENBLAS_VERSION}.tar.gz
     tar xf *.tar.gz && rm *.tar.gz
     cd OpenBLAS-*
