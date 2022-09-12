@@ -39,7 +39,7 @@ def _maybe_add_library_root(lib_name):
 
 _maybe_add_library_root("CTRANSLATE2")
 
-cflags = ["-std=c++17"]
+cflags = ["-std=c++17", "-fvisibility=hidden"]
 ldflags = []
 package_data = {}
 if sys.platform == "darwin":
