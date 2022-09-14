@@ -90,6 +90,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
     project_urls={
@@ -102,7 +103,7 @@ setup(
     packages=find_packages(exclude=["bin"]),
     package_data=package_data,
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.6,<3.11",
+    python_requires=">=3.6,<3.12",
     install_requires=[
         "numpy",
         "pyyaml>=5.3,<7",
