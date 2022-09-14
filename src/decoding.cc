@@ -33,6 +33,12 @@ namespace ctranslate2 {
     merge_batch_beam(data);
   }
 
+  static void gather_beam_flat(StorageView& data, const StorageView& indices, dim_t beam_size) {
+    merge_batch_beam(data);
+    gather(data, indices);
+    split_batch_beam(data, beam_size);
+  }
+
   static void expand_to_beam_size(StorageView& input, dim_t beam_size) {
     input.expand_dims(1);
     ops::Tile(/*axis=*/1, beam_size)(input);
@@ -95,17 +101,18 @@ namespace ctranslate2 {
                                         const std::vector<std::vector<size_t>>& prefix_ids,
                                         const size_t end_id,
                                         const std::vector<dim_t>& batch_offset,
+                                        const dim_t beam_size = 1,
                                         StorageView* beam_origins = nullptr,
                                         const bool is_expanded = true) {
     const dim_t batch_size = sampled_scores.dim(0);
-    const dim_t beam_size = sampled_scores.dim(1);
     for (dim_t i = 0; i < batch_size; ++i) {
       const auto& prefix = prefix_ids[batch_offset[i]];
       if (step > prefix.size())
         continue;
 
-      for (dim_t k = 0; k < beam_size; ++k) {
-        const dim_t flat_index = i * beam_size + k;
+      const dim_t num_samples = sampled_scores.dim(1);
+      for (dim_t k = 0; k < num_samples; ++k) {
+        const dim_t flat_index = i * num_samples + k;
         auto& sampled_id = sampled_ids.at<int32_t>(flat_index);
         int32_t new_id = -1;
         float new_score = 0;
@@ -185,12 +192,8 @@ namespace ctranslate2 {
     step_output.expand_dims(2);  // Insert time dimension.
 
     if (history) {
-      if (beam_origins) {
-        const dim_t beam_size = history.dim(1);
-        merge_batch_beam(history);
-        gather(history, *beam_origins);
-        split_batch_beam(history, beam_size);
-      }
+      if (beam_origins)
+        gather_beam_flat(history, *beam_origins, step_output.dim(1));
       const StorageView cur_history(std::move(history));
       ops::Concat(2)({&cur_history, &step_output}, history);
     } else {
@@ -442,8 +445,17 @@ namespace ctranslate2 {
     const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
-    const bool expand_after_first_step = (device == Device::CPU);
+    const dim_t vocabulary_size = decoder.output_size();
     const dim_t batch_size = start_ids.size();
+
+    // We get more candidates than the beam size so that if half the candidates are EOS,
+    // we can replace finished hypotheses with active beams.
+    const dim_t num_candidates = _beam_size * 2;
+
+    // Only the first beam is considered in the first step. As an additional optimization
+    // we try to run the first step without expanding the batch size.
+    const bool expand_after_first_step = (device == Device::CPU
+                                          && num_candidates <= vocabulary_size);
 
     StorageView topk_ids({batch_size}, DataType::INT32);
     StorageView topk_scores(dtype);
@@ -488,7 +500,6 @@ namespace ctranslate2 {
               (return_attention || _coverage_penalty != 0) ? &attention_step : nullptr);
 
       const dim_t cur_batch_size = is_expanded ? logits.dim(0) / _beam_size : logits.dim(0);
-      const dim_t vocabulary_size = logits.dim(-1);
 
       if (repetition_penalty != 1 && alive_seq) {
         merge_batch_beam(alive_seq);
@@ -533,7 +544,7 @@ namespace ctranslate2 {
       log_probs.reshape({cur_batch_size, -1});
 
       // TopK candidates.
-      sampler(log_probs, topk_ids, topk_scores, _beam_size);
+      sampler(log_probs, topk_ids, topk_scores, num_candidates);
 
       // Unflatten the ids.
       StorageView gather_indices = unflatten_ids(topk_ids, _beam_size, vocabulary_size, is_expanded);
@@ -546,6 +557,7 @@ namespace ctranslate2 {
                                     *prefix_ids,
                                     end_id,
                                     batch_offset,
+                                    _beam_size,
                                     &gather_indices,
                                     is_expanded);
         } else if (bias_towards_prefix) {
@@ -565,22 +577,25 @@ namespace ctranslate2 {
           expand_to_beam_size(attention_step, _beam_size);
         split_batch_beam(attention_step, _beam_size);
         append_step_output(alive_attention, attention_step.to_float().to(Device::CPU));
-        merge_batch_beam(alive_attention);
-        gather(alive_attention, gather_indices);
-        split_batch_beam(alive_attention, _beam_size);
+        gather_beam_flat(alive_attention, gather_indices, num_candidates);
       }
 
       // Check if some hypotheses are finished.
       std::vector<int32_t> non_finished_index;
       non_finished_index.reserve(cur_batch_size);
 
+      // Only keep the first beam_size candidates.
+      StorageView active_beams({cur_batch_size * _beam_size}, DataType::INT32);
+
       for (dim_t i = 0; i < cur_batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
         auto& result = results[batch_id];
+        dim_t secondary_candidates_offset = _beam_size;
 
         for (dim_t k = 0; k < _beam_size; ++k) {
           const size_t last_id = topk_ids.at<int32_t>({i, k});
           const dim_t prefix_length = use_hard_prefix ? prefix_ids->at(batch_id).size() : 0;
+          dim_t next_beam_id = k;
 
           if ((last_id == end_id && step >= prefix_length) || step + 1 == max_step) {
             if (k == 0)
@@ -602,9 +617,18 @@ namespace ctranslate2 {
             if (return_attention)
               result.attention.emplace_back(std::move(attention));
 
-            // Prevent this beam from advancing in the next step.
-            TYPE_DISPATCH(dtype, topk_scores.at<T>({i, k}) = T(-1e10));
+            // Move another active beam to this position.
+            for (dim_t j = secondary_candidates_offset; j < num_candidates; ++j) {
+              const auto candidate = topk_ids.at<int32_t>({i, j});
+              if (static_cast<size_t>(candidate) != end_id) {
+                next_beam_id = j;
+                secondary_candidates_offset = j + 1;
+                break;
+              }
+            }
           }
+
+          active_beams.at<int32_t>(i * _beam_size + k) = i * num_candidates + next_beam_id;
         }
 
         const bool is_finished = (
@@ -629,6 +653,13 @@ namespace ctranslate2 {
         }
         break;
       }
+
+      gather(gather_indices, active_beams);
+      gather_beam_flat(topk_ids, active_beams, _beam_size);
+      gather_beam_flat(topk_scores, active_beams, _beam_size);
+      gather_beam_flat(alive_seq, active_beams, _beam_size);
+      if (alive_attention)
+        gather_beam_flat(alive_attention, active_beams, _beam_size);
 
       // If some sentences finished on this step, ignore them for the next step.
       if (next_batch_size != cur_batch_size) {

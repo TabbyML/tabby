@@ -874,6 +874,17 @@ TEST(TranslatorTest, SameBeamAndGreedyScore) {
   EXPECT_NEAR(greedy_score, beam_score, 1e-5);
 }
 
+TEST(TranslatorTest, BeamSizeLargerThanVocabSize) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  // 22*2=44 candidates are retrieved from the model output but the vocabulary size is 42.
+  options.beam_size = 22;
+  options.num_hypotheses = options.beam_size;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  auto result = translator.translate(input, options);
+  EXPECT_EQ(result.num_hypotheses(), options.num_hypotheses);
+}
+
 TEST(BufferedTranslationWrapperTest, Basic) {
   auto translator_pool = std::make_shared<TranslatorPool>(/*num_translators=*/1,
                                                           /*num_threads_per_translator=*/2,
