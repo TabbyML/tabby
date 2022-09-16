@@ -262,9 +262,12 @@ namespace ctranslate2 {
   static float compute_coverage_penalty(const std::vector<std::vector<float>>& attention,
                                         const float beta) {
     float penalty = 0;
-    for (const auto& vector : attention) {
-      const float coverage = std::accumulate(vector.begin(), vector.end(), 0.f);
-      penalty += std::log(std::min(coverage, 1.f));
+    for (size_t column = 0; column < attention[0].size(); column++) {
+      float coverage = 0;
+      for (size_t row = 0; row < attention.size(); row++)
+        coverage += attention[row][column];
+      if (coverage > 0)
+        penalty += std::log(std::min(coverage, 1.f));
     }
     return beta * penalty;
   }
