@@ -4,6 +4,22 @@
 
 ### Fixes and improvements
 
+## [v2.23.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.23.0) (2022-09-16)
+
+### New features
+
+* Build wheels for Python 3.11
+
+### Fixes and improvements
+
+* In beam search, get more candidates from the model output and replace finished hypotheses by these additional candidates
+* Fix possibly incorrect attention vectors returned from the beam search
+* Fix coverage penalty that was actually not applied
+* Fix crash when the beam size is larger than the vocabulary size
+* Add missing compilation flag `-fvisibility=hidden` when building the Python module
+* Update oneDNN to 2.6.2
+* Update OpenBLAS to 0.3.21
+
 ## [v2.22.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.22.0) (2022-09-02)
 
 ### Changes
