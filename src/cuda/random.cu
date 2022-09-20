@@ -1,10 +1,10 @@
 #include "random.h"
 
-#include <algorithm>
 #include <memory>
 
 #include "ctranslate2/allocator.h"
 #include "ctranslate2/random.h"
+#include "ctranslate2/utils.h"
 #include "utils.h"
 
 namespace ctranslate2 {
@@ -21,12 +21,11 @@ namespace ctranslate2 {
     public:
       ScopedCurandStates(size_t num_states)
         : _allocator(get_allocator<Device::CUDA>())
-        , _num_states(num_states)
       {
         constexpr size_t num_init_threads = 32;
-        const size_t blocks = std::max(num_states / num_init_threads, size_t(1));
-        const size_t alloc_size = blocks * num_init_threads * sizeof (curandState);
-        _states = static_cast<curandState*>(_allocator.allocate(alloc_size));
+        const size_t blocks = ceil_divide(num_states, num_init_threads);
+        _num_states = blocks * num_init_threads;
+        _states = static_cast<curandState*>(_allocator.allocate(_num_states * sizeof (curandState)));
         init_curand_states_kernel<<<blocks, num_init_threads, 0, cuda::get_cuda_stream()>>>(
           _states, get_random_seed());
       }

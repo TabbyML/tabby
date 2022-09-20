@@ -71,6 +71,11 @@ namespace ctranslate2 {
     return final_results;
   }
 
+  template <typename T>
+  inline T ceil_divide(const T& x, const T& y) {
+    return (x + y - 1) / y;
+  }
+
 #ifdef NDEBUG
 #  define THROW_EXCEPTION(EXCEPTION, MESSAGE) throw EXCEPTION(MESSAGE)
 #else

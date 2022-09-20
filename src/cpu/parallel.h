@@ -7,14 +7,10 @@
 #endif
 
 #include "ctranslate2/types.h"
+#include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
   namespace cpu {
-
-    template <typename T>
-    inline T ceil_divide(const T& x, const T& y) {
-      return (x + y - 1) / y;
-    }
 
     // The parallel_for construct is inspired by:
     // https://github.com/pytorch/pytorch/blob/cc3fc786b7ba04a0918f0e817a896a09f74f7e78/aten/src/ATen/ParallelOpenMP.h
