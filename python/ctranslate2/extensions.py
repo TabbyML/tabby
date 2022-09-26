@@ -1,4 +1,5 @@
 import collections
+import itertools
 
 from typing import Iterable, List, Optional
 
@@ -49,9 +50,13 @@ def translator_translate_iterable(
     Returns:
       An iterable of :class:`ctranslate2.TranslationResult` instances.
     """
+    iterables = [source]
+    if target_prefix is not None:
+        iterables.append(target_prefix)
+
     yield from _process_iterable(
         translator.translate_batch,
-        source if target_prefix is None else zip(source, target_prefix),
+        iterables,
         max_batch_size,
         batch_type,
         **kwargs,
@@ -90,7 +95,7 @@ def translator_score_iterable(
     """
     yield from _process_iterable(
         translator.score_batch,
-        zip(source, target),
+        [source, target],
         max_batch_size,
         batch_type,
         **kwargs,
@@ -127,7 +132,7 @@ def generator_generate_iterable(
     """
     yield from _process_iterable(
         generator.generate_batch,
-        start_tokens,
+        [start_tokens],
         max_batch_size,
         batch_type,
         **kwargs,
@@ -164,16 +169,21 @@ def generator_score_iterable(
     """
     yield from _process_iterable(
         generator.score_batch,
-        tokens,
+        [tokens],
         max_batch_size,
         batch_type,
         **kwargs,
     )
 
 
-def _process_iterable(process_func, iterable, max_batch_size, batch_type, **kwargs):
+def _process_iterable(process_func, iterables, max_batch_size, batch_type, **kwargs):
     if max_batch_size < 1:
         raise ValueError("max_batch_size must be >= 1")
+
+    if len(iterables) == 1:
+        iterable = iterables[0]
+    else:
+        iterable = itertools.zip_longest(*iterables)
 
     kwargs.update(
         {
@@ -207,6 +217,8 @@ def _batch_iterator(iterable, batch_size, batch_type):
         if streams is None:
             streams = tuple([] for _ in example)
         for batch, element in zip(streams, example):
+            if element is None and len(streams) > 1:
+                raise ValueError("Input iterables do not have the same length")
             batch.append(element)
 
         if batch_type == "examples":

@@ -154,6 +154,10 @@ def test_iterable_translation():
     assert results[1].hypotheses == [["a", "c", "h", "e", "s", "o", "n"]]
     assert not results[1].scores
 
+    target_prefix.pop()
+    with pytest.raises(ValueError, match="length"):
+        next(translator.translate_iterable(iter(source), iter(target_prefix)))
+
     with pytest.raises(StopIteration):
         next(translator.translate_iterable(iter([])))
 
@@ -606,6 +610,8 @@ def test_score_api(tmpdir):
     # Test empty inputs.
     assert translator.score_batch([], []) == []
 
+    with pytest.raises(ValueError, match="length"):
+        next(translator.score_iterable(iter([["a"]]), iter([])))
     with pytest.raises(StopIteration):
         next(translator.score_iterable(iter([]), iter([])))
 
