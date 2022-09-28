@@ -53,12 +53,10 @@ ENV CTRANSLATE2_ROOT=/opt/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DWITH_CUDA=ON -DWITH_MKL=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=INTEL \
+          -DWITH_CUDA=ON -DWITH_MKL=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j$(nproc) install
-
-RUN cp -P /opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so $CTRANSLATE2_ROOT/lib
 
 ENV LANG=en_US.UTF-8
 COPY README.md .
@@ -75,6 +73,7 @@ FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libcublas-11-2 \
+        libgomp1 \
         python3-pip \
         && \
     apt-get purge -y cuda-compat-11-2 && \
