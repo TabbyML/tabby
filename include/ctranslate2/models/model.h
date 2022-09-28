@@ -81,6 +81,9 @@ namespace ctranslate2 {
       // If the model contains variables, they will be moved to the new device.
       void set_device(const Device device, const int index = 0);
 
+      // Copy the model to another device.
+      std::shared_ptr<const Model> copy_to(Device device, int device_index = 0) const;
+
       const StorageView* get_variable_if_exists(const std::string& name) const;
       const StorageView& get_variable(const std::string& name) const;
       std::unordered_map<std::string, StorageView> get_variables() const;
@@ -119,6 +122,8 @@ namespace ctranslate2 {
 
       // Runs some initialization after the model is loaded.
       virtual void initialize(ModelReader&) {}
+
+      virtual std::unique_ptr<Model> clone() const = 0;
 
     private:
       void process_linear_weights();

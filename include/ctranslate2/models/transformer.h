@@ -19,6 +19,7 @@ namespace ctranslate2 {
       bool is_packable(const std::string& variable_name) const override;
       void register_variable(std::string name, StorageView variable) override;
       void initialize(ModelReader& model_reader) override;
+      std::unique_ptr<Model> clone() const override;
 
     private:
       size_t _num_heads;
@@ -39,6 +40,7 @@ namespace ctranslate2 {
       bool is_linear_weight(const std::string& variable_name) const override;
       bool is_packable(const std::string& variable_name) const override;
       void initialize(ModelReader& model_reader) override;
+      std::unique_ptr<Model> clone() const override;
 
     private:
       size_t _num_heads;

@@ -57,7 +57,7 @@ namespace ctranslate2 {
       {
         auto vmap = model_reader.get_file(vmap_file);
         if (vmap) {
-          _vocabulary_map = std::make_unique<VocabularyMap>(*vmap, get_target_vocabulary());
+          _vocabulary_map = std::make_shared<VocabularyMap>(*vmap, get_target_vocabulary());
         }
       }
     }

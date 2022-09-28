@@ -90,6 +90,10 @@ namespace ctranslate2 {
       return std::make_unique<EncoderDecoderReplica>(model, std::move(encoder), std::move(decoder));
     }
 
+    std::unique_ptr<Model> TransformerModel::clone() const {
+      return std::make_unique<TransformerModel>(*this);
+    }
+
 
     size_t TransformerDecoderModel::current_spec_revision() const {
       return 1;
@@ -123,6 +127,10 @@ namespace ctranslate2 {
 
     bool TransformerDecoderModel::is_packable(const std::string& variable_name) const {
       return is_linear_weight(variable_name);
+    }
+
+    std::unique_ptr<Model> TransformerDecoderModel::clone() const {
+      return std::make_unique<TransformerDecoderModel>(*this);
     }
 
   }

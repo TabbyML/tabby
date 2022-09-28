@@ -18,7 +18,7 @@ namespace ctranslate2 {
       void initialize(ModelReader& model_reader) override;
 
     private:
-      std::unique_ptr<const Vocabulary> _vocabulary;
+      std::shared_ptr<const Vocabulary> _vocabulary;
     };
 
 

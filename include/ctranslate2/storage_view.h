@@ -84,6 +84,10 @@ namespace ctranslate2 {
       return _device;
     }
 
+    int device_index() const {
+      return _device_index;
+    }
+
     StorageView to(Device D) const;
     StorageView to(DataType dtype) const;
     StorageView to_float16() const;

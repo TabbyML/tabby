@@ -15,7 +15,7 @@ namespace ctranslate2 {
       vocab_info.bos_token = get_attribute_with_default<std::string>("bos_token", "<s>");
       vocab_info.eos_token = get_attribute_with_default<std::string>("eos_token", "</s>");
 
-      _vocabulary = std::make_unique<Vocabulary>(*model_reader.get_required_file("vocabulary.txt"),
+      _vocabulary = std::make_shared<Vocabulary>(*model_reader.get_required_file("vocabulary.txt"),
                                                  std::move(vocab_info));
     }
 

@@ -40,7 +40,7 @@ namespace ctranslate2 {
     private:
       std::vector<std::shared_ptr<const Vocabulary>> _source_vocabularies;
       std::shared_ptr<const Vocabulary> _target_vocabulary;
-      std::unique_ptr<const VocabularyMap> _vocabulary_map;
+      std::shared_ptr<const VocabularyMap> _vocabulary_map;
 
       void load_vocabularies(ModelReader& model_reader);
 
