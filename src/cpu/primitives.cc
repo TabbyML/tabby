@@ -509,6 +509,13 @@ namespace ctranslate2 {
                        transpose_b ? k : n,
                        dest);
     }
+#else
+    (void)b;
+    (void)transpose_b;
+    (void)k;
+    (void)n;
+    (void)alpha;
+    (void)dest;
 #endif
     return 0;
   }
@@ -533,6 +540,12 @@ namespace ctranslate2 {
                                 transpose_b ? k : n,
                                 dest);
     }
+#else
+    (void)b;
+    (void)transpose_b;
+    (void)k;
+    (void)n;
+    (void)dest;
 #endif
     return 0;
   }
@@ -557,6 +570,12 @@ namespace ctranslate2 {
                               transpose_b ? k : n,
                               dest);
     }
+#else
+    (void)b;
+    (void)transpose_b;
+    (void)k;
+    (void)n;
+    (void)dest;
 #endif
     return 0;
   }
@@ -572,6 +591,11 @@ namespace ctranslate2 {
                                      float beta,
                                      float* c, dim_t ldc,
                                      const float*) {
+#ifndef CT2_WITH_MKL
+    (void)a_is_packed;
+    (void)b_is_packed;
+#endif
+
     switch (sgemm_backend) {
 
 #ifdef CT2_WITH_MKL
@@ -661,6 +685,24 @@ namespace ctranslate2 {
                                      float beta,
                                      int32_t* c, dim_t ldc,
                                      const int32_t*) {
+#ifndef CT2_WITH_MKL
+    (void)a_is_packed;
+    (void)b_is_packed;
+    (void)transpose_a;
+    (void)transpose_b;
+    (void)m;
+    (void)n;
+    (void)k;
+    (void)alpha;
+    (void)a;
+    (void)lda;
+    (void)b;
+    (void)ldb;
+    (void)beta;
+    (void)c;
+    (void)ldc;
+#endif
+
     switch (gemm_s16_backend) {
 
 #ifdef CT2_WITH_MKL
@@ -752,6 +794,11 @@ namespace ctranslate2 {
                                      float beta,
                                      int32_t* c, dim_t ldc,
                                      const int32_t* a_shift_compensation) {
+#ifndef CT2_WITH_MKL
+    (void)a_is_packed;
+    (void)b_is_packed;
+#endif
+
     switch (gemm_s8_backend) {
 
 #ifdef CT2_WITH_MKL
