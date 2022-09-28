@@ -69,24 +69,6 @@ using Tokens = std::vector<std::string>;
 using BatchTokens = std::vector<Tokens>;
 using BatchTokensOptional = std::optional<std::vector<std::optional<Tokens>>>;
 
-// This wrapper re-acquires the GIL before calling a Python function.
-template <typename Function>
-class SafeCaller {
-public:
-  SafeCaller(const Function& function)
-    : _function(function)
-  {
-  }
-
-  typename Function::result_type operator()(typename Function::argument_type input) const {
-    py::gil_scoped_acquire acquire;
-    return _function(input);
-  }
-
-private:
-  const Function& _function;
-};
-
 static BatchTokens finalize_optional_batch(const BatchTokensOptional& optional) {
   // Convert missing values to empty vectors.
   BatchTokens batch;
@@ -267,15 +249,12 @@ public:
     assert_model_is_ready();
 
     if (source_tokenize_fn && target_detokenize_fn) {
-      const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
-      const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
-      const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
       return _translator_pool.consume_raw_text_file(source_path,
                                                     target_path_ptr,
                                                     output_path,
-                                                    safe_source_tokenize_fn,
-                                                    safe_target_tokenize_fn,
-                                                    safe_target_detokenize_fn,
+                                                    source_tokenize_fn,
+                                                    target_tokenize_fn,
+                                                    target_detokenize_fn,
                                                     options,
                                                     max_batch_size,
                                                     read_batch_size,
@@ -407,15 +386,12 @@ public:
     assert_model_is_ready();
 
     if (source_tokenize_fn) {
-      const SafeCaller<TokenizeFn> safe_source_tokenize_fn(source_tokenize_fn);
-      const SafeCaller<TokenizeFn> safe_target_tokenize_fn(target_tokenize_fn);
-      const SafeCaller<DetokenizeFn> safe_target_detokenize_fn(target_detokenize_fn);
       return _translator_pool.score_raw_text_file(source_path,
                                                   target_path,
                                                   output_path,
-                                                  safe_source_tokenize_fn,
-                                                  safe_target_tokenize_fn,
-                                                  safe_target_detokenize_fn,
+                                                  source_tokenize_fn,
+                                                  target_tokenize_fn,
+                                                  target_detokenize_fn,
                                                   options,
                                                   max_batch_size,
                                                   read_batch_size,
