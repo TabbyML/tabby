@@ -82,7 +82,7 @@ TEST_P(ModelVariantTest, Transliteration) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
   TranslatorTest,
   ModelVariantTest,
   ::testing::Values(
@@ -329,7 +329,7 @@ TEST_P(SearchVariantTest, NormalizeScoresAlternativesNoEos) {
 }
 
 
-INSTANTIATE_TEST_CASE_P(
+INSTANTIATE_TEST_SUITE_P(
   TranslatorTest,
   SearchVariantTest,
   ::testing::Values(1, 4),
@@ -672,14 +672,14 @@ TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
 static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataType>> param_info) {
   return dtype_name(param_info.param.second);
 }
-INSTANTIATE_TEST_CASE_P(CPU, BiasedDecodingDeviceFPTest,
-                        ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
-                        fp_test_name);
+INSTANTIATE_TEST_SUITE_P(CPU, BiasedDecodingDeviceFPTest,
+                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
+                         fp_test_name);
 #ifdef CT2_WITH_CUDA
-INSTANTIATE_TEST_CASE_P(CUDA, BiasedDecodingDeviceFPTest,
-                        ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
-                                          std::make_pair(Device::CUDA, DataType::FLOAT16)),
-                        fp_test_name);
+INSTANTIATE_TEST_SUITE_P(CUDA, BiasedDecodingDeviceFPTest,
+                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
+                                           std::make_pair(Device::CUDA, DataType::FLOAT16)),
+                         fp_test_name);
 #endif
 
 TEST(TranslatorTest, TranslatePrefixWithLargeBeam) {

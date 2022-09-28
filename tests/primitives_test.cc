@@ -43,7 +43,7 @@ TEST_P(PrimitiveTest, PenalizePreviousTokens) {
   expect_storage_eq(scores, expected);
 }
 
-INSTANTIATE_TEST_CASE_P(CPU, PrimitiveTest, ::testing::Values(Device::CPU));
+INSTANTIATE_TEST_SUITE_P(CPU, PrimitiveTest, ::testing::Values(Device::CPU));
 #ifdef CT2_WITH_CUDA
-INSTANTIATE_TEST_CASE_P(CUDA, PrimitiveTest, ::testing::Values(Device::CUDA));
+INSTANTIATE_TEST_SUITE_P(CUDA, PrimitiveTest, ::testing::Values(Device::CUDA));
 #endif

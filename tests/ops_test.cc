@@ -832,14 +832,14 @@ static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataT
   return dtype_name(param_info.param.second);
 }
 
-INSTANTIATE_TEST_CASE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
-INSTANTIATE_TEST_CASE_P(CPU, OpDeviceFPTest,
-                        ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
-                        fp_test_name);
+INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
+INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceFPTest,
+                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
+                         fp_test_name);
 #ifdef CT2_WITH_CUDA
-INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
-INSTANTIATE_TEST_CASE_P(CUDA, OpDeviceFPTest,
-                        ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
-                                          std::make_pair(Device::CUDA, DataType::FLOAT16)),
-                        fp_test_name);
+INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
+INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceFPTest,
+                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
+                                           std::make_pair(Device::CUDA, DataType::FLOAT16)),
+                         fp_test_name);
 #endif

@@ -74,7 +74,7 @@ TEST_P(StorageViewDeviceTest, HalfConversion) {
   expect_storage_eq(b.to_float(), a);
 }
 
-INSTANTIATE_TEST_CASE_P(CPU, StorageViewDeviceTest, ::testing::Values(Device::CPU));
+INSTANTIATE_TEST_SUITE_P(CPU, StorageViewDeviceTest, ::testing::Values(Device::CPU));
 #ifdef CT2_WITH_CUDA
-INSTANTIATE_TEST_CASE_P(CUDA, StorageViewDeviceTest, ::testing::Values(Device::CUDA));
+INSTANTIATE_TEST_SUITE_P(CUDA, StorageViewDeviceTest, ::testing::Values(Device::CUDA));
 #endif
