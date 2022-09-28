@@ -87,6 +87,7 @@ namespace ctranslate2 {
     return get_device_count(Device::CUDA);
   }
 
+#if defined(_OPENMP) || defined(CT2_WITH_RUY)
   static inline size_t get_default_num_threads() {
     constexpr size_t default_num_threads = 4;
     const size_t max_num_threads = std::thread::hardware_concurrency();
@@ -94,6 +95,7 @@ namespace ctranslate2 {
       return default_num_threads;
     return std::min(default_num_threads, max_num_threads);
   }
+#endif
 
   void set_num_threads(size_t num_threads) {
 #ifdef _OPENMP
