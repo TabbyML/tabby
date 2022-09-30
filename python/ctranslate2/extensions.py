@@ -48,7 +48,7 @@ def translator_translate_iterable(
         :meth:`ctranslate2.Translator.translate_batch`.
 
     Returns:
-      An iterable of :class:`ctranslate2.TranslationResult` instances.
+      A generator iterator over :class:`ctranslate2.TranslationResult` instances.
     """
     iterables = [source]
     if target_prefix is not None:
@@ -91,7 +91,7 @@ def translator_score_iterable(
         :meth:`ctranslate2.Translator.score_batch`.
 
     Returns:
-      An iterable of :class:`ctranslate2.ScoringResult` instances.
+      A generator iterator over :class:`ctranslate2.ScoringResult` instances.
     """
     yield from _process_iterable(
         translator.score_batch,
@@ -128,7 +128,7 @@ def generator_generate_iterable(
         :meth:`ctranslate2.Generator.generate_batch`.
 
     Returns:
-      An iterable of :class:`ctranslate2.GenerationResult` instances.
+      A generator iterator over :class:`ctranslate2.GenerationResult` instances.
     """
     yield from _process_iterable(
         generator.generate_batch,
@@ -165,7 +165,7 @@ def generator_score_iterable(
         :meth:`ctranslate2.Generator.score_batch`.
 
     Returns:
-      An iterable of :class:`ctranslate2.ScoringResult` instances.
+      A generator iterator over :class:`ctranslate2.ScoringResult` instances.
     """
     yield from _process_iterable(
         generator.score_batch,
