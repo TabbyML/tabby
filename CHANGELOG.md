@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v2.24.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.24.0) (2022-10-03)
+
+### Changes
+
+* The Linux binaries now use the GNU OpenMP runtime instead of Intel OpenMP to workaround an initialization error on systems without `/dev/shm`
+
+### Fixes and improvements
+
+* Fix a memory error when running random sampling on GPU
+* Optimize the model loading on multiple GPUs by copying the finalized model weights instead of reading the model from disk multiple times
+* In the methods `Translator.translate_iterable` and `Translator.score_iterable`, raise an error if the input iterables don't have the same length
+* Fix some compilation warnings
+
 ## [v2.23.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.23.0) (2022-09-16)
 
 ### New features
