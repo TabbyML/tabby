@@ -1589,6 +1589,8 @@ def test_fuse_linear_no_bias():
     assert spec.bias == OPTIONAL
 
     spec = common_spec.LinearSpec()
-    layers[1].bias = np.zeros([64])
-    with pytest.raises(ValueError, match="Cannot fuse linear layers"):
-        conversion_utils.fuse_linear(spec, layers)
+    layers[1].bias = np.ones([64], dtype=np.float32)
+    conversion_utils.fuse_linear(spec, layers)
+    assert _array_equal(spec.bias[:64], np.zeros([64], dtype=np.float32))
+    assert _array_equal(spec.bias[64:128], np.ones([64], dtype=np.float32))
+    assert _array_equal(spec.bias[128:], np.zeros([64], dtype=np.float32))

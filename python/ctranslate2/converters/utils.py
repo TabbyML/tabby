@@ -7,13 +7,21 @@ def fuse_linear(spec, layers):
 
     spec.weight = np.concatenate([layer.weight for layer in layers])
 
-    with_bias = layers[0].has_bias()
-    if not all(layer.has_bias() == with_bias for layer in layers):
-        raise ValueError(
-            "Cannot fuse linear layers: some layers have a bias while others don't"
+    bias_dtype = None
+    for layer in layers:
+        if layer.has_bias():
+            bias_dtype = layer.bias.dtype
+            break
+
+    if bias_dtype is not None:
+        spec.bias = np.concatenate(
+            [
+                layer.bias
+                if layer.has_bias()
+                else np.zeros([layer.weight.shape[0]], dtype=bias_dtype)
+                for layer in layers
+            ]
         )
-    if with_bias:
-        spec.bias = np.concatenate([layer.bias for layer in layers])
 
 
 def raise_unsupported(reasons):
