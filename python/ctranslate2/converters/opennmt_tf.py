@@ -599,8 +599,6 @@ def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
 
 
 def set_transformer_spec(spec, variables):
-    if spec.with_relative_position:
-        raise NotImplementedError()
     set_transformer_encoder(spec.encoder, variables)
     set_transformer_decoder(spec.decoder, variables)
 

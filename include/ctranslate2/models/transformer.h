@@ -23,11 +23,6 @@ namespace ctranslate2 {
 
     private:
       size_t _num_heads;
-      bool _pre_norm;
-      ops::ActivationType _activation_type;
-      dim_t _alignment_layer;
-      dim_t _alignment_heads;
-      layers::EmbeddingsMerge _embeddings_merge;
     };
 
 
@@ -41,11 +36,6 @@ namespace ctranslate2 {
       bool is_packable(const std::string& variable_name) const override;
       void initialize(ModelReader& model_reader) override;
       std::unique_ptr<Model> clone() const override;
-
-    private:
-      size_t _num_heads;
-      bool _pre_norm;
-      ops::ActivationType _activation_type;
     };
 
   }

@@ -40,7 +40,7 @@ namespace ctranslate2 {
     public:
       TransformerEncoderLayer(const models::Model& model,
                               const std::string& scope,
-                              const size_t num_heads,
+                              const dim_t num_heads,
                               const bool pre_norm = true,
                               const ops::ActivationType activation_type = ops::ActivationType::ReLU);
 
@@ -71,7 +71,7 @@ namespace ctranslate2 {
     public:
       TransformerDecoderLayer(const models::Model& model,
                               const std::string& scope,
-                              const size_t num_heads,
+                              const dim_t num_heads,
                               const bool pre_norm = true,
                               const ops::ActivationType activation_type = ops::ActivationType::ReLU);
 
@@ -113,12 +113,7 @@ namespace ctranslate2 {
     class TransformerEncoder : public Encoder
     {
     public:
-      TransformerEncoder(const models::Model& model,
-                         const std::string& scope,
-                         const size_t num_heads,
-                         const bool pre_norm = true,
-                         const ops::ActivationType activation_type = ops::ActivationType::ReLU,
-                         const EmbeddingsMerge merge = EmbeddingsMerge::Concat);
+      TransformerEncoder(const models::Model& model, const std::string& scope);
 
       void operator()(const std::vector<StorageView>& ids,
                       const StorageView& lengths,
@@ -150,13 +145,7 @@ namespace ctranslate2 {
     class TransformerDecoder : public Decoder
     {
     public:
-      TransformerDecoder(const models::Model& model,
-                         const std::string& scope,
-                         const size_t num_heads,
-                         const bool pre_norm = true,
-                         const ops::ActivationType activation_type = ops::ActivationType::ReLU,
-                         const dim_t alignment_layer = -1,
-                         const dim_t alignment_heads = 1);
+      TransformerDecoder(const models::Model& model, const std::string& scope);
 
       DecoderState initial_state(bool iterative_decoding = true) const override;
 
@@ -197,8 +186,8 @@ namespace ctranslate2 {
       const std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const bool _with_encoder_attention;
-      const dim_t _alignment_layer;
-      const dim_t _alignment_heads;
+      dim_t _alignment_layer;
+      dim_t _alignment_heads;
       Dense _proj;
     };
 

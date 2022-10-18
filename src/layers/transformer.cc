@@ -34,7 +34,7 @@ namespace ctranslate2 {
 
     TransformerEncoderLayer::TransformerEncoderLayer(const models::Model& model,
                                                      const std::string& scope,
-                                                     const size_t num_heads,
+                                                     const dim_t num_heads,
                                                      const bool pre_norm,
                                                      const ops::ActivationType activation_type)
       : _self_attention(model,
@@ -58,7 +58,7 @@ namespace ctranslate2 {
 
     TransformerDecoderLayer::TransformerDecoderLayer(const models::Model& model,
                                                      const std::string& scope,
-                                                     const size_t num_heads,
+                                                     const dim_t num_heads,
                                                      const bool pre_norm,
                                                      const ops::ActivationType activation_type)
       : _self_attention(model,
@@ -152,23 +152,20 @@ namespace ctranslate2 {
     }
 
 
-    TransformerEncoder::TransformerEncoder(const models::Model& model,
-                                           const std::string& scope,
-                                           const size_t num_heads,
-                                           const bool pre_norm,
-                                           const ops::ActivationType activation_type,
-                                           const EmbeddingsMerge embeddings_merge)
-      : _embeddings(model, scope + "/embeddings", embeddings_merge)
+    TransformerEncoder::TransformerEncoder(const models::Model& model, const std::string& scope)
+      : _embeddings(model, scope + "/embeddings",
+                    model.get_enum_value<EmbeddingsMerge>(scope + "/embeddings_merge"))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
-      , _num_heads(num_heads)
+      , _num_heads(model.get_attribute_with_default<int32_t>(scope + "/num_heads", 8))
       , _compute_type(model.effective_compute_type())
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
-      , _layers(build_layers_list<const TransformerEncoderLayer>(model,
-                                                                 scope + "/layer",
-                                                                 num_heads,
-                                                                 pre_norm,
-                                                                 activation_type))
+      , _layers(build_layers_list<const TransformerEncoderLayer>(
+                  model,
+                  scope + "/layer",
+                  _num_heads,
+                  model.get_flag_with_default(scope + "/pre_norm", true),
+                  model.get_enum_value<ops::ActivationType>(scope + "/activation")))
       , _position_encoder(_layers.front()->has_relative_position()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
@@ -213,15 +210,9 @@ namespace ctranslate2 {
     }
 
 
-    TransformerDecoder::TransformerDecoder(const models::Model& model,
-                                           const std::string& scope,
-                                           const size_t num_heads,
-                                           const bool pre_norm,
-                                           const ops::ActivationType activation_type,
-                                           const dim_t alignment_layer,
-                                           const dim_t alignment_heads)
+    TransformerDecoder::TransformerDecoder(const models::Model& model, const std::string& scope)
       : Decoder(model.device())
-      , _num_heads(num_heads)
+      , _num_heads(model.get_attribute_with_default<int32_t>(scope + "/num_heads", 8))
       , _compute_type(model.effective_compute_type())
       , _embeddings(model, scope + "/embeddings")
       , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
@@ -231,18 +222,23 @@ namespace ctranslate2 {
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _project_in(build_optional_layer<Dense>(model, scope + "/project_in"))
       , _project_out(build_optional_layer<Dense>(model, scope + "/project_out"))
-      , _layers(build_layers_list<const TransformerDecoderLayer>(model,
-                                                                 scope + "/layer",
-                                                                 num_heads,
-                                                                 pre_norm,
-                                                                 activation_type))
+      , _layers(build_layers_list<const TransformerDecoderLayer>(
+                  model,
+                  scope + "/layer",
+                  _num_heads,
+                  model.get_flag_with_default(scope + "/pre_norm", true),
+                  model.get_enum_value<ops::ActivationType>(scope + "/activation")))
       , _position_encoder(_layers.front()->has_relative_position()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
-      , _alignment_layer(alignment_layer < 0 ? _layers.size() + alignment_layer : alignment_layer)
-      , _alignment_heads(alignment_heads == 0 ? _num_heads : alignment_heads)
+      , _alignment_layer(model.get_attribute_with_default<int32_t>(scope + "/alignment_layer", -1))
+      , _alignment_heads(model.get_attribute_with_default<int32_t>(scope + "/alignment_heads", 1))
       , _proj(model, scope + "/projection") {
+      if (_alignment_layer < 0)
+        _alignment_layer = _layers.size() + _alignment_layer;
+      if (_alignment_heads == 0)
+        _alignment_heads = _num_heads;
     }
 
     DecoderState TransformerDecoder::initial_state(bool iterative_decoding) const {

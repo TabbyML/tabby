@@ -101,6 +101,11 @@ namespace ctranslate2 {
       // A flag is a boolean attribute.
       bool get_flag_with_default(const std::string& name, bool default_value) const;
 
+      template <typename Enum>
+      Enum get_enum_value(const std::string& name) const {
+        return static_cast<Enum>(get_attribute_with_default<int32_t>(name, 0));
+      }
+
     protected:
       // Returns true if the variable is quantizable and should respect compute_type.
       virtual bool is_quantizable(const std::string& variable_name) const;

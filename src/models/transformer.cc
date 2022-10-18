@@ -37,7 +37,7 @@ namespace ctranslate2 {
     }
 
     size_t TransformerModel::current_spec_revision() const {
-      return 4;
+      return 5;
     }
 
     bool TransformerModel::is_linear_weight(const std::string& variable_name) const {
@@ -59,32 +59,30 @@ namespace ctranslate2 {
 
     void TransformerModel::initialize(ModelReader& model_reader) {
       SequenceToSequenceModel::initialize(model_reader);
-      _num_heads = get_attribute_with_default<int8_t>("num_heads", _num_heads);
-      _pre_norm = get_flag_with_default("pre_norm", true);
-      _activation_type = static_cast<ops::ActivationType>(
-        get_attribute_with_default<int8_t>("activation", 0));
-      _embeddings_merge = static_cast<layers::EmbeddingsMerge>(
-        get_attribute_with_default<int8_t>("embeddings_merge", 0));
-      _alignment_layer = get_attribute_with_default<int16_t>("alignment_layer", -1);
-      _alignment_heads = get_attribute_with_default<int16_t>("alignment_heads", 1);
+
+      if (spec_revision() < 3) {
+        register_variable("num_heads", StorageView(int8_t(_num_heads)));
+      }
+
+      if (spec_revision() < 5) {
+        register_variable_alias("encoder/num_heads", "num_heads");
+        register_variable_alias("encoder/pre_norm", "pre_norm");
+        register_variable_alias("encoder/activation", "activation");
+        register_variable_alias("encoder/embeddings_merge", "embeddings_merge");
+
+        register_variable_alias("decoder/num_heads", "num_heads");
+        register_variable_alias("decoder/pre_norm", "pre_norm");
+        register_variable_alias("decoder/activation", "activation");
+        register_variable_alias("decoder/alignment_layer", "alignment_layer");
+        register_variable_alias("decoder/alignment_heads", "alignment_heads");
+      }
     }
 
     std::unique_ptr<SequenceToSequenceReplica> TransformerModel::as_sequence_to_sequence() const {
       const auto scoped_device_setter = get_scoped_device_setter();
 
-      auto encoder = std::make_unique<layers::TransformerEncoder>(*this,
-                                                                  "encoder",
-                                                                  _num_heads,
-                                                                  _pre_norm,
-                                                                  _activation_type,
-                                                                  _embeddings_merge);
-      auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
-                                                                  "decoder",
-                                                                  _num_heads,
-                                                                  _pre_norm,
-                                                                  _activation_type,
-                                                                  _alignment_layer,
-                                                                  _alignment_heads);
+      auto encoder = std::make_unique<layers::TransformerEncoder>(*this, "encoder");
+      auto decoder = std::make_unique<layers::TransformerDecoder>(*this, "decoder");
 
       const auto model = std::static_pointer_cast<const TransformerModel>(shared_from_this());
       return std::make_unique<EncoderDecoderReplica>(model, std::move(encoder), std::move(decoder));
@@ -96,26 +94,24 @@ namespace ctranslate2 {
 
 
     size_t TransformerDecoderModel::current_spec_revision() const {
-      return 1;
+      return 2;
     }
 
     void TransformerDecoderModel::initialize(ModelReader& model_reader) {
       LanguageModel::initialize(model_reader);
-      _num_heads = get_attribute_with_default<int16_t>("num_heads", 0);
-      _pre_norm = get_flag_with_default("pre_norm", true);
-      _activation_type = static_cast<ops::ActivationType>(
-        get_attribute_with_default<int8_t>("activation", 0));
+
+      if (spec_revision() < 2) {
+        register_variable_alias("decoder/num_heads", "num_heads");
+        register_variable_alias("decoder/pre_norm", "pre_norm");
+        register_variable_alias("decoder/activation", "activation");
+      }
     }
 
     std::unique_ptr<SequenceGeneratorReplica>
     TransformerDecoderModel::as_sequence_generator() const {
       const auto scoped_device_setter = get_scoped_device_setter();
 
-      auto decoder = std::make_unique<layers::TransformerDecoder>(*this,
-                                                                  "decoder",
-                                                                  _num_heads,
-                                                                  _pre_norm,
-                                                                  _activation_type);
+      auto decoder = std::make_unique<layers::TransformerDecoder>(*this, "decoder");
 
       const auto model = std::static_pointer_cast<const TransformerDecoderModel>(shared_from_this());
       return std::make_unique<DecoderReplica>(model, std::move(decoder));

@@ -48,26 +48,25 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             num_encoder_layers, num_decoder_layers = num_layers
         else:
             num_encoder_layers, num_decoder_layers = num_layers, num_layers
-        self.num_heads = np.dtype("int8").type(num_heads)
-        self.pre_norm = np.dtype("int8").type(pre_norm)
-        self.activation = np.dtype("int8").type(activation)
-        self.alignment_layer = np.dtype("int16").type(alignment_layer)
-        self.alignment_heads = np.dtype("int16").type(alignment_heads)
-        self.with_relative_position = with_relative_position
-        self.embeddings_merge = np.dtype("int8").type(embeddings_merge)
-        self.layernorm_embedding = np.dtype("int8").type(layernorm_embedding)
         self.encoder = TransformerEncoderSpec(
             num_encoder_layers,
+            num_heads,
             pre_norm=pre_norm,
+            activation=activation,
             num_source_embeddings=num_source_embeddings,
+            embeddings_merge=embeddings_merge,
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
         )
         self.decoder = TransformerDecoderSpec(
             num_decoder_layers,
+            num_heads,
             pre_norm=pre_norm,
+            activation=activation,
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
+            alignment_layer=alignment_layer,
+            alignment_heads=alignment_heads,
         )
 
     @property
@@ -76,7 +75,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     @property
     def revision(self):
-        return 4
+        return 5
 
     def get_source_vocabulary_size(self):
         return [spec.weight.shape[0] for spec in self.encoder.embeddings]
@@ -113,16 +112,11 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
           with_relative_position: Enable relative position representations modules.
         """
         super().__init__()
-        self.num_heads = np.dtype("int16").type(num_heads)
-        self.pre_norm = pre_norm
-        self.activation = np.dtype("int8").type(activation)
-        self.layernorm_embedding = layernorm_embedding
-        self.no_final_norm = no_final_norm
-        self.project_in_out = project_in_out
-        self.with_relative_position = with_relative_position
         self.decoder = TransformerDecoderSpec(
             num_layers,
+            num_heads,
             pre_norm=pre_norm,
+            activation=activation,
             layernorm_embedding=layernorm_embedding,
             with_encoder_attention=False,
             no_final_norm=no_final_norm,
@@ -136,7 +130,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 1
+        return 2
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]
@@ -146,11 +140,18 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
     def __init__(
         self,
         num_layers,
+        num_heads,
         pre_norm=True,
+        activation=common_spec.Activation.RELU,
         num_source_embeddings=1,
+        embeddings_merge=common_spec.EmbeddingsMerge.CONCAT,
         layernorm_embedding=False,
         relative_position=False,
     ):
+        self.num_heads = np.dtype("int16").type(num_heads)
+        self.pre_norm = pre_norm
+        self.activation = np.dtype("int8").type(activation)
+        self.embeddings_merge = np.dtype("int8").type(embeddings_merge)
         self.embeddings = [
             common_spec.EmbeddingsSpec() for _ in range(num_source_embeddings)
         ]
@@ -172,13 +173,22 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
     def __init__(
         self,
         num_layers,
+        num_heads,
         pre_norm=True,
+        activation=common_spec.Activation.RELU,
         layernorm_embedding=False,
         with_encoder_attention=True,
         no_final_norm=False,
         project_in_out=False,
         relative_position=False,
+        alignment_layer=-1,
+        alignment_heads=1,
     ):
+        self.num_heads = np.dtype("int16").type(num_heads)
+        self.pre_norm = pre_norm
+        self.activation = np.dtype("int8").type(activation)
+        self.alignment_layer = np.dtype("int16").type(alignment_layer)
+        self.alignment_heads = np.dtype("int16").type(alignment_heads)
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
         self.position_encodings = PositionEncoderSpec()
