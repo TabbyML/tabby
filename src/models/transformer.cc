@@ -121,10 +121,6 @@ namespace ctranslate2 {
       return is_quantizable(variable_name) && variable_name.find("embeddings") == std::string::npos;
     }
 
-    bool TransformerDecoderModel::is_packable(const std::string& variable_name) const {
-      return is_linear_weight(variable_name);
-    }
-
     std::unique_ptr<Model> TransformerDecoderModel::clone() const {
       return std::make_unique<TransformerDecoderModel>(*this);
     }

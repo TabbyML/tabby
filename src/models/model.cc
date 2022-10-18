@@ -269,8 +269,8 @@ namespace ctranslate2 {
       return false;
     }
 
-    bool Model::is_packable(const std::string&) const {
-      return false;
+    bool Model::is_packable(const std::string& variable_name) const {
+      return is_linear_weight(variable_name);
     }
 
     bool Model::is_convertible(const StorageView& variable, const std::string& name) const {

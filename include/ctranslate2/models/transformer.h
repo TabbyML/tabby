@@ -33,7 +33,6 @@ namespace ctranslate2 {
 
     protected:
       bool is_linear_weight(const std::string& variable_name) const override;
-      bool is_packable(const std::string& variable_name) const override;
       void initialize(ModelReader& model_reader) override;
       std::unique_ptr<Model> clone() const override;
     };
