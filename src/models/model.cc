@@ -2,7 +2,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include "ctranslate2/models/transformer.h"
+#include "ctranslate2/models/model_factory.h"
+#include "ctranslate2/ops/ops.h"
 #include "ctranslate2/utils.h"
 
 #ifdef CT2_WITH_CUDA
@@ -449,22 +450,6 @@ namespace ctranslate2 {
       default:
         throw std::runtime_error("unknown data type of width " + std::to_string(item_size));
       }
-    }
-
-    static std::shared_ptr<Model> create_model(const std::string& spec) {
-      // Empty spec name, TransformerBase, and TransformerBig are there for backward
-      // compatibility. Now all Transformer variants are saved under TransformerSpec.
-
-      if (spec == "TransformerSpec")
-        return std::make_shared<TransformerModel>();
-      else if (spec == "TransformerDecoderSpec")
-        return std::make_shared<TransformerDecoderModel>();
-      else if (spec == "TransformerBase" || spec.empty())
-        return std::make_shared<TransformerModel>(/*num_heads=*/8);
-      else if (spec == "TransformerBig")
-        return std::make_shared<TransformerModel>(/*num_heads=*/16);
-      else
-        throw std::invalid_argument("Unsupported model spec " + spec);
     }
 
     static void check_version(const size_t saved_version,
