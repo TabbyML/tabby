@@ -45,6 +45,10 @@ namespace ctranslate2 {
         return !_to_original_word_id.empty();
       }
 
+      bool is_in_output(size_t word_id) const {
+        return _to_output_word_id.find(word_id) != _to_output_word_id.end();
+      }
+
       size_t to_output_word_id(size_t original_id) const {
         return _to_output_word_id.empty() ? original_id : _to_output_word_id.at(original_id);
       }

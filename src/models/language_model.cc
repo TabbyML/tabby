@@ -86,7 +86,6 @@ namespace ctranslate2 {
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
-      decoding_options.disable_unk = options.disable_unk;
       decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_length;
       decoding_options.min_length = options.min_length;
@@ -97,6 +96,8 @@ namespace ctranslate2 {
       decoding_options.return_scores = options.return_scores;
       decoding_options.return_alternatives = options.return_alternatives;
       decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
+      if (options.disable_unk)
+        decoding_options.disable_ids.push_back(vocabulary.unk_id());
 
       const auto start_ids = vocabulary.to_ids(start_tokens);
       layers::DecoderState state = _decoder->initial_state();
@@ -104,7 +105,6 @@ namespace ctranslate2 {
                                                    state,
                                                    start_ids,
                                                    vocabulary.eos_id(),
-                                                   vocabulary.unk_id(),
                                                    decoding_options);
 
       std::vector<GenerationResult> final_results;

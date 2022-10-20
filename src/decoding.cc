@@ -52,33 +52,6 @@ namespace ctranslate2 {
     }
   }
 
-  static void disable_token(StorageView& log_probs, const size_t id) {
-    DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
-                             primitives<D>::strided_fill(log_probs.data<T>() + id,
-                                                         static_cast<T>(-1e10),
-                                                         log_probs.dim(-1),
-                                                         log_probs.dim(0)));
-  }
-
-  static void disable_tokens(StorageView& log_probs,
-                             const std::vector<std::pair<size_t, size_t>>& ids) {
-    const Device device = log_probs.device();
-    const dim_t vocabulary_size = log_probs.dim(-1);
-    const dim_t num_tokens = ids.size();
-
-    StorageView indices({num_tokens}, DataType::INT32);
-    for (dim_t i = 0; i < num_tokens; ++i)
-      indices.at<int32_t>(i) = ids[i].first * vocabulary_size + ids[i].second;
-    if (indices.device() != device)
-      indices = indices.to(device);
-
-    DEVICE_AND_TYPE_DISPATCH(device, log_probs.dtype(),
-                             primitives<D>::indexed_fill(log_probs.data<T>(),
-                                                         static_cast<T>(-1e10),
-                                                         indices.data<int32_t>(),
-                                                         num_tokens));
-  }
-
   static void penalize_previous_tokens(StorageView& log_probs,
                                        const StorageView& previous_ids,
                                        const float penalty) {
@@ -412,6 +385,58 @@ namespace ctranslate2 {
   }
 
 
+  // Helper class to disable the generation of some tokens.
+  class DisableTokens {
+  private:
+    size_t _batch_size;
+    StorageView& _log_probs;
+    std::set<std::pair<size_t, size_t>> _indices;
+
+  public:
+    DisableTokens(StorageView& log_probs)
+      : _batch_size(log_probs.dim(0))
+      , _log_probs(log_probs)
+    {
+    }
+
+    void add(size_t token_id) {
+      for (size_t batch_id = 0; batch_id < _batch_size; ++batch_id)
+        _indices.emplace(batch_id, token_id);
+    }
+
+    void add(const std::vector<size_t>& token_ids) {
+      for (size_t token_id : token_ids)
+        add(token_id);
+    }
+
+    void add(const std::vector<std::pair<size_t, size_t>>& indices) {
+      _indices.insert(indices.begin(), indices.end());
+    }
+
+    void apply() {
+      const dim_t num_tokens = _indices.size();
+      if (num_tokens == 0)
+        return;
+
+      const Device device = _log_probs.device();
+      const dim_t vocabulary_size = _log_probs.dim(-1);
+
+      dim_t i = 0;
+      StorageView indices({num_tokens}, DataType::INT32);
+      for (const auto& index : _indices)
+        indices.at<int32_t>(i++) = index.first * vocabulary_size + index.second;
+      if (indices.device() != device)
+        indices = indices.to(device);
+
+      DEVICE_AND_TYPE_DISPATCH(device, _log_probs.dtype(),
+                               primitives<D>::indexed_fill(_log_probs.data<T>(),
+                                                           static_cast<T>(-1e10),
+                                                           indices.data<int32_t>(),
+                                                           num_tokens));
+    }
+  };
+
+
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
@@ -430,12 +455,11 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
+                     const std::vector<size_t>& disable_ids,
                      const size_t end_id,
-                     const size_t unk_id,
                      const dim_t start_step,
                      const dim_t max_length,
                      const dim_t min_length,
-                     const bool disable_unk,
                      const bool normalize_scores,
                      const bool return_scores,
                      const bool return_attention,
@@ -523,16 +547,20 @@ namespace ctranslate2 {
         log_probs.shallow_copy(logits);
       }
 
+      DisableTokens disable_tokens(log_probs);
+
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
-        disable_token(log_probs, end_id);
-      if (disable_unk)
-        disable_token(log_probs, unk_id);
+        disable_tokens.add(end_id);
+      if (!disable_ids.empty())
+        disable_tokens.add(disable_ids);
       if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size) {
         merge_batch_beam(alive_seq);
-        disable_tokens(log_probs, get_banned_tokens(alive_seq, no_repeat_ngram_size));
+        disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
         split_batch_beam(alive_seq, _beam_size);
       }
+
+      disable_tokens.apply();
 
       // Multiply by the current beam log probs.
       if (topk_scores) {
@@ -711,12 +739,11 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
+                       const std::vector<size_t>& disable_ids,
                        const size_t end_id,
-                       const size_t unk_id,
                        const dim_t start_step,
                        const dim_t max_length,
                        const dim_t min_length,
-                       const bool disable_unk,
                        const bool normalize_scores,
                        const bool return_scores,
                        const bool return_attention,
@@ -768,13 +795,17 @@ namespace ctranslate2 {
         ops::LogSoftMax()(logits);
       log_probs.shallow_copy(logits);
 
+      DisableTokens disable_tokens(log_probs);
+
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
-        disable_token(log_probs, end_id);
-      if (disable_unk)
-        disable_token(log_probs, unk_id);
+        disable_tokens.add(end_id);
+      if (!disable_ids.empty())
+        disable_tokens.add(disable_ids);
       if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size)
-        disable_tokens(log_probs, get_banned_tokens(alive_seq, no_repeat_ngram_size));
+        disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
+
+      disable_tokens.apply();
 
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
@@ -975,7 +1006,6 @@ namespace ctranslate2 {
                       const size_t start_token,
                       const std::vector<size_t>& prefix_tokens,
                       const size_t end_id,
-                      const size_t unk_id,
                       const DecodingOptions& options) {
     DecodingResult result;
     result.hypotheses.resize(options.num_hypotheses);
@@ -1020,12 +1050,11 @@ namespace ctranslate2 {
                                                   state,
                                                   BestSampler(),
                                                   start_ids,
+                                                  options.disable_ids,
                                                   end_id,
-                                                  unk_id,
                                                   start_step,
                                                   /*max_length=*/1,
                                                   /*min_length=*/1,
-                                                  options.disable_unk,
                                                   /*normalize_scores=*/false,
                                                   /*return_scores=*/true,
                                                   options.return_attention,
@@ -1073,12 +1102,11 @@ namespace ctranslate2 {
                                                   state,
                                                   *sampler,
                                                   start_ids,
+                                                  options.disable_ids,
                                                   end_id,
-                                                  unk_id,
                                                   start_step,
                                                   std::max(max_length - start_step, dim_t(0)),
                                                   std::max(min_length - start_step, dim_t(0)),
-                                                  options.disable_unk,
                                                   options.normalize_scores,
                                                   options.return_scores,
                                                   options.return_attention,
@@ -1120,8 +1148,7 @@ namespace ctranslate2 {
          layers::DecoderState& state,
          std::vector<std::vector<size_t>> start_tokens,
          size_t end_id,
-         size_t unk_id,
-         const DecodingOptions& options) {
+         DecodingOptions options) {
     validate_decoding_options(options);
     const size_t batch_size = start_tokens.size();
 
@@ -1129,10 +1156,20 @@ namespace ctranslate2 {
 
     if (decoder.output_layer_is_updated()) {
       end_id = decoder.to_output_word_id(end_id);
-      unk_id = decoder.to_output_word_id(unk_id);
+
       for (auto& ids : start_tokens) {
         for (auto& id : ids)
           id = decoder.to_output_word_id(id);
+      }
+
+      if (!options.disable_ids.empty()) {
+        std::vector<size_t> new_disable_ids;
+        new_disable_ids.reserve(options.disable_ids.size());
+        for (size_t id : options.disable_ids) {
+          if (decoder.is_in_output(id))
+            new_disable_ids.push_back(decoder.to_output_word_id(id));
+        }
+        options.disable_ids = std::move(new_disable_ids);
       }
     }
 
@@ -1149,7 +1186,6 @@ namespace ctranslate2 {
                                                  start_ids[i],
                                                  prefix_ids[i],
                                                  end_id,
-                                                 unk_id,
                                                  options));
       }
 
@@ -1160,12 +1196,11 @@ namespace ctranslate2 {
                                         state,
                                         *sampler,
                                         start_ids,
+                                        options.disable_ids,
                                         end_id,
-                                        unk_id,
                                         /*start_step=*/0,
                                         options.max_length,
                                         options.min_length,
-                                        options.disable_unk,
                                         options.normalize_scores,
                                         options.return_scores,
                                         options.return_attention,

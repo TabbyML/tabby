@@ -28,6 +28,13 @@ TEST(ModelTest, UpdateDecoderOutputLayer) {
   decoder.update_output_layer(5, {0, 1, 2, 5});
   EXPECT_TRUE(decoder.output_layer_is_updated());
   EXPECT_EQ(decoder.output_size(), 5);
+
+  EXPECT_TRUE(decoder.is_in_output(0));
+  EXPECT_TRUE(decoder.is_in_output(1));
+  EXPECT_TRUE(decoder.is_in_output(2));
+  EXPECT_FALSE(decoder.is_in_output(4));
+  EXPECT_TRUE(decoder.is_in_output(5));
+
   EXPECT_EQ(decoder.to_original_word_id(0), 0);
   EXPECT_EQ(decoder.to_original_word_id(1), 1);
   EXPECT_EQ(decoder.to_original_word_id(2), 2);

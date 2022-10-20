@@ -338,7 +338,6 @@ namespace ctranslate2 {
       decoding_options.coverage_penalty = options.coverage_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
-      decoding_options.disable_unk = options.disable_unk;
       decoding_options.prefix_bias_beta = options.prefix_bias_beta;
       decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_decoding_length;
@@ -351,12 +350,13 @@ namespace ctranslate2 {
       decoding_options.return_attention = options.return_attention || options.replace_unknowns;
       decoding_options.return_alternatives = options.return_alternatives;
       decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
+      if (options.disable_unk)
+        decoding_options.disable_ids.push_back(target_vocabulary.unk_id());
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    target_ids,
                                                    target_vocabulary.eos_id(),
-                                                   target_vocabulary.unk_id(),
                                                    decoding_options);
 
       // Convert generated ids to tokens.

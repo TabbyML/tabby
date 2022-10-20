@@ -22,12 +22,11 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
+           const std::vector<size_t>& disable_ids,
            const size_t end_id,
-           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool disable_unk = false,
            const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
@@ -50,12 +49,11 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
+           const std::vector<size_t>& disable_ids,
            const size_t end_id,
-           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool disable_unk = false,
            const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
@@ -98,12 +96,11 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
+           const std::vector<size_t>& disable_ids,
            const size_t end_id,
-           const size_t unk_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool disable_unk = false,
            const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
@@ -120,7 +117,6 @@ namespace ctranslate2 {
     float coverage_penalty = 0;
     float repetition_penalty = 1;
     size_t no_repeat_ngram_size = 0;
-    bool disable_unk = false;
     float prefix_bias_beta = 0;
     bool allow_early_exit = true;
     size_t max_length = 256;
@@ -133,6 +129,7 @@ namespace ctranslate2 {
     bool return_attention = false;
     bool return_alternatives = false;
     float min_alternative_expansion_prob = 0;
+    std::vector<size_t> disable_ids;
   };
 
   std::vector<DecodingResult>
@@ -140,7 +137,6 @@ namespace ctranslate2 {
          layers::DecoderState& state,
          std::vector<std::vector<size_t>> start_tokens,
          size_t end_id,
-         size_t unk_id,
-         const DecodingOptions& options = DecodingOptions());
+         DecodingOptions options = DecodingOptions());
 
 }
