@@ -45,7 +45,7 @@ namespace ctranslate2 {
                               const ops::ActivationType activation_type = ops::ActivationType::ReLU);
 
       void operator()(const StorageView& input,
-                      const StorageView& lengths,
+                      const StorageView* lengths,
                       StorageView& output,
                       const Padder* padder = nullptr) const;
 
@@ -116,7 +116,7 @@ namespace ctranslate2 {
       TransformerEncoder(const models::Model& model, const std::string& scope);
 
       void operator()(const std::vector<StorageView>& ids,
-                      const StorageView& lengths,
+                      const StorageView* lengths,
                       StorageView& output) override;
 
       size_t num_input_features() const override {

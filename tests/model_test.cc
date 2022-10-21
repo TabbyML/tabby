@@ -1,5 +1,7 @@
 #include <ctranslate2/models/sequence_to_sequence.h>
 
+#include <ctranslate2/decoding.h>
+
 #include "test_utils.h"
 
 TEST(ModelTest, ContainsModel) {
@@ -52,4 +54,44 @@ TEST(ModelTest, LayerExists) {
   EXPECT_TRUE(model->layer_exists("encoder/layer_0"));
   EXPECT_TRUE(model->layer_exists("encoder/layer_0/"));
   EXPECT_FALSE(model->layer_exists("encoder/layer"));
+}
+
+TEST(ModelTest, EncoderDecoderNoLength) {
+  auto model = models::Model::load(default_model_dir())->as_sequence_to_sequence();
+  auto& encoder_decoder = dynamic_cast<models::EncoderDecoderReplica&>(*model);
+  auto& encoder = encoder_decoder.encoder();
+  auto& decoder = encoder_decoder.decoder();
+
+  StorageView input_ids({1, 6}, std::vector<int32_t>{31, 10, 19, 13, 5, 7});
+  size_t decoder_start_id = 1;
+  size_t decoder_end_id = 2;
+
+  std::vector<size_t> output_w_length;
+  std::vector<size_t> output_wo_length;
+
+  {
+    StorageView lengths({1}, std::vector<int32_t>{6});
+    StorageView encoder_output;
+    encoder(input_ids, lengths, encoder_output);
+
+    layers::DecoderState state = decoder.initial_state();
+    state.emplace("memory", encoder_output);
+    state.emplace("memory_lengths", lengths);
+
+    auto results = decode(decoder, state, {{decoder_start_id}}, {decoder_end_id});
+    output_w_length = results[0].hypotheses[0];
+  }
+
+  {
+    StorageView encoder_output;
+    encoder(input_ids, encoder_output);
+
+    layers::DecoderState state = decoder.initial_state();
+    state.emplace("memory", encoder_output);
+
+    auto results = decode(decoder, state, {{decoder_start_id}}, {decoder_end_id});
+    output_wo_length = results[0].hypotheses[0];
+  }
+
+  EXPECT_EQ(output_wo_length, output_w_length);
 }

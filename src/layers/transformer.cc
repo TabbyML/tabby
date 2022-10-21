@@ -46,12 +46,12 @@ namespace ctranslate2 {
     }
 
     void TransformerEncoderLayer::operator()(const StorageView& input,
-                                             const StorageView& lengths,
+                                             const StorageView* lengths,
                                              StorageView& output,
                                              const Padder* padder) const {
       PROFILE("TransformerEncoderLayer");
       StorageView context(input.dtype(), input.device());
-      _self_attention(input, input, &lengths, context, nullptr, nullptr, nullptr, padder, padder);
+      _self_attention(input, input, lengths, context, nullptr, nullptr, nullptr, padder, padder);
       _ff(context, output);
     }
 
@@ -173,7 +173,7 @@ namespace ctranslate2 {
     }
 
     void TransformerEncoder::operator()(const std::vector<StorageView>& ids,
-                                        const StorageView& lengths,
+                                        const StorageView* lengths,
                                         StorageView& output) {
       PROFILE("TransformerEncoder");
       StorageView input(output.dtype(), output.device());
@@ -189,17 +189,20 @@ namespace ctranslate2 {
 
       // Remove padding to reduce the amount of computation.
       std::unique_ptr<Padder> padder;
-      if (Padder::allow_padding_removal(output.device(), _compute_type)) {
-        padder = std::make_unique<Padder>(lengths, max_time);
-        padder->remove_padding(input);
+      std::unique_ptr<StorageView> lengths_mask;
+
+      if (lengths) {
+        if (Padder::allow_padding_removal(output.device(), _compute_type)) {
+          padder = std::make_unique<Padder>(*lengths, max_time);
+          padder->remove_padding(input);
+        }
+
+        lengths_mask = std::make_unique<StorageView>(
+          layers::MultiHeadAttention::prepare_length_mask(*lengths, _num_heads, max_time));
       }
 
-      const StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(lengths,
-                                                                                       _num_heads,
-                                                                                       max_time);
-
       for (size_t l = 0; l < _layers.size(); ++l) {
-        (*_layers[l])(input, lengths_mask, output, padder.get());
+        (*_layers[l])(input, lengths_mask.get(), output, padder.get());
         if (l + 1 < _layers.size())
           input = std::move(output);
       }
@@ -326,20 +329,28 @@ namespace ctranslate2 {
       std::unique_ptr<const Padder> memory_padder;
       if (_with_encoder_attention) {
         if (step <= 0) {
-          const StorageView& memory_lengths = state.at("memory_lengths");
           memory = &state.at("memory");
-          if (allow_padding_removal) {
-            memory_padder = std::make_unique<Padder>(memory_lengths, memory->dim(1));
-            memory_padder->remove_padding(*memory);
-          }
 
-          state.emplace("memory_mask",
-                        layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
-                                                                        _num_heads,
-                                                                        max_time));
+          const auto it = state.find("memory_lengths");
+
+          if (it != state.end()) {
+            const StorageView& memory_lengths = it->second;
+
+            if (allow_padding_removal) {
+              memory_padder = std::make_unique<Padder>(memory_lengths, memory->dim(1));
+              memory_padder->remove_padding(*memory);
+            }
+
+            state.emplace("memory_mask",
+                          layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
+                                                                          _num_heads,
+                                                                          max_time));
+          }
         }
 
-        memory_lengths_mask = &state.at("memory_mask");
+        const auto it = state.find("memory_mask");
+        if (it != state.end())
+          memory_lengths_mask = &(it->second);
       }
 
       for (size_t l = 0; l < _layers.size(); ++l) {

@@ -13,8 +13,26 @@ namespace ctranslate2 {
         return 1;
       }
 
+      virtual void operator()(const StorageView& ids,
+                              StorageView& output) {
+        operator()({ids}, nullptr, output);
+      }
+
+      virtual void operator()(const StorageView& ids,
+                              const StorageView& lengths,
+                              StorageView& output) {
+        operator()({ids}, &lengths, output);
+      }
+
       virtual void operator()(const std::vector<StorageView>& ids,
                               const StorageView& lengths,
+                              StorageView& output) {
+        operator()(ids, &lengths, output);
+      }
+
+    protected:
+      virtual void operator()(const std::vector<StorageView>& ids,
+                              const StorageView* lengths,
                               StorageView& output) = 0;
     };
 
