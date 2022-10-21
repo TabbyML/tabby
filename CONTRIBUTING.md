@@ -44,7 +44,7 @@ The Python tests can be run with `pytest`:
 ```bash
 cd python
 pip install -r tests/requirements.txt
-pytest tests/test.py
+pytest tests/
 ```
 
 The code should also be checked with `black` (automatic formatting), `isort` (imports ordering), and `flake8` (code checking):
