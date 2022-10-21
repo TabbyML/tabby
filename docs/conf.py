@@ -52,7 +52,7 @@ def fix_pybind11_signatures(
 
     def _reformat_typehints(content):
         return content.replace(
-            "ctranslate2.translator.",
+            "ctranslate2._ext.",
             "ctranslate2." if autodoc_typehints_format == "fully-qualified" else "",
         )
 

@@ -1,8 +1,10 @@
+import glob
 import os
 import sys
 
 import pybind11
 
+from pybind11.setup_helpers import ParallelCompile
 from setuptools import Extension, find_packages, setup
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -51,14 +53,16 @@ elif sys.platform == "win32":
     package_data["ctranslate2"] = ["*.dll"]
 
 ctranslate2_module = Extension(
-    "ctranslate2.translator",
-    sources=["translator.cc"],
+    "ctranslate2._ext",
+    sources=glob.glob(os.path.join("cpp", "*.cc")),
     extra_compile_args=cflags,
     extra_link_args=ldflags,
     include_dirs=include_dirs,
     library_dirs=library_dirs,
     libraries=["ctranslate2"],
 )
+
+ParallelCompile("CMAKE_BUILD_PARALLEL_LEVEL").install()
 
 setup(
     name="ctranslate2",

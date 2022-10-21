@@ -17,8 +17,7 @@ if sys.platform == "win32":
         ctypes.CDLL(os.path.join(package_dir, "%s.dll" % library))
 
 try:
-    from ctranslate2.extensions import register_extensions
-    from ctranslate2.translator import (
+    from ctranslate2._ext import (
         AsyncGenerationResult,
         AsyncScoringResult,
         AsyncTranslationResult,
@@ -33,6 +32,7 @@ try:
         get_supported_compute_types,
         set_random_seed,
     )
+    from ctranslate2.extensions import register_extensions
 
     register_extensions()
     del register_extensions

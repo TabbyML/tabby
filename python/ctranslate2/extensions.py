@@ -3,7 +3,7 @@ import itertools
 
 from typing import Iterable, List, Optional
 
-from ctranslate2.translator import (
+from ctranslate2._ext import (
     GenerationResult,
     Generator,
     ScoringResult,
