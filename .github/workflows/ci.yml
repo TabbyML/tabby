@@ -21,7 +21,7 @@ jobs:
         backend: [mkl, dnnl]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -94,7 +94,7 @@ jobs:
         backend: [openblas]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -177,11 +177,11 @@ jobs:
           arch: arm64
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - uses: docker/setup-qemu-action@v1
+      - uses: docker/setup-qemu-action@v2
         if: ${{ matrix.arch == 'aarch64' }}
         name: Set up QEMU
 
@@ -204,7 +204,7 @@ jobs:
           CIBW_SKIP: pp* *-musllinux_*
 
       - name: Upload Python wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: python-wheels
           path: python/wheelhouse
@@ -221,11 +221,11 @@ jobs:
 
     steps:
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Prepare test environment
         shell: bash
@@ -233,7 +233,7 @@ jobs:
           ./python/tools/prepare_test_environment.sh
 
       - name: Download Python wheels
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: python-wheels
 
@@ -263,10 +263,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
@@ -298,7 +298,7 @@ jobs:
 
     steps:
       - name: Download Python wheels
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: python-wheels
 
@@ -313,7 +313,7 @@ jobs:
   build-and-push-docker-images:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -339,15 +339,15 @@ jobs:
     needs: [check-python-style, build-python-wheels]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.8
 
       - name: Download CTranslate2 wheels
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: python-wheels
 
