@@ -24,6 +24,7 @@ try:
         GenerationResult,
         Generator,
         ScoringResult,
+        StorageView,
         TranslationResult,
         TranslationStats,
         Translator,

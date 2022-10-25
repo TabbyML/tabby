@@ -1,15 +1,12 @@
 import numpy as np
 import pytest
+import test_utils
 
 import ctranslate2
 
 from ctranslate2.converters import utils as conversion_utils
 from ctranslate2.specs import common_spec, transformer_spec
 from ctranslate2.specs.model_spec import OPTIONAL, index_spec
-
-
-def _array_equal(a, b):
-    return a.dtype == b.dtype and np.array_equal(a, b)
 
 
 def test_layer_spec_validate():
@@ -34,8 +31,10 @@ def test_layer_spec_validate():
     assert spec.c.dtype == np.int32
     assert spec.d == OPTIONAL
     assert spec.e.a.dtype == np.float16
-    assert _array_equal(spec.f, np.int8(1))
-    assert _array_equal(spec.g, np.array([104, 101, 108, 108, 111], dtype=np.int8))
+    assert test_utils.array_equal(spec.f, np.int8(1))
+    assert test_utils.array_equal(
+        spec.g, np.array([104, 101, 108, 108, 111], dtype=np.int8)
+    )
 
     with pytest.raises(AttributeError, match="Attribute z does not exist"):
         spec.z = True
@@ -83,10 +82,12 @@ def test_int8_quantization():
 
     spec = Spec()
     spec.optimize(quantization="int8")
-    assert _array_equal(
+    assert test_utils.array_equal(
         spec.weight, np.array([[-127, -38, 64, 25], [0, 0, 0, 0]], dtype=np.int8)
     )
-    assert _array_equal(spec.weight_scale, np.array([12.7, 1], dtype=np.float32))
+    assert test_utils.array_equal(
+        spec.weight_scale, np.array([12.7, 1], dtype=np.float32)
+    )
 
 
 @pytest.mark.parametrize(
@@ -140,8 +141,8 @@ def test_fp16_weights(
     spec.validate()
     spec.optimize(quantization=quantization)
 
-    assert _array_equal(spec.weight, expected_weight)
-    assert _array_equal(spec.bias, expected_bias)
+    assert test_utils.array_equal(spec.weight, expected_weight)
+    assert test_utils.array_equal(spec.bias, expected_bias)
 
     # Check the weights were not copied or converted.
     if quantization == "float16":
@@ -153,7 +154,7 @@ def test_fp16_weights(
     if expected_weight_scale is None:
         assert spec.weight_scale == OPTIONAL
     else:
-        assert _array_equal(spec.weight_scale, expected_weight_scale)
+        assert test_utils.array_equal(spec.weight_scale, expected_weight_scale)
 
 
 def test_index_spec():
@@ -182,6 +183,6 @@ def test_fuse_linear_no_bias():
     spec = common_spec.LinearSpec()
     layers[1].bias = np.ones([64], dtype=np.float32)
     conversion_utils.fuse_linear(spec, layers)
-    assert _array_equal(spec.bias[:64], np.zeros([64], dtype=np.float32))
-    assert _array_equal(spec.bias[64:128], np.ones([64], dtype=np.float32))
-    assert _array_equal(spec.bias[128:], np.zeros([64], dtype=np.float32))
+    assert test_utils.array_equal(spec.bias[:64], np.zeros([64], dtype=np.float32))
+    assert test_utils.array_equal(spec.bias[64:128], np.ones([64], dtype=np.float32))
+    assert test_utils.array_equal(spec.bias[128:], np.zeros([64], dtype=np.float32))

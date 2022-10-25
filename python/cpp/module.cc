@@ -60,6 +60,7 @@ PYBIND11_MODULE(_ext, m)
   m.def("set_random_seed", &ctranslate2::set_random_seed, py::arg("seed"),
         "Sets the seed of random generators.");
 
+  ctranslate2::python::register_storage_view(m);
   ctranslate2::python::register_translation_stats(m);
   ctranslate2::python::register_translation_result(m);
   ctranslate2::python::register_scoring_result(m);

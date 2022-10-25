@@ -364,6 +364,11 @@ namespace ctranslate2 {
     return reshape(std::move(shape));
   }
 
+  StorageView& StorageView::view(void* data, Shape shape) {
+    TYPE_DISPATCH(_dtype, view(reinterpret_cast<T*>(data), std::move(shape)));
+    return *this;
+  }
+
   template <typename T>
   StorageView& StorageView::fill(T value) {
     DEVICE_DISPATCH(_device, primitives<D>::fill(data<T>(), value, _size));

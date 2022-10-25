@@ -1,7 +1,10 @@
 import os
 import sys
 
+import numpy as np
 import pytest
+
+import ctranslate2
 
 
 def get_data_dir():
@@ -24,10 +27,18 @@ def write_tokens(batch_tokens, path):
             f.write("\n")
 
 
+def array_equal(a, b):
+    return a.dtype == b.dtype and np.array_equal(a, b)
+
+
 skip_on_windows = pytest.mark.skipif(
     sys.platform == "win32", reason="Test case disabled on Windows"
 )
 
 only_on_linux = pytest.mark.skipif(
     sys.platform != "linux", reason="Test case only running on Linux"
+)
+
+require_cuda = pytest.mark.skipif(
+    ctranslate2.get_cuda_device_count() == 0, reason="Test case requires a CUDA device"
 )

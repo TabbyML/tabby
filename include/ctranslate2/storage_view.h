@@ -222,6 +222,7 @@ namespace ctranslate2 {
 
     template <typename T>
     StorageView& view(T* data, Shape shape);
+    StorageView& view(void* data, Shape shape);
 
     template <typename T>
     StorageView& fill(T value);
