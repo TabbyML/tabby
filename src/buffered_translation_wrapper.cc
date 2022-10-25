@@ -95,12 +95,14 @@ namespace ctranslate2 {
         // Release the lock as soon as the buffer is flushed.
         lock.unlock();
 
-        _translator_pool->post_examples<TranslationResult>(
+        _translator_pool->post_examples(
           examples,
           _max_batch_size,
           BatchType::Examples,
-          TranslatorPool::TranslationJobCreator(_options),
-          std::make_shared<PromiseSetter<TranslationResult>>(std::move(promises)));
+          std::move(promises),
+          [this](models::SequenceToSequenceReplica& model, const Batch& batch) {
+            return run_translation(model, batch, _options);
+          });
       }
 
       if (stop)

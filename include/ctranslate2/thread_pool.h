@@ -104,6 +104,7 @@ namespace ctranslate2 {
     size_t num_active_jobs() const;
 
     Worker& get_worker(size_t index);
+    static Worker& get_local_worker();
 
   private:
     void start_workers(int core_offset);

@@ -1,4 +1,5 @@
 #include <ctranslate2/buffered_translation_wrapper.h>
+#include <ctranslate2/translator.h>
 #include <ctranslate2/decoding.h>
 
 #include <algorithm>

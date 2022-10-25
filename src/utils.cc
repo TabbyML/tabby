@@ -87,6 +87,11 @@ namespace ctranslate2 {
     return get_device_count(Device::CUDA);
   }
 
+  int get_core_offset() {
+    static const int core_offset = read_int_from_env("CT2_TRANSLATORS_CORE_OFFSET", -1);
+    return core_offset;
+  }
+
 #if defined(_OPENMP) || defined(CT2_WITH_RUY)
   static inline size_t get_default_num_threads() {
     constexpr size_t default_num_threads = 4;

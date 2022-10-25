@@ -94,6 +94,8 @@ namespace ctranslate2 {
 #endif
   }
 
+  static thread_local Worker* local_worker = nullptr;
+
   void Worker::start(JobQueue& job_queue, int thread_affinity) {
     _thread = std::thread(&Worker::run, this, std::ref(job_queue));
     if (thread_affinity >= 0)
@@ -105,6 +107,7 @@ namespace ctranslate2 {
   }
 
   void Worker::run(JobQueue& job_queue) {
+    local_worker = this;
     initialize();
 
     const std::function<void()> before_wait = [this]{ return idle(); };
@@ -117,6 +120,7 @@ namespace ctranslate2 {
     }
 
     finalize();
+    local_worker = nullptr;
   }
 
 
@@ -171,6 +175,12 @@ namespace ctranslate2 {
 
   Worker& ThreadPool::get_worker(size_t index) {
     return *_workers.at(index);
+  }
+
+  Worker& ThreadPool::get_local_worker() {
+    if (!local_worker)
+      throw std::runtime_error("No worker is available in this thread");
+    return *local_worker;
   }
 
 }

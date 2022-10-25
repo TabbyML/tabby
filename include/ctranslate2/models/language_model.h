@@ -30,6 +30,10 @@ namespace ctranslate2 {
       {
       }
 
+      static std::unique_ptr<SequenceGeneratorReplica> create_from_model(const Model& model) {
+        return model.as_sequence_generator();
+      }
+
       std::vector<ScoringResult>
       score(const std::vector<std::vector<std::string>>& tokens,
             const ScoringOptions& options = ScoringOptions());

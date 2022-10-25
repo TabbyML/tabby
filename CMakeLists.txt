@@ -137,7 +137,6 @@ set(SOURCES
   src/padder.cc
   src/profiler.cc
   src/random.cc
-  src/replica_pool.cc
   src/sampling.cc
   src/scoring.cc
   src/storage_view.cc

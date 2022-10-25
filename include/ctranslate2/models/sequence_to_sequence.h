@@ -58,6 +58,10 @@ namespace ctranslate2 {
       {
       }
 
+      static std::unique_ptr<SequenceToSequenceReplica> create_from_model(const Model& model) {
+        return model.as_sequence_to_sequence();
+      }
+
       std::vector<ScoringResult>
       score(const std::vector<std::vector<std::string>>& source,
             const std::vector<std::vector<std::string>>& target,

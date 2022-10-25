@@ -4,44 +4,6 @@
 
 namespace ctranslate2 {
 
-  static thread_local Translator* local_translator = nullptr;
-
-  Translator* TranslatorPool::get_translator() {
-    return local_translator;
-  }
-
-  class TranslatorWorker : public ReplicaWorker {
-  public:
-    TranslatorWorker(const std::shared_ptr<const models::Model>& model, size_t num_threads)
-      : ReplicaWorker(model->device(), model->device_index(), num_threads)
-      , _translator(model)
-    {
-    }
-
-    Translator& translator() {
-      return _translator;
-    }
-
-  protected:
-    void initialize() override {
-      ReplicaWorker::initialize();
-
-      local_translator = &_translator;
-    }
-
-    void finalize() override {
-      // The CUDA context is destroyed when the thread exits, so we clear the translation
-      // resources now when the CUDA context is still active.
-      _translator.detach_model();
-
-      local_translator = nullptr;
-    }
-
-  private:
-    Translator _translator;
-  };
-
-
   TranslatorPool::TranslatorPool(size_t num_translators,
                                  size_t num_threads_per_translator,
                                  const std::string& model_dir,
@@ -49,12 +11,12 @@ namespace ctranslate2 {
                                  const int device_index,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
-    : ReplicaPool(create_workers<TranslatorWorker>(num_translators,
-                                                   num_threads_per_translator,
-                                                   model_dir,
-                                                   device,
-                                                   {device_index},
-                                                   compute_type),
+    : ReplicaPool(num_translators,
+                  num_threads_per_translator,
+                  model_dir,
+                  device,
+                  {device_index},
+                  compute_type,
                   max_queued_batches)
   {
   }
@@ -66,12 +28,12 @@ namespace ctranslate2 {
                                  const int device_index,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
-    : ReplicaPool(create_workers<TranslatorWorker>(num_translators,
-                                                   num_threads_per_translator,
-                                                   model_reader,
-                                                   device,
-                                                   {device_index},
-                                                   compute_type),
+    : ReplicaPool(num_translators,
+                  num_threads_per_translator,
+                  model_reader,
+                  device,
+                  {device_index},
+                  compute_type,
                   max_queued_batches)
   {
   }
@@ -83,12 +45,12 @@ namespace ctranslate2 {
                                  const std::vector<int>& device_indices,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
-    : ReplicaPool(create_workers<TranslatorWorker>(num_translators_per_device,
-                                                   num_threads_per_translator,
-                                                   model_dir,
-                                                   device,
-                                                   device_indices,
-                                                   compute_type),
+    : ReplicaPool(num_translators_per_device,
+                  num_threads_per_translator,
+                  model_dir,
+                  device,
+                  device_indices,
+                  compute_type,
                   max_queued_batches)
   {
   }
@@ -100,12 +62,12 @@ namespace ctranslate2 {
                                  const std::vector<int>& device_indices,
                                  const ComputeType compute_type,
                                  const long max_queued_batches)
-    : ReplicaPool(create_workers<TranslatorWorker>(num_translators_per_device,
-                                                   num_threads_per_translator,
-                                                   model_reader,
-                                                   device,
-                                                   device_indices,
-                                                   compute_type),
+    : ReplicaPool(num_translators_per_device,
+                  num_threads_per_translator,
+                  model_reader,
+                  device,
+                  device_indices,
+                  compute_type,
                   max_queued_batches)
   {
   }
@@ -124,10 +86,13 @@ namespace ctranslate2 {
                                         const TranslationOptions& options,
                                         const size_t max_batch_size,
                                         const BatchType batch_type) {
-    return post_examples(load_examples({source, target_prefix}),
-                         max_batch_size,
-                         batch_type,
-                         TranslationJobCreator(options));
+    return post_examples<TranslationResult>(
+      load_examples({source, target_prefix}),
+      max_batch_size,
+      batch_type,
+      [options](models::SequenceToSequenceReplica& model, const Batch& batch) {
+        return run_translation(model, batch, options);
+      });
   }
 
   std::vector<std::future<ScoringResult>>
@@ -136,10 +101,13 @@ namespace ctranslate2 {
                                     const ScoringOptions& options,
                                     const size_t max_batch_size,
                                     const BatchType batch_type) {
-    return post_examples(load_examples({source, target}),
-                         max_batch_size,
-                         batch_type,
-                         ScoringJobCreator(options));
+    return post_examples<ScoringResult>(
+      load_examples({source, target}),
+      max_batch_size,
+      batch_type,
+      [options](models::SequenceToSequenceReplica& model, const Batch& batch) {
+        return run_scoring(model, batch, options);
+      });
   }
 
   std::vector<TranslationResult>
@@ -269,103 +237,28 @@ namespace ctranslate2 {
   }
 
   size_t TranslatorPool::num_translators() const {
-    return _thread_pool->num_threads();
-  }
-
-  std::vector<std::shared_ptr<const models::Model>> TranslatorPool::detach_models() {
-    std::vector<std::shared_ptr<const models::Model>> models;
-    models.reserve(num_translators());
-    for (size_t i = 0; i < num_translators(); ++i) {
-      auto& translator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).translator();
-      models.emplace_back(translator.detach_model());
-    }
-    return models;
-  }
-
-  void TranslatorPool::set_models(const std::vector<std::shared_ptr<const models::Model>>& models) {
-    if (models.size() != num_translators())
-      throw std::invalid_argument("The number of models does not match the number "
-                                  "of parallel translators");
-
-    for (size_t i = 0; i < num_translators(); ++i) {
-      auto& translator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).translator();
-      translator.set_model(models[i]);
-    }
-  }
-
-  void TranslatorPool::clear_cache() const {
-    for (size_t i = 0; i < num_translators(); ++i) {
-      auto* allocator = static_cast<TranslatorWorker&>(_thread_pool->get_worker(i)).allocator();
-      if (allocator)
-        allocator->clear_cache();
-    }
+    return ReplicaPool<models::SequenceToSequenceReplica>::num_replicas();
   }
 
 
-  class TranslationJob : public BatchJob<TranslationResult> {
-  public:
-    TranslationJob(TranslationOptions options, Batch batch)
-      : BatchJob(std::move(batch))
-      , _options(std::move(options))
-    {
-    }
-
-  protected:
-    std::vector<TranslationResult> get_results(const Batch& batch) const override {
-      spdlog::debug("Running batch translation on {} examples", batch.num_examples());
-      auto results = TranslatorPool::get_translator()->translate_batch_with_prefix(
-        batch.get_stream(0),
-        batch.get_stream(1),
-        _options);
-      spdlog::debug("Finished batch translation");
-      return results;
-    }
-
-  private:
-    const TranslationOptions _options;
-  };
-
-  TranslatorPool::TranslationJobCreator::TranslationJobCreator(TranslationOptions options)
-    : _options(std::move(options))
-  {
+  std::vector<ScoringResult>
+  run_scoring(models::SequenceToSequenceReplica& model,
+              const Batch& batch,
+              const ScoringOptions& options) {
+    spdlog::debug("Running batch scoring on {} examples", batch.num_examples());
+    auto results = model.score(batch.get_stream(0), batch.get_stream(1), options);
+    spdlog::debug("Finished batch scoring");
+    return results;
   }
 
-  std::unique_ptr<BatchJob<TranslationResult>>
-  TranslatorPool::TranslationJobCreator::operator()(Batch batch) const {
-    return std::make_unique<TranslationJob>(_options, std::move(batch));
-  }
-
-
-  class ScoringJob : public BatchJob<ScoringResult> {
-  public:
-    ScoringJob(ScoringOptions options, Batch batch)
-      : BatchJob(std::move(batch))
-      , _options(std::move(options))
-    {
-    }
-
-  protected:
-    std::vector<ScoringResult> get_results(const Batch& batch) const override {
-      spdlog::debug("Running batch scoring on {} examples", batch.num_examples());
-      auto results = TranslatorPool::get_translator()->score_batch(batch.get_stream(0),
-                                                                   batch.get_stream(1),
-                                                                   _options);
-      spdlog::debug("Finished batch scoring");
-      return results;
-    }
-
-  private:
-    const ScoringOptions _options;
-  };
-
-  TranslatorPool::ScoringJobCreator::ScoringJobCreator(ScoringOptions options)
-    : _options(std::move(options))
-  {
-  }
-
-  std::unique_ptr<BatchJob<ScoringResult>>
-  TranslatorPool::ScoringJobCreator::operator()(Batch batch) const {
-    return std::make_unique<ScoringJob>(_options, std::move(batch));
+  std::vector<TranslationResult>
+  run_translation(models::SequenceToSequenceReplica& model,
+                  const Batch& batch,
+                  const TranslationOptions& options) {
+    spdlog::debug("Running batch translation on {} examples", batch.num_examples());
+    auto results = model.translate(batch.get_stream(0), batch.get_stream(1), options);
+    spdlog::debug("Finished batch translation");
+    return results;
   }
 
 }

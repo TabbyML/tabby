@@ -3,7 +3,7 @@
 #include <fstream>
 
 #include "replica_pool.h"
-#include "translator.h"
+#include "models/sequence_to_sequence.h"
 
 namespace ctranslate2 {
 
@@ -13,9 +13,18 @@ namespace ctranslate2 {
     double total_time_in_ms = 0;
   };
 
+  std::vector<ScoringResult>
+  run_scoring(models::SequenceToSequenceReplica& translator,
+              const Batch& batch,
+              const ScoringOptions& options);
+  std::vector<TranslationResult>
+  run_translation(models::SequenceToSequenceReplica& translator,
+                  const Batch& batch,
+                  const TranslationOptions& options);
+
   // TranslatorPool is the high-level class for running translations. It supports parallel
   // and asynchronous translations.
-  class TranslatorPool : public ReplicaPool {
+  class TranslatorPool : public ReplicaPool<models::SequenceToSequenceReplica> {
   public:
     // num_threads_per_translator (a.k.a. intra_threads) is forced to 1 when the translator
     // is running on a CUDA device.
@@ -125,16 +134,19 @@ namespace ctranslate2 {
                         size_t max_batch_size = 32,
                         size_t read_batch_size = 0,
                         BatchType batch_type = BatchType::Examples) {
-      consume_stream(source,
-                     target,
-                     output,
-                     source_reader,
-                     target_reader,
-                     target_writer,
-                     TranslationJobCreator(options),
-                     max_batch_size,
-                     read_batch_size,
-                     batch_type);
+      consume_stream<TranslationResult>(
+        source,
+        target,
+        output,
+        source_reader,
+        target_reader,
+        target_writer,
+        max_batch_size,
+        read_batch_size,
+        batch_type,
+        [options](models::SequenceToSequenceReplica& model, const Batch& batch) {
+          return run_translation(model, batch, options);
+        });
     }
 
     // Translate a file.
@@ -296,16 +308,19 @@ namespace ctranslate2 {
                       size_t max_batch_size = 32,
                       size_t read_batch_size = 0,
                       BatchType batch_type = BatchType::Examples) {
-      consume_stream(source,
-                     &target,
-                     output,
-                     source_reader,
-                     &target_reader,
-                     target_writer,
-                     ScoringJobCreator(options),
-                     max_batch_size,
-                     read_batch_size,
-                     batch_type);
+      consume_stream<ScoringResult>(
+        source,
+        &target,
+        output,
+        source_reader,
+        &target_reader,
+        target_writer,
+        max_batch_size,
+        read_batch_size,
+        batch_type,
+        [options](models::SequenceToSequenceReplica& model, const Batch& batch) {
+          return run_scoring(model, batch, options);
+        });
     }
 
     // Score a file.
@@ -402,49 +417,24 @@ namespace ctranslate2 {
 
     size_t num_translators() const;
 
-    // Return the translator local to the current thread.
-    static Translator* get_translator();
-
-    // The methods below are not thread-safe.
-    std::vector<std::shared_ptr<const models::Model>> detach_models();
-    void set_models(const std::vector<std::shared_ptr<const models::Model>>& models);
-    void clear_cache() const;
-
   private:
     friend class BufferedTranslationWrapper;
 
-    class TranslationJobCreator : public BatchJobCreator<TranslationResult> {
-    public:
-      TranslationJobCreator(TranslationOptions options);
-      std::unique_ptr<BatchJob<TranslationResult>> operator()(Batch batch) const override;
-
-    private:
-      const TranslationOptions _options;
-    };
-
-    class ScoringJobCreator : public BatchJobCreator<ScoringResult> {
-    public:
-      ScoringJobCreator(ScoringOptions options);
-      std::unique_ptr<BatchJob<ScoringResult>> operator()(Batch batch) const override;
-
-    private:
-      const ScoringOptions _options;
-    };
-
-    template <typename SourceReader,
+    template <typename Result,
+              typename SourceReader,
               typename TargetReader,
               typename TargetWriter,
-              typename Result>
+              typename Func>
     void consume_stream(std::istream& source,
                         std::istream* target,
                         std::ostream& output,
                         SourceReader& source_reader,
                         TargetReader* target_reader,
                         TargetWriter& target_writer,
-                        const BatchJobCreator<Result>& job_creator,
                         size_t max_batch_size,
                         size_t read_batch_size,
-                        BatchType batch_type) {
+                        BatchType batch_type,
+                        const Func& func) {
       std::unique_ptr<BatchReader> batch_reader;
       if (target) {
         auto parallel_reader = std::make_unique<ParallelBatchReader>();
@@ -455,12 +445,12 @@ namespace ctranslate2 {
         batch_reader = std::make_unique<StreamReader<SourceReader>>(source, source_reader);
       }
 
-      consume_batches(*batch_reader,
-                      target_writer,
-                      job_creator,
-                      max_batch_size,
-                      read_batch_size,
-                      batch_type);
+      consume_batches<Result>(*batch_reader,
+                              target_writer,
+                              func,
+                              max_batch_size,
+                              read_batch_size,
+                              batch_type);
 
       output.flush();
     }
