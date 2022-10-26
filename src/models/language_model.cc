@@ -29,6 +29,9 @@ namespace ctranslate2 {
     std::vector<ScoringResult>
     SequenceGeneratorReplica::score(const std::vector<std::vector<std::string>>& tokens,
                                     const ScoringOptions& options) {
+      PROFILE("SequenceGeneratorReplica::score");
+      const auto scoped_device_setter = model()->get_scoped_device_setter();
+
       return get_batch_results_helper<ScoringResult>(
         tokens.size(),
         [this, &tokens, &options](size_t i, ScoringResult& result) {
@@ -42,9 +45,42 @@ namespace ctranslate2 {
     std::vector<GenerationResult>
     SequenceGeneratorReplica::generate(const std::vector<std::vector<std::string>>& start_tokens,
                                        const GenerationOptions& options) {
+      PROFILE("SequenceGeneratorReplica::generator");
+      const auto scoped_device_setter = model()->get_scoped_device_setter();
+
       if (start_tokens.empty())
         return {};
       return run_generation(start_tokens, options);
+    }
+
+    static void check_input_location(const std::string& input_name,
+                                     const StorageView& input,
+                                     const models::Model& model) {
+      if (input.device() != model.device() || input.device_index() != model.device_index())
+        throw std::invalid_argument("Input " + input_name
+                                    + " (" + device_to_str(input.device(), input.device_index())
+                                    + ") must be on the same device as the model ("
+                                    + device_to_str(model.device(), model.device_index()) + ")");
+    }
+
+    StorageView
+    SequenceGeneratorReplica::forward(const StorageView& ids,
+                                      const StorageView& lengths,
+                                      const bool return_log_probs) {
+      PROFILE("SequenceGeneratorReplica::forward");
+      const auto& model = *this->model();
+      const auto scoped_device_setter = model.get_scoped_device_setter();
+
+      check_input_location("ids", ids, model);
+      check_input_location("lengths", lengths, model);
+
+      StorageView output = forward(ids, lengths);
+      if (return_log_probs)
+        ops::LogSoftMax()(output);
+
+      // Ensure all operations are finished before returning the output.
+      synchronize_stream(model.device());
+      return output;
     }
 
 
@@ -59,8 +95,6 @@ namespace ctranslate2 {
     std::vector<ScoringResult>
     DecoderReplica::run_scoring(const std::vector<std::vector<std::string>>& tokens,
                                 const ScoringOptions& options) {
-      PROFILE("DecoderReplica::run_scoring");
-      const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
 
       const auto ids = vocabulary.to_ids(tokens, options.max_input_length);
@@ -82,8 +116,6 @@ namespace ctranslate2 {
     std::vector<GenerationResult>
     DecoderReplica::run_generation(const std::vector<std::vector<std::string>>& start_tokens,
                                    const GenerationOptions& options) {
-      PROFILE("DecoderReplica::run_generation");
-      const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
       _decoder->update_output_layer(_model->preferred_size_multiple());
 
@@ -129,6 +161,28 @@ namespace ctranslate2 {
       }
 
       return final_results;
+    }
+
+    StorageView DecoderReplica::forward(const StorageView& ids, const StorageView& lengths) {
+      if (ids.rank() != 2)
+        throw std::invalid_argument("Expected input ids to have 2 dimensions, but got "
+                                    + std::to_string(ids.rank())
+                                    + " dimension(s) instead");
+      if (lengths.size() != ids.dim(0))
+        throw std::invalid_argument("Expected lengths vector to have size "
+                                    + std::to_string(ids.dim(0))
+                                    + ", but got size "
+                                    + std::to_string(lengths.size())
+                                    + " instead");
+
+      auto& decoder = *_decoder;
+
+      decoder.update_output_layer(_model->preferred_size_multiple());
+      auto state = decoder.initial_state(/*iterative_decoding=*/false);
+
+      StorageView logits(decoder.output_type(), decoder.device());
+      decoder(ids, lengths, state, logits);
+      return logits;
     }
 
   }

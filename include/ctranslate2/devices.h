@@ -12,6 +12,7 @@ namespace ctranslate2 {
 
   Device str_to_device(const std::string& device);
   std::string device_to_str(Device device);
+  std::string device_to_str(Device device, int index);
 
   int get_device_count(Device device);
 
@@ -19,6 +20,7 @@ namespace ctranslate2 {
   void set_device_index(Device device, int index);
 
   void synchronize_device(Device device, int index);
+  void synchronize_stream(Device device);
 
   class ScopedDeviceSetter {
   public:

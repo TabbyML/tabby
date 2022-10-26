@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <future>
 
 #include "batch_reader.h"
 #include "models/model.h"
@@ -50,6 +49,18 @@ namespace ctranslate2 {
                       device_indices,
                       compute_type,
                       max_queued_batches);
+    }
+
+    template <typename Result, typename Func>
+    std::future<Result> post(Func func) {
+      std::function<Result()> wrapped_func = [func = std::move(func)]() {
+        return func(get_thread_replica());
+      };
+
+      auto job = std::make_unique<FunctionJob<Result>>(std::move(wrapped_func));
+      auto future = job->get_future();
+      _thread_pool->post(std::move(job));
+      return future;
     }
 
     // Number of batches in the work queue.
@@ -181,6 +192,11 @@ namespace ctranslate2 {
   private:
     std::unique_ptr<ThreadPool> _thread_pool;
 
+    static Replica& get_thread_replica() {
+      auto& worker = static_cast<ReplicaWorker<Replica>&>(ThreadPool::get_local_worker());
+      return worker.replica();
+    }
+
     void initialize_pool(size_t num_replicas_per_device,
                          size_t num_threads_per_replica,
                          models::ModelReader& model_reader,
@@ -231,9 +247,7 @@ namespace ctranslate2 {
         std::exception_ptr exception;
 
         try {
-          auto& worker = static_cast<ReplicaWorker<Replica>&>(ThreadPool::get_local_worker());
-          auto& replica = worker.replica();
-          results = _func(replica, _batch);
+          results = _func(get_thread_replica(), _batch);
         } catch (...) {
           exception = std::current_exception();
         }

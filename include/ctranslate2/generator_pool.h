@@ -28,6 +28,11 @@ namespace ctranslate2 {
                       const ScoringOptions& options = ScoringOptions(),
                       const size_t max_batch_size = 0,
                       const BatchType batch_type = BatchType::Examples);
+
+    std::future<StorageView>
+    forward_batch_async(StorageView ids,
+                        StorageView lengths,
+                        const bool return_log_probs);
   };
 
 }

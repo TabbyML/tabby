@@ -36,6 +36,10 @@ namespace ctranslate2 {
     return "";
   }
 
+  std::string device_to_str(Device device, int index) {
+    return device_to_str(device) + ":" + std::to_string(index);
+  }
+
   int get_device_count(Device device) {
     switch (device) {
     case Device::CUDA:
@@ -99,6 +103,16 @@ namespace ctranslate2 {
 #else
     (void)device;
     (void)index;
+#endif
+  }
+
+  void synchronize_stream(Device device) {
+#ifdef CT2_WITH_CUDA
+    if (device == Device::CUDA) {
+      cudaStreamSynchronize(cuda::get_cuda_stream());
+    }
+#else
+    (void)device;
 #endif
   }
 

@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import numpy as np
 import pytest
 import test_utils
 
@@ -218,6 +219,57 @@ def test_transformers_lm_scoring(tmpdir):
     output = generator.score_batch([["<|endoftext|>"]])[0]
     assert not output.tokens
     assert not output.log_probs
+
+
+@test_utils.only_on_linux
+@pytest.mark.parametrize(
+    "device", ["cpu"] + (["cuda"] if ctranslate2.get_cuda_device_count() > 0 else [])
+)
+@pytest.mark.parametrize("return_log_probs", [True, False])
+def test_transformers_lm_forward(tmpdir, device, return_log_probs):
+    import torch
+    import transformers
+
+    model_name = "gpt2"
+
+    model = transformers.GPT2LMHeadModel.from_pretrained(model_name)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+    generator = ctranslate2.Generator(output_dir, device=device)
+
+    inputs = tokenizer(["Hello world!"], return_tensors="pt")
+
+    inputs.to(device)
+    model.to(device)
+
+    with torch.no_grad():
+        output = model(**inputs)
+        ref_output = output.logits
+        if return_log_probs:
+            ref_output = torch.nn.functional.log_softmax(ref_output, dim=-1)
+        ref_output = ref_output.cpu().numpy()
+
+    ids = inputs["input_ids"].to(torch.int32)
+    lengths = inputs["attention_mask"].sum(1, dtype=torch.int32)
+
+    if device == "cpu":
+        ids = ids.numpy()
+        lengths = lengths.numpy()
+
+    ids = ctranslate2.StorageView.from_array(ids)
+    lengths = ctranslate2.StorageView.from_array(lengths)
+
+    output = generator.forward_batch(ids, lengths, return_log_probs=return_log_probs)
+
+    if device == "cpu":
+        output = np.array(output)
+    else:
+        output = torch.as_tensor(output, device=device).cpu().numpy()
+
+    assert output.shape == ref_output.shape
+    np.testing.assert_allclose(output, ref_output, rtol=1e-2)
 
 
 @test_utils.only_on_linux

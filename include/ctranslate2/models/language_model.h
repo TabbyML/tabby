@@ -42,6 +42,10 @@ namespace ctranslate2 {
       generate(const std::vector<std::vector<std::string>>& start_tokens,
                const GenerationOptions& options = GenerationOptions());
 
+      StorageView forward(const StorageView& ids,
+                          const StorageView& lengths,
+                          const bool return_log_probs);
+
     protected:
       virtual bool skip_scoring(const std::vector<std::string>& tokens,
                                 const ScoringOptions& options,
@@ -60,6 +64,7 @@ namespace ctranslate2 {
       run_generation(const std::vector<std::vector<std::string>>& start_tokens,
                      const GenerationOptions& options) = 0;
 
+      virtual StorageView forward(const StorageView& ids, const StorageView& lengths) = 0;
     };
 
 
@@ -81,6 +86,8 @@ namespace ctranslate2 {
       std::vector<GenerationResult>
       run_generation(const std::vector<std::vector<std::string>>& start_tokens,
                      const GenerationOptions& options) override;
+
+      StorageView forward(const StorageView& ids, const StorageView& lengths);
 
     private:
       const std::shared_ptr<const LanguageModel> _model;

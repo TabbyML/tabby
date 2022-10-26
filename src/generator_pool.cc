@@ -55,4 +55,15 @@ namespace ctranslate2 {
       });
   }
 
+  std::future<StorageView>
+  GeneratorPool::forward_batch_async(StorageView ids,
+                                     StorageView lengths,
+                                     const bool return_log_probs) {
+    return post<StorageView>(
+      [ids = std::move(ids), lengths = std::move(lengths), return_log_probs]
+      (models::SequenceGeneratorReplica& generator) {
+        return generator.forward(ids, lengths, return_log_probs);
+      });
+  }
+
 }

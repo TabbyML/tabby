@@ -2,6 +2,7 @@
 
 #include <ctranslate2/generator_pool.h>
 
+#include "storage_view.h"
 #include "utils.h"
 
 namespace ctranslate2 {
@@ -107,6 +108,16 @@ namespace ctranslate2 {
 
         auto futures = _generator_pool.score_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
+      }
+
+      StorageViewWrapper forward_batch(const StorageViewWrapper& ids,
+                                       const StorageViewWrapper& lengths,
+                                       const bool return_log_probs) {
+        auto future = _generator_pool.forward_batch_async(ids.get_view(),
+                                                          lengths.get_view(),
+                                                          return_log_probs);
+
+        return StorageViewWrapper(future.get());
       }
 
     private:
@@ -249,6 +260,31 @@ namespace ctranslate2 {
 
                  Returns:
                    A list of scoring results.
+             )pbdoc")
+
+       .def("forward_batch", &GeneratorWrapper::forward_batch,
+             py::arg("ids"),
+             py::arg("lengths"),
+             py::kw_only(),
+             py::arg("return_log_probs")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Forwards a batch of token IDs in the generator.
+
+                 Arguments:
+                   ids: The sequences of token IDs as a int32 array with shape
+                     ``[batch_size, max_length]``.
+                   lengths: The length of each sequence as a int32 array with shape
+                     ``[batch_size]``.
+                   return_log_probs: If ``True``, the method returns the log probabilties instead
+                     of the unscaled logits.
+
+                 Returns:
+                   The output logits, or the output log probabilities if :obj:`return_log_probs`
+                   is enabled.
+
+                 Note:
+                   :obj:`ids` and :obj:`lengths` must be on the same device as the model.
              )pbdoc")
         ;
     }

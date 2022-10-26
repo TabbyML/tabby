@@ -1,4 +1,5 @@
 #include "module.h"
+#include "storage_view.h"
 
 #include <sstream>
 
@@ -93,56 +94,37 @@ namespace ctranslate2 {
         "version"_a=3);
     }
 
-    class StorageViewWrapper {
-    public:
-      StorageViewWrapper(StorageView view)
-        : _data_owner(py::none())
-        , _view(std::move(view))
-      {
-      }
+    StorageViewWrapper::StorageViewWrapper(StorageView view)
+      : _data_owner(py::none())
+      , _view(std::move(view))
+    {
+    }
 
-      static StorageViewWrapper from_array(py::object array) {
-        StorageViewWrapper view = create_view_from_array(array);
-        view.set_data_owner(array);
-        return view;
-      }
+    StorageViewWrapper StorageViewWrapper::from_array(py::object array) {
+      StorageViewWrapper view = create_view_from_array(array);
+      view.set_data_owner(array);
+      return view;
+    }
 
-      StorageView& get_view() {
-        return _view;
-      }
+    py::dict StorageViewWrapper::array_interface() const {
+      if (_view.device() == Device::CUDA)
+        throw pybind11::attribute_error("Cannot get __array_interface__ when the StorageView "
+                                        "is viewing a CUDA array");
+      return get_array_interface(_view);
+    }
 
-      const StorageView& get_view() const {
-        return _view;
-      }
+    py::dict StorageViewWrapper::cuda_array_interface() const {
+      if (_view.device() == Device::CPU)
+        throw pybind11::attribute_error("Cannot get __cuda_array_interface__ when the StorageView "
+                                        "is viewing a CPU array");
+      return get_array_interface(_view);
+    }
 
-      void set_data_owner(py::object array) {
-        _data_owner = array;
-      }
-
-      py::dict array_interface() const {
-        if (_view.device() == Device::CUDA)
-          throw pybind11::attribute_error("Cannot get __array_interface__ when the StorageView "
-                                          "is viewing a CUDA array");
-        return get_array_interface(_view);
-      }
-
-      py::dict cuda_array_interface() const {
-        if (_view.device() == Device::CPU)
-          throw pybind11::attribute_error("Cannot get __cuda_array_interface__ when the StorageView "
-                                          "is viewing a CPU array");
-        return get_array_interface(_view);
-      }
-
-      std::string str() const {
-        std::ostringstream stream;
-        stream << _view;
-        return stream.str();
-      }
-
-    private:
-      py::object _data_owner;
-      StorageView _view;
-    };
+    std::string StorageViewWrapper::str() const {
+      std::ostringstream stream;
+      stream << _view;
+      return stream.str();
+    }
 
     void register_storage_view(py::module& m) {
       py::class_<StorageViewWrapper>(

@@ -435,7 +435,7 @@ namespace ctranslate2 {
         }
       }
       os << std::endl);
-    os << "[" << device_to_str(storage.device()) << ':' << storage._device_index
+    os << "[" << device_to_str(storage.device(), storage.device_index())
        << " " << dtype_name(storage.dtype()) << " storage viewed as ";
     if (storage.is_scalar())
       os << "scalar";
