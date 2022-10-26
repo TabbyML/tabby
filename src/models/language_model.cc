@@ -45,7 +45,7 @@ namespace ctranslate2 {
     std::vector<GenerationResult>
     SequenceGeneratorReplica::generate(const std::vector<std::vector<std::string>>& start_tokens,
                                        const GenerationOptions& options) {
-      PROFILE("SequenceGeneratorReplica::generator");
+      PROFILE("SequenceGeneratorReplica::generate");
       const auto scoped_device_setter = model()->get_scoped_device_setter();
 
       if (start_tokens.empty())
