@@ -102,6 +102,47 @@ namespace ctranslate2 {
       return cublas_handle.get();
     }
 
+#ifdef CT2_WITH_CUDNN
+    class CudnnHandle {
+    public:
+      CudnnHandle() {
+        CUDA_CHECK(cudaGetDevice(&_device));
+        CUDNN_CHECK(cudnnCreate(&_handle));
+        CUDNN_CHECK(cudnnSetStream(_handle, get_cuda_stream()));
+      }
+      ~CudnnHandle() {
+        ScopedDeviceSetter scoped_device_setter(Device::CUDA, _device);
+        cudnnDestroy(_handle);
+      }
+      cudnnHandle_t get() const {
+        return _handle;
+      }
+    private:
+      int _device;
+      cudnnHandle_t _handle;
+    };
+
+    cudnnHandle_t get_cudnn_handle() {
+      static thread_local CudnnHandle cudnn_handle;
+      return cudnn_handle.get();
+    }
+
+    cudnnDataType_t get_cudnn_data_type(DataType dtype) {
+      switch (dtype) {
+      case DataType::FLOAT:
+        return CUDNN_DATA_FLOAT;
+      case DataType::FLOAT16:
+        return CUDNN_DATA_HALF;
+      case DataType::INT32:
+        return CUDNN_DATA_INT32;
+      case DataType::INT8:
+        return CUDNN_DATA_INT8;
+      default:
+        throw std::invalid_argument("No cuDNN data type for type " + dtype_name(dtype));
+      }
+    }
+#endif
+
     int get_gpu_count() {
       int gpu_count = 0;
       cudaError_t status = cudaGetDeviceCount(&gpu_count);

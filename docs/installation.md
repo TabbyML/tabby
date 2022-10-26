@@ -98,6 +98,7 @@ The following options can be set with `-DOPTION=VALUE` during the CMake configur
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
 | OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime:<ul><li>INTEL: Intel OpenMP</li><li>COMP: OpenMP runtime provided by the compiler</li><li>NONE: no OpenMP runtime</li></ul> |
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
+| WITH_CUDNN | **OFF**, ON | Compiles with the cuDNN backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |
 | WITH_MKL | OFF, **ON** | Compiles with the Intel MKL backend |
 | WITH_ACCELERATE | **OFF**, ON | Compiles with the Apple Accelerate backend |
@@ -107,8 +108,9 @@ The following options can be set with `-DOPTION=VALUE` during the CMake configur
 Some build options require additional dependencies. See their respective documentation for installation instructions.
 
 * `-DWITH_CUDA=ON` requires [CUDA](https://developer.nvidia.com/cuda-toolkit) >= 10.0
+* `-DWITH_CUDNN=ON` requires [cuDNN](https://developer.nvidia.com/cudnn) >= 8
 * `-DWITH_MKL=ON` requires [Intel MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) >= 2019.5
-* `-DWITH_DNNL=ON` requires [oneDNN](https://github.com/oneapi-src/oneDNN) >= 1.5
+* `-DWITH_DNNL=ON` requires [oneDNN](https://github.com/oneapi-src/oneDNN) >= 2.0
 * `-DWITH_ACCELERATE=ON` requires [Accelerate](https://developer.apple.com/documentation/accelerate)
 * `-DWITH_OPENBLAS=ON` requires [OpenBLAS](https://github.com/xianyi/OpenBLAS)
 

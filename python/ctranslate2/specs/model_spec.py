@@ -159,7 +159,7 @@ class LayerSpec(metaclass=FrozenMeta):
                 return
 
             scale = None
-            is_quantizable = "weight" in name
+            is_quantizable = hasattr(spec, "%s_scale" % name)
 
             if is_quantizable:
                 if quantization == "int16":

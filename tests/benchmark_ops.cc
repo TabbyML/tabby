@@ -105,6 +105,15 @@ void benchmark_dequantize(Device device) {
   BENCHMARK(dequantize_op(x, input_scale, weight_scale, false, true, y), 100000);
 }
 
+void benchmark_conv1d(Device device) {
+  StorageView x({1, 768, 3000}, DataType::FLOAT, device);
+  StorageView weight({768, 768, 3}, DataType::FLOAT, device);
+  StorageView bias({768}, DataType::FLOAT, device);
+  StorageView y(device);
+  const ops::Conv1D conv_op{2, 1};
+  BENCHMARK(conv_op(x, weight, bias, y), 100);
+}
+
 int main(int argc, char* argv[]) {
   if (argc < 3) {
     std::cerr << "usage: " << argv[0] << " op device [dtype]" << std::endl;
@@ -140,6 +149,8 @@ int main(int argc, char* argv[]) {
     benchmark_quantize(device, dtype);
   else if (op == "dequantize")
     benchmark_dequantize(device);
+  else if (op == "conv1d")
+    benchmark_conv1d(device);
 
   return 0;
 }

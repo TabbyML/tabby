@@ -6,6 +6,10 @@
 #include <cublas_v2.h>
 #include <thrust/execution_policy.h>
 
+#ifdef CT2_WITH_CUDNN
+#  include <cudnn.h>
+#endif
+
 #include "ctranslate2/types.h"
 #include "ctranslate2/utils.h"
 
@@ -28,10 +32,22 @@ namespace ctranslate2 {
                             + std::string(ctranslate2::cuda::cublasGetStatusName(status))); \
     }
 
+#define CUDNN_CHECK(ans)                                                \
+    {                                                                   \
+      cudnnStatus_t status = (ans);                                     \
+      if (status != CUDNN_STATUS_SUCCESS)                               \
+        THROW_RUNTIME_ERROR("cuDNN failed with status "                 \
+                            + std::string(cudnnGetErrorString(status))); \
+    }
+
     const char* cublasGetStatusName(cublasStatus_t status);
 
     cudaStream_t get_cuda_stream();
     cublasHandle_t get_cublas_handle();
+#ifdef CT2_WITH_CUDNN
+    cudnnHandle_t get_cudnn_handle();
+    cudnnDataType_t get_cudnn_data_type(DataType dtype);
+#endif
 
     int get_gpu_count();
     bool has_gpu();

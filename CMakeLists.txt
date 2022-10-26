@@ -13,6 +13,7 @@ option(WITH_ACCELERATE "Compile with Accelerate backend" OFF)
 option(WITH_OPENBLAS "Compile with OpenBLAS backend" OFF)
 option(WITH_RUY "Compile with Ruy backend" OFF)
 option(WITH_CUDA "Compile with CUDA backend" OFF)
+option(WITH_CUDNN "Compile with cuDNN backend" OFF)
 option(CUDA_DYNAMIC_LOADING "Dynamically load CUDA libraries at runtime" OFF)
 option(ENABLE_CPU_DISPATCH "Compile CPU kernels for multiple ISA and dispatch at runtime" ON)
 option(ENABLE_PROFILING "Compile with profiling support" OFF)
@@ -103,6 +104,8 @@ set(SOURCES
   src/ops/bias_add_cpu.cc
   src/ops/concat.cc
   src/ops/concat_split_cpu.cc
+  src/ops/conv1d.cc
+  src/ops/conv1d_cpu.cc
   src/ops/dequantize.cc
   src/ops/dequantize_cpu.cc
   src/ops/gather.cc
@@ -332,6 +335,8 @@ if(WITH_DNNL)
   add_definitions(-DCT2_WITH_DNNL)
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${DNNL_INCLUDE_DIR})
   list(APPEND LIBRARIES ${DNNL_LIBRARY})
+else()
+  message(WARNING "DNNL library is not enabled: convolution layers will not be supported on CPU")
 endif()
 
 if (WITH_ACCELERATE)
@@ -416,6 +421,35 @@ if (WITH_CUDA)
   cuda_include_directories(${THRUST_INCLUDE_DIRS})
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${THRUST_INCLUDE_DIRS})
 
+  if(WITH_CUDNN)
+    # Find cuDNN includes.
+    find_path(CUDNN_INCLUDE_DIR NAMES cudnn.h HINTS ${CUDA_TOOLKIT_ROOT_DIR}/include)
+    if(CUDNN_INCLUDE_DIR)
+      message(STATUS "Found cuDNN include directory: ${CUDNN_INCLUDE_DIR}")
+    else()
+      message(FATAL_ERROR "cuDNN include directory not found")
+    endif()
+
+    # Find cuDNN libraries.
+    find_library(CUDNN_LIBRARIES
+      NAMES cudnn
+      HINTS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+    )
+    if(CUDNN_LIBRARIES)
+      message(STATUS "Found cuDNN libraries: ${CUDNN_LIBRARIES}")
+    else()
+      message(FATAL_ERROR "cuDNN libraries not found")
+    endif()
+
+    # libcudnn.so is a shim layer that dynamically loads the correct library at runtime,
+    # so we explictly link against it even with CUDA_DYNAMIC_LOADING.
+    list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${CUDNN_INCLUDE_DIR})
+    list(APPEND LIBRARIES ${CUDNN_LIBRARIES})
+    add_definitions(-DCT2_WITH_CUDNN)
+  else()
+    message(WARNING "cuDNN library is not enabled: convolution layers will not be supported on GPU")
+  endif()
+
   if(CUDA_DYNAMIC_LOADING)
     if(CUDA_VERSION_MAJOR LESS 11)
       message(FATAL_ERROR "Dynamic loading of CUDA libraries requires CUDA 11 or above")
@@ -433,6 +467,7 @@ if (WITH_CUDA)
     src/cuda/utils.cc
     src/ops/bias_add_gpu.cu
     src/ops/concat_split_gpu.cu
+    src/ops/conv1d_gpu.cu
     src/ops/dequantize_gpu.cu
     src/ops/gather_gpu.cu
     src/ops/gumbel_max_gpu.cu
@@ -444,6 +479,8 @@ if (WITH_CUDA)
     src/ops/topk_gpu.cu
     src/ops/quantize_gpu.cu
     )
+elseif(WITH_CUDNN)
+  message(FATAL_ERROR "WITH_CUDNN=ON requires WITH_CUDA=ON")
 else()
   add_library(${PROJECT_NAME} ${SOURCES})
 endif()

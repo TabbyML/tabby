@@ -38,6 +38,12 @@ class LinearSpec(model_spec.LayerSpec):
         return isinstance(self.bias, np.ndarray)
 
 
+class Conv1DSpec(model_spec.LayerSpec):
+    def __init__(self):
+        self.weight = None
+        self.bias = model_spec.OPTIONAL
+
+
 class EmbeddingsSpec(model_spec.LayerSpec):
     def __init__(self):
         self.weight = None

@@ -161,5 +161,21 @@ namespace ctranslate2 {
       const StorageView& _gamma;
     };
 
+    class Conv1D : public Layer {
+    public:
+      Conv1D(const models::Model& model,
+             const std::string& scope,
+             dim_t stride = 1,
+             dim_t padding = 0,
+             dim_t dilation = 1);
+      DataType output_type() const override;
+      dim_t output_size() const override;
+      void operator()(const StorageView& input, StorageView& output) const;
+    private:
+      const ops::Conv1D _conv_op;
+      const StorageView& _weight;
+      const StorageView* _bias;
+    };
+
   }
 }
