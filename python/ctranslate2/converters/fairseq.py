@@ -179,7 +179,7 @@ class FairseqConverter(Converter):
 
                 spec.register_vocabulary(_get_vocab(task.dictionary))
                 if not args.add_bos_token:
-                    spec.bos_token = spec.eos_token
+                    spec.config.bos_token = spec.config.eos_token
 
             else:
                 set_transformer_encoder(spec.encoder, model.encoder)
@@ -188,10 +188,10 @@ class FairseqConverter(Converter):
                 spec.register_source_vocabulary(_get_vocab(task.source_dictionary))
                 spec.register_target_vocabulary(_get_vocab(task.target_dictionary))
                 if self._no_default_special_tokens:
-                    spec.user_decoder_start_tokens = True
+                    spec.config.decoder_start_token = None
                 else:
-                    spec.with_source_eos = True
-                    spec.with_target_bos = False
+                    spec.config.decoder_start_token = spec.config.eos_token
+                    spec.config.add_source_eos = True
 
             return spec
 

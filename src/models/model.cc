@@ -16,6 +16,7 @@ namespace ctranslate2 {
   namespace models {
 
     static const std::string binary_file = "model.bin";
+    static const std::string config_file = "config.json";
 
     static inline void report_stream_error(const std::streampos position,
                                            const size_t read_size,
@@ -515,6 +516,12 @@ namespace ctranslate2 {
       model->_spec_revision = spec_revision;
 
       check_version(spec_revision, model->current_spec_revision(), "revision");
+
+      {
+        std::unique_ptr<std::istream> config_file_ptr = model_reader.get_file(config_file);
+        if (config_file_ptr)
+          model->config = nlohmann::json::parse(*config_file_ptr);
+      }
 
       // Load the variables.
       const auto num_variables = consume<uint32_t>(model_file);

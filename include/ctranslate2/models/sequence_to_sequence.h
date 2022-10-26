@@ -19,19 +19,16 @@ namespace ctranslate2 {
       const VocabularyMap* get_vocabulary_map() const;
 
       bool with_source_bos() const {
-        return _with_source_bos;
+        return config["add_source_bos"];
       }
 
       bool with_source_eos() const {
-        return _with_source_eos;
+        return config["add_source_eos"];
       }
 
-      bool with_target_bos() const {
-        return _with_target_bos;
-      }
-
-      bool user_decoder_start_tokens() const {
-        return _user_decoder_start_tokens;
+      const std::string* decoder_start_token() const {
+        auto& start_token = config["decoder_start_token"];
+        return start_token.is_null() ? nullptr : start_token.get_ptr<const std::string*>();
       }
 
     protected:
@@ -43,11 +40,6 @@ namespace ctranslate2 {
       std::shared_ptr<const VocabularyMap> _vocabulary_map;
 
       void load_vocabularies(ModelReader& model_reader);
-
-      bool _with_source_bos = false;
-      bool _with_source_eos = false;
-      bool _with_target_bos = true;
-      bool _user_decoder_start_tokens = false;
     };
 
 

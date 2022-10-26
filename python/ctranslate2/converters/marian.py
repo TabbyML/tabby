@@ -104,7 +104,7 @@ class MarianConverter(Converter):
         set_transformer_spec(model_spec, model)
         model_spec.register_source_vocabulary(vocabs[0])
         model_spec.register_target_vocabulary(vocabs[-1])
-        model_spec.with_source_eos = True
+        model_spec.config.add_source_eos = True
         return model_spec
 
 

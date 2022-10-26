@@ -4,6 +4,7 @@ each required variable of the specification is set.
 """
 
 import abc
+import json
 import os
 import shutil
 import struct
@@ -13,7 +14,7 @@ from typing import Dict, List, Optional
 import numpy as np
 
 OPTIONAL = "__optional"
-CURRENT_BINARY_VERSION = 5
+CURRENT_BINARY_VERSION = 6
 
 
 def _join_scope(scope, name):
@@ -66,13 +67,15 @@ class FrozenMeta(type):
         return instance
 
 
-class LayerSpec(metaclass=FrozenMeta):
-    """A layer specification declares the weights that should be set by the converters."""
-
+class FrozenAttr:
     def __setattr__(self, key, value):
         if hasattr(self, "_frozen") and not hasattr(self, key):
             raise AttributeError("Attribute %s does not exist" % key)
         super().__setattr__(key, value)
+
+
+class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
+    """A layer specification declares the weights that should be set by the converters."""
 
     def validate(self) -> None:
         """Verify that the required weights are set.
@@ -228,8 +231,40 @@ def _dtype_to_type_id(object_dtype):
         )
 
 
+class ModelConfig(FrozenAttr, metaclass=FrozenMeta):
+    """Base class for model configurations."""
+
+    def __init__(self, **kwargs):
+        """Initializes the configuration with a set of parameters."""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def to_dict(self):
+        """Returns the configuration as a dictionary."""
+        return {
+            key: value
+            for key, value in self.__dict__.items()
+            if not key.startswith("_")
+        }
+
+    def save_as_json(self, path):
+        """Saves the configuration as a JSON file."""
+        with open(path, "w", encoding="utf-8") as config_file:
+            json.dump(
+                self.to_dict(),
+                config_file,
+                indent=2,
+                sort_keys=True,
+            )
+            config_file.write("\n")
+
+
 class ModelSpec(LayerSpec):
     """The top level layer specification."""
+
+    def __init__(self):
+        """Initializes the model specification."""
+        self._config = self.get_default_config()
 
     @property
     def name(self):
@@ -245,6 +280,15 @@ class ModelSpec(LayerSpec):
         """
         return 1
 
+    @property
+    def config(self):
+        """The model configuration."""
+        return self._config
+
+    def get_default_config(self):
+        """Returns the default configuration used by this model."""
+        return None
+
     def save(self, output_dir: str) -> None:
         """Saves this model on disk.
 
@@ -252,6 +296,8 @@ class ModelSpec(LayerSpec):
           output_dir: Output directory where the model is saved.
         """
         self._serialize(os.path.join(output_dir, "model.bin"))
+        if self._config is not None:
+            self._config.save_as_json(os.path.join(output_dir, "config.json"))
 
     def _serialize(self, path):
         """Serializes the model variables."""
@@ -297,23 +343,55 @@ def _flatten_vocabularies(vocabularies):
                 yield "%s_%d" % (name, i + 1), vocab
 
 
+class SequenceToSequenceModelConfig(ModelConfig):
+    """Configuration for sequence-to-sequence models."""
+
+    def __init__(
+        self,
+        unk_token: str = "<unk>",
+        bos_token: str = "<s>",
+        eos_token: str = "</s>",
+        decoder_start_token: Optional[str] = "<s>",
+        add_source_bos: bool = False,
+        add_source_eos: bool = False,
+    ):
+        """Initializes the configuration for sequence-to-sequence models.
+
+        Args:
+          unk_token: The unknown token.
+          bos_token: The start of sentence token.
+          eos_token: The end of sentence token.
+          decoder_start_token: The decoder start token. If ``None``, the token should
+            be passed by the user in the target prefix.
+          add_source_bos: If ``True``, ``bos_token`` will be automatically added to
+            the source input.
+          add_source_eos: If ``True``, ``eos_token`` will be automatically added to
+            the source input.
+        """
+        super().__init__(
+            unk_token=unk_token,
+            bos_token=bos_token,
+            eos_token=eos_token,
+            decoder_start_token=decoder_start_token,
+            add_source_bos=add_source_bos,
+            add_source_eos=add_source_eos,
+        )
+
+
 class SequenceToSequenceModelSpec(ModelSpec):
     """Base specification for sequence to sequence models."""
 
     def __init__(self):
         """Initializes a sequence to sequence model specification."""
-        self.unk_token = "<unk>"
-        self.bos_token = "<s>"
-        self.eos_token = "</s>"
-        self.with_source_bos = False
-        self.with_source_eos = False
-        self.with_target_bos = True
-        self.user_decoder_start_tokens = False
+        super().__init__()
         self._vocabularies = {
             "source": [],
             "target": [],
         }
         self._vmap = None
+
+    def get_default_config(self):
+        return SequenceToSequenceModelConfig()
 
     @abc.abstractmethod
     def get_source_vocabulary_size(self):
@@ -397,15 +475,39 @@ class SequenceToSequenceModelSpec(ModelSpec):
         super().save(output_dir)
 
 
+class LanguageModelConfig(ModelConfig):
+    """Configuration for language models."""
+
+    def __init__(
+        self,
+        unk_token: str = "<unk>",
+        bos_token: str = "<s>",
+        eos_token: str = "</s>",
+    ):
+        """Initializes the configuration for language models.
+
+        Args:
+          unk_token: The unknown token.
+          bos_token: The start of sentence token.
+          eos_token: The end of sentence token.
+        """
+        super().__init__(
+            unk_token=unk_token,
+            bos_token=bos_token,
+            eos_token=eos_token,
+        )
+
+
 class LanguageModelSpec(ModelSpec):
     """Base specification for language models."""
 
     def __init__(self):
         """Initializes a language model specification."""
-        self.unk_token = "<unk>"
-        self.bos_token = "<s>"
-        self.eos_token = "</s>"
+        super().__init__()
         self._vocabulary = []
+
+    def get_default_config(self):
+        return LanguageModelConfig()
 
     @abc.abstractmethod
     def get_vocabulary_size(self):

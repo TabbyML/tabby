@@ -168,17 +168,6 @@ def _create_vocab(tmpdir, name="vocab", size=10):
     return vocab_path
 
 
-def _create_checkpoint(model, tmpdir):
-    vocab_path = _create_vocab(tmpdir)
-    model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
-    model.create_variables()
-
-    checkpoint_prefix = str(tmpdir.join("ckpt"))
-    checkpoint = tf.train.Checkpoint(model=model)
-    checkpoint_path = checkpoint.write(checkpoint_prefix)
-    return checkpoint_path, vocab_path
-
-
 def test_opennmt_tf_model_conversion_invalid_dir(tmpdir):
     model_path = str(tmpdir.join("model").ensure(dir=1))
     vocab_path = _create_vocab(tmpdir)
@@ -205,14 +194,11 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
         share_embeddings=opennmt.models.EmbeddingsSharingLevel.ALL,
     )
 
-    model_path, vocab_path = _create_checkpoint(model, tmpdir)
+    vocab_path = _create_vocab(tmpdir)
+    model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
+    model.create_variables()
 
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        model.ctranslate2_spec,
-        vocab_path,
-        vocab_path,
-        model_path=model_path,
-    )
+    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
@@ -234,13 +220,11 @@ def test_opennmt_tf_postnorm_transformer_conversion(tmpdir):
         pre_norm=False,
     )
 
-    model_path, vocab_path = _create_checkpoint(model, tmpdir)
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        model.ctranslate2_spec,
-        vocab_path,
-        vocab_path,
-        model_path=model_path,
-    )
+    vocab_path = _create_vocab(tmpdir)
+    model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
+    model.create_variables()
+
+    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 

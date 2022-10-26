@@ -10,10 +10,16 @@ namespace ctranslate2 {
     }
 
     void LanguageModel::initialize(ModelReader& model_reader) {
+      if (binary_version() < 6) {
+        config["unk_token"] = get_attribute_with_default<std::string>("unk_token", "<unk>");
+        config["bos_token"] = get_attribute_with_default<std::string>("bos_token", "<s>");
+        config["eos_token"] = get_attribute_with_default<std::string>("eos_token", "</s>");
+      }
+
       VocabularyInfo vocab_info;
-      vocab_info.unk_token = get_attribute_with_default<std::string>("unk_token", "<unk>");
-      vocab_info.bos_token = get_attribute_with_default<std::string>("bos_token", "<s>");
-      vocab_info.eos_token = get_attribute_with_default<std::string>("eos_token", "</s>");
+      vocab_info.unk_token = config["unk_token"];
+      vocab_info.bos_token = config["bos_token"];
+      vocab_info.eos_token = config["eos_token"];
 
       _vocabulary = std::make_shared<Vocabulary>(*model_reader.get_required_file("vocabulary.txt"),
                                                  std::move(vocab_info));

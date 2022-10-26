@@ -185,8 +185,8 @@ class TransformerSpecBuilder:
             embeddings_merge=embeddings_merge,
         )
 
-        spec.with_source_bos = bool(source_inputters[0].mark_start)
-        spec.with_source_eos = bool(source_inputters[0].mark_end)
+        spec.config.add_source_bos = bool(source_inputters[0].mark_start)
+        spec.config.add_source_eos = bool(source_inputters[0].mark_end)
         for inputter in source_inputters:
             spec.register_source_vocabulary(_load_vocab(inputter.vocabulary_file))
         for inputter in target_inputters:

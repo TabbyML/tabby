@@ -3,13 +3,15 @@
 #include <unordered_map>
 #include <memory>
 
+#include <nlohmann/json.hpp>
+
 #include "ctranslate2/models/model_reader.h"
 #include "ctranslate2/storage_view.h"
 
 namespace ctranslate2 {
   namespace models {
 
-    static const size_t current_binary_version = 5;
+    static const size_t current_binary_version = 6;
 
     // Checks whether the provided path could contain a CTranslate2 model.
     bool contains_model(const std::string& path);
@@ -37,6 +39,8 @@ namespace ctranslate2 {
       virtual std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const;
 
       virtual ~Model();
+
+      nlohmann::json config;
 
       size_t binary_version() const {
         return _binary_version;
