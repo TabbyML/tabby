@@ -30,6 +30,14 @@ namespace ctranslate2 {
                       const BatchType batch_type = BatchType::Examples);
 
     std::future<StorageView>
+    forward_batch_async(std::vector<std::vector<std::string>> tokens,
+                        const bool return_log_probs);
+
+    std::future<StorageView>
+    forward_batch_async(std::vector<std::vector<size_t>> ids,
+                        const bool return_log_probs);
+
+    std::future<StorageView>
     forward_batch_async(StorageView ids,
                         StorageView lengths,
                         const bool return_log_probs);

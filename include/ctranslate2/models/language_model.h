@@ -25,8 +25,9 @@ namespace ctranslate2 {
     // Base class for generative language models.
     class SequenceGeneratorReplica : public ModelReplica {
     public:
-      SequenceGeneratorReplica(const std::shared_ptr<const Model>& model)
+      SequenceGeneratorReplica(const std::shared_ptr<const LanguageModel>& model)
         : ModelReplica(model)
+        , _model(model)
       {
       }
 
@@ -42,6 +43,10 @@ namespace ctranslate2 {
       generate(const std::vector<std::vector<std::string>>& start_tokens,
                const GenerationOptions& options = GenerationOptions());
 
+      StorageView forward(const std::vector<std::vector<std::string>>& tokens,
+                          const bool return_log_probs);
+      StorageView forward(const std::vector<std::vector<size_t>>& ids,
+                          const bool return_log_probs);
       StorageView forward(const StorageView& ids,
                           const StorageView& lengths,
                           const bool return_log_probs);
@@ -65,6 +70,9 @@ namespace ctranslate2 {
                      const GenerationOptions& options) = 0;
 
       virtual StorageView forward(const StorageView& ids, const StorageView& lengths) = 0;
+
+    private:
+      const std::shared_ptr<const LanguageModel> _model;
     };
 
 

@@ -110,12 +110,27 @@ namespace ctranslate2 {
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
-      StorageViewWrapper forward_batch(const StorageViewWrapper& ids,
-                                       const StorageViewWrapper& lengths,
-                                       const bool return_log_probs) {
-        auto future = _generator_pool.forward_batch_async(ids.get_view(),
-                                                          lengths.get_view(),
-                                                          return_log_probs);
+      StorageViewWrapper
+      forward_batch(const std::variant<BatchTokens, BatchIds, StorageViewWrapper>& inputs,
+                    const std::optional<StorageViewWrapper>& lengths,
+                    const bool return_log_probs) {
+        std::future<StorageView> future;
+
+        switch (inputs.index()) {
+        case 0:
+          future = _generator_pool.forward_batch_async(std::get<BatchTokens>(inputs), return_log_probs);
+          break;
+        case 1:
+          future = _generator_pool.forward_batch_async(std::get<BatchIds>(inputs), return_log_probs);
+          break;
+        case 2:
+          if (!lengths)
+            throw std::invalid_argument("lengths vector is required when passing a dense input");
+          const StorageView& ids_view = std::get<StorageViewWrapper>(inputs).get_view();
+          const StorageView& lengths_view = lengths.value().get_view();
+          future = _generator_pool.forward_batch_async(ids_view, lengths_view, return_log_probs);
+          break;
+        }
 
         return StorageViewWrapper(future.get());
       }
@@ -262,29 +277,27 @@ namespace ctranslate2 {
                    A list of scoring results.
              )pbdoc")
 
-       .def("forward_batch", &GeneratorWrapper::forward_batch,
-             py::arg("ids"),
-             py::arg("lengths"),
+        .def("forward_batch", &GeneratorWrapper::forward_batch,
+             py::arg("inputs"),
+             py::arg("lengths")=py::none(),
              py::kw_only(),
              py::arg("return_log_probs")=false,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
-                 Forwards a batch of token IDs in the generator.
+                 Forwards a batch of sequences in the generator.
 
                  Arguments:
-                   ids: The sequences of token IDs as a int32 array with shape
-                     ``[batch_size, max_length]``.
+                   inputs: A batch of sequences either as string tokens or token IDs.
+                     This argument can also be a dense int32 array with shape
+                     ``[batch_size, max_length]`` (e.g. created from a Numpy array or PyTorch tensor).
                    lengths: The length of each sequence as a int32 array with shape
-                     ``[batch_size]``.
+                     ``[batch_size]``. Required when :obj:`inputs` is a dense array.
                    return_log_probs: If ``True``, the method returns the log probabilties instead
                      of the unscaled logits.
 
                  Returns:
                    The output logits, or the output log probabilities if :obj:`return_log_probs`
                    is enabled.
-
-                 Note:
-                   :obj:`ids` and :obj:`lengths` must be on the same device as the model.
              )pbdoc")
         ;
     }

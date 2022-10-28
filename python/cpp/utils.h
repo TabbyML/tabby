@@ -21,6 +21,7 @@ namespace ctranslate2 {
     using StringOrMap = std::variant<std::string, std::unordered_map<std::string, std::string>>;
     using Tokens = std::vector<std::string>;
     using BatchTokens = std::vector<Tokens>;
+    using BatchIds = std::vector<std::vector<size_t>>;
 
     class ComputeTypeResolver {
     private:
