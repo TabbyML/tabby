@@ -161,8 +161,9 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
             if not isinstance(value, np.ndarray):
                 return
 
+            key = _split_scope(name)[-1]
             scale = None
-            is_quantizable = hasattr(spec, "%s_scale" % name)
+            is_quantizable = hasattr(spec, "%s_scale" % key)
 
             if is_quantizable:
                 if quantization == "int16":
@@ -194,7 +195,6 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                 if value.dtype == np.float16:
                     value = value.astype(np.float32)
 
-            key = _split_scope(name)[-1]
             setattr(spec, key, value)
             if scale is not None:
                 setattr(spec, "%s_scale" % key, scale)
