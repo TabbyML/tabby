@@ -3,7 +3,6 @@
 #include <atomic>
 #include <condition_variable>
 #include <functional>
-#include <future>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -24,32 +23,6 @@ namespace ctranslate2 {
 
   private:
     std::atomic<size_t>* _counter = nullptr;
-  };
-
-  // Job running a function.
-  template <typename Result>
-  class FunctionJob : public Job {
-  public:
-    FunctionJob(std::function<Result()> func)
-      : _func(std::move(func))
-    {
-    }
-
-    std::future<Result> get_future() {
-      return _promise.get_future();
-    }
-
-    void run() override {
-      try {
-        _promise.set_value(_func());
-      } catch (...) {
-        _promise.set_exception(std::current_exception());
-      }
-    }
-
-  private:
-    std::function<Result()> _func;
-    std::promise<Result> _promise;
   };
 
   // A thread-safe queue of jobs.
