@@ -33,7 +33,7 @@ namespace ctranslate2 {
       at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>, cuda::index_t>
         <<<batch_size, CUDA_NUM_THREADS, 0, cuda::get_cuda_stream()>>>(
           depth,
-          cuda::device_type<T>(1e-4),
+          cuda::device_type<T>(1e-5),
           cuda::device_cast(input.data<T>()),
           cuda::device_cast(gamma.data<T>()),
           cuda::device_cast(beta.data<T>()),
