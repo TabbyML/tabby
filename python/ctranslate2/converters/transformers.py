@@ -83,27 +83,10 @@ class ModelLoader(abc.ABC):
         )
 
         spec = self.get_model_spec(model)
+        self.set_config(spec.config, model, tokenizer)
 
         tokens = self.get_vocabulary(model, tokenizer)
-        if model.config.vocab_size < len(tokens):
-            tokens = tokens[: model.config.vocab_size]
-        if isinstance(spec, model_spec.SequenceToSequenceModelSpec):
-            spec.register_source_vocabulary(tokens)
-            spec.register_target_vocabulary(tokens)
-
-            if spec.config.decoder_start_token is not None:
-                spec.config.decoder_start_token = tokenizer.decode(
-                    model.config.decoder_start_token_id
-                )
-        else:
-            spec.register_vocabulary(tokens)
-
-        if tokenizer.bos_token is not None:
-            spec.config.bos_token = tokenizer.bos_token
-        if tokenizer.eos_token is not None:
-            spec.config.eos_token = tokenizer.eos_token
-        if tokenizer.unk_token is not None:
-            spec.config.unk_token = tokenizer.unk_token
+        self.set_vocabulary(spec, tokens)
 
         return spec
 
@@ -114,6 +97,12 @@ class ModelLoader(abc.ABC):
                 tokenizer.get_vocab().items(), key=lambda item: item[1]
             )
         ]
+
+    def set_vocabulary(self, spec, tokens):
+        pass
+
+    def set_config(self, config, model, tokenizer):
+        pass
 
     def set_layer_norm(self, spec, module):
         spec.gamma = module.weight.numpy()
@@ -162,6 +151,24 @@ class BartLoader(ModelLoader):
             spec.decoder.projection.bias = final_logits_bias.squeeze().numpy()
 
         return spec
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+        if model.config.vocab_size < len(tokens):
+            tokens = tokens[: model.config.vocab_size]
+        return tokens
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_source_vocabulary(tokens)
+        spec.register_target_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+        config.decoder_start_token = tokenizer.decode(
+            model.config.decoder_start_token_id
+        )
 
     def set_encoder(self, spec, encoder):
         self.set_common_layers(spec, encoder)
@@ -253,6 +260,14 @@ class MarianMTLoader(BartLoader):
         self._remove_pad_weights(spec)
         return spec
 
+    def set_config(self, config, model, tokenizer):
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+
+        # The decoder start token can be any token because the decoder always starts
+        # from a zero embedding.
+        config.decoder_start_token = tokenizer.eos_token
+
     def set_decoder(self, spec, decoder):
         spec.start_from_zero_embedding = True
         super().set_decoder(spec, decoder)
@@ -324,14 +339,16 @@ class MBartLoader(BartLoader):
     def architecture_name(self):
         return "MBartForConditionalGeneration"
 
-    def get_model_spec(self, model):
-        spec = super().get_model_spec(model)
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
 
         # MBart-25 passes the language code as the decoder start token.
         if model.config.tokenizer_class in ("MBartTokenizer", None):
-            spec.config.decoder_start_token = None
-
-        return spec
+            config.decoder_start_token = None
+        else:
+            config.decoder_start_token = tokenizer.eos_token
 
 
 @register_loader("PegasusConfig")
@@ -340,10 +357,11 @@ class PegasusLoader(BartLoader):
     def architecture_name(self):
         return "PegasusForConditionalGeneration"
 
-    def get_vocabulary(self, model, tokenizer):
-        tokens = super().get_vocabulary(model, tokenizer)
-        tokenizer.bos_token = tokens[model.config.pad_token_id]
-        return tokens
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.pad_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+        config.decoder_start_token = tokenizer.pad_token
 
 
 @register_loader("OPTConfig")
@@ -364,6 +382,14 @@ class OPTLoader(BartLoader):
         self.set_decoder(spec.decoder, model.model.decoder)
         self.set_linear(spec.decoder.projection, model.lm_head)
         return spec
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
 
     def set_decoder(self, spec, decoder):
         super().set_decoder(spec, decoder)
@@ -410,6 +436,14 @@ class GPT2Loader(ModelLoader):
         self.set_decoder(spec.decoder, model.transformer)
         self.set_linear(spec.decoder.projection, model.lm_head)
         return spec
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
 
     def set_decoder(self, spec, module):
         spec.scale_embeddings = False
