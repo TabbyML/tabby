@@ -140,30 +140,6 @@ jobs:
           QEMU_LD_PREFIX: /usr/aarch64-linux-gnu
 
 
-  build-cuda-10-0:
-    runs-on: ubuntu-20.04
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install CUDA 10.0
-        run: |
-          wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-keyring_1.0-1_all.deb
-          sudo dpkg -i cuda-keyring*.deb
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gcc-7 g++-7 cuda-libraries-dev-10-0 cuda-minimal-build-10-0
-
-      - name: Compile
-        env:
-          CC: gcc-7
-          CXX: g++-7
-        run: |
-          cmake -DWITH_CUDA=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-10.0 -DCUDA_ARCH_LIST=Common -DWITH_MKL=OFF -DOPENMP_RUNTIME=NONE .
-          make -j $(nproc)
-
-
   build-python-wheels:
     runs-on: ${{ matrix.os }}
     strategy:

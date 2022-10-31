@@ -20,7 +20,7 @@ namespace ctranslate2 {
     template<>
     struct absolute_maximum_func<__half> {
       __device__ __forceinline__ __half operator()(__half a, __half b) const {
-#if CUDA_CAN_USE_HALF && CUDA_VERSION >= 10020
+#if CUDA_CAN_USE_HALF
         a = __habs(a);
         b = __habs(b);
         return a > b ? a : b;
