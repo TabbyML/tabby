@@ -134,26 +134,26 @@ namespace ctranslate2 {
         assert_model_is_ready();
 
         if (source_tokenize_fn && target_detokenize_fn) {
-          return _translator_pool.consume_raw_text_file(source_path,
-                                                        target_path_ptr,
-                                                        output_path,
-                                                        source_tokenize_fn,
-                                                        target_tokenize_fn,
-                                                        target_detokenize_fn,
-                                                        options,
-                                                        max_batch_size,
-                                                        read_batch_size,
-                                                        batch_type,
-                                                        with_scores);
+          return _translator_pool.translate_raw_text_file(source_path,
+                                                          target_path_ptr,
+                                                          output_path,
+                                                          source_tokenize_fn,
+                                                          target_tokenize_fn,
+                                                          target_detokenize_fn,
+                                                          options,
+                                                          max_batch_size,
+                                                          read_batch_size,
+                                                          batch_type,
+                                                          with_scores);
         } else {
-          return _translator_pool.consume_text_file(source_path,
-                                                    output_path,
-                                                    options,
-                                                    max_batch_size,
-                                                    read_batch_size,
-                                                    batch_type,
-                                                    with_scores,
-                                                    target_path_ptr);
+          return _translator_pool.translate_text_file(source_path,
+                                                      output_path,
+                                                      options,
+                                                      max_batch_size,
+                                                      read_batch_size,
+                                                      batch_type,
+                                                      with_scores,
+                                                      target_path_ptr);
         }
       }
 

@@ -194,14 +194,14 @@ int main(int argc, char* argv[]) {
     options.normalize_scores = args["normalize_scores"].as<bool>();
     options.return_scores = args["with_score"].as<bool>();
     options.replace_unknowns = args["replace_unknowns"].as<bool>();
-    stats = translator_pool.consume_text_file(*source,
-                                              *output,
-                                              options,
-                                              max_batch_size,
-                                              read_batch_size,
-                                              batch_type,
-                                              args["with_score"].as<bool>(),
-                                              target);
+    stats = translator_pool.translate_text_file(*source,
+                                                *output,
+                                                options,
+                                                max_batch_size,
+                                                read_batch_size,
+                                                batch_type,
+                                                args["with_score"].as<bool>(),
+                                                target);
   } else if (task == "score") {
     if (source == &std::cin || !target)
       throw std::invalid_argument("Score task requires both arguments --src and --tgt to be set");
