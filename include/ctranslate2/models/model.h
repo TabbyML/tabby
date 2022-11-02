@@ -30,10 +30,6 @@ namespace ctranslate2 {
                                                Device device = Device::CPU,
                                                int device_index = 0,
                                                ComputeType compute_type = ComputeType::DEFAULT);
-      static std::shared_ptr<const Model> load(const std::string& path,
-                                               const std::string& device,
-                                               int device_index,
-                                               const std::string& compute_type);
 
       virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
       virtual std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const;
