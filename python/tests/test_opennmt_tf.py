@@ -11,38 +11,8 @@ import ctranslate2
 from ctranslate2.converters import opennmt_tf
 
 
-@pytest.mark.parametrize(
-    "model_path,src_vocab,tgt_vocab,model_spec",
-    [
-        (
-            "v1/checkpoint",
-            "ar.vocab",
-            "en.vocab",
-            ctranslate2.specs.TransformerSpec(6, 8),
-        ),
-        (
-            "v1/checkpoint",
-            "ar.vocab",
-            "en.vocab",
-            None,
-        ),
-        (
-            "v2/checkpoint",
-            "ar.vocab",
-            "en.vocab",
-            ctranslate2.specs.TransformerSpec(6, 8),
-        ),
-        (
-            "v2/checkpoint",
-            "ar.vocab",
-            "en.vocab",
-            None,
-        ),
-    ],
-)
-def test_opennmt_tf_model_conversion(
-    tmpdir, model_path, src_vocab, tgt_vocab, model_spec
-):
+@pytest.mark.parametrize("model_path", ["v1/checkpoint", "v2/checkpoint"])
+def test_opennmt_tf_model_conversion(tmpdir, model_path):
     model_path = os.path.join(
         test_utils.get_data_dir(),
         "models",
@@ -50,28 +20,22 @@ def test_opennmt_tf_model_conversion(
         "opennmt_tf",
         model_path,
     )
-    src_vocab = os.path.join(model_path, src_vocab)
-    tgt_vocab = os.path.join(model_path, tgt_vocab)
 
-    if model_spec is None:
-        config = {
-            "model_dir": model_path,
-            "data": {"source_vocabulary": src_vocab, "target_vocabulary": tgt_vocab},
-        }
-        original_config = copy.deepcopy(config)
-        converter = ctranslate2.converters.OpenNMTTFConverterV2.from_config(
-            config, auto_config=True
-        )
+    config = {
+        "model_dir": model_path,
+        "data": {
+            "source_vocabulary": os.path.join(model_path, "ar.vocab"),
+            "target_vocabulary": os.path.join(model_path, "en.vocab"),
+        },
+    }
 
-        # auto_config should not update the configuration in place.
-        assert config == original_config
-    else:
-        converter = ctranslate2.converters.OpenNMTTFConverter(
-            model_spec,
-            src_vocab,
-            tgt_vocab,
-            model_path=model_path,
-        )
+    original_config = copy.deepcopy(config)
+
+    converter = ctranslate2.converters.OpenNMTTFConverter.from_config(config)
+
+    # auto_config should not update the configuration in place.
+    assert config == original_config
+
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
@@ -99,12 +63,16 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
         "v2",
         "checkpoint",
     )
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        ctranslate2.specs.TransformerSpec(6, 8),
-        os.path.join(model_path, "ar.vocab"),
-        os.path.join(model_path, "en.vocab"),
-        model_path=model_path,
-    )
+
+    config = {
+        "model_dir": model_path,
+        "data": {
+            "source_vocabulary": os.path.join(model_path, "ar.vocab"),
+            "target_vocabulary": os.path.join(model_path, "en.vocab"),
+        },
+    }
+
+    converter = ctranslate2.converters.OpenNMTTFConverter.from_config(config)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir, quantization=quantization)
     translator = ctranslate2.Translator(output_dir)
@@ -112,7 +80,7 @@ def test_opennmt_tf_model_quantization(tmpdir, quantization):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-def test_opennmt_tf_variables_conversion(tmpdir):
+def test_opennmt_tf_model_conversion_invalid_vocab():
     model_path = os.path.join(
         test_utils.get_data_dir(),
         "models",
@@ -122,41 +90,17 @@ def test_opennmt_tf_variables_conversion(tmpdir):
         "checkpoint",
     )
 
-    src_vocab = opennmt.data.Vocab.from_file(os.path.join(model_path, "ar.vocab"))
-    tgt_vocab = opennmt.data.Vocab.from_file(os.path.join(model_path, "en.vocab"))
-    _, variables = opennmt_tf.load_model(model_path)
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        ctranslate2.specs.TransformerSpec(6, 8),
-        src_vocab,
-        tgt_vocab,
-        variables=variables,
-    )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter.convert(output_dir)
-    translator = ctranslate2.Translator(output_dir)
-    output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
-
-
-def test_opennmt_tf_model_conversion_invalid_vocab(tmpdir):
-    model_path = os.path.join(
-        test_utils.get_data_dir(),
-        "models",
-        "transliteration-aren-all",
-        "opennmt_tf",
-        "v2",
-        "checkpoint",
-    )
     # Swap source and target vocabularies.
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        ctranslate2.specs.TransformerSpec(6, 8),
-        os.path.join(model_path, "en.vocab"),
-        os.path.join(model_path, "ar.vocab"),
-        model_path=model_path,
-    )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    with pytest.raises(ValueError, match="expected a vocabulary of size"):
-        converter.convert(output_dir)
+    config = {
+        "model_dir": model_path,
+        "data": {
+            "source_vocabulary": os.path.join(model_path, "en.vocab"),
+            "target_vocabulary": os.path.join(model_path, "ar.vocab"),
+        },
+    }
+
+    with pytest.raises(ValueError, match="not compatible"):
+        ctranslate2.converters.OpenNMTTFConverter.from_config(config)
 
 
 def _create_vocab(tmpdir, name="vocab", size=10):
@@ -171,15 +115,14 @@ def _create_vocab(tmpdir, name="vocab", size=10):
 def test_opennmt_tf_model_conversion_invalid_dir(tmpdir):
     model_path = str(tmpdir.join("model").ensure(dir=1))
     vocab_path = _create_vocab(tmpdir)
-    converter = ctranslate2.converters.OpenNMTTFConverter(
-        ctranslate2.specs.TransformerSpec(6, 8),
-        vocab_path,
-        vocab_path,
-        model_path=model_path,
-    )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    with pytest.raises(ValueError, match="not found"):
-        converter.convert(output_dir)
+    config = {
+        "model_dir": model_path,
+        "data": {"source_vocabulary": vocab_path, "target_vocabulary": vocab_path},
+    }
+    with pytest.raises(RuntimeError, match="checkpoint"):
+        ctranslate2.converters.OpenNMTTFConverter.from_config(
+            config, model="TransformerBase"
+        )
 
 
 def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
@@ -198,7 +141,7 @@ def test_opennmt_tf_shared_embeddings_conversion(tmpdir):
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
     model.create_variables()
 
-    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    converter = ctranslate2.converters.OpenNMTTFConverter(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
@@ -224,7 +167,7 @@ def test_opennmt_tf_postnorm_transformer_conversion(tmpdir):
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
     model.create_variables()
 
-    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    converter = ctranslate2.converters.OpenNMTTFConverter(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
@@ -236,7 +179,7 @@ def test_opennmt_tf_gpt_conversion(tmpdir):
     model.create_variables()
 
     output_dir = str(tmpdir.join("ctranslate2_model"))
-    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    converter = ctranslate2.converters.OpenNMTTFConverter(model)
     converter.convert(output_dir)
 
     assert os.path.isfile(os.path.join(output_dir, "vocabulary.txt"))
@@ -267,7 +210,7 @@ def test_opennmt_tf_multi_features(tmpdir):
     )
     model.create_variables()
 
-    converter = ctranslate2.converters.OpenNMTTFConverterV2(model)
+    converter = ctranslate2.converters.OpenNMTTFConverter(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     converter.convert(output_dir)
 

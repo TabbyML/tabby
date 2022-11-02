@@ -1,16 +1,12 @@
 import argparse
 import copy
 import os
-import warnings
 
-from typing import Dict, List, Optional, Union
-
-import numpy as np
+from typing import Optional, Union
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec, transformer_spec
-from ctranslate2.specs.model_spec import OPTIONAL, ModelSpec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
@@ -19,7 +15,7 @@ _SUPPORTED_ACTIVATIONS = {
 }
 
 
-class OpenNMTTFConverterV2(Converter):
+class OpenNMTTFConverter(Converter):
     """Converts OpenNMT-tf models."""
 
     @classmethod
@@ -42,7 +38,7 @@ class OpenNMTTFConverterV2(Converter):
              configuration.
 
         Returns:
-          A :class:`ctranslate2.converters.OpenNMTTFConverterV2` instance.
+          A :class:`ctranslate2.converters.OpenNMTTFConverter` instance.
         """
         from opennmt import config as config_util
         from opennmt.utils.checkpoint import Checkpoint
@@ -360,44 +356,6 @@ def _get_inputters(inputter):
     )
 
 
-def load_model(model_path):
-    """Loads variables from a TensorFlow checkpoint."""
-    import tensorflow as tf
-
-    if tf.saved_model.contains_saved_model(model_path):
-        raise RuntimeError(
-            "Converting the SavedModel format is not supported, "
-            "please convert a TensorFlow checkpoint instead"
-        )
-
-    if os.path.isdir(model_path):
-        checkpoint = tf.train.latest_checkpoint(model_path)
-        if checkpoint is None:
-            raise ValueError(
-                "Checkpoint not found in directory %s. You may need to include "
-                "the checkpoint prefix in the path (e.g. model_dir/ckpt-100000)."
-                % model_path
-            )
-    else:
-        checkpoint = model_path
-
-    reader = tf.train.load_checkpoint(checkpoint)
-    variables = {
-        name: reader.get_tensor(name)
-        for name in reader.get_variable_to_shape_map().keys()
-    }
-
-    model_version = 1
-    if os.path.basename(checkpoint).startswith("ckpt"):
-        model_version = 2
-        variables = {
-            name.replace("/.ATTRIBUTES/VARIABLE_VALUE", ""): value
-            for name, value in variables.items()
-        }
-
-    return model_version, variables
-
-
 def _load_vocab(vocab, unk_token="<unk>"):
     import opennmt
 
@@ -413,293 +371,6 @@ def _load_vocab(vocab, unk_token="<unk>"):
     if unk_token not in tokens:
         tokens.append(unk_token)
     return tokens
-
-
-class OpenNMTTFConverter(Converter):
-    """Converts OpenNMT-tf models (deprecated).
-
-    Warning:
-      This converter is deprecated because it has limited support for custom models and
-      configurations. Please use the new :class:`ctranslate2.converters.OpenNMTTFConverterV2`
-      instead.
-    """
-
-    def __init__(
-        self,
-        model_spec: ModelSpec,
-        src_vocab: Union[str, List[str]],
-        tgt_vocab: Union[str, List[str]],
-        model_path: Optional[str] = None,
-        variables: Optional[Dict[str, np.ndarray]] = None,
-    ):
-        """Initializes the OpenNMT-tf converter.
-
-        Arguments:
-          model_spec: Specification of the model to convert.
-          src_vocab: Path to the source vocabulary or list of tokens.
-          tgt_vocab: Path to the target vocabulary or list of tokens.
-          model_path: Path to the OpenNMT-tf checkpoint
-            (mutually exclusive with :obj:`variables`).
-          variables: Dictionary of variables name to value
-            (mutually exclusive with :obj:`model_path`).
-
-        Raises:
-          ValueError: If none or both of :obj:`model_path` and :obj:`variables` are set.
-        """
-        warnings.warn(
-            "OpenNMTTFConverter is deprecated because it has limited support for "
-            "custom models and configurations. Please use the new OpenNMTTFConverterV2 instead.",
-            DeprecationWarning,
-        )
-
-        if (model_path is None) == (variables is None):
-            raise ValueError("Exactly one of model_path and variables should be set")
-        if variables is not None and not isinstance(variables, dict):
-            raise ValueError(
-                "variables should be a dict mapping variable name to value"
-            )
-        self._model_spec = model_spec
-        self._model_path = model_path
-        self._src_vocab = src_vocab
-        self._tgt_vocab = tgt_vocab
-        self._variables = variables
-
-    def _load(self):
-        model_spec = self._model_spec
-        if self._model_path is not None:
-            version, variables = load_model(self._model_path)
-        else:
-            version = 2  # Assume we are passing V2 variables.
-            variables = self._variables
-        if version >= 2:
-            set_transformer_spec_v2(model_spec, variables)
-        else:
-            set_transformer_spec(model_spec, variables)
-        model_spec.register_source_vocabulary(_load_vocab(self._src_vocab))
-        model_spec.register_target_vocabulary(_load_vocab(self._tgt_vocab))
-        return model_spec
-
-
-def set_transformer_spec_v2(spec, variables):
-    set_embeddings(
-        spec.encoder.embeddings[0],
-        variables,
-        "model/examples_inputter/features_inputter",
-        version=2,
-    )
-    try:
-        target_embedding_name = set_embeddings(
-            spec.decoder.embeddings,
-            variables,
-            "model/examples_inputter/labels_inputter",
-            version=2,
-        )
-    except KeyError:
-        target_embedding_name = set_embeddings(
-            spec.decoder.embeddings,
-            variables,
-            "model/examples_inputter/features_inputter",
-            version=2,
-        )
-    set_transformer_encoder_v2(spec.encoder, variables, "model/encoder")
-    set_transformer_decoder_v2(
-        spec.decoder,
-        variables,
-        "model/decoder",
-        target_embedding_name,
-    )
-
-
-def set_transformer_encoder_v2(spec, variables, scope):
-    if spec.layer_norm != OPTIONAL:
-        set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
-    for i, layer in enumerate(spec.layer):
-        set_transformer_encoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
-
-
-def set_transformer_decoder_v2(spec, variables, scope, target_embedding_name):
-    try:
-        set_linear(
-            spec.projection,
-            variables,
-            "%s/output_layer" % scope,
-            transpose=False,
-        )
-        if not np.array_equal(spec.projection.weight, spec.embeddings.weight):
-            spec.projection.weight = spec.projection.weight.transpose()
-    except KeyError:
-        set_linear(
-            spec.projection,
-            variables,
-            "%s/output_layer" % scope,
-            weight_name=target_embedding_name,
-            transpose=False,
-        )
-    if spec.layer_norm != OPTIONAL:
-        set_layer_norm(spec.layer_norm, variables, "%s/layer_norm" % scope)
-    for i, layer in enumerate(spec.layer):
-        set_transformer_decoder_layer_v2(layer, variables, "%s/layers/%d" % (scope, i))
-
-
-def set_transformer_encoder_layer_v2(spec, variables, scope):
-    set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
-    set_multi_head_attention_v2(
-        spec.self_attention,
-        variables,
-        "%s/self_attention" % scope,
-        self_attention=True,
-    )
-
-
-def set_transformer_decoder_layer_v2(spec, variables, scope):
-    set_ffn_v2(spec.ffn, variables, "%s/ffn" % scope)
-    set_multi_head_attention_v2(
-        spec.self_attention,
-        variables,
-        "%s/self_attention" % scope,
-        self_attention=True,
-    )
-    set_multi_head_attention_v2(spec.attention, variables, "%s/attention/0" % scope)
-
-
-def set_ffn_v2(spec, variables, scope):
-    try:
-        set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
-    except KeyError:
-        set_layer_norm(spec.layer_norm, variables, "%s/output_layer_norm" % scope)
-    set_linear(spec.linear_0, variables, "%s/layer/inner" % scope)
-    set_linear(spec.linear_1, variables, "%s/layer/outer" % scope)
-
-
-def set_multi_head_attention_v2(spec, variables, scope, self_attention=False):
-    try:
-        set_layer_norm(spec.layer_norm, variables, "%s/input_layer_norm" % scope)
-    except KeyError:
-        set_layer_norm(spec.layer_norm, variables, "%s/output_layer_norm" % scope)
-    if self_attention:
-        split_layers = [common_spec.LinearSpec() for _ in range(3)]
-        set_linear(split_layers[0], variables, "%s/layer/linear_queries" % scope)
-        set_linear(split_layers[1], variables, "%s/layer/linear_keys" % scope)
-        set_linear(split_layers[2], variables, "%s/layer/linear_values" % scope)
-        utils.fuse_linear(spec.linear[0], split_layers)
-        if spec.relative_position_keys is None:
-            spec.relative_position_keys = variables[
-                "%s/layer/relative_position_keys" % scope
-            ]
-            spec.relative_position_values = variables[
-                "%s/layer/relative_position_values" % scope
-            ]
-    else:
-        set_linear(spec.linear[0], variables, "%s/layer/linear_queries" % scope)
-        split_layers = [common_spec.LinearSpec() for _ in range(2)]
-        set_linear(split_layers[0], variables, "%s/layer/linear_keys" % scope)
-        set_linear(split_layers[1], variables, "%s/layer/linear_values" % scope)
-        utils.fuse_linear(spec.linear[1], split_layers)
-    set_linear(spec.linear[-1], variables, "%s/layer/linear_output" % scope)
-
-
-def set_transformer_spec(spec, variables):
-    set_transformer_encoder(spec.encoder, variables)
-    set_transformer_decoder(spec.decoder, variables)
-
-
-def set_transformer_encoder(spec, variables):
-    set_layer_norm(spec.layer_norm, variables, "transformer/encoder/LayerNorm")
-    try:
-        set_embeddings(spec.embeddings[0], variables, "transformer/encoder")
-    except KeyError:
-        # Try shared embeddings scope instead.
-        set_embeddings(spec.embeddings[0], variables, "transformer/shared_embeddings")
-    for i, layer in enumerate(spec.layer):
-        set_transformer_encoder_layer(
-            layer, variables, "transformer/encoder/layer_%d" % i
-        )
-
-
-def set_transformer_decoder(spec, variables):
-    try:
-        embeddings_name = set_embeddings(
-            spec.embeddings, variables, "transformer/decoder"
-        )
-    except KeyError:
-        # Try shared embeddings scope instead.
-        embeddings_name = set_embeddings(
-            spec.embeddings, variables, "transformer/shared_embeddings"
-        )
-    try:
-        set_linear(spec.projection, variables, "transformer/decoder/dense")
-    except KeyError:
-        # Try reusing the target embeddings.
-        set_linear(
-            spec.projection,
-            variables,
-            "transformer",
-            weight_name=embeddings_name,
-            transpose=False,
-        )
-    set_layer_norm(spec.layer_norm, variables, "transformer/decoder/LayerNorm")
-    for i, layer in enumerate(spec.layer):
-        set_transformer_decoder_layer(
-            layer, variables, "transformer/decoder/layer_%d" % i
-        )
-
-
-def set_transformer_encoder_layer(spec, variables, scope):
-    set_ffn(spec.ffn, variables, "%s/ffn" % scope)
-    set_multi_head_attention(
-        spec.self_attention, variables, "%s/multi_head" % scope, self_attention=True
-    )
-
-
-def set_transformer_decoder_layer(spec, variables, scope):
-    set_ffn(spec.ffn, variables, "%s/ffn" % scope)
-    set_multi_head_attention(
-        spec.self_attention,
-        variables,
-        "%s/masked_multi_head" % scope,
-        self_attention=True,
-    )
-    set_multi_head_attention(spec.attention, variables, "%s/multi_head" % scope)
-
-
-def set_ffn(spec, variables, scope):
-    set_layer_norm(spec.layer_norm, variables, "%s/LayerNorm" % scope)
-    set_linear(spec.linear_0, variables, "%s/conv1d" % scope)
-    set_linear(spec.linear_1, variables, "%s/conv1d_1" % scope)
-
-
-def set_multi_head_attention(spec, variables, scope, self_attention=False):
-    set_layer_norm(spec.layer_norm, variables, "%s/LayerNorm" % scope)
-    set_linear(spec.linear[0], variables, "%s/conv1d" % scope)
-    set_linear(spec.linear[1], variables, "%s/conv1d_1" % scope)
-    if not self_attention:
-        set_linear(spec.linear[2], variables, "%s/conv1d_2" % scope)
-
-
-def set_layer_norm(spec, variables, scope):
-    spec.gamma = variables["%s/gamma" % scope]
-    spec.beta = variables["%s/beta" % scope]
-
-
-def set_linear(spec, variables, scope, weight_name=None, transpose=True):
-    if weight_name is None:
-        weight_name = "%s/kernel" % scope
-    spec.weight = variables[weight_name].squeeze()
-    if transpose:
-        spec.weight = spec.weight.transpose()
-    bias = variables.get("%s/bias" % scope)
-    if bias is not None:
-        spec.bias = bias
-
-
-def set_embeddings(spec, variables, scope, version=1):
-    if version == 2:
-        name = "embedding"
-    else:
-        name = "w_embs"
-    variable_name = "%s/%s" % (scope, name)
-    spec.weight = variables[variable_name]
-    return variable_name
 
 
 def main():
@@ -759,7 +430,7 @@ def main():
             },
         }
 
-    converter = OpenNMTTFConverterV2.from_config(
+    converter = OpenNMTTFConverter.from_config(
         config,
         auto_config=args.auto_config,
         checkpoint_path=args.model_path,

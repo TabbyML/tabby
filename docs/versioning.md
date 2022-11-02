@@ -11,7 +11,6 @@ The project versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
   * `ctranslate2.converters.MarianConverter`
   * `ctranslate2.converters.OpenAIGPT2Converter`
   * `ctranslate2.converters.OpenNMTPyConverter`
-  * `ctranslate2.converters.OpenNMTTFConverterV2`
   * `ctranslate2.converters.OpenNMTTFConverter`
   * `ctranslate2.converters.OpusMTConverter`
   * `ctranslate2.converters.TransformersConverter`
