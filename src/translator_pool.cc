@@ -149,14 +149,14 @@ namespace ctranslate2 {
     return get_results_from_futures(score_batch_async(source, target, options, max_batch_size, batch_type));
   }
 
-  TranslationStats TranslatorPool::translate_text_file(const std::string& source_file,
-                                                       const std::string& output_file,
-                                                       const TranslationOptions& options,
-                                                       size_t max_batch_size,
-                                                       size_t read_batch_size,
-                                                       BatchType batch_type,
-                                                       bool with_scores,
-                                                       const std::string* target_file) {
+  ExecutionStats TranslatorPool::translate_text_file(const std::string& source_file,
+                                                     const std::string& output_file,
+                                                     const TranslationOptions& options,
+                                                     size_t max_batch_size,
+                                                     size_t read_batch_size,
+                                                     BatchType batch_type,
+                                                     bool with_scores,
+                                                     const std::string* target_file) {
     auto source = open_file<std::ifstream>(source_file);
     auto output = open_file<std::ofstream>(output_file);
     auto target = (target_file
@@ -173,14 +173,14 @@ namespace ctranslate2 {
                                target.get());
   }
 
-  TranslationStats TranslatorPool::translate_text_file(std::istream& source,
-                                                       std::ostream& output,
-                                                       const TranslationOptions& options,
-                                                       size_t max_batch_size,
-                                                       size_t read_batch_size,
-                                                       BatchType batch_type,
-                                                       bool with_scores,
-                                                       std::istream* target) {
+  ExecutionStats TranslatorPool::translate_text_file(std::istream& source,
+                                                     std::ostream& output,
+                                                     const TranslationOptions& options,
+                                                     size_t max_batch_size,
+                                                     size_t read_batch_size,
+                                                     BatchType batch_type,
+                                                     bool with_scores,
+                                                     std::istream* target) {
     return translate_raw_text_file(source,
                                    target,
                                    output,
@@ -194,14 +194,14 @@ namespace ctranslate2 {
                                    with_scores);
   }
 
-  TranslationStats TranslatorPool::score_text_file(const std::string& source_file,
-                                                   const std::string& target_file,
-                                                   const std::string& output_file,
-                                                   const ScoringOptions& options,
-                                                   size_t max_batch_size,
-                                                   size_t read_batch_size,
-                                                   BatchType batch_type,
-                                                   bool with_tokens_score) {
+  ExecutionStats TranslatorPool::score_text_file(const std::string& source_file,
+                                                 const std::string& target_file,
+                                                 const std::string& output_file,
+                                                 const ScoringOptions& options,
+                                                 size_t max_batch_size,
+                                                 size_t read_batch_size,
+                                                 BatchType batch_type,
+                                                 bool with_tokens_score) {
     auto source = open_file<std::ifstream>(source_file);
     auto target = open_file<std::ifstream>(target_file);
     auto output = open_file<std::ofstream>(output_file);
@@ -215,14 +215,14 @@ namespace ctranslate2 {
                            with_tokens_score);
   }
 
-  TranslationStats TranslatorPool::score_text_file(std::istream& source,
-                                                   std::istream& target,
-                                                   std::ostream& output,
-                                                   const ScoringOptions& options,
-                                                   size_t max_batch_size,
-                                                   size_t read_batch_size,
-                                                   BatchType batch_type,
-                                                   bool with_tokens_score) {
+  ExecutionStats TranslatorPool::score_text_file(std::istream& source,
+                                                 std::istream& target,
+                                                 std::ostream& output,
+                                                 const ScoringOptions& options,
+                                                 size_t max_batch_size,
+                                                 size_t read_batch_size,
+                                                 BatchType batch_type,
+                                                 bool with_tokens_score) {
     return score_raw_text_file(source,
                                target,
                                output,

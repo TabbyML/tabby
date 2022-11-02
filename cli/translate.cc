@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
   const auto max_batch_size = args["batch_size"].as<size_t>();
   const auto read_batch_size = args["read_batch_size"].as<size_t>();
   const auto batch_type = ctranslate2::str_to_batch_type(args["batch_type"].as<std::string>());
-  ctranslate2::TranslationStats stats;
+  ctranslate2::ExecutionStats stats;
 
   if (task == "translate") {
     ctranslate2::TranslationOptions options;

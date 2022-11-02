@@ -75,7 +75,7 @@ namespace ctranslate2 {
       using TokenizeFn = std::function<std::vector<std::string>(const std::string&)>;
       using DetokenizeFn = std::function<std::string(const std::vector<std::string>&)>;
 
-      TranslationStats
+      ExecutionStats
       translate_file(const std::string& source_path,
                      const std::string& output_path,
                      const std::optional<std::string>& target_path,
@@ -248,17 +248,17 @@ namespace ctranslate2 {
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
-      TranslationStats score_file(const std::string& source_path,
-                                  const std::string& target_path,
-                                  const std::string& output_path,
-                                  size_t max_batch_size,
-                                  size_t read_batch_size,
-                                  const std::string& batch_type_str,
-                                  size_t max_input_length,
-                                  bool with_tokens_score,
-                                  const TokenizeFn& source_tokenize_fn,
-                                  const TokenizeFn& target_tokenize_fn,
-                                  const DetokenizeFn& target_detokenize_fn) {
+      ExecutionStats score_file(const std::string& source_path,
+                                const std::string& target_path,
+                                const std::string& output_path,
+                                size_t max_batch_size,
+                                size_t read_batch_size,
+                                const std::string& batch_type_str,
+                                size_t max_input_length,
+                                bool with_tokens_score,
+                                const TokenizeFn& source_tokenize_fn,
+                                const TokenizeFn& target_tokenize_fn,
+                                const DetokenizeFn& target_detokenize_fn) {
         if (bool(source_tokenize_fn) != bool(target_tokenize_fn)
             || bool(target_tokenize_fn) != bool(target_detokenize_fn))
           throw std::invalid_argument("source_tokenize_fn, target_tokenize_fn, and target_detokenize_fn should all be set or none at all");
