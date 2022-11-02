@@ -88,4 +88,4 @@ COPY --from=builder $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
 RUN python3 -m pip --no-cache-dir install $CTRANSLATE2_ROOT/*.whl && \
     rm $CTRANSLATE2_ROOT/*.whl
 
-ENTRYPOINT ["/opt/ctranslate2/bin/translate"]
+ENTRYPOINT ["/opt/ctranslate2/bin/ct2-translator"]

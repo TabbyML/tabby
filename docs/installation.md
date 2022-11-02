@@ -32,7 +32,7 @@ The images include:
 
 * the C++ library installed in `/opt/ctranslate2`
 * the Python module installed in the Python system packages
-* the translation executable, which is the image entrypoint:
+* the translator executable, which is the image entrypoint:
 
 ```bash
 docker run --rm opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help

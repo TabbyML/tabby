@@ -4,17 +4,19 @@ if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include
     "by calling \"git submodule update --init --recursive\"")
 endif()
 
-add_executable(translate
-  translate.cc
+add_executable(translator
+  translator.cc
   )
-target_include_directories(translate
+target_include_directories(translator
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/cxxopts/include
   )
-target_link_libraries(translate
+target_link_libraries(translator
   PRIVATE ${PROJECT_NAME}
-  )
+)
+
+set_target_properties(translator PROPERTIES OUTPUT_NAME ct2-translator)
 
 install(
-  TARGETS translate
+  TARGETS translator
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   )

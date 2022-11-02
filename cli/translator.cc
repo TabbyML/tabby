@@ -10,7 +10,7 @@
 #include <ctranslate2/profiler.h>
 
 int main(int argc, char* argv[]) {
-  cxxopts::Options cmd_options("translate", "CTranslate2 translation client");
+  cxxopts::Options cmd_options("ct2-translator", "CTranslate2 translator client");
   cmd_options.custom_help("--model <directory> [OPTIONS]");
 
   cmd_options.add_options("General")
