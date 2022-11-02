@@ -49,7 +49,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 # Set CXX flags.
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 if(MSVC)
   if(BUILD_SHARED_LIBS)
@@ -385,7 +385,7 @@ if (WITH_CUDA)
       list(APPEND CUDA_NVCC_FLAGS "-Xcompiler=/MT$<$<CONFIG:Debug>:d>")
     endif()
   else()
-    list(APPEND CUDA_NVCC_FLAGS "-std=c++14")
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++17")
   endif()
   if(OpenMP_CXX_FOUND)
     list(APPEND CUDA_NVCC_FLAGS "-Xcompiler=${OpenMP_CXX_FLAGS}")
