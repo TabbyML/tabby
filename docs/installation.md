@@ -16,6 +16,8 @@ The Python wheels have the following requirements:
 
 ```{admonition} GPU support
 The Linux and Windows Python wheels support GPU execution. Install [CUDA](https://developer.nvidia.com/cuda-toolkit) 11.2 or above to use the GPU.
+
+If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn).
 ```
 
 ## Install with Docker

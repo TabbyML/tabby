@@ -483,6 +483,7 @@ class LanguageModelConfig(ModelConfig):
         unk_token: str = "<unk>",
         bos_token: str = "<s>",
         eos_token: str = "</s>",
+        **kwargs,
     ):
         """Initializes the configuration for language models.
 
@@ -490,11 +491,13 @@ class LanguageModelConfig(ModelConfig):
           unk_token: The unknown token.
           bos_token: The start of sentence token.
           eos_token: The end of sentence token.
+          **kwargs: Additional configuration.
         """
         super().__init__(
             unk_token=unk_token,
             bos_token=bos_token,
             eos_token=eos_token,
+            **kwargs,
         )
 
 

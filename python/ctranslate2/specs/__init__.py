@@ -9,3 +9,4 @@ from ctranslate2.specs.transformer_spec import (
     TransformerDecoderModelSpec,
     TransformerSpec,
 )
+from ctranslate2.specs.whisper_spec import WhisperSpec

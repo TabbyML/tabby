@@ -222,9 +222,7 @@ def test_transformers_lm_scoring(tmpdir):
 
 
 @test_utils.only_on_linux
-@pytest.mark.parametrize(
-    "device", ["cpu"] + (["cuda"] if ctranslate2.get_cuda_device_count() > 0 else [])
-)
+@test_utils.test_available_devices
 @pytest.mark.parametrize("return_log_probs", [True, False])
 @pytest.mark.parametrize("tensor_input", [True, False])
 def test_transformers_lm_forward(tmpdir, device, return_log_probs, tensor_input):
@@ -305,3 +303,41 @@ def test_transformers_generator_on_iterables(tmpdir):
         next(generator.score_iterable(iter([])))
     with pytest.raises(StopIteration):
         next(generator.generate_iterable(iter([])))
+
+
+@test_utils.only_on_linux
+@test_utils.test_available_devices
+def test_transformers_whisper(tmpdir, device):
+    import transformers
+
+    model_name = "openai/whisper-tiny"
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy")
+    audio = np.load(audio_path)
+
+    processor = transformers.WhisperProcessor.from_pretrained(model_name)
+    inputs = processor(audio, return_tensors="np", sampling_rate=16000)
+    features = ctranslate2.StorageView.from_array(inputs.input_features)
+
+    model = ctranslate2.models.WhisperModel.from_path(output_dir, device=device)
+
+    results = model.detect_language(features)
+    best_lang, best_prob = results[0][0]
+    assert best_lang == "<|en|>"
+    assert best_prob > 0.9
+
+    prompt = processor.get_decoder_prompt_ids(language="en", task="transcribe")
+    prompt = [token for _, token in prompt]
+
+    results = model.generate(features, [prompt])
+
+    transcription = processor.decode(
+        results[0].sequences_ids[0], skip_special_tokens=True
+    )
+    assert transcription == (
+        " Mr. Quilter is the apostle of the middle classes "
+        "and we are glad to welcome his gospel."
+    )

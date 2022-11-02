@@ -12,11 +12,14 @@ namespace ctranslate2 {
 
         .def_readonly("sequences", &GenerationResult::sequences,
                       "Generated sequences of tokens.")
+        .def_readonly("sequences_ids", &GenerationResult::sequences_ids,
+                      "Generated sequences of token IDs.")
         .def_readonly("scores", &GenerationResult::scores,
                       "Score of each sequence (empty if :obj:`return_scores` was disabled).")
 
         .def("__repr__", [](const GenerationResult& result) {
           return "GenerationResult(sequences=" + std::string(py::repr(py::cast(result.sequences)))
+            + ", sequences_ids=" + std::string(py::repr(py::cast(result.sequences_ids)))
             + ", scores=" + std::string(py::repr(py::cast(result.scores)))
             + ")";
         })

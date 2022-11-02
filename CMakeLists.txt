@@ -93,11 +93,13 @@ set(SOURCES
   src/layers/common.cc
   src/layers/decoder.cc
   src/layers/transformer.cc
+  src/layers/whisper.cc
   src/models/language_model.cc
   src/models/model.cc
   src/models/model_reader.cc
   src/models/sequence_to_sequence.cc
   src/models/transformer.cc
+  src/models/whisper.cc
   src/ops/activation.cc
   src/ops/add.cc
   src/ops/bias_add.cc

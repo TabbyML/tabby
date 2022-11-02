@@ -164,8 +164,11 @@ namespace ctranslate2 {
             sequence.insert(sequence.begin(), start_ids[i][0]);
         }
 
-        final_results.emplace_back(vocabulary.to_tokens(result.hypotheses),
-                                   std::move(result.scores));
+        GenerationResult final_result;
+        final_result.sequences = vocabulary.to_tokens(result.hypotheses);
+        final_result.sequences_ids = std::move(result.hypotheses);
+        final_result.scores = std::move(result.scores);
+        final_results.emplace_back(std::move(final_result));
       }
 
       return final_results;

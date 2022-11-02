@@ -206,6 +206,34 @@ namespace ctranslate2 {
     return banned_tokens;
   }
 
+  // Returns the list of tokens (batch_id, tokens_id) that should not be generated
+  // at the first unconstrained decoding step.
+  static std::vector<std::pair<size_t, size_t>>
+  get_banned_begin(const dim_t step,
+                   const dim_t batch_size,
+                   const std::vector<dim_t>& batch_offset,
+                   const std::vector<std::vector<size_t>>* prefix_ids,
+                   const std::vector<size_t>& disable_ids) {
+    std::vector<std::pair<size_t, size_t>> banned_tokens;
+
+    for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
+      dim_t first_unconstrained_step = 0;
+
+      if (prefix_ids) {
+        const auto& prefix = prefix_ids->at(batch_offset[batch_id]);
+        first_unconstrained_step = prefix.size();
+      }
+
+      if (step != first_unconstrained_step)
+        continue;
+
+      for (const auto token_id : disable_ids)
+        banned_tokens.emplace_back(batch_id, token_id);
+    }
+
+    return banned_tokens;
+  }
+
   static std::vector<size_t> build_hypothesis(const StorageView& history,
                                               const dim_t batch,
                                               const dim_t beam) {
@@ -456,6 +484,7 @@ namespace ctranslate2 {
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
                      const std::vector<size_t>& disable_ids,
+                     const std::vector<size_t>& disable_ids_begin,
                      const size_t end_id,
                      const dim_t start_step,
                      const dim_t max_length,
@@ -554,6 +583,9 @@ namespace ctranslate2 {
         disable_tokens.add(end_id);
       if (!disable_ids.empty())
         disable_tokens.add(disable_ids);
+      if (!disable_ids_begin.empty())
+        disable_tokens.add(
+          get_banned_begin(step, cur_batch_size, batch_offset, prefix_ids, disable_ids_begin));
       if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size) {
         merge_batch_beam(alive_seq);
         disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
@@ -740,6 +772,7 @@ namespace ctranslate2 {
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
                        const std::vector<size_t>& disable_ids,
+                       const std::vector<size_t>& disable_ids_begin,
                        const size_t end_id,
                        const dim_t start_step,
                        const dim_t max_length,
@@ -802,6 +835,9 @@ namespace ctranslate2 {
         disable_tokens.add(end_id);
       if (!disable_ids.empty())
         disable_tokens.add(disable_ids);
+      if (!disable_ids_begin.empty())
+        disable_tokens.add(
+          get_banned_begin(step, log_probs.dim(0), batch_offset, prefix_ids, disable_ids_begin));
       if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size)
         disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
 
@@ -1051,6 +1087,7 @@ namespace ctranslate2 {
                                                   BestSampler(),
                                                   start_ids,
                                                   options.disable_ids,
+                                                  options.disable_ids_begin,
                                                   end_id,
                                                   start_step,
                                                   /*max_length=*/1,
@@ -1103,6 +1140,7 @@ namespace ctranslate2 {
                                                   *sampler,
                                                   start_ids,
                                                   options.disable_ids,
+                                                  options.disable_ids_begin,
                                                   end_id,
                                                   start_step,
                                                   std::max(max_length - start_step, dim_t(0)),
@@ -1143,6 +1181,17 @@ namespace ctranslate2 {
     return result;
   }
 
+  static std::vector<size_t> map_to_output_word_ids(const layers::Decoder& decoder,
+                                                    const std::vector<size_t>& ids) {
+    std::vector<size_t> new_ids;
+    new_ids.reserve(ids.size());
+    for (const size_t id : ids) {
+      if (decoder.is_in_output(id))
+        new_ids.push_back(decoder.to_output_word_id(id));
+    }
+    return new_ids;
+  }
+
   std::vector<DecodingResult>
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
@@ -1157,20 +1206,11 @@ namespace ctranslate2 {
     if (decoder.output_layer_is_updated()) {
       end_id = decoder.to_output_word_id(end_id);
 
-      for (auto& ids : start_tokens) {
-        for (auto& id : ids)
-          id = decoder.to_output_word_id(id);
-      }
+      for (auto& ids : start_tokens)
+        ids = map_to_output_word_ids(decoder, ids);
 
-      if (!options.disable_ids.empty()) {
-        std::vector<size_t> new_disable_ids;
-        new_disable_ids.reserve(options.disable_ids.size());
-        for (size_t id : options.disable_ids) {
-          if (decoder.is_in_output(id))
-            new_disable_ids.push_back(decoder.to_output_word_id(id));
-        }
-        options.disable_ids = std::move(new_disable_ids);
-      }
+      options.disable_ids = map_to_output_word_ids(decoder, options.disable_ids);
+      options.disable_ids_begin = map_to_output_word_ids(decoder, options.disable_ids_begin);
     }
 
     std::vector<size_t> start_ids;
@@ -1197,6 +1237,7 @@ namespace ctranslate2 {
                                         *sampler,
                                         start_ids,
                                         options.disable_ids,
+                                        options.disable_ids_begin,
                                         end_id,
                                         /*start_step=*/0,
                                         options.max_length,

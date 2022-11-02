@@ -15,7 +15,7 @@ On GPU, batches processed in parallel are using separate CUDA streams. Depending
 
 ## Parallel execution
 
-The [`Translator`](python/ctranslate2.Translator.rst) and [`Generator`](python/ctranslate2.Generator.rst) instances can be configured to process multiple batches in parallel, including on multiple GPUs:
+Objects running models such as the [`Translator`](python/ctranslate2.Translator.rst) and [`Generator`](python/ctranslate2.Generator.rst) can be configured to process multiple batches in parallel, including on multiple GPUs:
 
 ```python
 # Create a CPU translator with 4 workers each using 1 thread:
@@ -28,13 +28,12 @@ translator = ctranslate2.Translator(model_path, device="cuda", device_index=[0, 
 translator = ctranslate2.Translator(model_path, device="cuda", inter_threads=4)
 ```
 
-Multiple batches should be submitted concurrently to enable this parallelization. Parallel translations are enabled in the following cases:
+Multiple batches should be submitted concurrently to enable this parallelization. Parallel executions are enabled in the following cases:
 
-* When calling `{translate,score}_file`
-* When calling `{translate,score,generate}_iterable`
-* When calling `{translate,score,generate}_batch` and setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be translated in parallel.
-* When calling `{translate,score,generate}_batch` from multiple Python threads.
-* When calling `{translate,score,generate}_batch` multiple times with `asynchronous=True`.
+* When calling methods from multiple Python threads.
+* When calling methods multiple times with `asynchronous=True`.
+* When calling file-based or stream-based methods.
+* When setting `max_batch_size`: the input will be split according to `max_batch_size` and each sub-batch will be executed in parallel.
 
 ```{note}
 Parallelization with multiple Python threads is possible because all computation methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
@@ -42,7 +41,7 @@ Parallelization with multiple Python threads is possible because all computation
 
 ## Asynchronous execution
 
-The methods `translate_batch`, `score_batch`, and `generate_batch` can run asynchronously with `asynchronous=True`. In this mode, the method returns immediately and the result can be retrieved later:
+Some methods can run asynchronously with `asynchronous=True`. In this mode, the method returns immediately and the result can be retrieved later:
 
 ```python
 async_results = []
@@ -54,5 +53,5 @@ for async_result in async_results:
 ```
 
 ```{attention}
-The `Translator` and `Generator` objects have a limited queue size by default. When the queue of batches is full, the method will block even with `asynchronous=True`. See the parameter `max_queued_batches` in their constructor to configure the queue size.
+Instances supporting asynchronous execution have a limited queue size by default. When the queue of batches is full, the method will block even with `asynchronous=True`. See the parameter `max_queued_batches` in their constructor to configure the queue size.
 ```

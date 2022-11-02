@@ -5,7 +5,7 @@ import numpy as np
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec, model_spec, transformer_spec
+from ctranslate2.specs import common_spec, model_spec, transformer_spec, whisper_spec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
@@ -166,7 +166,7 @@ class BartLoader(ModelLoader):
         config.bos_token = tokenizer.bos_token
         config.eos_token = tokenizer.eos_token
         config.unk_token = tokenizer.unk_token
-        config.decoder_start_token = tokenizer.decode(
+        config.decoder_start_token = tokenizer.convert_ids_to_tokens(
             model.config.decoder_start_token_id
         )
 
@@ -458,6 +458,66 @@ class GPT2Loader(ModelLoader):
             self.set_layer_norm(layer_spec.ffn.layer_norm, layer.ln_2)
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.c_fc)
             self.set_linear(layer_spec.ffn.linear_1, layer.mlp.c_proj)
+
+
+@register_loader("WhisperConfig")
+class WhisperLoader(BartLoader):
+    @property
+    def architecture_name(self):
+        return "WhisperForConditionalGeneration"
+
+    def get_model_spec(self, model):
+        spec = whisper_spec.WhisperSpec(
+            model.config.encoder_layers,
+            model.config.encoder_attention_heads,
+        )
+
+        self.set_encoder(spec.encoder, model.model.encoder)
+        self.set_decoder(spec.decoder, model.model.decoder)
+        self.set_linear(spec.decoder.projection, model.proj_out)
+
+        return spec
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+        config.decoder_start_id = model.config.decoder_start_token_id
+        config.suppress_ids = model.config.suppress_tokens
+        config.suppress_ids_begin = model.config.begin_suppress_tokens
+        config.lang_ids = tokenizer.additional_special_tokens_ids[2:-6]
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+
+        i = 0
+        while len(tokens) < model.config.vocab_size:
+            symbol = "madeupword{:04d}".format(i)
+            if symbol not in tokens:
+                tokens.append(symbol)
+            i += 1
+
+        return tokens
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_encoder(self, spec, encoder):
+        self.set_conv1d(spec.conv1, encoder.conv1)
+        self.set_conv1d(spec.conv2, encoder.conv2)
+        super().set_encoder(spec, encoder)
+
+    def set_decoder(self, spec, decoder):
+        self.set_embeddings(spec.embeddings, decoder.embed_tokens)
+        super().set_decoder(spec, decoder)
+
+    def set_common_layers(self, spec, module):
+        self.set_position_encodings(spec.position_encodings, module.embed_positions)
+        self.set_layer_norm(spec.layer_norm, module.layer_norm)
+
+    def set_conv1d(self, spec, module):
+        spec.weight = module.weight.numpy()
+        spec.bias = module.bias.numpy()
 
 
 def main():

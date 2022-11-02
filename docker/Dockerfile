@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.2.2-devel-ubuntu20.04 as builder
+FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -31,7 +31,7 @@ RUN wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VER
     tar xf *.tar.gz && \
     rm *.tar.gz && \
     cd oneDNN-* && \
-    cmake -DCMAKE_BUILD_TYPE=Release -DDNNL_LIBRARY_TYPE=STATIC -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF -DDNNL_ENABLE_WORKLOAD=INFERENCE -DDNNL_ENABLE_PRIMITIVE= . && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DDNNL_LIBRARY_TYPE=STATIC -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF -DDNNL_ENABLE_WORKLOAD=INFERENCE -DDNNL_ENABLE_PRIMITIVE="CONVOLUTION;REORDER" . && \
     make -j$(nproc) install && \
     cd .. && \
     rm -r oneDNN-*
@@ -53,7 +53,7 @@ ENV CTRANSLATE2_ROOT=/opt/ctranslate2
 RUN mkdir build && \
     cd build && \
     cmake -DCMAKE_INSTALL_PREFIX=${CTRANSLATE2_ROOT} \
-          -DWITH_CUDA=ON -DWITH_MKL=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
+          -DWITH_CUDA=ON -DWITH_CUDNN=ON -DWITH_MKL=ON -DWITH_DNNL=ON -DOPENMP_RUNTIME=COMP \
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${CXX_FLAGS}" \
           -DCUDA_NVCC_FLAGS="${CUDA_NVCC_FLAGS}" -DCUDA_ARCH_LIST="${CUDA_ARCH_LIST}" .. && \
     VERBOSE=1 make -j$(nproc) install
@@ -73,6 +73,7 @@ FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         libcublas-11-2 \
+        libcudnn8=8.1.1.33-1+cuda11.2 \
         libgomp1 \
         python3-pip \
         && \

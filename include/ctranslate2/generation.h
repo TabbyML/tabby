@@ -51,15 +51,8 @@ namespace ctranslate2 {
 
   struct GenerationResult {
     std::vector<std::vector<std::string>> sequences;
+    std::vector<std::vector<size_t>> sequences_ids;
     std::vector<float> scores;
-
-    GenerationResult() = default;
-    GenerationResult(std::vector<std::vector<std::string>> sequences_,
-                     std::vector<float> scores_)
-      : sequences(sequences_)
-      , scores(scores_)
-    {
-    }
 
     size_t num_sequences() const {
       return sequences.size();

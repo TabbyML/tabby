@@ -14,6 +14,7 @@ namespace ctranslate2 {
     void register_translation_result(py::module& m);
     void register_translation_stats(py::module& m);
     void register_translator(py::module& m);
+    void register_whisper(py::module& m);
 
   }
 }

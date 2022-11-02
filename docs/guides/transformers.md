@@ -10,6 +10,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * OpenAI GPT2
 * OPT
 * Pegasus
+* Whisper
 
 The converter takes as argument the pretrained model name or the path to a model directory:
 
@@ -161,14 +162,12 @@ tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
 # Unconditional generation.
 start_tokens = [tokenizer.bos_token]
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
-output = results[0].sequences[0]
-print(tokenizer.decode(tokenizer.convert_tokens_to_ids(output)))
+print(tokenizer.decode(results[0].sequences_ids[0]))
 
 # Conditional generation.
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode("It is"))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
-output = results[0].sequences[0]
-print(tokenizer.decode(tokenizer.convert_tokens_to_ids(output)))
+print(tokenizer.decode(results[0].sequences_ids[0]))
 ```
 
 ## OPT
@@ -194,8 +193,50 @@ prompt = "Hey, are you conscious? Can you talk to me?"
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
 
 results = generator.generate_batch([start_tokens], max_length=30)
-output_tokens = results[0].sequences[0]
 
-output = tokenizer.decode(tokenizer.convert_tokens_to_ids(output_tokens))
+output = tokenizer.decode(results[0].sequences_ids[0])
 print(output)
+```
+
+## Whisper
+
+[Whisper](https://huggingface.co/docs/transformers/model_doc/whisper) is a multilingual speech recognition model published by OpenAI.
+
+```{important}
+Converting Whisper models requires `transformers>=4.23.0`.
+```
+
+The example below uses the smallest model with 39M parameters.
+
+```bash
+ct2-transformers-converter --model openai/whisper-tiny --output_dir whisper-tiny-ct2
+```
+
+```python
+import ctranslate2
+import datasets
+import transformers
+
+dataset = datasets.load_dataset(
+    "hf-internal-testing/librispeech_asr_dummy",
+    "clean",
+    split="validation",
+)
+
+audio = dataset[0]["audio"]["array"]
+
+processor = transformers.WhisperProcessor.from_pretrained("openai/whisper-tiny")
+inputs = processor(audio, return_tensors="np", sampling_rate=16000)
+features = ctranslate2.StorageView.from_array(inputs.input_features)
+
+model = ctranslate2.models.WhisperModel.from_path("whisper-tiny-ct2")
+results = model.detect_language(features)
+print(results[0])
+
+prompt = processor.get_decoder_prompt_ids(language="en", task="transcribe")
+prompt = [token for _, token in prompt]
+
+results = model.generate(features, [prompt])
+transcription = processor.decode(results[0].sequences_ids[0], skip_special_tokens=True)
+print(transcription)
 ```

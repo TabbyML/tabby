@@ -23,6 +23,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const std::vector<size_t>& disable_ids,
+           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -50,6 +51,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const std::vector<size_t>& disable_ids,
+           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -97,6 +99,7 @@ namespace ctranslate2 {
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
            const std::vector<size_t>& disable_ids,
+           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -130,6 +133,7 @@ namespace ctranslate2 {
     bool return_alternatives = false;
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
+    std::vector<size_t> disable_ids_begin;
   };
 
   std::vector<DecodingResult>
