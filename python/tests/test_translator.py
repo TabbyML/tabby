@@ -537,8 +537,6 @@ def test_score_api(tmpdir):
 
     # Check the different ways of getting the log probs.
     all_log_probs = [
-        # Backward compatibility with reading the result as a list of log probs.
-        translator.score_batch(source, target),
         [result.log_probs for result in translator.score_batch(source, target)],
         [
             async_result.result().log_probs

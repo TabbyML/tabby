@@ -20,21 +20,6 @@ namespace ctranslate2 {
             + ", log_probs=" + std::string(py::repr(py::cast(result.tokens_score)))
             + ")";
         })
-
-        // Backward compatibility with reading the result as a list of log probabilities.
-        .def("__len__", [](const ScoringResult& result) {
-          return result.tokens_score.size();
-        })
-
-        .def("__iter__", [](const ScoringResult& result) {
-          return py::make_iterator(result.tokens_score.begin(), result.tokens_score.end());
-        })
-
-        .def("__getitem__", [](const ScoringResult& result, size_t i) {
-          if (i >= result.tokens_score.size())
-            throw py::index_error();
-          return result.tokens_score[i];
-        })
         ;
 
       declare_async_wrapper<ScoringResult>(m, "AsyncScoringResult");
