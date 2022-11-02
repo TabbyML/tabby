@@ -89,7 +89,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
@@ -107,7 +106,7 @@ setup(
     packages=find_packages(exclude=["bin"]),
     package_data=package_data,
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.6,<3.12",
+    python_requires=">=3.7,<3.12",
     install_requires=[
         "numpy",
         "pyyaml>=5.3,<7",

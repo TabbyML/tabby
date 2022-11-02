@@ -11,7 +11,7 @@ pip install ctranslate2
 The Python wheels have the following requirements:
 
 * OS: Linux (x86-64, AArch64), macOS (x86-64, ARM64), Windows (x86-64)
-* Python version: >= 3.6
+* Python version: >= 3.7
 * pip version: >= 19.3 to support `manylinux2014` wheels
 
 ```{admonition} GPU support
