@@ -146,6 +146,14 @@ namespace ctranslate2 {
                  1 1 1 ... 1 1 1
                 [cpu:0 int32 storage viewed as 2x4]
                 >>> z = np.array(y)
+                ...
+                >>> x = torch.ones((2, 4), dtype=torch.int32, device="cuda")
+                >>> y = ctranslate2.StorageView.from_array(x)
+                >>> print(y)
+                 1 1 1 ... 1 1 1
+                [cuda:0 int32 storage viewed as 2x4]
+                >>> z = torch.as_tensor(y, device="cuda")
+
         )pbdoc")
 
         .def_static("from_array", &StorageViewWrapper::from_array, py::arg("array"),
