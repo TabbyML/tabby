@@ -28,7 +28,6 @@ namespace ctranslate2 {
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
@@ -42,8 +41,7 @@ namespace ctranslate2 {
     BeamSearch(const dim_t beam_size,
                const float length_penalty = 0,
                const float coverage_penalty = 0,
-               const float prefix_bias_beta = 0,
-               const bool early_exit = true);
+               const float prefix_bias_beta = 0);
 
     std::vector<DecodingResult>
     search(layers::Decoder& decoder,
@@ -56,7 +54,6 @@ namespace ctranslate2 {
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
@@ -69,7 +66,6 @@ namespace ctranslate2 {
     const float _length_penalty;
     const float _coverage_penalty;
     const float _prefix_bias_beta;
-    const bool _early_exit;
   };
 
   class BiasedDecoder {
@@ -93,6 +89,9 @@ namespace ctranslate2 {
 
   class GreedySearch : public SearchStrategy {
   public:
+    // Penalties are only applied to return scores consistent with the beam search.
+    GreedySearch(const float length_penalty = 0, const float coverage_penalty = 0);
+
     std::vector<DecodingResult>
     search(layers::Decoder& decoder,
            layers::DecoderState& state,
@@ -104,13 +103,16 @@ namespace ctranslate2 {
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
-           const bool normalize_scores = false,
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
            const float repetition_penalty = 1,
            const dim_t no_repeat_ngram_size = 0,
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
+
+  private:
+    const float _length_penalty;
+    const float _coverage_penalty;
   };
 
 
@@ -121,13 +123,11 @@ namespace ctranslate2 {
     float repetition_penalty = 1;
     size_t no_repeat_ngram_size = 0;
     float prefix_bias_beta = 0;
-    bool allow_early_exit = true;
     size_t max_length = 256;
     size_t min_length = 0;
     size_t sampling_topk = 1;
     float sampling_temperature = 1;
     size_t num_hypotheses = 1;
-    bool normalize_scores = false;
     bool return_scores = false;
     bool return_attention = false;
     bool return_alternatives = false;

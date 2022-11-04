@@ -114,7 +114,7 @@ namespace ctranslate2 {
              py::arg("asynchronous")=false,
              py::arg("beam_size")=1,
              py::arg("num_hypotheses")=1,
-             py::arg("length_penalty")=0,
+             py::arg("length_penalty")=1,
              py::arg("max_length")=448,
              py::arg("return_scores")=false,
              py::arg("sampling_topk")=1,
@@ -130,7 +130,7 @@ namespace ctranslate2 {
                    asynchronous: Run the model asynchronously.
                    beam_size: Beam size (1 for greedy search).
                    num_hypotheses: Number of hypotheses to return (must be <= :obj:`beam_size`).
-                   length_penalty: Length penalty constant to use during beam search.
+                   length_penalty: Exponential penalty applied to the length during beam search.
                    max_length: Maximum generation length.
                    return_scores: Include the scores in the output.
                    sampling_topk: Randomly sample predictions from the top K candidates.

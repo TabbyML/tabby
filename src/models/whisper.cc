@@ -89,12 +89,10 @@ namespace ctranslate2 {
       DecodingOptions decoding_options;
       decoding_options.beam_size = options.beam_size;
       decoding_options.length_penalty = options.length_penalty;
-      decoding_options.allow_early_exit = false;
       decoding_options.max_length = options.max_length;
       decoding_options.sampling_topk = options.sampling_topk;
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
-      decoding_options.normalize_scores = true;
       decoding_options.return_scores = options.return_scores;
       for (const auto& id : _model->config["suppress_ids"])
         decoding_options.disable_ids.push_back(id);

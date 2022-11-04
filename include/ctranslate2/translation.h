@@ -9,12 +9,11 @@ namespace ctranslate2 {
   struct TranslationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 2;
-    // Length penalty value to apply during beam search (set 0 to disable).
-    // If normalize_scores is enabled, the scores are normalized with:
+    // Exponential penalty applied to the length during beam search.
+    // The scores are normalized with:
     //   hypothesis_score /= (hypothesis_length ** length_penalty)
-    // Otherwise, the length penalty is applied as described in https://arxiv.org/pdf/1609.08144.pdf.
-    float length_penalty = 0;
-    // Coverage value to apply during beam search (set 0 to disable).
+    float length_penalty = 1;
+    // Coverage penalty weight applied during beam search.
     float coverage_penalty = 0;
     // Penalty applied to the score of previously generated tokens, as described in
     // https://arxiv.org/abs/1909.05858 (set > 1 to penalize).
@@ -30,9 +29,6 @@ namespace ctranslate2 {
     // If beta <= 0 and a non-empty prefix is given, then the prefix will be used as a
     // hard-prefix rather than a soft, biased-prefix.
     float prefix_bias_beta = 0;
-    // Allow the beam search to exit when the first beam finishes. Otherwise, the decoding
-    // continues until beam_size hypotheses are finished.
-    bool allow_early_exit = true;
 
     // Truncate the inputs after this many tokens (set 0 to disable truncation).
     size_t max_input_length = 1024;
@@ -53,8 +49,6 @@ namespace ctranslate2 {
     // beam_size unless return_alternatives is set).
     size_t num_hypotheses = 1;
 
-    // Normalize the score by the hypothesis length. The hypotheses are sorted accordingly.
-    bool normalize_scores = false;
     // Store scores in the TranslationResult class.
     bool return_scores = false;
     // Store attention vectors in the TranslationResult class.

@@ -13,8 +13,8 @@ namespace ctranslate2 {
       // Beam size to use for beam search (set 1 to run greedy search).
       size_t beam_size = 1;
 
-      // Length penalty value to apply during beam search (set 0 to disable).
-      float length_penalty = 0;
+      // Exponential penalty applied to the length during beam search.
+      float length_penalty = 1;
 
       // Maximum generation length.
       size_t max_length = 448;

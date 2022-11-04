@@ -90,12 +90,10 @@ namespace ctranslate2 {
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
                      float prefix_bias_beta,
-                     bool allow_early_exit,
                      size_t max_input_length,
                      size_t max_decoding_length,
                      size_t min_decoding_length,
                      bool use_vmap,
-                     bool normalize_scores,
                      bool with_scores,
                      size_t sampling_topk,
                      float sampling_temperature,
@@ -118,7 +116,6 @@ namespace ctranslate2 {
         options.no_repeat_ngram_size = no_repeat_ngram_size;
         options.disable_unk = disable_unk;
         options.prefix_bias_beta = prefix_bias_beta;
-        options.allow_early_exit = allow_early_exit;
         options.sampling_topk = sampling_topk;
         options.sampling_temperature = sampling_temperature;
         options.max_input_length = max_input_length;
@@ -126,7 +123,6 @@ namespace ctranslate2 {
         options.min_decoding_length = min_decoding_length;
         options.num_hypotheses = num_hypotheses;
         options.use_vmap = use_vmap;
-        options.normalize_scores = normalize_scores;
         options.return_scores = with_scores;
         options.replace_unknowns = replace_unknowns;
 
@@ -172,12 +168,10 @@ namespace ctranslate2 {
                       size_t no_repeat_ngram_size,
                       bool disable_unk,
                       float prefix_bias_beta,
-                      bool allow_early_exit,
                       size_t max_input_length,
                       size_t max_decoding_length,
                       size_t min_decoding_length,
                       bool use_vmap,
-                      bool normalize_scores,
                       bool return_scores,
                       bool return_attention,
                       bool return_alternatives,
@@ -197,7 +191,6 @@ namespace ctranslate2 {
         options.no_repeat_ngram_size = no_repeat_ngram_size;
         options.disable_unk = disable_unk;
         options.prefix_bias_beta = prefix_bias_beta;
-        options.allow_early_exit = allow_early_exit;
         options.sampling_topk = sampling_topk;
         options.sampling_temperature = sampling_temperature;
         options.max_input_length = max_input_length;
@@ -205,7 +198,6 @@ namespace ctranslate2 {
         options.min_decoding_length = min_decoding_length;
         options.num_hypotheses = num_hypotheses;
         options.use_vmap = use_vmap;
-        options.normalize_scores = normalize_scores;
         options.return_scores = return_scores;
         options.return_attention = return_attention;
         options.return_alternatives = return_alternatives;
@@ -428,18 +420,16 @@ namespace ctranslate2 {
              py::arg("asynchronous")=false,
              py::arg("beam_size")=2,
              py::arg("num_hypotheses")=1,
-             py::arg("length_penalty")=0,
+             py::arg("length_penalty")=1,
              py::arg("coverage_penalty")=0,
              py::arg("repetition_penalty")=1,
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
              py::arg("prefix_bias_beta")=0,
-             py::arg("allow_early_exit")=true,
              py::arg("max_input_length")=1024,
              py::arg("max_decoding_length")=256,
              py::arg("min_decoding_length")=1,
              py::arg("use_vmap")=false,
-             py::arg("normalize_scores")=false,
              py::arg("return_scores")=false,
              py::arg("return_attention")=false,
              py::arg("return_alternatives")=false,
@@ -463,20 +453,18 @@ namespace ctranslate2 {
                    beam_size: Beam size (1 for greedy search).
                    num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
                      unless :obj:`return_alternatives` is set).
-                   length_penalty: Length penalty constant to use during beam search.
-                   coverage_penalty: Coverage penalty constant to use during beam search.
+                   length_penalty: Exponential penalty applied to the length during beam search.
+                   coverage_penalty: Coverage penalty weight applied during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens
                      (set > 1 to penalize).
                    no_repeat_ngram_size: Prevent repetitions of ngrams with this size
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
-                   allow_early_exit: Allow the beam search to exit early when the first beam finishes.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.
                    min_decoding_length: Minimum prediction length.
                    use_vmap: Use the vocabulary mapping file saved in this model
-                   normalize_scores: Normalize the score by the sequence length.
                    return_scores: Include the scores in the output.
                    return_attention: Include the attention vectors in the output.
                    return_alternatives: Return alternatives at the first unconstrained decoding position.
@@ -502,18 +490,16 @@ namespace ctranslate2 {
              py::arg("batch_type")="examples",
              py::arg("beam_size")=2,
              py::arg("num_hypotheses")=1,
-             py::arg("length_penalty")=0,
+             py::arg("length_penalty")=1,
              py::arg("coverage_penalty")=0,
              py::arg("repetition_penalty")=1,
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
              py::arg("prefix_bias_beta")=0,
-             py::arg("allow_early_exit")=true,
              py::arg("max_input_length")=1024,
              py::arg("max_decoding_length")=256,
              py::arg("min_decoding_length")=1,
              py::arg("use_vmap")=false,
-             py::arg("normalize_scores")=false,
              py::arg("with_scores")=false,
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
@@ -538,20 +524,18 @@ namespace ctranslate2 {
                    asynchronous: Run the translation asynchronously.
                    beam_size: Beam size (1 for greedy search).
                    num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`).
-                   length_penalty: Length penalty constant to use during beam search.
-                   coverage_penalty: Coverage penalty constant to use during beam search.
+                   length_penalty: Exponential penalty applied to the length during beam search.
+                   coverage_penalty: Coverage penalty weight applied during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens
                      (set > 1 to penalize).
                    no_repeat_ngram_size: Prevent repetitions of ngrams with this size
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
-                   allow_early_exit: Allow the beam search to exit early when the first beam finishes.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.
                    min_decoding_length: Minimum prediction length.
                    use_vmap: Use the vocabulary mapping file saved in this model
-                   normalize_scores: Normalize the score by the sequence length.
                    with_scores: Include the scores in the output.
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.

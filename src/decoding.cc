@@ -274,20 +274,17 @@ namespace ctranslate2 {
   }
 
   static float finalize_hypothesis_score(float score,
-                                         const bool normalize_score,
                                          const float length,
                                          const float length_penalty,
                                          const float coverage_penalty,
-                                         const std::vector<std::vector<float>>& attention) {
-    if (length_penalty != 0) {
-      const float base = normalize_score ? length : (5.f + length) / 6.f;
-      score /= std::pow(base, length_penalty);
-    } else if (normalize_score) {
-      score /= length;
-    }
+                                         const std::vector<std::vector<float>>* attention) {
+    score /= std::pow(length, length_penalty);
 
-    if (coverage_penalty != 0)
-      score += compute_coverage_penalty(attention, coverage_penalty);
+    if (coverage_penalty != 0) {
+      if (!attention)
+        throw std::runtime_error("The attention weights are required to apply the coverage penalty");
+      score += compute_coverage_penalty(*attention, coverage_penalty);
+    }
 
     return score;
   }
@@ -295,7 +292,8 @@ namespace ctranslate2 {
   // Sort hypotheses from best to worst score, in the limit of max_hypotheses.
   static inline void sort_hypotheses(DecodingResult& result,
                                      size_t max_hypotheses,
-                                     bool keep_scores) {
+                                     bool keep_scores,
+                                     bool keep_attention) {
     std::vector<size_t> idx(result.hypotheses.size());
     std::iota(idx.begin(), idx.end(), 0);
     std::sort(idx.begin(), idx.end(),
@@ -305,12 +303,34 @@ namespace ctranslate2 {
       idx.resize(max_hypotheses);
 
     result.hypotheses = index_vector(result.hypotheses, idx);
+
     if (keep_scores)
       result.scores = index_vector(result.scores, idx);
     else
       result.scores.clear();
-    if (!result.attention.empty())
+
+    if (keep_attention)
       result.attention = index_vector(result.attention, idx);
+    else
+      result.attention.clear();
+  }
+
+  static inline void finalize_result(DecodingResult& result,
+                                     const size_t max_hypotheses,
+                                     const float length_penalty,
+                                     const float coverage_penalty,
+                                     const bool keep_scores,
+                                     const bool keep_attention) {
+    for (size_t i = 0; i < result.scores.size(); ++i) {
+      const auto* attention = result.attention.empty() ? nullptr : &result.attention[i];
+      result.scores[i] = finalize_hypothesis_score(result.scores[i],
+                                                   result.hypotheses[i].size(),
+                                                   length_penalty,
+                                                   coverage_penalty,
+                                                   attention);
+    }
+
+    sort_hypotheses(result, max_hypotheses, keep_scores, keep_attention);
   }
 
   BiasedDecoder::BiasedDecoder(const float prefix_bias_beta,
@@ -468,13 +488,11 @@ namespace ctranslate2 {
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
-                         const float prefix_bias_beta,
-                         const bool early_exit)
+                         const float prefix_bias_beta)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
     , _prefix_bias_beta(prefix_bias_beta)
-    , _early_exit(early_exit)
   {
   }
 
@@ -489,7 +507,6 @@ namespace ctranslate2 {
                      const dim_t start_step,
                      const dim_t max_length,
                      const dim_t min_length,
-                     const bool normalize_scores,
                      const bool return_scores,
                      const bool return_attention,
                      const size_t num_hypotheses,
@@ -512,6 +529,9 @@ namespace ctranslate2 {
     // we try to run the first step without expanding the batch size.
     const bool expand_after_first_step = (device == Device::CPU
                                           && num_candidates <= vocabulary_size);
+
+    // We can exit early when the first beam finishes and no penalties are used.
+    const bool allow_early_exit = (_length_penalty == 0 && _coverage_penalty == 0);
 
     StorageView topk_ids({batch_size}, DataType::INT32);
     StorageView topk_scores(dtype);
@@ -664,21 +684,11 @@ namespace ctranslate2 {
             if (k == 0)
               top_beam_finished[i] = true;
 
-            // Build the hypothesis and compute its score.
-            auto hypothesis = build_hypothesis(alive_seq, i, k);
-            auto attention = build_attention(alive_attention, i, k);
-            auto score = finalize_hypothesis_score(topk_scores.scalar_at<float>({i, k}),
-                                                   normalize_scores,
-                                                   hypothesis.size(),
-                                                   _length_penalty,
-                                                   _coverage_penalty,
-                                                   attention);
-
             // Register this hypothesis.
-            result.scores.emplace_back(score);
-            result.hypotheses.emplace_back(std::move(hypothesis));
-            if (return_attention)
-              result.attention.emplace_back(std::move(attention));
+            result.scores.emplace_back(topk_scores.scalar_at<float>({i, k}));
+            result.hypotheses.emplace_back(build_hypothesis(alive_seq, i, k));
+            if (alive_attention)
+              result.attention.emplace_back(build_attention(alive_attention, i, k));
 
             // Move another active beam to this position.
             for (dim_t j = secondary_candidates_offset; j < num_candidates; ++j) {
@@ -695,12 +705,17 @@ namespace ctranslate2 {
         }
 
         const bool is_finished = (
-          _early_exit
+          allow_early_exit
           ? top_beam_finished[i] && result.hypotheses.size() >= num_hypotheses
           : result.hypotheses.size() >= static_cast<size_t>(_beam_size));
 
         if (is_finished) {
-          sort_hypotheses(result, num_hypotheses, return_scores);
+          finalize_result(result,
+                          num_hypotheses,
+                          _length_penalty,
+                          _coverage_penalty,
+                          return_scores,
+                          return_attention);
         } else {
           non_finished_index.emplace_back(i);
         }
@@ -766,6 +781,13 @@ namespace ctranslate2 {
     return results;
   }
 
+
+  GreedySearch::GreedySearch(const float length_penalty, const float coverage_penalty)
+    : _length_penalty(length_penalty)
+    , _coverage_penalty(coverage_penalty)
+  {
+  }
+
   std::vector<DecodingResult>
   GreedySearch::search(layers::Decoder& decoder,
                        layers::DecoderState& state,
@@ -777,7 +799,6 @@ namespace ctranslate2 {
                        const dim_t start_step,
                        const dim_t max_length,
                        const dim_t min_length,
-                       const bool normalize_scores,
                        const bool return_scores,
                        const bool return_attention,
                        const size_t,
@@ -790,6 +811,8 @@ namespace ctranslate2 {
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
     const dim_t batch_size = start_ids.size();
+    const bool gather_attention = (return_attention || (return_scores && _coverage_penalty != 0));
+
     StorageView sample_from({batch_size}, DataType::INT32);
 
     StorageView logits(dtype, device);
@@ -817,7 +840,7 @@ namespace ctranslate2 {
               sample_from.to(device),
               state,
               &logits,
-              return_attention ? &attention_step_device : nullptr);
+              gather_attention ? &attention_step_device : nullptr);
 
       if (repetition_penalty != 1 && alive_seq)
         penalize_previous_tokens(logits, alive_seq.to(device), repetition_penalty);
@@ -846,7 +869,7 @@ namespace ctranslate2 {
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
         update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
-      if (return_attention)
+      if (attention_step_device)
         attention_step.copy_from(attention_step_device.to_float());
 
       // When repetition penalty is enabled, we should keep the previously generated tokens.
@@ -871,13 +894,22 @@ namespace ctranslate2 {
         results[batch_id].hypotheses[0].push_back(word_id);
         if (return_scores)
           results[batch_id].scores[0] += best_probs.scalar_at<float>({i, 0});
-        if (return_attention) {
+        if (attention_step) {
           const auto* attn = attention_step.index<float>({i, 0});
           results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
         }
 
-        const bool is_finished = (word_id == end_id && step >= prefix_length);
-        if (!is_finished) {
+        const bool is_finished = ((word_id == end_id && step >= prefix_length)
+                                  || (step + 1 == max_step));
+
+        if (is_finished) {
+          finalize_result(results[batch_id],
+                          1,
+                          _length_penalty,
+                          _coverage_penalty,
+                          return_scores,
+                          return_attention);
+        } else {
           non_finished_index.emplace_back(i);
           sample_from.at<int32_t>(i) = word_id;
         }
@@ -900,11 +932,6 @@ namespace ctranslate2 {
         auto alive_device = alive.to(device);
         decoder.gather_state(state, alive_device);
       }
-    }
-
-    if (return_scores && normalize_scores) {
-      for (auto& result : results)
-        result.scores[0] /= result.hypotheses[0].size();
     }
 
     return results;
@@ -1027,13 +1054,12 @@ namespace ctranslate2 {
   static std::unique_ptr<const SearchStrategy>
   make_search_strategy(const DecodingOptions& options) {
     if (options.beam_size == 1)
-      return std::make_unique<GreedySearch>();
+      return std::make_unique<GreedySearch>(options.length_penalty, options.coverage_penalty);
     else
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
                                           options.coverage_penalty,
-                                          options.prefix_bias_beta,
-                                          options.allow_early_exit);
+                                          options.prefix_bias_beta);
   }
 
   static DecodingResult
@@ -1092,7 +1118,6 @@ namespace ctranslate2 {
                                                   start_step,
                                                   /*max_length=*/1,
                                                   /*min_length=*/1,
-                                                  /*normalize_scores=*/false,
                                                   /*return_scores=*/true,
                                                   options.return_attention,
                                                   options.num_hypotheses)[0];
@@ -1145,7 +1170,6 @@ namespace ctranslate2 {
                                                   start_step,
                                                   std::max(max_length - start_step, dim_t(0)),
                                                   std::max(min_length - start_step, dim_t(0)),
-                                                  options.normalize_scores,
                                                   options.return_scores,
                                                   options.return_attention,
                                                   /*num_hypotheses=*/1,
@@ -1157,15 +1181,7 @@ namespace ctranslate2 {
       auto& suffix = suffix_results[i];
 
       if (options.return_scores) {
-        if (options.normalize_scores) {
-          const auto prefix_length = result.hypotheses[i].size();
-          const auto suffix_length = suffix.hypotheses[0].size();
-          result.scores[i] = (
-            (result.scores[i] * prefix_length + suffix.scores[0] * suffix_length)
-            / (prefix_length + suffix_length));
-        } else {
-          result.scores[i] += suffix.scores[0];
-        }
+        result.scores[i] += suffix.scores[0];
       }
 
       if (options.return_attention)
@@ -1242,7 +1258,6 @@ namespace ctranslate2 {
                                         /*start_step=*/0,
                                         options.max_length,
                                         options.min_length,
-                                        options.normalize_scores,
                                         options.return_scores,
                                         options.return_attention,
                                         options.num_hypotheses,

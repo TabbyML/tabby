@@ -76,13 +76,11 @@ int main(int argc, char* argv[]) {
      cxxopts::value<float>()->default_value("1"))
     ("n_best", "Also output the n-best hypotheses.",
      cxxopts::value<size_t>()->default_value("1"))
-    ("normalize_scores", "Normalize the score by the hypothesis length",
-     cxxopts::value<bool>()->default_value("false"))
     ("with_score", "Also output the translation scores.",
      cxxopts::value<bool>()->default_value("false"))
-    ("length_penalty", "Length penalty to apply during beam search",
-     cxxopts::value<float>()->default_value("0"))
-    ("coverage_penalty", "Coverage penalty to apply during beam search",
+    ("length_penalty", "Exponential penalty applied to the length during beam search.",
+     cxxopts::value<float>()->default_value("1"))
+    ("coverage_penalty", "Coverage penalty weight applied during beam search.",
      cxxopts::value<float>()->default_value("0"))
     ("repetition_penalty", "Penalty applied to the score of previously generated tokens (set > 1 to penalize)",
      cxxopts::value<float>()->default_value("1"))
@@ -92,8 +90,6 @@ int main(int argc, char* argv[]) {
      cxxopts::value<bool>()->default_value("false"))
     ("prefix_bias_beta", "Parameter for biasing translations towards given prefix",
      cxxopts::value<float>()->default_value("0"))
-    ("disable_early_exit", "Disable the beam search early exit when the first beam finishes",
-     cxxopts::value<bool>()->default_value("false"))
     ("max_decoding_length", "Maximum sentence length to generate.",
      cxxopts::value<size_t>()->default_value("256"))
     ("min_decoding_length", "Minimum sentence length to generate.",
@@ -183,7 +179,6 @@ int main(int argc, char* argv[]) {
     options.no_repeat_ngram_size = args["no_repeat_ngram_size"].as<size_t>();
     options.disable_unk = args["disable_unk"].as<bool>();
     options.prefix_bias_beta = args["prefix_bias_beta"].as<float>();
-    options.allow_early_exit = !args["disable_early_exit"].as<bool>();
     options.sampling_topk = args["sampling_topk"].as<size_t>();
     options.sampling_temperature = args["sampling_temperature"].as<float>();
     options.max_input_length = args["max_input_length"].as<size_t>();
@@ -191,7 +186,6 @@ int main(int argc, char* argv[]) {
     options.min_decoding_length = args["min_decoding_length"].as<size_t>();
     options.num_hypotheses = args["n_best"].as<size_t>();
     options.use_vmap = args["use_vmap"].as<bool>();
-    options.normalize_scores = args["normalize_scores"].as<bool>();
     options.return_scores = args["with_score"].as<bool>();
     options.replace_unknowns = args["replace_unknowns"].as<bool>();
     stats = translator_pool.translate_text_file(*source,

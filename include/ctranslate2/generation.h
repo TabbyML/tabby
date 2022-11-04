@@ -8,11 +8,10 @@ namespace ctranslate2 {
   struct GenerationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 1;
-    // Length penalty value to apply during beam search (set 0 to disable).
-    // If normalize_scores is enabled, the scores are normalized with:
+    // Exponential penalty applied to the length during beam search.
+    // The scores are normalized with:
     //   hypothesis_score /= (hypothesis_length ** length_penalty)
-    // Otherwise, the length penalty is applied as described in https://arxiv.org/pdf/1609.08144.pdf.
-    float length_penalty = 0;
+    float length_penalty = 1;
     // Penalty applied to the score of previously generated tokens, as described in
     // https://arxiv.org/abs/1909.05858 (set > 1 to penalize).
     float repetition_penalty = 1;
@@ -20,9 +19,6 @@ namespace ctranslate2 {
     size_t no_repeat_ngram_size = 0;
     // Disable the generation of the unknown token.
     bool disable_unk = false;
-    // Allow the beam search to exit when the first beam finishes. Otherwise, the decoding
-    // continues until beam_size hypotheses are finished.
-    bool allow_early_exit = true;
 
     // Length constraints.
     size_t max_length = 512;
@@ -37,8 +33,6 @@ namespace ctranslate2 {
     // return_alternatives is set).
     size_t num_hypotheses = 1;
 
-    // Normalize the score by the hypothesis length. The hypotheses are sorted accordingly.
-    bool normalize_scores = false;
     // Include scores in the result.
     bool return_scores = false;
 

@@ -61,10 +61,8 @@ namespace ctranslate2 {
                      float repetition_penalty,
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
-                     bool allow_early_exit,
                      size_t max_length,
                      size_t min_length,
-                     bool normalize_scores,
                      bool return_scores,
                      bool return_alternatives,
                      float min_alternative_expansion_prob,
@@ -80,13 +78,11 @@ namespace ctranslate2 {
         options.repetition_penalty = repetition_penalty;
         options.no_repeat_ngram_size = no_repeat_ngram_size;
         options.disable_unk = disable_unk;
-        options.allow_early_exit = allow_early_exit;
         options.sampling_topk = sampling_topk;
         options.sampling_temperature = sampling_temperature;
         options.max_length = max_length;
         options.min_length = min_length;
         options.num_hypotheses = num_hypotheses;
-        options.normalize_scores = normalize_scores;
         options.return_scores = return_scores;
         options.return_alternatives = return_alternatives;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
@@ -199,14 +195,12 @@ namespace ctranslate2 {
              py::arg("asynchronous")=false,
              py::arg("beam_size")=1,
              py::arg("num_hypotheses")=1,
-             py::arg("length_penalty")=0,
+             py::arg("length_penalty")=1,
              py::arg("repetition_penalty")=1,
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
-             py::arg("allow_early_exit")=true,
              py::arg("max_length")=512,
              py::arg("min_length")=0,
-             py::arg("normalize_scores")=false,
              py::arg("return_scores")=false,
              py::arg("return_alternatives")=false,
              py::arg("min_alternative_expansion_prob")=0,
@@ -228,16 +222,14 @@ namespace ctranslate2 {
                    beam_size: Beam size (1 for greedy search).
                    num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
                      unless :obj:`return_alternatives` is set).
-                   length_penalty: Length penalty constant to use during beam search.
+                   length_penalty: Exponential penalty applied to the length during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens
                      (set > 1 to penalize).
                    no_repeat_ngram_size: Prevent repetitions of ngrams with this size
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
-                   allow_early_exit: Allow the beam search to exit early when the first beam finishes.
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
-                   normalize_scores: Normalize the score by the sequence length.
                    return_scores: Include the scores in the output.
                    return_alternatives: Return alternatives at the first unconstrained decoding position.
                    min_alternative_expansion_prob: Minimum initial probability to expand an alternative.

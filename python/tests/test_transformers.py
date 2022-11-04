@@ -25,42 +25,49 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "▁Hello ▁world ! </s>",
         "",
         "▁Hallo ▁Welt !",
+        dict(),
     ),
     (
         "Helsinki-NLP/opus-mt-en-roa",
         ">>ind<< ▁The ▁Prime ▁Minister ▁is ▁coming ▁back ▁tomorrow . </s>",
         "",
         "▁Per da na ▁Men teri ▁akan ▁kembali ▁besok .",
+        dict(),
     ),
     (
         "Helsinki-NLP/opus-mt-mul-en",
         "▁Bon jo ur ▁le ▁mo nde </s>",
         "",
         "▁Welcome ▁to ▁the ▁World",
+        dict(),
     ),
     (
         "facebook/m2m100_418M",
         "__en__ ▁Hello ▁world ! </s>",
         "__de__",
         "__de__ ▁Hallo ▁der ▁Welt !",
+        dict(),
     ),
     (
         "facebook/mbart-large-50-many-to-many-mmt",
         "en_XX ▁Hello ▁world ! </s>",
         "de_DE",
         "de_DE ▁Hallo ▁Welt !",
+        dict(),
     ),
     (
         "facebook/mbart-large-en-ro",
         "▁UN ▁Chief ▁Say s ▁There ▁Is ▁No ▁Militar y ▁Solution ▁in ▁Syria </s> en_XX",
         "ro_RO",
         "▁Şe ful ▁ONU ▁de cla ră ▁că ▁nu ▁există ▁o ▁solu ţie ▁militar ă ▁în ▁Siria",
+        dict(),
     ),
     (
         "facebook/bart-base",
         "<s> UN ĠChief ĠSays ĠThere ĠIs ĠNo <mask> Ġin ĠSyria </s>",
         "",
         "<s> UN ĠChief ĠSays ĠThere ĠIs ĠNo ĠWar Ġin ĠSyria",
+        dict(),
     ),
     (
         "google/pegasus-xsum",
@@ -72,19 +79,21 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         "",
         "▁California ' s ▁largest ▁electricity ▁provider ▁has ▁turned ▁off ▁power ▁to "
         "▁hundreds ▁of ▁thousands ▁of ▁customers .",
+        dict(length_penalty=0.6),
     ),
     (
         "facebook/nllb-200-distilled-600M",
         ["▁Hello ▁world ! </s> eng_Latn", "</s> eng_Latn"],
         ["fra_Latn", "fra_Latn"],
         ["fra_Latn ▁Bon jour ▁le ▁monde ▁!", "fra_Latn"],
+        dict(),
     ),
 ]
 
 
 @test_utils.only_on_linux
 @pytest.mark.parametrize(
-    "model,source_tokens,target_tokens,expected_tokens",
+    "model,source_tokens,target_tokens,expected_tokens,kwargs",
     _TRANSFORMERS_TRANSLATION_TESTS,
     ids=[args[0] for args in _TRANSFORMERS_TRANSLATION_TESTS],
 )
@@ -95,6 +104,7 @@ def test_transformers_translation(
     source_tokens,
     target_tokens,
     expected_tokens,
+    kwargs,
 ):
     converter = ctranslate2.converters.TransformersConverter(model)
     output_dir = str(tmpdir.join("ctranslate2_model"))
@@ -111,6 +121,7 @@ def test_transformers_translation(
     results = translator.translate_batch(
         [line.split() for line in source_tokens],
         [line.split() for line in target_tokens] if target_tokens else None,
+        **kwargs,
     )
     output_tokens = [" ".join(result.hypotheses[0]) for result in results]
     assert output_tokens == expected_tokens

@@ -20,7 +20,7 @@ def test_opennmt_py_model_conversion(tmpdir):
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
-    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+    assert output[0].hypotheses[0] == ["a", "t", "z", "u", "m", "o", "n"]
 
 
 @test_utils.skip_on_windows

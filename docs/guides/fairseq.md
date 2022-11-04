@@ -20,7 +20,7 @@ ct2-fairseq-converter --model_path model.pt --data_dir data-bin/ --output_dir ct
 The default beam search parameters in CTranslate2 are different than Fairseq. Set the following parameters to match the Fairseq behavior:
 
 ```python
-translator.translate_batch(tokens, beam_size=5, allow_early_exit=False, normalize_scores=True)
+translator.translate_batch(tokens, beam_size=5)
 ```
 
 ## WMT16 English-German

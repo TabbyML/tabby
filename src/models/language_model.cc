@@ -132,13 +132,11 @@ namespace ctranslate2 {
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
-      decoding_options.allow_early_exit = options.allow_early_exit;
       decoding_options.max_length = options.max_length;
       decoding_options.min_length = options.min_length;
       decoding_options.sampling_topk = options.sampling_topk;
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
-      decoding_options.normalize_scores = options.normalize_scores;
       decoding_options.return_scores = options.return_scores;
       decoding_options.return_alternatives = options.return_alternatives;
       decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
