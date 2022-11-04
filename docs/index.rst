@@ -20,6 +20,7 @@ The documentation includes installation instructions, usage guides, and API refe
    quantization.md
    translation.md
    generation.md
+   speech_recognition.md
    decoding.md
    parallel.md
    memory.md
