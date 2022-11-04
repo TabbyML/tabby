@@ -16,9 +16,10 @@ The Python module includes a [conversion API](python/ctranslate2.converters.rst)
 
 ## Model structure
 
-The conversion produces a model directory containing a binary model file and one or more vocabulary files:
+The conversion produces a model directory containing a binary model file, a JSON configuration, and one or more vocabulary files:
 
 ```text
+config.json
 model.bin
 source_vocabulary.txt
 target_vocabulary.txt
@@ -42,7 +43,9 @@ Forward compatibility is not guaranteed, however. The CTranslate2 version loadin
 
 ## Portability
 
-Converted models are portable in the sense they can be loaded on another machine using a different operating system or CPU architecture. However, the 2 machines must use the same [endianness](https://en.wikipedia.org/wiki/Endianness) which is usually the case nowadays.
+Converted models are portable in the sense they can be loaded on another machine using a different operating system or CPU architecture.
+
+The only restriction is the 2 machines must use the same [endianness](https://en.wikipedia.org/wiki/Endianness).
 
 ## Add a new converter
 
