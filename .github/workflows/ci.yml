@@ -36,7 +36,7 @@ jobs:
       - name: Store URL for downloading Intel oneAPI to environment variable
         if: startsWith(matrix.os, 'macos')
         run: |
-          echo 'ONEAPI_INSTALLER_URL=https://registrationcenter-download.intel.com/akdlm/irc_nas/18342/m_BaseKit_p_2022.1.0.92_offline.dmg' >> $GITHUB_ENV
+          echo 'ONEAPI_INSTALLER_URL=https://registrationcenter-download.intel.com/akdlm/irc_nas/18865/m_BaseKit_p_2022.3.0.8743_offline.dmg' >> $GITHUB_ENV
 
       - name: Install Intel oneAPI
         if: startsWith(matrix.os, 'macos')
@@ -66,7 +66,7 @@ jobs:
         if: startsWith(matrix.os, 'macos') && matrix.backend == 'dnnl'
         run: |
           sudo /Volumes/$(basename $ONEAPI_INSTALLER_URL .dmg)/bootstrapper.app/Contents/MacOS/bootstrapper --silent --eula accept --components intel.oneapi.mac.dnnl
-          sudo install_name_tool -id @rpath/libdnnl.2.dylib /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/libdnnl.2.5.dylib
+          sudo install_name_tool -id @rpath/libdnnl.2.dylib /opt/intel/oneapi/dnnl/latest/cpu_iomp/lib/libdnnl.2.6.dylib
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DBUILD_TESTS=ON -DWITH_MKL=OFF -DWITH_DNNL=ON -DCMAKE_CXX_FLAGS="-Wno-unused-command-line-argument" .
 
       - name: Build
