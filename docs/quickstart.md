@@ -5,7 +5,7 @@ Start using CTranslate2 by converting a pretrained model and running your first 
 **1\. Install the Python packages**
 
 ```bash
-pip install ctranslate2 OpenNMT-py sentencepiece
+pip install ctranslate2 OpenNMT-py==2.* sentencepiece
 ```
 
 **2\. Download the English-German Transformer model trained with OpenNMT-py**

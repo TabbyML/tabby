@@ -117,8 +117,16 @@ def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embedd
 
 def get_vocabs(vocab):
     if isinstance(vocab, dict) and "src" in vocab:
-        src_vocabs = [field[1].vocab.itos for field in vocab["src"].fields]
-        tgt_vocabs = [field[1].vocab.itos for field in vocab["tgt"].fields]
+        if isinstance(vocab["src"], list):
+            src_vocabs = [vocab["src"]]
+            tgt_vocabs = [vocab["tgt"]]
+
+            src_feats = vocab.get("src_feats")
+            if src_feats is not None:
+                src_vocabs.extend(src_feats.values())
+        else:
+            src_vocabs = [field[1].vocab.itos for field in vocab["src"].fields]
+            tgt_vocabs = [field[1].vocab.itos for field in vocab["tgt"].fields]
     else:
         # Compatibility with older models.
         src_vocabs = [vocab[0][1].itos]

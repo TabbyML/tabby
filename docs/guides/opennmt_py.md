@@ -3,7 +3,7 @@
 CTranslate2 supports Transformer models trained with [OpenNMT-py](https://github.com/OpenNMT/OpenNMT-py). The conversion simply requires the PyTorch model path, e.g.:
 
 ```bash
-pip install OpenNMT-py
+pip install OpenNMT-py==2.*
 ct2-opennmt-py-converter --model_path model.pt --output_dir ct2_model
 ```
 
