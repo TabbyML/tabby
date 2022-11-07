@@ -38,7 +38,7 @@ try:
     register_extensions()
     del register_extensions
 except ImportError as e:
-    # Allow using the Python package without the compiled translator extension.
+    # Allow using the Python package without the compiled extension.
     if "No module named" in str(e):
         pass
     else:

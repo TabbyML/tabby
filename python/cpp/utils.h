@@ -11,7 +11,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <ctranslate2/replica_pool.h>
 #include <ctranslate2/types.h>
 
 namespace py = pybind11;
@@ -56,30 +55,6 @@ namespace ctranslate2 {
       std::vector<int> operator()(const std::vector<int>& device_index) const {
         return device_index;
       }
-    };
-
-    class ReplicaPoolArgs {
-    public:
-      ReplicaPoolArgs(const std::string& model_path,
-                      const std::string& device,
-                      const std::variant<int, std::vector<int>>& device_index,
-                      const StringOrMap& compute_type,
-                      size_t inter_threads,
-                      size_t intra_threads,
-                      long max_queued_batches)
-        : model_loader(model_path)
-      {
-        model_loader.device = str_to_device(device);
-        model_loader.device_indices = std::visit(DeviceIndexResolver(), device_index);
-        model_loader.compute_type = std::visit(ComputeTypeResolver(device), compute_type);
-        model_loader.num_replicas_per_device = inter_threads;
-
-        pool_config.num_threads_per_replica = intra_threads;
-        pool_config.max_queued_batches = max_queued_batches;
-      }
-
-      models::ModelLoader model_loader;
-      ReplicaPoolConfig pool_config;
     };
 
     template <typename T>

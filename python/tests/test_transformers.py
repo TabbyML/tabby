@@ -333,7 +333,7 @@ def test_transformers_whisper(tmpdir, device):
     inputs = processor(audio, return_tensors="np", sampling_rate=16000)
     features = ctranslate2.StorageView.from_array(inputs.input_features)
 
-    model = ctranslate2.models.WhisperModel.from_path(output_dir, device=device)
+    model = ctranslate2.models.Whisper(output_dir, device=device)
 
     results = model.detect_language(features)
     best_lang, best_prob = results[0][0]

@@ -3,50 +3,14 @@
 #include <ctranslate2/generator.h>
 
 #include "storage_view.h"
-#include "utils.h"
+#include "replica_pool.h"
 
 namespace ctranslate2 {
   namespace python {
 
-    class GeneratorWrapper {
+    class GeneratorWrapper : public ReplicaPoolHelper<Generator> {
     public:
-      GeneratorWrapper(const std::string& model_path,
-                       const std::string& device,
-                       const std::variant<int, std::vector<int>>& device_index,
-                       const StringOrMap& compute_type,
-                       size_t inter_threads,
-                       size_t intra_threads,
-                       long max_queued_batches)
-        : _args(model_path,
-                   device,
-                   device_index,
-                   compute_type,
-                   inter_threads,
-                   intra_threads,
-                   max_queued_batches)
-        , _generator_pool(_args.model_loader, _args.pool_config)
-      {
-      }
-
-      std::string device() const {
-        return device_to_str(_args.model_loader.device);
-      }
-
-      const std::vector<int>& device_index() const {
-        return _args.model_loader.device_indices;
-      }
-
-      size_t num_generators() const {
-        return _generator_pool.num_replicas();
-      }
-
-      size_t num_queued_batches() const {
-        return _generator_pool.num_queued_batches();
-      }
-
-      size_t num_active_batches() const {
-        return _generator_pool.num_active_batches();
-      }
+      using ReplicaPoolHelper::ReplicaPoolHelper;
 
       std::variant<std::vector<GenerationResult>,
                    std::vector<AsyncResult<GenerationResult>>>
@@ -86,7 +50,7 @@ namespace ctranslate2 {
         options.return_alternatives = return_alternatives;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
 
-        auto futures = _generator_pool.generate_batch_async(tokens, options, max_batch_size, batch_type);
+        auto futures = _pool->generate_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
@@ -101,7 +65,7 @@ namespace ctranslate2 {
         ScoringOptions options;
         options.max_input_length = max_input_length;
 
-        auto futures = _generator_pool.score_batch_async(tokens, options, max_batch_size, batch_type);
+        auto futures = _pool->score_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
@@ -113,26 +77,22 @@ namespace ctranslate2 {
 
         switch (inputs.index()) {
         case 0:
-          future = _generator_pool.forward_batch_async(std::get<BatchTokens>(inputs), return_log_probs);
+          future = _pool->forward_batch_async(std::get<BatchTokens>(inputs), return_log_probs);
           break;
         case 1:
-          future = _generator_pool.forward_batch_async(std::get<BatchIds>(inputs), return_log_probs);
+          future = _pool->forward_batch_async(std::get<BatchIds>(inputs), return_log_probs);
           break;
         case 2:
           if (!lengths)
             throw std::invalid_argument("lengths vector is required when passing a dense input");
           const StorageView& ids_view = std::get<StorageViewWrapper>(inputs).get_view();
           const StorageView& lengths_view = lengths.value().get_view();
-          future = _generator_pool.forward_batch_async(ids_view, lengths_view, return_log_probs);
+          future = _pool->forward_batch_async(ids_view, lengths_view, return_log_probs);
           break;
         }
 
         return StorageViewWrapper(future.get());
       }
-
-    private:
-      const ReplicaPoolArgs _args;
-      Generator _generator_pool;
     };
 
 
@@ -178,7 +138,7 @@ namespace ctranslate2 {
                                "Device this generator is running on.")
         .def_property_readonly("device_index", &GeneratorWrapper::device_index,
                                "List of device IDs where this generator is running on.")
-        .def_property_readonly("num_generators", &GeneratorWrapper::num_generators,
+        .def_property_readonly("num_generators", &GeneratorWrapper::num_replicas,
                                "Number of generators backing this instance.")
         .def_property_readonly("num_queued_batches", &GeneratorWrapper::num_queued_batches,
                                "Number of batches waiting to be processed.")

@@ -3,31 +3,14 @@
 #include <ctranslate2/models/whisper.h>
 
 #include "storage_view.h"
-#include "utils.h"
+#include "replica_pool.h"
 
 namespace ctranslate2 {
   namespace python {
 
-    class WhisperWrapper {
+    class WhisperWrapper : public ReplicaPoolHelper<models::Whisper> {
     public:
-      static WhisperWrapper from_path(const std::string& model_path,
-                                      const std::string& device,
-                                      const std::variant<int, std::vector<int>>& device_index,
-                                      const StringOrMap& compute_type,
-                                      size_t inter_threads,
-                                      size_t intra_threads,
-                                      long max_queued_batches) {
-        ReplicaPoolArgs args(model_path,
-                             device,
-                             device_index,
-                             compute_type,
-                             inter_threads,
-                             intra_threads,
-                             max_queued_batches);
-
-        auto whisper = std::make_unique<models::Whisper>(args.model_loader, args.pool_config);
-        return WhisperWrapper(std::move(whisper));
-      }
+      using ReplicaPoolHelper::ReplicaPoolHelper;
 
       std::variant<std::vector<GenerationResult>, std::vector<AsyncResult<GenerationResult>>>
       generate(StorageViewWrapper features,
@@ -43,16 +26,16 @@ namespace ctranslate2 {
         std::vector<std::future<GenerationResult>> futures;
 
         if (prompts.index() == 0)
-          futures = _whisper->generate(features.get_view(), std::get<BatchTokens>(prompts));
+          futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts));
         else
-          futures = _whisper->generate(features.get_view(), std::get<BatchIds>(prompts));
+          futures = _pool->generate(features.get_view(), std::get<BatchIds>(prompts));
 
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
       std::vector<std::vector<std::pair<std::string, float>>>
       detect_language(StorageViewWrapper features) {
-        auto futures = _whisper->detect_language(features.get_view());
+        auto futures = _pool->detect_language(features.get_view());
 
         std::vector<std::vector<std::pair<std::string, float>>> results;
         results.reserve(futures.size());
@@ -60,20 +43,12 @@ namespace ctranslate2 {
           results.emplace_back(future.get());
         return results;
       }
-
-    private:
-      WhisperWrapper(std::unique_ptr<models::Whisper> whisper)
-        : _whisper(std::move(whisper))
-      {
-      }
-
-      std::unique_ptr<models::Whisper> _whisper;
     };
 
 
     void register_whisper(py::module& m) {
       py::class_<WhisperWrapper>(
-        m, "WhisperModel",
+        m, "Whisper",
         R"pbdoc(
             Implements the Whisper speech recognition model published by OpenAI.
 
@@ -81,32 +56,31 @@ namespace ctranslate2 {
                https://github.com/openai/whisper
         )pbdoc")
 
-        .def_static(
-          "from_path", &WhisperWrapper::from_path,
-          py::arg("model_path"),
-          py::arg("device")="cpu",
-          py::kw_only(),
-          py::arg("device_index")=0,
-          py::arg("compute_type")="default",
-          py::arg("inter_threads")=1,
-          py::arg("intra_threads")=0,
-          py::arg("max_queued_batches")=0,
-          R"pbdoc(
-              Creates a new Whisper model from a converted model on disk.
+        .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long>(),
+             py::arg("model_path"),
+             py::arg("device")="cpu",
+             py::kw_only(),
+             py::arg("device_index")=0,
+             py::arg("compute_type")="default",
+             py::arg("inter_threads")=1,
+             py::arg("intra_threads")=0,
+             py::arg("max_queued_batches")=0,
+             R"pbdoc(
+                 Initializes a Whisper model from a converted model.
 
-              Arguments:
-                model_path: Path to the CTranslate2 model directory.
-                device: Device to use (possible values are: cpu, cuda, auto).
-                device_index: Device IDs where to place this model on.
-                compute_type: Model computation type or a dictionary mapping a device name
-                     to the computation type
-                     (possible values are: default, auto, int8, int8_float16, int16, float16, float).
-                inter_threads: Number of workers to allow executing multiple batches in parallel.
-                intra_threads: Number of OpenMP threads per worker (0 to use a default value).
-                max_queued_batches: Maximum numbers of batches in the worker queue (-1 for unlimited,
-                  0 for an automatic value). When the queue is full, future requests will block
-                  until a free slot is available.
-          )pbdoc")
+                 Arguments:
+                   model_path: Path to the CTranslate2 model directory.
+                   device: Device to use (possible values are: cpu, cuda, auto).
+                   device_index: Device IDs where to place this model on.
+                   compute_type: Model computation type or a dictionary mapping a device name
+                        to the computation type
+                        (possible values are: default, auto, int8, int8_float16, int16, float16, float).
+                   inter_threads: Number of workers to allow executing multiple batches in parallel.
+                   intra_threads: Number of OpenMP threads per worker (0 to use a default value).
+                   max_queued_batches: Maximum numbers of batches in the worker queue (-1 for unlimited,
+                     0 for an automatic value). When the queue is full, future requests will block
+                     until a free slot is available.
+             )pbdoc")
 
         .def("generate", &WhisperWrapper::generate,
              py::arg("features"),
