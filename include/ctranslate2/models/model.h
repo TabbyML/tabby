@@ -159,26 +159,22 @@ namespace ctranslate2 {
                          attribute_host.size());
     }
 
-    // Load a model replica on each device ID configured in device_indices.
-    // Replicas on the same device ID will reference the same model instance.
-    std::vector<std::shared_ptr<const Model>>
-    load_replicas(models::ModelReader& model_reader,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type);
+    // Helper class to load multiple replicas of the same model.
+    class ModelLoader {
+    public:
+      ModelLoader(const std::string& model_path);
+      ModelLoader(const std::shared_ptr<ModelReader>& model_reader);
 
-    std::vector<std::shared_ptr<const Model>>
-    load_replicas(const std::string& model_path,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type);
+      // Load a model replica on each device ID configured in device_indices.
+      // Replicas on the same device ID will reference the same model instance.
+      std::vector<std::shared_ptr<const Model>> load() const;
 
-    std::vector<std::shared_ptr<const Model>>
-    load_replicas(models::ModelReader& model_reader,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type,
-                  const size_t num_replicas_per_device);
+      std::shared_ptr<ModelReader> model_reader;
+      Device device = Device::CPU;
+      std::vector<int> device_indices = {0};
+      size_t num_replicas_per_device = 1;
+      ComputeType compute_type = ComputeType::DEFAULT;
+    };
 
     // Base class for replicas.
     // A replica colocates runtime resources with a model instance.

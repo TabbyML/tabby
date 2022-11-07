@@ -2,12 +2,12 @@
 
 namespace ctranslate2 {
 
-  BufferedTranslationWrapper::BufferedTranslationWrapper(std::shared_ptr<TranslatorPool> translator_pool,
+  BufferedTranslationWrapper::BufferedTranslationWrapper(std::shared_ptr<Translator> translator,
                                                          size_t max_batch_size,
                                                          size_t buffer_timeout_in_micros,
                                                          TranslationOptions options,
                                                          size_t max_buffer_size)
-    : _translator_pool(std::move(translator_pool))
+    : _translator(std::move(translator))
     , _options(options)
     , _max_batch_size(max_batch_size)
     , _max_buffer_size(max_buffer_size == 0 ? max_batch_size : max_buffer_size)
@@ -95,7 +95,7 @@ namespace ctranslate2 {
         // Release the lock as soon as the buffer is flushed.
         lock.unlock();
 
-        _translator_pool->post_examples(
+        _translator->post_examples(
           examples,
           _max_batch_size,
           BatchType::Examples,

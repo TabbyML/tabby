@@ -88,7 +88,7 @@ set(SOURCES
   src/decoding.cc
   src/devices.cc
   src/env.cc
-  src/generator_pool.cc
+  src/generator.cc
   src/layers/attention.cc
   src/layers/common.cc
   src/layers/decoder.cc
@@ -147,7 +147,6 @@ set(SOURCES
   src/storage_view.cc
   src/thread_pool.cc
   src/translator.cc
-  src/translator_pool.cc
   src/types.cc
   src/utils.cc
   src/vocabulary.cc

@@ -78,7 +78,7 @@ TEST_P(ModelVariantTest, Transliteration) {
     const auto model = models::Model::load(model_path, device, 0, compute_type);
     check_weights_dtype(model->get_variables(), expected_type);
     Translator translator(model);
-    auto result = translator.translate(input);
+    auto result = translator.translate_batch({input})[0];
     EXPECT_EQ(result.output(), expected);
   }
 }
@@ -109,7 +109,7 @@ TEST_P(SearchVariantTest, SetMaxDecodingLength) {
   options.beam_size = GetParam();
   options.max_decoding_length = 3;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
+  auto result = translator.translate_batch({input}, options)[0];
   EXPECT_EQ(result.output().size(), options.max_decoding_length);
 }
 
@@ -119,7 +119,7 @@ TEST_P(SearchVariantTest, SetMinDecodingLength) {
   options.beam_size = GetParam();
   options.min_decoding_length = 8;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
+  auto result = translator.translate_batch({input}, options)[0];
   EXPECT_EQ(result.output().size(), options.min_decoding_length);
 }
 
@@ -131,7 +131,7 @@ TEST_P(SearchVariantTest, SetMaxInputLength) {
   options.return_attention = true;
 
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
+  auto result = translator.translate_batch({input}, options)[0];
 
   EXPECT_EQ(result.hypotheses[0].size(), options.max_input_length);
 
@@ -152,7 +152,7 @@ TEST_P(SearchVariantTest, ReturnAllHypotheses) {
   options.beam_size = beam_size;
   options.num_hypotheses = beam_size;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
+  auto result = translator.translate_batch({input}, options)[0];
   EXPECT_EQ(result.num_hypotheses(), beam_size);
 }
 
@@ -195,7 +195,7 @@ TEST_P(SearchVariantTest, ReturnAttentionWithPrefix) {
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> prefix = {"<unk>", "t"};
   std::vector<std::string> expected = {"<unk>", "t", "z", "m", "o", "n" };
-  auto result = translator.translate_with_prefix(input, prefix, options);
+  auto result = translator.translate_batch({input}, {prefix}, options)[0];
   EXPECT_EQ(result.output(), expected);
   EXPECT_TRUE(result.has_attention());
   for (const auto& vector : result.attention[0]) {
@@ -213,7 +213,7 @@ TEST_P(SearchVariantTest, TranslateWithPrefix) {
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> prefix = {"a", "t", "s"};
   std::vector<std::string> expected = {"a", "t", "s", "u", "m", "o", "n"};
-  auto result = translator.translate_with_prefix(input, prefix, options);
+  auto result = translator.translate_batch({input}, {prefix}, options)[0];
   EXPECT_EQ(result.num_hypotheses(), beam_size);
   EXPECT_EQ(result.output(), expected);
   ASSERT_TRUE(result.has_attention());
@@ -251,7 +251,7 @@ TEST_P(SearchVariantTest, ReplaceUnknowns) {
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   std::vector<std::string> prefix = {"<unk>", "t"};
   std::vector<std::string> expected = {"ت", "t", "z", "m", "o", "n" };
-  auto result = translator.translate_with_prefix(input, prefix, options);
+  auto result = translator.translate_batch({input}, {prefix}, options)[0];
   EXPECT_EQ(result.output(), expected);
 }
 
@@ -261,7 +261,7 @@ TEST_P(SearchVariantTest, RepetitionPenalty) {
   TranslationOptions options;
   options.beam_size = beam_size;
   options.repetition_penalty = 100;  // Force the decoding to produce unique symbols.
-  const auto result = translator.translate({"ن", "ن", "ن", "ن", "ن"}, options);
+  const auto result = translator.translate_batch({{"ن", "ن", "ن", "ن", "ن"}}, options)[0];
   const auto& tokens = result.output();
   const std::unordered_set<std::string> unique_tokens(tokens.begin(), tokens.end());
   EXPECT_EQ(unique_tokens.size(), tokens.size());
@@ -274,7 +274,7 @@ TEST_P(SearchVariantTest, NoRepeatNgram) {
   options.beam_size = beam_size;
   options.no_repeat_ngram_size = 3;
   const std::vector<std::string> input(50, "ن");
-  const auto result = translator.translate(input, options);
+  const auto result = translator.translate_batch({input}, options)[0];
   const auto output = join_string(result.output());
 
   std::unordered_set<std::string> ngrams;
@@ -290,10 +290,10 @@ static void check_normalized_score(const std::vector<std::string>& input,
   Translator translator = default_translator();
   options.return_scores = true;
   options.length_penalty = 0;
-  const auto score = translator.translate(input, options).scores[0];
+  const auto score = translator.translate_batch({input}, options)[0].scores[0];
 
   options.length_penalty = 1;
-  const auto normalized_result = translator.translate(input, options);
+  const auto normalized_result = translator.translate_batch({input}, options)[0];
   const auto normalized_score = normalized_result.scores[0];
   auto normalized_length = normalized_result.hypotheses[0].size();
   if (output_has_eos)
@@ -378,7 +378,7 @@ TEST(TranslatorTest, TranslateEmptySourceWithoutScore) {
   Translator translator = default_translator();
   TranslationOptions options;
   options.return_scores = false;
-  EXPECT_FALSE(translator.translate(std::vector<std::string>{}, options).has_scores());
+  EXPECT_FALSE(translator.translate_batch({{}}, options)[0].has_scores());
 }
 
 TEST(TranslatorTest, TranslateBatchWithHardPrefixAndEmpty) {
@@ -396,7 +396,7 @@ TEST(TranslatorTest, TranslateBatchWithHardPrefixAndEmpty) {
     {"a", "t", "z", "o"},
     {},
     {}};
-  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  const auto result = translator.translate_batch(input, prefix, options);
   EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
   EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
   EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "o", "m", "o", "n"}));
@@ -421,7 +421,7 @@ TEST(TranslatorTest, TranslateBatchWithStronglyBiasedPrefix) {
     {},
     {"a", "t", "z", "o"},
     {}};
-  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  const auto result = translator.translate_batch(input, prefix, options);
   EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
   EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
   EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "o", "m", "o", "n"}));
@@ -445,7 +445,7 @@ TEST(TranslatorTest, TranslateBatchWithWeaklyBiasedPrefix) {
     {"a", "t", "z", "o"},
     {}
   };
-  const auto result = translator.translate_batch_with_prefix(input, prefix, options);
+  const auto result = translator.translate_batch(input, prefix, options);
   EXPECT_EQ(result[0].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
   EXPECT_EQ(result[1].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
   EXPECT_EQ(result[2].output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
@@ -678,7 +678,7 @@ TEST(TranslatorTest, TranslatePrefixWithLargeBeam) {
   options.beam_size = 5;
   const std::vector<std::string> input = {"أ" ,"و" ,"ل" ,"ي" ,"س" ,"س"};
   const std::vector<std::string> prefix = {"u", "l", "i", "s", "e"};
-  const auto result = translator.translate_with_prefix(input, prefix, options);
+  const auto result = translator.translate_batch({input}, {prefix}, options)[0];
   EXPECT_EQ(result.output(), (std::vector<std::string>{"u", "l", "i", "s", "e", "s"}));
 }
 
@@ -690,7 +690,7 @@ TEST(TranslatorTest, AlternativesFromPrefix) {
   options.return_attention = true;
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   const std::vector<std::string> prefix = {"a", "t"};
-  const TranslationResult result = translator.translate_with_prefix(input, prefix, options);
+  const TranslationResult result = translator.translate_batch({input}, {prefix}, options)[0];
   ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
   EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
   EXPECT_EQ(result.hypotheses[1], (std::vector<std::string>{"a", "t", "s", "u", "m", "o", "n"}));
@@ -718,7 +718,7 @@ TEST(TranslatorTest, AlternativesFromPrefixMinExpansionProb) {
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   const std::vector<std::string> prefix = {"a", "t"};
   const size_t expected_alternatives = 6;
-  const TranslationResult result = translator.translate_with_prefix(input, prefix, options);
+  const TranslationResult result = translator.translate_batch({input}, {prefix}, options)[0];
   EXPECT_EQ(result.hypotheses.size(), expected_alternatives);
   EXPECT_EQ(result.scores.size(), expected_alternatives);
   EXPECT_EQ(result.attention.size(), expected_alternatives);
@@ -734,7 +734,7 @@ TEST(TranslatorTest, AlternativesFromPrefixBatch) {
     {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"}
   };
   const std::vector<std::vector<std::string>> prefix = {{"a"}, {"a", "t"}};
-  const auto results = translator.translate_batch_with_prefix(input, prefix, options);
+  const auto results = translator.translate_batch(input, prefix, options);
   ASSERT_EQ(results.size(), 2);
   ASSERT_EQ(results[0].num_hypotheses(), options.num_hypotheses);
   EXPECT_EQ(results[0].hypotheses[0], (std::vector<std::string>{"a", "z", "z", "a"}));
@@ -750,7 +750,7 @@ TEST(TranslatorTest, AlternativesFromScratch) {
   options.num_hypotheses = 10;
   options.return_alternatives = true;
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  const TranslationResult result = translator.translate(input, options);
+  const TranslationResult result = translator.translate_batch({input}, options)[0];
   ASSERT_EQ(result.num_hypotheses(), options.num_hypotheses);
   EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
@@ -781,7 +781,7 @@ TEST(TranslatorTest, AlternativesFromFullTarget) {
   options.return_alternatives = true;
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   const std::vector<std::string> target = {"a", "t", "z", "m", "o", "n"};
-  const TranslationResult result = translator.translate_with_prefix(input, target, options);
+  const TranslationResult result = translator.translate_batch({input}, {target}, options)[0];
   EXPECT_EQ(result.hypotheses[0], (std::vector<std::string>{"a", "t", "z", "m", "o", "n", "e"}));
 }
 
@@ -800,7 +800,7 @@ TEST(TranslatorTest, AlternativesMaxDecodingLength) {
   };
 
   for (const auto& target : target_samples) {
-    const auto result = translator.translate_with_prefix(input, target, options);
+    const auto result = translator.translate_batch({input}, {target}, options)[0];
 
     for (size_t i = 0; i < result.num_hypotheses(); ++i) {
       EXPECT_EQ(result.hypotheses[i].size(), options.max_decoding_length);
@@ -819,23 +819,12 @@ TEST(TranslatorTest, AlternativesMaxDecodingLength) {
   }
 }
 
-TEST(TranslatorTest, DetachModel) {
-  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  Translator translator = default_translator();
-  translator.detach_model();
-  EXPECT_THROW(translator.translate(input), std::runtime_error);
-  Translator clone(translator);
-  EXPECT_THROW(clone.translate(input), std::runtime_error);
-  translator.set_model(models::Model::load(default_model_dir()));
-  translator.translate(input);
-}
-
 TEST(TranslatorTest, InvalidNumHypotheses) {
   Translator translator = default_translator();
   TranslationOptions options;
   options.num_hypotheses = 0;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  EXPECT_THROW(translator.translate(input, options), std::invalid_argument);
+  EXPECT_THROW(translator.translate_batch({input}, options), std::invalid_argument);
 }
 
 TEST(TranslatorTest, IgnoreScore) {
@@ -844,7 +833,7 @@ TEST(TranslatorTest, IgnoreScore) {
   options.beam_size = 1;
   options.return_scores = false;
   const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  const TranslationResult result = translator.translate(input, options);
+  const TranslationResult result = translator.translate_batch({input}, options)[0];
   EXPECT_FALSE(result.has_scores());
   EXPECT_EQ(result.output(), (std::vector<std::string>{"a", "t", "z", "m", "o", "n"}));
 }
@@ -855,9 +844,9 @@ TEST(TranslatorTest, SameBeamAndGreedyScore) {
   options.return_scores = true;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
   options.beam_size = 1;
-  const auto greedy_score = translator.translate(input, options).score();
+  const auto greedy_score = translator.translate_batch({input}, options)[0].score();
   options.beam_size = 2;
-  const auto beam_score = translator.translate(input, options).score();
+  const auto beam_score = translator.translate_batch({input}, options)[0].score();
   EXPECT_NEAR(greedy_score, beam_score, 1e-5);
 }
 
@@ -868,15 +857,12 @@ TEST(TranslatorTest, BeamSizeLargerThanVocabSize) {
   options.beam_size = 22;
   options.num_hypotheses = options.beam_size;
   std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
-  auto result = translator.translate(input, options);
+  auto result = translator.translate_batch({input}, options)[0];
   EXPECT_EQ(result.num_hypotheses(), options.num_hypotheses);
 }
 
 TEST(BufferedTranslationWrapperTest, Basic) {
-  auto translator_pool = std::make_shared<TranslatorPool>(/*num_translators=*/1,
-                                                          /*num_threads_per_translator=*/2,
-                                                          default_model_dir());
-  BufferedTranslationWrapper wrapper(translator_pool,
+  BufferedTranslationWrapper wrapper(std::make_shared<Translator>(default_model_dir()),
                                      /*max_batch_size=*/32,
                                      /*batch_timeout_in_micros=*/5000);
 

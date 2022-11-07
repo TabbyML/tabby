@@ -598,11 +598,18 @@ namespace ctranslate2 {
       return bool(ModelFileReader(path).get_file(binary_file));
     }
 
+    ModelLoader::ModelLoader(const std::string& model_path)
+      : model_reader(std::make_shared<ModelFileReader>(model_path))
+    {
+    }
+
+    ModelLoader::ModelLoader(const std::shared_ptr<ModelReader>& model_reader_)
+      : model_reader(model_reader_)
+    {
+    }
+
     std::vector<std::shared_ptr<const Model>>
-    load_replicas(models::ModelReader& model_reader,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type) {
+    ModelLoader::load() const {
       if (device_indices.empty())
         throw std::invalid_argument("At least one device index should be set");
 #ifdef CT2_WITH_CUDA
@@ -612,65 +619,30 @@ namespace ctranslate2 {
 #endif
 
       std::vector<std::shared_ptr<const Model>> models;
-      models.reserve(device_indices.size());
+      models.reserve(device_indices.size() * num_replicas_per_device);
 
-      std::unordered_map<int, size_t> device_to_main_replica;
-      device_to_main_replica.reserve(device_indices.size());
+      for (const size_t device_index : device_indices) {
+        std::shared_ptr<const Model> model;
 
-      for (size_t i = 0; i < device_indices.size(); ++i) {
-        const auto device_index = device_indices[i];
-        const auto main_replica_on_device = device_to_main_replica.find(device_index);
+        if (models.empty())
+          model = Model::load(*model_reader, device, device_index, compute_type);
+        else
+          model = models.back()->copy_to(device, device_index);
 
-        if (main_replica_on_device != device_to_main_replica.end()) {
-          models.emplace_back(models[main_replica_on_device->second]);
-        } else {
-          std::shared_ptr<const Model> model;
+        spdlog::info("Loaded model {} on device {}:{}",
+                     model_reader->get_model_id(),
+                     device_to_str(device),
+                     device_index);
+        spdlog::info(" - Binary version: {}", model->binary_version());
+        spdlog::info(" - Model specification revision: {}", model->spec_revision());
+        spdlog::info(" - Selected compute type: {}",
+                     compute_type_to_str(model->effective_compute_type()));
 
-          if (models.empty())
-            model = Model::load(model_reader, device, device_index, compute_type);
-          else
-            model = models.back()->copy_to(device, device_index);
-
+        for (size_t i = 0; i < num_replicas_per_device; ++i)
           models.emplace_back(model);
-          device_to_main_replica.emplace(device_index, i);
-
-          spdlog::info("Loaded model {} on device {}:{}",
-                       model_reader.get_model_id(),
-                       device_to_str(device),
-                       device_index);
-          spdlog::info(" - Binary version: {}", model->binary_version());
-          spdlog::info(" - Model specification revision: {}", model->spec_revision());
-          spdlog::info(" - Selected compute type: {}",
-                       compute_type_to_str(model->effective_compute_type()));
-        }
       }
 
       return models;
-    }
-
-    std::vector<std::shared_ptr<const Model>>
-    load_replicas(const std::string& model_path,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type) {
-      ModelFileReader model_reader(model_path);
-      return load_replicas(model_reader, device, device_indices, compute_type);
-    }
-
-    std::vector<std::shared_ptr<const Model>>
-    load_replicas(models::ModelReader& model_reader,
-                  const Device device,
-                  const std::vector<int>& device_indices,
-                  const ComputeType compute_type,
-                  const size_t num_replicas_per_device) {
-      std::vector<int> repeated_device_indices;
-      repeated_device_indices.reserve(device_indices.size() * num_replicas_per_device);
-      for (const int index : device_indices) {
-        for (size_t i = 0; i < num_replicas_per_device; ++i)
-          repeated_device_indices.emplace_back(index);
-      }
-
-      return load_replicas(model_reader, device, repeated_device_indices, compute_type);
     }
 
   }

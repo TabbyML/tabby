@@ -63,7 +63,7 @@ def test_translator_properties():
     translator = ctranslate2.Translator(_get_model_path(), inter_threads=2)
     assert translator.model_is_loaded
     assert translator.device == "cpu"
-    assert translator.device_index == [0, 0]
+    assert translator.device_index == [0]
     assert translator.num_translators == 2
     assert translator.num_queued_batches == 0
 

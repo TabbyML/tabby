@@ -1,10 +1,10 @@
 #pragma once
 
-#include "translator_pool.h"
+#include "translator.h"
 
 namespace ctranslate2 {
 
-  // This class wraps a TranslatorPool instance and bufferizes incoming translation requests.
+  // This class wraps a Translator instance and bufferizes incoming translation requests.
   // The buffer is flushed when one of the following conditions is met:
   //
   //  * buffer_timeout_in_micros microseconds have passed
@@ -14,7 +14,7 @@ namespace ctranslate2 {
   // in which case the buffer content is sorted by length and rebatched according to max_batch_size.
   class BufferedTranslationWrapper {
   public:
-    BufferedTranslationWrapper(std::shared_ptr<TranslatorPool> translator_pool,
+    BufferedTranslationWrapper(std::shared_ptr<Translator> translator,
                                size_t max_batch_size,
                                size_t buffer_timeout_in_micros,
                                TranslationOptions options = TranslationOptions(),
@@ -29,7 +29,7 @@ namespace ctranslate2 {
                           std::vector<std::vector<std::string>> target = {});
 
   private:
-    std::shared_ptr<TranslatorPool> _translator_pool;
+    std::shared_ptr<Translator> _translator;
     const TranslationOptions _options;
     const size_t _max_batch_size;
     const size_t _max_buffer_size;

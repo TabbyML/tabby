@@ -1,6 +1,6 @@
 #include "module.h"
 
-#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/translator.h>
 
 namespace ctranslate2 {
   namespace python {

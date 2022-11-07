@@ -9,7 +9,6 @@ namespace ctranslate2 {
   bool string_to_bool(const std::string& str);
 
   int get_gpu_count();
-  int get_core_offset();
   void set_num_threads(size_t num_threads);
 
   bool ends_with(const std::string& str, const std::string& suffix);

@@ -23,15 +23,10 @@ See the [`Translator`](python/ctranslate2.Translator.rst) class documentation fo
 
 ```cpp
 #include <iostream>
-#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/translator.h>
 
 int main() {
-  const size_t num_translators = 1;
-  const size_t num_threads_per_translator = 4;
-  ctranslate2::TranslatorPool translator(num_translators,
-                                         num_threads_per_translator,
-                                         "ende_ctranslate2/",
-                                         ctranslate2::Device::CPU);
+  ctranslate2::Translator translator("ende_ctranslate2/", ctranslate2::Device::CPU);
 
   const std::vector<std::vector<std::string>> batch = {{"▁H", "ello", "▁world", "!"}};
   const std::vector<ctranslate2::TranslationResult> results = translator.translate_batch(batch);
@@ -43,7 +38,7 @@ int main() {
 }
 ```
 
-See the [`TranslatorPool`](https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translator_pool.h) class for more advanced usages such as asynchronous translations.
+See the [`Translator`](https://github.com/OpenNMT/CTranslate2/blob/master/include/ctranslate2/translator.h) class for more advanced usages such as asynchronous translations.
 
 ### Translation client
 

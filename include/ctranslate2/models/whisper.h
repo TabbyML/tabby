@@ -76,13 +76,7 @@ namespace ctranslate2 {
 
     class Whisper : public ReplicaPool<WhisperReplica> {
     public:
-      Whisper(size_t num_replicas_per_device,
-              size_t num_threads_per_replica,
-              const std::string& path,
-              const Device device,
-              const std::vector<int>& device_indices,
-              const ComputeType compute_type,
-              const long max_queued_batches);
+      using ReplicaPool::ReplicaPool;
 
       std::vector<std::future<GenerationResult>>
       generate(StorageView features,

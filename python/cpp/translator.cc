@@ -2,7 +2,7 @@
 
 #include <shared_mutex>
 
-#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/translator.h>
 
 #include "utils.h"
 
@@ -33,17 +33,17 @@ namespace ctranslate2 {
                         size_t inter_threads,
                         size_t intra_threads,
                         long max_queued_batches)
-        : _model_path(model_path)
-        , _device(str_to_device(device))
-        , _device_index(std::visit(DeviceIndexResolver(inter_threads), device_index))
-        , _compute_type(std::visit(ComputeTypeResolver(device), compute_type))
-        , _translator_pool(1,
-                           intra_threads,
-                           model_path,
-                           _device,
-                           _device_index,
-                           _compute_type,
-                           max_queued_batches)
+        : _args(model_path,
+                device,
+                device_index,
+                compute_type,
+                inter_threads,
+                intra_threads,
+                max_queued_batches)
+        , _device(_args.model_loader.device)
+        , _device_index(_args.model_loader.device_indices)
+        , _num_replicas_per_device(_args.model_loader.num_replicas_per_device)
+        , _translator_pool(_args.model_loader, _args.pool_config)
         , _model_is_loaded(true) {
       }
 
@@ -61,7 +61,7 @@ namespace ctranslate2 {
       }
 
       size_t num_translators() const {
-        return _translator_pool.num_translators();
+        return _translator_pool.num_replicas();
       }
 
       size_t num_queued_batches() const {
@@ -319,12 +319,9 @@ namespace ctranslate2 {
           return;
 
         if (_cached_models.empty()) {
-          _cached_models = models::load_replicas(_model_path,
-                                                 _device,
-                                                 _device_index,
-                                                 _compute_type);
+          _cached_models = _args.model_loader.load();
         } else {
-          move_cached_models(_device, _device_index);
+          move_cached_models(_device, _device_index, _num_replicas_per_device);
         }
 
         _translator_pool.set_models(_cached_models);
@@ -333,12 +330,12 @@ namespace ctranslate2 {
       }
 
     private:
-      const std::string _model_path;
+      const ReplicaPoolArgs _args;
       const Device _device;
-      const std::vector<int> _device_index;
-      const ComputeType _compute_type;
+      const std::vector<int>& _device_index;
+      const size_t _num_replicas_per_device;
 
-      TranslatorPool _translator_pool;
+      Translator _translator_pool;
 
       std::vector<std::shared_ptr<const models::Model>> _cached_models;
       bool _model_is_loaded;
@@ -353,10 +350,12 @@ namespace ctranslate2 {
           throw std::runtime_error("The model for this translator was unloaded");
       }
 
-      void move_cached_models(Device device, const std::vector<int>& device_index) {
+      void move_cached_models(Device device,
+                              const std::vector<int>& device_index,
+                              size_t num_models_per_device = 1) {
         for (size_t i = 0; i < _cached_models.size(); ++i) {
           auto& model = const_cast<models::Model&>(*_cached_models[i]);
-          model.set_device(device, device_index[i]);
+          model.set_device(device, device_index[i / num_models_per_device]);
         }
       }
     };

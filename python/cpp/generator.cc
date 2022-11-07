@@ -1,6 +1,6 @@
 #include "module.h"
 
-#include <ctranslate2/generator_pool.h>
+#include <ctranslate2/generator.h>
 
 #include "storage_view.h"
 #include "utils.h"
@@ -17,24 +17,23 @@ namespace ctranslate2 {
                        size_t inter_threads,
                        size_t intra_threads,
                        long max_queued_batches)
-        : _device(str_to_device(device))
-        , _device_index(std::visit(DeviceIndexResolver(inter_threads), device_index))
-        , _generator_pool(1,
-                          intra_threads,
-                          model_path,
-                          _device,
-                          _device_index,
-                          std::visit(ComputeTypeResolver(device), compute_type),
-                          max_queued_batches)
+        : _args(model_path,
+                   device,
+                   device_index,
+                   compute_type,
+                   inter_threads,
+                   intra_threads,
+                   max_queued_batches)
+        , _generator_pool(_args.model_loader, _args.pool_config)
       {
       }
 
       std::string device() const {
-        return device_to_str(_device);
+        return device_to_str(_args.model_loader.device);
       }
 
       const std::vector<int>& device_index() const {
-        return _device_index;
+        return _args.model_loader.device_indices;
       }
 
       size_t num_generators() const {
@@ -132,9 +131,8 @@ namespace ctranslate2 {
       }
 
     private:
-      const Device _device;
-      const std::vector<int> _device_index;
-      GeneratorPool _generator_pool;
+      const ReplicaPoolArgs _args;
+      Generator _generator_pool;
     };
 
 

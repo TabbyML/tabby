@@ -10,6 +10,12 @@
 
 namespace ctranslate2 {
 
+  struct ReplicaPoolConfig {
+    size_t num_threads_per_replica = 0;
+    long max_queued_batches = 0;
+    int cpu_core_offset = -1;
+  };
+
   template <typename Replica>
   class ReplicaWorker;
 
@@ -19,37 +25,31 @@ namespace ctranslate2 {
   public:
     virtual ~ReplicaPool() = default;
 
-    ReplicaPool(size_t num_replicas_per_device,
-                size_t num_threads_per_replica,
-                const std::string& model_dir,
-                const Device device,
-                const std::vector<int>& device_indices,
-                const ComputeType compute_type,
-                const long max_queued_batches) {
-      models::ModelFileReader model_reader(model_dir);
-      initialize_pool(num_replicas_per_device,
-                      num_threads_per_replica,
-                      model_reader,
-                      device,
-                      device_indices,
-                      compute_type,
-                      max_queued_batches);
+    ReplicaPool(const models::ModelLoader& model_loader,
+                const ReplicaPoolConfig& config = {}) {
+      initialize_pool(model_loader, config);
     }
 
-    ReplicaPool(size_t num_replicas_per_device,
-                size_t num_threads_per_replica,
-                models::ModelReader& model_reader,
+    ReplicaPool(const std::string& model_path,
                 const Device device,
-                const std::vector<int>& device_indices,
-                const ComputeType compute_type,
-                const long max_queued_batches) {
-      initialize_pool(num_replicas_per_device,
-                      num_threads_per_replica,
-                      model_reader,
-                      device,
-                      device_indices,
-                      compute_type,
-                      max_queued_batches);
+                const ComputeType compute_type = ComputeType::DEFAULT,
+                const std::vector<int>& device_indices = {0},
+                const ReplicaPoolConfig& config = {}) {
+      models::ModelLoader model_loader(model_path);
+      model_loader.device = device;
+      model_loader.device_indices = device_indices;
+      model_loader.compute_type = compute_type;
+      initialize_pool(model_loader, config);
+    }
+
+    ReplicaPool(const std::shared_ptr<const models::Model>& model,
+                const ReplicaPoolConfig& config = {}) {
+      initialize_pool({model}, config);
+    }
+
+    ReplicaPool(const std::vector<std::shared_ptr<const models::Model>>& replicas,
+                const ReplicaPoolConfig& config = {}) {
+      initialize_pool(replicas, config);
     }
 
     // Posts a function and return its result as a future.
@@ -226,39 +226,31 @@ namespace ctranslate2 {
       return worker.replica();
     }
 
-    void initialize_pool(size_t num_replicas_per_device,
-                         size_t num_threads_per_replica,
-                         models::ModelReader& model_reader,
-                         const Device device,
-                         const std::vector<int>& device_indices,
-                         const ComputeType compute_type,
-                         const long max_queued_batches) {
+    void initialize_pool(const models::ModelLoader& model_loader,
+                         const ReplicaPoolConfig& config) {
       // The same number of OpenMP threads should be used for loading and running model.
-      if (device == Device::CUDA)
-        num_threads_per_replica = 1;
-      set_num_threads(num_threads_per_replica);
+      set_num_threads(model_loader.device == Device::CUDA ? 1 : config.num_threads_per_replica);
+      initialize_pool(model_loader.load(), config);
+    }
 
-      const auto models = models::load_replicas(model_reader,
-                                                device,
-                                                device_indices,
-                                                compute_type,
-                                                num_replicas_per_device);
-
+    void initialize_pool(const std::vector<std::shared_ptr<const models::Model>>& models,
+                         const ReplicaPoolConfig& config) {
       std::vector<std::unique_ptr<Worker>> workers;
       workers.reserve(models.size());
-      for (const auto& model : models)
-        workers.emplace_back(std::make_unique<ReplicaWorker<Replica>>(model,
-                                                                      num_threads_per_replica));
+      for (const auto& model : models) {
+        size_t num_threads = (model->device() == Device::CUDA ? 1 : config.num_threads_per_replica);
+        workers.emplace_back(std::make_unique<ReplicaWorker<Replica>>(model, num_threads));
+      }
 
       size_t max_queue_size = std::numeric_limits<size_t>::max();
-      if (max_queued_batches == 0)
+      if (config.max_queued_batches == 0)
         max_queue_size = 4 * workers.size();
-      else if (max_queued_batches > 0)
-        max_queue_size = max_queued_batches;
+      else if (config.max_queued_batches > 0)
+        max_queue_size = config.max_queued_batches;
 
       _thread_pool = std::make_unique<ThreadPool>(std::move(workers),
                                                   max_queue_size,
-                                                  get_core_offset());
+                                                  config.cpu_core_offset);
     }
 
     template <typename Result, typename Func>

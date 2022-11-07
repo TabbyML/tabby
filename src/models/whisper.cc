@@ -193,23 +193,6 @@ namespace ctranslate2 {
     }
 
 
-    Whisper::Whisper(size_t num_replicas_per_device,
-                     size_t num_threads_per_replica,
-                     const std::string& path,
-                     const Device device,
-                     const std::vector<int>& device_indices,
-                     const ComputeType compute_type,
-                     const long max_queued_batches)
-      : ReplicaPool(num_replicas_per_device,
-                    num_threads_per_replica,
-                    path,
-                    device,
-                    device_indices,
-                    compute_type,
-                    max_queued_batches)
-    {
-    }
-
     std::vector<std::future<GenerationResult>>
     Whisper::generate(StorageView features,
                       std::vector<std::vector<std::string>> prompts,

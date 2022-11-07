@@ -13,19 +13,19 @@ namespace ctranslate2 {
       static WhisperWrapper from_path(const std::string& model_path,
                                       const std::string& device,
                                       const std::variant<int, std::vector<int>>& device_index,
-                                      const std::string& compute_type,
+                                      const StringOrMap& compute_type,
                                       size_t inter_threads,
                                       size_t intra_threads,
                                       long max_queued_batches) {
-        auto whisper = std::make_unique<models::Whisper>(
-          inter_threads,
-          intra_threads,
-          model_path,
-          str_to_device(device),
-          std::visit(DeviceIndexResolver(), device_index),
-          str_to_compute_type(compute_type),
-          max_queued_batches);
+        ReplicaPoolArgs args(model_path,
+                             device,
+                             device_index,
+                             compute_type,
+                             inter_threads,
+                             intra_threads,
+                             max_queued_batches);
 
+        auto whisper = std::make_unique<models::Whisper>(args.model_loader, args.pool_config);
         return WhisperWrapper(std::move(whisper));
       }
 
@@ -98,8 +98,9 @@ namespace ctranslate2 {
                 model_path: Path to the CTranslate2 model directory.
                 device: Device to use (possible values are: cpu, cuda, auto).
                 device_index: Device IDs where to place this model on.
-                compute_type: Model computation type (possible values are:
-                  default, auto, int8, int8_float16, int16, float16, float).
+                compute_type: Model computation type or a dictionary mapping a device name
+                     to the computation type
+                     (possible values are: default, auto, int8, int8_float16, int16, float16, float).
                 inter_threads: Number of workers to allow executing multiple batches in parallel.
                 intra_threads: Number of OpenMP threads per worker (0 to use a default value).
                 max_queued_batches: Maximum numbers of batches in the worker queue (-1 for unlimited,

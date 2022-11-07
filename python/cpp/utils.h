@@ -11,6 +11,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <ctranslate2/replica_pool.h>
 #include <ctranslate2/types.h>
 
 namespace py = pybind11;
@@ -48,27 +49,37 @@ namespace ctranslate2 {
 
     class DeviceIndexResolver {
     public:
-      DeviceIndexResolver(size_t replicate_index = 1)
-        : _replicate_index(replicate_index)
-      {
-      }
-
       std::vector<int> operator()(int device_index) const {
-        return std::vector<int>(_replicate_index, device_index);
+        return {device_index};
       }
 
       std::vector<int> operator()(const std::vector<int>& device_index) const {
-        std::vector<int> index;
-        index.reserve(device_index.size() * _replicate_index);
-        for (const int device : device_index) {
-          for (size_t i = 0; i < _replicate_index; ++i)
-            index.emplace_back(device);
-        }
-        return index;
+        return device_index;
+      }
+    };
+
+    class ReplicaPoolArgs {
+    public:
+      ReplicaPoolArgs(const std::string& model_path,
+                      const std::string& device,
+                      const std::variant<int, std::vector<int>>& device_index,
+                      const StringOrMap& compute_type,
+                      size_t inter_threads,
+                      size_t intra_threads,
+                      long max_queued_batches)
+        : model_loader(model_path)
+      {
+        model_loader.device = str_to_device(device);
+        model_loader.device_indices = std::visit(DeviceIndexResolver(), device_index);
+        model_loader.compute_type = std::visit(ComputeTypeResolver(device), compute_type);
+        model_loader.num_replicas_per_device = inter_threads;
+
+        pool_config.num_threads_per_replica = intra_threads;
+        pool_config.max_queued_batches = max_queued_batches;
       }
 
-    private:
-      const size_t _replicate_index;
+      models::ModelLoader model_loader;
+      ReplicaPoolConfig pool_config;
     };
 
     template <typename T>

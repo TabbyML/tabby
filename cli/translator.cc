@@ -3,7 +3,7 @@
 
 #include <cxxopts.hpp>
 
-#include <ctranslate2/translator_pool.h>
+#include <ctranslate2/translator.h>
 #include <ctranslate2/utils.h>
 #include <ctranslate2/random.h>
 #include <ctranslate2/devices.h>
@@ -34,6 +34,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<std::string>()->default_value("cpu"))
     ("device_index", "Comma-separated list of device IDs to use.",
      cxxopts::value<std::vector<int>>()->default_value("0"))
+    ("cpu_core_offset", "Pin worker threads to CPU cores starting from this offset.",
+     cxxopts::value<int>()->default_value("-1"))
     ;
 
   cmd_options.add_options("Model")
@@ -131,13 +133,18 @@ int main(int argc, char* argv[]) {
     break;
   };
 
-  ctranslate2::TranslatorPool translator_pool(inter_threads,
-                                              intra_threads,
-                                              args["model"].as<std::string>(),
-                                              device,
-                                              args["device_index"].as<std::vector<int>>(),
-                                              compute_type,
-                                              args["max_queued_batches"].as<long>());
+  ctranslate2::ReplicaPoolConfig pool_config;
+  pool_config.num_threads_per_replica = intra_threads;
+  pool_config.max_queued_batches = args["max_queued_batches"].as<long>();
+  pool_config.cpu_core_offset = args["cpu_core_offset"].as<int>();
+
+  ctranslate2::models::ModelLoader model_loader(args["model"].as<std::string>());
+  model_loader.device = device;
+  model_loader.device_indices = args["device_index"].as<std::vector<int>>();
+  model_loader.compute_type = compute_type;
+  model_loader.num_replicas_per_device = inter_threads;
+
+  ctranslate2::Translator translator_pool(model_loader, pool_config);
 
   std::istream* source = &std::cin;
   std::istream* target = nullptr;
@@ -162,7 +169,7 @@ int main(int argc, char* argv[]) {
 
   auto log_profiling = args["log_profiling"].as<bool>();
   if (log_profiling)
-    ctranslate2::init_profiling(device, translator_pool.num_translators());
+    ctranslate2::init_profiling(device, translator_pool.num_replicas());
 
   const auto task = args["task"].as<std::string>();
   const auto max_batch_size = args["batch_size"].as<size_t>();

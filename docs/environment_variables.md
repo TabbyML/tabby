@@ -53,12 +53,6 @@ Force CTranslate2 to select a specific instruction set architecture (ISA). Possi
 This does not impact backend libraries (such as Intel MKL) which usually have their own environment variables to configure ISA dispatching.
 ```
 
-## `CT2_TRANSLATORS_CORE_OFFSET`
-
-If set to a non negative value, parallel translators are pinned to CPU cores in the range `[offset, offset + inter_threads]`.
-
-Requires compiling with `-DOPENMP_RUNTIME=NONE`.
-
 ## `CT2_USE_EXPERIMENTAL_PACKED_GEMM`
 
 Enable the packed GEMM API for Intel MKL which can improve performance for single-core decoding. See [Intel's article](https://software.intel.com/content/www/us/en/develop/articles/introducing-the-new-packed-apis-for-gemm.html) to learn more about packed GEMM.
