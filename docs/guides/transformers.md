@@ -229,7 +229,7 @@ processor = transformers.WhisperProcessor.from_pretrained("openai/whisper-tiny")
 inputs = processor(audio, return_tensors="np", sampling_rate=16000)
 features = ctranslate2.StorageView.from_array(inputs.input_features)
 
-model = ctranslate2.models.WhisperModel.from_path("whisper-tiny-ct2")
+model = ctranslate2.models.Whisper("whisper-tiny-ct2")
 results = model.detect_language(features)
 print(results[0])
 
