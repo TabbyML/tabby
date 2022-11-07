@@ -339,6 +339,8 @@ namespace ctranslate2 {
 
   protected:
     void initialize() override {
+      set_device_index(_device, _device_index);
+
       // Set the number of OpenMP threads for the current thread.
       set_num_threads(_num_threads);
 
@@ -347,9 +349,9 @@ namespace ctranslate2 {
     }
 
     void idle() override {
-      // When no new jobs are immediately available, we synchronize the CUDA device
+      // When no new jobs are immediately available, we synchronize the CUDA stream
       // so that the CudaAsyncAllocator can release some memory.
-      synchronize_device(_device, _device_index);
+      synchronize_stream(_device);
     }
 
     void finalize() override {
