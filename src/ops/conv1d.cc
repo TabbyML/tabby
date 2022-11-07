@@ -29,6 +29,12 @@ namespace ctranslate2 {
                             const StorageView& weight,
                             const StorageView* bias,
                             StorageView& output) const {
+      if (input.dtype() != weight.dtype())
+        throw std::invalid_argument("Conv1D: input dtype is "
+                                    + dtype_name(input.dtype())
+                                    + " but expected dtype "
+                                    + dtype_name(weight.dtype()));
+
       const dim_t batch_size = input.dim(0);
       const dim_t input_length = input.dim(2);
       const dim_t out_channels = weight.dim(0);

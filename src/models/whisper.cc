@@ -57,12 +57,13 @@ namespace ctranslate2 {
 
     StorageView WhisperReplica::encode(const StorageView& features) {
       const Device device = _model->device();
+      const DataType dtype = _encoder->output_type();
 
-      StorageView encoder_output(_encoder->output_type(), device);
-      if (features.device() == device)
+      StorageView encoder_output(dtype, device);
+      if (features.device() == device && features.dtype() == dtype)
         (*_encoder)(features, encoder_output);
       else
-        (*_encoder)(features.to(device), encoder_output);
+        (*_encoder)(features.to(device).to(dtype), encoder_output);
 
       return encoder_output;
     }
