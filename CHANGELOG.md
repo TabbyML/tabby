@@ -4,6 +4,64 @@
 
 ### Fixes and improvements
 
+## [v3.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.0) (2022-11-07)
+
+This major version integrates the Whisper speech recognition model published by OpenAI. It also introduces some breaking changes to remove deprecated usages and simplify some modules.
+
+### Breaking changes
+
+#### General
+
+* Remove option `normalize_scores`: the scores are now always divided by `pow(length, length_penalty)` with `length_penalty` defaulting to 1
+* Remove option `allow_early_exit`: the beam search now exits early only when no penalties are used
+
+#### Python
+
+* Rename some classes:
+  * `OpenNMTTFConverterV2` -> `OpenNMTTFConverter`
+  * `TranslationStats` -> `ExecutionStats`
+* Remove compatibility for reading `ScoringResult` as a list of scores: the scores can be accessed with the attribute `log_probs`
+* Remove compatibility for reading `ExecutionStats` as a tuple
+* Remove support for deprecated Python version 3.6
+
+#### CLI
+
+* Rename the client executable `translate` to a more specific name `ct2-translator`
+
+#### C++
+
+* Rename or remove some classes and methods:
+  * `TranslationStats` -> `ExecutionStats`
+  * `GeneratorPool` -> `Generator`
+  * `TranslatorPool` -> `Translator`
+  * `TranslatorPool::consume_*` -> `Translator::translate_*`
+  * `TranslatorPool::consume_stream` -> removed
+  * `TranslatorPool::score_stream` -> removed
+* Remove support for building with CUDA 10
+
+### New features
+
+* Integrate the Whisper speech recognition model published by OpenAI
+* Support conversion of models trained with OpenNMT-py V3
+* Add method `Generator.forward_batch` to get the full model output for a batch of sequences
+* Add Python class `StorageView` to expose C++ methods taking or returning N-dimensional arrays: the class implements the array interface for interoperability with Numpy and PyTorch
+* Add a new configuration file `config.json` in the model directory that contains non structual model parameters (e.g. related to the input, the vocabulary, etc.)
+* Implement the Conv1D layer and operator on CPU and GPU (using oneDNN and cuDNN respectively)
+* [C++] Allow registration of external models with `models::ModelFactory`
+
+### Fixes and improvements
+
+* Fix conversion of models that use biases only for some QKV projections but not for all
+* Fuse masking of the output log probs by aggregating disabled tokens from all related options: `disable_unk`, `min_length`, `no_repeat_ngram_size`, etc.
+* Reduce the layer norm epsilon value on GPU to 1e-5 to match the default value in PyTorch
+* Move some Transformer model attributes under the encoder/decoder scopes to simplify loading
+* Redesign the `ReplicaPool` base class to simplify adding new classes with multiple model workers
+* Compile the library with C++17
+* Update oneDNN to 2.7.1
+* Update oneMKL to 2022.2
+* Update pybind11 to 2.10.1
+* Update cibuildwheel to 2.11.2
+
 ## [v2.24.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v2.24.0) (2022-10-03)
 
 ### Changes
