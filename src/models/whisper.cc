@@ -78,7 +78,7 @@ namespace ctranslate2 {
 
     std::vector<GenerationResult>
     WhisperReplica::generate(const StorageView& features,
-                             std::vector<std::vector<size_t>> prompts,
+                             const std::vector<std::vector<size_t>>& prompts,
                              const WhisperOptions& options) {
       PROFILE("WhisperReplica::generate");
       if (prompts.empty())
@@ -104,10 +104,6 @@ namespace ctranslate2 {
       state.emplace("memory", encode(features));
 
       _decoder->update_output_layer(_model->preferred_size_multiple());
-
-      const size_t sot = _model->config["decoder_start_id"];
-      for (auto& prompt : prompts)
-        prompt.insert(prompt.begin(), sot);
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,

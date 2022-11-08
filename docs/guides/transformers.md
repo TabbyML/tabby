@@ -233,8 +233,14 @@ model = ctranslate2.models.Whisper("whisper-tiny-ct2")
 results = model.detect_language(features)
 print(results[0])
 
-prompt = processor.get_decoder_prompt_ids(language="en", task="transcribe")
-prompt = [token for _, token in prompt]
+prompt = processor.tokenizer.convert_tokens_to_ids(
+    [
+        "<|startoftranscript|>",
+        "<|en|>",
+        "<|transcribe|>",
+        "<|notimestamps|>",
+    ]
+)
 
 results = model.generate(features, [prompt])
 transcription = processor.decode(results[0].sequences_ids[0], skip_special_tokens=True)

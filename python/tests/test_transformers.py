@@ -340,8 +340,14 @@ def test_transformers_whisper(tmpdir, device):
     assert best_lang == "<|en|>"
     assert best_prob > 0.9
 
-    prompt = processor.get_decoder_prompt_ids(language="en", task="transcribe")
-    prompt = [token for _, token in prompt]
+    prompt = processor.tokenizer.convert_tokens_to_ids(
+        [
+            "<|startoftranscript|>",
+            "<|en|>",
+            "<|transcribe|>",
+            "<|notimestamps|>",
+        ]
+    )
 
     results = model.generate(features, [prompt])
 

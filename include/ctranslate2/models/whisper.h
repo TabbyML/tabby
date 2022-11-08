@@ -60,7 +60,7 @@ namespace ctranslate2 {
 
       std::vector<GenerationResult>
       generate(const StorageView& features,
-               std::vector<std::vector<size_t>> prompts,
+               const std::vector<std::vector<size_t>>& prompts,
                const WhisperOptions& options);
 
       std::vector<std::vector<std::pair<std::string, float>>>
