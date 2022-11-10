@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v3.0.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.1) (2022-11-10)
+
+### Fixes and improvements
+
+* Whisper: do not implicitly add `<|startoftranscript|>` in `generate` since it is not always the first token
+
 ## [v3.0.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.0) (2022-11-07)
 
 This major version integrates the Whisper speech recognition model published by OpenAI. It also introduces some breaking changes to remove deprecated usages and simplify some modules.
