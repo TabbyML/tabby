@@ -16,6 +16,13 @@ namespace ctranslate2 {
       // Exponential penalty applied to the length during beam search.
       float length_penalty = 1;
 
+      // Penalty applied to the score of previously generated tokens, as described in
+      // https://arxiv.org/abs/1909.05858 (set > 1 to penalize).
+      float repetition_penalty = 1;
+
+      // Prevent repetitions of ngrams with this size (set 0 to disable).
+      size_t no_repeat_ngram_size = 0;
+
       // Maximum generation length.
       size_t max_length = 448;
 

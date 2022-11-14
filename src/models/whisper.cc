@@ -90,6 +90,8 @@ namespace ctranslate2 {
       DecodingOptions decoding_options;
       decoding_options.beam_size = options.beam_size;
       decoding_options.length_penalty = options.length_penalty;
+      decoding_options.repetition_penalty = options.repetition_penalty;
+      decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
       decoding_options.max_length = options.max_length;
       decoding_options.sampling_topk = options.sampling_topk;
       decoding_options.sampling_temperature = options.sampling_temperature;

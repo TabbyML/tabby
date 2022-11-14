@@ -349,7 +349,8 @@ def test_transformers_whisper(tmpdir, device):
         ]
     )
 
-    results = model.generate(features, [prompt])
+    results = model.generate(features, [prompt], beam_size=2, num_hypotheses=2)
+    assert len(results[0].sequences_ids) == 2
 
     transcription = processor.decode(
         results[0].sequences_ids[0], skip_special_tokens=True

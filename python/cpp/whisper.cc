@@ -19,16 +19,29 @@ namespace ctranslate2 {
                size_t beam_size,
                size_t num_hypotheses,
                float length_penalty,
+               float repetition_penalty,
+               size_t no_repeat_ngram_size,
                size_t max_length,
                bool return_scores,
                size_t sampling_topk,
                float sampling_temperature) {
         std::vector<std::future<GenerationResult>> futures;
 
+        models::WhisperOptions options;
+        options.beam_size = beam_size;
+        options.length_penalty = length_penalty;
+        options.repetition_penalty = repetition_penalty;
+        options.no_repeat_ngram_size = no_repeat_ngram_size;
+        options.sampling_topk = sampling_topk;
+        options.sampling_temperature = sampling_temperature;
+        options.max_length = max_length;
+        options.num_hypotheses = num_hypotheses;
+        options.return_scores = return_scores;
+
         if (prompts.index() == 0)
-          futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts));
+          futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts), options);
         else
-          futures = _pool->generate(features.get_view(), std::get<BatchIds>(prompts));
+          futures = _pool->generate(features.get_view(), std::get<BatchIds>(prompts), options);
 
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
@@ -90,6 +103,8 @@ namespace ctranslate2 {
              py::arg("beam_size")=1,
              py::arg("num_hypotheses")=1,
              py::arg("length_penalty")=1,
+             py::arg("repetition_penalty")=1,
+             py::arg("no_repeat_ngram_size")=0,
              py::arg("max_length")=448,
              py::arg("return_scores")=false,
              py::arg("sampling_topk")=1,
@@ -106,6 +121,10 @@ namespace ctranslate2 {
                    beam_size: Beam size (1 for greedy search).
                    num_hypotheses: Number of hypotheses to return (must be <= :obj:`beam_size`).
                    length_penalty: Exponential penalty applied to the length during beam search.
+                   repetition_penalty: Penalty applied to the score of previously generated tokens
+                     (set > 1 to penalize).
+                   no_repeat_ngram_size: Prevent repetitions of ngrams with this size
+                     (set 0 to disable).
                    max_length: Maximum generation length.
                    return_scores: Include the scores in the output.
                    sampling_topk: Randomly sample predictions from the top K candidates.
