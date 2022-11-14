@@ -29,6 +29,8 @@ namespace ctranslate2 {
                             const StorageView& weight,
                             const StorageView* bias,
                             StorageView& output) const {
+      PROFILE("Conv1D");
+
       if (input.dtype() != weight.dtype())
         throw std::invalid_argument("Conv1D: input dtype is "
                                     + dtype_name(input.dtype())

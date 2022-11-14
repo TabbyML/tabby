@@ -19,6 +19,8 @@ namespace ctranslate2 {
     }
 
     void WhisperEncoder::operator()(const StorageView& features, StorageView& output) {
+      PROFILE("WhisperEncoder");
+
       if (features.rank() != 3)
         throw std::invalid_argument("Expected input features to have 3 dimensions, but got "
                                     + std::to_string(features.rank())
