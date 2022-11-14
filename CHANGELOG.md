@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v3.0.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.2) (2022-11-14)
+
+### Fixes and improvements
+
+* Whisper: fix `generate` arguments that were not correctly passed to the model
+
 ## [v3.0.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.1) (2022-11-10)
 
 ### Fixes and improvements
