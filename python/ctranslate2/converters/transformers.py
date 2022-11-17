@@ -490,12 +490,11 @@ class WhisperLoader(BartLoader):
     def get_vocabulary(self, model, tokenizer):
         tokens = super().get_vocabulary(model, tokenizer)
 
-        i = 0
-        while len(tokens) < model.config.vocab_size:
-            symbol = "madeupword{:04d}".format(i)
-            if symbol not in tokens:
-                tokens.append(symbol)
-            i += 1
+        # Add timestamp tokens.
+        tokens.extend(
+            "<|%.2f|>" % (i * 0.02)
+            for i in range(model.config.vocab_size - len(tokens))
+        )
 
         return tokens
 
