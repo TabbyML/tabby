@@ -5,23 +5,19 @@ import numpy as np
 from ctranslate2.specs import common_spec, model_spec, transformer_spec
 
 
-class WhisperConfig(model_spec.LanguageModelConfig):
+class WhisperConfig(model_spec.ModelConfig):
     """Configuration for the Whisper model."""
 
     def __init__(
         self,
-        decoder_start_id: int = 50258,
         suppress_ids: Optional[List[int]] = None,
         suppress_ids_begin: Optional[List[int]] = None,
         lang_ids: Optional[List[int]] = None,
-        **kwargs,
     ):
         super().__init__(
-            decoder_start_id=decoder_start_id,
             suppress_ids=suppress_ids,
             suppress_ids_begin=suppress_ids_begin,
             lang_ids=lang_ids,
-            **kwargs,
         )
 
 
@@ -48,7 +44,7 @@ class WhisperSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 1
+        return 2
 
     def get_default_config(self):
         return WhisperConfig()

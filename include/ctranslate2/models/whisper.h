@@ -43,6 +43,7 @@ namespace ctranslate2 {
     public:
       const Vocabulary& get_vocabulary() const;
 
+      size_t current_spec_revision() const override;
       bool is_quantizable(const std::string& variable_name) const override;
       bool is_linear_weight(const std::string& variable_name) const override;
       std::unique_ptr<Model> clone() const override;

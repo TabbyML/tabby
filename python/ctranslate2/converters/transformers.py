@@ -479,10 +479,6 @@ class WhisperLoader(BartLoader):
         return spec
 
     def set_config(self, config, model, tokenizer):
-        config.bos_token = tokenizer.bos_token
-        config.eos_token = tokenizer.eos_token
-        config.unk_token = tokenizer.unk_token
-        config.decoder_start_id = model.config.decoder_start_token_id
         config.suppress_ids = model.config.suppress_tokens
         config.suppress_ids_begin = model.config.begin_suppress_tokens
         config.lang_ids = tokenizer.additional_special_tokens_ids[2:-6]

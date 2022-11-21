@@ -14,11 +14,15 @@ namespace ctranslate2 {
       return *_vocabulary;
     }
 
+    size_t WhisperModel::current_spec_revision() const {
+      return 2;
+    }
+
     void WhisperModel::initialize(ModelReader& model_reader) {
       VocabularyInfo vocab_info;
-      vocab_info.unk_token = config["unk_token"];
-      vocab_info.bos_token = config["bos_token"];
-      vocab_info.eos_token = config["eos_token"];
+      vocab_info.unk_token = "<|endoftext|>";
+      vocab_info.bos_token = "<|startoftranscript|>";
+      vocab_info.eos_token = "<|endoftext|>";
       _vocabulary = std::make_shared<Vocabulary>(*model_reader.get_required_file("vocabulary.txt"),
                                                  std::move(vocab_info));
     }
@@ -134,7 +138,7 @@ namespace ctranslate2 {
       const auto& vocabulary = _model->get_vocabulary();
       const auto device = _model->device();
 
-      const int32_t sot = _model->config["decoder_start_id"];
+      const int32_t sot = vocabulary.bos_id();
       std::vector<int32_t> lang_ids;
       for (const auto& id : _model->config["lang_ids"])
         lang_ids.push_back(id);
