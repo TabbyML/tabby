@@ -9,7 +9,6 @@
 #endif
 
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_sinks.h>
 
 #include "ctranslate2/devices.h"
 
@@ -24,7 +23,7 @@ namespace ctranslate2 {
     return str == "1" || str == "true" || str == "TRUE";
   }
 
-  static void log_config() {
+  void log_system_config() {
     if (!spdlog::should_log(spdlog::level::info))
       return;
 
@@ -62,26 +61,6 @@ namespace ctranslate2 {
     }
 #endif
   }
-
-  static void set_log_level(int level) {
-    if (level < -3 || level > 3)
-      throw std::invalid_argument("Invalid log level "
-                                  + std::to_string(level)
-                                  + " (should be between -3 and 3)");
-
-    spdlog::set_level(static_cast<spdlog::level::level_enum>(6 - (level + 3)));
-  }
-
-  // Initialize the global logger on program start.
-  static struct LoggerInit {
-    LoggerInit() {
-      auto logger = spdlog::stderr_logger_mt("ctranslate2");
-      logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [thread %t] [%l] %v");
-      spdlog::set_default_logger(logger);
-      set_log_level(read_int_from_env("CT2_VERBOSE", 0));
-      log_config();
-    }
-  } logger_init;
 
   int get_gpu_count() {
     return get_device_count(Device::CUDA);

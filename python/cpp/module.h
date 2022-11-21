@@ -9,6 +9,7 @@ namespace ctranslate2 {
 
     void register_generation_result(py::module& m);
     void register_generator(py::module& m);
+    void register_logging(py::module& m);
     void register_scoring_result(py::module& m);
     void register_storage_view(py::module& m);
     void register_translation_result(py::module& m);

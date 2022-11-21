@@ -63,7 +63,7 @@ Force CTranslate2 to use (or not) Intel MKL. By default, the runtime automatical
 
 ## `CT2_VERBOSE`
 
-Configure the logs verbosity:
+Configure the default logs verbosity:
 
 * -3 = off
 * -2 = critical
@@ -72,3 +72,7 @@ Configure the logs verbosity:
 * 1 = info
 * 2 = debug
 * 3 = trace
+
+```{tip}
+The log level can also be controlled by API. See for example the Python function [`ctranslate2.set_log_level`](python/ctranslate2.set_log_level.rst).
+```

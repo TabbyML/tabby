@@ -45,4 +45,5 @@ except ImportError as e:
         raise
 
 from ctranslate2 import converters, models, specs
+from ctranslate2.logging import get_log_level, set_log_level
 from ctranslate2.version import __version__

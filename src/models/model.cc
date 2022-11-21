@@ -480,6 +480,12 @@ namespace ctranslate2 {
                                              int device_index,
                                              ComputeType compute_type) {
       {
+        // Log the system configuration the first time a model is loaded.
+        static std::once_flag log_once;
+        std::call_once(log_once, log_system_config);
+      }
+
+      {
         // Check that the device and device index are valid.
         ScopedDeviceSetter(device, device_index);
       }

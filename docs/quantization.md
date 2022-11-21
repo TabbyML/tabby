@@ -83,7 +83,9 @@ By default, the runtime tries to use the type that is saved in the converted mod
 | <= 6.0 | float | float | float | float |
 
 ```{tip}
-You can get more information about the detected capabilities of your system by setting the environment variable `CT2_VERBOSE=1`. This information can also be queried at runtime with the Python function [`ctranslate2.get_supported_compute_types`](python/ctranslate2.get_supported_compute_types.rst).
+You can get more information about the detected capabilities of your system by enabling the info logs (set the environment variable `CT2_VERBOSE=1` or call ``ctranslate2.set_log_level(logging.INFO)``).
+
+The supported compute types can also be queried at runtime with the Python function [`ctranslate2.get_supported_compute_types`](python/ctranslate2.get_supported_compute_types.rst).
 ```
 
 ## Supported types

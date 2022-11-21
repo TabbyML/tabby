@@ -8,6 +8,7 @@ namespace ctranslate2 {
 
   bool string_to_bool(const std::string& str);
 
+  void log_system_config();
   int get_gpu_count();
   void set_num_threads(size_t num_threads);
 

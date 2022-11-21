@@ -1,4 +1,5 @@
 import inspect
+import logging
 import os
 import shutil
 
@@ -629,3 +630,24 @@ def test_model_unload_while_async_translation():
     translator.unload_model()
     assert translator.model_is_loaded
     assert outputs[0].result().hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+
+
+@test_utils.only_on_linux
+def test_logging():
+    import wurlitzer
+
+    assert ctranslate2.get_log_level() == logging.WARNING
+
+    ctranslate2.set_log_level(logging.INFO)
+    assert ctranslate2.get_log_level() == logging.INFO
+
+    with wurlitzer.pipes() as (_, err):
+        _get_transliterator()
+    assert err.read()
+
+    ctranslate2.set_log_level(logging.WARNING)
+    assert ctranslate2.get_log_level() == logging.WARNING
+
+    with wurlitzer.pipes() as (_, err):
+        _get_transliterator()
+    assert not err.read()

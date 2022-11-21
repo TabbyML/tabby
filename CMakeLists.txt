@@ -94,6 +94,7 @@ set(SOURCES
   src/layers/decoder.cc
   src/layers/transformer.cc
   src/layers/whisper.cc
+  src/logging.cc
   src/models/language_model.cc
   src/models/model.cc
   src/models/model_reader.cc
