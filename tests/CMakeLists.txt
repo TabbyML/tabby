@@ -6,6 +6,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../third_party/googletest ${CMAKE_C
 
 add_executable(ctranslate2_test
   batching_test.cc
+  decoding_test.cc
   layers_test.cc
   model_test.cc
   storage_view_test.cc

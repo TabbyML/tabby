@@ -86,6 +86,7 @@ set(SOURCES
   src/cpu/kernels.cc
   src/cpu/primitives.cc
   src/decoding.cc
+  src/decoding_utils.cc
   src/devices.cc
   src/env.cc
   src/generator.cc

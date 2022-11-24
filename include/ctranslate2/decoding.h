@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ctranslate2/decoding_utils.h"
 #include "ctranslate2/devices.h"
 #include "ctranslate2/layers/decoder.h"
 #include "ctranslate2/sampling.h"
@@ -22,8 +23,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const std::vector<size_t>& disable_ids,
-           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -31,8 +30,7 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
-           const float repetition_penalty = 1,
-           const dim_t no_repeat_ngram_size = 0,
+           const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
 
@@ -48,8 +46,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const std::vector<size_t>& disable_ids,
-           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -57,8 +53,7 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
-           const float repetition_penalty = 1,
-           const dim_t no_repeat_ngram_size = 0,
+           const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
@@ -97,8 +92,6 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const std::vector<size_t>& disable_ids,
-           const std::vector<size_t>& disable_ids_begin,
            const size_t end_id,
            const dim_t start_step,
            const dim_t max_length,
@@ -106,8 +99,7 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
-           const float repetition_penalty = 1,
-           const dim_t no_repeat_ngram_size = 0,
+           const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
   private:
@@ -134,6 +126,7 @@ namespace ctranslate2 {
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
     std::vector<size_t> disable_ids_begin;
+    std::vector<std::shared_ptr<LogitsProcessor>> logits_processors;
   };
 
   std::vector<DecodingResult>

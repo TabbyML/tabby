@@ -4,7 +4,6 @@
 #include <cmath>
 #include <memory>
 #include <numeric>
-#include <set>
 
 #include "ctranslate2/ops/ops.h"
 #include "dispatch.h"
@@ -50,22 +49,6 @@ namespace ctranslate2 {
       if (!pair.second.empty())
         expand_to_beam_size(pair.second, beam_size);
     }
-  }
-
-  static void penalize_previous_tokens(StorageView& log_probs,
-                                       const StorageView& previous_ids,
-                                       const float penalty) {
-    StorageView previous_scores(log_probs.device(), log_probs.dtype());
-    ops::Gather(/*axis=*/-1, /*batch_dims=*/1)(log_probs, previous_ids, previous_scores);
-
-    DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
-                             primitives<D>::penalize_previous_tokens(log_probs.data<T>(),
-                                                                     previous_scores.data<T>(),
-                                                                     previous_ids.data<int32_t>(),
-                                                                     static_cast<T>(penalty),
-                                                                     log_probs.dim(0),
-                                                                     previous_ids.dim(-1),
-                                                                     log_probs.dim(-1)));
   }
 
   static void update_sample_with_prefix(const size_t step,
@@ -172,66 +155,6 @@ namespace ctranslate2 {
     } else {
       history = std::move(step_output);
     }
-  }
-
-  // Returns the list of tokens (batch_id, token_id) that should not be generated to avoid
-  // repeating a previous ngram.
-  // Precondition: history.rank() == 2 && history.dim(-1) >= ngram_size
-  static std::vector<std::pair<size_t, size_t>>
-  get_banned_tokens(const StorageView& history, const dim_t ngram_size) {
-    const dim_t batch_size = history.dim(0);
-    const dim_t length = history.dim(1);
-
-    std::vector<std::pair<size_t, size_t>> banned_tokens;
-
-    for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
-      const auto* begin = history.index<int32_t>({batch_id, 0});
-      const auto* end = begin + length;
-      const auto* current_ngram_begin = end - ngram_size + 1;
-
-      std::set<size_t> ngram_final_tokens;
-
-      while (true) {
-        begin = std::search(begin, end, current_ngram_begin, end);
-        if (begin + ngram_size > end)
-          break;
-        ngram_final_tokens.emplace(begin[ngram_size - 1]);
-        begin += 1;
-      }
-
-      for (const auto token_id : ngram_final_tokens)
-        banned_tokens.emplace_back(batch_id, token_id);
-    }
-
-    return banned_tokens;
-  }
-
-  // Returns the list of tokens (batch_id, tokens_id) that should not be generated
-  // at the first unconstrained decoding step.
-  static std::vector<std::pair<size_t, size_t>>
-  get_banned_begin(const dim_t step,
-                   const dim_t batch_size,
-                   const std::vector<dim_t>& batch_offset,
-                   const std::vector<std::vector<size_t>>* prefix_ids,
-                   const std::vector<size_t>& disable_ids) {
-    std::vector<std::pair<size_t, size_t>> banned_tokens;
-
-    for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
-      dim_t first_unconstrained_step = 0;
-
-      if (prefix_ids) {
-        const auto& prefix = prefix_ids->at(batch_offset[batch_id]);
-        first_unconstrained_step = prefix.size();
-      }
-
-      if (step != first_unconstrained_step)
-        continue;
-
-      for (const auto token_id : disable_ids)
-        banned_tokens.emplace_back(batch_id, token_id);
-    }
-
-    return banned_tokens;
   }
 
   static std::vector<size_t> build_hypothesis(const StorageView& history,
@@ -433,58 +356,6 @@ namespace ctranslate2 {
   }
 
 
-  // Helper class to disable the generation of some tokens.
-  class DisableTokens {
-  private:
-    size_t _batch_size;
-    StorageView& _log_probs;
-    std::set<std::pair<size_t, size_t>> _indices;
-
-  public:
-    DisableTokens(StorageView& log_probs)
-      : _batch_size(log_probs.dim(0))
-      , _log_probs(log_probs)
-    {
-    }
-
-    void add(size_t token_id) {
-      for (size_t batch_id = 0; batch_id < _batch_size; ++batch_id)
-        _indices.emplace(batch_id, token_id);
-    }
-
-    void add(const std::vector<size_t>& token_ids) {
-      for (size_t token_id : token_ids)
-        add(token_id);
-    }
-
-    void add(const std::vector<std::pair<size_t, size_t>>& indices) {
-      _indices.insert(indices.begin(), indices.end());
-    }
-
-    void apply() {
-      const dim_t num_tokens = _indices.size();
-      if (num_tokens == 0)
-        return;
-
-      const Device device = _log_probs.device();
-      const dim_t vocabulary_size = _log_probs.dim(-1);
-
-      dim_t i = 0;
-      StorageView indices({num_tokens}, DataType::INT32);
-      for (const auto& index : _indices)
-        indices.at<int32_t>(i++) = index.first * vocabulary_size + index.second;
-      if (indices.device() != device)
-        indices = indices.to(device);
-
-      DEVICE_AND_TYPE_DISPATCH(device, _log_probs.dtype(),
-                               primitives<D>::indexed_fill(_log_probs.data<T>(),
-                                                           static_cast<T>(-1e10),
-                                                           indices.data<int32_t>(),
-                                                           num_tokens));
-    }
-  };
-
-
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
@@ -501,8 +372,6 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
-                     const std::vector<size_t>& disable_ids,
-                     const std::vector<size_t>& disable_ids_begin,
                      const size_t end_id,
                      const dim_t start_step,
                      const dim_t max_length,
@@ -510,8 +379,7 @@ namespace ctranslate2 {
                      const bool return_scores,
                      const bool return_attention,
                      const size_t num_hypotheses,
-                     const float repetition_penalty,
-                     const dim_t no_repeat_ngram_size,
+                     const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
     const dim_t min_step = start_step + min_length;
@@ -577,11 +445,22 @@ namespace ctranslate2 {
 
       const dim_t cur_batch_size = is_expanded ? logits.dim(0) / _beam_size : logits.dim(0);
 
-      if (repetition_penalty != 1 && alive_seq) {
-        merge_batch_beam(alive_seq);
-        penalize_previous_tokens(logits, alive_seq.to(device), repetition_penalty);
-        split_batch_beam(alive_seq, _beam_size);
+      DisableTokens disable_tokens(logits);
+
+      // Prevent the generation of end_id until the minimum length is reached.
+      if (step < min_step)
+        disable_tokens.add(end_id);
+
+      if (!logits_processors.empty()) {
+        if (alive_seq)
+          merge_batch_beam(alive_seq);
+        for (const auto& logits_processor : logits_processors)
+          logits_processor->apply(step, logits, disable_tokens, alive_seq, batch_offset, prefix_ids);
+        if (alive_seq)
+          split_batch_beam(alive_seq, _beam_size);
       }
+
+      disable_tokens.apply();
 
       StorageView log_probs(dtype, device);
       if (bias_towards_prefix) {
@@ -595,24 +474,6 @@ namespace ctranslate2 {
         ops::LogSoftMax()(logits);
         log_probs.shallow_copy(logits);
       }
-
-      DisableTokens disable_tokens(log_probs);
-
-      // Prevent the generation of end_id until the minimum length is reached.
-      if (step < min_step)
-        disable_tokens.add(end_id);
-      if (!disable_ids.empty())
-        disable_tokens.add(disable_ids);
-      if (!disable_ids_begin.empty())
-        disable_tokens.add(
-          get_banned_begin(step, cur_batch_size, batch_offset, prefix_ids, disable_ids_begin));
-      if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size) {
-        merge_batch_beam(alive_seq);
-        disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
-        split_batch_beam(alive_seq, _beam_size);
-      }
-
-      disable_tokens.apply();
 
       // Multiply by the current beam log probs.
       if (topk_scores) {
@@ -793,8 +654,6 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
-                       const std::vector<size_t>& disable_ids,
-                       const std::vector<size_t>& disable_ids_begin,
                        const size_t end_id,
                        const dim_t start_step,
                        const dim_t max_length,
@@ -802,8 +661,7 @@ namespace ctranslate2 {
                        const bool return_scores,
                        const bool return_attention,
                        const size_t,
-                       const float repetition_penalty,
-                       const dim_t no_repeat_ngram_size,
+                       const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
     const dim_t min_step = start_step + min_length;
@@ -842,29 +700,22 @@ namespace ctranslate2 {
               &logits,
               gather_attention ? &attention_step_device : nullptr);
 
-      if (repetition_penalty != 1 && alive_seq)
-        penalize_previous_tokens(logits, alive_seq.to(device), repetition_penalty);
-
-      // Compute log probs only if scores should be returned.
-      StorageView log_probs(dtype, device);
-      if (return_scores)
-        ops::LogSoftMax()(logits);
-      log_probs.shallow_copy(logits);
-
-      DisableTokens disable_tokens(log_probs);
+      DisableTokens disable_tokens(logits);
 
       // Prevent the generation of end_id until the minimum length is reached.
       if (step < min_step)
         disable_tokens.add(end_id);
-      if (!disable_ids.empty())
-        disable_tokens.add(disable_ids);
-      if (!disable_ids_begin.empty())
-        disable_tokens.add(
-          get_banned_begin(step, log_probs.dim(0), batch_offset, prefix_ids, disable_ids_begin));
-      if (no_repeat_ngram_size > 0 && alive_seq && alive_seq.dim(-1) >= no_repeat_ngram_size)
-        disable_tokens.add(get_banned_tokens(alive_seq, no_repeat_ngram_size));
+
+      for (const auto& logits_processor : logits_processors)
+        logits_processor->apply(step, logits, disable_tokens, alive_seq, batch_offset, prefix_ids);
 
       disable_tokens.apply();
+
+      // Compute log probs only if required.
+      StorageView log_probs(dtype, device);
+      if (return_scores)
+        ops::LogSoftMax()(logits);
+      log_probs.shallow_copy(logits);
 
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
@@ -872,8 +723,7 @@ namespace ctranslate2 {
       if (attention_step_device)
         attention_step.copy_from(attention_step_device.to_float());
 
-      // When repetition penalty is enabled, we should keep the previously generated tokens.
-      if (repetition_penalty != 1 || no_repeat_ngram_size > 0) {
+      if (!logits_processors.empty()) {
         if (alive_seq) {
           const StorageView cur_alive_seq = std::move(alive_seq);
           ops::Concat(-1)({&cur_alive_seq, &best_ids}, alive_seq);
@@ -1062,6 +912,28 @@ namespace ctranslate2 {
                                           options.prefix_bias_beta);
   }
 
+  static std::vector<std::shared_ptr<LogitsProcessor>>
+  make_logits_processors(const DecodingOptions& options) {
+    std::vector<std::shared_ptr<LogitsProcessor>> processors;
+
+    if (options.repetition_penalty != 1)
+      processors.emplace_back(std::make_shared<RepetitionPenalty>(options.repetition_penalty));
+
+    if (options.no_repeat_ngram_size > 0)
+      processors.emplace_back(std::make_shared<NoRepeatNgram>(options.no_repeat_ngram_size));
+
+    if (!options.disable_ids.empty())
+      processors.emplace_back(std::make_shared<SuppressTokens>(options.disable_ids));
+
+    if (!options.disable_ids_begin.empty())
+      processors.emplace_back(std::make_shared<SuppressTokensBegin>(options.disable_ids_begin));
+
+    for (const auto& processor : options.logits_processors)
+      processors.emplace_back(processor);
+
+    return processors;
+  }
+
   static DecodingResult
   decode_alternatives(layers::Decoder& decoder,
                       layers::DecoderState& state,
@@ -1106,21 +978,22 @@ namespace ctranslate2 {
         return result;
     }
 
+    const auto logits_processors = make_logits_processors(options);
+
     // Expand the next "num_hypotheses" candidate words using the beam search.
     BeamSearch beam(options.num_hypotheses);
     DecodingResult expansion_result = beam.search(decoder,
                                                   state,
                                                   BestSampler(),
                                                   start_ids,
-                                                  options.disable_ids,
-                                                  options.disable_ids_begin,
                                                   end_id,
                                                   start_step,
                                                   /*max_length=*/1,
                                                   /*min_length=*/1,
                                                   /*return_scores=*/true,
                                                   options.return_attention,
-                                                  options.num_hypotheses)[0];
+                                                  options.num_hypotheses,
+                                                  logits_processors)[0];
 
     start_ids.clear();
 
@@ -1164,8 +1037,6 @@ namespace ctranslate2 {
                                                   state,
                                                   *sampler,
                                                   start_ids,
-                                                  options.disable_ids,
-                                                  options.disable_ids_begin,
                                                   end_id,
                                                   start_step,
                                                   std::max(max_length - start_step, dim_t(0)),
@@ -1173,8 +1044,7 @@ namespace ctranslate2 {
                                                   options.return_scores,
                                                   options.return_attention,
                                                   /*num_hypotheses=*/1,
-                                                  options.repetition_penalty,
-                                                  options.no_repeat_ngram_size);
+                                                  logits_processors);
 
     // Update the result with the suffix decoding.
     for (size_t i = 0; i < suffix_results.size(); ++i) {
@@ -1248,12 +1118,11 @@ namespace ctranslate2 {
     } else {
       const auto search_strategy = make_search_strategy(options);
       const auto sampler = make_sampler(options);
+      const auto logits_processors = make_logits_processors(options);
       results = search_strategy->search(decoder,
                                         state,
                                         *sampler,
                                         start_ids,
-                                        options.disable_ids,
-                                        options.disable_ids_begin,
                                         end_id,
                                         /*start_step=*/0,
                                         options.max_length,
@@ -1261,8 +1130,7 @@ namespace ctranslate2 {
                                         options.return_scores,
                                         options.return_attention,
                                         options.num_hypotheses,
-                                        options.repetition_penalty,
-                                        options.no_repeat_ngram_size,
+                                        logits_processors,
                                         prefix_ids.empty() ? nullptr : &prefix_ids);
     }
 
