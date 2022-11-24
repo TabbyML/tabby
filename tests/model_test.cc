@@ -95,3 +95,47 @@ TEST(ModelTest, EncoderDecoderNoLength) {
 
   EXPECT_EQ(output_wo_length, output_w_length);
 }
+
+TEST(ModelTest, DecoderIterativeSequence) {
+  auto model = models::Model::load(default_model_dir())->as_sequence_to_sequence();
+  auto& encoder_decoder = dynamic_cast<models::EncoderDecoderReplica&>(*model);
+  auto& encoder = encoder_decoder.encoder();
+  auto& decoder = encoder_decoder.decoder();
+
+  StorageView source_ids({1, 6}, std::vector<int32_t>{31, 10, 19, 13, 5, 7});
+  StorageView target_ids({1, 5}, std::vector<int32_t>{1, 3, 11, 23, 13});
+
+  StorageView encoder_output;
+  encoder(source_ids, encoder_output);
+
+  // Forward step by step.
+  layers::DecoderState state_by_step = decoder.initial_state();
+  state_by_step.emplace("memory", encoder_output);
+  StorageView logits_by_step;
+  for (dim_t step = 0; step < target_ids.dim(1); ++step) {
+    StorageView step_logits;
+    StorageView step_input({1}, target_ids.at<int32_t>(step));
+    decoder(step, step_input, state_by_step, &step_logits);
+    step_logits.expand_dims(1);
+    if (step == 0)
+      logits_by_step = std::move(step_logits);
+    else {
+      StorageView logits_concat;
+      ops::Concat(1)({&logits_by_step, &step_logits}, logits_concat);
+      logits_by_step = std::move(logits_concat);
+    }
+  }
+
+  // Forward the sequence.
+  layers::DecoderState state_sequence = decoder.initial_state();
+  state_sequence.emplace("memory", encoder_output);
+  StorageView logits_sequence;
+  decoder(0, target_ids, state_sequence, &logits_sequence);
+
+  expect_storage_eq(logits_sequence, logits_by_step, 1e-5);
+
+  for (const auto& pair : state_by_step) {
+    const auto& key = pair.first;
+    expect_storage_eq(state_sequence[key], state_by_step[key], 1e-5);
+  }
+}

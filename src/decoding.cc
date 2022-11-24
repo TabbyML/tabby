@@ -787,34 +787,6 @@ namespace ctranslate2 {
     return results;
   }
 
-  static void initialize_decoder_with_prefix(layers::Decoder& decoder,
-                                             layers::DecoderState& state,
-                                             size_t start_id,
-                                             const std::vector<size_t>& prefix_ids,
-                                             std::vector<std::vector<float>>* prefix_attention) {
-    const Device device = decoder.device();
-    const DataType dtype = decoder.output_type();
-    const size_t prefix_size = prefix_ids.size();
-
-    StorageView input({1}, DataType::INT32);
-    StorageView attention(dtype, device);
-    if (prefix_attention)
-      prefix_attention->reserve(prefix_size);
-
-    input.at<int32_t>(0) = start_id;
-    for (size_t i = 0; i < prefix_size; ++i) {
-      convert_to_original_word_ids(decoder, input);
-      decoder(i,
-              input.to(device),
-              state,
-              /*logits=*/nullptr,
-              prefix_attention ? &attention : nullptr);
-      if (prefix_attention)
-        prefix_attention->emplace_back(attention.to_float().to_vector<float>());
-      input.at<int32_t>(0) = prefix_ids[i];
-    }
-  }
-
   static layers::DecoderState get_batch_state(const layers::DecoderState& state,
                                               const int32_t batch_id) {
     const Device device = state.begin()->second.device();
@@ -840,9 +812,6 @@ namespace ctranslate2 {
 
   static std::pair<std::vector<size_t>, std::vector<std::vector<size_t>>>
   split_start_tokens(const std::vector<std::vector<size_t>>& start_tokens) {
-    if (start_tokens.empty())
-      throw std::invalid_argument("No decoder start tokens are set");
-
     std::vector<size_t> start_ids;
     std::vector<std::vector<size_t>> prefix_ids;
     start_ids.reserve(start_tokens.size());
@@ -937,8 +906,7 @@ namespace ctranslate2 {
   static DecodingResult
   decode_alternatives(layers::Decoder& decoder,
                       layers::DecoderState& state,
-                      const size_t start_token,
-                      const std::vector<size_t>& prefix_tokens,
+                      std::vector<size_t> start_tokens,
                       const size_t end_id,
                       const DecodingOptions& options) {
     DecodingResult result;
@@ -948,35 +916,50 @@ namespace ctranslate2 {
     if (options.return_attention)
       result.attention.resize(options.num_hypotheses);
 
-    std::vector<size_t> start_ids{start_token};
-    std::vector<size_t> prefix_ids(prefix_tokens);
-    if (prefix_ids.size() > options.max_length)
-      prefix_ids.resize(options.max_length);
+    if (start_tokens.empty())
+      throw std::invalid_argument("One input has no decoder start token");
+    if (start_tokens.size() > options.max_length + 1)
+      start_tokens.resize(options.max_length + 1);
 
     const dim_t min_length = options.min_length;
     const dim_t max_length = options.max_length;
-    dim_t start_step = 0;
+    const dim_t prefix_length = start_tokens.size() - 1;
 
-    if (!prefix_ids.empty()) {
+    if (prefix_length > 0) {
       // Initialize the decoder state with the prefix.
-      std::vector<std::vector<float>> prefix_attention;
-      initialize_decoder_with_prefix(decoder,
-                                     state,
-                                     start_ids[0],
-                                     prefix_ids,
-                                     options.return_attention ? &prefix_attention : nullptr);
+      const Device device = decoder.device();
+      StorageView attention(decoder.output_type(), device);
+      StorageView input_ids({1, prefix_length},
+                            std::vector<int32_t>(start_tokens.begin(),
+                                                 start_tokens.begin() + prefix_length),
+                            device);
+
+      convert_to_original_word_ids(decoder, input_ids);
+      decoder(0,
+              input_ids,
+              state,
+              /*logits=*/nullptr,
+              options.return_attention ? &attention : nullptr);
 
       for (size_t i = 0; i < options.num_hypotheses; ++i) {
-        result.hypotheses[i] = prefix_ids;
-        if (options.return_attention)
-          result.attention[i] = prefix_attention;
+        result.hypotheses[i] = std::vector<size_t>(start_tokens.begin() + 1, start_tokens.end());
+
+        if (options.return_attention) {
+          if (attention.device() != Device::CPU)
+            attention = attention.to_float().to(Device::CPU);
+          for (dim_t t = 0; t < prefix_length; ++t) {
+            const float* vector = attention.index<float>({0, t, 0});
+            result.attention[i].emplace_back(vector, vector + attention.dim(-1));
+          }
+        }
       }
 
-      start_ids[0] = prefix_ids.back();
-      start_step += prefix_ids.size();
-      if (start_step == max_length)
+      if (prefix_length == max_length)
         return result;
     }
+
+    std::vector<size_t> start_ids{start_tokens.back()};
+    dim_t start_step = prefix_length;
 
     const auto logits_processors = make_logits_processors(options);
 
@@ -1087,6 +1070,9 @@ namespace ctranslate2 {
     validate_decoding_options(options);
     const size_t batch_size = start_tokens.size();
 
+    if (batch_size == 0)
+      throw std::invalid_argument("No decoder start tokens are set");
+
     std::vector<DecodingResult> results;
 
     if (decoder.output_layer_is_updated()) {
@@ -1099,23 +1085,22 @@ namespace ctranslate2 {
       options.disable_ids_begin = map_to_output_word_ids(decoder, options.disable_ids_begin);
     }
 
-    std::vector<size_t> start_ids;
-    std::vector<std::vector<size_t>> prefix_ids;
-    std::tie(start_ids, prefix_ids) = split_start_tokens(start_tokens);
-
     if (options.return_alternatives) {
       results.reserve(batch_size);
       for (size_t i = 0; i < batch_size; ++i) {
         layers::DecoderState batch_state = get_batch_state(state, i);
         results.emplace_back(decode_alternatives(decoder,
                                                  batch_state,
-                                                 start_ids[i],
-                                                 prefix_ids[i],
+                                                 start_tokens[i],
                                                  end_id,
                                                  options));
       }
 
     } else {
+      std::vector<size_t> start_ids;
+      std::vector<std::vector<size_t>> prefix_ids;
+      std::tie(start_ids, prefix_ids) = split_start_tokens(start_tokens);
+
       const auto search_strategy = make_search_strategy(options);
       const auto sampler = make_sampler(options);
       const auto logits_processors = make_logits_processors(options);

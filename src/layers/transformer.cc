@@ -288,8 +288,11 @@ namespace ctranslate2 {
                                     StorageView* logits,
                                     StorageView* attention) {
       PROFILE("TransformerDecoder");
-      StorageView layer_in(output_type(), ids.device());
-      StorageView layer_out(output_type(), ids.device());
+      const Device device = ids.device();
+      const bool is_sequence = ids.rank() > 1;
+
+      StorageView layer_in(output_type(), device);
+      StorageView layer_out(output_type(), device);
 
       _embeddings(ids, layer_in);
       if (_start_from_zero_embedding)
@@ -311,7 +314,18 @@ namespace ctranslate2 {
       const bool allow_padding_removal = Padder::allow_padding_removal(_device, _compute_type);
 
       std::unique_ptr<const Padder> input_padder;
+      std::unique_ptr<const StorageView> input_lengths;
       std::unique_ptr<const StorageView> input_lengths_mask;
+
+      if (is_sequence && !lengths) {
+        if (step > 0)
+          throw std::runtime_error("Forwarding a sequence in the Transformer decoder after the "
+                                   "first decoding step is currently not supported");
+
+        input_lengths = std::make_unique<StorageView>(Shape{ids.dim(0)}, int32_t(max_time), device);
+        lengths = input_lengths.get();
+      }
+
       if (lengths) {
         if (allow_padding_removal) {
           input_padder = std::make_unique<Padder>(*lengths, max_time);
@@ -325,32 +339,26 @@ namespace ctranslate2 {
       }
 
       StorageView* memory = nullptr;
-      StorageView* memory_lengths_mask = nullptr;
+      std::unique_ptr<const StorageView> memory_lengths_mask;
       std::unique_ptr<const Padder> memory_padder;
       if (_with_encoder_attention) {
+        const auto it = state.find("memory_lengths");
+        const StorageView* memory_lengths = it != state.end() ? &it->second : nullptr;
+
         if (step <= 0) {
           memory = &state.at("memory");
 
-          const auto it = state.find("memory_lengths");
-
-          if (it != state.end()) {
-            const StorageView& memory_lengths = it->second;
-
-            if (allow_padding_removal) {
-              memory_padder = std::make_unique<Padder>(memory_lengths, memory->dim(1));
-              memory_padder->remove_padding(*memory);
-            }
-
-            state.emplace("memory_mask",
-                          layers::MultiHeadAttention::prepare_length_mask(memory_lengths,
-                                                                          _num_heads,
-                                                                          max_time));
+          if (memory_lengths && allow_padding_removal) {
+            memory_padder = std::make_unique<Padder>(*memory_lengths, memory->dim(1));
+            memory_padder->remove_padding(*memory);
           }
         }
 
-        const auto it = state.find("memory_mask");
-        if (it != state.end())
-          memory_lengths_mask = &(it->second);
+        if (memory_lengths)
+          memory_lengths_mask = std::make_unique<StorageView>(
+            layers::MultiHeadAttention::prepare_length_mask(*memory_lengths,
+                                                            _num_heads,
+                                                            max_time));
       }
 
       for (size_t l = 0; l < _layers.size(); ++l) {
@@ -372,7 +380,7 @@ namespace ctranslate2 {
         (*_layers[l])(layer_in,
                       input_lengths_mask.get(),
                       memory,
-                      memory_lengths_mask,
+                      memory_lengths_mask.get(),
                       cached_self_attn_keys,
                       cached_self_attn_values,
                       cached_attn_keys,
@@ -387,12 +395,11 @@ namespace ctranslate2 {
       if (step == 0) {
         // The memory is no longer needed as its projections were cached in the first step.
         state.erase("memory");
-        state.erase("memory_lengths");
       }
 
       if (attention) {
         *attention = reduce_multi_head_attention(*attention, _alignment_heads);
-        if (step >= 0)
+        if (!is_sequence)
           attention->squeeze(1);
       }
 
@@ -405,7 +412,7 @@ namespace ctranslate2 {
         }
         _proj(layer_in, *logits);
 
-        if (step >= 0)
+        if (!is_sequence)
           logits->squeeze(1);
         else if (input_padder)
           input_padder->add_padding(*logits);
