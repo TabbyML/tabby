@@ -781,6 +781,18 @@ TEST_P(OpDeviceFPTest, Log) {
   expect_storage_eq(output.to_float(), expected, 1e-3);
 }
 
+TEST_P(OpDeviceFPTest, LogZero) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+
+  StorageView scalar(0.f, device);
+  scalar = scalar.to(dtype);
+  ops::Log()(scalar, scalar);
+
+  float value = scalar.to_float().as_scalar<float>();
+  EXPECT_EQ(value, -std::numeric_limits<float>::infinity());
+}
+
 template <typename T, typename Ops, typename Func>
 void TestMinMax(Device device, const Ops& ops, const Func& func){
   {

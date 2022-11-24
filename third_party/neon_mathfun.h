@@ -26,6 +26,7 @@
 */
 
 #include <arm_neon.h>
+#include <limits>
 
 typedef float32x4_t v4sf;  // vector of 4 float
 typedef uint32x4_t v4su;  // vector of 4 uint32
@@ -46,13 +47,16 @@ typedef int32x4_t v4si;  // vector of 4 uint32
 #define c_cephes_log_q2 0.693359375
 
 /* natural logarithm computed for 4 simultaneous float
-   return NaN for x <= 0
+   return -inf for x == 0
+   return NaN for x < 0
 */
 v4sf log_ps(v4sf x) {
   v4sf one = vdupq_n_f32(1);
+  v4sf zero = vdupq_n_f32(0);
 
-  x = vmaxq_f32(x, vdupq_n_f32(0)); /* force flush to zero on denormal values */
-  v4su invalid_mask = vcleq_f32(x, vdupq_n_f32(0));
+  x = vmaxq_f32(x, vdupq_n_f32(-1)); /* force flush to negative on denormal values */
+  v4su zero_mask = vceqq_f32(x, zero);
+  v4su invalid_mask = vcltq_f32(x, zero);
 
   v4si ux = vreinterpretq_s32_f32(x);
 
@@ -115,6 +119,10 @@ v4sf log_ps(v4sf x) {
   x = vaddq_f32(x, y);
   x = vaddq_f32(x, tmp);
   x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask)); // negative arg will be NAN
+
+  v4sf negative_inf = vdupq_n_f32(-std::numeric_limits<float>::infinity());
+  x = vbslq_f32(zero_mask, negative_inf, x); // zero arg will be -inf
+
   return x;
 }
 

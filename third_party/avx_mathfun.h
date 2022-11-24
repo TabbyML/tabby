@@ -57,6 +57,7 @@
 */
 
 #include <immintrin.h>
+#include <limits>
 
 /* yes I know, the top of this file is quite ugly */
 #ifdef _MSC_VER
@@ -191,14 +192,17 @@ AVX2_INTOP_USING_SSE2(add_epi32)
 
 
 /* natural logarithm computed for 8 simultaneous float 
-   return NaN for x <= 0
+   return -inf for x == 0
+   return NaN for x < 0
 */
 static inline v8sf log256_ps(v8sf x) {
   v8si imm0;
   v8sf one = *(v8sf*)_ps256_1;
 
   //v8sf invalid_mask = _mm256_cmple_ps(x, _mm256_setzero_ps());
-  v8sf invalid_mask = _mm256_cmp_ps(x, _mm256_setzero_ps(), _CMP_LE_OS);
+  v8sf zero = _mm256_setzero_ps();
+  v8sf zero_mask = _mm256_cmp_ps(x, zero, _CMP_EQ_OQ);
+  v8sf invalid_mask = _mm256_cmp_ps(x, zero, _CMP_LT_OS);
 
   x = _mm256_max_ps(x, *(v8sf*)_ps256_min_norm_pos);  /* cut off denormalized stuff */
 
@@ -262,6 +266,10 @@ static inline v8sf log256_ps(v8sf x) {
   x = _mm256_add_ps(x, y);
   x = _mm256_add_ps(x, tmp);
   x = _mm256_or_ps(x, invalid_mask); // negative arg will be NAN
+
+  v8sf negative_inf = _mm256_set1_ps(-std::numeric_limits<float>::infinity());
+  x = _mm256_blendv_ps(x, negative_inf, zero_mask); // zero arg will be -inf
+
   return x;
 }
 
