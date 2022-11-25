@@ -53,6 +53,9 @@ namespace ctranslate2 {
     T reduce_amax(const T* x, dim_t size);
 
     template <CpuIsa ISA>
+    float reduce_logsumexp(const float* x, dim_t size);
+
+    template <CpuIsa ISA>
     void softmax(const float* input,
                  const int32_t* lengths,
                  float* output,

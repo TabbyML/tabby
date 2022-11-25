@@ -22,6 +22,14 @@ TEST_P(PrimitiveTest, IndexedFill) {
   expect_storage_eq(x, expected);
 }
 
+TEST_P(PrimitiveTest, LogSumExp) {
+  const Device device = GetParam();
+  StorageView x({8}, std::vector<float>{0.6, 0.2, -1.2, 0.1, 0.3, 0.5, -1.3, 0.2}, device);
+  float result = 0;
+  DEVICE_DISPATCH(device, result = primitives<D>::logsumexp(x.data<float>(), x.size()));
+  EXPECT_NEAR(result, 2.1908040046691895, 1e-6);
+}
+
 TEST_P(PrimitiveTest, PenalizePreviousTokens) {
   const Device device = GetParam();
   const float penalty = 1.2f;

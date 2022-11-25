@@ -318,7 +318,8 @@ def test_transformers_generator_on_iterables(tmpdir):
 
 @test_utils.only_on_linux
 @test_utils.test_available_devices
-def test_transformers_whisper(tmpdir, device):
+@pytest.mark.parametrize("with_timestamps", [True, False])
+def test_transformers_whisper(tmpdir, device, with_timestamps):
     import transformers
 
     model_name = "openai/whisper-tiny"
@@ -340,17 +341,24 @@ def test_transformers_whisper(tmpdir, device):
     assert best_lang == "<|en|>"
     assert best_prob > 0.9
 
-    prompt = processor.tokenizer.convert_tokens_to_ids(
-        [
-            "<|startoftranscript|>",
-            "<|en|>",
-            "<|transcribe|>",
-            "<|notimestamps|>",
-        ]
-    )
+    prompt = [
+        "<|startoftranscript|>",
+        "<|en|>",
+        "<|transcribe|>",
+    ]
+
+    if not with_timestamps:
+        prompt.append("<|notimestamps|>")
+
+    prompt = processor.tokenizer.convert_tokens_to_ids(prompt)
 
     results = model.generate(features, [prompt], beam_size=2, num_hypotheses=2)
     assert len(results[0].sequences_ids) == 2
+
+    if with_timestamps:
+        tokens = results[0].sequences[0][len(prompt) - 1 :]
+        assert tokens[0] == "<|0.00|>"
+        assert tokens[-1] == "<|5.44|>"
 
     transcription = processor.decode(
         results[0].sequences_ids[0], skip_special_tokens=True

@@ -81,7 +81,11 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, dim_t size) {
-    return at(array, max_element(array, size));
+    return T(THRUST_CALL(thrust::reduce,
+                         cuda::device_cast(array),
+                         cuda::device_cast(array) + size,
+                         cuda::device_type<T>(std::numeric_limits<T>::lowest()),
+                         cuda::maximum<cuda::device_type<T>>()));
   }
 
   template<>
@@ -524,6 +528,38 @@ namespace ctranslate2 {
                                             CUDA_R_16F,
                                             CUBLAS_GEMM_DEFAULT_TENSOR_OP));
   }
+
+  template <typename T>
+  class exp_minus_max_func {
+  private:
+    const float _max_value;
+
+  public:
+    exp_minus_max_func(const float max_value)
+      : _max_value(max_value)
+    {
+    }
+
+    __device__ float operator()(T x) {
+      return expf(float(x) - _max_value);
+    }
+  };
+
+  template<>
+  template <typename T>
+  float primitives<Device::CUDA>::logsumexp(const T* x, dim_t size) {
+    const float max_value = max(x, size);
+
+    auto exp_it = thrust::make_transform_iterator(
+      thrust::device_pointer_cast(cuda::device_cast(x)),
+      exp_minus_max_func<cuda::device_type<T>>(max_value));
+
+    const float exp_sum = THRUST_CALL(thrust::reduce, exp_it, exp_it + size);
+    return std::log(exp_sum) + max_value;
+  }
+
+  template float primitives<Device::CUDA>::logsumexp(const float*, dim_t);
+  template float primitives<Device::CUDA>::logsumexp(const float16_t*, dim_t);
 
   struct exp_func {
     __device__

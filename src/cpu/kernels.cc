@@ -286,6 +286,33 @@ namespace ctranslate2 {
     DECLARE_ALL_TYPES(DECLARE_IMPL)
 
 
+    template <>
+    float reduce_logsumexp<TARGET_ISA>(const float* x, dim_t size) {
+      using VecType = Vec<float, TARGET_ISA>;
+
+      const auto x_max = reduce_max<TARGET_ISA>(x, size);
+      const auto vec_x_max = VecType::load(x_max);
+
+      const auto scalar_exp_func = [x_max](vec_type<float> v) {
+        return Vec<float>::exp(Vec<float>::sub(v, x_max));
+      };
+      const auto vec_exp_func = [vec_x_max](vec_type<float, TARGET_ISA> v) {
+        return VecType::exp(VecType::sub(v, vec_x_max));
+      };
+
+      const auto exp_sum = vectorized_map_reduce_all<TARGET_ISA>(
+        x,
+        size,
+        static_cast<float>(0),
+        vec_exp_func,
+        VecType::add,
+        VecType::reduce_add,
+        scalar_exp_func,
+        Vec<float>::add);
+
+      return std::log(exp_sum) + x_max;
+    }
+
     template<>
     void softmax<TARGET_ISA>(const float* input,
                              const int32_t* lengths,

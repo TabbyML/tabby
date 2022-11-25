@@ -156,6 +156,9 @@ namespace ctranslate2 {
     template <typename T>
     static void transpose_4d(const T* a, const dim_t* dims, const dim_t* perm, T* b);
 
+    template <typename T>
+    static float logsumexp(const T* x, dim_t size);
+
     static void exp(const float* x, float* y, dim_t size);
     template <typename T>
     static void log(const T* x, T* y, dim_t size);

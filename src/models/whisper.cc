@@ -80,6 +80,8 @@ namespace ctranslate2 {
       return generate(features, vocabulary.to_ids(prompts), options);
     }
 
+    class ApplyTimestampRules;
+
     std::vector<GenerationResult>
     WhisperReplica::generate(const StorageView& features,
                              const std::vector<std::vector<size_t>>& prompts,
@@ -105,6 +107,23 @@ namespace ctranslate2 {
         decoding_options.disable_ids.push_back(id);
       for (const auto& id : _model->config["suppress_ids_begin"])
         decoding_options.disable_ids_begin.push_back(id);
+
+      const size_t no_timestamps_id = vocabulary.to_id("<|notimestamps|>");
+      const bool with_timestamps = (
+        std::find(prompts[0].begin(), prompts[0].end(), no_timestamps_id) == prompts[0].end());
+
+      if (with_timestamps) {
+        const size_t eot_id = vocabulary.eos_id();
+        const size_t timestamp_begin_id = no_timestamps_id + 1;
+        const size_t timestamp_end_id = vocabulary.size() - 1;
+        const size_t max_initial_timestamp_id = timestamp_begin_id + 50;
+        decoding_options.logits_processors.emplace_back(
+          std::make_shared<ApplyTimestampRules>(eot_id,
+                                                no_timestamps_id,
+                                                timestamp_begin_id,
+                                                timestamp_end_id,
+                                                max_initial_timestamp_id));
+      }
 
       layers::DecoderState state = _decoder->initial_state();
       state.emplace("memory", encode(features));
@@ -230,6 +249,120 @@ namespace ctranslate2 {
         },
         batch_size);
     }
+
+
+    class ApplyTimestampRules : public LogitsProcessor {
+    private:
+      const size_t _eot_id;
+      const size_t _no_timestamps_id;
+      const size_t _timestamp_begin_id;
+      const size_t _timestamp_end_id;
+      const size_t _max_initial_timestamp_id;
+
+    public:
+      ApplyTimestampRules(const size_t eot_id,
+                          const size_t no_timestamps_id,
+                          const size_t timestamp_begin_id,
+                          const size_t timestamp_end_id,
+                          const size_t max_initial_timestamp_id)
+        : _eot_id(eot_id)
+        , _no_timestamps_id(no_timestamps_id)
+        , _timestamp_begin_id(timestamp_begin_id)
+        , _timestamp_end_id(timestamp_end_id)
+        , _max_initial_timestamp_id(max_initial_timestamp_id)
+      {
+      }
+
+      void apply(dim_t step,
+                 StorageView& logits,
+                 DisableTokens& disable_tokens,
+                 const StorageView& sequences,
+                 const std::vector<dim_t>& batch_offset,
+                 const std::vector<std::vector<size_t>>* prefix) override {
+        std::vector<dim_t> check_timestamps_prob_for_batch;
+        const dim_t batch_size = logits.dim(0);
+
+        for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
+          const dim_t sample_begin = get_sample_begin(batch_size, batch_id, batch_offset, prefix);
+
+          // Suppress <|notimestamps|>.
+          disable_tokens.add(batch_id, _no_timestamps_id);
+
+          if (step == sample_begin) {
+            // Suppress non timestamps at the beginning.
+            for (size_t i = 0; i < _timestamp_begin_id; ++i)
+              disable_tokens.add(batch_id, i);
+
+            // Apply max_initial_timestamp option.
+            for (size_t i = _max_initial_timestamp_id + 1; i <= _timestamp_end_id; ++i)
+              disable_tokens.add(batch_id, i);
+
+          } else if (step > sample_begin) {
+            // Timestamps have to appear in pairs, except directly before EOT.
+            const size_t last_token = sequences.at<int32_t>({batch_id, step - 1});
+
+            if (last_token >= _timestamp_begin_id) {
+              const size_t penultimate_token = (step - 1 > sample_begin
+                                                ? sequences.at<int32_t>({batch_id, step - 2})
+                                                : last_token);
+
+              if (penultimate_token >= _timestamp_begin_id) {  // has to be non-timestamp
+                for (size_t i = _timestamp_begin_id; i <= _timestamp_end_id; ++i)
+                  disable_tokens.add(batch_id, i);
+              } else {  // cannot be normal text tokens
+                for (size_t i = 0; i < _eot_id; ++i)
+                  disable_tokens.add(batch_id, i);
+              }
+            } else {
+              check_timestamps_prob_for_batch.push_back(batch_id);
+            }
+          }
+        }
+
+        if (!check_timestamps_prob_for_batch.empty()) {
+          // Apply all changes to the logits before computing the log softmax.
+          disable_tokens.apply();
+
+          StorageView log_probs(logits.dtype(), logits.device());
+          ops::LogSoftMax()(logits, log_probs);
+
+          for (const dim_t batch_id : check_timestamps_prob_for_batch) {
+            bool sample_timestamp = false;
+
+            if (log_probs.device() == Device::CPU)
+              sample_timestamp = should_sample_timestamp<Device::CPU, float>(log_probs, batch_id);
+#ifdef CT2_WITH_CUDA
+            else if (log_probs.dtype() == DataType::FLOAT)
+              sample_timestamp = should_sample_timestamp<Device::CUDA, float>(log_probs, batch_id);
+            else
+              sample_timestamp = should_sample_timestamp<Device::CUDA, float16_t>(log_probs, batch_id);
+#endif
+
+            if (sample_timestamp) {
+              for (size_t i = 0; i < _timestamp_begin_id; ++i)
+                disable_tokens.add(batch_id, i);
+            }
+          }
+        }
+      }
+
+      template <Device D, typename T>
+      bool should_sample_timestamp(const StorageView& log_probs, const dim_t batch_id) {
+        const dim_t num_text_tokens = _timestamp_begin_id;
+        const dim_t num_timestamp_tokens = _timestamp_end_id - _timestamp_begin_id + 1;
+
+        const T* text_log_probs = log_probs.index<T>({batch_id, 0});
+        const T* timestamp_log_probs = text_log_probs + num_text_tokens;
+
+        // If sum of probability over timestamps is above any other token, sample timestamp.
+        const float max_text_token_log_prob = primitives<D>::max(text_log_probs, num_text_tokens);
+        const float timestamp_log_prob = primitives<D>::logsumexp(timestamp_log_probs,
+                                                                  num_timestamp_tokens);
+
+        return timestamp_log_prob > max_text_token_log_prob;
+      }
+
+    };
 
   }
 }
