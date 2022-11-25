@@ -382,8 +382,6 @@ namespace ctranslate2 {
                      const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
-    const dim_t min_step = start_step + min_length;
-    const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
     const dim_t vocabulary_size = decoder.output_size();
@@ -431,13 +429,13 @@ namespace ctranslate2 {
     StorageView alive_seq(topk_ids.dtype());
     StorageView alive_attention;
 
-    for (dim_t step = start_step; step < max_step; ++step) {
-      const bool is_expanded = (!expand_after_first_step || step > start_step);
+    for (dim_t step = 0; step < max_length; ++step) {
+      const bool is_expanded = (!expand_after_first_step || step > 0);
 
       // Compute log probs for the current step.
       StorageView attention_step(dtype, device);
       convert_to_original_word_ids(decoder, topk_ids);
-      decoder(step,
+      decoder(start_step + step,
               topk_ids.to(device),
               state,
               &logits,  // output shape: (cur_batch_size*beam_size x vocab_size), if not expanded beam_size is 1
@@ -448,7 +446,7 @@ namespace ctranslate2 {
       DisableTokens disable_tokens(logits);
 
       // Prevent the generation of end_id until the minimum length is reached.
-      if (step < min_step)
+      if (step < min_length)
         disable_tokens.add(end_id);
 
       if (!logits_processors.empty()) {
@@ -541,7 +539,7 @@ namespace ctranslate2 {
           const dim_t prefix_length = use_hard_prefix ? prefix_ids->at(batch_id).size() : 0;
           dim_t next_beam_id = k;
 
-          if ((last_id == end_id && step >= prefix_length) || step + 1 == max_step) {
+          if ((last_id == end_id && step >= prefix_length) || step + 1 == max_length) {
             if (k == 0)
               top_beam_finished[i] = true;
 
@@ -664,8 +662,6 @@ namespace ctranslate2 {
                        const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("greedy_search");
-    const dim_t min_step = start_step + min_length;
-    const dim_t max_step = start_step + max_length;
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
     const dim_t batch_size = start_ids.size();
@@ -692,9 +688,9 @@ namespace ctranslate2 {
     StorageView attention_step;
     StorageView attention_step_device(dtype, device);
 
-    for (dim_t step = start_step; step < max_step; ++step) {
+    for (dim_t step = 0; step < max_length; ++step) {
       convert_to_original_word_ids(decoder, sample_from);
-      decoder(step,
+      decoder(start_step + step,
               sample_from.to(device),
               state,
               &logits,
@@ -703,7 +699,7 @@ namespace ctranslate2 {
       DisableTokens disable_tokens(logits);
 
       // Prevent the generation of end_id until the minimum length is reached.
-      if (step < min_step)
+      if (step < min_length)
         disable_tokens.add(end_id);
 
       for (const auto& logits_processor : logits_processors)
@@ -750,7 +746,7 @@ namespace ctranslate2 {
         }
 
         const bool is_finished = ((word_id == end_id && step >= prefix_length)
-                                  || (step + 1 == max_step));
+                                  || (step + 1 == max_length));
 
         if (is_finished) {
           finalize_result(results[batch_id],
@@ -924,6 +920,7 @@ namespace ctranslate2 {
     const dim_t min_length = options.min_length;
     const dim_t max_length = options.max_length;
     const dim_t prefix_length = start_tokens.size() - 1;
+    dim_t start_step = options.start_step;
 
     if (prefix_length > 0) {
       // Initialize the decoder state with the prefix.
@@ -935,7 +932,7 @@ namespace ctranslate2 {
                             device);
 
       convert_to_original_word_ids(decoder, input_ids);
-      decoder(0,
+      decoder(start_step,
               input_ids,
               state,
               /*logits=*/nullptr,
@@ -956,10 +953,11 @@ namespace ctranslate2 {
 
       if (prefix_length == max_length)
         return result;
+
+      start_step += prefix_length;
     }
 
     std::vector<size_t> start_ids{start_tokens.back()};
-    dim_t start_step = prefix_length;
 
     const auto logits_processors = make_logits_processors(options);
 
@@ -1109,7 +1107,7 @@ namespace ctranslate2 {
                                         *sampler,
                                         start_ids,
                                         end_id,
-                                        /*start_step=*/0,
+                                        options.start_step,
                                         options.max_length,
                                         options.min_length,
                                         options.return_scores,
@@ -1119,7 +1117,9 @@ namespace ctranslate2 {
                                         prefix_ids.empty() ? nullptr : &prefix_ids);
     }
 
-    for (auto& result : results) {
+    for (size_t b = 0; b < batch_size; ++b) {
+      auto& result = results[b];
+
       for (size_t i = 0; i < result.hypotheses.size(); ++i) {
         // Remove EOS token.
         while (result.hypotheses[i].back() == end_id) {
@@ -1132,6 +1132,16 @@ namespace ctranslate2 {
         if (decoder.output_layer_is_updated()) {
           for (auto& id : result.hypotheses[i])
             id = decoder.to_original_word_id(id);
+        }
+
+        // Remove the prefix if configured.
+        const size_t prefix_length = start_tokens[b].size() - 1;
+        if (!options.return_prefix && prefix_length > 0) {
+          result.hypotheses[i].erase(result.hypotheses[i].begin(),
+                                     result.hypotheses[i].begin() + prefix_length);
+          if (!result.attention.empty())
+            result.attention[i].erase(result.attention[i].begin(),
+                                      result.attention[i].begin() + prefix_length);
         }
       }
     }

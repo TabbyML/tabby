@@ -103,6 +103,7 @@ namespace ctranslate2 {
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
       decoding_options.return_scores = options.return_scores;
+      decoding_options.return_prefix = false;
       for (const auto& id : _model->config["suppress_ids"])
         decoding_options.disable_ids.push_back(id);
       for (const auto& id : _model->config["suppress_ids_begin"])
@@ -130,9 +131,24 @@ namespace ctranslate2 {
 
       _decoder->update_output_layer(_model->preferred_size_multiple());
 
+      std::vector<std::vector<size_t>> start_tokens = prompts;
+
+      if (start_tokens.size() == 1 && start_tokens[0].size() > 1) {
+        // Initialize the decoder state with the prompt.
+        const size_t last_token = start_tokens[0].back();
+        start_tokens[0].pop_back();
+
+        const StorageView input = layers::make_sequence_inputs(start_tokens, _model->device());
+        (*_decoder)(0, input, state);
+
+        start_tokens = {{last_token}};
+        decoding_options.start_step = input.dim(1);
+        decoding_options.max_length /= 2;
+      }
+
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
-                                                   prompts,
+                                                   start_tokens,
                                                    vocabulary.eos_id(),
                                                    decoding_options);
 

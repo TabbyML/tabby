@@ -356,13 +356,11 @@ def test_transformers_whisper(tmpdir, device, with_timestamps):
     assert len(results[0].sequences_ids) == 2
 
     if with_timestamps:
-        tokens = results[0].sequences[0][len(prompt) - 1 :]
+        tokens = results[0].sequences[0]
         assert tokens[0] == "<|0.00|>"
         assert tokens[-1] == "<|5.44|>"
 
-    transcription = processor.decode(
-        results[0].sequences_ids[0], skip_special_tokens=True
-    )
+    transcription = processor.decode(results[0].sequences_ids[0])
     assert transcription == (
         " Mr. Quilter is the apostle of the middle classes "
         "and we are glad to welcome his gospel."

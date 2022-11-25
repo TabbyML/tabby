@@ -115,6 +115,7 @@ namespace ctranslate2 {
     float repetition_penalty = 1;
     size_t no_repeat_ngram_size = 0;
     float prefix_bias_beta = 0;
+    dim_t start_step = 0;
     size_t max_length = 256;
     size_t min_length = 0;
     size_t sampling_topk = 1;
@@ -123,6 +124,7 @@ namespace ctranslate2 {
     bool return_scores = false;
     bool return_attention = false;
     bool return_alternatives = false;
+    bool return_prefix = true;
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
     std::vector<size_t> disable_ids_begin;
