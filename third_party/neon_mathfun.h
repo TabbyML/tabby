@@ -54,7 +54,7 @@ v4sf log_ps(v4sf x) {
   v4sf one = vdupq_n_f32(1);
   v4sf zero = vdupq_n_f32(0);
 
-  x = vmaxq_f32(x, vdupq_n_f32(-1)); /* force flush to negative on denormal values */
+  x = vmaxq_f32(x, vdupq_n_f32(0)); /* force flush to zero on denormal values */
   v4su zero_mask = vceqq_f32(x, zero);
   v4su invalid_mask = vcltq_f32(x, zero);
 
