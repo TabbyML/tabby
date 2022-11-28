@@ -285,8 +285,9 @@ namespace ctranslate2 {
                                     const StorageView* lengths,
                                     dim_t step,
                                     DecoderState& state,
-                                    StorageView* logits,
-                                    StorageView* attention) {
+                                    StorageView* outputs,
+                                    StorageView* attention,
+                                    bool return_logits) {
       PROFILE("TransformerDecoder");
       const Device device = ids.device();
       const bool is_sequence = ids.rank() > 1;
@@ -403,19 +404,23 @@ namespace ctranslate2 {
           attention->squeeze(1);
       }
 
-      if (logits) {
+      if (outputs) {
         if (_output_norm)
           (*_output_norm)(layer_in, layer_in);
         if (_project_out) {
           (*_project_out)(layer_in, layer_out);
           layer_in = std::move(layer_out);
         }
-        _proj(layer_in, *logits);
+
+        if (return_logits)
+          _proj(layer_in, *outputs);
+        else
+          *outputs = std::move(layer_in);
 
         if (!is_sequence)
-          logits->squeeze(1);
+          outputs->squeeze(1);
         else if (input_padder)
-          input_padder->add_padding(*logits);
+          input_padder->add_padding(*outputs);
       }
     }
 

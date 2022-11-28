@@ -166,13 +166,13 @@ namespace ctranslate2 {
         return _proj;
       }
 
-    private:
       void decode(const StorageView& ids,
                   const StorageView* lengths,
                   dim_t step,
                   DecoderState& state,
-                  StorageView* logits = nullptr,
-                  StorageView* attention = nullptr);
+                  StorageView* outputs = nullptr,
+                  StorageView* attention = nullptr,
+                  bool return_logits = true);
 
       const dim_t _num_heads;
       const ComputeType _compute_type;

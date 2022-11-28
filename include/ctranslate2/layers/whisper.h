@@ -30,5 +30,15 @@ namespace ctranslate2 {
       const LayerNorm _output_norm;
     };
 
+    class WhisperDecoder : public TransformerDecoder {
+    public:
+      using TransformerDecoder::TransformerDecoder;
+
+      void forward_prompt(const StorageView& prompt,
+                          DecoderState& state,
+                          dim_t return_logits_at_index = -1,
+                          StorageView* logits = nullptr);
+    };
+
   }
 }

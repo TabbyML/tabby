@@ -45,5 +45,33 @@ namespace ctranslate2 {
       _output_norm(input, output);
     }
 
+
+    void WhisperDecoder::forward_prompt(const StorageView& prompt,
+                                        DecoderState& state,
+                                        dim_t return_logits_at_index,
+                                        StorageView* logits) {
+      const Device device = prompt.device();
+      const DataType dtype = output_type();
+
+      StorageView outputs(dtype, device);
+      decode(prompt,
+             /*lengths=*/nullptr,
+             /*step=*/0,
+             state,
+             logits ? &outputs : nullptr,
+             /*attention=*/nullptr,
+             /*return_logits=*/false);
+
+      if (logits) {
+        outputs.reshape({-1, outputs.dim(-1)});
+
+        StorageView output_at_index(dtype, device);
+        StorageView gather_index({1}, int32_t(return_logits_at_index), device);
+        ops::Gather()(outputs, gather_index, output_at_index);
+
+        _proj(output_at_index, *logits);
+      }
+    }
+
   }
 }

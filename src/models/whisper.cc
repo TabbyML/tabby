@@ -5,6 +5,8 @@
 #include "ctranslate2/decoding.h"
 #include "ctranslate2/models/model_factory.h"
 
+#include "dispatch.h"
+
 namespace ctranslate2 {
   namespace models {
 
@@ -55,7 +57,7 @@ namespace ctranslate2 {
       : ModelReplica(model)
       , _model(model)
       , _encoder(std::make_unique<layers::WhisperEncoder>(*model, "encoder"))
-      , _decoder(std::make_unique<layers::TransformerDecoder>(*model, "decoder"))
+      , _decoder(std::make_unique<layers::WhisperDecoder>(*model, "decoder"))
     {
     }
 
@@ -72,7 +74,7 @@ namespace ctranslate2 {
       return encoder_output;
     }
 
-    std::vector<GenerationResult>
+    std::vector<WhisperGenerationResult>
     WhisperReplica::generate(const StorageView& features,
                              const std::vector<std::vector<std::string>>& prompts,
                              const WhisperOptions& options) {
@@ -82,7 +84,7 @@ namespace ctranslate2 {
 
     class ApplyTimestampRules;
 
-    std::vector<GenerationResult>
+    std::vector<WhisperGenerationResult>
     WhisperReplica::generate(const StorageView& features,
                              const std::vector<std::vector<size_t>>& prompts,
                              const WhisperOptions& options) {
@@ -132,18 +134,46 @@ namespace ctranslate2 {
       _decoder->update_output_layer(_model->preferred_size_multiple());
 
       std::vector<std::vector<size_t>> start_tokens = prompts;
+      std::vector<float> no_speech_probs;
 
       if (start_tokens.size() == 1 && start_tokens[0].size() > 1) {
         // Initialize the decoder state with the prompt.
-        const size_t last_token = start_tokens[0].back();
-        start_tokens[0].pop_back();
+        auto& prompt = start_tokens[0];
+        const size_t last_token = prompt.back();
+        prompt.pop_back();
 
         const StorageView input = layers::make_sequence_inputs(start_tokens, _model->device());
-        (*_decoder)(0, input, state);
+
+        if (options.return_no_speech_prob) {
+          const auto it = std::find(prompt.begin(), prompt.end(), vocabulary.bos_id());
+          if (it == prompt.end())
+            throw std::invalid_argument("<|startoftranscript|> token was not found in the prompt");
+          const dim_t sot_index = std::distance(prompt.begin(), it);
+
+          const Device device = _decoder->device();
+          const DataType dtype = _decoder->output_type();
+          StorageView probs_at_sot(dtype, device);
+          _decoder->forward_prompt(input, state, sot_index, &probs_at_sot);
+          ops::SoftMax()(probs_at_sot);
+
+          dim_t no_speech_id = vocabulary.to_id("<|nospeech|>");
+          if (size_t(no_speech_id) == vocabulary.unk_id())
+            no_speech_id = vocabulary.to_id("<|nocaptions|>");
+
+          float no_speech_prob = 0;
+          TYPE_DISPATCH(dtype, no_speech_prob = probs_at_sot.scalar_at<T>({0, no_speech_id}));
+          no_speech_probs.push_back(no_speech_prob);
+        } else {
+          _decoder->forward_prompt(input, state);
+        }
 
         start_tokens = {{last_token}};
         decoding_options.start_step = input.dim(1);
         decoding_options.max_length /= 2;
+
+      } else if (options.return_no_speech_prob) {
+        throw std::runtime_error("Returning the no speech probability in batch mode is "
+                                 "currently not supported");
       }
 
       std::vector<DecodingResult> results = decode(*_decoder,
@@ -152,13 +182,19 @@ namespace ctranslate2 {
                                                    vocabulary.eos_id(),
                                                    decoding_options);
 
-      std::vector<GenerationResult> final_results;
+      std::vector<WhisperGenerationResult> final_results;
       final_results.reserve(results.size());
-      for (auto& result : results) {
-        GenerationResult final_result;
+
+      for (size_t i = 0; i < results.size(); ++i) {
+        auto& result = results[i];
+
+        WhisperGenerationResult final_result;
         final_result.sequences = vocabulary.to_tokens(result.hypotheses);
         final_result.sequences_ids = std::move(result.hypotheses);
         final_result.scores = std::move(result.scores);
+        if (options.return_no_speech_prob)
+          final_result.no_speech_prob = no_speech_probs[i];
+
         final_results.emplace_back(std::move(final_result));
       }
 
@@ -230,12 +266,12 @@ namespace ctranslate2 {
     }
 
 
-    std::vector<std::future<GenerationResult>>
+    std::vector<std::future<WhisperGenerationResult>>
     Whisper::generate(StorageView features,
                       std::vector<std::vector<std::string>> prompts,
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
-      return post_batch<GenerationResult>(
+      return post_batch<WhisperGenerationResult>(
         [features = std::move(features), prompts = std::move(prompts), options]
         (WhisperReplica& replica) {
           return replica.generate(features, prompts, options);
@@ -243,12 +279,12 @@ namespace ctranslate2 {
         batch_size);
     }
 
-    std::vector<std::future<GenerationResult>>
+    std::vector<std::future<WhisperGenerationResult>>
     Whisper::generate(StorageView features,
                       std::vector<std::vector<size_t>> prompts,
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
-      return post_batch<GenerationResult>(
+      return post_batch<WhisperGenerationResult>(
         [features = std::move(features), prompts = std::move(prompts), options]
         (WhisperReplica& replica) {
           return replica.generate(features, prompts, options);

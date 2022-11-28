@@ -12,7 +12,8 @@ namespace ctranslate2 {
     public:
       using ReplicaPoolHelper::ReplicaPoolHelper;
 
-      std::variant<std::vector<GenerationResult>, std::vector<AsyncResult<GenerationResult>>>
+      std::variant<std::vector<models::WhisperGenerationResult>,
+                   std::vector<AsyncResult<models::WhisperGenerationResult>>>
       generate(StorageViewWrapper features,
                std::variant<BatchTokens, BatchIds> prompts,
                bool asynchronous,
@@ -23,9 +24,10 @@ namespace ctranslate2 {
                size_t no_repeat_ngram_size,
                size_t max_length,
                bool return_scores,
+               bool return_no_speech_prob,
                size_t sampling_topk,
                float sampling_temperature) {
-        std::vector<std::future<GenerationResult>> futures;
+        std::vector<std::future<models::WhisperGenerationResult>> futures;
 
         models::WhisperOptions options;
         options.beam_size = beam_size;
@@ -37,6 +39,7 @@ namespace ctranslate2 {
         options.max_length = max_length;
         options.num_hypotheses = num_hypotheses;
         options.return_scores = return_scores;
+        options.return_no_speech_prob = return_no_speech_prob;
 
         if (prompts.index() == 0)
           futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts), options);
@@ -60,6 +63,29 @@ namespace ctranslate2 {
 
 
     void register_whisper(py::module& m) {
+      py::class_<models::WhisperGenerationResult>(m, "WhisperGenerationResult",
+                                                  "A generation result from the Whisper model.")
+
+        .def_readonly("sequences", &models::WhisperGenerationResult::sequences,
+                      "Generated sequences of tokens.")
+        .def_readonly("sequences_ids", &models::WhisperGenerationResult::sequences_ids,
+                      "Generated sequences of token IDs.")
+        .def_readonly("scores", &models::WhisperGenerationResult::scores,
+                      "Score of each sequence (empty if :obj:`return_scores` was disabled).")
+        .def_readonly("no_speech_prob", &models::WhisperGenerationResult::no_speech_prob,
+                      "Probability of the no speech token (0 if :obj:`return_no_speech_prob` was disabled).")
+
+        .def("__repr__", [](const models::WhisperGenerationResult& result) {
+          return "WhisperGenerationResult(sequences=" + std::string(py::repr(py::cast(result.sequences)))
+            + ", sequences_ids=" + std::string(py::repr(py::cast(result.sequences_ids)))
+            + ", scores=" + std::string(py::repr(py::cast(result.scores)))
+            + ", no_speech_prob=" + std::string(py::repr(py::cast(result.no_speech_prob)))
+            + ")";
+        })
+        ;
+
+      declare_async_wrapper<models::WhisperGenerationResult>(m, "WhisperGenerationResultAsync");
+
       py::class_<WhisperWrapper>(
         m, "Whisper",
         R"pbdoc(
@@ -107,6 +133,7 @@ namespace ctranslate2 {
              py::arg("no_repeat_ngram_size")=0,
              py::arg("max_length")=448,
              py::arg("return_scores")=false,
+             py::arg("return_no_speech_prob")=false,
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
              py::call_guard<py::gil_scoped_release>(),
@@ -127,6 +154,8 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    max_length: Maximum generation length.
                    return_scores: Include the scores in the output.
+                   return_no_speech_prob: Include the probability of the no speech token in the
+                     result.
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.
 

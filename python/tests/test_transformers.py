@@ -330,9 +330,12 @@ def test_transformers_whisper(tmpdir, device, with_timestamps):
     audio_path = os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy")
     audio = np.load(audio_path)
 
+    # Pad after computing the log-Mel spectrogram to match the openai/whisper behavior.
     processor = transformers.WhisperProcessor.from_pretrained(model_name)
-    inputs = processor(audio, return_tensors="np", sampling_rate=16000)
-    features = ctranslate2.StorageView.from_array(inputs.input_features)
+    inputs = processor(audio, return_tensors="np", padding=False, sampling_rate=16000)
+    features = inputs.input_features
+    features = np.pad(features, [(0, 0), (0, 0), (0, 3000 - features.shape[-1])])
+    features = ctranslate2.StorageView.from_array(features)
 
     model = ctranslate2.models.Whisper(output_dir, device=device)
 
@@ -352,13 +355,21 @@ def test_transformers_whisper(tmpdir, device, with_timestamps):
 
     prompt = processor.tokenizer.convert_tokens_to_ids(prompt)
 
-    results = model.generate(features, [prompt], beam_size=2, num_hypotheses=2)
+    results = model.generate(
+        features,
+        [prompt],
+        beam_size=2,
+        num_hypotheses=2,
+        return_no_speech_prob=True,
+    )
+
     assert len(results[0].sequences_ids) == 2
+    assert results[0].no_speech_prob == pytest.approx(0.002247905358672142, abs=1e-5)
 
     if with_timestamps:
         tokens = results[0].sequences[0]
         assert tokens[0] == "<|0.00|>"
-        assert tokens[-1] == "<|5.44|>"
+        assert tokens[-1] == "<|6.00|>"
 
     transcription = processor.decode(results[0].sequences_ids[0])
     assert transcription == (

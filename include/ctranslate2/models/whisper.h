@@ -37,6 +37,24 @@ namespace ctranslate2 {
 
       // Include scores in the result.
       bool return_scores = false;
+
+      // Include the probability of the no speech token in the result.
+      bool return_no_speech_prob = false;
+    };
+
+    struct WhisperGenerationResult {
+      std::vector<std::vector<std::string>> sequences;
+      std::vector<std::vector<size_t>> sequences_ids;
+      std::vector<float> scores;
+      float no_speech_prob = 0;
+
+      size_t num_sequences() const {
+        return sequences.size();
+      }
+
+      bool has_scores() const {
+        return !scores.empty();
+      }
     };
 
     class WhisperModel : public Model {
@@ -61,12 +79,12 @@ namespace ctranslate2 {
 
       WhisperReplica(const std::shared_ptr<const WhisperModel>& model);
 
-      std::vector<GenerationResult>
+      std::vector<WhisperGenerationResult>
       generate(const StorageView& features,
                const std::vector<std::vector<std::string>>& prompts,
                const WhisperOptions& options);
 
-      std::vector<GenerationResult>
+      std::vector<WhisperGenerationResult>
       generate(const StorageView& features,
                const std::vector<std::vector<size_t>>& prompts,
                const WhisperOptions& options);
@@ -77,7 +95,7 @@ namespace ctranslate2 {
     private:
       const std::shared_ptr<const WhisperModel> _model;
       const std::unique_ptr<layers::WhisperEncoder> _encoder;
-      const std::unique_ptr<layers::Decoder> _decoder;
+      const std::unique_ptr<layers::WhisperDecoder> _decoder;
 
       StorageView encode(const StorageView& features);
     };
@@ -86,12 +104,12 @@ namespace ctranslate2 {
     public:
       using ReplicaPool::ReplicaPool;
 
-      std::vector<std::future<GenerationResult>>
+      std::vector<std::future<WhisperGenerationResult>>
       generate(StorageView features,
                std::vector<std::vector<std::string>> prompts,
                WhisperOptions options = {});
 
-      std::vector<std::future<GenerationResult>>
+      std::vector<std::future<WhisperGenerationResult>>
       generate(StorageView features,
                std::vector<std::vector<size_t>> prompts,
                WhisperOptions options = {});
