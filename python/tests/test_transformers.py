@@ -233,7 +233,7 @@ def test_transformers_lm_scoring(tmpdir):
 
 
 @test_utils.only_on_linux
-@test_utils.test_available_devices
+@test_utils.on_available_devices
 @pytest.mark.parametrize("return_log_probs", [True, False])
 @pytest.mark.parametrize("tensor_input", [True, False])
 def test_transformers_lm_forward(tmpdir, device, return_log_probs, tensor_input):
@@ -317,7 +317,7 @@ def test_transformers_generator_on_iterables(tmpdir):
 
 
 @test_utils.only_on_linux
-@test_utils.test_available_devices
+@test_utils.on_available_devices
 @pytest.mark.parametrize("with_timestamps", [True, False])
 def test_transformers_whisper(tmpdir, device, with_timestamps):
     import transformers
