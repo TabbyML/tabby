@@ -28,6 +28,13 @@ namespace ctranslate2 {
         .def("__len__", &TranslationResult::num_hypotheses)
 
         .def("__getitem__", [](const TranslationResult& result, size_t i) {
+          PyErr_WarnEx(PyExc_DeprecationWarning,
+                       "Reading the TranslationResult object as a list of dictionaries is "
+                       "deprecated and will be removed in a future version. Please use the "
+                       "object attributes as described in the documentation: "
+                       "https://opennmt.net/CTranslate2/python/ctranslate2.TranslationResult.html",
+                       1);
+
           if (i >= result.num_hypotheses())
             throw py::index_error();
           py::dict hypothesis;
