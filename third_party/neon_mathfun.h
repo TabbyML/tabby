@@ -54,9 +54,9 @@ v4sf log_ps(v4sf x) {
   v4sf one = vdupq_n_f32(1);
   v4sf zero = vdupq_n_f32(0);
 
+  v4su invalid_mask = vcltq_f32(x, zero);
   x = vmaxq_f32(x, zero); /* force flush to zero on denormal values */
   v4su zero_mask = vceqq_f32(x, zero);
-  v4su invalid_mask = vcltq_f32(x, zero);
 
   v4si ux = vreinterpretq_s32_f32(x);
 
@@ -118,10 +118,11 @@ v4sf log_ps(v4sf x) {
   tmp = vmulq_f32(e, vdupq_n_f32(c_cephes_log_q2));
   x = vaddq_f32(x, y);
   x = vaddq_f32(x, tmp);
-  x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask)); // negative arg will be NAN
 
   v4sf negative_inf = vdupq_n_f32(-std::numeric_limits<float>::infinity());
   x = vbslq_f32(zero_mask, negative_inf, x); // zero arg will be -inf
+
+  x = vreinterpretq_f32_u32(vorrq_u32(vreinterpretq_u32_f32(x), invalid_mask)); // negative arg will be NAN
 
   return x;
 }

@@ -781,16 +781,17 @@ TEST_P(OpDeviceFPTest, Log) {
   expect_storage_eq(output.to_float(), expected, 1e-3);
 }
 
-TEST_P(OpDeviceFPTest, LogZero) {
+TEST_P(OpDeviceFPTest, LogLimits) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;
 
-  StorageView scalar(0.f, device);
-  scalar = scalar.to(dtype);
-  ops::Log()(scalar, scalar);
+  StorageView values({2}, std::vector<float>{0.f, -1.f}, device);
+  values = values.to(dtype);
+  ops::Log()(values, values);
+  values = values.to_float();
 
-  float value = scalar.to_float().as_scalar<float>();
-  EXPECT_EQ(value, -std::numeric_limits<float>::infinity());
+  EXPECT_EQ(values.scalar_at<float>({0}), -std::numeric_limits<float>::infinity());
+  EXPECT_TRUE(std::isnan(values.scalar_at<float>({1})));
 }
 
 template <typename T, typename Ops, typename Func>
