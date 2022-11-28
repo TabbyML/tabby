@@ -11,7 +11,7 @@ namespace ctranslate2 {
 
     struct WhisperOptions {
       // Beam size to use for beam search (set 1 to run greedy search).
-      size_t beam_size = 1;
+      size_t beam_size = 5;
 
       // Exponential penalty applied to the length during beam search.
       float length_penalty = 1;

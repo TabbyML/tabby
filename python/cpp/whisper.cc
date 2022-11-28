@@ -100,7 +100,7 @@ namespace ctranslate2 {
              py::arg("prompts"),
              py::kw_only(),
              py::arg("asynchronous")=false,
-             py::arg("beam_size")=1,
+             py::arg("beam_size")=5,
              py::arg("num_hypotheses")=1,
              py::arg("length_penalty")=1,
              py::arg("repetition_penalty")=1,
