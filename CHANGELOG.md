@@ -4,6 +4,30 @@
 
 ### Fixes and improvements
 
+## [v3.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.1.0) (2022-11-29)
+
+### Changes
+
+* The input prompt is no longer included in the result of `Whisper.generate` as it is usually not useful in a transcription loop
+* The default beam size in `Whisper.generate` is updated from 1 to 5 to match the default value in [openai/whisper](https://github.com/openai/whisper)
+* Generation options `min_length` and `no_repeat_ngram_size` now penalize the logits instead of the log probs which may change some scores
+* Raise a deprecation warning when reading the `TranslationResult` object as a list of dictionaries
+
+### New features
+
+* Allow configuring the C++ logs from Python with the function `ctranslate2.set_log_level`
+* Implement the timestamp decoding rules when the Whisper prompt does not include the token `<|notimestamps|>`
+* Add option `return_no_speech_prob` to the method `Whisper.generate` for the result to include the probability of the no speech token
+
+### Fixes and improvements
+
+* Improve performance of the Whisper model when generating with a context
+* Fix timestamp tokens in the Whisper vocabulary to use the correct format (`<|X.XX|>`)
+* Fix AVX and NEON log functions to return -inf on log(0) instead of NaN
+* When info logs are enabled, log the system configuration only when the first model is loaded and not immediately when the library is loaded
+* Define a `LogitsProcessor` abstract class to apply arbitrary updates to the logits during decoding
+* Update oneDNN to 2.7.2
+
 ## [v3.0.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.0.2) (2022-11-14)
 
 ### Fixes and improvements
