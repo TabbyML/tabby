@@ -206,7 +206,7 @@ print(output)
 Converting Whisper models requires `transformers>=4.23.0`.
 ```
 
-The example below uses the smallest model with 39M parameters.
+The example below uses the smallest model with 39M parameters. Consider using a [larger model](https://huggingface.co/models?other=whisper) to get better results.
 
 ```bash
 ct2-transformers-converter --model openai/whisper-tiny --output_dir whisper-tiny-ct2
@@ -214,35 +214,42 @@ ct2-transformers-converter --model openai/whisper-tiny --output_dir whisper-tiny
 
 ```python
 import ctranslate2
-import datasets
+import librosa
 import transformers
 
-dataset = datasets.load_dataset(
-    "hf-internal-testing/librispeech_asr_dummy",
-    "clean",
-    split="validation",
-)
+# Load and resample the audio file.
+audio, _ = librosa.load("audio.wav", sr=16000, mono=True)
 
-audio = dataset[0]["audio"]["array"]
-
+# Compute the features of the first 30 seconds of audio.
 processor = transformers.WhisperProcessor.from_pretrained("openai/whisper-tiny")
 inputs = processor(audio, return_tensors="np", sampling_rate=16000)
 features = ctranslate2.StorageView.from_array(inputs.input_features)
 
+# Load the model on CPU.
 model = ctranslate2.models.Whisper("whisper-tiny-ct2")
-results = model.detect_language(features)
-print(results[0])
 
+# Detect the language.
+results = model.detect_language(features)
+language, probability = results[0][0]
+print("Detected language %s with probability %f" % (language, probability))
+
+# Describe the task in the prompt.
+# See the prompt format in https://github.com/openai/whisper.
 prompt = processor.tokenizer.convert_tokens_to_ids(
     [
         "<|startoftranscript|>",
-        "<|en|>",
+        language,
         "<|transcribe|>",
-        "<|notimestamps|>",
+        "<|notimestamps|>",  # Remove this token to generate timestamps.
     ]
 )
 
+# Run generation for the 30-second window.
 results = model.generate(features, [prompt])
-transcription = processor.decode(results[0].sequences_ids[0], skip_special_tokens=True)
+transcription = processor.decode(results[0].sequences_ids[0])
 print(transcription)
+```
+
+```{note}
+This example only transcribes the first 30 seconds of audio. To transcribe longer files, you need to call `generate` on each 30-second window and aggregate the results. See the [reference transcription code](https://github.com/openai/whisper/blob/main/whisper/transcribe.py) for a complete example.
 ```
