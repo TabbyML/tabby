@@ -658,13 +658,56 @@ namespace ctranslate2 {
                        const dim_t min_length,
                        const bool return_scores,
                        const bool return_attention,
-                       const size_t,
+                       const size_t num_hypotheses,
                        const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
+    const dim_t batch_size = start_ids.size();
+
+    // We can return multiple hypotheses from greedy search when random sampling is enabled.
+    // In that case we replicate the batches and then merge the hypotheses in a single result.
+    if (num_hypotheses > 1) {
+      expand_to_beam_size(state, num_hypotheses);
+
+      std::vector<size_t> repeat_start_ids = repeat_vector(start_ids, num_hypotheses);
+      std::vector<std::vector<size_t>> repeat_prefix_ids;
+      if (prefix_ids)
+        repeat_prefix_ids = repeat_vector(*prefix_ids, num_hypotheses);
+
+      std::vector<DecodingResult> results = search(decoder,
+                                                   state,
+                                                   sampler,
+                                                   repeat_start_ids,
+                                                   end_id,
+                                                   start_step,
+                                                   max_length,
+                                                   min_length,
+                                                   /*return_scores=*/true,
+                                                   return_attention,
+                                                   /*num_hypotheses=*/1,
+                                                   logits_processors,
+                                                   prefix_ids ? &repeat_prefix_ids : nullptr);
+
+      std::vector<DecodingResult> final_results(batch_size);
+
+      for (size_t i = 0; i < results.size(); ++i) {
+        auto& result = results[i];
+        auto& final_result = final_results[i / num_hypotheses];
+
+        final_result.hypotheses.emplace_back(std::move(result.hypotheses[0]));
+        final_result.scores.emplace_back(result.scores[0]);
+        if (return_attention)
+          final_result.attention.emplace_back(std::move(result.attention[0]));
+      }
+
+      for (auto& result : final_results)
+        sort_hypotheses(result, num_hypotheses, return_scores, return_attention);
+
+      return final_results;
+    }
+
     PROFILE("greedy_search");
     const Device device = decoder.device();
     const DataType dtype = decoder.output_type();
-    const dim_t batch_size = start_ids.size();
     const bool gather_attention = (return_attention || (return_scores && _coverage_penalty != 0));
 
     StorageView sample_from({batch_size}, DataType::INT32);
@@ -835,7 +878,9 @@ namespace ctranslate2 {
       throw std::invalid_argument("The beam size must be > 0");
     if (options.num_hypotheses == 0)
       throw std::invalid_argument("The number of hypotheses must be > 0");
-    if (options.num_hypotheses > options.beam_size && !options.return_alternatives)
+    if (options.num_hypotheses > options.beam_size
+        && !options.return_alternatives
+        && !(options.beam_size == 1 && options.sampling_topk != 1))
       throw std::invalid_argument("The number of hypotheses cannot be greater than the beam size");
     if (options.min_length > options.max_length)
       throw std::invalid_argument("The minimum decoding length is greater than "

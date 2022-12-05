@@ -45,6 +45,17 @@ namespace ctranslate2 {
     return new_v;
   }
 
+  template <typename T>
+  std::vector<T> repeat_vector(const std::vector<T>& v, size_t repeats) {
+    std::vector<T> new_v;
+    new_v.reserve(v.size() * repeats);
+    for (const T& e : v) {
+      for (size_t i = 0; i < repeats; ++i)
+        new_v.emplace_back(e);
+    }
+    return new_v;
+  }
+
   // Helper function to only run the model on inputs without an immediate result.
   template <typename Result, typename SkipRun, typename GetBatchResults>
   std::vector<Result>

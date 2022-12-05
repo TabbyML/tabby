@@ -143,17 +143,18 @@ The parameter `min_alternative_expansion_prob` can be used to filter out alterna
 
 ## Random sampling
 
-This decoding mode randomly samples tokens from the model output distribution. This strategy is frequently used in back-translation techniques ([Edunov et al. 2018](https://www.aclweb.org/anthology/D18-1045/)). The example below restricts the sampling to the best 10 candidates at each timestep:
+This decoding mode randomly samples tokens from the model output distribution. This strategy is frequently used in back-translation techniques ([Edunov et al. 2018](https://www.aclweb.org/anthology/D18-1045/)). The example below restricts the sampling to the best 10 candidates at each timestep and returns 3 random hypotheses:
 
 ```python
-all_results = [
-    translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
-    translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
-    translator.translate_batch([tokenize(input)], beam_size=1, sampling_topk=10),
-]
+results = translator.translate_batch(
+    [tokenize(input)],
+    beam_size=1,
+    sampling_topk=10,
+    num_hypotheses=3,
+)
 
-for results in all_results:
-    print(detokenize(results[0].hypotheses[0]))
+for hypothesis in results[0].hypotheses:
+    print(detokenize(hypothesis))
 ```
 
 > Dieses Programm ist auf eine effiziente Bedienung von Standard-Übersetzungsmodellen ausgerichtet und ermöglicht gleichzeitig einen Einsatzort für Experimente rund um die Modellkompression oder das Beschleunigen der Schlussfolgerung.

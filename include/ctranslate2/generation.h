@@ -29,8 +29,7 @@ namespace ctranslate2 {
     // High temperature increase randomness.
     float sampling_temperature = 1;
 
-    // Number of hypotheses to include in the result (should be smaller than beam_size unless
-    // return_alternatives is set).
+    // Number of hypotheses to include in the result.
     size_t num_hypotheses = 1;
 
     // Include scores in the result.

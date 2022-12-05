@@ -146,7 +146,7 @@ namespace ctranslate2 {
                    prompts: Batch of initial string tokens or token IDs.
                    asynchronous: Run the model asynchronously.
                    beam_size: Beam size (1 for greedy search).
-                   num_hypotheses: Number of hypotheses to return (must be <= :obj:`beam_size`).
+                   num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens
                      (set > 1 to penalize).

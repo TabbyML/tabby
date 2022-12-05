@@ -45,8 +45,7 @@ namespace ctranslate2 {
     // Allow using the vocabulary map included in the model directory, if it exists.
     bool use_vmap = false;
 
-    // Number of hypotheses to store in the TranslationResult class (should be smaller than
-    // beam_size unless return_alternatives is set).
+    // Number of hypotheses to store in the TranslationResult class.
     size_t num_hypotheses = 1;
 
     // Store scores in the TranslationResult class.

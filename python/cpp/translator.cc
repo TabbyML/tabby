@@ -426,8 +426,7 @@ namespace ctranslate2 {
                    batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                    asynchronous: Run the translation asynchronously.
                    beam_size: Beam size (1 for greedy search).
-                   num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`
-                     unless :obj:`return_alternatives` is set).
+                   num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    coverage_penalty: Coverage penalty weight applied during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens
@@ -498,7 +497,7 @@ namespace ctranslate2 {
                      numbers of "examples" or "tokens".
                    asynchronous: Run the translation asynchronously.
                    beam_size: Beam size (1 for greedy search).
-                   num_hypotheses: Number of hypotheses to return (should be <= :obj:`beam_size`).
+                   num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    coverage_penalty: Coverage penalty weight applied during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens

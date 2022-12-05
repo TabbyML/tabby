@@ -506,9 +506,19 @@ def test_random_sampling():
     ctranslate2.set_random_seed(46)
     translator = _get_transliterator()
     output = translator.translate_batch(
-        [["آ", "ت", "ز", "م", "و", "ن"]], beam_size=1, sampling_topk=0
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        beam_size=1,
+        sampling_topk=0,
+        num_hypotheses=5,
+        return_scores=True,
     )
-    assert output[0].hypotheses[0] == ["a", "t", "z", "m", "u", "n"]
+
+    assert len(output[0].hypotheses) == 5
+    assert output[0].hypotheses[0] == ["a", "t", "z", "u", "m", "u", "n"]
+    assert output[0].hypotheses[1] == ["a", "t", "z", "i", "m", "o", "n"]
+
+    assert len(output[0].scores) == 5
+    assert output[0].scores == list(sorted(output[0].scores, reverse=True))
 
 
 def test_score_api(tmpdir):
