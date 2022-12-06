@@ -144,8 +144,8 @@ sp = spm.SentencePieceProcessor()
 sp.load("mbart50.ft.nn/sentence.bpe.model")
 
 source = sp.encode("UN Chief Says There Is No Military Solution in Syria", out_type=str)
-source = ["en_XX"] + source
-target_prefix = ["ro_RO"]
+source = ["[en_XX]"] + source
+target_prefix = ["[ro_RO]"]
 
 translator = ctranslate2.Translator("mbart50_ct2")
 result = translator.translate_batch([source], target_prefix=[target_prefix])
