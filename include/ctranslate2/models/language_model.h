@@ -95,7 +95,7 @@ namespace ctranslate2 {
       run_generation(const std::vector<std::vector<std::string>>& start_tokens,
                      const GenerationOptions& options) override;
 
-      StorageView forward(const StorageView& ids, const StorageView& lengths);
+      StorageView forward(const StorageView& ids, const StorageView& lengths) override;
 
     private:
       const std::shared_ptr<const LanguageModel> _model;
