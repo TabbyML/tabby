@@ -99,6 +99,22 @@ namespace ctranslate2 {
     const dim_t _ngram_size;
   };
 
+  // Disable the generation of some sequences of tokens.
+  class SuppressSequences : public LogitsProcessor {
+  public:
+    SuppressSequences(std::vector<std::vector<size_t>> sequences);
+    void apply(dim_t step,
+               StorageView& logits,
+               DisableTokens& disable_tokens,
+               const StorageView& sequences,
+               const std::vector<dim_t>& batch_offset,
+               const std::vector<std::vector<size_t>>* prefix) override;
+
+  private:
+    std::vector<size_t> _ids;
+    std::vector<std::vector<size_t>> _sequences;
+  };
+
   // Disable the generation of some tokens.
   class SuppressTokens : public LogitsProcessor {
   public:

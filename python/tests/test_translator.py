@@ -417,6 +417,21 @@ def test_no_repeat_ngram_size_with_vmap(tmpdir, beam_size):
     assert len(ngrams) == len(set(ngrams))
 
 
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_suppress_sequences_with_vmap(tmpdir, beam_size):
+    model_dir = _get_model_path_with_vmap(
+        tmpdir, ["a", "t", "z", "s", "m", "o", "u", "n"]
+    )
+    translator = ctranslate2.Translator(model_dir)
+    output = translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        suppress_sequences=[["o"], ["t", "z", "m"]],
+        beam_size=beam_size,
+        use_vmap=True,
+    )
+    assert output[0].hypotheses[0] == ["a", "t", "z", "u", "m", "u", "n"]
+
+
 def test_num_hypotheses():
     translator = _get_transliterator()
     output = translator.translate_batch(

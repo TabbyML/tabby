@@ -938,6 +938,9 @@ namespace ctranslate2 {
     if (!options.disable_ids_begin.empty())
       processors.emplace_back(std::make_shared<SuppressTokensBegin>(options.disable_ids_begin));
 
+    if (!options.disable_sequences.empty())
+      processors.emplace_back(std::make_shared<SuppressSequences>(options.disable_sequences));
+
     for (const auto& processor : options.logits_processors)
       processors.emplace_back(processor);
 
@@ -1122,6 +1125,8 @@ namespace ctranslate2 {
       end_id = decoder.to_output_word_id(end_id);
 
       for (auto& ids : start_tokens)
+        ids = map_to_output_word_ids(decoder, ids);
+      for (auto& ids : options.disable_sequences)
         ids = map_to_output_word_ids(decoder, ids);
 
       options.disable_ids = map_to_output_word_ids(decoder, options.disable_ids);

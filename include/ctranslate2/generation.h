@@ -19,6 +19,8 @@ namespace ctranslate2 {
     size_t no_repeat_ngram_size = 0;
     // Disable the generation of the unknown token.
     bool disable_unk = false;
+    // Disable the generation of some sequences of tokens.
+    std::vector<std::vector<std::string>> suppress_sequences;
 
     // Length constraints.
     size_t max_length = 512;

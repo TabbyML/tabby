@@ -90,6 +90,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<size_t>()->default_value("0"))
     ("disable_unk", "Disable the generation of the unknown token",
      cxxopts::value<bool>()->default_value("false"))
+    ("suppress_sequences", "Disable the generation of some sequences of tokens (sequences are delimited with a comma and tokens with an escaped space)",
+     cxxopts::value<std::vector<std::string>>()->default_value(""))
     ("prefix_bias_beta", "Parameter for biasing translations towards given prefix",
      cxxopts::value<float>()->default_value("0"))
     ("max_decoding_length", "Maximum sentence length to generate.",
@@ -195,6 +197,13 @@ int main(int argc, char* argv[]) {
     options.use_vmap = args["use_vmap"].as<bool>();
     options.return_scores = args["with_score"].as<bool>();
     options.replace_unknowns = args["replace_unknowns"].as<bool>();
+
+    for (const auto& sequence : args["suppress_sequences"].as<std::vector<std::string>>()) {
+      if (sequence.empty())
+        continue;
+      options.suppress_sequences.emplace_back(ctranslate2::split_tokens(sequence));
+    }
+
     stats = translator_pool.translate_text_file(*source,
                                                 *output,
                                                 options,

@@ -317,6 +317,23 @@ def test_transformers_generator_on_iterables(tmpdir):
 
 
 @test_utils.only_on_linux
+def test_transformers_generator_suppress_sequences(tmpdir):
+    converter = ctranslate2.converters.TransformersConverter("gpt2")
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+    generator = ctranslate2.Generator(output_dir)
+
+    output = generator.generate_batch(
+        [["<|endoftext|>"]],
+        max_length=10,
+        suppress_sequences=[["Ġfirst", "Ġtime"]],
+    )
+
+    expected_tokens = "Ċ The Ġfirst Ġof Ġthe Ġthree Ġnew Ġseries Ġof Ġthe".split()
+    assert output[0].sequences[0] == expected_tokens
+
+
+@test_utils.only_on_linux
 @test_utils.on_available_devices
 @pytest.mark.parametrize("with_timestamps", [True, False])
 def test_transformers_whisper(tmpdir, device, with_timestamps):

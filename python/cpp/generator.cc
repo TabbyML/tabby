@@ -24,6 +24,7 @@ namespace ctranslate2 {
                      float repetition_penalty,
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
+                     const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
                      size_t max_length,
                      size_t min_length,
                      bool return_scores,
@@ -49,6 +50,8 @@ namespace ctranslate2 {
         options.return_scores = return_scores;
         options.return_alternatives = return_alternatives;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
+        if (suppress_sequences)
+          options.suppress_sequences = suppress_sequences.value();
 
         auto futures = _pool->generate_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
@@ -157,6 +160,7 @@ namespace ctranslate2 {
              py::arg("repetition_penalty")=1,
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
+             py::arg("suppress_sequences")=py::none(),
              py::arg("max_length")=512,
              py::arg("min_length")=0,
              py::arg("return_scores")=false,
@@ -185,6 +189,7 @@ namespace ctranslate2 {
                    no_repeat_ngram_size: Prevent repetitions of ngrams with this size
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
+                   suppress_sequences: Disable the generation of some sequences of tokens.
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
                    return_scores: Include the scores in the output.

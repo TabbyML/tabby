@@ -353,6 +353,7 @@ namespace ctranslate2 {
       decoding_options.return_attention = options.return_attention || options.replace_unknowns;
       decoding_options.return_alternatives = options.return_alternatives;
       decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
+      decoding_options.disable_sequences = target_vocabulary.to_ids(options.suppress_sequences);
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(target_vocabulary.unk_id());
 

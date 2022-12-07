@@ -128,6 +128,7 @@ namespace ctranslate2 {
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
     std::vector<size_t> disable_ids_begin;
+    std::vector<std::vector<size_t>> disable_sequences;
     std::vector<std::shared_ptr<LogitsProcessor>> logits_processors;
   };
 

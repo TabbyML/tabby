@@ -241,6 +241,18 @@ TEST_P(SearchVariantTest, TranslateBatch) {
   EXPECT_EQ(result[1].output(), expected[1]);
 }
 
+TEST_P(SearchVariantTest, SuppressSequences) {
+  const auto beam_size = GetParam();
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.suppress_sequences = {{"o"}, {"t", "z", "m"}};
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  std::vector<std::string> expected = {"a", "t", "z", "u", "m", "u", "n"};
+  auto result = translator.translate_batch({input}, options)[0];
+  EXPECT_EQ(result.output(), expected);
+}
+
 TEST_P(SearchVariantTest, ReplaceUnknowns) {
   const auto beam_size = GetParam();
   Translator translator = default_translator();

@@ -105,6 +105,54 @@ namespace ctranslate2 {
   }
 
 
+  SuppressSequences::SuppressSequences(std::vector<std::vector<size_t>> sequences) {
+    for (auto& sequence : sequences) {
+      if (sequence.empty())
+        continue;
+      if (sequence.size() == 1)  // Single tokens are always suppressed.
+        _ids.emplace_back(sequence[0]);
+      else
+        _sequences.emplace_back(std::move(sequence));
+    }
+  }
+
+  void SuppressSequences::apply(dim_t,
+                                StorageView&,
+                                DisableTokens& disable_tokens,
+                                const StorageView& sequences,
+                                const std::vector<dim_t>&,
+                                const std::vector<std::vector<size_t>>*) {
+    for (const auto token_id : _ids)
+      disable_tokens.add(token_id);
+
+    if (!sequences)
+      return;
+
+    const dim_t batch_size = sequences.dim(0);
+    const dim_t length = sequences.dim(1);
+
+    for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
+      const auto* begin = sequences.index<int32_t>({batch_id, 0});
+      const auto* end = begin + length;
+
+      for (const auto& banned_sequence : _sequences) {
+        const dim_t compare_length = banned_sequence.size() - 1;
+
+        if (length < compare_length)
+          continue;
+
+        const bool disable_last = std::equal(end - compare_length,
+                                             end,
+                                             banned_sequence.begin(),
+                                             banned_sequence.begin() + compare_length);
+
+        if (disable_last)
+          disable_tokens.add(batch_id, banned_sequence.back());
+      }
+    }
+  }
+
+
   SuppressTokens::SuppressTokens(std::vector<size_t> ids)
     : _ids(std::move(ids))
   {
