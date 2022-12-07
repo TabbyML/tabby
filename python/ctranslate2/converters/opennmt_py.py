@@ -70,7 +70,7 @@ def _get_model_spec_seq2seq(
 
     num_heads = getattr(opt, "heads", 8)
 
-    model_spec = transformer_spec.TransformerSpec(
+    model_spec = transformer_spec.TransformerSpec.from_config(
         (opt.enc_layers, opt.dec_layers),
         num_heads,
         with_relative_position=with_relative_position,
@@ -96,7 +96,7 @@ def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embedd
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     num_heads = getattr(opt, "heads", 8)
 
-    model_spec = transformer_spec.TransformerDecoderModelSpec(
+    model_spec = transformer_spec.TransformerDecoderModelSpec.from_config(
         opt.dec_layers,
         num_heads,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],

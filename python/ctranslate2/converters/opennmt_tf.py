@@ -169,7 +169,7 @@ class TransformerSpecBuilder:
 
         check.validate()
 
-        spec = transformer_spec.TransformerSpec(
+        spec = transformer_spec.TransformerSpec.from_config(
             (len(model.encoder.layers), len(model.decoder.layers)),
             mha.num_heads,
             with_relative_position=with_relative_position,
@@ -329,7 +329,7 @@ class TransformerDecoderSpecBuilder(TransformerSpecBuilder):
         )
         check.validate()
 
-        spec = transformer_spec.TransformerDecoderModelSpec(
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             len(model.decoder.layers),
             mha.num_heads,
             pre_norm=model.decoder.layer_norm is not None,

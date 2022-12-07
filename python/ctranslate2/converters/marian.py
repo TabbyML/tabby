@@ -92,7 +92,7 @@ class MarianConverter(Converter):
         alignment_layer = -1 if alignment_layer == "last" else int(alignment_layer) - 1
         layernorm_embedding = "n" in postprocess_emb
 
-        model_spec = transformer_spec.TransformerSpec(
+        model_spec = transformer_spec.TransformerSpec.from_config(
             (config["enc-depth"], config["dec-depth"]),
             config["transformer-heads"],
             pre_norm=pre_norm,

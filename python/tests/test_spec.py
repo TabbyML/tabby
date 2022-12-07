@@ -158,7 +158,7 @@ def test_fp16_weights(
 
 
 def test_index_spec():
-    spec = ctranslate2.specs.TransformerSpec(6, 8)
+    spec = ctranslate2.specs.TransformerSpec.from_config(6, 8)
     assert isinstance(
         index_spec(spec, "encoder/layer_5"),
         transformer_spec.TransformerEncoderLayerSpec,

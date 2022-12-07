@@ -63,7 +63,7 @@ def _get_model_spec(args):
         )
         check.validate()
 
-        return transformer_spec.TransformerDecoderModelSpec(
+        return transformer_spec.TransformerDecoderModelSpec.from_config(
             args.decoder_layers,
             args.decoder_attention_heads,
             pre_norm=args.decoder_normalize_before,
@@ -86,7 +86,7 @@ def _get_model_spec(args):
         )
         check.validate()
 
-        return transformer_spec.TransformerSpec(
+        return transformer_spec.TransformerSpec.from_config(
             (args.encoder_layers, args.decoder_layers),
             args.encoder_attention_heads,
             pre_norm=args.encoder_normalize_before,

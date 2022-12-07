@@ -134,7 +134,7 @@ class BartLoader(ModelLoader):
         return "BartForConditionalGeneration"
 
     def get_model_spec(self, model):
-        spec = transformer_spec.TransformerSpec(
+        spec = transformer_spec.TransformerSpec.from_config(
             model.config.encoder_layers,
             model.config.encoder_attention_heads,
             pre_norm=model.config.normalize_before,
@@ -371,7 +371,7 @@ class OPTLoader(BartLoader):
         return "OPTForCausalLM"
 
     def get_model_spec(self, model):
-        spec = transformer_spec.TransformerDecoderModelSpec(
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             model.config.num_hidden_layers,
             model.config.num_attention_heads,
             pre_norm=model.config.do_layer_norm_before,
@@ -426,7 +426,7 @@ class GPT2Loader(ModelLoader):
         return "GPT2LMHeadModel"
 
     def get_model_spec(self, model):
-        spec = transformer_spec.TransformerDecoderModelSpec(
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             model.config.n_layer,
             model.config.n_head,
             pre_norm=True,

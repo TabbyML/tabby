@@ -35,7 +35,7 @@ class OpenAIGPT2Converter(Converter):
                 for token, index in sorted(vocab.items(), key=lambda item: item[1])
             ]
 
-        spec = transformer_spec.TransformerDecoderModelSpec(
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             hparams["n_layer"],
             hparams["n_head"],
             pre_norm=True,
