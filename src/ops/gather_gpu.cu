@@ -11,44 +11,31 @@
 namespace ctranslate2 {
   namespace ops {
 
-    // Functor mapping output index to data index for Gather(axis=0, batch_dims=0).
+    // Functor mapping output index to data index when axis == batch_dims.
     template <typename T>
     class batch_gather_index_map {
     private:
-      const int32_t* _offsets;
-      const T _stride;
+      const int32_t* _indices;
+      const T _num_indices_per_batch;
+      const T _batch_stride;
+      const T _axis_stride;
     public:
-      batch_gather_index_map(const int32_t* offsets, const T stride)
-        : _offsets(offsets)
-        , _stride(stride) {
+      batch_gather_index_map(const int32_t* indices,
+                             const T num_indices_per_batch,
+                             const T batch_stride,
+                             const T axis_stride)
+        : _indices(indices)
+        , _num_indices_per_batch(num_indices_per_batch)
+        , _batch_stride(batch_stride)
+        , _axis_stride(axis_stride)
+      {
       }
       __device__
       T operator()(const T i) const {
-        const T row = i / _stride;
-        const T col = i % _stride;
-        return _offsets[row] * _stride + col;
-      }
-    };
-
-    // Functor mapping output index to data index for Gather(axis=rank - 1, batch_dims=rank - 1).
-    template <typename T>
-    class depth_gather_index_map {
-    private:
-      const int32_t* _offsets;
-      const T _depth;
-      const T _gather_size;
-    public:
-      depth_gather_index_map(const int32_t* offsets,
-                             const T depth,
-                             const T gather_size)
-        : _offsets(offsets)
-        , _depth(depth)
-        , _gather_size(gather_size) {
-      }
-      __device__
-      T operator()(const T i) const {
-        const T row = i / _gather_size;
-        return row * _depth + _offsets[i];
+        const T inner_index = i % _axis_stride;
+        const T outer_index = i / _axis_stride;
+        const T batch_index = outer_index / _num_indices_per_batch;
+        return batch_index * _batch_stride + _indices[outer_index] * _axis_stride + inner_index;
       }
     };
 
@@ -73,29 +60,33 @@ namespace ctranslate2 {
       const T* src = data.data<T>();
       T* dst = output.data<T>();
 
-      if (axis == 0 && batch_dims == 0) {
-        const dim_t gather_size = data.stride(0);
+      if (axis == batch_dims) {
+        const dim_t batch_stride = axis > 0 ? data.stride(axis - 1) : data.size();
+        const dim_t batch_size = data.size() / batch_stride;
+        const dim_t num_indices_per_batch = input.size() / batch_size;
+        const dim_t gather_size = data.stride(axis);
         const dim_t gather_bytes = gather_size * sizeof (T);
-        const dim_t dst_bytes = dst_size * sizeof (T);
+
         if (gather_bytes % sizeof (uint4) == 0) {
-          run_gather(batch_gather_index_map<cuda::index_t>(indices, gather_bytes / sizeof (uint4)),
+          const dim_t dst_bytes = dst_size * sizeof (T);
+          const dim_t batch_stride_bytes = batch_stride * sizeof (T);
+          run_gather(batch_gather_index_map<cuda::index_t>(indices,
+                                                           num_indices_per_batch,
+                                                           batch_stride_bytes / sizeof (uint4),
+                                                           gather_bytes / sizeof (uint4)),
                      reinterpret_cast<const uint4*>(src),
                      reinterpret_cast<uint4*>(dst),
                      dst_bytes / sizeof (uint4));
         } else {
-          run_gather(batch_gather_index_map<cuda::index_t>(indices, gather_size),
+          run_gather(batch_gather_index_map<cuda::index_t>(indices,
+                                                           num_indices_per_batch,
+                                                           batch_stride,
+                                                           gather_size),
                      src, dst, dst_size);
         }
 
-      } else if (axis == data.rank() - 1 && batch_dims == data.rank() - 1) {
-        const dim_t depth = data.dim(-1);
-        const dim_t batch_size = data.size() / depth;
-        const dim_t gather_size = input.size() / batch_size;  // Num. elements to gather per batch.
-        run_gather(depth_gather_index_map<cuda::index_t>(indices, depth, gather_size),
-                   src, dst, dst_size);
-
       } else {
-        throw std::invalid_argument("unsupported gather configuration");
+        throw std::invalid_argument("Gather only supports indexing the first non batch dimension");
       }
     }
 

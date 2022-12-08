@@ -416,6 +416,16 @@ TEST_P(OpDeviceTest, GatherInDepthWith2DInput) {
   expect_storage_eq(output, expected);
 }
 
+TEST_P(OpDeviceTest, GatherInTime) {
+  Device device = GetParam();
+  StorageView data({2, 3, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, device);
+  StorageView ids({2, 2}, std::vector<int32_t>{1, 1, 2, 0}, device);
+  StorageView expected({2, 2, 2}, std::vector<float>{3, 4, 3, 4, 11, 12, 7, 8}, device);
+  StorageView output(device);
+  ops::Gather(1, 1)(data, ids, output);
+  expect_storage_eq(output, expected);
+}
+
 TEST_P(OpDeviceTest, Transpose2D) {
   Device device = GetParam();
   StorageView x({4, 2}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
