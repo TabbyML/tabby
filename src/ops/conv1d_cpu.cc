@@ -2,7 +2,6 @@
 
 #ifdef CT2_WITH_DNNL
 #  include <dnnl.hpp>
-#endif
 
 namespace ctranslate2 {
   namespace ops {
@@ -12,15 +11,6 @@ namespace ctranslate2 {
                                              const StorageView& weight,
                                              const StorageView* bias,
                                              StorageView& output) const {
-#ifndef CT2_WITH_DNNL
-      (void)input;
-      (void)weight;
-      (void)bias;
-      (void)output;
-      throw std::runtime_error("Conv1D on CPU currently requires the oneDNN library (a.k.a. DNNL) "
-                               "which is not integrated in this build");
-
-#else
       dnnl::engine engine(dnnl::engine::kind::cpu, 0);
       dnnl::stream engine_stream(engine);
 
@@ -116,8 +106,107 @@ namespace ctranslate2 {
       }
 
       engine_stream.wait();
-#endif
     }
 
   }
 }
+
+#else
+
+#  ifdef CT2_WITH_MKL
+#    include <mkl.h>
+#  elif CT2_WITH_ACCELERATE
+#    include <Accelerate/Accelerate.h>
+#  elif CT2_WITH_OPENBLAS
+#     include <cblas.h>
+#  endif
+
+#  include "ctranslate2/ops/transpose.h"
+#  include "cpu/parallel.h"
+
+namespace ctranslate2 {
+  namespace ops {
+
+    static void conv1d_kernel(const float* input,
+                              const float* weight,
+                              const float* bias,
+                              float* output,
+                              dim_t batch_size,
+                              dim_t input_length,
+                              dim_t output_length,
+                              dim_t in_channels,
+                              dim_t out_channels,
+                              dim_t kernel_size,
+                              dim_t stride,
+                              dim_t padding) {
+      cpu::parallel_for(0, batch_size * out_channels, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const dim_t b = i / out_channels;
+          const dim_t c_out = i % out_channels;
+
+          const float* filter = weight + (c_out * in_channels * kernel_size);
+          const float* x = input + b * (in_channels * input_length);
+          float* y = output + b * (out_channels * output_length);
+
+          for (dim_t t_out = 0; t_out < output_length; ++t_out) {
+            const dim_t t_in = t_out * stride - padding;
+
+            const dim_t window_offset = std::clamp(t_in, dim_t(0), input_length);
+            const dim_t window_end = std::clamp(t_in + kernel_size, dim_t(0), input_length);
+            const dim_t window_size = window_end - window_offset;
+            const dim_t filter_offset = window_offset - t_in;
+
+            const float* window = x + (window_offset * in_channels);
+            const float* kernel = filter + (filter_offset * in_channels);
+
+            float value = cblas_sdot(window_size * in_channels, window, 1, kernel, 1);
+
+            if (bias)
+              value += bias[c_out];
+
+            y[c_out * output_length + t_out] = value;
+          }
+        }
+      });
+    }
+
+    template<>
+    void Conv1D::compute<Device::CPU, float>(const StorageView& input,
+                                             const StorageView& weight,
+                                             const StorageView* bias,
+                                             StorageView& output) const {
+      if (_dilation != 1)
+        throw std::runtime_error("Dilation is not supported in this Conv1D implementation");
+
+      const dim_t batch_size = input.dim(0);
+      const dim_t in_channels = input.dim(1);
+      const dim_t input_length = input.dim(2);
+      const dim_t output_length = output.dim(2);
+      const dim_t out_channels = weight.dim(0);
+      const dim_t kernel_size = weight.dim(2);
+
+      // Transpose input and weight to apply the kernel with a single contiguous dot.
+      const Transpose transpose_op({0, 2, 1});
+      StorageView input_t;
+      StorageView weight_t;
+      transpose_op(input, input_t);
+      transpose_op(weight, weight_t);
+
+      conv1d_kernel(input_t.data<float>(),
+                    weight_t.data<float>(),
+                    bias ? bias->data<float>() : nullptr,
+                    output.data<float>(),
+                    batch_size,
+                    input_length,
+                    output_length,
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    _stride,
+                    _padding);
+    }
+
+  }
+}
+
+#endif
