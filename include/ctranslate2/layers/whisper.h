@@ -36,8 +36,11 @@ namespace ctranslate2 {
 
       void forward_prompt(const StorageView& prompt,
                           DecoderState& state,
-                          dim_t return_logits_at_index = -1,
-                          StorageView* logits = nullptr);
+                          StorageView* outputs = nullptr);
+
+      void compute_logits_for_steps(const StorageView& outputs,
+                                    const StorageView& steps,
+                                    StorageView& logits);
     };
 
   }

@@ -335,8 +335,82 @@ def test_transformers_generator_suppress_sequences(tmpdir):
 
 @test_utils.only_on_linux
 @test_utils.on_available_devices
-@pytest.mark.parametrize("with_timestamps", [True, False])
-def test_transformers_whisper(tmpdir, device, with_timestamps):
+@pytest.mark.parametrize(
+    "prompts,expected_transcriptions,expected_no_speech_probs",
+    [
+        (
+            [
+                [
+                    "<|startoftranscript|>",
+                    "<|en|>",
+                    "<|transcribe|>",
+                    "<|notimestamps|>",
+                ],
+                [
+                    "<|startoftranscript|>",
+                    "<|en|>",
+                    "<|transcribe|>",
+                    "<|notimestamps|>",
+                ],
+            ],
+            [
+                " Mr. Quilter is the apostle of the middle classes and we are glad"
+                " to welcome his gospel.",
+                " And so my fellow Americans ask not what your country can do for you,"
+                " ask what you can do for your country.",
+            ],
+            [
+                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.06885894387960434, abs=1e-3),
+            ],
+        ),
+        (
+            [
+                ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
+                ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
+            ],
+            [
+                " Mr. Quilter is the apostle of the middle classes and we are glad"
+                " to welcome his gospel.",
+                " And so, my fellow Americans, ask not what your country can do for you,"
+                " ask what you can do for your country.",
+            ],
+            [
+                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.06885894387960434, abs=1e-3),
+            ],
+        ),
+        (
+            [
+                [
+                    "<|startoftranscript|>",
+                    "<|en|>",
+                    "<|transcribe|>",
+                    "<|notimestamps|>",
+                ],
+                [
+                    "<|startofprev|>",
+                    "<|startoftranscript|>",
+                    "<|en|>",
+                    "<|transcribe|>",
+                ],
+            ],
+            [
+                " Mr. Quilter is the apostle of the middle classes and we are glad"
+                " to welcome his gospel.",
+                " And so my fellow Americans ask not what your country can do for you,"
+                " ask what you can do for your country.",
+            ],
+            [
+                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.06885894387960434, abs=1e-2),
+            ],
+        ),
+    ],
+)
+def test_transformers_whisper(
+    tmpdir, device, prompts, expected_transcriptions, expected_no_speech_probs
+):
     import transformers
 
     model_name = "openai/whisper-tiny"
@@ -344,52 +418,54 @@ def test_transformers_whisper(tmpdir, device, with_timestamps):
     output_dir = str(tmpdir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
-    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy")
-    audio = np.load(audio_path)
+    audio_paths = [
+        os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy"),
+        os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy"),
+    ]
+    audio = list(map(np.load, audio_paths))
 
-    # Pad after computing the log-Mel spectrogram to match the openai/whisper behavior.
     processor = transformers.WhisperProcessor.from_pretrained(model_name)
-    inputs = processor(audio, return_tensors="np", padding=False, sampling_rate=16000)
-    features = inputs.input_features
-    features = np.pad(features, [(0, 0), (0, 0), (0, 3000 - features.shape[-1])])
+
+    def _get_features(audio):
+        # Pad after computing the log-Mel spectrogram to match the openai/whisper behavior.
+        inputs = processor(audio, padding=False, sampling_rate=16000)
+        features = inputs.input_features[0]
+        features = np.pad(features, [(0, 0), (0, 3000 - features.shape[-1])])
+        return features
+
+    features = np.stack(list(map(_get_features, audio)))
     features = ctranslate2.StorageView.from_array(features)
 
     model = ctranslate2.models.Whisper(output_dir, device=device)
 
-    results = model.detect_language(features)
-    best_lang, best_prob = results[0][0]
-    assert best_lang == "<|en|>"
-    assert best_prob > 0.9
-
-    prompt = [
-        "<|startoftranscript|>",
-        "<|en|>",
-        "<|transcribe|>",
-    ]
-
-    if not with_timestamps:
-        prompt.append("<|notimestamps|>")
-
-    prompt = processor.tokenizer.convert_tokens_to_ids(prompt)
+    for result in model.detect_language(features):
+        best_lang, best_prob = result[0]
+        assert best_lang == "<|en|>"
+        assert best_prob > 0.9
 
     results = model.generate(
         features,
-        [prompt],
+        prompts,
         beam_size=2,
         num_hypotheses=2,
         return_no_speech_prob=True,
     )
 
-    assert len(results[0].sequences_ids) == 2
-    assert results[0].no_speech_prob == pytest.approx(0.002247905358672142, abs=1e-5)
+    timestamp_begin = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>") + 1
 
-    if with_timestamps:
-        tokens = results[0].sequences[0]
-        assert tokens[0] == "<|0.00|>"
-        assert tokens[-1] == "<|6.00|>"
+    for prompt, result, expected_transcription, expected_no_speech_prob in zip(
+        prompts, results, expected_transcriptions, expected_no_speech_probs
+    ):
+        assert len(result.sequences_ids) == 2
+        assert result.no_speech_prob == expected_no_speech_prob
 
-    transcription = processor.decode(results[0].sequences_ids[0])
-    assert transcription == (
-        " Mr. Quilter is the apostle of the middle classes "
-        "and we are glad to welcome his gospel."
-    )
+        for tokens in result.sequences_ids:
+            if "<|notimestamps|>" in prompt:
+                assert all(token < timestamp_begin for token in tokens)
+            else:
+                assert tokens[0] >= timestamp_begin
+                assert tokens[-1] >= timestamp_begin
+                assert tokens[-1] > tokens[0]
+
+        transcription = processor.decode(result.sequences_ids[0])
+        assert transcription == expected_transcription

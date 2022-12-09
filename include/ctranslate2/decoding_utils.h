@@ -57,15 +57,18 @@ namespace ctranslate2 {
                        const std::vector<std::vector<size_t>>* prefix) = 0;
 
   protected:
+    dim_t get_batch_index(const dim_t batch_size,
+                          const dim_t batch_id,
+                          const std::vector<dim_t>& batch_offset) const {
+      const auto beam_size = batch_size / batch_offset.size();
+      return batch_offset[batch_id / beam_size];
+    }
+
     dim_t get_sample_begin(const dim_t batch_size,
                            const dim_t batch_id,
                            const std::vector<dim_t>& batch_offset,
                            const std::vector<std::vector<size_t>>* prefix) const {
-      if (!prefix)
-        return 0;
-      const auto beam_size = batch_size / batch_offset.size();
-      const auto& prefix_tokens = prefix->at(batch_offset[batch_id / beam_size]);
-      return prefix_tokens.size();
+      return prefix ? prefix->at(get_batch_index(batch_size, batch_id, batch_offset)).size() : 0;
     }
   };
 
