@@ -32,6 +32,9 @@ namespace ctranslate2 {
     // hard-prefix rather than a soft, biased-prefix.
     float prefix_bias_beta = 0;
 
+    // Stop the decoding on this token (defaults to the model EOS token).
+    std::string end_token;
+
     // Truncate the inputs after this many tokens (set 0 to disable truncation).
     size_t max_input_length = 1024;
 

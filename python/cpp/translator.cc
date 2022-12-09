@@ -69,6 +69,7 @@ namespace ctranslate2 {
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
                      const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
+                     const std::optional<std::string>& end_token,
                      float prefix_bias_beta,
                      size_t max_input_length,
                      size_t max_decoding_length,
@@ -107,6 +108,8 @@ namespace ctranslate2 {
         options.replace_unknowns = replace_unknowns;
         if (suppress_sequences)
           options.suppress_sequences = suppress_sequences.value();
+        if (end_token)
+          options.end_token = end_token.value();
 
         std::shared_lock lock(_mutex);
         assert_model_is_ready();
@@ -150,6 +153,7 @@ namespace ctranslate2 {
                       size_t no_repeat_ngram_size,
                       bool disable_unk,
                       const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
+                      const std::optional<std::string>& end_token,
                       float prefix_bias_beta,
                       size_t max_input_length,
                       size_t max_decoding_length,
@@ -188,6 +192,8 @@ namespace ctranslate2 {
         options.replace_unknowns = replace_unknowns;
         if (suppress_sequences)
           options.suppress_sequences = suppress_sequences.value();
+        if (end_token)
+          options.end_token = end_token.value();
 
         std::shared_lock lock(_mutex);
         assert_model_is_ready();
@@ -407,6 +413,7 @@ namespace ctranslate2 {
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
              py::arg("suppress_sequences")=py::none(),
+             py::arg("end_token")=py::none(),
              py::arg("prefix_bias_beta")=0,
              py::arg("max_input_length")=1024,
              py::arg("max_decoding_length")=256,
@@ -442,6 +449,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
+                   end_token: Stop the decoding on this token (defaults to the model EOS token).
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.
@@ -478,6 +486,7 @@ namespace ctranslate2 {
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
              py::arg("suppress_sequences")=py::none(),
+             py::arg("end_token")=py::none(),
              py::arg("prefix_bias_beta")=0,
              py::arg("max_input_length")=1024,
              py::arg("max_decoding_length")=256,
@@ -515,6 +524,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
+                   end_token: Stop the decoding on this token (defaults to the model EOS token).
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.

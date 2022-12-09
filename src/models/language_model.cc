@@ -144,12 +144,16 @@ namespace ctranslate2 {
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(vocabulary.unk_id());
 
+
       const auto start_ids = vocabulary.to_ids(start_tokens);
+      const auto end_id = (options.end_token.empty()
+                           ? vocabulary.eos_id()
+                           : vocabulary.to_id(options.end_token));
       layers::DecoderState state = _decoder->initial_state();
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    start_ids,
-                                                   vocabulary.eos_id(),
+                                                   end_id,
                                                    decoding_options);
 
       std::vector<GenerationResult> final_results;

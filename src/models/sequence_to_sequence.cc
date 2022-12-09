@@ -357,10 +357,14 @@ namespace ctranslate2 {
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(target_vocabulary.unk_id());
 
+      const auto end_id = (options.end_token.empty()
+                           ? target_vocabulary.eos_id()
+                           : target_vocabulary.to_id(options.end_token));
+
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    target_ids,
-                                                   target_vocabulary.eos_id(),
+                                                   end_id,
                                                    decoding_options);
 
       // Convert generated ids to tokens.

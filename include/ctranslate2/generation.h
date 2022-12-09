@@ -22,6 +22,9 @@ namespace ctranslate2 {
     // Disable the generation of some sequences of tokens.
     std::vector<std::vector<std::string>> suppress_sequences;
 
+    // Stop the decoding on this token (defaults to the model EOS token).
+    std::string end_token;
+
     // Length constraints.
     size_t max_length = 512;
     size_t min_length = 0;

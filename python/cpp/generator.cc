@@ -25,6 +25,7 @@ namespace ctranslate2 {
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
                      const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
+                     const std::optional<std::string>& end_token,
                      size_t max_length,
                      size_t min_length,
                      bool return_scores,
@@ -52,6 +53,8 @@ namespace ctranslate2 {
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
         if (suppress_sequences)
           options.suppress_sequences = suppress_sequences.value();
+        if (end_token)
+          options.end_token = end_token.value();
 
         auto futures = _pool->generate_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
@@ -161,6 +164,7 @@ namespace ctranslate2 {
              py::arg("no_repeat_ngram_size")=0,
              py::arg("disable_unk")=false,
              py::arg("suppress_sequences")=py::none(),
+             py::arg("end_token")=py::none(),
              py::arg("max_length")=512,
              py::arg("min_length")=0,
              py::arg("return_scores")=false,
@@ -190,6 +194,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
+                   end_token: Stop the decoding on this token (defaults to the model EOS token).
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
                    return_scores: Include the scores in the output.
