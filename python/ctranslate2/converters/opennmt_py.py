@@ -156,8 +156,12 @@ class OpenNMTPyConverter(Converter):
         check_opt(checkpoint["opt"], num_source_embeddings=len(src_vocabs))
 
         variables = checkpoint["model"]
-        variables["generator.weight"] = checkpoint["generator"]["0.weight"]
-        variables["generator.bias"] = checkpoint["generator"].get("0.bias")
+        variables.update(
+            {
+                "generator.%s" % key: value
+                for key, value in checkpoint["generator"].items()
+            }
+        )
 
         if checkpoint["opt"].decoder_type == "transformer_lm":
             return _get_model_spec_lm(
@@ -191,7 +195,6 @@ def set_transformer_encoder(spec, variables):
 
 def set_transformer_decoder(spec, variables, with_encoder_attention=True):
     set_input_layers(spec, variables, "decoder")
-    set_linear(spec.projection, variables, "generator")
     set_layer_norm(spec.layer_norm, variables, "decoder.layer_norm")
     for i, layer in enumerate(spec.layer):
         set_transformer_decoder_layer(
@@ -200,6 +203,12 @@ def set_transformer_decoder(spec, variables, with_encoder_attention=True):
             "decoder.transformer_layers.%d" % i,
             with_encoder_attention=with_encoder_attention,
         )
+
+    try:
+        set_linear(spec.projection, variables, "generator")
+    except KeyError:
+        # Compatibility when the generator was a nn.Sequential module.
+        set_linear(spec.projection, variables, "generator.0")
 
 
 def set_input_layers(spec, variables, scope):
