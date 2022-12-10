@@ -37,7 +37,7 @@ For reference, the table below compares the model size on disk for a base Transf
 | `int16` | 187MB |
 | `float16` | 182MB |
 | `int8` | 100MB |
-| `int8 + float16` | 95MB |
+| `int8_float16` | 95MB |
 
 ## Quantize on model loading
 
