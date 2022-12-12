@@ -16,6 +16,25 @@
 #  include "cpu/vec.h"
 #endif
 
+// Associative arithmetic is required for the compiler to automatically vectorize loops.
+// With GCC this can be minimally enabled with -fassociative-math but this flag is not
+// available in other compiler.
+//
+// The macros below can be used to enabled fast-math locally.
+//
+// See https://github.com/marian-nmt/marian-dev/blob/1.11.0/src/common/definitions.h#L25-L78
+// for more details.
+#if defined(_MSC_VER)
+#  define CT2_FFAST_MATH_BEGIN __pragma(float_control(precise, off, push))
+#  define CT2_FFAST_MATH_END __pragma(float_control(pop))
+#elif defined(__clang__)
+#  define CT2_FFAST_MATH_BEGIN _Pragma("float_control(precise, off, push)")
+#  define CT2_FFAST_MATH_END _Pragma("float_control(pop)")
+#elif defined(__GNUC__)
+#  define CT2_FFAST_MATH_BEGIN _Pragma("GCC push_options") _Pragma("GCC optimize(\"-ffast-math\")")
+#  define CT2_FFAST_MATH_END _Pragma("GCC pop_options")
+#endif
+
 #include "cpu/parallel.h"
 #include "type_dispatch.h"
 
@@ -373,6 +392,7 @@ namespace ctranslate2 {
       });
     }
 
+    CT2_FFAST_MATH_BEGIN
     template<>
     void layer_norm<TARGET_ISA>(const float* input,
                                 const float* gamma,
@@ -401,6 +421,7 @@ namespace ctranslate2 {
         }
       });
     }
+    CT2_FFAST_MATH_END
 
     template <typename RoundFunc>
     static float quantize_s8_row(const float* x,
