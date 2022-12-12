@@ -4,6 +4,29 @@
 
 ### Fixes and improvements
 
+## [v3.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.2.0) (2022-12-12)
+
+### New features
+
+* Add decoding option `suppress_sequences` to prevent specific sequences of tokens from being generated
+* Add decoding option `end_token` to stop the decoding on a different token than the model EOS token
+* Allow returning multiple random hypotheses from greedy search + random sampling when setting `num_hypotheses` > 1
+
+### Fixes and improvements
+
+* Improve support for batch generation with the Whisper model:
+  * Improve performance of batch generation with a context (we only require the prompts to have the same length, which is easily done by adapting the number of previous text tokens)
+  * Support batch mode for option `return_no_speech_prob`
+  * Support cases where some prompts in the batch have the token `<|notimestamps|>` but not others
+* Enable the Conv1D layer in more Python wheels:
+  * macOS x64 (using oneDNN)
+  * macOS ARM64 (using a custom implementation)
+  * Linux AArch64 (using a custom implementation)
+* Update the OpenNMT-py converter to support the latest checkpoint structure
+* Generalize the `TransformerSpec` constructor to accept arbitrary encoder and decoder specifications
+* Remove the global compilation flag `-ffast-math` which introduces unwanted side effects and enable it only for the layer norm CPU kernel where it is actually useful
+* Fix CMake error on Windows when setting `-DOPENMP_RUNTIME=COMP`
+
 ## [v3.1.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.1.0) (2022-11-29)
 
 ### Changes
