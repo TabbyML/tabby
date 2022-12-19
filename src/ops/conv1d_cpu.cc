@@ -119,6 +119,8 @@ namespace ctranslate2 {
 #    include <Accelerate/Accelerate.h>
 #  elif CT2_WITH_OPENBLAS
 #     include <cblas.h>
+#  else
+#     define CT2_NO_BLAS
 #  endif
 
 #  include "ctranslate2/ops/transpose.h"
@@ -159,7 +161,13 @@ namespace ctranslate2 {
             const float* window = x + (window_offset * in_channels);
             const float* kernel = filter + (filter_offset * in_channels);
 
+#ifdef CT2_NO_BLAS
+            float value = 0;
+            for (dim_t j = 0; j < window_size * in_channels; ++j)
+              value += window[j] * kernel[j];
+#else
             float value = cblas_sdot(window_size * in_channels, window, 1, kernel, 1);
+#endif
 
             if (bias)
               value += bias[c_out];
