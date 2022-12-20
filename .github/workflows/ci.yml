@@ -52,8 +52,10 @@ jobs:
 
       - name: Configure with DNNL
         if: startsWith(matrix.os, 'ubuntu') && matrix.backend == 'dnnl'
+        env:
+          DNNL_VERSION: 2022.2.1-16994
         run: |
-          sudo apt-get install -y intel-oneapi-dnnl-devel
+          sudo apt-get install -y intel-oneapi-dnnl-devel=$DNNL_VERSION intel-oneapi-dnnl=$DNNL_VERSION
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DBUILD_TESTS=ON -DWITH_MKL=OFF -DOPENMP_RUNTIME=COMP -DWITH_DNNL=ON .
 
       - name: Configure with MKL
