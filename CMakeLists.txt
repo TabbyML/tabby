@@ -340,8 +340,6 @@ if(WITH_DNNL)
   add_definitions(-DCT2_WITH_DNNL)
   list(APPEND PRIVATE_INCLUDE_DIRECTORIES ${DNNL_INCLUDE_DIR})
   list(APPEND LIBRARIES ${DNNL_LIBRARY})
-else()
-  message(WARNING "DNNL library is not enabled: convolution layers will not be supported on CPU")
 endif()
 
 if (WITH_ACCELERATE)
