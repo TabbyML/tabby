@@ -676,6 +676,21 @@ TEST_P(OpDeviceFPTest, LayerNorm) {
   expect_storage_eq(y.to_float(), expected, 1e-3);
 }
 
+TEST_P(OpDeviceFPTest, RMSNorm) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView gamma({5}, std::vector<float>{0.2, 2.1, 1.1, -0.6, 0.7}, device);
+  StorageView x({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0}, device);
+  StorageView expected({2, 5}, std::vector<float>{
+      -0.0262, 4.1202, 0.8633, 0.4316, 0.0000,
+      0.3445, 2.5953, 0.0824, 0.3595, 0.2622}, device);
+  StorageView y(dtype, device);
+  ops::RMSNorm()(gamma.to(dtype), x.to(dtype), y);
+  expect_storage_eq(y.to_float(), expected, 1e-3);
+}
+
 TEST_P(OpDeviceTest, QuantizeINT8) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 5, 21, -3, 0}, device);

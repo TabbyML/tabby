@@ -421,6 +421,31 @@ namespace ctranslate2 {
         }
       });
     }
+
+    template<>
+    void rms_norm<TARGET_ISA>(const float* input,
+                              const float* gamma,
+                              float* output,
+                              dim_t batch_size,
+                              dim_t depth,
+                              float epsilon) {
+      parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const auto offset = i * depth;
+          const auto* x = input + offset;
+          auto* y = output + offset;
+
+          float sum_squares = 0;
+          for (dim_t j = 0; j < depth; ++j)
+            sum_squares += x[j] * x[j];
+
+          const float inv_rms = 1.f / std::sqrt(sum_squares / depth + epsilon);
+
+          for (dim_t j = 0; j < depth; ++j)
+            y[j] = x[j] * inv_rms * gamma[j];
+        }
+      });
+    }
     CT2_FFAST_MATH_END
 
     template <typename RoundFunc>

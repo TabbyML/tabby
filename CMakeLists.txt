@@ -131,6 +131,8 @@ set(SOURCES
   src/ops/quantize.cc
   src/ops/quantize_cpu.cc
   src/ops/relu.cc
+  src/ops/rms_norm.cc
+  src/ops/rms_norm_cpu.cc
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
   src/ops/split.cc
@@ -472,6 +474,7 @@ if (WITH_CUDA)
     src/ops/layer_norm_gpu.cu
     src/ops/mean_gpu.cu
     src/ops/multinomial_gpu.cu
+    src/ops/rms_norm_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/tile_gpu.cu
     src/ops/topk_gpu.cu

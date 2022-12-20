@@ -74,6 +74,14 @@ namespace ctranslate2 {
                     float epsilon);
 
     template <CpuIsa ISA>
+    void rms_norm(const float* input,
+                  const float* gamma,
+                  float* output,
+                  dim_t batch_size,
+                  dim_t depth,
+                  float epsilon);
+
+    template <CpuIsa ISA>
     void quantize_s8(const float* x,
                      int8_t* y,
                      float* scales,
