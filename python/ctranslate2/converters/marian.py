@@ -8,7 +8,7 @@ import yaml
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec, model_spec, transformer_spec
+from ctranslate2.specs import common_spec, transformer_spec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
@@ -175,14 +175,14 @@ def set_common_layers(spec, weights, scope):
     set_position_encodings(
         spec.position_encodings, weights, dim=embeddings_specs[0].weight.shape[1]
     )
-    if spec.layernorm_embedding != model_spec.OPTIONAL:
+    if hasattr(spec, "layernorm_embedding"):
         set_layer_norm(
             spec.layernorm_embedding,
             weights,
             "%s_emb" % scope,
             pre_norm=True,
         )
-    if spec.layer_norm != model_spec.OPTIONAL:
+    if hasattr(spec, "layer_norm"):
         set_layer_norm(spec.layer_norm, weights, "%s_top" % scope)
 
 

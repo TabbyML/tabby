@@ -11,6 +11,3 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         if relative_position:
             self.relative_position_keys = None
             self.relative_position_values = None
-        else:
-            self.relative_position_keys = model_spec.OPTIONAL
-            self.relative_position_values = model_spec.OPTIONAL

@@ -212,13 +212,13 @@ def set_transformer_decoder(spec, variables, with_encoder_attention=True):
 
 
 def set_input_layers(spec, variables, scope):
-    try:
+    if hasattr(spec, "position_encodings"):
         set_position_encodings(
             spec.position_encodings,
             variables,
             "%s.embeddings.make_embedding.pe" % scope,
         )
-    except KeyError:
+    else:
         # See https://github.com/OpenNMT/OpenNMT-py/issues/1722
         spec.scale_embeddings = False
 
@@ -279,7 +279,7 @@ def set_multi_head_attention(spec, variables, scope, self_attention=False):
         set_linear(split_layers[1], variables, "%s.linear_values" % scope)
         utils.fuse_linear(spec.linear[1], split_layers)
     set_linear(spec.linear[-1], variables, "%s.final_linear" % scope)
-    if spec.relative_position_keys is None:
+    if hasattr(spec, "relative_position_keys"):
         spec.relative_position_keys = _get_variable(
             variables, "%s.relative_positions_embeddings.weight" % scope
         )

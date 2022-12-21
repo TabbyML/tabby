@@ -40,13 +40,12 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
             common_spec.EmbeddingsSpec() for _ in range(num_source_embeddings)
         ]
         self.scale_embeddings = True
-        self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = (
-            common_spec.LayerNormSpec() if pre_norm else model_spec.OPTIONAL
-        )
-        self.layernorm_embedding = (
-            common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
-        )
+        if not relative_position:
+            self.position_encodings = PositionEncoderSpec()
+        if pre_norm:
+            self.layer_norm = common_spec.LayerNormSpec()
+        if layernorm_embedding:
+            self.layernorm_embedding = common_spec.LayerNormSpec()
         self.layer = [
             TransformerEncoderLayerSpec(relative_position=relative_position)
             for _ in range(num_layers)
@@ -91,15 +90,12 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         self.alignment_heads = np.dtype("int16").type(alignment_heads)
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
-        self.position_encodings = PositionEncoderSpec()
-        self.layer_norm = (
-            common_spec.LayerNormSpec()
-            if pre_norm and not no_final_norm
-            else model_spec.OPTIONAL
-        )
-        self.layernorm_embedding = (
-            common_spec.LayerNormSpec() if layernorm_embedding else model_spec.OPTIONAL
-        )
+        if not relative_position:
+            self.position_encodings = PositionEncoderSpec()
+        if pre_norm and not no_final_norm:
+            self.layer_norm = common_spec.LayerNormSpec()
+        if layernorm_embedding:
+            self.layernorm_embedding = common_spec.LayerNormSpec()
         self.projection = common_spec.LinearSpec()
         self.layer = [
             TransformerDecoderLayerSpec(
@@ -113,9 +109,6 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         if project_in_out:
             self.project_in = common_spec.LinearSpec()
             self.project_out = common_spec.LinearSpec()
-        else:
-            self.project_in = model_spec.OPTIONAL
-            self.project_out = model_spec.OPTIONAL
 
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
@@ -131,11 +124,8 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
             self_attention=True, relative_position=relative_position
         )
-        self.attention = (
-            attention_spec.MultiHeadAttentionSpec()
-            if with_encoder_attention
-            else model_spec.OPTIONAL
-        )
+        if with_encoder_attention:
+            self.attention = attention_spec.MultiHeadAttentionSpec()
         self.ffn = FeedForwardSpec()
 
 
