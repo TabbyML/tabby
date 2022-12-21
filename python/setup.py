@@ -84,6 +84,7 @@ setup(
         "Environment :: GPU :: NVIDIA CUDA :: 11.5",
         "Environment :: GPU :: NVIDIA CUDA :: 11.6",
         "Environment :: GPU :: NVIDIA CUDA :: 11.7",
+        "Environment :: GPU :: NVIDIA CUDA :: 11.8",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
