@@ -135,7 +135,7 @@ class BartLoader(ModelLoader):
 
     def get_model_spec(self, model):
         spec = transformer_spec.TransformerSpec.from_config(
-            model.config.encoder_layers,
+            (model.config.encoder_layers, model.config.decoder_layers),
             model.config.encoder_attention_heads,
             pre_norm=model.config.normalize_before,
             activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
