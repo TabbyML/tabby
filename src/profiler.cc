@@ -25,10 +25,6 @@ namespace ctranslate2 {
 #include <vector>
 #include <unordered_map>
 
-#ifdef CT2_WITH_CUDA
-#  include <cuda_runtime.h>
-#endif
-
 namespace ctranslate2 {
 
   static void print_as_percentage(std::ostream& os, double ratio) {
@@ -152,10 +148,7 @@ namespace ctranslate2 {
       return;
     _parent = current_scope;
     _name = name;
-#ifdef CT2_WITH_CUDA
-    if (profiler->device() == Device::CUDA)
-      cudaDeviceSynchronize();
-#endif
+    synchronize_stream(profiler->device());
     _start = std::chrono::high_resolution_clock::now();
     current_scope = this;
   }
@@ -163,10 +156,7 @@ namespace ctranslate2 {
   ScopeProfiler::~ScopeProfiler() {
     if (!profiler)
       return;
-#ifdef CT2_WITH_CUDA
-    if (profiler->device() == Device::CUDA)
-      cudaDeviceSynchronize();
-#endif
+    synchronize_stream(profiler->device());
     auto diff = std::chrono::high_resolution_clock::now() - _start;
     auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(diff);
     profiler->add_scope_time(_name, elapsed, _parent ? &_parent->_name : nullptr);
