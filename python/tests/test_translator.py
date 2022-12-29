@@ -1,4 +1,5 @@
 import inspect
+import io
 import logging
 import os
 import shutil
@@ -657,6 +658,37 @@ def test_model_unload_while_async_translation():
     translator.unload_model()
     assert translator.model_is_loaded
     assert outputs[0].result().hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+
+
+@pytest.mark.parametrize("as_file_object", [True, False])
+def test_load_model_from_memory(as_file_object):
+    model_path = _get_model_path()
+    files = {}
+
+    for filename in os.listdir(model_path):
+        with open(os.path.join(model_path, filename), "rb") as model_file:
+            content = model_file.read()
+            if as_file_object:
+                content = io.BytesIO(content)
+            files[filename] = content
+
+    translator = ctranslate2.Translator("aren-transliteration", files=files)
+
+    def _translate():
+        output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
+        assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
+
+    if as_file_object:
+        for handle in files.values():
+            handle.close()
+
+    _translate()
+
+    translator.unload_model()
+    assert not translator.model_is_loaded
+    translator.load_model()
+
+    _translate()
 
 
 @test_utils.only_on_linux

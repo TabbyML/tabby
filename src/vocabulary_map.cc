@@ -1,11 +1,13 @@
 #include "ctranslate2/vocabulary_map.h"
 
+#include "ctranslate2/utils.h"
+
 namespace ctranslate2 {
 
   VocabularyMap::VocabularyMap(std::istream& map_file, const Vocabulary& vocabulary)
     : _vocabulary_size(vocabulary.size()) {
     std::string line;
-    while (std::getline(map_file, line)) {
+    while (ctranslate2::getline(map_file, line)) {
       std::string token;
       std::string key;
       std::vector<size_t> values;

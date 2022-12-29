@@ -1,12 +1,14 @@
 #include "ctranslate2/vocabulary.h"
 
+#include "ctranslate2/utils.h"
+
 namespace ctranslate2 {
 
   Vocabulary::Vocabulary(std::istream& in, VocabularyInfo info)
     : _info(std::move(info))
   {
     std::string line;
-    while (std::getline(in, line))
+    while (ctranslate2::getline(in, line))
       add_token(std::move(line));
 
     // Append the unknown token if not found in the vocabulary file.

@@ -99,6 +99,15 @@ namespace ctranslate2 {
 #endif
   }
 
+  std::istream& getline(std::istream& input, std::string& str) {
+    std::getline(input, str);
+
+    if (!str.empty() && str.back() == '\r')
+      str.pop_back();
+
+    return input;
+  }
+
   bool ends_with(const std::string& str, const std::string& suffix) {
     return (str.size() >= suffix.size() &&
             str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0);

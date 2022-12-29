@@ -34,5 +34,46 @@ namespace ctranslate2 {
       return stream;
     }
 
+
+    struct membuf : std::streambuf {
+      membuf(const char* base, size_t size) {
+        char* p = const_cast<char*>(base);
+        setg(p, p, p + size);
+      }
+    };
+
+    struct imemstream : virtual membuf, std::istream {
+      imemstream(const char* base, size_t size)
+        : membuf(base, size)
+        , std::istream(static_cast<std::streambuf*>(this))
+      {
+      }
+    };
+
+
+    ModelMemoryReader::ModelMemoryReader(std::string model_name)
+      : _model_name(std::move(model_name))
+    {
+    }
+
+    void ModelMemoryReader::register_file(std::string filename, std::string content) {
+      _files.emplace(std::move(filename), std::move(content));
+    }
+
+    std::string ModelMemoryReader::get_model_id() const {
+      return _model_name;
+    }
+
+    std::unique_ptr<std::istream> ModelMemoryReader::get_file(const std::string& filename,
+                                                              const bool) {
+      const auto it = _files.find(filename);
+
+      if (it == _files.end())
+        return nullptr;
+
+      const auto& content = it->second;
+      return std::make_unique<imemstream>(content.data(), content.size());
+    }
+
   }
 }

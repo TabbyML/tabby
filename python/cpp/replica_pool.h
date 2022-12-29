@@ -7,6 +7,33 @@
 namespace ctranslate2 {
   namespace python {
 
+    inline std::shared_ptr<models::ModelReader>
+    create_model_reader(const std::string& model, py::object files) {
+      if (files.is_none())
+        return std::make_shared<models::ModelFileReader>(model);
+
+      if (!py::isinstance<py::dict>(files))
+        throw pybind11::type_error("files argument must be a dictionary mapping file names "
+                                   "to the file contents");
+
+      auto reader = std::make_shared<models::ModelMemoryReader>(model);
+
+      for (const auto& pair : files.cast<py::dict>()) {
+        auto filename = pair.first;
+        auto content = pair.second;
+
+        auto read = py::getattr(content, "read", py::none());
+        if (!read.is_none())
+          content = read();
+        else if (!py::isinstance<py::bytes>(content))
+          throw pybind11::type_error("File content must be a file-like or bytes object");
+
+        reader->register_file(filename.cast<std::string>(), content.cast<std::string>());
+      }
+
+      return reader;
+    }
+
     template <typename T>
     class ReplicaPoolHelper {
     public:
@@ -16,8 +43,9 @@ namespace ctranslate2 {
                         const StringOrMap& compute_type,
                         size_t inter_threads,
                         size_t intra_threads,
-                        long max_queued_batches)
-        : _model_loader(model_path)
+                        long max_queued_batches,
+                        py::object files)
+        : _model_loader(create_model_reader(model_path, files))
       {
         _model_loader.device = str_to_device(device);
         _model_loader.device_indices = std::visit(DeviceIndexResolver(), device_index);

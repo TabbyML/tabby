@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "utils.h"
+
 namespace ctranslate2 {
 
   enum class BatchType {
@@ -57,7 +59,7 @@ namespace ctranslate2 {
 
     bool operator()(std::istream& in, std::vector<std::string>& tokens) {
       std::string line;
-      if (!std::getline(in, line))
+      if (!ctranslate2::getline(in, line))
         return false;
       tokens = _tokenizer(line);
       return true;
