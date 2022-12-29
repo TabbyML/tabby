@@ -791,6 +791,18 @@ TEST_P(OpDeviceFPTest, Swish) {
   expect_storage_eq(output.to_float(), expected, 1e-4);
 }
 
+TEST_P(OpDeviceFPTest, Tanh) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView x({1, 5}, std::vector<float>{-2, -1.5, 0, 1.5, 2}, device);
+  StorageView y(dtype, device);
+  StorageView expected({1, 5},
+                       std::vector<float>{-0.96402758, -0.90514825, 0., 0.90514825, 0.96402758},
+                       device);
+  ops::Tanh()(x.to(dtype), y);
+  expect_storage_eq(y.to_float(), expected, 1e-3);
+}
+
 TEST_P(OpDeviceFPTest, Log) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;

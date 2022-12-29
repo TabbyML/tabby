@@ -561,6 +561,21 @@ namespace ctranslate2 {
   template float primitives<Device::CUDA>::logsumexp(const float*, dim_t);
   template float primitives<Device::CUDA>::logsumexp(const float16_t*, dim_t);
 
+  struct tanh_func {
+    __device__ float operator()(float x) {
+      return tanhf(x);
+    }
+  };
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::tanh(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(cuda::device_cast(x), cuda::device_cast(y), size, tanh_func());
+  }
+
+  template void primitives<Device::CUDA>::tanh(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::tanh(const float16_t*, float16_t*, dim_t);
+
   struct exp_func {
     __device__
     float operator()(float x) { return expf(x); }

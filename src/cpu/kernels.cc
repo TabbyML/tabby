@@ -167,6 +167,11 @@ namespace ctranslate2 {
     }
 
     template<>
+    void tanh<TARGET_ISA>(const float* x, float* y, dim_t size) {
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, Vec<float, TARGET_ISA>::tanh);
+    }
+
+    template<>
     void gelu<TARGET_ISA>(const float* x, float* y, dim_t size) {
       using VecType = Vec<float, TARGET_ISA>;
       vectorized_unary_transform<TARGET_ISA>(

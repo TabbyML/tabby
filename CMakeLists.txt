@@ -138,6 +138,7 @@ set(SOURCES
   src/ops/split.cc
   src/ops/sub.cc
   src/ops/swish.cc
+  src/ops/tanh.cc
   src/ops/tile.cc
   src/ops/tile_cpu.cc
   src/ops/topk.cc

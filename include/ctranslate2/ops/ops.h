@@ -34,3 +34,4 @@
 #include "min_max.h"
 #include "log.h"
 #include "rms_norm.h"
+#include "tanh.h"

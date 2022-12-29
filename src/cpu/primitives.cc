@@ -346,6 +346,16 @@ namespace ctranslate2 {
   }
 
   template<>
+  template<>
+  void primitives<Device::CPU>::tanh(const float* x, float* y, dim_t size) {
+#ifdef CT2_WITH_MKL
+    if (cpu::mayiuse_mkl())
+      return vsTanh(size, x, y);
+#endif
+    CPU_ISA_DISPATCH((cpu::tanh<ISA>(x, y, size)));
+  }
+
+  template<>
   template <typename T>
   void primitives<Device::CPU>::penalize_previous_tokens(T* scores,
                                                          const T* previous_scores,
