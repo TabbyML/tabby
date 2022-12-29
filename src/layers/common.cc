@@ -349,20 +349,23 @@ namespace ctranslate2 {
 
 
     LayerNorm::LayerNorm(const models::Model& model, const std::string& scope)
-      : _beta(model.get_variable(scope + "/beta"))
+      : _beta(model.get_variable_if_exists(scope + "/beta"))
       , _gamma(model.get_variable(scope + "/gamma")) {
     }
 
     DataType LayerNorm::output_type() const {
-      return _beta.dtype();
+      return _gamma.dtype();
     }
 
     dim_t LayerNorm::output_size() const {
-      return _beta.size();
+      return _gamma.size();
     }
 
     void LayerNorm::operator()(const StorageView& input, StorageView& output) const {
-      _norm_op(_beta, _gamma, input, output);
+      if (_beta)
+        ops::LayerNorm()(*_beta, _gamma, input, output);
+      else
+        ops::RMSNorm()(_gamma, input, output);
     }
 
 

@@ -13,6 +13,7 @@ namespace ctranslate2 {
       , _pre_norm(pre_norm)
       , _activation_type(activation_type)
       , _ff1(model, scope + "/linear_0", &_activation_type)
+      , _ff1_noact(build_optional_layer<Dense>(model, scope + "/linear_0_noact"))
       , _ff2(model, scope + "/linear_1") {
     }
 
@@ -23,8 +24,18 @@ namespace ctranslate2 {
         x = &output;
       }
 
-      StorageView inner(input.dtype(), input.device());
+      const Device device = input.device();
+      const DataType dtype = input.dtype();
+
+      StorageView inner(dtype, device);
       _ff1(*x, inner);
+
+      if (_ff1_noact) {
+        StorageView linear(dtype, device);
+        (*_ff1_noact)(*x, linear);
+        ops::Mul()(linear, inner, inner);
+      }
+
       _ff2(inner, output);
       ops::Add()(input, output, output);
       if (!_pre_norm)
@@ -65,12 +76,14 @@ namespace ctranslate2 {
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
-                        pre_norm)
+                        pre_norm,
+                        /*is_decoder=*/true)
       , _encoder_attention(build_optional_layer<MultiHeadAttention>(model,
                                                                     scope + "/attention",
                                                                     num_heads,
                                                                     /*self_attention=*/false,
-                                                                    pre_norm))
+                                                                    pre_norm,
+                                                                    /*is_decoder=*/true))
       , _ff(model, scope + "/ffn", pre_norm, activation_type) {
     }
 
@@ -242,6 +255,12 @@ namespace ctranslate2 {
         _alignment_layer = _layers.size() + _alignment_layer;
       if (_alignment_heads == 0)
         _alignment_heads = _num_heads;
+
+      const auto* outputs_scale = model.get_variable_if_exists(scope + "/scale_outputs");
+      if (outputs_scale) {
+        const DataType dtype = get_default_float_type(_compute_type);
+        _outputs_scale = std::make_unique<StorageView>(outputs_scale->to(dtype));
+      }
     }
 
     DecoderState TransformerDecoder::initial_state(bool iterative_decoding) const {
@@ -411,6 +430,9 @@ namespace ctranslate2 {
           (*_project_out)(layer_in, layer_out);
           layer_in = std::move(layer_out);
         }
+
+        if (_outputs_scale)
+          ops::Mul()(layer_in, *_outputs_scale, layer_in);
 
         if (return_logits)
           _proj(layer_in, *outputs);

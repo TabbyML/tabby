@@ -32,6 +32,7 @@ namespace ctranslate2 {
       const bool _pre_norm;
       const ops::ActivationType _activation_type;
       const Dense _ff1;
+      const std::unique_ptr<const Dense> _ff1_noact;
       const Dense _ff2;
     };
 
@@ -179,6 +180,7 @@ namespace ctranslate2 {
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
       const std::unique_ptr<const StorageView> _embeddings_scale;
+      std::unique_ptr<const StorageView> _outputs_scale;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;
       const std::unique_ptr<const LayerNorm> _output_norm;
       const std::unique_ptr<const Dense> _project_in;

@@ -23,9 +23,10 @@ class EmbeddingsMerge(enum.IntEnum):
 
 
 class LayerNormSpec(model_spec.LayerSpec):
-    def __init__(self):
+    def __init__(self, rms_norm=False):
         self.gamma = None
-        self.beta = None
+        if not rms_norm:
+            self.beta = None
 
 
 class LinearSpec(model_spec.LayerSpec):

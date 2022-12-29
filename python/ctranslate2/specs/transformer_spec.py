@@ -18,6 +18,9 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         embeddings_merge: common_spec.EmbeddingsMerge = common_spec.EmbeddingsMerge.CONCAT,
         layernorm_embedding: bool = False,
         relative_position: bool = False,
+        relative_attention_bias: bool = False,
+        ffn_glu: bool = False,
+        rms_norm: bool = False,
     ):
         """Initializes a Transformer encoder specification.
 
@@ -30,7 +33,13 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
           embeddings_merge: When :obj:`num_source_embeddings` > 1, specify how the
             embeddings are merged.
           layernorm_embedding: Apply layer normalization after the embedding layer.
-          relative_position: Enable relative position representations modules.
+          relative_position: Use relative position representations in the self-attention
+            layers as described in https://arxiv.org/abs/1803.02155.
+          relative_attention_bias: Use relative attention bias in the self-attention
+            layers as described in the T5 paper https://arxiv.org/abs/1910.10683.
+          ffn_glu: Use gated linear units in the FFN layers as described in
+            https://arxiv.org/abs/2002.05202.
+          rms_norm: Use the root mean square layer normalization.
         """
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
@@ -40,14 +49,19 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
             common_spec.EmbeddingsSpec() for _ in range(num_source_embeddings)
         ]
         self.scale_embeddings = True
-        if not relative_position:
+        if not relative_position and not relative_attention_bias:
             self.position_encodings = PositionEncoderSpec()
         if pre_norm:
-            self.layer_norm = common_spec.LayerNormSpec()
+            self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)
         if layernorm_embedding:
-            self.layernorm_embedding = common_spec.LayerNormSpec()
+            self.layernorm_embedding = common_spec.LayerNormSpec(rms_norm=rms_norm)
         self.layer = [
-            TransformerEncoderLayerSpec(relative_position=relative_position)
+            TransformerEncoderLayerSpec(
+                relative_position=relative_position,
+                relative_attention_bias=relative_attention_bias,
+                ffn_glu=ffn_glu,
+                rms_norm=rms_norm,
+            )
             for _ in range(num_layers)
         ]
 
@@ -64,8 +78,11 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         no_final_norm: bool = False,
         project_in_out: bool = False,
         relative_position: bool = False,
+        relative_attention_bias: bool = False,
         alignment_layer: int = -1,
         alignment_heads: int = 1,
+        ffn_glu: bool = False,
+        rms_norm: bool = False,
     ):
         """Initializes a Transformer decoder specification.
 
@@ -79,9 +96,15 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
           no_final_norm: Disable the final layer norm in the pre-norm architecture.
           project_in_out: Add linear transformations after the embedding layer and before
             the final layer.
-          relative_position: Enable relative position representations modules.
+          relative_position: Use relative position representations in the self-attention
+            layers as described in https://arxiv.org/abs/1803.02155.
+          relative_attention_bias: Use relative attention bias in the self-attention
+            layers as described in the T5 paper https://arxiv.org/abs/1910.10683.
           alignment_layer: Layer index selected for alignment.
           alignment_heads: Number of attention heads selected for alignment.
+          ffn_glu: Use gated linear units in the FFN layers as described in
+            https://arxiv.org/abs/2002.05202.
+          rms_norm: Use the root mean square layer normalization.
         """
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
@@ -90,17 +113,21 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         self.alignment_heads = np.dtype("int16").type(alignment_heads)
         self.embeddings = common_spec.EmbeddingsSpec()
         self.scale_embeddings = True
-        if not relative_position:
+        self.scale_outputs = model_spec.OPTIONAL
+        if not relative_position and not relative_attention_bias:
             self.position_encodings = PositionEncoderSpec()
         if pre_norm and not no_final_norm:
-            self.layer_norm = common_spec.LayerNormSpec()
+            self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)
         if layernorm_embedding:
-            self.layernorm_embedding = common_spec.LayerNormSpec()
+            self.layernorm_embedding = common_spec.LayerNormSpec(rms_norm=rms_norm)
         self.projection = common_spec.LinearSpec()
         self.layer = [
             TransformerDecoderLayerSpec(
                 with_encoder_attention=with_encoder_attention,
                 relative_position=relative_position,
+                relative_attention_bias=relative_attention_bias,
+                ffn_glu=ffn_glu,
+                rms_norm=rms_norm,
             )
             for _ in range(num_layers)
         ]
@@ -112,28 +139,49 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
 
 
 class TransformerEncoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self, relative_position=False):
+    def __init__(
+        self,
+        relative_position=False,
+        relative_attention_bias=False,
+        ffn_glu=False,
+        rms_norm=False,
+    ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
-            self_attention=True, relative_position=relative_position
+            self_attention=True,
+            relative_position=relative_position,
+            relative_attention_bias=relative_attention_bias,
+            rms_norm=rms_norm,
         )
-        self.ffn = FeedForwardSpec()
+        self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 
 
 class TransformerDecoderLayerSpec(model_spec.LayerSpec):
-    def __init__(self, with_encoder_attention=True, relative_position=False):
+    def __init__(
+        self,
+        with_encoder_attention=True,
+        relative_position=False,
+        relative_attention_bias=False,
+        ffn_glu=False,
+        rms_norm=False,
+    ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
-            self_attention=True, relative_position=relative_position
+            self_attention=True,
+            relative_position=relative_position,
+            relative_attention_bias=relative_attention_bias,
+            rms_norm=rms_norm,
         )
         if with_encoder_attention:
-            self.attention = attention_spec.MultiHeadAttentionSpec()
-        self.ffn = FeedForwardSpec()
+            self.attention = attention_spec.MultiHeadAttentionSpec(rms_norm=rms_norm)
+        self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 
 
 class FeedForwardSpec(model_spec.LayerSpec):
-    def __init__(self):
-        self.layer_norm = common_spec.LayerNormSpec()
+    def __init__(self, glu=False, rms_norm=False):
+        self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)
         self.linear_0 = common_spec.LinearSpec()
         self.linear_1 = common_spec.LinearSpec()
+        if glu:
+            self.linear_0_noact = common_spec.LinearSpec()
 
 
 class PositionEncoderSpec(model_spec.LayerSpec):
@@ -179,6 +227,9 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         num_source_embeddings: int = 1,
         embeddings_merge: common_spec.EmbeddingsMerge = common_spec.EmbeddingsMerge.CONCAT,
         layernorm_embedding: bool = False,
+        relative_attention_bias: bool = False,
+        ffn_glu: bool = False,
+        rms_norm: bool = False,
     ):
         """Creates a Transformer model specification.
 
@@ -186,7 +237,8 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           num_layers: Number of encoder and decoder layers, or a 2-tuple if the
             number is different.
           num_heads: Number of attention heads.
-          with_relative_position: Enable relative position representations modules.
+          with_relative_position: Use relative position representations in the self-attention
+            layers as described in https://arxiv.org/abs/1803.02155.
           pre_norm: Enable the pre-norm Transformer architecture.
           activation: Activation to apply in the feed-forward network.
           alignment_layer: Layer index selected for alignment.
@@ -195,6 +247,11 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           embeddings_merge: When :obj:`num_source_embeddings` > 1, specify how the
             embeddings are merged.
           layernorm_embedding: Apply layer normalization after the embedding layer.
+          relative_attention_bias: Use relative attention bias in the self-attention
+            layers as described in the T5 paper https://arxiv.org/abs/1910.10683.
+          ffn_glu: Use gated linear units in the FFN layer as described in
+            https://arxiv.org/abs/2002.05202.
+          rms_norm: Use the root mean square layer normalization.
         """
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
@@ -210,6 +267,9 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             embeddings_merge=embeddings_merge,
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
+            relative_attention_bias=relative_attention_bias,
+            ffn_glu=ffn_glu,
+            rms_norm=rms_norm,
         )
 
         decoder = TransformerDecoderSpec(
@@ -219,8 +279,11 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             activation=activation,
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
+            relative_attention_bias=relative_attention_bias,
             alignment_layer=alignment_layer,
             alignment_heads=alignment_heads,
+            ffn_glu=ffn_glu,
+            rms_norm=rms_norm,
         )
 
         return cls(encoder, decoder)
@@ -231,7 +294,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     @property
     def revision(self):
-        return 5
+        return 6
 
     def get_source_vocabulary_size(self):
         return [spec.weight.shape[0] for spec in self.encoder.embeddings]

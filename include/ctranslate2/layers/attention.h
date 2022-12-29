@@ -19,7 +19,8 @@ namespace ctranslate2 {
                          const std::string& scope,
                          dim_t num_heads,
                          bool self_attention,
-                         bool pre_norm = true);
+                         bool pre_norm = true,
+                         bool is_decoder = false);
       DataType output_type() const override;
       dim_t output_size() const override;
       void operator()(const StorageView& queries,
@@ -33,7 +34,7 @@ namespace ctranslate2 {
                       const Padder* values_padder = nullptr) const;
 
       bool has_relative_position() const {
-        return _relative_position_keys;
+        return _relative_position_keys || _relative_attention_bias;
       }
 
       static StorageView prepare_length_mask(const StorageView& lengths,
@@ -44,13 +45,15 @@ namespace ctranslate2 {
     private:
       const dim_t _num_heads;
       const bool _self_attention;
+      const bool _is_decoder;
       const std::vector<Dense> _linear;
       const dim_t _d_model;
       const bool _pre_norm;
       const LayerNorm _layer_norm;
+      const StorageView* _relative_attention_bias;
       const StorageView* _relative_position_keys;
       const StorageView* _relative_position_values;
-      const dim_t _maximum_relative_position;
+      dim_t _maximum_relative_position;
       const float _queries_scale;
     };
 

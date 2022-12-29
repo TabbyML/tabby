@@ -91,6 +91,14 @@ namespace ctranslate2 {
 
       // Attributes are saved as scalar variables.
       template <typename T>
+      T get_attribute(const std::string& name) const {
+        const StorageView* attribute = get_variable_if_exists(name);
+        if (!attribute)
+          throw std::runtime_error("attribute " + name + " not found");
+        return attribute->as_scalar<T>();
+      }
+
+      template <typename T>
       T get_attribute_with_default(const std::string& name, T default_value) const {
         const StorageView* attribute = get_variable_if_exists(name);
         if (!attribute)

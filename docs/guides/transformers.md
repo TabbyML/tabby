@@ -10,6 +10,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * OpenAI GPT2
 * OPT
 * Pegasus
+* T5
 * Whisper
 
 The converter takes as argument the pretrained model name or the path to a model directory:
@@ -196,6 +197,38 @@ results = generator.generate_batch([start_tokens], max_length=30)
 
 output = tokenizer.decode(results[0].sequences_ids[0])
 print(output)
+```
+
+## T5
+
+[T5](https://huggingface.co/docs/transformers/model_doc/t5) is an encoder-decoder model pre-trained on a multi-task mixture of unsupervised and supervised tasks and for which each task is converted into a text-to-text format.
+
+The example below uses the `t5-small` and machine translation input.
+
+```{note}
+The variants T5v1.1 and mT5 are also supported.
+```
+
+```bash
+ct2-transformers-converter --model t5-small --output_dir t5-small-ct2
+```
+
+```python
+import ctranslate2
+import transformers
+
+translator = ctranslate2.Translator("t5-small-ct2")
+tokenizer = transformers.AutoTokenizer.from_pretrained("t5-small")
+
+input_text = "translate English to German: The house is wonderful."
+input_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(input_text))
+
+results = translator.translate_batch([input_tokens])
+
+output_tokens = results[0].hypotheses[0]
+output_text = tokenizer.decode(tokenizer.convert_tokens_to_ids(output_tokens))
+
+print(output_text)
 ```
 
 ## Whisper

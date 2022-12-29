@@ -156,8 +156,7 @@ namespace ctranslate2 {
       dim_t output_size() const override;
       void operator()(const StorageView& input, StorageView& output) const;
     private:
-      const ops::LayerNorm _norm_op;
-      const StorageView& _beta;
+      const StorageView* _beta;
       const StorageView& _gamma;
     };
 

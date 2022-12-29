@@ -88,6 +88,22 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
         ["fra_Latn ▁Bon jour ▁le ▁monde ▁!", "fra_Latn"],
         dict(),
     ),
+    (
+        "t5-small",
+        "▁translate ▁English ▁to ▁German : ▁The ▁house ▁is ▁wonderful . </s>",
+        "",
+        "▁Das ▁Haus ▁ist ▁wunderbar .",
+        dict(),
+    ),
+    (
+        "ml6team/mt5-small-german-query-generation",
+        "▁Das ▁Lama ▁( L ama ▁glam a ) ▁ist ▁eine ▁Art ▁der ▁Kam ele . "
+        "▁Es ▁ist ▁in ▁den ▁süd amerikanische n ▁And en ▁ver breite t ▁und "
+        "▁eine ▁vom ▁Guan ako ▁ab sta mmende ▁ Haustier form . </s>",
+        "",
+        "▁Was ▁ist ▁Lama ▁glam a ?",
+        dict(),
+    ),
 ]
 
 

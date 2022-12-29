@@ -28,6 +28,80 @@ namespace ctranslate2 {
       return positions;
     }
 
+    static StorageView get_relative_position_bucket(bool bidirectional,
+                                                    dim_t query_length,
+                                                    dim_t key_length,
+                                                    dim_t num_buckets,
+                                                    dim_t max_distance,
+                                                    dim_t query_offset = 0) {
+      StorageView relative_buckets({query_length, key_length}, DataType::INT32);
+
+      if (bidirectional)
+        num_buckets /= 2;
+
+      const dim_t max_exact = num_buckets / 2;
+
+      for (dim_t i = 0; i < query_length; ++i) {
+        for (dim_t j = 0; j < key_length; ++j) {
+          int32_t relative_position = j - (i + query_offset);
+          int32_t& relative_bucket = relative_buckets.at<int32_t>(i * key_length + j);
+
+          relative_bucket = 0;
+
+          if (bidirectional) {
+            if (relative_position > 0)
+              relative_bucket += num_buckets;
+            else
+              relative_position = std::abs(relative_position);
+          } else {
+            relative_position = -std::min(relative_position, 0);
+          }
+
+          const bool is_small = relative_position < max_exact;
+
+          if (!is_small) {
+            relative_position = std::min(
+              int32_t(float(max_exact)
+                      + std::log(float(relative_position) / float(max_exact))
+                      / std::log(float(max_distance) / float(max_exact))
+                      * float(num_buckets - max_exact)),
+              int32_t(num_buckets - 1));
+          }
+
+          relative_bucket += relative_position;
+
+        }
+      }
+
+      return relative_buckets;
+    }
+
+    static StorageView compute_relative_bias(const StorageView& relative_attention_bias,
+                                             dim_t query_length,
+                                             dim_t key_length,
+                                             dim_t max_distance,
+                                             bool is_decoder,
+                                             dim_t query_offset = 0) {
+      const Device device = relative_attention_bias.device();
+      const DataType dtype = relative_attention_bias.dtype();
+      const dim_t num_buckets = relative_attention_bias.dim(0);
+
+      StorageView relative_attention_bucket = get_relative_position_bucket(!is_decoder,
+                                                                           query_length,
+                                                                           key_length,
+                                                                           num_buckets,
+                                                                           max_distance,
+                                                                           query_offset);
+
+      StorageView values(dtype, device);
+      ops::Gather()(relative_attention_bias, relative_attention_bucket.to(device), values);
+
+      StorageView values_t(dtype, device);
+      ops::Transpose({2, 0, 1})(values, values_t);
+
+      return values_t;
+    }
+
     StorageView reduce_multi_head_attention(const StorageView& attention,
                                             dim_t num_heads_to_average) {
       const DataType dtype = attention.dtype();
@@ -94,10 +168,12 @@ namespace ctranslate2 {
                                       const StorageView* values_lengths,
                                       const StorageView* relative_position_keys,
                                       const StorageView* relative_position_values,
+                                      const StorageView* relative_attention_bias,
                                       dim_t maximum_relative_position,
                                       StorageView& output,
                                       StorageView* attention = nullptr,
                                       float queries_scale = 1,
+                                      bool is_decoder = false,
                                       bool with_cache = false) {
       PROFILE("dot_product_attention");
 
@@ -118,6 +194,23 @@ namespace ctranslate2 {
                                      *relative_position_keys,
                                      keys_matmul,
                                      output);
+
+      if (relative_attention_bias) {
+        const dim_t query_length = queries.dim(2);
+        const dim_t key_length = keys.dim(2);
+        const StorageView position_bias = compute_relative_bias(*relative_attention_bias,
+                                                                query_length,
+                                                                key_length,
+                                                                maximum_relative_position,
+                                                                is_decoder,
+                                                                with_cache ? key_length - 1 : 0);
+
+        DEVICE_AND_TYPE_DISPATCH(output.device(), output.dtype(),
+                                 primitives<D>::add_batch_broadcast(position_bias.data<T>(),
+                                                                    output.data<T>(),
+                                                                    position_bias.size(),
+                                                                    output.size()));
+      }
 
       StorageView attn(values.dtype(), values.device());
       ops::SoftMax()(output, values_lengths, attn);
@@ -189,19 +282,29 @@ namespace ctranslate2 {
                                            const std::string& scope,
                                            dim_t num_heads,
                                            bool self_attention,
-                                           bool pre_norm)
+                                           bool pre_norm,
+                                           bool is_decoder)
       : _num_heads(num_heads)
       , _self_attention(self_attention)
+      , _is_decoder(is_decoder)
       , _linear(make_linear_layers(model, scope, self_attention))
       , _d_model(_linear.back().output_size())
       , _pre_norm(pre_norm)
       , _layer_norm(model, scope + "/layer_norm")
+      , _relative_attention_bias(model.get_variable_if_exists(scope + "/relative_attention_bias"))
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
-      , _maximum_relative_position(_relative_position_keys
-                                   ? (_relative_position_keys->dim(0) - 1) / 2 : 0)
-      , _queries_scale(1.f / std::sqrt(static_cast<float>(_d_model / _num_heads)))
+      , _queries_scale(model.get_attribute_with_default<float>(
+                         scope + "/queries_scale",
+                         1.f / std::sqrt(static_cast<float>(_d_model / _num_heads))))
     {
+      if (_relative_position_keys)
+        _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
+      else if (_relative_attention_bias)
+        _maximum_relative_position = model.get_attribute<int32_t>(
+          scope + "/relative_attention_max_distance");
+      else
+        _maximum_relative_position = 0;
     }
 
     DataType MultiHeadAttention::output_type() const {
@@ -282,10 +385,12 @@ namespace ctranslate2 {
                             values_lengths,
                             _relative_position_keys,
                             _relative_position_values,
+                            _relative_attention_bias,
                             _maximum_relative_position,
                             context,
                             attention,
                             _queries_scale,
+                            _is_decoder,
                             bool(cached_keys));
 
       combine_heads(context, _num_heads, queries_padder);

@@ -45,7 +45,7 @@ namespace ctranslate2 {
     }
 
     size_t TransformerModel::current_spec_revision() const {
-      return 5;
+      return 6;
     }
 
     bool TransformerModel::is_linear_weight(const std::string& variable_name) const {
