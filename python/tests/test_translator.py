@@ -685,7 +685,6 @@ def test_load_model_from_memory(as_file_object):
     _translate()
 
     translator.unload_model()
-    assert not translator.model_is_loaded
     translator.load_model()
 
     _translate()
