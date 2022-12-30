@@ -36,7 +36,7 @@ namespace ctranslate2 {
       dnnl::memory::dims dilation{_dilation > 1 ? _dilation : 0};
       dnnl::memory::dims padding{_padding};
 
-      std::unique_ptr<dnnl::convolution_forward::desc> conv_desc;
+      std::unique_ptr<dnnl::convolution_forward::primitive_desc> conv_pd;
       std::unordered_map<int, dnnl::memory> args;
       args.reserve(4);
 
@@ -46,7 +46,8 @@ namespace ctranslate2 {
         dnnl::memory bias_mem(bias_md, engine, const_cast<void*>(bias->buffer()));
         args.emplace(DNNL_ARG_BIAS, bias_mem);
 
-        conv_desc = std::make_unique<dnnl::convolution_forward::desc>(
+        conv_pd = std::make_unique<dnnl::convolution_forward::primitive_desc>(
+          engine,
           dnnl::prop_kind::forward_inference,
           dnnl::algorithm::convolution_direct,
           input_md,
@@ -59,7 +60,8 @@ namespace ctranslate2 {
           padding);
 
       } else {
-        conv_desc = std::make_unique<dnnl::convolution_forward::desc>(
+        conv_pd = std::make_unique<dnnl::convolution_forward::primitive_desc>(
+          engine,
           dnnl::prop_kind::forward_inference,
           dnnl::algorithm::convolution_direct,
           input_md,
@@ -71,36 +73,34 @@ namespace ctranslate2 {
           padding);
       }
 
-      dnnl::convolution_forward::primitive_desc conv_pd(*conv_desc, engine);
-
       dnnl::memory conv_input_mem = input_mem;
       dnnl::memory conv_weight_mem = weight_mem;
       dnnl::memory conv_output_mem = output_mem;
 
-      if (conv_pd.src_desc() != input_mem.get_desc()) {
-        conv_input_mem = dnnl::memory(conv_pd.src_desc(), engine);
+      if (conv_pd->src_desc() != input_mem.get_desc()) {
+        conv_input_mem = dnnl::memory(conv_pd->src_desc(), engine);
         dnnl::reorder(input_mem, conv_input_mem)
           .execute(engine_stream, input_mem, conv_input_mem);
       }
 
-      if (conv_pd.weights_desc() != weight_mem.get_desc()) {
-        conv_weight_mem = dnnl::memory(conv_pd.weights_desc(), engine);
+      if (conv_pd->weights_desc() != weight_mem.get_desc()) {
+        conv_weight_mem = dnnl::memory(conv_pd->weights_desc(), engine);
         dnnl::reorder(weight_mem, conv_weight_mem)
           .execute(engine_stream, weight_mem, conv_weight_mem);
       }
 
-      if (conv_pd.dst_desc() != output_mem.get_desc()) {
-        conv_output_mem = dnnl::memory(conv_pd.dst_desc(), engine);
+      if (conv_pd->dst_desc() != output_mem.get_desc()) {
+        conv_output_mem = dnnl::memory(conv_pd->dst_desc(), engine);
       }
 
       args.emplace(DNNL_ARG_SRC, conv_input_mem);
       args.emplace(DNNL_ARG_WEIGHTS, conv_weight_mem);
       args.emplace(DNNL_ARG_DST, conv_output_mem);
 
-      dnnl::convolution_forward conv(conv_pd);
+      dnnl::convolution_forward conv(*conv_pd);
       conv.execute(engine_stream, args);
 
-      if (conv_pd.dst_desc() != output_mem.get_desc()) {
+      if (conv_pd->dst_desc() != output_mem.get_desc()) {
         dnnl::reorder(conv_output_mem, output_mem)
           .execute(engine_stream, conv_output_mem, output_mem);
       }

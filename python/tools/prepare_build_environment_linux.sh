@@ -38,7 +38,7 @@ else
     rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
     yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD
 
-    ONEDNN_VERSION=2.7.2
+    ONEDNN_VERSION=3.0
     curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
     tar xf *.tar.gz && rm *.tar.gz
     cd oneDNN-*
