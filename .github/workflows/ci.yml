@@ -46,8 +46,10 @@ jobs:
 
       - name: Configure with MKL
         if: startsWith(matrix.os, 'ubuntu') && matrix.backend == 'mkl'
+        env:
+          MKL_VERSION: 2023.0.0
         run: |
-          sudo apt-get install -y intel-oneapi-mkl-devel
+          sudo apt-get install -y intel-oneapi-mkl-devel-$MKL_VERSION
           cmake -DCMAKE_INSTALL_PREFIX=$PWD/install -DBUILD_TESTS=ON .
 
       - name: Configure with DNNL

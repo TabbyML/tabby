@@ -8,7 +8,7 @@ curl -L -nv -o cuda.exe https://developer.download.nvidia.com/compute/cuda/11.2.
 rm cuda.exe
 
 # See https://github.com/oneapi-src/oneapi-ci for installer URLs
-curl -L -nv -o webimage.exe https://registrationcenter-download.intel.com/akdlm/irc_nas/18851/w_BaseKit_p_2022.3.0.9573_offline.exe
+curl -L -nv -o webimage.exe https://registrationcenter-download.intel.com/akdlm/irc_nas/19078/w_BaseKit_p_2023.0.0.25940_offline.exe
 ./webimage.exe -s -x -f webimage_extracted --log extract.log
 rm webimage.exe
 ./webimage_extracted/bootstrapper.exe -s --action install --components="intel.oneapi.win.mkl.devel" --eula=accept -p=NEED_VS2017_INTEGRATION=0 -p=NEED_VS2019_INTEGRATION=0 --log-dir=.
