@@ -24,6 +24,25 @@ def fuse_linear(spec, layers):
         )
 
 
+def smooth_activation(layer_norm, linear, activation_scales):
+    """Applies the activation smoothing technique described in
+    https://github.com/mit-han-lab/smoothquant.
+    """
+
+    weight_scales = np.amax(np.absolute(linear.weight), axis=0)
+    weight_scales = np.maximum(weight_scales, 1e-5)
+
+    activation_scales = activation_scales.astype(weight_scales.dtype)
+
+    scales = np.sqrt(activation_scales / weight_scales)
+    scales = np.maximum(scales, 1e-5)
+
+    layer_norm.gamma /= scales
+    layer_norm.beta /= scales
+
+    linear.weight *= np.expand_dims(scales, 0)
+
+
 def raise_unsupported(reasons):
     message = (
         "The model you are trying to convert is not supported by CTranslate2. "

@@ -179,6 +179,10 @@ This example uses Meta's [OPT](https://huggingface.co/docs/transformers/model_do
 Converting OPT models requires `transformers>=4.20.1`.
 ```
 
+```{tip}
+If you plan to [quantize](../quantization.md) OPT models to 8-bit, it is recommended to download the corresponding activation scales from the [SmoothQuant repository](https://github.com/mit-han-lab/smoothquant/tree/main/act_scales) and pass them to the converter option `--activation_scales`. Some weights will be rescaled to smooth the intermediate activations and improve the quantization accuracy.
+```
+
 ```bash
 ct2-transformers-converter --model facebook/opt-350m --output_dir opt-350m-ct2
 ```

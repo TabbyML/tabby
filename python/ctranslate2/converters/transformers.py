@@ -1,6 +1,8 @@
 import abc
 import argparse
 
+from typing import Optional
+
 import numpy as np
 
 from ctranslate2.converters import utils
@@ -34,14 +36,23 @@ def register_loader(config_name):
 class TransformersConverter(Converter):
     """Converts models from Hugging Face Transformers."""
 
-    def __init__(self, model_name_or_path: str):
+    def __init__(
+        self,
+        model_name_or_path: str,
+        activation_scales: Optional[str] = None,
+    ):
         """Initializes the converter.
 
         Arguments:
           model_name_or_path: Name of the pretrained model to download, or path to the
             directory containing the pretrained model.
+          activation_scales: Path to the pre-computed activation scales. Models may
+            use them to rescale some weights to smooth the intermediate activations
+            and improve the quantization accuracy. See
+            https://github.com/mit-han-lab/smoothquant.
         """
         self._model_name_or_path = model_name_or_path
+        self._activation_scales = activation_scales
 
     def _load(self):
         import torch
@@ -59,7 +70,15 @@ class TransformersConverter(Converter):
                     % (config_name, ", ".join(_MODEL_LOADERS.keys()))
                 )
 
-            return loader(self._model_name_or_path)
+            spec = loader(self._model_name_or_path)
+
+            if self._activation_scales:
+                activation_scales = torch.load(
+                    self._activation_scales, map_location="cpu"
+                )
+                loader.smooth_activation(spec, activation_scales)
+
+            return spec
 
 
 class ModelLoader(abc.ABC):
@@ -125,6 +144,11 @@ class ModelLoader(abc.ABC):
         offset = getattr(module, "offset", 0)
         if offset > 0:
             spec.encodings = spec.encodings[offset:]
+
+    def smooth_activation(self, spec, activation_scales):
+        raise NotImplementedError(
+            "No activation smoothing logic is defined for this model"
+        )
 
 
 @register_loader("BartConfig")
@@ -382,6 +406,22 @@ class OPTLoader(BartLoader):
         self.set_decoder(spec.decoder, model.model.decoder)
         self.set_linear(spec.decoder.projection, model.lm_head)
         return spec
+
+    def smooth_activation(self, spec, activation_scales):
+        for i, layer in enumerate(spec.decoder.layer):
+            layer_scope = "model.decoder.layers.%d" % i
+
+            utils.smooth_activation(
+                layer.self_attention.layer_norm,
+                layer.self_attention.linear[0],
+                activation_scales["%s.self_attn.q_proj" % layer_scope].numpy(),
+            )
+
+            utils.smooth_activation(
+                layer.ffn.layer_norm,
+                layer.ffn.linear_0,
+                activation_scales["%s.fc1" % layer_scope].numpy(),
+            )
 
     def set_vocabulary(self, spec, tokens):
         spec.register_vocabulary(tokens)
@@ -654,10 +694,22 @@ def main():
             "or path to a directory containing the pretrained model."
         ),
     )
+    parser.add_argument(
+        "--activation_scales",
+        help=(
+            "Path to the pre-computed activation scales. Models may "
+            "use them to rescale some weights to smooth the intermediate activations "
+            "and improve the quantization accuracy. See "
+            "https://github.com/mit-han-lab/smoothquant."
+        ),
+    )
 
     Converter.declare_arguments(parser)
     args = parser.parse_args()
-    converter = TransformersConverter(args.model)
+    converter = TransformersConverter(
+        args.model,
+        activation_scales=args.activation_scales,
+    )
     converter.convert_from_args(args)
 
 
