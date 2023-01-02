@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v3.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.3.0) (2023-01-02)
+
+### New features
+
+* Support T5 models, including the variants T5v1.1 and mT5
+* Support loading the model files from memory:
+  * Python: see the `files` argument in the constructor of classes loading models
+  * C++: see the `models::ModelMemoryReader` class
+
+### Fixes and improvements
+
+* Improve the quantization accuracy of OPT models by applying the [SmoothQuant](https://github.com/mit-han-lab/smoothquant) technique during conversion (pre-computed activation scales should be passed to the converter option `--activation_scales`)
+* Fix conversion of BART-like models from HuggingFace that are using a different number of encoder and decoder layers
+* Fix compilation when no BLAS CPU backend is selected
+* Remove no longer relevant CMake warning when the project is compiled without oneDNN
+* Update oneDNN to 3.0
+* Update oneMKL to 2023.0
+
 ## [v3.2.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.2.0) (2022-12-12)
 
 ### New features
