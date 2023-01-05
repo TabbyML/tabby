@@ -6,13 +6,12 @@ The core CTranslate2 implementation is framework agnostic. The logic that is spe
 
 The Python module includes a [conversion API](python/ctranslate2.converters.rst) and conversion scripts for multiple frameworks:
 
-```{eval-rst}
-.. toctree::
-   :maxdepth: 1
-   :glob:
-
-   guides/*
-```
+* [Fairseq](guides/fairseq.md)
+* [Marian](guides/marian.md)
+* [OpenNMT-py](guides/opennmt_py.md)
+* [OpenNMT-tf](guides/opennmt_tf.md)
+* [OPUS-MT](guides/opus_mt.md)
+* [Transformers](guides/transformers.md)
 
 ## Model structure
 
