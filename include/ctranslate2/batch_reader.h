@@ -48,27 +48,6 @@ namespace ctranslate2 {
     }
   };
 
-  // Helper class to read tokens from a text stream.
-  template <typename Tokenizer>
-  class TextLineReader {
-  public:
-    TextLineReader(Tokenizer& tokenizer)
-      : _tokenizer(tokenizer)
-    {
-    }
-
-    bool operator()(std::istream& in, std::vector<std::string>& tokens) {
-      std::string line;
-      if (!ctranslate2::getline(in, line))
-        return false;
-      tokens = _tokenizer(line);
-      return true;
-    }
-
-  private:
-    Tokenizer& _tokenizer;
-  };
-
 
   // Base class to produce batches.
   class BatchReader {
@@ -93,26 +72,28 @@ namespace ctranslate2 {
   };
 
   // Read batches from a stream.
-  template <typename Reader>
-  class StreamReader : public BatchReader {
+  template <typename Tokenizer>
+  class TextLineReader : public BatchReader {
   public:
-    StreamReader(std::istream& stream, Reader& reader)
+    TextLineReader(std::istream& stream, Tokenizer& tokenizer)
       : _stream(stream)
-      , _reader(reader)
+      , _tokenizer(tokenizer)
     {
     }
 
     Example get_next_example() override {
       Example example;
-      example.streams.resize(1);
-      if (!_reader(_stream, example.streams[0]))
-        example.streams.clear();
+
+      std::string line;
+      if (ctranslate2::getline(_stream, line))
+        example.streams.emplace_back(_tokenizer(line));
+
       return example;
     }
 
   private:
     std::istream& _stream;
-    Reader& _reader;
+    Tokenizer& _tokenizer;
   };
 
   // Read batches from a vector of examples.

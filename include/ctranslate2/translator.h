@@ -176,9 +176,6 @@ namespace ctranslate2 {
                                            const bool with_scores = false) {
       ExecutionStats stats;
 
-      TextLineReader<SourceTokenizer> source_reader(source_tokenizer);
-      TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
-
       auto writer = [&detokenizer, &stats, &output, &with_scores](const TranslationResult& result) {
         const auto& hypotheses = result.hypotheses;
         const auto& scores = result.scores;
@@ -197,8 +194,8 @@ namespace ctranslate2 {
         source,
         target,
         output,
-        source_reader,
-        &target_reader,
+        source_tokenizer,
+        target_tokenizer,
         writer,
         max_batch_size,
         read_batch_size,
@@ -271,8 +268,6 @@ namespace ctranslate2 {
                                        const size_t read_batch_size = 0,
                                        const BatchType batch_type = BatchType::Examples,
                                        bool with_token_scores = false) {
-      TextLineReader<SourceTokenizer> source_reader(source_tokenizer);
-      TextLineReader<TargetTokenizer> target_reader(target_tokenizer);
       ExecutionStats stats;
 
       auto writer = [&target_detokenizer, &stats, &output, with_token_scores](const ScoringResult& result) {
@@ -293,8 +288,8 @@ namespace ctranslate2 {
         source,
         &target,
         output,
-        source_reader,
-        &target_reader,
+        source_tokenizer,
+        target_tokenizer,
         writer,
         max_batch_size,
         read_batch_size,
@@ -313,15 +308,15 @@ namespace ctranslate2 {
     friend class BufferedTranslationWrapper;
 
     template <typename Result,
-              typename SourceReader,
-              typename TargetReader,
+              typename SourceTokenizer,
+              typename TargetTokenizer,
               typename TargetWriter,
               typename Func>
     void consume_stream(std::istream& source,
                         std::istream* target,
                         std::ostream& output,
-                        SourceReader& source_reader,
-                        TargetReader* target_reader,
+                        SourceTokenizer& source_tokenizer,
+                        TargetTokenizer& target_tokenizer,
                         TargetWriter& target_writer,
                         size_t max_batch_size,
                         size_t read_batch_size,
@@ -330,11 +325,13 @@ namespace ctranslate2 {
       std::unique_ptr<BatchReader> batch_reader;
       if (target) {
         auto parallel_reader = std::make_unique<ParallelBatchReader>();
-        parallel_reader->add(std::make_unique<StreamReader<SourceReader>>(source, source_reader));
-        parallel_reader->add(std::make_unique<StreamReader<TargetReader>>(*target, *target_reader));
+        parallel_reader->add(
+          std::make_unique<TextLineReader<SourceTokenizer>>(source, source_tokenizer));
+        parallel_reader->add(
+          std::make_unique<TextLineReader<TargetTokenizer>>(*target, target_tokenizer));
         batch_reader = std::move(parallel_reader);
       } else {
-        batch_reader = std::make_unique<StreamReader<SourceReader>>(source, source_reader);
+        batch_reader = std::make_unique<TextLineReader<SourceTokenizer>>(source, source_tokenizer);
       }
 
       consume_batches<Result>(*batch_reader,
