@@ -894,8 +894,6 @@ namespace ctranslate2 {
     if (options.prefix_bias_beta > 0 && options.return_alternatives)
       throw std::invalid_argument("Biased decoding is not compatible with the return_alternatives "
                                   "mode");
-    if (options.prefix_bias_beta > 0 && options.beam_size == 1)
-      throw std::invalid_argument("Biased decoding is not compatible with greedy search");
     if (options.return_alternatives
         && (options.min_alternative_expansion_prob < 0
             || options.min_alternative_expansion_prob > 1))
@@ -913,7 +911,7 @@ namespace ctranslate2 {
 
   static std::unique_ptr<const SearchStrategy>
   make_search_strategy(const DecodingOptions& options) {
-    if (options.beam_size == 1)
+    if (options.beam_size == 1 && options.prefix_bias_beta == 0)
       return std::make_unique<GreedySearch>(options.length_penalty, options.coverage_penalty);
     else
       return std::make_unique<BeamSearch>(options.beam_size,
