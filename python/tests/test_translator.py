@@ -346,26 +346,31 @@ def test_hard_target_prefix_with_vmap(tmpdir, beam_size):
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
 
 
-def test_strongly_biased_target_prefix():
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_strongly_biased_target_prefix(beam_size):
     translator = _get_transliterator()
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
         target_prefix=[["a", "t", "s"], None],
+        beam_size=beam_size,
         prefix_bias_beta=0.9999999,
     )
     assert output[0].hypotheses[0][:3] == ["a", "t", "s"]
     assert output[1].hypotheses[0] == ["a", "c", "h", "i", "s", "o", "n"]
 
 
-def test_weakly_biased_target_prefix():
+@pytest.mark.parametrize("beam_size", [1, 2])
+def test_weakly_biased_target_prefix(beam_size):
     translator = _get_transliterator()
     unconstrained_output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
+        beam_size=beam_size,
         return_scores=True,
     )
     weakly_biased_output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"], ["آ", "ت", "ش", "ي", "س", "و", "ن"]],
         target_prefix=[["a", "t", "s"], ["s", "i", "o"]],
+        beam_size=beam_size,
         prefix_bias_beta=0.0000001,
         return_scores=True,
     )
