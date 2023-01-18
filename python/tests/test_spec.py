@@ -40,6 +40,23 @@ def test_layer_spec_validate():
         spec.z = True
 
 
+def test_layer_spec_validate_unset():
+    class SubSpec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.attr_1 = None
+
+    class Spec(ctranslate2.specs.LayerSpec):
+        def __init__(self):
+            self.attr_1 = np.zeros([5], dtype=np.float32)
+            self.attr_2 = None
+            self.attr_3 = SubSpec()
+
+    spec = Spec()
+
+    with pytest.raises(ValueError, match="attr_2\nattr_3.attr_1"):
+        spec.validate()
+
+
 def test_layer_spec_optimize():
     class SubSpec(ctranslate2.specs.LayerSpec):
         def __init__(self):

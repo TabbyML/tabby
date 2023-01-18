@@ -83,10 +83,12 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
         Raises:
           ValueError: If a required weight is not set in the specification.
         """
+        unset_attributes = []
 
         def _check(spec, name, value):
             if value is None:
-                raise ValueError("Missing value for attribute %s" % name)
+                unset_attributes.append(name)
+                return
 
             if isinstance(value, np.ndarray):
                 # float64 is not a supported type.
@@ -105,6 +107,12 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
             setattr(spec, attr_name, value)
 
         self._visit(_check)
+
+        if unset_attributes:
+            raise ValueError(
+                "Some required model attributes are not set:\n\n%s"
+                % "\n".join(unset_attributes)
+            )
 
     def variables(
         self,
