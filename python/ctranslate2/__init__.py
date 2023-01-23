@@ -34,6 +34,7 @@ try:
         set_random_seed,
     )
     from ctranslate2.extensions import register_extensions
+    from ctranslate2.logging import get_log_level, set_log_level
 
     register_extensions()
     del register_extensions
@@ -45,5 +46,4 @@ except ImportError as e:
         raise
 
 from ctranslate2 import converters, models, specs
-from ctranslate2.logging import get_log_level, set_log_level
 from ctranslate2.version import __version__
