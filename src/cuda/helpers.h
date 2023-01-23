@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 
 #include <cuda_fp16.h>
 
@@ -22,7 +23,7 @@ namespace ctranslate2 {
     using index_t = unsigned int;
 
     constexpr dim_t max_threads = 1024;
-    constexpr dim_t max_blocks = 65535;
+    constexpr dim_t max_blocks = std::numeric_limits<int32_t>::max();
 
     template <typename T>
     struct DeviceType {
