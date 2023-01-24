@@ -344,6 +344,10 @@ class M2M100Loader(BartLoader):
     def get_vocabulary(self, model, tokenizer):
         tokens = super().get_vocabulary(model, tokenizer)
 
+        # Workaround for issue https://github.com/OpenNMT/CTranslate2/issues/1039.
+        if tokens[-1] == tokenizer.unk_token:
+            tokens.insert(tokenizer.unk_token_id, tokens.pop())
+
         for token in tokenizer.additional_special_tokens:
             if token not in tokens:
                 tokens.append(token)
