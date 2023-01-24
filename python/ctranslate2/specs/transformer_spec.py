@@ -13,6 +13,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         num_layers: int,
         num_heads: int,
         pre_norm: bool = True,
+        no_final_norm: bool = False,
         activation: common_spec.Activation = common_spec.Activation.RELU,
         num_source_embeddings: int = 1,
         embeddings_merge: common_spec.EmbeddingsMerge = common_spec.EmbeddingsMerge.CONCAT,
@@ -28,6 +29,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
           num_layers: Number of layers.
           num_heads: Number of attention heads.
           pre_norm: Enable the pre-norm Transformer architecture.
+          no_final_norm: Disable the final layer norm in the pre-norm architecture.
           activation: Activation to apply in the feed-forward network.
           num_source_embeddings: Number of source embeddings.
           embeddings_merge: When :obj:`num_source_embeddings` > 1, specify how the
@@ -51,7 +53,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         self.scale_embeddings = True
         if not relative_position and not relative_attention_bias:
             self.position_encodings = PositionEncoderSpec()
-        if pre_norm:
+        if pre_norm and not no_final_norm:
             self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)
         if layernorm_embedding:
             self.layernorm_embedding = common_spec.LayerNormSpec(rms_norm=rms_norm)
@@ -221,6 +223,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         num_heads: int,
         with_relative_position: bool = False,
         pre_norm: bool = True,
+        no_final_norm: bool = False,
         activation: common_spec.Activation = common_spec.Activation.RELU,
         alignment_layer: int = -1,
         alignment_heads: int = 1,
@@ -240,6 +243,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           with_relative_position: Use relative position representations in the self-attention
             layers as described in https://arxiv.org/abs/1803.02155.
           pre_norm: Enable the pre-norm Transformer architecture.
+          no_final_norm: Disable the final layer norm in the pre-norm architecture.
           activation: Activation to apply in the feed-forward network.
           alignment_layer: Layer index selected for alignment.
           alignment_heads: Number of attention heads selected for alignment.
@@ -262,6 +266,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             num_encoder_layers,
             num_heads,
             pre_norm=pre_norm,
+            no_final_norm=no_final_norm,
             activation=activation,
             num_source_embeddings=num_source_embeddings,
             embeddings_merge=embeddings_merge,
@@ -276,6 +281,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             num_decoder_layers,
             num_heads,
             pre_norm=pre_norm,
+            no_final_norm=no_final_norm,
             activation=activation,
             layernorm_embedding=layernorm_embedding,
             relative_position=with_relative_position,
