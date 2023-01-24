@@ -436,6 +436,8 @@ class SequenceToSequenceModelSpec(ModelSpec):
         self._vmap = path
 
     def validate(self) -> None:
+        super().validate()
+
         # Check that vocabularies are registered and have the correct size.
         vocabulary_sizes = {
             "source": self.get_source_vocabulary_size(),
@@ -461,9 +463,6 @@ class SequenceToSequenceModelSpec(ModelSpec):
 
         if self._vmap is not None and not os.path.exists(self._vmap):
             raise ValueError("Vocabulary mapping file %s does not exist" % self._vmap)
-
-        # Validate the rest of the model.
-        super().validate()
 
     def save(self, output_dir: str) -> None:
         # Save the vocabularies.
@@ -534,14 +533,14 @@ class LanguageModelSpec(ModelSpec):
         self._vocabulary = list(tokens)
 
     def validate(self) -> None:
+        super().validate()
+
         expected_vocabulary_size = self.get_vocabulary_size()
         if len(self._vocabulary) != expected_vocabulary_size:
             raise ValueError(
                 "Vocabulary has size %d but the model expected a vocabulary of size %d"
                 % (len(self._vocabulary), expected_vocabulary_size)
             )
-
-        super().validate()
 
     def save(self, output_dir: str) -> None:
         # Save the vocabulary.
