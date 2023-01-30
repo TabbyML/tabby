@@ -121,38 +121,6 @@ namespace ctranslate2 {
       return copy;
     }
 
-    template <typename T>
-    static void pack_weight(const StorageView& weight,
-                            const bool transpose,
-                            const dim_t k,
-                            const dim_t n,
-                            const float alpha,
-                            StorageView& packed_weight) {
-      const T* src = weight.data<T>();
-      const dim_t pack_bytes = primitives<Device::CPU>::gemm_pack_b(src,
-                                                                    transpose,
-                                                                    k, n,
-                                                                    alpha);
-
-      if (pack_bytes == 0)  // Packed Gemm is not supported.
-        return;
-
-      const dim_t pack_size = pack_bytes / sizeof (T);
-      const dim_t weight_size = weight.size();
-
-      // We want the packed storage to have the same shape as the original weight
-      // so that operators can query its shape, but also have enough space to store
-      // the packed data.
-      packed_weight.reserve(std::max(weight_size, pack_size));
-      packed_weight.resize_as(weight);
-
-      primitives<Device::CPU>::gemm_pack_b(src,
-                                           transpose,
-                                           k, n,
-                                           alpha,
-                                           packed_weight.data<T>());
-    }
-
 
     std::unique_ptr<SequenceToSequenceReplica> Model::as_sequence_to_sequence() const {
       throw std::runtime_error("This model cannot be used as a sequence-to-sequence model");
@@ -376,7 +344,7 @@ namespace ctranslate2 {
       if (_device != Device::CPU)
         return;  // There is currently no processing for non CPU device.
 
-      const bool should_pack_weights = cpu::should_pack_gemm_weights();
+      const bool pack_weights = cpu::pack_gemm_weights(_effective_compute_type);
       const bool transpose = true;
       const float alpha = 1;
 
@@ -396,37 +364,15 @@ namespace ctranslate2 {
         // This term only depends on the linear weight, so we can compute it once and
         // store it as a model variable.
         if (dtype == DataType::INT8 && cpu::prefer_u8s8s32_gemm()) {
-          StorageView compensation({n}, DataType::INT32);
-          primitives<Device::CPU>::compute_u8_compensation(weight.data<int8_t>(),
-                                                           transpose,
-                                                           k, n,
-                                                           alpha,
-                                                           compensation.data<int32_t>());
+          StorageView compensation = ops::Gemm::compensate_u8_input(weight, transpose, k, n, alpha);
           register_variable(name + "_compensation", std::move(compensation));
         }
 
         // If requested, linear weights can be packed for the Gemm call.
-        if (should_pack_weights && is_packable(name)) {
-          StorageView packed_weight(dtype);
-
-          switch (dtype) {
-          case DataType::FLOAT:
-            pack_weight<float>(weight, transpose, k, n, alpha, packed_weight);
-            break;
-          case DataType::INT16:
-            pack_weight<int16_t>(weight, transpose, k, n, alpha, packed_weight);
-            break;
-          case DataType::INT8:
-            pack_weight<int8_t>(weight, transpose, k, n, alpha, packed_weight);
-            break;
-          default:
-            break;
-          }
-
-          if (!packed_weight.empty()) {
-            register_variable(name + "_packed", std::move(packed_weight));
-            remove_variable(name);  // The original weight is no longer needed.
-          }
+        if (pack_weights && is_packable(name)) {
+          StorageView packed_weight = ops::Gemm::pack_b_input(weight, transpose, k, n, alpha);
+          register_variable(name + "_packed", std::move(packed_weight));
+          remove_variable(name);  // The original weight is no longer needed.
         }
       }
     }

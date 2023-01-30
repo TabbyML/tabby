@@ -40,14 +40,16 @@ namespace ctranslate2 {
 #endif
     spdlog::info(" - Selected ISA: {}", cpu::isa_to_str(cpu::get_cpu_isa()));
     spdlog::info(" - Use Intel MKL: {}", cpu::mayiuse_mkl());
-    spdlog::info(" - SGEMM backend: {}",
-                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT)));
-    spdlog::info(" - GEMM_S16 backend: {}",
-                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT16)));
-    spdlog::info(" - GEMM_S8 backend: {} (u8s8 preferred: {})",
+    spdlog::info(" - SGEMM backend: {} (packed: {})",
+                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT)),
+                 cpu::pack_gemm_weights(ComputeType::FLOAT));
+    spdlog::info(" - GEMM_S16 backend: {} (packed: {})",
+                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT16)),
+                 cpu::pack_gemm_weights(ComputeType::INT16));
+    spdlog::info(" - GEMM_S8 backend: {} (packed: {}, u8s8 preferred: {})",
                  cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT8)),
+                 cpu::pack_gemm_weights(ComputeType::INT8),
                  cpu::prefer_u8s8s32_gemm());
-    spdlog::info(" - Use packed GEMM: {}", cpu::should_pack_gemm_weights());
 
 #ifdef CT2_WITH_CUDA
     for (int i = 0; i < cuda::get_gpu_count(); ++i) {

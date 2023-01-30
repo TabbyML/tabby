@@ -93,9 +93,9 @@ namespace ctranslate2 {
       return gemm_s8_backend == cpu::GemmBackend::MKL || gemm_s8_backend == cpu::GemmBackend::DNNL;
     }
 
-    bool should_pack_gemm_weights() {
+    bool pack_gemm_weights(ComputeType compute_type) {
       static const bool should_pack = read_bool_from_env("CT2_USE_EXPERIMENTAL_PACKED_GEMM");
-      return should_pack;
+      return should_pack && get_gemm_backend(compute_type) == GemmBackend::MKL;
     }
 
 #ifdef CT2_WITH_RUY

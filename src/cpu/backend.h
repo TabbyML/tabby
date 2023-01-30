@@ -25,7 +25,7 @@ namespace ctranslate2 {
     GemmBackend get_gemm_backend(ComputeType compute_type);
     bool has_gemm_backend(ComputeType compute_type);
     bool prefer_u8s8s32_gemm();
-    bool should_pack_gemm_weights();
+    bool pack_gemm_weights(ComputeType compute_type);
 #ifdef CT2_WITH_RUY
     ruy::Context *get_ruy_context();
 #endif

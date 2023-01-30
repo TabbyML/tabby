@@ -102,5 +102,84 @@ namespace ctranslate2 {
                           a_shift_compensation ? a_shift_compensation->data<Out>() : nullptr);
     }
 
+    template <typename T>
+    static void pack_b(const StorageView& b,
+                       const bool transpose,
+                       const dim_t k,
+                       const dim_t n,
+                       const float alpha,
+                       StorageView& packed) {
+      const T* src = b.data<T>();
+      const dim_t pack_bytes = primitives<Device::CPU>::gemm_pack_b(src,
+                                                                    transpose,
+                                                                    k, n,
+                                                                    alpha);
+
+      if (pack_bytes == 0)  // Packed Gemm is not supported.
+        throw std::runtime_error("Packed GEMM APIs are not supported by this GEMM backend");
+
+      const dim_t pack_size = pack_bytes / sizeof (T);
+      const dim_t b_size = b.size();
+
+      // We want the packed storage to have the same shape as the original weight
+      // so that operators can query its shape, but also have enough space to store
+      // the packed data.
+      packed.reserve(std::max(b_size, pack_size));
+      packed.resize_as(b);
+
+      primitives<Device::CPU>::gemm_pack_b(src,
+                                           transpose,
+                                           k, n,
+                                           alpha,
+                                           packed.data<T>());
+    }
+
+    StorageView Gemm::pack_b_input(const StorageView& b,
+                                   const bool transpose,
+                                   const dim_t k,
+                                   const dim_t n,
+                                   const float alpha) {
+      if (b.device() != Device::CPU)
+        throw std::invalid_argument("Packed GEMM APIs are only defined on CPU");
+
+      DataType dtype = b.dtype();
+      StorageView packed(dtype);
+
+      switch (dtype) {
+      case DataType::FLOAT:
+        pack_b<float>(b, transpose, k, n, alpha, packed);
+        break;
+      case DataType::INT16:
+        pack_b<int16_t>(b, transpose, k, n, alpha, packed);
+        break;
+      case DataType::INT8:
+        pack_b<int8_t>(b, transpose, k, n, alpha, packed);
+        break;
+      default:
+        throw std::invalid_argument("Cannot pack GEMM input of type " + dtype_name(dtype));
+        break;
+      }
+
+      return packed;
+    }
+
+    StorageView Gemm::compensate_u8_input(const StorageView& b,
+                                          const bool transpose,
+                                          const dim_t k,
+                                          const dim_t n,
+                                          const float alpha) {
+      if (b.device() != Device::CPU && b.dtype() != DataType::INT8)
+        throw std::invalid_argument("Unsigned input compensation is only defined for "
+                                    "INT8 GEMM on CPU");
+
+      StorageView compensation({n}, DataType::INT32);
+      primitives<Device::CPU>::compute_u8_compensation(b.data<int8_t>(),
+                                                       transpose,
+                                                       k, n,
+                                                       alpha,
+                                                       compensation.data<int32_t>());
+      return compensation;
+    }
+
   }
 }

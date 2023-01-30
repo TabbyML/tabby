@@ -26,6 +26,20 @@ namespace ctranslate2 {
                       const StorageView* a_shift_compensation = nullptr,
                       const StorageView* bias = nullptr) const;
 
+      // Return the packed representation of b, if implemented by the GEMM backend.
+      static StorageView pack_b_input(const StorageView& b,
+                                      const bool transpose,
+                                      const dim_t k,
+                                      const dim_t n,
+                                      const float alpha);
+
+      // Return the compensation term when s8s8s32 is implemented with u8s8s32.
+      static StorageView compensate_u8_input(const StorageView& b,
+                                             const bool transpose,
+                                             const dim_t k,
+                                             const dim_t n,
+                                             const float alpha);
+
     private:
       float _alpha;
       float _beta;
