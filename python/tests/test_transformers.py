@@ -483,5 +483,9 @@ def test_transformers_whisper(
                 assert tokens[-1] >= timestamp_begin
                 assert tokens[-1] > tokens[0]
 
-        transcription = processor.decode(result.sequences_ids[0])
+        token_ids = list(
+            filter(lambda token: token < timestamp_begin, result.sequences_ids[0])
+        )
+
+        transcription = processor.decode(token_ids)
         assert transcription == expected_transcription
