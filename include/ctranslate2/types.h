@@ -47,8 +47,9 @@ namespace ctranslate2 {
                                    const int device_index = 0,
                                    const bool enable_fallback = false);
 
-  // Gets the weights data type for the given compute type.
-  DataType compute_type_to_data_type(const ComputeType compute_type);
+  // Maps the compute type from or to the weights data type.
+  ComputeType data_type_to_compute_type(const DataType weight_type, const DataType float_type);
+  std::pair<DataType, DataType> compute_type_to_data_type(const ComputeType compute_type);
 
   // Gets the default floating point type for the given compute type.
   DataType get_default_float_type(const ComputeType compute_type);

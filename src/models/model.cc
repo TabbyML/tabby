@@ -192,8 +192,9 @@ namespace ctranslate2 {
                                                              device,
                                                              device_index);
 
-      const DataType target_dtype = compute_type_to_data_type(_effective_compute_type);
-      const DataType float_dtype = get_default_float_type(_effective_compute_type);
+      DataType weight_dtype = DataType::FLOAT;
+      DataType float_dtype = DataType::FLOAT;
+      std::tie(weight_dtype, float_dtype) = compute_type_to_data_type(_effective_compute_type);
 
       const auto variable_index = _variable_index;
       for (auto& variable_pair : variable_index) {
@@ -203,7 +204,7 @@ namespace ctranslate2 {
         // Convert "weight" variables to the expected compute type.
         // Other float variables (e.g. biases) may be converted from or to float16.
         if (is_quantizable(name))
-          ensure_dtype(name, variable, target_dtype);
+          ensure_dtype(name, variable, weight_dtype);
         else if (is_convertible(variable, name)
                  && is_float_type(variable.dtype())
                  && variable.dtype() != float_dtype)
@@ -367,16 +368,7 @@ namespace ctranslate2 {
         }
       }
 
-      switch (weight_type) {
-      case DataType::INT8:
-        return other_type == DataType::FLOAT16 ? ComputeType::INT8_FLOAT16 : ComputeType::INT8;
-      case DataType::INT16:
-        return ComputeType::INT16;
-      case DataType::FLOAT16:
-        return ComputeType::FLOAT16;
-      default:
-        return ComputeType::FLOAT;
-      }
+      return data_type_to_compute_type(weight_type, other_type);
     }
 
     // This method runs some precomputations on linear weights when possible.
