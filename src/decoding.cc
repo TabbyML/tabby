@@ -332,8 +332,8 @@ namespace ctranslate2 {
                                    const std::vector<std::vector<size_t>>& prefix_ids,
                                    const std::vector<dim_t>& batch_offset) {
     auto updated = beams_diverged_from_prefix;
-    for (dim_t i = 0; i < sampled_ids.dim(0); ++i) {
-      for (dim_t k = 0; k < sampled_ids.dim(1); ++k) {
+    for (dim_t i = 0; i < dim_t(updated.size()); ++i) {
+      for (dim_t k = 0; k < dim_t(updated[i].size()); ++k) {
         const size_t word_id = sampled_ids.at<int32_t>({i, k});
         const auto& prefix = prefix_ids[batch_offset[i]];
         updated[i][k] = (step >= prefix.size()
