@@ -210,7 +210,7 @@ print(output)
 The example below uses the `t5-small` and machine translation input.
 
 ```{note}
-The variants T5v1.1 and mT5 are also supported.
+The variants T5v1.1, mT5, and FLAN-T5 are also supported.
 ```
 
 ```bash
