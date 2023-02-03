@@ -4,6 +4,17 @@
 
 ### Fixes and improvements
 
+## [v3.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.4.0) (2023-02-03)
+
+### Fixes and improvements
+
+* Fix incorrect vocabulary in M2M100 models after conversion with `transformers>=4.24`
+* Fix incorrect model outputs when executing with very large batch sizes on GPU
+* Fix memory error in biased decoding: the vector of divergence was read and updated past its length
+* Allow setting `prefix_bias_beta` > 0 with `beam_size` == 1
+* Prevent timestamps from decreasing during Whisper generation
+* Make some error messages more helpful when implementing a custom converter
+
 ## [v3.3.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.3.0) (2023-01-02)
 
 ### New features
