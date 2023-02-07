@@ -26,7 +26,7 @@ ct2-opennmt-py-converter --model_path model.pt --quantization int8 --output_dir 
 ```
 
 ```{note}
-Whatever quantization type is selected here, the runtime ensures the model can be loaded and executed efficiently. This implies the model weights are possibly converted to another type when the model is loaded, see {ref}`quantization:implicit model conversion on load`.
+Whatever quantization type is selected here, the runtime ensures the model can be loaded and executed efficiently. This implies the model weights are possibly converted to another type when the model is loaded, see {ref}`quantization:implicit type conversion on load`.
 ```
 
 For reference, the table below compares the model size on disk for a base Transformer model without shared embeddings and a vocabulary of size 32k:
@@ -43,7 +43,8 @@ For reference, the table below compares the model size on disk for a base Transf
 
 Quantization can also be enabled or changed when loading the model. The translator exposes the option `compute_type` that accepts the following values:
 
-* `auto`: selects the fastest computation type on this system and device
+* `default`: keep the same quantization that was used during model conversion (see {ref}`quantization:implicit type conversion on load` for exceptions)
+* `auto`: use the fastest computation type that is supported on this system and device
 * `int8`
 * `int8_float16`
 * `int16`
@@ -60,7 +61,7 @@ translator = ctranslate2.Translator(model_path, compute_type="int8")
 Conversions between all types are supported. For example, you can convert a model with `quantization="int8"` and then execute in full precision with `compute_type="float"`.
 ```
 
-## Implicit model conversion on load
+## Implicit type conversion on load
 
 By default, the runtime tries to use the type that is saved in the converted model as the computation type. However, if the current platform or backend do not support optimized execution for this computation type (e.g. `int16` is not optimized on GPU), then the library converts the model weights to another optimized type. The tables below document the fallback types in prebuilt binaries:
 
