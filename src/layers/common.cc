@@ -160,6 +160,11 @@ namespace ctranslate2 {
                                  + std::to_string(num_encodings)
                                  + ", but got position "
                                  + std::to_string(max_time - 1));
+      if (depth != encodings.dim(1))
+        throw std::invalid_argument("Shape mismatch: position encodings have depth "
+                                    + std::to_string(encodings.dim(1))
+                                    + ", but the input has depth "
+                                    + std::to_string(depth));
 
       DEVICE_AND_TYPE_DISPATCH(input.device(), input.dtype(),
                                primitives<D>::add_batch_broadcast(encodings.data<T>() + index * depth,
@@ -189,6 +194,10 @@ namespace ctranslate2 {
 
     dim_t PositionEmbedding::output_size() const {
       return _encoding.dim(1);
+    }
+
+    dim_t PositionEmbedding::num_positions() const {
+      return _encoding.dim(0);
     }
 
 
@@ -385,6 +394,10 @@ namespace ctranslate2 {
 
     dim_t Conv1D::output_size() const {
       return _weight.dim(0);
+    }
+
+    dim_t Conv1D::input_size() const {
+      return _weight.dim(1);
     }
 
     void Conv1D::operator()(const StorageView& input, StorageView& output) const {

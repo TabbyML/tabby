@@ -101,6 +101,7 @@ namespace ctranslate2 {
       PositionEmbedding(const models::Model& model, const std::string& scope);
       DataType output_type() const override;
       dim_t output_size() const override;
+      dim_t num_positions() const;
     protected:
       const StorageView& get_position_encoding(dim_t max_time) override;
     private:
@@ -169,6 +170,7 @@ namespace ctranslate2 {
              dim_t dilation = 1);
       DataType output_type() const override;
       dim_t output_size() const override;
+      dim_t input_size() const;
       void operator()(const StorageView& input, StorageView& output) const;
     private:
       const ops::Conv1D _conv_op;

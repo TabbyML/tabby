@@ -489,3 +489,29 @@ def test_transformers_whisper(
 
         transcription = processor.decode(token_ids)
         assert transcription == expected_transcription
+
+
+@test_utils.only_on_linux
+def test_transformers_whisper_invalid_shape(tmpdir):
+    import transformers
+
+    model_name = "openai/whisper-tiny"
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
+    audio = np.load(audio_path)
+
+    processor = transformers.WhisperProcessor.from_pretrained(model_name)
+    inputs = processor(audio, padding=False, return_tensors="np", sampling_rate=16000)
+    features = ctranslate2.StorageView.from_array(inputs.input_features)
+
+    model = ctranslate2.models.Whisper(output_dir)
+
+    with pytest.raises(ValueError) as exception_info:
+        model.detect_language(features)
+
+    error_message = str(exception_info.value)
+    assert "(1, 80, 3000)" in error_message
+    assert "(1, 80, 1100)" in error_message
