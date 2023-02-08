@@ -353,24 +353,22 @@ namespace ctranslate2 {
 
   template <typename T>
   __global__ void transpose_0213(const T* in,
-                                 const cuda::index_t rows,
                                  const cuda::index_t cols,
                                  const cuda::index_t stride1,
                                  const cuda::index_t stride2,
                                  T* out) {
     const cuda::index_t stride = stride1 * stride2;
-    for (cuda::index_t j = blockIdx.x; j < rows; j += gridDim.x) {
-      const cuda::index_t z = j / stride;
-      const cuda::index_t y = (j % stride) / stride1;
-      const cuda::index_t x = (j % stride) % stride1;
-      const cuda::index_t j2 = z * stride + x * stride2 + y;
+    const cuda::index_t j = blockIdx.x;
+    const cuda::index_t z = j / stride;
+    const cuda::index_t y = (j % stride) / stride1;
+    const cuda::index_t x = (j % stride) % stride1;
+    const cuda::index_t j2 = z * stride + x * stride2 + y;
 
-      const T* row_in = in + j2 * cols;
-      T* row_out = out + j * cols;
+    const T* row_in = in + j2 * cols;
+    T* row_out = out + j * cols;
 
-      for (cuda::index_t i = threadIdx.x; i < cols; i += blockDim.x) {
-        row_out[i] = row_in[i];
-      }
+    for (cuda::index_t i = threadIdx.x; i < cols; i += blockDim.x) {
+      row_out[i] = row_in[i];
     }
   }
 
@@ -383,15 +381,28 @@ namespace ctranslate2 {
     if (perm[0] == 0 && perm[1] == 2 && perm[2] == 1 && perm[3] == 3) {
       // Optimize the permutation used in multi-head attention.
       const dim_t rows = dims[0] * dims[1] * dims[2];
-      const dim_t cols = dims[3];
       const dim_t blocks = std::min(rows, cuda::max_blocks);
-      const dim_t threads = std::min(cols, cuda::max_threads);
-      transpose_0213<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(a,
-                                                                      rows,
-                                                                      cols,
-                                                                      dims[1],
-                                                                      dims[2],
-                                                                      b);
+
+      if ((dims[3] * sizeof (T)) % sizeof(uint4) == 0) {
+        const dim_t cols = (dims[3] * sizeof (T)) / sizeof (uint4);
+        const dim_t threads = std::min(cols, cuda::max_threads);
+        transpose_0213<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+          reinterpret_cast<const uint4*>(a),
+          cols,
+          dims[1],
+          dims[2],
+          reinterpret_cast<uint4*>(b));
+
+      } else {
+        const dim_t cols = dims[3];
+        const dim_t threads = std::min(cols, cuda::max_threads);
+        transpose_0213<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(a,
+                                                                        cols,
+                                                                        dims[1],
+                                                                        dims[2],
+                                                                        b);
+      }
+
       return;
     }
 
