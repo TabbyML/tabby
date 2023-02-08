@@ -300,7 +300,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
 
     @property
     def revision(self):
-        return 6
+        return 7
 
     def get_source_vocabulary_size(self):
         return [spec.weight.shape[0] for spec in self.encoder.embeddings]
@@ -369,7 +369,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 2
+        return 3
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]

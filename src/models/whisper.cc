@@ -17,7 +17,7 @@ namespace ctranslate2 {
     }
 
     size_t WhisperModel::current_spec_revision() const {
-      return 2;
+      return 3;
     }
 
     void WhisperModel::initialize(ModelReader& model_reader) {

@@ -193,6 +193,24 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CUDA>::gelu_tanh(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::gelu_tanh_func<cuda::device_type<T>>());
+  }
+
+  template void primitives<Device::CUDA>::gelu_tanh(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::gelu_tanh(const float16_t*, float16_t*, dim_t);
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::gelu_sigmoid(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::gelu_sigmoid_func<cuda::device_type<T>>());
+  }
+
+  template void primitives<Device::CUDA>::gelu_sigmoid(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::gelu_sigmoid(const float16_t*, float16_t*, dim_t);
+
+  template<>
+  template <typename T>
   void primitives<Device::CUDA>::swish(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::swish_func<cuda::device_type<T>>());
   }

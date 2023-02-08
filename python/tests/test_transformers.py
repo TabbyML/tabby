@@ -376,7 +376,7 @@ def test_transformers_generator_suppress_sequences(tmpdir):
                 " ask what you can do for your country.",
             ],
             [
-                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.0022832120303064585, abs=1e-4),
                 pytest.approx(0.06885894387960434, abs=1e-3),
             ],
         ),
@@ -392,7 +392,7 @@ def test_transformers_generator_suppress_sequences(tmpdir):
                 " ask what you can do for your country.",
             ],
             [
-                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.0022832120303064585, abs=1e-4),
                 pytest.approx(0.06885894387960434, abs=1e-3),
             ],
         ),
@@ -418,7 +418,7 @@ def test_transformers_generator_suppress_sequences(tmpdir):
                 " ask what you can do for your country.",
             ],
             [
-                pytest.approx(0.002247905358672142, abs=1e-5),
+                pytest.approx(0.0022832120303064585, abs=1e-4),
                 pytest.approx(0.06885894387960434, abs=1e-2),
             ],
         ),

@@ -44,7 +44,7 @@ class WhisperSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 2
+        return 3
 
     def get_default_config(self):
         return WhisperConfig()

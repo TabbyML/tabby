@@ -72,6 +72,14 @@ namespace ctranslate2 {
         }
       }
 
+      static inline value_type bit_and(value_type a, value_type b) {
+        return _mm256_and_ps(a, b);
+      }
+
+      static inline value_type bit_xor(value_type a, value_type b) {
+        return _mm256_xor_ps(a, b);
+      }
+
       static inline value_type lt(value_type a, value_type b) {
         return _mm256_cmp_ps(a, b, _CMP_LT_OQ);
       }
@@ -111,6 +119,10 @@ namespace ctranslate2 {
 
       static inline value_type tanh(value_type a) {
         return vec_tanh<TARGET_ISA>(a);
+      }
+
+      static inline value_type erf(value_type a) {
+        return vec_erf<TARGET_ISA>(a);
       }
 
       static inline value_type max(value_type a, value_type b) {

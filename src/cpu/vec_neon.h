@@ -54,6 +54,14 @@ namespace ctranslate2 {
         }
       }
 
+      static inline value_type bit_and(value_type a, value_type b) {
+        return vreinterpretq_f32_u32(vandq_u32(vreinterpretq_u32_f32(a), vreinterpretq_u32_f32(b)));
+      }
+
+      static inline value_type bit_xor(value_type a, value_type b) {
+        return vreinterpretq_f32_u32(veorq_u32(vreinterpretq_u32_f32(a), vreinterpretq_u32_f32(b)));
+      }
+
       static inline mask_type lt(value_type a, value_type b) {
         return vcltq_f32(a, b);
       }
@@ -92,6 +100,10 @@ namespace ctranslate2 {
 
       static inline value_type tanh(value_type a) {
         return vec_tanh<TARGET_ISA>(a);
+      }
+
+      static inline value_type erf(value_type a) {
+        return vec_erf<TARGET_ISA>(a);
       }
 
       static inline value_type max(value_type a, value_type b) {

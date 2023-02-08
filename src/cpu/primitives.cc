@@ -293,6 +293,24 @@ namespace ctranslate2 {
 
   template<>
   template<>
+  void primitives<Device::CPU>::gelu_tanh(const float* x, float* y, dim_t size) {
+    cpu::parallel_for(0, size, /*grain_size=*/512,
+                      [x, y](dim_t begin, dim_t end) {
+                        CPU_ISA_DISPATCH((cpu::gelu_tanh<ISA>(x + begin, y + begin, end - begin)));
+                      });
+  }
+
+  template<>
+  template<>
+  void primitives<Device::CPU>::gelu_sigmoid(const float* x, float* y, dim_t size) {
+    cpu::parallel_for(0, size, /*grain_size=*/512,
+                      [x, y](dim_t begin, dim_t end) {
+                        CPU_ISA_DISPATCH((cpu::gelu_sigmoid<ISA>(x + begin, y + begin, end - begin)));
+                      });
+  }
+
+  template<>
+  template<>
   void primitives<Device::CPU>::swish(const float* x, float* y, dim_t size) {
     cpu::parallel_for(0, size, cpu::GRAIN_SIZE / 10,
                       [x, y](dim_t begin, dim_t end) {

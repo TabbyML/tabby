@@ -8,8 +8,10 @@ namespace ctranslate2 {
     // This enum order should remain fixed.
     enum class ActivationType {
       ReLU,
-      GELU,
+      GELUTanh,
       Swish,
+      GELU,
+      GELUSigmoid,
     };
 
     const UnaryOp& get_activation_op(ActivationType type);

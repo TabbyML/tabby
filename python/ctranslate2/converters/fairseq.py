@@ -18,8 +18,8 @@ _SUPPORTED_MODELS = {
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
-    "gelu_accurate": common_spec.Activation.GELU,
-    "gelu_fast": common_spec.Activation.GELU,
+    "gelu_accurate": common_spec.Activation.GELUTanh,
+    "gelu_fast": common_spec.Activation.GELUTanh,
     "relu": common_spec.Activation.RELU,
     "swish": common_spec.Activation.SWISH,
 }

@@ -22,6 +22,10 @@ namespace ctranslate2 {
     template <CpuIsa ISA>
     void gelu(const float* x, float* y, dim_t size);
     template <CpuIsa ISA>
+    void gelu_tanh(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
+    void gelu_sigmoid(const float* x, float* y, dim_t size);
+    template <CpuIsa ISA>
     void swish(const float* x, float* y, dim_t size);
 
     template <CpuIsa ISA, typename T>

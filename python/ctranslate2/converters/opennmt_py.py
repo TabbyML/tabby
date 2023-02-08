@@ -6,7 +6,7 @@ from ctranslate2.specs import common_spec, transformer_spec
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
-    "fast_gelu": common_spec.Activation.GELU,
+    "fast_gelu": common_spec.Activation.GELUTanh,
     "relu": common_spec.Activation.RELU,
 }
 

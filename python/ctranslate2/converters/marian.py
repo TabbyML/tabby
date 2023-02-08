@@ -11,7 +11,7 @@ from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec, transformer_spec
 
 _SUPPORTED_ACTIVATIONS = {
-    "gelu": common_spec.Activation.GELU,
+    "gelu": common_spec.Activation.GELUSigmoid,
     "relu": common_spec.Activation.RELU,
     "swish": common_spec.Activation.SWISH,
 }

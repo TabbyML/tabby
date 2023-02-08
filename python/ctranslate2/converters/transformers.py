@@ -11,10 +11,11 @@ from ctranslate2.specs import common_spec, model_spec, transformer_spec, whisper
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
-    "gelu_fast": common_spec.Activation.GELU,
-    "gelu_new": common_spec.Activation.GELU,
+    "gelu_fast": common_spec.Activation.GELUTanh,
+    "gelu_new": common_spec.Activation.GELUTanh,
     "gelu_python": common_spec.Activation.GELU,
-    "quick_gelu": common_spec.Activation.GELU,
+    "gelu_pytorch_tanh": common_spec.Activation.GELUTanh,
+    "quick_gelu": common_spec.Activation.GELUSigmoid,
     "relu": common_spec.Activation.RELU,
     "silu": common_spec.Activation.SWISH,
     "swish": common_spec.Activation.SWISH,

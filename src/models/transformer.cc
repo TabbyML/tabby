@@ -45,7 +45,7 @@ namespace ctranslate2 {
     }
 
     size_t TransformerModel::current_spec_revision() const {
-      return 6;
+      return 7;
     }
 
     bool TransformerModel::is_linear_weight(const std::string& variable_name) const {
@@ -104,7 +104,7 @@ namespace ctranslate2 {
     static auto register_decoder = register_model<TransformerDecoderModel>("TransformerDecoderSpec");
 
     size_t TransformerDecoderModel::current_spec_revision() const {
-      return 2;
+      return 3;
     }
 
     void TransformerDecoderModel::initialize(ModelReader& model_reader) {

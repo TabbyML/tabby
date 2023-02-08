@@ -39,7 +39,7 @@ class OpenAIGPT2Converter(Converter):
             hparams["n_layer"],
             hparams["n_head"],
             pre_norm=True,
-            activation=common_spec.Activation.GELU,
+            activation=common_spec.Activation.GELUTanh,
         )
         set_decoder(spec.decoder, weights, "model")
         spec.unk_token = "<|endoftext|>"

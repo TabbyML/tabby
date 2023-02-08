@@ -17,6 +17,14 @@ namespace ctranslate2 {
         static const GELU gelu;
         return gelu;
       }
+      case ActivationType::GELUTanh: {
+        static const GELU gelu(GELU::Approximation::Tanh);
+        return gelu;
+      }
+      case ActivationType::GELUSigmoid: {
+        static const GELU gelu(GELU::Approximation::Sigmoid);
+        return gelu;
+      }
       case ActivationType::Swish: {
         static const Swish swish;
         return swish;

@@ -10,8 +10,10 @@ class Activation(enum.IntEnum):
     """Activation type."""
 
     RELU = 0
-    GELU = 1
+    GELUTanh = 1
     SWISH = 2
+    GELU = 3
+    GELUSigmoid = 4
 
 
 # This enum should match the C++ equivalent in include/ctranslate2/layers/common.h.

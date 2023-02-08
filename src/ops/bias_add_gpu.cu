@@ -51,6 +51,16 @@ namespace ctranslate2 {
             x, b, y, depth, cuda::plus<DeviceT>(), cuda::gelu_func<DeviceT>());
           break;
 
+        case ActivationType::GELUTanh:
+          bias_add_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+            x, b, y, depth, cuda::plus<DeviceT>(), cuda::gelu_tanh_func<DeviceT>());
+          break;
+
+        case ActivationType::GELUSigmoid:
+          bias_add_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+            x, b, y, depth, cuda::plus<DeviceT>(), cuda::gelu_sigmoid_func<DeviceT>());
+          break;
+
         case ActivationType::Swish:
           bias_add_kernel<<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
             x, b, y, depth, cuda::plus<DeviceT>(), cuda::swish_func<DeviceT>());

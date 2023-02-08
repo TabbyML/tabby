@@ -40,6 +40,14 @@ namespace ctranslate2 {
         *ptr = value;
       }
 
+      static inline value_type bit_and(value_type a, value_type b) {
+        return a & b;
+      }
+
+      static inline value_type bit_xor(value_type a, value_type b) {
+        return a ^ b;
+      }
+
       static inline mask_type lt(value_type a, value_type b) {
         return a < b;
       }
@@ -78,6 +86,10 @@ namespace ctranslate2 {
 
       static inline value_type tanh(value_type a) {
         return std::tanh(a);
+      }
+
+      static inline value_type erf(value_type a) {
+        return std::erf(a);
       }
 
       static inline value_type max(value_type a, value_type b) {
@@ -162,6 +174,45 @@ namespace ctranslate2 {
       q = VecType::mul_add(x2, q, beta_0);
 
       return VecType::select(tiny_mask, x, VecType::div(p, q));
+    }
+
+    template <CpuIsa ISA>
+    vec_type<float, ISA> vec_erf(vec_type<float, ISA> a) {
+      using VecType = Vec<float, ISA>;
+
+      // Implementation ported from PyTorch:
+      // https://github.com/pytorch/pytorch/blob/e9bc82f54b9867cc82b0e94dcdc90f9d156277bd/aten/src/ATen/cpu/vec/vec256/vec256_float.h#L158-L189
+
+      // constants
+      const auto neg_zero_vec = VecType::load(-0.f);
+      const auto one_vec = VecType::load(1.0f);
+      const auto p = VecType::load(0.3275911f);
+      const auto p1 = VecType::load(0.254829592f);
+      const auto p2 = VecType::load(-0.284496736f);
+      const auto p3 = VecType::load(1.421413741f);
+      const auto p4 = VecType::load(-1.453152027f);
+      const auto p5 = VecType::load(1.061405429f);
+      // sign(x)
+      auto sign_mask = VecType::bit_and(neg_zero_vec, a);
+      auto abs_vec = VecType::bit_xor(sign_mask, a);
+      // t = 1 / (p * abs(x) + 1)
+      auto tmp0 = VecType::mul_add(p, abs_vec, one_vec);
+      auto t = VecType::div(one_vec, tmp0);
+      // r = p5 * t ^ 4 + p4 * t ^ 3 + p3 * t ^ 2 + p2 * t + p1
+      auto tmp1 = VecType::mul_add(p5, t, p4);
+      auto tmp2 = VecType::mul_add(tmp1, t, p3);
+      auto tmp3 = VecType::mul_add(tmp2, t, p2);
+      auto r = VecType::mul_add(tmp3, t, p1);
+      // - exp(- x * x)
+      auto pow_2 = VecType::mul(a, a);
+      auto neg_pow_2 = VecType::bit_xor(neg_zero_vec, pow_2);
+      // auto tmp4 = exp(neg_pow_2);
+      auto tmp4 = VecType::exp(neg_pow_2);
+      auto tmp5 = VecType::bit_xor(neg_zero_vec, tmp4);
+      // erf(x) = sign(x) * (1 - r * t * exp(- x * x))
+      auto tmp6 = VecType::mul(tmp5, t);
+      auto tmp7 = VecType::mul_add(tmp6, r, one_vec);
+      return VecType::bit_xor(sign_mask, tmp7);
     }
 
   }

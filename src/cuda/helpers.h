@@ -224,7 +224,23 @@ namespace ctranslate2 {
     struct gelu_func {
       // Implicitly promote half to float in this function.
       __device__ float operator()(float x) const {
+        return 0.5f * x * (1 + erff(0.7071067811865475f * x));
+      }
+    };
+
+    template <typename T>
+    struct gelu_tanh_func {
+      // Implicitly promote half to float in this function.
+      __device__ float operator()(float x) const {
         return 0.5f * x * (1.f + tanhf(0.7978845608028654f * (x + 0.044715f * powf(x, 3.f))));
+      }
+    };
+
+    template <typename T>
+    struct gelu_sigmoid_func {
+      // Implicitly promote half to float in this function.
+      __device__ float operator()(float x) const {
+        return x / (1.f + expf(-1.702f * x));
       }
     };
 

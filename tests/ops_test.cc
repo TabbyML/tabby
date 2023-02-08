@@ -775,10 +775,32 @@ TEST_P(OpDeviceFPTest, GELU) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;
   StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
-  StorageView expected({2}, std::vector<float>{0.11585142, -0.12607098}, device);
+  StorageView expected({2}, std::vector<float>{0.11585195362567902, -0.1258406937122345}, device);
   StorageView output(dtype, device);
   ops::GELU()(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float(), expected, 1e-4);
+}
+
+TEST_P(OpDeviceFPTest, GELUTanh) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
+  StorageView expected({2}, std::vector<float>{0.11585142463445663, -0.1260710209608078}, device);
+  StorageView output(dtype, device);
+  const ops::GELU gelu_op(ops::GELU::Approximation::Tanh);
+  gelu_op(input.to(dtype), output);
+  expect_storage_eq(output.to_float(), expected, 1e-4);
+}
+
+TEST_P(OpDeviceFPTest, GELUSigmoid) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
+  StorageView expected({2}, std::vector<float>{0.11685754358768463, -0.128212109208107}, device);
+  StorageView output(dtype, device);
+  const ops::GELU gelu_op(ops::GELU::Approximation::Sigmoid);
+  gelu_op(input.to(dtype), output);
+  expect_storage_eq(output.to_float(), expected, 1e-4);
 }
 
 TEST_P(OpDeviceFPTest, Swish) {
