@@ -25,7 +25,7 @@ namespace ctranslate2 {
 
       float sum_squares = 0;
       for (cuda::index_t i = threadIdx.x; i < depth; i += blockDim.x)
-        sum_squares = float(input[i]) * float(input[i]);
+        sum_squares += float(input[i]) * float(input[i]);
       sum_squares = BlockReduce(temp_storage).Sum(sum_squares);
 
       if (threadIdx.x == 0)
