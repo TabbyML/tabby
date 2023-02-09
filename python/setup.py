@@ -107,7 +107,7 @@ setup(
     packages=find_packages(exclude=["bin"]),
     package_data=package_data,
     ext_modules=[ctranslate2_module],
-    python_requires=">=3.7,<3.12",
+    python_requires=">=3.7",
     install_requires=[
         "numpy",
         "pyyaml>=5.3,<7",
