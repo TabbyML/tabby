@@ -64,6 +64,7 @@ namespace ctranslate2 {
                      size_t read_batch_size,
                      const std::string& batch_type_str,
                      size_t beam_size,
+                     float patience,
                      size_t num_hypotheses,
                      float length_penalty,
                      float coverage_penalty,
@@ -93,6 +94,7 @@ namespace ctranslate2 {
         BatchType batch_type = str_to_batch_type(batch_type_str);
         TranslationOptions options;
         options.beam_size = beam_size;
+        options.patience = patience;
         options.length_penalty = length_penalty;
         options.coverage_penalty = coverage_penalty;
         options.repetition_penalty = repetition_penalty;
@@ -148,6 +150,7 @@ namespace ctranslate2 {
                       const std::string& batch_type_str,
                       bool asynchronous,
                       size_t beam_size,
+                      float patience,
                       size_t num_hypotheses,
                       float length_penalty,
                       float coverage_penalty,
@@ -174,6 +177,7 @@ namespace ctranslate2 {
         BatchType batch_type = str_to_batch_type(batch_type_str);
         TranslationOptions options;
         options.beam_size = beam_size;
+        options.patience = patience;
         options.length_penalty = length_penalty;
         options.coverage_penalty = coverage_penalty;
         options.repetition_penalty = repetition_penalty;
@@ -412,6 +416,7 @@ namespace ctranslate2 {
              py::arg("batch_type")="examples",
              py::arg("asynchronous")=false,
              py::arg("beam_size")=2,
+             py::arg("patience")=1,
              py::arg("num_hypotheses")=1,
              py::arg("length_penalty")=1,
              py::arg("coverage_penalty")=0,
@@ -446,6 +451,9 @@ namespace ctranslate2 {
                    batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
                    asynchronous: Run the translation asynchronously.
                    beam_size: Beam size (1 for greedy search).
+                   patience: Beam search patience factor, as described in
+                     https://arxiv.org/abs/2204.05424. The decoding will continue until
+                     beam_size*patience hypotheses are finished.
                    num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    coverage_penalty: Coverage penalty weight applied during beam search.
@@ -485,6 +493,7 @@ namespace ctranslate2 {
              py::arg("read_batch_size")=0,
              py::arg("batch_type")="examples",
              py::arg("beam_size")=2,
+             py::arg("patience")=1,
              py::arg("num_hypotheses")=1,
              py::arg("length_penalty")=1,
              py::arg("coverage_penalty")=0,
@@ -521,6 +530,9 @@ namespace ctranslate2 {
                      numbers of "examples" or "tokens".
                    asynchronous: Run the translation asynchronously.
                    beam_size: Beam size (1 for greedy search).
+                   patience: Beam search patience factor, as described in
+                     https://arxiv.org/abs/2204.05424. The decoding will continue until
+                     beam_size*patience hypotheses are finished.
                    num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    coverage_penalty: Coverage penalty weight applied during beam search.

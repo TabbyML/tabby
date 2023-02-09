@@ -72,6 +72,8 @@ int main(int argc, char* argv[]) {
      cxxopts::value<bool>()->default_value("false"))
     ("beam_size", "Beam search size (set 1 for greedy decoding).",
      cxxopts::value<size_t>()->default_value("2"))
+    ("patience", "Beam search patience factor.",
+     cxxopts::value<float>()->default_value("1"))
     ("sampling_topk", "Sample randomly from the top K candidates.",
      cxxopts::value<size_t>()->default_value("1"))
     ("sampling_temperature", "Sampling temperature.",
@@ -184,6 +186,7 @@ int main(int argc, char* argv[]) {
   if (task == "translate") {
     ctranslate2::TranslationOptions options;
     options.beam_size = args["beam_size"].as<size_t>();
+    options.patience = args["patience"].as<float>();
     options.length_penalty = args["length_penalty"].as<float>();
     options.coverage_penalty = args["coverage_penalty"].as<float>();
     options.repetition_penalty = args["repetition_penalty"].as<float>();

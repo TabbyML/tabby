@@ -851,6 +851,17 @@ TEST(TranslatorTest, InvalidNumHypotheses) {
   EXPECT_THROW(translator.translate_batch({input}, options), std::invalid_argument);
 }
 
+TEST(TranslatorTest, Patience) {
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = 4;
+  options.patience = 2;
+  options.num_hypotheses = 8;
+  std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const auto result = translator.translate_batch({input}, options)[0];
+  EXPECT_EQ(result.num_hypotheses(), options.num_hypotheses);
+}
+
 TEST(TranslatorTest, IgnoreScore) {
   Translator translator = default_translator();
   TranslationOptions options;

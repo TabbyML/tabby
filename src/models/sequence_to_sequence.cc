@@ -339,6 +339,7 @@ namespace ctranslate2 {
       // Decode.
       DecodingOptions decoding_options;
       decoding_options.beam_size = options.beam_size;
+      decoding_options.patience = options.patience;
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.coverage_penalty = options.coverage_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;

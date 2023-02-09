@@ -18,6 +18,7 @@ namespace ctranslate2 {
                std::variant<BatchTokens, BatchIds> prompts,
                bool asynchronous,
                size_t beam_size,
+               float patience,
                size_t num_hypotheses,
                float length_penalty,
                float repetition_penalty,
@@ -31,6 +32,7 @@ namespace ctranslate2 {
 
         models::WhisperOptions options;
         options.beam_size = beam_size;
+        options.patience = patience;
         options.length_penalty = length_penalty;
         options.repetition_penalty = repetition_penalty;
         options.no_repeat_ngram_size = no_repeat_ngram_size;
@@ -131,6 +133,7 @@ namespace ctranslate2 {
              py::kw_only(),
              py::arg("asynchronous")=false,
              py::arg("beam_size")=5,
+             py::arg("patience")=1,
              py::arg("num_hypotheses")=1,
              py::arg("length_penalty")=1,
              py::arg("repetition_penalty")=1,
@@ -150,6 +153,9 @@ namespace ctranslate2 {
                    prompts: Batch of initial string tokens or token IDs.
                    asynchronous: Run the model asynchronously.
                    beam_size: Beam size (1 for greedy search).
+                   patience: Beam search patience factor, as described in
+                     https://arxiv.org/abs/2204.05424. The decoding will continue until
+                     beam_size*patience hypotheses are finished.
                    num_hypotheses: Number of hypotheses to return.
                    length_penalty: Exponential penalty applied to the length during beam search.
                    repetition_penalty: Penalty applied to the score of previously generated tokens

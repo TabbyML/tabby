@@ -13,6 +13,10 @@ namespace ctranslate2 {
       // Beam size to use for beam search (set 1 to run greedy search).
       size_t beam_size = 5;
 
+      // Beam search patience factor, as described in https://arxiv.org/abs/2204.05424.
+      // The decoding will continue until beam_size*patience hypotheses are finished.
+      float patience = 1;
+
       // Exponential penalty applied to the length during beam search.
       float length_penalty = 1;
 

@@ -355,15 +355,21 @@ namespace ctranslate2 {
     return true;
   }
 
+  static inline size_t get_max_candidates(const dim_t beam_size, const float patience) {
+    return std::round(float(beam_size) * patience);
+  }
+
 
   BeamSearch::BeamSearch(const dim_t beam_size,
                          const float length_penalty,
                          const float coverage_penalty,
-                         const float prefix_bias_beta)
+                         const float prefix_bias_beta,
+                         const float patience)
     : _beam_size(beam_size)
     , _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
     , _prefix_bias_beta(prefix_bias_beta)
+    , _max_candidates(get_max_candidates(beam_size, patience))
   {
   }
 
@@ -563,10 +569,13 @@ namespace ctranslate2 {
           active_beams.at<int32_t>(i * _beam_size + k) = i * num_candidates + next_beam_id;
         }
 
-        const bool is_finished = (
-          allow_early_exit
-          ? top_beam_finished[i] && result.hypotheses.size() >= num_hypotheses
-          : result.hypotheses.size() >= static_cast<size_t>(_beam_size));
+        bool is_finished = false;
+        if (step + 1 == max_length)
+          is_finished = true;
+        else if (allow_early_exit)
+          is_finished = top_beam_finished[i] && result.hypotheses.size() >= num_hypotheses;
+        else
+          is_finished = result.hypotheses.size() >= _max_candidates;
 
         if (is_finished) {
           finalize_result(result,
@@ -876,12 +885,15 @@ namespace ctranslate2 {
   static void validate_decoding_options(const DecodingOptions& options) {
     if (options.beam_size == 0)
       throw std::invalid_argument("The beam size must be > 0");
+    if (options.patience <= 0)
+      throw std::invalid_argument("The patience factor must be > 0");
     if (options.num_hypotheses == 0)
       throw std::invalid_argument("The number of hypotheses must be > 0");
-    if (options.num_hypotheses > options.beam_size
+    if (options.num_hypotheses > get_max_candidates(options.beam_size, options.patience)
         && !options.return_alternatives
         && !(options.beam_size == 1 && options.sampling_topk != 1))
-      throw std::invalid_argument("The number of hypotheses cannot be greater than the beam size");
+      throw std::invalid_argument("The number of hypotheses cannot be greater than "
+                                  "beam_size * patience");
     if (options.min_length > options.max_length)
       throw std::invalid_argument("The minimum decoding length is greater than "
                                   "the maximum decoding length");
@@ -917,7 +929,8 @@ namespace ctranslate2 {
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,
                                           options.coverage_penalty,
-                                          options.prefix_bias_beta);
+                                          options.prefix_bias_beta,
+                                          options.patience);
   }
 
   static std::vector<std::shared_ptr<LogitsProcessor>>

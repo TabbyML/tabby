@@ -9,6 +9,9 @@ namespace ctranslate2 {
   struct TranslationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
     size_t beam_size = 2;
+    // Beam search patience factor, as described in https://arxiv.org/abs/2204.05424.
+    // The decoding will continue until beam_size*patience hypotheses are finished.
+    float patience = 1;
     // Exponential penalty applied to the length during beam search.
     // The scores are normalized with:
     //   hypothesis_score /= (hypothesis_length ** length_penalty)

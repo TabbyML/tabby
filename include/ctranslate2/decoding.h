@@ -39,7 +39,8 @@ namespace ctranslate2 {
     BeamSearch(const dim_t beam_size,
                const float length_penalty = 0,
                const float coverage_penalty = 0,
-               const float prefix_bias_beta = 0);
+               const float prefix_bias_beta = 0,
+               const float patience = 1);
 
     std::vector<DecodingResult>
     search(layers::Decoder& decoder,
@@ -61,6 +62,7 @@ namespace ctranslate2 {
     const float _length_penalty;
     const float _coverage_penalty;
     const float _prefix_bias_beta;
+    const size_t _max_candidates;
   };
 
   class BiasedDecoder {
@@ -110,6 +112,7 @@ namespace ctranslate2 {
 
   struct DecodingOptions {
     size_t beam_size = 1;
+    float patience = 1;
     float length_penalty = 0;
     float coverage_penalty = 0;
     float repetition_penalty = 1;
