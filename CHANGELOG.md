@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v3.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.5.0) (2023-02-10)
+
+### New features
+
+* Add a patience factor for beam search to continue decoding until `beam_size * patience` hypotheses are finished, as described in [Kasai et al. 2022](https://arxiv.org/abs/2204.05424)
+* Implement all GELU variants and select them accordingly when converting models:
+  * Tanh approximation (already implemented)
+  * Sigmoid approximation
+  * Reference implementation based on the CDF
+
+### Fixes and improvements
+
+* Fix incorrect outputs of T5 models due to a bug in the CUDA kernel of the RMS normalization
+* Raise an error if the Whisper input shape is incorrect
+* Optimize the transposition operator used in the multi-head attention when running on GPU
+* Remove the upper limit in `python_requires` to facilitate the package installation with tools like Poetry and PDM
+
 ## [v3.4.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.4.0) (2023-02-03)
 
 ### Fixes and improvements
