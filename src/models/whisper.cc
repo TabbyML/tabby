@@ -61,11 +61,6 @@ namespace ctranslate2 {
     {
     }
 
-    bool WhisperReplica::is_multilingual() const {
-      const auto& vocabulary = _model->get_vocabulary();
-      return vocabulary.size() == 51865;
-    }
-
     StorageView WhisperReplica::encode(const StorageView& features) {
       const Device device = _model->device();
       const DataType dtype = _encoder->output_type();
@@ -183,8 +178,9 @@ namespace ctranslate2 {
                                     "simply adapt the number of previous text tokens in each "
                                     "batch.");
 
-      if (prompts[0].empty())
-        throw std::invalid_argument("The prompt cannot be empty");
+      if (prompts[0].size() < 3)
+        throw std::invalid_argument("The prompt should have at least 3 tokens: "
+                                    "START OF TRANSCRIPT, LANGUAGE TAG, and TRANSCRIBE/TRANSLATE");
 
       const auto& vocabulary = _model->get_vocabulary();
       const auto scoped_device_setter = _model->get_scoped_device_setter();
@@ -199,51 +195,30 @@ namespace ctranslate2 {
       prefix_tokens.reserve(prompts.size());
       start_tokens.reserve(prompts.size());
       for (const auto& prompt : prompts) {
-        if (prompt.size() > 1)
-          prefix_tokens.emplace_back(prompt.begin(), prompt.end() - 1);
-        else if (options.return_no_speech_prob)
-          prefix_tokens.emplace_back(prompt);
+        prefix_tokens.emplace_back(prompt.begin(), prompt.end() - 1);
         start_tokens.emplace_back(prompt.end() - 1, prompt.end());
       }
 
+      const Device device = _decoder->device();
+      const DataType dtype = _decoder->output_type();
+      StorageView inputs = layers::make_sequence_inputs(prefix_tokens, device);
+      StorageView outputs(dtype, device);
+
+      // Initialize the decoder state with the prompt.
+      _decoder->forward_prompt(inputs, state, options.return_no_speech_prob ? &outputs : nullptr);
+
       std::vector<float> no_speech_probs;
-      dim_t start_step = 0;
-
-      if (!prefix_tokens.empty()) {
-        const Device device = _decoder->device();
-        const DataType dtype = _decoder->output_type();
-        StorageView inputs = layers::make_sequence_inputs(prefix_tokens, device);
-        StorageView outputs(dtype, device);
-
-        // Forward the prefix.
-        _decoder->forward_prompt(inputs, state, options.return_no_speech_prob ? &outputs : nullptr);
-
-        if (options.return_no_speech_prob) {
-          // Get the probability of the no speech token at the start of transcript step.
-          StorageView sot_index = get_sot_index(prefix_tokens, vocabulary.bos_id(), device);
-          size_t no_speech_id = vocabulary.to_id("<|nospeech|>");
-          if (no_speech_id == vocabulary.unk_id())
-            no_speech_id = vocabulary.to_id("<|nocaptions|>");
-          no_speech_probs = get_no_speech_probs(*_decoder, outputs, sot_index, no_speech_id);
-        }
-
-        if (prompts[0].size() > 1)
-          start_step = inputs.dim(1);
-        else {
-          // If the prompt only contains the start token, it means we only got here to retrieve
-          // the no speech probability. The decoding will start from this token again so we need
-          // to reset the decoder state.
-          for (auto& pair : state) {
-            const auto& name = pair.first;
-            auto& tensor = pair.second;
-            if (!starts_with(name, "memory"))
-              tensor.clear();
-          }
-        }
+      if (options.return_no_speech_prob) {
+        // Get the probability of the no speech token at the start of transcript step.
+        StorageView sot_index = get_sot_index(prefix_tokens, vocabulary.bos_id(), device);
+        size_t no_speech_id = vocabulary.to_id("<|nospeech|>");
+        if (no_speech_id == vocabulary.unk_id())
+          no_speech_id = vocabulary.to_id("<|nocaptions|>");
+        no_speech_probs = get_no_speech_probs(*_decoder, outputs, sot_index, no_speech_id);
       }
 
       DecodingOptions decoding_options;
-      decoding_options.start_step = start_step;
+      decoding_options.start_step = inputs.dim(1);
       decoding_options.beam_size = options.beam_size;
       decoding_options.patience = options.patience;
       decoding_options.length_penalty = options.length_penalty;
@@ -291,9 +266,6 @@ namespace ctranslate2 {
 
     std::vector<std::vector<std::pair<std::string, float>>>
     WhisperReplica::detect_language(const StorageView& features) {
-      if (!is_multilingual())
-        throw std::runtime_error("detect_language can only be called on multilingual models");
-
       PROFILE("WhisperReplica::detect_language");
 
       const auto scoped_device_setter = _model->get_scoped_device_setter();
@@ -356,11 +328,6 @@ namespace ctranslate2 {
       return results;
     }
 
-
-    bool Whisper::is_multilingual() const {
-      const auto& replica = get_first_replica();
-      return replica.is_multilingual();
-    }
 
     std::vector<std::future<WhisperGenerationResult>>
     Whisper::generate(StorageView features,
