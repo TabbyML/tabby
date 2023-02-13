@@ -83,6 +83,8 @@ namespace ctranslate2 {
 
       WhisperReplica(const std::shared_ptr<const WhisperModel>& model);
 
+      bool is_multilingual() const;
+
       std::vector<WhisperGenerationResult>
       generate(const StorageView& features,
                const std::vector<std::vector<std::string>>& prompts,
@@ -107,6 +109,8 @@ namespace ctranslate2 {
     class Whisper : public ReplicaPool<WhisperReplica> {
     public:
       using ReplicaPool::ReplicaPool;
+
+      bool is_multilingual() const;
 
       std::vector<std::future<WhisperGenerationResult>>
       generate(StorageView features,

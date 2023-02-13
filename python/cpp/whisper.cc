@@ -12,6 +12,10 @@ namespace ctranslate2 {
     public:
       using ReplicaPoolHelper::ReplicaPoolHelper;
 
+      bool is_multilingual() const {
+        return _pool->is_multilingual();
+      }
+
       std::variant<std::vector<models::WhisperGenerationResult>,
                    std::vector<AsyncResult<models::WhisperGenerationResult>>>
       generate(StorageViewWrapper features,
@@ -96,6 +100,9 @@ namespace ctranslate2 {
             See Also:
                https://github.com/openai/whisper
         )pbdoc")
+
+        .def_property_readonly("is_multilingual", &WhisperWrapper::is_multilingual,
+                               "Returns ``True`` if this model is multilingual.")
 
         .def(py::init<const std::string&, const std::string&, const std::variant<int, std::vector<int>>&, const StringOrMap&, size_t, size_t, long, py::object>(),
              py::arg("model_path"),
@@ -186,6 +193,9 @@ namespace ctranslate2 {
                  Returns:
                    For each batch, a list of pairs (language, probability) ordered from
                    best to worst probability.
+
+                 Raises:
+                   RuntimeError: if the model is not multilingual.
              )pbdoc")
 
         ;

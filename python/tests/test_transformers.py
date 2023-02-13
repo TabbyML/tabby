@@ -352,9 +352,10 @@ def test_transformers_generator_suppress_sequences(tmpdir):
 @test_utils.only_on_linux
 @test_utils.on_available_devices
 @pytest.mark.parametrize(
-    "prompts,expected_transcriptions,expected_no_speech_probs",
+    "model_name,prompts,expected_transcriptions,expected_no_speech_probs",
     [
         (
+            "openai/whisper-tiny",
             [
                 [
                     "<|startoftranscript|>",
@@ -381,6 +382,7 @@ def test_transformers_generator_suppress_sequences(tmpdir):
             ],
         ),
         (
+            "openai/whisper-tiny",
             [
                 ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
                 ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
@@ -397,6 +399,7 @@ def test_transformers_generator_suppress_sequences(tmpdir):
             ],
         ),
         (
+            "openai/whisper-tiny",
             [
                 [
                     "<|startoftranscript|>",
@@ -422,14 +425,32 @@ def test_transformers_generator_suppress_sequences(tmpdir):
                 pytest.approx(0.06885894387960434, abs=1e-2),
             ],
         ),
+        (
+            "openai/whisper-tiny.en",
+            [["<|startoftranscript|>"], ["<|startoftranscript|>"]],
+            [
+                " Mr. Quilter is the apostle of the middle classes, and we are glad"
+                " to welcome his gospel.",
+                " And so, my fellow Americans ask not what your country can do for you"
+                " ask what you can do for your country.",
+            ],
+            [
+                pytest.approx(0.02644546702504158, abs=1e-4),
+                pytest.approx(0.062380101531744, abs=1e-3),
+            ],
+        ),
     ],
 )
 def test_transformers_whisper(
-    tmpdir, device, prompts, expected_transcriptions, expected_no_speech_probs
+    tmpdir,
+    device,
+    model_name,
+    prompts,
+    expected_transcriptions,
+    expected_no_speech_probs,
 ):
     import transformers
 
-    model_name = "openai/whisper-tiny"
     converter = ctranslate2.converters.TransformersConverter(model_name)
     output_dir = str(tmpdir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
@@ -454,10 +475,16 @@ def test_transformers_whisper(
 
     model = ctranslate2.models.Whisper(output_dir, device=device)
 
-    for result in model.detect_language(features):
-        best_lang, best_prob = result[0]
-        assert best_lang == "<|en|>"
-        assert best_prob > 0.9
+    assert model.is_multilingual == (not model_name.endswith(".en"))
+
+    if model.is_multilingual:
+        for result in model.detect_language(features):
+            best_lang, best_prob = result[0]
+            assert best_lang == "<|en|>"
+            assert best_prob > 0.9
+    else:
+        with pytest.raises(RuntimeError, match="multilingual"):
+            model.detect_language(features)
 
     results = model.generate(
         features,
