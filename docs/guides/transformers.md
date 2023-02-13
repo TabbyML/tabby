@@ -288,5 +288,5 @@ print(transcription)
 ```
 
 ```{note}
-This example only transcribes the first 30 seconds of audio. To transcribe longer files, you need to call `generate` on each 30-second window and aggregate the results. See the [reference transcription code](https://github.com/openai/whisper/blob/main/whisper/transcribe.py) for a complete example.
+This example only transcribes the first 30 seconds of audio. To transcribe longer files, you need to call `generate` on each 30-second window and aggregate the results. See the project [faster-whisper](https://github.com/guillaumekln/faster-whisper) for a complete transcription example using CTranslate2.
 ```
