@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v3.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.5.1) (2023-02-13)
+
+### Fixes and improvements
+
+* Whisper: fix an incorrect timestamp rule that prevented timestamps to be generated in pairs
+* Whisper: ignore the EOS token when applying the length penalty to match the original implementation
+
 ## [v3.5.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.5.0) (2023-02-10)
 
 ### New features
