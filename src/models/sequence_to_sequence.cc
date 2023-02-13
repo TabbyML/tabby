@@ -374,6 +374,16 @@ namespace ctranslate2 {
 
       for (size_t i = 0; i < batch_size; ++i) {
         DecodingResult& result = results[i];
+
+        // Remove EOS token.
+        for (size_t h = 0; h < result.hypotheses.size(); ++h) {
+          while (!result.hypotheses[h].empty() && result.hypotheses[h].back() == end_id) {
+            result.hypotheses[h].pop_back();
+            if (!result.attention.empty())
+              result.attention[h].pop_back();
+          }
+        }
+
         auto hypotheses = target_vocabulary.to_tokens(result.hypotheses);
 
         if (!result.attention.empty()) {

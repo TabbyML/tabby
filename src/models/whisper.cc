@@ -229,7 +229,8 @@ namespace ctranslate2 {
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
       decoding_options.return_scores = options.return_scores;
-      decoding_options.return_prefix = false;
+      decoding_options.include_eos_in_scores = options.beam_size > 1;
+      decoding_options.include_eos_in_hypotheses = false;
       for (const auto& id : _model->config["suppress_ids"])
         decoding_options.disable_ids.push_back(id);
       for (const auto& id : _model->config["suppress_ids_begin"])
@@ -433,6 +434,7 @@ namespace ctranslate2 {
               } else {  // cannot be normal text tokens
                 for (size_t i = 0; i < _eot_id; ++i)
                   disable_tokens.add(batch_id, i);
+                check_timestamps_prob_for_batch.push_back(batch_id);
               }
             } else {
               check_timestamps_prob_for_batch.push_back(batch_id);
@@ -443,7 +445,7 @@ namespace ctranslate2 {
               const size_t token = sequences.at<int32_t>({batch_id, t});
 
               if (token >= _timestamp_begin_id) {
-                for (size_t i = _timestamp_begin_id; i <= token; ++i)
+                for (size_t i = _timestamp_begin_id; i < token; ++i)
                   disable_tokens.add(batch_id, i);
                 break;
               }

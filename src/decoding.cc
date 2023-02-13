@@ -159,20 +159,22 @@ namespace ctranslate2 {
 
   static std::vector<size_t> build_hypothesis(const StorageView& history,
                                               const dim_t batch,
-                                              const dim_t beam) {
-    const auto length = history.dim(-1);
+                                              const dim_t beam,
+                                              const bool ignore_last) {
+    const auto length = history.dim(-1) - dim_t(ignore_last);
     const auto* ids = history.index<int32_t>({batch, beam, 0});
     return std::vector<size_t>(ids, ids + length);
   }
 
   static std::vector<std::vector<float>> build_attention(const StorageView& history,
                                                          const dim_t batch,
-                                                         const dim_t beam) {
+                                                         const dim_t beam,
+                                                         const bool ignore_last) {
     if (!history)
       return {};
 
     const auto source_length = history.dim(-1);
-    const auto target_length = history.dim(-2);
+    const auto target_length = history.dim(-2) - dim_t(ignore_last);
 
     std::vector<std::vector<float>> attention;
     attention.reserve(target_length);
@@ -385,6 +387,8 @@ namespace ctranslate2 {
                      const bool return_scores,
                      const bool return_attention,
                      const size_t num_hypotheses,
+                     const bool include_eos_in_scores,
+                     const bool include_eos_in_hypotheses,
                      const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                      const std::vector<std::vector<size_t>>* prefix_ids) const {
     PROFILE("beam_search");
@@ -480,12 +484,18 @@ namespace ctranslate2 {
       }
 
       // Multiply by the current beam log probs.
+      StorageView topk_scores_prev(dtype);
       if (topk_scores) {
         DEVICE_AND_TYPE_DISPATCH(log_probs.device(), log_probs.dtype(),
                                  primitives<D>::add_depth_broadcast(topk_scores.to(device).data<T>(),
                                                                     log_probs.data<T>(),
                                                                     topk_scores.size(),
                                                                     log_probs.size()));
+
+        if (!include_eos_in_scores) {
+          topk_scores_prev = topk_scores;
+          topk_scores_prev.reshape({cur_batch_size, _beam_size});
+        }
       }
 
       // Flatten the probs into a list of candidates.
@@ -549,11 +559,19 @@ namespace ctranslate2 {
             if (k == 0)
               top_beam_finished[i] = true;
 
+            bool ignore_last_score = false;
+            bool ignore_last_token = false;
+            if (last_id == end_id) {
+              ignore_last_score = !include_eos_in_scores;
+              ignore_last_token = !include_eos_in_hypotheses;
+            }
+
             // Register this hypothesis.
-            result.scores.emplace_back(topk_scores.scalar_at<float>({i, k}));
-            result.hypotheses.emplace_back(build_hypothesis(alive_seq, i, k));
+            const StorageView& scores = ignore_last_score ? topk_scores_prev : topk_scores;
+            result.scores.emplace_back(scores.scalar_at<float>({i, k}));
+            result.hypotheses.emplace_back(build_hypothesis(alive_seq, i, k, ignore_last_token));
             if (alive_attention)
-              result.attention.emplace_back(build_attention(alive_attention, i, k));
+              result.attention.emplace_back(build_attention(alive_attention, i, k, ignore_last_token));
 
             // Move another active beam to this position.
             for (dim_t j = secondary_candidates_offset; j < num_candidates; ++j) {
@@ -668,6 +686,8 @@ namespace ctranslate2 {
                        const bool return_scores,
                        const bool return_attention,
                        const size_t num_hypotheses,
+                       const bool include_eos_in_scores,
+                       const bool include_eos_in_hypotheses,
                        const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
                        const std::vector<std::vector<size_t>>* prefix_ids) const {
     const dim_t batch_size = start_ids.size();
@@ -693,6 +713,8 @@ namespace ctranslate2 {
                                                    /*return_scores=*/true,
                                                    return_attention,
                                                    /*num_hypotheses=*/1,
+                                                   include_eos_in_scores,
+                                                   include_eos_in_hypotheses,
                                                    logits_processors,
                                                    prefix_ids ? &repeat_prefix_ids : nullptr);
 
@@ -789,12 +811,17 @@ namespace ctranslate2 {
         const size_t batch_id = batch_offset[i];
         const dim_t prefix_length = prefix_ids ? prefix_ids->at(batch_id).size() : 0;
 
-        results[batch_id].hypotheses[0].push_back(word_id);
-        if (return_scores)
-          results[batch_id].scores[0] += best_probs.scalar_at<float>({i, 0});
-        if (attention_step) {
-          const auto* attn = attention_step.index<float>({i, 0});
-          results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
+        if (word_id != end_id || include_eos_in_hypotheses) {
+          results[batch_id].hypotheses[0].push_back(word_id);
+          if (attention_step) {
+            const auto* attn = attention_step.index<float>({i, 0});
+            results[batch_id].attention[0].emplace_back(attn, attn + attention_step.dim(-1));
+          }
+        }
+
+        if (word_id != end_id || include_eos_in_scores) {
+          if (return_scores)
+            results[batch_id].scores[0] += best_probs.scalar_at<float>({i, 0});
         }
 
         const bool is_finished = ((word_id == end_id && step >= prefix_length)
@@ -1033,6 +1060,8 @@ namespace ctranslate2 {
                                                   /*return_scores=*/true,
                                                   options.return_attention,
                                                   options.num_hypotheses,
+                                                  options.include_eos_in_scores,
+                                                  options.include_eos_in_hypotheses,
                                                   logits_processors)[0];
 
     start_ids.clear();
@@ -1084,6 +1113,8 @@ namespace ctranslate2 {
                                                   options.return_scores,
                                                   options.return_attention,
                                                   /*num_hypotheses=*/1,
+                                                  options.include_eos_in_scores,
+                                                  options.include_eos_in_hypotheses,
                                                   logits_processors);
 
     // Update the result with the suffix decoding.
@@ -1174,6 +1205,8 @@ namespace ctranslate2 {
                                         options.return_scores,
                                         options.return_attention,
                                         options.num_hypotheses,
+                                        options.include_eos_in_scores,
+                                        options.include_eos_in_hypotheses,
                                         logits_processors,
                                         prefix_ids.empty() ? nullptr : &prefix_ids);
     }
@@ -1182,27 +1215,10 @@ namespace ctranslate2 {
       auto& result = results[b];
 
       for (size_t i = 0; i < result.hypotheses.size(); ++i) {
-        // Remove EOS token.
-        while (result.hypotheses[i].back() == end_id) {
-          result.hypotheses[i].pop_back();
-          if (!result.attention.empty())
-            result.attention[i].pop_back();
-        }
-
         // Restore original word ids.
         if (decoder.output_layer_is_updated()) {
           for (auto& id : result.hypotheses[i])
             id = decoder.to_original_word_id(id);
-        }
-
-        // Remove the prefix if configured.
-        const size_t prefix_length = start_tokens[b].size() - 1;
-        if (!options.return_prefix && prefix_length > 0) {
-          result.hypotheses[i].erase(result.hypotheses[i].begin(),
-                                     result.hypotheses[i].begin() + prefix_length);
-          if (!result.attention.empty())
-            result.attention[i].erase(result.attention[i].begin(),
-                                      result.attention[i].begin() + prefix_length);
         }
       }
     }

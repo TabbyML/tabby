@@ -30,6 +30,8 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const bool include_eos_in_scores = true,
+           const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const = 0;
   };
@@ -54,6 +56,8 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const bool include_eos_in_scores = true,
+           const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
@@ -101,6 +105,8 @@ namespace ctranslate2 {
            const bool return_scores = false,
            const bool return_attention = false,
            const size_t num_hypotheses = 1,
+           const bool include_eos_in_scores = true,
+           const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
            const std::vector<std::vector<size_t>>* prefix_ids = nullptr) const override;
 
@@ -124,10 +130,11 @@ namespace ctranslate2 {
     size_t sampling_topk = 1;
     float sampling_temperature = 1;
     size_t num_hypotheses = 1;
+    bool include_eos_in_scores = true;
+    bool include_eos_in_hypotheses = true;
     bool return_scores = false;
     bool return_attention = false;
     bool return_alternatives = false;
-    bool return_prefix = true;
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
     std::vector<size_t> disable_ids_begin;
