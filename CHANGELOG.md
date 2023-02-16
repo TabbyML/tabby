@@ -4,6 +4,21 @@
 
 ### Fixes and improvements
 
+## [v3.6.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.6.0) (2023-02-16)
+
+### New features
+
+* Build the Windows Python wheels with cuDNN to enable GPU execution of Whisper models
+* Add the model attribute `Whisper.is_multilingual`
+
+### Fixes and improvements
+
+* Reduce the beam search memory usage by not duplicating the decoder states that are the same in each beam (e.g. the projected memory keys and values)
+* Optimize the dot product attention during beam search by moving the query beam dimension to the time dimension
+* Fix support of English-only Whisper models
+* Include the prefix tokens (if they exist) in the output of `Whisper.generate`
+* Log a warning when the model weights are implicitly converted to another type
+
 ## [v3.5.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.5.1) (2023-02-13)
 
 ### Fixes and improvements
