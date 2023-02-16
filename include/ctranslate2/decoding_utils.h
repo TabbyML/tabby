@@ -49,6 +49,11 @@ namespace ctranslate2 {
   class LogitsProcessor {
   public:
     virtual ~LogitsProcessor() = default;
+
+    virtual bool apply_first() const {
+      return false;
+    }
+
     virtual void apply(dim_t step,
                        StorageView& logits,
                        DisableTokens& disable_tokens,

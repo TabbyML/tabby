@@ -59,6 +59,14 @@ namespace ctranslate2 {
       , _encoder(std::make_unique<layers::WhisperEncoder>(*model, "encoder"))
       , _decoder(std::make_unique<layers::WhisperDecoder>(*model, "decoder"))
     {
+      const auto& vocabulary = model->get_vocabulary();
+      _sot_id = vocabulary.bos_id();
+      _eot_id = vocabulary.eos_id();
+      _no_timestamps_id = vocabulary.to_id("<|notimestamps|>");
+      _no_speech_id = vocabulary.to_id("<|nospeech|>");
+      if (_no_speech_id == vocabulary.unk_id())
+        _no_speech_id = vocabulary.to_id("<|nocaptions|>");
+      _is_multilingual = vocabulary.size() == 51865;
     }
 
     StorageView WhisperReplica::encode(const StorageView& features) {
@@ -82,81 +90,108 @@ namespace ctranslate2 {
       return generate(features, vocabulary.to_ids(prompts), options);
     }
 
-    class ApplyTimestampRules;
+    static std::vector<float> get_no_speech_probs_from_logits(const StorageView& logits,
+                                                              const size_t no_speech_id) {
+      const Device device = logits.device();
+      const DataType dtype = logits.dtype();
 
-    static std::shared_ptr<ApplyTimestampRules>
-    create_timestamp_processor(const std::vector<std::vector<size_t>>& prompts,
-                               const Vocabulary& vocabulary) {
-      const size_t no_timestamps_id = vocabulary.to_id("<|notimestamps|>");
+      StorageView probs(dtype, device);
+      ops::SoftMax()(logits, probs);
 
-      bool any_with_timestamps = false;
-      std::vector<bool> with_timestamps;
-      with_timestamps.reserve(prompts.size());
-
-      for (const auto& prompt : prompts) {
-        const auto no_ts_it = std::find(prompt.begin(), prompt.end(), no_timestamps_id);
-        const auto generate_timestamps = (no_ts_it == prompt.end());
-        with_timestamps.emplace_back(generate_timestamps);
-        if (generate_timestamps)
-          any_with_timestamps = true;
-      }
-
-      if (!any_with_timestamps)
-        return nullptr;
-
-      const size_t eot_id = vocabulary.eos_id();
-      const size_t timestamp_begin_id = no_timestamps_id + 1;
-      const size_t timestamp_end_id = vocabulary.size() - 1;
-      const size_t max_initial_timestamp_id = timestamp_begin_id + 50;
-
-      return std::make_shared<ApplyTimestampRules>(eot_id,
-                                                   no_timestamps_id,
-                                                   timestamp_begin_id,
-                                                   timestamp_end_id,
-                                                   max_initial_timestamp_id,
-                                                   std::move(with_timestamps));
-    }
-
-    static StorageView get_sot_index(const std::vector<std::vector<size_t>>& prompts,
-                                     const size_t sot_id,
-                                     const Device device) {
-      const dim_t batch_size = prompts.size();
-      StorageView sot_index({batch_size}, DataType::INT32);
-
-      for (dim_t i = 0; i < batch_size; ++i) {
-        const auto& prompt = prompts[i];
-        const auto sot_it = std::find(prompt.begin(), prompt.end(), sot_id);
-        if (sot_it == prompt.end())
-          throw std::invalid_argument("<|startoftranscript|> token was not found in the "
-                                      "prompt of batch " + std::to_string(i));
-
-        sot_index.at<int32_t>(i) = std::distance(prompt.begin(), sot_it);
-      }
-
-      return sot_index.to(device);
-    }
-
-    static std::vector<float> get_no_speech_probs(layers::WhisperDecoder& decoder,
-                                                  const StorageView& decoder_outputs,
-                                                  const StorageView& sot_index,
-                                                  const size_t no_speech_id) {
-      const Device device = decoder.device();
-      const DataType dtype = decoder.output_type();
-
-      StorageView logits(dtype, device);
-      decoder.compute_logits_for_steps(decoder_outputs, sot_index, logits);
-
-      ops::SoftMax()(logits);
-      StorageView probs_at_sot = std::move(logits);
-
-      StorageView gather_ids({probs_at_sot.dim(0)}, int32_t(no_speech_id), device);
+      StorageView gather_ids({probs.dim(0)}, int32_t(no_speech_id), device);
       StorageView no_speech_probs(dtype, device);
-      ops::Gather(/*axis=*/1, /*batch_dims=*/1)(probs_at_sot, gather_ids, no_speech_probs);
+      ops::Gather(/*axis=*/1, /*batch_dims=*/1)(probs, gather_ids, no_speech_probs);
 
       if (no_speech_probs.dtype() != DataType::FLOAT)
         no_speech_probs = no_speech_probs.to_float();
       return no_speech_probs.to_vector<float>();
     }
+
+    static size_t get_sot_index(const std::vector<size_t>& prompt, const size_t sot_id) {
+      const auto sot_it = std::find(prompt.begin(), prompt.end(), sot_id);
+      if (sot_it == prompt.end())
+          throw std::invalid_argument("<|startoftranscript|> token was not found in the prompt");
+
+      return std::distance(prompt.begin(), sot_it);
+    }
+
+    static size_t get_prompt_length(const std::vector<size_t>& prompt,
+                                    const size_t sot_id,
+                                    const size_t no_timestamps_id) {
+      size_t index = get_sot_index(prompt, sot_id);
+      while (index < prompt.size() && prompt[index] >= sot_id && prompt[index] <= no_timestamps_id)
+        index++;
+      return index;
+    }
+
+    static void check_prompts(const std::vector<std::vector<size_t>>& prompts,
+                              const size_t sot_id,
+                              const size_t no_timestamps_id,
+                              size_t& sot_index,
+                              size_t& prompt_length) {
+      bool first = true;
+
+      for (const auto& prompt : prompts) {
+        const auto batch_sot_index = get_sot_index(prompt, sot_id);
+        const auto batch_prompt_length = get_prompt_length(prompt, sot_id, no_timestamps_id);
+
+        if (first) {
+          sot_index = batch_sot_index;
+          prompt_length = batch_prompt_length;
+        } else if (batch_sot_index != sot_index) {
+          throw std::invalid_argument("The generate method currently requires the "
+                                      "<|startoftranscript|> token to be at the same position "
+                                      "in all batches. To work around this limitation, "
+                                      "simply adapt the number of previous text tokens in each "
+                                      "batch.");
+        } else if (batch_prompt_length != prompt_length) {
+          throw std::invalid_argument("The generate method currently requires each batch to have "
+                                      "the same number of task tokens after <|startoftranscript|>.");
+        }
+
+        first = false;
+      }
+    }
+
+    class ApplyTimestampRules;
+
+    class GetNoSpeechProbs : public LogitsProcessor {
+    private:
+      const size_t _no_speech_id;
+      std::vector<float> _no_speech_probs;
+
+    public:
+      GetNoSpeechProbs(const size_t no_speech_id)
+        : _no_speech_id(no_speech_id)
+      {
+      }
+
+      const std::vector<float>& get_no_speech_probs() const {
+        return _no_speech_probs;
+      }
+
+      bool apply_first() const override {
+        return true;
+      }
+
+      void apply(dim_t step,
+                 StorageView& logits,
+                 DisableTokens&,
+                 const StorageView&,
+                 const std::vector<dim_t>& batch_offset,
+                 const std::vector<std::vector<size_t>>*) override {
+        if (step == 0) {
+          const auto no_speech_probs = get_no_speech_probs_from_logits(logits, _no_speech_id);
+
+          const size_t batch_size = batch_offset.size();
+          const size_t beam_size = logits.dim(0) / batch_size;
+
+          _no_speech_probs.reserve(batch_size);
+          for (size_t i = 0; i < batch_size; ++i)
+            _no_speech_probs.emplace_back(no_speech_probs[i * beam_size]);
+        }
+      }
+    };
 
     std::vector<WhisperGenerationResult>
     WhisperReplica::generate(const StorageView& features,
@@ -166,21 +201,9 @@ namespace ctranslate2 {
       if (prompts.empty())
         return {};
 
-      const bool fixed_length = std::all_of(prompts.begin(),
-                                            prompts.end(),
-                                            [&prompts](const std::vector<size_t>& prompt) {
-                                              return prompt.size() == prompts[0].size();
-                                            });
-
-      if (!fixed_length)
-        throw std::invalid_argument("The generate method currently requires all prompts to "
-                                    "have the same length. To work around this limitation, "
-                                    "simply adapt the number of previous text tokens in each "
-                                    "batch.");
-
-      if (prompts[0].size() < 3)
-        throw std::invalid_argument("The prompt should have at least 3 tokens: "
-                                    "START OF TRANSCRIPT, LANGUAGE TAG, and TRANSCRIBE/TRANSLATE");
+      size_t sot_index = 0;
+      size_t prompt_length = 0;  // Length of the prompt before the text tokens.
+      check_prompts(prompts, _sot_id, _no_timestamps_id, sot_index, prompt_length);
 
       const auto& vocabulary = _model->get_vocabulary();
       const auto scoped_device_setter = _model->get_scoped_device_setter();
@@ -190,35 +213,46 @@ namespace ctranslate2 {
 
       _decoder->update_output_layer(_model->preferred_size_multiple());
 
-      std::vector<std::vector<size_t>> prefix_tokens;
+      const bool sot_is_start_token = (sot_index == prompt_length - 1);
       std::vector<std::vector<size_t>> start_tokens;
-      prefix_tokens.reserve(prompts.size());
-      start_tokens.reserve(prompts.size());
-      for (const auto& prompt : prompts) {
-        prefix_tokens.emplace_back(prompt.begin(), prompt.end() - 1);
-        start_tokens.emplace_back(prompt.end() - 1, prompt.end());
-      }
-
-      const Device device = _decoder->device();
-      const DataType dtype = _decoder->output_type();
-      StorageView inputs = layers::make_sequence_inputs(prefix_tokens, device);
-      StorageView outputs(dtype, device);
-
-      // Initialize the decoder state with the prompt.
-      _decoder->forward_prompt(inputs, state, options.return_no_speech_prob ? &outputs : nullptr);
-
       std::vector<float> no_speech_probs;
-      if (options.return_no_speech_prob) {
-        // Get the probability of the no speech token at the start of transcript step.
-        StorageView sot_index = get_sot_index(prefix_tokens, vocabulary.bos_id(), device);
-        size_t no_speech_id = vocabulary.to_id("<|nospeech|>");
-        if (no_speech_id == vocabulary.unk_id())
-          no_speech_id = vocabulary.to_id("<|nocaptions|>");
-        no_speech_probs = get_no_speech_probs(*_decoder, outputs, sot_index, no_speech_id);
+      dim_t start_step = 0;
+
+      if (prompt_length == 1) {
+        start_tokens = prompts;
+
+      } else {
+        std::vector<std::vector<size_t>> prompt_tokens;
+        prompt_tokens.reserve(prompts.size());
+        start_tokens.reserve(prompts.size());
+        for (const auto& prompt : prompts) {
+          prompt_tokens.emplace_back(prompt.begin(), prompt.begin() + prompt_length - 1);
+          start_tokens.emplace_back(prompt.begin() + prompt_length - 1, prompt.end());
+        }
+
+        const Device device = _decoder->device();
+        const DataType dtype = _decoder->output_type();
+        const StorageView inputs = layers::make_sequence_inputs(prompt_tokens, device);
+
+        // Initialize the decoder state with the prompt.
+        if (!options.return_no_speech_prob || sot_is_start_token)
+          _decoder->forward_prompt(inputs, state);
+        else {
+          StorageView outputs(dtype, device);
+          _decoder->forward_prompt(inputs, state, &outputs);
+
+          // Get the probability of the no speech token at the start of transcript step.
+          StorageView sot_index_batch({inputs.dim(0)}, int32_t(sot_index), device);
+          StorageView logits(dtype, device);
+          _decoder->compute_logits_for_steps(outputs, sot_index_batch, logits);
+          no_speech_probs = get_no_speech_probs_from_logits(logits, _no_speech_id);
+        }
+
+        start_step = inputs.dim(1);
       }
 
       DecodingOptions decoding_options;
-      decoding_options.start_step = inputs.dim(1);
+      decoding_options.start_step = start_step;
       decoding_options.beam_size = options.beam_size;
       decoding_options.patience = options.patience;
       decoding_options.length_penalty = options.length_penalty;
@@ -236,15 +270,33 @@ namespace ctranslate2 {
       for (const auto& id : _model->config["suppress_ids_begin"])
         decoding_options.disable_ids_begin.push_back(id);
 
-      const auto timestamp_processor = create_timestamp_processor(prompts, vocabulary);
-      if (timestamp_processor)
-        decoding_options.logits_processors.emplace_back(timestamp_processor);
+      std::shared_ptr<GetNoSpeechProbs> no_speech_probs_processor;
+      if (options.return_no_speech_prob && sot_is_start_token) {
+        // If SOT is the start token, we need to get the no speech prob in the first decoding loop.
+        no_speech_probs_processor = std::make_shared<GetNoSpeechProbs>(_no_speech_id);
+        decoding_options.logits_processors.emplace_back(no_speech_probs_processor);
+      }
+
+      if (prompts[0][prompt_length - 1] != _no_timestamps_id) {
+        const size_t timestamp_begin_id = _no_timestamps_id + 1;
+        const size_t timestamp_end_id = vocabulary.size() - 1;
+        const size_t max_initial_timestamp_id = timestamp_begin_id + 50;
+        decoding_options.logits_processors.emplace_back(
+          std::make_shared<ApplyTimestampRules>(_eot_id,
+                                                _no_timestamps_id,
+                                                timestamp_begin_id,
+                                                timestamp_end_id,
+                                                max_initial_timestamp_id));
+      }
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    start_tokens,
-                                                   vocabulary.eos_id(),
+                                                   _eot_id,
                                                    decoding_options);
+
+      if (no_speech_probs_processor)
+        no_speech_probs = no_speech_probs_processor->get_no_speech_probs();
 
       std::vector<WhisperGenerationResult> final_results;
       final_results.reserve(results.size());
@@ -267,6 +319,9 @@ namespace ctranslate2 {
 
     std::vector<std::vector<std::pair<std::string, float>>>
     WhisperReplica::detect_language(const StorageView& features) {
+      if (!is_multilingual())
+        throw std::runtime_error("detect_language can only be called on multilingual models");
+
       PROFILE("WhisperReplica::detect_language");
 
       const auto scoped_device_setter = _model->get_scoped_device_setter();
@@ -330,6 +385,11 @@ namespace ctranslate2 {
     }
 
 
+    bool Whisper::is_multilingual() const {
+      const auto& replica = get_first_replica();
+      return replica.is_multilingual();
+    }
+
     std::vector<std::future<WhisperGenerationResult>>
     Whisper::generate(StorageView features,
                       std::vector<std::vector<std::string>> prompts,
@@ -374,21 +434,18 @@ namespace ctranslate2 {
       const size_t _timestamp_begin_id;
       const size_t _timestamp_end_id;
       const size_t _max_initial_timestamp_id;
-      const std::vector<bool> _batch_with_timestamps;
 
     public:
       ApplyTimestampRules(const size_t eot_id,
                           const size_t no_timestamps_id,
                           const size_t timestamp_begin_id,
                           const size_t timestamp_end_id,
-                          const size_t max_initial_timestamp_id,
-                          std::vector<bool> batch_with_timestamps)
+                          const size_t max_initial_timestamp_id)
         : _eot_id(eot_id)
         , _no_timestamps_id(no_timestamps_id)
         , _timestamp_begin_id(timestamp_begin_id)
         , _timestamp_end_id(timestamp_end_id)
         , _max_initial_timestamp_id(max_initial_timestamp_id)
-        , _batch_with_timestamps(std::move(batch_with_timestamps))
       {
       }
 
@@ -402,9 +459,6 @@ namespace ctranslate2 {
         const dim_t batch_size = logits.dim(0);
 
         for (dim_t batch_id = 0; batch_id < batch_size; ++batch_id) {
-          if (!_batch_with_timestamps[get_batch_index(batch_size, batch_id, batch_offset)])
-            continue;
-
           const dim_t sample_begin = get_sample_begin(batch_size, batch_id, batch_offset, prefix);
 
           // Suppress <|notimestamps|>.

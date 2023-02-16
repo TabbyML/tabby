@@ -964,6 +964,11 @@ namespace ctranslate2 {
   make_logits_processors(const DecodingOptions& options) {
     std::vector<std::shared_ptr<LogitsProcessor>> processors;
 
+    for (const auto& processor : options.logits_processors) {
+      if (processor->apply_first())
+        processors.emplace_back(processor);
+    }
+
     if (options.repetition_penalty != 1)
       processors.emplace_back(std::make_shared<RepetitionPenalty>(options.repetition_penalty));
 
@@ -979,8 +984,10 @@ namespace ctranslate2 {
     if (!options.disable_sequences.empty())
       processors.emplace_back(std::make_shared<SuppressSequences>(options.disable_sequences));
 
-    for (const auto& processor : options.logits_processors)
-      processors.emplace_back(processor);
+    for (const auto& processor : options.logits_processors) {
+      if (!processor->apply_first())
+        processors.emplace_back(processor);
+    }
 
     return processors;
   }
