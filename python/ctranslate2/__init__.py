@@ -2,6 +2,7 @@ import sys
 
 if sys.platform == "win32":
     import ctypes
+    import glob
     import os
 
     import pkg_resources
@@ -13,8 +14,8 @@ if sys.platform == "win32":
     if add_dll_directory is not None:
         add_dll_directory(package_dir)
 
-    for library in ("libiomp5md", "ctranslate2"):
-        ctypes.CDLL(os.path.join(package_dir, "%s.dll" % library))
+    for library in glob.glob(os.path.join(package_dir, "*.dll")):
+        ctypes.CDLL(library)
 
 try:
     from ctranslate2._ext import (

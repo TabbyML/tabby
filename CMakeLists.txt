@@ -435,7 +435,10 @@ if (WITH_CUDA)
     # Find cuDNN libraries.
     find_library(CUDNN_LIBRARIES
       NAMES cudnn
-      HINTS ${CUDA_TOOLKIT_ROOT_DIR}/lib ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+      HINTS
+      ${CUDA_TOOLKIT_ROOT_DIR}/lib
+      ${CUDA_TOOLKIT_ROOT_DIR}/lib64
+      ${CUDA_TOOLKIT_ROOT_DIR}/lib/x64
     )
     if(CUDNN_LIBRARIES)
       message(STATUS "Found cuDNN libraries: ${CUDNN_LIBRARIES}")
