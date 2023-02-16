@@ -56,12 +56,14 @@ namespace ctranslate2 {
         return _device_index;
       }
 
-      // The requested compute type.
-      ComputeType compute_type() const {
-        return _compute_type;
+      ComputeType saved_compute_type() const {
+        return _saved_compute_type;
       }
 
-      // The compute type that is effectively used.
+      ComputeType requested_compute_type() const {
+        return _requested_compute_type;
+      }
+
       ComputeType effective_compute_type() const {
         return _effective_compute_type;
       }
@@ -150,7 +152,8 @@ namespace ctranslate2 {
       int _device_index = 0;
       size_t _binary_version = 0;
       size_t _spec_revision = 0;
-      ComputeType _compute_type = ComputeType::DEFAULT;
+      ComputeType _saved_compute_type = ComputeType::DEFAULT;
+      ComputeType _requested_compute_type = ComputeType::DEFAULT;
       ComputeType _effective_compute_type = ComputeType::DEFAULT;
       dim_t _preferred_size_multiple = 1;
       std::unordered_map<std::string, std::shared_ptr<StorageView>> _variable_index;

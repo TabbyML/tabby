@@ -151,9 +151,10 @@ namespace ctranslate2 {
       if (_device != Device::CPU)
         throw std::runtime_error("set_compute_type expects the variables to be on CPU");
 
-      _compute_type = type;
-      _effective_compute_type = resolve_compute_type(type,
-                                                     infer_compute_type(),
+      _saved_compute_type = infer_compute_type();
+      _requested_compute_type = type;
+      _effective_compute_type = resolve_compute_type(_requested_compute_type,
+                                                     _saved_compute_type,
                                                      device,
                                                      device_index);
       _preferred_size_multiple = get_preferred_size_multiple(_effective_compute_type,
@@ -581,6 +582,16 @@ namespace ctranslate2 {
         spdlog::info(" - Model specification revision: {}", model->spec_revision());
         spdlog::info(" - Selected compute type: {}",
                      compute_type_to_str(model->effective_compute_type()));
+
+        if (model->requested_compute_type() == ComputeType::DEFAULT
+            && model->effective_compute_type() != model->saved_compute_type())
+          spdlog::warn("The compute type inferred from the saved model is {}, "
+                       "but the target device or backend do not support efficient {} computation. "
+                       "The model weights have been automatically converted to use "
+                       "the {} compute type instead.",
+                       compute_type_to_str(model->saved_compute_type()),
+                       compute_type_to_str(model->saved_compute_type()),
+                       compute_type_to_str(model->effective_compute_type()));
 
         for (size_t i = 0; i < num_replicas_per_device; ++i)
           models.emplace_back(model);
