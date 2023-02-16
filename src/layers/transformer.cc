@@ -280,8 +280,8 @@ namespace ctranslate2 {
       return state;
     }
 
-    bool TransformerDecoder::should_reorder_state(const std::string& name) const {
-      // No need to reorder projected memory keys and values as they are the same for each beam.
+    bool TransformerDecoder::replicate_state(const std::string& name) const {
+      // No need to replicate projected memory keys and values as they are the same for each beam.
       return !_with_encoder_attention || !starts_with(name, "memory");
     }
 
@@ -330,6 +330,7 @@ namespace ctranslate2 {
       if (_layernorm_embedding)
         (*_layernorm_embedding)(layer_in, layer_in);
 
+      const dim_t batch_size = layer_in.dim(0);
       const dim_t max_time = layer_in.dim(1);
       const bool allow_padding_removal = Padder::allow_padding_removal(_device, _compute_type);
 
@@ -374,11 +375,13 @@ namespace ctranslate2 {
           }
         }
 
-        if (memory_lengths)
+        if (memory_lengths) {
+          const dim_t beam_size = batch_size / memory_lengths->dim(0);
           memory_lengths_mask = std::make_unique<StorageView>(
             layers::MultiHeadAttention::prepare_length_mask(*memory_lengths,
                                                             _num_heads,
-                                                            max_time));
+                                                            beam_size > 1 ? beam_size : max_time));
+        }
       }
 
       for (size_t l = 0; l < _layers.size(); ++l) {

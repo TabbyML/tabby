@@ -149,6 +149,7 @@ namespace ctranslate2 {
       TransformerDecoder(const models::Model& model, const std::string& scope);
 
       DecoderState initial_state(bool iterative_decoding = true) const override;
+      bool replicate_state(const std::string& name) const override;
 
       void operator()(dim_t step,
                       const StorageView& ids,
@@ -161,8 +162,6 @@ namespace ctranslate2 {
                       StorageView& logits) override;
 
     protected:
-      bool should_reorder_state(const std::string& name) const override;
-
       Dense& output_layer() override {
         return _proj;
       }

@@ -33,8 +33,20 @@ namespace ctranslate2 {
                               DecoderState& state,
                               StorageView& logits) = 0;
 
-      // Gathers states based on indices.
-      void gather_state(DecoderState& state, const StorageView& indices) const;
+      // Update the decoder state in greedy search.
+      void update_state(DecoderState& state, const StorageView& alive_batches) const;
+
+      // Update the decoder state in beam search.
+      void update_state(DecoderState& state,
+                        StorageView beam_indices,
+                        const dim_t beam_size,
+                        const StorageView* alive_batches = nullptr) const;
+
+      // Replicate the decoder state beam_size times.
+      void replicate_state(DecoderState& state, const dim_t beam_size) const;
+
+      // Returns true if the state must be replicated beam_size times.
+      virtual bool replicate_state(const std::string& name) const;
 
       // Restrict the output layer to a set of ids and/or resize it to a preferred size multiple.
       // Elements in restrict_ids must be unique and sorted.
@@ -70,8 +82,6 @@ namespace ctranslate2 {
       }
 
     protected:
-      // Returns false if the state does not need to be reordered during beam search.
-      virtual bool should_reorder_state(const std::string& name) const;
       // Returns the current batch size from the decoder state.
       virtual dim_t batch_size(const DecoderState& state) const;
       // Returns the output linear layer.

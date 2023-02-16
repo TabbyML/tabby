@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 
+#include "ctranslate2/decoding_utils.h"
 #include "ctranslate2/ops/ops.h"
 #include "dispatch.h"
 
@@ -29,18 +30,34 @@ namespace ctranslate2 {
       : _device(device) {
     }
 
-    void Decoder::gather_state(DecoderState& state, const StorageView& indices) const {
-      static const ops::Gather gather_op;
-
-      // When the batch size is unchanged, assume that we are reordering beams.
-      bool beam_reordering = indices.size() == batch_size(state);
-
+    void Decoder::update_state(DecoderState& state, const StorageView& alive_batches) const {
       for (auto& pair : state) {
-        const auto& name = pair.first;
-        auto& value = pair.second;
-        if (beam_reordering && !should_reorder_state(name))
-          continue;
-        gather_op(value, indices);
+        ops::Gather()(pair.second, alive_batches);
+      }
+    }
+
+    void Decoder::update_state(DecoderState& state,
+                               StorageView beam_indices,
+                               const dim_t beam_size,
+                               const StorageView* alive_batches) const {
+      if (alive_batches) {
+        split_batch_beam(beam_indices, beam_size);
+        ops::Gather()(beam_indices, *alive_batches);
+        merge_batch_beam(beam_indices);
+      }
+
+      for (auto& [name, value] : state) {
+        if (replicate_state(name))
+          ops::Gather()(value, beam_indices);
+        else if (alive_batches)
+          ops::Gather()(value, *alive_batches);
+      }
+    }
+
+    void Decoder::replicate_state(DecoderState& state, const dim_t beam_size) const {
+      for (auto& [name, value] : state) {
+        if (value && replicate_state(name))
+          repeat_batch(value, beam_size);
       }
     }
 
@@ -48,7 +65,7 @@ namespace ctranslate2 {
       return state.begin()->second.dim(0);
     }
 
-    bool Decoder::should_reorder_state(const std::string&) const {
+    bool Decoder::replicate_state(const std::string&) const {
       return true;
     }
 

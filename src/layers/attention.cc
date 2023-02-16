@@ -162,6 +162,8 @@ namespace ctranslate2 {
       ops::Add()(dot_relative, dot, dot);
     }
 
+    static const ops::Transpose transpose_op({0, 2, 1, 3});
+
     static void dot_product_attention(const StorageView& queries,
                                       const StorageView& keys,
                                       const StorageView& values,
@@ -174,7 +176,8 @@ namespace ctranslate2 {
                                       StorageView* attention = nullptr,
                                       float queries_scale = 1,
                                       bool is_decoder = false,
-                                      bool with_cache = false) {
+                                      bool with_cache = false,
+                                      dim_t beam_size = 1) {
       PROFILE("dot_product_attention");
 
       std::unique_ptr<const StorageView> relative_positions;
@@ -224,15 +227,25 @@ namespace ctranslate2 {
                                      values_matmul,
                                      output);
 
-      if (attention)
-        *attention = std::move(attn);
+      if (attention) {
+        if (beam_size == 1)
+          *attention = std::move(attn);
+        else {
+          transpose_op(attn, *attention);
+          attention->reshape({-1, attn.dim(1), 1, attn.dim(-1)});
+        }
+      }
     }
 
-    static const ops::Transpose transpose_op({0, 2, 1, 3});
-
-    static void split_heads(StorageView& x, dim_t num_heads, const Padder* padder = nullptr) {
+    static void split_heads(StorageView& x,
+                            dim_t num_heads,
+                            const Padder* padder = nullptr,
+                            dim_t beam_size = 1) {
       if (padder)
         padder->add_padding(x);
+
+      if (beam_size > 1)
+        x.reshape({x.dim(0) / beam_size, beam_size, x.dim(2)});
 
       // x has shape [batch_size, time, depth]
       const dim_t batch_size = x.dim(0);
@@ -249,7 +262,10 @@ namespace ctranslate2 {
       }
     }
 
-    static void combine_heads(StorageView& x, dim_t num_heads, const Padder* padder = nullptr) {
+    static void combine_heads(StorageView& x,
+                              dim_t num_heads,
+                              const Padder* padder = nullptr,
+                              dim_t beam_size = 1) {
       // x has shape [batch_size, num_heads, time, head_dim]
       const dim_t batch_size = x.dim(0);
       const dim_t time = x.dim(2);
@@ -262,6 +278,10 @@ namespace ctranslate2 {
       }
 
       x.reshape({batch_size, time, depth});
+
+      if (beam_size > 1)
+        x.reshape({batch_size * beam_size, 1, depth});
+
       if (padder)
         padder->remove_padding(x);
     }
@@ -340,9 +360,10 @@ namespace ctranslate2 {
 
       _linear[0](*q, fused_proj);
 
+      dim_t beam_size = 1;
+
       if (!_self_attention) {
         queries_proj = std::move(fused_proj);
-        split_heads(queries_proj, _num_heads, queries_padder);
 
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](values, fused_proj);
@@ -354,6 +375,10 @@ namespace ctranslate2 {
             *cached_values = std::move(values_proj);
           }
         }
+
+        if (queries_proj.dim(1) == 1 && cached_keys)
+          beam_size = queries_proj.dim(0) / cached_keys->dim(0);
+        split_heads(queries_proj, _num_heads, queries_padder, beam_size);
 
       } else {
         split_heads(fused_proj, 3 * _num_heads, queries_padder);
@@ -391,9 +416,10 @@ namespace ctranslate2 {
                             attention,
                             _queries_scale,
                             _is_decoder,
-                            bool(cached_keys));
+                            bool(cached_keys),
+                            beam_size);
 
-      combine_heads(context, _num_heads, queries_padder);
+      combine_heads(context, _num_heads, queries_padder, beam_size);
       _linear.back()(context, output);
       ops::Add()(queries, output, output);
       if (!_pre_norm) {

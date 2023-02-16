@@ -12,43 +12,10 @@ namespace ctranslate2 {
 
   static const ops::Gather gather;
 
-  static inline void split_batch_beam(StorageView& input, dim_t beam_size) {
-    Shape shape = input.shape();
-    shape.insert(shape.begin() + 1, beam_size);
-    shape[0] /= beam_size;
-    input.reshape(std::move(shape));
-  }
-
-  static inline void merge_batch_beam(StorageView& input) {
-    Shape shape = input.shape();
-    shape[0] *= shape[1];
-    shape.erase(shape.begin() + 1);
-    input.reshape(std::move(shape));
-  }
-
-  static void gather_batch(StorageView& data, const StorageView& indices, dim_t beam_size) {
-    split_batch_beam(data, beam_size);
-    gather(data, indices);
-    merge_batch_beam(data);
-  }
-
   static void gather_beam_flat(StorageView& data, const StorageView& indices, dim_t beam_size) {
     merge_batch_beam(data);
     gather(data, indices);
     split_batch_beam(data, beam_size);
-  }
-
-  static void expand_to_beam_size(StorageView& input, dim_t beam_size) {
-    input.expand_dims(1);
-    ops::Tile(/*axis=*/1, beam_size)(input);
-    merge_batch_beam(input);
-  }
-
-  static void expand_to_beam_size(layers::DecoderState& state, dim_t beam_size) {
-    for (auto& pair : state) {
-      if (!pair.second.empty())
-        expand_to_beam_size(pair.second, beam_size);
-    }
   }
 
   static void update_sample_with_prefix(const size_t step,
@@ -421,8 +388,8 @@ namespace ctranslate2 {
     }
 
     if (!expand_after_first_step) {
-      expand_to_beam_size(state, _beam_size);
-      expand_to_beam_size(topk_ids, _beam_size);
+      decoder.replicate_state(state, _beam_size);
+      repeat_batch(topk_ids, _beam_size);
       TYPE_DISPATCH(dtype, initialize_beam_scores<T>(topk_scores, batch_size, _beam_size));
     }
 
@@ -532,7 +499,7 @@ namespace ctranslate2 {
 
       if (attention_step) {
         if (!is_expanded)
-          expand_to_beam_size(attention_step, _beam_size);
+          repeat_batch(attention_step, _beam_size);
         split_batch_beam(attention_step, _beam_size);
         append_step_output(alive_attention, attention_step.to_float().to(Device::CPU));
         gather_beam_flat(alive_attention, gather_indices, num_candidates);
@@ -613,7 +580,7 @@ namespace ctranslate2 {
       if (next_batch_size == 0) {
         if (!is_expanded) {
           // We should ensure that states are replicated before exiting this function.
-          expand_to_beam_size(state, _beam_size);
+          decoder.replicate_state(state, _beam_size);
         }
         break;
       }
@@ -626,36 +593,26 @@ namespace ctranslate2 {
         gather_beam_flat(alive_attention, active_beams, _beam_size);
 
       // If some sentences finished on this step, ignore them for the next step.
+      std::unique_ptr<StorageView> keep_batches;
       if (next_batch_size != cur_batch_size) {
         batch_offset = index_vector(batch_offset, non_finished_index);
         top_beam_finished = index_vector(top_beam_finished, non_finished_index);
         if (bias_towards_prefix)
           beams_diverged_from_prefix = index_vector(beams_diverged_from_prefix, non_finished_index);
 
-        StorageView keep_batches({next_batch_size}, non_finished_index);
-        gather(topk_ids, keep_batches);
-        gather(topk_scores, keep_batches);
-        gather(alive_seq, keep_batches);
+        keep_batches = std::make_unique<StorageView>(Shape{next_batch_size}, non_finished_index);
+        gather(topk_ids, *keep_batches);
+        gather(topk_scores, *keep_batches);
+        gather(alive_seq, *keep_batches);
         if (alive_attention)
-          gather(alive_attention, keep_batches);
-
-        // On CPU, we reorder first and then remove finished batches. Otherwise, we remove
-        // finished batches from the reorder indices and then reorder. The motivation for this
-        // difference is to enable the fast in place gather on CPU for state elements that should
-        // not be reordered (see Decoder::gather_state and Gather::operator()).
-
-        if (device == Device::CPU) {
-          decoder.gather_state(state, gather_indices);
-          for (auto& pair : state)
-            gather_batch(pair.second, keep_batches, _beam_size);
-        } else {
-          gather_batch(gather_indices, keep_batches, _beam_size);
-          decoder.gather_state(state, gather_indices.to(device));
-        }
-
-      } else {
-        decoder.gather_state(state, gather_indices.to(device));
+          gather(alive_attention, *keep_batches);
+        if (keep_batches->device() != device)
+          *keep_batches = keep_batches->to(device);
       }
+
+      if (gather_indices.device() != device)
+        gather_indices = gather_indices.to(device);
+      decoder.update_state(state, gather_indices, _beam_size, keep_batches.get());
 
       topk_ids.reshape({next_batch_size * _beam_size});
       topk_scores.reshape({next_batch_size * _beam_size});
@@ -695,7 +652,10 @@ namespace ctranslate2 {
     // We can return multiple hypotheses from greedy search when random sampling is enabled.
     // In that case we replicate the batches and then merge the hypotheses in a single result.
     if (num_hypotheses > 1) {
-      expand_to_beam_size(state, num_hypotheses);
+      for (auto& [name, value] : state) {
+        if (value)
+          repeat_batch(value, num_hypotheses);
+      }
 
       std::vector<size_t> repeat_start_ids = repeat_vector(start_ids, num_hypotheses);
       std::vector<std::vector<size_t>> repeat_prefix_ids;
@@ -854,8 +814,7 @@ namespace ctranslate2 {
         if (alive_seq)
           gather(alive_seq, alive);
         gather(sample_from, alive);
-        auto alive_device = alive.to(device);
-        decoder.gather_state(state, alive_device);
+        decoder.update_state(state, alive.to(device));
       }
     }
 
@@ -1089,12 +1048,20 @@ namespace ctranslate2 {
       start_ids.push_back(result.hypotheses[i].back());
     }
 
-    if (start_ids.size() < options.num_hypotheses) {
-      // Reduce state to the effective number of alternatives.
-      const dim_t num_alternatives = start_ids.size();
-      for (auto& pair : state)
-        pair.second.resize(0, num_alternatives);
+    const size_t num_alternatives = start_ids.size();
 
+    for (auto& [name, value] : state) {
+      if (decoder.replicate_state(name)) {
+        // Reduce state to the effective number of alternatives.
+        if (num_alternatives < options.num_hypotheses)
+          value.resize(0, num_alternatives);
+      } else {
+        // The beam dimension becomes the batch so we need to replicate all states.
+        repeat_batch(value, num_alternatives);
+      }
+    }
+
+    if (num_alternatives < options.num_hypotheses) {
       result.hypotheses.resize(num_alternatives);
       if (options.return_scores)
         result.scores.resize(num_alternatives);

@@ -3,9 +3,30 @@
 #include <algorithm>
 #include <limits>
 
+#include "ops/tile.h"
 #include "storage_view.h"
 
 namespace ctranslate2 {
+
+  inline void split_batch_beam(StorageView& input, dim_t beam_size) {
+    Shape shape = input.shape();
+    shape.insert(shape.begin() + 1, beam_size);
+    shape[0] /= beam_size;
+    input.reshape(std::move(shape));
+  }
+
+  inline void merge_batch_beam(StorageView& input) {
+    Shape shape = input.shape();
+    shape[0] *= shape[1];
+    shape.erase(shape.begin() + 1);
+    input.reshape(std::move(shape));
+  }
+
+  inline void repeat_batch(StorageView& input, dim_t repeats) {
+    input.expand_dims(1);
+    ops::Tile(/*axis=*/1, repeats)(input);
+    merge_batch_beam(input);
+  }
 
   // Helper class to disable tokens in the model output.
   class DisableTokens {
