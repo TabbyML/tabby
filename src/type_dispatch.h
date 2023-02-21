@@ -15,14 +15,14 @@ namespace ctranslate2 {
   };
 
   // DataTypeToEnum<T>::v() and DataTypeToEnum<T>::value are the DataType
-  // constants for T, e.g. DataTypeToEnum<float>::v() is DataType::FLOAT.
+  // constants for T, e.g. DataTypeToEnum<float>::v() is DataType::FLOAT32.
   template <class T>
   struct DataTypeToEnum {
     static_assert(IsValidDataType<T>::value, "Specified Data Type not supported");
   };  // Specializations below
 
   // EnumToDataType<DataType::VALUE>::Type is the type for DataType constant VALUE, e.g.
-  // EnumToDataType<DataType::FLOAT>::Type is float.
+  // EnumToDataType<DataType::FLOAT32>::Type is float.
   template <DataType VALUE>
   struct EnumToDataType {}; // Specializations below
 
@@ -40,7 +40,7 @@ namespace ctranslate2 {
     typedef TYPE Type;                                  \
   }
 
-  MATCH_TYPE_AND_ENUM(float, DataType::FLOAT);
+  MATCH_TYPE_AND_ENUM(float, DataType::FLOAT32);
   MATCH_TYPE_AND_ENUM(int8_t, DataType::INT8);
   MATCH_TYPE_AND_ENUM(int16_t, DataType::INT16);
   MATCH_TYPE_AND_ENUM(int32_t, DataType::INT32);

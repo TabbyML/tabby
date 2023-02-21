@@ -38,7 +38,7 @@ namespace ctranslate2 {
         scale.resize({batch_size});
 
         switch (input.dtype()) {
-        case DataType::FLOAT: {
+        case DataType::FLOAT32: {
           DEVICE_DISPATCH(input.device(), (quantize<D, float, int8_t>(input, output, scale)));
           break;
         }

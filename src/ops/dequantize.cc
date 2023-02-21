@@ -32,7 +32,7 @@ namespace ctranslate2 {
           throw std::invalid_argument("INT8 dequantization expects per-batch scales");
 
         switch (output.dtype()) {
-        case DataType::FLOAT: {
+        case DataType::FLOAT32: {
           DEVICE_DISPATCH(input.device(), (dequantize<D, int8_t, float>(input, scale, output)));
           break;
         }
@@ -70,7 +70,7 @@ namespace ctranslate2 {
       y.resize_as(c);
 
       switch (y.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(c.device(), (dequantize_gemm_output<D, float>(c,
                                                                       a_scale,
                                                                       b_scale,

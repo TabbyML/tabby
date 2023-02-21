@@ -8,7 +8,7 @@ namespace ctranslate2 {
     void ReLU::operator()(const StorageView& x, StorageView& y) const {
       PROFILE("ReLU");
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
         break;
       }

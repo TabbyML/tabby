@@ -8,7 +8,7 @@ namespace ctranslate2 {
     void Log::operator()(const StorageView& x, StorageView& y) const {
       PROFILE("Log");
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
         break;
       }

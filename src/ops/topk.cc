@@ -18,7 +18,7 @@ namespace ctranslate2 {
       indices.resize({batch_size, _k});
 
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(),
                         (compute<D, float, int32_t>(x, values, indices)));
         break;

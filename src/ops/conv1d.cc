@@ -47,7 +47,7 @@ namespace ctranslate2 {
       output.resize({batch_size, out_channels, output_length});
 
       switch (input.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(input.device(), (compute<D, float>(input, weight, bias, output)));
         break;
       }

@@ -112,7 +112,7 @@ namespace ctranslate2 {
     class SinusoidalPositionEncoder : public PositionEncoder {
     public:
       SinusoidalPositionEncoder(dim_t depth,
-                                DataType dtype = DataType::FLOAT,
+                                DataType dtype = DataType::FLOAT32,
                                 Device device = Device::CPU);
       DataType output_type() const override;
       dim_t output_size() const override;

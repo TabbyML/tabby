@@ -8,7 +8,7 @@ namespace ctranslate2 {
     void Swish::operator()(const StorageView& x, StorageView& y) const {
       PROFILE("Swish");
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, y)));
         break;
       }

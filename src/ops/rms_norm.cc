@@ -13,7 +13,7 @@ namespace ctranslate2 {
       output.resize_as(input);
 
       switch (input.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(input.device(), (compute<D, float>(gamma, input, output)));
         break;
       }

@@ -13,8 +13,8 @@ namespace ctranslate2 {
 
   std::string dtype_name(DataType type) {
     switch (type) {
-    case DataType::FLOAT:
-      return "float";
+    case DataType::FLOAT32:
+      return "float32";
     case DataType::INT8:
       return "int8";
     case DataType::INT16:
@@ -30,7 +30,7 @@ namespace ctranslate2 {
 
   bool is_float_type(DataType type) {
     switch (type) {
-    case DataType::FLOAT:
+    case DataType::FLOAT32:
     case DataType::FLOAT16:
       return true;
     default:
@@ -45,8 +45,8 @@ namespace ctranslate2 {
       return ComputeType::INT8_FLOAT16;
     if (compute_type == "int16")
       return ComputeType::INT16;
-    if (compute_type == "float")
-      return ComputeType::FLOAT;
+    if (compute_type == "float32" || compute_type == "float")
+      return ComputeType::FLOAT32;
     if (compute_type == "float16")
       return ComputeType::FLOAT16;
     if (compute_type == "default")
@@ -62,8 +62,8 @@ namespace ctranslate2 {
       return "default";
     case ComputeType::AUTO:
       return "auto";
-    case ComputeType::FLOAT:
-      return "float";
+    case ComputeType::FLOAT32:
+      return "float32";
     case ComputeType::INT8:
       return "int8";
     case ComputeType::INT8_FLOAT16:
@@ -133,8 +133,8 @@ namespace ctranslate2 {
 
     switch (requested_compute_type) {
 
-    case ComputeType::FLOAT: {
-      return ComputeType::FLOAT;
+    case ComputeType::FLOAT32: {
+      return ComputeType::FLOAT32;
     }
 
     case ComputeType::FLOAT16: {
@@ -142,7 +142,7 @@ namespace ctranslate2 {
         return ComputeType::FLOAT16;
       if (!enable_fallback)
         unsupported_compute_type("float16");
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
 
     case ComputeType::INT16: {
@@ -154,7 +154,7 @@ namespace ctranslate2 {
         return ComputeType::INT8;
       if (device == Device::CUDA && support_float16)
         return ComputeType::FLOAT16;
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
 
     case ComputeType::INT8: {
@@ -166,7 +166,7 @@ namespace ctranslate2 {
         return ComputeType::INT16;
       if (device == Device::CUDA && support_float16)
         return ComputeType::FLOAT16;
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
 
     case ComputeType::INT8_FLOAT16: {
@@ -180,7 +180,7 @@ namespace ctranslate2 {
         return ComputeType::FLOAT16;
       if (support_int16)
         return ComputeType::INT16;
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
 
     case ComputeType::AUTO: {
@@ -197,7 +197,7 @@ namespace ctranslate2 {
         if (support_int16)
           return ComputeType::INT16;
       }
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
 
     default: {
@@ -215,14 +215,14 @@ namespace ctranslate2 {
 
   std::pair<DataType, DataType> compute_type_to_data_type(const ComputeType compute_type) {
     switch (compute_type) {
-    case ComputeType::FLOAT:
-      return std::make_pair(DataType::FLOAT, DataType::FLOAT);
+    case ComputeType::FLOAT32:
+      return std::make_pair(DataType::FLOAT32, DataType::FLOAT32);
     case ComputeType::INT8:
-      return std::make_pair(DataType::INT8, DataType::FLOAT);
+      return std::make_pair(DataType::INT8, DataType::FLOAT32);
     case ComputeType::INT8_FLOAT16:
       return std::make_pair(DataType::INT8, DataType::FLOAT16);
     case ComputeType::INT16:
-      return std::make_pair(DataType::INT16, DataType::FLOAT);
+      return std::make_pair(DataType::INT16, DataType::FLOAT32);
     case ComputeType::FLOAT16:
       return std::make_pair(DataType::FLOAT16, DataType::FLOAT16);
     default:
@@ -239,7 +239,7 @@ namespace ctranslate2 {
     case DataType::FLOAT16:
       return ComputeType::FLOAT16;
     default:
-      return ComputeType::FLOAT;
+      return ComputeType::FLOAT32;
     }
   }
 

@@ -20,7 +20,7 @@ def _assert_same_array(a, b):
         (np.int16, "int16"),
         (np.int32, "int32"),
         (np.float16, "float16"),
-        (np.float32, "float"),
+        (np.float32, "float32"),
     ],
 )
 def test_storageview_cpu(dtype, name):
@@ -54,11 +54,11 @@ def test_storageview_cuda():
     with pytest.raises(AttributeError, match="CUDA"):
         s.__array_interface__
 
-    assert str(s) == " 1 1 1 ... 1 1 1\n[cuda:0 float storage viewed as 2x4]"
+    assert str(s) == " 1 1 1 ... 1 1 1\n[cuda:0 float32 storage viewed as 2x4]"
 
     x[0][2] = 3
     x[1][3] = 8
-    assert str(s) == " 1 1 3 ... 1 1 8\n[cuda:0 float storage viewed as 2x4]"
+    assert str(s) == " 1 1 3 ... 1 1 8\n[cuda:0 float32 storage viewed as 2x4]"
 
     y = torch.as_tensor(s, device="cuda")
     _assert_same_array(s.__cuda_array_interface__, y.__cuda_array_interface__)

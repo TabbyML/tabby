@@ -14,7 +14,7 @@ namespace ctranslate2 {
     void MatMul::operator()(const StorageView& a, const StorageView& b, StorageView& c) const {
       PROFILE("MatMul");
       switch (a.dtype()) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         DEVICE_DISPATCH(a.device(), (compute<D, float>(a, b, c)));
         break;
 #ifdef CT2_WITH_CUDA

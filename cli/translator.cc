@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
 
   cmd_options.add_options("Model")
     ("model", "Path to the CTranslate2 model directory.", cxxopts::value<std::string>())
-    ("compute_type", "The type used for computation: default, auto, float, float16, int16, int8, or int8_float16",
+    ("compute_type", "The type used for computation: default, auto, float32, float16, int16, int8, or int8_float16",
      cxxopts::value<std::string>()->default_value("default"))
     ("cuda_compute_type", "Computation type on CUDA devices (overrides compute_type)",
      cxxopts::value<std::string>())

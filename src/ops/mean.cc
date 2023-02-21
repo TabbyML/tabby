@@ -39,7 +39,7 @@ namespace ctranslate2 {
         inner_size *= input.dim(i);
 
       switch (input.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(input.device(),
                         (compute<D, float>(input, outer_size, axis_size, inner_size, output)));
         break;

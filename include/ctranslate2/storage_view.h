@@ -53,11 +53,11 @@ namespace ctranslate2 {
   class StorageView
   {
   public:
-    StorageView(DataType type = DataType::FLOAT, Device device = Device::CPU);
-    StorageView(Device device, DataType type = DataType::FLOAT);
+    StorageView(DataType type = DataType::FLOAT32, Device device = Device::CPU);
+    StorageView(Device device, DataType type = DataType::FLOAT32);
 
     // The reserved memory is uninitialized.
-    StorageView(Shape shape, DataType type = DataType::FLOAT, Device device = Device::CPU);
+    StorageView(Shape shape, DataType type = DataType::FLOAT32, Device device = Device::CPU);
 
     template <typename T>
     StorageView(Shape shape, T init = T(), Device device = Device::CPU);
@@ -236,7 +236,7 @@ namespace ctranslate2 {
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
   protected:
-    DataType _dtype = DataType::FLOAT;
+    DataType _dtype = DataType::FLOAT32;
     Device _device = Device::CPU;
     int _device_index = 0;
     Allocator* _allocator = nullptr;

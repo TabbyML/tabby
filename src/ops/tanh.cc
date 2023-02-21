@@ -11,7 +11,7 @@ namespace ctranslate2 {
       y.resize_as(x);
 
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (primitives<D>::tanh(x.data<float>(), y.data<float>(), x.size())));
         break;
       }

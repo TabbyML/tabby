@@ -19,7 +19,7 @@ get_supported_compute_types(const std::string& device_str, const int device_inde
   const bool support_int8 = ctranslate2::mayiuse_int8(device, device_index);
 
   std::unordered_set<std::string> compute_types;
-  compute_types.emplace("float");
+  compute_types.emplace("float32");
   if (support_float16)
     compute_types.emplace("float16");
   if (support_int16)
@@ -52,9 +52,9 @@ PYBIND11_MODULE(_ext, m)
 
              Example:
                  >>> ctranslate2.get_supported_compute_types("cpu")
-                 {'int16', 'float', 'int8'}
+                 {'int16', 'float32', 'int8'}
                  >>> ctranslate2.get_supported_compute_types("cuda")
-                 {'float', 'int8_float16', 'float16', 'int8'}
+                 {'float32', 'int8_float16', 'float16', 'int8'}
          )pbdoc");
 
   m.def("set_random_seed", &ctranslate2::set_random_seed, py::arg("seed"),

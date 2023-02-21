@@ -21,7 +21,7 @@ namespace ctranslate2 {
 
     void Multinomial::dispatch(const StorageView& input, StorageView& output) const {
       switch (input.dtype()) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         DEVICE_DISPATCH(input.device(), (compute<D, float>(input, output)));
         break;
       case DataType::FLOAT16:

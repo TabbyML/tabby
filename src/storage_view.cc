@@ -95,10 +95,10 @@ namespace ctranslate2 {
     if (_dtype == dtype)
       return *this;
     StorageView converted(_shape, dtype, _device);
-    if (_dtype == DataType::FLOAT && dtype == DataType::FLOAT16) {
+    if (_dtype == DataType::FLOAT32 && dtype == DataType::FLOAT16) {
       DEVICE_DISPATCH(_device,
                       primitives<D>::convert(data<float>(), converted.data<float16_t>(), _size));
-    } else if (_dtype == DataType::FLOAT16 && dtype == DataType::FLOAT) {
+    } else if (_dtype == DataType::FLOAT16 && dtype == DataType::FLOAT32) {
       DEVICE_DISPATCH(_device,
                       primitives<D>::convert(data<float16_t>(), converted.data<float>(), _size));
     } else {
@@ -114,7 +114,7 @@ namespace ctranslate2 {
   }
 
   StorageView StorageView::to_float() const {
-    return to(DataType::FLOAT);
+    return to(DataType::FLOAT32);
   }
 
   dim_t StorageView::reserved_memory() const {

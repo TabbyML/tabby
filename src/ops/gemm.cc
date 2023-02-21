@@ -54,7 +54,7 @@ namespace ctranslate2 {
         compute<Device::CPU, int16_t, int32_t>(a, b, c, a_shift_compensation);
         break;
 
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         DEVICE_DISPATCH(a.device(), (compute<D, float, float>(a, b, c, a_shift_compensation)));
         break;
 
@@ -146,7 +146,7 @@ namespace ctranslate2 {
       StorageView packed(dtype);
 
       switch (dtype) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         pack_b<float>(b, transpose, k, n, alpha, packed);
         break;
       case DataType::INT16:

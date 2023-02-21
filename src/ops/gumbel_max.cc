@@ -19,7 +19,7 @@ namespace ctranslate2 {
       StorageView y(x.shape(), x.dtype(), x.device());
 
       switch (x.dtype()) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         DEVICE_DISPATCH(x.device(), (add_gumbel_noise<D, float>(x, y)));
         break;
       case DataType::FLOAT16:

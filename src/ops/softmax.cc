@@ -38,7 +38,7 @@ namespace ctranslate2 {
       PROFILE(_log ? "LogSoftMax" : "SoftMax");
       y.resize_as(x);
       switch (x.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, lengths, y)));
         break;
       }

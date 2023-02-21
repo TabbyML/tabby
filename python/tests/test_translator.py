@@ -59,7 +59,7 @@ def test_contains_model(tmpdir):
 
 def test_get_supported_compute_types():
     compute_types = ctranslate2.get_supported_compute_types("cpu")
-    assert "float" in compute_types
+    assert "float32" in compute_types
     assert "int8" in compute_types
 
 

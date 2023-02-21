@@ -50,7 +50,7 @@ namespace ctranslate2 {
     GemmBackend get_gemm_backend(ComputeType compute_type) {
 #ifdef CT2_WITH_MKL
       if (mayiuse_mkl()
-          && (compute_type == ComputeType::FLOAT
+          && (compute_type == ComputeType::FLOAT32
               || compute_type == ComputeType::INT16
               || compute_type == ComputeType::INT8)) {
         return GemmBackend::MKL;
@@ -58,19 +58,19 @@ namespace ctranslate2 {
 #endif
 
 #ifdef CT2_WITH_DNNL
-      if (compute_type == ComputeType::FLOAT || compute_type == ComputeType::INT8) {
+      if (compute_type == ComputeType::FLOAT32 || compute_type == ComputeType::INT8) {
         return GemmBackend::DNNL;
       }
 #endif
 
 #ifdef CT2_WITH_ACCELERATE
-      if (compute_type == ComputeType::FLOAT) {
+      if (compute_type == ComputeType::FLOAT32) {
         return GemmBackend::ACCELERATE;
       }
 #endif
 
 #ifdef CT2_WITH_OPENBLAS
-      if (compute_type == ComputeType::FLOAT) {
+      if (compute_type == ComputeType::FLOAT32) {
         return GemmBackend::OPENBLAS;
       }
 #endif

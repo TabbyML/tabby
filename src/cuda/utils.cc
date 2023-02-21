@@ -129,7 +129,7 @@ namespace ctranslate2 {
 
     cudnnDataType_t get_cudnn_data_type(DataType dtype) {
       switch (dtype) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         return CUDNN_DATA_FLOAT;
       case DataType::FLOAT16:
         return CUDNN_DATA_HALF;

@@ -16,7 +16,7 @@ namespace ctranslate2 {
       PROFILE("BiasAdd");
       output.resize_as(value);
       switch (value.dtype()) {
-      case DataType::FLOAT: {
+      case DataType::FLOAT32: {
         DEVICE_DISPATCH(value.device(), (compute<D, float>(value, bias, output)));
         break;
       }

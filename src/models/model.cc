@@ -161,8 +161,8 @@ namespace ctranslate2 {
                                                              device,
                                                              device_index);
 
-      DataType weight_dtype = DataType::FLOAT;
-      DataType float_dtype = DataType::FLOAT;
+      DataType weight_dtype = DataType::FLOAT32;
+      DataType float_dtype = DataType::FLOAT32;
       std::tie(weight_dtype, float_dtype) = compute_type_to_data_type(_effective_compute_type);
 
       const auto variable_index = _variable_index;
@@ -254,7 +254,7 @@ namespace ctranslate2 {
                              const DataType target_dtype) {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
-      const bool is_float = variable.dtype() == DataType::FLOAT;
+      const bool is_float = variable.dtype() == DataType::FLOAT32;
       const bool is_float16 = variable.dtype() == DataType::FLOAT16;
 
       const std::string scale_name = name + "_scale";
@@ -283,7 +283,7 @@ namespace ctranslate2 {
       const ops::Dequantize dequantize_op{};
       StorageView target_variable(target_dtype);
 
-      if (target_dtype == DataType::FLOAT || target_dtype == DataType::FLOAT16) {
+      if (target_dtype == DataType::FLOAT32 || target_dtype == DataType::FLOAT16) {
         if (is_float16) {
           target_variable = variable.to_float();
         } else if (is_float) {
@@ -324,8 +324,8 @@ namespace ctranslate2 {
     }
 
     ComputeType Model::infer_compute_type() const {
-      DataType weight_type = DataType::FLOAT;
-      DataType other_type = DataType::FLOAT;
+      DataType weight_type = DataType::FLOAT32;
+      DataType other_type = DataType::FLOAT32;
 
       for (const auto& variable_pair : _variable_index) {
         const std::string& name = variable_pair.first;
@@ -382,7 +382,7 @@ namespace ctranslate2 {
       // This is the old (and flawed) logic of resolving the dtype of saved variables.
       switch (item_size) {
       case 4:
-        return DataType::FLOAT;
+        return DataType::FLOAT32;
       case 2:
         return DataType::INT16;
       case 1:

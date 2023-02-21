@@ -41,8 +41,8 @@ namespace ctranslate2 {
     spdlog::info(" - Selected ISA: {}", cpu::isa_to_str(cpu::get_cpu_isa()));
     spdlog::info(" - Use Intel MKL: {}", cpu::mayiuse_mkl());
     spdlog::info(" - SGEMM backend: {} (packed: {})",
-                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT)),
-                 cpu::pack_gemm_weights(ComputeType::FLOAT));
+                 cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::FLOAT32)),
+                 cpu::pack_gemm_weights(ComputeType::FLOAT32));
     spdlog::info(" - GEMM_S16 backend: {} (packed: {})",
                  cpu::gemm_backend_to_str(cpu::get_gemm_backend(ComputeType::INT16)),
                  cpu::pack_gemm_weights(ComputeType::INT16));

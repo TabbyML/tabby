@@ -505,7 +505,7 @@ namespace ctranslate2 {
     });
   }
 
-  static cpu::GemmBackend sgemm_backend = cpu::get_gemm_backend(ComputeType::FLOAT);
+  static cpu::GemmBackend sgemm_backend = cpu::get_gemm_backend(ComputeType::FLOAT32);
   static cpu::GemmBackend gemm_s8_backend = cpu::get_gemm_backend(ComputeType::INT8);
   static cpu::GemmBackend gemm_s16_backend = cpu::get_gemm_backend(ComputeType::INT16);
 

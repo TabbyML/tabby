@@ -11,7 +11,7 @@ TEST(OpTest, Transpose1D) {
 }
 
 TEST(OpTest, Squeeze) {
-  StorageView x({2, 1, 3}, DataType::FLOAT);
+  StorageView x({2, 1, 3}, DataType::FLOAT32);
   StorageView y;
   ops::Squeeze({1})(x, y);
   assert_vector_eq(y.shape(), {2, 3});
@@ -21,7 +21,7 @@ TEST(OpTest, Squeeze) {
 }
 
 TEST(OpTest, Unsqueeze) {
-  StorageView x({2, 3}, DataType::FLOAT);
+  StorageView x({2, 3}, DataType::FLOAT32);
   StorageView y;
   ops::Unsqueeze({1})(x, y);
   assert_vector_eq(y.shape(), {2, 1, 3});
@@ -206,7 +206,7 @@ TEST_P(OpDeviceTest, TileMiddleDim) {
 TEST_P(OpDeviceTest, ConcatEmpty) {
   Device device = GetParam();
   StorageView a({2, 1, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView b({2, 0, 2}, DataType::FLOAT, device);
+  StorageView b({2, 0, 2}, DataType::FLOAT32, device);
   StorageView x(device);
   ops::Concat(1)({&a, &b}, x);
   expect_storage_eq(x, a);
@@ -694,7 +694,7 @@ TEST_P(OpDeviceFPTest, RMSNorm) {
 TEST_P(OpDeviceTest, QuantizeINT8) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 5, 21, -3, 0}, device);
-  StorageView scale(DataType::FLOAT, device);
+  StorageView scale(DataType::FLOAT32, device);
   StorageView qa(DataType::INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 6.047619}, device);
 
@@ -718,7 +718,7 @@ TEST_P(OpDeviceTest, QuantizeINT8) {
 TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
   Device device = GetParam();
   StorageView a({2, 4}, std::vector<float>{-10, -3, 5, 2, 0, 0, 0, 0}, device);
-  StorageView scale(DataType::FLOAT, device);
+  StorageView scale(DataType::FLOAT32, device);
   StorageView qa(DataType::INT8, device);
   StorageView expected_scale({2}, std::vector<float>{12.7, 1}, device);
 
@@ -1022,12 +1022,12 @@ static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataT
 
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
+                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT32)),
                          fp_test_name);
 #ifdef CT2_WITH_CUDA
 INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
 INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
+                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT32),
                                            std::make_pair(Device::CUDA, DataType::FLOAT16)),
                          fp_test_name);
 #endif

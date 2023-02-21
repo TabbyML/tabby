@@ -135,7 +135,7 @@ namespace ctranslate2 {
                    device_index: Device IDs where to place this generator on.
                    compute_type: Model computation type or a dictionary mapping a device name
                      to the computation type
-                     (possible values are: default, auto, int8, int8_float16, int16, float16, float).
+                     (possible values are: default, auto, int8, int8_float16, int16, float16, float32).
                    inter_threads: Maximum number of parallel generations.
                    intra_threads: Number of OpenMP threads per generator (0 to use a default value).
                    max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,

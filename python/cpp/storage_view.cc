@@ -28,7 +28,7 @@ namespace ctranslate2 {
         if (num_bytes == '2')
           return DataType::FLOAT16;
         if (num_bytes == '4')
-          return DataType::FLOAT;
+          return DataType::FLOAT32;
       }
 
       throw std::invalid_argument("Unsupported type: " + typestr);
@@ -38,7 +38,7 @@ namespace ctranslate2 {
       // Assume little-endian.
 
       switch (dtype) {
-      case DataType::FLOAT:
+      case DataType::FLOAT32:
         return "<f4";
       case DataType::FLOAT16:
         return "<f2";

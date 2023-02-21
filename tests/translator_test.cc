@@ -39,9 +39,9 @@ static DataType dtype_with_fallback(DataType dtype, Device device) {
   const bool support_int8 = mayiuse_int8(device);
   const bool support_int16 = mayiuse_int16(device);
   if (dtype == DataType::INT16 && !support_int16)
-    return support_int8 ? DataType::INT8 : DataType::FLOAT;
+    return support_int8 ? DataType::INT8 : DataType::FLOAT32;
   if (dtype == DataType::INT8 && !support_int8)
-    return support_int16 ? DataType::INT16 : DataType::FLOAT;
+    return support_int16 ? DataType::INT16 : DataType::FLOAT32;
   return dtype;
 }
 
@@ -60,7 +60,7 @@ TEST_P(ModelVariantTest, Transliteration) {
 
   std::vector<std::pair<ComputeType, DataType>> type_params;
   type_params.emplace_back(ComputeType::DEFAULT, dtype_with_fallback(model_dtype, device));
-  type_params.emplace_back(ComputeType::FLOAT, DataType::FLOAT);
+  type_params.emplace_back(ComputeType::FLOAT32, DataType::FLOAT32);
   if (mayiuse_int16(device))
     type_params.emplace_back(ComputeType::INT16, DataType::INT16);
   if (mayiuse_int8(device)) {
@@ -69,7 +69,7 @@ TEST_P(ModelVariantTest, Transliteration) {
   } else if (mayiuse_int16(device)) {
     type_params.emplace_back(ComputeType::AUTO, DataType::INT16);
   } else {
-    type_params.emplace_back(ComputeType::AUTO, DataType::FLOAT);
+    type_params.emplace_back(ComputeType::AUTO, DataType::FLOAT32);
   }
 
   for (const auto& types : type_params) {
@@ -87,9 +87,9 @@ INSTANTIATE_TEST_SUITE_P(
   TranslatorTest,
   ModelVariantTest,
   ::testing::Values(
-    std::make_pair("v1/aren-transliteration", DataType::FLOAT),
+    std::make_pair("v1/aren-transliteration", DataType::FLOAT32),
     std::make_pair("v1/aren-transliteration-i16", DataType::INT16),
-    std::make_pair("v2/aren-transliteration", DataType::FLOAT),
+    std::make_pair("v2/aren-transliteration", DataType::FLOAT32),
     std::make_pair("v2/aren-transliteration-i16", DataType::INT16),
     std::make_pair("v2/aren-transliteration-i8", DataType::INT8)
     ),
@@ -684,11 +684,11 @@ static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataT
   return dtype_name(param_info.param.second);
 }
 INSTANTIATE_TEST_SUITE_P(CPU, BiasedDecodingDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT)),
+                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT32)),
                          fp_test_name);
 #ifdef CT2_WITH_CUDA
 INSTANTIATE_TEST_SUITE_P(CUDA, BiasedDecodingDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT),
+                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT32),
                                            std::make_pair(Device::CUDA, DataType::FLOAT16)),
                          fp_test_name);
 #endif

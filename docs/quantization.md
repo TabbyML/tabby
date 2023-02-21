@@ -49,7 +49,7 @@ Quantization can also be enabled or changed when loading the model. The translat
 * `int8_float16`
 * `int16`
 * `float16`
-* `float`
+* `float32`
 
 For example,
 
@@ -58,7 +58,7 @@ translator = ctranslate2.Translator(model_path, compute_type="int8")
 ```
 
 ```{tip}
-Conversions between all types are supported. For example, you can convert a model with `quantization="int8"` and then execute in full precision with `compute_type="float"`.
+Conversions between all types are supported. For example, you can convert a model with `quantization="int8"` and then execute in full precision with `compute_type="float32"`.
 ```
 
 ## Implicit type conversion on load
@@ -69,19 +69,19 @@ By default, the runtime tries to use the type that is saved in the converted mod
 
 | Architecture | int8 | int8_float16 | int16 | float16 |
 | --- | --- | --- | --- | --- |
-| x86-64 (Intel) | int8 | int8 | int16 | float |
-| x86-64 (other) | int8 | int8 | int8 | float |
-| AArch64/ARM64 (Apple) | float | float | float | float |
-| AArch64/ARM64 (other) | int8 | int8 | int8 | float |
+| x86-64 (Intel) | int8 | int8 | int16 | float32 |
+| x86-64 (other) | int8 | int8 | int8 | float32 |
+| AArch64/ARM64 (Apple) | float32 | float32 | float32 | float32 |
+| AArch64/ARM64 (other) | int8 | int8 | int8 | float32 |
 
 **On GPU:**
 
 | Compute Capability | int8 | int8_float16 | int16 | float16 |
 | --- | --- | --- | --- | --- |
 | >= 7.0 | int8 | int8_float16 | float16 | float16 |
-| 6.2 | float | float | float | float |
-| 6.1 | int8 | int8 | float | float |
-| <= 6.0 | float | float | float | float |
+| 6.2 | float32 | float32 | float32 | float32 |
+| 6.1 | int8 | int8 | float32 | float32 |
+| <= 6.0 | float32 | float32 | float32 | float32 |
 
 ```{tip}
 You can get more information about the detected capabilities of your system by enabling the info logs (set the environment variable `CT2_VERBOSE=1` or call ``ctranslate2.set_log_level(logging.INFO)``).

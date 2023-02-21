@@ -13,7 +13,7 @@ namespace ctranslate2 {
   using float16_t = half_float::half;
 
   enum class DataType {
-    FLOAT,
+    FLOAT32,
     INT8,
     INT16,
     INT32,
@@ -26,7 +26,7 @@ namespace ctranslate2 {
   enum class ComputeType {
     DEFAULT,
     AUTO,
-    FLOAT,
+    FLOAT32,
     INT8,
     INT8_FLOAT16,
     INT16,
