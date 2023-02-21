@@ -8,6 +8,8 @@
 
 #include "ctranslate2/utils.h"
 
+#include "env.h"
+
 namespace ctranslate2 {
   namespace cuda {
 
@@ -208,6 +210,16 @@ namespace ctranslate2 {
       }
 
       return true;
+    }
+
+    static thread_local bool true_fp16_gemm = read_bool_from_env("CT2_CUDA_TRUE_FP16_GEMM", true);
+
+    bool use_true_fp16_gemm() {
+      return true_fp16_gemm;
+    }
+
+    void use_true_fp16_gemm(bool use) {
+      true_fp16_gemm = use;
     }
 
   }

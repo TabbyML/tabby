@@ -57,6 +57,27 @@ namespace ctranslate2 {
     bool gpu_has_fp16_tensor_cores(int device = -1);
     bool have_same_compute_capability(const std::vector<int>& devices);
 
+    bool use_true_fp16_gemm();
+    void use_true_fp16_gemm(bool use);
+
+    class UseTrueFp16GemmInScope {
+    public:
+      UseTrueFp16GemmInScope(const bool use)
+        : _previous_value(use_true_fp16_gemm())
+        , _scope_value(use)
+      {
+        use_true_fp16_gemm(_scope_value);
+      }
+
+      ~UseTrueFp16GemmInScope() {
+        use_true_fp16_gemm(_previous_value);
+      }
+
+    private:
+      const bool _previous_value;
+      const bool _scope_value;
+    };
+
 // Convenience macro to call Thrust functions with a default execution policy.
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 

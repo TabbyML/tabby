@@ -24,6 +24,12 @@ Allocating memory on the GPU with `cudaMalloc` is costly and is best avoided in 
 
 Allow using FP16 computation on GPU even if the device does not have efficient FP16 support.
 
+## `CT2_CUDA_TRUE_FP16_GEMM`
+
+Allow using true FP16 computation in GEMM operations. When disabled, the computation or accumulation may use FP32 instead.
+
+This flag is enabled by default, but some models may automatically disable it when they are known to work better with the increased precision.
+
 ## `CT2_CUDA_CACHING_ALLOCATOR_CONFIG`
 
 The `cub_caching` allocator can be configured to tradeoff memory usage and speed. By default, CTranslate2 uses the following values which have been selected experimentally:

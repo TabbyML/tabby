@@ -465,17 +465,27 @@ namespace ctranslate2 {
     const __half alpha_h = alpha;
     const __half beta_h = beta;
 
+    const void* alpha_ptr = &alpha_h;
+    const void* beta_ptr = &beta_h;
+    cudaDataType_t compute_type = CUDA_R_16F;
+
+    if (!cuda::use_true_fp16_gemm()) {
+      alpha_ptr = &alpha;
+      beta_ptr = &beta;
+      compute_type = CUDA_R_32F;
+    }
+
     // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasGemmEx(cuda::get_cublas_handle(),
                               transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
                               transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                               n, m, k,
-                              &alpha_h,
+                              alpha_ptr,
                               b, CUDA_R_16F, ldb,
                               a, CUDA_R_16F, lda,
-                              &beta_h,
+                              beta_ptr,
                               c, CUDA_R_16F, ldc,
-                              CUDA_R_16F,
+                              compute_type,
                               CUBLAS_GEMM_DEFAULT_TENSOR_OP));
   }
 
@@ -543,18 +553,28 @@ namespace ctranslate2 {
     const __half alpha_h = alpha;
     const __half beta_h = beta;
 
+    const void* alpha_ptr = &alpha_h;
+    const void* beta_ptr = &beta_h;
+    cudaDataType_t compute_type = CUDA_R_16F;
+
+    if (!cuda::use_true_fp16_gemm()) {
+      alpha_ptr = &alpha;
+      beta_ptr = &beta;
+      compute_type = CUDA_R_32F;
+    }
+
     // cuBLAS assumes column-major storage, so swap a and b accordingly.
     CUBLAS_CHECK(cublasGemmStridedBatchedEx(cuda::get_cublas_handle(),
                                             transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
                                             transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                                             n, m, k,
-                                            &alpha_h,
+                                            alpha_ptr,
                                             b, CUDA_R_16F, ldb, strideb,
                                             a, CUDA_R_16F, lda, stridea,
-                                            &beta_h,
+                                            beta_ptr,
                                             c, CUDA_R_16F, ldc, stridec,
                                             batch_size,
-                                            CUDA_R_16F,
+                                            compute_type,
                                             CUBLAS_GEMM_DEFAULT_TENSOR_OP));
   }
 

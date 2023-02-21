@@ -7,6 +7,10 @@
 
 #include "dispatch.h"
 
+#ifdef CT2_WITH_CUDA
+#  include "cuda/utils.h"
+#endif
+
 namespace ctranslate2 {
   namespace models {
 
@@ -201,6 +205,10 @@ namespace ctranslate2 {
       if (prompts.empty())
         return {};
 
+#ifdef CT2_WITH_CUDA
+      const cuda::UseTrueFp16GemmInScope use_true_fp16_gemm(false);
+#endif
+
       size_t sot_index = 0;
       size_t prompt_length = 0;  // Length of the prompt before the text tokens.
       check_prompts(prompts, _sot_id, _no_timestamps_id, sot_index, prompt_length);
@@ -325,6 +333,10 @@ namespace ctranslate2 {
         throw std::runtime_error("detect_language can only be called on multilingual models");
 
       PROFILE("WhisperReplica::detect_language");
+
+#ifdef CT2_WITH_CUDA
+      const cuda::UseTrueFp16GemmInScope use_true_fp16_gemm(false);
+#endif
 
       const auto scoped_device_setter = _model->get_scoped_device_setter();
       const auto& vocabulary = _model->get_vocabulary();
