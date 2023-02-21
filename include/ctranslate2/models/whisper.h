@@ -70,6 +70,10 @@ namespace ctranslate2 {
       bool is_linear_weight(const std::string& variable_name) const override;
       std::unique_ptr<Model> clone() const override;
 
+      bool use_global_int16_scale() const override {
+        return false;
+      }
+
     protected:
       void initialize(ModelReader& model_reader) override;
 

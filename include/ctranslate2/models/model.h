@@ -76,6 +76,10 @@ namespace ctranslate2 {
         return _binary_version >= 5;
       }
 
+      virtual bool use_global_int16_scale() const {
+        return true;
+      }
+
       ScopedDeviceSetter get_scoped_device_setter() const {
         return ScopedDeviceSetter(_device, _device_index);
       }
