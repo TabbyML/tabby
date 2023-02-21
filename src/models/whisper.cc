@@ -251,6 +251,8 @@ namespace ctranslate2 {
         start_step = inputs.dim(1);
       }
 
+      const dim_t total_max_length = options.max_length;
+
       DecodingOptions decoding_options;
       decoding_options.start_step = start_step;
       decoding_options.beam_size = options.beam_size;
@@ -258,7 +260,7 @@ namespace ctranslate2 {
       decoding_options.length_penalty = options.length_penalty;
       decoding_options.repetition_penalty = options.repetition_penalty;
       decoding_options.no_repeat_ngram_size = options.no_repeat_ngram_size;
-      decoding_options.max_length = options.max_length / 2;
+      decoding_options.max_length = std::min(total_max_length / 2, total_max_length - start_step);
       decoding_options.sampling_topk = options.sampling_topk;
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
