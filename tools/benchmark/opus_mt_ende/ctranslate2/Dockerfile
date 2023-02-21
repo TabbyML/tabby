@@ -1,4 +1,4 @@
-FROM opennmt/ctranslate2:2.17.0-ubuntu20.04-cuda11.2
+FROM opennmt/ctranslate2:3.6.0-ubuntu20.04-cuda11.2
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

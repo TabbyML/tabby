@@ -32,9 +32,11 @@ def _count_tokens(path):
 def _monitor_container(container, poll_interval=1, use_gpu=False):
     max_cpu_mem = 0
     max_gpu_mem = 0
+    result = None
+
     while True:
         try:
-            container.wait(timeout=1)
+            result = container.wait(timeout=1)
             break
         except:
             pass
@@ -45,6 +47,14 @@ def _monitor_container(container, poll_interval=1, use_gpu=False):
             max_cpu_mem = max(max_cpu_mem, float(memory_usage / 1000000))
         if use_gpu:
             max_gpu_mem = max(max_gpu_mem, float(GPUtil.getGPUs()[0].memoryUsed))
+
+    if result is not None and result["StatusCode"] != 0:
+        stderr = container.logs(stdout=False).decode("utf-8")
+        raise RuntimeError(
+            "Container exited with status code %d:\n\n%s"
+            % (result["StatusCode"], stderr)
+        )
+
     return max_cpu_mem, max_gpu_mem
 
 
@@ -98,7 +108,6 @@ def _start_translation(
             ]
     else:
         device = "CPU"
-        kwargs["cpuset_cpus"] = ",".join(map(str, range(num_cpus)))
         environment["CUDA_VISIBLE_DEVICES"] = ""
 
     data_dir = "/data"

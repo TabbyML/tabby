@@ -71,49 +71,49 @@ The benchmark reports the number of target tokens generated per second (higher i
 | | Tokens per second | Max. memory | BLEU |
 | --- | --- | --- | --- |
 | **OpenNMT-tf WMT14 model** | | | |
-| OpenNMT-tf 2.26.1 (with TensorFlow 2.9.0) | 283.0 | 3475MB | 26.93 |
+| OpenNMT-tf 2.31.0 (with TensorFlow 2.11.0) | 209.2 | 2653MB | 26.93 |
 | **OpenNMT-py WMT14 model** | | | |
-| OpenNMT-py 2.2.0 (with PyTorch 1.11.0) | 474.2 | 1543MB | 26.77 |
-| - int8 | 510.6 | 1455MB | 26.72 |
-| CTranslate2 2.17.0 | 1220.2 | 1072MB | 26.77 |
-| - int16 | 1534.8 | 920MB | 26.82 |
-| - int8 | 1737.5 | 771MB | 26.89 |
-| - int8 + vmap | 2122.4 | 666MB | 26.62 |
+| OpenNMT-py 3.0.4 (with PyTorch 1.13.1) | 275.8 | 2012MB | 26.77 |
+| - int8 | 323.3 | 1359MB | 26.72 |
+| CTranslate2 3.6.0 | 658.8 | 849MB | 26.77 |
+| - int16 | 733.0 | 672MB | 26.82 |
+| - int8 | 860.2 | 529MB | 26.78 |
+| - int8 + vmap | 1126.2 | 598MB | 26.64 |
 | **OPUS-MT model** | | | |
-| Transformers 4.19.2 | 230.1 | 2840MB | 27.92 |
-| Marian 1.11.0 | 756.6 | 13819MB | 27.93 |
-| - int16 | 718.4 | 10395MB | 27.65 |
-| - int8 | 853.3 | 8166MB | 27.27 |
-| CTranslate2 2.17.0 | 988.0 | 995MB | 27.92 |
-| - int16 | 1285.7 | 847MB | 27.51 |
-| - int8 | 1469.1 | 847MB | 27.71 |
+| Transformers 4.26.1 (with PyTorch 1.13.1) | 147.3 | 2332MB | 27.90 |
+| Marian 1.11.0 | 344.5 | 7605MB | 27.93 |
+| - int16 | 330.2 | 5901MB | 27.65 |
+| - int8 | 355.8 | 4763MB | 27.27 |
+| CTranslate2 3.6.0 | 525.0 | 721MB | 27.92 |
+| - int16 | 596.1 | 660MB | 27.53 |
+| - int8 | 696.1 | 516MB | 27.65 |
 
-Executed with 8 threads on a [*c5.metal*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
+Executed with 4 threads on a [*c5.2xlarge*](https://aws.amazon.com/ec2/instance-types/c5/) Amazon EC2 instance equipped with an Intel(R) Xeon(R) Platinum 8275CL CPU.
 
 #### GPU
 
 | | Tokens per second | Max. GPU memory | Max. CPU memory | BLEU |
 | --- | --- | --- | --- | --- |
 | **OpenNMT-tf WMT14 model** | | | | |
-| OpenNMT-tf 2.26.1 (with TensorFlow 2.9.0) | 1289.3 | 2667MB | 2407MB | 26.93 |
+| OpenNMT-tf 2.31.0 (with TensorFlow 2.11.0) | 1483.5 | 3031MB | 3122MB | 26.94 |
 | **OpenNMT-py WMT14 model** | | | | |
-| OpenNMT-py 2.2.0 (with PyTorch 1.11.0) | 1271.4 | 2993MB | 3553MB | 26.77 |
-| FasterTransformer 4.0 | 2941.3 | 5869MB | 2327MB | 26.77 |
-| - float16 | 6497.4 | 3917MB | 2325MB | 26.83 |
-| CTranslate2 2.17.0 | 3644.1 | 1231MB | 646MB | 26.77 |
-| - int8 | 5393.6 | 975MB | 522MB | 26.83 |
-| - float16 | 5454.7 | 815MB | 550MB | 26.78 |
-| - int8 + float16 | 6158.6 | 687MB | 523MB | 26.80 |
+| OpenNMT-py 3.0.4 (with PyTorch 1.13.1) | 1795.2 | 2973MB | 3099MB | 26.77 |
+| FasterTransformer 5.3 | 6979.0 | 2402MB | 1131MB | 26.77 |
+| - float16 | 8592.5 | 1360MB | 1135MB | 26.80 |
+| CTranslate2 3.6.0 | 6634.7 | 1261MB | 953MB | 26.77 |
+| - int8 | 8567.2 | 1005MB | 807MB | 26.85 |
+| - float16 | 10990.7 | 941MB | 807MB | 26.77 |
+| - int8 + float16 | 8725.4 | 813MB | 800MB | 26.83 |
 | **OPUS-MT model** | | | | |
-| Transformers 4.19.2 | 811.1 | 4013MB | 3044MB | 27.92 |
-| Marian 1.11.0 | 2172.9 | 3127MB | 1869MB | 27.92 |
-| - float16 | 2722.0 | 2985MB | 1715MB | 27.93 |
-| CTranslate2 2.17.0 | 3042.5 | 1167MB | 486MB | 27.92 |
-| - int8 | 4573.1 | 1007MB | 511MB | 27.89 |
-| - float16 | 4718.4 | 783MB | 552MB | 27.85 |
-| - int8 + float16 | 5300.5 | 687MB | 508MB | 27.81 |
+| Transformers 4.26.1 (with PyTorch 1.13.1) | 1022.9 | 4097MB | 2109MB | 27.90 |
+| Marian 1.11.0 | 3241.0 | 3381MB | 2156MB | 27.92 |
+| - float16 | 3962.4 | 3239MB | 1976MB | 27.94 |
+| CTranslate2 3.6.0 | 5876.4 | 1197MB | 754MB | 27.92 |
+| - int8 | 7521.9 | 1005MB | 792MB | 27.79 |
+| - float16 | 9296.7 | 909MB | 814MB | 27.90 |
+| - int8 + float16 | 8362.7 | 813MB | 766MB | 27.90 |
 
-Executed with CUDA 11 on a [*g4dn.xlarge*](https://aws.amazon.com/ec2/instance-types/g4/) Amazon EC2 instance equipped with a NVIDIA T4 GPU (driver version: 510.47.03).
+Executed with CUDA 11 on a [*g5.xlarge*](https://aws.amazon.com/ec2/instance-types/g5/) Amazon EC2 instance equipped with a NVIDIA A10G GPU (driver version: 510.47.03).
 
 ## Additional resources
 

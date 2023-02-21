@@ -12,5 +12,5 @@ if [ ${INT8:-0} = "1" ]; then
     EXTRA_ARGS+=" -int8"
 fi
 
-onmt_translate -model /workspace/averaged-10-epoch.pt -src $SOURCE_FILE -out $OUTPUT_FILE \
-               -batch_size 32 -beam_size 4 $EXTRA_ARGS
+onmt_translate -model /workspace/averaged-10-epoch-v3.pt -src $SOURCE_FILE -out $OUTPUT_FILE \
+               -batch_size 32 -beam_size 4 -length_penalty none $EXTRA_ARGS

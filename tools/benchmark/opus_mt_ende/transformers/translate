@@ -20,31 +20,31 @@ batch_size = 32
 beam_size = 4
 
 
+def to_tensor(batch):
+    max_length = max(len(ids) for ids in batch)
+    batch = [ids + [tokenizer.pad_token_id] * (max_length - len(ids)) for ids in batch]
+    return torch.tensor(batch, device=model.device)
+
+
 def batch_iter(lines):
     batch = []
     for line in lines:
         ids = list(map(int, line.strip().split()))
-        tensor = torch.tensor(ids, device=model.device)
-        batch.append(tensor)
+        batch.append(ids)
         if len(batch) == batch_size:
-            yield batch
+            yield to_tensor(batch)
             batch = []
     if batch:
-        yield batch
+        yield to_tensor(batch)
 
 
 with open(input_path) as input_file, open(output_path, "w") as output_file:
     for batch in batch_iter(input_file):
-        batch = torch.nn.utils.rnn.pad_sequence(
-            batch,
-            batch_first=True,
-            padding_value=tokenizer.pad_token_id,
-        )
-
         outputs = model.generate(
             input_ids=batch,
             num_beams=beam_size,
             length_penalty=0,
+            early_stopping=True,
         )
 
         for tokens in outputs.tolist():

@@ -1,6 +1,6 @@
-FROM nvcr.io/nvidia/pytorch:21.09-py3
+FROM nvcr.io/nvidia/pytorch:22.09-py3
 
-RUN git clone --branch v5.0 https://github.com/NVIDIA/FasterTransformer.git && \
+RUN git clone --branch v5.3 https://github.com/NVIDIA/FasterTransformer.git && \
     cd FasterTransformer && \
     mkdir build && \
     cd build && \
