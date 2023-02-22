@@ -254,7 +254,7 @@ namespace ctranslate2 {
                              const DataType target_dtype) {
       const bool is_int8 = variable.dtype() == DataType::INT8;
       const bool is_int16 = variable.dtype() == DataType::INT16;
-      const bool is_float = variable.dtype() == DataType::FLOAT32;
+      const bool is_float32 = variable.dtype() == DataType::FLOAT32;
       const bool is_float16 = variable.dtype() == DataType::FLOAT16;
 
       const std::string scale_name = name + "_scale";
@@ -286,7 +286,7 @@ namespace ctranslate2 {
       if (target_dtype == DataType::FLOAT32 || target_dtype == DataType::FLOAT16) {
         if (is_float16) {
           target_variable = variable.to_float();
-        } else if (is_float) {
+        } else if (is_float32) {
           target_variable = variable.to_float16();
         } else {
           // Dequantize int8 or int16 back to float32.
@@ -300,7 +300,7 @@ namespace ctranslate2 {
           }
         }
 
-      } else if (is_float || is_float16) {
+      } else if (is_float32 || is_float16) {
         // Quantize float32 to int8 or int16.
         StorageView scale;
         if (is_float16) {
