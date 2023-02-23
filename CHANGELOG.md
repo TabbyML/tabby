@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v3.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.7.0) (2023-02-23)
+
+### Changes
+
+* Rename the "float" compute type to "float32" for clarity. "float" is still accepted for backward compatibility.
+
+### New features
+
+* Add the environment variable `CT2_CUDA_TRUE_FP16_GEMM`. This flag is enabled by default so that FP16 GEMMs are running in full FP16. When disabled, the compute type of FP16 GEMMs is set to FP32, which is what PyTorch and TensorFlow do by default.
+
+### Fixes and improvements
+
+* Improve the numerical precision of Whisper models running in FP16 by setting the FP32 compute type for GEMMs (same behavior as PyTorch)
+* Improve support for running the Whisper models with INT16 quantization
+* Ensure the Whisper decoding does not continue past `max_length`, which could previously happen when the prompt was longer than `max_length/2`
+* Include the EOS score in the score returned by Whisper during greedy search
+
 ## [v3.6.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.6.0) (2023-02-16)
 
 ### New features
