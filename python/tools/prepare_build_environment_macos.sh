@@ -22,7 +22,7 @@ else
     hdiutil attach -noverify -noautofsck $(basename $ONEAPI_INSTALLER_URL)
     sudo /Volumes/$(basename $ONEAPI_INSTALLER_URL .dmg)/bootstrapper.app/Contents/MacOS/bootstrapper --silent --eula accept --components intel.oneapi.mac.mkl.devel
 
-    ONEDNN_VERSION=3.0
+    ONEDNN_VERSION=3.0.1
     wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
     tar xf *.tar.gz && rm *.tar.gz
     cd oneDNN-*

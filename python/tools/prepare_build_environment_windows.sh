@@ -19,7 +19,7 @@ curl -L -nv -o webimage.exe https://registrationcenter-download.intel.com/akdlm/
 rm webimage.exe
 ./webimage_extracted/bootstrapper.exe -s --action install --components="intel.oneapi.win.mkl.devel" --eula=accept -p=NEED_VS2017_INTEGRATION=0 -p=NEED_VS2019_INTEGRATION=0 --log-dir=.
 
-ONEDNN_VERSION=3.0
+ONEDNN_VERSION=3.0.1
 curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
 tar xf *.tar.gz && rm *.tar.gz
 cd oneDNN-*
