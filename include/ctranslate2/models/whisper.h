@@ -44,6 +44,9 @@ namespace ctranslate2 {
 
       // Include the probability of the no speech token in the result.
       bool return_no_speech_prob = false;
+
+      // Maximum index of the first predicted timestamp.
+      size_t max_initial_timestamp_index = 50;
     };
 
     struct WhisperGenerationResult {

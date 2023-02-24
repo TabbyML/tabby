@@ -30,6 +30,7 @@ namespace ctranslate2 {
                size_t max_length,
                bool return_scores,
                bool return_no_speech_prob,
+               size_t max_initial_timestamp_index,
                size_t sampling_topk,
                float sampling_temperature) {
         std::vector<std::future<models::WhisperGenerationResult>> futures;
@@ -46,6 +47,7 @@ namespace ctranslate2 {
         options.num_hypotheses = num_hypotheses;
         options.return_scores = return_scores;
         options.return_no_speech_prob = return_no_speech_prob;
+        options.max_initial_timestamp_index = max_initial_timestamp_index;
 
         if (prompts.index() == 0)
           futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts), options);
@@ -148,6 +150,7 @@ namespace ctranslate2 {
              py::arg("max_length")=448,
              py::arg("return_scores")=false,
              py::arg("return_no_speech_prob")=false,
+             py::arg("max_initial_timestamp_index")=50,
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
              py::call_guard<py::gil_scoped_release>(),
@@ -173,6 +176,7 @@ namespace ctranslate2 {
                    return_scores: Include the scores in the output.
                    return_no_speech_prob: Include the probability of the no speech token in the
                      result.
+                   max_initial_timestamp_index: Maximum index of the first predicted timestamp.
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.
 
