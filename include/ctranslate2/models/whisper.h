@@ -47,6 +47,13 @@ namespace ctranslate2 {
 
       // Maximum index of the first predicted timestamp.
       size_t max_initial_timestamp_index = 50;
+
+      // Suppress blank outputs at the beginning of the sampling.
+      bool suppress_blank = true;
+
+      // List of token IDs to suppress.
+      // -1 will suppress a default set of symbols as defined in the model config.json file.
+      std::vector<int> suppress_tokens = {-1};
     };
 
     struct WhisperGenerationResult {

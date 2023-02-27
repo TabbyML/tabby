@@ -275,10 +275,20 @@ namespace ctranslate2 {
       decoding_options.return_scores = options.return_scores;
       decoding_options.include_eos_in_scores = true;
       decoding_options.include_eos_in_hypotheses = false;
-      for (const auto& id : _model->config["suppress_ids"])
-        decoding_options.disable_ids.push_back(id);
-      for (const auto& id : _model->config["suppress_ids_begin"])
-        decoding_options.disable_ids_begin.push_back(id);
+
+      for (const auto& id : options.suppress_tokens) {
+        if (id >= 0)
+          decoding_options.disable_ids.push_back(id);
+        else if (id == -1) {
+          for (const auto& default_id : _model->config["suppress_ids"])
+            decoding_options.disable_ids.push_back(default_id);
+        }
+      }
+
+      if (options.suppress_blank) {
+        for (const auto& id : _model->config["suppress_ids_begin"])
+          decoding_options.disable_ids_begin.push_back(id);
+      }
 
       std::shared_ptr<GetNoSpeechProbs> no_speech_probs_processor;
       if (options.return_no_speech_prob && sot_is_start_token) {

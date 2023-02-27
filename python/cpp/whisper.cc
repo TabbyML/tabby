@@ -31,6 +31,8 @@ namespace ctranslate2 {
                bool return_scores,
                bool return_no_speech_prob,
                size_t max_initial_timestamp_index,
+               bool suppress_blank,
+               const std::optional<std::vector<int>>& suppress_tokens,
                size_t sampling_topk,
                float sampling_temperature) {
         std::vector<std::future<models::WhisperGenerationResult>> futures;
@@ -48,6 +50,12 @@ namespace ctranslate2 {
         options.return_scores = return_scores;
         options.return_no_speech_prob = return_no_speech_prob;
         options.max_initial_timestamp_index = max_initial_timestamp_index;
+        options.suppress_blank = suppress_blank;
+
+        if (suppress_tokens)
+          options.suppress_tokens = suppress_tokens.value();
+        else
+          options.suppress_tokens.clear();
 
         if (prompts.index() == 0)
           futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts), options);
@@ -151,6 +159,8 @@ namespace ctranslate2 {
              py::arg("return_scores")=false,
              py::arg("return_no_speech_prob")=false,
              py::arg("max_initial_timestamp_index")=50,
+             py::arg("suppress_blank")=true,
+             py::arg("suppress_tokens")=std::vector<int>{-1},
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
              py::call_guard<py::gil_scoped_release>(),
@@ -177,6 +187,9 @@ namespace ctranslate2 {
                    return_no_speech_prob: Include the probability of the no speech token in the
                      result.
                    max_initial_timestamp_index: Maximum index of the first predicted timestamp.
+                   suppress_blank: Suppress blank outputs at the beginning of the sampling.
+                   suppress_tokens: List of token IDs to suppress. -1 will suppress a default set
+                     of symbols as defined in the model ``config.json`` file.
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.
 
