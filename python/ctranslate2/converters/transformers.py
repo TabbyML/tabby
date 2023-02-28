@@ -71,7 +71,13 @@ class TransformersConverter(Converter):
                     % (config_name, ", ".join(_MODEL_LOADERS.keys()))
                 )
 
-            spec = loader(self._model_name_or_path)
+            model_class = getattr(transformers, loader.architecture_name)
+            tokenizer_class = transformers.AutoTokenizer
+
+            model = self.load_model(model_class, self._model_name_or_path)
+            tokenizer = self.load_tokenizer(tokenizer_class, self._model_name_or_path)
+
+            spec = loader(model, tokenizer)
 
             if self._activation_scales:
                 activation_scales = torch.load(
@@ -80,6 +86,12 @@ class TransformersConverter(Converter):
                 loader.smooth_activation(spec, activation_scales)
 
             return spec
+
+    def load_model(self, model_class, model_name_or_path):
+        return model_class.from_pretrained(model_name_or_path)
+
+    def load_tokenizer(self, tokenizer_class, model_name_or_path):
+        return tokenizer_class.from_pretrained(model_name_or_path, use_fast=False)
 
 
 class ModelLoader(abc.ABC):
@@ -93,15 +105,7 @@ class ModelLoader(abc.ABC):
     def get_model_spec(self, model):
         raise NotImplementedError()
 
-    def __call__(self, model_name_or_path):
-        import transformers
-
-        model_class = getattr(transformers, self.architecture_name)
-        model = model_class.from_pretrained(model_name_or_path)
-        tokenizer = transformers.AutoTokenizer.from_pretrained(
-            model_name_or_path, use_fast=False
-        )
-
+    def __call__(self, model, tokenizer):
         spec = self.get_model_spec(model)
         self.set_config(spec.config, model, tokenizer)
 
