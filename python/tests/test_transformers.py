@@ -518,3 +518,14 @@ def test_transformers_whisper_invalid_shape(tmpdir):
     error_message = str(exception_info.value)
     assert "(1, 80, 3000)" in error_message
     assert "(1, 80, 1100)" in error_message
+
+
+@test_utils.only_on_linux
+def test_transformers_whisper_include_tokenizer_json(tmpdir):
+    model_name = "openai/whisper-tiny"
+    converter = ctranslate2.converters.TransformersConverter(
+        model_name, copy_files=["tokenizer.json"]
+    )
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+    assert os.path.isfile(os.path.join(output_dir, "tokenizer.json"))

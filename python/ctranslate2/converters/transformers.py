@@ -1,7 +1,8 @@
 import abc
 import argparse
+import os
 
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 
@@ -41,6 +42,7 @@ class TransformersConverter(Converter):
         self,
         model_name_or_path: str,
         activation_scales: Optional[str] = None,
+        copy_files: Optional[List[str]] = None,
     ):
         """Initializes the converter.
 
@@ -51,9 +53,12 @@ class TransformersConverter(Converter):
             use them to rescale some weights to smooth the intermediate activations
             and improve the quantization accuracy. See
             https://github.com/mit-han-lab/smoothquant.
+          copy_files: List of filenames to copy from the Hugging Face model to the
+            converted model directory.
         """
         self._model_name_or_path = model_name_or_path
         self._activation_scales = activation_scales
+        self._copy_files = copy_files
 
     def _load(self):
         import torch
@@ -85,6 +90,10 @@ class TransformersConverter(Converter):
                 )
                 loader.smooth_activation(spec, activation_scales)
 
+            if self._copy_files:
+                for filename in self._copy_files:
+                    spec.register_file(self.get_model_file(filename))
+
             return spec
 
     def load_model(self, model_class, model_name_or_path):
@@ -92,6 +101,27 @@ class TransformersConverter(Converter):
 
     def load_tokenizer(self, tokenizer_class, model_name_or_path):
         return tokenizer_class.from_pretrained(model_name_or_path, use_fast=False)
+
+    def get_model_file(self, filename):
+        if os.path.isdir(self._model_name_or_path):
+            path = os.path.join(self._model_name_or_path, filename)
+        else:
+            import huggingface_hub
+
+            try:
+                path = huggingface_hub.hf_hub_download(
+                    repo_id=self._model_name_or_path, filename=filename
+                )
+            except huggingface_hub.utils.EntryNotFoundError:
+                path = None
+
+        if path is None or not os.path.isfile(path):
+            raise ValueError(
+                "File %s does not exist in model %s"
+                % (filename, self._model_name_or_path)
+            )
+
+        return path
 
 
 class ModelLoader(abc.ABC):
@@ -712,12 +742,21 @@ def main():
             "https://github.com/mit-han-lab/smoothquant."
         ),
     )
+    parser.add_argument(
+        "--copy_files",
+        nargs="+",
+        help=(
+            "List of filenames to copy from the Hugging Face model to the converted "
+            "model directory."
+        ),
+    )
 
     Converter.declare_arguments(parser)
     args = parser.parse_args()
     converter = TransformersConverter(
         args.model,
         activation_scales=args.activation_scales,
+        copy_files=args.copy_files,
     )
     converter.convert_from_args(args)
 

@@ -273,6 +273,7 @@ class ModelSpec(LayerSpec):
     def __init__(self):
         """Initializes the model specification."""
         self._config = self.get_default_config()
+        self._files = {}
 
     @property
     def name(self):
@@ -297,6 +298,16 @@ class ModelSpec(LayerSpec):
         """Returns the default configuration used by this model."""
         return None
 
+    def register_file(self, path: str, filename: Optional[str] = None) -> None:
+        """Registers a file to be saved in the model directory."""
+        if not os.path.isfile(path):
+            raise ValueError("File %s does not exist" % path)
+        if filename is None:
+            filename = os.path.basename(path)
+        if filename in self._files:
+            raise ValueError("A file with name %s was already registered" % filename)
+        self._files[filename] = path
+
     def save(self, output_dir: str) -> None:
         """Saves this model on disk.
 
@@ -306,6 +317,14 @@ class ModelSpec(LayerSpec):
         self._serialize(os.path.join(output_dir, "model.bin"))
         if self._config is not None:
             self._config.save_as_json(os.path.join(output_dir, "config.json"))
+
+        for filename, path in self._files.items():
+            destination = os.path.join(output_dir, filename)
+            if os.path.exists(destination):
+                raise RuntimeError(
+                    "File %s already exists in the model directory" % destination
+                )
+            shutil.copy(path, destination)
 
     def _serialize(self, path):
         """Serializes the model variables."""
@@ -396,7 +415,6 @@ class SequenceToSequenceModelSpec(ModelSpec):
             "source": [],
             "target": [],
         }
-        self._vmap = None
 
     def get_default_config(self):
         return SequenceToSequenceModelConfig()
@@ -433,7 +451,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
         Arguments:
           path: Path to the vocabulary mapping file.
         """
-        self._vmap = path
+        self.register_file(path, "vmap.txt")
 
     def validate(self) -> None:
         super().validate()
@@ -461,9 +479,6 @@ class SequenceToSequenceModelSpec(ModelSpec):
                         % (name.capitalize(), i, len(vocabulary), expected_size)
                     )
 
-        if self._vmap is not None and not os.path.exists(self._vmap):
-            raise ValueError("Vocabulary mapping file %s does not exist" % self._vmap)
-
     def save(self, output_dir: str) -> None:
         # Save the vocabularies.
         vocabularies = dict(_flatten_vocabularies(self._vocabularies))
@@ -474,9 +489,6 @@ class SequenceToSequenceModelSpec(ModelSpec):
         for name, tokens in vocabularies.items():
             path = os.path.join(output_dir, "%s_vocabulary.txt" % name)
             _save_lines(path, tokens)
-
-        if self._vmap is not None:
-            shutil.copy(self._vmap, os.path.join(output_dir, "vmap.txt"))
 
         # Save the rest of the model.
         super().save(output_dir)
