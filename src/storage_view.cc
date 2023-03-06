@@ -113,7 +113,7 @@ namespace ctranslate2 {
     return to(DataType::FLOAT16);
   }
 
-  StorageView StorageView::to_float() const {
+  StorageView StorageView::to_float32() const {
     return to(DataType::FLOAT32);
   }
 

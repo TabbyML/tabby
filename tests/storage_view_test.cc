@@ -71,7 +71,7 @@ TEST_P(StorageViewDeviceTest, HalfConversion) {
   const StorageView b = a.to_float16();
   EXPECT_EQ(b.dtype(), DataType::FLOAT16);
   EXPECT_EQ(b.reserved_memory(), 4 * 2);
-  expect_storage_eq(b.to_float(), a);
+  expect_storage_eq(b.to_float32(), a);
 }
 
 INSTANTIATE_TEST_SUITE_P(CPU, StorageViewDeviceTest, ::testing::Values(Device::CPU));

@@ -494,7 +494,7 @@ namespace ctranslate2 {
         if (!is_expanded)
           repeat_batch(attention_step, _beam_size);
         split_batch_beam(attention_step, _beam_size);
-        append_step_output(alive_attention, attention_step.to_float().to(Device::CPU));
+        append_step_output(alive_attention, attention_step.to_float32().to(Device::CPU));
         gather_beam_flat(alive_attention, gather_indices, num_candidates);
       }
 
@@ -736,7 +736,7 @@ namespace ctranslate2 {
       if (prefix_ids)
         update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
       if (attention_step_device)
-        attention_step.copy_from(attention_step_device.to_float());
+        attention_step.copy_from(attention_step_device.to_float32());
 
       if (!logits_processors.empty()) {
         if (alive_seq) {
@@ -978,7 +978,7 @@ namespace ctranslate2 {
 
         if (options.return_attention) {
           if (attention.device() != Device::CPU)
-            attention = attention.to_float().to(Device::CPU);
+            attention = attention.to_float32().to(Device::CPU);
           for (dim_t t = 0; t < prefix_length; ++t) {
             const float* vector = attention.index<float>({0, t, 0});
             result.attention[i].emplace_back(vector, vector + attention.dim(-1));

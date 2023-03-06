@@ -285,7 +285,7 @@ namespace ctranslate2 {
 
       if (target_dtype == DataType::FLOAT32 || target_dtype == DataType::FLOAT16) {
         if (is_float16) {
-          target_variable = variable.to_float();
+          target_variable = variable.to_float32();
         } else if (is_float32) {
           target_variable = variable.to_float16();
         } else {
@@ -304,7 +304,7 @@ namespace ctranslate2 {
         // Quantize float32 to int8 or int16.
         StorageView scale;
         if (is_float16) {
-          quantize_op(variable.to_float(), target_variable, scale);
+          quantize_op(variable.to_float32(), target_variable, scale);
         } else {
           quantize_op(variable, target_variable, scale);
         }

@@ -49,7 +49,7 @@ namespace ctranslate2 {
     if (scores.device() != Device::CPU)
       scores = scores.to(Device::CPU);
     if (scores.dtype() != DataType::FLOAT32)
-      scores = scores.to_float();
+      scores = scores.to_float32();
 
     std::vector<ScoringResult> results(batch_size);
     for (dim_t b = 0; b < batch_size; ++b) {

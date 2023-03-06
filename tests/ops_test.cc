@@ -484,7 +484,7 @@ TEST_P(OpDeviceFPTest, Gemm) {
   ops::Gemm op(1.0, 1.0, false, false);
   y = y.to(dtype);
   op(a.to(dtype), b.to(dtype), y);
-  expect_storage_eq(y.to_float(), expected);
+  expect_storage_eq(y.to_float32(), expected);
 };
 
 TEST_P(OpDeviceTest, GemmInt8) {
@@ -525,7 +525,7 @@ TEST_P(OpDeviceFPTest, TopK) {
   StorageView indices(expected_indices.dtype(), device);
   ops::TopK op(k);
   op(input.to(dtype), values, indices);
-  expect_storage_eq(values.to_float(), expected_values, 1e-3);
+  expect_storage_eq(values.to_float32(), expected_values, 1e-3);
   expect_storage_eq(indices, expected_indices);
 }
 
@@ -586,9 +586,9 @@ TEST_P(OpDeviceFPTest, SoftMax) {
       0.760941, 0.207381, 0.009342, 0.001544, 0.020792}, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x, y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
   ops::SoftMax()(x);
-  expect_storage_eq(x.to_float(), expected, 1e-3);
+  expect_storage_eq(x.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, LogSoftMax) {
@@ -602,9 +602,9 @@ TEST_P(OpDeviceFPTest, LogSoftMax) {
       -0.319434, -1.619434, -4.719434, -6.519434, -3.919434, -9.519434, -8.219434, -5.119434, -3.319434, -5.919434}, device);
   StorageView y(dtype, device);
   ops::LogSoftMax()(x, y);
-  expect_storage_eq(y.to_float(), expected, 1e-2);
+  expect_storage_eq(y.to_float32(), expected, 1e-2);
   ops::LogSoftMax()(x);
-  expect_storage_eq(x.to_float(), expected, 1e-2);
+  expect_storage_eq(x.to_float32(), expected, 1e-2);
 }
 
 TEST_P(OpDeviceFPTest, MaskedSoftMax) {
@@ -619,7 +619,7 @@ TEST_P(OpDeviceFPTest, MaskedSoftMax) {
       0.777098, 0.211783, 0.009540, 0.001577, 0}, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x.to(dtype), lengths, y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, MaskedSoftMaxTriangular) {
@@ -657,7 +657,7 @@ TEST_P(OpDeviceFPTest, MaskedSoftMaxTriangular) {
     }, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x.to(dtype), mask, y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, LayerNorm) {
@@ -673,7 +673,7 @@ TEST_P(OpDeviceFPTest, LayerNorm) {
       -6.319339, -3.988876, -0.637330, 2.841982, -0.158437}, device);
   StorageView y(dtype, device);
   ops::LayerNorm()(beta.to(dtype), gamma.to(dtype), x.to(dtype), y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, RMSNorm) {
@@ -688,7 +688,7 @@ TEST_P(OpDeviceFPTest, RMSNorm) {
       0.3445, 2.5953, 0.0824, 0.3595, 0.2622}, device);
   StorageView y(dtype, device);
   ops::RMSNorm()(gamma.to(dtype), x.to(dtype), y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceTest, QuantizeINT8) {
@@ -768,7 +768,7 @@ TEST_P(OpDeviceFPTest, ReLU) {
   StorageView expected({2, 5}, std::vector<float>{0, 1, 2, 0, 2, 4, 0, 0, 0, 0}, device);
   StorageView output(dtype, device);
   ops::ReLU()(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected);
+  expect_storage_eq(output.to_float32(), expected);
 }
 
 TEST_P(OpDeviceFPTest, GELU) {
@@ -778,7 +778,7 @@ TEST_P(OpDeviceFPTest, GELU) {
   StorageView expected({2}, std::vector<float>{0.11585195362567902, -0.1258406937122345}, device);
   StorageView output(dtype, device);
   ops::GELU()(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, 1e-4);
 }
 
 TEST_P(OpDeviceFPTest, GELUTanh) {
@@ -789,7 +789,7 @@ TEST_P(OpDeviceFPTest, GELUTanh) {
   StorageView output(dtype, device);
   const ops::GELU gelu_op(ops::GELU::Approximation::Tanh);
   gelu_op(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, 1e-4);
 }
 
 TEST_P(OpDeviceFPTest, GELUSigmoid) {
@@ -800,7 +800,7 @@ TEST_P(OpDeviceFPTest, GELUSigmoid) {
   StorageView output(dtype, device);
   const ops::GELU gelu_op(ops::GELU::Approximation::Sigmoid);
   gelu_op(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, 1e-4);
 }
 
 TEST_P(OpDeviceFPTest, Swish) {
@@ -810,7 +810,7 @@ TEST_P(OpDeviceFPTest, Swish) {
   StorageView expected({2}, std::vector<float>{0.10996679, -0.27841452}, device);
   StorageView output(dtype, device);
   ops::Swish()(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, 1e-4);
 }
 
 TEST_P(OpDeviceFPTest, Tanh) {
@@ -822,7 +822,7 @@ TEST_P(OpDeviceFPTest, Tanh) {
                        std::vector<float>{-0.96402758, -0.90514825, 0., 0.90514825, 0.96402758},
                        device);
   ops::Tanh()(x.to(dtype), y);
-  expect_storage_eq(y.to_float(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Log) {
@@ -837,7 +837,7 @@ TEST_P(OpDeviceFPTest, Log) {
   StorageView expected({2, 4}, expected_vec, device);
   StorageView output(dtype, device);
   ops::Log()(input.to(dtype), output);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, LogLimits) {
@@ -847,7 +847,7 @@ TEST_P(OpDeviceFPTest, LogLimits) {
   StorageView values({2}, std::vector<float>{0.f, -1.f}, device);
   values = values.to(dtype);
   ops::Log()(values, values);
-  values = values.to_float();
+  values = values.to_float32();
 
   EXPECT_EQ(values.scalar_at<float>({0}), -std::numeric_limits<float>::infinity());
   EXPECT_TRUE(std::isnan(values.scalar_at<float>({1})));
@@ -935,7 +935,7 @@ TEST_P(OpDeviceFPTest, Conv1D) {
                 conv_bias.to(device).to(dtype),
                 output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DNoBias) {
@@ -953,7 +953,7 @@ TEST_P(OpDeviceFPTest, Conv1DNoBias) {
                 conv_weight.to(device).to(dtype),
                 output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DPadding) {
@@ -976,7 +976,7 @@ TEST_P(OpDeviceFPTest, Conv1DPadding) {
                     conv_bias.to(device).to(dtype),
                     output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DStride) {
@@ -993,7 +993,7 @@ TEST_P(OpDeviceFPTest, Conv1DStride) {
                  conv_bias.to(device).to(dtype),
                  output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DPaddingAndStride) {
@@ -1012,7 +1012,7 @@ TEST_P(OpDeviceFPTest, Conv1DPaddingAndStride) {
                     conv_bias.to(device).to(dtype),
                     output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, 1e-3);
 }
 
 

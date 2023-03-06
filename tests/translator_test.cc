@@ -510,7 +510,7 @@ TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeam) {
                           logits.to(device).to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
@@ -560,7 +560,7 @@ TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
                           logits.to(device).to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, BeamDiverged) {
@@ -588,7 +588,7 @@ TEST_P(BiasedDecodingDeviceFPTest, BeamDiverged) {
                           logits.to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, TimeStepPastPrefix) {
@@ -616,7 +616,7 @@ TEST_P(BiasedDecodingDeviceFPTest, TimeStepPastPrefix) {
                           logits.to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepBias) {
@@ -649,7 +649,7 @@ TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepBias) {
                           logits.to(device).to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
@@ -677,7 +677,7 @@ TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
                           logits.to(dtype),
                           log_probs);
 
-    expect_storage_eq(log_probs.to_float(), expected_log_probs, 0.01);
+    expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
 static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataType>> param_info) {

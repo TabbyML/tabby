@@ -107,7 +107,7 @@ namespace ctranslate2 {
       ops::Gather(/*axis=*/1, /*batch_dims=*/1)(probs, gather_ids, no_speech_probs);
 
       if (no_speech_probs.dtype() != DataType::FLOAT32)
-        no_speech_probs = no_speech_probs.to_float();
+        no_speech_probs = no_speech_probs.to_float32();
       return no_speech_probs.to_vector<float>();
     }
 
@@ -378,7 +378,7 @@ namespace ctranslate2 {
       ops::SoftMax()(lang_probs);
 
       if (lang_probs.dtype() != DataType::FLOAT32)
-        lang_probs = lang_probs.to_float();
+        lang_probs = lang_probs.to_float32();
       if (lang_probs.device() != Device::CPU)
         lang_probs = lang_probs.to(Device::CPU);
 
