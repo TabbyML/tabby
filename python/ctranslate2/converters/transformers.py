@@ -43,6 +43,7 @@ class TransformersConverter(Converter):
         model_name_or_path: str,
         activation_scales: Optional[str] = None,
         copy_files: Optional[List[str]] = None,
+        load_as_float16: bool = False,
     ):
         """Initializes the converter.
 
@@ -55,10 +56,13 @@ class TransformersConverter(Converter):
             https://github.com/mit-han-lab/smoothquant.
           copy_files: List of filenames to copy from the Hugging Face model to the
             converted model directory.
+          load_as_float16: Load the model weights as float16. More precisely, the model
+            will be loaded with ``from_pretrained(..., torch_dtype=torch.float16)``.
         """
         self._model_name_or_path = model_name_or_path
         self._activation_scales = activation_scales
         self._copy_files = copy_files
+        self._load_as_float16 = load_as_float16
 
     def _load(self):
         import torch
@@ -79,8 +83,17 @@ class TransformersConverter(Converter):
             model_class = getattr(transformers, loader.architecture_name)
             tokenizer_class = transformers.AutoTokenizer
 
-            model = self.load_model(model_class, self._model_name_or_path)
-            tokenizer = self.load_tokenizer(tokenizer_class, self._model_name_or_path)
+            torch_dtype = torch.float16 if self._load_as_float16 else None
+            model = self.load_model(
+                model_class,
+                self._model_name_or_path,
+                torch_dtype=torch_dtype,
+            )
+            tokenizer = self.load_tokenizer(
+                tokenizer_class,
+                self._model_name_or_path,
+                use_fast=False,
+            )
 
             spec = loader(model, tokenizer)
 
@@ -96,11 +109,11 @@ class TransformersConverter(Converter):
 
             return spec
 
-    def load_model(self, model_class, model_name_or_path):
-        return model_class.from_pretrained(model_name_or_path)
+    def load_model(self, model_class, model_name_or_path, **kwargs):
+        return model_class.from_pretrained(model_name_or_path, **kwargs)
 
-    def load_tokenizer(self, tokenizer_class, model_name_or_path):
-        return tokenizer_class.from_pretrained(model_name_or_path, use_fast=False)
+    def load_tokenizer(self, tokenizer_class, model_name_or_path, **kwargs):
+        return tokenizer_class.from_pretrained(model_name_or_path, **kwargs)
 
     def get_model_file(self, filename):
         if os.path.isdir(self._model_name_or_path):
@@ -757,6 +770,7 @@ def main():
         args.model,
         activation_scales=args.activation_scales,
         copy_files=args.copy_files,
+        load_as_float16=args.quantization == "float16",
     )
     converter.convert_from_args(args)
 
