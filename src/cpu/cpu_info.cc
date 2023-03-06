@@ -31,6 +31,14 @@ namespace ctranslate2 {
       return info.features.avx2;
     }
 
+    bool cpu_supports_avx512() {
+      return (info.features.avx512f
+              && info.features.avx512cd
+              && info.features.avx512vl
+              && info.features.avx512dq
+              && info.features.avx512bw);
+    }
+
   }
 }
 

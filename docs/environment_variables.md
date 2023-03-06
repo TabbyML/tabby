@@ -54,6 +54,7 @@ Force CTranslate2 to select a specific instruction set architecture (ISA). Possi
 * `GENERIC`
 * `AVX`
 * `AVX2`
+* `AVX512`
 
 ```{attention}
 This does not impact backend libraries (such as Intel MKL) which usually have their own environment variables to configure ISA dispatching.

@@ -30,6 +30,8 @@ namespace ctranslate2 {
         return "AVX";
       case CpuIsa::AVX2:
         return "AVX2";
+      case CpuIsa::AVX512:
+        return "AVX512";
 #elif defined(CT2_ARM64_BUILD)
       case CpuIsa::NEON:
         return "NEON";
@@ -43,6 +45,8 @@ namespace ctranslate2 {
       const std::string env_isa = read_string_from_env("CT2_FORCE_CPU_ISA");
       if (!env_isa.empty()) {
 #if defined(CT2_X86_BUILD)
+        if (env_isa == "AVX512")
+          return try_isa(env_isa, CpuIsa::AVX512, cpu_supports_avx512());
         if (env_isa == "AVX2")
           return try_isa(env_isa, CpuIsa::AVX2, cpu_supports_avx2());
         if (env_isa == "AVX")
@@ -59,6 +63,7 @@ namespace ctranslate2 {
 
 #ifdef CT2_WITH_CPU_DISPATCH
 #  if defined(CT2_X86_BUILD)
+      // Note that AVX512 can only be enabled with the environment variable at this time.
       if (cpu_supports_avx2())
         return CpuIsa::AVX2;
       if (cpu_supports_avx())

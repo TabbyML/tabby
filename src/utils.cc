@@ -28,11 +28,12 @@ namespace ctranslate2 {
       return;
 
 #if defined(CT2_X86_BUILD)
-    spdlog::info("CPU: {} (SSE4.1={}, AVX={}, AVX2={})",
+    spdlog::info("CPU: {} (SSE4.1={}, AVX={}, AVX2={}, AVX512={})",
                  cpu::cpu_vendor(),
                  cpu::cpu_supports_sse41(),
                  cpu::cpu_supports_avx(),
-                 cpu::cpu_supports_avx2());
+                 cpu::cpu_supports_avx2(),
+                 cpu::cpu_supports_avx512());
 #elif defined(CT2_ARM64_BUILD)
     spdlog::info("CPU: {} (NEON={})",
                  cpu::cpu_vendor(),
