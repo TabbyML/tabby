@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v3.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.8.0) (2023-03-06)
+
+### New features
+
+* Experimental support of AVX512 in manually vectorized functions: this code path is not enabled by default but can be enabled by setting the environment variable `CT2_FORCE_CPU_ISA=AVX512`
+* Add Transformers converter option `copy_files` to copy any files from the Hugging Face model to the converted model directory
+* Expose some Whisper parameters:
+  * `max_initial_timestamp_index`
+  * `suppress_blank`
+  * `suppress_tokens`
+
+### Fixes and improvements
+
+* Reduce conversion time for large models by skipping some weights comparisons
+* Reduce maximum memory usage when converting Transformers models with `--quantization float16`
+* Set FP32 compute type for FP16 convolutions to match the PyTorch behavior and accuracy
+* Update oneDNN to 3.0.1
+
 ## [v3.7.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.7.0) (2023-02-23)
 
 ### Changes
