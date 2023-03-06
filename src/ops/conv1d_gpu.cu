@@ -50,7 +50,11 @@ namespace ctranslate2 {
                                                   /*stride_h=*/1, /*stride_w=*/_stride,
                                                   /*dilation_h=*/1, /*dilation_w=*/_dilation,
                                                   CUDNN_CROSS_CORRELATION,
-                                                  data_type));
+                                                  CUDNN_DATA_FLOAT));
+
+      CUDNN_CHECK(cudnnSetConvolutionMathType(conv_desc, CUDNN_DEFAULT_MATH));
+      if (data_type == CUDNN_DATA_HALF)
+        CUDNN_CHECK(cudnnSetConvolutionMathType(conv_desc, CUDNN_TENSOR_OP_MATH));
 
       cudnnHandle_t handle = cuda::get_cudnn_handle();
 
