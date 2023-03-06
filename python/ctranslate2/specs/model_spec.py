@@ -154,6 +154,8 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                 if (
                     not np.isscalar(value)
                     and value.dtype == other_value.dtype
+                    and value.shape == other_value.shape
+                    and value.flat[0] == other_value.flat[0]
                     and np.array_equal(value, other_value)
                 ):
                     # Replace variable value by the alias name.
