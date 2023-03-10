@@ -2,8 +2,6 @@
 
 #include "cpu/kernels.h"
 
-#define EPSILON 1e-5
-
 namespace ctranslate2 {
   namespace ops {
 
@@ -20,7 +18,7 @@ namespace ctranslate2 {
                                              output.data<T>(),
                                              batch_size,
                                              depth,
-                                             static_cast<T>(EPSILON))));
+                                             _epsilon)));
     }
 
 #define DECLARE_IMPL(T)                                                 \

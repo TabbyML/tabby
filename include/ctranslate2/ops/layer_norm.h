@@ -7,6 +7,8 @@ namespace ctranslate2 {
 
     class LayerNorm : public TernaryOp {
     public:
+      LayerNorm(const float epsilon = 1e-5);
+
       using TernaryOp::operator();
       void operator()(const StorageView& beta,
                       const StorageView& gamma,
@@ -19,6 +21,8 @@ namespace ctranslate2 {
                    const StorageView& gamma,
                    const StorageView& input,
                    StorageView& output) const;
+
+      const float _epsilon;
     };
 
   }

@@ -5,6 +5,11 @@
 namespace ctranslate2 {
   namespace ops {
 
+    RMSNorm::RMSNorm(const float epsilon)
+      : _epsilon(epsilon)
+    {
+    }
+
     void RMSNorm::operator()(const StorageView& gamma,
                              const StorageView& input,
                              StorageView& output) const {

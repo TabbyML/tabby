@@ -9,7 +9,7 @@ namespace at {
     // Forward declaration of the CUDA kernels.
     template <typename T, typename SizeT>
     __global__ void LayerNormForwardCUDAKernel(SizeT N,
-                                               T eps,
+                                               float eps,
                                                const T* X,
                                                const T* gamma,
                                                const T* beta,
@@ -33,7 +33,7 @@ namespace ctranslate2 {
       at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>, cuda::index_t>
         <<<batch_size, CUDA_NUM_THREADS, 0, cuda::get_cuda_stream()>>>(
           depth,
-          cuda::device_type<T>(1e-5),
+          _epsilon,
           cuda::device_cast(input.data<T>()),
           cuda::device_cast(gamma.data<T>()),
           cuda::device_cast(beta.data<T>()),
@@ -137,7 +137,7 @@ namespace at {
 
     template <typename T, typename SizeT>
     __global__ void LayerNormForwardCUDAKernel(SizeT N,
-                                               T eps,
+                                               float eps,
                                                const T* X,
                                                const T* gamma,
                                                const T* beta,
@@ -164,7 +164,7 @@ namespace at {
         sum1 *= scale;
         sum2 = fmaxf(sum2 * scale - sum1 * sum1, float(0));
         s_mean = sum1;
-        s_variance = rsqrtf(sum2 + float(eps));
+        s_variance = rsqrtf(sum2 + eps);
       }
 
       __syncthreads();

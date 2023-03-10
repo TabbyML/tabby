@@ -5,6 +5,11 @@
 namespace ctranslate2 {
   namespace ops {
 
+    LayerNorm::LayerNorm(const float epsilon)
+      : _epsilon(epsilon)
+    {
+    }
+
     void LayerNorm::operator()(const StorageView& beta,
                                const StorageView& gamma,
                                const StorageView& input,
