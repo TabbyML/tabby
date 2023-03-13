@@ -151,13 +151,7 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                     break
                 # Because variables can be transformed on load (e.g. transposed),
                 # we use an element-wise equality check.
-                if (
-                    not np.isscalar(value)
-                    and value.dtype == other_value.dtype
-                    and value.shape == other_value.shape
-                    and value.flat[0] == other_value.flat[0]
-                    and np.array_equal(value, other_value)
-                ):
+                if not np.isscalar(value) and _is_same_weight(value, other_value):
                     # Replace variable value by the alias name.
                     scope, attr_name = _parent_scope(name)
                     spec = index_spec(self, scope)
@@ -227,6 +221,17 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
     def _visit(self, fn):
         """Recursively visits this layer and its children."""
         visit_spec(self, fn)
+
+
+def _is_same_weight(a, b):
+    # Because variables can be transformed on load (e.g. transposed),
+    # we also use an element-wise equality check.
+    return a is b or (
+        a.dtype == b.dtype
+        and a.shape == b.shape
+        and a.flat[0] == b.flat[0]
+        and np.array_equal(a, b)
+    )
 
 
 def _dtype_to_type_id(object_dtype):
