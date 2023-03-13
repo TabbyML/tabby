@@ -234,7 +234,7 @@ namespace ctranslate2 {
     void initialize_pool(const models::ModelLoader& model_loader,
                          const ReplicaPoolConfig& config) {
       // The same number of OpenMP threads should be used for loading and running model.
-      set_num_threads(model_loader.device == Device::CUDA ? 1 : config.num_threads_per_replica);
+      set_num_threads(config.num_threads_per_replica);
       initialize_pool(model_loader.load(), config);
     }
 
@@ -243,8 +243,7 @@ namespace ctranslate2 {
       std::vector<std::unique_ptr<Worker>> workers;
       workers.reserve(models.size());
       for (const auto& model : models) {
-        size_t num_threads = (model->device() == Device::CUDA ? 1 : config.num_threads_per_replica);
-        workers.emplace_back(std::make_unique<ReplicaWorker<Replica>>(model, num_threads));
+        workers.emplace_back(std::make_unique<ReplicaWorker<Replica>>(model, config.num_threads_per_replica));
       }
 
       size_t max_queue_size = std::numeric_limits<size_t>::max();
