@@ -19,6 +19,13 @@ namespace ctranslate2 {
     // the number of computations per indices increases.
     constexpr dim_t GRAIN_SIZE = 32768;
 
+    template <typename T>
+    dim_t get_minimum_batch_copies_per_thread(const dim_t copy_size) {
+      constexpr dim_t min_copy_bytes = 4096;
+      const dim_t copy_bytes = copy_size * sizeof (T);
+      return std::max(min_copy_bytes / copy_bytes, dim_t(1));
+    }
+
     template <typename Function>
     inline void parallel_for(const dim_t begin,
                              const dim_t end,

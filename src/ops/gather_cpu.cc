@@ -23,7 +23,8 @@ namespace ctranslate2 {
         const dim_t num_indices = input.size();
         const dim_t num_indices_per_batch = num_indices / batch_size;
 
-        cpu::parallel_for(0, num_indices, 1, [&](dim_t begin, dim_t end) {
+        const dim_t grain_size = cpu::get_minimum_batch_copies_per_thread<T>(copy_size);
+        cpu::parallel_for(0, num_indices, grain_size, [&](dim_t begin, dim_t end) {
           for (dim_t i = begin; i < end; ++i) {
             const dim_t batch_index = i / num_indices_per_batch;
             const dim_t read_index = indices[i];

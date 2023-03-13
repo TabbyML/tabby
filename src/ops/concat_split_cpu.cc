@@ -36,7 +36,8 @@ namespace ctranslate2 {
         const dim_t iter_size = compute_iter_size(x, axis);
         const T* x_data = x.data<T>();
 
-        cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+        const dim_t grain_size = cpu::get_minimum_batch_copies_per_thread<T>(copy_size);
+        cpu::parallel_for(0, iter_size, grain_size, [&](dim_t begin, dim_t end) {
           for (dim_t i = begin; i < end; ++i)
             primitives<D>::copy(x_data + i * copy_size, output_data + i * step_size, copy_size);
         });
@@ -60,7 +61,8 @@ namespace ctranslate2 {
         const dim_t iter_size = compute_iter_size(x, axis);
         T* x_data = x.data<T>();
 
-        cpu::parallel_for(0, iter_size, 1, [&](dim_t begin, dim_t end) {
+        const dim_t grain_size = cpu::get_minimum_batch_copies_per_thread<T>(copy_size);
+        cpu::parallel_for(0, iter_size, grain_size, [&](dim_t begin, dim_t end) {
           for (dim_t i = begin; i < end; ++i)
             primitives<D>::copy(input_data + i * step_size, x_data + i * copy_size, copy_size);
         });
