@@ -93,6 +93,8 @@ namespace ctranslate2 {
     StorageView to_float16() const;
     StorageView to_float32() const;
 
+    StorageView& move_to(Device device, DataType dtype);
+
     // Actual storage type.
     DataType dtype() const {
       return _dtype;

@@ -9,8 +9,6 @@ namespace ctranslate2 {
     StorageView make_relative_positions(dim_t length,
                                         dim_t max_position,
                                         bool with_cache = false);
-    StorageView reduce_multi_head_attention(const StorageView& attention,
-                                            dim_t num_heads_to_average);
 
     class MultiHeadAttention : public Layer
     {
@@ -31,7 +29,8 @@ namespace ctranslate2 {
                       StorageView* cached_values = nullptr,
                       StorageView* attention = nullptr,
                       const Padder* queries_padder = nullptr,
-                      const Padder* values_padder = nullptr) const;
+                      const Padder* values_padder = nullptr,
+                      bool return_normalized_attention = true) const;
 
       bool has_relative_position() const {
         return _relative_position_keys || _relative_attention_bias;

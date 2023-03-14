@@ -7,7 +7,7 @@ namespace ctranslate2 {
 
     class LayerNorm : public TernaryOp {
     public:
-      LayerNorm(const float epsilon = 1e-5);
+      LayerNorm(const dim_t axis = -1, const float epsilon = 1e-5);
 
       using TernaryOp::operator();
       void operator()(const StorageView& beta,
@@ -15,13 +15,26 @@ namespace ctranslate2 {
                       const StorageView& input,
                       StorageView& output) const;
 
+      void operator()(StorageView& input) const;
+      void operator()(const StorageView& input, StorageView& output) const;
+
     private:
+      void operator()(const StorageView* beta,
+                      const StorageView* gamma,
+                      const StorageView& input,
+                      StorageView& output) const;
+
       template <Device D, typename T>
-      void compute(const StorageView& beta,
-                   const StorageView& gamma,
+      void compute(const StorageView* beta,
+                   const StorageView* gamma,
                    const StorageView& input,
+                   const dim_t axis,
+                   const dim_t outer_size,
+                   const dim_t axis_size,
+                   const dim_t inner_size,
                    StorageView& output) const;
 
+      const dim_t _axis;
       const float _epsilon;
     };
 

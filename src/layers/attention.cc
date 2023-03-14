@@ -102,27 +102,6 @@ namespace ctranslate2 {
       return values_t;
     }
 
-    StorageView reduce_multi_head_attention(const StorageView& attention,
-                                            dim_t num_heads_to_average) {
-      const DataType dtype = attention.dtype();
-      const Device device = attention.device();
-      const dim_t num_heads = attention.dim(1);
-
-      StorageView reduced_attention(dtype, device);
-
-      if (num_heads_to_average == num_heads)
-        ops::Mean(1)(attention, reduced_attention);
-      else {
-        StorageView heads_to_average(dtype, device);
-        StorageView heads_to_ignore(dtype, device);
-        const std::vector<dim_t> split_size{num_heads_to_average, num_heads - num_heads_to_average};
-        ops::Split(1, split_size)(attention, heads_to_average, heads_to_ignore);
-        ops::Mean(1)(heads_to_average, reduced_attention);
-      }
-
-      return reduced_attention;
-    }
-
     static void matmul_with_relative_representations(const ops::MatMul& matmul_op,
                                                      const StorageView& a,
                                                      const StorageView& b,
@@ -164,6 +143,15 @@ namespace ctranslate2 {
 
     static const ops::Transpose transpose_op({0, 2, 1, 3});
 
+    static inline void save_attention(StorageView& attention, StorageView weights, dim_t beam_size) {
+      if (beam_size == 1)
+        attention = std::move(weights);
+      else {
+        transpose_op(weights, attention);
+        attention.reshape({-1, weights.dim(1), 1, weights.dim(-1)});
+      }
+    }
+
     static void dot_product_attention(const StorageView& queries,
                                       const StorageView& keys,
                                       const StorageView& values,
@@ -174,6 +162,7 @@ namespace ctranslate2 {
                                       dim_t maximum_relative_position,
                                       StorageView& output,
                                       StorageView* attention = nullptr,
+                                      bool return_normalized_attention = true,
                                       float queries_scale = 1,
                                       bool is_decoder = false,
                                       bool with_cache = false,
@@ -218,6 +207,9 @@ namespace ctranslate2 {
       StorageView attn(values.dtype(), values.device());
       ops::SoftMax()(output, values_lengths, attn);
 
+      if (attention && !return_normalized_attention)
+        save_attention(*attention, std::move(output), beam_size);
+
       const ops::MatMul values_matmul;
       values_matmul(attn, values, output);
       if (relative_position_values)
@@ -227,14 +219,8 @@ namespace ctranslate2 {
                                      values_matmul,
                                      output);
 
-      if (attention) {
-        if (beam_size == 1)
-          *attention = std::move(attn);
-        else {
-          transpose_op(attn, *attention);
-          attention->reshape({-1, attn.dim(1), 1, attn.dim(-1)});
-        }
-      }
+      if (attention && return_normalized_attention)
+        save_attention(*attention, std::move(attn), beam_size);
     }
 
     static void split_heads(StorageView& x,
@@ -343,7 +329,8 @@ namespace ctranslate2 {
                                         StorageView* cached_values,
                                         StorageView* attention,
                                         const Padder* queries_padder,
-                                        const Padder* values_padder) const {
+                                        const Padder* values_padder,
+                                        bool return_normalized_attention) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -414,6 +401,7 @@ namespace ctranslate2 {
                             _maximum_relative_position,
                             context,
                             attention,
+                            return_normalized_attention,
                             _queries_scale,
                             _is_decoder,
                             bool(cached_keys),

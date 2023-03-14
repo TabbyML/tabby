@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -13,11 +13,13 @@ class WhisperConfig(model_spec.ModelConfig):
         suppress_ids: Optional[List[int]] = None,
         suppress_ids_begin: Optional[List[int]] = None,
         lang_ids: Optional[List[int]] = None,
+        alignment_heads: Optional[List[Tuple[int, int]]] = None,
     ):
         super().__init__(
             suppress_ids=suppress_ids,
             suppress_ids_begin=suppress_ids_begin,
             lang_ids=lang_ids,
+            alignment_heads=alignment_heads,
         )
 
 

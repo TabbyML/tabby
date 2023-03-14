@@ -98,7 +98,8 @@ namespace ctranslate2 {
                                              StorageView& output,
                                              StorageView* attention,
                                              const Padder* input_padder,
-                                             const Padder* memory_padder) const {
+                                             const Padder* memory_padder,
+                                             bool return_normalized_attention) const {
       PROFILE("TransformerDecoderLayer");
       _self_attention(input,
                       input,
@@ -120,7 +121,8 @@ namespace ctranslate2 {
                               cached_attn_values,
                               attention,
                               input_padder,
-                              memory_padder);
+                              memory_padder,
+                              return_normalized_attention);
       } else {
         context = std::move(output);
       }
@@ -248,13 +250,19 @@ namespace ctranslate2 {
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
-      , _alignment_layer(model.get_attribute_with_default<int32_t>(scope + "/alignment_layer", -1))
-      , _alignment_heads(model.get_attribute_with_default<int32_t>(scope + "/alignment_heads", 1))
       , _proj(model, scope + "/projection") {
-      if (_alignment_layer < 0)
-        _alignment_layer = _layers.size() + _alignment_layer;
-      if (_alignment_heads == 0)
-        _alignment_heads = _num_heads;
+
+      dim_t alignment_layer = (
+        model.get_attribute_with_default<int32_t>(scope + "/alignment_layer", -1));
+      dim_t alignment_heads = (
+        model.get_attribute_with_default<int32_t>(scope + "/alignment_heads", 1));
+
+      if (alignment_layer < 0)
+        alignment_layer = _layers.size() + alignment_layer;
+      if (alignment_heads == 0)
+        alignment_heads = _num_heads;
+
+      set_alignment_heads(alignment_layer, alignment_heads);
 
       const auto* outputs_scale = model.get_variable_if_exists(scope + "/scale_outputs");
       if (outputs_scale) {
@@ -285,6 +293,46 @@ namespace ctranslate2 {
       return !_with_encoder_attention || !starts_with(name, "memory");
     }
 
+    void TransformerDecoder::set_alignment_heads(const dim_t layer,
+                                                 const dim_t num_heads_to_average) {
+      std::vector<dim_t> range(num_heads_to_average);
+      std::iota(range.begin(), range.end(), dim_t(0));
+
+      _alignment_heads.clear();
+      _alignment_heads.resize(_layers.size());
+      _alignment_heads[layer] = std::move(range);
+
+      _average_alignment_heads = true;
+    }
+
+    void TransformerDecoder::set_alignment_heads(const std::vector<std::pair<dim_t, dim_t>>& alignment_heads) {
+      _alignment_heads.clear();
+      _alignment_heads.resize(_layers.size());
+      for (const auto& [layer, head] : alignment_heads)
+        _alignment_heads[layer].push_back(head);
+
+      _average_alignment_heads = false;
+    }
+
+    std::unique_ptr<StorageView>
+    TransformerDecoder::get_layer_alignment_heads(const dim_t layer, const dim_t batch_size) const {
+      if (_alignment_heads.empty())
+        return nullptr;
+
+      const auto& heads = _alignment_heads[layer];
+      const dim_t num_heads = heads.size();
+
+      if (heads.empty())
+        return nullptr;
+
+      std::vector<int32_t> indices;
+      indices.reserve(batch_size * num_heads);
+      for (dim_t i = 0; i < batch_size; ++i)
+        indices.insert(indices.end(), heads.begin(), heads.end());
+
+      return std::make_unique<StorageView>(Shape{batch_size, num_heads}, indices, _device);
+    }
+
     void TransformerDecoder::operator()(dim_t step,
                                         const StorageView& ids,
                                         DecoderState& state,
@@ -296,8 +344,9 @@ namespace ctranslate2 {
     void TransformerDecoder::operator()(const StorageView& ids,
                                         const StorageView& lengths,
                                         DecoderState& state,
-                                        StorageView& logits) {
-      return decode(ids, &lengths, -1, state, &logits);
+                                        StorageView& logits,
+                                        StorageView* attention) {
+      return decode(ids, &lengths, -1, state, &logits, attention);
     }
 
     void TransformerDecoder::decode(const StorageView& ids,
@@ -308,11 +357,12 @@ namespace ctranslate2 {
                                     StorageView* attention,
                                     bool return_logits) {
       PROFILE("TransformerDecoder");
+      const DataType dtype = output_type();
       const Device device = ids.device();
       const bool is_sequence = ids.rank() > 1;
 
-      StorageView layer_in(output_type(), device);
-      StorageView layer_out(output_type(), device);
+      StorageView layer_in(dtype, device);
+      StorageView layer_out(dtype, device);
 
       _embeddings(ids, layer_in);
       if (_start_from_zero_embedding)
@@ -384,6 +434,10 @@ namespace ctranslate2 {
         }
       }
 
+      std::vector<StorageView> alignment_heads;
+      if (attention)
+        alignment_heads.reserve(_layers.size());
+
       for (size_t l = 0; l < _layers.size(); ++l) {
         StorageView* cached_self_attn_keys = nullptr;
         StorageView* cached_self_attn_values = nullptr;
@@ -400,6 +454,11 @@ namespace ctranslate2 {
           }
         }
 
+        std::unique_ptr<StorageView> heads_to_select = get_layer_alignment_heads(l, batch_size);
+        std::unique_ptr<StorageView> layer_attention;
+        if (attention && heads_to_select)
+          layer_attention = std::make_unique<StorageView>(dtype, device);
+
         (*_layers[l])(layer_in,
                       input_lengths_mask.get(),
                       memory,
@@ -409,10 +468,16 @@ namespace ctranslate2 {
                       cached_attn_keys,
                       cached_attn_values,
                       layer_out,
-                      l == size_t(_alignment_layer) ? attention : nullptr,
+                      layer_attention.get(),
                       input_padder.get(),
-                      memory_padder.get());
+                      memory_padder.get(),
+                      return_normalized_attention());
         layer_in = std::move(layer_out);
+
+        if (layer_attention) {
+          alignment_heads.emplace_back(dtype, device);
+          ops::Gather(1, 1)(*layer_attention, *heads_to_select, alignment_heads.back());
+        }
       }
 
       if (step == 0) {
@@ -420,10 +485,22 @@ namespace ctranslate2 {
         state.erase("memory");
       }
 
-      if (attention) {
-        *attention = reduce_multi_head_attention(*attention, _alignment_heads);
-        if (!is_sequence)
-          attention->squeeze(1);
+      if (attention && !alignment_heads.empty()) {
+        if (_average_alignment_heads) {
+          ops::Mean(1)(alignment_heads[0], *attention);
+          if (!is_sequence)
+            attention->squeeze(1);
+
+        } else {
+          std::vector<const StorageView*> alignment_heads_ptr;
+          alignment_heads_ptr.reserve(alignment_heads.size());
+          for (const auto& heads : alignment_heads)
+            alignment_heads_ptr.emplace_back(&heads);
+
+          ops::Concat(1)(alignment_heads_ptr, *attention);
+          if (!is_sequence)
+            attention->squeeze(2);
+        }
       }
 
       if (outputs) {

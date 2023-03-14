@@ -1,5 +1,6 @@
 import abc
 import argparse
+import itertools
 import os
 
 from typing import List, Optional
@@ -575,6 +576,16 @@ class WhisperLoader(BartLoader):
         config.suppress_ids_begin = model.config.begin_suppress_tokens
         config.lang_ids = tokenizer.additional_special_tokens_ids[2:-6]
 
+        config.alignment_heads = _WHISPER_ALIGNMENT_HEADS.get(model.name_or_path)
+        if config.alignment_heads is None:
+            # Use the last half layers for alignment by default.
+            config.alignment_heads = list(
+                itertools.product(
+                    range(config.decoder_layers // 2, config.decoder_layers),
+                    range(config.decoder_attention_heads),
+                )
+            )
+
     def get_vocabulary(self, model, tokenizer):
         tokens = super().get_vocabulary(model, tokenizer)
 
@@ -777,3 +788,122 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# Cross-attention heads that are highly correlated to the word-level timing,
+# i.e. the alignment between audio and text tokens.
+# Obtained from https://github.com/openai/whisper/blob/v20230306/whisper/__init__.py#L31-L45
+_WHISPER_ALIGNMENT_HEADS = {
+    "openai/whisper-tiny.en": [
+        (1, 0),
+        (2, 0),
+        (2, 5),
+        (3, 0),
+        (3, 1),
+        (3, 2),
+        (3, 3),
+        (3, 4),
+    ],
+    "openai/whisper-tiny": [(2, 2), (3, 0), (3, 2), (3, 3), (3, 4), (3, 5)],
+    "openai/whisper-base.en": [(3, 3), (4, 7), (5, 1), (5, 5), (5, 7)],
+    "openai/whisper-base": [
+        (3, 1),
+        (4, 2),
+        (4, 3),
+        (4, 7),
+        (5, 1),
+        (5, 2),
+        (5, 4),
+        (5, 6),
+    ],
+    "openai/whisper-small.en": [
+        (6, 6),
+        (7, 0),
+        (7, 3),
+        (7, 8),
+        (8, 2),
+        (8, 5),
+        (8, 7),
+        (9, 0),
+        (9, 4),
+        (9, 8),
+        (9, 10),
+        (10, 0),
+        (10, 1),
+        (10, 2),
+        (10, 3),
+        (10, 6),
+        (10, 11),
+        (11, 2),
+        (11, 4),
+    ],
+    "openai/whisper-small": [
+        (5, 3),
+        (5, 9),
+        (8, 0),
+        (8, 4),
+        (8, 7),
+        (8, 8),
+        (9, 0),
+        (9, 7),
+        (9, 9),
+        (10, 5),
+    ],
+    "openai/whisper-medium.en": [
+        (11, 4),
+        (14, 1),
+        (14, 12),
+        (14, 14),
+        (15, 4),
+        (16, 0),
+        (16, 4),
+        (16, 9),
+        (17, 12),
+        (17, 14),
+        (18, 7),
+        (18, 10),
+        (18, 15),
+        (20, 0),
+        (20, 3),
+        (20, 9),
+        (20, 14),
+        (21, 12),
+    ],
+    "openai/whisper-medium": [(13, 15), (15, 4), (15, 15), (16, 1), (20, 0), (23, 4)],
+    "openai/whisper-large": [
+        (9, 19),
+        (11, 2),
+        (11, 4),
+        (11, 17),
+        (22, 7),
+        (22, 11),
+        (22, 17),
+        (23, 2),
+        (23, 15),
+    ],
+    "openai/whisper-large-v2": [
+        (10, 12),
+        (13, 17),
+        (16, 11),
+        (16, 12),
+        (16, 13),
+        (17, 15),
+        (17, 16),
+        (18, 4),
+        (18, 11),
+        (18, 19),
+        (19, 11),
+        (21, 2),
+        (21, 3),
+        (22, 3),
+        (22, 9),
+        (22, 12),
+        (23, 5),
+        (23, 7),
+        (23, 13),
+        (25, 5),
+        (26, 1),
+        (26, 12),
+        (27, 15),
+    ],
+}

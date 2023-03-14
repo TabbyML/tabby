@@ -118,6 +118,21 @@ TEST(OpTest, QuantizeINT16) {
   expect_storage_eq(reverse, input);
 }
 
+TEST(OpTest, MedianFilter) {
+  StorageView x({2, 8}, std::vector<float>{
+      0.2556743323802948, 0.8028775453567505, 0.3514494299888611, 0.3542254865169525,
+      0.5881291031837463, 0.1458204835653305, 0.6845740675926208, 0.543143630027771,
+      0.9039326310157776, 0.38000917434692383, 0.9094009399414062, 0.4063926637172699,
+      0.7943458557128906, 0.289182186126709, 0.9932224750518799, 0.01137143187224865});
+  StorageView expected({2, 8}, std::vector<float>{
+      0.3514494299888611, 0.3542254865169525, 0.3542254865169525, 0.3542254865169525,
+      0.3542254865169525, 0.543143630027771, 0.5881291031837463, 0.543143630027771,
+      0.9039326310157776, 0.4063926637172699, 0.7943458557128906, 0.4063926637172699,
+      0.7943458557128906, 0.4063926637172699, 0.7943458557128906, 0.289182186126709});
+  StorageView y;
+  ops::MedianFilter(5)(x, y);
+  expect_storage_eq(y, expected);
+}
 
 class OpDeviceTest : public ::testing::TestWithParam<Device> {
 };
@@ -673,6 +688,31 @@ TEST_P(OpDeviceFPTest, LayerNorm) {
       -6.319339, -3.988876, -0.637330, 2.841982, -0.158437}, device);
   StorageView y(dtype, device);
   ops::LayerNorm()(beta.to(dtype), gamma.to(dtype), x.to(dtype), y);
+  expect_storage_eq(y.to_float32(), expected, 1e-3);
+}
+
+TEST_P(OpDeviceFPTest, LayerNormAxis) {
+  const Device device = GetParam().first;
+  if (device == Device::CUDA) {
+    GTEST_SKIP() << "Generalized LayerNorm is not implemented on GPU";
+  }
+  const DataType dtype = GetParam().second;
+  StorageView x({2, 3, 2}, std::vector<float>{
+      0.08830845355987549, 0.7807812690734863,
+      0.34740084409713745, 0.8272842764854431,
+      0.3155772089958191, 0.21066278219223022,
+      0.02693861722946167, 0.6299145221710205,
+      0.05086874961853027, 0.6894713640213013,
+      0.7736693620681763, 0.4071813225746155}, device);
+  StorageView expected({2, 3, 2}, std::vector<float>{
+      -1.4052178859710693, 0.6225495338439941,
+      0.8405286073684692, 0.7884179353713989,
+      0.5646895170211792, -1.410967469215393,
+      -0.7413559556007385, 0.4476976990699768,
+      -0.6722954511642456, 0.9379060864448547,
+      1.4136513471603394, -1.3856042623519897}, device);
+  StorageView y(dtype, device);
+  ops::LayerNorm(1, 0)(x.to(dtype), y);
   expect_storage_eq(y.to_float32(), expected, 1e-3);
 }
 

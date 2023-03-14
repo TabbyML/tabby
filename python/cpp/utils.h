@@ -20,8 +20,9 @@ namespace ctranslate2 {
 
     using StringOrMap = std::variant<std::string, std::unordered_map<std::string, std::string>>;
     using Tokens = std::vector<std::string>;
+    using Ids = std::vector<size_t>;
     using BatchTokens = std::vector<Tokens>;
-    using BatchIds = std::vector<std::vector<size_t>>;
+    using BatchIds = std::vector<Ids>;
 
     class ComputeTypeResolver {
     private:
@@ -95,6 +96,15 @@ namespace ctranslate2 {
     };
 
     template <typename Result>
+    std::vector<Result> wait_on_futures(std::vector<std::future<Result>> futures) {
+      std::vector<Result> results;
+      results.reserve(futures.size());
+      for (auto& future : futures)
+        results.emplace_back(future.get());
+      return results;
+    }
+
+    template <typename Result>
     std::variant<std::vector<Result>, std::vector<AsyncResult<Result>>>
     maybe_wait_on_futures(std::vector<std::future<Result>> futures, bool asynchronous) {
       if (asynchronous) {
@@ -104,11 +114,7 @@ namespace ctranslate2 {
           results.emplace_back(std::move(future));
         return std::move(results);
       } else {
-        std::vector<Result> results;
-        results.reserve(futures.size());
-        for (auto& future : futures)
-          results.emplace_back(future.get());
-        return std::move(results);
+        return wait_on_futures(std::move(futures));
       }
     }
 

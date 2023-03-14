@@ -88,6 +88,7 @@ set(SOURCES
   src/decoding.cc
   src/decoding_utils.cc
   src/devices.cc
+  src/dtw.cc
   src/env.cc
   src/generator.cc
   src/layers/attention.cc
@@ -124,6 +125,7 @@ set(SOURCES
   src/ops/matmul.cc
   src/ops/mean.cc
   src/ops/mean_cpu.cc
+  src/ops/median_filter.cc
   src/ops/min_max.cc
   src/ops/mul.cc
   src/ops/multinomial.cc

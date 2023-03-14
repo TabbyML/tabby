@@ -6,6 +6,7 @@
 #include "ctranslate2/models/model_factory.h"
 
 #include "dispatch.h"
+#include "dtw.h"
 
 #ifdef CT2_WITH_CUDA
 #  include "cuda/utils.h"
@@ -336,6 +337,138 @@ namespace ctranslate2 {
       return final_results;
     }
 
+    std::vector<WhisperAlignmentResult>
+    WhisperReplica::align(const StorageView& features,
+                          const std::vector<size_t>& start_sequence,
+                          const std::vector<std::vector<size_t>>& text_tokens,
+                          dim_t num_frames,
+                          dim_t median_filter_width) {
+      PROFILE("WhisperReplica::align");
+
+      const auto alignment_heads = _model->config.find("alignment_heads");
+      if (alignment_heads == _model->config.end())
+        throw std::runtime_error("The model configuration does not contain the field "
+                                 "'alignment_heads' which lists the cross-attention heads "
+                                 "that are highly correlated to the word-level timing. "
+                                 "Please reconvert this model with the current version "
+                                 "of ctranslate2.");
+
+      _decoder->set_alignment_heads(alignment_heads->get<std::vector<std::pair<dim_t, dim_t>>>());
+
+      const dim_t batch_size = text_tokens.size();
+
+      std::vector<std::vector<size_t>> input_tokens;
+      std::vector<std::vector<size_t>> output_tokens;
+      input_tokens.reserve(batch_size);
+      output_tokens.reserve(batch_size);
+
+      for (const auto& text_sequence : text_tokens) {
+        std::vector<size_t> input_sequence = start_sequence;
+        input_sequence.push_back(_no_timestamps_id);
+        input_sequence.insert(input_sequence.end(), text_sequence.begin(), text_sequence.end());
+        input_sequence.push_back(_eot_id);
+
+        std::vector<size_t> output_sequence(input_sequence.begin() + 1, input_sequence.end());
+        output_sequence.push_back(0);
+
+        input_tokens.emplace_back(std::move(input_sequence));
+        output_tokens.emplace_back(std::move(output_sequence));
+      }
+
+      const auto scoped_device_setter = _model->get_scoped_device_setter();
+
+#ifdef CT2_WITH_CUDA
+      const cuda::UseTrueFp16GemmInScope use_true_fp16_gemm(false);
+#endif
+
+      layers::DecoderState state = _decoder->initial_state();
+      state.emplace("memory", encode(features));
+
+      _decoder->update_output_layer(_model->preferred_size_multiple());
+
+      const DataType dtype = _decoder->output_type();
+      const Device device = _decoder->device();
+
+      StorageView lengths(DataType::INT32, device);
+      StorageView input_ids = layers::make_sequence_inputs(input_tokens,
+                                                           device,
+                                                           1,
+                                                           &lengths);
+      StorageView output_ids = layers::make_sequence_inputs(output_tokens, device);
+
+      StorageView logits(dtype, device);
+      StorageView attention_weights(dtype, device);
+      (*_decoder)(input_ids, lengths, state, logits, &attention_weights);
+
+      StorageView token_probs(dtype, device);
+
+      {
+        // Get the probabilities of the text tokens.
+        StorageView text_vocab_size({logits.dim(0), logits.dim(1)}, int32_t(_eot_id), device);
+        ops::SoftMax()(logits, text_vocab_size, logits);
+        StorageView probs = std::move(logits);
+
+        ops::Gather(/*axis=*/-1, /*batch_dims=*/2)(probs, output_ids, token_probs);
+      }
+
+      StorageView weights;
+
+      {
+        // Process the attention probs.
+        const dim_t frames_dim = 3;
+        const dim_t total_frames = attention_weights.dim(frames_dim);
+
+        num_frames /= 2;  // The second convolution layer uses a stride of 2.
+
+        if (num_frames < total_frames) {
+          StorageView content(dtype, device);
+          StorageView padding(dtype, device);
+
+          const ops::Split split_op(frames_dim, {num_frames, total_frames - num_frames});
+          split_op(attention_weights, content, padding);
+
+          attention_weights = std::move(content);
+        }
+
+        ops::SoftMax()(attention_weights);
+
+        // The remaining operations are not implemented on GPU, so move back to CPU.
+        attention_weights.move_to(Device::CPU, DataType::FLOAT32);
+
+        ops::LayerNorm(-2, 0)(attention_weights);
+
+        const ops::MedianFilter median_filter_op(median_filter_width);
+        StorageView median_filter;
+        median_filter_op(attention_weights, median_filter);
+        ops::Mean(1)(median_filter, weights);
+      }
+
+      token_probs.move_to(Device::CPU, DataType::FLOAT32);
+
+      std::vector<WhisperAlignmentResult> results;
+      results.reserve(batch_size);
+
+      for (dim_t b = 0; b < batch_size; ++b) {
+        WhisperAlignmentResult result;
+
+        const dim_t length = text_tokens[b].size();
+        const dim_t offset = start_sequence.size();
+
+        StorageView matrix(
+          Shape{weights.dim(1) - offset - 1, weights.dim(2)},
+          weights.index<float>({b, offset, 0}));
+
+        result.alignments = negative_dtw(matrix);
+
+        for (dim_t t = 0; t < length; ++t)
+          result.text_token_probs.emplace_back(token_probs.at<float>({b, offset + t}));
+
+        results.emplace_back(std::move(result));
+      }
+
+      return results;
+    }
+
     std::vector<std::vector<std::pair<std::string, float>>>
     WhisperReplica::detect_language(const StorageView& features) {
       if (!is_multilingual())
@@ -445,6 +578,25 @@ namespace ctranslate2 {
       return post_batch<std::vector<std::pair<std::string, float>>>(
         [features = std::move(features)](WhisperReplica& replica) {
           return replica.detect_language(features);
+        },
+        batch_size);
+    }
+
+    std::vector<std::future<WhisperAlignmentResult>>
+    Whisper::align(StorageView features,
+                   std::vector<size_t> start_sequence,
+                   std::vector<std::vector<size_t>> text_tokens,
+                   dim_t num_frames,
+                   dim_t median_filter_width) {
+      const size_t batch_size = features.dim(0);
+      return post_batch<WhisperAlignmentResult>(
+        [features = std::move(features),
+         start_sequence = std::move(start_sequence),
+         text_tokens = std::move(text_tokens),
+         num_frames,
+         median_filter_width]
+        (WhisperReplica& replica) {
+          return replica.align(features, start_sequence, text_tokens, num_frames, median_filter_width);
         },
         batch_size);
     }

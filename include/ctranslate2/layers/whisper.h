@@ -34,6 +34,10 @@ namespace ctranslate2 {
     public:
       using TransformerDecoder::TransformerDecoder;
 
+      bool return_normalized_attention() const override {
+        return false;
+      }
+
       void forward_prompt(const StorageView& prompt,
                           DecoderState& state,
                           StorageView* outputs = nullptr);

@@ -24,27 +24,36 @@ namespace ctranslate2 {
 #define CUDA_NUM_THREADS 512
 
     template <Device D, typename T>
-    void LayerNorm::compute(const StorageView& beta,
-                            const StorageView& gamma,
+    void LayerNorm::compute(const StorageView* beta,
+                            const StorageView* gamma,
                             const StorageView& input,
+                            const dim_t axis,
+                            const dim_t outer_size,
+                            const dim_t axis_size,
+                            const dim_t inner_size,
                             StorageView& output) const {
-      const dim_t depth = input.dim(-1);
-      const dim_t batch_size = input.size() / depth;
+      if (axis != input.rank() - 1 || !beta || !gamma)
+        throw std::invalid_argument("Generalized LayerNorm is currently not implemented on GPU");
+
       at::native::LayerNormForwardCUDAKernel<cuda::device_type<T>, cuda::index_t>
-        <<<batch_size, CUDA_NUM_THREADS, 0, cuda::get_cuda_stream()>>>(
-          depth,
+        <<<outer_size, CUDA_NUM_THREADS, 0, cuda::get_cuda_stream()>>>(
+          axis_size,
           _epsilon,
           cuda::device_cast(input.data<T>()),
-          cuda::device_cast(gamma.data<T>()),
-          cuda::device_cast(beta.data<T>()),
+          cuda::device_cast(gamma->data<T>()),
+          cuda::device_cast(beta->data<T>()),
           cuda::device_cast(output.data<T>()));
     }
 
 #define DECLARE_IMPL(T)                                                 \
     template void                                                       \
-    LayerNorm::compute<Device::CUDA, T>(const StorageView& beta,        \
-                                        const StorageView& gamma,       \
+    LayerNorm::compute<Device::CUDA, T>(const StorageView* beta,        \
+                                        const StorageView* gamma,       \
                                         const StorageView& input,       \
+                                        const dim_t axis,               \
+                                        const dim_t outer_size,         \
+                                        const dim_t axis_size,          \
+                                        const dim_t inner_size,         \
                                         StorageView& output) const;
 
     DECLARE_IMPL(float)

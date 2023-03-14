@@ -117,6 +117,14 @@ namespace ctranslate2 {
     return to(DataType::FLOAT32);
   }
 
+  StorageView& StorageView::move_to(Device device, DataType dtype) {
+    if (_dtype != dtype)
+      *this = to(dtype);
+    if (_device != device)
+      *this = to(device);
+    return *this;
+  }
+
   dim_t StorageView::reserved_memory() const {
     return _allocated_size * item_size();
   }

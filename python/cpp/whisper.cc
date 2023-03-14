@@ -68,12 +68,21 @@ namespace ctranslate2 {
       std::vector<std::vector<std::pair<std::string, float>>>
       detect_language(StorageViewWrapper features) {
         auto futures = _pool->detect_language(features.get_view());
+        return wait_on_futures(std::move(futures));
+      }
 
-        std::vector<std::vector<std::pair<std::string, float>>> results;
-        results.reserve(futures.size());
-        for (auto& future : futures)
-          results.emplace_back(future.get());
-        return results;
+      std::vector<models::WhisperAlignmentResult>
+      align(StorageViewWrapper features,
+            Ids start_sequence,
+            BatchIds text_tokens,
+            size_t num_frames,
+            size_t median_filter_width) {
+        auto futures = _pool->align(features.get_view(),
+                                    std::move(start_sequence),
+                                    std::move(text_tokens),
+                                    num_frames,
+                                    median_filter_width);
+        return wait_on_futures(std::move(futures));
       }
     };
 
@@ -101,6 +110,21 @@ namespace ctranslate2 {
         ;
 
       declare_async_wrapper<models::WhisperGenerationResult>(m, "WhisperGenerationResultAsync");
+
+      py::class_<models::WhisperAlignmentResult>(m, "WhisperAlignmentResult",
+                                                 "An alignment result from the Whisper model.")
+
+        .def_readonly("alignments", &models::WhisperAlignmentResult::alignments,
+                      "List of aligned text and time indices.")
+        .def_readonly("text_token_probs", &models::WhisperAlignmentResult::text_token_probs,
+                      "Probabilities of text tokens.")
+
+        .def("__repr__", [](const models::WhisperAlignmentResult& result) {
+          return "WhisperAlignmentResult(alignments=" + std::string(py::repr(py::cast(result.alignments)))
+            + ", text_token_probs=" + std::string(py::repr(py::cast(result.text_token_probs)))
+            + ")";
+        })
+        ;
 
       py::class_<WhisperWrapper>(
         m, "Whisper",
@@ -213,6 +237,29 @@ namespace ctranslate2 {
 
                  Raises:
                    RuntimeError: if the model is not multilingual.
+             )pbdoc")
+
+        .def("align", &WhisperWrapper::align,
+             py::arg("features"),
+             py::arg("start_sequence"),
+             py::arg("text_tokens"),
+             py::arg("num_frames"),
+             py::kw_only(),
+             py::arg("median_filter_width")=7,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Computes the alignments between the text tokens and the audio.
+
+                 Arguments:
+                   features: Mel spectogram of the audio, as a float32 array with shape
+                     ``[batch_size, 80, 3000]``.
+                   start_sequence: The start sequence tokens.
+                   text_tokens: Batch of text tokens to align.
+                   num_frames: Number of non padding frames in the features.
+                   median_filter_width: Width of the median filter kernel.
+
+                 Returns:
+                   A list of alignment results.
              )pbdoc")
 
         ;

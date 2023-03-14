@@ -87,7 +87,8 @@ namespace ctranslate2 {
                       StorageView& output,
                       StorageView* attention = nullptr,
                       const Padder* input_padder = nullptr,
-                      const Padder* memory_padder = nullptr) const;
+                      const Padder* memory_padder = nullptr,
+                      bool return_normalized_attention = true) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -159,7 +160,18 @@ namespace ctranslate2 {
       void operator()(const StorageView& ids,
                       const StorageView& lengths,
                       DecoderState& state,
-                      StorageView& logits) override;
+                      StorageView& logits,
+                      StorageView* attention = nullptr) override;
+
+      void set_alignment_heads(const dim_t layer, const dim_t num_heads_to_average);
+      void set_alignment_heads(const std::vector<std::pair<dim_t, dim_t>>& alignment_heads);
+
+      std::unique_ptr<StorageView>
+      get_layer_alignment_heads(const dim_t layer, const dim_t batch_size) const;
+
+      virtual bool return_normalized_attention() const {
+        return true;
+      }
 
     protected:
       Dense& output_layer() override {
@@ -187,8 +199,8 @@ namespace ctranslate2 {
       const std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const bool _with_encoder_attention;
-      dim_t _alignment_layer;
-      dim_t _alignment_heads;
+      std::vector<std::vector<dim_t>> _alignment_heads;
+      bool _average_alignment_heads;
       Dense _proj;
     };
 

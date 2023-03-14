@@ -71,6 +71,11 @@ namespace ctranslate2 {
       }
     };
 
+    struct WhisperAlignmentResult {
+      std::vector<std::pair<size_t, size_t>> alignments;
+      std::vector<float> text_token_probs;
+    };
+
     class WhisperModel : public Model {
     public:
       const Vocabulary& get_vocabulary() const;
@@ -114,6 +119,13 @@ namespace ctranslate2 {
       std::vector<std::vector<std::pair<std::string, float>>>
       detect_language(const StorageView& features);
 
+      std::vector<WhisperAlignmentResult>
+      align(const StorageView& features,
+            const std::vector<size_t>& start_sequence,
+            const std::vector<std::vector<size_t>>& text_tokens,
+            dim_t num_frames,
+            dim_t median_filter_width);
+
     private:
       const std::shared_ptr<const WhisperModel> _model;
       const std::unique_ptr<layers::WhisperEncoder> _encoder;
@@ -146,6 +158,13 @@ namespace ctranslate2 {
 
       std::vector<std::future<std::vector<std::pair<std::string, float>>>>
       detect_language(StorageView features);
+
+      std::vector<std::future<WhisperAlignmentResult>>
+      align(StorageView features,
+            std::vector<size_t> start_sequence,
+            std::vector<std::vector<size_t>> text_tokens,
+            dim_t num_frames,
+            dim_t median_filter_width);
 
     };
 

@@ -438,17 +438,69 @@ namespace ctranslate2 {
           const auto offset = i * depth;
           const auto* x = input + offset;
           auto* y = output + offset;
-          float mean = 0;  // sum(x)/n
-          float rstd = 0;  // 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
+
+          // mean = sum(x)/n
+          // rstd = 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
+
+          float sum = 0;
+          float sum_squares = 0;
+
           for (dim_t j = 0; j < depth; ++j) {
-            mean += x[j];
-            rstd += x[j] * x[j];
+            sum += x[j];
+            sum_squares += x[j] * x[j];
           }
-          mean /= depth;
-          rstd = std::max(rstd / depth - mean * mean, 0.f);
-          rstd = 1.f / std::sqrt(rstd + epsilon);
+
+          const float mean = sum / depth;
+          const float variance = std::max(sum_squares / depth - mean * mean, 0.f);
+          const float rstd = 1.f / std::sqrt(variance + epsilon);
+
           for (dim_t j = 0; j < depth; ++j) {
             y[j] = (x[j] - mean) * rstd * gamma[j] + beta[j];
+          }
+        }
+      });
+    }
+
+    template<>
+    void layer_norm_axis<TARGET_ISA>(const float* input,
+                                     const float* gamma,
+                                     const float* beta,
+                                     float* output,
+                                     dim_t outer_size,
+                                     dim_t axis_size,
+                                     dim_t inner_size,
+                                     float epsilon) {
+      parallel_for(0, outer_size, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          for (dim_t j = 0; j < inner_size; ++j) {
+            // mean = sum(x)/n
+            // rstd = 1/sqrt(var(x)) where var(x) = sum((x-mean)^2)/n = sum(x^2)/n - mean^2
+
+            float sum = 0.f;
+            float sum_squares = 0.f;
+
+            for (dim_t k = 0; k < axis_size; ++k) {
+              const dim_t index = i * axis_size * inner_size + k * inner_size + j;
+              const float x = input[index];
+              sum += x;
+              sum_squares += x * x;
+            }
+
+            const float mean = sum / axis_size;
+            const float variance = std::max(sum_squares / axis_size - mean * mean, 0.f);
+            const float rstd = 1.f / std::sqrt(variance + epsilon);
+
+            if (gamma && beta) {
+              for (dim_t k = 0; k < axis_size; ++k) {
+                const dim_t index = i * axis_size * inner_size + k * inner_size + j;
+                output[index] = (input[index] - mean) * rstd * gamma[k] + beta[k];
+              }
+            } else {
+              for (dim_t k = 0; k < axis_size; ++k) {
+                const dim_t index = i * axis_size * inner_size + k * inner_size + j;
+                output[index] = (input[index] - mean) * rstd;
+              }
+            }
           }
         }
       });

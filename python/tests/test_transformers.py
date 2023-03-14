@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -492,6 +493,50 @@ def test_transformers_whisper(
 
         transcription = processor.decode(token_ids)
         assert transcription == expected_transcription
+
+
+@test_utils.only_on_linux
+@test_utils.on_available_devices
+def test_transformers_whisper_align(tmpdir, device):
+    import transformers
+
+    test_case_path = os.path.join(
+        test_utils.get_data_dir(), "audio", "jfk_alignments.json"
+    )
+
+    with open(test_case_path) as test_case_file:
+        test_case = json.load(test_case_file)
+
+    model_name = test_case["model"]
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
+    audio = np.load(audio_path)
+
+    processor = transformers.WhisperProcessor.from_pretrained(model_name)
+    inputs = processor(audio, sampling_rate=16000)
+    features = inputs.input_features[0]
+    features = np.expand_dims(features, 0)
+    features = ctranslate2.StorageView.from_array(features)
+
+    model = ctranslate2.models.Whisper(output_dir, device=device)
+
+    result = model.align(
+        features,
+        test_case["start_sequence"],
+        [test_case["text_tokens"]],
+        1100,
+    )[0]
+
+    assert np.sum(result.text_token_probs) == pytest.approx(
+        test_case["expected_text_token_probs_sum"], abs=1e-3
+    )
+
+    assert result.alignments == [
+        tuple(pair) for pair in test_case["expected_alignments"]
+    ]
 
 
 @test_utils.only_on_linux

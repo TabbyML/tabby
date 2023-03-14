@@ -31,7 +31,8 @@ namespace ctranslate2 {
       virtual void operator()(const StorageView& ids,
                               const StorageView& lengths,
                               DecoderState& state,
-                              StorageView& logits) = 0;
+                              StorageView& logits,
+                              StorageView* attention = nullptr) = 0;
 
       // Update the decoder state in greedy search.
       void update_state(DecoderState& state, const StorageView& alive_batches) const;
