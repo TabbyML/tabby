@@ -17,8 +17,8 @@ def _get_model_path():
     )
 
 
-def _get_model_path_with_vmap(tmpdir, tokens):
-    model_dir = str(tmpdir.join("model"))
+def _get_model_path_with_vmap(tmp_dir, tokens):
+    model_dir = str(tmp_dir.join("model"))
     shutil.copytree(_get_model_path(), model_dir)
     with open(os.path.join(model_dir, "vmap.txt"), "w", encoding="utf-8") as vmap:
         vmap.write("\t%s\n" % " ".join(tokens))
@@ -47,10 +47,10 @@ def test_invalid_device_settings():
         ctranslate2.Translator(model_path, device_index=[0, 1])
 
 
-def test_contains_model(tmpdir):
+def test_contains_model(tmp_dir):
     assert ctranslate2.contains_model(_get_model_path())
 
-    model_dir = tmpdir.join("model")
+    model_dir = tmp_dir.join("model")
     model_dir.ensure(dir=1)
     assert not ctranslate2.contains_model(str(model_dir))
     model_dir.join("model.bin").ensure(file=1)
@@ -151,9 +151,9 @@ def test_iterable_translation():
         next(translator.translate_iterable(iter([])))
 
 
-def test_file_translation(tmpdir):
-    input_path = str(tmpdir.join("input.txt"))
-    output_path = str(tmpdir.join("output.txt"))
+def test_file_translation(tmp_dir):
+    input_path = str(tmp_dir.join("input.txt"))
+    output_path = str(tmp_dir.join("output.txt"))
     with open(input_path, "w", encoding="utf-8") as input_file:
         input_file.write("آ ت ز م و ن")
         input_file.write("\n")
@@ -176,9 +176,9 @@ def test_file_translation(tmpdir):
     assert repr(stats) == expected_repr
 
 
-def test_raw_file_translation(tmpdir):
-    input_path = str(tmpdir.join("input.txt"))
-    output_path = str(tmpdir.join("output.txt"))
+def test_raw_file_translation(tmp_dir):
+    input_path = str(tmp_dir.join("input.txt"))
+    output_path = str(tmp_dir.join("output.txt"))
     with open(input_path, "w", encoding="utf-8") as input_file:
         input_file.write("آتزمون")
         input_file.write("\n")
@@ -211,10 +211,10 @@ def test_raw_file_translation(tmpdir):
         assert lines[1].strip() == "achison"
 
 
-def test_file_translation_with_prefix(tmpdir):
-    source_path = str(tmpdir.join("input.txt"))
-    target_path = str(tmpdir.join("target.txt"))
-    output_path = str(tmpdir.join("output.txt"))
+def test_file_translation_with_prefix(tmp_dir):
+    source_path = str(tmp_dir.join("input.txt"))
+    target_path = str(tmp_dir.join("target.txt"))
+    output_path = str(tmp_dir.join("output.txt"))
     with open(source_path, "w", encoding="utf-8") as source_file:
         source_file.write("آ ت ز م و ن")
         source_file.write("\n")
@@ -248,10 +248,10 @@ def test_file_translation_with_prefix(tmpdir):
         assert lines[1].strip() == "a c h i s o n"
 
 
-def test_raw_file_translation_with_prefix(tmpdir):
-    source_path = str(tmpdir.join("input.txt"))
-    target_path = str(tmpdir.join("target.txt"))
-    output_path = str(tmpdir.join("output.txt"))
+def test_raw_file_translation_with_prefix(tmp_dir):
+    source_path = str(tmp_dir.join("input.txt"))
+    target_path = str(tmp_dir.join("target.txt"))
+    output_path = str(tmp_dir.join("output.txt"))
     with open(source_path, "w", encoding="utf-8") as source_file:
         source_file.write("آتزمون")
         source_file.write("\n")
@@ -334,8 +334,8 @@ def test_hard_target_prefix():
 
 
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_hard_target_prefix_with_vmap(tmpdir, beam_size):
-    model_dir = _get_model_path_with_vmap(tmpdir, ["t", "z", "m", "o", "n"])
+def test_hard_target_prefix_with_vmap(tmp_dir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmp_dir, ["t", "z", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]],
@@ -392,8 +392,8 @@ def test_weakly_biased_target_prefix(beam_size):
 
 
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_repetition_penalty_with_vmap(tmpdir, beam_size):
-    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+def test_repetition_penalty_with_vmap(tmp_dir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmp_dir, ["a", "t", "z", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
         [["ن"] * 3],
@@ -407,8 +407,8 @@ def test_repetition_penalty_with_vmap(tmpdir, beam_size):
 
 
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_no_repeat_ngram_size_with_vmap(tmpdir, beam_size):
-    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+def test_no_repeat_ngram_size_with_vmap(tmp_dir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmp_dir, ["a", "t", "z", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     no_repeat_ngram_size = 3
     output = translator.translate_batch(
@@ -426,9 +426,9 @@ def test_no_repeat_ngram_size_with_vmap(tmpdir, beam_size):
 
 
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_suppress_sequences_with_vmap(tmpdir, beam_size):
+def test_suppress_sequences_with_vmap(tmp_dir, beam_size):
     model_dir = _get_model_path_with_vmap(
-        tmpdir, ["a", "t", "z", "s", "m", "o", "u", "n"]
+        tmp_dir, ["a", "t", "z", "s", "m", "o", "u", "n"]
     )
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
@@ -465,8 +465,8 @@ def test_min_decoding_length():
 
 
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_min_decoding_length_with_vmap(tmpdir, beam_size):
-    model_dir = _get_model_path_with_vmap(tmpdir, ["a", "t", "z", "m", "o", "n"])
+def test_min_decoding_length_with_vmap(tmp_dir, beam_size):
+    model_dir = _get_model_path_with_vmap(tmp_dir, ["a", "t", "z", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]],
@@ -510,8 +510,8 @@ def test_return_alternatives():
     assert output[0].hypotheses[1] == ["a", "t", "s", "u", "m", "o", "n"]
 
 
-def test_return_alternatives_with_vmap(tmpdir):
-    model_dir = _get_model_path_with_vmap(tmpdir, ["z", "s", "u", "m", "o", "n"])
+def test_return_alternatives_with_vmap(tmp_dir):
+    model_dir = _get_model_path_with_vmap(tmp_dir, ["z", "s", "u", "m", "o", "n"])
     translator = ctranslate2.Translator(model_dir)
     output = translator.translate_batch(
         [["آ", "ت", "ز", "م", "و", "ن"]],
@@ -544,7 +544,7 @@ def test_random_sampling():
     assert output[0].scores == list(sorted(output[0].scores, reverse=True))
 
 
-def test_score_api(tmpdir):
+def test_score_api(tmp_dir):
     source = [
         ["آ", "ت", "ز", "م", "و", "ن"],
         ["آ", "ت", "ش", "ي", "س", "و", "ن"],
@@ -588,9 +588,9 @@ def test_score_api(tmpdir):
         for log_probs, expected_log_probs in zip(batch_log_probs, expected):
             np.testing.assert_allclose(log_probs, expected_log_probs, rtol=1e-4)
 
-    source_path = str(tmpdir.join("source.txt"))
-    target_path = str(tmpdir.join("target.txt"))
-    output_path = str(tmpdir.join("output.txt"))
+    source_path = str(tmp_dir.join("source.txt"))
+    target_path = str(tmp_dir.join("target.txt"))
+    output_path = str(tmp_dir.join("output.txt"))
     test_utils.write_tokens(source, source_path)
     test_utils.write_tokens(target, target_path)
 

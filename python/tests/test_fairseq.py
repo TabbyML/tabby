@@ -7,7 +7,7 @@ import ctranslate2
 
 
 @test_utils.skip_on_windows
-def test_fairseq_model_conversion(tmpdir):
+def test_fairseq_model_conversion(tmp_dir):
     data_dir = os.path.join(
         test_utils.get_data_dir(),
         "models",
@@ -17,7 +17,7 @@ def test_fairseq_model_conversion(tmpdir):
     converter = ctranslate2.converters.FairseqConverter(
         os.path.join(data_dir, "model.pt"), data_dir
     )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
@@ -42,7 +42,7 @@ def test_fairseq_model_conversion(tmpdir):
 
 
 @test_utils.skip_on_windows
-def test_fairseq_user_start_token(tmpdir):
+def test_fairseq_user_start_token(tmp_dir):
     data_dir = os.path.join(
         test_utils.get_data_dir(),
         "models",
@@ -52,7 +52,7 @@ def test_fairseq_user_start_token(tmpdir):
     converter = ctranslate2.converters.FairseqConverter(
         os.path.join(data_dir, "model.pt"), data_dir, no_default_special_tokens=True
     )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
     translator = ctranslate2.Translator(output_dir)
     tokens = ["آ", "ت", "ز", "م", "و", "ن"]

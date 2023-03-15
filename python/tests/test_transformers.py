@@ -12,9 +12,12 @@ import ctranslate2
 @pytest.fixture
 def clear_transformers_cache():
     """Clears the Transformers model cache after each test when running in a CI."""
-    import transformers
-
     yield
+    clear_transformers_cache_in_ci()
+
+
+def clear_transformers_cache_in_ci():
+    import transformers
 
     if os.environ.get("CI") == "true":
         shutil.rmtree(transformers.utils.default_cache_path)
@@ -116,7 +119,7 @@ _TRANSFORMERS_TRANSLATION_TESTS = [
 )
 def test_transformers_translation(
     clear_transformers_cache,
-    tmpdir,
+    tmp_dir,
     model,
     source_tokens,
     target_tokens,
@@ -124,7 +127,7 @@ def test_transformers_translation(
     kwargs,
 ):
     converter = ctranslate2.converters.TransformersConverter(model)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
     if not isinstance(expected_tokens, list):
@@ -181,14 +184,14 @@ _TRANSFORMERS_GENERATION_TESTS = [
 )
 def test_transformers_generation(
     clear_transformers_cache,
-    tmpdir,
+    tmp_dir,
     model,
     start_tokens,
     max_length,
     expected_tokens,
 ):
     converter = ctranslate2.converters.TransformersConverter(model)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
     generator = ctranslate2.Generator(output_dir)
@@ -204,11 +207,11 @@ def test_transformers_generation(
 
 
 @test_utils.only_on_linux
-def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
+def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmp_dir):
     converter = ctranslate2.converters.TransformersConverter(
         "Helsinki-NLP/opus-mt-en-de"
     )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
     with open(os.path.join(output_dir, "shared_vocabulary.txt")) as vocab_file:
@@ -219,11 +222,13 @@ def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmpdir):
 
 @test_utils.only_on_linux
 @pytest.mark.parametrize("beam_size", [1, 2])
-def test_transformers_marianmt_disable_unk(clear_transformers_cache, tmpdir, beam_size):
+def test_transformers_marianmt_disable_unk(
+    clear_transformers_cache, tmp_dir, beam_size
+):
     converter = ctranslate2.converters.TransformersConverter(
         "Helsinki-NLP/opus-mt-en-roa"
     )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
     tokens = ">>ind<< ▁The ▁Prime <unk> ▁is ▁coming ▁back ▁tomorrow . </s>".split()
@@ -232,352 +237,363 @@ def test_transformers_marianmt_disable_unk(clear_transformers_cache, tmpdir, bea
     assert "<unk>" not in output[0].hypotheses[0]
 
 
-@test_utils.only_on_linux
-def test_transformers_lm_scoring(tmpdir):
-    converter = ctranslate2.converters.TransformersConverter("gpt2")
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-    generator = ctranslate2.Generator(output_dir)
+class TestGeneration:
+    @classmethod
+    def teardown_class(cls):
+        clear_transformers_cache_in_ci()
 
-    tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
-    output = generator.score_batch([tokens])[0]
-    assert output.tokens == tokens[1:]
-    assert len(output.log_probs) == len(output.tokens)
+    @test_utils.only_on_linux
+    def test_transformers_lm_scoring(self, tmp_dir):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
 
-    # Test empty inputs.
-    assert generator.score_batch([]) == []
+        tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
+        output = generator.score_batch([tokens])[0]
+        assert output.tokens == tokens[1:]
+        assert len(output.log_probs) == len(output.tokens)
 
-    output = generator.score_batch([[], tokens])[0]
-    assert not output.tokens
-    assert not output.log_probs
+        # Test empty inputs.
+        assert generator.score_batch([]) == []
 
-    output = generator.score_batch([["<|endoftext|>"]])[0]
-    assert not output.tokens
-    assert not output.log_probs
+        output = generator.score_batch([[], tokens])[0]
+        assert not output.tokens
+        assert not output.log_probs
 
+        output = generator.score_batch([["<|endoftext|>"]])[0]
+        assert not output.tokens
+        assert not output.log_probs
 
-@test_utils.only_on_linux
-@test_utils.on_available_devices
-@pytest.mark.parametrize("return_log_probs", [True, False])
-@pytest.mark.parametrize("tensor_input", [True, False])
-def test_transformers_lm_forward(tmpdir, device, return_log_probs, tensor_input):
-    import torch
-    import transformers
+    @test_utils.only_on_linux
+    @test_utils.on_available_devices
+    @pytest.mark.parametrize("return_log_probs", [True, False])
+    @pytest.mark.parametrize("tensor_input", [True, False])
+    def test_transformers_lm_forward(
+        self, tmp_dir, device, return_log_probs, tensor_input
+    ):
+        import torch
+        import transformers
 
-    model_name = "gpt2"
+        model_name = "gpt2"
 
-    model = transformers.GPT2LMHeadModel.from_pretrained(model_name)
-    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
-    converter = ctranslate2.converters.TransformersConverter(model_name)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-    generator = ctranslate2.Generator(output_dir, device=device)
+        model = transformers.GPT2LMHeadModel.from_pretrained(model_name)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+        converter = ctranslate2.converters.TransformersConverter(model_name)
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir, device=device)
 
-    text = ["Hello world!"]
+        text = ["Hello world!"]
 
-    with torch.no_grad():
-        inputs = tokenizer(text, return_tensors="pt")
-        inputs.to(device)
-        model.to(device)
-        output = model(**inputs)
-        ref_output = output.logits
-        if return_log_probs:
-            ref_output = torch.nn.functional.log_softmax(ref_output, dim=-1)
-        ref_output = ref_output.cpu().numpy()
+        with torch.no_grad():
+            inputs = tokenizer(text, return_tensors="pt")
+            inputs.to(device)
+            model.to(device)
+            output = model(**inputs)
+            ref_output = output.logits
+            if return_log_probs:
+                ref_output = torch.nn.functional.log_softmax(ref_output, dim=-1)
+            ref_output = ref_output.cpu().numpy()
 
-    kwargs = dict(return_log_probs=return_log_probs)
+        kwargs = dict(return_log_probs=return_log_probs)
 
-    if tensor_input:
-        inputs = tokenizer(text, return_length=True, return_tensors="pt")
-        inputs.to(device)
-        ids = inputs.input_ids.to(torch.int32)
-        lengths = inputs.length.to(torch.int32)
+        if tensor_input:
+            inputs = tokenizer(text, return_length=True, return_tensors="pt")
+            inputs.to(device)
+            ids = inputs.input_ids.to(torch.int32)
+            lengths = inputs.length.to(torch.int32)
+
+            if device == "cpu":
+                ids = ids.numpy()
+                lengths = lengths.numpy()
+
+            ids = ctranslate2.StorageView.from_array(ids)
+            lengths = ctranslate2.StorageView.from_array(lengths)
+
+            with pytest.raises(ValueError, match="lengths"):
+                generator.forward_batch(ids, **kwargs)
+            output = generator.forward_batch(ids, lengths, **kwargs)
+
+        else:
+            ids = tokenizer(text).input_ids
+            output = generator.forward_batch(ids, **kwargs)
 
         if device == "cpu":
-            ids = ids.numpy()
-            lengths = lengths.numpy()
+            output = np.array(output)
+        else:
+            output = torch.as_tensor(output, device=device).cpu().numpy()
 
-        ids = ctranslate2.StorageView.from_array(ids)
-        lengths = ctranslate2.StorageView.from_array(lengths)
+        assert output.shape == ref_output.shape
+        np.testing.assert_allclose(output, ref_output, rtol=1e-2)
 
-        with pytest.raises(ValueError, match="lengths"):
-            generator.forward_batch(ids, **kwargs)
-        output = generator.forward_batch(ids, lengths, **kwargs)
+    @test_utils.only_on_linux
+    def test_transformers_generator_on_iterables(self, tmp_dir):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
 
-    else:
-        ids = tokenizer(text).input_ids
-        output = generator.forward_batch(ids, **kwargs)
+        start_tokens = ["<|endoftext|>"]
+        tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
+        output = next(generator.generate_iterable(iter([start_tokens]), max_length=10))
+        assert output.sequences[0] == tokens
 
-    if device == "cpu":
-        output = np.array(output)
-    else:
-        output = torch.as_tensor(output, device=device).cpu().numpy()
+        output = next(generator.score_iterable(iter([tokens])))
+        assert output.tokens == tokens[1:]
+        assert len(output.log_probs) == len(output.tokens)
 
-    assert output.shape == ref_output.shape
-    np.testing.assert_allclose(output, ref_output, rtol=1e-2)
+        # Test empty iterables.
+        with pytest.raises(StopIteration):
+            next(generator.score_iterable(iter([])))
+        with pytest.raises(StopIteration):
+            next(generator.generate_iterable(iter([])))
 
+    @test_utils.only_on_linux
+    def test_transformers_generator_suppress_sequences(self, tmp_dir):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
 
-@test_utils.only_on_linux
-def test_transformers_generator_on_iterables(tmpdir):
-    converter = ctranslate2.converters.TransformersConverter("gpt2")
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-    generator = ctranslate2.Generator(output_dir)
-
-    start_tokens = ["<|endoftext|>"]
-    tokens = "Ċ The Ġfirst Ġtime ĠI Ġsaw Ġthe Ġnew Ġversion Ġof".split()
-    output = next(generator.generate_iterable(iter([start_tokens]), max_length=10))
-    assert output.sequences[0] == tokens
-
-    output = next(generator.score_iterable(iter([tokens])))
-    assert output.tokens == tokens[1:]
-    assert len(output.log_probs) == len(output.tokens)
-
-    # Test empty iterables.
-    with pytest.raises(StopIteration):
-        next(generator.score_iterable(iter([])))
-    with pytest.raises(StopIteration):
-        next(generator.generate_iterable(iter([])))
-
-
-@test_utils.only_on_linux
-def test_transformers_generator_suppress_sequences(tmpdir):
-    converter = ctranslate2.converters.TransformersConverter("gpt2")
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-    generator = ctranslate2.Generator(output_dir)
-
-    output = generator.generate_batch(
-        [["<|endoftext|>"]],
-        max_length=10,
-        suppress_sequences=[["Ġfirst", "Ġtime"]],
-    )
-
-    expected_tokens = "Ċ The Ġfirst Ġof Ġthe Ġthree Ġnew Ġseries Ġof Ġthe".split()
-    assert output[0].sequences[0] == expected_tokens
-
-
-@test_utils.only_on_linux
-@test_utils.on_available_devices
-@pytest.mark.parametrize(
-    "model_name,prompts,expected_transcriptions,expected_no_speech_probs",
-    [
-        (
-            "openai/whisper-tiny",
-            [
-                [
-                    "<|startoftranscript|>",
-                    "<|en|>",
-                    "<|transcribe|>",
-                    "<|notimestamps|>",
-                ],
-                [
-                    "<|startoftranscript|>",
-                    "<|en|>",
-                    "<|transcribe|>",
-                    "<|notimestamps|>",
-                    "ĠAnd",
-                    "Ġthus",
-                    "Ġmy",
-                ],
-            ],
-            [
-                " Mr. Quilter is the apostle of the middle classes and we are glad"
-                " to welcome his gospel.",
-                " And thus my fellow Americans ask not what your country can do for you,"
-                " ask what you can do for your country.",
-            ],
-            [
-                pytest.approx(0.0022832120303064585, abs=1e-4),
-                pytest.approx(0.06885894387960434, abs=1e-3),
-            ],
-        ),
-        (
-            "openai/whisper-tiny",
-            [
-                ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
-                ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
-            ],
-            [
-                " Mr. Quilter is the apostle of the middle classes and we are glad"
-                " to welcome his gospel.",
-                " And so, my fellow Americans, ask not what your country can do for you,"
-                " ask what you can do for your country.",
-            ],
-            [
-                pytest.approx(0.0022832120303064585, abs=1e-4),
-                pytest.approx(0.06885894387960434, abs=1e-3),
-            ],
-        ),
-        (
-            "openai/whisper-tiny.en",
-            [["<|startoftranscript|>"], ["<|startoftranscript|>"]],
-            [
-                " Mr. Quilter is the apostle of the middle classes, and we are glad"
-                " to welcome his gospel.",
-                " And so, my fellow Americans ask not what your country can do for you"
-                " ask what you can do for your country.",
-            ],
-            [
-                pytest.approx(0.02644546702504158, abs=1e-4),
-                pytest.approx(0.062380101531744, abs=1e-3),
-            ],
-        ),
-    ],
-)
-def test_transformers_whisper(
-    tmpdir,
-    device,
-    model_name,
-    prompts,
-    expected_transcriptions,
-    expected_no_speech_probs,
-):
-    import transformers
-
-    converter = ctranslate2.converters.TransformersConverter(model_name)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-
-    audio_paths = [
-        os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy"),
-        os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy"),
-    ]
-    audio = list(map(np.load, audio_paths))
-
-    processor = transformers.WhisperProcessor.from_pretrained(model_name)
-
-    def _get_features(audio):
-        # Pad after computing the log-Mel spectrogram to match the openai/whisper behavior.
-        inputs = processor(audio, padding=False, sampling_rate=16000)
-        features = inputs.input_features[0]
-        features = np.pad(features, [(0, 0), (0, 3000 - features.shape[-1])])
-        return features
-
-    features = np.stack(list(map(_get_features, audio)))
-    features = ctranslate2.StorageView.from_array(features)
-
-    model = ctranslate2.models.Whisper(output_dir, device=device)
-
-    assert model.is_multilingual == (not model_name.endswith(".en"))
-
-    if model.is_multilingual:
-        for result in model.detect_language(features):
-            best_lang, best_prob = result[0]
-            assert best_lang == "<|en|>"
-            assert best_prob > 0.9
-    else:
-        with pytest.raises(RuntimeError, match="multilingual"):
-            model.detect_language(features)
-
-    results = model.generate(
-        features,
-        prompts,
-        beam_size=2,
-        num_hypotheses=2,
-        return_no_speech_prob=True,
-    )
-
-    timestamp_begin = processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>") + 1
-
-    for prompt, result, expected_transcription, expected_no_speech_prob in zip(
-        prompts, results, expected_transcriptions, expected_no_speech_probs
-    ):
-        assert len(result.sequences_ids) == 2
-        assert result.no_speech_prob == expected_no_speech_prob
-
-        for tokens in result.sequences_ids:
-            if "<|notimestamps|>" in prompt:
-                assert all(token < timestamp_begin for token in tokens)
-            else:
-                assert tokens[0] >= timestamp_begin
-                assert tokens[-1] >= timestamp_begin
-                assert tokens[-1] > tokens[0]
-
-        token_ids = list(
-            filter(lambda token: token < timestamp_begin, result.sequences_ids[0])
+        output = generator.generate_batch(
+            [["<|endoftext|>"]],
+            max_length=10,
+            suppress_sequences=[["Ġfirst", "Ġtime"]],
         )
 
-        transcription = processor.decode(token_ids)
-        assert transcription == expected_transcription
+        expected_tokens = "Ċ The Ġfirst Ġof Ġthe Ġthree Ġnew Ġseries Ġof Ġthe".split()
+        assert output[0].sequences[0] == expected_tokens
 
 
-@test_utils.only_on_linux
-@test_utils.on_available_devices
-def test_transformers_whisper_align(tmpdir, device):
-    import transformers
+class TestWhisper:
+    @classmethod
+    def teardown_class(cls):
+        clear_transformers_cache_in_ci()
 
-    test_case_path = os.path.join(
-        test_utils.get_data_dir(), "audio", "jfk_alignments.json"
+    @test_utils.only_on_linux
+    @test_utils.on_available_devices
+    @pytest.mark.parametrize(
+        "model_name,prompts,expected_transcriptions,expected_no_speech_probs",
+        [
+            (
+                "openai/whisper-tiny",
+                [
+                    [
+                        "<|startoftranscript|>",
+                        "<|en|>",
+                        "<|transcribe|>",
+                        "<|notimestamps|>",
+                    ],
+                    [
+                        "<|startoftranscript|>",
+                        "<|en|>",
+                        "<|transcribe|>",
+                        "<|notimestamps|>",
+                        "ĠAnd",
+                        "Ġthus",
+                        "Ġmy",
+                    ],
+                ],
+                [
+                    " Mr. Quilter is the apostle of the middle classes and we are glad"
+                    " to welcome his gospel.",
+                    " And thus my fellow Americans ask not what your country can do for you,"
+                    " ask what you can do for your country.",
+                ],
+                [
+                    pytest.approx(0.0022832120303064585, abs=1e-4),
+                    pytest.approx(0.06885894387960434, abs=1e-3),
+                ],
+            ),
+            (
+                "openai/whisper-tiny",
+                [
+                    ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
+                    ["<|startoftranscript|>", "<|en|>", "<|transcribe|>"],
+                ],
+                [
+                    " Mr. Quilter is the apostle of the middle classes and we are glad"
+                    " to welcome his gospel.",
+                    " And so, my fellow Americans, ask not what your country can do for you,"
+                    " ask what you can do for your country.",
+                ],
+                [
+                    pytest.approx(0.0022832120303064585, abs=1e-4),
+                    pytest.approx(0.06885894387960434, abs=1e-3),
+                ],
+            ),
+            (
+                "openai/whisper-tiny.en",
+                [["<|startoftranscript|>"], ["<|startoftranscript|>"]],
+                [
+                    " Mr. Quilter is the apostle of the middle classes, and we are glad"
+                    " to welcome his gospel.",
+                    " And so, my fellow Americans ask not what your country can do for you"
+                    " ask what you can do for your country.",
+                ],
+                [
+                    pytest.approx(0.02644546702504158, abs=1e-4),
+                    pytest.approx(0.062380101531744, abs=1e-3),
+                ],
+            ),
+        ],
     )
+    def test_transformers_whisper(
+        self,
+        tmp_dir,
+        device,
+        model_name,
+        prompts,
+        expected_transcriptions,
+        expected_no_speech_probs,
+    ):
+        import transformers
 
-    with open(test_case_path) as test_case_file:
-        test_case = json.load(test_case_file)
+        converter = ctranslate2.converters.TransformersConverter(model_name)
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
 
-    model_name = test_case["model"]
-    converter = ctranslate2.converters.TransformersConverter(model_name)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
+        audio_paths = [
+            os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy"),
+            os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy"),
+        ]
+        audio = list(map(np.load, audio_paths))
 
-    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
-    audio = np.load(audio_path)
+        processor = transformers.WhisperProcessor.from_pretrained(model_name)
 
-    processor = transformers.WhisperProcessor.from_pretrained(model_name)
-    inputs = processor(audio, sampling_rate=16000)
-    features = inputs.input_features[0]
-    features = np.expand_dims(features, 0)
-    features = ctranslate2.StorageView.from_array(features)
+        def _get_features(audio):
+            # Pad after computing the log-Mel spectrogram to match the openai/whisper behavior.
+            inputs = processor(audio, padding=False, sampling_rate=16000)
+            features = inputs.input_features[0]
+            features = np.pad(features, [(0, 0), (0, 3000 - features.shape[-1])])
+            return features
 
-    model = ctranslate2.models.Whisper(output_dir, device=device)
+        features = np.stack(list(map(_get_features, audio)))
+        features = ctranslate2.StorageView.from_array(features)
 
-    result = model.align(
-        features,
-        test_case["start_sequence"],
-        [test_case["text_tokens"]],
-        1100,
-    )[0]
+        model = ctranslate2.models.Whisper(output_dir, device=device)
 
-    assert np.sum(result.text_token_probs) == pytest.approx(
-        test_case["expected_text_token_probs_sum"], abs=1e-3
-    )
+        assert model.is_multilingual == (not model_name.endswith(".en"))
 
-    assert result.alignments == [
-        tuple(pair) for pair in test_case["expected_alignments"]
-    ]
+        if model.is_multilingual:
+            for result in model.detect_language(features):
+                best_lang, best_prob = result[0]
+                assert best_lang == "<|en|>"
+                assert best_prob > 0.9
+        else:
+            with pytest.raises(RuntimeError, match="multilingual"):
+                model.detect_language(features)
 
+        results = model.generate(
+            features,
+            prompts,
+            beam_size=2,
+            num_hypotheses=2,
+            return_no_speech_prob=True,
+        )
 
-@test_utils.only_on_linux
-def test_transformers_whisper_invalid_shape(tmpdir):
-    import transformers
+        timestamp_begin = (
+            processor.tokenizer.convert_tokens_to_ids("<|notimestamps|>") + 1
+        )
 
-    model_name = "openai/whisper-tiny"
-    converter = ctranslate2.converters.TransformersConverter(model_name)
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
+        for prompt, result, expected_transcription, expected_no_speech_prob in zip(
+            prompts, results, expected_transcriptions, expected_no_speech_probs
+        ):
+            assert len(result.sequences_ids) == 2
+            assert result.no_speech_prob == expected_no_speech_prob
 
-    audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
-    audio = np.load(audio_path)
+            for tokens in result.sequences_ids:
+                if "<|notimestamps|>" in prompt:
+                    assert all(token < timestamp_begin for token in tokens)
+                else:
+                    assert tokens[0] >= timestamp_begin
+                    assert tokens[-1] >= timestamp_begin
+                    assert tokens[-1] > tokens[0]
 
-    processor = transformers.WhisperProcessor.from_pretrained(model_name)
-    inputs = processor(audio, padding=False, return_tensors="np", sampling_rate=16000)
-    features = ctranslate2.StorageView.from_array(inputs.input_features)
+            token_ids = list(
+                filter(lambda token: token < timestamp_begin, result.sequences_ids[0])
+            )
 
-    model = ctranslate2.models.Whisper(output_dir)
+            transcription = processor.decode(token_ids)
+            assert transcription == expected_transcription
 
-    with pytest.raises(ValueError) as exception_info:
-        model.detect_language(features)
+    @test_utils.only_on_linux
+    @test_utils.on_available_devices
+    def test_transformers_whisper_align(self, tmp_dir, device):
+        import transformers
 
-    error_message = str(exception_info.value)
-    assert "(1, 80, 3000)" in error_message
-    assert "(1, 80, 1100)" in error_message
+        test_case_path = os.path.join(
+            test_utils.get_data_dir(), "audio", "jfk_alignments.json"
+        )
 
+        with open(test_case_path) as test_case_file:
+            test_case = json.load(test_case_file)
 
-@test_utils.only_on_linux
-def test_transformers_whisper_include_tokenizer_json(tmpdir):
-    model_name = "openai/whisper-tiny"
-    converter = ctranslate2.converters.TransformersConverter(
-        model_name, copy_files=["tokenizer.json"]
-    )
-    output_dir = str(tmpdir.join("ctranslate2_model"))
-    output_dir = converter.convert(output_dir)
-    assert os.path.isfile(os.path.join(output_dir, "tokenizer.json"))
+        model_name = test_case["model"]
+        converter = ctranslate2.converters.TransformersConverter(model_name)
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+
+        audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
+        audio = np.load(audio_path)
+
+        processor = transformers.WhisperProcessor.from_pretrained(model_name)
+        inputs = processor(audio, sampling_rate=16000)
+        features = inputs.input_features[0]
+        features = np.expand_dims(features, 0)
+        features = ctranslate2.StorageView.from_array(features)
+
+        model = ctranslate2.models.Whisper(output_dir, device=device)
+
+        result = model.align(
+            features,
+            test_case["start_sequence"],
+            [test_case["text_tokens"]],
+            1100,
+        )[0]
+
+        assert np.sum(result.text_token_probs) == pytest.approx(
+            test_case["expected_text_token_probs_sum"], abs=1e-3
+        )
+
+        assert result.alignments == [
+            tuple(pair) for pair in test_case["expected_alignments"]
+        ]
+
+    @test_utils.only_on_linux
+    def test_transformers_whisper_invalid_shape(self, tmp_dir):
+        import transformers
+
+        model_name = "openai/whisper-tiny"
+        converter = ctranslate2.converters.TransformersConverter(model_name)
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+
+        audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
+        audio = np.load(audio_path)
+
+        processor = transformers.WhisperProcessor.from_pretrained(model_name)
+        inputs = processor(
+            audio, padding=False, return_tensors="np", sampling_rate=16000
+        )
+        features = ctranslate2.StorageView.from_array(inputs.input_features)
+
+        model = ctranslate2.models.Whisper(output_dir)
+
+        with pytest.raises(ValueError) as exception_info:
+            model.detect_language(features)
+
+        error_message = str(exception_info.value)
+        assert "(1, 80, 3000)" in error_message
+        assert "(1, 80, 1100)" in error_message
+
+    @test_utils.only_on_linux
+    def test_transformers_whisper_include_tokenizer_json(self, tmp_dir):
+        model_name = "openai/whisper-tiny"
+        converter = ctranslate2.converters.TransformersConverter(
+            model_name, copy_files=["tokenizer.json"]
+        )
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        assert os.path.isfile(os.path.join(output_dir, "tokenizer.json"))
