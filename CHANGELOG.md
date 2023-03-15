@@ -4,6 +4,16 @@
 
 ### Fixes and improvements
 
+## [v3.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.9.0) (2023-03-15)
+
+* Support BLOOM language models
+* Add method `Whisper.align` to return the text/audio alignment and implement word-level timestamps
+
+### Fixes and improvements
+
+* Do not force `intra_threads` to 1 when loading a model on the GPU as some ops may still run on the CPU
+* Disable multithreading when copying a batch of small arrays
+
 ## [v3.8.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.8.0) (2023-03-06)
 
 ### New features
