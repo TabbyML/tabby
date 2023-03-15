@@ -99,7 +99,8 @@ namespace ctranslate2 {
                                              StorageView* attention,
                                              const Padder* input_padder,
                                              const Padder* memory_padder,
-                                             bool return_normalized_attention) const {
+                                             bool return_normalized_attention,
+                                             const StorageView* alibi) const {
       PROFILE("TransformerDecoderLayer");
       _self_attention(input,
                       input,
@@ -109,7 +110,9 @@ namespace ctranslate2 {
                       cached_self_attn_values,
                       nullptr,
                       input_padder,
-                      input_padder);
+                      input_padder,
+                      true,
+                      alibi);
 
       StorageView context(input.dtype(), input.device());
       if (_encoder_attention) {
@@ -235,6 +238,7 @@ namespace ctranslate2 {
       , _embeddings(model, scope + "/embeddings")
       , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
                                                                false))
+      , _use_alibi(model.get_flag_with_default(scope + "/alibi", false))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
@@ -246,7 +250,7 @@ namespace ctranslate2 {
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
                   model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->has_relative_position()
+      , _position_encoder(_layers.front()->has_relative_position() || _use_alibi
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
@@ -434,6 +438,13 @@ namespace ctranslate2 {
         }
       }
 
+      std::unique_ptr<StorageView> alibi;
+      if (_use_alibi) {
+        alibi = std::make_unique<StorageView>(
+          build_alibi(batch_size, _num_heads, max_time, step > 0 ? step + 1 : max_time, lengths));
+        alibi->move_to(device, dtype);
+      }
+
       std::vector<StorageView> alignment_heads;
       if (attention)
         alignment_heads.reserve(_layers.size());
@@ -471,7 +482,8 @@ namespace ctranslate2 {
                       layer_attention.get(),
                       input_padder.get(),
                       memory_padder.get(),
-                      return_normalized_attention());
+                      return_normalized_attention(),
+                      alibi.get());
         layer_in = std::move(layer_out);
 
         if (layer_attention) {

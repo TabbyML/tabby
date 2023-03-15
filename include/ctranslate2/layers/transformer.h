@@ -88,7 +88,8 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* input_padder = nullptr,
                       const Padder* memory_padder = nullptr,
-                      bool return_normalized_attention = true) const;
+                      bool return_normalized_attention = true,
+                      const StorageView* alibi = nullptr) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -190,6 +191,7 @@ namespace ctranslate2 {
       const ComputeType _compute_type;
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
+      const bool _use_alibi;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       std::unique_ptr<const StorageView> _outputs_scale;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;

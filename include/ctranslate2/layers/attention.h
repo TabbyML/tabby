@@ -10,6 +10,12 @@ namespace ctranslate2 {
                                         dim_t max_position,
                                         bool with_cache = false);
 
+    StorageView build_alibi(dim_t batch_size,
+                            dim_t num_heads,
+                            dim_t query_max_length,
+                            dim_t key_max_length,
+                            const StorageView* key_lengths = nullptr);
+
     class MultiHeadAttention : public Layer
     {
     public:
@@ -30,7 +36,8 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* queries_padder = nullptr,
                       const Padder* values_padder = nullptr,
-                      bool return_normalized_attention = true) const;
+                      bool return_normalized_attention = true,
+                      const StorageView* alibi = nullptr) const;
 
       bool has_relative_position() const {
         return _relative_position_keys || _relative_attention_bias;

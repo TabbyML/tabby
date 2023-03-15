@@ -3,6 +3,7 @@
 CTranslate2 supports selected models from Hugging Face's [Transformers](https://github.com/huggingface/transformers). The following models are currently supported:
 
 * BART
+* BLOOM
 * M2M100
 * MarianMT
 * MBART
@@ -65,6 +66,29 @@ results = translator.translate_batch([source])
 target = results[0].hypotheses[0]
 
 print(tokenizer.decode(tokenizer.convert_tokens_to_ids(target), skip_special_tokens=True))
+```
+
+## BLOOM
+
+[BLOOM](https://huggingface.co/docs/transformers/model_doc/bloom) is a collection of multilingual language models trained by the [BigScience workshop](https://bigscience.huggingface.co/).
+
+This example uses the smallest model with 560M parameters.
+
+```bash
+ct2-transformers-converter --model bigscience/bloom-560m --output_dir bloom-560m
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("bloom-560m")
+tokenizer = transformers.AutoTokenizer.from_pretrained("bigscience/bloom-560m")
+
+text = "Hello, I am"
+start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
+results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
+print(tokenizer.decode(results[0].sequences_ids[0]))
 ```
 
 ## MarianMT

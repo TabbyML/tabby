@@ -102,6 +102,47 @@ namespace ctranslate2 {
       return values_t;
     }
 
+    StorageView build_alibi(dim_t batch_size,
+                            dim_t num_heads,
+                            dim_t query_max_length,
+                            dim_t key_max_length,
+                            const StorageView* key_lengths) {
+      const float closest_power_of_2_f = std::pow(2.f, std::floor(std::log2f(num_heads)));
+      const dim_t closest_power_of_2 = closest_power_of_2_f;
+
+      const float base = std::pow(2.f, -std::pow(2.f, -(std::log2f(closest_power_of_2_f) - 3.f)));
+
+      std::vector<float> slopes;
+      slopes.reserve(closest_power_of_2);
+      for (dim_t power = 1; power <= closest_power_of_2; ++power)
+        slopes.emplace_back(std::pow(base, float(power)));
+
+      if (closest_power_of_2 != num_heads) {
+        const float extra_base = (
+          std::pow(2.f, -std::pow(2.f, -(std::log2f(2 * closest_power_of_2_f) - 3.f))));
+        const dim_t num_remaining_heads = std::min(
+          closest_power_of_2, num_heads - closest_power_of_2);
+
+        for (dim_t power = 1; power <= 2 * num_remaining_heads; power += 2)
+          slopes.emplace_back(std::pow(extra_base, float(power)));
+      }
+
+      StorageView alibi({batch_size, num_heads, query_max_length, key_max_length});
+
+      for (dim_t b = 0; b < batch_size; ++b) {
+        for (dim_t h = 0; h < num_heads; ++h) {
+          for (dim_t q = 0; q < query_max_length; ++q) {
+            for (dim_t k = 0; k < key_max_length; ++k) {
+              dim_t length = key_lengths ? key_lengths->scalar_at<int32_t>({b}) : key_max_length;
+              alibi.at<float>({b, h, q, k}) = k >= length ? 0 : float(k) * slopes[h];
+            }
+          }
+        }
+      }
+
+      return alibi;
+    }
+
     static void matmul_with_relative_representations(const ops::MatMul& matmul_op,
                                                      const StorageView& a,
                                                      const StorageView& b,
@@ -155,6 +196,7 @@ namespace ctranslate2 {
     static void dot_product_attention(const StorageView& queries,
                                       const StorageView& keys,
                                       const StorageView& values,
+                                      const StorageView* alibi,
                                       const StorageView* values_lengths,
                                       const StorageView* relative_position_keys,
                                       const StorageView* relative_position_values,
@@ -203,6 +245,9 @@ namespace ctranslate2 {
                                                                     position_bias.size(),
                                                                     output.size()));
       }
+
+      if (alibi)
+        ops::Add()(output, *alibi, output);
 
       StorageView attn(values.dtype(), values.device());
       ops::SoftMax()(output, values_lengths, attn);
@@ -330,7 +375,8 @@ namespace ctranslate2 {
                                         StorageView* attention,
                                         const Padder* queries_padder,
                                         const Padder* values_padder,
-                                        bool return_normalized_attention) const {
+                                        bool return_normalized_attention,
+                                        const StorageView* alibi) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -394,6 +440,7 @@ namespace ctranslate2 {
       dot_product_attention(queries_proj,
                             keys_proj,
                             values_proj,
+                            alibi,
                             values_lengths,
                             _relative_position_keys,
                             _relative_position_values,

@@ -163,6 +163,13 @@ _TRANSFORMERS_GENERATION_TESTS = [
         100,
         "Hello <|endoftext|> Hello Ġ! Ġ: D",
     ),
+    (
+        "bigscience/bloom-560m",
+        "Hello , ĠI Ġam",
+        20,
+        "Hello , ĠI Ġam Ġa Ġnew bie Ġin Ġthe Ġworld Ġof Ġweb Ġdesign Ġand ĠI Ġam "
+        "Ġlooking Ġfor Ġa Ġweb Ġdeveloper",
+    ),
 ]
 
 
