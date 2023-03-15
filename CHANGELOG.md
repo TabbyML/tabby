@@ -6,6 +6,8 @@
 
 ## [v3.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.9.0) (2023-03-15)
 
+### New features
+
 * Support BLOOM language models
 * Add method `Whisper.align` to return the text/audio alignment and implement word-level timestamps
 
