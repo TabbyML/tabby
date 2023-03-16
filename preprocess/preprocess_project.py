@@ -2,6 +2,7 @@ import glob
 import json
 import os
 
+import filters
 import metrics
 from args import PreprocessProjectArgs
 from datasets import Dataset
@@ -74,4 +75,5 @@ if __name__ == "__main__":
     )
 
     ds = Dataset.from_generator(dataset_iter(files))
+    ds = ds.filter(filters.basic_filters(args))
     ds.save_to_disk(args.output_dir)
