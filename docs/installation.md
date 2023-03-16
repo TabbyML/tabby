@@ -22,10 +22,10 @@ If you plan to run models with convolutional layers (e.g. for speech recognition
 
 ## Install with Docker
 
-Docker images can be downloaded from the repository [opennmt/ctranslate2](https://hub.docker.com/r/opennmt/ctranslate2):
+Docker images can be downloaded from the [GitHub Container registry](https://github.com/OpenNMT/CTranslate2/pkgs/container/ctranslate2):
 
 ```bash
-docker pull opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2
+docker pull ghcr.io/opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2
 ```
 
 The images include:
@@ -35,7 +35,7 @@ The images include:
 * the translator executable, which is the image entrypoint:
 
 ```bash
-docker run --rm opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help
+docker run --rm ghcr.io/opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --help
 ```
 
 ```{admonition} GPU support

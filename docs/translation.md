@@ -46,7 +46,7 @@ The translation client can be used via the Docker image:
 
 ```bash
 echo "▁H ello ▁world !" | docker run -i --rm -v $PWD:/data \
-    opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cpu
+    ghcr.io/opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2 --model /data/ende_ctranslate2 --device cpu
 ```
 
 To translate on GPU, use `docker run --gpus all` and set the option `--device cuda`. Use `--help` to see the list of available options.
