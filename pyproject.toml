@@ -13,7 +13,7 @@ transformers = "^4.27.1"
 
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
+pre-commit = "^3.1.1"
 
 [build-system]
 requires = ["poetry-core"]

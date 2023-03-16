@@ -1,12 +1,11 @@
-import os
 import glob
 import json
-
-from datasets import Dataset
-from transformers import HfArgumentParser
+import os
 
 import metrics
 from args import PreprocessProjectArgs
+from datasets import Dataset
+from transformers import HfArgumentParser
 
 
 def parse_args():
