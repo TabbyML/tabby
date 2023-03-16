@@ -4,3 +4,7 @@
 
 > **Warning**
 > This repository is undering heavy construction, everything changes fast.
+
+## Contents
+* [`preprocess`](./preprocess): Preprocess files into [datasets](https://huggingface.co/docs/datasets)
+* [`converter`](./converter): Converts a [transformers](https://huggingface.co/docs/transformers) causal LM model into TensorRT / FasterTransformer serving formats.
