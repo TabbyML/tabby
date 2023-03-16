@@ -579,10 +579,12 @@ class WhisperLoader(BartLoader):
         config.alignment_heads = _WHISPER_ALIGNMENT_HEADS.get(model.name_or_path)
         if config.alignment_heads is None:
             # Use the last half layers for alignment by default.
+            num_layers = model.config.decoder_layers
+            num_heads = model.config.decoder_attention_heads
             config.alignment_heads = list(
                 itertools.product(
-                    range(config.decoder_layers // 2, config.decoder_layers),
-                    range(config.decoder_attention_heads),
+                    range(num_layers // 2, num_layers),
+                    range(num_heads),
                 )
             )
 
