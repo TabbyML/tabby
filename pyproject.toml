@@ -8,7 +8,12 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+datasets = "^2.10.1"
+transformers = "^4.27.1"
 
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.1.0"
 
 [build-system]
 requires = ["poetry-core"]
