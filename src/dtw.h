@@ -5,6 +5,6 @@
 namespace ctranslate2 {
 
   // Dynamic time wrapping function, but x values are negated.
-  std::vector<std::pair<size_t, size_t>> negative_dtw(const StorageView& x);
+  std::vector<std::pair<dim_t, dim_t>> negative_dtw(const StorageView& x);
 
 }

@@ -72,7 +72,7 @@ namespace ctranslate2 {
     };
 
     struct WhisperAlignmentResult {
-      std::vector<std::pair<size_t, size_t>> alignments;
+      std::vector<std::pair<dim_t, dim_t>> alignments;
       std::vector<float> text_token_probs;
     };
 

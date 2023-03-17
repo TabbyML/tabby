@@ -5,7 +5,7 @@
 
 namespace ctranslate2 {
 
-  static std::vector<std::pair<size_t, size_t>> backtrace(StorageView trace) {
+  static std::vector<std::pair<dim_t, dim_t>> backtrace(StorageView trace) {
     dim_t i = trace.dim(0) - 1;
     dim_t j = trace.dim(1) - 1;
 
@@ -14,9 +14,9 @@ namespace ctranslate2 {
     for (dim_t k = 0; k < trace.dim(0); ++k)
       trace.at<int32_t>({k, 0}) = 1;
 
-    std::vector<std::pair<size_t, size_t>> result;
+    std::vector<std::pair<dim_t, dim_t>> result;
 
-    while (i > 0 && j > 0) {
+    while (i > 0 || j > 0) {
       result.emplace_back(i - 1, j - 1);
 
       const auto t = trace.at<int32_t>({i, j});
@@ -38,7 +38,7 @@ namespace ctranslate2 {
     return result;
   }
 
-  std::vector<std::pair<size_t, size_t>> negative_dtw(const StorageView& x) {
+  std::vector<std::pair<dim_t, dim_t>> negative_dtw(const StorageView& x) {
     const dim_t n = x.dim(0);
     const dim_t m = x.dim(1);
 
