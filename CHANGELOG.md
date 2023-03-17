@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v3.9.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.9.1) (2023-03-17)
+
+### Fixes and improvements
+
+* Fix missing alignments in the `Whisper.align` result due to a bug in the DTW implementation
+* Fix error when converting a Whisper model from a path
+
 ## [v3.9.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.9.0) (2023-03-15)
 
 ### New features
