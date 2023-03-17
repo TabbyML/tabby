@@ -381,7 +381,7 @@ namespace ctranslate2 {
       const cuda::UseTrueFp16GemmInScope use_true_fp16_gemm(false);
 #endif
 
-      layers::DecoderState state = _decoder->initial_state();
+      layers::DecoderState state = _decoder->initial_state(/*iterative_decoding=*/false);
       state.emplace("memory", encode(features));
 
       _decoder->update_output_layer(_model->preferred_size_multiple());
