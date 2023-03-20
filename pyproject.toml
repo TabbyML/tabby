@@ -11,6 +11,9 @@ python = "^3.10"
 datasets = "^2.10.1"
 transformers = "^4.27.1"
 torch = "^2.0.0"
+fastapi = "^0.95.0"
+uvicorn = "^0.21.1"
+tritonclient = {extras = ["all"], version = "^2.31.0"}
 
 
 [tool.poetry.group.dev.dependencies]
