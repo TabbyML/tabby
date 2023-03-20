@@ -11,14 +11,12 @@ class Choice(BaseModel):
 
 class CompletionsRequest(BaseModel):
     prompt: str = Field(
-        example="def fib(n):",
+        example="def binarySearch(arr, left, right, x):\n    mid = (left +",
         description="The context to generate completions for, encoded as a string.",
-    )
-    suffix: Optional[str] = Field(
-        description="The suffix that comes after a completion of inserted code."
     )
 
 
 class CompletionsResponse(BaseModel):
     id: str
+    created: int
     choices: List[Choice]

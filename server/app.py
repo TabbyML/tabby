@@ -1,7 +1,10 @@
+import os
+
 import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 from models import CompletionsRequest, CompletionsResponse
+from triton import TritonService
 
 app = FastAPI(
     title="TabbyServer",
@@ -9,15 +12,12 @@ app = FastAPI(
     docs_url="/",
 )
 
+triton = TritonService(os.environ["TOKENIZER_NAME"])
+
 
 @app.post("/v1/completions")
 async def completions(data: CompletionsRequest) -> CompletionsResponse:
-    return CompletionsResponse()
-
-
-@app.post("/v1/completions/{id}/choices/{index}/select")
-async def select(id: str, index: int):
-    return JSONResponse(content=dict(status="ok"))
+    return triton(data)
 
 
 if __name__ == "__main__":
