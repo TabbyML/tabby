@@ -1,0 +1,17 @@
+version: '3.3'
+services:
+  triton:
+    image: ghcr.io/tabbyml/fastertransformer_backend:main
+    command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
+    shm_size: 1gb
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./testdata:/model
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
