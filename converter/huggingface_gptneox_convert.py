@@ -192,17 +192,17 @@ def split_and_convert(args):
 
     # Post-process biases if use_gptj_residual is True
     if use_gptj_residual:
-        for layer_idx in range(hf_config["n_layer"]):
+        for layer_idx in range(hf_config["num_hidden_layers"]):
             attn_bias = np.fromfile(
                 saved_dir + f"/model.layers.{layer_idx}.attention.dense.bias.bin",
-                dtype=np.float32,
+                dtype=np_weight_data_type,
             )
             mlp_bias = np.fromfile(
                 saved_dir + f"/model.layers.{layer_idx}.mlp.dense_4h_to_h.bias.bin",
-                dtype=np.float32,
+                dtype=np_weight_data_type,
             )
 
-            (attn_bias + mlp_bias).tofile(
+            (attn_bias + mlp_bias).astype(np_weight_data_type).tofile(
                 saved_dir + f"/model.layers.{layer_idx}.mlp.attention.bias.sum.bin"
             )
 
