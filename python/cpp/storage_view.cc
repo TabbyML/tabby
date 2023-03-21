@@ -95,15 +95,12 @@ namespace ctranslate2 {
     }
 
     StorageViewWrapper::StorageViewWrapper(StorageView view)
-      : _data_owner(py::none())
-      , _view(std::move(view))
+      : _view(std::move(view))
     {
     }
 
     StorageViewWrapper StorageViewWrapper::from_array(py::object array) {
-      StorageViewWrapper view = create_view_from_array(array);
-      view.set_data_owner(array);
-      return view;
+      return create_view_from_array(array);
     }
 
     py::dict StorageViewWrapper::array_interface() const {
@@ -157,6 +154,7 @@ namespace ctranslate2 {
         )pbdoc")
 
         .def_static("from_array", &StorageViewWrapper::from_array, py::arg("array"),
+                    py::keep_alive<0, 1>(),
                     R"pbdoc(
                         Creates a ``StorageView`` from an object implementing the array interface.
 

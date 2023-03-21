@@ -23,17 +23,12 @@ namespace ctranslate2 {
         return _view;
       }
 
-      void set_data_owner(py::object array) {
-        _data_owner = array;
-      }
-
       py::dict array_interface() const;
       py::dict cuda_array_interface() const;
 
       std::string str() const;
 
     private:
-      py::object _data_owner;
       StorageView _view;
     };
 
