@@ -12,7 +12,11 @@ app = FastAPI(
     docs_url="/",
 )
 
-triton = TritonService(os.environ["TOKENIZER_NAME"])
+triton = TritonService(
+    tokenizer_name=os.environ.get("TOKENIZER_NAME", None),
+    host=os.environ.get("TRITON_HOST", "localhost"),
+    port=os.environ.get("TRITON_PORT", "8001"),
+)
 
 
 @app.post("/v1/completions")

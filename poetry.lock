@@ -473,7 +473,7 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 name = "cmake"
 version = "3.26.0"
 description = "CMake is an open-source, cross-platform family of tools designed to build, test and package software"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -1118,7 +1118,7 @@ files = [
 name = "jinja2"
 version = "3.1.2"
 description = "A very fast and expressive template engine."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1136,7 +1136,7 @@ i18n = ["Babel (>=2.7)"]
 name = "lit"
 version = "15.0.7"
 description = "A Software Testing Tool"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -1147,7 +1147,7 @@ files = [
 name = "markupsafe"
 version = "2.1.2"
 description = "Safely add untrusted strings to HTML/XML markup."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -1207,7 +1207,7 @@ files = [
 name = "mpmath"
 version = "1.3.0"
 description = "Python library for arbitrary-precision floating-point arithmetic"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -1336,7 +1336,7 @@ dill = ">=0.3.6"
 name = "networkx"
 version = "3.0"
 description = "Python package for creating and manipulating graphs and networks"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -1408,7 +1408,7 @@ files = [
 name = "nvidia-cublas-cu11"
 version = "11.10.3.66"
 description = "CUBLAS native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1424,7 +1424,7 @@ wheel = "*"
 name = "nvidia-cuda-cupti-cu11"
 version = "11.7.101"
 description = "CUDA profiling tools runtime libs."
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1440,7 +1440,7 @@ wheel = "*"
 name = "nvidia-cuda-nvrtc-cu11"
 version = "11.7.99"
 description = "NVRTC native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1457,7 +1457,7 @@ wheel = "*"
 name = "nvidia-cuda-runtime-cu11"
 version = "11.7.99"
 description = "CUDA Runtime native Libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1473,7 +1473,7 @@ wheel = "*"
 name = "nvidia-cudnn-cu11"
 version = "8.5.0.96"
 description = "cuDNN runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1489,7 +1489,7 @@ wheel = "*"
 name = "nvidia-cufft-cu11"
 version = "10.9.0.58"
 description = "CUFFT native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1501,7 +1501,7 @@ files = [
 name = "nvidia-curand-cu11"
 version = "10.2.10.91"
 description = "CURAND native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1517,7 +1517,7 @@ wheel = "*"
 name = "nvidia-cusolver-cu11"
 version = "11.4.0.1"
 description = "CUDA solver native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1534,7 +1534,7 @@ wheel = "*"
 name = "nvidia-cusparse-cu11"
 version = "11.7.4.91"
 description = "CUSPARSE native runtime libraries"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1550,7 +1550,7 @@ wheel = "*"
 name = "nvidia-nccl-cu11"
 version = "2.14.3"
 description = "NVIDIA Collective Communication Library (NCCL) Runtime"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -1561,7 +1561,7 @@ files = [
 name = "nvidia-nvtx-cu11"
 version = "11.7.91"
 description = "NVIDIA Tools Extension"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3"
 files = [
@@ -2148,7 +2148,7 @@ full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyam
 name = "sympy"
 version = "1.11.1"
 description = "Computer algebra system (CAS) in Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8"
 files = [
@@ -2218,7 +2218,7 @@ testing = ["black (==22.3)", "datasets", "numpy", "pytest", "requests"]
 name = "torch"
 version = "2.0.0"
 description = "Tensors and Dynamic neural networks in Python with strong GPU acceleration"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.8.0"
 files = [
@@ -2359,7 +2359,7 @@ vision = ["Pillow"]
 name = "triton"
 version = "2.0.0"
 description = "A language and compiler for custom Deep Learning operations"
-category = "main"
+category = "dev"
 optional = false
 python-versions = "*"
 files = [
@@ -2484,7 +2484,7 @@ test = ["covdefaults (>=2.2.2)", "coverage (>=7.1)", "coverage-enable-subprocess
 name = "wheel"
 version = "0.40.0"
 description = "A built-package format for Python"
-category = "main"
+category = "dev"
 optional = false
 python-versions = ">=3.7"
 files = [
@@ -2761,4 +2761,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "4bc92342585b459fe432e095b5c8b1c6590551573156a2b1fd795a7906e21337"
+content-hash = "fe4f298c8e9e421dab4834a61eda5d46f8720736ec5d604fb4abff2d90020835"
