@@ -2,7 +2,6 @@
 
 #include <ctranslate2/generator.h>
 
-#include "storage_view.h"
 #include "replica_pool.h"
 
 namespace ctranslate2 {
@@ -77,9 +76,9 @@ namespace ctranslate2 {
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
-      StorageViewWrapper
-      forward_batch(const std::variant<BatchTokens, BatchIds, StorageViewWrapper>& inputs,
-                    const std::optional<StorageViewWrapper>& lengths,
+      StorageView
+      forward_batch(const std::variant<BatchTokens, BatchIds, StorageView>& inputs,
+                    const std::optional<StorageView>& lengths,
                     const bool return_log_probs) {
         std::future<StorageView> future;
 
@@ -93,13 +92,13 @@ namespace ctranslate2 {
         case 2:
           if (!lengths)
             throw std::invalid_argument("lengths vector is required when passing a dense input");
-          const StorageView& ids_view = std::get<StorageViewWrapper>(inputs).get_view();
-          const StorageView& lengths_view = lengths.value().get_view();
-          future = _pool->forward_batch_async(ids_view, lengths_view, return_log_probs);
+          future = _pool->forward_batch_async(std::get<StorageView>(inputs),
+                                              lengths.value(),
+                                              return_log_probs);
           break;
         }
 
-        return StorageViewWrapper(future.get());
+        return future.get();
       }
     };
 

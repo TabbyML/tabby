@@ -2,7 +2,6 @@
 
 #include <ctranslate2/models/whisper.h>
 
-#include "storage_view.h"
 #include "replica_pool.h"
 
 namespace ctranslate2 {
@@ -18,7 +17,7 @@ namespace ctranslate2 {
 
       std::variant<std::vector<models::WhisperGenerationResult>,
                    std::vector<AsyncResult<models::WhisperGenerationResult>>>
-      generate(StorageViewWrapper features,
+      generate(const StorageView& features,
                std::variant<BatchTokens, BatchIds> prompts,
                bool asynchronous,
                size_t beam_size,
@@ -58,26 +57,26 @@ namespace ctranslate2 {
           options.suppress_tokens.clear();
 
         if (prompts.index() == 0)
-          futures = _pool->generate(features.get_view(), std::get<BatchTokens>(prompts), options);
+          futures = _pool->generate(features, std::get<BatchTokens>(prompts), options);
         else
-          futures = _pool->generate(features.get_view(), std::get<BatchIds>(prompts), options);
+          futures = _pool->generate(features, std::get<BatchIds>(prompts), options);
 
         return maybe_wait_on_futures(std::move(futures), asynchronous);
       }
 
       std::vector<std::vector<std::pair<std::string, float>>>
-      detect_language(StorageViewWrapper features) {
-        auto futures = _pool->detect_language(features.get_view());
+      detect_language(const StorageView& features) {
+        auto futures = _pool->detect_language(features);
         return wait_on_futures(std::move(futures));
       }
 
       std::vector<models::WhisperAlignmentResult>
-      align(StorageViewWrapper features,
+      align(const StorageView& features,
             Ids start_sequence,
             BatchIds text_tokens,
             size_t num_frames,
             size_t median_filter_width) {
-        auto futures = _pool->align(features.get_view(),
+        auto futures = _pool->align(features,
                                     std::move(start_sequence),
                                     std::move(text_tokens),
                                     num_frames,
