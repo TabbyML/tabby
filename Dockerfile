@@ -13,5 +13,4 @@ RUN poetry export --without-hashes -o requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./preprocess preprocess
-COPY ./server server
+COPY . .
