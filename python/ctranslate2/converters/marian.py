@@ -35,7 +35,7 @@ class MarianConverter(Converter):
     def _load(self):
         model = np.load(self._model_path)
         config = _get_model_config(model)
-        vocabs = list(map(_load_vocab, self._vocab_paths))
+        vocabs = list(map(load_vocab, self._vocab_paths))
 
         activation = config["transformer-ffn-activation"]
         pre_norm = "n" in config["transformer-preprocess"]
@@ -115,29 +115,49 @@ def _get_model_config(model):
     return config
 
 
-def _load_vocab(path):
+def load_vocab(path):
     # pyyaml skips some entries so we manually parse the vocabulary file.
     with open(path, encoding="utf-8") as vocab:
         tokens = []
+        token = None
+        idx = None
         for i, line in enumerate(vocab):
             line = line.rstrip("\n\r")
             if not line:
                 continue
-            token, idx = line.rsplit(":", 1)
-            try:
-                idx = int(idx.strip())
-            except ValueError as e:
-                raise ValueError(
-                    "Unexpected format at line %d: '%s'" % (i + 1, line)
-                ) from e
-            if token.startswith('"') and token.endswith('"'):
-                # Unescape characters and remove quotes.
-                token = re.sub(r"\\(.)", r"\1", token)
-                token = token[1:-1]
-            elif token.startswith("'") and token.endswith("'"):
-                token = token[1:-1]
-                token = token.replace("''", "'")
-            tokens.append((idx, token))
+
+            if line.startswith("? "):  # Complex key mapping (key)
+                token = line[2:]
+            elif token is not None:  # Complex key mapping (value)
+                idx = line[2:]
+            else:
+                token, idx = line.rsplit(":", 1)
+
+            if token is not None:
+                if token.startswith('"') and token.endswith('"'):
+                    # Unescape characters and remove quotes.
+                    token = re.sub(r"\\([^x])", r"\1", token)
+                    token = token[1:-1]
+                    if token.startswith("\\x"):
+                        # Convert the digraph \x to the actual escaped sequence.
+                        token = chr(int(token[2:], base=16))
+                elif token.startswith("'") and token.endswith("'"):
+                    token = token[1:-1]
+                    token = token.replace("''", "'")
+
+            if idx is not None:
+                try:
+                    idx = int(idx.strip())
+                except ValueError as e:
+                    raise ValueError(
+                        "Unexpected format at line %d: '%s'" % (i + 1, line)
+                    ) from e
+
+                tokens.append((idx, token))
+
+                token = None
+                idx = None
+
     return [token for _, token in sorted(tokens, key=lambda item: item[0])]
 
 
