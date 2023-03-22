@@ -6,7 +6,7 @@
 > **Warning**
 > This repository is undering heavy construction, everything changes fast.
 
-An opensource / single-GPU alternative to GitHub Copilot
+An opensource / on-prem alternative to GitHub Copilot
 
 ## Contents
 * [`admin`](./admin): Admin panel for monitoring / settings purpose.
