@@ -7,7 +7,12 @@ services:
       - "8002:8002"
 
   server:
-    build: ..
+    build:
+      context: ..
+      dockerfile: ./Dockerfile
+      args:
+        PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+    image: tabbyml/tabby
     working_dir: /app
     command: /opt/conda/bin/python server/app.py
     environment:
@@ -21,7 +26,7 @@ services:
       - triton
 
   admin:
-    build: ..
+    image: tabbyml/tabby
     working_dir: /app/admin
     command: /opt/conda/bin/streamlit --server.runOnSave=true Home.py
     volumes:
