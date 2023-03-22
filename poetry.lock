@@ -2172,6 +2172,18 @@ files = [
 six = ">=1.5"
 
 [[package]]
+name = "python-json-logger"
+version = "2.0.7"
+description = "A python library adding a json log formatter"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "python-json-logger-2.0.7.tar.gz", hash = "sha256:23e7ec02d34237c5aa1e29a070193a4ea87583bb4e7f8fd06d3de8264c4b2e1c"},
+    {file = "python_json_logger-2.0.7-py3-none-any.whl", hash = "sha256:f380b826a991ebbe3de4d897aeec42760035ac760345e57b812938dc8b35e2bd"},
+]
+
+[[package]]
 name = "python-rapidjson"
 version = "1.10"
 description = "Python wrapper around rapidjson"
@@ -3362,4 +3374,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "dbe0a798700a16c9926959c1a3898e64914f2e6b0c5965670999093f59a7cb67"
+content-hash = "7c37a4681a7eb21de3b2f4765fd19dea8c8a78dccd513b01874a8807257bdd78"
