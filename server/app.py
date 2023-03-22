@@ -1,6 +1,7 @@
+import logging
 import os
 
-import events_logger
+import events
 import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
@@ -23,7 +24,7 @@ triton = TritonService(
 @app.post("/v1/completions")
 async def completions(request: CompletionsRequest) -> CompletionsResponse:
     response = triton(request)
-    events_logger.log_completions(request, response)
+    events.log_completions(request, response)
     return response
 
 

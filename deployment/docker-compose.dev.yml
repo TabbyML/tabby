@@ -1,11 +1,6 @@
 version: '3.3'
 
 services:
-  triton:
-    image: instashot/ghcr.io.tabbyml.fastertransformer_backend:main
-    ports:
-      - "8002:8002"
-
   server:
     build:
       context: ..
@@ -13,13 +8,14 @@ services:
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
     image: tabbyml/tabby
-    working_dir: /app
-    command: /opt/conda/bin/python server/app.py
+    container_name: tabby-server
+    working_dir: /app/server
+    command: /opt/conda/bin/uvicorn app:app --host 0.0.0.0 --port 5000 --reload
     environment:
-      - TOKENIZER_NAME=testdata/gptneox/tokenizer
+      - TOKENIZER_NAME=../testdata/gptneox/tokenizer
       - TRITON_HOST=triton
     ports:
-      - "5000:5000"
+      - "5000"
     volumes:
       - ../:/app
     links:
@@ -27,12 +23,13 @@ services:
 
   admin:
     image: tabbyml/tabby
+    container_name: tabby-admin
     working_dir: /app/admin
-    command: /opt/conda/bin/streamlit --server.runOnSave=true Home.py
+    command: /opt/conda/bin/streamlit run --server.runOnSave=true Home.py
     volumes:
       - ../:/app
     ports:
-      - "8501:8501"
+      - "8501"
     links:
       - server
       - triton

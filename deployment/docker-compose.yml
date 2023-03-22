@@ -3,6 +3,7 @@ version: '3.3'
 services:
   triton:
     image: tabbyml/fastertransformer_backend
+    container_name: tabby-triton
     command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
     shm_size: 1gb
     volumes:
@@ -14,3 +15,11 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  vector:
+    image: timberio/vector:0.28.1-alpine
+    container_name: tabby-vector
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro
+    ports:
+      - "8686"

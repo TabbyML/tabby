@@ -1,16 +1,17 @@
 import logging
-from dataclasses import dataclass
+import sys
+from dataclasses import asdict, dataclass
 
 import models
 from pythonjsonlogger import jsonlogger
 
 
 def make_logger():
-    jsonHandler = logging.StreamHandler()
-    jsonHandler.setLevel(logging.INFO)
+    jsonHandler = logging.StreamHandler(sys.stdout)
     jsonHandler.setFormatter(jsonlogger.JsonFormatter())
 
     logger = logging.getLogger("events")
+    logger.setLevel(logging.INFO)
     logger.addHandler(jsonHandler)
     return logger
 
@@ -27,4 +28,5 @@ class CompletionsEvent:
 def log_completions(
     request: models.CompletionsRequest, response: models.CompletionsResponse
 ) -> None:
-    logger.info(CompletionsEvent(prompt=request.prompt, choices=response.choices))
+    event = CompletionsEvent(prompt=request.prompt, choices=response.choices)
+    logger.info(asdict(event))
