@@ -1,9 +1,11 @@
+import logging
 import os
 
+import events
 import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
-from models import CompletionsRequest, CompletionsResponse
+from models import CompletionRequest, CompletionResponse
 from triton import TritonService
 
 app = FastAPI(
@@ -20,8 +22,16 @@ triton = TritonService(
 
 
 @app.post("/v1/completions")
-async def completions(data: CompletionsRequest) -> CompletionsResponse:
-    return triton(data)
+async def completions(request: CompletionRequest) -> CompletionResponse:
+    response = triton(request)
+    events.log_completions(request, response)
+    return response
+
+
+@app.post("/v1/completions/{id}/choices/{index}/selection")
+async def selection(id: str, index: int) -> JSONResponse:
+    events.log_selection(id, index)
+    return JSONResponse(content="ok")
 
 
 if __name__ == "__main__":

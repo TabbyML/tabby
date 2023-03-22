@@ -9,14 +9,44 @@ class Choice(BaseModel):
     text: str
 
 
-class CompletionsRequest(BaseModel):
+class CompletionRequest(BaseModel):
     prompt: str = Field(
         example="def binarySearch(arr, left, right, x):\n    mid = (left +",
         description="The context to generate completions for, encoded as a string.",
     )
 
 
-class CompletionsResponse(BaseModel):
+class CompletionResponse(BaseModel):
     id: str
     created: int
     choices: List[Choice]
+
+
+class Event(BaseModel):
+    type: str
+
+
+class CompletionEvent(Event):
+    id: str
+    prompt: str
+    created: int
+    choices: List[Choice]
+
+    @classmethod
+    def build(cls, request: CompletionRequest, response: CompletionResponse):
+        return cls(
+            type="completion",
+            id=response.id,
+            prompt=request.prompt,
+            created=response.created,
+            choices=response.choices,
+        )
+
+
+class SelectionEvent(Event):
+    completion_id: str
+    choice_index: int
+
+    @classmethod
+    def build(cls, id, index):
+        return cls(type="selection", completion_id=id, choice_index=index)

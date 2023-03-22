@@ -1,0 +1,53 @@
+version: '3.3'
+
+services:
+  server:
+    image: tabbyml/tabby
+    container_name: tabby-server
+    working_dir: /app/server
+    command: uvicorn app:app --host 0.0.0.0 --port 5000
+    environment:
+      - TOKENIZER_NAME=../testdata/gptneox/tokenizer
+      - TRITON_HOST=triton
+      - EVENTS_LOG_DIR=/logs/tabby-server
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./logs:/logs
+    links:
+      - triton
+      - vector
+
+  triton:
+    image: tabbyml/fastertransformer_backend
+    container_name: tabby-triton
+    command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
+    shm_size: 1gb
+    volumes:
+      - ../testdata/gptneox/models:/model
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  admin:
+    image: tabbyml/tabby
+    container_name: tabby-admin
+    working_dir: /app/admin
+    command: streamlit run Home.py
+    ports:
+      - "8501:8501"
+    links:
+      - server
+      - triton
+      - vector
+
+  vector:
+    image: timberio/vector:0.28.1-alpine
+    container_name: tabby-vector
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro
+      - ./logs:/logs
