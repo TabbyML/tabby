@@ -12,6 +12,6 @@ RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL "poetr
 COPY poetry.lock pyproject.toml /app/
 RUN poetry export --without-hashes -o requirements.txt
 
-RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple --no-dependencies -r requirements.txt
 
 COPY . .

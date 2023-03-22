@@ -9,7 +9,7 @@ services:
   server:
     build:
       context: ..
-      dockerfile: ./Dockerfile
+      dockerfile: ./deployment/Dockerfile
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
     image: tabbyml/tabby
