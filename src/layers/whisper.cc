@@ -22,7 +22,7 @@ namespace ctranslate2 {
       PROFILE("WhisperEncoder");
 
       const dim_t expected_depth = _conv1.input_size();
-      const dim_t expected_time = _position_embedding.num_positions() * 2;
+      const dim_t expected_time = input_time();
 
       if (features.rank() != 3)
         throw std::invalid_argument("Expected input features to have 3 dimensions, but got "

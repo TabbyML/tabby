@@ -15,6 +15,10 @@ namespace ctranslate2 {
         return _pool->is_multilingual();
       }
 
+      StorageView encode(const StorageView& features, const bool to_cpu) {
+        return _pool->encode(features, to_cpu).get();
+      }
+
       std::variant<std::vector<models::WhisperGenerationResult>,
                    std::vector<AsyncResult<models::WhisperGenerationResult>>>
       generate(const StorageView& features,
@@ -167,6 +171,22 @@ namespace ctranslate2 {
                      :obj:`model_path` acts as an identifier for this model.
              )pbdoc")
 
+        .def("encode", &WhisperWrapper::encode,
+             py::arg("features"),
+             py::arg("to_cpu")=false,
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Encodes the input features.
+
+                 Arguments:
+                   features: Mel spectogram of the audio, as a float array with shape
+                     ``[batch_size, 80, 3000]``.
+                   to_cpu: Copy the encoder output to the CPU before returning the value.
+
+                 Returns:
+                   The encoder output.
+             )pbdoc")
+
         .def("generate", &WhisperWrapper::generate,
              py::arg("features"),
              py::arg("prompts"),
@@ -191,8 +211,10 @@ namespace ctranslate2 {
                  Encodes the input features and generates from the given prompt.
 
                  Arguments:
-                   features: Mel spectogram of the audio, as a float32 array with shape
-                     ``[batch_size, 80, 3000]``.
+                   features: Mel spectogram of the audio, as a float array with shape
+                     ``[batch_size, 80, 3000]``. This method also accepts the encoded features
+                     returned by the method :meth:`ctranslate2.models.Whisper.encode`, which
+                     have shape ``[batch_size, 1500, d_model]``.
                    prompts: Batch of initial string tokens or token IDs.
                    asynchronous: Run the model asynchronously.
                    beam_size: Beam size (1 for greedy search).
@@ -227,8 +249,10 @@ namespace ctranslate2 {
                  Returns the probability of each language.
 
                  Arguments:
-                   features: Mel spectogram of the audio, as a float32 array with shape
-                     ``[batch_size, 80, 3000]``.
+                   features: Mel spectogram of the audio, as a float array with shape
+                     ``[batch_size, 80, 3000]``. This method also accepts the encoded features
+                     returned by the method :meth:`ctranslate2.models.Whisper.encode`, which
+                     have shape ``[batch_size, 1500, d_model]``.
 
                  Returns:
                    For each batch, a list of pairs (language, probability) ordered from
@@ -250,8 +274,10 @@ namespace ctranslate2 {
                  Computes the alignments between the text tokens and the audio.
 
                  Arguments:
-                   features: Mel spectogram of the audio, as a float32 array with shape
-                     ``[batch_size, 80, 3000]``.
+                   features: Mel spectogram of the audio, as a float array with shape
+                     ``[batch_size, 80, 3000]``. This method also accepts the encoded features
+                     returned by the method :meth:`ctranslate2.models.Whisper.encode`, which
+                     have shape ``[batch_size, 1500, d_model]``.
                    start_sequence: The start sequence tokens.
                    text_tokens: Batch of text tokens to align.
                    num_frames: Number of non padding frames in the features.

@@ -19,6 +19,14 @@ namespace ctranslate2 {
         return _output_norm.output_size();
       }
 
+      dim_t output_time() const {
+        return _position_embedding.num_positions();
+      }
+
+      dim_t input_time() const {
+        return output_time() * 2;
+      }
+
     private:
       const Conv1D _conv1;
       const Conv1D _conv2;

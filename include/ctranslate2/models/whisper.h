@@ -106,21 +106,23 @@ namespace ctranslate2 {
         return _is_multilingual;
       }
 
+      StorageView encode(StorageView features, const bool to_cpu);
+
       std::vector<WhisperGenerationResult>
-      generate(const StorageView& features,
+      generate(StorageView features,
                const std::vector<std::vector<std::string>>& prompts,
                const WhisperOptions& options);
 
       std::vector<WhisperGenerationResult>
-      generate(const StorageView& features,
+      generate(StorageView features,
                const std::vector<std::vector<size_t>>& prompts,
                const WhisperOptions& options);
 
       std::vector<std::vector<std::pair<std::string, float>>>
-      detect_language(const StorageView& features);
+      detect_language(StorageView features);
 
       std::vector<WhisperAlignmentResult>
-      align(const StorageView& features,
+      align(StorageView features,
             const std::vector<size_t>& start_sequence,
             const std::vector<std::vector<size_t>>& text_tokens,
             dim_t num_frames,
@@ -137,7 +139,7 @@ namespace ctranslate2 {
       size_t _no_speech_id;
       bool _is_multilingual;
 
-      StorageView encode(const StorageView& features);
+      StorageView maybe_encode(StorageView features);
     };
 
     class Whisper : public ReplicaPool<WhisperReplica> {
@@ -145,6 +147,8 @@ namespace ctranslate2 {
       using ReplicaPool::ReplicaPool;
 
       bool is_multilingual() const;
+
+      std::future<StorageView> encode(StorageView features, const bool to_cpu);
 
       std::vector<std::future<WhisperGenerationResult>>
       generate(StorageView features,

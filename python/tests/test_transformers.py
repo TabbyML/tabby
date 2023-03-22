@@ -562,6 +562,37 @@ class TestWhisper:
         ]
 
     @test_utils.only_on_linux
+    @test_utils.on_available_devices
+    def test_transformers_whisper_encode(self, tmp_dir, device):
+        import transformers
+
+        model_name = "openai/whisper-tiny.en"
+        converter = ctranslate2.converters.TransformersConverter(model_name)
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+
+        audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
+        audio = np.load(audio_path)
+
+        processor = transformers.WhisperProcessor.from_pretrained(model_name)
+        inputs = processor(audio, sampling_rate=16000)
+        features = inputs.input_features[0]
+        features = np.expand_dims(features, 0)
+        features = ctranslate2.StorageView.from_array(features)
+
+        model = ctranslate2.models.Whisper(output_dir, device=device)
+        encoded = model.encode(features)
+        prompts = [["<|startoftranscript|>", "<|notimestamps|>"]]
+        result = model.generate(encoded, prompts)[0]
+
+        transcription = processor.decode(result.sequences_ids[0])
+
+        assert transcription == (
+            " And so my fellow Americans ask not what your country can do for you, "
+            "ask what you can do for your country."
+        )
+
+    @test_utils.only_on_linux
     def test_transformers_whisper_invalid_shape(self, tmp_dir):
         import transformers
 
