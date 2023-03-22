@@ -8,7 +8,7 @@
 
 ## Contents
 * [`admin`](./admin): Admin panel for monitoring / settings purpose.
-* [`server`](./server): API server for completion requests. It also loggs users' selections (as feedback to model's quality).
+* [`server`](./server): API server for completion requests. It also logs users' selections (as feedback to model's quality).
 * [`deployment`](./deployment): Container related deployment configs.
 * [`converter`](./converter): Converts a [transformers](https://huggingface.co/docs/transformers) causal LM model into TensorRT / FasterTransformer serving formats.
 * [`preprocess`](./preprocess): Preprocess files into [datasets](https://huggingface.co/docs/datasets)
