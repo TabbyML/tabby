@@ -7,13 +7,14 @@ services:
     working_dir: /app/server
     command: uvicorn app:app --host 0.0.0.0 --port 5000
     environment:
-      - TOKENIZER_NAME=../testdata/gptneox/tokenizer
+      - TOKENIZER_NAME=/tokenizer
       - TRITON_HOST=triton
       - EVENTS_LOG_DIR=/logs/tabby-server
     ports:
       - "5000:5000"
     volumes:
       - ./logs:/logs
+      - ../testdata/gptneox/tokenizer:/tokenizer
     links:
       - triton
       - vector
