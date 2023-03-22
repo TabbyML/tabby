@@ -50,5 +50,5 @@ services:
     image: timberio/vector:0.28.1-alpine
     container_name: tabby-vector
     volumes:
-      - ./vector.toml:/etc/vector/vector.toml:ro
+      - ./config/vector.toml:/etc/vector/vector.toml:ro
       - ./logs:/logs
