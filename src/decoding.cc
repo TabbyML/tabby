@@ -127,25 +127,25 @@ namespace ctranslate2 {
   static std::vector<size_t> build_hypothesis(const StorageView& history,
                                               const dim_t batch,
                                               const dim_t beam,
-                                              const bool ignore_last) {
-    const auto length = history.dim(-1) - dim_t(ignore_last);
+                                              const dim_t start,
+                                              const dim_t end) {
     const auto* ids = history.index<int32_t>({batch, beam, 0});
-    return std::vector<size_t>(ids, ids + length);
+    return std::vector<size_t>(ids + start, ids + end);
   }
 
   static std::vector<std::vector<float>> build_attention(const StorageView& history,
                                                          const dim_t batch,
                                                          const dim_t beam,
-                                                         const bool ignore_last) {
+                                                         const dim_t start,
+                                                         const dim_t end) {
     if (!history)
       return {};
 
     const auto source_length = history.dim(-1);
-    const auto target_length = history.dim(-2) - dim_t(ignore_last);
 
     std::vector<std::vector<float>> attention;
-    attention.reserve(target_length);
-    for (dim_t t = 0; t < target_length; ++t) {
+    attention.reserve(end - start);
+    for (dim_t t = start; t < end; ++t) {
       const auto* vector = history.index<float>({batch, beam, t, 0});
       attention.emplace_back(vector, vector + source_length);
     }
@@ -353,6 +353,7 @@ namespace ctranslate2 {
                      const dim_t min_length,
                      const bool return_scores,
                      const bool return_attention,
+                     const bool return_prefix,
                      const size_t num_hypotheses,
                      const bool include_eos_in_hypotheses,
                      const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
@@ -520,12 +521,14 @@ namespace ctranslate2 {
               top_beam_finished[i] = true;
 
             const bool ignore_last_token = last_id == end_id && !include_eos_in_hypotheses;
+            const dim_t start = return_prefix ? 0 : prefix_length;
+            const dim_t end = ignore_last_token ? step : step + 1;
 
             // Register this hypothesis.
             result.scores.emplace_back(topk_scores.scalar_at<float>({i, k}));
-            result.hypotheses.emplace_back(build_hypothesis(alive_seq, i, k, ignore_last_token));
+            result.hypotheses.emplace_back(build_hypothesis(alive_seq, i, k, start, end));
             if (alive_attention)
-              result.attention.emplace_back(build_attention(alive_attention, i, k, ignore_last_token));
+              result.attention.emplace_back(build_attention(alive_attention, i, k, start, end));
 
             // Move another active beam to this position.
             for (dim_t j = secondary_candidates_offset; j < num_candidates; ++j) {
@@ -629,6 +632,7 @@ namespace ctranslate2 {
                        const dim_t min_length,
                        const bool return_scores,
                        const bool return_attention,
+                       const bool return_prefix,
                        const size_t num_hypotheses,
                        const bool include_eos_in_hypotheses,
                        const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors,
@@ -658,6 +662,7 @@ namespace ctranslate2 {
                                                    min_length,
                                                    /*return_scores=*/true,
                                                    return_attention,
+                                                   return_prefix,
                                                    /*num_hypotheses=*/1,
                                                    include_eos_in_hypotheses,
                                                    logits_processors,
@@ -756,7 +761,8 @@ namespace ctranslate2 {
         const size_t batch_id = batch_offset[i];
         const dim_t prefix_length = prefix_ids ? prefix_ids->at(batch_id).size() : 0;
 
-        if (word_id != end_id || include_eos_in_hypotheses) {
+        if ((word_id != end_id || include_eos_in_hypotheses)
+            && (return_prefix || step >= prefix_length)) {
           results[batch_id].hypotheses[0].push_back(word_id);
           if (attention_step) {
             const auto* attn = attention_step.index<float>({i, 0});
@@ -1008,6 +1014,7 @@ namespace ctranslate2 {
                                                   /*min_length=*/1,
                                                   /*return_scores=*/true,
                                                   options.return_attention,
+                                                  options.return_prefix,
                                                   options.num_hypotheses,
                                                   options.include_eos_in_hypotheses,
                                                   logits_processors)[0];
@@ -1068,6 +1075,7 @@ namespace ctranslate2 {
                                                   std::max(min_length - start_step, dim_t(0)),
                                                   options.return_scores,
                                                   options.return_attention,
+                                                  options.return_prefix,
                                                   /*num_hypotheses=*/1,
                                                   options.include_eos_in_hypotheses,
                                                   logits_processors);
@@ -1159,6 +1167,7 @@ namespace ctranslate2 {
                                         options.min_length,
                                         options.return_scores,
                                         options.return_attention,
+                                        options.return_prefix,
                                         options.num_hypotheses,
                                         options.include_eos_in_hypotheses,
                                         logits_processors,

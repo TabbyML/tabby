@@ -145,12 +145,35 @@ namespace ctranslate2 {
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(vocabulary.unk_id());
 
+      std::vector<std::vector<size_t>> start_ids = vocabulary.to_ids(start_tokens);
+      layers::DecoderState state = _decoder->initial_state();
 
-      const auto start_ids = vocabulary.to_ids(start_tokens);
+      if (!options.include_prompt_in_result) {
+        size_t min_prompt_length = start_ids[0].size();
+        for (const auto& start_sequence : start_ids)
+          min_prompt_length = std::min(min_prompt_length, start_sequence.size());
+
+        size_t forward_length = min_prompt_length - 1;
+
+        if (forward_length > 0) {
+          std::vector<std::vector<size_t>> prompt_ids;
+          prompt_ids.reserve(start_ids.size());
+          for (auto& start_sequence : start_ids) {
+            prompt_ids.emplace_back(start_sequence.begin(), start_sequence.begin() + forward_length);
+            start_sequence.erase(start_sequence.begin(), start_sequence.begin() + forward_length);
+          }
+
+          StorageView prompt = layers::make_sequence_inputs(prompt_ids, _decoder->device());
+          (*_decoder)(0, prompt, state);
+
+          decoding_options.start_step = prompt.dim(1);
+          decoding_options.return_prefix = false;
+        }
+      }
+
       const auto end_id = (options.end_token.empty()
                            ? vocabulary.eos_id()
                            : vocabulary.to_id(options.end_token));
-      layers::DecoderState state = _decoder->initial_state();
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    start_ids,
@@ -169,7 +192,9 @@ namespace ctranslate2 {
         }
 
         // Forward the start token to the output if it is not the special BOS token.
-        if (!start_ids[i].empty() && start_ids[i][0] != vocabulary.bos_id()) {
+        if (options.include_prompt_in_result
+            && !start_ids[i].empty()
+            && start_ids[i][0] != vocabulary.bos_id()) {
           for (auto& sequence : result.hypotheses)
             sequence.insert(sequence.begin(), start_ids[i][0]);
         }

@@ -29,6 +29,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const bool return_scores = false,
            const bool return_attention = false,
+           const bool return_prefix = true,
            const size_t num_hypotheses = 1,
            const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
@@ -54,6 +55,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const bool return_scores = false,
            const bool return_attention = false,
+           const bool return_prefix = true,
            const size_t num_hypotheses = 1,
            const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
@@ -102,6 +104,7 @@ namespace ctranslate2 {
            const dim_t min_length,
            const bool return_scores = false,
            const bool return_attention = false,
+           const bool return_prefix = true,
            const size_t num_hypotheses = 1,
            const bool include_eos_in_hypotheses = true,
            const std::vector<std::shared_ptr<LogitsProcessor>>& logits_processors = {},
@@ -131,6 +134,7 @@ namespace ctranslate2 {
     bool return_scores = false;
     bool return_attention = false;
     bool return_alternatives = false;
+    bool return_prefix = true;
     float min_alternative_expansion_prob = 0;
     std::vector<size_t> disable_ids;
     std::vector<size_t> disable_ids_begin;

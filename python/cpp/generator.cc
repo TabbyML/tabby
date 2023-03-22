@@ -28,6 +28,7 @@ namespace ctranslate2 {
                      const std::optional<std::string>& end_token,
                      size_t max_length,
                      size_t min_length,
+                     bool include_prompt_in_result,
                      bool return_scores,
                      bool return_alternatives,
                      float min_alternative_expansion_prob,
@@ -51,6 +52,7 @@ namespace ctranslate2 {
         options.num_hypotheses = num_hypotheses;
         options.return_scores = return_scores;
         options.return_alternatives = return_alternatives;
+        options.include_prompt_in_result = include_prompt_in_result;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
         if (suppress_sequences)
           options.suppress_sequences = suppress_sequences.value();
@@ -173,6 +175,7 @@ namespace ctranslate2 {
              py::arg("end_token")=py::none(),
              py::arg("max_length")=512,
              py::arg("min_length")=0,
+             py::arg("include_prompt_in_result")=true,
              py::arg("return_scores")=false,
              py::arg("return_alternatives")=false,
              py::arg("min_alternative_expansion_prob")=0,
@@ -206,6 +209,7 @@ namespace ctranslate2 {
                    end_token: Stop the decoding on this token (defaults to the model EOS token).
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
+                   include_prompt_in_result: Include the :obj:`start_tokens` in the result.
                    return_scores: Include the scores in the output.
                    return_alternatives: Return alternatives at the first unconstrained decoding position.
                    min_alternative_expansion_prob: Minimum initial probability to expand an alternative.

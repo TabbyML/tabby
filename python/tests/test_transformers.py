@@ -365,6 +365,44 @@ class TestGeneration:
         expected_tokens = "Ċ The Ġfirst Ġof Ġthe Ġthree Ġnew Ġseries Ġof Ġthe".split()
         assert output[0].sequences[0] == expected_tokens
 
+    @test_utils.only_on_linux
+    @pytest.mark.parametrize("beam_size", [1, 2])
+    def test_transformers_generator_ignore_prompt(self, tmp_dir, beam_size):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
+
+        max_length = 20
+        tokens = "Ċ The Ġfirst Ġtime ĠI".split()
+
+        result_wo_prompt = generator.generate_batch(
+            [tokens],
+            beam_size=beam_size,
+            max_length=max_length - len(tokens),
+            return_scores=True,
+            include_prompt_in_result=False,
+        )[0]
+
+        result_w_prompt = generator.generate_batch(
+            [tokens],
+            beam_size=beam_size,
+            max_length=max_length - 1,
+            return_scores=True,
+        )[0]
+
+        assert len(result_w_prompt.sequences[0]) == max_length
+        assert tokens + result_wo_prompt.sequences[0] == result_w_prompt.sequences[0]
+
+        cum_score_wo_prompt = result_wo_prompt.scores[0] * (
+            len(result_wo_prompt.sequences[0])
+        )
+        cum_score_w_prompt = result_w_prompt.scores[0] * (
+            len(result_w_prompt.sequences[0]) - 1
+        )
+
+        assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-4)
+
 
 class TestWhisper:
     @classmethod

@@ -48,6 +48,9 @@ namespace ctranslate2 {
     bool return_alternatives = false;
     // Minimum probability to expand an alternative.
     float min_alternative_expansion_prob = 0;
+
+    // Include the input tokens in the generation result.
+    bool include_prompt_in_result = true;
   };
 
   struct GenerationResult {
