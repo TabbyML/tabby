@@ -1,0 +1,33 @@
+version: '3.3'
+
+services:
+  triton:
+    image: instashot/ghcr.io.tabbyml.fastertransformer_backend:main
+    ports:
+      - "8002:8002"
+
+  server:
+    build: ..
+    working_dir: /app
+    command: /opt/conda/bin/python server/app.py
+    environment:
+      - TOKENIZER_NAME=testdata/gptneox/tokenizer
+      - TRITON_HOST=triton
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../:/app
+    links:
+      - triton
+
+  admin:
+    build: ..
+    working_dir: /app/admin
+    command: /opt/conda/bin/streamlit --server.runOnSave=true Home.py
+    volumes:
+      - ../:/app
+    ports:
+      - "8501:8501"
+    links:
+      - server
+      - triton

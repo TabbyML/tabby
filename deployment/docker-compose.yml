@@ -1,26 +1,12 @@
 version: '3.3'
 
 services:
-  server:
-    build: .
-    working_dir: /app
-    command: /opt/conda/bin/python server/app.py
-    environment:
-      - TOKENIZER_NAME=/tokenizer
-      - TRITON_HOST=triton
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./testdata/gptneox/tokenizer:/tokenizer
-    links:
-      - triton
-
   triton:
     image: tabbyml/fastertransformer_backend
     command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
     shm_size: 1gb
     volumes:
-      - ./testdata/gptneox/models:/model
+      - ../testdata/gptneox/models:/model
     deploy:
       resources:
         reservations:

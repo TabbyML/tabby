@@ -6,7 +6,9 @@
 > This repository is undering heavy construction, everything changes fast.
 
 ## Contents
-* [`server`](./server): API server for completion requests. It also provides APIs for logging users' selections, which could be used for RLHF.
-* [`tabformer`](./tabformer): *NOT RELEASED* Distributed trainer for tabby models.
-* [`preprocess`](./preprocess): Preprocess files into [datasets](https://huggingface.co/docs/datasets)
+* [`admin`](./admin): Admin panel for monitoring / settings purpose.
+* [`server`](./server): API server for completion requests. It also loggs users' selections (as feedback to model's quality).
+* [`deployment`](./deployment): Container related deployment configs.
 * [`converter`](./converter): Converts a [transformers](https://huggingface.co/docs/transformers) causal LM model into TensorRT / FasterTransformer serving formats.
+* [`preprocess`](./preprocess): Preprocess files into [datasets](https://huggingface.co/docs/datasets)
+* [`tabformer`](./tabformer): *NOT RELEASED* Distributed trainer for tabby models.
