@@ -1,32 +1,45 @@
-import logging
-import sys
-from dataclasses import asdict, dataclass
+import json
+import os
+import shutil
+from typing import List
 
 import models
-from pythonjsonlogger import jsonlogger
+from loguru import logger
+from pydantic import BaseModel
+
+logger.configure(handlers=[])
 
 
-def make_logger():
-    jsonHandler = logging.StreamHandler(sys.stdout)
-    jsonHandler.setFormatter(jsonlogger.JsonFormatter())
+def setup_logging(logdir):
+    try:
+        shutil.rmtree(logdir + "/*")
+    except FileNotFoundError:
+        pass
 
-    logger = logging.getLogger("events")
-    logger.setLevel(logging.INFO)
-    logger.addHandler(jsonHandler)
-    return logger
+    logger.add(
+        os.path.join(logdir, "events.{time}.log"),
+        rotation="1 hours",
+        retention="2 hours",
+        level="INFO",
+        filter=__name__,
+        enqueue=True,
+        delay=True,
+        serialize=True,
+    )
 
 
-logger = make_logger()
-
-
-@dataclass
-class CompletionsEvent:
-    prompt: str
-    choices: models.Choice
+EVENTS_LOG_DIR = os.environ.get("EVENTS_LOG_DIR", None)
+if EVENTS_LOG_DIR is not None:
+    setup_logging(EVENTS_LOG_DIR)
 
 
 def log_completions(
-    request: models.CompletionsRequest, response: models.CompletionsResponse
+    request: models.CompletionRequest, response: models.CompletionResponse
 ) -> None:
-    event = CompletionsEvent(prompt=request.prompt, choices=response.choices)
-    logger.info(asdict(event))
+    event = models.CompletionEvent.build(request, response)
+    logger.info(event.json())
+
+
+def log_selection(id: str, index: int) -> None:
+    event = models.SelectionEvent.build(id, index)
+    logger.info(event.json())

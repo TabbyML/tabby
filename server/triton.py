@@ -6,7 +6,7 @@ from typing import List
 
 import numpy as np
 import tritonclient.grpc as client_util
-from models import Choice, CompletionsRequest, CompletionsResponse
+from models import Choice, CompletionRequest, CompletionResponse
 from transformers import AutoTokenizer
 from tritonclient.utils import InferenceServerException, np_to_triton_dtype
 
@@ -24,7 +24,7 @@ class TritonService:
             url=f"{host}:{port}", verbose=verbose
         )
 
-    def generate(self, data: CompletionsRequest) -> List[Choice]:
+    def generate(self, data: CompletionRequest) -> List[Choice]:
         # FIXME(meng): Make following vars configurable
         n = 1
         np_type = np.uint32
@@ -71,9 +71,9 @@ class TritonService:
         trimmed = [trim_with_stopwords(d, stop_words) for d in decoded]
         return [Choice(index=i, text=text) for i, text in enumerate(trimmed)]
 
-    def __call__(self, data: CompletionsRequest) -> CompletionsResponse:
+    def __call__(self, data: CompletionRequest) -> CompletionResponse:
         choices = self.generate(data)
-        return CompletionsResponse(
+        return CompletionResponse(
             id=random_completion_id(), created=int(time.time()), choices=choices
         )
 

@@ -7,29 +7,15 @@ services:
       dockerfile: ./deployment/Dockerfile
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
-    image: tabbyml/tabby
-    container_name: tabby-server
-    working_dir: /app/server
-    command: /opt/conda/bin/uvicorn app:app --host 0.0.0.0 --port 5000 --reload
-    environment:
-      - TOKENIZER_NAME=../testdata/gptneox/tokenizer
-      - TRITON_HOST=triton
-    ports:
-      - "5000"
+    command: uvicorn app:app --host 0.0.0.0 --port 5000 --reload
     volumes:
       - ../:/app
-    links:
-      - triton
 
   admin:
-    image: tabbyml/tabby
-    container_name: tabby-admin
-    working_dir: /app/admin
-    command: /opt/conda/bin/streamlit run --server.runOnSave=true Home.py
+    command: streamlit run --server.runOnSave=true Home.py
     volumes:
       - ../:/app
-    ports:
-      - "8501"
-    links:
-      - server
-      - triton
+
+  vector:
+    environment:
+      - VECTOR_WATCH_CONFIG=true

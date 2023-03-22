@@ -1,3 +1,19 @@
 [api]
 enabled = true
 address = "0.0.0.0:8686"
+
+[sources.tabby_server_logs]
+type = "file"
+include = ["/logs/tabby-server/events.*.log"]
+
+[transforms.process_tabby_server_logs]
+type = "remap"
+inputs = [ "tabby_server_logs" ]
+source = ". = parse_json!(parse_json!(.message).record.message)"
+
+[sinks.console]
+type = "console"
+inputs = [ "process_tabby_server_logs" ]
+encoding = { codec = "json" }
+framing = { method = "newline_delimited" }
+target = "stdout"
