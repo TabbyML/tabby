@@ -25,11 +25,11 @@ setup-development-environment: install-poetry $(PRE_COMMIT_HOOK)
 up:
 	docker-compose -f deployment/docker-compose.yml up
 
-up-triton:
+up-triton: $(LOCAL_MODEL)
 	docker-compose -f deployment/docker-compose.yml -f deployment/docker-compose.triton.yml up
 
 dev:
 	docker-compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml up --build
 
-dev-triton:
+dev-triton: $(LOCAL_MODEL)
 	docker-compose -f deployment/docker-compose.yml -f deployment/docker-compose.triton.yml -f deployment/docker-compose.dev.yml up --build
