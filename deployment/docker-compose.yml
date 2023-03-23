@@ -14,7 +14,7 @@ services:
       - "5000:5000"
     volumes:
       - ./logs:/logs
-      - ../testdata/gptneox/tokenizer:/tokenizer
+      - ../testdata/tiny-70M/tokenizer:/tokenizer
     links:
       - triton
       - vector
@@ -25,7 +25,7 @@ services:
     command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
     shm_size: 1gb
     volumes:
-      - ../testdata/gptneox/models:/model
+      - ../testdata/tiny-70M/models:/model
     deploy:
       resources:
         reservations:
