@@ -20,7 +20,7 @@ MODEL_BACKEND = os.environ.get("MODEL_BACKEND", "python")
 if MODEL_BACKEND == "triton":
     model_backend = TritonService(
         tokenizer_name=os.environ.get("TRITON_TOKENIZER_NAME", None),
-        host=os.environ.get("TRITON_HOST", "localhost"),
+        host=os.environ.get("TRITON_HOST", "triton"),
         port=os.environ.get("TRITON_PORT", "8001"),
     )
 else:
