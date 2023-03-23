@@ -24,3 +24,7 @@ Assuming Linux workstation with:
 3. python 3.10
 
 Use `make setup-development-environment` to setup basic dev environment, and `make dev` to start local development server.
+
+
+## 🙋 We're hiring
+Come help us make Tabby even better. We're growing fast [and would love for you to join us](https://tabbyml.notion.site/Careers-35b1a77f3d1743d9bae06b7d6d5b814a).
