@@ -17,4 +17,10 @@ An opensource / on-prem alternative to GitHub Copilot
 * [`tabformer`](./tabformer): *NOT RELEASED* Trainer(PEFT w/RLHF) for tabby models.
 
 ## Development
-`make dev`
+
+Assuming Linux workstation with:
+1. docker
+2. docker w/ gpu driver
+3. python 3.10
+
+Use `make dev` to start local dev server.
