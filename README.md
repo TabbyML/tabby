@@ -15,3 +15,12 @@ An opensource / on-prem alternative to GitHub Copilot
 * [`converter`](./converter): Converts a [transformers](https://huggingface.co/docs/transformers) causal LM model into TensorRT / FasterTransformer serving formats.
 * [`preprocess`](./preprocess): Preprocess files into [datasets](https://huggingface.co/docs/datasets)
 * [`tabformer`](./tabformer): *NOT RELEASED* Trainer(PEFT w/RLHF) for tabby models.
+
+## Development
+
+Assuming Linux workstation with:
+1. docker
+2. docker w/ gpu driver
+3. python 3.10
+
+Use `make dev` to start local dev server.
