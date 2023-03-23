@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
 from models import CompletionRequest, CompletionResponse
+from python import PythonModelService
 from triton import TritonService
 
 app = FastAPI(
@@ -14,16 +15,21 @@ app = FastAPI(
     docs_url="/",
 )
 
-triton = TritonService(
-    tokenizer_name=os.environ.get("TOKENIZER_NAME", None),
-    host=os.environ.get("TRITON_HOST", "localhost"),
-    port=os.environ.get("TRITON_PORT", "8001"),
-)
+MODEL_BACKEND = os.environ.get("MODEL_BACKEND", "python")
+
+if MODEL_BACKEND == "triton":
+    model_backend = TritonService(
+        tokenizer_name=os.environ.get("TRITON_TOKENIZER_NAME", None),
+        host=os.environ.get("TRITON_HOST", "triton"),
+        port=os.environ.get("TRITON_PORT", "8001"),
+    )
+else:
+    model_backend = PythonModelService(os.environ["PYTHON_MODEL_NAME"])
 
 
 @app.post("/v1/completions")
 async def completions(request: CompletionRequest) -> CompletionResponse:
-    response = triton(request)
+    response = model_backend(request)
     events.log_completions(request, response)
     return response
 

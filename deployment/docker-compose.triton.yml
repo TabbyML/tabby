@@ -1,0 +1,33 @@
+version: '3.3'
+
+services:
+  server:
+    image: tabbyml/tabby
+    environment:
+      - MODEL_BACKEND=triton
+      - TRITON_TOKENIZER_NAME=/tokenizer
+    volumes:
+      - ../testdata/tiny-70M/tokenizer:/tokenizer
+    links:
+      - triton
+
+  admin:
+    links:
+      - triton
+
+
+
+  triton:
+    image: tabbyml/fastertransformer_backend
+    container_name: tabby-triton
+    command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
+    shm_size: 1gb
+    volumes:
+      - ../testdata/tiny-70M/models:/model
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

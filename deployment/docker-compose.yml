@@ -7,32 +7,15 @@ services:
     working_dir: /app/server
     command: uvicorn app:app --host 0.0.0.0 --port 5000
     environment:
-      - TOKENIZER_NAME=/tokenizer
-      - TRITON_HOST=triton
+      - PYTHON_MODEL_NAME=EleutherAI/pythia-70m-deduped
       - EVENTS_LOG_DIR=/logs/tabby-server
     ports:
       - "5000:5000"
     volumes:
       - ./logs:/logs
-      - ../testdata/tiny-70M/tokenizer:/tokenizer
+      - ./hf_cache:/root/.cache/huggingface
     links:
-      - triton
       - vector
-
-  triton:
-    image: tabbyml/fastertransformer_backend
-    container_name: tabby-triton
-    command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
-    shm_size: 1gb
-    volumes:
-      - ../testdata/tiny-70M/models:/model
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
 
   admin:
     image: tabbyml/tabby
@@ -43,7 +26,6 @@ services:
       - "8501:8501"
     links:
       - server
-      - triton
       - vector
 
   vector:

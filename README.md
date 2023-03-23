@@ -23,4 +23,4 @@ Assuming Linux workstation with:
 2. docker w/ gpu driver
 3. python 3.10
 
-Use `make dev` to start local dev server.
+Use `make setup-development-environment` to setup basic dev environment, and `make dev` to start local development server.
