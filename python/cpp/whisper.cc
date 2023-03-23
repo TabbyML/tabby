@@ -171,6 +171,11 @@ namespace ctranslate2 {
                      :obj:`model_path` acts as an identifier for this model.
              )pbdoc")
 
+        .def_property_readonly("device", &WhisperWrapper::device,
+                               "Device this model is running on.")
+        .def_property_readonly("device_index", &WhisperWrapper::device_index,
+                               "List of device IDs where this model is running on.")
+
         .def("encode", &WhisperWrapper::encode,
              py::arg("features"),
              py::arg("to_cpu")=false,
