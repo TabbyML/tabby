@@ -12,7 +12,6 @@ An opensource / on-prem alternative to GitHub Copilot
 * [`admin`](./admin): Admin panel for monitoring / settings purpose.
 * [`server`](./server): API server for completion requests. It also logs users' selections (as feedback to model's quality).
 * [`deployment`](./deployment): Container related deployment configs.
-* [`tasks`](./tasks): Various data processing scripts.
 
 ## Development
 

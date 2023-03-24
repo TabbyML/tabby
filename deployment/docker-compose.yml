@@ -34,3 +34,12 @@ services:
     volumes:
       - ./config/vector.toml:/etc/vector/vector.toml:ro
       - ./data/logs:/logs
+
+  dagu:
+    image: tabbyml/tabby
+    container_name: tabby-dagu
+    command: dagu server --host 0.0.0.0 --port 8080
+    ports:
+      - 8080:8080
+    volumes:
+      - ./config/dags:/root/.dagu/dags

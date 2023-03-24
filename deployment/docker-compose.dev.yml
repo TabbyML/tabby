@@ -19,3 +19,9 @@ services:
   vector:
     environment:
       - VECTOR_WATCH_CONFIG=true
+
+  dagu:
+    ports:
+      - 8080:8080
+    volumes:
+      - ../:/app
