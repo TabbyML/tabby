@@ -1,7 +1,0 @@
-{
-  "add_prefix_space": false,
-  "bos_token": "<|endoftext|>",
-  "eos_token": "<|endoftext|>",
-  "tokenizer_class": "GPTNeoXTokenizer",
-  "unk_token": "<|endoftext|>"
-}

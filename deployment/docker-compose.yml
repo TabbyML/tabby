@@ -12,8 +12,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./logs:/logs
-      - ./hf_cache:/root/.cache/huggingface
+      - ./data/logs:/logs
+      - ./data/hf_cache:/root/.cache/huggingface
     links:
       - vector
 
@@ -33,4 +33,4 @@ services:
     container_name: tabby-vector
     volumes:
       - ./config/vector.toml:/etc/vector/vector.toml:ro
-      - ./logs:/logs
+      - ./data/logs:/logs

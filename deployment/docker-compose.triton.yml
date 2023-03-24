@@ -5,9 +5,7 @@ services:
     image: tabbyml/tabby
     environment:
       - MODEL_BACKEND=triton
-      - TRITON_TOKENIZER_NAME=/tokenizer
-    volumes:
-      - ../testdata/tiny-70M/tokenizer:/tokenizer
+      - TRITON_TOKENIZER_NAME=EleutherAI/pythia-70m-deduped
     links:
       - triton
 
