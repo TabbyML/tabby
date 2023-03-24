@@ -13,7 +13,6 @@ An opensource / on-prem alternative to GitHub Copilot
 * [`server`](./server): API server for completion requests. It also logs users' selections (as feedback to model's quality).
 * [`deployment`](./deployment): Container related deployment configs.
 * [`tasks`](./tasks): Various data processing scripts.
-* [`tabformer`](./tabformer): *NOT RELEASED* Trainer(PEFT w/RLHF) for tabby models.
 
 ## Development
 
