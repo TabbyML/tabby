@@ -14,7 +14,7 @@ steps:
       - Create job dir
 
   - name: Generate dataset
-    dir: ${APP_DIR}
+    dir: $APP_DIR
     command: python scripts/preprocess/preprocess_project.py --project_dir $JOB_DIR/repository --output_dir $JOB_DIR/dataset
     depends:
       - Fetch source code

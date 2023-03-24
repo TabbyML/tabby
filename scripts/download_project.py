@@ -6,7 +6,7 @@ import requests
 from transformers import HfArgumentParser
 
 
-@dataclass(kw_only=True)
+@dataclass
 class DownloaderArgs:
     url: str = field(metadata={"help": "URL to source code tar.gz file"})
     output_dir: str = field(metadata={"help": "Output save path directory"})

@@ -1,0 +1,11 @@
+[server]
+backend = "python"
+log_dir = /logs/tabby-server
+
+[server.backend_python]
+model_name = "EleutherAI/pythia-70m-deduped"
+
+[server.backend_triton]
+host = "triton"
+port = "8081"
+tokenizer_name = "EleutherAI/pythia-70m-deduped"

@@ -14,8 +14,6 @@ services:
     volumes:
       - ./data/logs:/logs
       - ./data/hf_cache:/root/.cache/huggingface
-    links:
-      - vector
 
   admin:
     image: tabbyml/tabby
