@@ -45,7 +45,11 @@ def dataset_iter(files):
             _, extname = os.path.splitext(x)
 
             with open(x) as f:
-                content = f.read()
+                try:
+                    content = f.read()
+                except UnicodeDecodeError:
+                    print("Cannot decode unicode", x)
+                    continue
 
             yield dict(
                 language=mappings[extname],
