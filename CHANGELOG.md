@@ -4,6 +4,20 @@
 
 ### Fixes and improvements
 
+## [v3.10.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.0) (2023-03-24)
+
+### New features
+
+* Add `Generator` option `include_prompt_in_result` (`True` by default)
+* Add method `Whisper.encode` to only run the Whisper encoder
+* Add model properties `Whisper.device` and `Whisper.device_index`
+
+### Fixes and improvements
+
+* Update the methods `Whisper.detect_language`, `Whisper.generate`, and `Whisper.align` to accept the encoder output
+* Fix a crash when running `Generator.forward` on GPU and the generator object is destroyed before the forward output
+* Fix parsing of Marian YAML vocabulary files containing "complex key mappings" and escaped sequences such as "\x84"
+
 ## [v3.9.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.9.1) (2023-03-17)
 
 ### Fixes and improvements
