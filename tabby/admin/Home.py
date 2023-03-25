@@ -1,4 +1,5 @@
 import streamlit as st
+from components import tabby
 from utils.service_info import ServiceInfo
 
 SERVICES = [
@@ -12,5 +13,7 @@ def make_badge_markdown(x: ServiceInfo):
     return f"![{x.label}]({x.badge_url})"
 
 
-st.markdown("## Status")
+st.markdown("## Tabby")
 st.markdown(" ".join(map(make_badge_markdown, SERVICES)))
+
+tabby.editor()

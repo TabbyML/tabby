@@ -3,6 +3,7 @@ import os
 
 import uvicorn
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import events
@@ -14,6 +15,14 @@ app = FastAPI(
     title="TabbyServer",
     description="TabbyServer is the backend for tabby, serving code completion requests from code editor / IDE.",
     docs_url="/",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 MODEL_NAME = os.environ.get("MODEL_NAME")
