@@ -2,9 +2,15 @@
 
 FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 
-# Install dagu (https://github.com/yohamta/dagu)
+# Install utilities
 RUN <<EOF
-  python -c "import urllib.request; urllib.request.urlretrieve('https://github.com/yohamta/dagu/releases/download/v1.10.2/dagu_1.10.2_Linux_x86_64.tar.gz', 'dagu.tar.gz')"
+  apt-get -y update
+  apt-get -y install git curl
+EOF
+
+# Install dagu
+RUN <<EOF
+  curl https://github.com/yohamta/dagu/releases/download/v1.10.2/dagu_1.10.2_Linux_x86_64.tar.gz > dagu.tar.gz
   tar zxvf dagu.tar.gz
   mv dagu /usr/local/bin
   rm dagu.tar.gz LICENSE.md README.md

@@ -1,0 +1,4 @@
+data_dir = "/repositories"
+
+[repositories.quickjs]
+url = "https://gitee.com/vsf-linux/quickjs.git"

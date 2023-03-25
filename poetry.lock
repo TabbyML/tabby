@@ -1014,6 +1014,22 @@ files = [
 gitdb = ">=4.0.1,<5"
 
 [[package]]
+name = "gitup"
+version = "0.5.1"
+description = "Easily update multiple git repositories at once"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "gitup-0.5.1-py3-none-any.whl", hash = "sha256:ee5b0314062edbccee900b851c030233378613256c141422a22a831c6201d8f8"},
+    {file = "gitup-0.5.1.tar.gz", hash = "sha256:4f787079cd65d8f60c5842181204635e1b72d3533ae91f0c619624c6b20846dd"},
+]
+
+[package.dependencies]
+colorama = ">=0.3.9"
+GitPython = ">=2.1.8"
+
+[[package]]
 name = "greenlet"
 version = "2.0.2"
 description = "Lightweight in-process concurrent programming"
@@ -3396,4 +3412,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0f2c2fbfd49c0a69dccf125d3ab96a00115b844753c2063b68d936bc2e8e39d1"
+content-hash = "c4e4670acf2dd356d6e625d590ec109eee7081c065fc54ce97e9f69bdcb21844"

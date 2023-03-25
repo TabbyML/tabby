@@ -15,6 +15,9 @@ uvicorn = "^0.21.1"
 tritonclient = {extras = ["all"], version = "^2.31.0"}
 streamlit = "^1.20.0"
 loguru = "^0.6.0"
+gitup = "^0.5.1"
+toml = "^0.10.2"
+gitpython = "^3.1.31"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,20 +1,15 @@
 schedule: "5 4 * * *" # Run at 04:05.
 
 env:
+  - PATH: "/opt/conda/bin:$PATH"
   - APP_DIR: /app
 steps:
-  - name: Create job dir
-    command: mktemp -d /tmp/job.XXXXX
-    output: JOB_DIR
-
-  - name: Fetch source code
+  - name: Update repositories
     dir: $APP_DIR
-    command: python -m tabby.tools.download_project --url http://download.savannah.gnu.org/releases/tinycc/tcc-0.9.24.tar.bz2 --output_dir $JOB_DIR/repository
-    depends:
-      - Create job dir
+    command: python -m tabby.tools.repository.updater --data_dir=/repositories --config_file=/config/repository.toml
 
   - name: Generate dataset
     dir: $APP_DIR
-    command: python -m tabby.tools.preprocess.preprocess_project --project_dir $JOB_DIR/repository --output_dir $JOB_DIR/dataset
+    command: python -m tabby.tools.preprocess.build_dataset --project_dir /repositories --output_dir /dataset
     depends:
-      - Fetch source code
+      - Update repositories

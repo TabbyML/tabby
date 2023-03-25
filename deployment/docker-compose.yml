@@ -7,11 +7,11 @@ services:
     command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000
     environment:
       - PYTHON_MODEL_NAME=EleutherAI/pythia-70m-deduped
-      - EVENTS_LOG_DIR=/logs/tabby-server
+      - EVENTS_LOG_DIR=/logs
     ports:
       - "5000:5000"
     volumes:
-      - ./data/logs:/logs
+      - ./data/logs/tabby-server:/logs
       - ./data/hf_cache:/root/.cache/huggingface
 
   admin:
@@ -35,5 +35,9 @@ services:
     image: tabbyml/tabby
     container_name: tabby-dagu
     command: dagu server --host 0.0.0.0 --port 8080
+    volumes:
+      - ./config:/config:ro
+      - ./data/repositories:/repositories
+      - ./data/dataset:/dataset
     environment:
       DAGU_DAGS: tabby/tasks
