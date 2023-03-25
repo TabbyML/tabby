@@ -1,13 +1,14 @@
 import logging
 import os
 
-import events
 import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
-from models import CompletionRequest, CompletionResponse
-from python import PythonModelService
-from triton import TritonService
+
+from . import events
+from .models import CompletionRequest, CompletionResponse
+from .python import PythonModelService
+from .triton import TritonService
 
 app = FastAPI(
     title="TabbyServer",
@@ -38,7 +39,3 @@ async def completions(request: CompletionRequest) -> CompletionResponse:
 async def selection(id: str, index: int) -> JSONResponse:
     events.log_selection(id, index)
     return JSONResponse(content="ok")
-
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=5000)

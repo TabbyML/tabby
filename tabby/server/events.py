@@ -3,9 +3,10 @@ import os
 import shutil
 from typing import List
 
-import models
 from loguru import logger
 from pydantic import BaseModel
+
+from . import models
 
 logger.configure(handlers=[])
 

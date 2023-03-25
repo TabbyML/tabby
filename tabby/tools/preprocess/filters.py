@@ -1,4 +1,4 @@
-from args import FilterArgs
+from .args import FilterArgs
 
 
 def basic_filters(args: FilterArgs):
