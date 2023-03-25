@@ -42,6 +42,7 @@ def dataset_iter(files):
     def gen():
         mappings = read_extension_to_language_mappings()
         for x in files:
+            print("Processing", x)
             _, extname = os.path.splitext(x)
 
             with open(x) as f:
