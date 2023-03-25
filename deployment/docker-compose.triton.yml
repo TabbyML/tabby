@@ -5,23 +5,15 @@ services:
     image: tabbyml/tabby
     environment:
       - MODEL_BACKEND=triton
-      - TRITON_TOKENIZER_NAME=EleutherAI/pythia-70m-deduped
-    links:
-      - triton
-
-  admin:
-    links:
-      - triton
-
-
 
   triton:
     image: tabbyml/fastertransformer_backend
     container_name: tabby-triton
-    command: mpirun -n 1 --allow-run-as-root /opt/tritonserver/bin/tritonserver --model-repository=/model
+    command: /scripts/triton.sh
     shm_size: 1gb
     volumes:
-      - ../testdata/tiny-70M/models:/model
+      - ./scripts:/scripts
+      - ./data/hf_cache:/root/.cache/huggingface
     deploy:
       resources:
         reservations:
@@ -29,3 +21,6 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    depends_on:
+      init:
+        condition: service_completed_successfully

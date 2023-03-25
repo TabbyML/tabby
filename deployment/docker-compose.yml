@@ -1,18 +1,28 @@
 version: '3.3'
 
 services:
+  init:
+    image: tabbyml/tabby
+    container_name: tabby-init
+    command: python -m tabby.tools.model_preload --repo_id TabbyML/NeoX-70M --backend python
+    volumes:
+      - ./data/hf_cache:/root/.cache/huggingface
+
   server:
     image: tabbyml/tabby
     container_name: tabby-server
     command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000
     environment:
-      - PYTHON_MODEL_NAME=EleutherAI/pythia-70m-deduped
+      - MODEL_NAME=TabbyML/NeoX-70M
       - EVENTS_LOG_DIR=/logs
     ports:
       - "5000:5000"
     volumes:
       - ./data/logs/tabby-server:/logs
       - ./data/hf_cache:/root/.cache/huggingface
+    depends_on:
+      init:
+        condition: service_completed_successfully
 
   admin:
     image: tabbyml/tabby
@@ -20,9 +30,6 @@ services:
     command: streamlit run tabby/admin/Home.py
     ports:
       - "8501:8501"
-    links:
-      - server
-      - vector
 
   vector:
     image: timberio/vector:0.28.1-alpine
