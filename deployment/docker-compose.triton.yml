@@ -5,6 +5,9 @@ services:
     image: tabbyml/tabby
     environment:
       - MODEL_BACKEND=triton
+    depends_on:
+      triton:
+        condition: service_healthy
 
   triton:
     image: tabbyml/fastertransformer_backend
@@ -21,6 +24,13 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    environment:
+      - MODEL_NAME=TabbyML/NeoX-70M
     depends_on:
       init:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/metrics"]
+      interval: 2s
+      timeout: 2s
+      start_period: 2s
