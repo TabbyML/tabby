@@ -81,6 +81,7 @@ namespace ctranslate2 {
       const cuda::UseTrueFp16GemmInScope use_true_fp16_gemm(false);
 #endif
 
+      const auto scoped_device_setter = _model->get_scoped_device_setter();
       const Device device = _model->device();
       const DataType dtype = _encoder->output_type();
       features.move_to(device, dtype);
