@@ -4,7 +4,7 @@ services:
   init:
     image: tabbyml/tabby
     container_name: tabby-init
-    command: python -m tabby.tools.model_preload --repo_id TabbyML/NeoX-70M --backend python
+    command: python -m tabby.tools.model_preload --repo_id TabbyML/NeoX-70M
     volumes:
       - ./data/hf_cache:/root/.cache/huggingface
 
