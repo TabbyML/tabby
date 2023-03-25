@@ -10,7 +10,7 @@ EOF
 
 # Install dagu
 RUN <<EOF
-  curl https://github.com/yohamta/dagu/releases/download/v1.10.2/dagu_1.10.2_Linux_x86_64.tar.gz > dagu.tar.gz
+  curl -L https://github.com/yohamta/dagu/releases/download/v1.10.2/dagu_1.10.2_Linux_x86_64.tar.gz > dagu.tar.gz
   tar zxvf dagu.tar.gz
   mv dagu /usr/local/bin
   rm dagu.tar.gz LICENSE.md README.md
