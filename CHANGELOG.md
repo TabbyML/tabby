@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v3.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.1) (2023-03-25)
+
+### Fixes and improvements
+
+* Add missing device setter in `Whisper.encode`
+
 ## [v3.10.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.0) (2023-03-24)
 
 ### New features
