@@ -13,6 +13,8 @@ def make_badge_markdown(x: ServiceInfo):
     return f"![{x.label}]({x.badge_url})"
 
 
+st.set_page_config(page_title="Tabby Admin")
+
 st.markdown("## Tabby")
 st.markdown(" ".join(map(make_badge_markdown, SERVICES)))
 
