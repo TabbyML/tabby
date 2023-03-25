@@ -1,12 +1,12 @@
 import React from "react"
 import ReactDOM from "react-dom"
 import { StreamlitProvider } from "streamlit-component-lib-react-hooks"
-import MyComponent from "./MyComponent"
+import Tabby from "./Tabby"
 
 ReactDOM.render(
   <React.StrictMode>
     <StreamlitProvider>
-      <MyComponent />
+      <Tabby />
     </StreamlitProvider>
   </React.StrictMode>,
   document.getElementById("root")
