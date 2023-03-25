@@ -22,7 +22,9 @@ Use `make setup-development-environment` to setup basic dev environment, and `ma
 2. Open Admin Panel [http://localhost:8501](http://localhost:8501)
 3. Types some code in editor!
 
-![Screenshot](https://user-images.githubusercontent.com/388154/227720116-938cc6e9-e6cd-435b-a4d2-7b846a2101c7.png)
+![Screenshot from 2023-03-25 21-31-24](https://user-images.githubusercontent.com/388154/227720212-7e7480a1-abb1-4baf-b971-d391ea8136c8.png)
+
+
 
 ## 🙋 We're hiring
 Come help us make Tabby even better. We're growing fast [and would love for you to join us](https://tabbyml.notion.site/Careers-35b1a77f3d1743d9bae06b7d6d5b814a).
