@@ -1,11 +1,13 @@
 version: '3.3'
 
 services:
-  server:
+  init:
     build:
       context: ..
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+
+  server:
     command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000 --reload
     volumes:
       - ../:/app

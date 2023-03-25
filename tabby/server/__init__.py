@@ -16,16 +16,17 @@ app = FastAPI(
     docs_url="/",
 )
 
+MODEL_NAME = os.environ.get("MODEL_NAME")
 MODEL_BACKEND = os.environ.get("MODEL_BACKEND", "python")
 
 if MODEL_BACKEND == "triton":
     model_backend = TritonService(
-        tokenizer_name=os.environ.get("TRITON_TOKENIZER_NAME", None),
+        tokenizer_name=MODEL_NAME,
         host=os.environ.get("TRITON_HOST", "triton"),
         port=os.environ.get("TRITON_PORT", "8001"),
     )
 else:
-    model_backend = PythonModelService(os.environ["PYTHON_MODEL_NAME"])
+    model_backend = PythonModelService(MODEL_NAME)
 
 
 @app.post("/v1/completions")

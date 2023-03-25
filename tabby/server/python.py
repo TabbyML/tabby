@@ -13,8 +13,12 @@ class PythonModelService:
         self,
         model_name,
     ):
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, local_files_only=True
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name, local_files_only=True
+        )
 
     def generate(self, request: CompletionRequest) -> List[Choice]:
         input_ids = self.tokenizer.encode(request.prompt, return_tensors="pt")
