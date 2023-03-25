@@ -15,7 +15,7 @@ $(PRE_COMMIT_HOOK):
 	poetry run pre-commit install --install-hooks
 
 $(LOCAL_MODEL):
-	poetry run python scripts/huggingface_gptneox_convert.py \
+	poetry run python -m tabby.tools.huggingface_gptneox_convert \
 		-in_file EleutherAI/pythia-70m-deduped \
 		-o $@ \
 		-i_g 1 -m_n tiny-70M -p 1 -w fp16

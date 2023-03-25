@@ -2,11 +2,11 @@ import glob
 import json
 import os
 
-import filters
-import metrics
-from args import PreprocessProjectArgs
 from datasets import Dataset
 from transformers import HfArgumentParser
+
+from . import filters, metrics
+from .args import PreprocessProjectArgs
 
 
 def parse_args():

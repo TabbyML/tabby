@@ -39,7 +39,3 @@ async def completions(request: CompletionRequest) -> CompletionResponse:
 async def selection(id: str, index: int) -> JSONResponse:
     events.log_selection(id, index)
     return JSONResponse(content="ok")
-
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=5000)
