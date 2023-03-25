@@ -6,9 +6,10 @@ from typing import List
 
 import numpy as np
 import tritonclient.grpc as client_util
-from models import Choice, CompletionRequest, CompletionResponse
 from transformers import AutoTokenizer
 from tritonclient.utils import InferenceServerException, np_to_triton_dtype
+
+from .models import Choice, CompletionRequest, CompletionResponse
 
 
 class TritonService:

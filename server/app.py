@@ -1,13 +1,14 @@
 import logging
 import os
 
-import events
 import uvicorn
 from fastapi import FastAPI, Response
 from fastapi.responses import JSONResponse
-from models import CompletionRequest, CompletionResponse
-from python import PythonModelService
-from triton import TritonService
+
+from . import events
+from .models import CompletionRequest, CompletionResponse
+from .python import PythonModelService
+from .triton import TritonService
 
 app = FastAPI(
     title="TabbyServer",

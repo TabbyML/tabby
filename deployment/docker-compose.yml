@@ -4,8 +4,8 @@ services:
   server:
     image: tabbyml/tabby
     container_name: tabby-server
-    working_dir: /app/server
-    command: uvicorn app:app --host 0.0.0.0 --port 5000
+    working_dir: /app
+    command: uvicorn server.app:app --host 0.0.0.0 --port 5000
     environment:
       - PYTHON_MODEL_NAME=EleutherAI/pythia-70m-deduped
       - EVENTS_LOG_DIR=/logs/tabby-server

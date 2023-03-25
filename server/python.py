@@ -3,8 +3,9 @@ import string
 import time
 from typing import List
 
-from models import Choice, CompletionRequest, CompletionResponse
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from .models import Choice, CompletionRequest, CompletionResponse
 
 
 class PythonModelService:

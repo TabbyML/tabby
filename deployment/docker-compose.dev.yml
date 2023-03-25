@@ -7,7 +7,7 @@ services:
       dockerfile: ./deployment/Dockerfile
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
-    command: uvicorn app:app --host 0.0.0.0 --port 5000 --reload
+    command: uvicorn server.app:app --host 0.0.0.0 --port 5000 --reload
     volumes:
       - ../:/app
 
