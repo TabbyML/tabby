@@ -33,4 +33,4 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:8002/metrics"]
       interval: 2s
       timeout: 2s
-      start_period: 2s
+      start_period: 120s

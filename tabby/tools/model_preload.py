@@ -9,7 +9,6 @@ class Arguments:
     repo_id: str = field(
         metadata={"help": "Huggingface model repository id, e.g TabbyML/NeoX-160M"}
     )
-    backend: str = "python"
     prefer_local_files: bool = True
 
 
