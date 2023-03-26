@@ -10,4 +10,4 @@ You need install following dependencies
 
 Open Admin Panel [http://localhost:8501](http://localhost:8501)
 
-![Screenshot from 2023-03-25 21-31-24](https://user-images.githubusercontent.com/388154/227720212-7e7480a1-abb1-4baf-b971-d391ea8136c8.png)
+![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
