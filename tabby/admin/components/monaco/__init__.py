@@ -30,7 +30,7 @@ else:
 # `declare_component` and call it done. The wrapper allows us to customize
 # our component's API: we can pre-process its input args, post-process its
 # output value, and add a docstring for users.
-def monaco(tabby_server_url="http://localhost:5000", key=None):
+def st_monaco(tabby_server_url="http://localhost:5000", key=None):
     _editor_func(tabby_server_url=tabby_server_url, key=key)
 
 
@@ -41,4 +41,4 @@ if not _RELEASE:
     import streamlit as st
 
     tabby_server_url = st.text_input("Tabby Server URL", value="http://localhost:5000")
-    monaco(tabby_server_url)
+    st_monaco(tabby_server_url)
