@@ -8,6 +8,10 @@
 
 An opensource / on-prem alternative to GitHub Copilot
 
+## Deployment
+
+See [deployment](./deployment/README.md)
+
 ## Development
 
 Assuming Linux workstation with:
@@ -16,7 +20,3 @@ Assuming Linux workstation with:
 3. python 3.10
 
 Use `make setup-development-environment` to setup basic dev environment.
-
-## Deployment
-
-See [deployment](./deployment/README.md)
