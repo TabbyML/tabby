@@ -1,0 +1,59 @@
+version: '3.3'
+
+services:
+  init:
+    image: tabbyml/tabby
+    container_name: tabby-init
+    command: python -m tabby.tools.model_preload --repo_id TabbyML/NeoX-70M
+    volumes:
+      - ../data/hf_cache:/root/.cache/huggingface
+
+  server:
+    image: tabbyml/tabby
+    container_name: tabby-server
+    command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000
+    environment:
+      - MODEL_NAME=TabbyML/NeoX-70M
+      - MODEL_BACKEND=triton
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../data/hf_cache:/root/.cache/huggingface
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      triton:
+        condition: service_healthy
+
+  admin:
+    image: tabbyml/tabby
+    container_name: tabby-admin
+    command: streamlit run tabby/admin/Home.py
+    ports:
+      - "8501:8501"
+
+  triton:
+    image: tabbyml/fastertransformer_backend
+    container_name: tabby-triton
+    command: /scripts/triton.sh
+    shm_size: 1gb
+    volumes:
+      - ./scripts:/scripts
+      - ../data/hf_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    environment:
+      - MODEL_NAME=TabbyML/NeoX-70M
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/metrics"]
+      interval: 2s
+      timeout: 2s
+      start_period: 120s

@@ -1,4 +1,6 @@
+data
 deployment
+deployment-next
 
 **/.git
 **/node_modules
