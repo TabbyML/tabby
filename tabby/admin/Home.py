@@ -1,5 +1,5 @@
 import streamlit as st
-from components import tabby
+from components import monaco
 from utils.service_info import ServiceInfo
 
 SERVICES = [
@@ -18,4 +18,4 @@ st.set_page_config(page_title="Tabby Admin")
 st.markdown("## Tabby")
 st.markdown(" ".join(map(make_badge_markdown, SERVICES)))
 
-tabby.editor()
+monaco.st_monaco()
