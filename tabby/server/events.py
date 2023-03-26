@@ -46,6 +46,6 @@ def log_view(id: str, index: int) -> None:
     logger.info(event.json())
 
 
-def log_selection(id: str, index: int) -> None:
-    event = models.ChoiceEvent.build_selection(id, index)
+def log_select(id: str, index: int) -> None:
+    event = models.ChoiceEvent.build_select(id, index)
     logger.info(event.json())
