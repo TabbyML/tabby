@@ -117,6 +117,11 @@ def to_word_list_format(word_dict, tokenizer):
             item_flat_ids += ids
             item_offsets.append(len(ids))
 
+            if word == "\n\n":
+                ids = tokenizer.encode("\n") * 2
+                item_flat_ids += ids
+                item_offsets.append(len(ids))
+
         flat_ids.append(np.array(item_flat_ids))
         offsets.append(np.cumsum(np.array(item_offsets)))
 
