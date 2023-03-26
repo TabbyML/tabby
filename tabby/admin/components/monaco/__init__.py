@@ -2,7 +2,7 @@ import os
 
 import streamlit.components.v1 as components
 
-_RELEASE = __name__ != "__main_"
+_RELEASE = __name__ != "__main__"
 
 # Declare a Streamlit component. `declare_component` returns a function
 if not _RELEASE:
@@ -10,7 +10,7 @@ if not _RELEASE:
         # We give the component a simple, descriptive name ("my_component"
         # does not fit this bill, so please choose something better for your
         # own component :)
-        "tabby-editor",
+        "streamlit-monaco",
         # Pass `url` here to tell Streamlit that the component will be served
         # by the local dev server that you run via `npm run start`.
         # (This is useful while your component is in development.)
@@ -22,7 +22,7 @@ else:
     # build directory:
     parent_dir = os.path.dirname(os.path.abspath(__file__))
     build_dir = os.path.join(parent_dir, "frontend/build")
-    _editor_func = components.declare_component("tabby-editor", path=build_dir)
+    _editor_func = components.declare_component("streamlit-monaco", path=build_dir)
 
 
 # Create a wrapper function for the component. This is an optional
@@ -30,7 +30,7 @@ else:
 # `declare_component` and call it done. The wrapper allows us to customize
 # our component's API: we can pre-process its input args, post-process its
 # output value, and add a docstring for users.
-def editor(tabby_server_url="http://localhost:5000", key=None):
+def monaco(tabby_server_url="http://localhost:5000", key=None):
     _editor_func(tabby_server_url=tabby_server_url, key=key)
 
 
@@ -41,4 +41,4 @@ if not _RELEASE:
     import streamlit as st
 
     tabby_server_url = st.text_input("Tabby Server URL", value="http://localhost:5000")
-    tabby(tabby_server_url)
+    monaco(tabby_server_url)

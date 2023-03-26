@@ -9,7 +9,7 @@ const PythonParseJSON = `def parse_json_lines(filename: str) -> List[Any]:
     with open(filename, "r", encoding="utf-8") as f:
 `
 
-export default function TabbyEditor() {
+export default function MonacoEditor() {
   const renderData = useRenderData()
 
   ;(window as any).tabbyServerURL = renderData.args.tabby_server_url
