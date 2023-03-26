@@ -16,7 +16,7 @@ services:
     shm_size: 1gb
     volumes:
       - ./scripts:/scripts
-      - ./data/hf_cache:/root/.cache/huggingface
+      - ../data/hf_cache:/root/.cache/huggingface
     deploy:
       resources:
         reservations:

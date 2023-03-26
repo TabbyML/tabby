@@ -1,12 +1,7 @@
 ## Deployment
 
-1. Start service
-   ```bash
-   docker-compose up
-   ```
-2. Test API endpoint with curl
-   ```bash
-   curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
-       "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
-   }'
-   ```
+1. `docker-compose up`
+2. Open Admin Panel [http://localhost:8501](http://localhost:8501)
+3. Types some code in editor!
+
+![Screenshot from 2023-03-25 21-31-24](https://user-images.githubusercontent.com/388154/227720212-7e7480a1-abb1-4baf-b971-d391ea8136c8.png)
