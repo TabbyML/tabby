@@ -5,17 +5,13 @@
   "dependencies": {
     "@monaco-editor/react": "^4.4.6",
     "axios": "^1.3.4",
-    "loader-utils": "^3.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "^5.0.1",
     "streamlit-component-lib-react-hooks": "^1.0.3"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
-    "@types/react": "^18.0.29",
-    "@types/react-dom": "^18.0.11",
-    "typescript": "^4.6.2"
+    "@craco/craco": "^7.1.0"
   },
   "scripts": {
     "start": "craco start",

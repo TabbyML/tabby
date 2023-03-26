@@ -2,17 +2,19 @@ import axios from "axios"
 import { useRenderData } from "streamlit-component-lib-react-hooks"
 
 import React, { useEffect } from "react"
-import Monaco, { useMonaco } from "@monaco-editor/react"
+import Editor, { useMonaco } from "@monaco-editor/react"
 
 const PythonParseJSON = `def parse_json_lines(filename: str) -> List[Any]:
     output = []
     with open(filename, "r", encoding="utf-8") as f:
 `
 
+let TabbyServerURL = "http://localhost:5000"
+
 export default function MonacoEditor() {
   const renderData = useRenderData()
 
-  ;(window as any).tabbyServerURL = renderData.args.tabby_server_url
+  TabbyServerURL = renderData.args.tabby_server_url
 
   const monaco = useMonaco()
   useEffect(() => {
@@ -25,7 +27,7 @@ export default function MonacoEditor() {
 
   return (
     <div style={{ height: 400 }}>
-      <Monaco
+      <Editor
         theme="vs-dark"
         defaultLanguage="python"
         defaultValue={PythonParseJSON}
@@ -35,21 +37,12 @@ export default function MonacoEditor() {
 }
 
 class CompletionProvider {
-  private monaco: any
-  private latestTimestamp: number
-  private pendingRequest: any
-
-  constructor(monaco: any) {
+  constructor(monaco: Monaco) {
     this.monaco = monaco
     this.latestTimestamp = 0
   }
 
-  async provideInlineCompletions(
-    document: any,
-    position: any,
-    context: any,
-    token: any
-  ) {
+  async provideInlineCompletions(document, position, context, token) {
     const prompt = this.getPrompt(document, position)
     const emptyResponse = Promise.resolve({ items: [] })
 
@@ -67,7 +60,13 @@ class CompletionProvider {
       return emptyResponse
     }
 
-    const response = await this.callTabbyApi(currentTimestamp, prompt)
+    let response
+    try {
+      response = await this.callTabbyApi(currentTimestamp, prompt)
+    } catch (err) {
+      console.error("error", err)
+      return emptyResponse
+    }
     const hasSuffixParen = this.hasSuffixParen(document, position)
     const replaceRange = hasSuffixParen
       ? new this.monaco.Range(
@@ -88,7 +87,7 @@ class CompletionProvider {
 
   freeInlineCompletions() {}
 
-  getPrompt(document: any, position: any): string {
+  getPrompt(document, position) {
     const firstLine = Math.max(position.lineNumber - 120, 0)
 
     const range = new this.monaco.Range(
@@ -100,17 +99,17 @@ class CompletionProvider {
     return document.getValueInRange(range)
   }
 
-  isNil(value: any) {
+  isNil(value) {
     return value === undefined || value === null || value.length === 0
   }
 
-  sleep(milliseconds: number) {
+  sleep(milliseconds) {
     return new Promise((r) => setTimeout(r, milliseconds))
   }
 
-  async callTabbyApi(timestamp: number, prompt: string) {
+  async callTabbyApi(timestamp, prompt) {
     const request = (this.pendingRequest = axios.post(
-      `${(window as any).tabbyServerURL}/v1/completions`,
+      `${TabbyServerURL}/v1/completions`,
       {
         prompt,
       }
@@ -120,10 +119,10 @@ class CompletionProvider {
     return response
   }
 
-  toInlineCompletions(value: any, range: any) {
+  toInlineCompletions(value, range) {
     return (
       value.choices
-        ?.map((choice: any) => choice.text)
+        .map((choice) => choice.text)
         .map((text: string) => ({
           range,
           text,
@@ -131,7 +130,7 @@ class CompletionProvider {
     )
   }
 
-  hasSuffixParen(document: any, position: any): boolean {
+  hasSuffixParen(document, position) {
     const suffix = document.getValueInRange(
       new this.monaco.Range(
         position.lineNumber,
