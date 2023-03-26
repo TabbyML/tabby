@@ -23,6 +23,12 @@ export default function MonacoEditor() {
       { pattern: "**" },
       new CompletionProvider(monaco)
     )
+    monaco.editor.registerCommand(
+      "acceptTabbyCompletion",
+      (accessor, id, index) => {
+        logAction(id, index, "select")
+      }
+    )
   }, [monaco])
 
   return (
@@ -82,7 +88,11 @@ class CompletionProvider {
           position.column
         )
     const items = this.toInlineCompletions(response.data, replaceRange)
-    return Promise.resolve({ items })
+    return Promise.resolve({ data: response.data, items })
+  }
+
+  handleItemDidShow(completions, item) {
+    logAction(completions.data.id, item.choice.index, "view")
   }
 
   freeInlineCompletions() {}
@@ -121,12 +131,15 @@ class CompletionProvider {
 
   toInlineCompletions(value, range) {
     return (
-      value.choices
-        .map((choice) => choice.text)
-        .map((text: string) => ({
-          range,
-          text,
-        })) || []
+      value.choices.map((choice) => ({
+        range,
+        text: choice.text,
+        choice,
+        command: {
+          id: "acceptTabbyCompletion",
+          arguments: [value.id, choice.index],
+        },
+      })) || []
     )
   }
 
@@ -141,4 +154,8 @@ class CompletionProvider {
     )
     return ")]}".indexOf(suffix) > -1
   }
+}
+
+function logAction(id, index, event) {
+  axios.post(`${TabbyServerURL}/v1/completions/${id}/choices/${index}/${event}`)
 }
