@@ -4,7 +4,7 @@ services:
   init:
     image: tabbyml/tabby
     container_name: tabby-init
-    command: python -m tabby.tools.model_preload --repo_id TabbyML/NeoX-70M
+    command: python -m tabby.tools.model_preload --repo_id TabbyML/J-350M
     volumes:
       - ../data/hf_cache:/root/.cache/huggingface
 
@@ -13,7 +13,7 @@ services:
     container_name: tabby-server
     command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000
     environment:
-      - MODEL_NAME=TabbyML/NeoX-70M
+      - MODEL_NAME=TabbyML/J-350M
       - MODEL_BACKEND=triton
     ports:
       - "5000:5000"
@@ -48,7 +48,7 @@ services:
               count: all
               capabilities: [gpu]
     environment:
-      - MODEL_NAME=TabbyML/NeoX-70M
+      - MODEL_NAME=TabbyML/J-350M
     depends_on:
       init:
         condition: service_completed_successfully

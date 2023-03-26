@@ -31,7 +31,7 @@ def preload(local_files_only=False):
 
 if __name__ == "__main__":
     args = parse_args()
-    print(f"Loading {args.repo_id} ...")
+    print(f"Loading {args.repo_id}, this will take a while...")
     try:
         preload(local_files_only=args.prefer_local_files)
     except Exception as e:
