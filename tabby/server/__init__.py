@@ -45,6 +45,12 @@ async def completions(request: CompletionRequest) -> CompletionResponse:
     return response
 
 
+@app.post("/v1/completions/{id}/choices/{index}/view")
+async def view(id: str, index: int) -> JSONResponse:
+    events.log_view(id, index)
+    return JSONResponse(content="ok")
+
+
 @app.post("/v1/completions/{id}/choices/{index}/selection")
 async def selection(id: str, index: int) -> JSONResponse:
     events.log_selection(id, index)
