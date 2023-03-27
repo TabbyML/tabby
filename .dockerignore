@@ -1,7 +1,3 @@
-data
-deployment
-deployment-next
-
 **/.git
 **/node_modules
 **/__pycache__
