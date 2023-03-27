@@ -29,8 +29,8 @@ namespace ctranslate2 {
                             const StorageView& input,
                             const dim_t axis,
                             const dim_t outer_size,
-                            const dim_t axis_size,
-                            const dim_t inner_size,
+                            const dim_t,
+                            const dim_t,
                             StorageView& output) const {
       if (axis != input.rank() - 1 || !beta || !gamma)
         throw std::invalid_argument("Generalized LayerNorm is currently not implemented on GPU");
