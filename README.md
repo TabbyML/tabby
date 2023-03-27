@@ -23,6 +23,9 @@ An opensource / on-prem alternative to GitHub Copilot.
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
 ## Get started
+
+### Docker
+
 The easiest way of getting started is using the `deployment/docker-compose.yml`:
 ```bash
 docker-compose up
@@ -39,6 +42,10 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
 We also provides an interactive playground in admin panel [localhost:8501](http://localhost:8501)
 
 ![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
+
+### API documentation
+
+Tabby opens an FastAPI server at [localhost:5000](https://localhost:5000), which embeds an OpenAPI documentation of the HTTP API.
 
 ## TODOs
 
