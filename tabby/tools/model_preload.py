@@ -9,7 +9,12 @@ class Arguments:
     repo_id: str = field(
         metadata={"help": "Huggingface model repository id, e.g TabbyML/NeoX-160M"}
     )
-    prefer_local_files: bool = True
+    prefer_local_files: bool = field(
+        metadata={
+            "help": "Whether prefer loading local files (skip remote version check if local files are valid)."
+        },
+        default=True,
+    )
 
 
 def parse_args():
