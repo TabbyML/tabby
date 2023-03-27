@@ -47,6 +47,17 @@ We also provides an interactive playground in admin panel [localhost:8501](http:
 
 Tabby opens an FastAPI server at [localhost:5000](https://localhost:5000), which embeds an OpenAPI documentation of the HTTP API.
 
+## Development
+
+Go to `development` directory.
+```
+make dev
+```
+or
+```
+make triton-dev
+```
+
 ## TODOs
 
 * [ ] Fine-tuning models on private code repository.
