@@ -66,6 +66,7 @@ namespace ctranslate2 {
     : _dtype(other._dtype)
     , _device(other._device)
     , _device_index(other._device_index) {
+    ScopedDeviceSetter scoped_device_setter(_device, _device_index);
     copy_from(other);
   }
 
