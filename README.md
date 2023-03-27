@@ -60,7 +60,7 @@ make triton-dev
 
 ## TODOs
 
+* [ ] DuckDB integration, to plot metrics in admin panel (e.g acceptance rate).
 * [ ] Fine-tuning models on private code repository.
-* [ ] Plot metrics in admin panel (e.g acceptance rate).
 * [ ] Production ready (Open Telemetry, Prometheus metrics).
 * [ ] Token streaming using Server-Sent Events (SSE)
