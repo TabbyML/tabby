@@ -10,4 +10,4 @@ An opensource / on-prem alternative to GitHub Copilot
 
 ## Deployment
 
-See [deployment](./deployment/README.md)
+See [deployment](./docs/deployment.md)
