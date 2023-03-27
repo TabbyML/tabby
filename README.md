@@ -11,12 +11,3 @@ An opensource / on-prem alternative to GitHub Copilot
 ## Deployment
 
 See [deployment](./deployment/README.md)
-
-## Development
-
-Assuming Linux workstation with:
-1. docker
-2. docker w/ gpu driver
-3. python 3.10
-
-Use `make setup-development-environment` to setup basic dev environment.
