@@ -5,3 +5,6 @@ dev:
 
 dev-triton:
 	docker-compose -f docker-compose.yml -f docker-compose.triton.yml -f docker-compose.dev.yml $(UP_FLAGS)
+
+clean:
+	docker-compose -f docker-compose.yml -f docker-compose.triton.yml -f docker-compose.dev.yml down
