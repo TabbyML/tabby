@@ -7,23 +7,19 @@ You need install following dependencies
 * An NVIDIA GPU with enough VRAM to run the model you want.
 * [NVIDIA Docker Driver](https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html)
 
-## Installation
-
-### Tabby Server
+## Setup Tabby Server with `docker-compose`.
 
 1. Goto [`deployment`](../deployment) directory
 2. Execute `docker-compose up`.
 
-### Tabby Client
+## Tabby Client
 
 There're several ways to talk to the Tabby Server.
 
-#### Tabby Admin Panel
-
-Open Admin Panel [http://localhost:8501](http://localhost:8501)
+### Tabby Admin Panel [http://localhost:8501](http://localhost:8501)
 
 ![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
 
-#### OpenAPI
+### OpenAPI [http://localhost:5000](http://localhost:5000)
 
-Open [http://localhost:5000](http://localhost:5000) to view the OpenAPI documents.
+![image](https://user-images.githubusercontent.com/388154/227835790-29e21eb5-6e9c-45ab-aa0f-c4c7ce399ad7.png)
