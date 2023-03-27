@@ -1,5 +1,3 @@
-# Deployment
-
 ## Prerequisites
 
 You need install following dependencies
