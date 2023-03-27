@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v3.10.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.2) (2023-03-27)
+
+### Fixes and improvements
+
+* Select the correct device when copying a `StorageView` instance
+
 ## [v3.10.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.1) (2023-03-25)
 
 ### Fixes and improvements
