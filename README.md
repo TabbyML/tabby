@@ -30,3 +30,4 @@ To get started with Tabby, see the [docs/deployment](./docs/deployment.md).
 * [ ] Fine-tuning models on private code repository.
 * [ ] Plot metrics in admin panel (e.g acceptance rate).
 * [ ] Production ready (Open Telemetry, Prometheus metrics).
+* [ ] Token streaming using Server-Sent Events (SSE)
