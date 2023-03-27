@@ -22,8 +22,23 @@ An opensource / on-prem alternative to GitHub Copilot.
 * OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
-## Getting started
-To get started with Tabby, see the [docs/deployment](./docs/deployment.md).
+## Get started
+The easiest way of getting started is using the `deployment/docker-compose.yml`:
+```bash
+docker-compose up
+```
+Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
+
+You can then query the server using `/v1/completions` endpoint:
+```bash
+curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
+    "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
+}'
+```
+
+We also provides an interactive playground in admin panel [localhost:8501](http://localhost:8501)
+
+![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
 
 ## TODOs
 
