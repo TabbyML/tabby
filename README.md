@@ -23,7 +23,7 @@ An opensource / on-prem alternative to GitHub Copilot.
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
 ## Getting started
-To get started with Tabby, see the [docs/deployment](./docs/deployment).
+To get started with Tabby, see the [docs/deployment](./docs/deployment.md).
 
 ## TODOs
 
