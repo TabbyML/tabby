@@ -13,7 +13,7 @@ class ServiceInfo:
     def is_health(self) -> bool:
         try:
             return requests.get(self.url).status_code == 200
-        except ConnectionError as e:
+        except ConnectionError:
             return False
 
     @property

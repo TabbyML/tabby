@@ -28,4 +28,8 @@ RUN poetry export --without-hashes -o requirements.txt
 
 RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple --no-dependencies -r requirements.txt
 
+## FIX bitandsands
+ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:/opt/conda/lib"
+RUN ln -s /opt/conda/lib/libcudart.so.11.7.99 /opt/conda/lib/libcudart.so
+
 COPY tabby ./tabby

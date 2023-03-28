@@ -18,6 +18,7 @@ loguru = "^0.6.0"
 gitup = "^0.5.1"
 toml = "^0.10.2"
 gitpython = "^3.1.31"
+peft = {git = "https://github.com/huggingface/peft.git", rev = "v0.2.0"}
 
 
 [tool.poetry.group.dev.dependencies]
