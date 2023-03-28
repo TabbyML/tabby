@@ -1,16 +1,14 @@
+DEFAULT := docker-compose -f ../deployment/docker-compose.yml
 UP_FLAGS := up --remove-orphans
 
 build:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml build
-
-up:
-	docker-compose -f docker-compose.yml $(UP_FLAGS)
+	$(DEFAULT) -f docker-compose.dev.yml build
 
 dev:
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml $(UP_FLAGS)
+	$(DEFAULT) -f docker-compose.dev.yml $(UP_FLAGS)
 
-dev-triton:
-	docker-compose -f docker-compose.yml -f docker-compose.triton.yml -f docker-compose.dev.yml $(UP_FLAGS)
+dev-python:
+	$(DEFAULT) -f docker-compose.dev.yml -f docker-compose.python.yml $(UP_FLAGS)
 
 clean:
-	docker-compose -f docker-compose.yml -f docker-compose.triton.yml -f docker-compose.dev.yml down --remove-orphans
+	$(DEFAULT) -f docker-compose.dev.yml down
