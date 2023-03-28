@@ -4,6 +4,12 @@
 
 ### Fixes and improvements
 
+## [v3.10.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.3) (2023-03-28)
+
+### Fixes and improvements
+
+* Fix a synchronization issue when the model input is a CUDA storage
+
 ## [v3.10.2](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.2) (2023-03-27)
 
 ### Fixes and improvements
