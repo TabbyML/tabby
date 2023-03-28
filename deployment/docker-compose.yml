@@ -33,6 +33,8 @@ services:
     command: streamlit run tabby/admin/Home.py
     ports:
       - "8501:8501"
+    volumes:
+      - ${LOGS_VOLUME}
 
   triton:
     image: tabbyml/fastertransformer_backend
@@ -66,3 +68,15 @@ services:
     volumes:
       - ./config/vector.toml:/etc/vector/vector.toml:ro
       - ${LOGS_VOLUME}
+
+  dagu:
+    image: tabbyml/tabby
+    container_name: tabby-dagu
+    command: dagu scheduler
+    volumes:
+      - ${LOGS_VOLUME}
+    environment:
+      DAGU_DAGS: tabby/tasks
+    depends_on:
+      init:
+        condition: service_completed_successfully
