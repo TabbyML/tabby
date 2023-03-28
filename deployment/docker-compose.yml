@@ -4,9 +4,10 @@ services:
   init:
     image: tabbyml/tabby
     container_name: tabby-init
-    command: python -m tabby.tools.model_preload --repo_id ${MODEL_NAME}
+    command: dagu start --params=MODEL_NAME=${MODEL_NAME} ./tabby/tasks/init.yaml
     volumes:
       - ${HF_VOLUME}
+      - ../:/app
 
   server:
     image: tabbyml/tabby
