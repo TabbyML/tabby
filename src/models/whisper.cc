@@ -576,19 +576,19 @@ namespace ctranslate2 {
       return replica.is_multilingual();
     }
 
-    std::future<StorageView> Whisper::encode(StorageView features, const bool to_cpu) {
-      return post<StorageView>([features = std::move(features), to_cpu](WhisperReplica& replica) {
+    std::future<StorageView> Whisper::encode(const StorageView& features, const bool to_cpu) {
+      return post<StorageView>([features = features.sync_copy(), to_cpu](WhisperReplica& replica) {
         return replica.encode(std::move(features), to_cpu);
       });
     }
 
     std::vector<std::future<WhisperGenerationResult>>
-    Whisper::generate(StorageView features,
+    Whisper::generate(const StorageView& features,
                       std::vector<std::vector<std::string>> prompts,
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
-        [features = std::move(features), prompts = std::move(prompts), options]
+        [features = features.sync_copy(), prompts = std::move(prompts), options]
         (WhisperReplica& replica) {
           return replica.generate(std::move(features), prompts, options);
         },
@@ -596,12 +596,12 @@ namespace ctranslate2 {
     }
 
     std::vector<std::future<WhisperGenerationResult>>
-    Whisper::generate(StorageView features,
+    Whisper::generate(const StorageView& features,
                       std::vector<std::vector<size_t>> prompts,
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
-        [features = std::move(features), prompts = std::move(prompts), options]
+        [features = features.sync_copy(), prompts = std::move(prompts), options]
         (WhisperReplica& replica) {
           return replica.generate(std::move(features), prompts, options);
         },
@@ -609,24 +609,24 @@ namespace ctranslate2 {
     }
 
     std::vector<std::future<std::vector<std::pair<std::string, float>>>>
-    Whisper::detect_language(StorageView features) {
+    Whisper::detect_language(const StorageView& features) {
       const size_t batch_size = features.dim(0);
       return post_batch<std::vector<std::pair<std::string, float>>>(
-        [features = std::move(features)](WhisperReplica& replica) {
+        [features = features.sync_copy()](WhisperReplica& replica) {
           return replica.detect_language(std::move(features));
         },
         batch_size);
     }
 
     std::vector<std::future<WhisperAlignmentResult>>
-    Whisper::align(StorageView features,
+    Whisper::align(const StorageView& features,
                    std::vector<size_t> start_sequence,
                    std::vector<std::vector<size_t>> text_tokens,
                    dim_t num_frames,
                    dim_t median_filter_width) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperAlignmentResult>(
-        [features = std::move(features),
+        [features = features.sync_copy(),
          start_sequence = std::move(start_sequence),
          text_tokens = std::move(text_tokens),
          num_frames,
