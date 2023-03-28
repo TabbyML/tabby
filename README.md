@@ -50,11 +50,11 @@ Tabby opens an FastAPI server at [localhost:5000](https://localhost:5000), which
 ## Development
 
 Go to `development` directory.
-```
+```bash
 make dev
 ```
 or
-```
+```bash
 make dev-python  # Turn off triton backend (for non-cuda env developers)
 ```
 
