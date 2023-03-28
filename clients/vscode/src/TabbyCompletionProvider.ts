@@ -55,7 +55,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     }
 
     console.debug(
-      "Requesting: ", 
+      "Requesting: ",
       {
         uuid: this.uuid,
         timestamp: currentTimestamp,
