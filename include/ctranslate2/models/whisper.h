@@ -148,23 +148,23 @@ namespace ctranslate2 {
 
       bool is_multilingual() const;
 
-      std::future<StorageView> encode(StorageView features, const bool to_cpu);
+      std::future<StorageView> encode(const StorageView& features, const bool to_cpu);
 
       std::vector<std::future<WhisperGenerationResult>>
-      generate(StorageView features,
+      generate(const StorageView& features,
                std::vector<std::vector<std::string>> prompts,
                WhisperOptions options = {});
 
       std::vector<std::future<WhisperGenerationResult>>
-      generate(StorageView features,
+      generate(const StorageView& features,
                std::vector<std::vector<size_t>> prompts,
                WhisperOptions options = {});
 
       std::vector<std::future<std::vector<std::pair<std::string, float>>>>
-      detect_language(StorageView features);
+      detect_language(const StorageView& features);
 
       std::vector<std::future<WhisperAlignmentResult>>
-      align(StorageView features,
+      align(const StorageView& features,
             std::vector<size_t> start_sequence,
             std::vector<std::vector<size_t>> text_tokens,
             dim_t num_frames,

@@ -74,7 +74,7 @@ namespace ctranslate2 {
     StorageView(Shape shape, T* data, Device device = Device::CPU);
 
     // Copy constructor.
-    StorageView(const StorageView& other);
+    StorageView(const StorageView& other, bool synchronous = false);
     // Move constructor (swap of each attribute).
     StorageView(StorageView&& other) noexcept;
     ~StorageView();
@@ -169,6 +169,7 @@ namespace ctranslate2 {
     StorageView& operator=(StorageView&& other) noexcept;
 
     StorageView& shallow_copy(StorageView& other);
+    StorageView sync_copy() const;
 
     void* buffer();
     const void* buffer() const;
@@ -230,10 +231,10 @@ namespace ctranslate2 {
     StorageView& fill(T value);
     StorageView& zero();
 
-    StorageView& copy_from(const StorageView& other);
+    StorageView& copy_from(const StorageView& other, bool synchronous = false);
 
     template <typename T>
-    StorageView& copy_from(const T* data, dim_t size, Device device);
+    StorageView& copy_from(const T* data, dim_t size, Device device, bool synchronous = false);
 
     friend std::ostream& operator<<(std::ostream& os, const StorageView& storage);
 
