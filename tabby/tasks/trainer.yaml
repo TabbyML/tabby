@@ -1,4 +1,4 @@
-schedule: "5 4 * * *" # Run at 04:05.
+# schedule: "5 4 * * *" # Run at 04:05.
 
 env:
   - PATH: "/opt/conda/bin:$PATH"
