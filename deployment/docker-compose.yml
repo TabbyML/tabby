@@ -4,7 +4,7 @@ services:
   init:
     image: tabbyml/tabby
     container_name: tabby-init
-    command: python -m tabby.tools.model_preload --repo_id ${MODEL_NAME}
+    command: dagu start --params=MODEL_NAME=${MODEL_NAME} ./tabby/tasks/init.yaml
     volumes:
       - ${HF_VOLUME}
 
@@ -15,10 +15,12 @@ services:
     environment:
       MODEL_NAME: ${MODEL_NAME}
       MODEL_BACKEND: triton
+      EVENTS_LOG_DIR: /logs/tabby-server
     ports:
       - "5000:5000"
     volumes:
       - ${HF_VOLUME}
+      - ${LOGS_VOLUME}
     depends_on:
       init:
         condition: service_completed_successfully
@@ -57,3 +59,10 @@ services:
       interval: 2s
       timeout: 2s
       start_period: 120s
+
+  vector:
+    image: timberio/vector:0.28.1-alpine
+    container_name: tabby-vector
+    volumes:
+      - ./config/vector.toml:/etc/vector/vector.toml:ro
+      - ${LOGS_VOLUME}
