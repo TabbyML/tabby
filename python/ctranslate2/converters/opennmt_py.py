@@ -81,6 +81,8 @@ def _get_model_spec_seq2seq(
         embeddings_merge=_SUPPORTED_FEATURES_MERGE[feat_merge],
     )
 
+    model_spec.config.decoder_start_token = getattr(opt, "decoder_start_token", "<s>")
+
     set_transformer_spec(model_spec, variables)
     for src_vocab in src_vocabs:
         model_spec.register_source_vocabulary(src_vocab)
