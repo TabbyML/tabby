@@ -6,7 +6,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Docker build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/docker.yml?label=docker%20image%20build)
 
-![architecture](https://user-images.githubusercontent.com/388154/227848286-f5b697f2-9df7-4adc-9a2a-84b029788030.png)
+![architecture](https://user-images.githubusercontent.com/388154/228543840-bff32fac-0802-4dd3-b0d9-2151647dfa6d.png)
 
 </div>
 
