@@ -25,10 +25,10 @@ services:
   triton:
     image: tabbyml/fastertransformer_backend
     container_name: tabby-triton
-    command: /scripts/triton.sh
+    command: triton.sh
     shm_size: 1gb
     volumes:
-      - ./scripts:/scripts
+      - ./scripts/triton.sh:/usr/bin/triton.sh:ro
       - ${HF_VOLUME}
     deploy:
       resources:

@@ -34,6 +34,7 @@ docker run \
   -v ./data/hf_cache:/root/.cache/huggingface \
   -p 5000:5000 \
   -p 8501:8501 \
+  -p 8080:8080\
   -e MODEL_NAME=TabbyML/J-350M tabbyml/tabby
 ```
 
