@@ -20,7 +20,7 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:5000"]
       interval: 2s
       timeout: 2s
-      start_period: 120s
+      start_period: 1200s
 
   triton:
     image: tabbyml/fastertransformer_backend
