@@ -44,7 +44,7 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
 }'
 ```
 
-To use the GPU backend (triton) for a faster inference experience, use `deployment/docker-compose.yml`:
+To use the GPU backend (triton) for a faster inference speed, use `deployment/docker-compose.yml`:
 ```bash
 docker-compose up
 ```
