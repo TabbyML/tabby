@@ -3,6 +3,7 @@ import string
 import time
 from typing import List
 
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from .models import Choice, CompletionRequest, CompletionResponse
@@ -13,11 +14,26 @@ class PythonModelService:
         self,
         model_name,
     ):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+            dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
+        else:
+            device = torch.device("cpu")
+            dtype = torch.float32
+
+        self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name, local_files_only=True
         )
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_name, local_files_only=True
+        self.model = (
+            AutoModelForCausalLM.from_pretrained(
+                model_name,
+                torch_dtype=dtype,
+                device_map="auto" if torch.cuda.is_available() else None,
+                local_files_only=True,
+            )
+            .to(device)
+            .eval()
         )
 
     def generate(self, request: CompletionRequest) -> List[Choice]:
