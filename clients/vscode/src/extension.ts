@@ -3,6 +3,7 @@
 import { ExtensionContext, languages } from "vscode";
 import { tabbyCommands } from "./Commands";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
+import { tabbyStatusBarItem } from "./TabbyStatusBarItem";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -13,6 +14,7 @@ export function activate(context: ExtensionContext) {
       { pattern: "**" },
       new TabbyCompletionProvider()
     ),
+    tabbyStatusBarItem,
     ...tabbyCommands
   );
 }

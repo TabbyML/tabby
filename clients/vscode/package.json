@@ -28,6 +28,10 @@
       {
         "command": "tabby.setServerUrl",
         "title": "Tabby: Set URL of Tabby Server"
+      },
+      {
+        "command": "tabby.openSettings",
+        "title": "Tabby: Open Settings"
       }
     ],
     "configuration": {
