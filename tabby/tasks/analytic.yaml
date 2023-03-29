@@ -8,4 +8,4 @@ env:
 steps:
   - name: Collect Tabby
     dir: $APP_DIR
-    command: ./tabby/tools/duckdb/main.sh collect_tabby_server_logs
+    command: ./tabby/tools/analytic/main.sh collect_tabby_server_logs
