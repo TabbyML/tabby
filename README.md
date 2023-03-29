@@ -31,10 +31,9 @@ The easiest way of getting started is using the official docker image:
 docker run \
   --rm \
   -v ./data:/data \
-  -v ./hf_cache:/root/.cache/huggingface \
-  -p 5000:5000 \
-  -p 8080:8080 \
-  -p 8501:8501 \
+  -v ./data/hf_cache:/root/.cache/huggingface \
+  -p 5000:5000 \ # OpenAPI server
+  -p 8501:8501 \ # Admin server
   -e MODEL_NAME=TabbyML/J-350M tabbyml/tabby
 ```
 
