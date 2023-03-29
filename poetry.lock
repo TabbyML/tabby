@@ -229,6 +229,18 @@ tests = ["attrs[tests-no-zope]", "zope.interface"]
 tests-no-zope = ["cloudpickle", "cloudpickle", "hypothesis", "hypothesis", "mypy (>=0.971,<0.990)", "mypy (>=0.971,<0.990)", "pympler", "pympler", "pytest (>=4.3.0)", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-mypy-plugins", "pytest-xdist[psutil]", "pytest-xdist[psutil]"]
 
 [[package]]
+name = "bitsandbytes"
+version = "0.37.2"
+description = "8-bit optimizers and matrix multiplication routines."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "bitsandbytes-0.37.2-py3-none-any.whl", hash = "sha256:1335667ab91513eb518bbe0faaf3d423ff16a3fdf084bda5240c7acee234413f"},
+    {file = "bitsandbytes-0.37.2.tar.gz", hash = "sha256:3ccecb3361e1078110d9259e2d9362d62868aca7c1c4db6f4cc79e5489fbd39a"},
+]
+
+[[package]]
 name = "blinker"
 version = "1.5"
 description = "Fast, simple object-to-object and broadcast signaling"
@@ -3522,4 +3534,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "886b7b417b646f32ba468770a8c793d50ea3253d455b684e4bfd0593ec586511"
+content-hash = "df2b6abe8684f976034d432760b5475e48695b2d2557ca4ddf32cf591c5d4475"
