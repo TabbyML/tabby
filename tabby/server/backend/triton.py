@@ -7,6 +7,7 @@ from transformers import AutoTokenizer
 from tritonclient.utils import InferenceServerException, np_to_triton_dtype
 
 from ..models import Choice, CompletionRequest, CompletionResponse
+from .language_presets import LanguagePresets
 from .utils import random_completion_id, trim_with_stopwords
 
 
@@ -24,12 +25,13 @@ class TritonService:
         )
 
     def generate(self, data: CompletionRequest) -> List[Choice]:
-        # FIXME(meng): Make following vars configurable
         n = 1
         np_type = np.uint32
-        max_tokens = 128
         model_name = "fastertransformer"
-        stop_words = ["\n\n"]
+
+        # FIXME(meng): read preset from request.
+        preset_name = "python"
+        preset = LanguagePresets[preset_name]
 
         prompt = data.prompt
         input_start_ids = np.expand_dims(self.tokenizer.encode(prompt), 0)
@@ -38,10 +40,10 @@ class TritonService:
         input_len = prompt_len * np.ones([input_start_ids.shape[0], 1]).astype(np_type)
 
         prompt_tokens: int = input_len[0][0]
-        output_len = np.ones_like(input_len).astype(np_type) * max_tokens
+        output_len = np.ones_like(input_len).astype(np_type) * preset.max_length
 
         stop_word_list = np.repeat(
-            to_word_list_format([stop_words], self.tokenizer),
+            to_word_list_format([preset.stop_words], self.tokenizer),
             input_start_ids.shape[0],
             axis=0,
         )
@@ -67,7 +69,7 @@ class TritonService:
             self.tokenizer.decode(out[prompt_len : prompt_len + g])
             for g, out in zip(gen_len, output_data)
         ]
-        trimmed = [trim_with_stopwords(d, stop_words) for d in decoded]
+        trimmed = [trim_with_stopwords(d, preset.stop_words) for d in decoded]
         return [Choice(index=i, text=text) for i, text in enumerate(trimmed)]
 
     def __call__(self, data: CompletionRequest) -> CompletionResponse:

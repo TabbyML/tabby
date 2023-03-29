@@ -45,8 +45,8 @@ class PythonModelService:
     def generate(self, request: CompletionRequest) -> List[Choice]:
         # FIXME(meng): read preset from request.
         preset_name = "python"
-
         preset = LanguagePresets[preset_name]
+
         stopping_criteria_list = self.stopping_criteria_for_preset(preset_name)
 
         input_ids = self.tokenizer.encode(request.prompt, return_tensors="pt").to(
@@ -62,19 +62,13 @@ class PythonModelService:
         return [Choice(index=0, text=text)]
 
     def stopping_criteria_for_preset(self, name: str) -> StoppingCriteriaList:
-        lst = self.stopping_criteria_mappings.get(name, None)
-        if not lst:
-            lst = self.stopping_criteria_mappings[name] = StoppingCriteriaList(
-                [
-                    StopWordsIdsCriteria(
-                        [
-                            self.tokenizer.encode(x)
-                            for x in LanguagePresets[name].stop_words
-                        ]
-                    )
-                ]
-            )
-        return self.stopping_criteria_mappings[name]
+        return StoppingCriteriaList(
+            [
+                StopWordsIdsCriteria(
+                    [self.tokenizer.encode(x) for x in LanguagePresets[name].stop_words]
+                )
+            ]
+        )
 
     def __call__(self, request: CompletionRequest) -> CompletionResponse:
         choices = self.generate(request)
