@@ -1,5 +1,5 @@
 import { ConfigurationTarget, workspace, window, commands } from "vscode";
-import { EventHandler } from "./EventHandler";
+import { TabbyClient } from "./TabbyClient";
 
 const target = ConfigurationTarget.Global;
 
@@ -37,14 +37,22 @@ const setServerUrl: Command = {
   },
 };
 
-const eventHandler = new EventHandler();
-const emitEvent: Command = {
-  command: "tabby.emitEvent",
-  callback: (event) => {
-    eventHandler.handle(event);
+const openSettings: Command = {
+  command: "tabby.openSettings",
+  callback: () => {
+    commands.executeCommand("workbench.action.openSettings", "tabby");
   },
 };
 
-export const tabbyCommands = [toogleEnabled, setServerUrl, emitEvent].map((command) =>
+const tabbyClient = TabbyClient.getInstance();
+const emitEvent: Command = {
+  command: "tabby.emitEvent",
+  callback: (event) => {
+    console.debug("Emit Event: ", event);
+    tabbyClient.postEvent(event);
+  },
+};
+
+export const tabbyCommands = [toogleEnabled, setServerUrl, openSettings, emitEvent].map((command) =>
   commands.registerCommand(command.command, command.callback, command.thisArg)
 );

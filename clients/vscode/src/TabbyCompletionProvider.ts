@@ -10,16 +10,16 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import axios, { AxiosResponse } from "axios";
-import { EventType } from "./EventHandler";
+import { TabbyClient, TabbyCompletion, EventType } from "./TabbyClient";
+import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private uuid = Date.now();
   private latestTimestamp: number = 0;
 
+  private tabbyClient = TabbyClient.getInstance();
   // User Settings
   private enabled: boolean = true;
-  private tabbyServerUrl: string = "";
 
   constructor() {
     this.updateConfiguration();
@@ -49,7 +49,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     this.latestTimestamp = currentTimestamp;
 
     const suggestionDelay = 150;
-    await this.sleep(suggestionDelay);
+    await sleep(suggestionDelay);
     if (currentTimestamp < this.latestTimestamp) {
       return emptyResponse;
     }
@@ -63,7 +63,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       }
     );
     // Prompt is already nil-checked
-    const response = await this.getCompletions(prompt as String);
+    const completion = await this.tabbyClient.getCompletion(prompt as string);
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
     const replaceRange = hasSuffixParen
@@ -74,7 +74,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
           position.character + 1
         )
       : new Range(position, position);
-    const completions = this.toInlineCompletions(response.data, replaceRange);
+    const completions = this.toInlineCompletions(completion, replaceRange);
     console.debug("Result completions: ", completions);
     return Promise.resolve(completions);
   }
@@ -82,7 +82,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("enabled", true);
-    this.tabbyServerUrl = configuration.get("serverUrl", "http://127.0.0.1:5000");
   }
 
   private getPrompt(document: TextDocument, position: Position): String | undefined {
@@ -96,13 +95,9 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     return value === undefined || value === null || value.length === 0;
   }
 
-  private sleep(milliseconds: number) {
-    return new Promise((r) => setTimeout(r, milliseconds));
-  }
-
-  private toInlineCompletions(value: any, range: Range): InlineCompletionItem[] {
+  private toInlineCompletions(tabbyCompletion: TabbyCompletion | null, range: Range): InlineCompletionItem[] {
     return (
-      value.choices?.map(
+      tabbyCompletion?.choices?.map(
         (choice: any) =>
           new InlineCompletionItem(choice.text, range, {
             title: "Tabby: Emit Event",
@@ -110,19 +105,13 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
             arguments: [
               {
                 type: EventType.InlineCompletionAccepted,
-                id: value.id,
+                id: tabbyCompletion.id,
                 index: choice.index,
               },
             ],
           })
       ) || []
     );
-  }
-
-  private getCompletions(prompt: String): Promise<AxiosResponse<any, any>> {
-    return axios.post(`${this.tabbyServerUrl}/v1/completions`, {
-      prompt,
-    });
   }
 
   private hasSuffixParen(document: TextDocument, position: Position) {
