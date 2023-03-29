@@ -1,7 +1,7 @@
 version: '3.3'
 
 services:
-  server:
+  tabby:
     image: tabbyml/tabby
     environment:
       MODEL_BACKEND: python

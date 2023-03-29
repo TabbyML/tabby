@@ -4,7 +4,7 @@ address = "0.0.0.0:8686"
 
 [sources.tabby_server_logs]
 type = "file"
-include = ["/logs/tabby-server/events.*.log"]
+include = ["/data/logs/tabby-server/events.*.log"]
 
 [transforms.process_tabby_server_logs]
 type = "remap"
@@ -16,4 +16,4 @@ type = "file"
 inputs = [ "process_tabby_server_logs" ]
 encoding = { codec = "json" }
 framing = { method = "newline_delimited" }
-path = "/logs/tabby-server/events.%Y-%m-%d.json"
+path = "/data/logs/tabby-server/events.%Y-%m-%d.json"

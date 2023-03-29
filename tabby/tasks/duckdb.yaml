@@ -1,7 +1,9 @@
 schedule: "*/3 * * * *" # Run every 3rd minute
 
 env:
-  - PATH: "/opt/conda/bin:$PATH"
+  - PATH: "$PATH"
+  - LOGS_DIR: "$LOGS_DIR"
+  - DB_FILE: "$DB_FILE"
   - APP_DIR: /app
 steps:
   - name: Collect Tabby

@@ -26,11 +26,16 @@ An opensource / on-prem alternative to GitHub Copilot.
 
 ### Docker
 
-The easiest way of getting started is using the `deployment/docker-compose.yml`:
+The easiest way of getting started is using the official docker image:
 ```bash
-docker-compose up
+docker run \
+  -it --rm \
+  -v ./data:/data \
+  -v ./data/hf_cache:/root/.cache/huggingface \
+  -p 5000:5000 \
+  -p 8501:8501 \
+  -e MODEL_NAME=TabbyML/J-350M tabbyml/tabby
 ```
-Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
 
 You can then query the server using `/v1/completions` endpoint:
 ```bash
@@ -38,6 +43,12 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
     "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
 }'
 ```
+
+To use the GPU backend (triton) for a faster inference experience, use `deployment/docker-compose.yml`:
+```bash
+docker-compose up
+```
+Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
 
 We also provides an interactive playground in admin panel [localhost:8501](http://localhost:8501)
 

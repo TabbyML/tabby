@@ -3,7 +3,7 @@ from components import monaco
 from utils.service_info import ServiceInfo
 
 SERVICES = [
-    ServiceInfo(label="server", url="http://server:5000"),
+    ServiceInfo(label="server", url="http://localhost:5000"),
     ServiceInfo(label="triton", url="http://triton:8002/metrics"),
 ]
 

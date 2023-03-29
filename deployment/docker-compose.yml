@@ -1,40 +1,26 @@
 version: '3.3'
 
 services:
-  init:
+  tabby:
     image: tabbyml/tabby
-    container_name: tabby-init
-    command: dagu start --params=MODEL_NAME=${MODEL_NAME} ./tabby/tasks/init.yaml
-    volumes:
-      - ${HF_VOLUME}
-
-  server:
-    image: tabbyml/tabby
-    container_name: tabby-server
-    command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000
+    container_name: tabby
     environment:
       MODEL_NAME: ${MODEL_NAME}
       MODEL_BACKEND: triton
-      EVENTS_LOG_DIR: /logs/tabby-server
+      EVENTS_LOG_DIR: /data/logs/tabby-server
+      DAGU_DAGS: /app/tabby/tasks
     ports:
       - "5000:5000"
-    volumes:
-      - ${HF_VOLUME}
-      - ${LOGS_VOLUME}
-    depends_on:
-      init:
-        condition: service_completed_successfully
-      triton:
-        condition: service_healthy
-
-  admin:
-    image: tabbyml/tabby
-    container_name: tabby-admin
-    command: streamlit run tabby/admin/Home.py
-    ports:
+      - "8080:8080"
       - "8501:8501"
     volumes:
-      - ${LOGS_VOLUME}
+      - ${DATA_VOLUME}
+      - ${HF_VOLUME}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 2s
+      timeout: 2s
+      start_period: 120s
 
   triton:
     image: tabbyml/fastertransformer_backend
@@ -54,29 +40,5 @@ services:
     environment:
       MODEL_NAME: ${MODEL_NAME}
     depends_on:
-      init:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8002/metrics"]
-      interval: 2s
-      timeout: 2s
-      start_period: 120s
-
-  vector:
-    image: timberio/vector:0.28.1-alpine
-    container_name: tabby-vector
-    volumes:
-      - ./config/vector.toml:/etc/vector/vector.toml:ro
-      - ${LOGS_VOLUME}
-
-  dagu:
-    image: tabbyml/tabby
-    container_name: tabby-dagu
-    command: dagu scheduler
-    volumes:
-      - ${LOGS_VOLUME}
-    environment:
-      DAGU_DAGS: tabby/tasks
-    depends_on:
-      init:
-        condition: service_completed_successfully
+      tabby:
+        condition: service_healthy
