@@ -72,7 +72,5 @@ make dev-python  # Turn off triton backend (for non-cuda env developers)
 
 ## TODOs
 
-* [X] DuckDB integration, to plot metrics in admin panel (e.g acceptance rate). [#24](https://github.com/TabbyML/tabby/issues/24)
 * [ ] Fine-tuning models on private code repository. [#23](https://github.com/TabbyML/tabby/issues/23)
 * [ ] Production ready (Open Telemetry, Prometheus metrics).
-* [ ] Token streaming using Server-Sent Events (SSE)
