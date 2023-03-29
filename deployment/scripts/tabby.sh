@@ -8,7 +8,6 @@ export DB_FILE="${DB_FILE:-/data/logs/duckdb/duck.db}"
 # server
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
 export MODEL_BACKEND="${MODEL_BACKEND:-python}"
-export EVENTS_LOG_DIR="${LOGS_DIR}/tabby-server"
 
 # dagu
 export DAGU_DAGS="tabby/tasks"

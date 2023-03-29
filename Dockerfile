@@ -42,7 +42,7 @@ COPY deployment/config/vector.toml /etc/vector/vector.toml
 
 # Supervisord
 RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple supervisor
-COPY deployment/scripts/supervisord.sh /usr/bin
 
 COPY tabby ./tabby
-CMD ["supervisord.sh"]
+COPY deployment/scripts/tabby.sh /usr/bin
+CMD ["tabby.sh"]

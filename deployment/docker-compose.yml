@@ -7,7 +7,7 @@ services:
     environment:
       MODEL_NAME: ${MODEL_NAME}
       MODEL_BACKEND: triton
-      EVENTS_LOG_DIR: /data/logs/tabby-server
+      LOGS_DIR: /data/logs
       DAGU_DAGS: /app/tabby/tasks
     ports:
       - "5000:5000"
@@ -25,10 +25,10 @@ services:
   triton:
     image: tabbyml/fastertransformer_backend
     container_name: tabby-triton
-    command: /scripts/triton.sh
+    command: triton.sh
     shm_size: 1gb
     volumes:
-      - ./scripts:/scripts
+      - ./scripts/triton.sh:/usr/bin/triton.sh:ro
       - ${HF_VOLUME}
     deploy:
       resources:

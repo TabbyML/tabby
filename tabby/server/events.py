@@ -27,9 +27,9 @@ def setup_logging(logdir):
     )
 
 
-EVENTS_LOG_DIR = os.environ.get("EVENTS_LOG_DIR", None)
-if EVENTS_LOG_DIR is not None:
-    setup_logging(EVENTS_LOG_DIR)
+LOGS_DIR = os.environ.get("LOGS_DIR", None)
+if LOGS_DIR is not None:
+    setup_logging(os.path.join(LOGS_DIR, "tabby-server"))
 
 
 def log_completions(
