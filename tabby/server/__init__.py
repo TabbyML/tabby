@@ -6,9 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import events
+from .backend import PythonModelService, TritonService
 from .models import CompletionRequest, CompletionResponse
-from .python import PythonModelService
-from .triton import TritonService
 
 app = FastAPI(
     title="TabbyServer",
