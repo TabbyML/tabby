@@ -7,7 +7,7 @@ st.set_page_config(page_title="Tabby Admin - Metrics")
 
 
 def query_data():
-    filepath = os.environ.get("DB_FILE", "/logs/duckdb/duck.db")
+    filepath = os.environ.get("DB_FILE", "/data/logs/duckdb/duck.db")
     if not os.path.isfile(filepath):
         return []
 

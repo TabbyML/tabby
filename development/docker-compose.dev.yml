@@ -1,30 +1,16 @@
 version: '3.3'
 
 services:
-  init:
+  tabby:
     build:
       context: ..
       args:
         PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
-    volumes:
-      - ../:/app
-
-  server:
-    command: uvicorn tabby.server:app --host 0.0.0.0 --port 5000 --reload
-    volumes:
-      - ../:/app
-
-  admin:
-    command: streamlit run --server.runOnSave=true tabby/admin/Home.py
-    volumes:
-      - ../:/app
-
-  vector:
     environment:
-      - VECTOR_WATCH_CONFIG=true
-
-  dagu:
-    ports:
-      - 8080:8080
+      UVICORN_RELOAD: true
+      VECTOR_WATCH_CONFIG: true
+      STREAMLIT_RUN_ON_SAVE: true
     volumes:
       - ../:/app
+      - ../deployment/config/vector.toml:/etc/vector/vector.toml:ro
+      - ../deployment/scripts/supervisord.sh:/usr/bin/supervisord.sh:ro

@@ -1,8 +1,0 @@
-params: MODEL_NAME
-env:
-  - PATH: "/opt/conda/bin:$PATH"
-  - APP_DIR: /app
-steps:
-  - name: Download models
-    dir: $APP_DIR
-    command: python -m tabby.tools.download_models --repo_id=$MODEL_NAME

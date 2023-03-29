@@ -5,7 +5,7 @@ FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 # Install utilities
 RUN <<EOF
   apt-get -y update
-  apt-get -y install git curl supervisor
+  apt-get -y install git curl
 EOF
 
 # Install dagu
@@ -32,4 +32,17 @@ RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extr
 ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:/opt/conda/lib"
 RUN ln -s /opt/conda/lib/libcudart.so.11.7.99 /opt/conda/lib/libcudart.so
 
+# vector
+RUN <<EOF
+curl --proto '=https' --tlsv1.2 -sSf https://sh.vector.dev | bash -s -- -y
+mkdir -p /var/lib/vector
+EOF
+ENV PATH "$PATH:/root/.vector/bin"
+COPY deployment/config/vector.toml /etc/vector/vector.toml
+
+# Supervisord
+RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple supervisor
+COPY deployment/scripts/supervisord.sh /usr/bin
+
 COPY tabby ./tabby
+CMD ["supervisord.sh"]
