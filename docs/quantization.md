@@ -71,7 +71,7 @@ By default, the runtime tries to use the type that is saved in the converted mod
 | --- | --- | --- | --- | --- |
 | x86-64 (Intel) | int8 | int8 | int16 | float32 |
 | x86-64 (other) | int8 | int8 | int8 | float32 |
-| AArch64/ARM64 (Apple) | float32 | float32 | float32 | float32 |
+| AArch64/ARM64 (Apple) | int8 | int8 | int8 | float32 |
 | AArch64/ARM64 (other) | int8 | int8 | int8 | float32 |
 
 **On GPU:**
