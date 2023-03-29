@@ -1,5 +1,3 @@
-import random
-import string
 import time
 from typing import List
 
@@ -8,7 +6,8 @@ import tritonclient.grpc as client_util
 from transformers import AutoTokenizer
 from tritonclient.utils import InferenceServerException, np_to_triton_dtype
 
-from .models import Choice, CompletionRequest, CompletionResponse
+from ..models import Choice, CompletionRequest, CompletionResponse
+from .utils import random_completion_id, trim_with_stopwords
 
 
 class TritonService:
@@ -84,20 +83,6 @@ def prepare_tensor(name: str, tensor_input):
     )
     t.set_data_from_numpy(tensor_input)
     return t
-
-
-def random_completion_id():
-    return "cmpl-" + "".join(
-        random.choice(string.ascii_letters + string.digits) for _ in range(29)
-    )
-
-
-def trim_with_stopwords(output: str, stopwords: list) -> str:
-    for w in sorted(stopwords, key=len, reverse=True):
-        if output.endswith(w):
-            output = output[: -len(w)]
-            break
-    return output
 
 
 def to_word_list_format(word_dict, tokenizer):
