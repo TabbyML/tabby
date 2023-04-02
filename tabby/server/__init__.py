@@ -35,6 +35,10 @@ if MODEL_BACKEND == "triton":
 else:
     model_backend = PythonModelService(MODEL_NAME)
 
+LOGS_DIR = os.environ.get("LOGS_DIR", None)
+if LOGS_DIR is not None:
+    events.setup_logging(os.path.join(LOGS_DIR, "tabby-server"))
+
 
 @app.post("/v1/completions")
 async def completions(request: CompletionRequest) -> CompletionResponse:

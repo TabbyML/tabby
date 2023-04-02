@@ -6,8 +6,6 @@ from pydantic import BaseModel
 
 from . import models
 
-logger.configure(handlers=[])
-
 
 def setup_logging(logdir):
     try:
@@ -15,6 +13,8 @@ def setup_logging(logdir):
     except FileNotFoundError:
         pass
 
+    # Remove default handler
+    logger.remove()
     logger.add(
         os.path.join(logdir, "events.{time}.log"),
         rotation="1 hours",
@@ -25,11 +25,6 @@ def setup_logging(logdir):
         delay=True,
         serialize=True,
     )
-
-
-LOGS_DIR = os.environ.get("LOGS_DIR", None)
-if LOGS_DIR is not None:
-    setup_logging(os.path.join(LOGS_DIR, "tabby-server"))
 
 
 def log_completions(
