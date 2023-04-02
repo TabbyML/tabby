@@ -5,15 +5,16 @@ resources:
 setup: |
   set -ex
 
+  # On some cloud providers, docker-compose is not installed by default.
+  sudo curl -L https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+  sudo chmod a+x /usr/local/bin/docker-compose
+
   # Pull tabby images.
   git clone https://github.com/TabbyML/tabby.git || true
 
   # On certain cloud providers (e.g lambda cloud), the default user is not added to docker group, so we need sudo here
   cd tabby/deployment && sudo docker-compose pull
 
-  # On some cloud providers, docker-compose is not installed by default.
-  sudo curl -L https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-  sudo chmod a+x /usr/local/bin/docker-compose
 
 run: |
   export MODEL_REPLICA=${MODEL_REPLICA:-8}
