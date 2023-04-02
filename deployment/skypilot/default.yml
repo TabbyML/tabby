@@ -19,6 +19,4 @@ setup: |
 
 run: |
   cd tabby/deployment
-
-  export MODEL_REPLICA=${MODEL_REPLICA:-8}
-  sudo docker-compose up
+  MODEL_REPLICA=${MODEL_REPLICA:-8} sudo docker-compose up
