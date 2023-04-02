@@ -8,7 +8,7 @@ from tritonclient.utils import InferenceServerException, np_to_triton_dtype
 
 from ..models import Choice, CompletionRequest, CompletionResponse
 from .language_presets import LanguagePresets
-from .utils import random_completion_id, trim_with_stopwords
+from .utils import random_completion_id, trim_with_stop_words
 
 
 class TritonService:
@@ -69,7 +69,7 @@ class TritonService:
             self.tokenizer.decode(out[prompt_len : prompt_len + g])
             for g, out in zip(gen_len, output_data)
         ]
-        trimmed = [trim_with_stopwords(d, preset.stop_words) for d in decoded]
+        trimmed = [trim_with_stop_words(d, preset.stop_words) for d in decoded]
         return [Choice(index=i, text=text) for i, text in enumerate(trimmed)]
 
     def __call__(self, data: CompletionRequest) -> CompletionResponse:

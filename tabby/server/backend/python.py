@@ -11,7 +11,7 @@ from transformers import (
 
 from ..models import Choice, CompletionRequest, CompletionResponse
 from .language_presets import LanguagePresets
-from .utils import random_completion_id, trim_with_stopwords
+from .utils import random_completion_id, trim_with_stop_words
 
 
 class PythonModelService:
@@ -54,7 +54,9 @@ class PythonModelService:
             max_length=preset.max_length,
         )
         output_ids = res[0][len(input_ids[0]) :]
-        text = trim_with_stopwords(self.tokenizer.decode(output_ids), preset.stop_words)
+        text = trim_with_stop_words(
+            self.tokenizer.decode(output_ids), preset.stop_words
+        )
         return [Choice(index=0, text=text)]
 
     def __call__(self, request: CompletionRequest) -> CompletionResponse:
