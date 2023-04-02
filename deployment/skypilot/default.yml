@@ -11,11 +11,14 @@ setup: |
 
   # Pull tabby images.
   git clone https://github.com/TabbyML/tabby.git || true
+  cd tabby/deployment
 
   # On certain cloud providers (e.g lambda cloud), the default user is not added to docker group, so we need sudo here
-  cd tabby/deployment && sudo docker-compose pull
+  sudo docker-compose pull
 
 
 run: |
+  cd tabby/deployment
+
   export MODEL_REPLICA=${MODEL_REPLICA:-8}
   sudo docker-compose up
