@@ -1,0 +1,14 @@
+resources:
+  cloud: aws
+  accelerators: T4:1
+
+setup: |
+  set -ex
+  git clone https://github.com/TabbyML/tabby.git || true
+  sudo curl -L "https://github.com/docker/compose/releases/download/v2.12.1/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+  cd tabby && docker-compose pull
+
+run: |
+  cd tabby/deployment
+  docker-compose up
