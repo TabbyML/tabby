@@ -59,7 +59,7 @@ We also provides an interactive playground in admin panel [localhost:8501](http:
 ### Skypilot
 See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 
-### API documentation
+## API documentation
 
 Tabby opens an FastAPI server at [localhost:5000](https://localhost:5000), which embeds an OpenAPI documentation of the HTTP API.
 
