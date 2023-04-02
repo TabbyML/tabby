@@ -21,3 +21,6 @@ setup-development-environment: install-poetry $(PRE_COMMIT_HOOK)
 
 test-smoke:
 	k6 run tests/*.smoke.js
+
+test-loadtest:
+	k6 run tests/*.loadtest.js
