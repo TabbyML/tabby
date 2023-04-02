@@ -39,6 +39,7 @@ services:
               capabilities: [gpu]
     environment:
       MODEL_NAME: ${MODEL_NAME}
+      MODEL_REPLICA: ${MODEL_REPLICA:-1}
     depends_on:
       tabby:
         condition: service_healthy

@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+MODEL_REPLICA=${MODEL_REPLICA:-1}
+
 if [ -d "$MODEL_NAME" ]; then
 MODEL_DIR="$MODEL_NAME"
 else
@@ -15,6 +17,9 @@ fi
 
 # Set model dir in triton config.
 sed -i 's@${MODEL_DIR}@'$MODEL_DIR'@g' $MODEL_DIR/triton/fastertransformer/config.pbtxt
+
+# SET model replica in triton config.
+sed -i "s/count: 1/count: $MODEL_REPLICA/g" $MODEL_DIR/triton/fastertransformer/config.pbtxt
 
 # Start triton server.
 mpirun -n 1 \
