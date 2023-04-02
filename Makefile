@@ -18,3 +18,6 @@ $(PRE_COMMIT_HOOK):
 	poetry run pre-commit install --install-hooks
 
 setup-development-environment: install-poetry $(PRE_COMMIT_HOOK)
+
+test-smoke:
+	k6 run tests/*.smoke.js
