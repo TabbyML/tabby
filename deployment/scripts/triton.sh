@@ -19,7 +19,7 @@ fi
 sed -i 's@${MODEL_DIR}@'$MODEL_DIR'@g' $MODEL_DIR/triton/fastertransformer/config.pbtxt
 
 # SET model replica in triton config.
-sed -i "s/count: 1/count: $MODEL_REPLICA/g" $MODEL_DIR/triton/fastertransformer/config.pbtxt
+sed -i "s/count: [[:digit:]]\+/count: $MODEL_REPLICA/g" $MODEL_DIR/triton/fastertransformer/config.pbtxt
 
 # Start triton server.
 mpirun -n 1 \
