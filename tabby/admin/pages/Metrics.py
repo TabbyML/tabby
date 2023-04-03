@@ -16,7 +16,7 @@ def query_data():
     df = conn.sql(
         """
     SELECT
-        date_trunc('hour', to_timestamp(CAST(created AS int64))) AS Date,
+        date_trunc('day', to_timestamp(CAST(created AS int64))) AS Date,
         SUM(IF(view, 1, 0)) as "Views",
         SUM(IF("select", 1, 0)) as "Acceptances"
     FROM completion_events
@@ -30,12 +30,36 @@ def query_data():
 
 df = query_data()
 
-if len(df) > 0:
+
+def plot_summary():
+    sum_views = int(sum(df.Views))
+    sum_acceptances = int(sum(df.Acceptances))
+    ratio = (sum_acceptances / sum_views) * 100
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Views", sum_views)
+    with col2:
+        st.metric("Acceptances", sum_acceptances)
+    with col3:
+        st.metric("Accept Ratio", f"{round(ratio)} %")
+
+
+plot_summary()
+st.write("---")
+
+
+def plot_charts():
     st.markdown("### Completion Events")
     st.line_chart(df, x="Date")
 
     st.markdown("### Acceptance Rate")
     df["Acceptance Rate"] = df["Acceptances"] / df["Views"]
     st.line_chart(df, x="Date", y="Acceptance Rate")
+
+
+if len(df) > 0:
+    plot_charts()
 else:
     st.markdown("No data available")
