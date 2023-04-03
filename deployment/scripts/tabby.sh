@@ -4,6 +4,7 @@ set -e
 # Shared environment variables
 export LOGS_DIR="${LOGS_DIR:-/data/logs}"
 export DB_FILE="${DB_FILE:-/data/logs/duckdb/duck.db}"
+export CONFIG_FILE=${CONFIG_FILE:-/data/config/tabby.toml}
 
 # server
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
@@ -13,6 +14,11 @@ export MODEL_BACKEND="${MODEL_BACKEND:-python}"
 export DAGU_DAGS="tabby/tasks"
 
 init() {
+if [ ! -f $CONFIG_FILE ]; then
+  mkdir -p $(dirname $CONFIG_FILE)
+  touch $CONFIG_FILE
+fi
+
 python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 }
 
