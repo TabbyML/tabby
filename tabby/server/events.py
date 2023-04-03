@@ -9,7 +9,7 @@ from . import models
 
 def setup_logging(logdir):
     try:
-        shutil.rmtree(logdir + "/*")
+        shutil.rmtree(logdir)
     except FileNotFoundError:
         pass
 

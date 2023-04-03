@@ -10,6 +10,10 @@ export CONFIG_FILE=${CONFIG_FILE:-/data/config/tabby.toml}
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
 export MODEL_BACKEND="${MODEL_BACKEND:-python}"
 
+# projects
+export GIT_REPOSITORIES_DIR="${REPOSITORIES_DIR:-/data/repositories}"
+export DATASET_DIR="${REPOSITORIES_DIR:-/data/dataset}"
+
 # dagu
 export DAGU_DAGS="tabby/tasks"
 
@@ -18,6 +22,9 @@ if [ ! -f $CONFIG_FILE ]; then
   mkdir -p $(dirname $CONFIG_FILE)
   touch $CONFIG_FILE
 fi
+
+# Disable safe directory check
+git config --global --add safe.directory '*'
 
 python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 }
