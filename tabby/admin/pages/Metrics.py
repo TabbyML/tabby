@@ -43,7 +43,7 @@ def plot_summary():
     with col2:
         st.metric("Acceptances", sum_acceptances)
     with col3:
-        st.metric("Accept Ratio", f"{round(ratio)} %")
+        st.metric("Accept Rate", f"{round(ratio)} %")
 
 
 plot_summary()
@@ -54,7 +54,7 @@ def plot_charts():
     st.markdown("### Completion Events")
     st.line_chart(df, x="Date")
 
-    st.markdown("### Acceptance Rate")
+    st.markdown("### Accept Rate")
     df["Acceptance Rate"] = df["Acceptances"] / df["Views"]
     st.line_chart(df, x="Date", y="Acceptance Rate")
 
