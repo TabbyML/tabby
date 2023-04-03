@@ -1,20 +1,19 @@
 import axios from "axios"
 import { useRenderData } from "streamlit-component-lib-react-hooks"
 
-import React, { useEffect } from "react"
+import React, { useRef, useEffect} from "react"
 import Editor, { useMonaco } from "@monaco-editor/react"
-
-const PythonParseJSON = `def parse_json_lines(filename: str) -> List[Any]:
-    output = []
-    with open(filename, "r", encoding="utf-8") as f:
-`
 
 let TabbyServerURL = "http://localhost:5000"
 
 export default function MonacoEditor() {
   const renderData = useRenderData()
 
-  TabbyServerURL = renderData.args.tabby_server_url
+  if (renderData.args.tabby_server_url) {
+    TabbyServerURL = renderData.args.tabby_server_url
+  } else {
+    TabbyServerURL = `${window.location.protocol}//${window.location.hostname}:5000`
+  }
 
   const monaco = useMonaco()
   useEffect(() => {
@@ -31,12 +30,19 @@ export default function MonacoEditor() {
     )
   }, [monaco])
 
+  const editorRef = useRef(null)
+  useEffect(() => {
+    if (renderData.args.code && editorRef.current) {
+      editorRef.current.getModel().setValue(renderData.args.code)
+    }
+  }, [renderData.args.code, editorRef])
+
   return (
     <div style={{ height: 400 }}>
       <Editor
         theme="vs-dark"
         defaultLanguage="python"
-        defaultValue={PythonParseJSON}
+        onMount={(editor) => (editorRef.current = editor)}
       />
     </div>
   )
