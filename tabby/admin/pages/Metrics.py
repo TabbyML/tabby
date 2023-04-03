@@ -46,10 +46,6 @@ def plot_summary():
         st.metric("Accept Rate", f"{round(ratio)} %")
 
 
-plot_summary()
-st.write("---")
-
-
 def plot_charts():
     st.markdown("### Completion Events")
     st.line_chart(df, x="Date")
@@ -60,6 +56,8 @@ def plot_charts():
 
 
 if len(df) > 0:
+    plot_summary()
+    st.write("---")
     plot_charts()
 else:
     st.markdown("No data available")
