@@ -10,7 +10,7 @@ def random_completion_id():
 
 def trim_with_stop_words(output: str, stopwords: list) -> str:
     for w in sorted(stopwords, key=len, reverse=True):
-        if output.endswith(w):
-            output = output[: -len(w)]
-            break
+        index = output.find(w)
+        if index != -1:
+            output = output[:index]
     return output

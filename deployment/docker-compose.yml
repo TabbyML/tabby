@@ -7,8 +7,6 @@ services:
     environment:
       MODEL_NAME: ${MODEL_NAME}
       MODEL_BACKEND: triton
-      LOGS_DIR: /data/logs
-      DAGU_DAGS: /app/tabby/tasks
     ports:
       - "5000:5000"
       - "8080:8080"
