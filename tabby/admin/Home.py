@@ -39,14 +39,14 @@ class User:
 }
 
 
-def code_editor():
+def code_presets():
     code = ""
     cols = st.columns(len(SNIPPETS))
     for col, (k, v) in zip(cols, SNIPPETS.items()):
         with col:
             if st.button(k):
                 code = v
-    monaco.st_monaco(key="default", code=code)
+    return code
 
 
-code_editor()
+monaco.st_monaco(key="default", code=code_presets())
