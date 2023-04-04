@@ -23,6 +23,9 @@ EOF
 
 # Update table
 function collect_tabby_server_logs() {
+# Executing collect job only when files exists.
+if compgen -G "${TABBY_SERVER_LOGS}" > /dev/null; then
+
 cat <<EOF | duckdb
 CREATE TEMP TABLE t AS
 SELECT id, created, prompt, choices, IFNULL(rhs.view, false) AS view, IFNULL(rhs.select, false) AS select
@@ -46,6 +49,10 @@ LEFT JOIN (
 
 INSERT INTO completion_events SELECT t.* FROM t LEFT JOIN completion_events rhs ON (t.id = rhs.id) WHERE rhs.id IS NULL;
 EOF
+
+else
+  echo "No files match ${TABBY_SERVER_LOGS}"
+fi
 }
 
 function duckdb() {
