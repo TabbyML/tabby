@@ -36,13 +36,3 @@ def log_completion(
 
 def log_event(event: models.Event):
     logger.info(event.json())
-
-
-def log_view(id: str, index: int) -> None:
-    event = models.ChoiceEvent.build_view(id, index)
-    logger.info(event.json())
-
-
-def log_select(id: str, index: int) -> None:
-    event = models.ChoiceEvent.build_select(id, index)
-    logger.info(event.json())

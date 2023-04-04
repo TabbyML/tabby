@@ -52,11 +52,3 @@ class CompletionEvent(Event):
 class ChoiceEvent(Event):
     completion_id: str
     choice_index: int
-
-    @classmethod
-    def build_view(cls, id, index):
-        return cls(type=EventType.view, completion_id=id, choice_index=index)
-
-    @classmethod
-    def build_select(cls, id, index):
-        return cls(type=EventType.select, completion_id=id, choice_index=index)
