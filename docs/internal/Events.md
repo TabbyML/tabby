@@ -1,6 +1,6 @@
 # Events System
 
-In Tabby, we use the `vector` tool to collect logs from various sources, transform them into a standard `Event`, and persist them in `/data/logs/events`.
+In Tabby, we use the [`vector`](../../deployment/config/vector.toml) to collect logs from various sources, transform them into a standard `Event`, and persist them in `/data/logs/events`.
 
 ## Schema
 
