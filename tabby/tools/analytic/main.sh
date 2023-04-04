@@ -3,7 +3,7 @@ set -e
 
 DB_FILE=${DB_FILE:-"/data/logs/duckdb/duck.db"}
 LOGS_DIR=${LOGS_DIR:-"/data/logs"}
-TABBY_SERVER_LOGS="${LOGS_DIR}/tabby-server/events.*.json"
+TABBY_SERVER_LOGS="${LOGS_DIR}/events/tabby-server/*.json"
 
 # Init schema
 function init_scheme() {
@@ -27,6 +27,9 @@ function collect_tabby_server_logs() {
 if compgen -G "${TABBY_SERVER_LOGS}" > /dev/null; then
 
 cat <<EOF | duckdb
+CREATE TEMP TABLE events AS
+SELECT data.* FROM '${TABBY_SERVER_LOGS}';
+
 CREATE TEMP TABLE t AS
 SELECT id, created, prompt, choices, IFNULL(rhs.view, false) AS view, IFNULL(rhs.select, false) AS select
 FROM
@@ -36,13 +39,13 @@ FROM
       FIRST(created) AS created,
       FIRST(prompt) AS prompt,
       FIRST(choices) AS choices
-    FROM '${TABBY_SERVER_LOGS}' WHERE id IS NOT NULL GROUP BY 1) lhs
+    FROM events WHERE id IS NOT NULL GROUP BY 1) lhs
 LEFT JOIN (
     SELECT
       completion_id,
       (SUM(IF(type == 'view', 1, 0)) > 0) AS view,
       (SUM(IF(type == 'select', 1, 0)) > 0) AS select
-    FROM '${TABBY_SERVER_LOGS}'
+    FROM events
     WHERE completion_id IS NOT NULL
     GROUP BY 1
 ) rhs ON (lhs.id = rhs.completion_id);
