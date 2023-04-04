@@ -52,3 +52,10 @@ class CompletionEvent(Event):
 class ChoiceEvent(Event):
     completion_id: str
     choice_index: int
+
+
+EventTypeMapping = {
+    EventType.COMPLETION: CompletionEvent,
+    EventType.VIEW: ChoiceEvent,
+    EventType.SELECT: ChoiceEvent,
+}
