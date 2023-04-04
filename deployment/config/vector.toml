@@ -6,14 +6,33 @@ address = "0.0.0.0:8686"
 type = "file"
 include = ["/data/logs/tabby-server/events.*.log"]
 
-[transforms.process_tabby_server_logs]
+[transforms.process_tabby_server_events]
 type = "remap"
 inputs = [ "tabby_server_logs" ]
-source = ". = parse_json!(parse_json!(.message).record.message)"
+source = """
+record = parse_json!(.message).record
 
-[sinks.write_tabby_server_logs]
+id = {
+  "process_id": record.process.id,
+  "thread_id": record.thread.id,
+  "timestamp": record.time.timestamp
+}
+
+. = {
+  "id": id,
+  "data": parse_json!(record.message)
+}
+"""
+
+[sinks.write_tabby_server_events]
 type = "file"
-inputs = [ "process_tabby_server_logs" ]
+inputs = [ "process_tabby_server_events" ]
 encoding = { codec = "json" }
 framing = { method = "newline_delimited" }
-path = "/data/logs/tabby-server/events.%Y-%m-%d.json"
+path = "/data/logs/events/tabby-server/%Y-%m-%d.json"
+
+[sinks.all_events]
+type = "console"
+inputs = [ "process_tabby_server_events" ]
+encoding = { codec = "json" }
+framing = { method = "newline_delimited" }
