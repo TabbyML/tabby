@@ -54,6 +54,7 @@
     "vscode:prepublish": "yarn package",
     "compile": "webpack",
     "watch": "webpack --watch",
+    "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
