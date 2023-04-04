@@ -9,7 +9,19 @@ class Choice(BaseModel):
     text: str
 
 
+class Language(str, Enum):
+    UNKNOWN = "unknown"
+    PYTHON = "python"
+    JAVASCRIPT = "javascript"
+
+
 class CompletionRequest(BaseModel):
+    language: Language = Field(
+        example=Language.PYTHON,
+        default=Language.UNKNOWN,
+        description="Language for completion request",
+    )
+
     prompt: str = Field(
         example="def binarySearch(arr, left, right, x):\n    mid = (left +",
         description="The context to generate completions for, encoded as a string.",
