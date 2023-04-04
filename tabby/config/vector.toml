@@ -30,9 +30,3 @@ inputs = [ "process_tabby_server_events" ]
 encoding = { codec = "json" }
 framing = { method = "newline_delimited" }
 path = "/data/logs/events/tabby-server/%Y-%m-%d.json"
-
-[sinks.all_events]
-type = "console"
-inputs = [ "process_tabby_server_events" ]
-encoding = { codec = "json" }
-framing = { method = "newline_delimited" }
