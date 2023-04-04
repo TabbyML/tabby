@@ -1,7 +1,7 @@
 import axios from "axios"
 import { useRenderData } from "streamlit-component-lib-react-hooks"
 
-import React, { useRef, useEffect} from "react"
+import React, { useRef, useEffect } from "react"
 import Editor, { useMonaco } from "@monaco-editor/react"
 
 let TabbyServerURL = "http://localhost:5000"
@@ -162,6 +162,10 @@ class CompletionProvider {
   }
 }
 
-function logAction(id, index, event) {
-  axios.post(`${TabbyServerURL}/v1/completions/${id}/choices/${index}/${event}`)
+function logAction(completion_id, choice_index, type) {
+  axios.post(`${TabbyServerURL}/v1/events`, {
+    type,
+    completion_id,
+    choice_index,
+  })
 }
