@@ -1,15 +1,17 @@
 {
   "name": "vscode-tabby",
+  "publisher": "TabbyML",
   "displayName": "Tabby",
   "description": "Get completions from Tabby server",
   "repository": "https://github.com/TabbyML/tabby",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "keywords": [
     "code-suggestion",
     "copilot",
     "code-inference",
     "tabby"
   ],
+  "icon": "images/logo.png",
   "engines": {
     "vscode": "^1.70.0"
   },
