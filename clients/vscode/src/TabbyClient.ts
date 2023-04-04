@@ -110,9 +110,11 @@ export class TabbyClient extends EventEmitter {
       this.ping();
     }
     try {
-      const response = await axios.post(
-        `${this.tabbyServerUrl}/v1/completions/${event.id}/choices/${event.index}/${event.type}`
-      );
+      const response = await axios.post(`${this.tabbyServerUrl}/v1/events`, {
+        type: event.type,
+        completion_id: event.id,
+        choice_index: event.index
+      });
       assert(response.status == 200);
     } catch (e) {
       this.ping();
