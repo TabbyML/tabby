@@ -4,7 +4,6 @@ import os
 
 import pandas as pd
 from datasets import Dataset
-from loguru import logger
 from transformers import HfArgumentParser
 
 from . import metrics
@@ -94,7 +93,7 @@ if __name__ == "__main__":
 
     ds = Dataset.from_generator(dataset_iter(files))
     ds.save_to_disk(args.output_dir)
-    logger.info("Number of source files: {}", len(ds))
-    logger.info(
-        "Number of source files by languages: {}", count_by_language(ds).to_json()
-    )
+
+    print("\n## Summary")
+    print("Number of source files", len(ds))
+    print("Number of source files by languages", count_by_language(ds).to_json())

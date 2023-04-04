@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 
 import toml
 from git import Repo
-from loguru import logger
 from transformers import HfArgumentParser
 
 
@@ -41,5 +40,4 @@ if __name__ == "__main__":
         else:
             Repo.clone_from(config["git_url"], path.absolute(), depth=1)
 
-    logger.info("Number of projects {}", len(repositories))
     os.system(f"gitup {args.data_dir}")
