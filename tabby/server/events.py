@@ -27,10 +27,14 @@ def setup_logging(logdir):
     )
 
 
-def log_completions(
+def log_completion(
     request: models.CompletionRequest, response: models.CompletionResponse
 ) -> None:
     event = models.CompletionEvent.build(request, response)
+    logger.info(event.json())
+
+
+def log_event(event: models.Event):
     logger.info(event.json())
 
 

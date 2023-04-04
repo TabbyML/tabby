@@ -5,9 +5,9 @@ from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from . import events
+from . import events as events_lib
 from .backend import PythonModelService, TritonService
-from .models import CompletionRequest, CompletionResponse
+from .models import ChoiceEvent, CompletionRequest, CompletionResponse
 
 app = FastAPI(
     title="TabbyServer",
@@ -37,23 +37,29 @@ else:
 
 LOGS_DIR = os.environ.get("LOGS_DIR", None)
 if LOGS_DIR is not None:
-    events.setup_logging(os.path.join(LOGS_DIR, "tabby-server"))
+    events_lib.setup_logging(os.path.join(LOGS_DIR, "tabby-server"))
 
 
 @app.post("/v1/completions")
 async def completions(request: CompletionRequest) -> CompletionResponse:
     response = model_backend(request)
-    events.log_completions(request, response)
+    events_lib.log_completion(request, response)
     return response
+
+
+@app.post("/v1/events")
+async def events(e: ChoiceEvent) -> JSONResponse:
+    events_lib.log_event(e)
+    return JSONResponse(content="ok")
 
 
 @app.post("/v1/completions/{id}/choices/{index}/view")
 async def view(id: str, index: int) -> JSONResponse:
-    events.log_view(id, index)
+    events_lib.log_view(id, index)
     return JSONResponse(content="ok")
 
 
 @app.post("/v1/completions/{id}/choices/{index}/select")
 async def select(id: str, index: int) -> JSONResponse:
-    events.log_select(id, index)
+    events_lib.log_select(id, index)
     return JSONResponse(content="ok")
