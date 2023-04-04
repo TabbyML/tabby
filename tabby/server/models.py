@@ -46,6 +46,7 @@ class Event(BaseModel):
 
 class CompletionEvent(Event):
     id: str
+    language: Language
     prompt: str
     created: int
     choices: List[Choice]
@@ -55,6 +56,7 @@ class CompletionEvent(Event):
         return cls(
             type=EventType.COMPLETION,
             id=response.id,
+            language=request.language,
             prompt=request.prompt,
             created=response.created,
             choices=response.choices,

@@ -127,6 +127,7 @@ class CompletionProvider {
     const request = (this.pendingRequest = axios.post(
       `${TabbyServerURL}/v1/completions`,
       {
+        language: "python",
         prompt,
       }
     ))
