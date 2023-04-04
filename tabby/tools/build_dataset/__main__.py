@@ -5,7 +5,7 @@ import os
 from datasets import Dataset
 from transformers import HfArgumentParser
 
-from . import filters, metrics
+from . import metrics
 from .args import PreprocessProjectArgs
 
 
@@ -80,5 +80,4 @@ if __name__ == "__main__":
     )
 
     ds = Dataset.from_generator(dataset_iter(files))
-    ds = ds.filter(filters.basic_filters(args))
     ds.save_to_disk(args.output_dir)

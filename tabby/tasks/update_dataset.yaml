@@ -13,6 +13,6 @@ steps:
 
   - name: Generate dataset
     dir: $APP_DIR
-    command: python -m tabby.tools.preprocess.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
+    command: python -m tabby.tools.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
     depends:
       - Update repositories
