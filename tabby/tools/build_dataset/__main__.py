@@ -2,10 +2,11 @@ import glob
 import json
 import os
 
+import pandas as pd
 from datasets import Dataset
 from transformers import HfArgumentParser
 
-from . import filters, metrics
+from . import metrics
 from .args import PreprocessProjectArgs
 
 
@@ -61,6 +62,17 @@ def dataset_iter(files):
     return gen
 
 
+def count_by_language(dataset):
+    key = "language"
+    df = (
+        pd.DataFrame(dataset[key], columns=[key])
+        .groupby([key])
+        .size()
+        .to_frame("count")
+    )
+    return df
+
+
 if __name__ == "__main__":
     valid_extensions = read_valid_extensions()
 
@@ -80,5 +92,8 @@ if __name__ == "__main__":
     )
 
     ds = Dataset.from_generator(dataset_iter(files))
-    ds = ds.filter(filters.basic_filters(args))
     ds.save_to_disk(args.output_dir)
+
+    print("\n## Summary")
+    print("Number of source files", len(ds))
+    print("Number of source files by languages", count_by_language(ds).to_json())

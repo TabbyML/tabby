@@ -7,12 +7,12 @@ env:
   - GIT_REPOSITORIES_DIR: "$GIT_REPOSITORIES_DIR"
   - DATASET_DIR: "$DATASET_DIR"
 steps:
-  - name: Update repositories
+  - name: update repositories
     dir: $APP_DIR
     command: python -m tabby.tools.repository.updater --data_dir=$GIT_REPOSITORIES_DIR --config_file=$CONFIG_FILE
 
-  - name: Generate dataset
+  - name: generate dataset
     dir: $APP_DIR
-    command: python -m tabby.tools.preprocess.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
+    command: python -m tabby.tools.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
     depends:
-      - Update repositories
+      - update repositories
