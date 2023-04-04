@@ -12,7 +12,7 @@ class LanguagePreset(BaseModel):
 
 LanguagePresets = {
     Language.UNKNOWN: LanguagePreset(
-        max_length=32,
+        max_length=128,
         stop_words=["\n\n"],
     ),
     Language.PYTHON: LanguagePreset(
