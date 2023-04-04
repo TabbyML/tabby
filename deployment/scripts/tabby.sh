@@ -47,7 +47,7 @@ command=uvicorn tabby.server:app --host 0.0.0.0 --port 5000
 command=streamlit run tabby/admin/Home.py --server.port 8501
 
 [program:vector]
-command=vector
+command=vector --config-toml tabby/config/vector.toml
 
 [program:dagu_scheduler]
 command=dagu scheduler

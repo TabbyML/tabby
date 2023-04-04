@@ -38,7 +38,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.vector.dev | bash -s -- -y
 mkdir -p /var/lib/vector
 EOF
 ENV PATH "$PATH:/root/.vector/bin"
-COPY deployment/config/vector.toml /etc/vector/vector.toml
 
 # Supervisord
 RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple supervisor

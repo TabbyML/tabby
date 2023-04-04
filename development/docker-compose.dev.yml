@@ -12,5 +12,4 @@ services:
       STREAMLIT_RUN_ON_SAVE: true
     volumes:
       - ../:/app
-      - ../deployment/config/vector.toml:/etc/vector/vector.toml:ro
       - ../deployment/scripts/tabby.sh:/usr/bin/tabby.sh:ro
