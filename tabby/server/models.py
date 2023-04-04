@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -21,8 +22,14 @@ class CompletionResponse(BaseModel):
     choices: List[Choice]
 
 
+class EventType(str, Enum):
+    COMPLETION = "completion"
+    VIEW = "view"
+    SELECT = "select"
+
+
 class Event(BaseModel):
-    type: str
+    type: EventType
 
 
 class CompletionEvent(Event):
@@ -34,7 +41,7 @@ class CompletionEvent(Event):
     @classmethod
     def build(cls, request: CompletionRequest, response: CompletionResponse):
         return cls(
-            type="completion",
+            type=EventType.COMPLETION,
             id=response.id,
             prompt=request.prompt,
             created=response.created,
@@ -46,10 +53,9 @@ class ChoiceEvent(Event):
     completion_id: str
     choice_index: int
 
-    @classmethod
-    def build_view(cls, id, index):
-        return cls(type="view", completion_id=id, choice_index=index)
 
-    @classmethod
-    def build_select(cls, id, index):
-        return cls(type="select", completion_id=id, choice_index=index)
+EventTypeMapping = {
+    EventType.COMPLETION: CompletionEvent,
+    EventType.VIEW: ChoiceEvent,
+    EventType.SELECT: ChoiceEvent,
+}
