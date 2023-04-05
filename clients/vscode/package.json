@@ -4,7 +4,7 @@
   "displayName": "Tabby",
   "description": "Get completions from Tabby server",
   "repository": "https://github.com/TabbyML/tabby",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "keywords": [
     "code-suggestion",
     "copilot",
@@ -59,6 +59,7 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
+    "dev:web": "code --extensionDevelopmentPath=$PWD --extensionDevelopmentKind=web --disable-extensions && yarn watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
