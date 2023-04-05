@@ -42,6 +42,7 @@ EOF
 
 fi
 
+mkdir -p ${LOGS_DIR}
 supervisord -n -c <(cat <<EOF
 [supervisord]
 logfile = ${LOGS_DIR}/supervisord.log
