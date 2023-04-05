@@ -28,10 +28,13 @@ An opensource / on-prem alternative to GitHub Copilot.
 
 The easiest way of getting started is using the official docker image:
 ```bash
+# Create data dir and grant owner to 1000 (Tabby run as uid 1000 in container)
+mkdir -p data/hf_cache && chown -R 1000 data
+
 docker run \
   -it --rm \
   -v ./data:/data \
-  -v ./data/hf_cache:/root/.cache/huggingface \
+  -v ./data/hf_cache:/home/app/.cache/huggingface \
   -p 5000:5000 \
   -p 8501:8501 \
   -p 8080:8080 \

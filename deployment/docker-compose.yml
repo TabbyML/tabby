@@ -1,6 +1,15 @@
 version: '3.3'
 
 services:
+  init:
+    image: tabbyml/tabby
+    container_name: init
+    user: root
+    volumes:
+      - ${DATA_VOLUME}
+      - ${HF_VOLUME}
+    command: chown -R 1000 /data
+
   tabby:
     image: tabbyml/tabby
     container_name: tabby
@@ -28,3 +37,5 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    depends_on:
+      - init

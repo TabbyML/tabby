@@ -1,6 +1,15 @@
 version: '3.3'
 
 services:
+  init:
+    image: tabbyml/tabby
+    container_name: init
+    user: root
+    volumes:
+      - ${DATA_VOLUME}
+      - ${HF_VOLUME}
+    command: chown -R 1000 /data
+
   tabby:
     image: tabbyml/tabby
     container_name: tabby
@@ -18,3 +27,5 @@ services:
       interval: 2s
       timeout: 2s
       start_period: 1200s
+    depends_on:
+      - init
