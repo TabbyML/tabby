@@ -1,6 +1,7 @@
 name: Create and publish docker image
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
     paths-ignore:
