@@ -43,10 +43,7 @@ class PythonModelService:
         )
 
     def generate(self, request: CompletionRequest) -> List[Choice]:
-        # FIXME(meng): read preset from request.
-        preset_name = "python"
-        preset = LanguagePresets[preset_name]
-
+        preset = LanguagePresets[request.language]
         input_ids = self.tokenizer.encode(request.prompt, return_tensors="pt").to(
             self.device
         )

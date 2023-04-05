@@ -29,9 +29,7 @@ class TritonService:
         np_type = np.uint32
         model_name = "fastertransformer"
 
-        # FIXME(meng): read preset from request.
-        preset_name = "python"
-        preset = LanguagePresets[preset_name]
+        preset = LanguagePresets[data.language]
 
         prompt = data.prompt
         input_start_ids = np.expand_dims(self.tokenizer.encode(prompt), 0)

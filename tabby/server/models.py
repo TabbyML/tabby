@@ -9,7 +9,19 @@ class Choice(BaseModel):
     text: str
 
 
+class Language(str, Enum):
+    UNKNOWN = "unknown"
+    PYTHON = "python"
+    JAVASCRIPT = "javascript"
+
+
 class CompletionRequest(BaseModel):
+    language: Language = Field(
+        example=Language.PYTHON,
+        default=Language.UNKNOWN,
+        description="Language for completion request",
+    )
+
     prompt: str = Field(
         example="def binarySearch(arr, left, right, x):\n    mid = (left +",
         description="The context to generate completions for, encoded as a string.",
@@ -34,6 +46,7 @@ class Event(BaseModel):
 
 class CompletionEvent(Event):
     id: str
+    language: Language
     prompt: str
     created: int
     choices: List[Choice]
@@ -43,6 +56,7 @@ class CompletionEvent(Event):
         return cls(
             type=EventType.COMPLETION,
             id=response.id,
+            language=request.language,
             prompt=request.prompt,
             created=response.created,
             choices=response.choices,
