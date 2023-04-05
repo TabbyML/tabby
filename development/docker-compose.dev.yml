@@ -5,11 +5,13 @@ services:
     build:
       context: ..
       args:
-        PYPI_INDEX_URL: https://pypi.tuna.tsinghua.edu.cn/simple
+        PYPI_INDEX_URL: https://mirrors.aliyun.com/pypi/simple
+        PYTHON_BUILD_MIRROR_URL: https://repo.huaweicloud.com/python
     environment:
       UVICORN_RELOAD: true
       VECTOR_WATCH_CONFIG: true
       STREAMLIT_RUN_ON_SAVE: true
     volumes:
-      - ../:/app
-      - ../deployment/scripts/tabby.sh:/usr/bin/tabby.sh:ro
+      - ../tabby:/home/app/tabby
+      - ../deployment/scripts/tabby.sh:/home/app/.bin/tabby.sh:ro
+      - ../deployment/scripts/triton.sh:/home/app/.bin/triton.sh:ro

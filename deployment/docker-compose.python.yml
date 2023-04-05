@@ -4,11 +4,8 @@ services:
   tabby:
     image: tabbyml/tabby
     container_name: tabby
-    shm_size: 1gb
     environment:
       MODEL_NAME: ${MODEL_NAME}
-      MODEL_BACKEND: triton
-      MODEL_REPLICA: ${MODEL_REPLICA:-1}
     ports:
       - "5000:5000"
       - "8080:8080"
@@ -21,10 +18,3 @@ services:
       interval: 2s
       timeout: 2s
       start_period: 1200s
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
