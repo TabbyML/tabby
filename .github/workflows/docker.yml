@@ -66,7 +66,7 @@ jobs:
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
         with:
-          image: ghcr.io/${{ github.repository }}/cache
+          image: ghcr.io/${{ env.IMAGE_NAME }}/cache
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
