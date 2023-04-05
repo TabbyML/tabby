@@ -66,7 +66,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     // Prompt is already nil-checked
     const completion = await this.tabbyClient.getCompletion({
       prompt: prompt as string,
-      language: document.languageId,
+      language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
     });
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
