@@ -49,9 +49,19 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
 }'
 ```
 
-To use the GPU backend (triton) for a faster inference speed, use `deployment/docker-compose.yml`:
+To use the GPU backend (triton) for a faster inference speed:
 ```bash
-docker-compose up
+docker run \
+  --gpus all \
+  -it --rm \
+  -v ./data:/data \
+  -v ./data/hf_cache:/home/app/.cache/huggingface \
+  -p 5000:5000 \
+  -p 8501:8501 \
+  -p 8080:8080 \
+  -e MODEL_NAME=TabbyML/J-350M \
+  -e MODEL_BACKEND=triton \
+  tabbyml/tabby
 ```
 Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
 
