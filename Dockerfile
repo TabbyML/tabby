@@ -51,8 +51,7 @@ EOF
 
 # Install tabby dependencies
 COPY poetry.lock pyproject.toml ./
-# fixme don't exclude peft
-RUN poetry export --without-hashes | grep -v peft > requirements.txt
+RUN poetry export --without-hashes > requirements.txt
 RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL --no-dependencies -r requirements.txt
 
 
