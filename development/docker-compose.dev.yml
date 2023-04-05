@@ -13,5 +13,3 @@ services:
       STREAMLIT_RUN_ON_SAVE: true
     volumes:
       - ../tabby:/home/app/tabby
-      - ../deployment/scripts/tabby.sh:/home/app/.bin/tabby.sh:ro
-      - ../deployment/scripts/triton.sh:/home/app/.bin/triton.sh:ro
