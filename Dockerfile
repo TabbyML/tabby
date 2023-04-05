@@ -18,7 +18,7 @@ RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
 ENV PATH="$HOME/.pyenv/shims:/home/app/.pyenv/bin:$PATH"
 
 ARG PYTHON_VERSION=3.10.10
-ARG PYTHON_BUILD_MIRROR_URL="https://pyenv.github.io/pythons"
+ARG PYTHON_BUILD_MIRROR_URL=""
 ENV PYTHON_BUILD_MIRROR_URL=${PYTHON_BUILD_MIRROR_URL}
 ENV PYTHON_BUILD_MIRROR_URL_SKIP_CHECKSUM=1
 RUN pyenv install ${PYTHON_VERSION}

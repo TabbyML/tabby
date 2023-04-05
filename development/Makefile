@@ -1,14 +1,11 @@
-DEFAULT := docker-compose -f ../deployment/docker-compose.yml
+DEFAULT :=
 UP_FLAGS := up --remove-orphans
 
 build:
-	$(DEFAULT) -f docker-compose.dev.yml build
+	docker-compose -f ../deployment/docker-compose.yml -f docker-compose.dev.yml build
 
 dev:
-	$(DEFAULT) -f docker-compose.dev.yml $(UP_FLAGS)
+	docker-compose -f ../deployment/docker-compose.yml -f docker-compose.dev.yml $(UP_FLAGS)
 
 dev-python:
-	$(DEFAULT) -f docker-compose.dev.yml -f docker-compose.python.yml $(UP_FLAGS)
-
-clean:
-	$(DEFAULT) -f docker-compose.dev.yml down
+	docker-compose -f ../deployment/docker-compose.python.yml -f docker-compose.dev.yml $(UP_FLAGS)
