@@ -42,7 +42,9 @@ EOF
 
 fi
 
+# Create logs dir if not exists.
 mkdir -p ${LOGS_DIR}
+
 supervisord -n -c <(cat <<EOF
 [supervisord]
 logfile = ${LOGS_DIR}/supervisord.log
