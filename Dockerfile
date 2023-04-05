@@ -53,8 +53,6 @@ RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL --no-d
 
 
 COPY tabby ./tabby
-COPY deployment/scripts/tabby.sh ./.bin/
-COPY deployment/scripts/triton.sh ./.bin/
 
 # Setup file permissions
 USER root
@@ -65,4 +63,4 @@ RUN mkdir -p $HOME/.cache
 RUN chown 1000 $HOME/.cache
 
 USER 1000
-CMD ["tabby.sh"]
+CMD ["./tabby/scripts/tabby.sh"]

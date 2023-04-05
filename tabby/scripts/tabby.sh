@@ -36,7 +36,7 @@ then
 
 local TRITON_SERVER=$(cat <<EOF
 [program:triton]
-command=triton.sh
+command=./tabby/scripts/triton.sh
 EOF
 )
 
