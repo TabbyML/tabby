@@ -60,7 +60,9 @@ COPY deployment/scripts/triton.sh ./.bin/
 USER root
 RUN mkdir -p /var/lib/vector
 RUN chown 1000 /var/lib/vector
-RUN chown -R 1000 $HOME/.cache
+
+RUN mkdir -p $HOME/.cache
+RUN chown 1000 $HOME/.cache
 
 USER 1000
 CMD ["tabby.sh"]
