@@ -5,7 +5,3 @@ services:
     image: tabbyml/tabby
     environment:
       MODEL_BACKEND: python
-
-  triton:
-    profiles:
-      - donotstart

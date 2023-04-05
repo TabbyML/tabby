@@ -1,47 +1,70 @@
 # syntax = docker/dockerfile:1.5
 
-FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+FROM tabbyml/fastertransformer_backend
 
-# Install utilities
+RUN apt update && apt -y install build-essential libssl-dev zlib1g-dev \
+  libbz2-dev libreadline-dev libsqlite3-dev curl \
+  libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+
+RUN mkdir -p /home/app
+RUN chown 1000 /home/app
+
+USER 1000
+WORKDIR /home/app
+ENV HOME /home/app
+
+# Setup pyenv
+RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
+ENV PATH="$HOME/.pyenv/shims:/home/app/.pyenv/bin:$PATH"
+
+ARG PYTHON_VERSION=3.10.10
+ARG PYTHON_BUILD_MIRROR_URL="https://pyenv.github.io/pythons"
+ENV PYTHON_BUILD_MIRROR_URL=${PYTHON_BUILD_MIRROR_URL}
+ENV PYTHON_BUILD_MIRROR_URL_SKIP_CHECKSUM=1
+RUN pyenv install ${PYTHON_VERSION}
+RUN pyenv global ${PYTHON_VERSION}
+
+ARG PYPI_INDEX_URL=https://pypi.org/simple
+ARG POETRY_VERSION=1.4.0
+
+RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL "poetry==$POETRY_VERSION"
+
+# vector
 RUN <<EOF
-  apt-get -y update
-  apt-get -y install git curl
+curl --proto '=https' --tlsv1.2 -sSf https://sh.vector.dev | bash -s -- -y
 EOF
+ENV PATH "$HOME/.vector/bin:$PATH"
+
+# Supervisord
+RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL supervisor
+
+RUN mkdir -p ~/.bin
+ENV PATH "$HOME/.bin:$PATH"
 
 # Install dagu
 RUN <<EOF
   curl -L https://github.com/yohamta/dagu/releases/download/v1.10.2/dagu_1.10.2_Linux_x86_64.tar.gz > dagu.tar.gz
   tar zxvf dagu.tar.gz
-  mv dagu /usr/local/bin
+  mv dagu ~/.bin/
   rm dagu.tar.gz LICENSE.md README.md
 EOF
 
-ARG PYPI_INDEX_URL=https://pypi.org/simple
-ARG POETRY_VERSION=1.4.0
+# Install tabby dependencies
+COPY poetry.lock pyproject.toml ./
+# fixme don't exclude peft
+RUN poetry export --without-hashes | grep -v peft > requirements.txt
+RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL --no-dependencies -r requirements.txt
 
-WORKDIR /app
-
-RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL "poetry==$POETRY_VERSION"
-
-COPY poetry.lock pyproject.toml /app/
-RUN poetry export --without-hashes -o requirements.txt
-
-RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple --no-dependencies -r requirements.txt
-
-## FIX bitandsands
-ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:/opt/conda/lib"
-RUN ln -s /opt/conda/lib/libcudart.so.11.7.99 /opt/conda/lib/libcudart.so
-
-# vector
-RUN <<EOF
-curl --proto '=https' --tlsv1.2 -sSf https://sh.vector.dev | bash -s -- -y
-mkdir -p /var/lib/vector
-EOF
-ENV PATH "$PATH:/root/.vector/bin"
-
-# Supervisord
-RUN --mount=type=cache,target=/root/.cache pip install -i $PYPI_INDEX_URL --extra-index-url https://pypi.org/simple supervisor
 
 COPY tabby ./tabby
-COPY deployment/scripts/tabby.sh /usr/bin
+COPY deployment/scripts/tabby.sh ./.bin/
+COPY deployment/scripts/triton.sh ./.bin/
+
+# Setup file permissions
+USER root
+RUN mkdir -p /var/lib/vector
+RUN chown app /var/lib/vector
+# RUN chown -R app .cache
+
+USER app
 CMD ["tabby.sh"]

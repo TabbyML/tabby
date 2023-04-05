@@ -4,9 +4,11 @@ services:
   tabby:
     image: tabbyml/tabby
     container_name: tabby
+    shm_size: 1gb
     environment:
       MODEL_NAME: ${MODEL_NAME}
       MODEL_BACKEND: triton
+      MODEL_REPLICA: ${MODEL_REPLICA:-1}
     ports:
       - "5000:5000"
       - "8080:8080"
@@ -19,15 +21,6 @@ services:
       interval: 2s
       timeout: 2s
       start_period: 1200s
-
-  triton:
-    image: tabbyml/fastertransformer_backend
-    container_name: tabby-triton
-    command: triton.sh
-    shm_size: 1gb
-    volumes:
-      - ./scripts/triton.sh:/usr/bin/triton.sh:ro
-      - ${HF_VOLUME}
     deploy:
       resources:
         reservations:
@@ -35,9 +28,3 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    environment:
-      MODEL_NAME: ${MODEL_NAME}
-      MODEL_REPLICA: ${MODEL_REPLICA:-1}
-    depends_on:
-      tabby:
-        condition: service_healthy

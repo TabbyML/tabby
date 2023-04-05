@@ -35,9 +35,20 @@ python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 
 
 supervisor() {
+if [[ "$MODEL_BACKEND" == "triton" ]]
+then
+
+local TRITON_SERVER=$(cat <<EOF
+[program:triton]
+command=triton.sh
+EOF
+)
+
+fi
+
 supervisord -n -c <(cat <<EOF
 [supervisord]
-logfile = /var/log/supervisord.log
+logfile = ${LOGS_DIR}/supervisord.log
 loglevel = debug
 
 [program:server]
@@ -54,6 +65,8 @@ command=dagu scheduler
 
 [program:dagu_server]
 command=dagu server --host 0.0.0.0 --port 8080
+
+$TRITON_SERVER
 EOF
 )
 }
