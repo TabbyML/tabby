@@ -63,6 +63,11 @@ jobs:
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
+      - uses: int128/docker-build-cache-config-action@v1
+        id: cache
+        with:
+          image: ghcr.io/${{ github.repository }}/cache
+
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -75,3 +80,5 @@ jobs:
           tags: |
             ghcr.io/${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:latest
+          cache-from: ${{ steps.cache.outputs.cache-from }}
+          cache-to: ${{ steps.cache.outputs.cache-to }}
