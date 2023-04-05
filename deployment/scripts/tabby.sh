@@ -9,10 +9,6 @@ export CONFIG_FILE=${CONFIG_FILE:-/data/config/tabby.toml}
 # server
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
 export MODEL_BACKEND="${MODEL_BACKEND:-python}"
-if [ ! -n "$WEB_CONCURRENCY" ]; then
-  # Set WEB_CONCURRENCY for uvicorn workers.
-  export WEB_CONCURRENCY=$(nproc --all)
-fi
 
 # projects
 export GIT_REPOSITORIES_DIR="${REPOSITORIES_DIR:-/data/repositories}"
