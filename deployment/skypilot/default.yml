@@ -22,4 +22,4 @@ setup: |
 
 run: |
   cd tabby/deployment
-  sudo MODEL_REPLICA=${MODEL_REPLICA:-8} docker-compose up
+  sudo MODEL_REPLICA=${MODEL_REPLICA:-8} docker-compose -f docker-compose.yml -f docker-compose.triton.yml up

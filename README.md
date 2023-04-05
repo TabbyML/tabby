@@ -84,7 +84,7 @@ make dev
 ```
 or
 ```bash
-make dev-python  # Turn off triton backend (for non-cuda env developers)
+make dev-triton # Turn on triton backend (for cuda env developers)
 ```
 
 ## TODOs
