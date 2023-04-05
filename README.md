@@ -42,13 +42,6 @@ docker run \
   tabbyml/tabby
 ```
 
-You can then query the server using `/v1/completions` endpoint:
-```bash
-curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
-    "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
-}'
-```
-
 To use the GPU backend (triton) for a faster inference speed:
 ```bash
 docker run \
@@ -64,6 +57,13 @@ docker run \
   tabbyml/tabby
 ```
 Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
+
+You can then query the server using `/v1/completions` endpoint:
+```bash
+curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
+    "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
+}'
+```
 
 We also provides an interactive playground in admin panel [localhost:8501](http://localhost:8501)
 
