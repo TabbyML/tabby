@@ -23,5 +23,5 @@ sed -i "s/count: [[:digit:]]\+/count: $MODEL_REPLICA/g" $MODEL_DIR/triton/faster
 
 # Start triton server.
 mpirun -n 1 \
-  --allow-run-as-root /opt/tritonserver/bin/tritonserver \
+  /opt/tritonserver/bin/tritonserver \
   --model-repository=$MODEL_DIR/triton

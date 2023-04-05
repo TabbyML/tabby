@@ -62,8 +62,8 @@ COPY deployment/scripts/triton.sh ./.bin/
 # Setup file permissions
 USER root
 RUN mkdir -p /var/lib/vector
-RUN chown app /var/lib/vector
-# RUN chown -R app .cache
+RUN chown 1000 /var/lib/vector
+RUN chown -R 1000 $HOME/.cache
 
-USER app
+USER 1000
 CMD ["tabby.sh"]
