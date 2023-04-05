@@ -59,11 +59,15 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       {
         uuid: this.uuid,
         timestamp: currentTimestamp,
-        prompt
+        prompt,
+        language: document.languageId
       }
     );
     // Prompt is already nil-checked
-    const completion = await this.tabbyClient.getCompletion(prompt as string);
+    const completion = await this.tabbyClient.getCompletion({
+      prompt: prompt as string,
+      language: document.languageId,
+    });
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
     const replaceRange = hasSuffixParen

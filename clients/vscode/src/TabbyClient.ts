@@ -16,6 +16,11 @@ if (logAxios) {
   });
 }
 
+export interface TabbyCompletionRequest {
+  prompt: string;
+  language?: string;
+}
+
 export interface TabbyCompletion {
   id?: string;
   created?: number;
@@ -89,14 +94,12 @@ export class TabbyClient extends EventEmitter {
     }
   }
 
-  public async getCompletion(prompt: string): Promise<TabbyCompletion | null> {
+  public async getCompletion(request: TabbyCompletionRequest): Promise<TabbyCompletion | null> {
     if (this.status == "disconnected") {
       this.ping();
     }
     try {
-      const response = await axios.post<TabbyCompletion>(`${this.tabbyServerUrl}/v1/completions`, {
-        prompt,
-      });
+      const response = await axios.post<TabbyCompletion>(`${this.tabbyServerUrl}/v1/completions`, request);
       assert(response.status == 200);
       return response.data;
     } catch (e) {
@@ -113,7 +116,7 @@ export class TabbyClient extends EventEmitter {
       const response = await axios.post(`${this.tabbyServerUrl}/v1/events`, {
         type: event.type,
         completion_id: event.id,
-        choice_index: event.index
+        choice_index: event.index,
       });
       assert(response.status == 200);
     } catch (e) {
