@@ -5,7 +5,6 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 ![Docker build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/docker.yml?label=docker%20image%20build)
-[![Huggingface Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-spaces-blue)](https://tabbyml-tabby.hf.space/_admin/)
 
 ![architecture](https://user-images.githubusercontent.com/388154/229353706-230d70e1-7d09-48e2-a884-4da768bccf6f.png)
 
@@ -22,6 +21,16 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 * Web UI for visualizing and configuration models and MLOps.
 * OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
+
+## Live Demo
+[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/TabbyML/tabby) 
+[![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/raw/main/duplicate-this-space-md.svg)](https://huggingface.co/spaces/TabbyML/tabby?duplicate=true)
+
+<p align="center">
+  <img alt="Demo" src="https://user-images.githubusercontent.com/388154/230440226-9bc01d05-9f57-478b-b04d-81184eba14ca.gif">
+</p>
+
+
 
 ## Get started
 
