@@ -11,10 +11,10 @@
 
 </div>
 
+Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
+
 > **Warning**
 > Tabby is still in the alpha phrase
-
-Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
 
 ## Features
 
