@@ -36,8 +36,6 @@ docker run \
   -v ./data:/data \
   -v ./data/hf_cache:/home/app/.cache/huggingface \
   -p 5000:5000 \
-  -p 8501:8501 \
-  -p 8080:8080 \
   -e MODEL_NAME=TabbyML/J-350M \
   tabbyml/tabby
 ```
@@ -50,8 +48,6 @@ docker run \
   -v ./data:/data \
   -v ./data/hf_cache:/home/app/.cache/huggingface \
   -p 5000:5000 \
-  -p 8501:8501 \
-  -p 8080:8080 \
   -e MODEL_NAME=TabbyML/J-350M \
   -e MODEL_BACKEND=triton \
   tabbyml/tabby
@@ -65,7 +61,7 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
 }'
 ```
 
-We also provides an interactive playground in admin panel [localhost:8501](http://localhost:8501)
+We also provides an interactive playground in admin panel [localhost:5000/_admin](http://localhost:5000/_admin)
 
 ![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
 

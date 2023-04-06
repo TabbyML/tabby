@@ -13,5 +13,6 @@ services:
       UVICORN_RELOAD: true
       VECTOR_WATCH_CONFIG: true
       STREAMLIT_RUN_ON_SAVE: true
+      CADDY_WATCH_CONFIG: true
     volumes:
       - ../tabby:/home/app/tabby

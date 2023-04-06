@@ -7,7 +7,7 @@ import toml
 from datasets import load_from_disk
 from git import Repo
 
-st.set_page_config(page_title="Tabby Admin - Projects")
+st.set_page_config(page_title="Tabby Admin - Projects", layout="wide")
 
 dataset_dir = os.environ.get("DATASET_DIR", None)
 git_repositories_dir = os.environ.get("GIT_REPOSITORIES_DIR", None)
