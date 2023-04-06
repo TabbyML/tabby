@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 import requests
 from requests.exceptions import ConnectionError
@@ -9,7 +8,6 @@ from requests.exceptions import ConnectionError
 class ServiceInfo:
     label: str
     health_url: str
-    url: Optional[str] = None
 
     @property
     def is_health(self) -> bool:

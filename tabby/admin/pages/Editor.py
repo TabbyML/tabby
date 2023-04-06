@@ -1,7 +1,7 @@
 import streamlit as st
 from components import monaco
 
-st.set_page_config(page_title="Tabby Admin - Editor")
+st.set_page_config(page_title="Tabby Admin - Editor", layout="wide")
 
 st.markdown("## Editor")
 st.markdown("---")

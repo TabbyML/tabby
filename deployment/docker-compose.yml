@@ -17,8 +17,6 @@ services:
       MODEL_NAME: ${MODEL_NAME}
     ports:
       - "5000:5000"
-      - "8080:8080"
-      - "8501:8501"
     volumes:
       - ${DATA_VOLUME}
       - ${HF_VOLUME}

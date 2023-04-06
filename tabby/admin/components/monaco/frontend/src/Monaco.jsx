@@ -12,7 +12,7 @@ export default function MonacoEditor() {
   if (renderData.args.tabby_server_url) {
     TabbyServerURL = renderData.args.tabby_server_url
   } else {
-    TabbyServerURL = `${window.location.protocol}//${window.location.hostname}:5000`
+    TabbyServerURL = `${window.location.protocol}//${window.location.host}`
   }
 
   const monaco = useMonaco()

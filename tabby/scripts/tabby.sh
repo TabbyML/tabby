@@ -40,7 +40,18 @@ command=./tabby/scripts/triton.sh
 EOF
 
 fi
+}
 
+program:caddy() {
+if [[ "$CADDY_WATCH_CONFIG" == "true" ]]
+then
+local CADDY_ARGS=" --watch"
+fi
+
+cat <<EOF
+[program:caddy]
+command=caddy run --config tabby/config/Caddyfile $CADDY_ARGS
+EOF
 }
 
 supervisor() {
@@ -53,10 +64,10 @@ logfile = ${LOGS_DIR}/supervisord.log
 loglevel = debug
 
 [program:server]
-command=uvicorn tabby.server:app --host 0.0.0.0 --port 5000
+command=uvicorn tabby.server:app --port 8081
 
 [program:admin]
-command=streamlit run tabby/admin/Home.py --server.port 8501 --theme.base=dark
+command=streamlit run tabby/admin/Home.py --server.port 8082 --server.baseUrlPath=/_admin --theme.base=dark
 
 [program:vector]
 command=vector --config-toml tabby/config/vector.toml
@@ -65,9 +76,11 @@ command=vector --config-toml tabby/config/vector.toml
 command=dagu scheduler
 
 [program:dagu_server]
-command=dagu server --host 0.0.0.0 --port 8080
+command=dagu server --host 0.0.0.0 --port 8083
 
 $(program:triton)
+
+$(program:caddy)
 EOF
 )
 }

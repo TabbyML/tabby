@@ -51,8 +51,15 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry export --without-hashes > requirements.txt
 RUN --mount=type=cache,target=$HOME/.cache pip install -i $PYPI_INDEX_URL --no-dependencies -r requirements.txt
 
-
 COPY tabby ./tabby
+
+# Install caddy
+RUN <<EOF
+  curl -L "https://github.com/caddyserver/caddy/releases/download/v2.6.4/caddy_2.6.4_linux_amd64.tar.gz" -o caddy.tar.gz
+  tar zxvf caddy.tar.gz
+  mv caddy ~/.bin/
+  rm caddy.tar.gz README.md LICENSE
+EOF
 
 # Setup file permissions
 USER root
