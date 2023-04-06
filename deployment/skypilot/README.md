@@ -26,10 +26,10 @@
 
 4. Open another terminal and run:
     ```bash
-    ssh -L 8501:localhost:8501 -L 5000:localhost:5000 -L 8080:localhost:8080 tabby
+    ssh -L 5000:localhost:5000 tabby
     ```
 
-5. Open http://localhost:8501 in your browser and start coding!
+5. Open http://localhost:5000 in your browser and start coding!
 ![tabby admin server](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
 
 ## Cleaning up
