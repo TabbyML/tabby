@@ -30,6 +30,7 @@ docker pull ghcr.io/opennmt/ctranslate2:latest-ubuntu20.04-cuda11.2
 
 The images include:
 
+* the NVIDIA libraries cuBLAS and cuDNN to support GPU execution
 * the C++ library installed in `/opt/ctranslate2`
 * the Python module installed in the Python system packages
 * the translator executable, which is the image entrypoint:
