@@ -13,7 +13,7 @@
 Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
 
 > **Warning**
-> Tabby is still in the alpha phrase
+> Tabby is still in the alpha phase
 
 ## Features
 
