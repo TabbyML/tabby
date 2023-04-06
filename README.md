@@ -36,7 +36,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-The easiest way of getting started is using the official docker image:
+The easiest way of getting started is using the docker image:
 ```bash
 # Create data dir and grant owner to 1000 (Tabby run as uid 1000 in container)
 mkdir -p data/hf_cache && chown -R 1000 data
