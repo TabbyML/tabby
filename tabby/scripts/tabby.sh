@@ -30,18 +30,20 @@ python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 }
 
 
-supervisor() {
+program:triton() {
 if [[ "$MODEL_BACKEND" == "triton" ]]
 then
 
-local TRITON_SERVER=$(cat <<EOF
+cat <<EOF
 [program:triton]
 command=./tabby/scripts/triton.sh
 EOF
-)
 
 fi
 
+}
+
+supervisor() {
 # Create logs dir if not exists.
 mkdir -p ${LOGS_DIR}
 
@@ -65,7 +67,7 @@ command=dagu scheduler
 [program:dagu_server]
 command=dagu server --host 0.0.0.0 --port 8080
 
-$TRITON_SERVER
+$(program:triton)
 EOF
 )
 }
