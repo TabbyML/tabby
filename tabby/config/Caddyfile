@@ -2,11 +2,7 @@
 	http_port 5000
 }
 
-http://localhost {
+:5000 {
 	reverse_proxy localhost:8081
 	reverse_proxy /_admin* localhost:8082
-}
-
-http://dagu.localhost {
-	reverse_proxy localhost:8083
 }
