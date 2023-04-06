@@ -6,8 +6,9 @@ import streamlit as st
 import toml
 from datasets import load_from_disk
 from git import Repo
+from utils.streamlit import set_page_config
 
-st.set_page_config(page_title="Tabby Admin - Projects", layout="wide")
+set_page_config(page_title="Projects")
 
 dataset_dir = os.environ.get("DATASET_DIR", None)
 git_repositories_dir = os.environ.get("GIT_REPOSITORIES_DIR", None)

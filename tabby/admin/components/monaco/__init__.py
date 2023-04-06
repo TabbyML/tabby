@@ -30,8 +30,8 @@ else:
 # `declare_component` and call it done. The wrapper allows us to customize
 # our component's API: we can pre-process its input args, post-process its
 # output value, and add a docstring for users.
-def st_monaco(key, tabby_server_url=None, code=None):
-    _editor_func(tabby_server_url=tabby_server_url, code=code, key=key)
+def st_monaco(key, tabby_server_url=None, code=None, height=400):
+    _editor_func(tabby_server_url=tabby_server_url, code=code, height=height, key=key)
 
 
 # Add some test code to play with the component while it's in development.

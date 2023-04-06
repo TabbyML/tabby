@@ -38,7 +38,7 @@ export default function MonacoEditor() {
   }, [renderData.args.code, editorRef])
 
   return (
-    <div style={{ height: 400 }}>
+    <div style={{ height: renderData.args.height }}>
       <Editor
         theme="vs-dark"
         defaultLanguage="python"

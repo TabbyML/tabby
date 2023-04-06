@@ -1,10 +1,8 @@
 import streamlit as st
 from components import monaco
+from utils.streamlit import set_page_config
 
-st.set_page_config(page_title="Tabby Admin - Editor", layout="wide")
-
-st.markdown("## Editor")
-st.markdown("---")
+set_page_config(page_title="Editor")
 
 SNIPPETS = {
     "Clear": "# Write some code ...",
@@ -37,4 +35,4 @@ def code_presets():
     return code
 
 
-monaco.st_monaco(key="default", code=code_presets())
+monaco.st_monaco(key="default", code=code_presets(), height=600)
