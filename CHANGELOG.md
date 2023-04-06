@@ -4,6 +4,19 @@
 
 ### Fixes and improvements
 
+## [v3.11.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.11.0) (2023-04-06)
+
+### Changes
+
+* The Python wheels for macOS ARM are now built with the Ruy backend to support INT8 computation. This will change the performance and results when loading an INT8 model and/or using the `auto` compute type. To keep the previous behavior, set `compute_type="float32"`.
+
+### New features
+
+* Support conversion of the GPT-J architecture
+* Support conversion of models using rotary position embeddings
+* Apply the new OpenNMT-py option `decoder_start_token`
+* Add option `revision` in the Transformers converter to download a specific revision of the model from the Hugging Face Hub
+
 ## [v3.10.3](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.10.3) (2023-03-28)
 
 ### Fixes and improvements
