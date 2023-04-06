@@ -40,7 +40,7 @@ if __name__ == "__main__":
     try:
         preload(local_files_only=args.prefer_local_files)
     except Exception as e:
-        if "offline" in str(e):
+        if "offline" in str(e) or "local_files_only" in str(e):
             preload(local_files_only=False)
         else:
             raise e
