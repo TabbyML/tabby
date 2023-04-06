@@ -83,9 +83,3 @@ or
 ```bash
 make dev-triton # Turn on triton backend (for cuda env developers)
 ```
-
-## TODOs
-
-* [ ] VIM Client [#36](https://github.com/TabbyML/tabby/issues/36)
-* [ ] Fine-tuning models on private code repository. [#23](https://github.com/TabbyML/tabby/issues/23)
-* [ ] Production ready (Open Telemetry, Prometheus metrics).
