@@ -24,7 +24,6 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ## Demo
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/TabbyML/tabby) 
-[![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/raw/main/duplicate-this-space-md.svg)](https://huggingface.co/spaces/TabbyML/tabby?duplicate=true)
 
 <p align="center">
   <img alt="Demo" src="https://user-images.githubusercontent.com/388154/230440226-9bc01d05-9f57-478b-b04d-81184eba14ca.gif">
