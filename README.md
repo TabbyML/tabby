@@ -13,7 +13,7 @@
 > **Warning**
 > Tabby is still in the alpha phrase
 
-An opensource / on-prem alternative to GitHub Copilot.
+Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
 
 ## Features
 
