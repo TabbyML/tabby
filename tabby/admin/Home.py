@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.service_info import ServiceInfo
+from utils.streamlit import set_page_config
 
 SERVICES = [
     ServiceInfo(label="triton", health_url="http://localhost:8002/metrics"),
@@ -13,7 +14,7 @@ def make_badge_markdown(x: ServiceInfo):
     return f"![{x.label}]({x.badge_url})"
 
 
-st.set_page_config(page_title="Tabby Admin - Home", layout="wide")
+set_page_config(page_title="Home")
 
 badges = " ".join(map(make_badge_markdown, SERVICES))
 st.markdown(
@@ -24,13 +25,11 @@ st.markdown(
 
 **Congrats, your server is live!**
 
-you can now query the server using `/v1/completions` endpoint:
+To get started with Tabby, you can either install the extensions below or use the [Editor](./Editor).
 
-```bash
-curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
-  "prompt": "def binarySearch(arr, left, right, x):\\n    mid = (left +"
-}'
-```
+### Extensions
+
+* [VSCode](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
 
 """.replace(
         "{badges}", badges

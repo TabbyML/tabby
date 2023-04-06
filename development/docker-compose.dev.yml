@@ -14,5 +14,6 @@ services:
       VECTOR_WATCH_CONFIG: true
       STREAMLIT_RUN_ON_SAVE: true
       CADDY_WATCH_CONFIG: true
+      STREAMLIT_HIDE_MENU: false
     volumes:
       - ../tabby:/home/app/tabby

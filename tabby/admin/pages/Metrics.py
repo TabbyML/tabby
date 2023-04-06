@@ -2,8 +2,9 @@ import os
 
 import duckdb
 import streamlit as st
+from utils.streamlit import set_page_config
 
-st.set_page_config(page_title="Tabby Admin - Metrics", layout="wide")
+set_page_config(page_title="Metrics")
 
 
 def query_data():
