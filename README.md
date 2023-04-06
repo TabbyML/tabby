@@ -23,7 +23,9 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
 ## Demo
-[![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/TabbyML/tabby) 
+<p align="center">
+  <a href="https://huggingface.co/spaces/TabbyML/tabby"><img alt="Open in Spaces" src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg"></a>
+</p>
 
 <p align="center">
   <img alt="Demo" src="https://user-images.githubusercontent.com/388154/230440226-9bc01d05-9f57-478b-b04d-81184eba14ca.gif">
