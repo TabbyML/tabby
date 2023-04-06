@@ -22,7 +22,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 * OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
-## Live Demo
+## Demo
 [![Open in Spaces](https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg)](https://huggingface.co/spaces/TabbyML/tabby) 
 [![Duplicate this Space](https://huggingface.co/datasets/huggingface/badges/raw/main/duplicate-this-space-md.svg)](https://huggingface.co/spaces/TabbyML/tabby?duplicate=true)
 
