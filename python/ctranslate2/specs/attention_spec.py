@@ -1,3 +1,5 @@
+import numpy as np
+
 from ctranslate2.specs import common_spec, model_spec
 
 
@@ -8,6 +10,7 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         relative_position=False,
         relative_attention_bias=False,
         rms_norm=False,
+        rotary_dim=None,
     ):
         self.queries_scale = model_spec.OPTIONAL
 
@@ -23,3 +26,6 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         if relative_attention_bias:
             self.relative_attention_bias = None
             self.relative_attention_max_distance = None
+
+        if rotary_dim is not None:
+            self.rotary_dim = np.dtype("int32").type(rotary_dim)

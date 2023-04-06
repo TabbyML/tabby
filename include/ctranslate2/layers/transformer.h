@@ -28,7 +28,7 @@ namespace ctranslate2 {
       }
 
     private:
-      const LayerNorm _layer_norm;
+      const std::unique_ptr<const LayerNorm> _layer_norm;
       const bool _pre_norm;
       const ops::ActivationType _activation_type;
       const Dense _ff1;
@@ -58,8 +58,8 @@ namespace ctranslate2 {
         return _ff.output_size();
       }
 
-      bool has_relative_position() const {
-        return _self_attention.has_relative_position();
+      bool has_positional_embeddings() const {
+        return _self_attention.has_positional_embeddings();
       }
 
     private:
@@ -103,12 +103,13 @@ namespace ctranslate2 {
         return bool(_encoder_attention);
       }
 
-      bool has_relative_position() const {
-        return _self_attention.has_relative_position();
+      bool has_positional_embeddings() const {
+        return _self_attention.has_positional_embeddings();
       }
 
     private:
       const MultiHeadAttention _self_attention;
+      const std::unique_ptr<const LayerNorm> _shared_layer_norm;
       const std::unique_ptr<const MultiHeadAttention> _encoder_attention;
       const FeedForwardNetwork _ff;
     };

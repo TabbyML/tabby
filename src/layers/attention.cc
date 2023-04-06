@@ -328,6 +328,14 @@ namespace ctranslate2 {
       return layers;
     }
 
+    static std::unique_ptr<RotaryEmbeddings> make_rotary_embeddings(const models::Model& model,
+                                                                    const std::string& scope) {
+      const dim_t rotary_dim = model.get_attribute_with_default<int32_t>(scope + "/rotary_dim", -1);
+      if (rotary_dim < 0)
+        return nullptr;
+      return std::make_unique<RotaryEmbeddings>(rotary_dim);
+    }
+
 
     MultiHeadAttention::MultiHeadAttention(const models::Model& model,
                                            const std::string& scope,
@@ -341,7 +349,8 @@ namespace ctranslate2 {
       , _linear(make_linear_layers(model, scope, self_attention))
       , _d_model(_linear.back().output_size())
       , _pre_norm(pre_norm)
-      , _layer_norm(model, scope + "/layer_norm")
+      , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
+      , _rotary_embeddings(make_rotary_embeddings(model, scope))
       , _relative_attention_bias(model.get_variable_if_exists(scope + "/relative_attention_bias"))
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
@@ -386,8 +395,8 @@ namespace ctranslate2 {
       StorageView values_proj(dtype, device);
 
       const StorageView* q = &queries;
-      if (_pre_norm) {
-        _layer_norm(queries, queries_proj);
+      if (_layer_norm && _pre_norm) {
+        (*_layer_norm)(queries, queries_proj);
         q = &queries_proj;
       }
 
@@ -416,6 +425,12 @@ namespace ctranslate2 {
       } else {
         split_heads(fused_proj, 3 * _num_heads, queries_padder);
         ops::Split(1)(fused_proj, queries_proj, keys_proj, values_proj);
+
+        if (_rotary_embeddings) {
+          const dim_t offset = cached_keys && !cached_keys->empty() ? cached_keys->dim(2) : 0;
+          _rotary_embeddings->apply(queries_proj, offset);
+          _rotary_embeddings->apply(keys_proj, offset);
+        }
 
         if (cached_keys != nullptr) {
           if (cached_keys->empty()) {
@@ -456,9 +471,12 @@ namespace ctranslate2 {
 
       combine_heads(context, _num_heads, queries_padder, beam_size);
       _linear.back()(context, output);
-      ops::Add()(queries, output, output);
-      if (!_pre_norm) {
-        _layer_norm(output, output);
+
+      if (_layer_norm) {
+        ops::Add()(queries, output, output);
+
+        if (!_pre_norm)
+          (*_layer_norm)(output, output);
       }
     }
 
@@ -476,6 +494,120 @@ namespace ctranslate2 {
                                                                   mask_future,
                                                                   mask.data<int32_t>())));
       return mask;
+    }
+
+
+    static void apply_signal(StorageView& x, const StorageView& signal, const dim_t offset) {
+      const dim_t depth = x.dim(-1);
+      const dim_t time = x.dim(-2);
+      DEVICE_AND_TYPE_DISPATCH(x.device(), x.dtype(),
+                               primitives<D>::mul_batch_broadcast(signal.data<T>() + offset * depth,
+                                                                  x.data<T>(),
+                                                                  time * depth,
+                                                                  x.size()));
+    }
+
+    RotaryEmbeddings::RotaryEmbeddings(const dim_t dim,
+                                       const dim_t num_initial_positions,
+                                       const float base)
+      : _dim(dim)
+      , _num_initial_positions(num_initial_positions)
+      , _base(base)
+    {
+    }
+
+    void RotaryEmbeddings::apply(StorageView& x, const dim_t offset) {
+      if (_dim == 0) {
+        apply_impl(x, offset);
+
+      } else {
+        const ops::Split split_op(-1, {_dim, x.dim(-1) - _dim});
+        const ops::Concat concat_op(-1);
+        const Device device = x.device();
+        const DataType dtype = x.dtype();
+
+        StorageView x_rot(dtype, device);
+        StorageView x_pass(dtype, device);
+        split_op(x, x_rot, x_pass);
+        apply_impl(x_rot, offset);
+        concat_op({&x_rot, &x_pass}, x);
+      }
+    }
+
+    void RotaryEmbeddings::apply_impl(StorageView& x, const dim_t offset) {
+      const Device device = x.device();
+      const DataType dtype = x.dtype();
+      const dim_t max_time = x.dim(-2);
+
+      if (!_sin || offset + max_time > _sin.dim(0)) {
+        const dim_t num_positions = std::max(offset + max_time, _num_initial_positions);
+        initialize(num_positions, x.dim(-1), device, dtype);
+      }
+
+      StorageView x_rot(dtype, device);
+      rotate_every_two(x, x_rot);
+
+      apply_signal(x, _cos, offset);
+      apply_signal(x_rot, _sin, offset);
+
+      ops::Add()(x, x_rot, x);
+    }
+
+    void RotaryEmbeddings::rotate_every_two(StorageView& x, StorageView& y) const {
+      const Device device = x.device();
+      const DataType dtype = x.dtype();
+      const Shape original_shape = x.shape();
+
+      Shape new_shape = original_shape;
+      new_shape.push_back(2);
+      new_shape[new_shape.size() - 2] /= 2;
+      x.reshape(new_shape);
+
+      StorageView x1(dtype, device);
+      StorageView x2(dtype, device);
+      ops::Split(-1)(x, x1, x2);
+
+      StorageView zero(x2.shape(), dtype, device);
+      zero.zero();
+      ops::Sub()(zero, x2, x2);
+
+      ops::Concat(-1)({&x2, &x1}, y);
+
+      y.reshape(original_shape);
+      x.reshape(original_shape);
+    }
+
+    void RotaryEmbeddings::initialize(const dim_t num_positions,
+                                      const dim_t dim,
+                                      const Device device,
+                                      const DataType dtype) {
+      StorageView inv_freq({1, dim / 2});
+      for (dim_t i = 0; i < inv_freq.size(); ++i)
+        inv_freq.at<float>(i) = 1.f / std::pow(_base, float(i * 2) / float(dim));
+
+      StorageView t({num_positions, 1});
+      for (dim_t i = 0; i < t.size(); ++i)
+        t.at<float>(i) = i;
+
+      StorageView freqs;
+      ops::MatMul()(t, inv_freq, freqs);
+
+      freqs.expand_dims(-1);
+
+      StorageView emb;
+      ops::Concat(-1)({&freqs, &freqs}, emb);
+
+      emb.reshape({num_positions, dim});
+
+      StorageView sin_tmp;
+      ops::Sin()(emb, sin_tmp);
+      sin_tmp.move_to(device, dtype);
+      _sin = std::move(sin_tmp);
+
+      StorageView cos_tmp;
+      ops::Cos()(emb, cos_tmp);
+      cos_tmp.move_to(device, dtype);
+      _cos = std::move(cos_tmp);
     }
 
   }

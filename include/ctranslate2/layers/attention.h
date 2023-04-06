@@ -16,6 +16,8 @@ namespace ctranslate2 {
                             dim_t key_max_length,
                             const StorageView* key_lengths = nullptr);
 
+    class RotaryEmbeddings;
+
     class MultiHeadAttention : public Layer
     {
     public:
@@ -39,8 +41,8 @@ namespace ctranslate2 {
                       bool return_normalized_attention = true,
                       const StorageView* alibi = nullptr) const;
 
-      bool has_relative_position() const {
-        return _relative_position_keys || _relative_attention_bias;
+      bool has_positional_embeddings() const {
+        return _relative_position_keys || _relative_attention_bias || _rotary_embeddings;
       }
 
       static StorageView prepare_length_mask(const StorageView& lengths,
@@ -55,12 +57,37 @@ namespace ctranslate2 {
       const std::vector<Dense> _linear;
       const dim_t _d_model;
       const bool _pre_norm;
-      const LayerNorm _layer_norm;
+      const std::unique_ptr<const LayerNorm> _layer_norm;
+      const std::unique_ptr<RotaryEmbeddings> _rotary_embeddings;
       const StorageView* _relative_attention_bias;
       const StorageView* _relative_position_keys;
       const StorageView* _relative_position_values;
       dim_t _maximum_relative_position;
       const float _queries_scale;
+    };
+
+    class RotaryEmbeddings {
+    public:
+      RotaryEmbeddings(const dim_t dim = 0,
+                       const dim_t num_initial_positions = 2048,
+                       const float base = 10000);
+
+      void apply(StorageView& x, const dim_t offset = 0);
+
+    private:
+      void apply_impl(StorageView& x, const dim_t offset);
+      void rotate_every_two(StorageView& x, StorageView& y) const;
+      void initialize(const dim_t num_positions,
+                      const dim_t dim,
+                      const Device device,
+                      const DataType dtype);
+
+      const dim_t _dim;
+      const dim_t _num_initial_positions;
+      const float _base;
+
+      StorageView _sin;
+      StorageView _cos;
     };
 
   }

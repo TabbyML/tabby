@@ -9,6 +9,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * MBART
 * NLLB
 * OpenAI GPT2
+* GPT-J
 * OPT
 * Pegasus
 * T5
@@ -193,6 +194,34 @@ print(tokenizer.decode(results[0].sequences_ids[0]))
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode("It is"))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
 print(tokenizer.decode(results[0].sequences_ids[0]))
+```
+
+## GPT-J
+
+[GPT-J](https://huggingface.co/docs/transformers/model_doc/gptj) is a GPT-2-like language model trained on the Pile dataset. The example below uses the version with 6B parameters:
+
+```bash
+ct2-transformers-converter --model EleutherAI/gpt-j-6B --revision float16 --quantization float16 --output_dir gptj_ct2
+```
+
+```{note}
+To reduce the memory usage during conversion, the command above uses the [float16 branch](https://huggingface.co/EleutherAI/gpt-j-6b/tree/float16) of the model and saves the weights in FP16. Still, the conversion will use up to 24GB of memory.
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("gptj_ct2")
+tokenizer = transformers.AutoTokenizer.from_pretrained("EleutherAI/gpt-j-6B")
+
+prompt = "In a shocking finding, scientists"
+tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch([tokens], max_length=30, sampling_topk=10)
+
+text = tokenizer.decode(results[0].sequences_ids[0])
+print(text)
 ```
 
 ## OPT

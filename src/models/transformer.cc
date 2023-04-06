@@ -104,7 +104,7 @@ namespace ctranslate2 {
     static auto register_decoder = register_model<TransformerDecoderModel>("TransformerDecoderSpec");
 
     size_t TransformerDecoderModel::current_spec_revision() const {
-      return 3;
+      return 4;
     }
 
     void TransformerDecoderModel::initialize(ModelReader& model_reader) {

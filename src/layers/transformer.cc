@@ -9,7 +9,7 @@ namespace ctranslate2 {
                                            const std::string& scope,
                                            const bool pre_norm,
                                            const ops::ActivationType activation_type)
-      : _layer_norm(model, scope + "/layer_norm")
+      : _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _pre_norm(pre_norm)
       , _activation_type(activation_type)
       , _ff1(model, scope + "/linear_0", &_activation_type)
@@ -19,8 +19,8 @@ namespace ctranslate2 {
 
     void FeedForwardNetwork::operator()(const StorageView& input, StorageView& output) const {
       const StorageView* x = &input;
-      if (_pre_norm) {
-        _layer_norm(input, output);
+      if (_layer_norm && _pre_norm) {
+        (*_layer_norm)(input, output);
         x = &output;
       }
 
@@ -37,9 +37,13 @@ namespace ctranslate2 {
       }
 
       _ff2(inner, output);
-      ops::Add()(input, output, output);
-      if (!_pre_norm)
-        _layer_norm(output, output);
+
+      if (_layer_norm) {
+        ops::Add()(input, output, output);
+
+        if (!_pre_norm)
+          (*_layer_norm)(output, output);
+      }
     }
 
 
@@ -78,6 +82,7 @@ namespace ctranslate2 {
                         /*self_attention=*/true,
                         pre_norm,
                         /*is_decoder=*/true)
+      , _shared_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/shared_layer_norm"))
       , _encoder_attention(build_optional_layer<MultiHeadAttention>(model,
                                                                     scope + "/attention",
                                                                     num_heads,
@@ -102,6 +107,37 @@ namespace ctranslate2 {
                                              bool return_normalized_attention,
                                              const StorageView* alibi) const {
       PROFILE("TransformerDecoderLayer");
+
+      const DataType dtype = input.dtype();
+      const Device device = input.device();
+
+      if (_shared_layer_norm) {
+        // This shared layer norm construct is used by GPT-J so we assume there is
+        // no cross attention.
+        StorageView hidden(dtype, device);
+        (*_shared_layer_norm)(input, hidden);
+
+        StorageView attn(dtype, device);
+        _self_attention(hidden,
+                        hidden,
+                        input_length,
+                        attn,
+                        cached_self_attn_keys,
+                        cached_self_attn_values,
+                        nullptr,
+                        input_padder,
+                        input_padder,
+                        true,
+                        alibi);
+
+        _ff(hidden, output);
+
+        ops::Add()(output, input, output);
+        ops::Add()(output, attn, output);
+
+        return;
+      }
+
       _self_attention(input,
                       input,
                       input_length,
@@ -114,7 +150,7 @@ namespace ctranslate2 {
                       true,
                       alibi);
 
-      StorageView context(input.dtype(), input.device());
+      StorageView context(dtype, device);
       if (_encoder_attention) {
         (*_encoder_attention)(output,
                               *memory,
@@ -184,7 +220,7 @@ namespace ctranslate2 {
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
                   model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->has_relative_position()
+      , _position_encoder(_layers.front()->has_positional_embeddings()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
     {
@@ -250,7 +286,7 @@ namespace ctranslate2 {
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
                   model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->has_relative_position() || _use_alibi
+      , _position_encoder(_layers.front()->has_positional_embeddings() || _use_alibi
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
