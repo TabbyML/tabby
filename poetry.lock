@@ -29,11 +29,6 @@ test-prod = ["parameterized", "pytest", "pytest-subtests", "pytest-xdist"]
 test-trackers = ["comet-ml", "tensorboard", "wandb"]
 testing = ["datasets", "deepspeed", "evaluate", "parameterized", "pytest", "pytest-subtests", "pytest-xdist", "scikit-learn", "scipy", "tqdm", "transformers"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "aiohttp"
 version = "3.8.4"
@@ -143,11 +138,6 @@ yarl = ">=1.0,<2.0"
 [package.extras]
 speedups = ["Brotli", "aiodns", "cchardet"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "aiosignal"
 version = "1.3.1"
@@ -162,11 +152,6 @@ files = [
 
 [package.dependencies]
 frozenlist = ">=1.1.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "altair"
@@ -191,11 +176,6 @@ toolz = "*"
 [package.extras]
 dev = ["black", "docutils", "flake8", "ipython", "m2r", "mistune (<2.0.0)", "pytest", "recommonmark", "sphinx", "vega-datasets"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "anyio"
 version = "3.6.2"
@@ -217,11 +197,6 @@ doc = ["packaging", "sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
 test = ["contextlib2", "coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "mock (>=4)", "pytest (>=7.0)", "pytest-mock (>=3.6.1)", "trustme", "uvloop (<0.15)", "uvloop (>=0.15)"]
 trio = ["trio (>=0.16,<0.22)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "async-timeout"
 version = "4.0.2"
@@ -233,11 +208,6 @@ files = [
     {file = "async-timeout-4.0.2.tar.gz", hash = "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15"},
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "attrs"
@@ -258,11 +228,6 @@ docs = ["furo", "myst-parser", "sphinx", "sphinx-notfound-page", "sphinxcontrib-
 tests = ["attrs[tests-no-zope]", "zope.interface"]
 tests-no-zope = ["cloudpickle", "cloudpickle", "hypothesis", "hypothesis", "mypy (>=0.971,<0.990)", "mypy (>=0.971,<0.990)", "pympler", "pympler", "pytest (>=4.3.0)", "pytest (>=4.3.0)", "pytest-mypy-plugins", "pytest-mypy-plugins", "pytest-xdist[psutil]", "pytest-xdist[psutil]"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "bitsandbytes"
 version = "0.37.2"
@@ -275,11 +240,6 @@ files = [
     {file = "bitsandbytes-0.37.2.tar.gz", hash = "sha256:3ccecb3361e1078110d9259e2d9362d62868aca7c1c4db6f4cc79e5489fbd39a"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "blinker"
 version = "1.5"
@@ -291,11 +251,6 @@ files = [
     {file = "blinker-1.5-py2.py3-none-any.whl", hash = "sha256:1eb563df6fdbc39eeddc177d953203f99f097e9bf0e2b8f9f3cf18b6ca425e36"},
     {file = "blinker-1.5.tar.gz", hash = "sha256:923e5e2f69c155f2cc42dafbbd70e16e3fde24d2d4aa2ab72fbe386238892462"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "brotli"
@@ -389,11 +344,6 @@ files = [
     {file = "Brotli-1.0.9.zip", hash = "sha256:4d1b810aa0ed773f81dceda2cc7b403d01057458730e309856356d4ef4188438"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "cachetools"
 version = "5.3.0"
@@ -406,11 +356,6 @@ files = [
     {file = "cachetools-5.3.0.tar.gz", hash = "sha256:13dfddc7b8df938c21a940dfa6557ce6e94a2f1cdfa58eb90c805721d58f2c14"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "certifi"
 version = "2022.12.7"
@@ -422,11 +367,6 @@ files = [
     {file = "certifi-2022.12.7-py3-none-any.whl", hash = "sha256:4ad3232f5e926d6718ec31cfc1fcadfde020920e278684144551c91769c7bc18"},
     {file = "certifi-2022.12.7.tar.gz", hash = "sha256:35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "cffi"
@@ -505,11 +445,6 @@ files = [
 [package.dependencies]
 pycparser = "*"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "cfgv"
 version = "3.3.1"
@@ -521,11 +456,6 @@ files = [
     {file = "cfgv-3.3.1-py2.py3-none-any.whl", hash = "sha256:c6a0883f3917a037485059700b9e75da2464e6c27051014ad85ba6aaa5884426"},
     {file = "cfgv-3.3.1.tar.gz", hash = "sha256:f5a830efb9ce7a445376bb66ec94c638a9787422f96264c98edc6bdeed8ab736"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "charset-normalizer"
@@ -612,11 +542,6 @@ files = [
     {file = "charset_normalizer-3.1.0-py3-none-any.whl", hash = "sha256:3d9098b479e78c85080c98e1e35ff40b4a31d8953102bb0fd7d1b6f8a2111a3d"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "click"
 version = "8.1.3"
@@ -632,10 +557,35 @@ files = [
 [package.dependencies]
 colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
+[[package]]
+name = "cmake"
+version = "3.26.1"
+description = "CMake is an open-source, cross-platform family of tools designed to build, test and package software"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "cmake-3.26.1-py2.py3-none-macosx_10_10_universal2.macosx_10_10_x86_64.macosx_11_0_arm64.macosx_11_0_universal2.whl", hash = "sha256:d8a7e0cc8677677a732aff3e3fd0ad64eeff43cac772614b03c436912247d0d8"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2010_i686.manylinux_2_12_i686.whl", hash = "sha256:f2f721f5aebe304c281ee4b1d2dfbf7f4a52fca003834b2b4a3ba838aeded63c"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:63a012b72836702eadfe4fba9642aeb17337f26861f4768e837053f40e98cb46"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:2b72be88b7bfaa6ae59566cbb9d6a5553f19b2a8d14efa6ac0cf019a29860a1b"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:1278354f7210e22458aa9137d46a56da1f115a7b76ad2733f0bf6041fb40f1dc"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2014_ppc64le.manylinux_2_17_ppc64le.whl", hash = "sha256:de96a5522917fba0ab0da2d01d9dd9462fa80f365218bf27162d539c2335758f"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2014_s390x.manylinux_2_17_s390x.whl", hash = "sha256:449928ad7dfcd41e4dcff64c7d44f86557883c70577666a19e79e22d783bbbd0"},
+    {file = "cmake-3.26.1-py2.py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:19fa3e457afecf2803265f71652ef17c3f1d317173c330ba46767a0853d38fa0"},
+    {file = "cmake-3.26.1-py2.py3-none-musllinux_1_1_aarch64.whl", hash = "sha256:43360650d60d177d979e4ad0a5f31afa286e6d88f5350f7a38c29d94514900eb"},
+    {file = "cmake-3.26.1-py2.py3-none-musllinux_1_1_i686.whl", hash = "sha256:16aac10363bc926da5109a59ef8fe46ddcd7e3d421de61f871b35524eef2f1ae"},
+    {file = "cmake-3.26.1-py2.py3-none-musllinux_1_1_ppc64le.whl", hash = "sha256:e460ba5070be4dcac9613cb526a46db4e5fa19d8b909a8d8d5244c6cc3c777e1"},
+    {file = "cmake-3.26.1-py2.py3-none-musllinux_1_1_s390x.whl", hash = "sha256:fd2ecc0899f7939a014bd906df85e8681bd63ce457de3ab0b5d9e369fa3bdf79"},
+    {file = "cmake-3.26.1-py2.py3-none-musllinux_1_1_x86_64.whl", hash = "sha256:22781a23e274ba9bf380b970649654851c1b4b9d83b65fec12ee2e2e03b6ffc4"},
+    {file = "cmake-3.26.1-py2.py3-none-win32.whl", hash = "sha256:7b4e81de30ac1fb2f1eb5287063e140b53f376fd9ed7e2060c1c7b5917bd5f83"},
+    {file = "cmake-3.26.1-py2.py3-none-win_amd64.whl", hash = "sha256:90845b6c87a25be07e9220f67dd7f6c891c6ec14d764d37335218d97f9ea4520"},
+    {file = "cmake-3.26.1-py2.py3-none-win_arm64.whl", hash = "sha256:43bd96327e2631183bb4829ba20cb810e20b4b0c68f852fcd7082fbb5359d57c"},
+    {file = "cmake-3.26.1.tar.gz", hash = "sha256:4e0eb3c03dcf2d459f78d96cc85f7482476aeb1ae5ada65150b1db35c0f70cc7"},
+]
+
+[package.extras]
+test = ["codecov (>=2.0.5)", "coverage (>=4.2)", "flake8 (>=3.0.4)", "path.py (>=11.5.0)", "pytest (>=3.0.3)", "pytest-cov (>=2.4.0)", "pytest-runner (>=2.9)", "pytest-virtualenv (>=1.7.0)", "scikit-build (>=0.10.0)", "setuptools (>=28.0.0)", "virtualenv (>=15.0.3)", "wheel"]
 
 [[package]]
 name = "colorama"
@@ -648,11 +598,6 @@ files = [
     {file = "colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"},
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "datasets"
@@ -698,11 +643,6 @@ tests = ["Pillow (>=6.2.1)", "absl-py", "apache-beam (>=2.26.0,<2.44.0)", "elast
 torch = ["torch"]
 vision = ["Pillow (>=6.2.1)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "decorator"
 version = "5.1.1"
@@ -714,11 +654,6 @@ files = [
     {file = "decorator-5.1.1-py3-none-any.whl", hash = "sha256:b8c3f85900b9dc423225913c5aace94729fe1fa9763b38939a95226f02d37186"},
     {file = "decorator-5.1.1.tar.gz", hash = "sha256:637996211036b6385ef91435e4fae22989472f9d571faba8927ba8253acbc330"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "dill"
@@ -735,11 +670,6 @@ files = [
 [package.extras]
 graph = ["objgraph (>=1.7.2)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "distlib"
 version = "0.3.6"
@@ -751,11 +681,6 @@ files = [
     {file = "distlib-0.3.6-py2.py3-none-any.whl", hash = "sha256:f35c4b692542ca110de7ef0bea44d73981caeb34ca0b9b6b2e6d7790dda8f80e"},
     {file = "distlib-0.3.6.tar.gz", hash = "sha256:14bad2d9b04d3a36127ac97f30b12a19268f211063d8f8ee4f47108896e11b46"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "duckdb"
@@ -814,11 +739,6 @@ files = [
     {file = "duckdb-0.7.1.tar.gz", hash = "sha256:a7db6da0366b239ea1e4541fcc19556b286872f5015c9a54c2e347146e25a2ad"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "entrypoints"
 version = "0.4"
@@ -830,11 +750,6 @@ files = [
     {file = "entrypoints-0.4-py3-none-any.whl", hash = "sha256:f174b5ff827504fd3cd97cc3f8649f3693f51538c7e4bdf3ef002c8429d42f9f"},
     {file = "entrypoints-0.4.tar.gz", hash = "sha256:b706eddaa9218a19ebcd67b56818f05bb27589b1ca9e8d797b74affad4ccacd4"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "fastapi"
@@ -858,11 +773,6 @@ dev = ["pre-commit (>=2.17.0,<3.0.0)", "ruff (==0.0.138)", "uvicorn[standard] (>
 doc = ["mdx-include (>=1.4.1,<2.0.0)", "mkdocs (>=1.1.2,<2.0.0)", "mkdocs-markdownextradata-plugin (>=0.1.7,<0.3.0)", "mkdocs-material (>=8.1.4,<9.0.0)", "pyyaml (>=5.3.1,<7.0.0)", "typer-cli (>=0.0.13,<0.0.14)", "typer[all] (>=0.6.1,<0.8.0)"]
 test = ["anyio[trio] (>=3.2.1,<4.0.0)", "black (==23.1.0)", "coverage[toml] (>=6.5.0,<8.0)", "databases[sqlite] (>=0.3.2,<0.7.0)", "email-validator (>=1.1.1,<2.0.0)", "flask (>=1.1.2,<3.0.0)", "httpx (>=0.23.0,<0.24.0)", "isort (>=5.0.6,<6.0.0)", "mypy (==0.982)", "orjson (>=3.2.1,<4.0.0)", "passlib[bcrypt] (>=1.7.2,<2.0.0)", "peewee (>=3.13.3,<4.0.0)", "pytest (>=7.1.3,<8.0.0)", "python-jose[cryptography] (>=3.3.0,<4.0.0)", "python-multipart (>=0.0.5,<0.0.7)", "pyyaml (>=5.3.1,<7.0.0)", "ruff (==0.0.138)", "sqlalchemy (>=1.3.18,<1.4.43)", "types-orjson (==3.6.2)", "types-ujson (==5.7.0.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0,<6.0.0)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "filelock"
 version = "3.10.7"
@@ -878,11 +788,6 @@ files = [
 [package.extras]
 docs = ["furo (>=2022.12.7)", "sphinx (>=6.1.3)", "sphinx-autodoc-typehints (>=1.22,!=1.23.4)"]
 testing = ["covdefaults (>=2.3)", "coverage (>=7.2.2)", "diff-cover (>=7.5)", "pytest (>=7.2.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest-timeout (>=2.1)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "frozenlist"
@@ -968,11 +873,6 @@ files = [
     {file = "frozenlist-1.3.3.tar.gz", hash = "sha256:58bcc55721e8a90b88332d6cd441261ebb22342e238296bb330968952fbb3a6a"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "fsspec"
 version = "2023.3.0"
@@ -1010,11 +910,6 @@ sftp = ["paramiko"]
 smb = ["smbprotocol"]
 ssh = ["paramiko"]
 tqdm = ["tqdm"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "gevent"
@@ -1091,11 +986,6 @@ docs = ["repoze.sphinx.autointerface", "sphinxcontrib-programoutput", "zope.sche
 monitor = ["psutil (>=5.7.0)"]
 recommended = ["backports.socketpair", "cffi (>=1.12.2)", "dnspython (>=1.16.0,<2.0)", "idna", "psutil (>=5.7.0)", "selectors2"]
 test = ["backports.socketpair", "cffi (>=1.12.2)", "contextvars (==2.4)", "coverage (>=5.0)", "coveralls (>=1.7.0)", "dnspython (>=1.16.0,<2.0)", "futures", "idna", "mock", "objgraph", "psutil (>=5.7.0)", "requests", "selectors2"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "geventhttpclient"
@@ -1191,11 +1081,6 @@ certifi = "*"
 gevent = ">=0.13"
 six = "*"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "gitdb"
 version = "4.0.10"
@@ -1210,11 +1095,6 @@ files = [
 
 [package.dependencies]
 smmap = ">=3.0.1,<6"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "gitpython"
@@ -1231,11 +1111,6 @@ files = [
 [package.dependencies]
 gitdb = ">=4.0.1,<5"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "gitup"
 version = "0.5.1"
@@ -1251,11 +1126,6 @@ files = [
 [package.dependencies]
 colorama = ">=0.3.9"
 GitPython = ">=2.1.8"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "greenlet"
@@ -1331,11 +1201,6 @@ files = [
 docs = ["Sphinx", "docutils (<0.18)"]
 test = ["objgraph", "psutil"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "grpcio"
 version = "1.53.0"
@@ -1394,11 +1259,6 @@ files = [
 [package.extras]
 protobuf = ["grpcio-tools (>=1.53.0)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "h11"
 version = "0.14.0"
@@ -1410,11 +1270,6 @@ files = [
     {file = "h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761"},
     {file = "h11-0.14.0.tar.gz", hash = "sha256:8f19fbbe99e72420ff35c00b27a34cb9937e902a8b810e2c88300c6f0a3b699d"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "huggingface-hub"
@@ -1447,11 +1302,6 @@ testing = ["InquirerPy (==0.3.4)", "Jinja2", "Pillow", "jedi", "pytest", "pytest
 torch = ["torch"]
 typing = ["types-PyYAML", "types-requests", "types-simplejson", "types-toml", "types-tqdm", "types-urllib3"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "identify"
 version = "2.5.22"
@@ -1467,11 +1317,6 @@ files = [
 [package.extras]
 license = ["ukkonen"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "idna"
 version = "3.4"
@@ -1483,11 +1328,6 @@ files = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "importlib-metadata"
@@ -1509,11 +1349,6 @@ docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker
 perf = ["ipython"]
 testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packaging", "pyfakefs", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf (>=0.9.2)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "jinja2"
 version = "3.1.2"
@@ -1531,11 +1366,6 @@ MarkupSafe = ">=2.0"
 
 [package.extras]
 i18n = ["Babel (>=2.7)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "jsonschema"
@@ -1557,10 +1387,16 @@ pyrsistent = ">=0.14.0,<0.17.0 || >0.17.0,<0.17.1 || >0.17.1,<0.17.2 || >0.17.2"
 format = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3987", "uri-template", "webcolors (>=1.11)"]
 format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-validator", "rfc3986-validator (>0.1.0)", "uri-template", "webcolors (>=1.11)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
+[[package]]
+name = "lit"
+version = "16.0.0"
+description = "A Software Testing Tool"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "lit-16.0.0.tar.gz", hash = "sha256:3c4ac372122a1de4a88deb277b956f91b7209420a0bef683b1ab2d2b16dabe11"},
+]
 
 [[package]]
 name = "loguru"
@@ -1580,11 +1416,6 @@ win32-setctime = {version = ">=1.0.0", markers = "sys_platform == \"win32\""}
 
 [package.extras]
 dev = ["Sphinx (>=4.1.1)", "black (>=19.10b0)", "colorama (>=0.3.4)", "docutils (==0.16)", "flake8 (>=3.7.7)", "isort (>=5.1.1)", "pytest (>=4.6.2)", "pytest-cov (>=2.7.1)", "sphinx-autobuild (>=0.7.1)", "sphinx-rtd-theme (>=0.4.3)", "tox (>=3.9.0)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "markdown-it-py"
@@ -1610,11 +1441,6 @@ plugins = ["mdit-py-plugins"]
 profiling = ["gprof2dot"]
 rtd = ["attrs", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
 testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "markupsafe"
@@ -1676,11 +1502,6 @@ files = [
     {file = "MarkupSafe-2.1.2.tar.gz", hash = "sha256:abcabc8c2b26036d62d4c746381a6f7cf60aafcc653198ad678306986b09450d"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "mdurl"
 version = "0.1.2"
@@ -1692,11 +1513,6 @@ files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "mpmath"
@@ -1715,11 +1531,6 @@ develop = ["codecov", "pycodestyle", "pytest (>=4.6)", "pytest-cov", "wheel"]
 docs = ["sphinx"]
 gmpy = ["gmpy2 (>=2.1.0a4)"]
 tests = ["pytest (>=4.6)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "multidict"
@@ -1805,11 +1616,6 @@ files = [
     {file = "multidict-6.0.4.tar.gz", hash = "sha256:3666906492efb76453c0e7b97f2cf459b0682e7402c0489a95484965dbc1da49"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "multiprocess"
 version = "0.70.14"
@@ -1837,11 +1643,6 @@ files = [
 [package.dependencies]
 dill = ">=0.3.6"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "networkx"
 version = "3.0"
@@ -1861,11 +1662,6 @@ doc = ["nb2plots (>=0.6)", "numpydoc (>=1.5)", "pillow (>=9.2)", "pydata-sphinx-
 extra = ["lxml (>=4.6)", "pydot (>=1.4.2)", "pygraphviz (>=1.10)", "sympy (>=1.10)"]
 test = ["codecov (>=2.1)", "pytest (>=7.2)", "pytest-cov (>=4.0)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "nodeenv"
 version = "1.7.0"
@@ -1880,11 +1676,6 @@ files = [
 
 [package.dependencies]
 setuptools = "*"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "numpy"
@@ -1924,10 +1715,174 @@ files = [
     {file = "numpy-1.24.2.tar.gz", hash = "sha256:003a9f530e880cb2cd177cba1af7220b9aa42def9c4afc2a2fc3ee6be7eb2b22"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
+[[package]]
+name = "nvidia-cublas-cu11"
+version = "11.10.3.66"
+description = "CUBLAS native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cublas_cu11-11.10.3.66-py3-none-manylinux1_x86_64.whl", hash = "sha256:d32e4d75f94ddfb93ea0a5dda08389bcc65d8916a25cb9f37ac89edaeed3bded"},
+    {file = "nvidia_cublas_cu11-11.10.3.66-py3-none-win_amd64.whl", hash = "sha256:8ac17ba6ade3ed56ab898a036f9ae0756f1e81052a317bf98f8c6d18dc3ae49e"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cuda-cupti-cu11"
+version = "11.7.101"
+description = "CUDA profiling tools runtime libs."
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cuda_cupti_cu11-11.7.101-py3-none-manylinux1_x86_64.whl", hash = "sha256:e0cfd9854e1f2edaa36ca20d21cd0bdd5dcfca4e3b9e130a082e05b33b6c5895"},
+    {file = "nvidia_cuda_cupti_cu11-11.7.101-py3-none-win_amd64.whl", hash = "sha256:7cc5b8f91ae5e1389c3c0ad8866b3b016a175e827ea8f162a672990a402ab2b0"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cuda-nvrtc-cu11"
+version = "11.7.99"
+description = "NVRTC native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cuda_nvrtc_cu11-11.7.99-2-py3-none-manylinux1_x86_64.whl", hash = "sha256:9f1562822ea264b7e34ed5930567e89242d266448e936b85bc97a3370feabb03"},
+    {file = "nvidia_cuda_nvrtc_cu11-11.7.99-py3-none-manylinux1_x86_64.whl", hash = "sha256:f7d9610d9b7c331fa0da2d1b2858a4a8315e6d49765091d28711c8946e7425e7"},
+    {file = "nvidia_cuda_nvrtc_cu11-11.7.99-py3-none-win_amd64.whl", hash = "sha256:f2effeb1309bdd1b3854fc9b17eaf997808f8b25968ce0c7070945c4265d64a3"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cuda-runtime-cu11"
+version = "11.7.99"
+description = "CUDA Runtime native Libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cuda_runtime_cu11-11.7.99-py3-none-manylinux1_x86_64.whl", hash = "sha256:cc768314ae58d2641f07eac350f40f99dcb35719c4faff4bc458a7cd2b119e31"},
+    {file = "nvidia_cuda_runtime_cu11-11.7.99-py3-none-win_amd64.whl", hash = "sha256:bc77fa59a7679310df9d5c70ab13c4e34c64ae2124dd1efd7e5474b71be125c7"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cudnn-cu11"
+version = "8.5.0.96"
+description = "cuDNN runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cudnn_cu11-8.5.0.96-2-py3-none-manylinux1_x86_64.whl", hash = "sha256:402f40adfc6f418f9dae9ab402e773cfed9beae52333f6d86ae3107a1b9527e7"},
+    {file = "nvidia_cudnn_cu11-8.5.0.96-py3-none-manylinux1_x86_64.whl", hash = "sha256:71f8111eb830879ff2836db3cccf03bbd735df9b0d17cd93761732ac50a8a108"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cufft-cu11"
+version = "10.9.0.58"
+description = "CUFFT native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cufft_cu11-10.9.0.58-py3-none-manylinux1_x86_64.whl", hash = "sha256:222f9da70c80384632fd6035e4c3f16762d64ea7a843829cb278f98b3cb7dd81"},
+    {file = "nvidia_cufft_cu11-10.9.0.58-py3-none-win_amd64.whl", hash = "sha256:c4d316f17c745ec9c728e30409612eaf77a8404c3733cdf6c9c1569634d1ca03"},
+]
+
+[[package]]
+name = "nvidia-curand-cu11"
+version = "10.2.10.91"
+description = "CURAND native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_curand_cu11-10.2.10.91-py3-none-manylinux1_x86_64.whl", hash = "sha256:eecb269c970fa599a2660c9232fa46aaccbf90d9170b96c462e13bcb4d129e2c"},
+    {file = "nvidia_curand_cu11-10.2.10.91-py3-none-win_amd64.whl", hash = "sha256:f742052af0e1e75523bde18895a9ed016ecf1e5aa0ecddfcc3658fd11a1ff417"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cusolver-cu11"
+version = "11.4.0.1"
+description = "CUDA solver native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cusolver_cu11-11.4.0.1-2-py3-none-manylinux1_x86_64.whl", hash = "sha256:72fa7261d755ed55c0074960df5904b65e2326f7adce364cbe4945063c1be412"},
+    {file = "nvidia_cusolver_cu11-11.4.0.1-py3-none-manylinux1_x86_64.whl", hash = "sha256:700b781bfefd57d161443aff9ace1878584b93e0b2cfef3d6e9296d96febbf99"},
+    {file = "nvidia_cusolver_cu11-11.4.0.1-py3-none-win_amd64.whl", hash = "sha256:00f70b256add65f8c1eb3b6a65308795a93e7740f6df9e273eccbba770d370c4"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-cusparse-cu11"
+version = "11.7.4.91"
+description = "CUSPARSE native runtime libraries"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_cusparse_cu11-11.7.4.91-py3-none-manylinux1_x86_64.whl", hash = "sha256:a3389de714db63321aa11fbec3919271f415ef19fda58aed7f2ede488c32733d"},
+    {file = "nvidia_cusparse_cu11-11.7.4.91-py3-none-win_amd64.whl", hash = "sha256:304a01599534f5186a8ed1c3756879282c72c118bc77dd890dc1ff868cad25b9"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
+
+[[package]]
+name = "nvidia-nccl-cu11"
+version = "2.14.3"
+description = "NVIDIA Collective Communication Library (NCCL) Runtime"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_nccl_cu11-2.14.3-py3-none-manylinux1_x86_64.whl", hash = "sha256:5e5534257d1284b8e825bc3a182c6f06acd6eb405e9f89d49340e98cd8f136eb"},
+]
+
+[[package]]
+name = "nvidia-nvtx-cu11"
+version = "11.7.91"
+description = "NVIDIA Tools Extension"
+category = "main"
+optional = false
+python-versions = ">=3"
+files = [
+    {file = "nvidia_nvtx_cu11-11.7.91-py3-none-manylinux1_x86_64.whl", hash = "sha256:b22c64eee426a62fc00952b507d6d29cf62b4c9df7a480fcc417e540e05fd5ac"},
+    {file = "nvidia_nvtx_cu11-11.7.91-py3-none-win_amd64.whl", hash = "sha256:dfd7fcb2a91742513027d63a26b757f38dd8b07fecac282c4d132a9d373ff064"},
+]
+
+[package.dependencies]
+setuptools = "*"
+wheel = "*"
 
 [[package]]
 name = "packaging"
@@ -1940,11 +1895,6 @@ files = [
     {file = "packaging-23.0-py3-none-any.whl", hash = "sha256:714ac14496c3e68c99c29b00845f7a2b85f3bb6f1078fd9f72fd20f0570002b2"},
     {file = "packaging-23.0.tar.gz", hash = "sha256:b6ad297f8907de0fa2fe1ccbd26fdaf387f5f47c7275fedf8cce89f99446cf97"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pandas"
@@ -1993,11 +1943,6 @@ pytz = ">=2020.1"
 
 [package.extras]
 test = ["hypothesis (>=5.5.3)", "pytest (>=6.0)", "pytest-xdist (>=1.31)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "peft"
@@ -2115,11 +2060,6 @@ files = [
 docs = ["furo", "olefile", "sphinx (>=2.4)", "sphinx-copybutton", "sphinx-inline-tabs", "sphinx-issues (>=3.0.1)", "sphinx-removed-in", "sphinxext-opengraph"]
 tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "packaging", "pyroma", "pytest", "pytest-cov", "pytest-timeout"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "platformdirs"
 version = "3.2.0"
@@ -2135,11 +2075,6 @@ files = [
 [package.extras]
 docs = ["furo (>=2022.12.7)", "proselint (>=0.13)", "sphinx (>=6.1.3)", "sphinx-autodoc-typehints (>=1.22,!=1.23.4)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.2.2)", "pytest-cov (>=4)", "pytest-mock (>=3.10)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pre-commit"
@@ -2159,11 +2094,6 @@ identify = ">=1.0.0"
 nodeenv = ">=0.11.1"
 pyyaml = ">=5.1"
 virtualenv = ">=20.10.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "protobuf"
@@ -2197,11 +2127,6 @@ files = [
     {file = "protobuf-3.20.3.tar.gz", hash = "sha256:2e3427429c9cffebf259491be0af70189607f365c2f41c7c3764af6f337105f2"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "psutil"
 version = "5.9.4"
@@ -2228,11 +2153,6 @@ files = [
 
 [package.extras]
 test = ["enum34", "ipaddress", "mock", "pywin32", "wmi"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pyarrow"
@@ -2272,11 +2192,6 @@ files = [
 [package.dependencies]
 numpy = ">=1.16.6"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "pycparser"
 version = "2.21"
@@ -2288,11 +2203,6 @@ files = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
     {file = "pycparser-2.21.tar.gz", hash = "sha256:e644fdec12f7872f86c58ff790da456218b10f863970249516d60a5eaca77206"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pydantic"
@@ -2347,11 +2257,6 @@ typing-extensions = ">=4.2.0"
 dotenv = ["python-dotenv (>=0.10.4)"]
 email = ["email-validator (>=1.0.3)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "pydeck"
 version = "0.8.0"
@@ -2372,11 +2277,6 @@ numpy = ">=1.16.4"
 carto = ["pydeck-carto"]
 jupyter = ["ipykernel (>=5.1.2)", "ipython (>=5.8.0)", "ipywidgets (>=7,<8)", "traitlets (>=4.3.2)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "pygments"
 version = "2.14.0"
@@ -2392,11 +2292,6 @@ files = [
 [package.extras]
 plugins = ["importlib-metadata"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "pympler"
 version = "1.0.1"
@@ -2408,11 +2303,6 @@ files = [
     {file = "Pympler-1.0.1-py3-none-any.whl", hash = "sha256:d260dda9ae781e1eab6ea15bacb84015849833ba5555f141d2d9b7b7473b307d"},
     {file = "Pympler-1.0.1.tar.gz", hash = "sha256:993f1a3599ca3f4fcd7160c7545ad06310c9e12f70174ae7ae8d4e25f6c5d3fa"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pyrsistent"
@@ -2451,11 +2341,6 @@ files = [
     {file = "pyrsistent-0.19.3.tar.gz", hash = "sha256:1a2994773706bbb4995c31a97bc94f1418314923bd1048c6d964837040376440"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "python-dateutil"
 version = "2.8.2"
@@ -2470,11 +2355,6 @@ files = [
 
 [package.dependencies]
 six = ">=1.5"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "python-rapidjson"
@@ -2542,11 +2422,6 @@ files = [
     {file = "python_rapidjson-1.10-cp39-cp39-win_amd64.whl", hash = "sha256:9e4921ab7002ae9faad7f439a7c50aa195039f177e9e51a76c34c97966c79a79"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "pytz"
 version = "2023.3"
@@ -2558,11 +2433,6 @@ files = [
     {file = "pytz-2023.3-py2.py3-none-any.whl", hash = "sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb"},
     {file = "pytz-2023.3.tar.gz", hash = "sha256:1d8ce29db189191fb55338ee6d0387d82ab59f3d00eac103412d64e0ebd0c588"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pytz-deprecation-shim"
@@ -2578,11 +2448,6 @@ files = [
 
 [package.dependencies]
 tzdata = {version = "*", markers = "python_version >= \"3.6\""}
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "pyyaml"
@@ -2633,11 +2498,6 @@ files = [
     {file = "PyYAML-6.0-cp39-cp39-win_amd64.whl", hash = "sha256:b3d267842bf12586ba6c734f89d1f5b871df0273157918b0ccefa29deb05c21c"},
     {file = "PyYAML-6.0.tar.gz", hash = "sha256:68fb519c14306fec9720a2a5b45bc9f0c8d1b9c72adf45c37baedfcd949c35a2"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "regex"
@@ -2709,11 +2569,6 @@ files = [
     {file = "regex-2023.3.23.tar.gz", hash = "sha256:dc80df325b43ffea5cdea2e3eaa97a44f3dd298262b1c7fe9dbb2a9522b956a7"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "requests"
 version = "2.28.2"
@@ -2736,11 +2591,6 @@ urllib3 = ">=1.21.1,<1.27"
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "responses"
 version = "0.18.0"
@@ -2759,11 +2609,6 @@ urllib3 = ">=1.25.10"
 
 [package.extras]
 tests = ["coverage (>=6.0.0)", "flake8", "mypy", "pytest (>=4.6)", "pytest-cov", "pytest-localserver", "types-mock", "types-requests"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "rich"
@@ -2784,11 +2629,6 @@ pygments = ">=2.13.0,<3.0.0"
 [package.extras]
 jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "semver"
 version = "2.13.0"
@@ -2800,11 +2640,6 @@ files = [
     {file = "semver-2.13.0-py2.py3-none-any.whl", hash = "sha256:ced8b23dceb22134307c1b8abfa523da14198793d9787ac838e70e29e77458d4"},
     {file = "semver-2.13.0.tar.gz", hash = "sha256:fa0fe2722ee1c3f57eac478820c3a5ae2f624af8264cbdf9000c980ff7f75e3f"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "setuptools"
@@ -2823,11 +2658,6 @@ docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "pygments-g
 testing = ["build[virtualenv]", "filelock (>=3.4.0)", "flake8 (<5)", "flake8-2020", "ini2toml[lite] (>=0.9)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pip (>=19.1)", "pip-run (>=8.8)", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf", "pytest-timeout", "pytest-xdist", "tomli-w (>=1.0.0)", "virtualenv (>=13.0.0)", "wheel"]
 testing-integration = ["build[virtualenv]", "filelock (>=3.4.0)", "jaraco.envs (>=2.2)", "jaraco.path (>=3.2.0)", "pytest", "pytest-enabler", "pytest-xdist", "tomli", "virtualenv (>=13.0.0)", "wheel"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "six"
 version = "1.16.0"
@@ -2839,11 +2669,6 @@ files = [
     {file = "six-1.16.0-py2.py3-none-any.whl", hash = "sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254"},
     {file = "six-1.16.0.tar.gz", hash = "sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "smmap"
@@ -2857,11 +2682,6 @@ files = [
     {file = "smmap-5.0.0.tar.gz", hash = "sha256:c840e62059cd3be204b0c9c9f74be2c09d5648eddd4580d9314c3ecde0b30936"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "sniffio"
 version = "1.3.0"
@@ -2873,11 +2693,6 @@ files = [
     {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
     {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "starlette"
@@ -2896,11 +2711,6 @@ anyio = ">=3.4.0,<5"
 
 [package.extras]
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart", "pyyaml"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "streamlit"
@@ -2943,31 +2753,6 @@ watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 [package.extras]
 snowflake = ["snowflake-snowpark-python"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
-[[package]]
-name = "streamlit-js-eval"
-version = "0.1.5"
-description = "A custom Streamlit component to evaluate arbitrary Javascript expressions."
-category = "main"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "streamlit_js_eval-0.1.5-py3-none-any.whl", hash = "sha256:86f092497d1254fd5820bcc3e389a35e9dc638684398a8fa945d0d0b9034fa4a"},
-    {file = "streamlit_js_eval-0.1.5.tar.gz", hash = "sha256:3fa9502d6895057aaf8922edadfa1659a764b5b01da5dfe7fdd52eeac32658c0"},
-]
-
-[package.dependencies]
-streamlit = ">=1.0.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "sympy"
 version = "1.11.1"
@@ -2982,11 +2767,6 @@ files = [
 
 [package.dependencies]
 mpmath = ">=0.19"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "tokenizers"
@@ -3043,11 +2823,6 @@ dev = ["black (==22.3)", "datasets", "numpy", "pytest", "requests"]
 docs = ["setuptools-rust", "sphinx", "sphinx-rtd-theme"]
 testing = ["black (==22.3)", "datasets", "numpy", "pytest", "requests"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "toml"
 version = "0.10.2"
@@ -3059,11 +2834,6 @@ files = [
     {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
     {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "toolz"
@@ -3077,11 +2847,6 @@ files = [
     {file = "toolz-0.12.0.tar.gz", hash = "sha256:88c570861c440ee3f2f6037c4654613228ff40c93a6c25e0eba70d17282c6194"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "torch"
 version = "2.0.0"
@@ -3090,10 +2855,6 @@ category = "main"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "torch-2.0.0-1-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:c9090bda7d2eeeecd74f51b721420dbeb44f838d4536cc1b284e879417e3064a"},
-    {file = "torch-2.0.0-1-cp311-cp311-manylinux2014_aarch64.whl", hash = "sha256:bd42db2a48a20574d2c33489e120e9f32789c4dc13c514b0c44272972d14a2d7"},
-    {file = "torch-2.0.0-1-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:8969aa8375bcbc0c2993e7ede0a7f889df9515f18b9b548433f412affed478d9"},
-    {file = "torch-2.0.0-1-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:ab2da16567cb55b67ae39e32d520d68ec736191d88ac79526ca5874754c32203"},
     {file = "torch-2.0.0-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:7a9319a67294ef02459a19738bbfa8727bb5307b822dadd708bc2ccf6c901aca"},
     {file = "torch-2.0.0-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:9f01fe1f6263f31bd04e1757946fd63ad531ae37f28bb2dbf66f5c826ee089f4"},
     {file = "torch-2.0.0-cp310-cp310-win_amd64.whl", hash = "sha256:527f4ae68df7b8301ee6b1158ca56350282ea633686537b30dbb5d7b4a52622a"},
@@ -3120,16 +2881,23 @@ files = [
 filelock = "*"
 jinja2 = "*"
 networkx = "*"
+nvidia-cublas-cu11 = {version = "11.10.3.66", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cuda-cupti-cu11 = {version = "11.7.101", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cuda-nvrtc-cu11 = {version = "11.7.99", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cuda-runtime-cu11 = {version = "11.7.99", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cudnn-cu11 = {version = "8.5.0.96", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cufft-cu11 = {version = "10.9.0.58", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-curand-cu11 = {version = "10.2.10.91", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cusolver-cu11 = {version = "11.4.0.1", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-cusparse-cu11 = {version = "11.7.4.91", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-nccl-cu11 = {version = "2.14.3", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
+nvidia-nvtx-cu11 = {version = "11.7.91", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
 sympy = "*"
+triton = {version = "2.0.0", markers = "platform_system == \"Linux\" and platform_machine == \"x86_64\""}
 typing-extensions = "*"
 
 [package.extras]
 opt-einsum = ["opt-einsum (>=3.3)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "tornado"
@@ -3152,11 +2920,6 @@ files = [
     {file = "tornado-6.2.tar.gz", hash = "sha256:9b630419bde84ec666bfd7ea0a4cb2a8a651c2d5cccdbdd1972a0c859dfc3c13"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "tqdm"
 version = "4.65.0"
@@ -3177,11 +2940,6 @@ dev = ["py-make (>=0.1.0)", "twine", "wheel"]
 notebook = ["ipywidgets (>=6)"]
 slack = ["slack-sdk"]
 telegram = ["requests"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "transformers"
@@ -3251,10 +3009,34 @@ torchhub = ["filelock", "huggingface-hub (>=0.11.0,<1.0)", "importlib-metadata",
 video = ["av (==9.2.0)", "decord (==0.6.0)"]
 vision = ["Pillow"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
+[[package]]
+name = "triton"
+version = "2.0.0"
+description = "A language and compiler for custom Deep Learning operations"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "triton-2.0.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8f05a7e64e4ca0565535e3d5d3405d7e49f9d308505bb7773d21fb26a4c008c2"},
+    {file = "triton-2.0.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bb4b99ca3c6844066e516658541d876c28a5f6e3a852286bbc97ad57134827fd"},
+    {file = "triton-2.0.0-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:47b4d70dc92fb40af553b4460492c31dc7d3a114a979ffb7a5cdedb7eb546c08"},
+    {file = "triton-2.0.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:fedce6a381901b1547e0e7e1f2546e4f65dca6d91e2d8a7305a2d1f5551895be"},
+    {file = "triton-2.0.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:75834f27926eab6c7f00ce73aaf1ab5bfb9bec6eb57ab7c0bfc0a23fac803b4c"},
+    {file = "triton-2.0.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0117722f8c2b579cd429e0bee80f7731ae05f63fe8e9414acd9a679885fcbf42"},
+    {file = "triton-2.0.0-pp37-pypy37_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bcd9be5d0c2e45d2b7e6ddc6da20112b6862d69741576f9c3dbaf941d745ecae"},
+    {file = "triton-2.0.0-pp38-pypy38_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:42a0d2c3fc2eab4ba71384f2e785fbfd47aa41ae05fa58bf12cb31dcbd0aeceb"},
+    {file = "triton-2.0.0-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:52c47b72c72693198163ece9d90a721299e4fb3b8e24fd13141e384ad952724f"},
+]
+
+[package.dependencies]
+cmake = "*"
+filelock = "*"
+lit = "*"
+torch = "*"
+
+[package.extras]
+tests = ["autopep8", "flake8", "isort", "numpy", "pytest", "scipy (>=1.7.1)"]
+tutorials = ["matplotlib", "pandas", "tabulate"]
 
 [[package]]
 name = "tritonclient"
@@ -3283,11 +3065,6 @@ all = ["aiohttp (>=3.8.1)", "geventhttpclient (>=1.4.4,<=2.0.2)", "grpcio (>=1.4
 grpc = ["grpcio (>=1.41.0)", "numpy (>=1.19.1)", "packaging (>=14.1)", "protobuf (>=3.5.0,<4)", "python-rapidjson (>=0.9.1)"]
 http = ["aiohttp (>=3.8.1)", "geventhttpclient (>=1.4.4,<=2.0.2)", "numpy (>=1.19.1)", "python-rapidjson (>=0.9.1)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "typing-extensions"
 version = "4.5.0"
@@ -3300,11 +3077,6 @@ files = [
     {file = "typing_extensions-4.5.0.tar.gz", hash = "sha256:5cb5f4a79139d699607b3ef622a1dedafa84e115ab0024e0d9c044a9479ca7cb"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "tzdata"
 version = "2023.3"
@@ -3316,11 +3088,6 @@ files = [
     {file = "tzdata-2023.3-py2.py3-none-any.whl", hash = "sha256:7e65763eef3120314099b6939b5546db7adce1e7d6f2e179e3df563c70511eda"},
     {file = "tzdata-2023.3.tar.gz", hash = "sha256:11ef1e08e54acb0d4f95bdb1be05da659673de4acbd21bf9c69e94cc5e907a3a"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "tzlocal"
@@ -3341,11 +3108,6 @@ tzdata = {version = "*", markers = "platform_system == \"Windows\""}
 [package.extras]
 devenv = ["black", "check-manifest", "flake8", "pyroma", "pytest (>=4.3)", "pytest-cov", "pytest-mock (>=3.3)", "zest.releaser"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "urllib3"
 version = "1.26.15"
@@ -3362,11 +3124,6 @@ files = [
 brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
 secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)", "urllib3-secure-extra"]
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "uvicorn"
@@ -3387,11 +3144,6 @@ h11 = ">=0.8"
 [package.extras]
 standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "uvloop (>=0.14.0,!=0.15.0,!=0.15.1)", "watchfiles (>=0.13)", "websockets (>=10.4)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "validators"
 version = "0.20.0"
@@ -3408,11 +3160,6 @@ decorator = ">=3.4.0"
 
 [package.extras]
 test = ["flake8 (>=2.4.0)", "isort (>=4.2.2)", "pytest (>=2.2.3)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "virtualenv"
@@ -3434,11 +3181,6 @@ platformdirs = ">=2.4,<4"
 [package.extras]
 docs = ["furo (>=2022.12.7)", "proselint (>=0.13)", "sphinx (>=6.1.3)", "sphinx-argparse (>=0.4)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=22.12)"]
 test = ["covdefaults (>=2.2.2)", "coverage (>=7.1)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23)", "pytest (>=7.2.1)", "pytest-env (>=0.8.1)", "pytest-freezegun (>=0.4.2)", "pytest-mock (>=3.10)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "watchdog"
@@ -3480,10 +3222,20 @@ files = [
 [package.extras]
 watchmedo = ["PyYAML (>=3.10)"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
+[[package]]
+name = "wheel"
+version = "0.40.0"
+description = "A built-package format for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "wheel-0.40.0-py3-none-any.whl", hash = "sha256:d236b20e7cb522daf2390fa84c55eea81c5c30190f90f29ae2ca1ad8355bf247"},
+    {file = "wheel-0.40.0.tar.gz", hash = "sha256:cd1196f3faee2b31968d626e1731c94f99cbdb67cf5a46e4f5656cbee7738873"},
+]
+
+[package.extras]
+test = ["pytest (>=6.0.0)"]
 
 [[package]]
 name = "win32-setctime"
@@ -3499,11 +3251,6 @@ files = [
 
 [package.extras]
 dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "xxhash"
@@ -3613,11 +3360,6 @@ files = [
     {file = "xxhash-3.2.0.tar.gz", hash = "sha256:1afd47af8955c5db730f630ad53ae798cf7fae0acb64cebb3cf94d35c47dd088"},
 ]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "yarl"
 version = "1.8.2"
@@ -3706,11 +3448,6 @@ files = [
 idna = ">=2.0"
 multidict = ">=4.0"
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [[package]]
 name = "zipp"
 version = "3.15.0"
@@ -3726,11 +3463,6 @@ files = [
 [package.extras]
 docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)", "sphinx-lint"]
 testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "zope-event"
@@ -3750,11 +3482,6 @@ setuptools = "*"
 [package.extras]
 docs = ["Sphinx"]
 test = ["zope.testrunner"]
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
 
 [[package]]
 name = "zope-interface"
@@ -3804,12 +3531,7 @@ docs = ["Sphinx", "repoze.sphinx.autointerface"]
 test = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 
-[package.source]
-type = "legacy"
-url = "https://mirrors.aliyun.com/pypi/simple"
-reference = "aliyun-pypi"
-
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "10397bee555ed733bc2f4332329772af198e162c7f93c9f756ad06f51776ee2e"
+content-hash = "df2b6abe8684f976034d432760b5475e48695b2d2557ca4ddf32cf591c5d4475"

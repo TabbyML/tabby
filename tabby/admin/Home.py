@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_js_eval import get_page_location
 from utils.service_info import ServiceInfo
 from utils.streamlit import set_page_config
 
@@ -17,7 +16,6 @@ def make_badge_markdown(x: ServiceInfo):
 
 set_page_config(page_title="Home")
 
-api_server = get_page_location()["origin"]
 badges = " ".join(map(make_badge_markdown, SERVICES))
 st.markdown(
     """
@@ -26,10 +24,7 @@ st.markdown(
 {badges}
 ---
 
-**Congrats, your server is live! Your API Endpoint is:**
-```
-{api_server}
-```
+**Congrats, your server is live!**
 
 To get started with Tabby, you can either install the extensions below or use the [Editor](./Editor).
 
@@ -39,7 +34,5 @@ To get started with Tabby, you can either install the extensions below or use th
 
 """.replace(
         "{badges}", badges
-    ).replace(
-        "{api_server}", api_server
     )
 )
