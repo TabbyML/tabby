@@ -17,8 +17,10 @@ from .models import (
 
 app = FastAPI(
     title="TabbyServer",
-    description="""TabbyServer is the backend for tabby, serving code completion requests from code editor / IDE.
-* [Admin Panel](./_admin)
+    description="""
+[![github star](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](http://github.com/TabbyML/tabby)
+
+TabbyServer is the backend for tabby, serving code completion requests from code editor / IDE.
 """,
     docs_url="/",
 )

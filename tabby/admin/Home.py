@@ -19,7 +19,8 @@ set_page_config(page_title="Home")
 badges = " ".join(map(make_badge_markdown, SERVICES))
 st.markdown(
     """
-## Tabby
+## Tabby [![github star](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](http://github.com/TabbyML/tabby)
+
 {badges}
 ---
 
