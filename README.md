@@ -37,27 +37,18 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-The easiest way of getting started is using the docker image:
+**NOTE**: To run Tabby, it is required to have a GPU and CUDA. However, you can refer to [Skypilot](./deployment/skypilot/README.md) for alternative solutions.
+Before running Tabby, ensure the installation of the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
+We suggest using NVIDIA drivers that are compatible with CUDA version 11.8 or higher.
 ```bash
 # Create data dir and grant owner to 1000 (Tabby run as uid 1000 in container)
 mkdir -p data/hf_cache && chown -R 1000 data
 
 docker run \
-  -it --rm \
-  -v ./data:/data \
-  -v ./data/hf_cache:/home/app/.cache/huggingface \
-  -p 5000:5000 \
-  -e MODEL_NAME=TabbyML/J-350M \
-  tabbyml/tabby
-```
-
-To use the GPU backend (triton) for a faster inference speed:
-```bash
-docker run \
   --gpus all \
   -it --rm \
-  -v ./data:/data \
-  -v ./data/hf_cache:/home/app/.cache/huggingface \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/data/hf_cache:/home/app/.cache/huggingface \
   -p 5000:5000 \
   -e MODEL_NAME=TabbyML/J-350M \
   -e MODEL_BACKEND=triton \
