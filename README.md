@@ -52,9 +52,9 @@ docker run \
   -p 5000:5000 \
   -e MODEL_NAME=TabbyML/J-350M \
   -e MODEL_BACKEND=triton \
+  --name=tabby \
   tabbyml/tabby
 ```
-Note: To use GPUs, you need to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html). We also recommend using NVIDIA drivers with CUDA version 11.8 or higher.
 
 You can then query the server using `/v1/completions` endpoint:
 ```bash
