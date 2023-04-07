@@ -37,7 +37,8 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-**NOTE**: To run Tabby, it is required to have a GPU and CUDA. However, you can refer to [Skypilot](./deployment/skypilot/README.md) for a cloud based deployment.
+**NOTE**: Tabby requires NVIDIA GPU.
+
 Before running Tabby, ensure the installation of the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 We suggest using NVIDIA drivers that are compatible with CUDA version 11.8 or higher.
 ```bash
