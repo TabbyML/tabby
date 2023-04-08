@@ -37,7 +37,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-**NOTE**: Tabby requires NVIDIA GPU.
+**NOTE**: Tabby requires [Volta or newer](https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/) NVIDIA GPU.
 
 Before running Tabby, ensure the installation of the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
 We suggest using NVIDIA drivers that are compatible with CUDA version 11.8 or higher.
