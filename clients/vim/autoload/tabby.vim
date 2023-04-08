@@ -1,7 +1,7 @@
-"  if exists('g:autoloaded_tabby')
-"    finish
-"  endif
-"  let g:autoloaded_tabby = 1
+if exists('g:autoloaded_tabby')
+  finish
+endif
+let g:autoloaded_tabby = 1
 
 " Commands
 
