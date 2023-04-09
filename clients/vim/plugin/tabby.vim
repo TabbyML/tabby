@@ -25,4 +25,3 @@ augroup tabby
   autocmd BufLeave      *  call tabby#Clear()
   autocmd InsertLeave   *  call tabby#Clear()
 augroup END
-
