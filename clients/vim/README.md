@@ -9,11 +9,11 @@
 
 ### Plug
 ```
+; Make sure that the filetype plugin has been enabled.
+filetype plugin on
+
 Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
 let g:tabby_server_url = 'http://127.0.0.1:5000'
-
-; make sure filetype plugin is enabled.
-filetype plugin on
 ```
 
 ## Usage
