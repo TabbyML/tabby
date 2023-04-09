@@ -156,11 +156,16 @@ function! s:GetCompletion(id)
   if !tabby#Running()
     return
   endif
+
+  let l:language = s:GetLanguage()
+  if l:language == 'unknown'
+	  return
+  endif
   call ch_sendexpr(s:tabby, #{
     \ func: 'getCompletion',
     \ args: [#{
       \ prompt: s:GetPrompt(),
-      \ language: s:GetLanguage(),
+      \ language: l:language,
       \ }],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
