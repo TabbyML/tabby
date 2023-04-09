@@ -301,11 +301,11 @@ function! tabby#Accept(fallback)
     return a:fallback
   endif
   let lines = s:prop_shown_lines
-  if len(lines) == 1 
+  if len(lines) == 1
     let s:text_to_insert = lines[0]
     let insertion = "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
   else
-    let current_line = getbufoneline('%', line('.'))
+    let current_line = getbufline('%', line('.'), line('.'))[0]
     let suffix_chars_to_replace = len(current_line) - col('.') + 1
     let s:text_to_insert = join(lines, "\n")
     let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
@@ -331,7 +331,7 @@ function! tabby#Next()
     if s:completion_index == len(s:completion.choices)
       let s:completion_index = 0
     endif
-  else 
+  else
     let s:completion_index += 1
     if s:completion_index > len(s:completion.choices)
       let s:completion_index = 0
@@ -348,7 +348,7 @@ function! tabby#Prev()
     if s:completion_index == len(s:completion.choices)
       let s:completion_index = len(s:completion.choices) - 1
     endif
-  else 
+  else
     let s:completion_index -= 1
     if s:completion_index < 0
       let s:completion_index = len(s:completion.choices)
