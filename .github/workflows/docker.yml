@@ -4,10 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - '**/README.md'
-      - '.github/**'
-      - 'docs/**'
+    paths:
+      - 'poetry.lock'
+      - 'tabby/**'
 
 jobs:
   build:
