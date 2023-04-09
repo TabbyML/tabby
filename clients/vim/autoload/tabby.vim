@@ -159,7 +159,7 @@ function! s:GetCompletion(id)
 
   let l:language = s:GetLanguage()
   if l:language == 'unknown'
-	  return
+    return
   endif
   call ch_sendexpr(s:tabby, #{
     \ func: 'getCompletion',
