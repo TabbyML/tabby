@@ -1,4 +1,4 @@
-# How to Use This VIM Plugin
+# Tabby VIM extension
 
 ## Requirements
 
@@ -7,14 +7,12 @@
 
 ## Getting started
 
-* Vim Plug
-```vimscript
+### Plug
+```
 Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
-
-; Changed to your tabby server
 let g:tabby_server_url = 'http://127.0.0.1:5000'
 
-; Make sure you turn on file type plugin.
+; make sure filetype plugin is enabled.
 filetype plugin on
 ```
 
