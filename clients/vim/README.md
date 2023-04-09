@@ -3,7 +3,7 @@
 ## Requirements
 
 1. VIM 9.0+ with `+job` and `+textprop` features enabled. NeoVIM is not supported at the moment.
-2. Node.js 16.0+, with `yarn` or `npm` installed.
+2. Node.js 16.0+.
 
 ## Getting started
 
