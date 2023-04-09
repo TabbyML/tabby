@@ -4,7 +4,7 @@
   "description": "Tabby client for vim.",
   "main": "./dist/tabby.js",
   "scripts": {
-    "watch": "webpack --watch",
+    "dev": "webpack --watch",
     "build": "webpack --mode=production"
   },
   "devDependencies": {
