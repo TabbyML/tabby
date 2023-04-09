@@ -2,6 +2,7 @@ import axios from "axios";
 import { sleep } from "./utils";
 import { EventEmitter } from "node:events";
 import { strict as assert } from "node:assert";
+import * as fs from "node:fs";
 
 export interface TabbyCompletionRequest {
   prompt: string;
@@ -80,12 +81,17 @@ export class TabbyClient extends EventEmitter {
     return this.tabbyServerUrl;
   }
 
-  public async getCompletion(request: TabbyCompletionRequest): Promise<TabbyCompletion | null> {
+  public async getCompletion(
+    request: TabbyCompletionRequest
+  ): Promise<TabbyCompletion | null> {
     if (this.status == "disconnected") {
       this.ping();
     }
     try {
-      const response = await axios.post<TabbyCompletion>(`${this.tabbyServerUrl}/v1/completions`, request);
+      const response = await axios.post<TabbyCompletion>(
+        `${this.tabbyServerUrl}/v1/completions`,
+        request
+      );
       assert(response.status == 200);
       return response.data;
     } catch (e) {

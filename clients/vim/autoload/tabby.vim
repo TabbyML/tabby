@@ -244,7 +244,7 @@ function! s:GetPrompt()
   let first_line = max([1, line('.') - max_lines])
   let lines = getbufline('%', first_line, line('.'))
   let lines[-1] = lines[-1][:col('.') - 2]
-  return join(lines, '\n')
+  return join(lines, "\n")
 endfunction
 
 function! s:GetLanguage()
@@ -275,7 +275,7 @@ function! tabby#Show()
   if (type(choice.text) != v:t_string) || (len(choice.text) == 0)
     return
   endif
-  let lines = split(choice.text, '\\n')
+  let lines = split(choice.text, "\n")
   call prop_add(line('.'), col('.'), #{
     \ type: s:prop_type,
     \ text: lines[0],

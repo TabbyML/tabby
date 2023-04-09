@@ -35,6 +35,7 @@ Below is the URL for your API endpoint.
 
 ### Clients
 
+* [Vim](https://github.com/TabbyML/tabby/tree/main/clients/vim)
 * [VSCode](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
 
 """.replace(
