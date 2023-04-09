@@ -67,8 +67,6 @@ curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/
 
 We also provides an interactive playground in admin panel [localhost:5000/_admin](http://localhost:5000/_admin)
 
-![image](https://user-images.githubusercontent.com/388154/227792390-ec19e9b9-ebbb-4a94-99ca-8a142ffb5e46.png)
-
 ### Skypilot
 See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 
