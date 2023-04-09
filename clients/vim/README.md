@@ -1,33 +1,20 @@
-# How to Use This VIM Plugin
+# Tabby VIM extension
 
 ## Requirements
 
 1. VIM 9.0+ with `+job` and `+textprop` features enabled. NeoVIM is not supported at the moment.
-2. Node.js 16.0+, with `yarn` or `npm` installed.
+2. Node.js 16.0+.
 
-## Setup
+## Getting started
 
-1. Build node scripts in `node_scripts/` directory. Use `yarn` as example. You can also use `npm` instead.
-   ```bash
-   cd node_scripts
-   yarn && yarn build
-   cd ..
-   ```
+### Plug
+```
+; Make sure that the filetype plugin has been enabled.
+filetype plugin on
 
-2. Copy this directory to your VIM plugin directory.
-   ```bash
-   cp -r . ~/.vim/pack/plugins/start/tabby.vim
-   ```
-
-3. (Optional) Set Tabby server URL in your `vimrc` file. If you do not set a URL, the default value is `http://127.0.0.1:5000`.
-   ```vim
-   let g:tabby_server_url = 'http://127.0.0.1:5000'
-   ```
-
-4. (Optional) Turn on `filetype` plugin for better compatibility.
-   ```vim
-   filetype plugin on
-   ```
+Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
+let g:tabby_server_url = 'http://127.0.0.1:5000'
+```
 
 ## Usage
 

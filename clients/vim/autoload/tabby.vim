@@ -156,11 +156,16 @@ function! s:GetCompletion(id)
   if !tabby#Running()
     return
   endif
+
+  let l:language = s:GetLanguage()
+  if l:language == 'unknown'
+    return
+  endif
   call ch_sendexpr(s:tabby, #{
     \ func: 'getCompletion',
     \ args: [#{
       \ prompt: s:GetPrompt(),
-      \ language: s:GetLanguage(),
+      \ language: l:language,
       \ }],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
@@ -305,7 +310,7 @@ function! tabby#Accept(fallback)
     let s:text_to_insert = lines[0]
     let insertion = "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
   else
-    let current_line = getbufoneline('%', line('.'))
+    let current_line = getbufline('%', line('.'), line('.'))[0]
     let suffix_chars_to_replace = len(current_line) - col('.') + 1
     let s:text_to_insert = join(lines, "\n")
     let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
