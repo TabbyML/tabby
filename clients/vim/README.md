@@ -4,7 +4,7 @@
 
 1. VIM 9.0+ with `+job` and `+textprop` features enabled. NeoVIM is not supported at the moment.
 2. Node.js 16.0+, with `yarn` or `npm` installed.
-   
+
 ## Setup
 
 1. Build node scripts in `node_scripts/` directory. Use `yarn` as example. You can also use `npm` instead.
@@ -34,4 +34,3 @@
 1. In insert mode, Tabby will show code suggestion when you stop typing. Press `<Tab>` to accpet the current suggestion, `<M-]>` to see the next suggestion, `<M-[>` to see previous suggestion, or `<C-]>` to dismiss.
 
 2. Use command `:Tabby enable` to enable, `:Tabby disable` to disable Tabby, and `:Tabby status` to check status.
-

@@ -77,4 +77,3 @@ function toDisabled() {
   item.tooltip = "Tabby is disabled. Click to enable.";
   item.command = "tabby.toggleEnabled";
 }
-
