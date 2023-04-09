@@ -301,7 +301,7 @@ function! tabby#Accept(fallback)
     return a:fallback
   endif
   let lines = s:prop_shown_lines
-  if len(lines) == 1 
+  if len(lines) == 1
     let s:text_to_insert = lines[0]
     let insertion = "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
   else
@@ -331,7 +331,7 @@ function! tabby#Next()
     if s:completion_index == len(s:completion.choices)
       let s:completion_index = 0
     endif
-  else 
+  else
     let s:completion_index += 1
     if s:completion_index > len(s:completion.choices)
       let s:completion_index = 0
@@ -348,7 +348,7 @@ function! tabby#Prev()
     if s:completion_index == len(s:completion.choices)
       let s:completion_index = len(s:completion.choices) - 1
     endif
-  else 
+  else
     let s:completion_index -= 1
     if s:completion_index < 0
       let s:completion_index = len(s:completion.choices)
