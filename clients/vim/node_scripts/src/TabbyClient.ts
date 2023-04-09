@@ -2,7 +2,6 @@ import axios from "axios";
 import { sleep } from "./utils";
 import { EventEmitter } from "node:events";
 import { strict as assert } from "node:assert";
-import * as fs from "node:fs";
 
 export interface TabbyCompletionRequest {
   prompt: string;
