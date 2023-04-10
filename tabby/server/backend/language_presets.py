@@ -23,6 +23,15 @@ LanguagePresets = {
         max_length=128, stop_words=["\n\n", "\nfunction", "\n//", "\nimport", "\nclass"]
     ),
     Language.TYPESCRIPT: LanguagePreset(
-        max_length=128, stop_words=["\n\n", "\nfunction", "\n//", "\nimport", "\nclass"]
+        max_length=128,
+        stop_words=[
+            "\n\n",
+            "\nfunction",
+            "\n//",
+            "\nimport",
+            "\nclass",
+            "\ninterface",
+            "\ntype",
+        ],
     ),
 }
