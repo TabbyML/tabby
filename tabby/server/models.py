@@ -14,6 +14,7 @@ class Language(str, Enum):
     UNKNOWN = "unknown"
     PYTHON = "python"
     JAVASCRIPT = "javascript"
+    TYPESCRIPT = "typescript"
 
 
 class CompletionRequest(BaseModel):
