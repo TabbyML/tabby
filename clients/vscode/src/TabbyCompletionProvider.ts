@@ -39,6 +39,14 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
+    // https://code.visualstudio.com/docs/languages/identifiers
+    const supportedLanguages = ["python", "javascript"];
+    const language = document.languageId;
+    if (!supportedLanguages.includes(language)) {
+      console.debug(`Unsupported language '${language}', skipping`);
+      return emptyResponse;
+    }
+
     const prompt = this.getPrompt(document, position);
     if (this.isNil(prompt)) {
       console.debug("Prompt is empty, skipping");
@@ -60,13 +68,13 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
         uuid: this.uuid,
         timestamp: currentTimestamp,
         prompt,
-        language: document.languageId
+        language,
       }
     );
     // Prompt is already nil-checked
     const completion = await this.tabbyClient.getCompletion({
       prompt: prompt as string,
-      language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
+      language,
     });
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
