@@ -12,9 +12,18 @@ class Choice(BaseModel):
 # https://code.visualstudio.com/docs/languages/identifiers
 class Language(str, Enum):
     UNKNOWN = "unknown"
-    PYTHON = "python"
+    CLOJURE = "clojure"
+    CSHARP = "csharp"
+    CSS = "css"
+    DOCKERFILE = "dockerfile"
+    FSHARP = "fsharp"
+    GO = "go"
     JAVASCRIPT = "javascript"
+    JSON = "json"
+    PHP = "php"
+    PYTHON = "python"
     TYPESCRIPT = "typescript"
+    YAML = "yaml"
 
 
 class CompletionRequest(BaseModel):
