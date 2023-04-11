@@ -74,7 +74,7 @@ function! tabby#Start()
   endif
 
   let check_job = tabby#job#Check()
-  if !check_job.ok 
+  if !check_job.ok
     let s:errmsg = check_job.message
     return
   endif

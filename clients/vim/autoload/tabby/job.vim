@@ -57,7 +57,7 @@ function! tabby#job#Start(command, ...)
     endif
     return id
   endif
-endfunction 
+endfunction
 
 function! tabby#job#Stop(job)
   if s:vim
