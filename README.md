@@ -74,7 +74,7 @@ See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 We offer multiple methods to connect to Tabby Server, including using OpenAPI and editor extensions.
 
 ### API
-Tabby has opened a FastAPI server at [localhost:5000]((https://localhost:5000)), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
+Tabby has opened a FastAPI server at [localhost:5000](https://localhost:5000), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
 
 ### Editor Extensions
 
