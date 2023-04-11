@@ -2754,21 +2754,6 @@ watchdog = {version = "*", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-snowpark-python"]
 
 [[package]]
-name = "streamlit-js-eval"
-version = "0.1.5"
-description = "A custom Streamlit component to evaluate arbitrary Javascript expressions."
-category = "main"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "streamlit_js_eval-0.1.5-py3-none-any.whl", hash = "sha256:86f092497d1254fd5820bcc3e389a35e9dc638684398a8fa945d0d0b9034fa4a"},
-    {file = "streamlit_js_eval-0.1.5.tar.gz", hash = "sha256:3fa9502d6895057aaf8922edadfa1659a764b5b01da5dfe7fdd52eeac32658c0"},
-]
-
-[package.dependencies]
-streamlit = ">=1.0.0"
-
-[[package]]
 name = "sympy"
 version = "1.11.1"
 description = "Computer algebra system (CAS) in Python"
@@ -3562,4 +3547,4 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "a0e7c6477e505c9e31b7cb862e95d7b85e44f734f4731ea55ad518f0bce8362a"
+content-hash = "df2b6abe8684f976034d432760b5475e48695b2d2557ca4ddf32cf591c5d4475"
