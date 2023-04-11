@@ -79,7 +79,7 @@ Tabby has opened a FastAPI server at [localhost:5000](https://localhost:5000), w
 ### Editor Extensions
 
 * [VSCode Extension](./clients/vscode)
-* [VIM Extension](./clients/vscode)
+* [VIM Extension](./clients/vim)
 
 ## Development
 
