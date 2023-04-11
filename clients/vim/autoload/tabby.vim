@@ -73,17 +73,18 @@ function! tabby#Start()
     return
   endif
 
-  if !exists('*job_start') || !exists('*prop_type_add')
-    let s:errmsg = 'Tabby requires Vim 9.0+ with +job and +textprop support.'
+  let check_job = tabby#job#Check()
+  if !check_job.ok
+    let s:errmsg = check_job.message
     return
   endif
 
-  hi def TabbyCompletion guifg=#808080 ctermfg=8
-  let s:prop_type = 'TabbyCompletion'
-  if prop_type_get(s:prop_type) != v:null
-    call prop_type_delete(s:prop_type)
+  let check_inline_completion = tabby#inline_completion#Check()
+  if !check_inline_completion.ok
+    let s:errmsg = check_inline_completion.message
+    return
   endif
-  call prop_type_add(s:prop_type, {'highlight': 'TabbyCompletion'})
+  call tabby#inline_completion#Init()
 
   if !executable('node')
     let s:errmsg = 'Tabby requires node to be installed.'
@@ -100,7 +101,7 @@ function! tabby#Start()
   let s:tabby_status = 'connecting'
 
   let command = 'node ' . node_script
-  let s:tabby = job_start(command, #{
+  let s:tabby = tabby#job#Start(command, #{
     \ in_mode: 'json',
     \ out_mode: 'json',
     \ out_cb: function('s:HandleNotification'),
@@ -114,7 +115,7 @@ endfunction
 
 function! tabby#Stop()
   if tabby#Running()
-    call job_stop(s:tabby)
+    call tabby#job#Stop(s:tabby)
   endif
 endfunction
 
@@ -146,7 +147,7 @@ function! s:UpdateServerUrl()
   if !tabby#Running()
     return
   endif
-  call ch_sendexpr(s:tabby, #{
+  call tabby#job#Send(s:tabby, #{
     \ func: 'setServerUrl',
     \ args: [g:tabby_server_url],
     \ })
@@ -161,7 +162,7 @@ function! s:GetCompletion(id)
   if l:language == 'unknown'
     return
   endif
-  call ch_sendexpr(s:tabby, #{
+  call tabby#job#Send(s:tabby, #{
     \ func: 'getCompletion',
     \ args: [#{
       \ prompt: s:GetPrompt(),
@@ -179,7 +180,7 @@ function! s:PostEvent(event_type)
   if !exists('s:completion') || !exists('s:completion_index')
     return
   endif
-  call ch_sendexpr(s:tabby, #{
+  call tabby#job#Send(s:tabby, #{
     \ func: 'postEvent',
     \ args: [#{
       \ type: a:event_type,
@@ -190,7 +191,7 @@ function! s:PostEvent(event_type)
 endfunction
 
 function! s:HandleNotification(channel, data)
-  if a:data.event == 'statusChanged'
+  if has_key(a:data, 'event') && (a:data.event == 'statusChanged')
     let s:tabby_status = a:data.status
   endif
 endfunction
@@ -199,10 +200,8 @@ function! s:HandleCompletion(id, channel, data)
   if !exists('s:trigger_id') || (a:id != s:trigger_id)
     return
   endif
-  if a:data == v:null
-    return
-  endif
-  if (type(a:data.choices) == v:t_list) && (len(a:data.choices) > 0)
+  if (type(a:data) == v:t_dict) && has_key(a:data, 'choices') &&
+    \ (type(a:data.choices) == v:t_list) && (len(a:data.choices) > 0)
     let s:completion = a:data
     let s:completion_index = 0
     call tabby#Show()
@@ -263,7 +262,7 @@ endfunction
 " Completion control
 
 function! tabby#Show()
-  call s:RemoveProp()
+  call s:RemoveCompletion()
   if !s:CompletionAvailable()
     return
   endif
@@ -276,22 +275,12 @@ function! tabby#Show()
     return
   endif
   let lines = split(choice.text, "\n")
-  call prop_add(line('.'), col('.'), #{
-    \ type: s:prop_type,
-    \ text: lines[0],
-    \ })
-  for line in lines[1:]
-    call prop_add(line('.'), 0, #{
-      \ type: s:prop_type,
-      \ text: line,
-      \ text_align: 'below',
-      \ })
-  endfor
+  call tabby#inline_completion#Show(lines)
   let s:prop_shown_lines = lines
   call s:PostEvent('view')
 endfunction
 
-function! tabby#ComsumeInsertion()
+function! tabby#ConsumeInsertion()
   if !exists('s:text_to_insert')
     return ''
   else
@@ -308,14 +297,14 @@ function! tabby#Accept(fallback)
   let lines = s:prop_shown_lines
   if len(lines) == 1
     let s:text_to_insert = lines[0]
-    let insertion = "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
+    let insertion = "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
   else
     let current_line = getbufline('%', line('.'), line('.'))[0]
     let suffix_chars_to_replace = len(current_line) - col('.') + 1
     let s:text_to_insert = join(lines, "\n")
-    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ComsumeInsertion()\<CR>"
+    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
   endif
-  call s:RemoveProp()
+  call s:RemoveCompletion()
   call s:PostEvent('select')
   return insertion
 endfunction
@@ -324,7 +313,7 @@ function! tabby#Dismiss(fallback)
   if !exists('s:prop_shown_lines')
     return a:fallback
   endif
-  call s:RemoveProp()
+  call s:RemoveCompletion()
   return ''
 endfunction
 
@@ -363,7 +352,7 @@ function! tabby#Prev()
 endfunction
 
 function! tabby#Clear()
-  call s:RemoveProp()
+  call s:RemoveCompletion()
   if exists('s:scheduled')
     call timer_stop(s:scheduled)
     unlet s:scheduled
@@ -389,11 +378,8 @@ function! s:CompletionAvailable()
   return v:true
 endfunction
 
-function! s:RemoveProp()
-  call prop_remove(#{
-    \ type: s:prop_type,
-    \ all: v:true,
-    \ })
+function! s:RemoveCompletion()
+  call tabby#inline_completion#Clear()
   if exists('s:prop_shown_lines')
     unlet s:prop_shown_lines
   endif
