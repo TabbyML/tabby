@@ -6,6 +6,7 @@ SERVICES = [
     ServiceInfo(label="triton", health_url="http://localhost:8002/metrics"),
     ServiceInfo(label="vector", health_url="http://localhost:8686/health"),
     ServiceInfo(label="dagu", health_url="http://localhost:8083"),
+    ServiceInfo(label="meilisearch", health_url="http://localhost:8084"),
     ServiceInfo(label="server", health_url="http://localhost:8081"),
 ]
 

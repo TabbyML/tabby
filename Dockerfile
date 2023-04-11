@@ -61,6 +61,12 @@ RUN <<EOF
   rm caddy.tar.gz README.md LICENSE
 EOF
 
+# Install meilisearch
+RUN <<EOF
+  curl -L https://install.meilisearch.com | bash
+  mv meilisearch ~/.bin/
+EOF
+
 # Setup file permissions
 USER root
 RUN mkdir -p /var/lib/vector

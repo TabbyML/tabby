@@ -17,3 +17,11 @@ steps:
     command: python -m tabby.tools.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
     depends:
       - update repositories
+
+  - name: refresh index
+    dir: $APP_DIR
+    depends:
+      - generate dataset
+    command: |
+      curl -X DELETE 'http://localhost:8084/indexes/dataset/documents'
+      curl -X POST 'http://localhost:8084/indexes/dataset/documents?primaryKey=id' -H 'Content-Type: application/x-ndjson' --data-binary @$DATASET_DIR/dumps.json

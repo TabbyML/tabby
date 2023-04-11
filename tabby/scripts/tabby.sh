@@ -17,6 +17,10 @@ export DATASET_DIR="${REPOSITORIES_DIR:-/data/dataset}"
 # dagu
 export DAGU_DAGS="tabby/tasks"
 
+# meilisearch
+export MEILI_DIR="${MEILI_DIR:-/data/meili}"
+export MEILI_ENV="${MEILI_ENV:-production}"
+
 init() {
 if [ ! -f $CONFIG_FILE ]; then
   mkdir -p $(dirname $CONFIG_FILE)
@@ -77,6 +81,9 @@ command=dagu scheduler
 
 [program:dagu_server]
 command=dagu server --host 0.0.0.0 --port 8083
+
+[program:meilisearch]
+command=meilisearch --http-addr 0.0.0.0:8084 --db-path ${MEILI_DIR}/data.ms --dump-dir ${MEILI_DIR}/dumps/
 
 $(program:triton)
 
