@@ -9,7 +9,7 @@
 
 ### Plug
 ```
-; Make sure that the filetype plugin has been enabled.
+" Make sure that the filetype plugin has been enabled.
 filetype plugin on
 
 Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
