@@ -6,6 +6,7 @@ env:
   - CONFIG_FILE: "$CONFIG_FILE"
   - GIT_REPOSITORIES_DIR: "$GIT_REPOSITORIES_DIR"
   - DATASET_DIR: "$DATASET_DIR"
+  - HOME: "$HOME"
 steps:
   - name: update repositories
     dir: $APP_DIR
