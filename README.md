@@ -34,7 +34,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 
 
-## Get started
+## Get started: Server
 
 ### Docker
 
@@ -70,9 +70,16 @@ We also provides an interactive playground in admin panel [localhost:5000/_admin
 ### Skypilot
 See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 
-## API documentation
+## Getting Started: Client
+We offer multiple methods to connect to Tabby Server, including using OpenAPI and editor extensions.
 
-Tabby opens an FastAPI server at [localhost:5000](https://localhost:5000), which embeds an OpenAPI documentation of the HTTP API.
+### API
+Tabby has opened a FastAPI server at [localhost:5000]((https://localhost:5000)), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
+
+### Editor Extensions
+
+* [VSCode Extension](./clients/vscode)
+* [VIM Extension](./clients/vscode)
 
 ## Development
 
