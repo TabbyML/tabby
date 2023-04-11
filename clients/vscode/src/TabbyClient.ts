@@ -66,7 +66,7 @@ export class TabbyClient extends EventEmitter {
 
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
-    this.tabbyServerUrl = configuration.get("serverUrl", "http://127.0.0.1:5000");
+    this.tabbyServerUrl = configuration.get("serverUrl", "http://127.0.0.1:5001");
     this.ping();
   }
 

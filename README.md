@@ -91,3 +91,17 @@ or
 ```bash
 make dev-triton # Turn on triton backend (for cuda env developers)
 ```
+
+# Mac M1 instructions
+
+curl -sSL https://install.python-poetry.org | python3 -
+poetry install
+
+brew install yohamta/tap/dagu
+brew install caddy
+brew tap vectordotdev/brew && brew install vector
+
+mkdir -p data/vector && mkdir -p data/hf_cache
+
+poetry shell
+./tabby/scripts/tabby.sh

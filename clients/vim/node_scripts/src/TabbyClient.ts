@@ -37,7 +37,7 @@ export class TabbyClient extends EventEmitter {
     return TabbyClient.instance;
   }
 
-  private tabbyServerUrl: string = "http://127.0.0.1:5000";
+  private tabbyServerUrl: string = "http://127.0.0.1:5001";
   private status: "connecting" | "ready" | "disconnected" = "connecting";
 
   constructor() {

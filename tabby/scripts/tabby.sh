@@ -2,17 +2,17 @@
 set -e
 
 # Shared environment variables
-export LOGS_DIR="${LOGS_DIR:-/data/logs}"
-export DB_FILE="${DB_FILE:-/data/logs/duckdb/duck.db}"
-export CONFIG_FILE=${CONFIG_FILE:-/data/config/tabby.toml}
+export LOGS_DIR="${LOGS_DIR:-data/logs}"
+export DB_FILE="${DB_FILE:-data/logs/duckdb/duck.db}"
+export CONFIG_FILE=${CONFIG_FILE:-data/config/tabby.toml}
 
 # server
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
 export MODEL_BACKEND="${MODEL_BACKEND:-python}"
 
 # projects
-export GIT_REPOSITORIES_DIR="${REPOSITORIES_DIR:-/data/repositories}"
-export DATASET_DIR="${REPOSITORIES_DIR:-/data/dataset}"
+export GIT_REPOSITORIES_DIR="${REPOSITORIES_DIR:-data/repositories}"
+export DATASET_DIR="${REPOSITORIES_DIR:-data/dataset}"
 
 # dagu
 export DAGU_DAGS="tabby/tasks"

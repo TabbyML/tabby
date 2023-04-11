@@ -2,6 +2,7 @@ import time
 from typing import List
 
 import torch
+
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -19,12 +20,18 @@ class PythonModelService:
         if torch.cuda.is_available():
             device = torch.device("cuda")
             dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float32
+            print("Using CUDA, device:", device, "and dtype:", dtype)
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+            dtype = torch.float32  # Assumes Metal only supports float32 for now
+            print("Using Metal, device:", device, "and dtype:", dtype)
         else:
             if quantize:
                 raise ValueError("quantization on CPU is not implemented")
 
             device = torch.device("cpu")
             dtype = torch.float32
+            print("Using CPU, device:", device, "and dtype:", dtype)
 
         self.device = device
         self.tokenizer = AutoTokenizer.from_pretrained(

@@ -4,7 +4,7 @@ import { useRenderData } from "streamlit-component-lib-react-hooks"
 import React, { useRef, useEffect } from "react"
 import Editor, { useMonaco } from "@monaco-editor/react"
 
-let TabbyServerURL = "http://localhost:5000"
+let TabbyServerURL = "http://localhost:5001"
 
 export default function MonacoEditor() {
   const renderData = useRenderData()

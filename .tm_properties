@@ -1,0 +1,3 @@
+excludeDirectories = "{node_modules,.git}"
+excludeDirectoriesInFolderSearch = '{tmp,log,tabby_venv}'
+excludeInFileChooser = "{tmp,}"

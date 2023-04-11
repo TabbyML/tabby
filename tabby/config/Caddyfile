@@ -1,8 +1,8 @@
 {
-	http_port 5000
+	http_port 5001
 }
 
-:5000 {
+:5001 {
 	reverse_proxy localhost:8081
 	reverse_proxy /_admin* localhost:8082
 }

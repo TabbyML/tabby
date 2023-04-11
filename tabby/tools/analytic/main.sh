@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-DB_FILE=${DB_FILE:-"/data/logs/duckdb/duck.db"}
-LOGS_DIR=${LOGS_DIR:-"/data/logs"}
+DB_FILE=${DB_FILE:-"data/logs/duckdb/duck.db"}
+LOGS_DIR=${LOGS_DIR:-"data/logs"}
 TABBY_SERVER_LOGS="${LOGS_DIR}/events/tabby-server/*.json"
 
 # Init schema
