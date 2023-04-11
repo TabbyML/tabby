@@ -1,5 +1,4 @@
 import streamlit as st
-from streamlit_js_eval import get_page_location
 from utils.service_info import ServiceInfo
 from utils.streamlit import set_page_config
 
@@ -18,7 +17,6 @@ def make_badge_markdown(x: ServiceInfo):
 set_page_config(page_title="Home")
 
 badges = " ".join(map(make_badge_markdown, SERVICES))
-server_url = get_page_location()["origin"]
 st.markdown(
     """
 ## Tabby [![github star](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](http://github.com/TabbyML/tabby)
@@ -28,11 +26,6 @@ st.markdown(
 
 **Congrats, your server is live!**
 
-Below is the URL for your API endpoint.
-```
-{server_url}
-```
-
 ### Clients
 
 * [Vim](https://github.com/TabbyML/tabby/tree/main/clients/vim)
@@ -40,7 +33,5 @@ Below is the URL for your API endpoint.
 
 """.replace(
         "{badges}", badges
-    ).replace(
-        "{server_url}", server_url
     )
 )

@@ -22,7 +22,6 @@ peft = {git = "https://github.com/huggingface/peft.git", rev = "v0.2.0"}
 duckdb = "^0.7.1"
 torch = "^2.0.0"
 bitsandbytes = "^0.37.2"
-streamlit-js-eval = "^0.1.5"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.1.1"
