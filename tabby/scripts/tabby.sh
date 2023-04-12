@@ -1,25 +1,26 @@
 #!/bin/bash
 set -e
 
-# Shared environment variables
-export LOGS_DIR="${LOGS_DIR:-/data/logs}"
-export DB_FILE="${DB_FILE:-/data/logs/duckdb/duck.db}"
-export CONFIG_FILE=${CONFIG_FILE:-/data/config/tabby.toml}
+# import flags
+SCRIPT_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+source "$SCRIPT_DIR/flags.sh"
 
-# server
+# INPUT ENVIRONMENT ARGS
+export DATA_DIR="${DATA_DIR:-/data}"
 export MODEL_NAME="${MODEL_NAME:-TabbyML/J-350M}"
 export MODEL_BACKEND="${MODEL_BACKEND:-python}"
 
+# Shared environment variables
+export LOGS_DIR="$DATA_DIR/logs"
+export DB_FILE="$LOGS_DIR/duckdb/duck.db"
+export CONFIG_FILE="$DATA_DIR/config/tabby.toml"
+
 # projects
-export GIT_REPOSITORIES_DIR="${REPOSITORIES_DIR:-/data/repositories}"
-export DATASET_DIR="${REPOSITORIES_DIR:-/data/dataset}"
+export GIT_REPOSITORIES_DIR="$DATA_DIR/repositories"
+export DATASET_DIR="$DATA_DIR/dataset"
 
 # dagu
 export DAGU_DAGS="tabby/tasks"
-
-# meilisearch
-export MEILI_DIR="${MEILI_DIR:-/data/meili}"
-export MEILI_ENV="${MEILI_ENV:-production}"
 
 init() {
 if [ ! -f $CONFIG_FILE ]; then
@@ -58,6 +59,17 @@ command=caddy run --config tabby/config/Caddyfile $CADDY_ARGS
 EOF
 }
 
+program:meilisearch() {
+local MEILI_DIR="$DATA_DIR/meili"
+
+if [[ ! -z ${FLAGS_enable_meilisearch} ]]; then
+cat <<EOF
+[program:meilisearch]
+command=meilisearch --http-addr 0.0.0.0:8084 --db-path ${MEILI_DIR}/data.ms --dump-dir ${MEILI_DIR}/dumps/
+EOF
+fi
+}
+
 supervisor() {
 # Create logs dir if not exists.
 mkdir -p ${LOGS_DIR}
@@ -82,12 +94,11 @@ command=dagu scheduler
 [program:dagu_server]
 command=dagu server --host 0.0.0.0 --port 8083
 
-[program:meilisearch]
-command=meilisearch --http-addr 0.0.0.0:8084 --db-path ${MEILI_DIR}/data.ms --dump-dir ${MEILI_DIR}/dumps/
-
 $(program:triton)
 
 $(program:caddy)
+
+$(program:meilisearch)
 EOF
 )
 }

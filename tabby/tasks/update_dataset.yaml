@@ -7,6 +7,7 @@ env:
   - GIT_REPOSITORIES_DIR: "$GIT_REPOSITORIES_DIR"
   - DATASET_DIR: "$DATASET_DIR"
   - HOME: "$HOME"
+  - FLAGS_enable_meilisearch: "$FLAGS_enable_meilisearch"
 steps:
   - name: update repositories
     dir: $APP_DIR
@@ -20,6 +21,9 @@ steps:
 
   - name: refresh index
     dir: $APP_DIR
+    preconditions:
+      - condition: "$FLAGS_enable_meilisearch"
+        expected: "1"
     depends:
       - generate dataset
     command: |
