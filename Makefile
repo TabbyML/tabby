@@ -24,3 +24,6 @@ smoke:
 
 loadtest:
 	k6 run tests/*.loadtest.js
+
+docgen:
+	poetry run python3 -m tabby.tools.docgen -o ./docs/openapi.json

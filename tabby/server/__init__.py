@@ -35,10 +35,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+DRY_RUN = os.environ.get("DRY_RUN", "0")
 MODEL_NAME = os.environ.get("MODEL_NAME")
 MODEL_BACKEND = os.environ.get("MODEL_BACKEND", "python")
 
-if MODEL_BACKEND == "triton":
+if DRY_RUN == "1":
+    model_backend = lambda *args: None
+elif MODEL_BACKEND == "triton":
     model_backend = TritonService(
         tokenizer_name=MODEL_NAME,
         host=os.environ.get("TRITON_HOST", "localhost"),
