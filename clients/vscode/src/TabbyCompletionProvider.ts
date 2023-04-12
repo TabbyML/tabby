@@ -10,14 +10,14 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { TabbyClient, TabbyCompletion, EventType } from "./TabbyClient";
+import { Language as SupportedLanguage, CompletionResponse, EventType, ChoiceEvent, ApiError } from "tabby-client";
+import { Tabby } from "./Tabby";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private uuid = Date.now();
   private latestTimestamp: number = 0;
 
-  private tabbyClient = TabbyClient.getInstance();
   // User Settings
   private enabled: boolean = true;
 
@@ -36,6 +36,16 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const emptyResponse = Promise.resolve([] as InlineCompletionItem[]);
     if (!this.enabled) {
       console.debug("Extension not enabled, skipping.");
+      return emptyResponse;
+    }
+
+    const languageId = document.languageId;
+    let language = SupportedLanguage.UNKNOWN;
+    if (Object.values(SupportedLanguage).map(x => x.toString()).includes(languageId)) {
+      language = languageId as SupportedLanguage;
+    }
+    if (language == SupportedLanguage.UNKNOWN) {
+      console.debug(`Unsupported language '${languageId}', skipping`);
       return emptyResponse;
     }
 
@@ -63,10 +73,15 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
         language: document.languageId
       }
     );
-    // Prompt is already nil-checked
-    const completion = await this.tabbyClient.getCompletion({
-      prompt: prompt as string,
-      language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
+
+    Tabby.getInstance().healthCheck();
+    const completion = await Tabby.getInstance().api.default.completionsV1CompletionsPost({
+      prompt: prompt as string, // Prompt is already nil-checked
+      language
+    }).catch((err: ApiError) => {
+      console.error(err);
+      Tabby.getInstance().healthCheck(true);
+      return null;
     });
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
@@ -88,33 +103,31 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     this.enabled = configuration.get("enabled", true);
   }
 
-  private getPrompt(document: TextDocument, position: Position): String | undefined {
+  private getPrompt(document: TextDocument, position: Position): string | undefined {
     const maxLines = 20;
     const firstLine = Math.max(position.line - maxLines, 0);
 
     return document.getText(new Range(firstLine, 0, position.line, position.character));
   }
 
-  private isNil(value: String | undefined | null): boolean {
+  private isNil(value: string | undefined | null): boolean {
     return value === undefined || value === null || value.length === 0;
   }
 
-  private toInlineCompletions(tabbyCompletion: TabbyCompletion | null, range: Range): InlineCompletionItem[] {
+  private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {
     return (
-      tabbyCompletion?.choices?.map(
-        (choice: any) =>
-          new InlineCompletionItem(choice.text, range, {
-            title: "Tabby: Emit Event",
-            command: "tabby.emitEvent",
-            arguments: [
-              {
-                type: EventType.InlineCompletionAccepted,
-                id: tabbyCompletion.id,
-                index: choice.index,
-              },
-            ],
-          })
-      ) || []
+      tabbyCompletion?.choices?.map((choice: any) => {
+        let event: ChoiceEvent = {
+          type: EventType.SELECT,
+          completion_id: tabbyCompletion.id,
+          choice_index: choice.index,
+        };
+        return new InlineCompletionItem(choice.text, range, {
+          title: "Tabby: Emit Event",
+          command: "tabby.emitEvent",
+          arguments: [event],
+        });
+      }) || []
     );
   }
 

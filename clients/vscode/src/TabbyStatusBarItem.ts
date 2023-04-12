@@ -1,5 +1,5 @@
 import { StatusBarAlignment, ThemeColor, window, workspace } from "vscode";
-import { TabbyClient } from "./TabbyClient";
+import { Tabby } from "./Tabby";
 
 const label = "Tabby";
 const iconLoading = "$(loading~spin)";
@@ -14,8 +14,7 @@ const backgroundColorWarning = new ThemeColor('statusBarItem.warningBackground')
 const item = window.createStatusBarItem(StatusBarAlignment.Right);
 export const tabbyStatusBarItem = item;
 
-const client = TabbyClient.getInstance();
-client.on("statusChanged", updateStatusBarItem);
+Tabby.getInstance().on("statusChanged", updateStatusBarItem);
 
 workspace.onDidChangeConfiguration((event) => {
   if (event.affectsConfiguration("tabby")) {
@@ -31,8 +30,7 @@ function updateStatusBarItem() {
   if (!enabled) {
     toDisabled();
   } else {
-    const status = client.status;
-    switch (status) {
+    switch (Tabby.getInstance().status) {
       case "connecting":
         toLoading();
         break;

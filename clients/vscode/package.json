@@ -90,6 +90,7 @@
     "assert": "^2.0.0",
     "axios": "^1.3.4",
     "events": "^3.3.0",
-    "process": "^0.11.10"
+    "process": "^0.11.10",
+    "tabby-client": "file:./../common"
   }
 }
