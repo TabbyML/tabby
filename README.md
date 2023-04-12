@@ -81,6 +81,15 @@ Tabby has opened a FastAPI server at [localhost:5000](https://localhost:5000), w
 * [VSCode Extension](./clients/vscode)
 * [VIM Extension](./clients/vim)
 
+## Using the tabby.toml File
+To configure your projects and repositories, update the `tabby.toml` in data folder, create a repositories, and clone your repositories there, then follow the template below:
+
+```toml
+[projects]
+  [projects.project_name]
+  git_url = "https://github.com/username/repo.git"
+```
+
 ## Development
 
 Go to `development` directory.
