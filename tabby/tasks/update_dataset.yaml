@@ -7,6 +7,7 @@ env:
   - GIT_REPOSITORIES_DIR: "$GIT_REPOSITORIES_DIR"
   - DATASET_DIR: "$DATASET_DIR"
   - HOME: "$HOME"
+  - FLAGS_enable_meilisearch: "$FLAGS_enable_meilisearch"
 steps:
   - name: update repositories
     dir: $APP_DIR
@@ -17,3 +18,14 @@ steps:
     command: python -m tabby.tools.build_dataset --project_dir=$GIT_REPOSITORIES_DIR --output_dir=$DATASET_DIR
     depends:
       - update repositories
+
+  - name: refresh index
+    dir: $APP_DIR
+    preconditions:
+      - condition: "$FLAGS_enable_meilisearch"
+        expected: "1"
+    depends:
+      - generate dataset
+    command: |
+      curl -X DELETE 'http://localhost:8084/indexes/dataset/documents'
+      curl -X POST 'http://localhost:8084/indexes/dataset/documents?primaryKey=id' -H 'Content-Type: application/x-ndjson' --data-binary @$DATASET_DIR/dumps.json

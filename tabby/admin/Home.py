@@ -1,13 +1,20 @@
+import os
+
 import streamlit as st
 from utils.service_info import ServiceInfo
 from utils.streamlit import set_page_config
 
 SERVICES = [
+    ServiceInfo(label="server", health_url="http://localhost:8081"),
     ServiceInfo(label="triton", health_url="http://localhost:8002/metrics"),
     ServiceInfo(label="vector", health_url="http://localhost:8686/health"),
     ServiceInfo(label="dagu", health_url="http://localhost:8083"),
-    ServiceInfo(label="server", health_url="http://localhost:8081"),
 ]
+
+if os.environ.get("FLAGS_enable_meilisearch", False):
+    SERVICES.append(
+        ServiceInfo(label="meilisearch", health_url="http://localhost:8084")
+    )
 
 
 def make_badge_markdown(x: ServiceInfo):
