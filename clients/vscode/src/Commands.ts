@@ -1,4 +1,5 @@
 import { ConfigurationTarget, workspace, window, commands } from "vscode";
+import { ChoiceEvent, ApiError } from "./generated";
 import { TabbyClient } from "./TabbyClient";
 
 const target = ConfigurationTarget.Global;
@@ -47,9 +48,14 @@ const openSettings: Command = {
 const tabbyClient = TabbyClient.getInstance();
 const emitEvent: Command = {
   command: "tabby.emitEvent",
-  callback: (event) => {
+  callback: (event: ChoiceEvent) => {
     console.debug("Emit Event: ", event);
-    tabbyClient.postEvent(event);
+    tabbyClient.api.default.eventsV1EventsPost(event).then(() => {
+      tabbyClient.changeStatus("ready");
+    }).catch((err: ApiError) => {
+      console.error(err);
+      tabbyClient.changeStatus("disconnected");
+    });
   },
 };
 
