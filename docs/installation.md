@@ -20,6 +20,10 @@ The Linux and Windows Python wheels support GPU execution. Install [CUDA](https:
 If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn).
 ```
 
+```{note}
+On Windows [the Visual C++ runtime](https://www.microsoft.com/en-US/download/details.aspx?id=48145) is required. It is installed in most of the systems, but if is not the case, you have to download it and install it.
+```
+
 ## Install with Docker
 
 Docker images can be downloaded from the [GitHub Container registry](https://github.com/OpenNMT/CTranslate2/pkgs/container/ctranslate2):
