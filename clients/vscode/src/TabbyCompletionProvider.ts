@@ -10,7 +10,7 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { Language as SupportedLanguage, CompletionResponse, EventType, ChoiceEvent, ApiError } from "./generated";
+import { CompletionResponse, EventType, ChoiceEvent, ApiError } from "./generated";
 import { TabbyClient } from "./TabbyClient";
 import { sleep } from "./utils";
 
@@ -37,16 +37,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const emptyResponse = Promise.resolve([] as InlineCompletionItem[]);
     if (!this.enabled) {
       console.debug("Extension not enabled, skipping.");
-      return emptyResponse;
-    }
-
-    const languageId = document.languageId;  // https://code.visualstudio.com/docs/languages/identifiers
-    let language = SupportedLanguage.UNKNOWN;
-    if (Object.values(SupportedLanguage).map(x => x.toString()).includes(languageId)) {
-      language = languageId as SupportedLanguage;
-    }
-    if (language == SupportedLanguage.UNKNOWN) {
-      console.debug(`Unsupported language '${languageId}', skipping`);
       return emptyResponse;
     }
 
@@ -77,7 +67,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
     const completion = await this.tabbyClient.api.default.completionsV1CompletionsPost({
       prompt: prompt as string,   // Prompt is already nil-checked
-      language
+      language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
     }).then((response: CompletionResponse) => {
       this.tabbyClient.changeStatus("ready");
       return response;
