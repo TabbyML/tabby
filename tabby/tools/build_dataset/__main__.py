@@ -84,6 +84,20 @@ def to_id(*args):
     return base64.urlsafe_b64encode(token.encode("utf-8")).decode("utf-8").rstrip("=")
 
 
+def basic_filters(line_max=100, line_mean=100, alpha_frac=0.25):
+    def fn(example):
+        """Filter files based on line length and % alphanumeric characters"""
+        if example["max_line_length"] > line_max:
+            return False
+        elif example["avg_line_length"] > line_mean:
+            return False
+        elif example["alphanum_fraction"] < alpha_frac:
+            return False
+        return True
+
+    return fn
+
+
 if __name__ == "__main__":
     valid_extensions = read_valid_extensions()
 
@@ -103,6 +117,7 @@ if __name__ == "__main__":
     )
 
     ds = Dataset.from_generator(dataset_iter(os.path.abspath(args.project_dir), files))
+    ds = ds.filter(basic_filters())
     ds.save_to_disk(args.output_dir)
     ds.to_json(os.path.join(args.output_dir, "dumps.json"))
 

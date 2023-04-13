@@ -42,6 +42,10 @@ def dataset_info():
     with col2:
         st.bar_chart(count_by_language(dataset))
 
+    df = pd.DataFrame(dataset)
+    del df["id"]
+    st.dataframe(df, use_container_width=True, height=600)
+
 
 def project_list():
     if len(projects) <= 0:
@@ -63,6 +67,6 @@ def project_list():
         st.write(f"Status: `{sha}`")
 
 
-dataset_info()
-st.write("---")
 project_list()
+st.write("---")
+dataset_info()
