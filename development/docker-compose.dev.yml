@@ -8,7 +8,6 @@ services:
       dockerfile: ./development/Dockerfile
       args:
         PYPI_INDEX_URL: https://mirrors.aliyun.com/pypi/simple
-        PYTHON_BUILD_MIRROR_URL: https://repo.huaweicloud.com/python
     environment:
       UVICORN_RELOAD: true
       VECTOR_WATCH_CONFIG: true

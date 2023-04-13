@@ -14,7 +14,6 @@ def setup_logging(logdir):
         pass
 
     # Remove default handler
-    logger.remove()
     logger.add(
         os.path.join(logdir, "events.{time}.log"),
         rotation="1 hours",
