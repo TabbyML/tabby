@@ -6,11 +6,11 @@ module.exports = {
   output: {
     filename: 'tabby.js',
     path: path.resolve(__dirname, 'dist'),
-    libraryTarget: 'commonjs2'
   },
   entry: './src/index.ts',
   resolve: {
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js'],
+    preferRelative: true,
   },
   module: {
     rules: [

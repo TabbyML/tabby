@@ -2,7 +2,8 @@
   "compilerOptions": {
     "module": "commonjs",
     "target": "ES2020",
-    "lib": ["ES2020"],
-    "sourceMap": true
+    "lib": ["ES2020", "dom"],
+    "sourceMap": true,
+    "allowSyntheticDefaultImports": true
   }
 }
