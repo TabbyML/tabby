@@ -43,7 +43,7 @@ class PythonModelService:
         )
 
     def generate(self, request: CompletionRequest) -> List[Choice]:
-        preset = LanguagePresets.get(data.language, None)
+        preset = LanguagePresets.get(request.language, None)
         if preset is None:
             return []
 
