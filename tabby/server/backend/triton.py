@@ -40,7 +40,9 @@ class TritonService:
         np_type = np.uint32
         model_name = "fastertransformer"
 
-        preset = LanguagePresets[data.language]
+        preset = LanguagePresets.get(data.language, None)
+        if preset is None:
+            return []
 
         if self.rewriter:
             prompt = self.rewriter(preset, data.prompt)

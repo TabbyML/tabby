@@ -18,7 +18,7 @@ class Language(str, Enum):
 
 
 class CompletionRequest(BaseModel):
-    language: Language = Field(
+    language: str = Field(
         example=Language.PYTHON,
         default=Language.UNKNOWN,
         description="Language for completion request",
@@ -48,7 +48,7 @@ class Event(BaseModel):
 
 class CompletionEvent(Event):
     id: str
-    language: Language
+    language: str
     prompt: str
     created: int
     choices: List[Choice]

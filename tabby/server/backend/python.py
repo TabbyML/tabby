@@ -43,7 +43,10 @@ class PythonModelService:
         )
 
     def generate(self, request: CompletionRequest) -> List[Choice]:
-        preset = LanguagePresets[request.language]
+        preset = LanguagePresets.get(data.language, None)
+        if preset is None:
+            return []
+
         input_ids = self.tokenizer.encode(request.prompt, return_tensors="pt").to(
             self.device
         )
