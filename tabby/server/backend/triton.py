@@ -8,6 +8,7 @@ from tritonclient.utils import InferenceServerException, np_to_triton_dtype
 
 from ..models import Choice, CompletionRequest, CompletionResponse
 from .language_presets import LanguagePresets
+from .prompt_rewriter import PromptRewriteFailed, PromptRewriter
 from .utils import random_completion_id, trim_with_stop_words
 
 
@@ -23,6 +24,7 @@ class TritonService:
         self.client = client_util.InferenceServerClient(
             url=f"{host}:{port}", verbose=verbose
         )
+        self.rewriter = PromptRewriter()
 
     def generate(self, data: CompletionRequest) -> List[Choice]:
         n = 1
@@ -31,7 +33,13 @@ class TritonService:
 
         preset = LanguagePresets[data.language]
 
-        prompt = data.prompt
+        try:
+            prompt = self.rewriter.rewrite(preset, data.prompt)
+        except PromptRewriteFailed:
+            prompt = data.prompt
+        except Exception as e:
+            raise e
+
         input_start_ids = np.expand_dims(self.tokenizer.encode(prompt), 0)
         input_start_ids = np.repeat(input_start_ids, n, axis=0).astype(np_type)
         prompt_len = input_start_ids.shape[1]
