@@ -39,6 +39,18 @@ if !exists('g:tabby_enabled')
   let g:tabby_enabled = v:true
 endif
 
+if !exists('g:tabby_filetype_to_languages')
+  " From: vim filetype https://github.com/vim/vim/blob/master/runtime/filetype.vim
+  " To: vscode language identifier https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers
+  " Not listed filetype will be used as language identifier directly.
+  let g:tabby_filetype_to_languages = {
+    \ "bash": "shellscript",
+    \ "cs": "csharp",
+    \ "objc": "objective-c",
+    \ "objcpp": "objective-cpp",
+    \ }
+endif
+
 function! tabby#Enable()
   let g:tabby_enabled = v:true
   if !tabby#Running()
@@ -158,15 +170,11 @@ function! s:GetCompletion(id)
     return
   endif
 
-  let l:language = s:GetLanguage()
-  if l:language == 'unknown'
-    return
-  endif
   call tabby#job#Send(s:tabby, #{
-    \ func: 'getCompletion',
+    \ func: 'api.default.completionsV1CompletionsPost',
     \ args: [#{
       \ prompt: s:GetPrompt(),
-      \ language: l:language,
+      \ language: s:GetLanguage(),
       \ }],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
@@ -181,11 +189,11 @@ function! s:PostEvent(event_type)
     return
   endif
   call tabby#job#Send(s:tabby, #{
-    \ func: 'postEvent',
+    \ func: 'api.default.eventsV1EventsPost',
     \ args: [#{
       \ type: a:event_type,
-      \ id: s:completion.id,
-      \ index: s:completion.choices[s:completion_index].index,
+      \ completion_id: s:completion.id,
+      \ choice_index: s:completion.choices[s:completion_index].index,
       \ }],
     \ })
 endfunction
@@ -248,14 +256,10 @@ endfunction
 
 function! s:GetLanguage()
   let filetype = getbufvar('%', '&filetype')
-  let languages = #{
-    \ javascript: 'javascript',
-    \ python: 'python',
-    \ }
-  if has_key(languages, filetype)
-    return languages[filetype]
+  if has_key(g:tabby_filetype_to_languages, filetype)
+    return g:tabby_filetype_to_languages[filetype]
   else
-    return 'unknown'
+    return filetype
   endif
 endfunction
 
