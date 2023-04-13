@@ -7,15 +7,11 @@ from loguru import logger
 from .language_presets import LanguagePreset
 
 FLAGS_enable_meilisearch = os.environ.get("FLAGS_enable_meilisearch", None)
-FLAGS_rewrite_prompt_with_search_snippet = os.environ.get(
-    "FLAGS_rewrite_prompt_with_search_snippet", None
-)
 
 
 class PromptRewriter:
     def __init__(self, meili_addr: str = "http://localhost:8084"):
-        if FLAGS_enable_meilisearch:
-            self.meili_client = meilisearch.Client(meili_addr)
+        self.meili_client = meilisearch.Client(meili_addr)
 
     def create_query(self, preset: LanguagePreset, prompt: str):
         # Remove all punctuations and create tokens.
@@ -33,9 +29,6 @@ class PromptRewriter:
             raise PromptRewriteFailed("Too few tokens extracted from prompt")
 
     def rewrite(self, preset: LanguagePreset, prompt: str) -> str:
-        if not (FLAGS_rewrite_prompt_with_search_snippet and FLAGS_enable_meilisearch):
-            raise PromptRewriteFailed("Feature not enabled")
-
         if preset.reserved_keywords is None:
             raise PromptRewriteFailed("Rewrite requires language keywords list")
 
@@ -69,6 +62,12 @@ class PromptRewriter:
 {prompt}"""
         logger.debug("prompt: {}", prompt)
         return prompt
+
+    def __call__(self, preset: LanguagePreset, prompt: str) -> str:
+        try:
+            return self.rewrite(preset, prompt)
+        except PromptRewriteFailed:
+            return prompt
 
 
 class PromptRewriteFailed(Exception):
