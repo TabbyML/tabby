@@ -29,7 +29,7 @@ jobs:
           remove-android: true
           remove-haskell: true
           remove-codeql: true
-          remove-docker-images: true
+          remove-docker-images: false
 
       - name: Checkout repository
         uses: actions/checkout@v3
