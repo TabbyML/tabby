@@ -58,6 +58,32 @@ docker run \
   tabbyml/tabby
 ```
 
+Or with `docker compose`
+```
+version: '3.3'
+services:
+  tabby:
+    image: tabbyml/tabby
+    restart: always
+    environment:
+      MODEL_NAME: TabbyML/J-350M
+      MODEL_BACKEND: triton
+    volumes:
+      - ./data:/data
+      - ./data/hf_cache:/home/app/.cache/huggingface
+    ports:
+     - "5000:5000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+           - driver: nvidia
+             count: all
+             capabilities: [ gpu ]
+     
+```
+
+
 You can then query the server using `/v1/completions` endpoint:
 ```bash
 curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
