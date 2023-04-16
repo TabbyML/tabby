@@ -31,11 +31,15 @@ const setSuggestionDelay: Command = {
       })
       .then((delay) => {
         if (delay) {
-          if(Number.parseInt(delay) !== null) {
+          if (Number.parseInt(delay) !== null) {
             console.debug("Set suggestion delay: ", Number.parseInt(delay));
-            configuration.update("suggestionDelay", Number.parseInt(delay), target, false);
-          }
-          else {
+            configuration.update(
+              "suggestionDelay",
+              Number.parseInt(delay),
+              target,
+              false
+            );
+          } else {
             console.debug("Set suggestion delay error. Wrong input.");
           }
         }
