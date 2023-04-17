@@ -144,6 +144,10 @@ namespace ctranslate2 {
       decoding_options.disable_sequences = vocabulary.to_ids(options.suppress_sequences);
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(vocabulary.unk_id());
+      if (options.callback)
+        decoding_options.callback = [&options, &vocabulary](DecodingStepResult step_result) {
+          options.callback(GenerationStepResult(step_result, vocabulary));
+        };
 
       std::vector<std::vector<size_t>> start_ids = vocabulary.to_ids(start_tokens);
       layers::DecoderState state = _decoder->initial_state();

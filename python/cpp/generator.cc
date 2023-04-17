@@ -33,7 +33,8 @@ namespace ctranslate2 {
                      bool return_alternatives,
                      float min_alternative_expansion_prob,
                      size_t sampling_topk,
-                     float sampling_temperature) {
+                     float sampling_temperature,
+                     std::function<void(GenerationStepResult)> callback) {
         if (tokens.empty())
           return {};
 
@@ -54,6 +55,7 @@ namespace ctranslate2 {
         options.return_alternatives = return_alternatives;
         options.include_prompt_in_result = include_prompt_in_result;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
+        options.callback = std::move(callback);
         if (suppress_sequences)
           options.suppress_sequences = suppress_sequences.value();
         if (end_token)
@@ -181,6 +183,7 @@ namespace ctranslate2 {
              py::arg("min_alternative_expansion_prob")=0,
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
+             py::arg("_callback")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
                  Generates from a batch of start tokens.

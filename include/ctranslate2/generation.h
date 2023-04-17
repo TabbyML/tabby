@@ -3,7 +3,12 @@
 #include <vector>
 #include <string>
 
+#include "decoding.h"
+#include "vocabulary.h"
+
 namespace ctranslate2 {
+
+  struct GenerationStepResult;
 
   struct GenerationOptions {
     // Beam size to use for beam search (set 1 to run greedy search).
@@ -51,6 +56,9 @@ namespace ctranslate2 {
 
     // Include the input tokens in the generation result.
     bool include_prompt_in_result = true;
+
+    // Function to call for each generated token in greedy search.
+    std::function<void(GenerationStepResult)> callback = nullptr;
   };
 
   struct GenerationResult {
@@ -64,6 +72,26 @@ namespace ctranslate2 {
 
     bool has_scores() const {
       return !scores.empty();
+    }
+  };
+
+  struct GenerationStepResult {
+    size_t step;
+    size_t batch_id;
+    size_t token_id;
+    std::string token;
+    std::optional<float> log_prob;
+    bool is_last;
+
+    GenerationStepResult() = default;
+    GenerationStepResult(const DecodingStepResult& result, const Vocabulary& vocabulary)
+      : step(result.step)
+      , batch_id(result.batch_id)
+      , token_id(result.token_id)
+      , token(vocabulary.to_token(result.token_id))
+      , log_prob(result.log_prob)
+      , is_last(result.is_last)
+    {
     }
   };
 

@@ -151,6 +151,37 @@ def test_iterable_translation():
         next(translator.translate_iterable(iter([])))
 
 
+@pytest.mark.parametrize("return_log_prob", [True, False])
+def test_token_streaming(return_log_prob):
+    source = ["آ", "ت", "ز", "م", "و", "ن"]
+    translator = _get_transliterator()
+
+    expected_result = translator.translate_batch([source], return_scores=True)[0]
+
+    step_results = translator.generate_tokens(source, return_log_prob=return_log_prob)
+    assert inspect.isgenerator(step_results)
+
+    tokens = []
+    cum_log_probs = 0
+
+    for step_result in step_results:
+        assert isinstance(step_result, ctranslate2.GenerationStepResult)
+
+        tokens.append(step_result.token)
+
+        if return_log_prob:
+            cum_log_probs += step_result.log_prob
+        else:
+            assert step_result.log_prob is None
+
+    assert tokens == expected_result.hypotheses[0] + ["</s>"]
+
+    if return_log_prob:
+        assert cum_log_probs / len(tokens) == pytest.approx(
+            expected_result.scores[0], abs=1e-5
+        )
+
+
 def test_file_translation(tmp_dir):
     input_path = str(tmp_dir.join("input.txt"))
     output_path = str(tmp_dir.join("output.txt"))

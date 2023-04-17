@@ -615,9 +615,12 @@ namespace ctranslate2 {
   }
 
 
-  GreedySearch::GreedySearch(const float length_penalty, const float coverage_penalty)
+  GreedySearch::GreedySearch(const float length_penalty,
+                             const float coverage_penalty,
+                             std::function<void(DecodingStepResult)> callback)
     : _length_penalty(length_penalty)
     , _coverage_penalty(coverage_penalty)
+    , _callback(std::move(callback))
   {
   }
 
@@ -760,6 +763,7 @@ namespace ctranslate2 {
         const size_t word_id = best_ids.at<int32_t>(i);
         const size_t batch_id = batch_offset[i];
         const dim_t prefix_length = prefix_ids ? prefix_ids->at(batch_id).size() : 0;
+        const float score = best_probs.scalar_at<float>({i, 0});
 
         if ((word_id != end_id || include_eos_in_hypotheses)
             && (return_prefix || step >= prefix_length)) {
@@ -771,10 +775,21 @@ namespace ctranslate2 {
         }
 
         if (return_scores)
-          results[batch_id].scores[0] += best_probs.scalar_at<float>({i, 0});
+          results[batch_id].scores[0] += score;
 
         const bool is_finished = ((word_id == end_id && step >= prefix_length)
                                   || (step + 1 == max_length));
+
+        if (_callback) {
+          DecodingStepResult step_result;
+          step_result.step = step;
+          step_result.batch_id = batch_id;
+          step_result.token_id = word_id;
+          step_result.is_last = is_finished;
+          if (return_scores)
+            step_result.log_prob = score;
+          _callback(std::move(step_result));
+        }
 
         if (is_finished) {
           finalize_result(results[batch_id],
@@ -886,6 +901,8 @@ namespace ctranslate2 {
             || options.min_alternative_expansion_prob > 1))
       throw std::invalid_argument("The minimum alternative expansion probability must be "
                                   "between 0 and 1");
+    if (options.callback && options.beam_size != 1)
+      throw std::invalid_argument("The beam size must be 1 to use the callback function");
   }
 
   static std::unique_ptr<const Sampler>
@@ -899,7 +916,9 @@ namespace ctranslate2 {
   static std::unique_ptr<const SearchStrategy>
   make_search_strategy(const DecodingOptions& options) {
     if (options.beam_size == 1 && options.prefix_bias_beta == 0)
-      return std::make_unique<GreedySearch>(options.length_penalty, options.coverage_penalty);
+      return std::make_unique<GreedySearch>(options.length_penalty,
+                                            options.coverage_penalty,
+                                            options.callback);
     else
       return std::make_unique<BeamSearch>(options.beam_size,
                                           options.length_penalty,

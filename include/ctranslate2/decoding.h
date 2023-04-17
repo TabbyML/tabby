@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <optional>
+
 #include "ctranslate2/decoding_utils.h"
 #include "ctranslate2/devices.h"
 #include "ctranslate2/layers/decoder.h"
@@ -12,6 +15,14 @@ namespace ctranslate2 {
     std::vector<std::vector<size_t>> hypotheses;
     std::vector<float> scores;
     std::vector<std::vector<std::vector<float>>> attention;
+  };
+
+  struct DecodingStepResult {
+    size_t step;
+    size_t batch_id;
+    size_t token_id;
+    std::optional<float> log_prob;
+    bool is_last = false;
   };
 
 
@@ -91,7 +102,9 @@ namespace ctranslate2 {
   class GreedySearch : public SearchStrategy {
   public:
     // Penalties are only applied to return scores consistent with the beam search.
-    GreedySearch(const float length_penalty = 0, const float coverage_penalty = 0);
+    GreedySearch(const float length_penalty = 0,
+                 const float coverage_penalty = 0,
+                 std::function<void(DecodingStepResult)> callback = nullptr);
 
     std::vector<DecodingResult>
     search(layers::Decoder& decoder,
@@ -113,6 +126,7 @@ namespace ctranslate2 {
   private:
     const float _length_penalty;
     const float _coverage_penalty;
+    const std::function<void(DecodingStepResult)> _callback;
   };
 
 
@@ -140,6 +154,7 @@ namespace ctranslate2 {
     std::vector<size_t> disable_ids_begin;
     std::vector<std::vector<size_t>> disable_sequences;
     std::vector<std::shared_ptr<LogitsProcessor>> logits_processors;
+    std::function<void(DecodingStepResult)> callback = nullptr;
   };
 
   std::vector<DecodingResult>

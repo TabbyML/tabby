@@ -58,6 +58,11 @@ namespace ctranslate2 {
         _pool = std::make_unique<T>(_model_loader, _pool_config);
       }
 
+      ~ReplicaPoolHelper() {
+        pybind11::gil_scoped_release nogil;
+        _pool.reset();
+      }
+
       std::string device() const {
         return device_to_str(_model_loader.device);
       }

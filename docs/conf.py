@@ -50,6 +50,12 @@ def fix_pybind11_signatures(
             arguments.pop(0)
         return "(%s)" % ", ".join(arguments)
 
+    def _remove_private(signature):
+        index = signature.find(", _")
+        if index > 0:
+            signature = signature[:index] + ")"
+        return signature
+
     def _reformat_typehints(content):
         return content.replace(
             "ctranslate2._ext.",
@@ -58,6 +64,7 @@ def fix_pybind11_signatures(
 
     if signature is not None:
         signature = _remove_self(signature)
+        signature = _remove_private(signature)
         signature = _reformat_typehints(signature)
 
     if return_annotation is not None:

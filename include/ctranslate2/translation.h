@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "generation.h"
+
 namespace ctranslate2 {
 
   struct TranslationOptions {
@@ -70,6 +72,9 @@ namespace ctranslate2 {
 
     // Replace unknown target tokens by the original source token with the highest attention.
     bool replace_unknowns = false;
+
+    // Function to call for each generated token in greedy search.
+    std::function<void(GenerationStepResult)> callback = nullptr;
   };
 
   struct TranslationResult {

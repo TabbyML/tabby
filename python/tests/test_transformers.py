@@ -1,3 +1,4 @@
+import inspect
 import json
 import os
 import shutil
@@ -402,6 +403,53 @@ class TestGeneration:
         )
 
         assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-4)
+
+    @test_utils.only_on_linux
+    @pytest.mark.parametrize("return_log_prob", [True, False])
+    def test_transformers_generator_token_streaming(self, tmp_dir, return_log_prob):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
+
+        max_length = 20
+        prompt = "Ċ The Ġfirst Ġtime ĠI".split()
+
+        expected_result = generator.generate_batch(
+            [prompt],
+            max_length=max_length,
+            return_scores=True,
+            include_prompt_in_result=False,
+        )[0]
+
+        step_results = generator.generate_tokens(
+            prompt, max_length=max_length, return_log_prob=return_log_prob
+        )
+
+        assert inspect.isgenerator(step_results)
+
+        tokens = []
+        ids = []
+        cum_log_probs = 0
+
+        for step_result in step_results:
+            assert isinstance(step_result, ctranslate2.GenerationStepResult)
+
+            tokens.append(step_result.token)
+            ids.append(step_result.token_id)
+
+            if return_log_prob:
+                cum_log_probs += step_result.log_prob
+            else:
+                assert step_result.log_prob is None
+
+        assert tokens == expected_result.sequences[0]
+        assert ids == expected_result.sequences_ids[0]
+
+        if return_log_prob:
+            assert cum_log_probs / len(ids) == pytest.approx(
+                expected_result.scores[0], abs=1e-5
+            )
 
 
 class TestWhisper:

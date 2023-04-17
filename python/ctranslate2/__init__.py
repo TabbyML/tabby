@@ -24,6 +24,7 @@ try:
         AsyncTranslationResult,
         ExecutionStats,
         GenerationResult,
+        GenerationStepResult,
         Generator,
         ScoringResult,
         StorageView,
