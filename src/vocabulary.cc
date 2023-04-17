@@ -32,10 +32,13 @@ namespace ctranslate2 {
     return *_id_to_token[id];
   }
 
-  size_t Vocabulary::to_id(const std::string& token) const {
+  size_t Vocabulary::to_id(const std::string& token, const bool allow_unk) const {
     auto it = _token_to_id.find(token);
-    if (it == _token_to_id.end())
+    if (it == _token_to_id.end()) {
+      if (!allow_unk && token != _info.unk_token)
+        throw std::invalid_argument("Token " + token + " is not in the vocabulary");
       return _token_to_id.at(_info.unk_token);
+    }
     return it->second;
   }
 
@@ -74,7 +77,8 @@ namespace ctranslate2 {
   Vocabulary::to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
                      const size_t max_length,
                      const std::string* prefix,
-                     const std::string* suffix) const {
+                     const std::string* suffix,
+                     const bool allow_unk) const {
     std::vector<std::vector<size_t>> batch_ids;
     batch_ids.reserve(batch_tokens.size());
 
@@ -85,11 +89,11 @@ namespace ctranslate2 {
       ids.reserve(tokens.size() + length_increment);
 
       if (prefix)
-        ids.emplace_back(to_id(*prefix));
+        ids.emplace_back(to_id(*prefix, allow_unk));
       for (const auto& token : tokens)
-        ids.emplace_back(to_id(token));
+        ids.emplace_back(to_id(token, allow_unk));
       if (suffix)
-        ids.emplace_back(to_id(*suffix));
+        ids.emplace_back(to_id(*suffix, allow_unk));
 
       if (max_length > 0 && ids.size() > max_length) {
         // Keep EOS and optional lang code in the last positions.

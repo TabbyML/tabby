@@ -354,7 +354,12 @@ namespace ctranslate2 {
       decoding_options.return_attention = options.return_attention || options.replace_unknowns;
       decoding_options.return_alternatives = options.return_alternatives;
       decoding_options.min_alternative_expansion_prob = options.min_alternative_expansion_prob;
-      decoding_options.disable_sequences = target_vocabulary.to_ids(options.suppress_sequences);
+      decoding_options.disable_sequences = target_vocabulary.to_ids(options.suppress_sequences,
+                                                                    /*max_length=*/0,
+                                                                    /*prefix=*/nullptr,
+                                                                    /*suffix=*/nullptr,
+                                                                    /*allow_unk=*/false);
+
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(target_vocabulary.unk_id());
       if (options.callback)
@@ -364,7 +369,7 @@ namespace ctranslate2 {
 
       const auto end_id = (options.end_token.empty()
                            ? target_vocabulary.eos_id()
-                           : target_vocabulary.to_id(options.end_token));
+                           : target_vocabulary.to_id(options.end_token, /*allow_unk=*/false));
 
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,

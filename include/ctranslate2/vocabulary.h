@@ -21,7 +21,7 @@ namespace ctranslate2 {
 
     bool contains(const std::string& token) const;
     const std::string& to_token(size_t id) const;
-    size_t to_id(const std::string& token) const;
+    size_t to_id(const std::string& token, const bool allow_unk = true) const;
     size_t size() const;
 
     // Helper methods to lookup a batch of tokens or ids.
@@ -36,7 +36,8 @@ namespace ctranslate2 {
     to_ids(const std::vector<std::vector<std::string>>& batch_tokens,
            const size_t max_length,
            const std::string* prefix,
-           const std::string* suffix) const;
+           const std::string* suffix,
+           const bool allow_unk = true) const;
 
     const std::string& unk_token() const {
       return _info.unk_token;
