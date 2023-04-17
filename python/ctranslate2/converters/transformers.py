@@ -46,6 +46,7 @@ class TransformersConverter(Converter):
         copy_files: Optional[List[str]] = None,
         load_as_float16: bool = False,
         revision: Optional[str] = None,
+        low_cpu_mem_usage: bool = False,
     ):
         """Initializes the converter.
 
@@ -61,12 +62,15 @@ class TransformersConverter(Converter):
           load_as_float16: Load the model weights as float16. More precisely, the model
             will be loaded with ``from_pretrained(..., torch_dtype=torch.float16)``.
           revision: Revision of the model to download from the Hugging Face Hub.
+          low_cpu_mem_usage: Enable the flag ``low_cpu_mem_usage`` when loading the model
+            with ``from_pretrained``.
         """
         self._model_name_or_path = model_name_or_path
         self._activation_scales = activation_scales
         self._copy_files = copy_files
         self._load_as_float16 = load_as_float16
         self._revision = revision
+        self._low_cpu_mem_usage = low_cpu_mem_usage
 
     def _load(self):
         import torch
@@ -87,13 +91,15 @@ class TransformersConverter(Converter):
             model_class = getattr(transformers, loader.architecture_name)
             tokenizer_class = transformers.AutoTokenizer
 
-            torch_dtype = torch.float16 if self._load_as_float16 else None
-            model = self.load_model(
-                model_class,
-                self._model_name_or_path,
-                torch_dtype=torch_dtype,
-                revision=self._revision,
-            )
+            kwargs = {}
+            if self._load_as_float16:
+                kwargs["torch_dtype"] = torch.float16
+            if self._revision:
+                kwargs["revision"] = self._revision
+            if self._low_cpu_mem_usage:
+                kwargs["low_cpu_mem_usage"] = self._low_cpu_mem_usage
+
+            model = self.load_model(model_class, self._model_name_or_path, **kwargs)
             tokenizer = self.load_tokenizer(
                 tokenizer_class,
                 self._model_name_or_path,
@@ -917,6 +923,11 @@ def main():
         "--revision",
         help="Revision of the model to download from the Hugging Face Hub.",
     )
+    parser.add_argument(
+        "--low_cpu_mem_usage",
+        action="store_true",
+        help="Enable the flag low_cpu_mem_usage when loading the model with from_pretrained.",
+    )
 
     Converter.declare_arguments(parser)
     args = parser.parse_args()
@@ -926,6 +937,7 @@ def main():
         copy_files=args.copy_files,
         load_as_float16=args.quantization in ("float16", "int8_float16"),
         revision=args.revision,
+        low_cpu_mem_usage=args.low_cpu_mem_usage,
     )
     converter.convert_from_args(args)
 
