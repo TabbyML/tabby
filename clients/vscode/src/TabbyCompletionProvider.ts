@@ -10,13 +10,14 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { CompletionResponse, EventType, ChoiceEvent, ApiError } from "./generated";
+import { CompletionResponse, EventType, ChoiceEvent, ApiError, CancelablePromise, CancelError } from "./generated";
 import { TabbyClient } from "./TabbyClient";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private uuid = Date.now();
   private latestTimestamp: number = 0;
+  private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
   private tabbyClient = TabbyClient.getInstance();
   // User Settings
@@ -65,17 +66,25 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       }
     );
 
-    const completion = await this.tabbyClient.api.default.completionsV1CompletionsPost({
+    if (this.pendingCompletion) {
+      this.pendingCompletion.cancel();
+    }
+    this.pendingCompletion = this.tabbyClient.api.default.completionsV1CompletionsPost({
       prompt: prompt as string,   // Prompt is already nil-checked
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
-    }).then((response: CompletionResponse) => {
+    });
+
+    const completion = await this.pendingCompletion.then((response: CompletionResponse) => {
       this.tabbyClient.changeStatus("ready");
       return response;
+    }).catch((_: CancelError) => {
+      return null;
     }).catch((err: ApiError) => {
       console.error(err);
       this.tabbyClient.changeStatus("disconnected");
       return null;
     });
+    this.pendingCompletion = null;
 
     const hasSuffixParen = this.hasSuffixParen(document, position);
     const replaceRange = hasSuffixParen
