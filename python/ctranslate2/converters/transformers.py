@@ -924,7 +924,7 @@ def main():
         args.model,
         activation_scales=args.activation_scales,
         copy_files=args.copy_files,
-        load_as_float16=args.quantization == "float16",
+        load_as_float16=args.quantization in ("float16", "int8_float16"),
         revision=args.revision,
     )
     converter.convert_from_args(args)
