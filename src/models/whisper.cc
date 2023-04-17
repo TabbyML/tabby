@@ -770,20 +770,22 @@ namespace ctranslate2 {
               } else {  // cannot be normal text tokens
                 for (size_t i = 0; i < _eot_id; ++i)
                   disable_tokens.add(batch_id, i);
+                for (size_t i = _timestamp_begin_id; i < last_token; ++i)
+                  disable_tokens.add(batch_id, i);
                 check_timestamps_prob_for_batch.push_back(batch_id);
               }
             } else {
               check_timestamps_prob_for_batch.push_back(batch_id);
-            }
 
-            // Timestamps shouldn't decrease: forbid timestamp tokens smaller than the last.
-            for (dim_t t = step - 1; t >= sample_begin; --t) {
-              const size_t token = sequences.at<int32_t>({batch_id, t});
+              // Timestamps shouldn't decrease: forbid timestamp tokens smaller than the last.
+              for (dim_t t = step - 1; t >= sample_begin; --t) {
+                const size_t token = sequences.at<int32_t>({batch_id, t});
 
-              if (token >= _timestamp_begin_id) {
-                for (size_t i = _timestamp_begin_id; i < token; ++i)
-                  disable_tokens.add(batch_id, i);
-                break;
+                if (token >= _timestamp_begin_id) {
+                  for (size_t i = _timestamp_begin_id; i <= token; ++i)
+                    disable_tokens.add(batch_id, i);
+                  break;
+                }
               }
             }
           }
