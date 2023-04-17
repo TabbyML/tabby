@@ -20,6 +20,33 @@ const toogleEnabled: Command = {
   },
 };
 
+const setSuggestionDelay: Command = {
+  command: "tabby.setSuggestionDelay",
+  callback: () => {
+    const configuration = workspace.getConfiguration("tabby");
+    window
+      .showInputBox({
+        prompt: "Enter the suggestion delay in ms",
+        value: configuration.get("suggestionDelay", "150"),
+      })
+      .then((delay) => {
+        if (delay) {
+          if (Number.parseInt(delay) !== null) {
+            console.debug("Set suggestion delay: ", Number.parseInt(delay));
+            configuration.update(
+              "suggestionDelay",
+              Number.parseInt(delay),
+              target,
+              false
+            );
+          } else {
+            console.debug("Set suggestion delay error. Wrong input.");
+          }
+        }
+      });
+  },
+};
+
 const setServerUrl: Command = {
   command: "tabby.setServerUrl",
   callback: () => {
@@ -59,6 +86,6 @@ const emitEvent: Command = {
   },
 };
 
-export const tabbyCommands = [toogleEnabled, setServerUrl, openSettings, emitEvent].map((command) =>
+export const tabbyCommands = [toogleEnabled, setServerUrl, setSuggestionDelay, openSettings, emitEvent].map((command) =>
   commands.registerCommand(command.command, command.callback, command.thisArg)
 );

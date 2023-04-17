@@ -21,6 +21,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private tabbyClient = TabbyClient.getInstance();
   // User Settings
   private enabled: boolean = true;
+  private suggestionDelay: number = 150;
 
   constructor() {
     this.updateConfiguration();
@@ -49,8 +50,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const currentTimestamp = Date.now();
     this.latestTimestamp = currentTimestamp;
 
-    const suggestionDelay = 150;
-    await sleep(suggestionDelay);
+    await sleep(this.suggestionDelay);
     if (currentTimestamp < this.latestTimestamp) {
       return emptyResponse;
     }
@@ -94,6 +94,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("enabled", true);
+    this.suggestionDelay = configuration.get("suggestionDelay", 150);
   }
 
   private getPrompt(document: TextDocument, position: Position): string | undefined {
