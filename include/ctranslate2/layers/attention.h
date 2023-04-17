@@ -69,6 +69,7 @@ namespace ctranslate2 {
     class RotaryEmbeddings {
     public:
       RotaryEmbeddings(const dim_t dim = 0,
+                       const bool interleave = true,
                        const dim_t num_initial_positions = 2048,
                        const float base = 10000);
 
@@ -76,13 +77,14 @@ namespace ctranslate2 {
 
     private:
       void apply_impl(StorageView& x, const dim_t offset);
-      void rotate_every_two(StorageView& x, StorageView& y) const;
+      void rotate(StorageView& x, StorageView& y) const;
       void initialize(const dim_t num_positions,
                       const dim_t dim,
                       const Device device,
                       const DataType dtype);
 
       const dim_t _dim;
+      const bool _interleave;
       const dim_t _num_initial_positions;
       const float _base;
 

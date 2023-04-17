@@ -570,10 +570,16 @@ class GPTJLoader(ModelLoader):
             pre_norm=True,
             activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
             rotary_dim=model.config.rotary_dim,
+            rotary_interleave=False,
             gptj_block=True,
         )
 
-        self.set_decoder(spec.decoder, model.transformer)
+        self.set_decoder(
+            spec.decoder,
+            model.transformer,
+            model.config.rotary_dim,
+            model.config.n_head,
+        )
         self.set_linear(spec.decoder.projection, model.lm_head)
         return spec
 
@@ -585,7 +591,7 @@ class GPTJLoader(ModelLoader):
         config.eos_token = tokenizer.eos_token
         config.unk_token = tokenizer.unk_token
 
-    def set_decoder(self, spec, module):
+    def set_decoder(self, spec, module, rotary_dim, num_heads):
         spec.scale_embeddings = False
         self.set_embeddings(spec.embeddings, module.wte)
         self.set_layer_norm(spec.layer_norm, module.ln_f)
@@ -596,6 +602,10 @@ class GPTJLoader(ModelLoader):
             qw = layer.attn.q_proj.weight.numpy()
             kw = layer.attn.k_proj.weight.numpy()
             vw = layer.attn.v_proj.weight.numpy()
+
+            qw = utils.permute_for_sliced_rotary(qw, num_heads, rotary_dim)
+            kw = utils.permute_for_sliced_rotary(kw, num_heads, rotary_dim)
+
             layer_spec.self_attention.linear[0].weight = np.concatenate((qw, kw, vw))
             self.set_linear(layer_spec.self_attention.linear[1], layer.attn.out_proj)
 

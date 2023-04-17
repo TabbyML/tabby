@@ -24,6 +24,27 @@ def fuse_linear(spec, layers):
         )
 
 
+def permute_for_sliced_rotary(weight, num_heads, rotary_dim=None):
+    """Permutes the weight to use the sliced rotary implementation."""
+    if rotary_dim is not None:
+        weight = weight.reshape(num_heads, weight.shape[0] // num_heads, -1)
+
+        rotary_weight = weight[:, :rotary_dim]
+        rotary_weight = permute_for_sliced_rotary(
+            rotary_weight.reshape(num_heads * rotary_dim, -1), num_heads
+        ).reshape(num_heads, rotary_dim, -1)
+
+        weight[:, :rotary_dim] = rotary_weight
+
+        return weight.reshape(-1, weight.shape[-1])
+
+    return (
+        weight.reshape(num_heads, weight.shape[0] // num_heads // 2, 2, weight.shape[1])
+        .swapaxes(1, 2)
+        .reshape(weight.shape[0], weight.shape[1])
+    )
+
+
 def smooth_activation(layer_norm, linear, activation_scales):
     """Applies the activation smoothing technique described in
     https://github.com/mit-han-lab/smoothquant.

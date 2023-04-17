@@ -51,7 +51,7 @@ TEST(LayerTest, Alibi) {
 }
 
 TEST(LayerTest, RotaryEmbedding) {
-  StorageView x({2, 4, 1, 4}, std::vector<float>{
+  const StorageView input({2, 4, 1, 4}, std::vector<float>{
       0.8822692632675171, 0.9150039553642273, 0.38286375999450684, 0.9593056440353394,
       0.3904482126235962, 0.600895345211029, 0.2565724849700928, 0.7936413288116455,
       0.9407714605331421, 0.13318592309951782, 0.9345980882644653, 0.5935796499252319,
@@ -62,7 +62,7 @@ TEST(LayerTest, RotaryEmbedding) {
       0.5471915602684021, 0.006160438060760498, 0.951554536819458, 0.07526588439941406
     });
 
-  StorageView expected({2, 4, 1, 4}, std::vector<float>{
+  const StorageView expected({2, 4, 1, 4}, std::vector<float>{
       -1.1991642713546753, 0.421469122171402, 0.3636023700237274, 0.966770589351654,
       -0.708876371383667, 0.10497283935546875, 0.24064940214157104, 0.7986137270927429,
       -0.5126047134399414, 0.8000161051750183, 0.9225403666496277, 0.6121516823768616,
@@ -73,9 +73,30 @@ TEST(LayerTest, RotaryEmbedding) {
       -0.23331370949745178, 0.49499621987342834, 0.949859082698822, 0.0942806527018547
     });
 
-  layers::RotaryEmbeddings rotary_embeddings;
-  rotary_embeddings.apply(x, 2);
-  expect_storage_eq(x, expected, 1e-6);
+  const auto permute = [](const StorageView& in) {
+    StorageView x = in;
+    x.reshape({2, 4, 2, 2});
+
+    StorageView y;
+    ops::Transpose({0, 1, 3, 2})(x, y);
+
+    y.reshape({2, 4, 1, 4});
+    return y;
+  };
+
+  {
+    layers::RotaryEmbeddings rotary_embeddings;
+    StorageView x = input;
+    rotary_embeddings.apply(x, 2);
+    expect_storage_eq(x, expected, 1e-6);
+  }
+
+  {
+    layers::RotaryEmbeddings rotary_embeddings(0, false);
+    StorageView x = permute(input);
+    rotary_embeddings.apply(x, 2);
+    expect_storage_eq(x, permute(expected), 1e-6);
+  }
 }
 
 TEST(LayerTest, Padder) {

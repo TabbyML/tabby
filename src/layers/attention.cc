@@ -333,7 +333,9 @@ namespace ctranslate2 {
       const dim_t rotary_dim = model.get_attribute_with_default<int32_t>(scope + "/rotary_dim", -1);
       if (rotary_dim < 0)
         return nullptr;
-      return std::make_unique<RotaryEmbeddings>(rotary_dim);
+
+      const bool interleave = model.get_flag_with_default(scope + "/rotary_interleave", true);
+      return std::make_unique<RotaryEmbeddings>(rotary_dim, interleave);
     }
 
 
@@ -508,9 +510,11 @@ namespace ctranslate2 {
     }
 
     RotaryEmbeddings::RotaryEmbeddings(const dim_t dim,
+                                       const bool interleave,
                                        const dim_t num_initial_positions,
                                        const float base)
       : _dim(dim)
+      , _interleave(interleave)
       , _num_initial_positions(num_initial_positions)
       , _base(base)
     {
@@ -545,7 +549,7 @@ namespace ctranslate2 {
       }
 
       StorageView x_rot(dtype, device);
-      rotate_every_two(x, x_rot);
+      rotate(x, x_rot);
 
       apply_signal(x, _cos, offset);
       apply_signal(x_rot, _sin, offset);
@@ -553,15 +557,17 @@ namespace ctranslate2 {
       ops::Add()(x, x_rot, x);
     }
 
-    void RotaryEmbeddings::rotate_every_two(StorageView& x, StorageView& y) const {
+    void RotaryEmbeddings::rotate(StorageView& x, StorageView& y) const {
       const Device device = x.device();
       const DataType dtype = x.dtype();
       const Shape original_shape = x.shape();
 
-      Shape new_shape = original_shape;
-      new_shape.push_back(2);
-      new_shape[new_shape.size() - 2] /= 2;
-      x.reshape(new_shape);
+      if (_interleave) {
+        Shape new_shape = original_shape;
+        new_shape.push_back(2);
+        new_shape[new_shape.size() - 2] /= 2;
+        x.reshape(new_shape);
+      }
 
       StorageView x1(dtype, device);
       StorageView x2(dtype, device);
@@ -573,8 +579,10 @@ namespace ctranslate2 {
 
       ops::Concat(-1)({&x2, &x1}, y);
 
-      y.reshape(original_shape);
-      x.reshape(original_shape);
+      if (_interleave) {
+        y.reshape(original_shape);
+        x.reshape(original_shape);
+      }
     }
 
     void RotaryEmbeddings::initialize(const dim_t num_positions,
@@ -592,12 +600,14 @@ namespace ctranslate2 {
       StorageView freqs;
       ops::MatMul()(t, inv_freq, freqs);
 
-      freqs.expand_dims(-1);
+      if (_interleave)
+        freqs.expand_dims(-1);
 
       StorageView emb;
       ops::Concat(-1)({&freqs, &freqs}, emb);
 
-      emb.reshape({num_positions, dim});
+      if (_interleave)
+        emb.reshape({num_positions, dim});
 
       StorageView sin_tmp;
       ops::Sin()(emb, sin_tmp);
