@@ -24,6 +24,9 @@ namespace ctranslate2 {
       const dim_t batch_size = input.size() / depth;
       const dim_t rank = _width / 2;
 
+      if (depth <= rank)
+        return;
+
       const auto* src = input.data<float>();
       auto* dst = output.data<float>();
 

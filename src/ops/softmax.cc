@@ -26,8 +26,16 @@ namespace ctranslate2 {
     }
 
     void SoftMax::operator()(const StorageView& x, const StorageView* lengths, StorageView& y) const {
+      PROFILE(_log ? "LogSoftMax" : "SoftMax");
+      y.resize_as(x);
+
+      const dim_t depth = x.dim(-1);
+
+      if (depth == 0)
+        return;
+
       if (lengths) {
-        const dim_t batch_size = x.size() / x.dim(-1);
+        const dim_t batch_size = x.size() / depth;
         if (lengths->size() != batch_size)
           throw std::invalid_argument("Length mask has size "
                                       + std::to_string(lengths->size())
@@ -35,8 +43,6 @@ namespace ctranslate2 {
                                       + std::to_string(batch_size));
       }
 
-      PROFILE(_log ? "LogSoftMax" : "SoftMax");
-      y.resize_as(x);
       switch (x.dtype()) {
       case DataType::FLOAT32: {
         DEVICE_DISPATCH(x.device(), (compute<D, float>(x, lengths, y)));

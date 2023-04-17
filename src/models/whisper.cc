@@ -407,9 +407,9 @@ namespace ctranslate2 {
         const dim_t text_length = text_tokens[b].size();
         const dim_t sot_length = start_sequence.size();
 
-        const StorageView matrix(
-          Shape{text_length + 1, weights.dim(2)},
-          weights.index<float>({b, sot_length, 0}));
+        StorageView matrix(Shape{text_length + 1, weights.dim(2)});
+        if (weights)
+          matrix.view(weights.index<float>({b, sot_length, 0}), matrix.shape());
 
         alignments.emplace_back(negative_dtw(matrix));
       }
