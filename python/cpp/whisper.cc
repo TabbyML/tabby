@@ -78,12 +78,20 @@ namespace ctranslate2 {
       align(const StorageView& features,
             Ids start_sequence,
             BatchIds text_tokens,
-            size_t num_frames,
+            const std::variant<size_t, std::vector<size_t>>& num_frames,
             size_t median_filter_width) {
+        const size_t batch_size = text_tokens.size();
+
+        std::vector<size_t> batch_num_frames;
+        if (num_frames.index() == 0)
+          batch_num_frames.resize(batch_size, std::get<size_t>(num_frames));
+        else
+          batch_num_frames = std::get<std::vector<size_t>>(num_frames);
+
         auto futures = _pool->align(features,
                                     std::move(start_sequence),
                                     std::move(text_tokens),
-                                    num_frames,
+                                    std::move(batch_num_frames),
                                     median_filter_width);
         return wait_on_futures(std::move(futures));
       }

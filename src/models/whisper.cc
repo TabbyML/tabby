@@ -367,13 +367,71 @@ namespace ctranslate2 {
       return final_results;
     }
 
+    static void remove_padding(StorageView& x, dim_t axis, dim_t size) {
+      const dim_t max_size = x.dim(axis);
+
+      if (size < max_size) {
+        StorageView content(x.dtype(), x.device());
+        StorageView padding(x.dtype(), x.device());
+
+        const ops::Split split_op(axis, {size, max_size - size});
+        split_op(x, content, padding);
+
+        x = std::move(content);
+      }
+    }
+
+    static std::vector<std::vector<std::pair<dim_t, dim_t>>>
+    compute_alignments(StorageView& attention_probs,
+                       const std::vector<size_t>& start_sequence,
+                       const std::vector<std::vector<size_t>>& text_tokens,
+                       const dim_t median_filter_width) {
+      const ops::MedianFilter median_filter_op(median_filter_width);
+      const dim_t batch_size = attention_probs.dim(0);
+
+      // The remaining operations are not implemented on GPU, so move back to CPU.
+      attention_probs.move_to(Device::CPU, DataType::FLOAT32);
+
+      ops::LayerNorm(-2, 0)(attention_probs);
+
+      StorageView median_filter;
+      median_filter_op(attention_probs, median_filter);
+
+      StorageView weights;
+      ops::Mean(1)(median_filter, weights);
+
+      std::vector<std::vector<std::pair<dim_t, dim_t>>> alignments;
+      alignments.reserve(batch_size);
+
+      for (dim_t b = 0; b < batch_size; ++b) {
+        const dim_t text_length = text_tokens[b].size();
+        const dim_t sot_length = start_sequence.size();
+
+        const StorageView matrix(
+          Shape{text_length + 1, weights.dim(2)},
+          weights.index<float>({b, sot_length, 0}));
+
+        alignments.emplace_back(negative_dtw(matrix));
+      }
+
+      return alignments;
+    }
+
     std::vector<WhisperAlignmentResult>
     WhisperReplica::align(StorageView features,
                           const std::vector<size_t>& start_sequence,
                           const std::vector<std::vector<size_t>>& text_tokens,
-                          dim_t num_frames,
+                          std::vector<size_t> num_frames,
                           dim_t median_filter_width) {
       PROFILE("WhisperReplica::align");
+
+      const dim_t batch_size = text_tokens.size();
+
+      if (batch_size == 0)
+        return {};
+
+      if (num_frames.size() != size_t(batch_size))
+        throw std::invalid_argument("Invalid batch size for argument num_frames");
 
       const auto alignment_heads = _model->config.find("alignment_heads");
       if (alignment_heads == _model->config.end())
@@ -384,8 +442,6 @@ namespace ctranslate2 {
                                  "of ctranslate2.");
 
       _decoder->set_alignment_heads(alignment_heads->get<std::vector<std::pair<dim_t, dim_t>>>());
-
-      const dim_t batch_size = text_tokens.size();
 
       std::vector<std::vector<size_t>> input_tokens;
       std::vector<std::vector<size_t>> output_tokens;
@@ -441,36 +497,51 @@ namespace ctranslate2 {
         ops::Gather(/*axis=*/-1, /*batch_dims=*/2)(probs, output_ids, token_probs);
       }
 
-      StorageView weights;
+      bool variable_num_frames = false;
+      for (size_t& size : num_frames) {
+        size /= 2;  // The second convolution layer uses a stride of 2.
+        if (size != num_frames[0])
+          variable_num_frames = true;
+      }
 
-      {
-        // Process the attention probs.
-        const dim_t frames_dim = 3;
-        const dim_t total_frames = attention_weights.dim(frames_dim);
+      std::vector<std::vector<std::pair<dim_t, dim_t>>> alignments;
 
-        num_frames /= 2;  // The second convolution layer uses a stride of 2.
+      if (variable_num_frames) {
+        const StorageView frame_sizes({batch_size},
+                                      std::vector<int32_t>(num_frames.begin(), num_frames.end()),
+                                      device);
+        const StorageView frame_sizes_mask(
+          layers::MultiHeadAttention::prepare_length_mask(frame_sizes,
+                                                          attention_weights.dim(1),
+                                                          attention_weights.dim(2)));
 
-        if (num_frames < total_frames) {
-          StorageView content(dtype, device);
-          StorageView padding(dtype, device);
+        ops::SoftMax()(attention_weights, frame_sizes_mask, attention_weights);
 
-          const ops::Split split_op(frames_dim, {num_frames, total_frames - num_frames});
-          split_op(attention_weights, content, padding);
+        alignments.reserve(batch_size);
 
-          attention_weights = std::move(content);
+        for (dim_t b = 0; b < batch_size; ++b) {
+          // Retrieve attention probs for batch and remove padding.
+          StorageView batch_id({1}, int32_t(b), device);
+          StorageView attention_probs(dtype, device);
+          ops::Gather()(attention_weights, batch_id, attention_probs);
+
+          remove_padding(attention_probs, 3, num_frames[b]);
+          remove_padding(attention_probs, 2, input_tokens[b].size());
+
+          alignments.emplace_back(compute_alignments(attention_probs,
+                                                     start_sequence,
+                                                     {text_tokens[b]},
+                                                     median_filter_width)[0]);
         }
 
+      } else {
+        remove_padding(attention_weights, 3, num_frames[0]);
         ops::SoftMax()(attention_weights);
 
-        // The remaining operations are not implemented on GPU, so move back to CPU.
-        attention_weights.move_to(Device::CPU, DataType::FLOAT32);
-
-        ops::LayerNorm(-2, 0)(attention_weights);
-
-        const ops::MedianFilter median_filter_op(median_filter_width);
-        StorageView median_filter;
-        median_filter_op(attention_weights, median_filter);
-        ops::Mean(1)(median_filter, weights);
+        alignments = compute_alignments(attention_weights,
+                                        start_sequence,
+                                        text_tokens,
+                                        median_filter_width);
       }
 
       token_probs.move_to(Device::CPU, DataType::FLOAT32);
@@ -484,11 +555,7 @@ namespace ctranslate2 {
         const dim_t length = text_tokens[b].size();
         const dim_t offset = start_sequence.size();
 
-        StorageView matrix(
-          Shape{weights.dim(1) - offset - 1, weights.dim(2)},
-          weights.index<float>({b, offset, 0}));
-
-        result.alignments = negative_dtw(matrix);
+        result.alignments = std::move(alignments[b]);
 
         for (dim_t t = 0; t < length; ++t)
           result.text_token_probs.emplace_back(token_probs.at<float>({b, offset + t}));
@@ -622,20 +689,20 @@ namespace ctranslate2 {
     Whisper::align(const StorageView& features,
                    std::vector<size_t> start_sequence,
                    std::vector<std::vector<size_t>> text_tokens,
-                   dim_t num_frames,
+                   std::vector<size_t> num_frames,
                    dim_t median_filter_width) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperAlignmentResult>(
         [features = features.sync_copy(),
          start_sequence = std::move(start_sequence),
          text_tokens = std::move(text_tokens),
-         num_frames,
+         num_frames = std::move(num_frames),
          median_filter_width]
         (WhisperReplica& replica) {
           return replica.align(std::move(features),
                                start_sequence,
                                text_tokens,
-                               num_frames,
+                               std::move(num_frames),
                                median_filter_width);
         },
         batch_size);

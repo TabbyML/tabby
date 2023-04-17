@@ -606,46 +606,51 @@ class TestWhisper:
 
     @test_utils.only_on_linux
     @test_utils.on_available_devices
-    def test_transformers_whisper_align(self, tmp_dir, device):
+    @pytest.mark.parametrize(
+        "test_names", [["jfk"], ["jfk", "jfk"], ["mr_quilter", "jfk"]]
+    )
+    def test_transformers_whisper_align(self, tmp_dir, device, test_names):
         import transformers
 
-        test_case_path = os.path.join(
-            test_utils.get_data_dir(), "audio", "jfk_alignments.json"
-        )
+        test_cases = []
+        audio = []
 
-        with open(test_case_path) as test_case_file:
-            test_case = json.load(test_case_file)
+        test_dir = os.path.join(test_utils.get_data_dir(), "audio")
 
-        model_name = test_case["model"]
+        for name in test_names:
+            audio_path = os.path.join(test_dir, "%s.npy" % name)
+            audio.append(np.load(audio_path))
+
+            test_case_path = os.path.join(test_dir, "%s_alignments.json" % name)
+            with open(test_case_path) as test_case_file:
+                test_cases.append(json.load(test_case_file))
+
+        model_name = "openai/whisper-tiny.en"
         converter = ctranslate2.converters.TransformersConverter(model_name)
         output_dir = str(tmp_dir.join("ctranslate2_model"))
         output_dir = converter.convert(output_dir)
 
-        audio_path = os.path.join(test_utils.get_data_dir(), "audio", "jfk.npy")
-        audio = np.load(audio_path)
-
         processor = transformers.WhisperProcessor.from_pretrained(model_name)
-        inputs = processor(audio, sampling_rate=16000)
-        features = inputs.input_features[0]
-        features = np.expand_dims(features, 0)
-        features = ctranslate2.StorageView.from_array(features)
+        inputs = processor(audio, return_tensors="np", sampling_rate=16000)
+        features = ctranslate2.StorageView.from_array(inputs.input_features)
 
         model = ctranslate2.models.Whisper(output_dir, device=device)
 
-        result = model.align(
+        results = model.align(
             features,
-            test_case["start_sequence"],
-            [test_case["text_tokens"]],
-            1100,
-        )[0]
-
-        assert np.sum(result.text_token_probs) == pytest.approx(
-            test_case["expected_text_token_probs_sum"], abs=1e-3
+            [50257],
+            [test_case["text_tokens"] for test_case in test_cases],
+            [test_case["num_frames"] for test_case in test_cases],
         )
 
-        assert result.alignments == [
-            tuple(pair) for pair in test_case["expected_alignments"]
-        ]
+        for result, test_case in zip(results, test_cases):
+            assert np.sum(result.text_token_probs) == pytest.approx(
+                test_case["expected_text_token_probs_sum"], abs=1e-3
+            )
+
+            assert result.alignments == [
+                tuple(pair) for pair in test_case["expected_alignments"]
+            ]
 
     @test_utils.only_on_linux
     @test_utils.on_available_devices

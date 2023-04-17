@@ -1,8 +1,5 @@
 {
-  "model": "openai/whisper-tiny.en",
-  "start_sequence": [
-    50257
-  ],
+  "num_frames": 1100,
   "text_tokens": [
     843,
     523,

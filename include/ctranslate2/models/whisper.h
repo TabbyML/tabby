@@ -125,7 +125,7 @@ namespace ctranslate2 {
       align(StorageView features,
             const std::vector<size_t>& start_sequence,
             const std::vector<std::vector<size_t>>& text_tokens,
-            dim_t num_frames,
+            std::vector<size_t> num_frames,
             dim_t median_filter_width);
 
     private:
@@ -167,7 +167,7 @@ namespace ctranslate2 {
       align(const StorageView& features,
             std::vector<size_t> start_sequence,
             std::vector<std::vector<size_t>> text_tokens,
-            dim_t num_frames,
+            std::vector<size_t> num_frames,
             dim_t median_filter_width);
 
     };
