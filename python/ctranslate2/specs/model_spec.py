@@ -171,11 +171,11 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
 
             if is_quantizable:
                 if quantization == "int16":
+                    if value.dtype != np.float32:
+                        value = value.astype(np.float32)
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
                     scale = np.float32(2**10 / np.amax(np.absolute(value)))
-                    if value.dtype != scale.dtype:
-                        value = value.astype(scale.dtype)
                     value *= scale
                     value = np.rint(value)
                     value = np.clip(
@@ -183,11 +183,11 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                     )
                     value = value.astype(np.int16)
                 elif quantization in ("int8", "int8_float16"):
-                    amax = np.amax(np.absolute(value), axis=1).astype(np.float32)
+                    if value.dtype != np.float32:
+                        value = value.astype(np.float32)
+                    amax = np.amax(np.absolute(value), axis=1)
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
-                    if value.dtype != scale.dtype:
-                        value = value.astype(scale.dtype)
                     value *= np.expand_dims(scale, 1)
                     value = np.rint(value)
                     value = value.astype(np.int8)
