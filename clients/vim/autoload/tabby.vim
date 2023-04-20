@@ -176,6 +176,7 @@ function! s:GetCompletion(id)
       \ prompt: s:GetPrompt(),
       \ language: s:GetLanguage(),
       \ }],
+    \ cancelPendingRequest: v:true,
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
     \ })
