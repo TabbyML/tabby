@@ -1,0 +1,102 @@
+tabby.txt  Tabby
+					*Tabby* *tabby* *Tabby-doc*
+Tabby is a self-hosted AI coding assistant that can suggest multi-line code or
+full functions in real-time. For more information, please check out our
+{Website}{1} and {Github}{2}. If you encounter any problem or have any
+suggestion, please open an {issue}{3}.
+  {1}  https://www.tabbyml.com/
+  {2}  https://github.com/TabbyML/tabby
+  {3}  https://github.com/TabbyML/tabby/issues/new
+
+					*Tabby-compatibility* *Tabby-neovim*
+Compatibility~
+This plugin is compatible with VIM 9.0+ with `+job` and `+textprop` features
+enabled, or NeoVIM 0.6.0+.
+
+					*Tabby-commands*
+Commands~
+                                        *:Tabby*
+:Tabby			Same as |:Tabby-status|.
+					*:Tabby-enable*
+:Tabby	enable 		Start Tabby if not currently running in current VIM
+			process.
+					*:Tabby-disable*
+:Tabby	disable		Stop Tabby in current VIM process. To disable Tabby
+			globally, set |g:tabby_enable| to v:false.
+					*:Tabby-toggle*
+:Tabby  toggle  	Toggle enable or disable Tabby, same as use command
+			|:Tabby-enable| or |:Tabby-disable|.
+					*:Tabby-status*
+:Tabby  status          Check whether Tabby is enabled or not, and the
+			reachabilty to the Tabby server. Also report errors
+			if any compatibility problems exist.
+					*:Tabby-help*
+:Tabby  help [subject]  Search for help information in this document using
+			VIM command `:help`.
+
+					*Tabby-options*
+Options~
+					*g:tabby_enable*
+g:tabby_enable 		Controls Tabby whether auto-starts along with VIM or
+			not. Modifying this value do not start or stop Tabby
+			at the same time. You can use |:Tabby-enable| or
+			|:Tabby-disable| to start or stop Tabby manually in
+			current VIM process.
+>
+	let g:tabby_enable = v:true
+<
+					*g:tabby_server_url*
+g:tabby_server_url	Specify the Tabby server URL. You always need this
+			setting in your vimrc file, unless you are using the
+			default value: "http://localhost:5000".
+>
+	let g:tabby_server_url = 'http://localhost:5000'
+<
+					*g:tabby_suggestion_delay*
+g:tabby_suggestion_delay
+			Controls the delay after which the suggestion request
+			is sent to server. If you want suggestion to show up
+			more quickly or slowly, try to tune this value.
+			Default value is 150 milliseconds.
+>
+	let g:tabby_suggestion_delay = 150
+<
+					*g:tabby_filetype_to_languages*
+g:tabby_filetype_to_languages
+			This option is a dictionary that map from the VIM
+			`:filetype` to {VSCode-Language-Identifier}{1}. Not
+			listed filetype will be used as language identifier
+			directly.
+			A correct language identifier is required for the
+			Tabby server to generate suggestion. If your filetype
+			need converting to language identifier but not listed,
+			add it in this dictionary.
+			You can also map a filetype to "unknow" to prevent
+			Tabby giving suggestion for specified filetype.
+  {1}  https://code.visualstudio.com/docs/languages/identifiers
+>
+	let g:tabby_filetype_to_languages = {
+		\ "bash": "shellscript",
+		\ "cs": "csharp",
+		\ "objc": "objective-c",
+		\ "objcpp": "objective-cpp",
+		\ }
+<
+
+					*Tabby-keybindings* *Tabby-maps*
+Keybindings~
+
+<Tab>			Accept the current suggestion, fallback to normal
+			`<TAB>` if no suggestion is shown.
+
+<C-]>			Dismiss the current suggestion. Fallback to normal
+			`<C-]>` if no suggestion is shown.
+
+<M-]>			Show the next suggestion. There is a empty suggestion
+			after the last, before return to first one.
+
+<M-[>			Show the previous suggestion. There is a empty
+			suggestion before the first, before return to last
+			one.
+
+ vim:tw=78:ts=8:noet:ft=help:norl:
