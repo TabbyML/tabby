@@ -5,7 +5,7 @@ let g:loaded_tabby = 1
 
 call tabby#Start()
 
-command! -nargs=* Tabby exe tabby#Command(<q-args>)
+command! -nargs=* -complete=customlist,tabby#CompleteCommands Tabby call tabby#Command(<q-args>)
 
 imap  <script><silent><nowait><expr>  <Tab>  tabby#Accept(pumvisible() ? "\<C-N>" : "\t")
 imap  <script><silent><nowait><expr>  <C-]>  tabby#Dismiss("\<C-]>")

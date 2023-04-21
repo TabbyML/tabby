@@ -26,7 +26,47 @@ function! s:commands.toggle(...)
 endfunction
 
 function! s:commands.help(...)
-  help 'tabby'
+  let args = get(a:, 1, [])
+  if len(args) < 1
+    execute 'help Tabby'
+    return
+  endif
+  try
+    execute 'help Tabby-' . join(args, '-')
+    return
+  catch
+  endtry
+  try
+    execute 'help tabby_' . join(args, '_')
+    return
+  catch
+  endtry
+  execute 'help Tabby'
+endfunction
+
+function! tabby#CompleteCommands(arglead, cmd, pos)
+  let words = split(a:cmd[0:a:pos].'#', ' ')
+  if len(words) > 3
+    return []
+  endif
+  if len(words) == 3
+    if words[1] == 'help'
+      let candidates = ['compatibility', 'commands', 'options', 'keybindings']
+    else
+      return []
+    endif
+  else
+    let candidates = keys(s:commands)
+  endif
+
+  let end_index = len(a:arglead) - 1
+  if end_index < 0
+    return candidates
+  else
+    return filter(candidates, { idx, val ->
+      \ val[0:end_index] ==# a:arglead
+      \})
+  endif
 endfunction
 
 function! tabby#Command(args)

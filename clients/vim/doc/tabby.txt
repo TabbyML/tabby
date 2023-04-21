@@ -1,5 +1,5 @@
 tabby.txt  Tabby
-					*Tabby* *Tabby-doc*
+					*Tabby* *tabby* *Tabby-doc*
 Tabby is a self-hosted AI coding assistant that can suggest multi-line code or
 full functions in real-time. For more information, please check out our
 {Website}{1} and {Github}{2}. If you encounter any problem or have any
@@ -31,8 +31,8 @@ Commands~
 			reachabilty to the Tabby server. Also report errors
 			if any compatibility problems exist.
 					*:Tabby-help*
-:Tabby  help [...]      Search for help information in this document.
-			Same as `:help Tabby [...]`.
+:Tabby  help [subject]  Search for help information in this document using
+			VIM command `:help`.
 
 					*Tabby-options*
 Options~
