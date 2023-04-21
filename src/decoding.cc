@@ -22,7 +22,7 @@ namespace ctranslate2 {
                                         StorageView& sampled_ids,
                                         StorageView& sampled_scores,
                                         const std::vector<std::vector<size_t>>& prefix_ids,
-                                        const size_t end_id,
+                                        const std::vector<size_t>& end_ids,
                                         const std::vector<dim_t>& batch_offset,
                                         const dim_t beam_size = 1,
                                         StorageView* beam_origins = nullptr,
@@ -51,7 +51,7 @@ namespace ctranslate2 {
         // especially when k is large. This can produce incorrect and short predictions
         // that dominate others when no length normalization is used (see issue #277).
         // To mitigate this issue, we penalize </s> in secondary beams.
-        } else if (k > 0 && static_cast<size_t>(sampled_id) == end_id) {
+        } else if (k > 0 && is_eos(sampled_id, end_ids)) {
           new_id = 0;
           new_score = -1e10;
         }
@@ -347,7 +347,7 @@ namespace ctranslate2 {
                      layers::DecoderState& state,
                      const Sampler& sampler,
                      const std::vector<size_t>& start_ids,
-                     const size_t end_id,
+                     const std::vector<size_t>& end_ids,
                      const dim_t start_step,
                      const dim_t max_length,
                      const dim_t min_length,
@@ -422,9 +422,11 @@ namespace ctranslate2 {
 
       DisableTokens disable_tokens(logits);
 
-      // Prevent the generation of end_id until the minimum length is reached.
-      if (step < min_length)
-        disable_tokens.add(end_id);
+      // Prevent the generation of end_ids until the minimum length is reached.
+      if (step < min_length) {
+        for (const size_t end_id : end_ids)
+          disable_tokens.add(end_id);
+      }
 
       if (!logits_processors.empty()) {
         if (alive_seq)
@@ -474,7 +476,7 @@ namespace ctranslate2 {
                                     topk_ids,
                                     topk_scores,
                                     *prefix_ids,
-                                    end_id,
+                                    end_ids,
                                     batch_offset,
                                     _beam_size,
                                     &gather_indices,
@@ -516,11 +518,11 @@ namespace ctranslate2 {
           const dim_t prefix_length = use_hard_prefix ? prefix_ids->at(batch_id).size() : 0;
           dim_t next_beam_id = k;
 
-          if ((last_id == end_id && step >= prefix_length) || step + 1 == max_length) {
+          if ((is_eos(last_id, end_ids) && step >= prefix_length) || step + 1 == max_length) {
             if (k == 0)
               top_beam_finished[i] = true;
 
-            const bool ignore_last_token = last_id == end_id && !include_eos_in_hypotheses;
+            const bool ignore_last_token = is_eos(last_id, end_ids) && !include_eos_in_hypotheses;
             const dim_t start = return_prefix ? 0 : prefix_length;
             const dim_t end = ignore_last_token ? step : step + 1;
 
@@ -533,7 +535,7 @@ namespace ctranslate2 {
             // Move another active beam to this position.
             for (dim_t j = secondary_candidates_offset; j < num_candidates; ++j) {
               const auto candidate = topk_ids.at<int32_t>({i, j});
-              if (static_cast<size_t>(candidate) != end_id) {
+              if (!is_eos(candidate, end_ids)) {
                 next_beam_id = j;
                 secondary_candidates_offset = j + 1;
                 break;
@@ -629,7 +631,7 @@ namespace ctranslate2 {
                        layers::DecoderState& state,
                        const Sampler& sampler,
                        const std::vector<size_t>& start_ids,
-                       const size_t end_id,
+                       const std::vector<size_t>& end_ids,
                        const dim_t start_step,
                        const dim_t max_length,
                        const dim_t min_length,
@@ -659,7 +661,7 @@ namespace ctranslate2 {
                                                    state,
                                                    sampler,
                                                    repeat_start_ids,
-                                                   end_id,
+                                                   end_ids,
                                                    start_step,
                                                    max_length,
                                                    min_length,
@@ -726,8 +728,10 @@ namespace ctranslate2 {
       DisableTokens disable_tokens(logits);
 
       // Prevent the generation of end_id until the minimum length is reached.
-      if (step < min_length)
-        disable_tokens.add(end_id);
+      if (step < min_length) {
+        for (const size_t end_id : end_ids)
+          disable_tokens.add(end_id);
+      }
 
       for (const auto& logits_processor : logits_processors)
         logits_processor->apply(step, logits, disable_tokens, alive_seq, batch_offset, prefix_ids);
@@ -742,7 +746,7 @@ namespace ctranslate2 {
 
       sampler(log_probs, best_ids, best_probs);
       if (prefix_ids)
-        update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_id, batch_offset);
+        update_sample_with_prefix(step, best_ids, best_probs, *prefix_ids, end_ids, batch_offset);
       if (attention_step_device)
         attention_step.copy_from(attention_step_device.to_float32());
 
@@ -765,7 +769,7 @@ namespace ctranslate2 {
         const dim_t prefix_length = prefix_ids ? prefix_ids->at(batch_id).size() : 0;
         const float score = best_probs.scalar_at<float>({i, 0});
 
-        if ((word_id != end_id || include_eos_in_hypotheses)
+        if ((!is_eos(word_id, end_ids) || include_eos_in_hypotheses)
             && (return_prefix || step >= prefix_length)) {
           results[batch_id].hypotheses[0].push_back(word_id);
           if (attention_step) {
@@ -777,7 +781,7 @@ namespace ctranslate2 {
         if (return_scores)
           results[batch_id].scores[0] += score;
 
-        const bool is_finished = ((word_id == end_id && step >= prefix_length)
+        const bool is_finished = ((is_eos(word_id, end_ids) && step >= prefix_length)
                                   || (step + 1 == max_length));
 
         if (_callback) {
@@ -963,7 +967,7 @@ namespace ctranslate2 {
   decode_alternatives(layers::Decoder& decoder,
                       layers::DecoderState& state,
                       std::vector<size_t> start_tokens,
-                      const size_t end_id,
+                      const std::vector<size_t>& end_ids,
                       const DecodingOptions& options) {
     DecodingResult result;
     result.hypotheses.resize(options.num_hypotheses);
@@ -1027,7 +1031,7 @@ namespace ctranslate2 {
                                                   state,
                                                   BestSampler(),
                                                   start_ids,
-                                                  end_id,
+                                                  end_ids,
                                                   start_step,
                                                   /*max_length=*/1,
                                                   /*min_length=*/1,
@@ -1088,7 +1092,7 @@ namespace ctranslate2 {
                                                   state,
                                                   *sampler,
                                                   start_ids,
-                                                  end_id,
+                                                  end_ids,
                                                   start_step,
                                                   std::max(max_length - start_step, dim_t(0)),
                                                   std::max(min_length - start_step, dim_t(0)),
@@ -1135,7 +1139,7 @@ namespace ctranslate2 {
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
          std::vector<std::vector<size_t>> start_tokens,
-         size_t end_id,
+         std::vector<size_t> end_ids,
          DecodingOptions options) {
     validate_decoding_options(options);
     const size_t batch_size = start_tokens.size();
@@ -1146,7 +1150,7 @@ namespace ctranslate2 {
     std::vector<DecodingResult> results;
 
     if (decoder.output_layer_is_updated()) {
-      end_id = decoder.to_output_word_id(end_id);
+      end_ids = map_to_output_word_ids(decoder, end_ids);
 
       for (auto& ids : start_tokens)
         ids = map_to_output_word_ids(decoder, ids);
@@ -1164,7 +1168,7 @@ namespace ctranslate2 {
         results.emplace_back(decode_alternatives(decoder,
                                                  batch_state,
                                                  start_tokens[i],
-                                                 end_id,
+                                                 end_ids,
                                                  options));
       }
 
@@ -1180,7 +1184,7 @@ namespace ctranslate2 {
                                         state,
                                         *sampler,
                                         start_ids,
-                                        end_id,
+                                        end_ids,
                                         options.start_step,
                                         options.max_length,
                                         options.min_length,

@@ -25,7 +25,7 @@ namespace ctranslate2 {
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
                      const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
-                     const std::optional<std::string>& end_token,
+                     const std::optional<EndToken>& end_token,
                      size_t max_length,
                      size_t min_length,
                      bool include_prompt_in_result,
@@ -209,7 +209,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
-                   end_token: Stop the decoding on this token (defaults to the model EOS token).
+                   end_token: Stop the decoding on one of these tokens (defaults to the model EOS token).
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
                    include_prompt_in_result: Include the :obj:`start_tokens` in the result.

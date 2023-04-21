@@ -34,7 +34,7 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const size_t end_id,
+           const std::vector<size_t>& end_ids,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -60,7 +60,7 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const size_t end_id,
+           const std::vector<size_t>& end_ids,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -111,7 +111,7 @@ namespace ctranslate2 {
            layers::DecoderState& state,
            const Sampler& sampler,
            const std::vector<size_t>& start_ids,
-           const size_t end_id,
+           const std::vector<size_t>& end_id,
            const dim_t start_step,
            const dim_t max_length,
            const dim_t min_length,
@@ -161,7 +161,7 @@ namespace ctranslate2 {
   decode(layers::Decoder& decoder,
          layers::DecoderState& state,
          std::vector<std::vector<size_t>> start_tokens,
-         size_t end_id,
+         std::vector<size_t> end_ids,
          DecodingOptions options = DecodingOptions());
 
 }

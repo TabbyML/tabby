@@ -28,6 +28,10 @@ namespace ctranslate2 {
     merge_batch_beam(input);
   }
 
+  inline bool is_eos(const size_t id, const std::vector<size_t>& end_ids) {
+    return std::find(end_ids.begin(), end_ids.end(), id) != end_ids.end();
+  }
+
   // Helper class to disable tokens in the model output.
   class DisableTokens {
   public:

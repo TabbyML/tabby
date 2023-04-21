@@ -367,14 +367,11 @@ namespace ctranslate2 {
           options.callback(GenerationStepResult(step_result, target_vocabulary));
         };
 
-      const auto end_id = (options.end_token.empty()
-                           ? target_vocabulary.eos_id()
-                           : target_vocabulary.to_id(options.end_token, /*allow_unk=*/false));
-
+      const auto end_ids(std::visit(ResolveEndToken(target_vocabulary), options.end_token));
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    target_ids,
-                                                   end_id,
+                                                   end_ids,
                                                    decoding_options);
 
       // Convert generated ids to tokens.
@@ -386,7 +383,7 @@ namespace ctranslate2 {
 
         // Remove EOS token.
         for (size_t h = 0; h < result.hypotheses.size(); ++h) {
-          while (!result.hypotheses[h].empty() && result.hypotheses[h].back() == end_id) {
+          while (!result.hypotheses[h].empty() && is_eos(result.hypotheses[h].back(), end_ids)) {
             result.hypotheses[h].pop_back();
             if (!result.attention.empty())
               result.attention[h].pop_back();

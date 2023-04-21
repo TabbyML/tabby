@@ -180,13 +180,11 @@ namespace ctranslate2 {
         }
       }
 
-      const auto end_id = (options.end_token.empty()
-                           ? vocabulary.eos_id()
-                           : vocabulary.to_id(options.end_token, /*allow_unk=*/false));
+      const auto end_ids(std::visit(ResolveEndToken(vocabulary), options.end_token));
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    start_ids,
-                                                   end_id,
+                                                   end_ids,
                                                    decoding_options);
 
       std::vector<GenerationResult> final_results;
@@ -196,7 +194,7 @@ namespace ctranslate2 {
 
         // Remove EOS token.
         for (auto& sequence : result.hypotheses) {
-          while (!sequence.empty() && sequence.back() == end_id)
+          while (!sequence.empty() && is_eos(sequence.back(), end_ids))
             sequence.pop_back();
         }
 

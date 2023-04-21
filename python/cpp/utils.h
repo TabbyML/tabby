@@ -23,6 +23,7 @@ namespace ctranslate2 {
     using Ids = std::vector<size_t>;
     using BatchTokens = std::vector<Tokens>;
     using BatchIds = std::vector<Ids>;
+    using EndToken = std::variant<std::string, std::vector<std::string>, std::vector<size_t>>;
 
     class ComputeTypeResolver {
     private:

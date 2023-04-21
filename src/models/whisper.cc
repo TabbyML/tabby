@@ -342,7 +342,7 @@ namespace ctranslate2 {
       std::vector<DecodingResult> results = decode(*_decoder,
                                                    state,
                                                    start_tokens,
-                                                   _eot_id,
+                                                   {_eot_id},
                                                    decoding_options);
 
       if (no_speech_probs_processor)

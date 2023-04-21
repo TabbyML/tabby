@@ -72,7 +72,7 @@ namespace ctranslate2 {
                      size_t no_repeat_ngram_size,
                      bool disable_unk,
                      const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
-                     const std::optional<std::string>& end_token,
+                     const std::optional<EndToken>& end_token,
                      float prefix_bias_beta,
                      size_t max_input_length,
                      size_t max_decoding_length,
@@ -158,7 +158,7 @@ namespace ctranslate2 {
                       size_t no_repeat_ngram_size,
                       bool disable_unk,
                       const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
-                      const std::optional<std::string>& end_token,
+                      const std::optional<EndToken>& end_token,
                       float prefix_bias_beta,
                       size_t max_input_length,
                       size_t max_decoding_length,
@@ -466,7 +466,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
-                   end_token: Stop the decoding on this token (defaults to the model EOS token).
+                   end_token: Stop the decoding on one of these tokens (defaults to the model EOS token).
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.
@@ -545,7 +545,7 @@ namespace ctranslate2 {
                      (set 0 to disable).
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
-                   end_token: Stop the decoding on this token (defaults to the model EOS token).
+                   end_token: Stop the decoding on one of these tokens (defaults to the model EOS token).
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <variant>
 #include <vector>
 #include <string>
 
@@ -30,8 +31,8 @@ namespace ctranslate2 {
     // Disable the generation of some sequences of tokens.
     std::vector<std::vector<std::string>> suppress_sequences;
 
-    // Stop the decoding on this token (defaults to the model EOS token).
-    std::string end_token;
+    // Stop the decoding on one of these tokens (defaults to the model EOS token).
+    std::variant<std::string, std::vector<std::string>, std::vector<size_t>> end_token;
 
     // Length constraints.
     size_t max_length = 512;
@@ -92,6 +93,35 @@ namespace ctranslate2 {
       , log_prob(result.log_prob)
       , is_last(result.is_last)
     {
+    }
+  };
+
+  class ResolveEndToken {
+  private:
+    const Vocabulary& _vocabulary;
+
+  public:
+    ResolveEndToken(const Vocabulary& vocabulary)
+      : _vocabulary(vocabulary)
+    {
+    }
+
+    std::vector<size_t> operator()(const std::string& token) const {
+      if (token.empty())
+        return {_vocabulary.eos_id()};
+      return {_vocabulary.to_id(token, /*allow_unk=*/false)};
+    }
+
+    std::vector<size_t> operator()(const std::vector<std::string>& tokens) const {
+      std::vector<size_t> ids;
+      ids.reserve(tokens.size());
+      for (const auto& token : tokens)
+        ids.emplace_back(_vocabulary.to_id(token, /*allow_unk=*/false));
+      return ids;
+    }
+
+    std::vector<size_t> operator()(const std::vector<size_t>& tokens) const {
+      return tokens;
     }
   };
 
