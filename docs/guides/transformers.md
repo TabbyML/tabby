@@ -10,6 +10,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * NLLB
 * OpenAI GPT2
 * GPT-J
+* GPT-NeoX
 * OPT
 * Pegasus
 * T5
@@ -219,6 +220,35 @@ prompt = "In a shocking finding, scientists"
 tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
 
 results = generator.generate_batch([tokens], max_length=30, sampling_topk=10)
+
+text = tokenizer.decode(results[0].sequences_ids[0])
+print(text)
+```
+
+## GPT-NeoX
+
+The [GPT-NeoX](https://huggingface.co/docs/transformers/model_doc/gpt_neox) architecture was first introduced by EleutherAI with "GPT-NeoX-20B", a 20 billion parameter autoregressive language model trained on the Pile.
+
+```bash
+ct2-transformers-converter --model EleutherAI/gpt-neox-20b --quantization float16 --output_dir gpt_neox_ct2
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("gpt_neox_ct2")
+tokenizer = transformers.AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
+
+prompt = "GPTNeoX20B is a 20B-parameter autoregressive Transformer model developed by EleutherAI."
+tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch(
+    [tokens],
+    max_length=64,
+    sampling_topk=20,
+    sampling_temperature=0.9,
+)
 
 text = tokenizer.decode(results[0].sequences_ids[0])
 print(text)

@@ -100,11 +100,18 @@ class TransformersConverter(Converter):
                 kwargs["low_cpu_mem_usage"] = self._low_cpu_mem_usage
 
             model = self.load_model(model_class, self._model_name_or_path, **kwargs)
-            tokenizer = self.load_tokenizer(
-                tokenizer_class,
-                self._model_name_or_path,
-                use_fast=False,
-            )
+
+            try:
+                tokenizer = self.load_tokenizer(
+                    tokenizer_class,
+                    self._model_name_or_path,
+                    use_fast=False,
+                )
+            except ValueError:
+                tokenizer = self.load_tokenizer(
+                    tokenizer_class,
+                    self._model_name_or_path,
+                )
 
             spec = loader(model, tokenizer)
 
@@ -577,7 +584,8 @@ class GPTJLoader(ModelLoader):
             activation=_SUPPORTED_ACTIVATIONS[model.config.activation_function],
             rotary_dim=model.config.rotary_dim,
             rotary_interleave=False,
-            gptj_block=True,
+            parallel_residual=True,
+            shared_layer_norm=True,
         )
 
         self.set_decoder(
@@ -617,6 +625,86 @@ class GPTJLoader(ModelLoader):
 
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.fc_in)
             self.set_linear(layer_spec.ffn.linear_1, layer.mlp.fc_out)
+
+
+@register_loader("GPTNeoXConfig")
+class GPTNeoXLoader(ModelLoader):
+    @property
+    def architecture_name(self):
+        return "GPTNeoXForCausalLM"
+
+    def get_model_spec(self, model):
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
+            model.config.num_hidden_layers,
+            model.config.num_attention_heads,
+            pre_norm=True,
+            activation=_SUPPORTED_ACTIVATIONS[model.config.hidden_act],
+            rotary_dim=int(
+                model.config.rotary_pct
+                * (model.config.hidden_size // model.config.num_attention_heads)
+            ),
+            rotary_interleave=False,
+            parallel_residual=model.config.use_parallel_residual,
+            shared_layer_norm=False,
+        )
+
+        self.set_decoder(spec.decoder, model.gpt_neox, model.config.num_attention_heads)
+        self.set_linear(spec.decoder.projection, model.embed_out)
+        return spec
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+
+        extra_ids = model.config.vocab_size - len(tokens)
+        for i in range(extra_ids):
+            tokens.append("<extra_id_%d>" % i)
+
+        return tokens
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+
+    def set_decoder(self, spec, module, num_heads):
+        spec.scale_embeddings = False
+        self.set_embeddings(spec.embeddings, module.embed_in)
+        self.set_layer_norm(spec.layer_norm, module.final_layer_norm)
+
+        for layer_spec, layer in zip(spec.layer, module.layers):
+            if hasattr(layer_spec, "input_layer_norm"):  # Use parallel residual.
+                self.set_layer_norm(layer_spec.input_layer_norm, layer.input_layernorm)
+                self.set_layer_norm(
+                    layer_spec.post_attention_layer_norm, layer.post_attention_layernorm
+                )
+            else:
+                self.set_layer_norm(
+                    layer_spec.self_attention.layer_norm, layer.input_layernorm
+                )
+                self.set_layer_norm(
+                    layer_spec.ffn.layer_norm, layer.post_attention_layernorm
+                )
+
+            qkv_w = layer.attention.query_key_value.weight.numpy()
+            qkv_b = layer.attention.query_key_value.bias.numpy()
+
+            qkv_w = (
+                qkv_w.reshape(num_heads, 3, -1, qkv_w.shape[-1])
+                .swapaxes(0, 1)
+                .reshape(-1, qkv_w.shape[-1])
+            )
+            qkv_b = qkv_b.reshape(num_heads, 3, -1).swapaxes(0, 1).reshape(-1)
+
+            layer_spec.self_attention.linear[0].weight = qkv_w
+            layer_spec.self_attention.linear[0].bias = qkv_b
+
+            self.set_linear(layer_spec.self_attention.linear[1], layer.attention.dense)
+
+            self.set_linear(layer_spec.ffn.linear_0, layer.mlp.dense_h_to_4h)
+            self.set_linear(layer_spec.ffn.linear_1, layer.mlp.dense_4h_to_h)
 
 
 @register_loader("WhisperConfig")

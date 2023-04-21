@@ -88,7 +88,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         alibi: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
-        gptj_block: bool = False,
+        parallel_residual: bool = False,
+        shared_layer_norm: bool = False,
     ):
         """Initializes a Transformer decoder specification.
 
@@ -116,9 +117,12 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
             Otherwise the head dimensions are sliced in half.
-          gptj_block: Use the GPT-J layer block with a single layer norm.
+          parallel_residual: Use parallel residual connections in each layer block, as used
+            by the GPT-J and GPT-NeoX models.
+          shared_layer_norm: When using parallel residual, share the input and post
+            attention layer norms.
         """
-        if gptj_block:
+        if parallel_residual:
             if not pre_norm:
                 raise ValueError("The GPT-J block expects a pre-norm architecture")
             if with_encoder_attention:
@@ -149,7 +153,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 rms_norm=rms_norm,
                 rotary_dim=rotary_dim,
                 rotary_interleave=rotary_interleave,
-                shared_layer_norm=gptj_block,
+                parallel_residual=parallel_residual,
+                shared_layer_norm=shared_layer_norm,
             )
             for _ in range(num_layers)
         ]
@@ -187,6 +192,7 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         rms_norm=False,
         rotary_dim=None,
         rotary_interleave=True,
+        parallel_residual=False,
         shared_layer_norm=False,
     ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
@@ -201,8 +207,13 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             self.attention = attention_spec.MultiHeadAttentionSpec(rms_norm=rms_norm)
         self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 
-        if shared_layer_norm:
-            self.shared_layer_norm = common_spec.LayerNormSpec()
+        if parallel_residual:
+            if shared_layer_norm:
+                self.shared_layer_norm = common_spec.LayerNormSpec()
+            else:
+                self.input_layer_norm = common_spec.LayerNormSpec()
+                self.post_attention_layer_norm = common_spec.LayerNormSpec()
+
             delattr(self.self_attention, "layer_norm")
             delattr(self.ffn, "layer_norm")
 
@@ -370,7 +381,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         alibi: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
-        gptj_block: bool = False,
+        parallel_residual: bool = False,
+        shared_layer_norm: bool = False,
     ):
         """Creates a Transformer decoder model specification.
 
@@ -392,7 +404,10 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
             Otherwise the head dimensions are sliced in half.
-          gptj_block: Use the GPT-J layer block with a single layer norm.
+          parallel_residual: Use parallel residual connections in each layer block, as used
+            by the GPT-J and GPT-NeoX models.
+          shared_layer_norm: When using parallel residual, share the input and post
+            attention layer norms.
         """
         decoder = TransformerDecoderSpec(
             num_layers,
@@ -409,7 +424,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             alibi=alibi,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
-            gptj_block=gptj_block,
+            parallel_residual=parallel_residual,
+            shared_layer_norm=shared_layer_norm,
         )
 
         return cls(decoder)
@@ -420,7 +436,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 4
+        return 5
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]

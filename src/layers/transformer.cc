@@ -83,6 +83,9 @@ namespace ctranslate2 {
                         pre_norm,
                         /*is_decoder=*/true)
       , _shared_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/shared_layer_norm"))
+      , _input_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/input_layer_norm"))
+      , _post_attention_layer_norm(build_optional_layer<LayerNorm>(
+                                     model, scope + "/post_attention_layer_norm"))
       , _encoder_attention(build_optional_layer<MultiHeadAttention>(model,
                                                                     scope + "/attention",
                                                                     num_heads,
@@ -111,11 +114,16 @@ namespace ctranslate2 {
       const DataType dtype = input.dtype();
       const Device device = input.device();
 
-      if (_shared_layer_norm) {
-        // This shared layer norm construct is used by GPT-J so we assume there is
-        // no cross attention.
+      const bool use_parallel_residual = _shared_layer_norm || _input_layer_norm;
+
+      if (use_parallel_residual) {
+        // The parallel residual implementation assumes there is no cross attention.
         StorageView hidden(dtype, device);
-        (*_shared_layer_norm)(input, hidden);
+
+        if (_shared_layer_norm)
+          (*_shared_layer_norm)(input, hidden);
+        else
+          (*_input_layer_norm)(input, hidden);
 
         StorageView attn(dtype, device);
         _self_attention(hidden,
@@ -129,6 +137,9 @@ namespace ctranslate2 {
                         input_padder,
                         true,
                         alibi);
+
+        if (_post_attention_layer_norm)
+          (*_post_attention_layer_norm)(input, hidden);
 
         _ff(hidden, output);
 
