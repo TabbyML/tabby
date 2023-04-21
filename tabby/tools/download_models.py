@@ -25,7 +25,7 @@ def parse_args():
 def preload(local_files_only=False):
     AutoTokenizer.from_pretrained(args.repo_id, local_files_only=local_files_only)
     AutoModelForCausalLM.from_pretrained(
-        args.repo_id, local_files_only=local_files_only
+        args.repo_id, local_files_only=local_files_only, trust_remote_code=True
     )
     snapshot_download(
         repo_id=args.repo_id,
