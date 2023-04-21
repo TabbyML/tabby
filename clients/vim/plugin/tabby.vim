@@ -25,3 +25,5 @@ augroup tabby
   autocmd BufLeave      *  call tabby#Clear()
   autocmd InsertLeave   *  call tabby#Clear()
 augroup END
+
+silent! execute 'helptags' fnameescape(expand('<sfile>:h:h') . '/doc')

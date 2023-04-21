@@ -7,27 +7,37 @@ let g:autoloaded_tabby = 1
 
 let s:commands = {}
 
+function! s:commands.status(...)
+  call tabby#Status()
+endfunction
+
+function! s:commands.enable(...)
+  call tabby#Enable()
+  call tabby#Status()
+endfunction
+
+function! s:commands.disable(...)
+  call tabby#Disable()
+  call tabby#Status()
+endfunction
+
+function! s:commands.toggle(...)
+  call tabby#Toggle()
+endfunction
+
+function! s:commands.help(...)
+  help 'tabby'
+endfunction
+
 function! tabby#Command(args)
   let args = split(a:args, ' ')
   if len(args) < 1
     call tabby#Status()
+    echo 'Use :help Tabby to see available commands.'
     return
   endif
-  if args[0] == 'enable'
-    call tabby#Enable()
-    call tabby#Status()
-  elseif args[0] == 'disable'
-    call tabby#Disable()
-    call tabby#Status()
-  elseif args[0] == 'server'
-    if len(args) < 2
-      echo 'Usage: Tabby server <url>'
-      return
-    endif
-    call tabby#SetServerUrl(args[1])
-    echo 'Tabby server URL set to ' . args[1]
-  elseif args[0] == 'status'
-    call tabby#Status()
+  if has_key(s:commands, args[0])
+    call s:commands[args[0]](args[1:])
   else
     echo 'Unknown command'
   endif
@@ -37,6 +47,10 @@ endfunction
 
 if !exists('g:tabby_enabled')
   let g:tabby_enabled = v:true
+endif
+
+if !exists('g:tabby_suggestion_delay')
+  let g:tabby_suggestion_delay = 150
 endif
 
 if !exists('g:tabby_filetype_to_languages')
@@ -50,6 +64,13 @@ if !exists('g:tabby_filetype_to_languages')
     \ "objcpp": "objective-cpp",
     \ }
 endif
+
+function! tabby#SetServerUrl(url)
+  let g:tabby_server_url = a:url
+  call s:UpdateServerUrl()
+endfunction
+
+" Node job control
 
 function! tabby#Enable()
   let g:tabby_enabled = v:true
@@ -72,13 +93,6 @@ function! tabby#Toggle()
     call tabby#Enable()
   endif
 endfunction
-
-function! tabby#SetServerUrl(url)
-  let g:tabby_server_url = a:url
-  call s:UpdateServerUrl()
-endfunction
-
-" Node job control
 
 function! tabby#Start()
   if !g:tabby_enabled || tabby#Running()
@@ -232,8 +246,7 @@ function! tabby#Schedule()
     return
   endif
   call tabby#Clear()
-  let delay = 150
-  let s:scheduled = timer_start(delay, function('tabby#Trigger'))
+  let s:scheduled = timer_start(g:tabby_suggestion_delay, function('tabby#Trigger'))
 endfunction
 
 function! tabby#Trigger(timer)
