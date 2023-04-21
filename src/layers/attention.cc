@@ -499,16 +499,6 @@ namespace ctranslate2 {
     }
 
 
-    static void apply_signal(StorageView& x, const StorageView& signal, const dim_t offset) {
-      const dim_t depth = x.dim(-1);
-      const dim_t time = x.dim(-2);
-      DEVICE_AND_TYPE_DISPATCH(x.device(), x.dtype(),
-                               primitives<D>::mul_batch_broadcast(signal.data<T>() + offset * depth,
-                                                                  x.data<T>(),
-                                                                  time * depth,
-                                                                  x.size()));
-    }
-
     RotaryEmbeddings::RotaryEmbeddings(const dim_t dim,
                                        const bool interleave,
                                        const dim_t num_initial_positions,
@@ -517,72 +507,33 @@ namespace ctranslate2 {
       , _interleave(interleave)
       , _num_initial_positions(num_initial_positions)
       , _base(base)
+      , _rotary_op(dim, interleave)
     {
     }
 
     void RotaryEmbeddings::apply(StorageView& x, const dim_t offset) {
-      if (_dim == 0) {
-        apply_impl(x, offset);
-
-      } else {
-        const ops::Split split_op(-1, {_dim, x.dim(-1) - _dim});
-        const ops::Concat concat_op(-1);
-        const Device device = x.device();
-        const DataType dtype = x.dtype();
-
-        StorageView x_rot(dtype, device);
-        StorageView x_pass(dtype, device);
-        split_op(x, x_rot, x_pass);
-        apply_impl(x_rot, offset);
-        concat_op({&x_rot, &x_pass}, x);
-      }
-    }
-
-    void RotaryEmbeddings::apply_impl(StorageView& x, const dim_t offset) {
       const Device device = x.device();
       const DataType dtype = x.dtype();
       const dim_t max_time = x.dim(-2);
+      const dim_t dim = _dim == 0 ? x.dim(-1) : _dim;
 
       if (!_sin || offset + max_time > _sin.dim(0)) {
-        const dim_t num_positions = std::max(offset + max_time, _num_initial_positions);
-        initialize(num_positions, x.dim(-1), device, dtype);
+        const dim_t cur_num_positions = _sin ? _sin.dim(0) : 0;
+        const dim_t new_num_positions = cur_num_positions + _num_initial_positions;
+        initialize(new_num_positions, dim, device, dtype);
       }
 
-      StorageView x_rot(dtype, device);
-      rotate(x, x_rot);
+      StorageView sin(dtype, device);
+      StorageView cos(dtype, device);
+      TYPE_DISPATCH(dtype,
+                    {
+                      sin.view(_sin.index<T>({offset, 0}), {max_time, dim});
+                      cos.view(_cos.index<T>({offset, 0}), {max_time, dim});
+                    });
 
-      apply_signal(x, _cos, offset);
-      apply_signal(x_rot, _sin, offset);
-
-      ops::Add()(x, x_rot, x);
-    }
-
-    void RotaryEmbeddings::rotate(StorageView& x, StorageView& y) const {
-      const Device device = x.device();
-      const DataType dtype = x.dtype();
-      const Shape original_shape = x.shape();
-
-      if (_interleave) {
-        Shape new_shape = original_shape;
-        new_shape.push_back(2);
-        new_shape[new_shape.size() - 2] /= 2;
-        x.reshape(new_shape);
-      }
-
-      StorageView x1(dtype, device);
-      StorageView x2(dtype, device);
-      ops::Split(-1)(x, x1, x2);
-
-      StorageView zero(x2.shape(), dtype, device);
-      zero.zero();
-      ops::Sub()(zero, x2, x2);
-
-      ops::Concat(-1)({&x2, &x1}, y);
-
-      if (_interleave) {
-        y.reshape(original_shape);
-        x.reshape(original_shape);
-      }
+      StorageView y(dtype, device);
+      _rotary_op(x, sin, cos, y);
+      x = std::move(y);
     }
 
     void RotaryEmbeddings::initialize(const dim_t num_positions,

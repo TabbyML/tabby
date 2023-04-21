@@ -135,6 +135,8 @@ set(SOURCES
   src/ops/relu.cc
   src/ops/rms_norm.cc
   src/ops/rms_norm_cpu.cc
+  src/ops/rotary.cc
+  src/ops/rotary_cpu.cc
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
   src/ops/split.cc
@@ -481,6 +483,7 @@ if (WITH_CUDA)
     src/ops/mean_gpu.cu
     src/ops/multinomial_gpu.cu
     src/ops/rms_norm_gpu.cu
+    src/ops/rotary_gpu.cu
     src/ops/softmax_gpu.cu
     src/ops/tile_gpu.cu
     src/ops/topk_gpu.cu

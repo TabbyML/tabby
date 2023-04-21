@@ -76,8 +76,6 @@ namespace ctranslate2 {
       void apply(StorageView& x, const dim_t offset = 0);
 
     private:
-      void apply_impl(StorageView& x, const dim_t offset);
-      void rotate(StorageView& x, StorageView& y) const;
       void initialize(const dim_t num_positions,
                       const dim_t dim,
                       const Device device,
@@ -87,6 +85,7 @@ namespace ctranslate2 {
       const bool _interleave;
       const dim_t _num_initial_positions;
       const float _base;
+      const ops::Rotary _rotary_op;
 
       StorageView _sin;
       StorageView _cos;
