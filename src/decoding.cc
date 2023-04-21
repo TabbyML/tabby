@@ -784,7 +784,7 @@ namespace ctranslate2 {
         const bool is_finished = ((is_eos(word_id, end_ids) && step >= prefix_length)
                                   || (step + 1 == max_length));
 
-        if (_callback) {
+        if (_callback && (return_prefix || step >= prefix_length)) {
           DecodingStepResult step_result;
           step_result.step = step;
           step_result.batch_id = batch_id;
