@@ -55,6 +55,20 @@ if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13)
 endif()
 
+
+# Read version from version.py
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/python/ctranslate2/version.py VERSION_FILE)
+foreach(line IN LISTS VERSION_FILE)
+  if (line MATCHES "__version__")
+    string(REGEX MATCH "[0-9.]+" CTRANSLATE2_VERSION ${line})
+    break()
+  endif()
+endforeach()
+
+if(NOT CTRANSLATE2_VERSION)
+  message(FATAL_ERROR "Version can't be read from version.py")
+endif()
+
 if(MSVC)
   if(BUILD_SHARED_LIBS)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
@@ -72,9 +86,6 @@ endif()
 find_package(Threads)
 add_subdirectory(third_party/spdlog EXCLUDE_FROM_ALL)
 
-set(PUBLIC_INCLUDE_DIRECTORIES
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  )
 set(PRIVATE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CMAKE_CURRENT_SOURCE_DIR}/third_party
@@ -499,12 +510,22 @@ else()
   add_library(${PROJECT_NAME} ${SOURCES})
 endif()
 
+include(GenerateExportHeader)
+generate_export_header(${PROJECT_NAME})
+set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${CTRANSLATE2_VERSION})
+set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION 3)
+set_property(TARGET ${PROJECT_NAME} PROPERTY
+  INTERFACE_${PROJECT_NAME}_MAJOR_VERSION 3)
+set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+  COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION
+)
+
 list(APPEND LIBRARIES ${CMAKE_DL_LIBS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES})
 target_include_directories(${PROJECT_NAME} BEFORE
-  PUBLIC ${PUBLIC_INCLUDE_DIRECTORIES}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>
   PRIVATE ${PRIVATE_INCLUDE_DIRECTORIES}
-  )
+)
 
 if(BUILD_TESTS)
   add_subdirectory(tests)
@@ -517,13 +538,48 @@ if (BUILD_CLI)
 endif()
 
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME}Targets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  )
+)
 install(
   DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING PATTERN "*.h*"
-  )
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+  VERSION ${CTRANSLATE2_VERSION}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT ${PROJECT_NAME}Targets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+  NAMESPACE CTranslate2::
+)
+configure_file(cmake/${PROJECT_NAME}Config.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
+  COPYONLY
+)
+
+set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+install(EXPORT ${PROJECT_NAME}Targets
+  FILE
+    ${PROJECT_NAME}Targets.cmake
+  NAMESPACE
+    CTranslate2::
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+install(
+  FILES
+    cmake/${PROJECT_NAME}Config.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}ConfigVersion.cmake"
+  DESTINATION
+    ${ConfigPackageLocation}
+  COMPONENT
+    Devel
+)

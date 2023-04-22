@@ -40,6 +40,8 @@ COPY third_party third_party
 COPY cli cli
 COPY include include
 COPY src src
+COPY cmake cmake
+COPY python python
 COPY CMakeLists.txt .
 
 ARG CXX_FLAGS
@@ -60,7 +62,6 @@ RUN mkdir build && \
 
 ENV LANG=en_US.UTF-8
 COPY README.md .
-COPY python python
 
 RUN cd python && \
     python3 -m pip --no-cache-dir install -r install_requirements.txt && \
