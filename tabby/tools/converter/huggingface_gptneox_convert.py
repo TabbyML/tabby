@@ -2,7 +2,6 @@ import argparse
 import configparser
 import multiprocessing
 import os
-import shutil
 from pathlib import Path
 
 import numpy as np
@@ -139,7 +138,9 @@ def split_and_convert(args):
     ]
 
     huggingface_model_file_list = [
-        hf_file_name for hf_file_name in os.listdir(args.in_file) if hf_file_name.endswith(".bin")
+        hf_file_name
+        for hf_file_name in os.listdir(args.in_file)
+        if hf_file_name.endswith(".bin")
     ]
     if len(huggingface_model_file_list) > 1:
         multiprocessing_context = multiprocessing.get_context()
