@@ -138,7 +138,9 @@ def split_and_convert(args):
         "mlp.dense_4h_to_h.weight",
     ]
 
-    huggingface_model_file_list = [__fn for __fn in os.listdir(args.in_file) if __fn.endswith(".bin")]
+    huggingface_model_file_list = [
+        hf_file_name for hf_file_name in os.listdir(args.in_file) if hf_file_name.endswith(".bin")
+    ]
     if len(huggingface_model_file_list) > 1:
         multiprocessing_context = multiprocessing.get_context()
         pool_fn = multiprocessing_context.Pool
@@ -245,7 +247,9 @@ if __name__ == "__main__":
         print("{}: {}".format(key, vars(args)[key]))
     print("========================================")
 
-    __dir = os.path.join(args.saved_dir, "%d-gpu" % args.infer_gpu_num)
-    assert not os.path.exists(__dir), "target path has exist, please remove %s first." % __dir
+    target_dir_path = os.path.join(args.saved_dir, "%d-gpu" % args.infer_gpu_num)
+    assert not os.path.exists(target_dir_path), (
+        "target path has exist, please remove %s first." % target_dir_path
+    )
 
     split_and_convert(args)
