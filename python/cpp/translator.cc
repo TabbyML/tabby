@@ -439,7 +439,7 @@ namespace ctranslate2 {
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
              py::arg("replace_unknowns")=false,
-             py::arg("_callback")=nullptr,
+             py::arg("callback")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
                  Translates a batch of tokens.
@@ -479,6 +479,8 @@ namespace ctranslate2 {
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.
                    replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
+                   callback: Optional function that is called for each generated token.
+                     This requires a beam size of 1.
 
                  Returns:
                    A list of translation results.

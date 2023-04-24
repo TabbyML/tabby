@@ -311,7 +311,7 @@ def _generate_tokens(process_func, *args, **kwargs):
         {
             "asynchronous": True,
             "beam_size": 1,
-            "_callback": _callback,
+            "callback": _callback,
         }
     )
 

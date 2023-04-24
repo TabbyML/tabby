@@ -183,7 +183,7 @@ namespace ctranslate2 {
              py::arg("min_alternative_expansion_prob")=0,
              py::arg("sampling_topk")=1,
              py::arg("sampling_temperature")=1,
-             py::arg("_callback")=nullptr,
+             py::arg("callback")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
                  Generates from a batch of start tokens.
@@ -218,6 +218,8 @@ namespace ctranslate2 {
                    min_alternative_expansion_prob: Minimum initial probability to expand an alternative.
                    sampling_topk: Randomly sample predictions from the top K candidates.
                    sampling_temperature: Sampling temperature to generate more random samples.
+                   callback: Optional function that is called for each generated token.
+                     This requires a beam size of 1.
 
                  Returns:
                    A list of generation results.

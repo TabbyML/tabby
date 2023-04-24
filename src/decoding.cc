@@ -905,8 +905,9 @@ namespace ctranslate2 {
             || options.min_alternative_expansion_prob > 1))
       throw std::invalid_argument("The minimum alternative expansion probability must be "
                                   "between 0 and 1");
-    if (options.callback && options.beam_size != 1)
-      throw std::invalid_argument("The beam size must be 1 to use the callback function");
+    if (options.callback && (options.beam_size != 1 || options.prefix_bias_beta > 0))
+      throw std::invalid_argument("The callback function is not compatible with "
+                                  "beam_size > 1 or prefix_bias_beta > 0");
   }
 
   static std::unique_ptr<const Sampler>
