@@ -26,6 +26,7 @@ namespace ctranslate2 {
                      bool disable_unk,
                      const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
                      const std::optional<EndToken>& end_token,
+                     bool return_end_token,
                      size_t max_length,
                      size_t min_length,
                      bool include_prompt_in_result,
@@ -51,6 +52,7 @@ namespace ctranslate2 {
         options.max_length = max_length;
         options.min_length = min_length;
         options.num_hypotheses = num_hypotheses;
+        options.return_end_token = return_end_token;
         options.return_scores = return_scores;
         options.return_alternatives = return_alternatives;
         options.include_prompt_in_result = include_prompt_in_result;
@@ -175,6 +177,7 @@ namespace ctranslate2 {
              py::arg("disable_unk")=false,
              py::arg("suppress_sequences")=py::none(),
              py::arg("end_token")=py::none(),
+             py::arg("return_end_token")=false,
              py::arg("max_length")=512,
              py::arg("min_length")=0,
              py::arg("include_prompt_in_result")=true,
@@ -210,6 +213,7 @@ namespace ctranslate2 {
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
                    end_token: Stop the decoding on one of these tokens (defaults to the model EOS token).
+                   return_end_token: Include the end token in the results.
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
                    include_prompt_in_result: Include the :obj:`start_tokens` in the result.

@@ -34,6 +34,9 @@ namespace ctranslate2 {
     // Stop the decoding on one of these tokens (defaults to the model EOS token).
     std::variant<std::string, std::vector<std::string>, std::vector<size_t>> end_token;
 
+    // Include the end token in the result.
+    bool return_end_token = false;
+
     // Length constraints.
     size_t max_length = 512;
     size_t min_length = 0;

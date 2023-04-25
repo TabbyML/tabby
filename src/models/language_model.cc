@@ -193,9 +193,11 @@ namespace ctranslate2 {
         auto& result = results[i];
 
         // Remove EOS token.
-        for (auto& sequence : result.hypotheses) {
-          while (!sequence.empty() && is_eos(sequence.back(), end_ids))
-            sequence.pop_back();
+        if (!options.return_end_token) {
+          for (auto& sequence : result.hypotheses) {
+            while (!sequence.empty() && is_eos(sequence.back(), end_ids))
+              sequence.pop_back();
+          }
         }
 
         // Forward the start token to the output if it is not the special BOS token.

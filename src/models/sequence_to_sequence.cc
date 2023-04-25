@@ -382,11 +382,13 @@ namespace ctranslate2 {
         DecodingResult& result = results[i];
 
         // Remove EOS token.
-        for (size_t h = 0; h < result.hypotheses.size(); ++h) {
-          while (!result.hypotheses[h].empty() && is_eos(result.hypotheses[h].back(), end_ids)) {
-            result.hypotheses[h].pop_back();
-            if (!result.attention.empty())
-              result.attention[h].pop_back();
+        if (!options.return_end_token) {
+          for (size_t h = 0; h < result.hypotheses.size(); ++h) {
+            while (!result.hypotheses[h].empty() && is_eos(result.hypotheses[h].back(), end_ids)) {
+              result.hypotheses[h].pop_back();
+              if (!result.attention.empty())
+                result.attention[h].pop_back();
+            }
           }
         }
 

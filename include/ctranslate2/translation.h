@@ -40,6 +40,9 @@ namespace ctranslate2 {
     // Stop the decoding on one of these tokens (defaults to the model EOS token).
     std::variant<std::string, std::vector<std::string>, std::vector<size_t>> end_token;
 
+    // Include the end token in the result.
+    bool return_end_token = false;
+
     // Truncate the inputs after this many tokens (set 0 to disable truncation).
     size_t max_input_length = 1024;
 

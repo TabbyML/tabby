@@ -203,6 +203,18 @@ TEST_P(SearchVariantTest, ReturnAttentionWithPrefix) {
   }
 }
 
+TEST_P(SearchVariantTest, ReturnEndToken) {
+  auto beam_size = GetParam();
+  Translator translator = default_translator();
+  TranslationOptions options;
+  options.beam_size = beam_size;
+  options.return_end_token = true;
+  const std::vector<std::string> input = {"آ" ,"ت" ,"ز" ,"م" ,"و" ,"ن"};
+  const std::vector<std::string> expected = {"a", "t", "z", "m", "o", "n", "</s>"};
+  const auto result = translator.translate_batch({input}, options)[0];
+  EXPECT_EQ(result.hypotheses[0], expected);
+}
+
 TEST_P(SearchVariantTest, TranslateWithPrefix) {
   const auto beam_size = GetParam();
   Translator translator = default_translator();

@@ -159,6 +159,7 @@ namespace ctranslate2 {
                       bool disable_unk,
                       const std::optional<std::vector<std::vector<std::string>>>& suppress_sequences,
                       const std::optional<EndToken>& end_token,
+                      bool return_end_token,
                       float prefix_bias_beta,
                       size_t max_input_length,
                       size_t max_decoding_length,
@@ -192,6 +193,7 @@ namespace ctranslate2 {
         options.min_decoding_length = min_decoding_length;
         options.num_hypotheses = num_hypotheses;
         options.use_vmap = use_vmap;
+        options.return_end_token = return_end_token;
         options.return_scores = return_scores;
         options.return_attention = return_attention;
         options.return_alternatives = return_alternatives;
@@ -427,6 +429,7 @@ namespace ctranslate2 {
              py::arg("disable_unk")=false,
              py::arg("suppress_sequences")=py::none(),
              py::arg("end_token")=py::none(),
+             py::arg("return_end_token")=false,
              py::arg("prefix_bias_beta")=0,
              py::arg("max_input_length")=1024,
              py::arg("max_decoding_length")=256,
@@ -467,6 +470,7 @@ namespace ctranslate2 {
                    disable_unk: Disable the generation of the unknown token.
                    suppress_sequences: Disable the generation of some sequences of tokens.
                    end_token: Stop the decoding on one of these tokens (defaults to the model EOS token).
+                   return_end_token: Include the end token in the results.
                    prefix_bias_beta: Parameter for biasing translations towards given prefix.
                    max_input_length: Truncate inputs after this many tokens (set 0 to disable).
                    max_decoding_length: Maximum prediction length.
