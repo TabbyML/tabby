@@ -15,6 +15,7 @@
 #include "cpu/backend.h"
 #include "cpu/cpu_info.h"
 #include "cpu/cpu_isa.h"
+#include "cpu/parallel.h"
 #include "env.h"
 
 namespace ctranslate2 {
@@ -69,7 +70,6 @@ namespace ctranslate2 {
     return get_device_count(Device::CUDA);
   }
 
-#if defined(_OPENMP) || defined(CT2_WITH_RUY)
   static inline size_t get_default_num_threads() {
     constexpr size_t default_num_threads = 4;
     const size_t max_num_threads = std::thread::hardware_concurrency();
@@ -77,28 +77,19 @@ namespace ctranslate2 {
       return default_num_threads;
     return std::min(default_num_threads, max_num_threads);
   }
-#endif
 
   void set_num_threads(size_t num_threads) {
-#ifdef _OPENMP
     if (num_threads == 0)
       num_threads = read_int_from_env("OMP_NUM_THREADS", get_default_num_threads());
+
+#ifdef _OPENMP
     omp_set_num_threads(num_threads);
+#else
+    cpu::set_num_threads(num_threads);
 #endif
 
 #ifdef CT2_WITH_RUY
-    if (num_threads == 0)
-      num_threads = get_default_num_threads();
     cpu::get_ruy_context()->set_max_num_threads(num_threads);
-#endif
-
-#if !defined(_OPENMP) && !defined(CT2_WITH_RUY)
-    if (num_threads > 1) {
-      static std::once_flag warn_once;
-      std::call_once(warn_once, []() {
-        spdlog::warn("The number of threads (intra_threads) is ignored in this build");
-      });
-    }
 #endif
   }
 

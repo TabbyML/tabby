@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
   cmd_options.add_options("Device")
     ("inter_threads", "Maximum number of CPU translations to run in parallel.",
      cxxopts::value<size_t>()->default_value("1"))
-    ("intra_threads", "Number of OpenMP threads (set to 0 to use the default value).",
+    ("intra_threads", "Number of computation threads (set to 0 to use the default value).",
      cxxopts::value<size_t>()->default_value("0"))
     ("device", "Device to use (can be cpu, cuda, auto).",
      cxxopts::value<std::string>()->default_value("cpu"))

@@ -3,7 +3,7 @@
 CTranslate2 has 2 levels of parallelization:
 
 * `inter_threads` which is the maximum number of batches executed in parallel.<br/>**=> Increase this value to increase the throughput.**
-* `intra_threads` which is the number of OpenMP threads that is used per batch.<br/>**=> Increase this value to decrease the latency on CPU.**
+* `intra_threads` which is the number of computation threads that is used per batch.<br/>**=> Increase this value to decrease the latency on CPU.**
 
 The total number of computing threads launched by the process is `inter_threads * intra_threads`.
 

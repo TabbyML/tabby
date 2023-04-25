@@ -99,6 +99,7 @@ set(SOURCES
   src/cpu/cpu_info.cc
   src/cpu/cpu_isa.cc
   src/cpu/kernels.cc
+  src/cpu/parallel.cc
   src/cpu/primitives.cc
   src/decoding.cc
   src/decoding_utils.cc

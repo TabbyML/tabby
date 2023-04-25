@@ -103,7 +103,7 @@ The following options can be set with `-DOPTION=VALUE` during the CMake configur
 | CUDA_NVCC_FLAGS | *compiler flags* | Defines additional compilation flags for `nvcc` |
 | ENABLE_CPU_DISPATCH | OFF, **ON** | Compiles CPU kernels for multiple ISA and dispatches at runtime (should be disabled when explicitly targeting an architecture with the `-march` compilation flag) |
 | ENABLE_PROFILING | **OFF**, ON | Enables the integrated profiler (usually disabled in production builds) |
-| OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects or disables the OpenMP runtime:<ul><li>INTEL: Intel OpenMP</li><li>COMP: OpenMP runtime provided by the compiler</li><li>NONE: no OpenMP runtime</li></ul> |
+| OPENMP_RUNTIME | **INTEL**, COMP, NONE | Selects the OpenMP runtime:<ul><li>INTEL: Intel OpenMP</li><li>COMP: OpenMP runtime provided by the compiler</li><li>NONE: no OpenMP runtime (a custom threading implementation will be used)</li></ul> |
 | WITH_CUDA | **OFF**, ON | Compiles with the CUDA backend |
 | WITH_CUDNN | **OFF**, ON | Compiles with the cuDNN backend |
 | WITH_DNNL | **OFF**, ON | Compiles with the oneDNN backend (a.k.a. DNNL) |

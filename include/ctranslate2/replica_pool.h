@@ -233,7 +233,7 @@ namespace ctranslate2 {
 
     void initialize_pool(const models::ModelLoader& model_loader,
                          const ReplicaPoolConfig& config) {
-      // The same number of OpenMP threads should be used for loading and running model.
+      // The same number of computation threads should be used for loading and running model.
       set_num_threads(config.num_threads_per_replica);
       initialize_pool(model_loader.load(), config);
     }
@@ -337,7 +337,7 @@ namespace ctranslate2 {
     void initialize() override {
       set_device_index(_device, _device_index);
 
-      // Set the number of OpenMP threads for the current thread.
+      // Set the number of computation threads for the current thread.
       set_num_threads(_num_threads);
 
       // Register the memory allocator used in this thread.
