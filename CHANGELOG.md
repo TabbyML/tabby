@@ -4,6 +4,23 @@
 
 ### Fixes and improvements
 
+## [v3.13.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.13.0) (2023-04-25)
+
+### New features
+
+* Support conversion of GPT-NeoX models with the Transformers converter
+* Extend the `end_token` argument to also accept a list of tokens
+* Add option `return_end_token` to include the end token in the results of the methods `generate_batch` and `translate_batch` (by default the end token is removed)
+* Expose the `callback` argument for the methods `generate_batch` and `translate_batch` to get early results from the decoding loop
+* Fallback to a custom threading implementation when OpenMP is not used (which is currently the case for the macOS ARM64 Python wheels)
+* Define the CMake package `CTranslate2::ctranslate2` to facilitate the library integration in other CMake projects
+
+### Fixes and improvements
+
+* Fix the vocabulary loading when some tokens end with the carriage return
+* Implement a fused kernel to apply the rotary embeddings
+* Update the Ruy library to commit 363f2522
+
 ## [v3.12.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.12.0) (2023-04-17)
 
 ### New features
