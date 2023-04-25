@@ -17,7 +17,7 @@ namespace ctranslate2 {
   bool starts_with(const std::string& str, const std::string& prefix);
 
   // Wrapper around std::getline to remove the carriage return, if present.
-  std::istream& getline(std::istream& input, std::string& str);
+  std::istream& getline(std::istream& input, std::string& str, bool remove_carriage_return = true);
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
   std::vector<std::string> split_string(const std::string& str, const std::string& delimiter);

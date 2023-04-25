@@ -7,9 +7,28 @@ namespace ctranslate2 {
   Vocabulary::Vocabulary(std::istream& in, VocabularyInfo info)
     : _info(std::move(info))
   {
+    std::vector<std::string> tokens;
     std::string line;
-    while (ctranslate2::getline(in, line))
-      add_token(std::move(line));
+
+    // Some vocabularies contain tokens ending with a carriage return. In that case
+    // the carriage return should be kept so we check that all lines end with a carriage
+    // return before removing it.
+    bool remove_carriage_return = true;
+
+    while (ctranslate2::getline(in, line, /*remove_carriage_return=*/false)) {
+      if (line.empty() || line.back() != '\r')
+        remove_carriage_return = false;
+      tokens.emplace_back(std::move(line));
+    }
+
+    _token_to_id.reserve(tokens.size());
+    _id_to_token.reserve(tokens.size());
+
+    for (auto& token : tokens) {
+      if (remove_carriage_return)
+        token.pop_back();
+      add_token(std::move(token));
+    }
 
     // Append the unknown token if not found in the vocabulary file.
     if (!contains(_info.unk_token))

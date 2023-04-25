@@ -93,10 +93,10 @@ namespace ctranslate2 {
 #endif
   }
 
-  std::istream& getline(std::istream& input, std::string& str) {
+  std::istream& getline(std::istream& input, std::string& str, bool remove_carriage_return) {
     std::getline(input, str);
 
-    if (!str.empty() && str.back() == '\r')
+    if (remove_carriage_return && !str.empty() && str.back() == '\r')
       str.pop_back();
 
     return input;
