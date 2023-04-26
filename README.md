@@ -78,7 +78,7 @@ Tabby has opened a FastAPI server at [localhost:5000](https://localhost:5000), w
 
 ### Editor Extensions
 
-* [VSCode Extension](./clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby)
+* [VSCode Extension](./clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 * [VIM Extension](./clients/vim)
 
 ## Development
