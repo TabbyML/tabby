@@ -59,17 +59,6 @@ command=caddy run --config tabby/config/Caddyfile $CADDY_ARGS
 EOF
 }
 
-program:meilisearch() {
-local MEILI_DIR="$DATA_DIR/meili"
-
-if [[ ! -z ${FLAGS_enable_meilisearch} ]]; then
-cat <<EOF
-[program:meilisearch]
-command=meilisearch --http-addr 0.0.0.0:8084 --db-path ${MEILI_DIR}/data.ms --dump-dir ${MEILI_DIR}/dumps/
-EOF
-fi
-}
-
 supervisor() {
 # Create logs dir if not exists.
 mkdir -p ${LOGS_DIR}
@@ -97,8 +86,6 @@ command=dagu server --host 0.0.0.0 --port 8083
 $(program:triton)
 
 $(program:caddy)
-
-$(program:meilisearch)
 EOF
 )
 }
