@@ -7,8 +7,6 @@
 [![Docker build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/docker.yml?label=docker%20image%20build)](https://github.com/TabbyML/tabby/actions/workflows/docker.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
 
-![architecture](https://user-images.githubusercontent.com/388154/229353706-230d70e1-7d09-48e2-a884-4da768bccf6f.png)
-
 </div>
 
 Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
