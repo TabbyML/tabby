@@ -1,5 +1,7 @@
 # Events System
 
+*Experimental*
+
 In Tabby, we use the [`vector`](../../deployment/config/vector.toml) to collect logs from various sources, transform them into a standard `Event`, and persist them in `/data/logs/events`.
 
 ## Schema
@@ -19,7 +21,7 @@ The `data`  field is a standard JSON object, and its definition is left to downs
 
 ### EventId
 
-```jsx
+```JSX
 {
   "process_id": Number,
   "thread_id": Number,
