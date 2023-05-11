@@ -12,6 +12,7 @@ import {
 } from "vscode";
 import { CompletionResponse, EventType, ChoiceEvent, ApiError, CancelablePromise, CancelError } from "./generated";
 import { TabbyClient } from "./TabbyClient";
+import { CompletionCache } from "./CompletionCache";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
@@ -20,6 +21,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
   private tabbyClient = TabbyClient.getInstance();
+  private completionCache = new CompletionCache();
   // User Settings
   private enabled: boolean = true;
   private suggestionDelay: number = 150;
@@ -42,7 +44,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
-    const prompt = this.getPrompt(document, position);
+    const promptRange = this.calculatePromptRange(position);
+    const prompt = document.getText(promptRange);
     if (this.isNil(prompt)) {
       console.debug("Prompt is empty, skipping");
       return emptyResponse;
@@ -54,6 +57,15 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     await sleep(this.suggestionDelay);
     if (currentTimestamp < this.latestTimestamp) {
       return emptyResponse;
+    }
+
+    const replaceRange = this.calculateReplaceRange(document, position);
+
+    const compatibleCache = this.completionCache.findCompatible(document.uri, document.getText(), document.offsetAt(position));
+    if (compatibleCache) {
+      const completions = this.toInlineCompletions(compatibleCache, replaceRange);
+      console.debug("Use cached completions: ", compatibleCache);
+      return Promise.resolve(completions);
     }
 
     console.debug(
@@ -86,15 +98,14 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     });
     this.pendingCompletion = null;
 
-    const hasSuffixParen = this.hasSuffixParen(document, position);
-    const replaceRange = hasSuffixParen
-      ? new Range(
-          position.line,
-          position.character,
-          position.line,
-          position.character + 1
-        )
-      : new Range(position, position);
+    if (completion) {
+      this.completionCache.add({
+        documentId: document.uri,
+        promptRange: { start: document.offsetAt(promptRange.start), end: document.offsetAt(promptRange.end) },
+        prompt,
+        completion,
+      });
+    }
     const completions = this.toInlineCompletions(completion, replaceRange);
     console.debug("Result completions: ", completions);
     return Promise.resolve(completions);
@@ -104,13 +115,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("enabled", true);
     this.suggestionDelay = configuration.get("suggestionDelay", 150);
-  }
-
-  private getPrompt(document: TextDocument, position: Position): string | undefined {
-    const maxLines = 20;
-    const firstLine = Math.max(position.line - maxLines, 0);
-
-    return document.getText(new Range(firstLine, 0, position.line, position.character));
   }
 
   private isNil(value: string | undefined | null): boolean {
@@ -139,5 +143,20 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       new Range(position.line, position.character, position.line, position.character + 1)
     );
     return ")]}".indexOf(suffix) > -1;
+  }
+
+  private calculatePromptRange(position: Position): Range {
+    const maxLines = 20;
+    const firstLine = Math.max(position.line - maxLines, 0);
+    return new Range(firstLine, 0, position.line, position.character);
+  }
+
+  private calculateReplaceRange(document: TextDocument, position: Position): Range {
+    const hasSuffixParen = this.hasSuffixParen(document, position);
+    if (hasSuffixParen) {
+      return new Range(position.line, position.character, position.line, position.character + 1);
+    } else {
+      return new Range(position, position);
+    }
   }
 }
