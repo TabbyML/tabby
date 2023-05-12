@@ -14,25 +14,23 @@ export type CompletionCacheEntry = {
 };
 
 export class CompletionCache {
-  public static cacheSize = 10;
+  public static capacity = 10;
   private cache = new LinkedList<CompletionCacheEntry>();
 
   constructor() {}
 
-  private evict() {
-    while (this.cache.length > CompletionCache.cacheSize) {
-      this.cache.removeTail();
-    }
-  }
-
-  private pop(entry: CompletionCacheEntry) {
+  private refresh(entry: CompletionCacheEntry) {
     this.cache.remove(entry);
     this.cache.prepend(entry);
   }
 
   public add(entry: CompletionCacheEntry) {
-    this.evict();
     this.cache.prepend(entry);
+
+    while (this.cache.length > CompletionCache.capacity) {
+      this.cache.removeTail();
+    }
+
   }
 
   public findCompatible(documentId: any, text: string, cursor: number): CompletionResponse | null {
@@ -63,7 +61,7 @@ export class CompletionCache {
       }
     }
     if (hit) {
-      this.pop(hit.entry);
+      this.refresh(hit.entry);
       return {
         id: hit.entry.completion.id,
         created: hit.entry.completion.created,
