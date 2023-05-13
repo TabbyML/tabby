@@ -33,10 +33,9 @@ else
     ln -s cuda-11.2 /usr/local/cuda
 
     ONEAPI_VERSION=2023.0.0
-    MKL_BUILD=25398
     yum-config-manager --add-repo https://yum.repos.intel.com/oneapi
     rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB
-    yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION-$MKL_BUILD
+    yum install -y intel-oneapi-mkl-devel-$ONEAPI_VERSION
 
     ONEDNN_VERSION=3.0.1
     curl -L -O https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz
