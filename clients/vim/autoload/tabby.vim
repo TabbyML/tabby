@@ -3,7 +3,21 @@ if exists('g:autoloaded_tabby')
 endif
 let g:autoloaded_tabby = 1
 
-" Commands
+" Table of Contents
+" 1. Commands: Implement *:Tabby* commands
+" 2. Settings: Handle global *Tabby-options*
+" 3. Node Job: Manage node process, implement IO callbacks
+" 4. Scheduler: Schedule completion requests
+" 5. Completion UI: Show up completion, handle hotkeys
+" 6. Utils: Utility functions
+
+" 1. Commands
+" See *:Tabby* in help document for more details.
+"
+" Notable script-local variables:
+" - s:commmands
+"   A dictionary contains all commands. Use name as key and function as value.
+"
 
 let s:commands = {}
 
@@ -83,7 +97,15 @@ function! tabby#Command(args)
   endif
 endfunction
 
-" Settings
+" 2. Settings
+" See *Tabby-options* in help document for more details.
+"
+" Available global options:
+" - g:tabby_enabled
+" - g:tabby_suggestion_delay
+" - g:tabby_filetype_to_languages
+" - g:tabby_server_url
+"
 
 if !exists('g:tabby_enabled')
   let g:tabby_enabled = v:true
@@ -110,18 +132,29 @@ function! tabby#SetServerUrl(url)
   call s:UpdateServerUrl()
 endfunction
 
-" Node job control
+" 3. Node Job
+"
+" Notable script-local variables:
+" - s:tabby
+"   Stores the job id of current node process
+"
+" - s:tabby_status
+"   Syncs with status of node agent, updated by notification from agent
+"
+" - s:errmsg
+"   Stores error message if self check failed before starting node process
+"
 
 function! tabby#Enable()
   let g:tabby_enabled = v:true
-  if !tabby#Running()
+  if !tabby#IsRunning()
     call tabby#Start()
   endif
 endfunction
 
 function! tabby#Disable()
   let g:tabby_enabled = v:false
-  if tabby#Running()
+  if tabby#IsRunning()
     call tabby#Stop()
   endif
 endfunction
@@ -135,7 +168,7 @@ function! tabby#Toggle()
 endfunction
 
 function! tabby#Start()
-  if !g:tabby_enabled || tabby#Running()
+  if !g:tabby_enabled || tabby#IsRunning()
     return
   endif
 
@@ -145,12 +178,12 @@ function! tabby#Start()
     return
   endif
 
-  let check_inline_completion = tabby#inline_completion#Check()
-  if !check_inline_completion.ok
-    let s:errmsg = check_inline_completion.message
+  let check_virtual_text = tabby#virtual_text#Check()
+  if !check_virtual_text.ok
+    let s:errmsg = check_virtual_text.message
     return
   endif
-  call tabby#inline_completion#Init()
+  call tabby#virtual_text#Init()
 
   if !executable('node')
     let s:errmsg = 'Tabby requires node to be installed.'
@@ -180,12 +213,12 @@ function! tabby#Start()
 endfunction
 
 function! tabby#Stop()
-  if tabby#Running()
+  if tabby#IsRunning()
     call tabby#job#Stop(s:tabby)
   endif
 endfunction
 
-function! tabby#Running()
+function! tabby#IsRunning()
   return exists('s:tabby')
 endfunction
 
@@ -194,7 +227,7 @@ function! tabby#Status()
     echo 'Tabby is disabled'
     return
   endif
-  if tabby#Running()
+  if tabby#IsRunning()
     if s:tabby_status == 'ready'
       echo 'Tabby is online'
     elseif s:tabby_status == 'connecting'
@@ -210,7 +243,7 @@ function! tabby#Status()
 endfunction
 
 function! s:UpdateServerUrl()
-  if !tabby#Running()
+  if !tabby#IsRunning()
     return
   endif
   call tabby#job#Send(s:tabby, #{
@@ -220,7 +253,7 @@ function! s:UpdateServerUrl()
 endfunction
 
 function! s:GetCompletion(id)
-  if !tabby#Running()
+  if !tabby#IsRunning()
     return
   endif
 
@@ -237,10 +270,10 @@ function! s:GetCompletion(id)
 endfunction
 
 function! s:PostEvent(event_type)
-  if !tabby#Running()
+  if !tabby#IsRunning()
     return
   endif
-  if !exists('s:completion') || !exists('s:completion_index')
+  if !exists('s:completion') || !exists('s:choice_index')
     return
   endif
   call tabby#job#Send(s:tabby, #{
@@ -248,7 +281,7 @@ function! s:PostEvent(event_type)
     \ args: [#{
       \ type: a:event_type,
       \ completion_id: s:completion.id,
-      \ choice_index: s:completion.choices[s:completion_index].index,
+      \ choice_index: s:completion.choices[s:choice_index].index,
       \ }],
     \ })
 endfunction
@@ -266,7 +299,7 @@ function! s:HandleCompletion(id, channel, data)
   if (type(a:data) == v:t_dict) && has_key(a:data, 'choices') &&
     \ (type(a:data.choices) == v:t_list) && (len(a:data.choices) > 0)
     let s:completion = a:data
-    let s:completion_index = 0
+    let s:choice_index = 0
     call tabby#Show()
   endif
 endfunction
@@ -280,10 +313,19 @@ function! s:HandleExit(channel, data)
   endif
 endfunction
 
-" Completion trigger
+" 4. Scheduler
+"
+" Notable script-local variables:
+" - s:scheduled:
+"   Stores the timer id of current scheduled next trigger.
+"
+" - s:trigger_id:
+"   Use a timestamp to identify current triggered completion request. This is
+"   used to filter out outdated completion results.
+"
 
 function! tabby#Schedule()
-  if !tabby#Running()
+  if !tabby#IsRunning()
     return
   endif
   call tabby#Clear()
@@ -291,7 +333,7 @@ function! tabby#Schedule()
 endfunction
 
 function! tabby#Trigger(timer)
-  if !tabby#Running()
+  if !tabby#IsRunning()
     return
   endif
   call tabby#Clear()
@@ -299,6 +341,165 @@ function! tabby#Trigger(timer)
   let s:trigger_id = id
   call s:GetCompletion(id)
 endfunction
+
+
+" 5. Completion UI
+"
+" Notable script-local variables:
+" - s:completion:
+"   Stores current completion data, a dictionary that has same struct as server
+"   returned completion response.
+"
+" - s:choice_index:
+"   Stores index of current choice to display. A 0-based index of choice item
+"   of `s:completion.choices` array, may not equals to the value of `index`
+"   field `s:completion.choices[s:choice_index].index`.
+"   A exception is that when `s:choice_index` is equal to the length of
+"   `s:completion.choices`. In this state, the completion UI should show nothing
+"   to notice users that they are cycling from last choice forward to first
+"   choice, or from first choice back to last choice.
+"   This variable does not change when user dismisses the completion UI.
+"
+" - s:shown_lines:
+"   Stores the text that are shown in completion UI. `s:shown_lines` exists or
+"   not means whether the completion UI is shown or not.
+"
+" - s:text_to_insert:
+"   Used as a buffer to store the text that should be inserted when user accepts
+"   the completion. We hide completion UI first and clear `s:shown_lines` at
+"   same time, then insert the text, so that we need to store the text in a
+"   buffer until text is inserted.
+
+
+function! tabby#Show()
+  call s:HideCompletion()
+  if !s:IsCompletionAvailable()
+    return
+  endif
+  if s:choice_index == len(s:completion.choices)
+    " Show empty to indicate that user is cycling back to first choice.
+    return
+  endif
+  let choice = s:completion.choices[s:choice_index]
+  if (type(choice.text) != v:t_string) || (len(choice.text) == 0)
+    return
+  endif
+  let lines = split(choice.text, "\n")
+  call tabby#virtual_text#Show(lines)
+  let s:shown_lines = lines
+  call s:PostEvent('view')
+endfunction
+
+function! tabby#ConsumeInsertion()
+  if !exists('s:text_to_insert')
+    return ''
+  else
+    let text = s:text_to_insert
+    unlet s:text_to_insert
+    return text
+  endif
+endfunction
+
+" This function is designed to replace <Tab> key input, so we need a fallback
+" when completion UI is not shown.
+function! tabby#Accept(fallback)
+  if !exists('s:shown_lines')
+    return a:fallback
+  endif
+  let lines = s:shown_lines
+  if len(lines) == 1
+    let s:text_to_insert = lines[0]
+    let insertion = "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
+  else
+    let current_line = getbufline('%', line('.'), line('.'))[0]
+    let suffix_chars_to_replace = len(current_line) - col('.') + 1
+    let s:text_to_insert = join(lines, "\n")
+    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
+  endif
+  call s:HideCompletion()
+  call s:PostEvent('select')
+  return insertion
+endfunction
+
+" This function is designed to replace <C-]> key input, so we need a fallback
+" when completion UI is not shown.
+function! tabby#Dismiss(fallback)
+  if !exists('s:shown_lines')
+    return a:fallback
+  endif
+  call s:HideCompletion()
+  return ''
+endfunction
+
+function! tabby#Next()
+  if !s:IsCompletionAvailable()
+    return
+  endif
+  if !exists('s:shown_lines')
+    if s:choice_index == len(s:completion.choices)
+      let s:choice_index = 0
+    endif
+  else
+    let s:choice_index += 1
+    if s:choice_index > len(s:completion.choices)
+      let s:choice_index = 0
+    endif
+  endif
+  call tabby#Show()
+endfunction
+
+function! tabby#Prev()
+  if !s:IsCompletionAvailable()
+    return
+  endif
+  if !exists('s:shown_lines')
+    if s:choice_index == len(s:completion.choices)
+      let s:choice_index = len(s:completion.choices) - 1
+    endif
+  else
+    let s:choice_index -= 1
+    if s:choice_index < 0
+      let s:choice_index = len(s:completion.choices)
+    endif
+  endif
+  call tabby#Show()
+endfunction
+
+function! tabby#Clear()
+  call s:HideCompletion()
+  if exists('s:scheduled')
+    call timer_stop(s:scheduled)
+    unlet s:scheduled
+  endif
+  if exists('s:trigger_id')
+    unlet s:trigger_id
+  endif
+  if exists('s:completion')
+    unlet s:completion
+  endif
+  if exists('s:choice_index')
+    unlet s:choice_index
+  endif
+endfunction
+
+function! s:IsCompletionAvailable()
+  if !exists('s:completion') || !exists('s:choice_index')
+    return v:false
+  endif
+  if (type(s:completion.choices) != v:t_list) || (len(s:completion.choices) == 0)
+    return v:false
+  endif
+  return v:true
+endfunction
+
+function! s:HideCompletion()
+  call tabby#virtual_text#Clear()
+  if exists('s:shown_lines')
+    unlet s:shown_lines
+  endif
+endfunction
+
+" 6. Utils
 
 function! s:GetPrompt()
   let max_lines = 20
@@ -314,131 +515,5 @@ function! s:GetLanguage()
     return g:tabby_filetype_to_languages[filetype]
   else
     return filetype
-  endif
-endfunction
-
-" Completion control
-
-function! tabby#Show()
-  call s:RemoveCompletion()
-  if !s:CompletionAvailable()
-    return
-  endif
-  if s:completion_index == len(s:completion.choices)
-    " An empty choice after last and before first
-    return
-  endif
-  let choice = s:completion.choices[s:completion_index]
-  if (type(choice.text) != v:t_string) || (len(choice.text) == 0)
-    return
-  endif
-  let lines = split(choice.text, "\n")
-  call tabby#inline_completion#Show(lines)
-  let s:prop_shown_lines = lines
-  call s:PostEvent('view')
-endfunction
-
-function! tabby#ConsumeInsertion()
-  if !exists('s:text_to_insert')
-    return ''
-  else
-    let text = s:text_to_insert
-    unlet s:text_to_insert
-    return text
-  endif
-endfunction
-
-function! tabby#Accept(fallback)
-  if !exists('s:prop_shown_lines')
-    return a:fallback
-  endif
-  let lines = s:prop_shown_lines
-  if len(lines) == 1
-    let s:text_to_insert = lines[0]
-    let insertion = "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
-  else
-    let current_line = getbufline('%', line('.'), line('.'))[0]
-    let suffix_chars_to_replace = len(current_line) - col('.') + 1
-    let s:text_to_insert = join(lines, "\n")
-    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
-  endif
-  call s:RemoveCompletion()
-  call s:PostEvent('select')
-  return insertion
-endfunction
-
-function! tabby#Dismiss(fallback)
-  if !exists('s:prop_shown_lines')
-    return a:fallback
-  endif
-  call s:RemoveCompletion()
-  return ''
-endfunction
-
-function! tabby#Next()
-  if !s:CompletionAvailable()
-    return
-  endif
-  if !exists('s:prop_shown_lines')
-    if s:completion_index == len(s:completion.choices)
-      let s:completion_index = 0
-    endif
-  else
-    let s:completion_index += 1
-    if s:completion_index > len(s:completion.choices)
-      let s:completion_index = 0
-    endif
-  endif
-  call tabby#Show()
-endfunction
-
-function! tabby#Prev()
-  if !s:CompletionAvailable()
-    return
-  endif
-  if !exists('s:prop_shown_lines')
-    if s:completion_index == len(s:completion.choices)
-      let s:completion_index = len(s:completion.choices) - 1
-    endif
-  else
-    let s:completion_index -= 1
-    if s:completion_index < 0
-      let s:completion_index = len(s:completion.choices)
-    endif
-  endif
-  call tabby#Show()
-endfunction
-
-function! tabby#Clear()
-  call s:RemoveCompletion()
-  if exists('s:scheduled')
-    call timer_stop(s:scheduled)
-    unlet s:scheduled
-  endif
-  if exists('s:trigger_id')
-    unlet s:trigger_id
-  endif
-  if exists('s:completion')
-    unlet s:completion
-  endif
-  if exists('s:completion_index')
-    unlet s:completion_index
-  endif
-endfunction
-
-function! s:CompletionAvailable()
-  if !exists('s:completion') || !exists('s:completion_index')
-    return v:false
-  endif
-  if (type(s:completion.choices) != v:t_list) || (len(s:completion.choices) == 0)
-    return v:false
-  endif
-  return v:true
-endfunction
-
-function! s:RemoveCompletion()
-  call tabby#inline_completion#Clear()
-  if exists('s:prop_shown_lines')
-    unlet s:prop_shown_lines
   endif
 endfunction
