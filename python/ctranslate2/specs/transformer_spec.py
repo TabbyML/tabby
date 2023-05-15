@@ -137,7 +137,12 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         self.scale_embeddings = True
         self.scale_outputs = model_spec.OPTIONAL
         self.alibi = alibi
-        if not relative_position and not relative_attention_bias:
+        if (
+            not relative_position
+            and not relative_attention_bias
+            and not alibi
+            and rotary_dim is None
+        ):
             self.position_encodings = PositionEncoderSpec()
         if pre_norm and not no_final_norm:
             self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)

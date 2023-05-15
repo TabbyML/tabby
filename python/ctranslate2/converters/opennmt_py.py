@@ -8,6 +8,7 @@ _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
     "fast_gelu": common_spec.Activation.GELUTanh,
     "relu": common_spec.Activation.RELU,
+    "silu": common_spec.Activation.SWISH,
 }
 
 _SUPPORTED_FEATURES_MERGE = {
@@ -18,6 +19,8 @@ _SUPPORTED_FEATURES_MERGE = {
 
 def check_opt(opt, num_source_embeddings):
     with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
+    with_rotary = getattr(opt, "max_relative_positions", 0) == -1
+    with_alibi = getattr(opt, "max_relative_positions", 0) == -2
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     feat_merge = getattr(opt, "feat_merge", "concat")
     self_attn_type = getattr(opt, "self_attn_type", "scaled-dot")
@@ -40,7 +43,7 @@ def check_opt(opt, num_source_embeddings):
         % (activation_fn, ", ".join(_SUPPORTED_ACTIVATIONS.keys())),
     )
     check(
-        opt.position_encoding != with_relative_position,
+        opt.position_encoding != (with_relative_position or with_rotary or with_alibi),
         "Options --position_encoding and --max_relative_positions cannot be both enabled "
         "or both disabled",
     )
@@ -95,14 +98,23 @@ def _get_model_spec_seq2seq(
 def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embeddings):
     """Creates a model specification from the model options."""
     with_relative_position = getattr(opt, "max_relative_positions", 0) > 0
+    with_rotary = getattr(opt, "max_relative_positions", 0) == -1
+    with_alibi = getattr(opt, "max_relative_positions", 0) == -2
     activation_fn = getattr(opt, "pos_ffn_activation_fn", "relu")
     num_heads = getattr(opt, "heads", 8)
+    rotary_dim = 0 if with_rotary else None
+    ffn_glu = activation_fn == "silu"
 
     model_spec = transformer_spec.TransformerDecoderModelSpec.from_config(
         opt.dec_layers,
         num_heads,
         activation=_SUPPORTED_ACTIVATIONS[activation_fn],
+        ffn_glu=ffn_glu,
         with_relative_position=with_relative_position,
+        alibi=with_alibi,
+        rms_norm=opt.layer_norm == "rms",
+        rotary_dim=rotary_dim,
+        rotary_interleave=True,
     )
 
     set_transformer_decoder(
@@ -265,6 +277,8 @@ def set_ffn(spec, variables, scope):
     set_layer_norm(spec.layer_norm, variables, "%s.layer_norm" % scope)
     set_linear(spec.linear_0, variables, "%s.w_1" % scope)
     set_linear(spec.linear_1, variables, "%s.w_2" % scope)
+    if hasattr(spec, "linear_0_noact"):
+        set_linear(spec.linear_0_noact, variables, "%s.w_3" % scope)
 
 
 def set_multi_head_attention(spec, variables, scope, self_attention=False):
@@ -291,11 +305,14 @@ def set_multi_head_attention(spec, variables, scope, self_attention=False):
 def set_layer_norm(spec, variables, scope):
     try:
         spec.gamma = _get_variable(variables, "%s.weight" % scope)
-        spec.beta = _get_variable(variables, "%s.bias" % scope)
     except KeyError:
         # Compatibility with older models using a custom LayerNorm module.
         spec.gamma = _get_variable(variables, "%s.a_2" % scope)
         spec.beta = _get_variable(variables, "%s.b_2" % scope)
+    try:
+        spec.beta = _get_variable(variables, "%s.bias" % scope)
+    except KeyError:
+        pass
 
 
 def set_linear(spec, variables, scope):
