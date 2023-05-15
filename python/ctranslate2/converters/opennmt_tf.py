@@ -169,17 +169,27 @@ class TransformerSpecBuilder:
 
         check.validate()
 
-        spec = transformer_spec.TransformerSpec.from_config(
-            (len(model.encoder.layers), len(model.decoder.layers)),
-            mha.num_heads,
-            with_relative_position=with_relative_position,
+        encoder_spec = transformer_spec.TransformerEncoderSpec(
+            len(model.encoder.layers),
+            model.encoder.layers[0].self_attention.layer.num_heads,
             pre_norm=model.encoder.layer_norm is not None,
             activation=_SUPPORTED_ACTIVATIONS[activation_name],
-            alignment_layer=alignment_layer,
-            alignment_heads=alignment_heads,
             num_source_embeddings=num_source_embeddings,
             embeddings_merge=embeddings_merge,
+            relative_position=with_relative_position,
         )
+
+        decoder_spec = transformer_spec.TransformerDecoderSpec(
+            len(model.decoder.layers),
+            model.decoder.layers[0].self_attention.layer.num_heads,
+            pre_norm=model.decoder.layer_norm is not None,
+            activation=_SUPPORTED_ACTIVATIONS[activation_name],
+            relative_position=with_relative_position,
+            alignment_layer=alignment_layer,
+            alignment_heads=alignment_heads,
+        )
+
+        spec = transformer_spec.TransformerSpec(encoder_spec, decoder_spec)
 
         spec.config.add_source_bos = bool(source_inputters[0].mark_start)
         spec.config.add_source_eos = bool(source_inputters[0].mark_end)

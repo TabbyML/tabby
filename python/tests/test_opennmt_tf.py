@@ -152,7 +152,8 @@ def test_opennmt_tf_shared_embeddings_conversion(tmp_dir):
     translator.translate_batch([["1", "2", "3"]], max_decoding_length=10)
 
 
-def test_opennmt_tf_postnorm_transformer_conversion(tmp_dir):
+@pytest.mark.parametrize("encoder_only", [True, False])
+def test_opennmt_tf_postnorm_transformer_conversion(tmp_dir, encoder_only):
     model = opennmt.models.Transformer(
         opennmt.inputters.WordEmbedder(32),
         opennmt.inputters.WordEmbedder(32),
@@ -160,8 +161,17 @@ def test_opennmt_tf_postnorm_transformer_conversion(tmp_dir):
         num_units=32,
         num_heads=4,
         ffn_inner_dim=64,
-        pre_norm=False,
+        pre_norm=encoder_only,
     )
+
+    if encoder_only:
+        model.encoder = opennmt.encoders.SelfAttentionEncoder(
+            num_layers=3,
+            num_units=32,
+            num_heads=4,
+            ffn_inner_dim=64,
+            pre_norm=False,
+        )
 
     vocab_path = _create_vocab(tmp_dir)
     model.initialize({"source_vocabulary": vocab_path, "target_vocabulary": vocab_path})
