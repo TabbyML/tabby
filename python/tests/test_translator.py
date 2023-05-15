@@ -182,6 +182,17 @@ def test_token_streaming(return_log_prob):
         )
 
 
+def test_token_streaming_exception():
+    source = ["آ", "ت", "ز", "م", "و", "ن"]
+    translator = _get_transliterator()
+    step_results = translator.generate_tokens(
+        source, min_decoding_length=2, max_decoding_length=1
+    )
+
+    with pytest.raises(ValueError, match="decoding length"):
+        step_results = list(step_results)
+
+
 def test_file_translation(tmp_dir):
     input_path = str(tmp_dir.join("input.txt"))
     output_path = str(tmp_dir.join("output.txt"))

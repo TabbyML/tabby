@@ -1,6 +1,7 @@
 import collections
 import itertools
 import queue
+import threading
 
 from typing import Iterable, List, Optional, Union
 
@@ -317,17 +318,28 @@ def _generate_tokens(process_func, *args, **kwargs):
 
     async_result = process_func(*args, **kwargs)[0]
 
+    def _catch_exception():
+        try:
+            async_result.result()
+        except Exception as e:
+            step_results.put(e)
+
+    thread = threading.Thread(target=_catch_exception, daemon=True)
+    thread.start()
+
     while True:
         step_result = step_results.get()
 
         if step_result is None:
             break
 
+        if isinstance(step_result, Exception):
+            raise step_result
+
         yield step_result
 
     # Wait for the job to terminate before exiting.
-    if not async_result.done():
-        async_result.result()
+    thread.join()
 
 
 def _process_iterable(process_func, iterables, max_batch_size, batch_type, **kwargs):
