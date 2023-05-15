@@ -1,19 +1,19 @@
-if exists('g:autoloaded_tabby_inline_completion')
+if exists('g:autoloaded_tabby_virtual_text')
   finish
 endif
-let g:autoloaded_tabby_inline_completion = 1
+let g:autoloaded_tabby_virtual_text = 1
 
 let s:vim = exists('*prop_type_add')
 let s:nvim = !s:vim && has('nvim') && exists('*nvim_buf_set_extmark')
 
-function! tabby#inline_completion#Check()
+function! tabby#virtual_text#Check()
   return #{
     \ ok: s:vim || s:nvim,
-    \ message: 'Tabby requires Vim 9.0+ with +textprop feature support, or NeoVim 0.6.0+.',
+    \ message: 'Tabby requires Vim 9.0.0534+ with +textprop feature support, or NeoVim 0.6.0+.',
     \}
 endfunction
 
-function! tabby#inline_completion#Init()
+function! tabby#virtual_text#Init()
   hi def TabbyCompletion guifg=#808080 ctermfg=8
   if s:vim
     let s:prop_type = 'TabbyCompletion'
@@ -29,11 +29,12 @@ function! tabby#inline_completion#Init()
   endif
 endfunction
 
-function! tabby#inline_completion#Show(lines)
+function! tabby#virtual_text#Show(lines)
   if len(a:lines) == 0
     return
   endif
   if s:vim
+    " virtual text requires 9.0.0534
     call prop_add(line('.'), col('.'), #{
       \ type: s:prop_type,
       \ text: a:lines[0],
@@ -59,7 +60,7 @@ function! tabby#inline_completion#Show(lines)
   endif
 endfunction
 
-function! tabby#inline_completion#Clear()
+function! tabby#virtual_text#Clear()
   if s:vim
     call prop_remove(#{
       \ type: s:prop_type,
