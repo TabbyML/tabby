@@ -329,6 +329,9 @@ function! tabby#Schedule()
     return
   endif
   call tabby#Clear()
+  if !s:IsGoodPositionToTrigger()
+    return
+  endif
   let s:scheduled = timer_start(g:tabby_suggestion_delay, function('tabby#Trigger'))
 endfunction
 
@@ -342,6 +345,13 @@ function! tabby#Trigger(timer)
   call s:GetCompletion(id)
 endfunction
 
+function! s:IsGoodPositionToTrigger()
+  let suffix = s:GetStringAfterCursor()
+  " If no words after cursor this line
+  if suffix =~# '^\W*$'
+    return v:true
+  endif
+endfunction
 
 " 5. Completion UI
 "
@@ -411,8 +421,7 @@ function! tabby#Accept(fallback)
     let s:text_to_insert = lines[0]
     let insertion = "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
   else
-    let current_line = getbufline('%', line('.'), line('.'))[0]
-    let suffix_chars_to_replace = len(current_line) - col('.') + 1
+    let suffix_chars_to_replace = len(s:GetStringAfterCursor())
     let s:text_to_insert = join(lines, "\n")
     let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
   endif
@@ -516,4 +525,9 @@ function! s:GetLanguage()
   else
     return filetype
   endif
+endfunction
+
+" Get string between corsor and end of current line
+function! s:GetStringAfterCursor()
+  return getbufline('%', line('.'), line('.'))[0][col('.') - 1:]
 endfunction
