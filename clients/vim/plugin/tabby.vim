@@ -21,7 +21,8 @@ endif
 
 augroup tabby
   autocmd!
-  autocmd CursorMovedI  *  call tabby#Schedule()
+  autocmd CursorMovedI  *  call tabby#Clear()
+  autocmd TextChangedI  *  call tabby#Schedule()
   autocmd BufLeave      *  call tabby#Clear()
   autocmd InsertLeave   *  call tabby#Clear()
 augroup END
