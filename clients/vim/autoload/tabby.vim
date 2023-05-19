@@ -349,7 +349,7 @@ function! tabby#OnTextChangedI()
   let s:text_changed = v:true
 endfunction
 
-function! tabby#Schedule(timer)
+function! tabby#Schedule(...)
   if !tabby#IsRunning()
     return
   endif
@@ -364,7 +364,7 @@ function! tabby#Schedule(timer)
   let s:scheduled = timer_start(g:tabby_suggestion_delay, function('tabby#Trigger'))
 endfunction
 
-function! tabby#Trigger(timer)
+function! tabby#Trigger(...)
   if !tabby#IsRunning()
     return
   endif
