@@ -298,7 +298,8 @@ function! s:HandleCompletion(id, channel, data)
   endif
   if (type(a:data) == v:t_dict) && has_key(a:data, 'choices') &&
     \ (type(a:data.choices) == v:t_list) && (len(a:data.choices) > 0)
-    let s:completion = a:data
+    let s:base_completion = a:data
+    let s:completion = copy(s:base_completion)
     let s:choice_index = 0
     call tabby#Show()
   endif
@@ -323,12 +324,43 @@ endfunction
 "   Use a timestamp to identify current triggered completion request. This is
 "   used to filter out outdated completion results.
 "
+" - s:trigger_position:
+"   Stores position of cursor when current triggered completion request.
+"
+" - s:text_changed
+"   A flag marks if TextChangedI called along with CursorMovedI.
+"   Just clear state if cursor move without input character.
+"
 
-function! tabby#Schedule()
+function! tabby#OnCursorMovedI()
   if !tabby#IsRunning()
     return
   endif
-  call tabby#Clear()
+  if !exists('s:text_changed')
+    let s:text_changed = v:false
+  endif
+  call timer_start(0, function('tabby#Schedule'))
+endfunction
+
+function! tabby#OnTextChangedI()
+  if !tabby#IsRunning()
+    return
+  endif
+  let s:text_changed = v:true
+endfunction
+
+function! tabby#Schedule(timer)
+  if !tabby#IsRunning()
+    return
+  endif
+  if !s:text_changed
+    call tabby#Clear()
+    return
+  endif
+  unlet s:text_changed  " Reset Flag for next tick
+  if s:UpdateAsPartiallyAccept()
+    return
+  endif
   let s:scheduled = timer_start(g:tabby_suggestion_delay, function('tabby#Trigger'))
 endfunction
 
@@ -339,16 +371,46 @@ function! tabby#Trigger(timer)
   call tabby#Clear()
   let id = join(reltime(), '.')
   let s:trigger_id = id
+  let s:trigger_position = getcursorcharpos()
   call s:GetCompletion(id)
 endfunction
 
+function! tabby#Clear()
+  call s:HideCompletion()
+  if exists('s:scheduled')
+    call timer_stop(s:scheduled)
+    unlet s:scheduled
+  endif
+  if exists('s:trigger_id')
+    unlet s:trigger_id
+  endif
+  if exists('s:base_completion')
+    unlet s:base_completion
+  endif
+  if exists('s:completion')
+    unlet s:completion
+  endif
+  if exists('s:partially_accepted')
+    unlet s:partially_accepted
+  endif
+  if exists('s:choice_index')
+    unlet s:choice_index
+  endif
+endfunction
 
 " 5. Completion UI
 "
 " Notable script-local variables:
-" - s:completion:
-"   Stores current completion data, a dictionary that has same struct as server
+" - s:base_completion:
+"   Stores server returned completion, a dictionary that has same struct as
 "   returned completion response.
+"
+" - s:completion:
+"   Same as `s:base_completion`, but can be modified locally when partially accept,
+"   and filter out incompatible choices.
+"
+" - s:partially_accepted:
+"   When partially accept, this variable stores the text that has been accepted.
 "
 " - s:choice_index:
 "   Stores index of current choice to display. A 0-based index of choice item
@@ -465,23 +527,6 @@ function! tabby#Prev()
   call tabby#Show()
 endfunction
 
-function! tabby#Clear()
-  call s:HideCompletion()
-  if exists('s:scheduled')
-    call timer_stop(s:scheduled)
-    unlet s:scheduled
-  endif
-  if exists('s:trigger_id')
-    unlet s:trigger_id
-  endif
-  if exists('s:completion')
-    unlet s:completion
-  endif
-  if exists('s:choice_index')
-    unlet s:choice_index
-  endif
-endfunction
-
 function! s:IsCompletionAvailable()
   if !exists('s:completion') || !exists('s:choice_index')
     return v:false
@@ -496,6 +541,48 @@ function! s:HideCompletion()
   call tabby#virtual_text#Clear()
   if exists('s:shown_lines')
     unlet s:shown_lines
+  endif
+endfunction
+
+function! s:UpdateAsPartiallyAccept()
+  if !exists('s:shown_lines') || !exists('s:trigger_position')
+    return v:false
+  endif
+  let position = getcursorcharpos()
+  " Cursor moved to position before trigger position
+  if position[1] < s:trigger_position[1] || (position[1] == s:trigger_position[1] && position[2] <= s:trigger_position[2])
+    return v:false
+  endif
+
+  let diff_lines = getbufline('%', s:trigger_position[1], position[1])
+  let diff_lines[-1] = diff_lines[-1][:position[2] - 2]
+  let diff_lines[0] = diff_lines[0][s:trigger_position[2] - 1:]
+  let diff_text = join(diff_lines, "\n")
+
+  let suggest_text = join(s:shown_lines, "\n")
+  if exists('s:partially_accepted')
+    let suggest_text = s:partially_accepted . suggest_text
+  endif
+
+  if len(suggest_text) > len(diff_text) && suggest_text[0:len(diff_text) - 1] ==# diff_text
+    let shown_choice_index = s:completion.choices[s:choice_index].index
+    let s:completion = copy(s:base_completion)
+    let s:completion.choices = []
+    for choice in s:base_completion.choices
+      if len(choice.text) > len(diff_text) && choice.text[0:len(diff_text) - 1] ==# diff_text
+        let updated_choice = copy(choice)
+        let updated_choice.text = choice.text[len(diff_text):]
+        if updated_choice.index == shown_choice_index
+          let s:choice_index = len(s:completion.choices)
+        endif
+        call add(s:completion.choices, updated_choice)
+      endif
+    endfor
+    let s:partially_accepted = diff_text
+    call tabby#Show()
+    return v:true
+  else
+    return v:false
   endif
 endfunction
 
