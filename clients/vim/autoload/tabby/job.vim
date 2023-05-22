@@ -77,11 +77,11 @@ endfunction
 " Options 'callback' supported
 function! tabby#job#Send(job, data, ...)
   let options = get(a:, 1, {})
+  let id = s:NextRequestId()
   if s:vim
-    return ch_sendexpr(a:job, a:data, options)
+    call ch_sendexpr(a:job, a:data, options)
   endif
   if s:nvim
-    let id = s:NextRequestId()
     let request = [id, a:data]
     let s:nvim_job_map[a:job].requests[id] = {}
     if has_key(options, 'callback')
@@ -89,9 +89,10 @@ function! tabby#job#Send(job, data, ...)
     endif
     call chansend(a:job, json_encode(request) . "\n")
   endif
+  return id
 endfunction
 
-let s:request_id = 1
+let s:request_id = 0
 function! s:NextRequestId()
   let s:request_id += 1
   return s:request_id
