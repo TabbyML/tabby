@@ -38,9 +38,10 @@ init() {
 }
 
 detect_gpu() {
-  gpu_info=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
-  if [[ "$gpu_info" == *"Maxwell"* ]] || [[ "$gpu_info" == *"Kepler"* ]] || [[ "$gpu_info" == *"Fermi"* ]]; then
-    echo "Error: The GPU is older than Pascal. Exiting."
+  gpu_info=$(nvidia-smi -q | grep 'Product Architecture')
+  architecture=${gpu_info##*: }
+  if [[ "$architecture" == *"Maxwell"* ]] || [[ "$architecture" == *"Kepler"* ]] || [[ "$architecture" == *"Fermi"* ]]; then
+    echo "Error: The GPU $architecture is older than Pascal. Exiting."
     MODEL_BACKEND="python"
   fi
 }
