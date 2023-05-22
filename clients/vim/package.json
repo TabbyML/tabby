@@ -1,0 +1,14 @@
+{
+  "name": "vim-tabby",
+  "version": "0.0.1",
+  "description": "Vim plugin for Tabby AI coding assistant.",
+  "repository": "https://github.com/TabbyML/tabby",
+  "scripts": {
+    "postinstall": "yarn copy-scripts",
+    "copy-scripts": "cpy --cwd='node_modules/tabby-agent/dist' ./ ../../../node_scripts/"
+  },
+  "devDependencies": {
+    "cpy-cli": "^4.2.0",
+    "tabby-agent": "file:./../tabby-agent"
+  }
+}

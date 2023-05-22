@@ -4,7 +4,7 @@ module.exports = {
   target: 'node',
   mode: 'none',
   output: {
-    filename: 'tabby.js',
+    filename: 'tabby-agent.js',
     path: path.resolve(__dirname, 'dist'),
   },
   entry: './src/index.ts',
