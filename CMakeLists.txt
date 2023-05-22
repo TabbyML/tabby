@@ -558,24 +558,31 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-export(EXPORT ${PROJECT_NAME}Targets
-  FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
-  NAMESPACE CTranslate2::
-)
+if(BUILD_SHARED_LIBS)
+  export(EXPORT ${PROJECT_NAME}Targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake"
+    NAMESPACE CTranslate2::
+  )
+endif()
+
 configure_file(cmake/${PROJECT_NAME}Config.cmake
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}/${PROJECT_NAME}Config.cmake"
   COPYONLY
 )
 
 set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
-install(EXPORT ${PROJECT_NAME}Targets
-  FILE
-    ${PROJECT_NAME}Targets.cmake
-  NAMESPACE
-    CTranslate2::
-  DESTINATION
-    ${ConfigPackageLocation}
-)
+
+if(BUILD_SHARED_LIBS)
+  install(EXPORT ${PROJECT_NAME}Targets
+    FILE
+      ${PROJECT_NAME}Targets.cmake
+    NAMESPACE
+      CTranslate2::
+    DESTINATION
+      ${ConfigPackageLocation}
+  )
+endif()
+
 install(
   FILES
     cmake/${PROJECT_NAME}Config.cmake
