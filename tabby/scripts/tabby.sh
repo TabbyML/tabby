@@ -2,7 +2,10 @@
 set -e
 
 # import flags
-SCRIPT_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+SCRIPT_DIR=$(
+  cd "$(dirname "${BASH_SOURCE[0]}")"
+  pwd -P
+)
 source "$SCRIPT_DIR/flags.sh"
 
 # INPUT ENVIRONMENT ARGS
@@ -23,55 +26,54 @@ export DATASET_DIR="$DATA_DIR/dataset"
 export DAGU_DAGS="tabby/tasks"
 
 init() {
-if [ ! -f $CONFIG_FILE ]; then
-  mkdir -p $(dirname $CONFIG_FILE)
-  touch $CONFIG_FILE
-fi
+  if [ ! -f $CONFIG_FILE ]; then
+    mkdir -p $(dirname $CONFIG_FILE)
+    touch $CONFIG_FILE
+  fi
 
-# Disable safe directory check
-git config --global --add safe.directory '*'
+  # Disable safe directory check
+  git config --global --add safe.directory '*'
 
-python -m tabby.tools.download_models --repo_id=$MODEL_NAME
+  python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 }
 
 detect_gpu() {
-    gpu_info=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
-    if [[ "$gpu_info" == *"Maxwell"* ]] || [[ "$gpu_info" == *"Kepler"* ]] || [[ "$gpu_info" == *"Fermi"* ]]; then
-        echo "Error: The GPU is older than Pascal. Exiting."
-        exit 1
-    fi
+  gpu_info=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
+  if [[ "$gpu_info" == *"Maxwell"* ]] || [[ "$gpu_info" == *"Kepler"* ]] || [[ "$gpu_info" == *"Fermi"* ]]; then
+    echo "Error: The GPU is older than Pascal. Exiting."
+    MODEL_BACKEND="python"
+  fi
 }
 
 program:triton() {
-detect_gpu
-if [[ "$MODEL_BACKEND" == "triton" ]]
-then
+  detect_gpu
+  if [[ "$MODEL_BACKEND" == "triton" ]]; then
 
-cat <<EOF
+    cat <<EOF
 [program:triton]
 command=./tabby/scripts/triton.sh
 EOF
 
-fi
+  fi
 }
 
 program:caddy() {
-if [[ "$CADDY_WATCH_CONFIG" == "true" ]]
-then
-local CADDY_ARGS=" --watch"
-fi
+  if [[ "$CADDY_WATCH_CONFIG" == "true" ]]; then
+    local CADDY_ARGS=" --watch"
+  fi
 
-cat <<EOF
+  cat <<EOF
 [program:caddy]
 command=caddy run --config tabby/config/Caddyfile $CADDY_ARGS
 EOF
 }
 
 supervisor() {
-# Create logs dir if not exists.
-mkdir -p ${LOGS_DIR}
+  # Create logs dir if not exists.
+  mkdir -p ${LOGS_DIR}
 
-supervisord -n -c <(cat <<EOF
+  supervisord -n -c <(
+    cat <<EOF
 [supervisord]
 logfile = ${LOGS_DIR}/supervisord.log
 loglevel = debug
@@ -95,7 +97,7 @@ $(program:triton)
 
 $(program:caddy)
 EOF
-)
+  )
 }
 
 init
