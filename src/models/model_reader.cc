@@ -1,6 +1,6 @@
 #include "ctranslate2/models/model_reader.h"
 
-#include <fstream>
+#include "ctranslate2/filesystem.h"
 
 namespace ctranslate2 {
   namespace models {
@@ -28,7 +28,7 @@ namespace ctranslate2 {
                                                             const bool binary) {
       const std::string path = _model_dir + "/" + filename;
       const std::ios_base::openmode mode = binary ? std::ios_base::binary : std::ios_base::in;
-      auto stream = std::make_unique<std::ifstream>(path, mode);
+      auto stream = std::make_unique<std::ifstream>(open_file_read(path, mode, /*check=*/false));
       if (!stream || !(*stream))
         return nullptr;
       return stream;

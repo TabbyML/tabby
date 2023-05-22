@@ -31,14 +31,6 @@ namespace ctranslate2 {
                    size_t num_features,
                    const std::string& features_separator = "￨");
 
-  template <typename Stream>
-  Stream open_file(const std::string& path) {
-    Stream stream(path);
-    if (!stream)
-      throw std::runtime_error("Failed to open file: " + path);
-    return stream;
-  }
-
   template <typename T, typename I>
   static std::vector<T> index_vector(const std::vector<T>& v,
                                      const std::vector<I>& index) {

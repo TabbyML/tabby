@@ -106,6 +106,7 @@ set(SOURCES
   src/devices.cc
   src/dtw.cc
   src/env.cc
+  src/filesystem.cc
   src/generator.cc
   src/layers/attention.cc
   src/layers/common.cc

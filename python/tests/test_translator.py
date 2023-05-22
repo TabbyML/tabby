@@ -34,6 +34,13 @@ def test_invalid_model_path():
         ctranslate2.Translator("xxx")
 
 
+def test_unicode_path(tmp_dir):
+    src = _get_model_path()
+    dst = str(tmp_dir.join("测试").join("model"))
+    shutil.copytree(src, dst)
+    ctranslate2.Translator(dst)
+
+
 def test_invalid_model_type():
     with pytest.raises(RuntimeError, match="cannot be used"):
         ctranslate2.Generator(_get_model_path())

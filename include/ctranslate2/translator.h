@@ -1,7 +1,6 @@
 #pragma once
 
-#include <fstream>
-
+#include "filesystem.h"
 #include "replica_pool.h"
 #include "models/sequence_to_sequence.h"
 
@@ -94,8 +93,8 @@ namespace ctranslate2 {
                                            const size_t read_batch_size = 0,
                                            const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
-      auto in = open_file<std::ifstream>(in_file);
-      auto out = open_file<std::ofstream>(out_file);
+      auto in = open_file_read(in_file);
+      auto out = open_file_write(out_file);
       return translate_raw_text_file(in,
                                      out,
                                      tokenizer,
@@ -143,10 +142,10 @@ namespace ctranslate2 {
                                            const size_t read_batch_size = 0,
                                            const BatchType batch_type = BatchType::Examples,
                                            const bool with_scores = false) {
-      auto source = open_file<std::ifstream>(source_file);
-      auto output = open_file<std::ofstream>(output_file);
+      auto source = open_file_read(source_file);
+      auto output = open_file_write(output_file);
       auto target = (target_file
-                     ? std::make_unique<std::ifstream>(open_file<std::ifstream>(*target_file))
+                     ? std::make_unique<std::ifstream>(open_file_read(*target_file))
                      : nullptr);
 
       return translate_raw_text_file(source,
@@ -240,9 +239,9 @@ namespace ctranslate2 {
                                        const size_t read_batch_size = 0,
                                        const BatchType batch_type = BatchType::Examples,
                                        bool with_tokens_score = false) {
-      auto source = open_file<std::ifstream>(source_file);
-      auto target = open_file<std::ifstream>(target_file);
-      auto output = open_file<std::ofstream>(output_file);
+      auto source = open_file_read(source_file);
+      auto target = open_file_read(target_file);
+      auto output = open_file_write(output_file);
       return score_raw_text_file(source,
                                  target,
                                  output,

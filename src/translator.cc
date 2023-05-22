@@ -89,10 +89,10 @@ namespace ctranslate2 {
                                                      BatchType batch_type,
                                                      bool with_scores,
                                                      const std::string* target_file) {
-    auto source = open_file<std::ifstream>(source_file);
-    auto output = open_file<std::ofstream>(output_file);
+    auto source = open_file_read(source_file);
+    auto output = open_file_write(output_file);
     auto target = (target_file
-                   ? std::make_unique<std::ifstream>(open_file<std::ifstream>(*target_file))
+                   ? std::make_unique<std::ifstream>(open_file_read(*target_file))
                    : nullptr);
 
     return translate_text_file(source,
@@ -134,9 +134,9 @@ namespace ctranslate2 {
                                                  size_t read_batch_size,
                                                  BatchType batch_type,
                                                  bool with_tokens_score) {
-    auto source = open_file<std::ifstream>(source_file);
-    auto target = open_file<std::ifstream>(target_file);
-    auto output = open_file<std::ofstream>(output_file);
+    auto source = open_file_read(source_file);
+    auto target = open_file_read(target_file);
+    auto output = open_file_write(output_file);
     return score_text_file(source,
                            target,
                            output,
