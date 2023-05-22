@@ -191,7 +191,7 @@ function! tabby#Start()
   endif
 
   let tabby_root = expand('<sfile>:h:h')
-  let node_script = tabby_root . '/node_scripts/dist/tabby.js'
+  let node_script = tabby_root . '/node_scripts/tabby-agent.js'
   if !filereadable(node_script)
     let s:errmsg = 'Tabby node script should be built first. Run `yarn && yarn build` in `./node_scripts`.'
     return
