@@ -47,6 +47,7 @@ class TransformersConverter(Converter):
         load_as_float16: bool = False,
         revision: Optional[str] = None,
         low_cpu_mem_usage: bool = False,
+        trust_remote_code: bool = False,
     ):
         """Initializes the converter.
 
@@ -64,6 +65,7 @@ class TransformersConverter(Converter):
           revision: Revision of the model to download from the Hugging Face Hub.
           low_cpu_mem_usage: Enable the flag ``low_cpu_mem_usage`` when loading the model
             with ``from_pretrained``.
+          trust_remote_code: Allow converting models using custom code.
         """
         self._model_name_or_path = model_name_or_path
         self._activation_scales = activation_scales
@@ -71,13 +73,17 @@ class TransformersConverter(Converter):
         self._load_as_float16 = load_as_float16
         self._revision = revision
         self._low_cpu_mem_usage = low_cpu_mem_usage
+        self._trust_remote_code = trust_remote_code
 
     def _load(self):
         import torch
         import transformers
 
         with torch.no_grad():
-            config = transformers.AutoConfig.from_pretrained(self._model_name_or_path)
+            config = transformers.AutoConfig.from_pretrained(
+                self._model_name_or_path, trust_remote_code=self._trust_remote_code
+            )
+
             config_name = config.__class__.__name__
             loader = _MODEL_LOADERS.get(config_name)
 
@@ -98,6 +104,8 @@ class TransformersConverter(Converter):
                 kwargs["revision"] = self._revision
             if self._low_cpu_mem_usage:
                 kwargs["low_cpu_mem_usage"] = self._low_cpu_mem_usage
+            if self._trust_remote_code:
+                kwargs["trust_remote_code"] = self._trust_remote_code
 
             model = self.load_model(model_class, self._model_name_or_path, **kwargs)
 
@@ -915,6 +923,7 @@ class BloomLoader(ModelLoader):
             activation=common_spec.Activation.GELUTanh,
             layernorm_embedding=True,
             alibi=True,
+            alibi_use_positive_positions=True,
         )
 
         self.set_decoder(spec.decoder, model.transformer)
@@ -978,6 +987,62 @@ class BloomLoader(ModelLoader):
         spec.bias = bias.numpy()
 
 
+@register_loader("MPTConfig")
+class MPTLoader(ModelLoader):
+    @property
+    def architecture_name(self):
+        return "AutoModelForCausalLM"
+
+    def get_model_spec(self, model):
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
+            model.config.n_layers,
+            model.config.n_heads,
+            pre_norm=True,
+            activation=common_spec.Activation.GELU,
+            alibi=True,
+        )
+
+        self.set_decoder(spec.decoder, model.transformer)
+        return spec
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+
+        extra_ids = model.config.vocab_size - len(tokens)
+        for i in range(extra_ids):
+            tokens.append("<extra_id_%d>" % i)
+
+        return tokens
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+
+    def set_decoder(self, spec, module):
+        self.set_embeddings(spec.embeddings, module.wte)
+        self.set_layer_norm(spec.layer_norm, module.norm_f)
+
+        spec.scale_embeddings = False
+        spec.projection.weight = spec.embeddings.weight
+
+        for layer_spec, layer in zip(spec.layer, module.blocks):
+            self.set_layer_norm(layer_spec.self_attention.layer_norm, layer.norm_1)
+            self.set_linear(layer_spec.self_attention.linear[0], layer.attn.Wqkv)
+            self.set_linear(layer_spec.self_attention.linear[1], layer.attn.out_proj)
+
+            self.set_layer_norm(layer_spec.ffn.layer_norm, layer.norm_2)
+            self.set_linear(layer_spec.ffn.linear_0, layer.ffn.up_proj)
+            self.set_linear(layer_spec.ffn.linear_1, layer.ffn.down_proj)
+
+    def set_layer_norm(self, spec, module):
+        spec.gamma = module.weight.numpy()
+        spec.beta = np.zeros_like(spec.gamma)
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -1016,6 +1081,11 @@ def main():
         action="store_true",
         help="Enable the flag low_cpu_mem_usage when loading the model with from_pretrained.",
     )
+    parser.add_argument(
+        "--trust_remote_code",
+        action="store_true",
+        help="Allow converting models using custom code.",
+    )
 
     Converter.declare_arguments(parser)
     args = parser.parse_args()
@@ -1026,6 +1096,7 @@ def main():
         load_as_float16=args.quantization in ("float16", "int8_float16"),
         revision=args.revision,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
+        trust_remote_code=args.trust_remote_code,
     )
     converter.convert_from_args(args)
 

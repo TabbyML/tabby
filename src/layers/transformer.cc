@@ -286,6 +286,7 @@ namespace ctranslate2 {
       , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
                                                                false))
       , _use_alibi(model.get_flag_with_default(scope + "/alibi", false))
+      , _use_positive_positions_in_alibi(model.get_flag_with_default(scope + "/alibi_use_positive_positions", true))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
@@ -488,7 +489,12 @@ namespace ctranslate2 {
       std::unique_ptr<StorageView> alibi;
       if (_use_alibi) {
         alibi = std::make_unique<StorageView>(
-          build_alibi(batch_size, _num_heads, max_time, step > 0 ? step + 1 : max_time, lengths));
+          build_alibi(batch_size,
+                      _num_heads,
+                      max_time,
+                      step > 0 ? step + 1 : max_time,
+                      lengths,
+                      _use_positive_positions_in_alibi));
         alibi->move_to(device, dtype);
       }
 

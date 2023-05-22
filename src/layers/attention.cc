@@ -106,7 +106,8 @@ namespace ctranslate2 {
                             dim_t num_heads,
                             dim_t query_max_length,
                             dim_t key_max_length,
-                            const StorageView* key_lengths) {
+                            const StorageView* key_lengths,
+                            bool use_positive_positions) {
       const float closest_power_of_2_f = std::pow(2.f, std::floor(std::log2f(num_heads)));
       const dim_t closest_power_of_2 = closest_power_of_2_f;
 
@@ -134,7 +135,8 @@ namespace ctranslate2 {
           for (dim_t q = 0; q < query_max_length; ++q) {
             for (dim_t k = 0; k < key_max_length; ++k) {
               dim_t length = key_lengths ? key_lengths->scalar_at<int32_t>({b}) : key_max_length;
-              alibi.at<float>({b, h, q, k}) = k >= length ? 0 : float(k) * slopes[h];
+              float position = use_positive_positions ? k : -key_max_length + k + 1;
+              alibi.at<float>({b, h, q, k}) = k >= length ? 0 : position * slopes[h];
             }
           }
         }

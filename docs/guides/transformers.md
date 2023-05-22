@@ -7,6 +7,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * M2M100
 * MarianMT
 * MBART
+* MPT
 * NLLB
 * OpenAI GPT2
 * GPT-J
@@ -137,6 +138,34 @@ results = translator.translate_batch([source], target_prefix=[target_prefix])
 target = results[0].hypotheses[0][1:]
 
 print(tokenizer.decode(tokenizer.convert_tokens_to_ids(target)))
+```
+
+## MPT
+
+[MPT-7B](https://huggingface.co/mosaicml/mpt-7b) is a decoder-style transformer pretrained from scratch on 1T tokens of English text and code. This model was trained by [MosaicML](https://www.mosaicml.com/).
+
+```{note}
+The code is included in the model so you should pass `--trust_remote_code` to the conversion command.
+```
+
+```bash
+ct2-transformers-converter --model mosaicml/mpt-7b --output_dir mpt-7b --quantization int8_float16 --trust_remote_code
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("mpt-7b")
+tokenizer = transformers.AutoTokenizer.from_pretrained("EleutherAI/gpt-neox-20b")
+
+prompt = "In a shocking finding, scientists"
+tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch([tokens], max_length=30, sampling_topk=10)
+
+text = tokenizer.decode(results[0].sequences_ids[0])
+print(text)
 ```
 
 ## NLLB

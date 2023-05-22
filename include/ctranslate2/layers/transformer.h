@@ -195,6 +195,7 @@ namespace ctranslate2 {
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
       const bool _use_alibi;
+      const bool _use_positive_positions_in_alibi;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       std::unique_ptr<const StorageView> _outputs_scale;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;

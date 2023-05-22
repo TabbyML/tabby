@@ -86,6 +86,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         ffn_glu: bool = False,
         rms_norm: bool = False,
         alibi: bool = False,
+        alibi_use_positive_positions: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
         parallel_residual: bool = False,
@@ -113,6 +114,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             https://arxiv.org/abs/2002.05202.
           rms_norm: Use the root mean square layer normalization.
           alibi: Use attention with linear biases.
+          alibi_use_positive_positions: Use positive positions in the ALiBi definition.
           rotary_dim: Apply rotary embeddings to these first N dimensions. If 0, rotary
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
@@ -137,6 +139,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         self.scale_embeddings = True
         self.scale_outputs = model_spec.OPTIONAL
         self.alibi = alibi
+        self.alibi_use_positive_positions = alibi_use_positive_positions
         if (
             not relative_position
             and not relative_attention_bias
@@ -384,6 +387,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         ffn_glu: bool = False,
         rms_norm: bool = False,
         alibi: bool = False,
+        alibi_use_positive_positions: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
         parallel_residual: bool = False,
@@ -405,6 +409,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             https://arxiv.org/abs/2002.05202.
           rms_norm: Use the root mean square layer normalization.
           alibi: Use attention with linear biases.
+          alibi_use_positive_positions: Use positive positions in the ALiBi definition.
           rotary_dim: Apply rotary embeddings to these first N dimensions. If 0, rotary
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
@@ -427,6 +432,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             ffn_glu=ffn_glu,
             rms_norm=rms_norm,
             alibi=alibi,
+            alibi_use_positive_positions=alibi_use_positive_positions,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
             parallel_residual=parallel_residual,
