@@ -34,8 +34,16 @@ git config --global --add safe.directory '*'
 python -m tabby.tools.download_models --repo_id=$MODEL_NAME
 }
 
+detect_gpu() {
+    gpu_info=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
+    if [[ "$gpu_info" == *"Maxwell"* ]] || [[ "$gpu_info" == *"Kepler"* ]] || [[ "$gpu_info" == *"Fermi"* ]]; then
+        echo "Error: The GPU is older than Pascal. Exiting."
+        exit 1
+    fi
+}
 
 program:triton() {
+detect_gpu
 if [[ "$MODEL_BACKEND" == "triton" ]]
 then
 
