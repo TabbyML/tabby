@@ -1,7 +1,8 @@
 import axios from "axios";
-import { sleep } from "./utils";
 import { EventEmitter } from "node:events";
 import { strict as assert } from "node:assert";
+import { sleep } from "./utils";
+import { Agent, AgentEvent } from "./types";
 import {
   TabbyApi,
   CancelablePromise,
@@ -13,7 +14,7 @@ import {
   CompletionEvent,
 } from "./generated";
 
-export class Agent extends EventEmitter {
+export class TabbyAgent extends EventEmitter implements Agent {
   private serverUrl: string = "http://127.0.0.1:5000";
   private status: "connecting" | "ready" | "disconnected" = "connecting";
   private api: TabbyApi;
@@ -27,7 +28,8 @@ export class Agent extends EventEmitter {
   private changeStatus(status: "connecting" | "ready" | "disconnected") {
     if (this.status != status) {
       this.status = status;
-      this.emit("statusChanged", status);
+      const event: AgentEvent = { event: "statusChanged", status };
+      this.emit("statusChanged", event);
     }
   }
 
@@ -83,13 +85,13 @@ export class Agent extends EventEmitter {
     return this.serverUrl;
   }
 
-  public getCompletions(req: CompletionRequest): CancelablePromise<CompletionResponse> {
-    const promise = this.api.default.completionsV1CompletionsPost(req);
+  public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
+    const promise = this.api.default.completionsV1CompletionsPost(request);
     return this.wrapApiPromise(promise);
   }
 
-  public postEvent(req: ChoiceEvent | CompletionEvent): CancelablePromise<any> {
-    const promise = this.api.default.eventsV1EventsPost(req);
+  public postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<any> {
+    const promise = this.api.default.eventsV1EventsPost(request);
     return this.wrapApiPromise(promise);
   }
 }

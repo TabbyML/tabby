@@ -249,9 +249,7 @@ function! s:UpdateServerUrl()
   endif
   call tabby#job#Send(s:tabby, #{
     \ func: 'setServerUrl',
-    \ args: #{
-      \ url: g:tabby_server_url,
-      \ },
+    \ args: [g:tabby_server_url],
     \ })
 endfunction
 
@@ -263,20 +261,16 @@ function! s:GetCompletion(id)
   if exists('s:pending_request_id')
     call tabby#job#Send(s:tabby, #{
       \ func: 'cancelRequest',
-      \ args: #{
-        \ id: s:pending_request_id,
-        \ },
-      \ }, #{
-      \ callback: function('s:HandleCompletion', [a:id]),
+      \ args: [s:pending_request_id],
       \ })
   endif
 
   let s:pending_request_id = tabby#job#Send(s:tabby, #{
     \ func: 'getCompletions',
-    \ args: #{
+    \ args: [#{
       \ prompt: s:GetPrompt(),
       \ language: s:GetLanguage(),
-      \ },
+      \ }],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
     \ })
@@ -291,11 +285,11 @@ function! s:PostEvent(event_type)
   endif
   call tabby#job#Send(s:tabby, #{
     \ func: 'postEvent',
-    \ args: #{
+    \ args: [#{
       \ type: a:event_type,
       \ completion_id: s:completion.id,
       \ choice_index: s:completion.choices[s:choice_index].index,
-      \ },
+      \ }],
     \ })
 endfunction
 
@@ -318,7 +312,8 @@ function! s:HandleCompletion(id, channel, data)
 endfunction
 
 function! s:HandleError(channel, data)
-  " echoerr "HandleError: " . string(a:data)  " For Debug
+  " For Debug
+  " echoerr "HandleError: " . string(a:data)
 endfunction
 
 function! s:HandleExit(channel, data)
