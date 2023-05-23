@@ -25,9 +25,9 @@ type AgentFunctionResponse<T extends keyof AgentFunction> = [
   data: ReturnType<AgentFunction[T]>,
 ]
 
-type AgentEventNotification<T extends keyof AgentEvent> = {
+type AgentEventNotification = {
   id: 0,
-  data: AgentEvent[T],
+  data: AgentEvent,
 }
 
 type CancellationResponse = [
@@ -35,7 +35,7 @@ type CancellationResponse = [
   data: boolean,
 ]
 
-type Response = AgentFunctionResponse<any> | AgentEventNotification<any> | CancellationResponse;
+type Response = AgentFunctionResponse<any> | AgentEventNotification | CancellationResponse;
 
 /**
  * This class implements the AgentIO interface using stdio.
