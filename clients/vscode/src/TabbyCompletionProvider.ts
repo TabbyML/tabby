@@ -10,8 +10,8 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { CompletionResponse, EventType, ChoiceEvent, ApiError, CancelablePromise, CancelError } from "./generated";
-import { TabbyClient } from "./TabbyClient";
+import { CompletionResponse, EventType, ChoiceEvent, CancelablePromise } from "tabby-agent";
+import { Agent } from "./Agent";
 import { CompletionCache } from "./CompletionCache";
 import { sleep } from "./utils";
 
@@ -20,7 +20,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private latestTimestamp: number = 0;
   private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
-  private tabbyClient = TabbyClient.getInstance();
+  private agent = Agent.getInstance();
   private completionCache = new CompletionCache();
   // User Settings
   private enabled: boolean = true;
@@ -81,19 +81,12 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     if (this.pendingCompletion) {
       this.pendingCompletion.cancel();
     }
-    this.pendingCompletion = this.tabbyClient.api.default.completionsV1CompletionsPost({
+    this.pendingCompletion = this.agent.getCompletions({
       prompt: prompt as string,   // Prompt is already nil-checked
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
     });
 
-    const completion = await this.pendingCompletion.then((response: CompletionResponse) => {
-      this.tabbyClient.changeStatus("ready");
-      return response;
-    }).catch((_: CancelError) => {
-      return null;
-    }).catch((err: ApiError) => {
-      console.error(err);
-      this.tabbyClient.changeStatus("disconnected");
+    const completion = await this.pendingCompletion.catch((_: Error) => {
       return null;
     });
     this.pendingCompletion = null;

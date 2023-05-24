@@ -3,11 +3,12 @@ import { CancelablePromise, ChoiceEvent, CompletionEvent, CompletionRequest, Com
 export interface AgentFunction {
   setServerUrl(url: string): string;
   getServerUrl(): string;
+  getStatus(): "connecting" | "ready" | "disconnected";
   getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-  postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
+  postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<any>;
 }
 
-type StatusChangedEvent = {
+export type StatusChangedEvent = {
   event: "statusChanged";
   status: "connecting" | "ready" | "disconnected";
 }
@@ -20,8 +21,3 @@ export interface AgentEventEmitter {
 }
 
 export type Agent = AgentFunction & AgentEventEmitter;
-
-export interface AgentIO {
-  bind(agent: Agent): void;
-  listen(): void;
-}

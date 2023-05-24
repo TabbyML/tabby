@@ -1,7 +1,15 @@
-import { TabbyAgent } from "./TabbyAgent";
-import { StdIO } from "./StdIO";
-
-const agent = new TabbyAgent();
-const stdio = new StdIO();
-stdio.bind(agent);
-stdio.listen();
+export { TabbyAgent } from "./TabbyAgent";
+export { Agent, AgentFunction, AgentEvent, StatusChangedEvent, agentEventNames } from "./types";
+export {
+  CancelablePromise,
+  CancelError,
+  ApiError,
+  HTTPValidationError,
+  ValidationError,
+  CompletionRequest,
+  CompletionResponse,
+  Choice,
+  ChoiceEvent,
+  CompletionEvent,
+  EventType,
+} from "./generated";

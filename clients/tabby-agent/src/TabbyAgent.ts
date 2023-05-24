@@ -1,6 +1,6 @@
 import axios from "axios";
-import { EventEmitter } from "node:events";
-import { strict as assert } from "node:assert";
+import { EventEmitter } from "events";
+import { strict as assert } from "assert";
 import { sleep } from "./utils";
 import { Agent, AgentEvent } from "./types";
 import {
@@ -29,7 +29,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status != status) {
       this.status = status;
       const event: AgentEvent = { event: "statusChanged", status };
-      this.emit("statusChanged", event);
+      super.emit("statusChanged", event);
     }
   }
 
@@ -83,6 +83,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   public getServerUrl(): string {
     return this.serverUrl;
+  }
+
+  public getStatus(): "connecting" | "ready" | "disconnected" {
+    return this.status;
   }
 
   public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {

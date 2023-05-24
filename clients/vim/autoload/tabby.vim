@@ -193,7 +193,7 @@ function! tabby#Start()
   let tabby_root = expand('<sfile>:h:h')
   let node_script = tabby_root . '/node_scripts/tabby-agent.js'
   if !filereadable(node_script)
-    let s:errmsg = 'Tabby node script should be download first. Try to run `yarn install`.'
+    let s:errmsg = 'Tabby node script should be download first. Try to run `yarn upgrade-agent`.'
     return
   endif
 

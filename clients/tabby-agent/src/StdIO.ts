@@ -1,5 +1,5 @@
 import { CancelablePromise } from "./generated";
-import { AgentFunction, AgentEvent, Agent, AgentIO, agentEventNames } from "./types";
+import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./types";
 import { splitLines } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
@@ -38,10 +38,9 @@ type CancellationResponse = [
 type Response = AgentFunctionResponse<any> | AgentEventNotification | CancellationResponse;
 
 /**
- * This class implements the AgentIO interface using stdio.
  * Every request and response should be single line JSON string and end with a newline.
  */
-export class StdIO implements AgentIO {
+export class StdIO {
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
   private readonly errLogger: NodeJS.WriteStream = process.stderr;

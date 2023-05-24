@@ -3,19 +3,31 @@
   "version": "0.0.1",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "repository": "https://github.com/TabbyML/tabby",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "browser": "./dist/index.global.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "require": "./dist/index.js",
+    "types": "./dist/index.d.ts"
+  },
   "scripts": {
     "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../docs/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
-    "dev": "webpack --watch",
-    "build": "webpack --mode=production"
+    "dev": "tsup --watch",
+    "build": "tsup"
   },
   "devDependencies": {
-    "axios": "^1.3.4",
-    "form-data": "^4.0.0",
+    "@types/node": "^16.18.32",
+    "esbuild-plugin-polyfill-node": "^0.2.0",
     "openapi-typescript-codegen": "^0.24.0",
     "rimraf": "^5.0.1",
-    "ts-loader": "^9.4.2",
-    "typescript": "^5.0.3",
-    "webpack": "^5.77.0",
-    "webpack-cli": "^5.0.1"
+    "tsup": "^6.7.0",
+    "typescript": "^5.0.3"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "form-data": "^4.0.0"
   }
 }

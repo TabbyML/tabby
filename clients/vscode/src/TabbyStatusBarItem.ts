@@ -1,21 +1,21 @@
 import { StatusBarAlignment, ThemeColor, window, workspace } from "vscode";
-import { TabbyClient } from "./TabbyClient";
+import { Agent } from "./Agent";
 
 const label = "Tabby";
 const iconLoading = "$(loading~spin)";
 const iconReady = "$(check)";
 const iconDisconnected = "$(plug)";
 const iconDisabled = "$(x)";
-const colorNormal = new ThemeColor('statusBar.foreground');
-const colorWarning = new ThemeColor('statusBarItem.warningForeground');
-const backgroundColorNormal = new ThemeColor('statusBar.background');
-const backgroundColorWarning = new ThemeColor('statusBarItem.warningBackground');
+const colorNormal = new ThemeColor("statusBar.foreground");
+const colorWarning = new ThemeColor("statusBarItem.warningForeground");
+const backgroundColorNormal = new ThemeColor("statusBar.background");
+const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground");
 
 const item = window.createStatusBarItem(StatusBarAlignment.Right);
 export const tabbyStatusBarItem = item;
 
-const client = TabbyClient.getInstance();
-client.on("statusChanged", updateStatusBarItem);
+const agent = Agent.getInstance();
+agent.on("statusChanged", updateStatusBarItem);
 
 workspace.onDidChangeConfiguration((event) => {
   if (event.affectsConfiguration("tabby")) {
@@ -31,7 +31,7 @@ function updateStatusBarItem() {
   if (!enabled) {
     toDisabled();
   } else {
-    const status = client.status;
+    const status = agent.getStatus();
     switch (status) {
       case "connecting":
         toLoading();

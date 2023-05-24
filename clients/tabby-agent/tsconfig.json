@@ -5,5 +5,6 @@
     "lib": ["ES2020", "dom"],
     "sourceMap": true,
     "allowSyntheticDefaultImports": true
-  }
+  },
+  "include": ["./src"]
 }
