@@ -5,10 +5,11 @@
   "repository": "https://github.com/TabbyML/tabby",
   "scripts": {
     "postinstall": "yarn copy-scripts",
-    "copy-scripts": "cpy --cwd='node_modules/tabby-agent/dist' ./ ../../../node_scripts/"
+    "copy-scripts": "rimraf ./node_scripts && cpy --cwd='node_modules/tabby-agent/dist' ./ ../../../node_scripts/"
   },
   "devDependencies": {
     "cpy-cli": "^4.2.0",
-    "tabby-agent": "file:./../tabby-agent"
+    "rimraf": "^5.0.1",
+    "tabby-agent": "file:../tabby-agent"
   }
 }

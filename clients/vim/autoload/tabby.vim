@@ -193,7 +193,7 @@ function! tabby#Start()
   let tabby_root = expand('<sfile>:h:h')
   let node_script = tabby_root . '/node_scripts/tabby-agent.js'
   if !filereadable(node_script)
-    let s:errmsg = 'Tabby node script should be built first. Run `yarn && yarn build` in `./node_scripts`.'
+    let s:errmsg = 'Tabby node script should be download first. Try to run `yarn install`.'
     return
   endif
 
@@ -204,6 +204,7 @@ function! tabby#Start()
     \ in_mode: 'json',
     \ out_mode: 'json',
     \ out_cb: function('s:HandleNotification'),
+    \ err_cb: function('s:HandleError'),
     \ exit_cb: function('s:HandleExit'),
     \ })
 
@@ -257,13 +258,19 @@ function! s:GetCompletion(id)
     return
   endif
 
-  call tabby#job#Send(s:tabby, #{
-    \ func: 'api.default.completionsV1CompletionsPost',
+  if exists('s:pending_request_id')
+    call tabby#job#Send(s:tabby, #{
+      \ func: 'cancelRequest',
+      \ args: [s:pending_request_id],
+      \ })
+  endif
+
+  let s:pending_request_id = tabby#job#Send(s:tabby, #{
+    \ func: 'getCompletions',
     \ args: [#{
       \ prompt: s:GetPrompt(),
       \ language: s:GetLanguage(),
       \ }],
-    \ cancelPendingRequest: v:true,
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
     \ })
@@ -277,7 +284,7 @@ function! s:PostEvent(event_type)
     return
   endif
   call tabby#job#Send(s:tabby, #{
-    \ func: 'api.default.eventsV1EventsPost',
+    \ func: 'postEvent',
     \ args: [#{
       \ type: a:event_type,
       \ completion_id: s:completion.id,
@@ -287,7 +294,7 @@ function! s:PostEvent(event_type)
 endfunction
 
 function! s:HandleNotification(channel, data)
-  if has_key(a:data, 'event') && (a:data.event == 'statusChanged')
+  if (type(a:data) == v:t_dict) && has_key(a:data, 'event') && (a:data.event == 'statusChanged')
     let s:tabby_status = a:data.status
   endif
 endfunction
@@ -302,6 +309,11 @@ function! s:HandleCompletion(id, channel, data)
     let s:choice_index = 0
     call tabby#Show()
   endif
+endfunction
+
+function! s:HandleError(channel, data)
+  " For Debug
+  " echoerr "HandleError: " . string(a:data)
 endfunction
 
 function! s:HandleExit(channel, data)

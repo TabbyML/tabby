@@ -4,7 +4,7 @@
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "repository": "https://github.com/TabbyML/tabby",
   "scripts": {
-    "openapi-codegen": "openapi --input ../../docs/openapi.json --output ./src/generated --client axios --name Tabby --indent 2",
+    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../docs/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
     "dev": "webpack --watch",
     "build": "webpack --mode=production"
   },
@@ -12,6 +12,7 @@
     "axios": "^1.3.4",
     "form-data": "^4.0.0",
     "openapi-typescript-codegen": "^0.24.0",
+    "rimraf": "^5.0.1",
     "ts-loader": "^9.4.2",
     "typescript": "^5.0.3",
     "webpack": "^5.77.0",
