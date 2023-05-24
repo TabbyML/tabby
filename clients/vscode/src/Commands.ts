@@ -7,10 +7,10 @@ import {
   window,
   commands,
 } from "vscode";
+import { strict as assert } from "assert";
 import { Duration } from "@sapphire/duration";
-import { ChoiceEvent, ApiError } from "./generated";
-import { TabbyClient } from "./TabbyClient";
-import { strict as assert } from "node:assert";
+import { ChoiceEvent } from "tabby-agent";
+import { Agent } from "./Agent";
 
 const target = ConfigurationTarget.Global;
 
@@ -128,20 +128,12 @@ const openSettings: Command = {
   },
 };
 
-const tabbyClient = TabbyClient.getInstance();
+const agent = Agent.getInstance();
 const emitEvent: Command = {
   command: "tabby.emitEvent",
   callback: (event: ChoiceEvent) => {
     console.debug("Emit Event: ", event);
-    tabbyClient.api.default
-      .eventsV1EventsPost(event)
-      .then(() => {
-        tabbyClient.changeStatus("ready");
-      })
-      .catch((err: ApiError) => {
-        console.error(err);
-        tabbyClient.changeStatus("disconnected");
-      });
+    agent.postEvent(event);
   },
 };
 

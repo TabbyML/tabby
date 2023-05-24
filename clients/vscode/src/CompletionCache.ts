@@ -1,5 +1,5 @@
 import { LinkedList } from "linked-list-typescript";
-import { CompletionResponse, Choice } from "./generated";
+import { CompletionResponse, Choice } from "tabby-agent";
 
 type Range = {
   start: number;
@@ -43,7 +43,7 @@ export class CompletionCache {
       if (text.slice(entry.promptRange.start, entry.promptRange.end) !== entry.prompt) {
         continue;
       }
-      // Filter choices that start with inputed text after prompt
+      // Filter choices that start with inputted text after prompt
       const compatibleChoices = entry.completion.choices
         .filter((choice) => choice.text.startsWith(text.slice(entry.promptRange.end, cursor)))
         .map((choice) => {

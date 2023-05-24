@@ -3,13 +3,14 @@
 'use strict';
 
 const path = require('path');
-const webpack = require("webpack");
+const webpack = require('webpack');
 
 //@ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
 /** @type WebpackConfig */
 const extensionNodeConfig = {
+  name: 'node',
   target: 'node', // VS Code extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
   mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
 
@@ -48,6 +49,7 @@ const extensionNodeConfig = {
 };
 
 const extensionWebConfig = {
+  name: 'web',
   target: 'webworker', // VS Code extensions run in a Node.js-context 📖 -> https://webpack.js.org/configuration/node/
   mode: 'none', // this leaves the source code as close as possible to the original (when packaging we set this to 'production')
 
@@ -70,18 +72,11 @@ const extensionWebConfig = {
       // see https://webpack.js.org/configuration/resolve/#resolvefallback
       // for the list of Node.js core module polyfills.
       assert: require.resolve('assert'),
-      events: require.resolve('events'),
     },
   },
   plugins: [
-    new webpack.NormalModuleReplacementPlugin(
-      /^node:/,
-      (resource) => {
-        resource.request = resource.request.replace(/^node:/, '');
-      },
-    ),
     new webpack.ProvidePlugin({
-      process: "process/browser", // provide a shim for the global `process` variable
+      process: 'process/browser', // provide a shim for the global `process` variable
     }),
   ],
   module: {

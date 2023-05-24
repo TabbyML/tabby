@@ -67,8 +67,6 @@
     }
   },
   "scripts": {
-    "postinstall": "yarn openapi-codegen",
-    "openapi-codegen": "openapi --input ../../docs/openapi.json --output ./src/generated --client axios --name Tabby --indent 2",
     "vscode:prepublish": "yarn package",
     "compile": "webpack",
     "watch": "webpack --watch",
@@ -91,10 +89,12 @@
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "@vscode/test-electron": "^2.1.5",
+    "assert": "^2.0.0",
     "eslint": "^8.20.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
     "openapi-typescript-codegen": "^0.24.0",
+    "process": "^0.11.10",
     "ts-loader": "^9.3.1",
     "typescript": "^4.7.4",
     "vsce": "^2.15.0",
@@ -103,11 +103,7 @@
   },
   "dependencies": {
     "@sapphire/duration": "^1.1.0",
-    "assert": "^2.0.0",
-    "axios": "^1.3.4",
-    "events": "^3.3.0",
-    "form-data": "^4.0.0",
     "linked-list-typescript": "^1.0.15",
-    "process": "^0.11.10"
+    "tabby-agent": "file:../tabby-agent"
   }
 }
