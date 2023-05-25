@@ -11,7 +11,6 @@
 #include <spdlog/spdlog.h>
 
 #include "ctranslate2/devices.h"
-#include "ctranslate2/logging.h"
 
 #include "cpu/backend.h"
 #include "cpu/cpu_info.h"
@@ -26,8 +25,6 @@ namespace ctranslate2 {
   }
 
   void log_system_config() {
-    init_logger();
-
     if (!spdlog::should_log(spdlog::level::info))
       return;
 

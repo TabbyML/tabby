@@ -12,7 +12,6 @@ namespace ctranslate2 {
     Trace = 3,
   };
 
-  void init_logger();
   void set_log_level(const LogLevel level);
   LogLevel get_log_level();
 
