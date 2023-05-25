@@ -719,3 +719,25 @@ class TestWhisper:
         output_dir = str(tmp_dir.join("ctranslate2_model"))
         output_dir = converter.convert(output_dir)
         assert os.path.isfile(os.path.join(output_dir, "tokenizer.json"))
+
+
+def test_flan_t5_xl():
+    import transformers
+
+    converter = ctranslate2.converters.TransformersConverter("google/flan-t5-xl")
+    model_dir = converter.convert("/tmp/flan-t5-xl", force=True, quantization="float16")
+
+    prompt = """
+Who is Barrack Obama?
+
+Answer: """
+
+    translator = ctranslate2.Translator(model_dir, compute_type="int8")
+    tokenizer = transformers.AutoTokenizer.from_pretrained("google/flan-t5-xxl", truncation=True, truncation_side="left")
+
+    input_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+    print(input_tokens)
+
+    results = translator.translate_batch([input_tokens], beam_size=1)
+
+    print(results)

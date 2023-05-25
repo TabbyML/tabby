@@ -37,9 +37,7 @@ namespace ctranslate2 {
       return ModelFactory::get_instance().register_model<Model>(name, std::forward<Args>(args)...);
     }
 
-    inline std::shared_ptr<Model> create_model(const std::string& name) {
-      return ModelFactory::get_instance().create_model(name);
-    }
+    std::shared_ptr<Model> create_model(const std::string& name);
 
   }
 }

@@ -59,19 +59,12 @@ namespace ctranslate2 {
     return static_cast<LogLevel>(level);
   }
 
-  static void init_logger() {
+  void init_logger() {
     auto logger = spdlog::stderr_logger_mt("ctranslate2");
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [thread %t] [%l] %v");
     spdlog::set_default_logger(logger);
     set_log_level(get_default_level());
   }
-
-  // Initialize the global logger on program start.
-  static struct LoggerInit {
-    LoggerInit() {
-      init_logger();
-    }
-  } logger_init;
 
   void set_log_level(const LogLevel level) {
     spdlog::set_level(to_spdlog_level(level));
