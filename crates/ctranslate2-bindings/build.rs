@@ -1,14 +1,13 @@
 use cmake::Config;
 
 fn main() {
-//cmake -DCMAKE_INSTALL_PREFIX=$CTRANSLATE_INSTALL_PATH -DCMAKE_BUILD_TYPE=Release -DBUILD_CLI=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=ON $CMAKE_EXTRA_OPTIONS ..
-
 	let dst = Config::new("CTranslate2")
         // Default flags.
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("BUILD_CLI", "OFF")
         .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
 
+        // FIXME(meng): support linux build.
         // OSX flags.
         .define("CMAKE_OSX_ARCHITECTURES", "arm64")
         .define("WITH_ACCELERATE", "ON")
