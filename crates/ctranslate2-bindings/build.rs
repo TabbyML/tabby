@@ -1,20 +1,30 @@
 use cmake::Config;
 
 fn main() {
-	let dst = Config::new("CTranslate2")
-        // Default flags.
+    let mut config = Config::new("CTranslate2");
+    config
         .define("CMAKE_BUILD_TYPE", "Release")
-        .define("BUILD_CLI", "OFF")
-        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
+        .define("BUILD_CLI", "OFF");
+    if cfg!(macosx) {
+        config
+            .define("CMAKE_OSX_ARCHITECTURES", "arm64")
+            .define("WITH_ACCELERATE", "ON")
+            .define("WITH_MKL", "OFF")
+            .define("OPENMP_RUNTIME", "NONE")
+            .define("WITH_RUY", "ON");
+    } else if cfg!(linux) {
+        config
+            .define("WITH_CUDA", "ON")
+            .define("WITH_CUDNN", "ON")
+            .define("WITH_MKL", "ON")
+            .define("WITH_DNNL", "ON")
+            .define("OPENMP_RUNTIME", "COMP")
+            .cxxflag("-msse4.1")
+            .define("CUDA_NVCC_FLAGS", "-Xfatbin=-compress-all")
+            .define("CUDA_ARCH_LIST", "Common");
+    }
 
-        // FIXME(meng): support linux build.
-        // OSX flags.
-        .define("CMAKE_OSX_ARCHITECTURES", "arm64")
-        .define("WITH_ACCELERATE", "ON")
-        .define("WITH_MKL", "OFF")
-        .define("OPENMP_RUNTIME", "NONE")
-        .define("WITH_RUY", "ON")
-        .build();
+    let dst = config.build();
 
     println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
     println!("cargo:rustc-link-lib=ctranslate2");
