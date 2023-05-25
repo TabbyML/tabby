@@ -1,0 +1,14 @@
+[package]
+name = "ctranslate2-bindings"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cxx = "1.0"
+derive_builder = "0.12.0"
+tokenizers = "0.13.3"
+
+[build-dependencies]
+bindgen = "0.53.1"
+cxx-build = "1.0"
+cmake = "0.1"
