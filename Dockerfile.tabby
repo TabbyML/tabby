@@ -41,6 +41,7 @@ RUN wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VER
 
 # setup rust.
 RUN wget -O - https://sh.rustup.rs  | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 COPY crates crates
 

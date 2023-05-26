@@ -4,7 +4,9 @@ fn main() {
     let mut config = Config::new("CTranslate2");
     config
         .define("CMAKE_BUILD_TYPE", "Release")
-        .define("BUILD_CLI", "OFF");
+        .define("BUILD_CLI", "OFF")
+        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON");
+
     if cfg!(macosx) {
         config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
