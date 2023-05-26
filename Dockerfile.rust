@@ -1,0 +1,78 @@
+FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3-dev \
+        python3-pip \
+        wget \
+        pkg-config \
+        libssl-dev \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root
+
+ENV ONEAPI_VERSION=2023.0.0
+ENV MKL_BUILD=25398
+RUN wget -q https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB && \
+    apt-key add *.PUB && \
+    rm *.PUB && \
+    echo "deb https://apt.repos.intel.com/oneapi all main" > /etc/apt/sources.list.d/oneAPI.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        intel-oneapi-mkl-devel=$ONEAPI_VERSION-$MKL_BUILD \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m pip --no-cache-dir install cmake==3.22.*
+
+ENV ONEDNN_VERSION=3.0.1
+RUN wget -q https://github.com/oneapi-src/oneDNN/archive/refs/tags/v${ONEDNN_VERSION}.tar.gz && \
+    tar xf *.tar.gz && \
+    rm *.tar.gz && \
+    cd oneDNN-* && \
+    cmake -DCMAKE_BUILD_TYPE=Release -DDNNL_LIBRARY_TYPE=STATIC -DDNNL_BUILD_EXAMPLES=OFF -DDNNL_BUILD_TESTS=OFF -DDNNL_ENABLE_WORKLOAD=INFERENCE -DDNNL_ENABLE_PRIMITIVE="CONVOLUTION;REORDER" . && \
+    make -j$(nproc) install && \
+    cd .. && \
+    rm -r oneDNN-*
+
+
+# setup rust.
+RUN wget -O - https://sh.rustup.rs  | bash -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+COPY crates crates
+
+WORKDIR /root/crates/tabby
+
+RUN cargo build --release
+
+RUN mkdir -p /opt/tabby/bin
+RUN cp target/release/tabby /opt/tabby/bin/
+
+RUN mkdir -p /opt/tabby/lib
+RUN cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2*.so /opt/tabby/lib
+
+FROM nvidia/cuda:11.2.2-base-ubuntu20.04
+
+# We remove the cuda-compat package because it conflicts with the CUDA Enhanced Compatibility.
+# See e.g. https://github.com/NVIDIA/nvidia-docker/issues/1515
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcublas-11-2 \
+        libcudnn8=8.1.1.33-1+cuda11.2 \
+        libgomp1 \
+        python3-pip \
+        && \
+    apt-get purge -y cuda-compat-11-2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV TABBY_ROOT=/opt/tabby
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TABBY_ROOT/lib
+
+COPY --from=builder $TABBY_ROOT $TABBY_ROOT
+
+ENTRYPOINT ["/opt/tabby/bin/tabby"]
