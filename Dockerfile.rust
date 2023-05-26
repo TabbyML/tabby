@@ -76,4 +76,3 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TABBY_ROOT/lib
 COPY --from=builder $TABBY_ROOT $TABBY_ROOT
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
-
