@@ -16,6 +16,8 @@ fn main() {
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE")
             .define("WITH_RUY", "ON");
+
+        println!("cargo:rustc-link-lib=framework=Accelerate")
     } else if cfg!(target_os = "linux") {
         config
             .define("WITH_CUDA", "ON")
