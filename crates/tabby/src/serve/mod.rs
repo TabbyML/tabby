@@ -49,6 +49,9 @@ pub struct ServeArgs {
     #[clap(long)]
     model: String,
 
+    #[clap(long, default_value_t=8080)]
+    port: u16,
+
     #[clap(long, default_value_t=Device::CPU)]
     device: Device,
 
@@ -93,7 +96,7 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
         )
         .layer(CorsLayer::permissive());
 
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, 8080));
+    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     println!("Listening at {}", address);
     Server::bind(&address).serve(app.into_make_service()).await
 }

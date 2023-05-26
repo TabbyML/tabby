@@ -1,4 +1,3 @@
-use std::sync::Mutex;
 use tokenizers::tokenizer::{Model, Tokenizer};
 
 #[macro_use]
