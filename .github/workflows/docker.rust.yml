@@ -1,4 +1,4 @@
-name: Create and publish docker image
+name: Create and publish docker image (rust)
 
 on:
   workflow_dispatch:

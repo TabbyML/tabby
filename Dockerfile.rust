@@ -53,7 +53,7 @@ RUN mkdir -p /opt/tabby/bin
 RUN cp target/release/tabby /opt/tabby/bin/
 
 RUN mkdir -p /opt/tabby/lib
-RUN cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2*.so /opt/tabby/lib
+RUN cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2* /opt/tabby/lib
 
 FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 
@@ -76,3 +76,4 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TABBY_ROOT/lib
 COPY --from=builder $TABBY_ROOT $TABBY_ROOT
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]
+
