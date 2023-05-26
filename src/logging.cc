@@ -1,5 +1,7 @@
 #include "ctranslate2/logging.h"
 
+#include <mutex>
+
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/spdlog.h>
 
@@ -59,25 +61,23 @@ namespace ctranslate2 {
     return static_cast<LogLevel>(level);
   }
 
-  static void init_logger() {
-    auto logger = spdlog::stderr_logger_mt("ctranslate2");
-    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [thread %t] [%l] %v");
-    spdlog::set_default_logger(logger);
-    set_log_level(get_default_level());
+  void init_logger() {
+    static std::once_flag initialized;
+    std::call_once(initialized, []() {
+      auto logger = spdlog::stderr_logger_mt("ctranslate2");
+      logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [thread %t] [%l] %v");
+      spdlog::set_default_logger(logger);
+      spdlog::set_level(to_spdlog_level(get_default_level()));
+    });
   }
 
-  // Initialize the global logger on program start.
-  static struct LoggerInit {
-    LoggerInit() {
-      init_logger();
-    }
-  } logger_init;
-
   void set_log_level(const LogLevel level) {
+    init_logger();
     spdlog::set_level(to_spdlog_level(level));
   }
 
   LogLevel get_log_level() {
+    init_logger();
     return to_ct2_level(spdlog::get_level());
   }
 

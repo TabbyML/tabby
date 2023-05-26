@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "ctranslate2/decoding.h"
-#include "ctranslate2/models/model_factory.h"
 
 #include "dispatch.h"
 #include "dtw.h"
@@ -14,8 +13,6 @@
 
 namespace ctranslate2 {
   namespace models {
-
-    static auto register_whisper = register_model<WhisperModel>("WhisperSpec");
 
     const Vocabulary& WhisperModel::get_vocabulary() const {
       return *_vocabulary;
