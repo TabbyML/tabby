@@ -5,6 +5,7 @@ on:
   push:
     branches: [ "main" ]
     paths:
+      - 'Dockerfile.rust'
       - '.github/workflows/docker.rust.yml'
       - 'crates/**'
 
