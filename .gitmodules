@@ -1,6 +1,3 @@
 [submodule "crates/ctranslate2-bindings/CTranslate2"]
 	path = crates/ctranslate2-bindings/CTranslate2
 	url = https://github.com/OpenNMT/CTranslate2.git
-[submodule "crates/rust-cxx-cmake-bridge"]
-	path = crates/rust-cxx-cmake-bridge
-	url = https://github.com/Interstellar-Network/rust-cxx-cmake-bridge.git
