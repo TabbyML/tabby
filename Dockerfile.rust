@@ -47,7 +47,9 @@ COPY crates crates
 
 WORKDIR /root/crates/tabby
 
-RUN cargo build --release
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/root/crates/tabby/target \
+    cargo build --release
 
 RUN mkdir -p /opt/tabby/bin
 RUN cp target/release/tabby /opt/tabby/bin/
