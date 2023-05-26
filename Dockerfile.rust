@@ -46,7 +46,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 COPY crates crates
 
 WORKDIR /root/crates/tabby
-
+RUN mkdir -p target
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/crates/tabby/target \
     cargo build --release
