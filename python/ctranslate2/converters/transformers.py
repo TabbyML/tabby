@@ -92,7 +92,7 @@ class TransformersConverter(Converter):
                 raise ValueError(
                     "No conversion is registered for the model configuration %s "
                     "(supported configurations are: %s)"
-                    % (config_name, ", ".join(_MODEL_LOADERS.keys()))
+                    % (config_name, ", ".join(sorted(_MODEL_LOADERS.keys())))
                 )
 
             model_class = getattr(transformers, loader.architecture_name)
