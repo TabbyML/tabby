@@ -63,7 +63,7 @@ jobs:
 
       - name: Generate image name
         run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}-rust" >>${GITHUB_ENV}
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}/rust" >>${GITHUB_ENV}
 
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
@@ -81,13 +81,5 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ghcr.io/${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:latest
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: tabbyml/tabby-rust
