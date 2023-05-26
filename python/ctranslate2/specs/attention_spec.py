@@ -12,8 +12,10 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         rms_norm=False,
         rotary_dim=None,
         rotary_interleave=True,
+        multi_query=False,
     ):
         self.queries_scale = model_spec.OPTIONAL
+        self.multi_query = multi_query
 
         self.layer_norm = common_spec.LayerNormSpec(rms_norm=rms_norm)
         self.linear = [

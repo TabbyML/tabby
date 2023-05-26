@@ -91,6 +91,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         rotary_interleave: bool = True,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
+        multi_query_attention: bool = False,
     ):
         """Initializes a Transformer decoder specification.
 
@@ -123,6 +124,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
             attention layer norms.
+          multi_query_attention: Use multi-query attention.
         """
         if parallel_residual:
             if not pre_norm:
@@ -163,6 +165,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 rotary_interleave=rotary_interleave,
                 parallel_residual=parallel_residual,
                 shared_layer_norm=shared_layer_norm,
+                multi_query_attention=multi_query_attention,
             )
             for _ in range(num_layers)
         ]
@@ -202,6 +205,7 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         rotary_interleave=True,
         parallel_residual=False,
         shared_layer_norm=False,
+        multi_query_attention=False,
     ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
             self_attention=True,
@@ -210,6 +214,7 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             rms_norm=rms_norm,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
+            multi_query=multi_query_attention,
         )
         if with_encoder_attention:
             self.attention = attention_spec.MultiHeadAttentionSpec(rms_norm=rms_norm)
@@ -392,6 +397,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         rotary_interleave: bool = True,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
+        multi_query_attention: bool = False,
     ):
         """Creates a Transformer decoder model specification.
 
@@ -418,6 +424,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
             attention layer norms.
+          multi_query_attention: Use multi-query attention.
         """
         decoder = TransformerDecoderSpec(
             num_layers,
@@ -437,6 +444,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             rotary_interleave=rotary_interleave,
             parallel_residual=parallel_residual,
             shared_layer_norm=shared_layer_norm,
+            multi_query_attention=multi_query_attention,
         )
 
         return cls(decoder)
@@ -447,7 +455,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 5
+        return 6
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]

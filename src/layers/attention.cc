@@ -352,6 +352,7 @@ namespace ctranslate2 {
       , _is_decoder(is_decoder)
       , _linear(make_linear_layers(model, scope, self_attention))
       , _d_model(_linear.back().output_size())
+      , _d_head(_d_model / _num_heads)
       , _pre_norm(pre_norm)
       , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _rotary_embeddings(make_rotary_embeddings(model, scope))
@@ -360,7 +361,9 @@ namespace ctranslate2 {
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
       , _queries_scale(model.get_attribute_with_default<float>(
                          scope + "/queries_scale",
-                         1.f / std::sqrt(static_cast<float>(_d_model / _num_heads))))
+                         1.f / std::sqrt(static_cast<float>(_d_head))))
+      , _multi_query(model.get_flag_with_default(scope + "/multi_query", false))
+      , _cache_time_dim(_multi_query ? 1 : 2)
     {
       if (_relative_position_keys)
         _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
@@ -427,11 +430,28 @@ namespace ctranslate2 {
         split_heads(queries_proj, _num_heads, queries_padder, beam_size);
 
       } else {
-        split_heads(fused_proj, 3 * _num_heads, queries_padder);
-        ops::Split(1)(fused_proj, queries_proj, keys_proj, values_proj);
+
+        if (_multi_query) {
+          if (queries_padder)
+            queries_padder->add_padding(fused_proj);
+
+          ops::Split(2, {_d_model, _d_head, _d_head})(fused_proj,
+                                                      queries_proj,
+                                                      keys_proj,
+                                                      values_proj);
+
+          queries_proj.reshape({queries_proj.dim(0), queries_proj.dim(1) * _num_heads, _d_head});
+
+        } else {
+          split_heads(fused_proj, 3 * _num_heads, queries_padder);
+          ops::Split(1)(fused_proj, queries_proj, keys_proj, values_proj);
+        }
 
         if (_rotary_embeddings) {
-          const dim_t offset = cached_keys && !cached_keys->empty() ? cached_keys->dim(2) : 0;
+          const dim_t offset = (cached_keys && !cached_keys->empty()
+                                ? cached_keys->dim(_cache_time_dim)
+                                : 0);
+
           _rotary_embeddings->apply(queries_proj, offset);
           _rotary_embeddings->apply(keys_proj, offset);
         }
@@ -441,11 +461,12 @@ namespace ctranslate2 {
             *cached_keys = std::move(keys_proj);
             *cached_values = std::move(values_proj);
           } else {
+            const ops::Concat concat_op(_cache_time_dim);
             StorageView& tmp = fused_proj;  // Reuse storage.
             tmp = std::move(*cached_keys);
-            ops::Concat(2)({&tmp, &keys_proj}, *cached_keys);
+            concat_op({&tmp, &keys_proj}, *cached_keys);
             tmp = std::move(*cached_values);
-            ops::Concat(2)({&tmp, &values_proj}, *cached_values);
+            concat_op({&tmp, &values_proj}, *cached_values);
           }
         }
       }
@@ -473,7 +494,14 @@ namespace ctranslate2 {
                             bool(cached_keys),
                             beam_size);
 
-      combine_heads(context, _num_heads, queries_padder, beam_size);
+      if (_multi_query) {
+        context.reshape(queries.shape());
+        if (queries_padder)
+          queries_padder->remove_padding(context);
+      } else {
+        combine_heads(context, _num_heads, queries_padder, beam_size);
+      }
+
       _linear.back()(context, output);
 
       if (_layer_norm) {
@@ -487,15 +515,23 @@ namespace ctranslate2 {
     StorageView MultiHeadAttention::prepare_length_mask(const StorageView& lengths,
                                                         const dim_t num_heads,
                                                         const dim_t num_queries,
-                                                        const bool mask_future) {
+                                                        const bool mask_future,
+                                                        const bool multi_query) {
       const Device device = lengths.device();
       const dim_t batch_size = lengths.size();
-      StorageView mask({batch_size, num_heads, num_queries}, lengths.dtype(), device);
+      StorageView mask(lengths.dtype(), device);
+
+      if (multi_query)
+        mask.resize({batch_size, num_queries, num_heads});
+      else
+        mask.resize({batch_size, num_heads, num_queries});
+
       DEVICE_DISPATCH(device, (primitives<D>::prepare_length_mask(lengths.data<int32_t>(),
                                                                   batch_size,
                                                                   num_heads,
                                                                   num_queries,
                                                                   mask_future,
+                                                                  multi_query,
                                                                   mask.data<int32_t>())));
       return mask;
     }

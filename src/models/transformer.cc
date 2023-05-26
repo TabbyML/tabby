@@ -95,7 +95,7 @@ namespace ctranslate2 {
 
 
     size_t TransformerDecoderModel::current_spec_revision() const {
-      return 5;
+      return 6;
     }
 
     void TransformerDecoderModel::initialize(ModelReader& model_reader) {

@@ -46,10 +46,15 @@ namespace ctranslate2 {
         return _relative_position_keys || _relative_attention_bias || _rotary_embeddings;
       }
 
+      bool multi_query() const {
+        return _multi_query;
+      }
+
       static StorageView prepare_length_mask(const StorageView& lengths,
                                              const dim_t num_heads,
                                              const dim_t num_queries,
-                                             const bool mask_future = false);
+                                             const bool mask_future = false,
+                                             const bool multi_query = false);
 
     private:
       const dim_t _num_heads;
@@ -57,6 +62,7 @@ namespace ctranslate2 {
       const bool _is_decoder;
       const std::vector<Dense> _linear;
       const dim_t _d_model;
+      const dim_t _d_head;
       const bool _pre_norm;
       const std::unique_ptr<const LayerNorm> _layer_norm;
       const std::unique_ptr<RotaryEmbeddings> _rotary_embeddings;
@@ -65,6 +71,8 @@ namespace ctranslate2 {
       const StorageView* _relative_position_values;
       dim_t _maximum_relative_position;
       const float _queries_scale;
+      const bool _multi_query;
+      const dim_t _cache_time_dim;
     };
 
     class RotaryEmbeddings {

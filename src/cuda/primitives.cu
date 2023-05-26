@@ -275,11 +275,14 @@ namespace ctranslate2 {
                                              cuda::index_t num_heads,
                                              cuda::index_t num_queries,
                                              bool mask_future,
+                                             bool multi_query,
                                              int32_t* mask) {
     const auto length = lengths[blockIdx.x];
     mask += blockIdx.x * num_heads * num_queries;
     for (cuda::index_t i = threadIdx.x; i < num_heads * num_queries; i += blockDim.x)
-      mask[i] = (mask_future ? min(length, int32_t((i % num_queries) + 1)) : length);
+      mask[i] = (mask_future
+                 ? min(length, int32_t((multi_query ? i / num_heads : i % num_queries) + 1))
+                 : length);
   }
 
   template<>
@@ -288,6 +291,7 @@ namespace ctranslate2 {
                                                      dim_t num_heads,
                                                      dim_t num_queries,
                                                      bool mask_future,
+                                                     bool multi_query,
                                                      int32_t* mask) {
     const dim_t blocks = std::min(batch_size, cuda::max_blocks);
     const dim_t threads = std::min(num_heads * num_queries, cuda::max_threads);
@@ -295,6 +299,7 @@ namespace ctranslate2 {
                                                                                 num_heads,
                                                                                 num_queries,
                                                                                 mask_future,
+                                                                                multi_query,
                                                                                 mask);
   }
 

@@ -58,8 +58,8 @@ namespace ctranslate2 {
         return _ff.output_size();
       }
 
-      bool has_positional_embeddings() const {
-        return _self_attention.has_positional_embeddings();
+      const MultiHeadAttention& get_self_attention() const {
+        return _self_attention;
       }
 
     private:
@@ -103,8 +103,8 @@ namespace ctranslate2 {
         return bool(_encoder_attention);
       }
 
-      bool has_positional_embeddings() const {
-        return _self_attention.has_positional_embeddings();
+      const MultiHeadAttention& get_self_attention() const {
+        return _self_attention;
       }
 
     private:

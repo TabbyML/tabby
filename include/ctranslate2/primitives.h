@@ -147,6 +147,7 @@ namespace ctranslate2 {
                                     dim_t num_heads,
                                     dim_t num_queries,
                                     bool mask_future,
+                                    bool multi_query,
                                     int32_t* mask);
 
     template <typename T>

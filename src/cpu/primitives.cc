@@ -400,13 +400,15 @@ namespace ctranslate2 {
                                                     dim_t num_heads,
                                                     dim_t num_queries,
                                                     bool mask_future,
+                                                    bool multi_query,
                                                     int32_t* mask) {
     for (dim_t b = 0; b < batch_size; ++b) {
       const auto length = lengths[b];
       auto* batch_mask = mask + b * num_heads * num_queries;
       for (dim_t i = 0; i < num_heads * num_queries; ++i) {
         batch_mask[i] = (mask_future
-                         ? std::min(length, int32_t((i % num_queries) + 1))
+                         ? std::min(length,
+                                    int32_t((multi_query ? i / num_heads : i % num_queries) + 1))
                          : length);
       }
     }

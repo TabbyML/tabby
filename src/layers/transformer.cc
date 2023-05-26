@@ -231,7 +231,7 @@ namespace ctranslate2 {
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
                   model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->has_positional_embeddings()
+      , _position_encoder(_layers.front()->get_self_attention().has_positional_embeddings()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
     {
@@ -298,7 +298,7 @@ namespace ctranslate2 {
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
                   model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->has_positional_embeddings() || _use_alibi
+      , _position_encoder(_layers.front()->get_self_attention().has_positional_embeddings() || _use_alibi
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
@@ -454,11 +454,14 @@ namespace ctranslate2 {
           input_padder = std::make_unique<Padder>(*lengths, max_time);
           input_padder->remove_padding(layer_in);
         }
+
+        const bool multi_query = _layers.front()->get_self_attention().multi_query();
         input_lengths_mask = std::make_unique<StorageView>(
           layers::MultiHeadAttention::prepare_length_mask(*lengths,
                                                           _num_heads,
                                                           max_time,
-                                                          /*mask_future=*/true));
+                                                          /*mask_future=*/true,
+                                                          multi_query));
       }
 
       StorageView* memory = nullptr;

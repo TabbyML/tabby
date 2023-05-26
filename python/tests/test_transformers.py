@@ -238,6 +238,45 @@ def test_transformers_marianmt_disable_unk(
     assert "<unk>" not in output[0].hypotheses[0]
 
 
+@test_utils.only_on_linux
+def test_transformers_gptbigcode(clear_transformers_cache, tmp_dir):
+    import transformers
+
+    _check_generator_logits(
+        tmp_dir,
+        "hf-internal-testing/tiny-random-GPTBigCodeForCausalLM",
+        transformers.GPTBigCodeForCausalLM,
+        transformers.AutoTokenizer,
+        "hello",
+    )
+
+
+def _check_generator_logits(
+    tmp_dir, model_name, hf_model_class, hf_tokenizer_class, input_text
+):
+    import torch
+
+    model = hf_model_class.from_pretrained(model_name)
+    tokenizer = hf_tokenizer_class.from_pretrained(model_name)
+
+    inputs = tokenizer(input_text, return_tensors="pt")
+    with torch.no_grad():
+        outputs = model(**inputs, labels=inputs["input_ids"])
+    ref_logits = outputs.logits.numpy()
+
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    generator = ctranslate2.Generator(output_dir)
+    tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(input_text))
+    logits = generator.forward_batch([tokens])
+    logits = np.array(logits)
+
+    assert logits.shape == ref_logits.shape
+    np.testing.assert_array_almost_equal(logits, ref_logits)
+
+
 class TestGeneration:
     @classmethod
     def teardown_class(cls):
