@@ -11,7 +11,13 @@ mod ffi {
 
         type TextInferenceEngine;
 
-        fn create_engine(model_path: &str) -> UniquePtr<TextInferenceEngine>;
+        fn create_engine(
+            model_path: &str,
+            device: &str,
+            device_indices: &[i32],
+            num_replicas_per_device: usize,
+        ) -> UniquePtr<TextInferenceEngine>;
+
         fn inference(
             &self,
             tokens: &[String],
@@ -20,6 +26,19 @@ mod ffi {
             beam_size: usize,
         ) -> Vec<String>;
     }
+}
+
+#[derive(Builder)]
+pub struct TextInferenceEngineCreateOptions {
+    model_path: String,
+
+    tokenizer_path: String,
+
+    device: String,
+
+    device_indices: Vec<i32>,
+
+    num_replicas_per_device: usize,
 }
 
 #[derive(Builder, Debug)]
@@ -43,10 +62,16 @@ unsafe impl Send for TextInferenceEngine {}
 unsafe impl Sync for TextInferenceEngine {}
 
 impl TextInferenceEngine {
-    pub fn create(model_path: &str, tokenizer_path: &str) -> Self where {
+    pub fn create(options: TextInferenceEngineCreateOptions) -> Self where {
+        let engine = ffi::create_engine(
+            &options.model_path,
+            &options.device,
+            &options.device_indices,
+            options.num_replicas_per_device,
+        );
         return TextInferenceEngine {
-            engine: Mutex::new(ffi::create_engine(model_path)),
-            tokenizer: Tokenizer::from_file(tokenizer_path).unwrap(),
+            engine: Mutex::new(engine),
+            tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         };
     }
 

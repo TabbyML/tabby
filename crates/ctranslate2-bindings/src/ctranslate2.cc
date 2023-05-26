@@ -7,10 +7,7 @@ TextInferenceEngine::~TextInferenceEngine() {}
 
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
-  TextInferenceEngineImpl(const std::string& model_path) {
-    ctranslate2::models::ModelLoader loader(model_path);
-    translator_ = std::make_unique<ctranslate2::Translator>(loader);
-  }
+  TextInferenceEngineImpl(std::unique_ptr<ctranslate2::Translator> translator) : translator_(std::move(translator)) {}
 
   ~TextInferenceEngineImpl() {}
 
@@ -41,7 +38,32 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   std::unique_ptr<ctranslate2::Translator> translator_;
 };
 
-std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
-  return std::make_unique<TextInferenceEngineImpl>(std::string(model_path));
+std::unique_ptr<TextInferenceEngine> create_engine(
+    rust::Str model_path,
+    rust::Str device,
+    rust::Slice<const int32_t> device_indices,
+    size_t num_replicas_per_device
+) {
+  // model_path.
+  std::string model_path_string(model_path);
+  ctranslate2::models::ModelLoader loader(model_path_string);
+
+  // device.
+  std::string device_string(device);
+  if (device_string == "cuda") {
+    loader.device = ctranslate2::Device::CUDA;
+  } else if (device_string == "cpu") {
+    loader.device = ctranslate2::Device::CPU;
+  }
+
+  // device_indices
+  loader.device_indices.clear();
+  std::copy(device_indices.begin(), device_indices.end(), std::back_inserter(loader.device_indices));
+
+  // num_replicas_per_device
+  loader.num_replicas_per_device = num_replicas_per_device;
+
+  auto translator = std::make_unique<ctranslate2::Translator>(loader);
+  return std::make_unique<TextInferenceEngineImpl>(std::move(translator));
 }
 }  // namespace tabby

@@ -11,11 +11,7 @@ struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Serve the model
-    Serve {
-        /// path to model for serving
-        #[clap(long)]
-        model: String,
-    },
+    Serve(serve::ServeArgs),
 }
 
 mod serve;
@@ -27,8 +23,8 @@ async fn main() {
     // You can check for the existence of subcommands, and if found use their
     // matches just as you would the top level cmd
     match &cli.command {
-        Commands::Serve { model } => {
-            serve::main(model)
+        Commands::Serve(args) => {
+            serve::main(args)
                 .await
                 .expect("Error happens during the serve");
         }

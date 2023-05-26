@@ -16,5 +16,10 @@ class TextInferenceEngine {
   ) const = 0;
 };
 
-std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path);
+std::unique_ptr<TextInferenceEngine> create_engine(
+    rust::Str model_path,
+    rust::Str device,
+    rust::Slice<const int32_t> device_indices,
+    size_t num_replicas_per_device
+);
 }  // namespace
