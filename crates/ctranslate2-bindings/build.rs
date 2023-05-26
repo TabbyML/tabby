@@ -1,11 +1,12 @@
 use cmake::Config;
+use rust_cxx_cmake_bridge::read_cmake_generated;
 
 fn main() {
-    let mut config = Config::new("CTranslate2");
+    let mut config = Config::new(".");
     config
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("BUILD_CLI", "OFF")
-        .define("BUILD_SHARED_LIBS", "ON")
+        .define("BUILD_SHARED_LIBS", "OFF")
         .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON");
 
     if cfg!(target_os = "macos") {
@@ -29,11 +30,8 @@ fn main() {
 
     let dst = config.build();
 
-    println!(
-        "cargo:rustc-link-search=native={}",
-        dst.join("lib").display()
-    );
-    println!("cargo:rustc-link-lib=ctranslate2");
+    let cmake_generated_libs_str = std::fs::read_to_string(&format!("/{}/build/cmake_generated_libs", dst.display()).to_string()).unwrap();
+    read_cmake_generated(&cmake_generated_libs_str);
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=include/ctranslate2.h");
