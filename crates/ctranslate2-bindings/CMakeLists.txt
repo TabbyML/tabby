@@ -12,5 +12,5 @@ target_link_libraries(dummy
   PRIVATE ctranslate2
 )
 
-include(cmake/export_libs.cmake)
+include(../rust-cxx-cmake-bridge/cmake/export_libs.cmake)
 export_all_target_libs(dummy)
