@@ -191,6 +191,21 @@ namespace ctranslate2 {
              R"pbdoc(
                  Generates from a batch of start tokens.
 
+                 Note:
+                   The way the start tokens are forwarded in the decoder depends on the argument
+                   :obj:`include_prompt_in_result`:
+
+                   * If :obj:`include_prompt_in_result` is ``True`` (the default), the decoding loop
+                     is constrained to generate the start tokens that are then included in the result.
+                   * If :obj:`include_prompt_in_result` is ``False``, the start tokens are forwarded
+                     in the decoder at once to initialize its state (i.e. the KV cache for
+                     Transformer models). For variable-length inputs, only the tokens up to the
+                     minimum length in the batch are forwarded at once. The remaining tokens are
+                     generated in the decoding loop with constrained decoding.
+
+                   Consider setting ``include_prompt_in_result=False`` to increase the performance
+                   for long inputs.
+
                  Arguments:
                    start_tokens: Batch of start tokens. If the decoder starts from a special
                      start token like ``<s>``, this token should be added to this input.
