@@ -4,6 +4,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 
 * BART
 * BLOOM
+* LLaMa
 * M2M100
 * MarianMT
 * MBART

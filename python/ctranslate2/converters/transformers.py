@@ -1,5 +1,6 @@
 import abc
 import argparse
+import gc
 import itertools
 import os
 
@@ -1223,6 +1224,69 @@ class MPTLoader(ModelLoader):
     def set_layer_norm(self, spec, module):
         spec.gamma = module.weight.numpy()
         spec.beta = np.zeros_like(spec.gamma)
+
+
+@register_loader("LlamaConfig")
+class LlamaLoader(ModelLoader):
+    @property
+    def architecture_name(self):
+        return "LlamaForCausalLM"
+
+    def get_model_spec(self, model):
+        spec = transformer_spec.TransformerDecoderModelSpec.from_config(
+            model.config.num_hidden_layers,
+            model.config.num_attention_heads,
+            activation=common_spec.Activation.SWISH,
+            pre_norm=True,
+            ffn_glu=True,
+            rms_norm=True,
+            rotary_dim=0,
+            rotary_interleave=False,
+        )
+
+        self.set_decoder(spec.decoder, model.model)
+        self.set_linear(spec.decoder.projection, model.lm_head)
+        return spec
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.bos_token = tokenizer.bos_token
+        config.eos_token = tokenizer.eos_token
+        config.unk_token = tokenizer.unk_token
+
+    def set_layer_norm(self, spec, layer_norm):
+        spec.gamma = layer_norm.weight.numpy()
+
+    def set_decoder(self, spec, module):
+        spec.scale_embeddings = False
+        self.set_embeddings(spec.embeddings, module.embed_tokens)
+        self.set_layer_norm(spec.layer_norm, module.norm)
+
+        for layer_spec, layer in zip(spec.layer, module.layers):
+            self.set_layer_norm(
+                layer_spec.self_attention.layer_norm, layer.input_layernorm
+            )
+            self.set_layer_norm(
+                layer_spec.ffn.layer_norm, layer.post_attention_layernorm
+            )
+
+            wq = layer.self_attn.q_proj.weight.numpy()
+            wk = layer.self_attn.k_proj.weight.numpy()
+            wv = layer.self_attn.v_proj.weight.numpy()
+            wo = layer.self_attn.o_proj.weight.numpy()
+
+            layer_spec.self_attention.linear[0].weight = np.concatenate([wq, wk, wv])
+            layer_spec.self_attention.linear[1].weight = wo
+
+            self.set_linear(layer_spec.ffn.linear_0, layer.mlp.gate_proj)
+            self.set_linear(layer_spec.ffn.linear_0_noact, layer.mlp.up_proj)
+            self.set_linear(layer_spec.ffn.linear_1, layer.mlp.down_proj)
+
+            delattr(layer, "self_attn")
+            delattr(layer, "mlp")
+            gc.collect()
 
 
 def main():
