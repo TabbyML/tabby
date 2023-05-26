@@ -4,6 +4,30 @@
 
 ### Fixes and improvements
 
+## [v3.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.14.0) (2023-05-26)
+
+### New features
+
+* Update the Transformers converter with new architectures:
+  * CodeGen
+  * GPTBigCode
+  * LLaMa
+  * MPT
+* Update the OpenNMT-py converter to support some recent options:
+  * `layer_norm="rms"`
+  * `max_relative_positions=-1` (rotary embeddings)
+  * `max_relative_positions=-2` (ALiBi)
+  * `pos_ffn_activation_fn="silu"`
+* Update the OpenNMT-tf converter to support models using different configurations for the encoder and decoder (e.g. post-norm in the encoder and pre-norm in the decoder)
+* Implement the multi-query attention (used by GPTBigCode)
+
+### Fixes and improvements
+
+* Support paths containing Unicode characters on Windows
+* Fix the `generate_tokens` method to properly raise the underlying exception instead of hanging indefinitely
+* Fix compilation error when using `-DBUILD_SHARED_LIBS=OFF`
+* Fix runtime errors when linking against `libctranslate2.a` without using the "whole archive" flags
+
 ## [v3.13.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.13.0) (2023-04-25)
 
 ### New features
