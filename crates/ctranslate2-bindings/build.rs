@@ -5,16 +5,17 @@ fn main() {
     config
         .define("CMAKE_BUILD_TYPE", "Release")
         .define("BUILD_CLI", "OFF")
+        .define("BUILD_SHARED_LIBS", "ON")
         .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON");
 
-    if cfg!(macosx) {
+    if cfg!(target_os = "macos") {
         config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
             .define("WITH_ACCELERATE", "ON")
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE")
             .define("WITH_RUY", "ON");
-    } else if cfg!(linux) {
+    } else if cfg!(target_os = "linux") {
         config
             .define("WITH_CUDA", "ON")
             .define("WITH_CUDNN", "ON")

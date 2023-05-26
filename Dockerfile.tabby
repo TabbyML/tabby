@@ -47,4 +47,32 @@ COPY crates crates
 
 WORKDIR /root/crates/tabby
 
-RUN cargo build
+RUN cargo build --release
+
+RUN mkdir -p /opt/tabby/bin
+RUN cp target/release/tabby /opt/tabby/bin/
+
+RUN mkdir -p /opt/tabby/lib
+RUN cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2*.so /opt/tabby/lib
+
+FROM nvidia/cuda:11.2.2-base-ubuntu20.04
+
+# We remove the cuda-compat package because it conflicts with the CUDA Enhanced Compatibility.
+# See e.g. https://github.com/NVIDIA/nvidia-docker/issues/1515
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcublas-11-2 \
+        libcudnn8=8.1.1.33-1+cuda11.2 \
+        libgomp1 \
+        python3-pip \
+        && \
+    apt-get purge -y cuda-compat-11-2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV TABBY_ROOT=/opt/tabby
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TABBY_ROOT/lib
+
+COPY --from=builder $TABBY_ROOT $TABBY_ROOT
+
+ENTRYPOINT ["/opt/tabby/bin/tabby"]
