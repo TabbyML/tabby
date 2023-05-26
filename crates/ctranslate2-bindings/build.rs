@@ -33,7 +33,7 @@ fn main() {
     let dst = config.build();
 
     let cmake_generated_libs_str = std::fs::read_to_string(&format!("/{}/build/cmake_generated_libs", dst.display()).to_string()).unwrap();
-    read_cmake_generated(&cmake_generated_libs_str);
+    read_cmake_generated(&cmake_generated_libs_str, true);
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=include/ctranslate2.h");
