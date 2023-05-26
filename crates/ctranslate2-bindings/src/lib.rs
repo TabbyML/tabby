@@ -28,7 +28,7 @@ mod ffi {
     }
 }
 
-#[derive(Builder)]
+#[derive(Builder, Debug)]
 pub struct TextInferenceEngineCreateOptions {
     model_path: String,
 
@@ -54,7 +54,7 @@ pub struct TextInferenceOptions {
 }
 
 pub struct TextInferenceEngine {
-    engine: Mutex<cxx::UniquePtr<ffi::TextInferenceEngine>>,
+    engine: cxx::UniquePtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
 }
 
@@ -70,14 +70,14 @@ impl TextInferenceEngine {
             options.num_replicas_per_device,
         );
         return TextInferenceEngine {
-            engine: Mutex::new(engine),
+            engine: engine,
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         };
     }
 
     pub fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
-        let output_tokens = self.engine.lock().unwrap().inference(
+        let output_tokens = self.engine.inference(
             encoding.get_tokens(),
             options.max_decoding_length,
             options.sampling_temperature,
