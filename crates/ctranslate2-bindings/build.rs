@@ -29,7 +29,10 @@ fn main() {
 
     let dst = config.build();
 
-    println!("cargo:rustc-link-search=native={}", dst.join("lib").display());
+    println!(
+        "cargo:rustc-link-search=native={}",
+        dst.join("lib").display()
+    );
     println!("cargo:rustc-link-lib=ctranslate2");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes

@@ -1,7 +1,9 @@
 use axum::{extract::State, Json};
-use ctranslate2_bindings::{TextInferenceEngine, TextInferenceOptionsBuilder};
+use ctranslate2_bindings::{
+    TextInferenceEngine, TextInferenceEngineCreateOptions, TextInferenceOptionsBuilder,
+};
 use serde::{Deserialize, Serialize};
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 use utoipa::ToSchema;
 
 mod languages;
@@ -62,11 +64,8 @@ pub struct CompletionState {
 }
 
 impl CompletionState {
-    pub fn new(model: &str) -> Self {
-        let engine = TextInferenceEngine::create(
-            Path::new(model).join("cpu").to_str().unwrap(),
-            Path::new(model).join("tokenizer.json").to_str().unwrap(),
-        );
+    pub fn new(options: TextInferenceEngineCreateOptions) -> Self {
+        let engine = TextInferenceEngine::create(options);
         return Self { engine: engine };
     }
 }
