@@ -85,7 +85,7 @@ jobs:
           cache-on-failure: true
 
       - run: |
-          cargo build --release
+          cargo build --release --target aarch64-apple-darwin
 
       - uses: actions/upload-artifact@v3
         with:
