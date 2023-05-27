@@ -27,3 +27,6 @@ features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
+
+[features]
+link_shared = [ "ctranslate2-bindings/link_shared" ]

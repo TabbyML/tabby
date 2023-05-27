@@ -9,7 +9,10 @@ derive_builder = "0.12.0"
 tokenizers = "0.13.3"
 
 [build-dependencies]
-bindgen = "0.53.1"
 cxx-build = "1.0"
-cmake = "0.1"
-rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge" }
+cmake = { version = "0.1", optional = true }
+rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge", optional = true }
+
+[features]
+default = [ "dep:cmake", "dep:rust-cxx-cmake-bridge" ]
+link_shared = []
