@@ -9,11 +9,6 @@ on:
 
 jobs:
   tests:
-    env:
-      SCCACHE_GHA_ENABLED: true
-      RUSTC_WRAPPER: sccache
-      CARGO_INCREMENTAL: 0
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,22 +23,6 @@ jobs:
           toolchain: stable
           target: ${{ matrix.target }}
           components: rustfmt, clippy
-
-      - name: Sccache cache
-        uses: mozilla-actions/sccache-action@v0.0.3
-        with:
-          version: "v0.4.0"
-
-      - name: Cargo registry cache
-        uses: actions/cache@v3
-        with:
-          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
-            cargo-${{ runner.os }}-
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
 
       - name: Cargo fmt
         run: cargo fmt --check
