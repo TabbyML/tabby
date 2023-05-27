@@ -1,6 +1,7 @@
 #include "ctranslate2-bindings/include/ctranslate2.h"
 
 #include "ctranslate2/translator.h"
+#include "ctranslate2/generator.h"
 
 namespace tabby {
 TextInferenceEngine::~TextInferenceEngine() {}
@@ -47,6 +48,8 @@ std::unique_ptr<TextInferenceEngine> create_engine(
   // model_path.
   std::string model_path_string(model_path);
   ctranslate2::models::ModelLoader loader(model_path_string);
+
+  ctranslate2::Generator generator(model_path_string);
 
   // device.
   std::string device_string(device);
