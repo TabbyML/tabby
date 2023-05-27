@@ -83,9 +83,11 @@ jobs:
 
       - run: |
           cargo build --release --target aarch64-apple-darwin
-          find target
+          mkdir -p release
+          cp target/aarch64-apple-darwin/release/tabby release/
 
       - uses: actions/upload-artifact@v3
         with:
-          name: binaries
-          path: target/release/tabby
+          retention-days: 3
+          name: release
+          path: release
