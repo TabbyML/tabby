@@ -4,10 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths:
-      - 'Dockerfile.rust'
-      - '.github/workflows/docker.rust.yml'
-      - 'crates/**'
+  pull_request:
+    branches: ["main" ]
 
 jobs:
   build:
@@ -84,3 +82,27 @@ jobs:
             ghcr.io/${{ env.IMAGE_NAME }}:latest
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
+
+  build-binary:
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: aarch64-apple-darwin
+
+      - run: ./tools/prepare_build_environment_macos.sh
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: binaries
+          path: target/release/tabby
