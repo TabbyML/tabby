@@ -6,7 +6,7 @@ fn main() {
     let dst = if cfg!(target_os = "macos") {
         ctranslate2_build_macos_static()
     } else if cfg!(target_os = "linux") {
-        ctranslate2_build_linux_shared()
+        ctranslate2_build_linux_static()
     } else {
         panic!("Invalid target")
     };
@@ -21,24 +21,6 @@ fn main() {
         .flag_if_supported("-std=c++17")
         .flag_if_supported(&format!("-I{}", dst.join("include").display()))
         .compile("cxxbridge");
-}
-
-fn ctranslate2_build_linux_shared() -> PathBuf {
-    Config::new("CTranslate2")
-        .define("BUILD_CLI", "OFF")
-        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
-
-        .define("BUILD_CLI", "OFF")
-        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
-        .define("WITH_CUDA", "ON")
-        .define("WITH_CUDNN", "ON")
-        .define("WITH_MKL", "ON")
-        .define("WITH_DNNL", "ON")
-        .define("OPENMP_RUNTIME", "COMP")
-        .cxxflag("-msse4.1")
-        .define("CUDA_NVCC_FLAGS", "-Xfatbin=-compress-all")
-        .define("CUDA_ARCH_LIST", "Common")
-        .build()
 }
 
 fn ctranslate2_build_linux_static() -> PathBuf {
@@ -75,6 +57,7 @@ fn ctranslate2_build_macos_static() -> PathBuf {
 
     let cmake_generated_libs_str = std::fs::read_to_string(&format!("/{}/build/cmake_generated_libs", dst.display()).to_string()).unwrap();
     read_cmake_generated(&cmake_generated_libs_str);
+    println!("cargo:rustc-link-lib=framework=Accelerate");
 
     return dst;
 }
