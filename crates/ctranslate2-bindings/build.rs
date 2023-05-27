@@ -46,6 +46,7 @@ fn link_static() -> PathBuf {
             .define("CUDA_ARCH_LIST", "Common")
     } else if cfg!(target_os = "macos") {
         config
+            .env("VERBOSE", "1")
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
             .define("WITH_ACCELERATE", "ON")
             .define("WITH_MKL", "OFF")
