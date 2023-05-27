@@ -57,7 +57,6 @@ fn ctranslate2_build_macos_static() -> PathBuf {
 
     let cmake_generated_libs_str = std::fs::read_to_string(&format!("/{}/build/cmake_generated_libs", dst.display()).to_string()).unwrap();
     read_cmake_generated(&cmake_generated_libs_str);
-    println!("cargo:rustc-link-lib=framework=Accelerate");
 
     return dst;
 }

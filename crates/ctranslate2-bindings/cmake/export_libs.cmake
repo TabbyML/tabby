@@ -31,6 +31,9 @@ function(_get_link_libraries OUTPUT_LIST TARGET)
                 list(APPEND LIB_FILES ${LINK_LIB_FILES})
                 list(APPEND LIB_FILES ${LIB_FILE})
             endif()
+        elseif(EXISTS ${LIB})
+          set(LIB_FILE ${LIB})
+          list(APPEND LIB_FILES ${LIB_FILE})
         endif()
     endforeach()
 
@@ -51,6 +54,7 @@ function(export_all_target_libs TARGET)
     message(STATUS "ALL_LINK_LIBRARIES : ${ALL_LINK_LIBRARIES}")
 
     set(ALL_LIBS "")
+    set(ALL_EXTERNAL_LIBS "")
     # TODO move that back into get_link_libraries
     # NOTE: we MUST do it in 2 steps:
     # - collect all the LINK_LIBRARIES recursively
@@ -65,11 +69,17 @@ function(export_all_target_libs TARGET)
         # Target "rust_cxx" is not an executable or library.
         # SHARED_LIBRARY,INTERFACE_LIBRARY,STATIC_LIBRARY
         #
-        get_target_property(LIB_TYPE ${LIB} TYPE)
-        message(STATUS "LIB_TYPE : ${LIB} = ${LIB_TYPE}")
+        if (TARGET ${LIB})
+            get_target_property(LIB_TYPE ${LIB} TYPE)
+            message(STATUS "LIB_TYPE : ${LIB} = ${LIB_TYPE}")
 
-        if(NOT ${LIB_TYPE} STREQUAL "INTERFACE_LIBRARY")
-            set(LIB_FILE $<TARGET_FILE:${LIB}>)
+            if(NOT ${LIB_TYPE} STREQUAL "INTERFACE_LIBRARY")
+                set(LIB_FILE $<TARGET_FILE:${LIB}>)
+                list(APPEND ALL_LIBS ${LIB_FILE})
+            endif()
+        elseif(EXISTS ${LIB})
+            set(LIB_FILE ${LIB})
+            message(STATUS "LIB_TYPE : ${LIB} = EXTERNAL")
             list(APPEND ALL_LIBS ${LIB_FILE})
         endif()
     endforeach()  # LIB ${ALL_LIBS}
