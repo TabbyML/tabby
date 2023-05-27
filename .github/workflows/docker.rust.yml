@@ -12,6 +12,7 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: true
       RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
 
     runs-on: ubuntu-latest
     steps:
@@ -121,6 +122,7 @@ jobs:
       SCCACHE_GHA_ENABLED: true
       # SCCACHE_CMAKE_ENABLED: true
       RUSTC_WRAPPER: sccache
+      CARGO_INCREMENTAL: 0
 
     steps:
       - name: Checkout
