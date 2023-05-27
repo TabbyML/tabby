@@ -8,8 +8,7 @@ on:
     branches: ["main" ]
 
 jobs:
-  build:
-
+  release-docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,8 +67,14 @@ jobs:
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
 
-  build-binary:
-    runs-on: macos-11
+  release-binary:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11]
+        include:
+          - os: macos-11
+            target: aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v3
         with:
@@ -77,17 +82,15 @@ jobs:
 
       - run: |
           rustup set auto-self-update disable
-          rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
 
       - run: |
-          cargo build --release --target aarch64-apple-darwin
-          mkdir -p release
-          cp target/aarch64-apple-darwin/release/tabby release/
+          cargo build --release --target ${{ matrix.target }}
 
       - uses: actions/upload-artifact@v3
         with:
           retention-days: 3
-          name: release
-          path: release
+          name: tabby_${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/tabby
