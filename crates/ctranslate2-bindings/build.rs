@@ -34,12 +34,6 @@ fn link_static() -> PathBuf {
         .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
         .define("BUILD_SHARED_LIBS", "OFF");
 
-    if let Ok(_) = env::var("SCCACHE_CMAKE_ENABLED") {
-        config
-            .define("CMAKE_C_COMPILER_LAUNCHER", "sccache")
-            .define("CMAKE_CXX_COMPILER_LAUNCHER", "sccache");
-    };
-
     if cfg!(target_os = "linux") {
         config
             .define("WITH_CUDA", "ON")
@@ -64,9 +58,11 @@ fn link_static() -> PathBuf {
     let dst = config.build();
 
     // Read static lib from generated deps.
-    let cmake_generated_libs_str =
-        std::fs::read_to_string(format!("/{}/build/cmake_generated_libs", dst.display())).unwrap();
+    let cmake_generated_libs_str = std::fs::read_to_string(
+        &format!("/{}/build/cmake_generated_libs", dst.display()).to_string(),
+    )
+    .unwrap();
     read_cmake_generated(&cmake_generated_libs_str);
 
-    dst
+    return dst;
 }
