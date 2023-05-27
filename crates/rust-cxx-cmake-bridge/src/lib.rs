@@ -21,7 +21,7 @@ fn parse_lib_path_dir_and_name(static_lib_str: &str) -> (PathBuf, String, bool, 
     // TODO use "file_prefix" https://github.com/rust-lang/rust/issues/86319
     let liblib_name = static_lib_path.my_file_prefix().unwrap();
     let liblib_name_str: String = liblib_name.to_str().unwrap().into();
-    let lib_name_str = liblib_name_str.trim_start_matches("lib");
+    let lib_name_str = liblib_name_str.strip_prefix("lib").unwrap_or(&liblib_name_str);
 
     // basically:
     // - input = /.../target/debug/build/lib-circuits-wrapper-49025516ce40925e/out/build/_deps/glog-build/libglogd.so.0.6.0
@@ -75,7 +75,7 @@ fn read_cmake_generated_to_output(
         // - NON system libs (obviously) wether SHARED or STATIC
         // - system STATIC libs eg /usr/lib/x86_64-linux-gnu/libboost_filesystem.a else
         //  "error: could not find native static library `boost_filesystem`, perhaps an -L flag is missing?"
-        if !is_system || is_static || !is_framework {
+        if (!is_system && !is_framework) || is_static {
             writeln!(output, "cargo:rustc-link-search=native={}", dir.display()).unwrap();
         }
 
@@ -207,6 +207,17 @@ mod tests {
         assert_eq!(is_static, false);
         assert_eq!(is_system, true);
         assert_eq!(is_framework, false);
+    }
+
+    #[test]
+    fn parse_framework_ok() {
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
+            parse_lib_path_dir_and_name("/AAA/BBB.framework");
+        assert_eq!(dir.as_os_str(), "/AAA");
+        assert_eq!(lib_name_str, "BBB");
+        assert_eq!(is_static, false);
+        assert_eq!(is_system, false);
+        assert_eq!(is_framework, true);
     }
 
     #[test]
