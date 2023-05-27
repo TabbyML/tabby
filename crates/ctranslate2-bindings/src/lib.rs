@@ -1,4 +1,4 @@
-use tokenizers::tokenizer::{Model, Tokenizer};
+use tokenizers::tokenizer::{Tokenizer};
 
 #[macro_use]
 extern crate derive_builder;
@@ -12,6 +12,7 @@ mod ffi {
 
         fn create_engine(
             model_path: &str,
+            model_type: &str,
             device: &str,
             device_indices: &[i32],
             num_replicas_per_device: usize,
@@ -30,6 +31,8 @@ mod ffi {
 #[derive(Builder, Debug)]
 pub struct TextInferenceEngineCreateOptions {
     model_path: String,
+
+    model_type: String,
 
     tokenizer_path: String,
 
@@ -64,6 +67,7 @@ impl TextInferenceEngine {
     pub fn create(options: TextInferenceEngineCreateOptions) -> Self where {
         let engine = ffi::create_engine(
             &options.model_path,
+            &options.model_type,
             &options.device,
             &options.device_indices,
             options.num_replicas_per_device,
@@ -82,11 +86,14 @@ impl TextInferenceEngine {
             options.sampling_temperature,
             options.beam_size,
         );
-
-        let model = self.tokenizer.get_model();
         let output_ids: Vec<u32> = output_tokens
             .iter()
-            .map(|x| model.token_to_id(x).unwrap())
+            .filter_map(|x| {
+                match self.tokenizer.token_to_id(x) {
+                    Some(y) => Some(y),
+                    None => { println!("Warning: token ({}) missed in vocab", x); None }
+                }
+            })
             .collect();
         self.tokenizer.decode(output_ids, true).unwrap()
     }

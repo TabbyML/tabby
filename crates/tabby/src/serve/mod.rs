@@ -43,11 +43,31 @@ impl std::fmt::Display for Device {
     }
 }
 
+#[derive(clap::ValueEnum, Clone)]
+pub enum ModelType {
+    EncoderDecoder,
+    Decoder,
+}
+
+impl std::fmt::Display for ModelType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let printable = match *self {
+            ModelType::EncoderDecoder => "encoder-decoder",
+            ModelType::Decoder => "decoder",
+        };
+        write!(f, "{}", printable)
+    }
+}
+
 #[derive(Args)]
 pub struct ServeArgs {
     /// path to model for serving
     #[clap(long)]
     model: String,
+
+    /// model type for serving
+    #[clap(long, default_value_t=ModelType::Decoder)]
+    model_type: ModelType,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -79,6 +99,7 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
                 .to_string(),
         )
         .device(device)
+        .model_type(format!("{}", args.model_type))
         .device_indices(args.device_indices.clone())
         .num_replicas_per_device(args.num_replicas_per_device)
         .build()
