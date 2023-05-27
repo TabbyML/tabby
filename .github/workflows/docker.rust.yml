@@ -97,10 +97,10 @@ jobs:
           target: ${{ matrix.target }}
           components: rustfmt, clippy
 
-			- name: Sccache cache
-				uses: mozilla-actions/sccache-action@v0.0.3
-				with:
-					version: "v0.4.0"
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
 
       - name: Cargo registry cache
         uses: actions/cache@v3
@@ -115,8 +115,8 @@ jobs:
 
       - name: Bulid release binary
         env:
-				 SCCACHE_GHA_ENABLED: true
-				 RUSTC_WRAPPER: sccache
+         SCCACHE_GHA_ENABLED: true
+         RUSTC_WRAPPER: sccache
         run: |
          cargo build --release --target ${{ matrix.target }}
 
