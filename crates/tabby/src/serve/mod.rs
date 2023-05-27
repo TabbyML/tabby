@@ -88,6 +88,7 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
     let options = TextInferenceEngineCreateOptionsBuilder::default()
         .model_path(
             Path::new(&args.model)
+                .join("ctranslate2")
                 .join(device.clone())
                 .display()
                 .to_string(),
