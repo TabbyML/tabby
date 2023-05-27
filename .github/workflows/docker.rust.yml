@@ -81,6 +81,8 @@ jobs:
           rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
 
       - run: |
           cargo build --release
