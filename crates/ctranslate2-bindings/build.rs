@@ -1,6 +1,7 @@
 use cmake::Config;
 use rust_cxx_cmake_bridge::read_cmake_generated;
 use std::path::PathBuf;
+use std::env;
 
 fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
@@ -13,8 +14,10 @@ fn main() {
         .flag_if_supported("-std=c++17");
 
     if cfg!(feature = "link_shared") {
-        // In link shared mode, assume ctranslate2 is installed in system include / lib path.
+        let dir = env::var("CTRANSLATE2_ROOT").unwrap();
+        println!("cargo:rustc-link-search=native={}/lib", dir);
         println!("cargo:rustc-link-lib=ctranslate2");
+        lib.flag_if_supported(&format!("-I{}/include", dir));
     } else {
         let dst = link_static();
         lib.flag_if_supported(&format!("-I{}", dst.join("include").display()));

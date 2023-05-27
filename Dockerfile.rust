@@ -2,10 +2,7 @@ FROM ghcr.io/opennmt/ctranslate2:3.14.0-ubuntu20.04-cuda11.2 as source
 FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
 
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
-ENV CXXFLAGS="-I${CTRANSLATE2_ROOT}/include"
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CTRANSLATE2_ROOT/lib
-
-COPY --from=builder $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
+COPY --from=source $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -32,13 +29,11 @@ RUN mkdir -p target
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/crates/tabby/target \
     cargo build --features link_shared --release && \
-    cp target/release/tabby /opt/tabby/bin/ && \
-    cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2* /opt/tabby/lib
+    cp target/release/tabby /opt/tabby/bin/
 
 FROM ghcr.io/opennmt/ctranslate2:3.14.0-ubuntu20.04-cuda11.2
 
 ENV TABBY_ROOT=/opt/tabby
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TABBY_ROOT/lib
 
 COPY --from=builder $TABBY_ROOT $TABBY_ROOT
 
