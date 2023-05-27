@@ -41,6 +41,25 @@ fn ctranslate2_build_linux_shared() -> PathBuf {
         .build()
 }
 
+fn ctranslate2_build_linux_static() -> PathBuf {
+    Config::new(".")
+        .define("BUILD_CLI", "OFF")
+        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
+        .define("BUILD_SHARED_LIBS", "OFF")
+
+        .define("BUILD_CLI", "OFF")
+        .define("CMAKE_INSTALL_RPATH_USE_LINK_PATH", "ON")
+        .define("WITH_CUDA", "ON")
+        .define("WITH_CUDNN", "ON")
+        .define("WITH_MKL", "ON")
+        .define("WITH_DNNL", "ON")
+        .define("OPENMP_RUNTIME", "COMP")
+        .cxxflag("-msse4.1")
+        .define("CUDA_NVCC_FLAGS", "-Xfatbin=-compress-all")
+        .define("CUDA_ARCH_LIST", "Common")
+        .build()
+}
+
 fn ctranslate2_build_macos_static() -> PathBuf {
     let dst = Config::new(".")
         .define("BUILD_CLI", "OFF")
@@ -56,7 +75,6 @@ fn ctranslate2_build_macos_static() -> PathBuf {
 
     let cmake_generated_libs_str = std::fs::read_to_string(&format!("/{}/build/cmake_generated_libs", dst.display()).to_string()).unwrap();
     read_cmake_generated(&cmake_generated_libs_str);
-    println!("cargo:rustc-link-lib=framework=Accelerate");
 
     return dst;
 }
