@@ -50,7 +50,7 @@ fn parse_lib_path_dir_and_name(static_lib_str: &str) -> (PathBuf, String, bool, 
         lib_name_str.to_string(),
         is_static,
         is_system,
-        is_framework
+        is_framework,
     );
 }
 
@@ -69,7 +69,8 @@ fn read_cmake_generated_to_output(
         .split(&[' ', '\n'][..])
         .filter(|&x| !x.is_empty())
     {
-        let (dir, lib_name_str, is_static, is_system, is_framework) = parse_lib_path_dir_and_name(static_lib_str);
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
+            parse_lib_path_dir_and_name(static_lib_str);
         // WARNING: we MUST add to the linker path:
         // - NON system libs (obviously) wether SHARED or STATIC
         // - system STATIC libs eg /usr/lib/x86_64-linux-gnu/libboost_filesystem.a else
@@ -81,7 +82,13 @@ fn read_cmake_generated_to_output(
         writeln!(
             output,
             "cargo:rustc-link-lib={}={}",
-            if is_framework { "framework" } else if is_static { "static" } else { "dylib" },
+            if is_framework {
+                "framework"
+            } else if is_static {
+                "static"
+            } else {
+                "dylib"
+            },
             lib_name_str
         )
         .unwrap();

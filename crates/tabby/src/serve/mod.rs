@@ -49,7 +49,7 @@ pub struct ServeArgs {
     #[clap(long)]
     model: String,
 
-    #[clap(long, default_value_t=8080)]
+    #[clap(long, default_value_t = 8080)]
     port: u16,
 
     #[clap(long, default_value_t=Device::CPU)]
