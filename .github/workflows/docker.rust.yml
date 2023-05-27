@@ -76,7 +76,6 @@ jobs:
           submodules: recursive
 
       - run: |
-          uname -a
           rustup set auto-self-update disable
           rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
 
@@ -86,6 +85,7 @@ jobs:
 
       - run: |
           cargo build --release --target aarch64-apple-darwin
+          ls -l target
 
       - uses: actions/upload-artifact@v3
         with:
