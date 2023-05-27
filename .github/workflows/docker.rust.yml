@@ -85,6 +85,11 @@ jobs:
           - os: macos-11
             target: aarch64-apple-darwin
 
+    env:
+      SCCACHE_GHA_ENABLED: true
+      SCCACHE_CMAKE_ENABLED: true
+      RUSTC_WRAPPER: sccache
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -96,7 +101,6 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.target }}
-          components: rustfmt, clippy
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -115,11 +119,7 @@ jobs:
             ~/.cargo/git
 
       - name: Bulid release binary
-        env:
-          SCCACHE_GHA_ENABLED: true
-          RUSTC_WRAPPER: sccache
-        run: |
-         cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
