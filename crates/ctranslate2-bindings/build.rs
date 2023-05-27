@@ -1,7 +1,29 @@
 use cmake::Config;
 use rust_cxx_cmake_bridge::read_cmake_generated;
+use std::path::PathBuf;
 
 fn main() {
+    // Tell cargo to invalidate the built crate whenever the wrapper changes
+    println!("cargo:rerun-if-changed=include/ctranslate2.h");
+    println!("cargo:rerun-if-changed=src/ctranslate2.cc");
+    println!("cargo:rerun-if-changed=src/lib.rs");
+
+    let mut lib = cxx_build::bridge("src/lib.rs");
+    lib.file("src/ctranslate2.cc")
+        .flag_if_supported("-std=c++17");
+
+    if cfg!(feature = "link_shared") {
+        // In link shared mode, assume ctranslate2 is installed in system include / lib path.
+        println!("cargo:rustc-link-lib=ctranslate2");
+    } else {
+        let dst = link_static();
+        lib.flag_if_supported(&format!("-I{}", dst.join("include").display()));
+    }
+
+    lib.compile("cxxbridge");
+}
+
+fn link_static() -> PathBuf {
     let mut config = Config::new(".");
     config
         .define("CMAKE_BUILD_TYPE", "Release")
@@ -39,14 +61,5 @@ fn main() {
     .unwrap();
     read_cmake_generated(&cmake_generated_libs_str);
 
-    // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=include/ctranslate2.h");
-    println!("cargo:rerun-if-changed=src/ctranslate2.cc");
-    println!("cargo:rerun-if-changed=src/lib.rs");
-
-    cxx_build::bridge("src/lib.rs")
-        .file("src/ctranslate2.cc")
-        .flag_if_supported("-std=c++17")
-        .flag_if_supported(&format!("-I{}", dst.join("include").display()))
-        .compile("cxxbridge");
+    return dst;
 }
