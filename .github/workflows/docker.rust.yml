@@ -82,7 +82,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - run: |
-          # cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
           find target
 
       - uses: actions/upload-artifact@v3
