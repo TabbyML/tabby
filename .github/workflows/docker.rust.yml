@@ -15,38 +15,43 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-    - uses: pre-commit/action@v3.0.0
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v3
+      - uses: pre-commit/action@v3.0.0
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: ${{ matrix.target }}
-        components: rustfmt, clippy
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          components: rustfmt, clippy
 
-    - name: Sccache cache
-      uses: mozilla-actions/sccache-action@v0.0.3
-      with:
-        version: "v0.4.0"
+      - name: Sccache cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+        with:
+          version: "v0.4.0"
 
-    - name: Cargo registry cache
-      uses: actions/cache@v3
-      with:
-        key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
-        restore-keys: |
-          cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
-          cargo-${{ runner.os }}-
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
+      - name: Cargo registry cache
+        uses: actions/cache@v3
+        with:
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.toml') }}-
+            cargo-${{ runner.os }}-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
 
-    - name: Cargo fmt
-      run: cargo fmt --check
+      - name: Cargo fmt
+        run: cargo fmt --check
 
-    - name: Cargo clippy
-      run: cargo clippy
+      - name: Cargo clippy
+        run: cargo clippy
+
+      - name: Cargo test
+        run: cargo test
 
 
   release-docker:
