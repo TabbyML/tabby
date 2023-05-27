@@ -119,7 +119,7 @@ jobs:
 
     env:
       SCCACHE_GHA_ENABLED: true
-      SCCACHE_CMAKE_ENABLED: true
+      # SCCACHE_CMAKE_ENABLED: true
       RUSTC_WRAPPER: sccache
 
     steps:
