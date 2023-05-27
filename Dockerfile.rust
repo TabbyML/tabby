@@ -17,17 +17,17 @@ RUN apt-get update && \
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-WORKDIR /root
+WORKDIR /root/workspace
+COPY Cargo.toml Cargo.toml
+COPY Cargo.lock Cargo.lock
 COPY crates crates
-
-WORKDIR /root/crates/tabby
 
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/root/crates/tabby/target \
+    --mount=type=cache,target=/root/workspace/target \
     cargo build --features link_shared --release && \
     cp target/release/tabby /opt/tabby/bin/
 

@@ -4,14 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths:
-      - 'Dockerfile.rust'
-      - '.github/workflows/docker.rust.yml'
-      - 'crates/**'
+  pull_request:
+    branches: ["main" ]
 
 jobs:
-  build:
-
+  release-docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -21,21 +18,6 @@ jobs:
       id-token: write
 
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: true
-
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-          swap-storage: true
-
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -84,3 +66,31 @@ jobs:
             ghcr.io/${{ env.IMAGE_NAME }}:latest
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
+
+  release-binary:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11]
+        include:
+          - os: macos-11
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - run: |
+          rustup set auto-self-update disable
+          rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          retention-days: 3
+          name: tabby_${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/tabby
