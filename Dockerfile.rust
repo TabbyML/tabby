@@ -48,12 +48,14 @@ COPY crates crates
 WORKDIR /root/crates/tabby
 
 RUN mkdir -p /opt/tabby/bin
+RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/crates/tabby/target \
     cargo build --release && \
-    cp target/release/tabby /opt/tabby/bin/
+    cp target/release/tabby /opt/tabby/bin/ && \
+    cp $(dirname $(find target | grep lib/libctranslate2 | head -1))/libctranslate2* /opt/tabby/lib
 
 FROM nvidia/cuda:11.2.2-base-ubuntu20.04
 
