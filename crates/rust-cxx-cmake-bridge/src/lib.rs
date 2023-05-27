@@ -160,9 +160,9 @@ mod tests {
             parse_lib_path_dir_and_name("/some/path/liblibstatic.a");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libstatic");
-        assert_eq!(is_static, true);
-        assert_eq!(is_system, false);
-        assert_eq!(is_framework, false);
+        assert!(is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
@@ -171,9 +171,9 @@ mod tests {
             parse_lib_path_dir_and_name("/some/path/liblibshared.so");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libshared");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, false);
-        assert_eq!(is_framework, false);
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
@@ -182,9 +182,9 @@ mod tests {
             parse_lib_path_dir_and_name("/some/path/liblibshared.so.1.2.3");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libshared");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, false);
-        assert_eq!(is_framework, false);
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
@@ -193,9 +193,9 @@ mod tests {
             parse_lib_path_dir_and_name("/usr/lib/libsystem1.a");
         assert_eq!(dir.as_os_str(), "/usr/lib");
         assert_eq!(lib_name_str, "system1");
-        assert_eq!(is_static, true);
-        assert_eq!(is_system, true);
-        assert_eq!(is_framework, false);
+        assert!(is_static);
+        assert!(is_system);
+        assert!(!is_framework);
     }
 
     #[test]
@@ -204,9 +204,9 @@ mod tests {
             parse_lib_path_dir_and_name("/usr/lib/libsystem2.so");
         assert_eq!(dir.as_os_str(), "/usr/lib");
         assert_eq!(lib_name_str, "system2");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, true);
-        assert_eq!(is_framework, false);
+        assert!(!is_static);
+        assert!(is_system);
+        assert!(!is_framework);
     }
 
     #[test]
@@ -215,9 +215,9 @@ mod tests {
             parse_lib_path_dir_and_name("/AAA/BBB.framework");
         assert_eq!(dir.as_os_str(), "/AAA");
         assert_eq!(lib_name_str, "BBB");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, false);
-        assert_eq!(is_framework, true);
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(is_framework);
     }
 
     #[test]

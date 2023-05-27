@@ -16,10 +16,10 @@ lazy_static! {
 
 pub fn remove_stop_words<'a>(language: &'a str, text: &'a str) -> &'a str {
     let re = LANGUAGES.get(language).unwrap_or(&DEFAULT);
-    let position = re.find_iter(&text).next();
+    let position = re.find_iter(text).next();
     if let Some(m) = position {
         &text[..m.start()]
     } else {
-        &text
+        text
     }
 }

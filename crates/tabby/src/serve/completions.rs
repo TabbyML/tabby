@@ -66,7 +66,7 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(options: TextInferenceEngineCreateOptions) -> Self {
         let engine = TextInferenceEngine::create(options);
-        return Self { engine: engine };
+        Self { engine }
     }
 }
 

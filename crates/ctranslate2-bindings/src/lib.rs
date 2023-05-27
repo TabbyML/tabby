@@ -73,7 +73,7 @@ impl TextInferenceEngine {
             options.num_replicas_per_device,
         );
         return TextInferenceEngine {
-            engine: engine,
+            engine,
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         };
     }
