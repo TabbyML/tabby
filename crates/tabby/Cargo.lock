@@ -538,6 +538,7 @@ dependencies = [
  "cxx",
  "cxx-build",
  "derive_builder",
+ "rust-cxx-cmake-bridge",
  "tokenizers",
 ]
 
@@ -1803,6 +1804,10 @@ dependencies = [
  "web-sys",
  "winreg",
 ]
+
+[[package]]
+name = "rust-cxx-cmake-bridge"
+version = "0.1.0"
 
 [[package]]
 name = "rust-embed"

@@ -12,3 +12,4 @@ tokenizers = "0.13.3"
 bindgen = "0.53.1"
 cxx-build = "1.0"
 cmake = "0.1"
+rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge" }
