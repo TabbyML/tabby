@@ -80,12 +80,10 @@ jobs:
           rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
 
       - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
 
       - run: |
-          cargo build --release --target aarch64-apple-darwin
-          ls -l target
+          # cargo build --release --target aarch64-apple-darwin
+          find target
 
       - uses: actions/upload-artifact@v3
         with:
