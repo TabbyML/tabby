@@ -1,4 +1,4 @@
-use tokenizers::tokenizer::{Tokenizer};
+use tokenizers::tokenizer::Tokenizer;
 
 #[macro_use]
 extern crate derive_builder;
@@ -88,10 +88,11 @@ impl TextInferenceEngine {
         );
         let output_ids: Vec<u32> = output_tokens
             .iter()
-            .filter_map(|x| {
-                match self.tokenizer.token_to_id(x) {
-                    Some(y) => Some(y),
-                    None => { println!("Warning: token ({}) missed in vocab", x); None }
+            .filter_map(|x| match self.tokenizer.token_to_id(x) {
+                Some(y) => Some(y),
+                None => {
+                    println!("Warning: token ({}) missed in vocab", x);
+                    None
                 }
             })
             .collect();

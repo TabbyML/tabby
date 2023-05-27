@@ -1,7 +1,7 @@
 use cmake::Config;
 use rust_cxx_cmake_bridge::read_cmake_generated;
-use std::path::PathBuf;
 use std::env;
+use std::path::PathBuf;
 
 fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
