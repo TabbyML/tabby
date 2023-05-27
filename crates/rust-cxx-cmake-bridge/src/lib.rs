@@ -21,7 +21,9 @@ fn parse_lib_path_dir_and_name(static_lib_str: &str) -> (PathBuf, String, bool, 
     // TODO use "file_prefix" https://github.com/rust-lang/rust/issues/86319
     let liblib_name = static_lib_path.my_file_prefix().unwrap();
     let liblib_name_str: String = liblib_name.to_str().unwrap().into();
-    let lib_name_str = liblib_name_str.trim_start_matches("lib");
+    let lib_name_str = liblib_name_str
+        .strip_prefix("lib")
+        .unwrap_or(&liblib_name_str);
 
     // basically:
     // - input = /.../target/debug/build/lib-circuits-wrapper-49025516ce40925e/out/build/_deps/glog-build/libglogd.so.0.6.0
@@ -45,13 +47,13 @@ fn parse_lib_path_dir_and_name(static_lib_str: &str) -> (PathBuf, String, bool, 
 
     let is_framework = static_lib_str.ends_with(".framework");
 
-    return (
+    (
         dir.to_path_buf(),
         lib_name_str.to_string(),
         is_static,
         is_system,
         is_framework,
-    );
+    )
 }
 
 // Parse the content of "cmake_generated_rust_wrapper_libs" which SHOULD have
@@ -75,7 +77,7 @@ fn read_cmake_generated_to_output(
         // - NON system libs (obviously) wether SHARED or STATIC
         // - system STATIC libs eg /usr/lib/x86_64-linux-gnu/libboost_filesystem.a else
         //  "error: could not find native static library `boost_filesystem`, perhaps an -L flag is missing?"
-        if !is_system || is_static || !is_framework {
+        if (!is_system && !is_framework) || is_static {
             writeln!(output, "cargo:rustc-link-search=native={}", dir.display()).unwrap();
         }
 
@@ -97,7 +99,7 @@ fn read_cmake_generated_to_output(
 
 pub fn read_cmake_generated(cmake_generated_rust_wrapper_libs_str: &str) {
     read_cmake_generated_to_output(
-        &cmake_generated_rust_wrapper_libs_str,
+        cmake_generated_rust_wrapper_libs_str,
         &mut std::io::stdout(),
     )
 }
@@ -116,7 +118,7 @@ impl HasMyFilePrefix for std::path::Path {
     fn my_file_prefix(&self) -> Option<&OsStr> {
         self.file_name()
             .map(split_file_at_dot)
-            .and_then(|(before, _after)| Some(before))
+            .map(|(before, _after)| before)
     }
 }
 
@@ -157,52 +159,68 @@ mod tests {
 
     #[test]
     fn parse_local_lib_static_ok() {
-        let (dir, lib_name_str, is_static, is_system) =
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
             parse_lib_path_dir_and_name("/some/path/liblibstatic.a");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libstatic");
-        assert_eq!(is_static, true);
-        assert_eq!(is_system, false);
+        assert!(is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
     fn parse_local_lib_shared_ok() {
-        let (dir, lib_name_str, is_static, is_system) =
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
             parse_lib_path_dir_and_name("/some/path/liblibshared.so");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libshared");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, false);
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
     fn parse_local_lib_shared_with_soversion_ok() {
-        let (dir, lib_name_str, is_static, is_system) =
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
             parse_lib_path_dir_and_name("/some/path/liblibshared.so.1.2.3");
         assert_eq!(dir.as_os_str(), "/some/path");
         assert_eq!(lib_name_str, "libshared");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, false);
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(!is_framework);
     }
 
     #[test]
     fn parse_system_lib_static_ok() {
-        let (dir, lib_name_str, is_static, is_system) =
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
             parse_lib_path_dir_and_name("/usr/lib/libsystem1.a");
         assert_eq!(dir.as_os_str(), "/usr/lib");
         assert_eq!(lib_name_str, "system1");
-        assert_eq!(is_static, true);
-        assert_eq!(is_system, true);
+        assert!(is_static);
+        assert!(is_system);
+        assert!(!is_framework);
     }
 
     #[test]
     fn parse_system_lib_shared_ok() {
-        let (dir, lib_name_str, is_static, is_system) =
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
             parse_lib_path_dir_and_name("/usr/lib/libsystem2.so");
         assert_eq!(dir.as_os_str(), "/usr/lib");
         assert_eq!(lib_name_str, "system2");
-        assert_eq!(is_static, false);
-        assert_eq!(is_system, true);
+        assert!(!is_static);
+        assert!(is_system);
+        assert!(!is_framework);
+    }
+
+    #[test]
+    fn parse_framework_ok() {
+        let (dir, lib_name_str, is_static, is_system, is_framework) =
+            parse_lib_path_dir_and_name("/AAA/BBB.framework");
+        assert_eq!(dir.as_os_str(), "/AAA");
+        assert_eq!(lib_name_str, "BBB");
+        assert!(!is_static);
+        assert!(!is_system);
+        assert!(is_framework);
     }
 
     #[test]
