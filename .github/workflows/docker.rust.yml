@@ -94,6 +94,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
           target: ${{ matrix.target }}
           components: rustfmt, clippy
 
@@ -115,8 +116,8 @@ jobs:
 
       - name: Bulid release binary
         env:
-         SCCACHE_GHA_ENABLED: true
-         RUSTC_WRAPPER: sccache
+          SCCACHE_GHA_ENABLED: true
+          RUSTC_WRAPPER: sccache
         run: |
          cargo build --release --target ${{ matrix.target }}
 

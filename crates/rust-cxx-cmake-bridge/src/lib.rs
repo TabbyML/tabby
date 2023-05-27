@@ -21,7 +21,9 @@ fn parse_lib_path_dir_and_name(static_lib_str: &str) -> (PathBuf, String, bool, 
     // TODO use "file_prefix" https://github.com/rust-lang/rust/issues/86319
     let liblib_name = static_lib_path.my_file_prefix().unwrap();
     let liblib_name_str: String = liblib_name.to_str().unwrap().into();
-    let lib_name_str = liblib_name_str.strip_prefix("lib").unwrap_or(&liblib_name_str);
+    let lib_name_str = liblib_name_str
+        .strip_prefix("lib")
+        .unwrap_or(&liblib_name_str);
 
     // basically:
     // - input = /.../target/debug/build/lib-circuits-wrapper-49025516ce40925e/out/build/_deps/glog-build/libglogd.so.0.6.0
@@ -115,7 +117,8 @@ trait HasMyFilePrefix {
 impl HasMyFilePrefix for std::path::Path {
     fn my_file_prefix(&self) -> Option<&OsStr> {
         self.file_name()
-            .map(split_file_at_dot).map(|(before, _after)| before)
+            .map(split_file_at_dot)
+            .map(|(before, _after)| before)
     }
 }
 
