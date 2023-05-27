@@ -11,12 +11,8 @@ class Arguments:
     repo_id: str = field(
         metadata={"help": "Huggingface model repository id, e.g TabbyML/NeoX-160M"}
     )
-    device: str = field(
-        metadata={"help": "Device type for inference: cpu / cuda"}
-    )
-    output_dir: str = field(
-        metadata={"help": "Output directory"}
-    )
+    device: str = field(metadata={"help": "Device type for inference: cpu / cuda"})
+    output_dir: str = field(metadata={"help": "Output directory"})
 
 
 def parse_args():
