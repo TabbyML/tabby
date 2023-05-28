@@ -10,7 +10,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 
 #[derive(Args)]
 pub struct DownloadArgs {
-    /// model name to fetch.
+    /// model id to fetch.
     #[clap(long)]
     model: String,
 }

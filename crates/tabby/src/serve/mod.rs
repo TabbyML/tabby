@@ -37,23 +37,26 @@ pub enum Device {
 
 #[derive(Args)]
 pub struct ServeArgs {
-    /// path to model for serving
+    /// Model id for serving.
     #[clap(long)]
     model: String,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
+    /// Device to run model inference.
     #[clap(long, default_value_t=Device::CPU)]
     device: Device,
 
+    /// GPU indices to run models, only applicable for CUDA. 
     #[clap(long, default_values_t=[0])]
     device_indices: Vec<i32>,
 
-    /// num_replicas_per_device
+    /// Number of replicas per device, only applicable for CPU.
     #[clap(long, default_value_t = 1)]
     num_replicas_per_device: usize,
 
+    /// *INTERNAL ONLY*
     #[clap(long, default_value_t = false)]
     experimental_admin_panel: bool,
 }
