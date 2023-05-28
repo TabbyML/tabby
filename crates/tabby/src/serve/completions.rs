@@ -4,7 +4,7 @@ use ctranslate2_bindings::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tracing::{trace, span, Level};
+use tracing::trace;
 use utoipa::ToSchema;
 
 mod languages;
@@ -41,9 +41,6 @@ pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Json<CompletionResponse> {
-    let span = span!(Level::TRACE, "completion");
-    let _enter = span.enter();
-
     trace!(language = request.language, prompt = request.prompt);
     let options = TextInferenceOptionsBuilder::default()
         .max_decoding_length(64)
