@@ -3,7 +3,9 @@ use std::{
     sync::Arc,
 };
 
-use axum::{response::Redirect, routing, Router, Server};
+use axum::{
+    routing, Router, Server,
+};
 use clap::Args;
 use ctranslate2_bindings::TextInferenceEngineCreateOptionsBuilder;
 use hyper::Error;
@@ -84,6 +86,34 @@ pub struct ServeArgs {
 }
 
 pub async fn main(args: &ServeArgs) -> Result<(), Error> {
+    let app = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .route("/v1/events", routing::post(events::log_event))
+        .route("/v1/completions", routing::post(completions::completion))
+        .with_state(Arc::new(new_completion_state(args)))
+        .fallback(fallback())
+        .layer(CorsLayer::permissive());
+
+    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
+    println!("Listening at {}", address);
+    Server::bind(&address).serve(app.into_make_service()).await
+}
+
+#[cfg(not(feature="admin_panel"))]
+fn fallback() -> routing::MethodRouter {
+    return routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") });
+}
+
+
+#[cfg(feature="admin_panel")]
+mod admin;
+
+#[cfg(feature="admin_panel")]
+fn fallback() -> routing::MethodRouter {
+    return routing::get(admin::handler);
+}
+
+fn new_completion_state(args: &ServeArgs) -> completions::CompletionState {
     let device = format!("{}", args.device);
     let options = TextInferenceEngineCreateOptionsBuilder::default()
         .model_path(
@@ -105,20 +135,5 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
         .num_replicas_per_device(args.num_replicas_per_device)
         .build()
         .unwrap();
-    let completions_state = Arc::new(completions::CompletionState::new(options));
-
-    let app = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/v1/events", routing::post(events::log_event))
-        .route("/v1/completions", routing::post(completions::completion))
-        .with_state(completions_state)
-        .route(
-            "/",
-            routing::get(|| async { Redirect::temporary("/swagger-ui") }),
-        )
-        .layer(CorsLayer::permissive());
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    println!("Listening at {}", address);
-    Server::bind(&address).serve(app.into_make_service()).await
+    completions::CompletionState::new(options)
 }
