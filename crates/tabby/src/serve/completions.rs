@@ -4,7 +4,7 @@ use ctranslate2_bindings::{
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tracing::{info, span, Level};
+use tracing::{trace, span, Level};
 use utoipa::ToSchema;
 
 mod languages;
@@ -41,10 +41,10 @@ pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Json<CompletionResponse> {
-    let span = span!(Level::INFO, "completion");
+    let span = span!(Level::TRACE, "completion");
     let _enter = span.enter();
 
-    info!(language = request.language, prompt = request.prompt);
+    trace!(language = request.language, prompt = request.prompt);
     let options = TextInferenceOptionsBuilder::default()
         .max_decoding_length(64)
         .sampling_temperature(0.2)
@@ -52,7 +52,7 @@ pub async fn completion(
         .unwrap();
     let text = state.engine.inference(&request.prompt, options);
     let filtered_text = languages::remove_stop_words(&request.language, &text);
-    info!(response = filtered_text);
+    trace!(response = filtered_text);
     Json(CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
         created: timestamp(),

@@ -14,6 +14,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 mod completions;
 mod events;
+mod logging;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -84,6 +85,8 @@ pub struct ServeArgs {
 }
 
 pub async fn main(args: &ServeArgs) -> Result<(), Error> {
+    logging::init();
+
     let device = format!("{}", args.device);
     let options = TextInferenceEngineCreateOptionsBuilder::default()
         .model_path(

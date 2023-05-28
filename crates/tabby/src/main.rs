@@ -1,6 +1,4 @@
 
-use tracing_subscriber;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -21,8 +19,6 @@ mod serve;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
-
     let cli = Cli::parse();
     match &cli.command {
         Commands::Serve(args) => {
