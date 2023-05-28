@@ -35,24 +35,11 @@ pub enum Device {
     CUDA,
 }
 
-#[derive(clap::ValueEnum, strum::Display, Clone)]
-pub enum ModelType {
-    #[strum(serialize = "encoder-decoder")]
-    EncoderDecoder,
-
-    #[strum(serialize = "decoder")]
-    Decoder,
-}
-
 #[derive(Args)]
 pub struct ServeArgs {
     /// path to model for serving
     #[clap(long)]
     model: String,
-
-    /// model type for serving
-    #[clap(long, default_value_t=ModelType::Decoder)]
-    model_type: ModelType,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,

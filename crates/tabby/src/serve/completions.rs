@@ -66,23 +66,17 @@ pub struct CompletionState {
 
 impl CompletionState {
     pub fn new(args: &crate::serve::ServeArgs) -> Self {
+        let home = std::env::var("HOME").unwrap();
+        let tabby_root = format!("{}/.tabby", home);
+        let model_dir = Path::new(&tabby_root).join("models").join(&args.model);
+        let metadata = read_metadata(&model_dir);
+
         let device = format!("{}", args.device);
         let options = TextInferenceEngineCreateOptionsBuilder::default()
-            .model_path(
-                Path::new(&args.model)
-                    .join("ctranslate2")
-                    .join(device.clone())
-                    .display()
-                    .to_string(),
-            )
-            .tokenizer_path(
-                Path::new(&args.model)
-                    .join("tokenizer.json")
-                    .display()
-                    .to_string(),
-            )
+            .model_path(model_dir.join("ctranslate2").display().to_string())
+            .tokenizer_path(model_dir.join("tokenizer.json").display().to_string())
             .device(device)
-            .model_type(format!("{}", args.model_type))
+            .model_type(metadata.transformers_info.auto_model)
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .build()
@@ -99,4 +93,21 @@ fn timestamp() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_secs()
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Metadata {
+    transformers_info: TransformersInfo,
+}
+
+#[derive(Deserialize)]
+struct TransformersInfo {
+    auto_model: String,
+}
+
+fn read_metadata(model_dir: &std::path::PathBuf) -> Metadata {
+    let file = std::fs::File::open(model_dir.join("metadata.json")).unwrap();
+    let reader = std::io::BufReader::new(file);
+    serde_json::from_reader(reader).unwrap()
 }
