@@ -1,19 +1,18 @@
+mod admin;
+mod completions;
+mod events;
+
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
 };
-
 use axum::{routing, Router, Server};
-use clap::Args;
-use ctranslate2_bindings::TextInferenceEngineCreateOptionsBuilder;
+use clap::{error::ErrorKind, Args, CommandFactory};
+use crate::Cli;
 use hyper::Error;
-use std::path::Path;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
-mod completions;
-mod events;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -27,7 +26,7 @@ mod events;
 )]
 struct ApiDoc;
 
-#[derive(clap::ValueEnum, strum::Display, Clone)]
+#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
 pub enum Device {
     #[strum(serialize = "cpu")]
     CPU,
@@ -73,6 +72,7 @@ pub struct ServeArgs {
 }
 
 pub async fn main(args: &ServeArgs) -> Result<(), Error> {
+    valid_args(args);
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
@@ -86,12 +86,14 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
 fn api_router(args: &ServeArgs) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
-        .route("/completions", routing::post(completions::completion))
-        .with_state(Arc::new(new_completion_state(args)))
+        .route(
+            "/completions",
+            routing::post(completions::completion)
+                .with_state(Arc::new(completions::CompletionState::new(args))),
+        )
         .layer(CorsLayer::permissive())
 }
 
-mod admin;
 fn fallback(args: &ServeArgs) -> routing::MethodRouter {
     if args.experimental_admin_panel {
         routing::get(admin::handler)
@@ -100,27 +102,23 @@ fn fallback(args: &ServeArgs) -> routing::MethodRouter {
     }
 }
 
-fn new_completion_state(args: &ServeArgs) -> completions::CompletionState {
-    let device = format!("{}", args.device);
-    let options = TextInferenceEngineCreateOptionsBuilder::default()
-        .model_path(
-            Path::new(&args.model)
-                .join("ctranslate2")
-                .join(device.clone())
-                .display()
-                .to_string(),
-        )
-        .tokenizer_path(
-            Path::new(&args.model)
-                .join("tokenizer.json")
-                .display()
-                .to_string(),
-        )
-        .device(device)
-        .model_type(format!("{}", args.model_type))
-        .device_indices(args.device_indices.clone())
-        .num_replicas_per_device(args.num_replicas_per_device)
-        .build()
-        .unwrap();
-    completions::CompletionState::new(options)
+fn valid_args(args: &ServeArgs) {
+    if args.device == Device::CUDA && args.num_replicas_per_device != 1 {
+        Cli::command()
+            .error(
+                ErrorKind::ValueValidation,
+                "CUDA device only supports 1 replicas per device",
+            )
+            .exit();
+    }
+
+    if args.device == Device::CPU && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
+    {
+        Cli::command()
+            .error(
+                ErrorKind::ValueValidation,
+                "CPU device only supports device indices = [0]",
+            )
+            .exit();
+    }
 }

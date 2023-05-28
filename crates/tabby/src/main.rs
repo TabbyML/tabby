@@ -1,3 +1,5 @@
+mod serve;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -13,8 +15,6 @@ pub enum Commands {
     /// Serve the model
     Serve(serve::ServeArgs),
 }
-
-mod serve;
 
 #[tokio::main]
 async fn main() {

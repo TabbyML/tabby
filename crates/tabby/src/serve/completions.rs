@@ -1,8 +1,9 @@
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{
-    TextInferenceEngine, TextInferenceEngineCreateOptions, TextInferenceOptionsBuilder,
+    TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder, TextInferenceOptionsBuilder,
 };
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::sync::Arc;
 use utoipa::ToSchema;
 
@@ -64,7 +65,28 @@ pub struct CompletionState {
 }
 
 impl CompletionState {
-    pub fn new(options: TextInferenceEngineCreateOptions) -> Self {
+    pub fn new(args: &crate::serve::ServeArgs) -> Self {
+        let device = format!("{}", args.device);
+        let options = TextInferenceEngineCreateOptionsBuilder::default()
+            .model_path(
+                Path::new(&args.model)
+                    .join("ctranslate2")
+                    .join(device.clone())
+                    .display()
+                    .to_string(),
+            )
+            .tokenizer_path(
+                Path::new(&args.model)
+                    .join("tokenizer.json")
+                    .display()
+                    .to_string(),
+            )
+            .device(device)
+            .model_type(format!("{}", args.model_type))
+            .device_indices(args.device_indices.clone())
+            .num_replicas_per_device(args.num_replicas_per_device)
+            .build()
+            .unwrap();
         let engine = TextInferenceEngine::create(options);
         Self { engine }
     }
