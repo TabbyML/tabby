@@ -27,36 +27,22 @@ mod events;
 )]
 struct ApiDoc;
 
-#[derive(clap::ValueEnum, Clone)]
+#[derive(clap::ValueEnum, strum::Display, Clone)]
 pub enum Device {
+    #[strum(serialize = "cpu")]
     CPU,
+
+    #[strum(serialize = "cuda")]
     CUDA,
 }
 
-impl std::fmt::Display for Device {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let printable = match *self {
-            Device::CPU => "cpu",
-            Device::CUDA => "cuda",
-        };
-        write!(f, "{}", printable)
-    }
-}
-
-#[derive(clap::ValueEnum, Clone)]
+#[derive(clap::ValueEnum, strum::Display, Clone)]
 pub enum ModelType {
+    #[strum(serialize = "encoder-decoder")]
     EncoderDecoder,
-    Decoder,
-}
 
-impl std::fmt::Display for ModelType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let printable = match *self {
-            ModelType::EncoderDecoder => "encoder-decoder",
-            ModelType::Decoder => "decoder",
-        };
-        write!(f, "{}", printable)
-    }
+    #[strum(serialize = "decoder")]
+    Decoder,
 }
 
 #[derive(Args)]
