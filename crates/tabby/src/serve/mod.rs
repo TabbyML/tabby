@@ -3,9 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use axum::{
-    routing, Router, Server,
-};
+use axum::{routing, Router, Server};
 use clap::Args;
 use ctranslate2_bindings::TextInferenceEngineCreateOptionsBuilder;
 use hyper::Error;
@@ -83,34 +81,37 @@ pub struct ServeArgs {
     /// num_replicas_per_device
     #[clap(long, default_value_t = 1)]
     num_replicas_per_device: usize,
+
+    #[clap(long, default_value_t = false)]
+    experimental_admin_panel: bool,
 }
 
 pub async fn main(args: &ServeArgs) -> Result<(), Error> {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/v1/events", routing::post(events::log_event))
-        .route("/v1/completions", routing::post(completions::completion))
-        .with_state(Arc::new(new_completion_state(args)))
-        .fallback(fallback())
-        .layer(CorsLayer::permissive());
+        .nest("/v1", api_router(args))
+        .fallback(fallback(args));
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     println!("Listening at {}", address);
     Server::bind(&address).serve(app.into_make_service()).await
 }
 
-#[cfg(not(feature="admin_panel"))]
-fn fallback() -> routing::MethodRouter {
-    return routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") });
+fn api_router(args: &ServeArgs) -> Router {
+    Router::new()
+        .route("/events", routing::post(events::log_event))
+        .route("/completions", routing::post(completions::completion))
+        .with_state(Arc::new(new_completion_state(args)))
+        .layer(CorsLayer::permissive())
 }
 
-
-#[cfg(feature="admin_panel")]
 mod admin;
-
-#[cfg(feature="admin_panel")]
-fn fallback() -> routing::MethodRouter {
-    return routing::get(admin::handler);
+fn fallback(args: &ServeArgs) -> routing::MethodRouter {
+    if args.experimental_admin_panel {
+        routing::get(admin::handler)
+    } else {
+        routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })
+    }
 }
 
 fn new_completion_state(args: &ServeArgs) -> completions::CompletionState {
