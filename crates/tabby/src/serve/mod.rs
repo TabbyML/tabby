@@ -48,7 +48,7 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::CPU)]
     device: Device,
 
-    /// GPU indices to run models, only applicable for CUDA. 
+    /// GPU indices to run models, only applicable for CUDA.
     #[clap(long, default_values_t=[0])]
     device_indices: Vec<i32>,
 
