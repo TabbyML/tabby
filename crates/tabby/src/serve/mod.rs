@@ -2,14 +2,14 @@ mod admin;
 mod completions;
 mod events;
 
+use crate::Cli;
+use axum::{routing, Router, Server};
+use clap::{error::ErrorKind, Args, CommandFactory};
+use hyper::Error;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
 };
-use axum::{routing, Router, Server};
-use clap::{error::ErrorKind, Args, CommandFactory};
-use crate::Cli;
-use hyper::Error;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -76,7 +76,7 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
-        .fallback(fallback(args));
+        .fallback(fallback(args.experimental_admin_panel));
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     println!("Listening at {}", address);
@@ -94,8 +94,8 @@ fn api_router(args: &ServeArgs) -> Router {
         .layer(CorsLayer::permissive())
 }
 
-fn fallback(args: &ServeArgs) -> routing::MethodRouter {
-    if args.experimental_admin_panel {
+fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
+    if experimental_admin_panel {
         routing::get(admin::handler)
     } else {
         routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })

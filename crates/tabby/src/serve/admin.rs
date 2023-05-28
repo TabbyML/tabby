@@ -5,7 +5,7 @@ use axum::{
 };
 
 #[derive(rust_embed::RustEmbed)]
-#[folder = "src/serve/admin/dist/"]
+#[folder = "../tabby-admin/dist/"]
 struct AdminAssets;
 
 struct AdminStaticFile<T>(pub T);
