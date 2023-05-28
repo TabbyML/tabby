@@ -3,7 +3,7 @@ use std::{
     sync::Arc,
 };
 
-use axum::{response::Redirect, routing, Router, Server};
+use axum::{routing, Router, Server};
 use clap::Args;
 use ctranslate2_bindings::TextInferenceEngineCreateOptionsBuilder;
 use hyper::Error;
@@ -81,9 +81,40 @@ pub struct ServeArgs {
     /// num_replicas_per_device
     #[clap(long, default_value_t = 1)]
     num_replicas_per_device: usize,
+
+    #[clap(long, default_value_t = false)]
+    experimental_admin_panel: bool,
 }
 
 pub async fn main(args: &ServeArgs) -> Result<(), Error> {
+    let app = Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .nest("/v1", api_router(args))
+        .fallback(fallback(args));
+
+    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
+    println!("Listening at {}", address);
+    Server::bind(&address).serve(app.into_make_service()).await
+}
+
+fn api_router(args: &ServeArgs) -> Router {
+    Router::new()
+        .route("/events", routing::post(events::log_event))
+        .route("/completions", routing::post(completions::completion))
+        .with_state(Arc::new(new_completion_state(args)))
+        .layer(CorsLayer::permissive())
+}
+
+mod admin;
+fn fallback(args: &ServeArgs) -> routing::MethodRouter {
+    if args.experimental_admin_panel {
+        routing::get(admin::handler)
+    } else {
+        routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })
+    }
+}
+
+fn new_completion_state(args: &ServeArgs) -> completions::CompletionState {
     let device = format!("{}", args.device);
     let options = TextInferenceEngineCreateOptionsBuilder::default()
         .model_path(
@@ -105,20 +136,5 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
         .num_replicas_per_device(args.num_replicas_per_device)
         .build()
         .unwrap();
-    let completions_state = Arc::new(completions::CompletionState::new(options));
-
-    let app = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .route("/v1/events", routing::post(events::log_event))
-        .route("/v1/completions", routing::post(completions::completion))
-        .with_state(completions_state)
-        .route(
-            "/",
-            routing::get(|| async { Redirect::temporary("/swagger-ui") }),
-        )
-        .layer(CorsLayer::permissive());
-
-    let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    println!("Listening at {}", address);
-    Server::bind(&address).serve(app.into_make_service()).await
+    completions::CompletionState::new(options)
 }
