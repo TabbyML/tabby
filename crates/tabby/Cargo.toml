@@ -21,6 +21,11 @@ regex = "1.8.3"
 lazy_static = "1.4.0"
 rust-embed = "6.6.1"
 mime_guess = "2.0.4"
+strum = { version = "0.24", features = ["derive"] }
+reqwest = { version = "0.11.18", features = ["stream"] }
+error-chain = "0.12.4"
+indicatif = "0.17.3"
+futures-util = "0.3.28"
 
 [dependencies.uuid]
 version = "1.3.3"

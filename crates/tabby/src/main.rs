@@ -1,3 +1,6 @@
+mod download;
+mod serve;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -12,21 +15,25 @@ struct Cli {
 pub enum Commands {
     /// Serve the model
     Serve(serve::ServeArgs),
-}
 
-mod serve;
+    /// Download the model
+    Download(download::DownloadArgs),
+}
 
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
 
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
         Commands::Serve(args) => {
             serve::main(args)
                 .await
                 .expect("Error happens during the serve");
+        }
+        Commands::Download(args) => {
+            download::main(args)
+                .await
+                .expect("Error happens during the download");
         }
     }
 }

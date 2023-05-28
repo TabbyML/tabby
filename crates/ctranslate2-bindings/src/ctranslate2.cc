@@ -91,9 +91,15 @@ std::unique_ptr<TextInferenceEngine> create_engine(
   loader.device_indices = std::vector<int>(device_indices.begin(), device_indices.end());
   loader.num_replicas_per_device = num_replicas_per_device;
 
-  if (model_type_str == "decoder") {
+  if (loader.device == ctranslate2::Device::CPU) {
+    loader.compute_type = ctranslate2::ComputeType::INT8;
+  } else if (loader.device == ctranslate2::Device::CUDA) {
+    loader.compute_type = ctranslate2::ComputeType::FLOAT16;
+  }
+
+  if (model_type_str == "AutoModelForCausalLM") {
     return DecoderImpl::create(loader);
-  } else if (model_type_str == "encoder-decoder") {
+  } else if (model_type_str == "AutoModelForSeq2SeqLM") {
     return EncoderDecoderImpl::create(loader);
   } else {
     return nullptr;
