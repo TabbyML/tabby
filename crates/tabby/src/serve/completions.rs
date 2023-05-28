@@ -1,10 +1,10 @@
-use tracing::{span, info, Level};
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{
     TextInferenceEngine, TextInferenceEngineCreateOptions, TextInferenceOptionsBuilder,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tracing::{info, span, Level};
 use utoipa::ToSchema;
 
 mod languages;
@@ -45,7 +45,7 @@ pub async fn completion(
     let span = span!(Level::INFO, "completion", completion_id);
     let _enter = span.enter();
 
-    info!(language=request.language, prompt=request.prompt);
+    info!(language = request.language, prompt = request.prompt);
     let options = TextInferenceOptionsBuilder::default()
         .max_decoding_length(64)
         .sampling_temperature(0.2)
@@ -53,7 +53,7 @@ pub async fn completion(
         .unwrap();
     let text = state.engine.inference(&request.prompt, options);
     let filtered_text = languages::remove_stop_words(&request.language, &text);
-    info!(response=filtered_text);
+    info!(response = filtered_text);
 
     Json(CompletionResponse {
         id: completion_id,

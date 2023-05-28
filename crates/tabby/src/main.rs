@@ -1,4 +1,4 @@
-use tracing::{info, Level};
+
 use tracing_subscriber;
 
 use clap::{Parser, Subcommand};

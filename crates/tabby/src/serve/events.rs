@@ -1,7 +1,7 @@
 use axum::Json;
-use tracing::{span, info, Level};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use tracing::{info};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -19,9 +19,9 @@ pub struct LogEventRequest {
 )]
 pub async fn log_event(Json(request): Json<LogEventRequest>) -> StatusCode {
     info!(
-        completion_id=request.completion_id,
-        event_type=request.event_type,
-        choice_index=request.choice_index
+        completion_id = request.completion_id,
+        event_type = request.event_type,
+        choice_index = request.choice_index
     );
     StatusCode::OK
 }
