@@ -1,3 +1,6 @@
+use tracing::{info, Level};
+use tracing_subscriber;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -18,10 +21,9 @@ mod serve;
 
 #[tokio::main]
 async fn main() {
-    let cli = Cli::parse();
+    tracing_subscriber::fmt::init();
 
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
+    let cli = Cli::parse();
     match &cli.command {
         Commands::Serve(args) => {
             serve::main(args)

@@ -1,3 +1,4 @@
+use tracing::{span, info, Level};
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{
     TextInferenceEngine, TextInferenceEngineCreateOptions, TextInferenceOptionsBuilder,
@@ -40,6 +41,11 @@ pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Json<CompletionResponse> {
+    let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
+    let span = span!(Level::INFO, "completion", completion_id);
+    let _enter = span.enter();
+
+    info!(language=request.language, prompt=request.prompt);
     let options = TextInferenceOptionsBuilder::default()
         .max_decoding_length(64)
         .sampling_temperature(0.2)
@@ -47,9 +53,10 @@ pub async fn completion(
         .unwrap();
     let text = state.engine.inference(&request.prompt, options);
     let filtered_text = languages::remove_stop_words(&request.language, &text);
+    info!(response=filtered_text);
 
     Json(CompletionResponse {
-        id: format!("cmpl-{}", uuid::Uuid::new_v4()),
+        id: completion_id,
         created: timestamp(),
         choices: [Choice {
             index: 0,
