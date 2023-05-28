@@ -1,3 +1,4 @@
+mod download;
 mod serve;
 
 use clap::{Parser, Subcommand};
@@ -14,6 +15,9 @@ struct Cli {
 pub enum Commands {
     /// Serve the model
     Serve(serve::ServeArgs),
+
+    /// Download the model
+    Download(download::DownloadArgs),
 }
 
 #[tokio::main]
@@ -27,6 +31,11 @@ async fn main() {
             serve::main(args)
                 .await
                 .expect("Error happens during the serve");
+        }
+        Commands::Download(args) => {
+            download::main(args)
+                .await
+                .expect("Error happens during the download");
         }
     }
 }
