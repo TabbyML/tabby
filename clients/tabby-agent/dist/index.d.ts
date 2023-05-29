@@ -130,6 +130,7 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private serverUrl;
     private status;
     private api;
+    private completionCache;
     constructor();
     private changeStatus;
     private ping;

@@ -1,12 +1,12 @@
 import axios from "axios";
 import { EventEmitter } from "events";
 import { strict as assert } from "assert";
-import { sleep } from "./utils";
+import { CompletionCache } from "./CompletionCache";
+import { sleep, cancelable } from "./utils";
 import { Agent, AgentEvent } from "./types";
 import {
   TabbyApi,
   CancelablePromise,
-  CancelError,
   ApiError,
   CompletionRequest,
   CompletionResponse,
@@ -18,11 +18,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private serverUrl: string = "http://127.0.0.1:5000";
   private status: "connecting" | "ready" | "disconnected" = "connecting";
   private api: TabbyApi;
+  private completionCache: CompletionCache;
 
   constructor() {
     super();
     this.ping();
     this.api = new TabbyApi({ BASE: this.serverUrl });
+    this.completionCache = new CompletionCache();
   }
 
   private changeStatus(status: "connecting" | "ready" | "disconnected") {
@@ -52,26 +54,20 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private wrapApiPromise<T>(promise: CancelablePromise<T>): CancelablePromise<T> {
-    return new CancelablePromise((resolve, reject, onCancel) => {
+    return cancelable(
       promise
-        .then((resp: T) => {
+        .then((resolved: T) => {
           this.changeStatus("ready");
-          resolve(resp);
-        })
-        .catch((err: CancelError) => {
-          reject(err);
+          return resolved;
         })
         .catch((err: ApiError) => {
           this.changeStatus("disconnected");
-          reject(err);
-        })
-        .catch((err: Error) => {
-          reject(err);
-        });
-      onCancel(() => {
+          throw err;
+        }),
+      () => {
         promise.cancel();
-      });
-    });
+      }
+    );
   }
 
   public setServerUrl(serverUrl: string): string {
@@ -90,12 +86,24 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
-    const promise = this.api.default.completionsV1CompletionsPost(request);
-    return this.wrapApiPromise(promise);
+    if (this.completionCache.has(request)) {
+      return new CancelablePromise((resolve) => {
+        resolve(this.completionCache.get(request));
+      });
+    }
+    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost(request));
+    return cancelable(
+      promise.then((response: CompletionResponse) => {
+        this.completionCache.set(request, response);
+        return response;
+      }),
+      () => {
+        promise.cancel();
+      }
+    );
   }
 
   public postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<any> {
-    const promise = this.api.default.eventsV1EventsPost(request);
-    return this.wrapApiPromise(promise);
+    return this.wrapApiPromise(this.api.default.eventsV1EventsPost(request));
   }
 }

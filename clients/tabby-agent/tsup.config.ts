@@ -1,7 +1,8 @@
 import { defineConfig } from "tsup";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
+import { dependencies } from "./package.json";
 
-export default [
+export default async () => [
   defineConfig({
     name: "lib-node",
     entry: ["src/index.ts"],
@@ -32,6 +33,7 @@ export default [
     name: "cli",
     entry: ["src/cli.ts"],
     platform: "node",
+    noExternal: Object.keys(dependencies),
     minify: true,
     clean: true,
   }),
