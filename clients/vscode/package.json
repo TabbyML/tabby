@@ -103,7 +103,6 @@
   },
   "dependencies": {
     "@sapphire/duration": "^1.1.0",
-    "linked-list-typescript": "^1.0.15",
     "tabby-agent": "file:../tabby-agent"
   }
 }

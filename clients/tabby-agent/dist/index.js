@@ -61,10 +61,10 @@ var import_axios2 = __toESM(require("axios"));
 var import_events = require("events");
 var import_assert = require("assert");
 
-// src/utils.ts
-function sleep(milliseconds) {
-  return new Promise((r) => setTimeout(r, milliseconds));
-}
+// src/CompletionCache.ts
+var import_lru_cache = require("lru-cache");
+var import_object_hash = __toESM(require("object-hash"));
+var import_object_sizeof = __toESM(require("object-sizeof"));
 
 // src/generated/core/BaseHttpRequest.ts
 var BaseHttpRequest = class {
@@ -495,6 +495,134 @@ var EventType = /* @__PURE__ */ ((EventType2) => {
   return EventType2;
 })(EventType || {});
 
+// src/utils.ts
+function sleep(milliseconds) {
+  return new Promise((r) => setTimeout(r, milliseconds));
+}
+function splitLines(input) {
+  return input.match(/.*(?:$|\r?\n)/g).filter(Boolean);
+}
+function splitWords(input) {
+  return input.match(/\w+|\W+/g).filter(Boolean);
+}
+function cancelable(promise, cancel) {
+  return new CancelablePromise((resolve2, reject, onCancel) => {
+    promise.then((resp) => {
+      resolve2(resp);
+    }).catch((err) => {
+      reject(err);
+    });
+    onCancel(() => {
+      cancel();
+    });
+  });
+}
+
+// src/CompletionCache.ts
+var CompletionCache = class {
+  constructor() {
+    this.options = {
+      maxSize: 1 * 1024 * 1024,
+      // 1MB
+      partiallyAcceptedCacheGeneration: {
+        enabled: true,
+        perCharacter: {
+          lines: 1,
+          words: 10,
+          max: 30
+        },
+        perWord: {
+          lines: 1,
+          max: 20
+        },
+        perLine: {
+          max: 3
+        }
+      }
+    };
+    this.cache = new import_lru_cache.LRUCache({
+      maxSize: this.options.maxSize,
+      sizeCalculation: import_object_sizeof.default
+    });
+  }
+  has(key) {
+    return this.cache.has(this.hash(key));
+  }
+  set(key, value) {
+    for (const entry of this.createCacheEntries(key, value)) {
+      this.cache.set(this.hash(entry.key), entry.value);
+    }
+  }
+  get(key) {
+    return this.cache.get(this.hash(key));
+  }
+  hash(key) {
+    return (0, import_object_hash.default)(key);
+  }
+  createCacheEntries(key, value) {
+    const list = [{ key, value }];
+    if (this.options.partiallyAcceptedCacheGeneration.enabled) {
+      const entries = value.choices.map((choice) => {
+        return this.calculatePartiallyAcceptedPositions(choice.text).map((position) => {
+          return {
+            prefix: choice.text.slice(0, position),
+            suffix: choice.text.slice(position),
+            choiceIndex: choice.index
+          };
+        });
+      }).flat().reduce((grouped, entry) => {
+        grouped[entry.prefix] = grouped[entry.prefix] || [];
+        grouped[entry.prefix].push({ suffix: entry.suffix, choiceIndex: entry.choiceIndex });
+        return grouped;
+      }, {});
+      for (const prefix in entries) {
+        const cacheKey = { ...key, prompt: key.prompt + prefix };
+        const cacheValue = {
+          ...value,
+          choices: entries[prefix].map((choice) => {
+            return {
+              index: choice.choiceIndex,
+              text: choice.suffix
+            };
+          })
+        };
+        list.push({
+          key: cacheKey,
+          value: cacheValue
+        });
+      }
+    }
+    return list;
+  }
+  calculatePartiallyAcceptedPositions(completion) {
+    const positions = [];
+    const option = this.options.partiallyAcceptedCacheGeneration;
+    const lines = splitLines(completion);
+    let index = 0;
+    let offset = 0;
+    while (index < lines.length - 1 && index < option.perLine.max) {
+      offset += lines[index].length;
+      positions.push(offset);
+      index++;
+    }
+    const words = lines.slice(0, option.perWord.lines).map(splitWords).flat();
+    index = 0;
+    offset = 0;
+    while (index < words.length && index < option.perWord.max) {
+      offset += words[index].length;
+      positions.push(offset);
+      index++;
+    }
+    const characters = lines.slice(0, option.perCharacter.lines).map(splitWords).flat().slice(0, option.perCharacter.words).join("");
+    offset = 1;
+    while (offset < characters.length && offset < option.perCharacter.max) {
+      positions.push(offset);
+      offset++;
+    }
+    return positions.filter((v, i, arr) => arr.indexOf(v) === i).sort((a, b) => a - b);
+  }
+};
+
 // src/TabbyAgent.ts
 var TabbyAgent = class extends import_events.EventEmitter {
   constructor() {
@@ -503,6 +631,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
     this.status = "connecting";
     this.ping();
     this.api = new TabbyApi({ BASE: this.serverUrl });
+    this.completionCache = new CompletionCache();
   }
   changeStatus(status) {
     if (this.status != status) {
@@ -529,22 +658,18 @@ var TabbyAgent = class extends import_events.EventEmitter {
     }
   }
   wrapApiPromise(promise) {
-    return new CancelablePromise((resolve2, reject, onCancel) => {
-      promise.then((resp) => {
+    return cancelable(
+      promise.then((resolved) => {
         this.changeStatus("ready");
-        resolve2(resp);
-      }).catch((err) => {
-        reject(err);
+        return resolved;
       }).catch((err) => {
         this.changeStatus("disconnected");
-        reject(err);
-      }).catch((err) => {
-        reject(err);
-      });
-      onCancel(() => {
+        throw err;
+      }),
+      () => {
         promise.cancel();
-      });
-    });
+      }
+    );
   }
   setServerUrl(serverUrl) {
     this.serverUrl = serverUrl.replace(/\/$/, "");
@@ -559,12 +684,24 @@ var TabbyAgent = class extends import_events.EventEmitter {
     return this.status;
   }
   getCompletions(request2) {
-    const promise = this.api.default.completionsV1CompletionsPost(request2);
-    return this.wrapApiPromise(promise);
+    if (this.completionCache.has(request2)) {
+      return new CancelablePromise((resolve2) => {
+        resolve2(this.completionCache.get(request2));
+      });
+    }
+    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost(request2));
+    return cancelable(
+      promise.then((response) => {
+        this.completionCache.set(request2, response);
+        return response;
+      }),
+      () => {
+        promise.cancel();
+      }
+    );
   }
   postEvent(request2) {
-    const promise = this.api.default.eventsV1EventsPost(request2);
-    return this.wrapApiPromise(promise);
+    return this.wrapApiPromise(this.api.default.eventsV1EventsPost(request2));
   }
 };
 

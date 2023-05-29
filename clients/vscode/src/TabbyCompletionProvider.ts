@@ -12,7 +12,6 @@ import {
 } from "vscode";
 import { CompletionResponse, EventType, ChoiceEvent, CancelablePromise } from "tabby-agent";
 import { Agent } from "./Agent";
-import { CompletionCache } from "./CompletionCache";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
@@ -21,7 +20,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
   private agent = Agent.getInstance();
-  private completionCache = new CompletionCache();
   // User Settings
   private enabled: boolean = true;
   private suggestionDelay: number = 150;
@@ -61,13 +59,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
     const replaceRange = this.calculateReplaceRange(document, position);
 
-    const compatibleCache = this.completionCache.findCompatible(document.uri, document.getText(), document.offsetAt(position));
-    if (compatibleCache) {
-      const completions = this.toInlineCompletions(compatibleCache, replaceRange);
-      console.debug("Use cached completions: ", compatibleCache);
-      return Promise.resolve(completions);
-    }
-
     console.debug(
       "Requesting: ",
       {
@@ -91,14 +82,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     });
     this.pendingCompletion = null;
 
-    if (completion) {
-      this.completionCache.add({
-        documentId: document.uri,
-        promptRange: { start: document.offsetAt(promptRange.start), end: document.offsetAt(promptRange.end) },
-        prompt,
-        completion,
-      });
-    }
     const completions = this.toInlineCompletions(completion, replaceRange);
     console.debug("Result completions: ", completions);
     return Promise.resolve(completions);
