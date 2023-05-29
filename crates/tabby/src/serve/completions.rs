@@ -13,7 +13,7 @@ mod languages;
 pub struct CompletionRequest {
     /// https://code.visualstudio.com/docs/languages/identifiers
     #[schema(example = "python")]
-    language: String,
+    language: Option<String>,
 
     #[schema(example = "def fib(n):")]
     prompt: String,
@@ -47,7 +47,8 @@ pub async fn completion(
         .build()
         .unwrap();
     let text = state.engine.inference(&request.prompt, options);
-    let filtered_text = languages::remove_stop_words(&request.language, &text);
+    let language = request.language.unwrap_or("unknown".into());
+    let filtered_text = languages::remove_stop_words(&language, &text);
 
     Json(CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
