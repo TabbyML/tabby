@@ -2086,6 +2086,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strum",
+ "tabby-common",
  "tokio",
  "tower",
  "tower-http",
@@ -2093,6 +2094,10 @@ dependencies = [
  "utoipa-swagger-ui",
  "uuid",
 ]
+
+[[package]]
+name = "tabby-common"
+version = "0.1.0"
 
 [[package]]
 name = "tar"
