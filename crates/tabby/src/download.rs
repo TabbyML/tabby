@@ -41,9 +41,8 @@ async fn download_model(model_id: &str) -> Result<()> {
 
 async fn download_metadata(model_id: &str) -> Result<()> {
     let url = format!("https://huggingface.co/api/models/{}", model_id);
-    let fname = "metadata.json";
-    let filepath = ModelDir::new(model_id).path_string(fname);
-    download_file(&format!("{}/{}", model_id, fname), &url, &filepath).await
+    let filepath = ModelDir::new(model_id).metadata_file();
+    download_file(&url, &filepath).await
 }
 
 async fn download_model_file(model_id: &str, fname: &str) -> Result<()> {
@@ -52,10 +51,10 @@ async fn download_model_file(model_id: &str, fname: &str) -> Result<()> {
 
     // Create destination path.
     let filepath = ModelDir::new(model_id).path_string(fname);
-    download_file(&format!("{}/{}", model_id, fname), &url, &filepath).await
+    download_file(&url, &filepath).await
 }
 
-async fn download_file(name: &str, url: &str, path: &str) -> Result<()> {
+async fn download_file(url: &str, path: &str) -> Result<()> {
     fs::create_dir_all(Path::new(path).parent().unwrap())?;
 
     // Reqwest setup
@@ -72,7 +71,7 @@ async fn download_file(name: &str, url: &str, path: &str) -> Result<()> {
     pb.set_style(ProgressStyle::default_bar()
         .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")?
         .progress_chars("#>-"));
-    pb.set_message(format!("Downloading {}", &name));
+    pb.set_message(format!("Downloading {}", path));
 
     // download chunks
     let mut file = fs::File::create(&path).or(Err(format!("Failed to create file '{}'", &path)))?;
@@ -88,6 +87,6 @@ async fn download_file(name: &str, url: &str, path: &str) -> Result<()> {
         pb.set_position(new);
     }
 
-    pb.finish_with_message(format!("Downloaded {}", &name));
+    pb.finish_with_message(format!("Downloaded {}", path));
     return Ok(());
 }
