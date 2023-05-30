@@ -29,7 +29,6 @@ pub struct Choice {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CompletionResponse {
     id: String,
-    created: u64,
     choices: Vec<Choice>,
 }
 
@@ -38,7 +37,6 @@ struct CompletionEvent<'a> {
     completion_id: &'a str,
     language: String,
     prompt: String,
-    created: u64,
     choices: &'a Vec<Choice>,
 }
 
@@ -62,7 +60,6 @@ pub async fn completion(
 
     let response = CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
-        created: timestamp(),
         choices: [Choice {
             index: 0,
             text: filtered_text.to_string(),
@@ -70,16 +67,20 @@ pub async fn completion(
         .to_vec(),
     };
 
-    events::log(
-        "completion",
-        &CompletionEvent {
-            completion_id: &response.id,
-            language,
-            prompt: request.prompt,
-            created: response.created,
-            choices: &response.choices,
-        },
-    );
+    events::Event::Completion {
+        completion_id: &response.id,
+        language: &language,
+        prompt: &request.prompt,
+        choices: response
+            .choices
+            .iter()
+            .map(|x| events::Choice {
+                index: x.index,
+                text: &x.text,
+            })
+            .collect(),
+    }
+    .log();
 
     Json(response)
 }
@@ -114,15 +115,6 @@ fn get_model_dir(model: &str) -> ModelDir {
     } else {
         ModelDir::new(model)
     }
-}
-
-fn timestamp() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let start = SystemTime::now();
-    start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_secs()
 }
 
 #[derive(Deserialize)]

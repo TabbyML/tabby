@@ -25,35 +25,72 @@ lazy_static! {
 }
 
 #[derive(Serialize)]
-struct Event<'a, T>
-where
-    T: ?Sized + Serialize,
-{
-    name: &'a str,
-    payload: &'a T,
+pub struct Choice<'a> {
+    pub index: u32,
+    pub text: &'a str,
 }
 
-pub fn log<T>(name: &str, payload: &T)
-where
-    T: ?Sized + Serialize,
-{
-    let mut writer = WRITER.lock().unwrap();
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Event<'a> {
+    View {
+        completion_id: &'a str,
+        choice_index: u32,
+    },
+    Selected {
+        completion_id: &'a str,
+        choice_index: u32,
+    },
+    Completion {
+        completion_id: &'a str,
+        language: &'a str,
+        prompt: &'a str,
+        choices: Vec<Choice<'a>>,
+    },
+}
 
-    serdeconv::to_json_writer(&Event { name, payload }, writer.by_ref()).unwrap();
-    write!(writer, "\n").unwrap();
-    writer.flush().unwrap();
+#[derive(Serialize)]
+struct Log<'a> {
+    ts: u128,
+    event: &'a Event<'a>,
+}
+
+impl Event<'_> {
+    pub fn log(&self) {
+        let mut writer = WRITER.lock().unwrap();
+
+        serdeconv::to_json_writer(
+            &Log {
+                ts: timestamp(),
+                event: self,
+            },
+            writer.by_ref(),
+        )
+        .unwrap();
+        write!(writer, "\n").unwrap();
+        writer.flush().unwrap();
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[derive(serde::Serialize)]
-    struct MyString(String);
-
     #[test]
     fn it_works() {
-        let content = MyString("abc".to_owned());
-        log("abc", &content);
+        Event::View {
+            completion_id: "abc".to_owned(),
+            choice_index: 0,
+        }
+        .log();
     }
+}
+
+fn timestamp() -> u128 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let start = SystemTime::now();
+    start
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis()
 }
