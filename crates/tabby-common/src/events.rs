@@ -37,7 +37,7 @@ pub enum Event<'a> {
         completion_id: &'a str,
         choice_index: u32,
     },
-    Selected {
+    Select {
         completion_id: &'a str,
         choice_index: u32,
     },
