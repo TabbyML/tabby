@@ -1,12 +1,13 @@
 use std::cmp;
 use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use clap::Args;
 use error_chain::error_chain;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use tabby_common::path::ModelDir;
 
 #[derive(Args)]
 pub struct DownloadArgs {
@@ -38,17 +39,10 @@ async fn download_model(model_id: &str) -> Result<()> {
     Ok(())
 }
 
-fn get_model_dir(model_id: &str) -> PathBuf {
-    let home = std::env::var("HOME").unwrap();
-    let tabby_root = format!("{}/.tabby", home);
-    let model_dir = Path::new(&tabby_root).join("models").join(model_id);
-    model_dir
-}
-
 async fn download_metadata(model_id: &str) -> Result<()> {
     let url = format!("https://huggingface.co/api/models/{}", model_id);
     let fname = "metadata.json";
-    let filepath = get_model_dir(model_id).join(fname).display().to_string();
+    let filepath = ModelDir::new(model_id).path_string(fname);
     download_file(&format!("{}/{}", model_id, fname), &url, &filepath).await
 }
 
@@ -57,7 +51,7 @@ async fn download_model_file(model_id: &str, fname: &str) -> Result<()> {
     let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, fname);
 
     // Create destination path.
-    let filepath = get_model_dir(model_id).join(fname).display().to_string();
+    let filepath = ModelDir::new(model_id).path_string(fname);
     download_file(&format!("{}/{}", model_id, fname), &url, &filepath).await
 }
 

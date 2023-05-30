@@ -5,6 +5,7 @@ use ctranslate2_bindings::{
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
+use tabby_common::path::ModelDir;
 use utoipa::ToSchema;
 
 mod languages;
@@ -72,8 +73,8 @@ impl CompletionState {
 
         let device = format!("{}", args.device);
         let options = TextInferenceEngineCreateOptionsBuilder::default()
-            .model_path(model_dir.join("ctranslate2").display().to_string())
-            .tokenizer_path(model_dir.join("tokenizer.json").display().to_string())
+            .model_path(model_dir.ctranslate2_dir())
+            .tokenizer_path(model_dir.tokenizer_file())
             .device(device)
             .model_type(metadata.transformers_info.auto_model)
             .device_indices(args.device_indices.clone())
@@ -85,13 +86,11 @@ impl CompletionState {
     }
 }
 
-fn get_model_dir(model: &str) -> std::path::PathBuf {
+fn get_model_dir(model: &str) -> ModelDir {
     if Path::new(model).exists() {
-        Path::new(model).to_path_buf()
+        ModelDir::from(model)
     } else {
-        let home = std::env::var("HOME").unwrap();
-        let tabby_root = format!("{}/.tabby", home);
-        Path::new(&tabby_root).join("models").join(model)
+        ModelDir::new(model)
     }
 }
 
@@ -115,8 +114,8 @@ struct TransformersInfo {
     auto_model: String,
 }
 
-fn read_metadata(model_dir: &std::path::PathBuf) -> Metadata {
-    let file = std::fs::File::open(model_dir.join("metadata.json")).unwrap();
+fn read_metadata(model_dir: &ModelDir) -> Metadata {
+    let file = std::fs::File::open(model_dir.metadata_file()).unwrap();
     let reader = std::io::BufReader::new(file);
     serde_json::from_reader(reader).unwrap()
 }
