@@ -29,7 +29,7 @@ pub struct Segments {
     prefix: String,
 
     /// Content that appears after the cursor in the editor window.
-    suffix: String
+    suffix: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
