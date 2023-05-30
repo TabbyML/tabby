@@ -4,7 +4,7 @@
   "displayName": "Tabby",
   "description": "Get completions from Tabby server",
   "repository": "https://github.com/TabbyML/tabby",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "keywords": [
     "code-suggestion",
     "copilot",
