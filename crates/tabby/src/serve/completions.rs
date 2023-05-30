@@ -11,12 +11,24 @@ mod languages;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CompletionRequest {
+    #[schema(example = "def fib(n):")]
+    prompt: String,
+
     /// https://code.visualstudio.com/docs/languages/identifiers
     #[schema(example = "python")]
     language: Option<String>,
 
-    #[schema(example = "def fib(n):")]
-    prompt: String,
+    /// When segments are set, the `prompt` is ignored during the inference.
+    segments: Option<Segments>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct Segments {
+    /// Content that appears before the cursor in the editor window.
+    prefix: String,
+
+    /// Content that appears after the cursor in the editor window.
+    suffix: String
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
