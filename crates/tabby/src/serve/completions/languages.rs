@@ -6,10 +6,7 @@ lazy_static! {
     static ref DEFAULT: Regex = Regex::new(r"(?m)^\n\n").unwrap();
     static ref LANGUAGES: HashMap<&'static str, Regex> = {
         let mut map = HashMap::new();
-        map.insert(
-            "unknown",
-            Regex::new(r"(?m)^(\n\n)").unwrap(),
-        );
+        map.insert("unknown", Regex::new(r"(?m)^(\n\n)").unwrap());
         map.insert(
             "python",
             Regex::new(r"(?m)^(\n\n|def|#|from|class)").unwrap(),
