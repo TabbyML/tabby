@@ -20,6 +20,7 @@ use utoipa_swagger_ui::SwaggerUi;
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
+        completions::Segments,
         completions::Choice
     ))
 )]
