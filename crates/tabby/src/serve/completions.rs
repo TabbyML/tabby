@@ -5,7 +5,7 @@ use ctranslate2_bindings::{
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-use tabby_common::path::ModelDir;
+use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
 
 mod languages;
@@ -33,6 +33,15 @@ pub struct CompletionResponse {
     choices: Vec<Choice>,
 }
 
+#[derive(Serialize)]
+struct CompletionEvent<'a> {
+    completion_id: &'a str,
+    language: String,
+    prompt: String,
+    created: u64,
+    choices: &'a Vec<Choice>,
+}
+
 #[utoipa::path(
     post,
     path = "/v1/completions",
@@ -51,7 +60,7 @@ pub async fn completion(
     let language = request.language.unwrap_or("unknown".into());
     let filtered_text = languages::remove_stop_words(&language, &text);
 
-    Json(CompletionResponse {
+    let response = CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
         created: timestamp(),
         choices: [Choice {
@@ -59,7 +68,17 @@ pub async fn completion(
             text: filtered_text.to_string(),
         }]
         .to_vec(),
-    })
+    };
+
+    events::log("completion", &CompletionEvent{
+        completion_id: &response.id,
+        language,
+        prompt: request.prompt,
+        created: response.created,
+        choices: &response.choices,
+    });
+
+    Json(response)
 }
 
 pub struct CompletionState {
