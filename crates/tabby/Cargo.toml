@@ -10,7 +10,8 @@ tokio = { version = "1.17", features = ["full"] }
 tower = "0.4"
 utoipa = { version = "3.3", features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { workspace = true }
+serdeconv = { workspace = true }
 serde_json = "1.0"
 env_logger = "0.10.0"
 log = "0.4"
@@ -18,7 +19,7 @@ ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 tower-http = { version = "0.4.0", features = ["cors"] }
 clap = { version = "4.3.0", features = ["derive"] }
 regex = "1.8.3"
-lazy_static = "1.4.0"
+lazy_static = { workspace = true }
 rust-embed = "6.6.1"
 mime_guess = "2.0.4"
 strum = { version = "0.24", features = ["derive"] }

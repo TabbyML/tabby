@@ -5,7 +5,7 @@ use ctranslate2_bindings::{
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
-use tabby_common::path::ModelDir;
+use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
 
 mod languages;
@@ -29,7 +29,6 @@ pub struct Choice {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CompletionResponse {
     id: String,
-    created: u64,
     choices: Vec<Choice>,
 }
 
@@ -51,15 +50,26 @@ pub async fn completion(
     let language = request.language.unwrap_or("unknown".into());
     let filtered_text = languages::remove_stop_words(&language, &text);
 
-    Json(CompletionResponse {
+    let response = CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
-        created: timestamp(),
-        choices: [Choice {
+        choices: vec![Choice {
             index: 0,
             text: filtered_text.to_string(),
-        }]
-        .to_vec(),
-    })
+        }],
+    };
+
+    events::Event::Completion {
+        completion_id: &response.id,
+        language: &language,
+        prompt: &request.prompt,
+        choices: vec![events::Choice {
+            index: 0,
+            text: filtered_text,
+        }],
+    }
+    .log();
+
+    Json(response)
 }
 
 pub struct CompletionState {
@@ -94,15 +104,6 @@ fn get_model_dir(model: &str) -> ModelDir {
     }
 }
 
-fn timestamp() -> u64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let start = SystemTime::now();
-    start
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_secs()
-}
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Metadata {
@@ -115,7 +116,5 @@ struct TransformersInfo {
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    let file = std::fs::File::open(model_dir.metadata_file()).unwrap();
-    let reader = std::io::BufReader::new(file);
-    serde_json::from_reader(reader).unwrap()
+    serdeconv::from_json_file(model_dir.metadata_file()).unwrap()
 }
