@@ -9,4 +9,4 @@ edition = "2021"
 chrono = "0.4.26"
 lazy_static = { workspace = true }
 serde = { workspace = true }
-serdeconv = "0.4.1"
+serdeconv = { workspace = true }

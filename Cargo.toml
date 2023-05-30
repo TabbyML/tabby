@@ -15,3 +15,4 @@ homepage = "https://github.com/TabbyML/tabby"
 [workspace.dependencies]
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
+serdeconv = "0.4.1"

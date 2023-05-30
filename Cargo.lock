@@ -2191,6 +2191,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+ "serdeconv",
  "strum",
  "tabby-common",
  "tokio",

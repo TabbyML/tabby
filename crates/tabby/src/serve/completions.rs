@@ -137,7 +137,5 @@ struct TransformersInfo {
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    let file = std::fs::File::open(model_dir.metadata_file()).unwrap();
-    let reader = std::io::BufReader::new(file);
-    serde_json::from_reader(reader).unwrap()
+    serdeconv::from_json_file(model_dir.metadata_file()).unwrap()
 }
