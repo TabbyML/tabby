@@ -67,9 +67,7 @@ pub struct CompletionState {
 
 impl CompletionState {
     pub fn new(args: &crate::serve::ServeArgs) -> Self {
-        let home = std::env::var("HOME").unwrap();
-        let tabby_root = format!("{}/.tabby", home);
-        let model_dir = Path::new(&tabby_root).join("models").join(&args.model);
+        let model_dir = get_model_dir(&args.model);
         let metadata = read_metadata(&model_dir);
 
         let device = format!("{}", args.device);
@@ -84,6 +82,16 @@ impl CompletionState {
             .unwrap();
         let engine = TextInferenceEngine::create(options);
         Self { engine }
+    }
+}
+
+fn get_model_dir(model: &str) -> std::path::PathBuf {
+    if Path::new(model).exists() {
+        Path::new(model).to_path_buf()
+    } else {
+        let home = std::env::var("HOME").unwrap();
+        let tabby_root = format!("{}/.tabby", home);
+        Path::new(&tabby_root).join("models").join(model)
     }
 }
 
