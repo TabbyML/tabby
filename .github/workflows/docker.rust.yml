@@ -4,8 +4,18 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
+    paths:
+      - 'Dockerfile.rust'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
   pull_request:
     branches: ["main" ]
+    paths:
+      - 'Dockerfile.rust'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
 
 jobs:
   tests:
