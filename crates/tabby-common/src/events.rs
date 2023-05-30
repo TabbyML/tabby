@@ -40,7 +40,8 @@ where
     let mut writer = WRITER.lock().unwrap();
 
     serdeconv::to_json_writer(&Event { name, payload }, writer.by_ref()).unwrap();
-    write!(writer, "\n").unwrap()
+    write!(writer, "\n").unwrap();
+    writer.flush().unwrap();
 }
 
 #[cfg(test)]
