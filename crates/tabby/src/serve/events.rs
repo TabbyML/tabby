@@ -13,12 +13,6 @@ pub struct LogEventRequest {
     choice_index: u32,
 }
 
-#[derive(Serialize)]
-struct LogEvent {
-    completion_id: String,
-    choice_index: u32,
-}
-
 #[utoipa::path(
     post,
     path = "/v1/events",

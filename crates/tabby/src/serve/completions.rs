@@ -32,14 +32,6 @@ pub struct CompletionResponse {
     choices: Vec<Choice>,
 }
 
-#[derive(Serialize)]
-struct CompletionEvent<'a> {
-    completion_id: &'a str,
-    language: String,
-    prompt: String,
-    choices: &'a Vec<Choice>,
-}
-
 #[utoipa::path(
     post,
     path = "/v1/completions",
@@ -60,25 +52,20 @@ pub async fn completion(
 
     let response = CompletionResponse {
         id: format!("cmpl-{}", uuid::Uuid::new_v4()),
-        choices: [Choice {
+        choices: vec![Choice {
             index: 0,
             text: filtered_text.to_string(),
-        }]
-        .to_vec(),
+        }],
     };
 
     events::Event::Completion {
         completion_id: &response.id,
         language: &language,
         prompt: &request.prompt,
-        choices: response
-            .choices
-            .iter()
-            .map(|x| events::Choice {
-                index: x.index,
-                text: &x.text,
-            })
-            .collect(),
+        choices: vec![events::Choice {
+            index: 0,
+            text: filtered_text,
+        }],
     }
     .log();
 
