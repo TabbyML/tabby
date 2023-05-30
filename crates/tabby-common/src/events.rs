@@ -72,20 +72,6 @@ impl Event<'_> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        Event::View {
-            completion_id: "abc".to_owned(),
-            choice_index: 0,
-        }
-        .log();
-    }
-}
-
 fn timestamp() -> u128 {
     use std::time::{SystemTime, UNIX_EPOCH};
     let start = SystemTime::now();
