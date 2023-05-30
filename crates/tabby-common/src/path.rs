@@ -4,16 +4,13 @@ use std::path::PathBuf;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref TABBY_ROOT : PathBuf = {
+    pub static ref TABBY_ROOT: PathBuf = {
         match env::var("TABBY_ROOT") {
             Ok(x) => PathBuf::from(x),
             Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
         }
     };
-
-    pub static ref EVENTS_DIR: PathBuf = {
-        TABBY_ROOT.join("events")
-    };
+    pub static ref EVENTS_DIR: PathBuf = TABBY_ROOT.join("events");
 }
 
 pub struct ModelDir(PathBuf);

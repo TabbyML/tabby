@@ -1,9 +1,9 @@
-use std::io::{BufWriter, Write};
-use std::sync::Mutex;
-use std::fs;
 use chrono::Utc;
 use lazy_static::lazy_static;
 use serde::Serialize;
+use std::fs;
+use std::io::{BufWriter, Write};
+use std::sync::Mutex;
 
 lazy_static! {
     static ref WRITER: Mutex<BufWriter<fs::File>> = {
@@ -17,16 +17,26 @@ lazy_static! {
             .append(true)
             .write(true)
             .open(events_dir.join(fname.to_string()))
-            .ok().unwrap();
+            .ok()
+            .unwrap();
 
         Mutex::new(BufWriter::new(file))
     };
 }
 
 #[derive(Serialize)]
-struct Event<'a, T> where T: ?Sized + Serialize { name: &'a str, payload: &'a T }
+struct Event<'a, T>
+where
+    T: ?Sized + Serialize,
+{
+    name: &'a str,
+    payload: &'a T,
+}
 
-pub fn log<T>(name: &str, payload: &T) where T: ?Sized + Serialize {
+pub fn log<T>(name: &str, payload: &T)
+where
+    T: ?Sized + Serialize,
+{
     let mut writer = WRITER.lock().unwrap();
 
     serdeconv::to_json_writer(&Event { name, payload }, writer.by_ref()).unwrap();

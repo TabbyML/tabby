@@ -1,8 +1,8 @@
 use axum::Json;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 use tabby_common::events;
+use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct LogEventRequest {
@@ -24,6 +24,12 @@ struct LogEvent {
     request_body = LogEventRequest,
 )]
 pub async fn log_event(Json(request): Json<LogEventRequest>) -> StatusCode {
-    events::log(&request.event_type, &LogEvent {completion_id: request.completion_id, choice_index: request.choice_index});
+    events::log(
+        &request.event_type,
+        &LogEvent {
+            completion_id: request.completion_id,
+            choice_index: request.choice_index,
+        },
+    );
     StatusCode::OK
 }

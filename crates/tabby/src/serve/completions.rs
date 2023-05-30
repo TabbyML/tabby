@@ -70,13 +70,16 @@ pub async fn completion(
         .to_vec(),
     };
 
-    events::log("completion", &CompletionEvent{
-        completion_id: &response.id,
-        language,
-        prompt: request.prompt,
-        created: response.created,
-        choices: &response.choices,
-    });
+    events::log(
+        "completion",
+        &CompletionEvent {
+            completion_id: &response.id,
+            language,
+            prompt: request.prompt,
+            created: response.created,
+            choices: &response.choices,
+        },
+    );
 
     Json(response)
 }
