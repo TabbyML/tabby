@@ -33,8 +33,8 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM ghcr.io/opennmt/ctranslate2:3.14.0-ubuntu20.04-cuda11.2
 
-ENV TABBY_ROOT=/opt/tabby
+COPY --from=builder /opt/tabby /opt/tabby
 
-COPY --from=builder $TABBY_ROOT $TABBY_ROOT
+ENV TABBY_ROOT=/data
 
 ENTRYPOINT ["/opt/tabby/bin/tabby"]

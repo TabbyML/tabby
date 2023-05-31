@@ -36,56 +36,36 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-**NOTE**: Tabby requires [Pascal or newer](https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/) NVIDIA GPU.
+We recommend adding the following aliases to your `.bashrc` or `.zshrc` file:
 
-Before running Tabby, ensure the installation of the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-We suggest using NVIDIA drivers that are compatible with CUDA version 11.8 or higher.
-```bash
-# Create data dir and grant owner to 1000 (Tabby run as uid 1000 in container)
-mkdir -p data/hf_cache && chown -R 1000 data
+```shell
+# Save aliases to bashrc / zshrc
+alias tabby="docker run -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 
-docker run \
-  --gpus all \
-  -it --rm \
-  -v "/$(pwd)/data:/data" \
-  -v "/$(pwd)/data/hf_cache:/home/app/.cache/huggingface" \
-  -p 5000:5000 \
-  -e MODEL_NAME=TabbyML/J-350M \
-  -e MODEL_BACKEND=triton \
-  --name=tabby \
-  tabbyml/tabby
+# Alias for GPU (requires NVIDIA Container Toolkit)
+alias tabby-gpu="docker run --gpus all -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 ```
 
-You can then query the server using `/v1/completions` endpoint:
-```bash
-curl -X POST http://localhost:5000/v1/completions -H 'Content-Type: application/json' --data '{
-    "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
-}'
+After adding these aliases, you can use the `tabby` command as usual. Here are some examples of its usage:
+
+```shell
+# Usage
+tabby --help
+
+# Download model
+tabby download --model TabbyML/J-350M
+
+# Serve the model
+tabby serve --model TabbyML/J-350M
 ```
-
-We also provides an interactive playground in admin panel [localhost:5000/_admin](http://localhost:5000/_admin)
-
-### Skypilot
-See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 
 ## Getting Started: Client
 We offer multiple methods to connect to Tabby Server, including using OpenAPI and editor extensions.
 
 ### API
-Tabby has opened a FastAPI server at [localhost:5000](https://localhost:5000), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
+Tabby has opened a FastAPI server at [localhost:8080](https://localhost:8080), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
 
 ### Editor Extensions
 
 * [VSCode Extension](./clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 * [VIM Extension](./clients/vim)
-
-## Development
-
-Go to `development` directory.
-```bash
-make dev
-```
-or
-```bash
-make dev-triton # Turn on triton backend (for cuda env developers)
-```
