@@ -388,6 +388,7 @@ class SequenceToSequenceModelConfig(ModelConfig):
         decoder_start_token: Optional[str] = "<s>",
         add_source_bos: bool = False,
         add_source_eos: bool = False,
+        **kwargs,
     ):
         """Initializes the configuration for sequence-to-sequence models.
 
@@ -401,6 +402,7 @@ class SequenceToSequenceModelConfig(ModelConfig):
             the source input.
           add_source_eos: If ``True``, ``eos_token`` will be automatically added to
             the source input.
+          **kwargs: Additional configuration.
         """
         super().__init__(
             unk_token=unk_token,
@@ -409,6 +411,7 @@ class SequenceToSequenceModelConfig(ModelConfig):
             decoder_start_token=decoder_start_token,
             add_source_bos=add_source_bos,
             add_source_eos=add_source_eos,
+            **kwargs,
         )
 
 

@@ -159,6 +159,7 @@ namespace ctranslate2 {
     private:
       const StorageView* _beta;
       const StorageView& _gamma;
+      float _epsilon;
     };
 
     class Conv1D : public Layer {

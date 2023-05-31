@@ -362,6 +362,11 @@ namespace ctranslate2 {
     LayerNorm::LayerNorm(const models::Model& model, const std::string& scope)
       : _beta(model.get_variable_if_exists(scope + "/beta"))
       , _gamma(model.get_variable(scope + "/gamma")) {
+      auto epsilon_it = model.config.find("layer_norm_epsilon");
+      if (epsilon_it == model.config.end() || epsilon_it->is_null())
+        _epsilon = _beta ? 1e-5 : 1e-6;
+      else
+        _epsilon = epsilon_it->get<float>();
     }
 
     DataType LayerNorm::output_type() const {
@@ -373,10 +378,13 @@ namespace ctranslate2 {
     }
 
     void LayerNorm::operator()(const StorageView& input, StorageView& output) const {
-      if (_beta)
-        ops::LayerNorm()(*_beta, _gamma, input, output);
-      else
-        ops::RMSNorm()(_gamma, input, output);
+      if (_beta) {
+        const ops::LayerNorm norm_op(-1, _epsilon);
+        norm_op(*_beta, _gamma, input, output);
+      } else {
+        const ops::RMSNorm norm_op(_epsilon);
+        norm_op(_gamma, input, output);
+      }
     }
 
 

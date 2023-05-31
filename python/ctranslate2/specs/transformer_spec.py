@@ -245,6 +245,19 @@ class PositionEncoderSpec(model_spec.LayerSpec):
         self.encodings = model_spec.OPTIONAL
 
 
+class TransformerConfig(model_spec.SequenceToSequenceModelConfig):
+    """Configuration for Transformer models."""
+
+    def __init__(self, layer_norm_epsilon: Optional[float] = None, **kwargs):
+        """Initializes the configuration for Transformer models.
+
+        Args:
+          layer_norm_epsilon: The layer norm epsilon value.
+          **kwargs: Additional configuration.
+        """
+        super().__init__(layer_norm_epsilon=layer_norm_epsilon, **kwargs)
+
+
 class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
     """Describes a Transformer model.
 
@@ -356,11 +369,27 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
     def revision(self):
         return 7
 
+    def get_default_config(self):
+        return TransformerConfig()
+
     def get_source_vocabulary_size(self):
         return [spec.weight.shape[0] for spec in self.encoder.embeddings]
 
     def get_target_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]
+
+
+class TransformerDecoderModelConfig(model_spec.LanguageModelConfig):
+    """Configuration for Transformer decoder models."""
+
+    def __init__(self, layer_norm_epsilon: Optional[float] = None, **kwargs):
+        """Initializes the configuration for Transformer decoder models.
+
+        Args:
+          layer_norm_epsilon: The layer norm epsilon value.
+          **kwargs: Additional configuration.
+        """
+        super().__init__(layer_norm_epsilon=layer_norm_epsilon, **kwargs)
 
 
 class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
@@ -456,6 +485,9 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
     @property
     def revision(self):
         return 6
+
+    def get_default_config(self):
+        return TransformerDecoderModelConfig()
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]
