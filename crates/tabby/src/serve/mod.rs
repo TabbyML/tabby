@@ -66,7 +66,8 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
-        .fallback(fallback(args.experimental_admin_panel));
+        .fallback(fallback(args.experimental_admin_panel))
+        .layer(CorsLayer::permissive());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     println!("Listening at {}", address);
@@ -81,7 +82,6 @@ fn api_router(args: &ServeArgs) -> Router {
             routing::post(completions::completion)
                 .with_state(Arc::new(completions::CompletionState::new(args))),
         )
-        .layer(CorsLayer::permissive())
 }
 
 fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
