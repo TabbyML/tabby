@@ -36,25 +36,25 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
+We recommend creating following alias to .bashrc / .zshrc
 ```bash
-# Usage
-docker run -it --rm tabbyml/tabby --help
+# Save alias to bashrc / zshrc
+alias tabby="docker run -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 
-# Download model
-docker run -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby download --model TabbyML/J-350M
-
-# Serve the model on CPU
-docker run -p 8080:8080 -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby serve --model TabbyML/J-350M
-
-# Serve the model on GPU (requires NVIDIA Container Toolkit)
-docker run --gpus all -p 8080:8080 -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby serve --model TabbyML/J-350M
+# Alias for gpu(requires NVIDIA Container Toolkit)
+alias tabby-gpu="docker run --gpus all -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 ```
 
-You can then query the server using `/v1/completions` endpoint:
+Then you can use tabby as normal command
 ```bash
-curl -X POST http://localhost:8080/v1/completions -H 'Content-Type: application/json' --data '{
-    "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
-}'
+# Usage
+tabby --help
+
+# Download model
+tabby download --model TabbyML/J-350M
+
+# Serve the model.
+tabby download --model TabbyML/J-350M
 ```
 
 ## Getting Started: Client
