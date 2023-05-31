@@ -38,7 +38,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private async ping(tries: number = 0): Promise<boolean> {
     try {
       const response = await axios.get(this.serverUrl);
-      assert(response.status == 200);
       this.changeStatus("ready");
       return true;
     } catch (e) {
