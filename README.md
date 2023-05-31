@@ -36,25 +36,27 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-We recommend creating following alias to .bashrc / .zshrc
-```bash
-# Save alias to bashrc / zshrc
+We recommend adding the following aliases to your `.bashrc` or `.zshrc` file:
+
+```shell
+# Save aliases to bashrc / zshrc
 alias tabby="docker run -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 
-# Alias for gpu(requires NVIDIA Container Toolkit)
+# Alias for GPU (requires NVIDIA Container Toolkit)
 alias tabby-gpu="docker run --gpus all -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
 ```
 
-Then you can use tabby as normal command
-```bash
+After adding these aliases, you can use the `tabby` command as usual. Here are some examples of its usage:
+
+```shell
 # Usage
 tabby --help
 
 # Download model
 tabby download --model TabbyML/J-350M
 
-# Serve the model.
-tabby download --model TabbyML/J-350M
+# Serve the model
+tabby serve --model TabbyML/J-350M
 ```
 
 ## Getting Started: Client
