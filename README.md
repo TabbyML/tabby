@@ -36,22 +36,19 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ### Docker
 
-**NOTE**: Tabby requires [Pascal or newer](https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/) NVIDIA GPU.
-
-Before running Tabby, ensure the installation of the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html).
-We suggest using NVIDIA drivers that are compatible with CUDA version 11.8 or higher.
 ```bash
-# Create data dir and grant owner to 1000 (Tabby run as uid 1000 in container)
-mkdir -p tabby_data && chown -R 1000 tabby_data
+# Usage
+docker run -it --rm tabbyml/tabby --help
 
-# Serve the model.
-docker run --gpus all -it --rm \
-  -v "/$(pwd)/data:/data" \
-  -p 8080:8080 \
-  -e TABBY_ROOT=/data \
-  --name=tabby \
-  tabbyml/tabby serve \
-  --model=TabbyML/J-350M
+# Download model
+docker run -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby download --model TabbyML/J-350M
+
+
+# Serve the model on CPU
+docker run -p 8080:8080 -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby serve --model TabbyML/J-350M
+
+# Serve the model on GPU (requires NVIDIA Container Toolkit)
+docker run --gpus all -p 8080:8080 -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby serve --model TabbyML/J-350M
 ```
 
 You can then query the server using `/v1/completions` endpoint:
@@ -60,9 +57,6 @@ curl -X POST http://localhost:8080/v1/completions -H 'Content-Type: application/
     "prompt": "def binarySearch(arr, left, right, x):\n    mid = (left +"
 }'
 ```
-
-### Skypilot
-See [deployment/skypilot/README.md](./deployment/skypilot/README.md)
 
 ## Getting Started: Client
 We offer multiple methods to connect to Tabby Server, including using OpenAPI and editor extensions.
@@ -74,14 +68,3 @@ Tabby has opened a FastAPI server at [localhost:8080](https://localhost:8080), w
 
 * [VSCode Extension](./clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
 * [VIM Extension](./clients/vim)
-
-## Development
-
-Go to `development` directory.
-```bash
-make dev
-```
-or
-```bash
-make dev-triton # Turn on triton backend (for cuda env developers)
-```
