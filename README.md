@@ -43,7 +43,6 @@ docker run -it --rm tabbyml/tabby --help
 # Download model
 docker run -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby download --model TabbyML/J-350M
 
-
 # Serve the model on CPU
 docker run -p 8080:8080 -v "/$(pwd)/tabby:/data" -it --rm tabbyml/tabby serve --model TabbyML/J-350M
 
