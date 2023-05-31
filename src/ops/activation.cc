@@ -3,6 +3,7 @@
 #include "ctranslate2/ops/gelu.h"
 #include "ctranslate2/ops/relu.h"
 #include "ctranslate2/ops/swish.h"
+#include "ctranslate2/ops/tanh.h"
 
 namespace ctranslate2 {
   namespace ops {
@@ -28,6 +29,10 @@ namespace ctranslate2 {
       case ActivationType::Swish: {
         static const Swish swish;
         return swish;
+      }
+      case ActivationType::Tanh: {
+        static const Tanh tanh;
+        return tanh;
       }
       }
       throw std::invalid_argument("invalid activation type");

@@ -12,6 +12,7 @@ namespace ctranslate2 {
       Swish,
       GELU,
       GELUSigmoid,
+      Tanh,
     };
 
     const UnaryOp& get_activation_op(ActivationType type);

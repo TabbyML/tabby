@@ -370,7 +370,10 @@ namespace ctranslate2 {
     if (cpu::mayiuse_mkl())
       return vsTanh(size, x, y);
 #endif
-    CPU_ISA_DISPATCH((cpu::tanh<ISA>(x, y, size)));
+    cpu::parallel_for(0, size, /*grain_size=*/512,
+                      [x, y](dim_t begin, dim_t end) {
+                        CPU_ISA_DISPATCH((cpu::tanh<ISA>(x + begin, y + begin, end - begin)));
+                      });
   }
 
   template<>
