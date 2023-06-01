@@ -16,53 +16,79 @@ pub struct DownloadArgs {
     /// model id to fetch.
     #[clap(long)]
     model: String,
+
+    /// If true, skip checking for remote model file.
+    #[clap(long, default_value_t=true)] 
+    prefer_local: bool
 }
 
 error_chain! {
-     foreign_links {
-         Io(std::io::Error);
-         HttpRequest(reqwest::Error);
-         TemplateError(indicatif::style::TemplateError);
-     }
+    links {
+        Another(metadata::Error, metadata::ErrorKind);
+    }
+
+    foreign_links {
+        Io(std::io::Error);
+        HttpRequest(reqwest::Error);
+        TemplateError(indicatif::style::TemplateError);
+    }
 }
 
 pub async fn main(args: &DownloadArgs) -> Result<()> {
-    download_model(&args.model).await.unwrap();
+    download_model(&args.model, args.prefer_local).await.unwrap();
     Ok(())
 }
 
-async fn download_model(model_id: &str) -> Result<()> {
-    download_metadata(model_id).await?;
-    download_model_file(model_id, "tokenizer.json").await?;
-    download_model_file(model_id, &format!("ctranslate2/config.json")).await?;
-    download_model_file(model_id, &format!("ctranslate2/vocabulary.txt")).await?;
-    download_model_file(model_id, &format!("ctranslate2/shared_vocabulary.txt")).await?;
-    download_model_file(model_id, &format!("ctranslate2/model.bin")).await?;
+impl metadata::Metadata {
+    async fn download(&mut self, model_id: &str, path: &str, prefer_local: bool) -> Result<()> {
+        // Create url.
+        let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
+
+        // Create destination path.
+        let filepath = ModelDir::new(model_id).path_string(path);
+
+        // Cache hit.
+        let mut cache_hit = false;
+        if fs::metadata(&filepath).is_ok() && self.has_etag(&url) {
+            if prefer_local || self.match_etag(&url, path).await? {
+                cache_hit = true
+            }
+        }
+
+        if !cache_hit {
+            let etag = download_file(&url, &filepath).await?;
+            self.update_etag(&url, &etag).await
+        }
+
+        Ok(())
+    }
+}
+
+async fn download_model(model_id: &str, prefer_local: bool) -> Result<()> {
+    let mut metadata = metadata::Metadata::from(model_id).await?;
+
+    metadata.download(model_id, "tokenizer.json", prefer_local).await?;
+    metadata.download(model_id, "ctranslate2/config.json", prefer_local).await?;
+    metadata.download(model_id, "ctranslate2/vocabulary.txt", prefer_local).await?;
+    metadata.download(model_id, "ctranslate2/shared_vocabulary.txt", prefer_local).await?;
+    metadata.download(model_id, "ctranslate2/model.bin", prefer_local).await?;
+    metadata.save(model_id)?;
     Ok(())
 }
 
-async fn download_metadata(model_id: &str) -> Result<()> {
-    let url = format!("https://huggingface.co/api/models/{}", model_id);
-    let filepath = ModelDir::new(model_id).metadata_file();
-    download_file(&url, &filepath).await
-}
-
-async fn download_model_file(model_id: &str, fname: &str) -> Result<()> {
-    // Create url.
-    let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, fname);
-
-    // Create destination path.
-    let filepath = ModelDir::new(model_id).path_string(fname);
-    download_file(&url, &filepath).await
-}
-
-async fn download_file(url: &str, path: &str) -> Result<()> {
+async fn download_file(url: &str, path: &str) -> Result<String> {
     fs::create_dir_all(Path::new(path).parent().unwrap())?;
 
     // Reqwest setup
     let res = reqwest::get(url)
         .await
         .or(Err(format!("Failed to GET from '{}'", url)))?;
+
+    let etag = res.headers().get("etag")
+        .ok_or(ErrorKind::Msg(format!("Failed to get etag from '{}", url)))?
+        .to_str()
+        .map_err(|_| -> Error { ErrorKind::Msg(format!("Failed to convert etag to string")).into() } )?
+        .to_string();
 
     let total_size = res
         .content_length()
@@ -90,5 +116,5 @@ async fn download_file(url: &str, path: &str) -> Result<()> {
     }
 
     pb.finish_with_message(format!("Downloaded {}", path));
-    return Ok(());
+    return Ok(etag);
 }

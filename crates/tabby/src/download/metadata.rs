@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 use error_chain::error_chain;
 use std::collections::HashMap;
 use std::fs;
+use std::path::Path;
 use tabby_common::path::ModelDir;
 
 error_chain! {
@@ -47,33 +48,41 @@ impl HFMetadata {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Metadata {
+pub struct Metadata {
     auto_model: String,
     etags: HashMap<String, String>
 }
 
 impl Metadata {
-    pub async fn new(model_id: &str) -> Result<Metadata> {
-        let hf_metadata = HFMetadata::from(model_id).await?;
-        let metadata = Metadata {
-            auto_model: hf_metadata.transformers_info.auto_model,
-            etags: HashMap::new()
-        };
-        Ok(metadata)
-    }
-
     pub async fn from(model_id: &str) -> Result<Metadata> {
-        let metadata_file = ModelDir::new(model_id).metadata_file();
-        if !fs::metadata(&metadata_file).is_ok() {
-            Err(ErrorKind::PathNotExist(metadata_file).into())
+        if let Some(metadata) = Self::from_local(model_id) {
+            Ok(metadata)
         } else {
-            let metadata : Metadata = serdeconv::from_json_file(metadata_file)?;
+            let hf_metadata = HFMetadata::from(model_id).await?;
+            let metadata = Metadata {
+                auto_model: hf_metadata.transformers_info.auto_model,
+                etags: HashMap::new()
+            };
             Ok(metadata)
         }
     }
 
-    pub async fn etag_matches(&self, url: &str, path: &str) -> Result<bool> {
-        let etag = self.etags.get(path).ok_or(ErrorKind::PathNotExist(path.to_owned()))?;
+    fn from_local(model_id: &str) -> Option<Metadata> {
+        let metadata_file = ModelDir::new(model_id).metadata_file();
+        if fs::metadata(&metadata_file).is_ok() {
+            let metadata = serdeconv::from_json_file(metadata_file);
+            metadata.ok()
+        } else {
+            None
+        }
+    }
+
+    pub fn has_etag(&self, url: &str) -> bool {
+        self.etags.get(url).is_some()
+    }
+
+    pub async fn match_etag(&self, url: &str, path: &str) -> Result<bool> {
+        let etag = self.etags.get(url).ok_or(ErrorKind::PathNotExist(path.to_owned()))?;
         let etag_from_header = reqwest::get(url)
             .await?
             .headers()
@@ -82,6 +91,17 @@ impl Metadata {
             .to_owned();
 
         Ok(etag == &etag_from_header)
+    }
+
+    pub async fn update_etag(&mut self, url: &str, path: &str) {
+        self.etags.insert(url.to_owned(), path.to_owned());
+    }
+
+    pub fn save(&self, model_id: &str) -> Result<()> {
+        let metadata_file = ModelDir::new(model_id).metadata_file();
+        let metadata_file_path = Path::new(&metadata_file);
+        serdeconv::to_json_file(self, metadata_file_path)?;
+        Ok(())
     }
 }
 
