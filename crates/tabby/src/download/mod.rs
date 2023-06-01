@@ -42,10 +42,8 @@ impl metadata::Metadata {
 
         // Cache hit.
         let mut cache_hit = false;
-        if fs::metadata(&filepath).is_ok() && self.has_etag(&url) {
-            if prefer_local_file || self.match_etag(&url, path).await? {
-                cache_hit = true
-            }
+        if fs::metadata(&filepath).is_ok() && self.has_etag(&url) && (prefer_local_file || self.match_etag(&url, path).await?) {
+            cache_hit = true
         }
 
         if !cache_hit {
@@ -110,7 +108,7 @@ async fn download_file(url: &str, path: &str) -> Result<String> {
     pb.set_message(format!("Downloading {}", path));
 
     // download chunks
-    let mut file = fs::File::create(&path).or(Err(anyhow!("Failed to create file '{}'", &path)))?;
+    let mut file = fs::File::create(path).or(Err(anyhow!("Failed to create file '{}'", &path)))?;
     let mut downloaded: u64 = 0;
     let mut stream = res.bytes_stream();
 
@@ -124,5 +122,5 @@ async fn download_file(url: &str, path: &str) -> Result<String> {
     }
 
     pb.finish_with_message(format!("Downloaded {}", path));
-    return Ok(etag);
+    Ok(etag)
 }
