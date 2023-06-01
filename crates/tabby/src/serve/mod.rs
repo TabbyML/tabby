@@ -3,7 +3,6 @@ mod completions;
 mod events;
 
 use crate::Cli;
-use anyhow::Result;
 use axum::{routing, Router, Server};
 use clap::{error::ErrorKind, Args, CommandFactory};
 use std::{
@@ -61,11 +60,11 @@ pub struct ServeArgs {
     experimental_admin_panel: bool,
 }
 
-pub async fn main(args: &ServeArgs) -> Result<()> {
-    valid_args(args)?;
+pub async fn main(args: &ServeArgs) {
+    valid_args(args);
 
     // Ensure model exists.
-    crate::download::download_model(&args.model, true).await?;
+    crate::download::download_model(&args.model, true).await;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -77,8 +76,8 @@ pub async fn main(args: &ServeArgs) -> Result<()> {
     println!("Listening at {}", address);
     Server::bind(&address)
         .serve(app.into_make_service())
-        .await?;
-    Ok(())
+        .await
+        .expect("Error happends during model serving")
 }
 
 fn api_router(args: &ServeArgs) -> Router {
@@ -99,7 +98,7 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
     }
 }
 
-fn valid_args(args: &ServeArgs) -> Result<()> {
+fn valid_args(args: &ServeArgs) {
     if args.device == Device::CUDA && args.num_replicas_per_device != 1 {
         Cli::command()
             .error(
@@ -118,6 +117,4 @@ fn valid_args(args: &ServeArgs) -> Result<()> {
             )
             .exit();
     }
-
-    Ok(())
 }

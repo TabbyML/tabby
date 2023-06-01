@@ -17,10 +17,14 @@ struct HFMetadata {
 }
 
 impl HFMetadata {
-    async fn from(model_id: &str) -> Result<HFMetadata> {
+    async fn from(model_id: &str) -> HFMetadata {
         let api_url = format!("https://huggingface.co/api/models/{}", model_id);
-        let metadata = reqwest::get(api_url).await?.json::<HFMetadata>().await?;
-        Ok(metadata)
+        reqwest::get(&api_url)
+            .await
+            .unwrap_or_else(|_| panic!("Failed to GET url '{}'", api_url))
+            .json::<HFMetadata>()
+            .await
+            .unwrap_or_else(|_| panic!("Failed to parse HFMetadata '{}'", api_url))
     }
 }
 
@@ -31,16 +35,15 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub async fn from(model_id: &str) -> Result<Metadata> {
+    pub async fn from(model_id: &str) -> Metadata {
         if let Some(metadata) = Self::from_local(model_id) {
-            Ok(metadata)
+            metadata
         } else {
-            let hf_metadata = HFMetadata::from(model_id).await?;
-            let metadata = Metadata {
+            let hf_metadata = HFMetadata::from(model_id).await;
+            Metadata {
                 auto_model: hf_metadata.transformers_info.auto_model,
                 etags: HashMap::new(),
-            };
-            Ok(metadata)
+            }
         }
     }
 
