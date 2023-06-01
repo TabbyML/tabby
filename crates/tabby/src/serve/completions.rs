@@ -86,7 +86,7 @@ impl CompletionState {
             .model_path(model_dir.ctranslate2_dir())
             .tokenizer_path(model_dir.tokenizer_file())
             .device(device)
-            .model_type(metadata.transformers_info.auto_model)
+            .model_type(metadata.auto_model)
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .build()
@@ -105,13 +105,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct Metadata {
-    transformers_info: TransformersInfo,
-}
-
-#[derive(Deserialize)]
-struct TransformersInfo {
     auto_model: String,
 }
 
