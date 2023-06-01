@@ -6,12 +6,12 @@ var Tabby = (() => {
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
-  var __require = /* @__PURE__ */ ((x3) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x3, {
-    get: (a4, b3) => (typeof require !== "undefined" ? require : a4)[b3]
-  }) : x3)(function(x3) {
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a2, b) => (typeof require !== "undefined" ? require : a2)[b]
+  }) : x)(function(x) {
     if (typeof require !== "undefined")
       return require.apply(this, arguments);
-    throw new Error('Dynamic require of "' + x3 + '" is not supported');
+    throw new Error('Dynamic require of "' + x + '" is not supported');
   });
   var __esm = (fn, res) => function __init() {
     return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
@@ -207,8 +207,8 @@ var Tabby = (() => {
   function nextTick(fun) {
     var args = new Array(arguments.length - 1);
     if (arguments.length > 1) {
-      for (var i4 = 1; i4 < arguments.length; i4++)
-        args[i4 - 1] = arguments[i4];
+      for (var i2 = 1; i2 < arguments.length; i2++)
+        args[i2 - 1] = arguments[i2];
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining)
@@ -479,9 +479,9 @@ var Tabby = (() => {
     var revLookup = [];
     var Arr = typeof Uint8Array !== "undefined" ? Uint8Array : Array;
     var code = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    for (var i4 = 0, len = code.length; i4 < len; ++i4) {
-      lookup[i4] = code[i4];
-      revLookup[code.charCodeAt(i4)] = i4;
+    for (var i2 = 0, len = code.length; i2 < len; ++i2) {
+      lookup[i2] = code[i2];
+      revLookup[code.charCodeAt(i2)] = i2;
     }
     revLookup["-".charCodeAt(0)] = 62;
     revLookup["_".charCodeAt(0)] = 63;
@@ -513,19 +513,19 @@ var Tabby = (() => {
       var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen));
       var curByte = 0;
       var len2 = placeHoldersLen > 0 ? validLen - 4 : validLen;
-      var i5;
-      for (i5 = 0; i5 < len2; i5 += 4) {
-        tmp = revLookup[b64.charCodeAt(i5)] << 18 | revLookup[b64.charCodeAt(i5 + 1)] << 12 | revLookup[b64.charCodeAt(i5 + 2)] << 6 | revLookup[b64.charCodeAt(i5 + 3)];
+      var i3;
+      for (i3 = 0; i3 < len2; i3 += 4) {
+        tmp = revLookup[b64.charCodeAt(i3)] << 18 | revLookup[b64.charCodeAt(i3 + 1)] << 12 | revLookup[b64.charCodeAt(i3 + 2)] << 6 | revLookup[b64.charCodeAt(i3 + 3)];
         arr[curByte++] = tmp >> 16 & 255;
         arr[curByte++] = tmp >> 8 & 255;
         arr[curByte++] = tmp & 255;
       }
       if (placeHoldersLen === 2) {
-        tmp = revLookup[b64.charCodeAt(i5)] << 2 | revLookup[b64.charCodeAt(i5 + 1)] >> 4;
+        tmp = revLookup[b64.charCodeAt(i3)] << 2 | revLookup[b64.charCodeAt(i3 + 1)] >> 4;
         arr[curByte++] = tmp & 255;
       }
       if (placeHoldersLen === 1) {
-        tmp = revLookup[b64.charCodeAt(i5)] << 10 | revLookup[b64.charCodeAt(i5 + 1)] << 4 | revLookup[b64.charCodeAt(i5 + 2)] >> 2;
+        tmp = revLookup[b64.charCodeAt(i3)] << 10 | revLookup[b64.charCodeAt(i3 + 1)] << 4 | revLookup[b64.charCodeAt(i3 + 2)] >> 2;
         arr[curByte++] = tmp >> 8 & 255;
         arr[curByte++] = tmp & 255;
       }
@@ -537,8 +537,8 @@ var Tabby = (() => {
     function encodeChunk(uint8, start, end) {
       var tmp;
       var output = [];
-      for (var i5 = start; i5 < end; i5 += 3) {
-        tmp = (uint8[i5] << 16 & 16711680) + (uint8[i5 + 1] << 8 & 65280) + (uint8[i5 + 2] & 255);
+      for (var i3 = start; i3 < end; i3 += 3) {
+        tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
         output.push(tripletToBase64(tmp));
       }
       return output.join("");
@@ -549,8 +549,8 @@ var Tabby = (() => {
       var extraBytes = len2 % 3;
       var parts = [];
       var maxChunkLength = 16383;
-      for (var i5 = 0, len22 = len2 - extraBytes; i5 < len22; i5 += maxChunkLength) {
-        parts.push(encodeChunk(uint8, i5, i5 + maxChunkLength > len22 ? len22 : i5 + maxChunkLength));
+      for (var i3 = 0, len22 = len2 - extraBytes; i3 < len22; i3 += maxChunkLength) {
+        parts.push(encodeChunk(uint8, i3, i3 + maxChunkLength > len22 ? len22 : i3 + maxChunkLength));
       }
       if (extraBytes === 1) {
         tmp = uint8[len2 - 1];
@@ -568,81 +568,81 @@ var Tabby = (() => {
       return exports$2;
     _dewExec$1 = true;
     exports$2.read = function(buffer, offset, isLE, mLen, nBytes) {
-      var e5, m4;
+      var e2, m;
       var eLen = nBytes * 8 - mLen - 1;
       var eMax = (1 << eLen) - 1;
       var eBias = eMax >> 1;
       var nBits = -7;
-      var i4 = isLE ? nBytes - 1 : 0;
-      var d4 = isLE ? -1 : 1;
-      var s4 = buffer[offset + i4];
-      i4 += d4;
-      e5 = s4 & (1 << -nBits) - 1;
-      s4 >>= -nBits;
+      var i2 = isLE ? nBytes - 1 : 0;
+      var d = isLE ? -1 : 1;
+      var s2 = buffer[offset + i2];
+      i2 += d;
+      e2 = s2 & (1 << -nBits) - 1;
+      s2 >>= -nBits;
       nBits += eLen;
-      for (; nBits > 0; e5 = e5 * 256 + buffer[offset + i4], i4 += d4, nBits -= 8) {
+      for (; nBits > 0; e2 = e2 * 256 + buffer[offset + i2], i2 += d, nBits -= 8) {
       }
-      m4 = e5 & (1 << -nBits) - 1;
-      e5 >>= -nBits;
+      m = e2 & (1 << -nBits) - 1;
+      e2 >>= -nBits;
       nBits += mLen;
-      for (; nBits > 0; m4 = m4 * 256 + buffer[offset + i4], i4 += d4, nBits -= 8) {
+      for (; nBits > 0; m = m * 256 + buffer[offset + i2], i2 += d, nBits -= 8) {
       }
-      if (e5 === 0) {
-        e5 = 1 - eBias;
-      } else if (e5 === eMax) {
-        return m4 ? NaN : (s4 ? -1 : 1) * Infinity;
+      if (e2 === 0) {
+        e2 = 1 - eBias;
+      } else if (e2 === eMax) {
+        return m ? NaN : (s2 ? -1 : 1) * Infinity;
       } else {
-        m4 = m4 + Math.pow(2, mLen);
-        e5 = e5 - eBias;
+        m = m + Math.pow(2, mLen);
+        e2 = e2 - eBias;
       }
-      return (s4 ? -1 : 1) * m4 * Math.pow(2, e5 - mLen);
+      return (s2 ? -1 : 1) * m * Math.pow(2, e2 - mLen);
     };
     exports$2.write = function(buffer, value, offset, isLE, mLen, nBytes) {
-      var e5, m4, c4;
+      var e2, m, c2;
       var eLen = nBytes * 8 - mLen - 1;
       var eMax = (1 << eLen) - 1;
       var eBias = eMax >> 1;
       var rt = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0;
-      var i4 = isLE ? 0 : nBytes - 1;
-      var d4 = isLE ? 1 : -1;
-      var s4 = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
+      var i2 = isLE ? 0 : nBytes - 1;
+      var d = isLE ? 1 : -1;
+      var s2 = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
       value = Math.abs(value);
       if (isNaN(value) || value === Infinity) {
-        m4 = isNaN(value) ? 1 : 0;
-        e5 = eMax;
+        m = isNaN(value) ? 1 : 0;
+        e2 = eMax;
       } else {
-        e5 = Math.floor(Math.log(value) / Math.LN2);
-        if (value * (c4 = Math.pow(2, -e5)) < 1) {
-          e5--;
-          c4 *= 2;
+        e2 = Math.floor(Math.log(value) / Math.LN2);
+        if (value * (c2 = Math.pow(2, -e2)) < 1) {
+          e2--;
+          c2 *= 2;
         }
-        if (e5 + eBias >= 1) {
-          value += rt / c4;
+        if (e2 + eBias >= 1) {
+          value += rt / c2;
         } else {
           value += rt * Math.pow(2, 1 - eBias);
         }
-        if (value * c4 >= 2) {
-          e5++;
-          c4 /= 2;
+        if (value * c2 >= 2) {
+          e2++;
+          c2 /= 2;
         }
-        if (e5 + eBias >= eMax) {
-          m4 = 0;
-          e5 = eMax;
-        } else if (e5 + eBias >= 1) {
-          m4 = (value * c4 - 1) * Math.pow(2, mLen);
-          e5 = e5 + eBias;
+        if (e2 + eBias >= eMax) {
+          m = 0;
+          e2 = eMax;
+        } else if (e2 + eBias >= 1) {
+          m = (value * c2 - 1) * Math.pow(2, mLen);
+          e2 = e2 + eBias;
         } else {
-          m4 = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
-          e5 = 0;
+          m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+          e2 = 0;
         }
       }
-      for (; mLen >= 8; buffer[offset + i4] = m4 & 255, i4 += d4, m4 /= 256, mLen -= 8) {
+      for (; mLen >= 8; buffer[offset + i2] = m & 255, i2 += d, m /= 256, mLen -= 8) {
       }
-      e5 = e5 << mLen | m4;
+      e2 = e2 << mLen | m;
       eLen += mLen;
-      for (; eLen > 0; buffer[offset + i4] = e5 & 255, i4 += d4, e5 /= 256, eLen -= 8) {
+      for (; eLen > 0; buffer[offset + i2] = e2 & 255, i2 += d, e2 /= 256, eLen -= 8) {
       }
-      buffer[offset + i4 - d4] |= s4 * 128;
+      buffer[offset + i2 - d] |= s2 * 128;
     };
     return exports$2;
   }
@@ -673,7 +673,7 @@ var Tabby = (() => {
         Object.setPrototypeOf(proto, Uint8Array.prototype);
         Object.setPrototypeOf(arr, proto);
         return arr.foo() === 42;
-      } catch (e5) {
+      } catch (e2) {
         return false;
       }
     }
@@ -734,9 +734,9 @@ var Tabby = (() => {
       if (valueOf != null && valueOf !== value) {
         return Buffer3.from(valueOf, encodingOrOffset, length);
       }
-      const b3 = fromObject(value);
-      if (b3)
-        return b3;
+      const b = fromObject(value);
+      if (b)
+        return b;
       if (typeof Symbol !== "undefined" && Symbol.toPrimitive != null && typeof value[Symbol.toPrimitive] === "function") {
         return Buffer3.from(value[Symbol.toPrimitive]("string"), encodingOrOffset, length);
       }
@@ -795,8 +795,8 @@ var Tabby = (() => {
     function fromArrayLike(array) {
       const length = array.length < 0 ? 0 : checked(array.length) | 0;
       const buf = createBuffer(length);
-      for (let i4 = 0; i4 < length; i4 += 1) {
-        buf[i4] = array[i4] & 255;
+      for (let i2 = 0; i2 < length; i2 += 1) {
+        buf[i2] = array[i2] & 255;
       }
       return buf;
     }
@@ -857,31 +857,31 @@ var Tabby = (() => {
       }
       return Buffer3.alloc(+length);
     }
-    Buffer3.isBuffer = function isBuffer2(b3) {
-      return b3 != null && b3._isBuffer === true && b3 !== Buffer3.prototype;
+    Buffer3.isBuffer = function isBuffer2(b) {
+      return b != null && b._isBuffer === true && b !== Buffer3.prototype;
     };
-    Buffer3.compare = function compare(a4, b3) {
-      if (isInstance(a4, Uint8Array))
-        a4 = Buffer3.from(a4, a4.offset, a4.byteLength);
-      if (isInstance(b3, Uint8Array))
-        b3 = Buffer3.from(b3, b3.offset, b3.byteLength);
-      if (!Buffer3.isBuffer(a4) || !Buffer3.isBuffer(b3)) {
+    Buffer3.compare = function compare(a2, b) {
+      if (isInstance(a2, Uint8Array))
+        a2 = Buffer3.from(a2, a2.offset, a2.byteLength);
+      if (isInstance(b, Uint8Array))
+        b = Buffer3.from(b, b.offset, b.byteLength);
+      if (!Buffer3.isBuffer(a2) || !Buffer3.isBuffer(b)) {
         throw new TypeError('The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array');
       }
-      if (a4 === b3)
+      if (a2 === b)
         return 0;
-      let x3 = a4.length;
-      let y4 = b3.length;
-      for (let i4 = 0, len = Math.min(x3, y4); i4 < len; ++i4) {
-        if (a4[i4] !== b3[i4]) {
-          x3 = a4[i4];
-          y4 = b3[i4];
+      let x = a2.length;
+      let y2 = b.length;
+      for (let i2 = 0, len = Math.min(x, y2); i2 < len; ++i2) {
+        if (a2[i2] !== b[i2]) {
+          x = a2[i2];
+          y2 = b[i2];
           break;
         }
       }
-      if (x3 < y4)
+      if (x < y2)
         return -1;
-      if (y4 < x3)
+      if (y2 < x)
         return 1;
       return 0;
     };
@@ -910,17 +910,17 @@ var Tabby = (() => {
       if (list.length === 0) {
         return Buffer3.alloc(0);
       }
-      let i4;
+      let i2;
       if (length === void 0) {
         length = 0;
-        for (i4 = 0; i4 < list.length; ++i4) {
-          length += list[i4].length;
+        for (i2 = 0; i2 < list.length; ++i2) {
+          length += list[i2].length;
         }
       }
       const buffer = Buffer3.allocUnsafe(length);
       let pos = 0;
-      for (i4 = 0; i4 < list.length; ++i4) {
-        let buf = list[i4];
+      for (i2 = 0; i2 < list.length; ++i2) {
+        let buf = list[i2];
         if (isInstance(buf, Uint8Array)) {
           if (pos + buf.length > buffer.length) {
             if (!Buffer3.isBuffer(buf))
@@ -1030,18 +1030,18 @@ var Tabby = (() => {
       }
     }
     Buffer3.prototype._isBuffer = true;
-    function swap(b3, n4, m4) {
-      const i4 = b3[n4];
-      b3[n4] = b3[m4];
-      b3[m4] = i4;
+    function swap(b, n2, m) {
+      const i2 = b[n2];
+      b[n2] = b[m];
+      b[m] = i2;
     }
     Buffer3.prototype.swap16 = function swap16() {
       const len = this.length;
       if (len % 2 !== 0) {
         throw new RangeError("Buffer size must be a multiple of 16-bits");
       }
-      for (let i4 = 0; i4 < len; i4 += 2) {
-        swap(this, i4, i4 + 1);
+      for (let i2 = 0; i2 < len; i2 += 2) {
+        swap(this, i2, i2 + 1);
       }
       return this;
     };
@@ -1050,9 +1050,9 @@ var Tabby = (() => {
       if (len % 4 !== 0) {
         throw new RangeError("Buffer size must be a multiple of 32-bits");
       }
-      for (let i4 = 0; i4 < len; i4 += 4) {
-        swap(this, i4, i4 + 3);
-        swap(this, i4 + 1, i4 + 2);
+      for (let i2 = 0; i2 < len; i2 += 4) {
+        swap(this, i2, i2 + 3);
+        swap(this, i2 + 1, i2 + 2);
       }
       return this;
     };
@@ -1061,11 +1061,11 @@ var Tabby = (() => {
       if (len % 8 !== 0) {
         throw new RangeError("Buffer size must be a multiple of 64-bits");
       }
-      for (let i4 = 0; i4 < len; i4 += 8) {
-        swap(this, i4, i4 + 7);
-        swap(this, i4 + 1, i4 + 6);
-        swap(this, i4 + 2, i4 + 5);
-        swap(this, i4 + 3, i4 + 4);
+      for (let i2 = 0; i2 < len; i2 += 8) {
+        swap(this, i2, i2 + 7);
+        swap(this, i2 + 1, i2 + 6);
+        swap(this, i2 + 2, i2 + 5);
+        swap(this, i2 + 3, i2 + 4);
       }
       return this;
     };
@@ -1078,12 +1078,12 @@ var Tabby = (() => {
       return slowToString.apply(this, arguments);
     };
     Buffer3.prototype.toLocaleString = Buffer3.prototype.toString;
-    Buffer3.prototype.equals = function equals(b3) {
-      if (!Buffer3.isBuffer(b3))
+    Buffer3.prototype.equals = function equals(b) {
+      if (!Buffer3.isBuffer(b))
         throw new TypeError("Argument must be a Buffer");
-      if (this === b3)
+      if (this === b)
         return true;
-      return Buffer3.compare(this, b3) === 0;
+      return Buffer3.compare(this, b) === 0;
     };
     Buffer3.prototype.inspect = function inspect() {
       let str = "";
@@ -1133,21 +1133,21 @@ var Tabby = (() => {
       thisEnd >>>= 0;
       if (this === target)
         return 0;
-      let x3 = thisEnd - thisStart;
-      let y4 = end - start;
-      const len = Math.min(x3, y4);
+      let x = thisEnd - thisStart;
+      let y2 = end - start;
+      const len = Math.min(x, y2);
       const thisCopy = this.slice(thisStart, thisEnd);
       const targetCopy = target.slice(start, end);
-      for (let i4 = 0; i4 < len; ++i4) {
-        if (thisCopy[i4] !== targetCopy[i4]) {
-          x3 = thisCopy[i4];
-          y4 = targetCopy[i4];
+      for (let i2 = 0; i2 < len; ++i2) {
+        if (thisCopy[i2] !== targetCopy[i2]) {
+          x = thisCopy[i2];
+          y2 = targetCopy[i2];
           break;
         }
       }
-      if (x3 < y4)
+      if (x < y2)
         return -1;
-      if (y4 < x3)
+      if (y2 < x)
         return 1;
       return 0;
     };
@@ -1216,41 +1216,41 @@ var Tabby = (() => {
           byteOffset /= 2;
         }
       }
-      function read(buf, i5) {
+      function read(buf, i3) {
         if (indexSize === 1) {
-          return buf[i5];
+          return buf[i3];
         } else {
-          return buf.readUInt16BE(i5 * indexSize);
+          return buf.readUInt16BE(i3 * indexSize);
         }
       }
-      let i4;
+      let i2;
       if (dir) {
         let foundIndex = -1;
-        for (i4 = byteOffset; i4 < arrLength; i4++) {
-          if (read(arr, i4) === read(val, foundIndex === -1 ? 0 : i4 - foundIndex)) {
+        for (i2 = byteOffset; i2 < arrLength; i2++) {
+          if (read(arr, i2) === read(val, foundIndex === -1 ? 0 : i2 - foundIndex)) {
             if (foundIndex === -1)
-              foundIndex = i4;
-            if (i4 - foundIndex + 1 === valLength)
+              foundIndex = i2;
+            if (i2 - foundIndex + 1 === valLength)
               return foundIndex * indexSize;
           } else {
             if (foundIndex !== -1)
-              i4 -= i4 - foundIndex;
+              i2 -= i2 - foundIndex;
             foundIndex = -1;
           }
         }
       } else {
         if (byteOffset + valLength > arrLength)
           byteOffset = arrLength - valLength;
-        for (i4 = byteOffset; i4 >= 0; i4--) {
+        for (i2 = byteOffset; i2 >= 0; i2--) {
           let found = true;
-          for (let j3 = 0; j3 < valLength; j3++) {
-            if (read(arr, i4 + j3) !== read(val, j3)) {
+          for (let j = 0; j < valLength; j++) {
+            if (read(arr, i2 + j) !== read(val, j)) {
               found = false;
               break;
             }
           }
           if (found)
-            return i4;
+            return i2;
         }
       }
       return -1;
@@ -1279,14 +1279,14 @@ var Tabby = (() => {
       if (length > strLen / 2) {
         length = strLen / 2;
       }
-      let i4;
-      for (i4 = 0; i4 < length; ++i4) {
-        const parsed = parseInt(string.substr(i4 * 2, 2), 16);
+      let i2;
+      for (i2 = 0; i2 < length; ++i2) {
+        const parsed = parseInt(string.substr(i2 * 2, 2), 16);
         if (numberIsNaN(parsed))
-          return i4;
-        buf[offset + i4] = parsed;
+          return i2;
+        buf[offset + i2] = parsed;
       }
-      return i4;
+      return i2;
     }
     function utf8Write(buf, string, offset, length) {
       return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length);
@@ -1373,12 +1373,12 @@ var Tabby = (() => {
     function utf8Slice(buf, start, end) {
       end = Math.min(buf.length, end);
       const res = [];
-      let i4 = start;
-      while (i4 < end) {
-        const firstByte = buf[i4];
+      let i2 = start;
+      while (i2 < end) {
+        const firstByte = buf[i2];
         let codePoint = null;
         let bytesPerSequence = firstByte > 239 ? 4 : firstByte > 223 ? 3 : firstByte > 191 ? 2 : 1;
-        if (i4 + bytesPerSequence <= end) {
+        if (i2 + bytesPerSequence <= end) {
           let secondByte, thirdByte, fourthByte, tempCodePoint;
           switch (bytesPerSequence) {
             case 1:
@@ -1387,7 +1387,7 @@ var Tabby = (() => {
               }
               break;
             case 2:
-              secondByte = buf[i4 + 1];
+              secondByte = buf[i2 + 1];
               if ((secondByte & 192) === 128) {
                 tempCodePoint = (firstByte & 31) << 6 | secondByte & 63;
                 if (tempCodePoint > 127) {
@@ -1396,8 +1396,8 @@ var Tabby = (() => {
               }
               break;
             case 3:
-              secondByte = buf[i4 + 1];
-              thirdByte = buf[i4 + 2];
+              secondByte = buf[i2 + 1];
+              thirdByte = buf[i2 + 2];
               if ((secondByte & 192) === 128 && (thirdByte & 192) === 128) {
                 tempCodePoint = (firstByte & 15) << 12 | (secondByte & 63) << 6 | thirdByte & 63;
                 if (tempCodePoint > 2047 && (tempCodePoint < 55296 || tempCodePoint > 57343)) {
@@ -1406,9 +1406,9 @@ var Tabby = (() => {
               }
               break;
             case 4:
-              secondByte = buf[i4 + 1];
-              thirdByte = buf[i4 + 2];
-              fourthByte = buf[i4 + 3];
+              secondByte = buf[i2 + 1];
+              thirdByte = buf[i2 + 2];
+              fourthByte = buf[i2 + 3];
               if ((secondByte & 192) === 128 && (thirdByte & 192) === 128 && (fourthByte & 192) === 128) {
                 tempCodePoint = (firstByte & 15) << 18 | (secondByte & 63) << 12 | (thirdByte & 63) << 6 | fourthByte & 63;
                 if (tempCodePoint > 65535 && tempCodePoint < 1114112) {
@@ -1426,7 +1426,7 @@ var Tabby = (() => {
           codePoint = 56320 | codePoint & 1023;
         }
         res.push(codePoint);
-        i4 += bytesPerSequence;
+        i2 += bytesPerSequence;
       }
       return decodeCodePointsArray(res);
     }
@@ -1437,25 +1437,25 @@ var Tabby = (() => {
         return String.fromCharCode.apply(String, codePoints);
       }
       let res = "";
-      let i4 = 0;
-      while (i4 < len) {
-        res += String.fromCharCode.apply(String, codePoints.slice(i4, i4 += MAX_ARGUMENTS_LENGTH));
+      let i2 = 0;
+      while (i2 < len) {
+        res += String.fromCharCode.apply(String, codePoints.slice(i2, i2 += MAX_ARGUMENTS_LENGTH));
       }
       return res;
     }
     function asciiSlice(buf, start, end) {
       let ret = "";
       end = Math.min(buf.length, end);
-      for (let i4 = start; i4 < end; ++i4) {
-        ret += String.fromCharCode(buf[i4] & 127);
+      for (let i2 = start; i2 < end; ++i2) {
+        ret += String.fromCharCode(buf[i2] & 127);
       }
       return ret;
     }
     function latin1Slice(buf, start, end) {
       let ret = "";
       end = Math.min(buf.length, end);
-      for (let i4 = start; i4 < end; ++i4) {
-        ret += String.fromCharCode(buf[i4]);
+      for (let i2 = start; i2 < end; ++i2) {
+        ret += String.fromCharCode(buf[i2]);
       }
       return ret;
     }
@@ -1466,16 +1466,16 @@ var Tabby = (() => {
       if (!end || end < 0 || end > len)
         end = len;
       let out = "";
-      for (let i4 = start; i4 < end; ++i4) {
-        out += hexSliceLookupTable[buf[i4]];
+      for (let i2 = start; i2 < end; ++i2) {
+        out += hexSliceLookupTable[buf[i2]];
       }
       return out;
     }
     function utf16leSlice(buf, start, end) {
       const bytes = buf.slice(start, end);
       let res = "";
-      for (let i4 = 0; i4 < bytes.length - 1; i4 += 2) {
-        res += String.fromCharCode(bytes[i4] + bytes[i4 + 1] * 256);
+      for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
+        res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
       }
       return res;
     }
@@ -1516,9 +1516,9 @@ var Tabby = (() => {
         checkOffset(offset, byteLength2, this.length);
       let val = this[offset];
       let mul = 1;
-      let i4 = 0;
-      while (++i4 < byteLength2 && (mul *= 256)) {
-        val += this[offset + i4] * mul;
+      let i2 = 0;
+      while (++i2 < byteLength2 && (mul *= 256)) {
+        val += this[offset + i2] * mul;
       }
       return val;
     };
@@ -1596,9 +1596,9 @@ var Tabby = (() => {
         checkOffset(offset, byteLength2, this.length);
       let val = this[offset];
       let mul = 1;
-      let i4 = 0;
-      while (++i4 < byteLength2 && (mul *= 256)) {
-        val += this[offset + i4] * mul;
+      let i2 = 0;
+      while (++i2 < byteLength2 && (mul *= 256)) {
+        val += this[offset + i2] * mul;
       }
       mul *= 128;
       if (val >= mul)
@@ -1610,11 +1610,11 @@ var Tabby = (() => {
       byteLength2 = byteLength2 >>> 0;
       if (!noAssert)
         checkOffset(offset, byteLength2, this.length);
-      let i4 = byteLength2;
+      let i2 = byteLength2;
       let mul = 1;
-      let val = this[offset + --i4];
-      while (i4 > 0 && (mul *= 256)) {
-        val += this[offset + --i4] * mul;
+      let val = this[offset + --i2];
+      while (i2 > 0 && (mul *= 256)) {
+        val += this[offset + --i2] * mul;
       }
       mul *= 128;
       if (val >= mul)
@@ -1719,10 +1719,10 @@ var Tabby = (() => {
         checkInt(this, value, offset, byteLength2, maxBytes, 0);
       }
       let mul = 1;
-      let i4 = 0;
+      let i2 = 0;
       this[offset] = value & 255;
-      while (++i4 < byteLength2 && (mul *= 256)) {
-        this[offset + i4] = value / mul & 255;
+      while (++i2 < byteLength2 && (mul *= 256)) {
+        this[offset + i2] = value / mul & 255;
       }
       return offset + byteLength2;
     };
@@ -1734,11 +1734,11 @@ var Tabby = (() => {
         const maxBytes = Math.pow(2, 8 * byteLength2) - 1;
         checkInt(this, value, offset, byteLength2, maxBytes, 0);
       }
-      let i4 = byteLength2 - 1;
+      let i2 = byteLength2 - 1;
       let mul = 1;
-      this[offset + i4] = value & 255;
-      while (--i4 >= 0 && (mul *= 256)) {
-        this[offset + i4] = value / mul & 255;
+      this[offset + i2] = value & 255;
+      while (--i2 >= 0 && (mul *= 256)) {
+        this[offset + i2] = value / mul & 255;
       }
       return offset + byteLength2;
     };
@@ -1843,15 +1843,15 @@ var Tabby = (() => {
         const limit = Math.pow(2, 8 * byteLength2 - 1);
         checkInt(this, value, offset, byteLength2, limit - 1, -limit);
       }
-      let i4 = 0;
+      let i2 = 0;
       let mul = 1;
       let sub = 0;
       this[offset] = value & 255;
-      while (++i4 < byteLength2 && (mul *= 256)) {
-        if (value < 0 && sub === 0 && this[offset + i4 - 1] !== 0) {
+      while (++i2 < byteLength2 && (mul *= 256)) {
+        if (value < 0 && sub === 0 && this[offset + i2 - 1] !== 0) {
           sub = 1;
         }
-        this[offset + i4] = (value / mul >> 0) - sub & 255;
+        this[offset + i2] = (value / mul >> 0) - sub & 255;
       }
       return offset + byteLength2;
     };
@@ -1862,15 +1862,15 @@ var Tabby = (() => {
         const limit = Math.pow(2, 8 * byteLength2 - 1);
         checkInt(this, value, offset, byteLength2, limit - 1, -limit);
       }
-      let i4 = byteLength2 - 1;
+      let i2 = byteLength2 - 1;
       let mul = 1;
       let sub = 0;
-      this[offset + i4] = value & 255;
-      while (--i4 >= 0 && (mul *= 256)) {
-        if (value < 0 && sub === 0 && this[offset + i4 + 1] !== 0) {
+      this[offset + i2] = value & 255;
+      while (--i2 >= 0 && (mul *= 256)) {
+        if (value < 0 && sub === 0 && this[offset + i2 + 1] !== 0) {
           sub = 1;
         }
-        this[offset + i4] = (value / mul >> 0) - sub & 255;
+        this[offset + i2] = (value / mul >> 0) - sub & 255;
       }
       return offset + byteLength2;
     };
@@ -2042,10 +2042,10 @@ var Tabby = (() => {
       end = end === void 0 ? this.length : end >>> 0;
       if (!val)
         val = 0;
-      let i4;
+      let i2;
       if (typeof val === "number") {
-        for (i4 = start; i4 < end; ++i4) {
-          this[i4] = val;
+        for (i2 = start; i2 < end; ++i2) {
+          this[i2] = val;
         }
       } else {
         const bytes = Buffer3.isBuffer(val) ? val : Buffer3.from(val, encoding);
@@ -2053,14 +2053,14 @@ var Tabby = (() => {
         if (len === 0) {
           throw new TypeError('The value "' + val + '" is invalid for argument "value"');
         }
-        for (i4 = 0; i4 < end - start; ++i4) {
-          this[i4 + start] = bytes[i4 % len];
+        for (i2 = 0; i2 < end - start; ++i2) {
+          this[i2 + start] = bytes[i2 % len];
         }
       }
       return this;
     };
     const errors = {};
-    function E3(sym, getMessage, Base) {
+    function E(sym, getMessage, Base) {
       errors[sym] = class NodeError extends Base {
         constructor() {
           super();
@@ -2089,16 +2089,16 @@ var Tabby = (() => {
         }
       };
     }
-    E3("ERR_BUFFER_OUT_OF_BOUNDS", function(name2) {
+    E("ERR_BUFFER_OUT_OF_BOUNDS", function(name2) {
       if (name2) {
         return `${name2} is outside of buffer bounds`;
       }
       return "Attempt to access memory outside buffer bounds";
     }, RangeError);
-    E3("ERR_INVALID_ARG_TYPE", function(name2, actual) {
+    E("ERR_INVALID_ARG_TYPE", function(name2, actual) {
       return `The "${name2}" argument must be of type number. Received type ${typeof actual}`;
     }, TypeError);
-    E3("ERR_OUT_OF_RANGE", function(str, range, input) {
+    E("ERR_OUT_OF_RANGE", function(str, range, input) {
       let msg = `The value of "${str}" is out of range.`;
       let received = input;
       if (Number.isInteger(input) && Math.abs(input) > 2 ** 32) {
@@ -2115,12 +2115,12 @@ var Tabby = (() => {
     }, RangeError);
     function addNumericalSeparator(val) {
       let res = "";
-      let i4 = val.length;
+      let i2 = val.length;
       const start = val[0] === "-" ? 1 : 0;
-      for (; i4 >= start + 4; i4 -= 3) {
-        res = `_${val.slice(i4 - 3, i4)}${res}`;
+      for (; i2 >= start + 4; i2 -= 3) {
+        res = `_${val.slice(i2 - 3, i2)}${res}`;
       }
-      return `${val.slice(0, i4)}${res}`;
+      return `${val.slice(0, i2)}${res}`;
     }
     function checkBounds(buf, offset, byteLength2) {
       validateNumber(offset, "offset");
@@ -2130,16 +2130,16 @@ var Tabby = (() => {
     }
     function checkIntBI(value, min, max, buf, offset, byteLength2) {
       if (value > max || value < min) {
-        const n4 = typeof min === "bigint" ? "n" : "";
+        const n2 = typeof min === "bigint" ? "n" : "";
         let range;
         if (byteLength2 > 3) {
           if (min === 0 || min === BigInt(0)) {
-            range = `>= 0${n4} and < 2${n4} ** ${(byteLength2 + 1) * 8}${n4}`;
+            range = `>= 0${n2} and < 2${n2} ** ${(byteLength2 + 1) * 8}${n2}`;
           } else {
-            range = `>= -(2${n4} ** ${(byteLength2 + 1) * 8 - 1}${n4}) and < 2 ** ${(byteLength2 + 1) * 8 - 1}${n4}`;
+            range = `>= -(2${n2} ** ${(byteLength2 + 1) * 8 - 1}${n2}) and < 2 ** ${(byteLength2 + 1) * 8 - 1}${n2}`;
           }
         } else {
-          range = `>= ${min}${n4} and <= ${max}${n4}`;
+          range = `>= ${min}${n2} and <= ${max}${n2}`;
         }
         throw new errors.ERR_OUT_OF_RANGE("value", range, value);
       }
@@ -2177,15 +2177,15 @@ var Tabby = (() => {
       const length = string.length;
       let leadSurrogate = null;
       const bytes = [];
-      for (let i4 = 0; i4 < length; ++i4) {
-        codePoint = string.charCodeAt(i4);
+      for (let i2 = 0; i2 < length; ++i2) {
+        codePoint = string.charCodeAt(i2);
         if (codePoint > 55295 && codePoint < 57344) {
           if (!leadSurrogate) {
             if (codePoint > 56319) {
               if ((units -= 3) > -1)
                 bytes.push(239, 191, 189);
               continue;
-            } else if (i4 + 1 === length) {
+            } else if (i2 + 1 === length) {
               if ((units -= 3) > -1)
                 bytes.push(239, 191, 189);
               continue;
@@ -2229,20 +2229,20 @@ var Tabby = (() => {
     }
     function asciiToBytes(str) {
       const byteArray = [];
-      for (let i4 = 0; i4 < str.length; ++i4) {
-        byteArray.push(str.charCodeAt(i4) & 255);
+      for (let i2 = 0; i2 < str.length; ++i2) {
+        byteArray.push(str.charCodeAt(i2) & 255);
       }
       return byteArray;
     }
     function utf16leToBytes(str, units) {
-      let c4, hi, lo;
+      let c2, hi, lo;
       const byteArray = [];
-      for (let i4 = 0; i4 < str.length; ++i4) {
+      for (let i2 = 0; i2 < str.length; ++i2) {
         if ((units -= 2) < 0)
           break;
-        c4 = str.charCodeAt(i4);
-        hi = c4 >> 8;
-        lo = c4 % 256;
+        c2 = str.charCodeAt(i2);
+        hi = c2 >> 8;
+        lo = c2 % 256;
         byteArray.push(lo);
         byteArray.push(hi);
       }
@@ -2252,13 +2252,13 @@ var Tabby = (() => {
       return base642.toByteArray(base64clean(str));
     }
     function blitBuffer(src, dst, offset, length) {
-      let i4;
-      for (i4 = 0; i4 < length; ++i4) {
-        if (i4 + offset >= dst.length || i4 >= src.length)
+      let i2;
+      for (i2 = 0; i2 < length; ++i2) {
+        if (i2 + offset >= dst.length || i2 >= src.length)
           break;
-        dst[i4 + offset] = src[i4];
+        dst[i2 + offset] = src[i2];
       }
-      return i4;
+      return i2;
     }
     function isInstance(obj, type) {
       return obj instanceof type || obj != null && obj.constructor != null && obj.constructor.name != null && obj.constructor.name === type.name;
@@ -2269,10 +2269,10 @@ var Tabby = (() => {
     const hexSliceLookupTable = function() {
       const alphabet = "0123456789abcdef";
       const table = new Array(256);
-      for (let i4 = 0; i4 < 16; ++i4) {
-        const i16 = i4 * 16;
-        for (let j3 = 0; j3 < 16; ++j3) {
-          table[i16 + j3] = alphabet[i4] + alphabet[j3];
+      for (let i2 = 0; i2 < 16; ++i2) {
+        const i16 = i2 * 16;
+        for (let j = 0; j < 16; ++j) {
+          table[i16 + j] = alphabet[i2] + alphabet[j];
         }
       }
       return table;
@@ -2325,369 +2325,369 @@ var Tabby = (() => {
       init_filename();
       init_buffer2();
       init_process2();
-      !function(e5) {
-        var t5;
-        "object" == typeof exports2 ? module.exports = e5() : "function" == typeof define && define.amd ? define(e5) : ("undefined" != typeof window ? t5 = window : "undefined" != typeof global ? t5 = global : "undefined" != typeof self && (t5 = self), t5.objectHash = e5());
+      !function(e2) {
+        var t2;
+        "object" == typeof exports2 ? module.exports = e2() : "function" == typeof define && define.amd ? define(e2) : ("undefined" != typeof window ? t2 = window : "undefined" != typeof global ? t2 = global : "undefined" != typeof self && (t2 = self), t2.objectHash = e2());
       }(function() {
-        return function r5(o4, i4, u4) {
-          function s4(n4, e6) {
-            if (!i4[n4]) {
-              if (!o4[n4]) {
-                var t5 = "function" == typeof __require && __require;
-                if (!e6 && t5)
-                  return t5(n4, true);
-                if (a4)
-                  return a4(n4, true);
-                throw new Error("Cannot find module '" + n4 + "'");
+        return function r2(o2, i2, u2) {
+          function s2(n2, e3) {
+            if (!i2[n2]) {
+              if (!o2[n2]) {
+                var t2 = "function" == typeof __require && __require;
+                if (!e3 && t2)
+                  return t2(n2, true);
+                if (a2)
+                  return a2(n2, true);
+                throw new Error("Cannot find module '" + n2 + "'");
               }
-              e6 = i4[n4] = { exports: {} };
-              o4[n4][0].call(e6.exports, function(e7) {
-                var t6 = o4[n4][1][e7];
-                return s4(t6 || e7);
-              }, e6, e6.exports, r5, o4, i4, u4);
+              e3 = i2[n2] = { exports: {} };
+              o2[n2][0].call(e3.exports, function(e4) {
+                var t3 = o2[n2][1][e4];
+                return s2(t3 || e4);
+              }, e3, e3.exports, r2, o2, i2, u2);
             }
-            return i4[n4].exports;
+            return i2[n2].exports;
           }
-          for (var a4 = "function" == typeof __require && __require, e5 = 0; e5 < u4.length; e5++)
-            s4(u4[e5]);
-          return s4;
-        }({ 1: [function(w3, b3, m4) {
-          !function(e5, n4, s4, c4, d4, h5, p4, g3, y4) {
+          for (var a2 = "function" == typeof __require && __require, e2 = 0; e2 < u2.length; e2++)
+            s2(u2[e2]);
+          return s2;
+        }({ 1: [function(w, b, m) {
+          !function(e2, n2, s2, c2, d, h2, p2, g, y2) {
             "use strict";
-            var r5 = w3("crypto");
-            function t5(e6, t6) {
-              t6 = u4(e6, t6);
-              var n5;
-              return void 0 === (n5 = "passthrough" !== t6.algorithm ? r5.createHash(t6.algorithm) : new l4()).write && (n5.write = n5.update, n5.end = n5.update), f4(t6, n5).dispatch(e6), n5.update || n5.end(""), n5.digest ? n5.digest("buffer" === t6.encoding ? void 0 : t6.encoding) : (e6 = n5.read(), "buffer" !== t6.encoding ? e6.toString(t6.encoding) : e6);
+            var r2 = w("crypto");
+            function t2(e3, t3) {
+              t3 = u2(e3, t3);
+              var n3;
+              return void 0 === (n3 = "passthrough" !== t3.algorithm ? r2.createHash(t3.algorithm) : new l2()).write && (n3.write = n3.update, n3.end = n3.update), f2(t3, n3).dispatch(e3), n3.update || n3.end(""), n3.digest ? n3.digest("buffer" === t3.encoding ? void 0 : t3.encoding) : (e3 = n3.read(), "buffer" !== t3.encoding ? e3.toString(t3.encoding) : e3);
             }
-            (m4 = b3.exports = t5).sha1 = function(e6) {
-              return t5(e6);
-            }, m4.keys = function(e6) {
-              return t5(e6, { excludeValues: true, algorithm: "sha1", encoding: "hex" });
-            }, m4.MD5 = function(e6) {
-              return t5(e6, { algorithm: "md5", encoding: "hex" });
-            }, m4.keysMD5 = function(e6) {
-              return t5(e6, { algorithm: "md5", encoding: "hex", excludeValues: true });
+            (m = b.exports = t2).sha1 = function(e3) {
+              return t2(e3);
+            }, m.keys = function(e3) {
+              return t2(e3, { excludeValues: true, algorithm: "sha1", encoding: "hex" });
+            }, m.MD5 = function(e3) {
+              return t2(e3, { algorithm: "md5", encoding: "hex" });
+            }, m.keysMD5 = function(e3) {
+              return t2(e3, { algorithm: "md5", encoding: "hex", excludeValues: true });
             };
-            var o4 = r5.getHashes ? r5.getHashes().slice() : ["sha1", "md5"], i4 = (o4.push("passthrough"), ["buffer", "hex", "binary", "base64"]);
-            function u4(e6, t6) {
-              var n5 = {};
-              if (n5.algorithm = (t6 = t6 || {}).algorithm || "sha1", n5.encoding = t6.encoding || "hex", n5.excludeValues = !!t6.excludeValues, n5.algorithm = n5.algorithm.toLowerCase(), n5.encoding = n5.encoding.toLowerCase(), n5.ignoreUnknown = true === t6.ignoreUnknown, n5.respectType = false !== t6.respectType, n5.respectFunctionNames = false !== t6.respectFunctionNames, n5.respectFunctionProperties = false !== t6.respectFunctionProperties, n5.unorderedArrays = true === t6.unorderedArrays, n5.unorderedSets = false !== t6.unorderedSets, n5.unorderedObjects = false !== t6.unorderedObjects, n5.replacer = t6.replacer || void 0, n5.excludeKeys = t6.excludeKeys || void 0, void 0 === e6)
+            var o2 = r2.getHashes ? r2.getHashes().slice() : ["sha1", "md5"], i2 = (o2.push("passthrough"), ["buffer", "hex", "binary", "base64"]);
+            function u2(e3, t3) {
+              var n3 = {};
+              if (n3.algorithm = (t3 = t3 || {}).algorithm || "sha1", n3.encoding = t3.encoding || "hex", n3.excludeValues = !!t3.excludeValues, n3.algorithm = n3.algorithm.toLowerCase(), n3.encoding = n3.encoding.toLowerCase(), n3.ignoreUnknown = true === t3.ignoreUnknown, n3.respectType = false !== t3.respectType, n3.respectFunctionNames = false !== t3.respectFunctionNames, n3.respectFunctionProperties = false !== t3.respectFunctionProperties, n3.unorderedArrays = true === t3.unorderedArrays, n3.unorderedSets = false !== t3.unorderedSets, n3.unorderedObjects = false !== t3.unorderedObjects, n3.replacer = t3.replacer || void 0, n3.excludeKeys = t3.excludeKeys || void 0, void 0 === e3)
                 throw new Error("Object argument required.");
-              for (var r6 = 0; r6 < o4.length; ++r6)
-                o4[r6].toLowerCase() === n5.algorithm.toLowerCase() && (n5.algorithm = o4[r6]);
-              if (-1 === o4.indexOf(n5.algorithm))
-                throw new Error('Algorithm "' + n5.algorithm + '"  not supported. supported values: ' + o4.join(", "));
-              if (-1 === i4.indexOf(n5.encoding) && "passthrough" !== n5.algorithm)
-                throw new Error('Encoding "' + n5.encoding + '"  not supported. supported values: ' + i4.join(", "));
-              return n5;
+              for (var r3 = 0; r3 < o2.length; ++r3)
+                o2[r3].toLowerCase() === n3.algorithm.toLowerCase() && (n3.algorithm = o2[r3]);
+              if (-1 === o2.indexOf(n3.algorithm))
+                throw new Error('Algorithm "' + n3.algorithm + '"  not supported. supported values: ' + o2.join(", "));
+              if (-1 === i2.indexOf(n3.encoding) && "passthrough" !== n3.algorithm)
+                throw new Error('Encoding "' + n3.encoding + '"  not supported. supported values: ' + i2.join(", "));
+              return n3;
             }
-            function a4(e6) {
-              if ("function" == typeof e6)
-                return null != /^function\s+\w*\s*\(\s*\)\s*{\s+\[native code\]\s+}$/i.exec(Function.prototype.toString.call(e6));
+            function a2(e3) {
+              if ("function" == typeof e3)
+                return null != /^function\s+\w*\s*\(\s*\)\s*{\s+\[native code\]\s+}$/i.exec(Function.prototype.toString.call(e3));
             }
-            function f4(o5, t6, i5) {
-              i5 = i5 || [];
-              function u5(e6) {
-                return t6.update ? t6.update(e6, "utf8") : t6.write(e6, "utf8");
+            function f2(o3, t3, i3) {
+              i3 = i3 || [];
+              function u3(e3) {
+                return t3.update ? t3.update(e3, "utf8") : t3.write(e3, "utf8");
               }
-              return { dispatch: function(e6) {
-                return this["_" + (null === (e6 = o5.replacer ? o5.replacer(e6) : e6) ? "null" : typeof e6)](e6);
-              }, _object: function(t7) {
-                var n5, e6 = Object.prototype.toString.call(t7), r6 = /\[object (.*)\]/i.exec(e6);
-                r6 = (r6 = r6 ? r6[1] : "unknown:[" + e6 + "]").toLowerCase();
-                if (0 <= (e6 = i5.indexOf(t7)))
-                  return this.dispatch("[CIRCULAR:" + e6 + "]");
-                if (i5.push(t7), void 0 !== s4 && s4.isBuffer && s4.isBuffer(t7))
-                  return u5("buffer:"), u5(t7);
-                if ("object" === r6 || "function" === r6 || "asyncfunction" === r6)
-                  return e6 = Object.keys(t7), o5.unorderedObjects && (e6 = e6.sort()), false === o5.respectType || a4(t7) || e6.splice(0, 0, "prototype", "__proto__", "constructor"), o5.excludeKeys && (e6 = e6.filter(function(e7) {
-                    return !o5.excludeKeys(e7);
-                  })), u5("object:" + e6.length + ":"), n5 = this, e6.forEach(function(e7) {
-                    n5.dispatch(e7), u5(":"), o5.excludeValues || n5.dispatch(t7[e7]), u5(",");
+              return { dispatch: function(e3) {
+                return this["_" + (null === (e3 = o3.replacer ? o3.replacer(e3) : e3) ? "null" : typeof e3)](e3);
+              }, _object: function(t4) {
+                var n3, e3 = Object.prototype.toString.call(t4), r3 = /\[object (.*)\]/i.exec(e3);
+                r3 = (r3 = r3 ? r3[1] : "unknown:[" + e3 + "]").toLowerCase();
+                if (0 <= (e3 = i3.indexOf(t4)))
+                  return this.dispatch("[CIRCULAR:" + e3 + "]");
+                if (i3.push(t4), void 0 !== s2 && s2.isBuffer && s2.isBuffer(t4))
+                  return u3("buffer:"), u3(t4);
+                if ("object" === r3 || "function" === r3 || "asyncfunction" === r3)
+                  return e3 = Object.keys(t4), o3.unorderedObjects && (e3 = e3.sort()), false === o3.respectType || a2(t4) || e3.splice(0, 0, "prototype", "__proto__", "constructor"), o3.excludeKeys && (e3 = e3.filter(function(e4) {
+                    return !o3.excludeKeys(e4);
+                  })), u3("object:" + e3.length + ":"), n3 = this, e3.forEach(function(e4) {
+                    n3.dispatch(e4), u3(":"), o3.excludeValues || n3.dispatch(t4[e4]), u3(",");
                   });
-                if (!this["_" + r6]) {
-                  if (o5.ignoreUnknown)
-                    return u5("[" + r6 + "]");
-                  throw new Error('Unknown object type "' + r6 + '"');
+                if (!this["_" + r3]) {
+                  if (o3.ignoreUnknown)
+                    return u3("[" + r3 + "]");
+                  throw new Error('Unknown object type "' + r3 + '"');
                 }
-                this["_" + r6](t7);
-              }, _array: function(e6, t7) {
-                t7 = void 0 !== t7 ? t7 : false !== o5.unorderedArrays;
-                var n5 = this;
-                if (u5("array:" + e6.length + ":"), !t7 || e6.length <= 1)
-                  return e6.forEach(function(e7) {
-                    return n5.dispatch(e7);
+                this["_" + r3](t4);
+              }, _array: function(e3, t4) {
+                t4 = void 0 !== t4 ? t4 : false !== o3.unorderedArrays;
+                var n3 = this;
+                if (u3("array:" + e3.length + ":"), !t4 || e3.length <= 1)
+                  return e3.forEach(function(e4) {
+                    return n3.dispatch(e4);
                   });
-                var r6 = [], t7 = e6.map(function(e7) {
-                  var t8 = new l4(), n6 = i5.slice();
-                  return f4(o5, t8, n6).dispatch(e7), r6 = r6.concat(n6.slice(i5.length)), t8.read().toString();
+                var r3 = [], t4 = e3.map(function(e4) {
+                  var t5 = new l2(), n4 = i3.slice();
+                  return f2(o3, t5, n4).dispatch(e4), r3 = r3.concat(n4.slice(i3.length)), t5.read().toString();
                 });
-                return i5 = i5.concat(r6), t7.sort(), this._array(t7, false);
-              }, _date: function(e6) {
-                return u5("date:" + e6.toJSON());
-              }, _symbol: function(e6) {
-                return u5("symbol:" + e6.toString());
-              }, _error: function(e6) {
-                return u5("error:" + e6.toString());
-              }, _boolean: function(e6) {
-                return u5("bool:" + e6.toString());
-              }, _string: function(e6) {
-                u5("string:" + e6.length + ":"), u5(e6.toString());
-              }, _function: function(e6) {
-                u5("fn:"), a4(e6) ? this.dispatch("[native]") : this.dispatch(e6.toString()), false !== o5.respectFunctionNames && this.dispatch("function-name:" + String(e6.name)), o5.respectFunctionProperties && this._object(e6);
-              }, _number: function(e6) {
-                return u5("number:" + e6.toString());
-              }, _xml: function(e6) {
-                return u5("xml:" + e6.toString());
+                return i3 = i3.concat(r3), t4.sort(), this._array(t4, false);
+              }, _date: function(e3) {
+                return u3("date:" + e3.toJSON());
+              }, _symbol: function(e3) {
+                return u3("symbol:" + e3.toString());
+              }, _error: function(e3) {
+                return u3("error:" + e3.toString());
+              }, _boolean: function(e3) {
+                return u3("bool:" + e3.toString());
+              }, _string: function(e3) {
+                u3("string:" + e3.length + ":"), u3(e3.toString());
+              }, _function: function(e3) {
+                u3("fn:"), a2(e3) ? this.dispatch("[native]") : this.dispatch(e3.toString()), false !== o3.respectFunctionNames && this.dispatch("function-name:" + String(e3.name)), o3.respectFunctionProperties && this._object(e3);
+              }, _number: function(e3) {
+                return u3("number:" + e3.toString());
+              }, _xml: function(e3) {
+                return u3("xml:" + e3.toString());
               }, _null: function() {
-                return u5("Null");
+                return u3("Null");
               }, _undefined: function() {
-                return u5("Undefined");
-              }, _regexp: function(e6) {
-                return u5("regex:" + e6.toString());
-              }, _uint8array: function(e6) {
-                return u5("uint8array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _uint8clampedarray: function(e6) {
-                return u5("uint8clampedarray:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _int8array: function(e6) {
-                return u5("int8array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _uint16array: function(e6) {
-                return u5("uint16array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _int16array: function(e6) {
-                return u5("int16array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _uint32array: function(e6) {
-                return u5("uint32array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _int32array: function(e6) {
-                return u5("int32array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _float32array: function(e6) {
-                return u5("float32array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _float64array: function(e6) {
-                return u5("float64array:"), this.dispatch(Array.prototype.slice.call(e6));
-              }, _arraybuffer: function(e6) {
-                return u5("arraybuffer:"), this.dispatch(new Uint8Array(e6));
-              }, _url: function(e6) {
-                return u5("url:" + e6.toString());
-              }, _map: function(e6) {
-                u5("map:");
-                e6 = Array.from(e6);
-                return this._array(e6, false !== o5.unorderedSets);
-              }, _set: function(e6) {
-                u5("set:");
-                e6 = Array.from(e6);
-                return this._array(e6, false !== o5.unorderedSets);
-              }, _file: function(e6) {
-                return u5("file:"), this.dispatch([e6.name, e6.size, e6.type, e6.lastModfied]);
+                return u3("Undefined");
+              }, _regexp: function(e3) {
+                return u3("regex:" + e3.toString());
+              }, _uint8array: function(e3) {
+                return u3("uint8array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _uint8clampedarray: function(e3) {
+                return u3("uint8clampedarray:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _int8array: function(e3) {
+                return u3("int8array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _uint16array: function(e3) {
+                return u3("uint16array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _int16array: function(e3) {
+                return u3("int16array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _uint32array: function(e3) {
+                return u3("uint32array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _int32array: function(e3) {
+                return u3("int32array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _float32array: function(e3) {
+                return u3("float32array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _float64array: function(e3) {
+                return u3("float64array:"), this.dispatch(Array.prototype.slice.call(e3));
+              }, _arraybuffer: function(e3) {
+                return u3("arraybuffer:"), this.dispatch(new Uint8Array(e3));
+              }, _url: function(e3) {
+                return u3("url:" + e3.toString());
+              }, _map: function(e3) {
+                u3("map:");
+                e3 = Array.from(e3);
+                return this._array(e3, false !== o3.unorderedSets);
+              }, _set: function(e3) {
+                u3("set:");
+                e3 = Array.from(e3);
+                return this._array(e3, false !== o3.unorderedSets);
+              }, _file: function(e3) {
+                return u3("file:"), this.dispatch([e3.name, e3.size, e3.type, e3.lastModfied]);
               }, _blob: function() {
-                if (o5.ignoreUnknown)
-                  return u5("[blob]");
+                if (o3.ignoreUnknown)
+                  return u3("[blob]");
                 throw Error('Hashing Blob objects is currently not supported\n(see https://github.com/puleos/object-hash/issues/26)\nUse "options.replacer" or "options.ignoreUnknown"\n');
               }, _domwindow: function() {
-                return u5("domwindow");
-              }, _bigint: function(e6) {
-                return u5("bigint:" + e6.toString());
+                return u3("domwindow");
+              }, _bigint: function(e3) {
+                return u3("bigint:" + e3.toString());
               }, _process: function() {
-                return u5("process");
+                return u3("process");
               }, _timer: function() {
-                return u5("timer");
+                return u3("timer");
               }, _pipe: function() {
-                return u5("pipe");
+                return u3("pipe");
               }, _tcp: function() {
-                return u5("tcp");
+                return u3("tcp");
               }, _udp: function() {
-                return u5("udp");
+                return u3("udp");
               }, _tty: function() {
-                return u5("tty");
+                return u3("tty");
               }, _statwatcher: function() {
-                return u5("statwatcher");
+                return u3("statwatcher");
               }, _securecontext: function() {
-                return u5("securecontext");
+                return u3("securecontext");
               }, _connection: function() {
-                return u5("connection");
+                return u3("connection");
               }, _zlib: function() {
-                return u5("zlib");
+                return u3("zlib");
               }, _context: function() {
-                return u5("context");
+                return u3("context");
               }, _nodescript: function() {
-                return u5("nodescript");
+                return u3("nodescript");
               }, _httpparser: function() {
-                return u5("httpparser");
+                return u3("httpparser");
               }, _dataview: function() {
-                return u5("dataview");
+                return u3("dataview");
               }, _signal: function() {
-                return u5("signal");
+                return u3("signal");
               }, _fsevent: function() {
-                return u5("fsevent");
+                return u3("fsevent");
               }, _tlswrap: function() {
-                return u5("tlswrap");
+                return u3("tlswrap");
               } };
             }
-            function l4() {
-              return { buf: "", write: function(e6) {
-                this.buf += e6;
-              }, end: function(e6) {
-                this.buf += e6;
+            function l2() {
+              return { buf: "", write: function(e3) {
+                this.buf += e3;
+              }, end: function(e3) {
+                this.buf += e3;
               }, read: function() {
                 return this.buf;
               } };
             }
-            m4.writeToStream = function(e6, t6, n5) {
-              return void 0 === n5 && (n5 = t6, t6 = {}), f4(t6 = u4(e6, t6), n5).dispatch(e6);
+            m.writeToStream = function(e3, t3, n3) {
+              return void 0 === n3 && (n3 = t3, t3 = {}), f2(t3 = u2(e3, t3), n3).dispatch(e3);
             };
-          }.call(this, w3("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, w3("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/fake_9a5aa49d.js", "/");
-        }, { buffer: 3, crypto: 5, lYpoI2: 11 }], 2: [function(e5, t5, f4) {
-          !function(e6, t6, n4, r5, o4, i4, u4, s4, a4) {
-            !function(e7) {
+          }.call(this, w("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, w("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/fake_9a5aa49d.js", "/");
+        }, { buffer: 3, crypto: 5, lYpoI2: 11 }], 2: [function(e2, t2, f2) {
+          !function(e3, t3, n2, r2, o2, i2, u2, s2, a2) {
+            !function(e4) {
               "use strict";
-              var a5 = "undefined" != typeof Uint8Array ? Uint8Array : Array, t7 = "+".charCodeAt(0), n5 = "/".charCodeAt(0), r6 = "0".charCodeAt(0), o5 = "a".charCodeAt(0), i5 = "A".charCodeAt(0), u5 = "-".charCodeAt(0), s5 = "_".charCodeAt(0);
-              function f5(e8) {
-                e8 = e8.charCodeAt(0);
-                return e8 === t7 || e8 === u5 ? 62 : e8 === n5 || e8 === s5 ? 63 : e8 < r6 ? -1 : e8 < r6 + 10 ? e8 - r6 + 26 + 26 : e8 < i5 + 26 ? e8 - i5 : e8 < o5 + 26 ? e8 - o5 + 26 : void 0;
+              var a3 = "undefined" != typeof Uint8Array ? Uint8Array : Array, t4 = "+".charCodeAt(0), n3 = "/".charCodeAt(0), r3 = "0".charCodeAt(0), o3 = "a".charCodeAt(0), i3 = "A".charCodeAt(0), u3 = "-".charCodeAt(0), s3 = "_".charCodeAt(0);
+              function f3(e5) {
+                e5 = e5.charCodeAt(0);
+                return e5 === t4 || e5 === u3 ? 62 : e5 === n3 || e5 === s3 ? 63 : e5 < r3 ? -1 : e5 < r3 + 10 ? e5 - r3 + 26 + 26 : e5 < i3 + 26 ? e5 - i3 : e5 < o3 + 26 ? e5 - o3 + 26 : void 0;
               }
-              e7.toByteArray = function(e8) {
-                var t8, n6;
-                if (0 < e8.length % 4)
+              e4.toByteArray = function(e5) {
+                var t5, n4;
+                if (0 < e5.length % 4)
                   throw new Error("Invalid string. Length must be a multiple of 4");
-                var r7 = e8.length, r7 = "=" === e8.charAt(r7 - 2) ? 2 : "=" === e8.charAt(r7 - 1) ? 1 : 0, o6 = new a5(3 * e8.length / 4 - r7), i6 = 0 < r7 ? e8.length - 4 : e8.length, u6 = 0;
-                function s6(e9) {
-                  o6[u6++] = e9;
+                var r4 = e5.length, r4 = "=" === e5.charAt(r4 - 2) ? 2 : "=" === e5.charAt(r4 - 1) ? 1 : 0, o4 = new a3(3 * e5.length / 4 - r4), i4 = 0 < r4 ? e5.length - 4 : e5.length, u4 = 0;
+                function s4(e6) {
+                  o4[u4++] = e6;
                 }
-                for (t8 = 0; t8 < i6; t8 += 4, 0)
-                  s6((16711680 & (n6 = f5(e8.charAt(t8)) << 18 | f5(e8.charAt(t8 + 1)) << 12 | f5(e8.charAt(t8 + 2)) << 6 | f5(e8.charAt(t8 + 3)))) >> 16), s6((65280 & n6) >> 8), s6(255 & n6);
-                return 2 == r7 ? s6(255 & (n6 = f5(e8.charAt(t8)) << 2 | f5(e8.charAt(t8 + 1)) >> 4)) : 1 == r7 && (s6((n6 = f5(e8.charAt(t8)) << 10 | f5(e8.charAt(t8 + 1)) << 4 | f5(e8.charAt(t8 + 2)) >> 2) >> 8 & 255), s6(255 & n6)), o6;
-              }, e7.fromByteArray = function(e8) {
-                var t8, n6, r7, o6, i6 = e8.length % 3, u6 = "";
-                function s6(e9) {
-                  return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt(e9);
+                for (t5 = 0; t5 < i4; t5 += 4, 0)
+                  s4((16711680 & (n4 = f3(e5.charAt(t5)) << 18 | f3(e5.charAt(t5 + 1)) << 12 | f3(e5.charAt(t5 + 2)) << 6 | f3(e5.charAt(t5 + 3)))) >> 16), s4((65280 & n4) >> 8), s4(255 & n4);
+                return 2 == r4 ? s4(255 & (n4 = f3(e5.charAt(t5)) << 2 | f3(e5.charAt(t5 + 1)) >> 4)) : 1 == r4 && (s4((n4 = f3(e5.charAt(t5)) << 10 | f3(e5.charAt(t5 + 1)) << 4 | f3(e5.charAt(t5 + 2)) >> 2) >> 8 & 255), s4(255 & n4)), o4;
+              }, e4.fromByteArray = function(e5) {
+                var t5, n4, r4, o4, i4 = e5.length % 3, u4 = "";
+                function s4(e6) {
+                  return "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charAt(e6);
                 }
-                for (t8 = 0, r7 = e8.length - i6; t8 < r7; t8 += 3)
-                  n6 = (e8[t8] << 16) + (e8[t8 + 1] << 8) + e8[t8 + 2], u6 += s6((o6 = n6) >> 18 & 63) + s6(o6 >> 12 & 63) + s6(o6 >> 6 & 63) + s6(63 & o6);
-                switch (i6) {
+                for (t5 = 0, r4 = e5.length - i4; t5 < r4; t5 += 3)
+                  n4 = (e5[t5] << 16) + (e5[t5 + 1] << 8) + e5[t5 + 2], u4 += s4((o4 = n4) >> 18 & 63) + s4(o4 >> 12 & 63) + s4(o4 >> 6 & 63) + s4(63 & o4);
+                switch (i4) {
                   case 1:
-                    u6 = (u6 += s6((n6 = e8[e8.length - 1]) >> 2)) + s6(n6 << 4 & 63) + "==";
+                    u4 = (u4 += s4((n4 = e5[e5.length - 1]) >> 2)) + s4(n4 << 4 & 63) + "==";
                     break;
                   case 2:
-                    u6 = (u6 = (u6 += s6((n6 = (e8[e8.length - 2] << 8) + e8[e8.length - 1]) >> 10)) + s6(n6 >> 4 & 63)) + s6(n6 << 2 & 63) + "=";
+                    u4 = (u4 = (u4 += s4((n4 = (e5[e5.length - 2] << 8) + e5[e5.length - 1]) >> 10)) + s4(n4 >> 4 & 63)) + s4(n4 << 2 & 63) + "=";
                 }
-                return u6;
+                return u4;
               };
-            }(void 0 === f4 ? this.base64js = {} : f4);
-          }.call(this, e5("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e5("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/base64-js/lib/b64.js", "/node_modules/gulp-browserify/node_modules/base64-js/lib");
-        }, { buffer: 3, lYpoI2: 11 }], 3: [function(O3, e5, H3) {
-          !function(e6, n4, f4, r5, h5, p4, g3, y4, w3) {
-            var a4 = O3("base64-js"), i4 = O3("ieee754");
-            function f4(e7, t6, n5) {
-              if (!(this instanceof f4))
-                return new f4(e7, t6, n5);
-              var r6, o5, i5, u5, s5 = typeof e7;
-              if ("base64" === t6 && "string" == s5)
-                for (e7 = (u5 = e7).trim ? u5.trim() : u5.replace(/^\s+|\s+$/g, ""); e7.length % 4 != 0; )
-                  e7 += "=";
-              if ("number" == s5)
-                r6 = j3(e7);
-              else if ("string" == s5)
-                r6 = f4.byteLength(e7, t6);
+            }(void 0 === f2 ? this.base64js = {} : f2);
+          }.call(this, e2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/base64-js/lib/b64.js", "/node_modules/gulp-browserify/node_modules/base64-js/lib");
+        }, { buffer: 3, lYpoI2: 11 }], 3: [function(O, e2, H) {
+          !function(e3, n2, f2, r2, h2, p2, g, y2, w) {
+            var a2 = O("base64-js"), i2 = O("ieee754");
+            function f2(e4, t3, n3) {
+              if (!(this instanceof f2))
+                return new f2(e4, t3, n3);
+              var r3, o3, i3, u3, s3 = typeof e4;
+              if ("base64" === t3 && "string" == s3)
+                for (e4 = (u3 = e4).trim ? u3.trim() : u3.replace(/^\s+|\s+$/g, ""); e4.length % 4 != 0; )
+                  e4 += "=";
+              if ("number" == s3)
+                r3 = j(e4);
+              else if ("string" == s3)
+                r3 = f2.byteLength(e4, t3);
               else {
-                if ("object" != s5)
+                if ("object" != s3)
                   throw new Error("First argument needs to be a number, array or string.");
-                r6 = j3(e7.length);
+                r3 = j(e4.length);
               }
-              if (f4._useTypedArrays ? o5 = f4._augment(new Uint8Array(r6)) : ((o5 = this).length = r6, o5._isBuffer = true), f4._useTypedArrays && "number" == typeof e7.byteLength)
-                o5._set(e7);
-              else if (C3(u5 = e7) || f4.isBuffer(u5) || u5 && "object" == typeof u5 && "number" == typeof u5.length)
-                for (i5 = 0; i5 < r6; i5++)
-                  f4.isBuffer(e7) ? o5[i5] = e7.readUInt8(i5) : o5[i5] = e7[i5];
-              else if ("string" == s5)
-                o5.write(e7, 0, t6);
-              else if ("number" == s5 && !f4._useTypedArrays && !n5)
-                for (i5 = 0; i5 < r6; i5++)
-                  o5[i5] = 0;
-              return o5;
+              if (f2._useTypedArrays ? o3 = f2._augment(new Uint8Array(r3)) : ((o3 = this).length = r3, o3._isBuffer = true), f2._useTypedArrays && "number" == typeof e4.byteLength)
+                o3._set(e4);
+              else if (C(u3 = e4) || f2.isBuffer(u3) || u3 && "object" == typeof u3 && "number" == typeof u3.length)
+                for (i3 = 0; i3 < r3; i3++)
+                  f2.isBuffer(e4) ? o3[i3] = e4.readUInt8(i3) : o3[i3] = e4[i3];
+              else if ("string" == s3)
+                o3.write(e4, 0, t3);
+              else if ("number" == s3 && !f2._useTypedArrays && !n3)
+                for (i3 = 0; i3 < r3; i3++)
+                  o3[i3] = 0;
+              return o3;
             }
-            function b3(e7, t6, n5, r6) {
-              return f4._charsWritten = c4(function(e8) {
-                for (var t7 = [], n6 = 0; n6 < e8.length; n6++)
-                  t7.push(255 & e8.charCodeAt(n6));
-                return t7;
-              }(t6), e7, n5, r6);
+            function b(e4, t3, n3, r3) {
+              return f2._charsWritten = c2(function(e5) {
+                for (var t4 = [], n4 = 0; n4 < e5.length; n4++)
+                  t4.push(255 & e5.charCodeAt(n4));
+                return t4;
+              }(t3), e4, n3, r3);
             }
-            function m4(e7, t6, n5, r6) {
-              return f4._charsWritten = c4(function(e8) {
-                for (var t7, n6, r7 = [], o5 = 0; o5 < e8.length; o5++)
-                  n6 = e8.charCodeAt(o5), t7 = n6 >> 8, n6 = n6 % 256, r7.push(n6), r7.push(t7);
-                return r7;
-              }(t6), e7, n5, r6);
+            function m(e4, t3, n3, r3) {
+              return f2._charsWritten = c2(function(e5) {
+                for (var t4, n4, r4 = [], o3 = 0; o3 < e5.length; o3++)
+                  n4 = e5.charCodeAt(o3), t4 = n4 >> 8, n4 = n4 % 256, r4.push(n4), r4.push(t4);
+                return r4;
+              }(t3), e4, n3, r3);
             }
-            function v4(e7, t6, n5) {
-              var r6 = "";
-              n5 = Math.min(e7.length, n5);
-              for (var o5 = t6; o5 < n5; o5++)
-                r6 += String.fromCharCode(e7[o5]);
-              return r6;
+            function v2(e4, t3, n3) {
+              var r3 = "";
+              n3 = Math.min(e4.length, n3);
+              for (var o3 = t3; o3 < n3; o3++)
+                r3 += String.fromCharCode(e4[o3]);
+              return r3;
             }
-            function o4(e7, t6, n5, r6) {
-              r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(null != t6, "missing offset"), d4(t6 + 1 < e7.length, "Trying to read beyond buffer length"));
-              var o5, r6 = e7.length;
-              if (!(r6 <= t6))
-                return n5 ? (o5 = e7[t6], t6 + 1 < r6 && (o5 |= e7[t6 + 1] << 8)) : (o5 = e7[t6] << 8, t6 + 1 < r6 && (o5 |= e7[t6 + 1])), o5;
+            function o2(e4, t3, n3, r3) {
+              r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(null != t3, "missing offset"), d(t3 + 1 < e4.length, "Trying to read beyond buffer length"));
+              var o3, r3 = e4.length;
+              if (!(r3 <= t3))
+                return n3 ? (o3 = e4[t3], t3 + 1 < r3 && (o3 |= e4[t3 + 1] << 8)) : (o3 = e4[t3] << 8, t3 + 1 < r3 && (o3 |= e4[t3 + 1])), o3;
             }
-            function u4(e7, t6, n5, r6) {
-              r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(null != t6, "missing offset"), d4(t6 + 3 < e7.length, "Trying to read beyond buffer length"));
-              var o5, r6 = e7.length;
-              if (!(r6 <= t6))
-                return n5 ? (t6 + 2 < r6 && (o5 = e7[t6 + 2] << 16), t6 + 1 < r6 && (o5 |= e7[t6 + 1] << 8), o5 |= e7[t6], t6 + 3 < r6 && (o5 += e7[t6 + 3] << 24 >>> 0)) : (t6 + 1 < r6 && (o5 = e7[t6 + 1] << 16), t6 + 2 < r6 && (o5 |= e7[t6 + 2] << 8), t6 + 3 < r6 && (o5 |= e7[t6 + 3]), o5 += e7[t6] << 24 >>> 0), o5;
+            function u2(e4, t3, n3, r3) {
+              r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(null != t3, "missing offset"), d(t3 + 3 < e4.length, "Trying to read beyond buffer length"));
+              var o3, r3 = e4.length;
+              if (!(r3 <= t3))
+                return n3 ? (t3 + 2 < r3 && (o3 = e4[t3 + 2] << 16), t3 + 1 < r3 && (o3 |= e4[t3 + 1] << 8), o3 |= e4[t3], t3 + 3 < r3 && (o3 += e4[t3 + 3] << 24 >>> 0)) : (t3 + 1 < r3 && (o3 = e4[t3 + 1] << 16), t3 + 2 < r3 && (o3 |= e4[t3 + 2] << 8), t3 + 3 < r3 && (o3 |= e4[t3 + 3]), o3 += e4[t3] << 24 >>> 0), o3;
             }
-            function _3(e7, t6, n5, r6) {
-              if (r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(null != t6, "missing offset"), d4(t6 + 1 < e7.length, "Trying to read beyond buffer length")), !(e7.length <= t6))
-                return r6 = o4(e7, t6, n5, true), 32768 & r6 ? -1 * (65535 - r6 + 1) : r6;
+            function _(e4, t3, n3, r3) {
+              if (r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(null != t3, "missing offset"), d(t3 + 1 < e4.length, "Trying to read beyond buffer length")), !(e4.length <= t3))
+                return r3 = o2(e4, t3, n3, true), 32768 & r3 ? -1 * (65535 - r3 + 1) : r3;
             }
-            function E3(e7, t6, n5, r6) {
-              if (r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(null != t6, "missing offset"), d4(t6 + 3 < e7.length, "Trying to read beyond buffer length")), !(e7.length <= t6))
-                return r6 = u4(e7, t6, n5, true), 2147483648 & r6 ? -1 * (4294967295 - r6 + 1) : r6;
+            function E(e4, t3, n3, r3) {
+              if (r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(null != t3, "missing offset"), d(t3 + 3 < e4.length, "Trying to read beyond buffer length")), !(e4.length <= t3))
+                return r3 = u2(e4, t3, n3, true), 2147483648 & r3 ? -1 * (4294967295 - r3 + 1) : r3;
             }
-            function I3(e7, t6, n5, r6) {
-              return r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(t6 + 3 < e7.length, "Trying to read beyond buffer length")), i4.read(e7, t6, n5, 23, 4);
+            function I(e4, t3, n3, r3) {
+              return r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(t3 + 3 < e4.length, "Trying to read beyond buffer length")), i2.read(e4, t3, n3, 23, 4);
             }
-            function A3(e7, t6, n5, r6) {
-              return r6 || (d4("boolean" == typeof n5, "missing or invalid endian"), d4(t6 + 7 < e7.length, "Trying to read beyond buffer length")), i4.read(e7, t6, n5, 52, 8);
+            function A(e4, t3, n3, r3) {
+              return r3 || (d("boolean" == typeof n3, "missing or invalid endian"), d(t3 + 7 < e4.length, "Trying to read beyond buffer length")), i2.read(e4, t3, n3, 52, 8);
             }
-            function s4(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 1 < e7.length, "trying to write beyond buffer length"), Y3(t6, 65535));
-              o5 = e7.length;
-              if (!(o5 <= n5))
-                for (var i5 = 0, u5 = Math.min(o5 - n5, 2); i5 < u5; i5++)
-                  e7[n5 + i5] = (t6 & 255 << 8 * (r6 ? i5 : 1 - i5)) >>> 8 * (r6 ? i5 : 1 - i5);
+            function s2(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 1 < e4.length, "trying to write beyond buffer length"), Y(t3, 65535));
+              o3 = e4.length;
+              if (!(o3 <= n3))
+                for (var i3 = 0, u3 = Math.min(o3 - n3, 2); i3 < u3; i3++)
+                  e4[n3 + i3] = (t3 & 255 << 8 * (r3 ? i3 : 1 - i3)) >>> 8 * (r3 ? i3 : 1 - i3);
             }
-            function l4(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 3 < e7.length, "trying to write beyond buffer length"), Y3(t6, 4294967295));
-              o5 = e7.length;
-              if (!(o5 <= n5))
-                for (var i5 = 0, u5 = Math.min(o5 - n5, 4); i5 < u5; i5++)
-                  e7[n5 + i5] = t6 >>> 8 * (r6 ? i5 : 3 - i5) & 255;
+            function l2(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 3 < e4.length, "trying to write beyond buffer length"), Y(t3, 4294967295));
+              o3 = e4.length;
+              if (!(o3 <= n3))
+                for (var i3 = 0, u3 = Math.min(o3 - n3, 4); i3 < u3; i3++)
+                  e4[n3 + i3] = t3 >>> 8 * (r3 ? i3 : 3 - i3) & 255;
             }
-            function B3(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 1 < e7.length, "Trying to write beyond buffer length"), F3(t6, 32767, -32768)), e7.length <= n5 || s4(e7, 0 <= t6 ? t6 : 65535 + t6 + 1, n5, r6, o5);
+            function B(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 1 < e4.length, "Trying to write beyond buffer length"), F(t3, 32767, -32768)), e4.length <= n3 || s2(e4, 0 <= t3 ? t3 : 65535 + t3 + 1, n3, r3, o3);
             }
-            function L3(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 3 < e7.length, "Trying to write beyond buffer length"), F3(t6, 2147483647, -2147483648)), e7.length <= n5 || l4(e7, 0 <= t6 ? t6 : 4294967295 + t6 + 1, n5, r6, o5);
+            function L(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 3 < e4.length, "Trying to write beyond buffer length"), F(t3, 2147483647, -2147483648)), e4.length <= n3 || l2(e4, 0 <= t3 ? t3 : 4294967295 + t3 + 1, n3, r3, o3);
             }
-            function U3(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 3 < e7.length, "Trying to write beyond buffer length"), D3(t6, 34028234663852886e22, -34028234663852886e22)), e7.length <= n5 || i4.write(e7, t6, n5, r6, 23, 4);
+            function U(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 3 < e4.length, "Trying to write beyond buffer length"), D(t3, 34028234663852886e22, -34028234663852886e22)), e4.length <= n3 || i2.write(e4, t3, n3, r3, 23, 4);
             }
-            function x3(e7, t6, n5, r6, o5) {
-              o5 || (d4(null != t6, "missing value"), d4("boolean" == typeof r6, "missing or invalid endian"), d4(null != n5, "missing offset"), d4(n5 + 7 < e7.length, "Trying to write beyond buffer length"), D3(t6, 17976931348623157e292, -17976931348623157e292)), e7.length <= n5 || i4.write(e7, t6, n5, r6, 52, 8);
+            function x(e4, t3, n3, r3, o3) {
+              o3 || (d(null != t3, "missing value"), d("boolean" == typeof r3, "missing or invalid endian"), d(null != n3, "missing offset"), d(n3 + 7 < e4.length, "Trying to write beyond buffer length"), D(t3, 17976931348623157e292, -17976931348623157e292)), e4.length <= n3 || i2.write(e4, t3, n3, r3, 52, 8);
             }
-            H3.Buffer = f4, H3.SlowBuffer = f4, H3.INSPECT_MAX_BYTES = 50, f4.poolSize = 8192, f4._useTypedArrays = function() {
+            H.Buffer = f2, H.SlowBuffer = f2, H.INSPECT_MAX_BYTES = 50, f2.poolSize = 8192, f2._useTypedArrays = function() {
               try {
-                var e7 = new ArrayBuffer(0), t6 = new Uint8Array(e7);
-                return t6.foo = function() {
+                var e4 = new ArrayBuffer(0), t3 = new Uint8Array(e4);
+                return t3.foo = function() {
                   return 42;
-                }, 42 === t6.foo() && "function" == typeof t6.subarray;
-              } catch (e8) {
+                }, 42 === t3.foo() && "function" == typeof t3.subarray;
+              } catch (e5) {
                 return false;
               }
-            }(), f4.isEncoding = function(e7) {
-              switch (String(e7).toLowerCase()) {
+            }(), f2.isEncoding = function(e4) {
+              switch (String(e4).toLowerCase()) {
                 case "hex":
                 case "utf8":
                 case "utf-8":
@@ -2703,488 +2703,488 @@ var Tabby = (() => {
                 default:
                   return false;
               }
-            }, f4.isBuffer = function(e7) {
-              return !(null == e7 || !e7._isBuffer);
-            }, f4.byteLength = function(e7, t6) {
-              var n5;
-              switch (e7 += "", t6 || "utf8") {
+            }, f2.isBuffer = function(e4) {
+              return !(null == e4 || !e4._isBuffer);
+            }, f2.byteLength = function(e4, t3) {
+              var n3;
+              switch (e4 += "", t3 || "utf8") {
                 case "hex":
-                  n5 = e7.length / 2;
+                  n3 = e4.length / 2;
                   break;
                 case "utf8":
                 case "utf-8":
-                  n5 = T4(e7).length;
+                  n3 = T(e4).length;
                   break;
                 case "ascii":
                 case "binary":
                 case "raw":
-                  n5 = e7.length;
+                  n3 = e4.length;
                   break;
                 case "base64":
-                  n5 = M3(e7).length;
+                  n3 = M(e4).length;
                   break;
                 case "ucs2":
                 case "ucs-2":
                 case "utf16le":
                 case "utf-16le":
-                  n5 = 2 * e7.length;
+                  n3 = 2 * e4.length;
                   break;
                 default:
                   throw new Error("Unknown encoding");
               }
-              return n5;
-            }, f4.concat = function(e7, t6) {
-              if (d4(C3(e7), "Usage: Buffer.concat(list, [totalLength])\nlist should be an Array."), 0 === e7.length)
-                return new f4(0);
-              if (1 === e7.length)
-                return e7[0];
-              if ("number" != typeof t6)
-                for (o5 = t6 = 0; o5 < e7.length; o5++)
-                  t6 += e7[o5].length;
-              for (var n5 = new f4(t6), r6 = 0, o5 = 0; o5 < e7.length; o5++) {
-                var i5 = e7[o5];
-                i5.copy(n5, r6), r6 += i5.length;
+              return n3;
+            }, f2.concat = function(e4, t3) {
+              if (d(C(e4), "Usage: Buffer.concat(list, [totalLength])\nlist should be an Array."), 0 === e4.length)
+                return new f2(0);
+              if (1 === e4.length)
+                return e4[0];
+              if ("number" != typeof t3)
+                for (o3 = t3 = 0; o3 < e4.length; o3++)
+                  t3 += e4[o3].length;
+              for (var n3 = new f2(t3), r3 = 0, o3 = 0; o3 < e4.length; o3++) {
+                var i3 = e4[o3];
+                i3.copy(n3, r3), r3 += i3.length;
               }
-              return n5;
-            }, f4.prototype.write = function(e7, t6, n5, r6) {
-              isFinite(t6) ? isFinite(n5) || (r6 = n5, n5 = void 0) : (a5 = r6, r6 = t6, t6 = n5, n5 = a5), t6 = Number(t6) || 0;
-              var o5, i5, u5, s5, a5 = this.length - t6;
-              switch ((!n5 || a5 < (n5 = Number(n5))) && (n5 = a5), r6 = String(r6 || "utf8").toLowerCase()) {
+              return n3;
+            }, f2.prototype.write = function(e4, t3, n3, r3) {
+              isFinite(t3) ? isFinite(n3) || (r3 = n3, n3 = void 0) : (a3 = r3, r3 = t3, t3 = n3, n3 = a3), t3 = Number(t3) || 0;
+              var o3, i3, u3, s3, a3 = this.length - t3;
+              switch ((!n3 || a3 < (n3 = Number(n3))) && (n3 = a3), r3 = String(r3 || "utf8").toLowerCase()) {
                 case "hex":
-                  o5 = function(e8, t7, n6, r7) {
-                    n6 = Number(n6) || 0;
-                    var o6 = e8.length - n6;
-                    (!r7 || o6 < (r7 = Number(r7))) && (r7 = o6), d4((o6 = t7.length) % 2 == 0, "Invalid hex string"), o6 / 2 < r7 && (r7 = o6 / 2);
-                    for (var i6 = 0; i6 < r7; i6++) {
-                      var u6 = parseInt(t7.substr(2 * i6, 2), 16);
-                      d4(!isNaN(u6), "Invalid hex string"), e8[n6 + i6] = u6;
+                  o3 = function(e5, t4, n4, r4) {
+                    n4 = Number(n4) || 0;
+                    var o4 = e5.length - n4;
+                    (!r4 || o4 < (r4 = Number(r4))) && (r4 = o4), d((o4 = t4.length) % 2 == 0, "Invalid hex string"), o4 / 2 < r4 && (r4 = o4 / 2);
+                    for (var i4 = 0; i4 < r4; i4++) {
+                      var u4 = parseInt(t4.substr(2 * i4, 2), 16);
+                      d(!isNaN(u4), "Invalid hex string"), e5[n4 + i4] = u4;
                     }
-                    return f4._charsWritten = 2 * i6, i6;
-                  }(this, e7, t6, n5);
+                    return f2._charsWritten = 2 * i4, i4;
+                  }(this, e4, t3, n3);
                   break;
                 case "utf8":
                 case "utf-8":
-                  i5 = this, u5 = t6, s5 = n5, o5 = f4._charsWritten = c4(T4(e7), i5, u5, s5);
+                  i3 = this, u3 = t3, s3 = n3, o3 = f2._charsWritten = c2(T(e4), i3, u3, s3);
                   break;
                 case "ascii":
                 case "binary":
-                  o5 = b3(this, e7, t6, n5);
+                  o3 = b(this, e4, t3, n3);
                   break;
                 case "base64":
-                  i5 = this, u5 = t6, s5 = n5, o5 = f4._charsWritten = c4(M3(e7), i5, u5, s5);
+                  i3 = this, u3 = t3, s3 = n3, o3 = f2._charsWritten = c2(M(e4), i3, u3, s3);
                   break;
                 case "ucs2":
                 case "ucs-2":
                 case "utf16le":
                 case "utf-16le":
-                  o5 = m4(this, e7, t6, n5);
+                  o3 = m(this, e4, t3, n3);
                   break;
                 default:
                   throw new Error("Unknown encoding");
               }
-              return o5;
-            }, f4.prototype.toString = function(e7, t6, n5) {
-              var r6, o5, i5, u5, s5 = this;
-              if (e7 = String(e7 || "utf8").toLowerCase(), t6 = Number(t6) || 0, (n5 = void 0 !== n5 ? Number(n5) : s5.length) === t6)
+              return o3;
+            }, f2.prototype.toString = function(e4, t3, n3) {
+              var r3, o3, i3, u3, s3 = this;
+              if (e4 = String(e4 || "utf8").toLowerCase(), t3 = Number(t3) || 0, (n3 = void 0 !== n3 ? Number(n3) : s3.length) === t3)
                 return "";
-              switch (e7) {
+              switch (e4) {
                 case "hex":
-                  r6 = function(e8, t7, n6) {
-                    var r7 = e8.length;
-                    (!t7 || t7 < 0) && (t7 = 0);
-                    (!n6 || n6 < 0 || r7 < n6) && (n6 = r7);
-                    for (var o6 = "", i6 = t7; i6 < n6; i6++)
-                      o6 += k3(e8[i6]);
-                    return o6;
-                  }(s5, t6, n5);
+                  r3 = function(e5, t4, n4) {
+                    var r4 = e5.length;
+                    (!t4 || t4 < 0) && (t4 = 0);
+                    (!n4 || n4 < 0 || r4 < n4) && (n4 = r4);
+                    for (var o4 = "", i4 = t4; i4 < n4; i4++)
+                      o4 += k(e5[i4]);
+                    return o4;
+                  }(s3, t3, n3);
                   break;
                 case "utf8":
                 case "utf-8":
-                  r6 = function(e8, t7, n6) {
-                    var r7 = "", o6 = "";
-                    n6 = Math.min(e8.length, n6);
-                    for (var i6 = t7; i6 < n6; i6++)
-                      e8[i6] <= 127 ? (r7 += N3(o6) + String.fromCharCode(e8[i6]), o6 = "") : o6 += "%" + e8[i6].toString(16);
-                    return r7 + N3(o6);
-                  }(s5, t6, n5);
+                  r3 = function(e5, t4, n4) {
+                    var r4 = "", o4 = "";
+                    n4 = Math.min(e5.length, n4);
+                    for (var i4 = t4; i4 < n4; i4++)
+                      e5[i4] <= 127 ? (r4 += N(o4) + String.fromCharCode(e5[i4]), o4 = "") : o4 += "%" + e5[i4].toString(16);
+                    return r4 + N(o4);
+                  }(s3, t3, n3);
                   break;
                 case "ascii":
                 case "binary":
-                  r6 = v4(s5, t6, n5);
+                  r3 = v2(s3, t3, n3);
                   break;
                 case "base64":
-                  o5 = s5, u5 = n5, r6 = 0 === (i5 = t6) && u5 === o5.length ? a4.fromByteArray(o5) : a4.fromByteArray(o5.slice(i5, u5));
+                  o3 = s3, u3 = n3, r3 = 0 === (i3 = t3) && u3 === o3.length ? a2.fromByteArray(o3) : a2.fromByteArray(o3.slice(i3, u3));
                   break;
                 case "ucs2":
                 case "ucs-2":
                 case "utf16le":
                 case "utf-16le":
-                  r6 = function(e8, t7, n6) {
-                    for (var r7 = e8.slice(t7, n6), o6 = "", i6 = 0; i6 < r7.length; i6 += 2)
-                      o6 += String.fromCharCode(r7[i6] + 256 * r7[i6 + 1]);
-                    return o6;
-                  }(s5, t6, n5);
+                  r3 = function(e5, t4, n4) {
+                    for (var r4 = e5.slice(t4, n4), o4 = "", i4 = 0; i4 < r4.length; i4 += 2)
+                      o4 += String.fromCharCode(r4[i4] + 256 * r4[i4 + 1]);
+                    return o4;
+                  }(s3, t3, n3);
                   break;
                 default:
                   throw new Error("Unknown encoding");
               }
-              return r6;
-            }, f4.prototype.toJSON = function() {
+              return r3;
+            }, f2.prototype.toJSON = function() {
               return { type: "Buffer", data: Array.prototype.slice.call(this._arr || this, 0) };
-            }, f4.prototype.copy = function(e7, t6, n5, r6) {
-              if (t6 = t6 || 0, (r6 = r6 || 0 === r6 ? r6 : this.length) !== (n5 = n5 || 0) && 0 !== e7.length && 0 !== this.length) {
-                d4(n5 <= r6, "sourceEnd < sourceStart"), d4(0 <= t6 && t6 < e7.length, "targetStart out of bounds"), d4(0 <= n5 && n5 < this.length, "sourceStart out of bounds"), d4(0 <= r6 && r6 <= this.length, "sourceEnd out of bounds"), r6 > this.length && (r6 = this.length);
-                var o5 = (r6 = e7.length - t6 < r6 - n5 ? e7.length - t6 + n5 : r6) - n5;
-                if (o5 < 100 || !f4._useTypedArrays)
-                  for (var i5 = 0; i5 < o5; i5++)
-                    e7[i5 + t6] = this[i5 + n5];
+            }, f2.prototype.copy = function(e4, t3, n3, r3) {
+              if (t3 = t3 || 0, (r3 = r3 || 0 === r3 ? r3 : this.length) !== (n3 = n3 || 0) && 0 !== e4.length && 0 !== this.length) {
+                d(n3 <= r3, "sourceEnd < sourceStart"), d(0 <= t3 && t3 < e4.length, "targetStart out of bounds"), d(0 <= n3 && n3 < this.length, "sourceStart out of bounds"), d(0 <= r3 && r3 <= this.length, "sourceEnd out of bounds"), r3 > this.length && (r3 = this.length);
+                var o3 = (r3 = e4.length - t3 < r3 - n3 ? e4.length - t3 + n3 : r3) - n3;
+                if (o3 < 100 || !f2._useTypedArrays)
+                  for (var i3 = 0; i3 < o3; i3++)
+                    e4[i3 + t3] = this[i3 + n3];
                 else
-                  e7._set(this.subarray(n5, n5 + o5), t6);
+                  e4._set(this.subarray(n3, n3 + o3), t3);
               }
-            }, f4.prototype.slice = function(e7, t6) {
-              var n5 = this.length;
-              if (e7 = S3(e7, n5, 0), t6 = S3(t6, n5, n5), f4._useTypedArrays)
-                return f4._augment(this.subarray(e7, t6));
-              for (var r6 = t6 - e7, o5 = new f4(r6, void 0, true), i5 = 0; i5 < r6; i5++)
-                o5[i5] = this[i5 + e7];
-              return o5;
-            }, f4.prototype.get = function(e7) {
-              return console.log(".get() is deprecated. Access using array indexes instead."), this.readUInt8(e7);
-            }, f4.prototype.set = function(e7, t6) {
-              return console.log(".set() is deprecated. Access using array indexes instead."), this.writeUInt8(e7, t6);
-            }, f4.prototype.readUInt8 = function(e7, t6) {
-              if (t6 || (d4(null != e7, "missing offset"), d4(e7 < this.length, "Trying to read beyond buffer length")), !(e7 >= this.length))
-                return this[e7];
-            }, f4.prototype.readUInt16LE = function(e7, t6) {
-              return o4(this, e7, true, t6);
-            }, f4.prototype.readUInt16BE = function(e7, t6) {
-              return o4(this, e7, false, t6);
-            }, f4.prototype.readUInt32LE = function(e7, t6) {
-              return u4(this, e7, true, t6);
-            }, f4.prototype.readUInt32BE = function(e7, t6) {
-              return u4(this, e7, false, t6);
-            }, f4.prototype.readInt8 = function(e7, t6) {
-              if (t6 || (d4(null != e7, "missing offset"), d4(e7 < this.length, "Trying to read beyond buffer length")), !(e7 >= this.length))
-                return 128 & this[e7] ? -1 * (255 - this[e7] + 1) : this[e7];
-            }, f4.prototype.readInt16LE = function(e7, t6) {
-              return _3(this, e7, true, t6);
-            }, f4.prototype.readInt16BE = function(e7, t6) {
-              return _3(this, e7, false, t6);
-            }, f4.prototype.readInt32LE = function(e7, t6) {
-              return E3(this, e7, true, t6);
-            }, f4.prototype.readInt32BE = function(e7, t6) {
-              return E3(this, e7, false, t6);
-            }, f4.prototype.readFloatLE = function(e7, t6) {
-              return I3(this, e7, true, t6);
-            }, f4.prototype.readFloatBE = function(e7, t6) {
-              return I3(this, e7, false, t6);
-            }, f4.prototype.readDoubleLE = function(e7, t6) {
-              return A3(this, e7, true, t6);
-            }, f4.prototype.readDoubleBE = function(e7, t6) {
-              return A3(this, e7, false, t6);
-            }, f4.prototype.writeUInt8 = function(e7, t6, n5) {
-              n5 || (d4(null != e7, "missing value"), d4(null != t6, "missing offset"), d4(t6 < this.length, "trying to write beyond buffer length"), Y3(e7, 255)), t6 >= this.length || (this[t6] = e7);
-            }, f4.prototype.writeUInt16LE = function(e7, t6, n5) {
-              s4(this, e7, t6, true, n5);
-            }, f4.prototype.writeUInt16BE = function(e7, t6, n5) {
-              s4(this, e7, t6, false, n5);
-            }, f4.prototype.writeUInt32LE = function(e7, t6, n5) {
-              l4(this, e7, t6, true, n5);
-            }, f4.prototype.writeUInt32BE = function(e7, t6, n5) {
-              l4(this, e7, t6, false, n5);
-            }, f4.prototype.writeInt8 = function(e7, t6, n5) {
-              n5 || (d4(null != e7, "missing value"), d4(null != t6, "missing offset"), d4(t6 < this.length, "Trying to write beyond buffer length"), F3(e7, 127, -128)), t6 >= this.length || (0 <= e7 ? this.writeUInt8(e7, t6, n5) : this.writeUInt8(255 + e7 + 1, t6, n5));
-            }, f4.prototype.writeInt16LE = function(e7, t6, n5) {
-              B3(this, e7, t6, true, n5);
-            }, f4.prototype.writeInt16BE = function(e7, t6, n5) {
-              B3(this, e7, t6, false, n5);
-            }, f4.prototype.writeInt32LE = function(e7, t6, n5) {
-              L3(this, e7, t6, true, n5);
-            }, f4.prototype.writeInt32BE = function(e7, t6, n5) {
-              L3(this, e7, t6, false, n5);
-            }, f4.prototype.writeFloatLE = function(e7, t6, n5) {
-              U3(this, e7, t6, true, n5);
-            }, f4.prototype.writeFloatBE = function(e7, t6, n5) {
-              U3(this, e7, t6, false, n5);
-            }, f4.prototype.writeDoubleLE = function(e7, t6, n5) {
-              x3(this, e7, t6, true, n5);
-            }, f4.prototype.writeDoubleBE = function(e7, t6, n5) {
-              x3(this, e7, t6, false, n5);
-            }, f4.prototype.fill = function(e7, t6, n5) {
-              if (t6 = t6 || 0, n5 = n5 || this.length, d4("number" == typeof (e7 = "string" == typeof (e7 = e7 || 0) ? e7.charCodeAt(0) : e7) && !isNaN(e7), "value is not a number"), d4(t6 <= n5, "end < start"), n5 !== t6 && 0 !== this.length) {
-                d4(0 <= t6 && t6 < this.length, "start out of bounds"), d4(0 <= n5 && n5 <= this.length, "end out of bounds");
-                for (var r6 = t6; r6 < n5; r6++)
-                  this[r6] = e7;
+            }, f2.prototype.slice = function(e4, t3) {
+              var n3 = this.length;
+              if (e4 = S(e4, n3, 0), t3 = S(t3, n3, n3), f2._useTypedArrays)
+                return f2._augment(this.subarray(e4, t3));
+              for (var r3 = t3 - e4, o3 = new f2(r3, void 0, true), i3 = 0; i3 < r3; i3++)
+                o3[i3] = this[i3 + e4];
+              return o3;
+            }, f2.prototype.get = function(e4) {
+              return console.log(".get() is deprecated. Access using array indexes instead."), this.readUInt8(e4);
+            }, f2.prototype.set = function(e4, t3) {
+              return console.log(".set() is deprecated. Access using array indexes instead."), this.writeUInt8(e4, t3);
+            }, f2.prototype.readUInt8 = function(e4, t3) {
+              if (t3 || (d(null != e4, "missing offset"), d(e4 < this.length, "Trying to read beyond buffer length")), !(e4 >= this.length))
+                return this[e4];
+            }, f2.prototype.readUInt16LE = function(e4, t3) {
+              return o2(this, e4, true, t3);
+            }, f2.prototype.readUInt16BE = function(e4, t3) {
+              return o2(this, e4, false, t3);
+            }, f2.prototype.readUInt32LE = function(e4, t3) {
+              return u2(this, e4, true, t3);
+            }, f2.prototype.readUInt32BE = function(e4, t3) {
+              return u2(this, e4, false, t3);
+            }, f2.prototype.readInt8 = function(e4, t3) {
+              if (t3 || (d(null != e4, "missing offset"), d(e4 < this.length, "Trying to read beyond buffer length")), !(e4 >= this.length))
+                return 128 & this[e4] ? -1 * (255 - this[e4] + 1) : this[e4];
+            }, f2.prototype.readInt16LE = function(e4, t3) {
+              return _(this, e4, true, t3);
+            }, f2.prototype.readInt16BE = function(e4, t3) {
+              return _(this, e4, false, t3);
+            }, f2.prototype.readInt32LE = function(e4, t3) {
+              return E(this, e4, true, t3);
+            }, f2.prototype.readInt32BE = function(e4, t3) {
+              return E(this, e4, false, t3);
+            }, f2.prototype.readFloatLE = function(e4, t3) {
+              return I(this, e4, true, t3);
+            }, f2.prototype.readFloatBE = function(e4, t3) {
+              return I(this, e4, false, t3);
+            }, f2.prototype.readDoubleLE = function(e4, t3) {
+              return A(this, e4, true, t3);
+            }, f2.prototype.readDoubleBE = function(e4, t3) {
+              return A(this, e4, false, t3);
+            }, f2.prototype.writeUInt8 = function(e4, t3, n3) {
+              n3 || (d(null != e4, "missing value"), d(null != t3, "missing offset"), d(t3 < this.length, "trying to write beyond buffer length"), Y(e4, 255)), t3 >= this.length || (this[t3] = e4);
+            }, f2.prototype.writeUInt16LE = function(e4, t3, n3) {
+              s2(this, e4, t3, true, n3);
+            }, f2.prototype.writeUInt16BE = function(e4, t3, n3) {
+              s2(this, e4, t3, false, n3);
+            }, f2.prototype.writeUInt32LE = function(e4, t3, n3) {
+              l2(this, e4, t3, true, n3);
+            }, f2.prototype.writeUInt32BE = function(e4, t3, n3) {
+              l2(this, e4, t3, false, n3);
+            }, f2.prototype.writeInt8 = function(e4, t3, n3) {
+              n3 || (d(null != e4, "missing value"), d(null != t3, "missing offset"), d(t3 < this.length, "Trying to write beyond buffer length"), F(e4, 127, -128)), t3 >= this.length || (0 <= e4 ? this.writeUInt8(e4, t3, n3) : this.writeUInt8(255 + e4 + 1, t3, n3));
+            }, f2.prototype.writeInt16LE = function(e4, t3, n3) {
+              B(this, e4, t3, true, n3);
+            }, f2.prototype.writeInt16BE = function(e4, t3, n3) {
+              B(this, e4, t3, false, n3);
+            }, f2.prototype.writeInt32LE = function(e4, t3, n3) {
+              L(this, e4, t3, true, n3);
+            }, f2.prototype.writeInt32BE = function(e4, t3, n3) {
+              L(this, e4, t3, false, n3);
+            }, f2.prototype.writeFloatLE = function(e4, t3, n3) {
+              U(this, e4, t3, true, n3);
+            }, f2.prototype.writeFloatBE = function(e4, t3, n3) {
+              U(this, e4, t3, false, n3);
+            }, f2.prototype.writeDoubleLE = function(e4, t3, n3) {
+              x(this, e4, t3, true, n3);
+            }, f2.prototype.writeDoubleBE = function(e4, t3, n3) {
+              x(this, e4, t3, false, n3);
+            }, f2.prototype.fill = function(e4, t3, n3) {
+              if (t3 = t3 || 0, n3 = n3 || this.length, d("number" == typeof (e4 = "string" == typeof (e4 = e4 || 0) ? e4.charCodeAt(0) : e4) && !isNaN(e4), "value is not a number"), d(t3 <= n3, "end < start"), n3 !== t3 && 0 !== this.length) {
+                d(0 <= t3 && t3 < this.length, "start out of bounds"), d(0 <= n3 && n3 <= this.length, "end out of bounds");
+                for (var r3 = t3; r3 < n3; r3++)
+                  this[r3] = e4;
               }
-            }, f4.prototype.inspect = function() {
-              for (var e7 = [], t6 = this.length, n5 = 0; n5 < t6; n5++)
-                if (e7[n5] = k3(this[n5]), n5 === H3.INSPECT_MAX_BYTES) {
-                  e7[n5 + 1] = "...";
+            }, f2.prototype.inspect = function() {
+              for (var e4 = [], t3 = this.length, n3 = 0; n3 < t3; n3++)
+                if (e4[n3] = k(this[n3]), n3 === H.INSPECT_MAX_BYTES) {
+                  e4[n3 + 1] = "...";
                   break;
                 }
-              return "<Buffer " + e7.join(" ") + ">";
-            }, f4.prototype.toArrayBuffer = function() {
+              return "<Buffer " + e4.join(" ") + ">";
+            }, f2.prototype.toArrayBuffer = function() {
               if ("undefined" == typeof Uint8Array)
                 throw new Error("Buffer.toArrayBuffer not supported in this browser");
-              if (f4._useTypedArrays)
-                return new f4(this).buffer;
-              for (var e7 = new Uint8Array(this.length), t6 = 0, n5 = e7.length; t6 < n5; t6 += 1)
-                e7[t6] = this[t6];
-              return e7.buffer;
+              if (f2._useTypedArrays)
+                return new f2(this).buffer;
+              for (var e4 = new Uint8Array(this.length), t3 = 0, n3 = e4.length; t3 < n3; t3 += 1)
+                e4[t3] = this[t3];
+              return e4.buffer;
             };
-            var t5 = f4.prototype;
-            function S3(e7, t6, n5) {
-              return "number" != typeof e7 ? n5 : t6 <= (e7 = ~~e7) ? t6 : 0 <= e7 || 0 <= (e7 += t6) ? e7 : 0;
+            var t2 = f2.prototype;
+            function S(e4, t3, n3) {
+              return "number" != typeof e4 ? n3 : t3 <= (e4 = ~~e4) ? t3 : 0 <= e4 || 0 <= (e4 += t3) ? e4 : 0;
             }
-            function j3(e7) {
-              return (e7 = ~~Math.ceil(+e7)) < 0 ? 0 : e7;
+            function j(e4) {
+              return (e4 = ~~Math.ceil(+e4)) < 0 ? 0 : e4;
             }
-            function C3(e7) {
-              return (Array.isArray || function(e8) {
-                return "[object Array]" === Object.prototype.toString.call(e8);
-              })(e7);
+            function C(e4) {
+              return (Array.isArray || function(e5) {
+                return "[object Array]" === Object.prototype.toString.call(e5);
+              })(e4);
             }
-            function k3(e7) {
-              return e7 < 16 ? "0" + e7.toString(16) : e7.toString(16);
+            function k(e4) {
+              return e4 < 16 ? "0" + e4.toString(16) : e4.toString(16);
             }
-            function T4(e7) {
-              for (var t6 = [], n5 = 0; n5 < e7.length; n5++) {
-                var r6 = e7.charCodeAt(n5);
-                if (r6 <= 127)
-                  t6.push(e7.charCodeAt(n5));
+            function T(e4) {
+              for (var t3 = [], n3 = 0; n3 < e4.length; n3++) {
+                var r3 = e4.charCodeAt(n3);
+                if (r3 <= 127)
+                  t3.push(e4.charCodeAt(n3));
                 else
-                  for (var o5 = n5, i5 = (55296 <= r6 && r6 <= 57343 && n5++, encodeURIComponent(e7.slice(o5, n5 + 1)).substr(1).split("%")), u5 = 0; u5 < i5.length; u5++)
-                    t6.push(parseInt(i5[u5], 16));
+                  for (var o3 = n3, i3 = (55296 <= r3 && r3 <= 57343 && n3++, encodeURIComponent(e4.slice(o3, n3 + 1)).substr(1).split("%")), u3 = 0; u3 < i3.length; u3++)
+                    t3.push(parseInt(i3[u3], 16));
               }
-              return t6;
+              return t3;
             }
-            function M3(e7) {
-              return a4.toByteArray(e7);
+            function M(e4) {
+              return a2.toByteArray(e4);
             }
-            function c4(e7, t6, n5, r6) {
-              for (var o5 = 0; o5 < r6 && !(o5 + n5 >= t6.length || o5 >= e7.length); o5++)
-                t6[o5 + n5] = e7[o5];
-              return o5;
+            function c2(e4, t3, n3, r3) {
+              for (var o3 = 0; o3 < r3 && !(o3 + n3 >= t3.length || o3 >= e4.length); o3++)
+                t3[o3 + n3] = e4[o3];
+              return o3;
             }
-            function N3(e7) {
+            function N(e4) {
               try {
-                return decodeURIComponent(e7);
-              } catch (e8) {
+                return decodeURIComponent(e4);
+              } catch (e5) {
                 return String.fromCharCode(65533);
               }
             }
-            function Y3(e7, t6) {
-              d4("number" == typeof e7, "cannot write a non-number as a number"), d4(0 <= e7, "specified a negative value for writing an unsigned value"), d4(e7 <= t6, "value is larger than maximum value for type"), d4(Math.floor(e7) === e7, "value has a fractional component");
+            function Y(e4, t3) {
+              d("number" == typeof e4, "cannot write a non-number as a number"), d(0 <= e4, "specified a negative value for writing an unsigned value"), d(e4 <= t3, "value is larger than maximum value for type"), d(Math.floor(e4) === e4, "value has a fractional component");
             }
-            function F3(e7, t6, n5) {
-              d4("number" == typeof e7, "cannot write a non-number as a number"), d4(e7 <= t6, "value larger than maximum allowed value"), d4(n5 <= e7, "value smaller than minimum allowed value"), d4(Math.floor(e7) === e7, "value has a fractional component");
+            function F(e4, t3, n3) {
+              d("number" == typeof e4, "cannot write a non-number as a number"), d(e4 <= t3, "value larger than maximum allowed value"), d(n3 <= e4, "value smaller than minimum allowed value"), d(Math.floor(e4) === e4, "value has a fractional component");
             }
-            function D3(e7, t6, n5) {
-              d4("number" == typeof e7, "cannot write a non-number as a number"), d4(e7 <= t6, "value larger than maximum allowed value"), d4(n5 <= e7, "value smaller than minimum allowed value");
+            function D(e4, t3, n3) {
+              d("number" == typeof e4, "cannot write a non-number as a number"), d(e4 <= t3, "value larger than maximum allowed value"), d(n3 <= e4, "value smaller than minimum allowed value");
             }
-            function d4(e7, t6) {
-              if (!e7)
-                throw new Error(t6 || "Failed assertion");
+            function d(e4, t3) {
+              if (!e4)
+                throw new Error(t3 || "Failed assertion");
             }
-            f4._augment = function(e7) {
-              return e7._isBuffer = true, e7._get = e7.get, e7._set = e7.set, e7.get = t5.get, e7.set = t5.set, e7.write = t5.write, e7.toString = t5.toString, e7.toLocaleString = t5.toString, e7.toJSON = t5.toJSON, e7.copy = t5.copy, e7.slice = t5.slice, e7.readUInt8 = t5.readUInt8, e7.readUInt16LE = t5.readUInt16LE, e7.readUInt16BE = t5.readUInt16BE, e7.readUInt32LE = t5.readUInt32LE, e7.readUInt32BE = t5.readUInt32BE, e7.readInt8 = t5.readInt8, e7.readInt16LE = t5.readInt16LE, e7.readInt16BE = t5.readInt16BE, e7.readInt32LE = t5.readInt32LE, e7.readInt32BE = t5.readInt32BE, e7.readFloatLE = t5.readFloatLE, e7.readFloatBE = t5.readFloatBE, e7.readDoubleLE = t5.readDoubleLE, e7.readDoubleBE = t5.readDoubleBE, e7.writeUInt8 = t5.writeUInt8, e7.writeUInt16LE = t5.writeUInt16LE, e7.writeUInt16BE = t5.writeUInt16BE, e7.writeUInt32LE = t5.writeUInt32LE, e7.writeUInt32BE = t5.writeUInt32BE, e7.writeInt8 = t5.writeInt8, e7.writeInt16LE = t5.writeInt16LE, e7.writeInt16BE = t5.writeInt16BE, e7.writeInt32LE = t5.writeInt32LE, e7.writeInt32BE = t5.writeInt32BE, e7.writeFloatLE = t5.writeFloatLE, e7.writeFloatBE = t5.writeFloatBE, e7.writeDoubleLE = t5.writeDoubleLE, e7.writeDoubleBE = t5.writeDoubleBE, e7.fill = t5.fill, e7.inspect = t5.inspect, e7.toArrayBuffer = t5.toArrayBuffer, e7;
+            f2._augment = function(e4) {
+              return e4._isBuffer = true, e4._get = e4.get, e4._set = e4.set, e4.get = t2.get, e4.set = t2.set, e4.write = t2.write, e4.toString = t2.toString, e4.toLocaleString = t2.toString, e4.toJSON = t2.toJSON, e4.copy = t2.copy, e4.slice = t2.slice, e4.readUInt8 = t2.readUInt8, e4.readUInt16LE = t2.readUInt16LE, e4.readUInt16BE = t2.readUInt16BE, e4.readUInt32LE = t2.readUInt32LE, e4.readUInt32BE = t2.readUInt32BE, e4.readInt8 = t2.readInt8, e4.readInt16LE = t2.readInt16LE, e4.readInt16BE = t2.readInt16BE, e4.readInt32LE = t2.readInt32LE, e4.readInt32BE = t2.readInt32BE, e4.readFloatLE = t2.readFloatLE, e4.readFloatBE = t2.readFloatBE, e4.readDoubleLE = t2.readDoubleLE, e4.readDoubleBE = t2.readDoubleBE, e4.writeUInt8 = t2.writeUInt8, e4.writeUInt16LE = t2.writeUInt16LE, e4.writeUInt16BE = t2.writeUInt16BE, e4.writeUInt32LE = t2.writeUInt32LE, e4.writeUInt32BE = t2.writeUInt32BE, e4.writeInt8 = t2.writeInt8, e4.writeInt16LE = t2.writeInt16LE, e4.writeInt16BE = t2.writeInt16BE, e4.writeInt32LE = t2.writeInt32LE, e4.writeInt32BE = t2.writeInt32BE, e4.writeFloatLE = t2.writeFloatLE, e4.writeFloatBE = t2.writeFloatBE, e4.writeDoubleLE = t2.writeDoubleLE, e4.writeDoubleBE = t2.writeDoubleBE, e4.fill = t2.fill, e4.inspect = t2.inspect, e4.toArrayBuffer = t2.toArrayBuffer, e4;
             };
-          }.call(this, O3("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, O3("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/buffer/index.js", "/node_modules/gulp-browserify/node_modules/buffer");
-        }, { "base64-js": 2, buffer: 3, ieee754: 10, lYpoI2: 11 }], 4: [function(c4, d4, e5) {
-          !function(e6, t5, a4, n4, r5, o4, i4, u4, s4) {
-            var a4 = c4("buffer").Buffer, f4 = 4, l4 = new a4(f4);
-            l4.fill(0);
-            d4.exports = { hash: function(e7, t6, n5, r6) {
-              for (var o5 = t6(function(e8, t7) {
-                e8.length % f4 != 0 && (n6 = e8.length + (f4 - e8.length % f4), e8 = a4.concat([e8, l4], n6));
-                for (var n6, r7 = [], o6 = t7 ? e8.readInt32BE : e8.readInt32LE, i6 = 0; i6 < e8.length; i6 += f4)
-                  r7.push(o6.call(e8, i6));
-                return r7;
-              }(e7 = a4.isBuffer(e7) ? e7 : new a4(e7), r6), 8 * e7.length), t6 = r6, i5 = new a4(n5), u5 = t6 ? i5.writeInt32BE : i5.writeInt32LE, s5 = 0; s5 < o5.length; s5++)
-                u5.call(i5, o5[s5], 4 * s5, true);
-              return i5;
+          }.call(this, O("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, O("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/buffer/index.js", "/node_modules/gulp-browserify/node_modules/buffer");
+        }, { "base64-js": 2, buffer: 3, ieee754: 10, lYpoI2: 11 }], 4: [function(c2, d, e2) {
+          !function(e3, t2, a2, n2, r2, o2, i2, u2, s2) {
+            var a2 = c2("buffer").Buffer, f2 = 4, l2 = new a2(f2);
+            l2.fill(0);
+            d.exports = { hash: function(e4, t3, n3, r3) {
+              for (var o3 = t3(function(e5, t4) {
+                e5.length % f2 != 0 && (n4 = e5.length + (f2 - e5.length % f2), e5 = a2.concat([e5, l2], n4));
+                for (var n4, r4 = [], o4 = t4 ? e5.readInt32BE : e5.readInt32LE, i4 = 0; i4 < e5.length; i4 += f2)
+                  r4.push(o4.call(e5, i4));
+                return r4;
+              }(e4 = a2.isBuffer(e4) ? e4 : new a2(e4), r3), 8 * e4.length), t3 = r3, i3 = new a2(n3), u3 = t3 ? i3.writeInt32BE : i3.writeInt32LE, s3 = 0; s3 < o3.length; s3++)
+                u3.call(i3, o3[s3], 4 * s3, true);
+              return i3;
             } };
-          }.call(this, c4("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c4("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/helpers.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { buffer: 3, lYpoI2: 11 }], 5: [function(v4, e5, _3) {
-          !function(l4, c4, u4, d4, h5, p4, g3, y4, w3) {
-            var u4 = v4("buffer").Buffer, e6 = v4("./sha"), t5 = v4("./sha256"), n4 = v4("./rng"), b3 = { sha1: e6, sha256: t5, md5: v4("./md5") }, s4 = 64, a4 = new u4(s4);
-            function r5(e7, n5) {
-              var r6 = b3[e7 = e7 || "sha1"], o5 = [];
-              return r6 || i4("algorithm:", e7, "is not yet supported"), { update: function(e8) {
-                return u4.isBuffer(e8) || (e8 = new u4(e8)), o5.push(e8), e8.length, this;
-              }, digest: function(e8) {
-                var t6 = u4.concat(o5), t6 = n5 ? function(e9, t7, n6) {
-                  u4.isBuffer(t7) || (t7 = new u4(t7)), u4.isBuffer(n6) || (n6 = new u4(n6)), t7.length > s4 ? t7 = e9(t7) : t7.length < s4 && (t7 = u4.concat([t7, a4], s4));
-                  for (var r7 = new u4(s4), o6 = new u4(s4), i5 = 0; i5 < s4; i5++)
-                    r7[i5] = 54 ^ t7[i5], o6[i5] = 92 ^ t7[i5];
-                  return n6 = e9(u4.concat([r7, n6])), e9(u4.concat([o6, n6]));
-                }(r6, n5, t6) : r6(t6);
-                return o5 = null, e8 ? t6.toString(e8) : t6;
+          }.call(this, c2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/helpers.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { buffer: 3, lYpoI2: 11 }], 5: [function(v2, e2, _) {
+          !function(l2, c2, u2, d, h2, p2, g, y2, w) {
+            var u2 = v2("buffer").Buffer, e3 = v2("./sha"), t2 = v2("./sha256"), n2 = v2("./rng"), b = { sha1: e3, sha256: t2, md5: v2("./md5") }, s2 = 64, a2 = new u2(s2);
+            function r2(e4, n3) {
+              var r3 = b[e4 = e4 || "sha1"], o3 = [];
+              return r3 || i2("algorithm:", e4, "is not yet supported"), { update: function(e5) {
+                return u2.isBuffer(e5) || (e5 = new u2(e5)), o3.push(e5), e5.length, this;
+              }, digest: function(e5) {
+                var t3 = u2.concat(o3), t3 = n3 ? function(e6, t4, n4) {
+                  u2.isBuffer(t4) || (t4 = new u2(t4)), u2.isBuffer(n4) || (n4 = new u2(n4)), t4.length > s2 ? t4 = e6(t4) : t4.length < s2 && (t4 = u2.concat([t4, a2], s2));
+                  for (var r4 = new u2(s2), o4 = new u2(s2), i3 = 0; i3 < s2; i3++)
+                    r4[i3] = 54 ^ t4[i3], o4[i3] = 92 ^ t4[i3];
+                  return n4 = e6(u2.concat([r4, n4])), e6(u2.concat([o4, n4]));
+                }(r3, n3, t3) : r3(t3);
+                return o3 = null, e5 ? t3.toString(e5) : t3;
               } };
             }
-            function i4() {
-              var e7 = [].slice.call(arguments).join(" ");
-              throw new Error([e7, "we accept pull requests", "http://github.com/dominictarr/crypto-browserify"].join("\n"));
+            function i2() {
+              var e4 = [].slice.call(arguments).join(" ");
+              throw new Error([e4, "we accept pull requests", "http://github.com/dominictarr/crypto-browserify"].join("\n"));
             }
-            a4.fill(0), _3.createHash = function(e7) {
-              return r5(e7);
-            }, _3.createHmac = r5, _3.randomBytes = function(e7, t6) {
-              if (!t6 || !t6.call)
-                return new u4(n4(e7));
+            a2.fill(0), _.createHash = function(e4) {
+              return r2(e4);
+            }, _.createHmac = r2, _.randomBytes = function(e4, t3) {
+              if (!t3 || !t3.call)
+                return new u2(n2(e4));
               try {
-                t6.call(this, void 0, new u4(n4(e7)));
-              } catch (e8) {
-                t6(e8);
+                t3.call(this, void 0, new u2(n2(e4)));
+              } catch (e5) {
+                t3(e5);
               }
             };
-            var o4, f4 = ["createCredentials", "createCipher", "createCipheriv", "createDecipher", "createDecipheriv", "createSign", "createVerify", "createDiffieHellman", "pbkdf2"], m4 = function(e7) {
-              _3[e7] = function() {
-                i4("sorry,", e7, "is not implemented yet");
+            var o2, f2 = ["createCredentials", "createCipher", "createCipheriv", "createDecipher", "createDecipheriv", "createSign", "createVerify", "createDiffieHellman", "pbkdf2"], m = function(e4) {
+              _[e4] = function() {
+                i2("sorry,", e4, "is not implemented yet");
               };
             };
-            for (o4 in f4)
-              m4(f4[o4], o4);
-          }.call(this, v4("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, v4("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/index.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { "./md5": 6, "./rng": 7, "./sha": 8, "./sha256": 9, buffer: 3, lYpoI2: 11 }], 6: [function(w3, b3, e5) {
-          !function(e6, r5, o4, i4, u4, a4, f4, l4, y4) {
-            var t5 = w3("./helpers");
-            function n4(e7, t6) {
-              e7[t6 >> 5] |= 128 << t6 % 32, e7[14 + (t6 + 64 >>> 9 << 4)] = t6;
-              for (var n5 = 1732584193, r6 = -271733879, o5 = -1732584194, i5 = 271733878, u5 = 0; u5 < e7.length; u5 += 16) {
-                var s5 = n5, a5 = r6, f5 = o5, l5 = i5, n5 = c4(n5, r6, o5, i5, e7[u5 + 0], 7, -680876936), i5 = c4(i5, n5, r6, o5, e7[u5 + 1], 12, -389564586), o5 = c4(o5, i5, n5, r6, e7[u5 + 2], 17, 606105819), r6 = c4(r6, o5, i5, n5, e7[u5 + 3], 22, -1044525330);
-                n5 = c4(n5, r6, o5, i5, e7[u5 + 4], 7, -176418897), i5 = c4(i5, n5, r6, o5, e7[u5 + 5], 12, 1200080426), o5 = c4(o5, i5, n5, r6, e7[u5 + 6], 17, -1473231341), r6 = c4(r6, o5, i5, n5, e7[u5 + 7], 22, -45705983), n5 = c4(n5, r6, o5, i5, e7[u5 + 8], 7, 1770035416), i5 = c4(i5, n5, r6, o5, e7[u5 + 9], 12, -1958414417), o5 = c4(o5, i5, n5, r6, e7[u5 + 10], 17, -42063), r6 = c4(r6, o5, i5, n5, e7[u5 + 11], 22, -1990404162), n5 = c4(n5, r6, o5, i5, e7[u5 + 12], 7, 1804603682), i5 = c4(i5, n5, r6, o5, e7[u5 + 13], 12, -40341101), o5 = c4(o5, i5, n5, r6, e7[u5 + 14], 17, -1502002290), n5 = d4(n5, r6 = c4(r6, o5, i5, n5, e7[u5 + 15], 22, 1236535329), o5, i5, e7[u5 + 1], 5, -165796510), i5 = d4(i5, n5, r6, o5, e7[u5 + 6], 9, -1069501632), o5 = d4(o5, i5, n5, r6, e7[u5 + 11], 14, 643717713), r6 = d4(r6, o5, i5, n5, e7[u5 + 0], 20, -373897302), n5 = d4(n5, r6, o5, i5, e7[u5 + 5], 5, -701558691), i5 = d4(i5, n5, r6, o5, e7[u5 + 10], 9, 38016083), o5 = d4(o5, i5, n5, r6, e7[u5 + 15], 14, -660478335), r6 = d4(r6, o5, i5, n5, e7[u5 + 4], 20, -405537848), n5 = d4(n5, r6, o5, i5, e7[u5 + 9], 5, 568446438), i5 = d4(i5, n5, r6, o5, e7[u5 + 14], 9, -1019803690), o5 = d4(o5, i5, n5, r6, e7[u5 + 3], 14, -187363961), r6 = d4(r6, o5, i5, n5, e7[u5 + 8], 20, 1163531501), n5 = d4(n5, r6, o5, i5, e7[u5 + 13], 5, -1444681467), i5 = d4(i5, n5, r6, o5, e7[u5 + 2], 9, -51403784), o5 = d4(o5, i5, n5, r6, e7[u5 + 7], 14, 1735328473), n5 = h5(n5, r6 = d4(r6, o5, i5, n5, e7[u5 + 12], 20, -1926607734), o5, i5, e7[u5 + 5], 4, -378558), i5 = h5(i5, n5, r6, o5, e7[u5 + 8], 11, -2022574463), o5 = h5(o5, i5, n5, r6, e7[u5 + 11], 16, 1839030562), r6 = h5(r6, o5, i5, n5, e7[u5 + 14], 23, -35309556), n5 = h5(n5, r6, o5, i5, e7[u5 + 1], 4, -1530992060), i5 = h5(i5, n5, r6, o5, e7[u5 + 4], 11, 1272893353), o5 = h5(o5, i5, n5, r6, e7[u5 + 7], 16, -155497632), r6 = h5(r6, o5, i5, n5, e7[u5 + 10], 23, -1094730640), n5 = h5(n5, r6, o5, i5, e7[u5 + 13], 4, 681279174), i5 = h5(i5, n5, r6, o5, e7[u5 + 0], 11, -358537222), o5 = h5(o5, i5, n5, r6, e7[u5 + 3], 16, -722521979), r6 = h5(r6, o5, i5, n5, e7[u5 + 6], 23, 76029189), n5 = h5(n5, r6, o5, i5, e7[u5 + 9], 4, -640364487), i5 = h5(i5, n5, r6, o5, e7[u5 + 12], 11, -421815835), o5 = h5(o5, i5, n5, r6, e7[u5 + 15], 16, 530742520), n5 = p4(n5, r6 = h5(r6, o5, i5, n5, e7[u5 + 2], 23, -995338651), o5, i5, e7[u5 + 0], 6, -198630844), i5 = p4(i5, n5, r6, o5, e7[u5 + 7], 10, 1126891415), o5 = p4(o5, i5, n5, r6, e7[u5 + 14], 15, -1416354905), r6 = p4(r6, o5, i5, n5, e7[u5 + 5], 21, -57434055), n5 = p4(n5, r6, o5, i5, e7[u5 + 12], 6, 1700485571), i5 = p4(i5, n5, r6, o5, e7[u5 + 3], 10, -1894986606), o5 = p4(o5, i5, n5, r6, e7[u5 + 10], 15, -1051523), r6 = p4(r6, o5, i5, n5, e7[u5 + 1], 21, -2054922799), n5 = p4(n5, r6, o5, i5, e7[u5 + 8], 6, 1873313359), i5 = p4(i5, n5, r6, o5, e7[u5 + 15], 10, -30611744), o5 = p4(o5, i5, n5, r6, e7[u5 + 6], 15, -1560198380), r6 = p4(r6, o5, i5, n5, e7[u5 + 13], 21, 1309151649), n5 = p4(n5, r6, o5, i5, e7[u5 + 4], 6, -145523070), i5 = p4(i5, n5, r6, o5, e7[u5 + 11], 10, -1120210379), o5 = p4(o5, i5, n5, r6, e7[u5 + 2], 15, 718787259), r6 = p4(r6, o5, i5, n5, e7[u5 + 9], 21, -343485551), n5 = g3(n5, s5), r6 = g3(r6, a5), o5 = g3(o5, f5), i5 = g3(i5, l5);
+            for (o2 in f2)
+              m(f2[o2], o2);
+          }.call(this, v2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, v2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/index.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { "./md5": 6, "./rng": 7, "./sha": 8, "./sha256": 9, buffer: 3, lYpoI2: 11 }], 6: [function(w, b, e2) {
+          !function(e3, r2, o2, i2, u2, a2, f2, l2, y2) {
+            var t2 = w("./helpers");
+            function n2(e4, t3) {
+              e4[t3 >> 5] |= 128 << t3 % 32, e4[14 + (t3 + 64 >>> 9 << 4)] = t3;
+              for (var n3 = 1732584193, r3 = -271733879, o3 = -1732584194, i3 = 271733878, u3 = 0; u3 < e4.length; u3 += 16) {
+                var s3 = n3, a3 = r3, f3 = o3, l3 = i3, n3 = c2(n3, r3, o3, i3, e4[u3 + 0], 7, -680876936), i3 = c2(i3, n3, r3, o3, e4[u3 + 1], 12, -389564586), o3 = c2(o3, i3, n3, r3, e4[u3 + 2], 17, 606105819), r3 = c2(r3, o3, i3, n3, e4[u3 + 3], 22, -1044525330);
+                n3 = c2(n3, r3, o3, i3, e4[u3 + 4], 7, -176418897), i3 = c2(i3, n3, r3, o3, e4[u3 + 5], 12, 1200080426), o3 = c2(o3, i3, n3, r3, e4[u3 + 6], 17, -1473231341), r3 = c2(r3, o3, i3, n3, e4[u3 + 7], 22, -45705983), n3 = c2(n3, r3, o3, i3, e4[u3 + 8], 7, 1770035416), i3 = c2(i3, n3, r3, o3, e4[u3 + 9], 12, -1958414417), o3 = c2(o3, i3, n3, r3, e4[u3 + 10], 17, -42063), r3 = c2(r3, o3, i3, n3, e4[u3 + 11], 22, -1990404162), n3 = c2(n3, r3, o3, i3, e4[u3 + 12], 7, 1804603682), i3 = c2(i3, n3, r3, o3, e4[u3 + 13], 12, -40341101), o3 = c2(o3, i3, n3, r3, e4[u3 + 14], 17, -1502002290), n3 = d(n3, r3 = c2(r3, o3, i3, n3, e4[u3 + 15], 22, 1236535329), o3, i3, e4[u3 + 1], 5, -165796510), i3 = d(i3, n3, r3, o3, e4[u3 + 6], 9, -1069501632), o3 = d(o3, i3, n3, r3, e4[u3 + 11], 14, 643717713), r3 = d(r3, o3, i3, n3, e4[u3 + 0], 20, -373897302), n3 = d(n3, r3, o3, i3, e4[u3 + 5], 5, -701558691), i3 = d(i3, n3, r3, o3, e4[u3 + 10], 9, 38016083), o3 = d(o3, i3, n3, r3, e4[u3 + 15], 14, -660478335), r3 = d(r3, o3, i3, n3, e4[u3 + 4], 20, -405537848), n3 = d(n3, r3, o3, i3, e4[u3 + 9], 5, 568446438), i3 = d(i3, n3, r3, o3, e4[u3 + 14], 9, -1019803690), o3 = d(o3, i3, n3, r3, e4[u3 + 3], 14, -187363961), r3 = d(r3, o3, i3, n3, e4[u3 + 8], 20, 1163531501), n3 = d(n3, r3, o3, i3, e4[u3 + 13], 5, -1444681467), i3 = d(i3, n3, r3, o3, e4[u3 + 2], 9, -51403784), o3 = d(o3, i3, n3, r3, e4[u3 + 7], 14, 1735328473), n3 = h2(n3, r3 = d(r3, o3, i3, n3, e4[u3 + 12], 20, -1926607734), o3, i3, e4[u3 + 5], 4, -378558), i3 = h2(i3, n3, r3, o3, e4[u3 + 8], 11, -2022574463), o3 = h2(o3, i3, n3, r3, e4[u3 + 11], 16, 1839030562), r3 = h2(r3, o3, i3, n3, e4[u3 + 14], 23, -35309556), n3 = h2(n3, r3, o3, i3, e4[u3 + 1], 4, -1530992060), i3 = h2(i3, n3, r3, o3, e4[u3 + 4], 11, 1272893353), o3 = h2(o3, i3, n3, r3, e4[u3 + 7], 16, -155497632), r3 = h2(r3, o3, i3, n3, e4[u3 + 10], 23, -1094730640), n3 = h2(n3, r3, o3, i3, e4[u3 + 13], 4, 681279174), i3 = h2(i3, n3, r3, o3, e4[u3 + 0], 11, -358537222), o3 = h2(o3, i3, n3, r3, e4[u3 + 3], 16, -722521979), r3 = h2(r3, o3, i3, n3, e4[u3 + 6], 23, 76029189), n3 = h2(n3, r3, o3, i3, e4[u3 + 9], 4, -640364487), i3 = h2(i3, n3, r3, o3, e4[u3 + 12], 11, -421815835), o3 = h2(o3, i3, n3, r3, e4[u3 + 15], 16, 530742520), n3 = p2(n3, r3 = h2(r3, o3, i3, n3, e4[u3 + 2], 23, -995338651), o3, i3, e4[u3 + 0], 6, -198630844), i3 = p2(i3, n3, r3, o3, e4[u3 + 7], 10, 1126891415), o3 = p2(o3, i3, n3, r3, e4[u3 + 14], 15, -1416354905), r3 = p2(r3, o3, i3, n3, e4[u3 + 5], 21, -57434055), n3 = p2(n3, r3, o3, i3, e4[u3 + 12], 6, 1700485571), i3 = p2(i3, n3, r3, o3, e4[u3 + 3], 10, -1894986606), o3 = p2(o3, i3, n3, r3, e4[u3 + 10], 15, -1051523), r3 = p2(r3, o3, i3, n3, e4[u3 + 1], 21, -2054922799), n3 = p2(n3, r3, o3, i3, e4[u3 + 8], 6, 1873313359), i3 = p2(i3, n3, r3, o3, e4[u3 + 15], 10, -30611744), o3 = p2(o3, i3, n3, r3, e4[u3 + 6], 15, -1560198380), r3 = p2(r3, o3, i3, n3, e4[u3 + 13], 21, 1309151649), n3 = p2(n3, r3, o3, i3, e4[u3 + 4], 6, -145523070), i3 = p2(i3, n3, r3, o3, e4[u3 + 11], 10, -1120210379), o3 = p2(o3, i3, n3, r3, e4[u3 + 2], 15, 718787259), r3 = p2(r3, o3, i3, n3, e4[u3 + 9], 21, -343485551), n3 = g(n3, s3), r3 = g(r3, a3), o3 = g(o3, f3), i3 = g(i3, l3);
               }
-              return Array(n5, r6, o5, i5);
+              return Array(n3, r3, o3, i3);
             }
-            function s4(e7, t6, n5, r6, o5, i5) {
-              return g3((t6 = g3(g3(t6, e7), g3(r6, i5))) << o5 | t6 >>> 32 - o5, n5);
+            function s2(e4, t3, n3, r3, o3, i3) {
+              return g((t3 = g(g(t3, e4), g(r3, i3))) << o3 | t3 >>> 32 - o3, n3);
             }
-            function c4(e7, t6, n5, r6, o5, i5, u5) {
-              return s4(t6 & n5 | ~t6 & r6, e7, t6, o5, i5, u5);
+            function c2(e4, t3, n3, r3, o3, i3, u3) {
+              return s2(t3 & n3 | ~t3 & r3, e4, t3, o3, i3, u3);
             }
-            function d4(e7, t6, n5, r6, o5, i5, u5) {
-              return s4(t6 & r6 | n5 & ~r6, e7, t6, o5, i5, u5);
+            function d(e4, t3, n3, r3, o3, i3, u3) {
+              return s2(t3 & r3 | n3 & ~r3, e4, t3, o3, i3, u3);
             }
-            function h5(e7, t6, n5, r6, o5, i5, u5) {
-              return s4(t6 ^ n5 ^ r6, e7, t6, o5, i5, u5);
+            function h2(e4, t3, n3, r3, o3, i3, u3) {
+              return s2(t3 ^ n3 ^ r3, e4, t3, o3, i3, u3);
             }
-            function p4(e7, t6, n5, r6, o5, i5, u5) {
-              return s4(n5 ^ (t6 | ~r6), e7, t6, o5, i5, u5);
+            function p2(e4, t3, n3, r3, o3, i3, u3) {
+              return s2(n3 ^ (t3 | ~r3), e4, t3, o3, i3, u3);
             }
-            function g3(e7, t6) {
-              var n5 = (65535 & e7) + (65535 & t6);
-              return (e7 >> 16) + (t6 >> 16) + (n5 >> 16) << 16 | 65535 & n5;
+            function g(e4, t3) {
+              var n3 = (65535 & e4) + (65535 & t3);
+              return (e4 >> 16) + (t3 >> 16) + (n3 >> 16) << 16 | 65535 & n3;
             }
-            b3.exports = function(e7) {
-              return t5.hash(e7, n4, 16);
+            b.exports = function(e4) {
+              return t2.hash(e4, n2, 16);
             };
-          }.call(this, w3("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, w3("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/md5.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 7: [function(e5, l4, t5) {
-          !function(e6, t6, n4, r5, o4, i4, u4, s4, f4) {
-            var a4;
-            l4.exports = a4 || function(e7) {
-              for (var t7, n5 = new Array(e7), r6 = 0; r6 < e7; r6++)
-                0 == (3 & r6) && (t7 = 4294967296 * Math.random()), n5[r6] = t7 >>> ((3 & r6) << 3) & 255;
-              return n5;
+          }.call(this, w("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, w("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/md5.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 7: [function(e2, l2, t2) {
+          !function(e3, t3, n2, r2, o2, i2, u2, s2, f2) {
+            var a2;
+            l2.exports = a2 || function(e4) {
+              for (var t4, n3 = new Array(e4), r3 = 0; r3 < e4; r3++)
+                0 == (3 & r3) && (t4 = 4294967296 * Math.random()), n3[r3] = t4 >>> ((3 & r3) << 3) & 255;
+              return n3;
             };
-          }.call(this, e5("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e5("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/rng.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { buffer: 3, lYpoI2: 11 }], 8: [function(c4, d4, e5) {
-          !function(e6, t5, n4, r5, o4, s4, a4, f4, l4) {
-            var i4 = c4("./helpers");
-            function u4(l5, c5) {
-              l5[c5 >> 5] |= 128 << 24 - c5 % 32, l5[15 + (c5 + 64 >> 9 << 4)] = c5;
-              for (var e7, t6, n5, r6 = Array(80), o5 = 1732584193, i5 = -271733879, u5 = -1732584194, s5 = 271733878, d5 = -1009589776, h5 = 0; h5 < l5.length; h5 += 16) {
-                for (var p4 = o5, g3 = i5, y4 = u5, w3 = s5, b3 = d5, a5 = 0; a5 < 80; a5++) {
-                  r6[a5] = a5 < 16 ? l5[h5 + a5] : v4(r6[a5 - 3] ^ r6[a5 - 8] ^ r6[a5 - 14] ^ r6[a5 - 16], 1);
-                  var f5 = m4(m4(v4(o5, 5), (f5 = i5, t6 = u5, n5 = s5, (e7 = a5) < 20 ? f5 & t6 | ~f5 & n5 : !(e7 < 40) && e7 < 60 ? f5 & t6 | f5 & n5 | t6 & n5 : f5 ^ t6 ^ n5)), m4(m4(d5, r6[a5]), (e7 = a5) < 20 ? 1518500249 : e7 < 40 ? 1859775393 : e7 < 60 ? -1894007588 : -899497514)), d5 = s5, s5 = u5, u5 = v4(i5, 30), i5 = o5, o5 = f5;
+          }.call(this, e2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/rng.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { buffer: 3, lYpoI2: 11 }], 8: [function(c2, d, e2) {
+          !function(e3, t2, n2, r2, o2, s2, a2, f2, l2) {
+            var i2 = c2("./helpers");
+            function u2(l3, c3) {
+              l3[c3 >> 5] |= 128 << 24 - c3 % 32, l3[15 + (c3 + 64 >> 9 << 4)] = c3;
+              for (var e4, t3, n3, r3 = Array(80), o3 = 1732584193, i3 = -271733879, u3 = -1732584194, s3 = 271733878, d2 = -1009589776, h2 = 0; h2 < l3.length; h2 += 16) {
+                for (var p2 = o3, g = i3, y2 = u3, w = s3, b = d2, a3 = 0; a3 < 80; a3++) {
+                  r3[a3] = a3 < 16 ? l3[h2 + a3] : v2(r3[a3 - 3] ^ r3[a3 - 8] ^ r3[a3 - 14] ^ r3[a3 - 16], 1);
+                  var f3 = m(m(v2(o3, 5), (f3 = i3, t3 = u3, n3 = s3, (e4 = a3) < 20 ? f3 & t3 | ~f3 & n3 : !(e4 < 40) && e4 < 60 ? f3 & t3 | f3 & n3 | t3 & n3 : f3 ^ t3 ^ n3)), m(m(d2, r3[a3]), (e4 = a3) < 20 ? 1518500249 : e4 < 40 ? 1859775393 : e4 < 60 ? -1894007588 : -899497514)), d2 = s3, s3 = u3, u3 = v2(i3, 30), i3 = o3, o3 = f3;
                 }
-                o5 = m4(o5, p4), i5 = m4(i5, g3), u5 = m4(u5, y4), s5 = m4(s5, w3), d5 = m4(d5, b3);
+                o3 = m(o3, p2), i3 = m(i3, g), u3 = m(u3, y2), s3 = m(s3, w), d2 = m(d2, b);
               }
-              return Array(o5, i5, u5, s5, d5);
+              return Array(o3, i3, u3, s3, d2);
             }
-            function m4(e7, t6) {
-              var n5 = (65535 & e7) + (65535 & t6);
-              return (e7 >> 16) + (t6 >> 16) + (n5 >> 16) << 16 | 65535 & n5;
+            function m(e4, t3) {
+              var n3 = (65535 & e4) + (65535 & t3);
+              return (e4 >> 16) + (t3 >> 16) + (n3 >> 16) << 16 | 65535 & n3;
             }
-            function v4(e7, t6) {
-              return e7 << t6 | e7 >>> 32 - t6;
+            function v2(e4, t3) {
+              return e4 << t3 | e4 >>> 32 - t3;
             }
-            d4.exports = function(e7) {
-              return i4.hash(e7, u4, 20, true);
+            d.exports = function(e4) {
+              return i2.hash(e4, u2, 20, true);
             };
-          }.call(this, c4("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c4("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/sha.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 9: [function(c4, d4, e5) {
-          !function(e6, t5, n4, r5, u4, s4, a4, f4, l4) {
-            function b3(e7, t6) {
-              var n5 = (65535 & e7) + (65535 & t6);
-              return (e7 >> 16) + (t6 >> 16) + (n5 >> 16) << 16 | 65535 & n5;
+          }.call(this, c2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/sha.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 9: [function(c2, d, e2) {
+          !function(e3, t2, n2, r2, u2, s2, a2, f2, l2) {
+            function b(e4, t3) {
+              var n3 = (65535 & e4) + (65535 & t3);
+              return (e4 >> 16) + (t3 >> 16) + (n3 >> 16) << 16 | 65535 & n3;
             }
-            function o4(e7, l5) {
-              var c5, d5 = new Array(1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993, 2453635748, 2870763221, 3624381080, 310598401, 607225278, 1426881987, 1925078388, 2162078206, 2614888103, 3248222580, 3835390401, 4022224774, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, 2554220882, 2821834349, 2952996808, 3210313671, 3336571891, 3584528711, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, 2177026350, 2456956037, 2730485921, 2820302411, 3259730800, 3345764771, 3516065817, 3600352804, 4094571909, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, 2227730452, 2361852424, 2428436474, 2756734187, 3204031479, 3329325298), t6 = new Array(1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225), n5 = new Array(64);
-              e7[l5 >> 5] |= 128 << 24 - l5 % 32, e7[15 + (l5 + 64 >> 9 << 4)] = l5;
-              for (var r6, o5, h5 = 0; h5 < e7.length; h5 += 16) {
-                for (var i5 = t6[0], u5 = t6[1], s5 = t6[2], p4 = t6[3], a5 = t6[4], g3 = t6[5], y4 = t6[6], w3 = t6[7], f5 = 0; f5 < 64; f5++)
-                  n5[f5] = f5 < 16 ? e7[f5 + h5] : b3(b3(b3((o5 = n5[f5 - 2], m4(o5, 17) ^ m4(o5, 19) ^ v4(o5, 10)), n5[f5 - 7]), (o5 = n5[f5 - 15], m4(o5, 7) ^ m4(o5, 18) ^ v4(o5, 3))), n5[f5 - 16]), c5 = b3(b3(b3(b3(w3, m4(o5 = a5, 6) ^ m4(o5, 11) ^ m4(o5, 25)), a5 & g3 ^ ~a5 & y4), d5[f5]), n5[f5]), r6 = b3(m4(r6 = i5, 2) ^ m4(r6, 13) ^ m4(r6, 22), i5 & u5 ^ i5 & s5 ^ u5 & s5), w3 = y4, y4 = g3, g3 = a5, a5 = b3(p4, c5), p4 = s5, s5 = u5, u5 = i5, i5 = b3(c5, r6);
-                t6[0] = b3(i5, t6[0]), t6[1] = b3(u5, t6[1]), t6[2] = b3(s5, t6[2]), t6[3] = b3(p4, t6[3]), t6[4] = b3(a5, t6[4]), t6[5] = b3(g3, t6[5]), t6[6] = b3(y4, t6[6]), t6[7] = b3(w3, t6[7]);
+            function o2(e4, l3) {
+              var c3, d2 = new Array(1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993, 2453635748, 2870763221, 3624381080, 310598401, 607225278, 1426881987, 1925078388, 2162078206, 2614888103, 3248222580, 3835390401, 4022224774, 264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986, 2554220882, 2821834349, 2952996808, 3210313671, 3336571891, 3584528711, 113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291, 1695183700, 1986661051, 2177026350, 2456956037, 2730485921, 2820302411, 3259730800, 3345764771, 3516065817, 3600352804, 4094571909, 275423344, 430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063, 1747873779, 1955562222, 2024104815, 2227730452, 2361852424, 2428436474, 2756734187, 3204031479, 3329325298), t3 = new Array(1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225), n3 = new Array(64);
+              e4[l3 >> 5] |= 128 << 24 - l3 % 32, e4[15 + (l3 + 64 >> 9 << 4)] = l3;
+              for (var r3, o3, h2 = 0; h2 < e4.length; h2 += 16) {
+                for (var i3 = t3[0], u3 = t3[1], s3 = t3[2], p2 = t3[3], a3 = t3[4], g = t3[5], y2 = t3[6], w = t3[7], f3 = 0; f3 < 64; f3++)
+                  n3[f3] = f3 < 16 ? e4[f3 + h2] : b(b(b((o3 = n3[f3 - 2], m(o3, 17) ^ m(o3, 19) ^ v2(o3, 10)), n3[f3 - 7]), (o3 = n3[f3 - 15], m(o3, 7) ^ m(o3, 18) ^ v2(o3, 3))), n3[f3 - 16]), c3 = b(b(b(b(w, m(o3 = a3, 6) ^ m(o3, 11) ^ m(o3, 25)), a3 & g ^ ~a3 & y2), d2[f3]), n3[f3]), r3 = b(m(r3 = i3, 2) ^ m(r3, 13) ^ m(r3, 22), i3 & u3 ^ i3 & s3 ^ u3 & s3), w = y2, y2 = g, g = a3, a3 = b(p2, c3), p2 = s3, s3 = u3, u3 = i3, i3 = b(c3, r3);
+                t3[0] = b(i3, t3[0]), t3[1] = b(u3, t3[1]), t3[2] = b(s3, t3[2]), t3[3] = b(p2, t3[3]), t3[4] = b(a3, t3[4]), t3[5] = b(g, t3[5]), t3[6] = b(y2, t3[6]), t3[7] = b(w, t3[7]);
               }
-              return t6;
+              return t3;
             }
-            var i4 = c4("./helpers"), m4 = function(e7, t6) {
-              return e7 >>> t6 | e7 << 32 - t6;
-            }, v4 = function(e7, t6) {
-              return e7 >>> t6;
+            var i2 = c2("./helpers"), m = function(e4, t3) {
+              return e4 >>> t3 | e4 << 32 - t3;
+            }, v2 = function(e4, t3) {
+              return e4 >>> t3;
             };
-            d4.exports = function(e7) {
-              return i4.hash(e7, o4, 32, true);
+            d.exports = function(e4) {
+              return i2.hash(e4, o2, 32, true);
             };
-          }.call(this, c4("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c4("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/sha256.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
-        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 10: [function(e5, t5, f4) {
-          !function(e6, t6, n4, r5, o4, i4, u4, s4, a4) {
-            f4.read = function(e7, t7, n5, r6, o5) {
-              var i5, u5, l4 = 8 * o5 - r6 - 1, c4 = (1 << l4) - 1, d4 = c4 >> 1, s5 = -7, a5 = n5 ? o5 - 1 : 0, f5 = n5 ? -1 : 1, o5 = e7[t7 + a5];
-              for (a5 += f5, i5 = o5 & (1 << -s5) - 1, o5 >>= -s5, s5 += l4; 0 < s5; i5 = 256 * i5 + e7[t7 + a5], a5 += f5, s5 -= 8)
+          }.call(this, c2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, c2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/crypto-browserify/sha256.js", "/node_modules/gulp-browserify/node_modules/crypto-browserify");
+        }, { "./helpers": 4, buffer: 3, lYpoI2: 11 }], 10: [function(e2, t2, f2) {
+          !function(e3, t3, n2, r2, o2, i2, u2, s2, a2) {
+            f2.read = function(e4, t4, n3, r3, o3) {
+              var i3, u3, l2 = 8 * o3 - r3 - 1, c2 = (1 << l2) - 1, d = c2 >> 1, s3 = -7, a3 = n3 ? o3 - 1 : 0, f3 = n3 ? -1 : 1, o3 = e4[t4 + a3];
+              for (a3 += f3, i3 = o3 & (1 << -s3) - 1, o3 >>= -s3, s3 += l2; 0 < s3; i3 = 256 * i3 + e4[t4 + a3], a3 += f3, s3 -= 8)
                 ;
-              for (u5 = i5 & (1 << -s5) - 1, i5 >>= -s5, s5 += r6; 0 < s5; u5 = 256 * u5 + e7[t7 + a5], a5 += f5, s5 -= 8)
+              for (u3 = i3 & (1 << -s3) - 1, i3 >>= -s3, s3 += r3; 0 < s3; u3 = 256 * u3 + e4[t4 + a3], a3 += f3, s3 -= 8)
                 ;
-              if (0 === i5)
-                i5 = 1 - d4;
+              if (0 === i3)
+                i3 = 1 - d;
               else {
-                if (i5 === c4)
-                  return u5 ? NaN : 1 / 0 * (o5 ? -1 : 1);
-                u5 += Math.pow(2, r6), i5 -= d4;
+                if (i3 === c2)
+                  return u3 ? NaN : 1 / 0 * (o3 ? -1 : 1);
+                u3 += Math.pow(2, r3), i3 -= d;
               }
-              return (o5 ? -1 : 1) * u5 * Math.pow(2, i5 - r6);
-            }, f4.write = function(e7, t7, l4, n5, r6, c4) {
-              var o5, i5, u5 = 8 * c4 - r6 - 1, s5 = (1 << u5) - 1, a5 = s5 >> 1, d4 = 23 === r6 ? Math.pow(2, -24) - Math.pow(2, -77) : 0, f5 = n5 ? 0 : c4 - 1, h5 = n5 ? 1 : -1, c4 = t7 < 0 || 0 === t7 && 1 / t7 < 0 ? 1 : 0;
-              for (t7 = Math.abs(t7), isNaN(t7) || t7 === 1 / 0 ? (i5 = isNaN(t7) ? 1 : 0, o5 = s5) : (o5 = Math.floor(Math.log(t7) / Math.LN2), t7 * (n5 = Math.pow(2, -o5)) < 1 && (o5--, n5 *= 2), 2 <= (t7 += 1 <= o5 + a5 ? d4 / n5 : d4 * Math.pow(2, 1 - a5)) * n5 && (o5++, n5 /= 2), s5 <= o5 + a5 ? (i5 = 0, o5 = s5) : 1 <= o5 + a5 ? (i5 = (t7 * n5 - 1) * Math.pow(2, r6), o5 += a5) : (i5 = t7 * Math.pow(2, a5 - 1) * Math.pow(2, r6), o5 = 0)); 8 <= r6; e7[l4 + f5] = 255 & i5, f5 += h5, i5 /= 256, r6 -= 8)
+              return (o3 ? -1 : 1) * u3 * Math.pow(2, i3 - r3);
+            }, f2.write = function(e4, t4, l2, n3, r3, c2) {
+              var o3, i3, u3 = 8 * c2 - r3 - 1, s3 = (1 << u3) - 1, a3 = s3 >> 1, d = 23 === r3 ? Math.pow(2, -24) - Math.pow(2, -77) : 0, f3 = n3 ? 0 : c2 - 1, h2 = n3 ? 1 : -1, c2 = t4 < 0 || 0 === t4 && 1 / t4 < 0 ? 1 : 0;
+              for (t4 = Math.abs(t4), isNaN(t4) || t4 === 1 / 0 ? (i3 = isNaN(t4) ? 1 : 0, o3 = s3) : (o3 = Math.floor(Math.log(t4) / Math.LN2), t4 * (n3 = Math.pow(2, -o3)) < 1 && (o3--, n3 *= 2), 2 <= (t4 += 1 <= o3 + a3 ? d / n3 : d * Math.pow(2, 1 - a3)) * n3 && (o3++, n3 /= 2), s3 <= o3 + a3 ? (i3 = 0, o3 = s3) : 1 <= o3 + a3 ? (i3 = (t4 * n3 - 1) * Math.pow(2, r3), o3 += a3) : (i3 = t4 * Math.pow(2, a3 - 1) * Math.pow(2, r3), o3 = 0)); 8 <= r3; e4[l2 + f3] = 255 & i3, f3 += h2, i3 /= 256, r3 -= 8)
                 ;
-              for (o5 = o5 << r6 | i5, u5 += r6; 0 < u5; e7[l4 + f5] = 255 & o5, f5 += h5, o5 /= 256, u5 -= 8)
+              for (o3 = o3 << r3 | i3, u3 += r3; 0 < u3; e4[l2 + f3] = 255 & o3, f3 += h2, o3 /= 256, u3 -= 8)
                 ;
-              e7[l4 + f5 - h5] |= 128 * c4;
+              e4[l2 + f3 - h2] |= 128 * c2;
             };
-          }.call(this, e5("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e5("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/ieee754/index.js", "/node_modules/gulp-browserify/node_modules/ieee754");
-        }, { buffer: 3, lYpoI2: 11 }], 11: [function(e5, h5, t5) {
-          !function(e6, t6, n4, r5, o4, f4, l4, c4, d4) {
-            var i4, u4, s4;
-            function a4() {
+          }.call(this, e2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/ieee754/index.js", "/node_modules/gulp-browserify/node_modules/ieee754");
+        }, { buffer: 3, lYpoI2: 11 }], 11: [function(e2, h2, t2) {
+          !function(e3, t3, n2, r2, o2, f2, l2, c2, d) {
+            var i2, u2, s2;
+            function a2() {
             }
-            (e6 = h5.exports = {}).nextTick = (u4 = "undefined" != typeof window && window.setImmediate, s4 = "undefined" != typeof window && window.postMessage && window.addEventListener, u4 ? function(e7) {
-              return window.setImmediate(e7);
-            } : s4 ? (i4 = [], window.addEventListener("message", function(e7) {
-              var t7 = e7.source;
-              t7 !== window && null !== t7 || "process-tick" !== e7.data || (e7.stopPropagation(), 0 < i4.length && i4.shift()());
-            }, true), function(e7) {
-              i4.push(e7), window.postMessage("process-tick", "*");
-            }) : function(e7) {
-              setTimeout(e7, 0);
-            }), e6.title = "browser", e6.browser = true, e6.env = {}, e6.argv = [], e6.on = a4, e6.addListener = a4, e6.once = a4, e6.off = a4, e6.removeListener = a4, e6.removeAllListeners = a4, e6.emit = a4, e6.binding = function(e7) {
+            (e3 = h2.exports = {}).nextTick = (u2 = "undefined" != typeof window && window.setImmediate, s2 = "undefined" != typeof window && window.postMessage && window.addEventListener, u2 ? function(e4) {
+              return window.setImmediate(e4);
+            } : s2 ? (i2 = [], window.addEventListener("message", function(e4) {
+              var t4 = e4.source;
+              t4 !== window && null !== t4 || "process-tick" !== e4.data || (e4.stopPropagation(), 0 < i2.length && i2.shift()());
+            }, true), function(e4) {
+              i2.push(e4), window.postMessage("process-tick", "*");
+            }) : function(e4) {
+              setTimeout(e4, 0);
+            }), e3.title = "browser", e3.browser = true, e3.env = {}, e3.argv = [], e3.on = a2, e3.addListener = a2, e3.once = a2, e3.off = a2, e3.removeListener = a2, e3.removeAllListeners = a2, e3.emit = a2, e3.binding = function(e4) {
               throw new Error("process.binding is not supported");
-            }, e6.cwd = function() {
+            }, e3.cwd = function() {
               return "/";
-            }, e6.chdir = function(e7) {
+            }, e3.chdir = function(e4) {
               throw new Error("process.chdir is not supported");
             };
-          }.call(this, e5("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e5("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/process/browser.js", "/node_modules/gulp-browserify/node_modules/process");
+          }.call(this, e2("lYpoI2"), "undefined" != typeof self ? self : "undefined" != typeof window ? window : {}, e2("buffer").Buffer, arguments[3], arguments[4], arguments[5], arguments[6], "/node_modules/gulp-browserify/node_modules/process/browser.js", "/node_modules/gulp-browserify/node_modules/process");
         }, { buffer: 3, lYpoI2: 11 }] }, {}, [1])(1);
       });
     }
@@ -3232,11 +3232,11 @@ var Tabby = (() => {
       var revLookup = [];
       var Arr = typeof Uint8Array !== "undefined" ? Uint8Array : Array;
       var code = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-      for (i4 = 0, len = code.length; i4 < len; ++i4) {
-        lookup[i4] = code[i4];
-        revLookup[code.charCodeAt(i4)] = i4;
+      for (i2 = 0, len = code.length; i2 < len; ++i2) {
+        lookup[i2] = code[i2];
+        revLookup[code.charCodeAt(i2)] = i2;
       }
-      var i4;
+      var i2;
       var len;
       revLookup["-".charCodeAt(0)] = 62;
       revLookup["_".charCodeAt(0)] = 63;
@@ -3268,19 +3268,19 @@ var Tabby = (() => {
         var arr = new Arr(_byteLength(b64, validLen, placeHoldersLen));
         var curByte = 0;
         var len2 = placeHoldersLen > 0 ? validLen - 4 : validLen;
-        var i5;
-        for (i5 = 0; i5 < len2; i5 += 4) {
-          tmp = revLookup[b64.charCodeAt(i5)] << 18 | revLookup[b64.charCodeAt(i5 + 1)] << 12 | revLookup[b64.charCodeAt(i5 + 2)] << 6 | revLookup[b64.charCodeAt(i5 + 3)];
+        var i3;
+        for (i3 = 0; i3 < len2; i3 += 4) {
+          tmp = revLookup[b64.charCodeAt(i3)] << 18 | revLookup[b64.charCodeAt(i3 + 1)] << 12 | revLookup[b64.charCodeAt(i3 + 2)] << 6 | revLookup[b64.charCodeAt(i3 + 3)];
           arr[curByte++] = tmp >> 16 & 255;
           arr[curByte++] = tmp >> 8 & 255;
           arr[curByte++] = tmp & 255;
         }
         if (placeHoldersLen === 2) {
-          tmp = revLookup[b64.charCodeAt(i5)] << 2 | revLookup[b64.charCodeAt(i5 + 1)] >> 4;
+          tmp = revLookup[b64.charCodeAt(i3)] << 2 | revLookup[b64.charCodeAt(i3 + 1)] >> 4;
           arr[curByte++] = tmp & 255;
         }
         if (placeHoldersLen === 1) {
-          tmp = revLookup[b64.charCodeAt(i5)] << 10 | revLookup[b64.charCodeAt(i5 + 1)] << 4 | revLookup[b64.charCodeAt(i5 + 2)] >> 2;
+          tmp = revLookup[b64.charCodeAt(i3)] << 10 | revLookup[b64.charCodeAt(i3 + 1)] << 4 | revLookup[b64.charCodeAt(i3 + 2)] >> 2;
           arr[curByte++] = tmp >> 8 & 255;
           arr[curByte++] = tmp & 255;
         }
@@ -3292,8 +3292,8 @@ var Tabby = (() => {
       function encodeChunk(uint8, start, end) {
         var tmp;
         var output = [];
-        for (var i5 = start; i5 < end; i5 += 3) {
-          tmp = (uint8[i5] << 16 & 16711680) + (uint8[i5 + 1] << 8 & 65280) + (uint8[i5 + 2] & 255);
+        for (var i3 = start; i3 < end; i3 += 3) {
+          tmp = (uint8[i3] << 16 & 16711680) + (uint8[i3 + 1] << 8 & 65280) + (uint8[i3 + 2] & 255);
           output.push(tripletToBase64(tmp));
         }
         return output.join("");
@@ -3304,8 +3304,8 @@ var Tabby = (() => {
         var extraBytes = len2 % 3;
         var parts = [];
         var maxChunkLength = 16383;
-        for (var i5 = 0, len22 = len2 - extraBytes; i5 < len22; i5 += maxChunkLength) {
-          parts.push(encodeChunk(uint8, i5, i5 + maxChunkLength > len22 ? len22 : i5 + maxChunkLength));
+        for (var i3 = 0, len22 = len2 - extraBytes; i3 < len22; i3 += maxChunkLength) {
+          parts.push(encodeChunk(uint8, i3, i3 + maxChunkLength > len22 ? len22 : i3 + maxChunkLength));
         }
         if (extraBytes === 1) {
           tmp = uint8[len2 - 1];
@@ -3332,81 +3332,81 @@ var Tabby = (() => {
       init_buffer2();
       init_process2();
       exports2.read = function(buffer, offset, isLE, mLen, nBytes) {
-        var e5, m4;
+        var e2, m;
         var eLen = nBytes * 8 - mLen - 1;
         var eMax = (1 << eLen) - 1;
         var eBias = eMax >> 1;
         var nBits = -7;
-        var i4 = isLE ? nBytes - 1 : 0;
-        var d4 = isLE ? -1 : 1;
-        var s4 = buffer[offset + i4];
-        i4 += d4;
-        e5 = s4 & (1 << -nBits) - 1;
-        s4 >>= -nBits;
+        var i2 = isLE ? nBytes - 1 : 0;
+        var d = isLE ? -1 : 1;
+        var s2 = buffer[offset + i2];
+        i2 += d;
+        e2 = s2 & (1 << -nBits) - 1;
+        s2 >>= -nBits;
         nBits += eLen;
-        for (; nBits > 0; e5 = e5 * 256 + buffer[offset + i4], i4 += d4, nBits -= 8) {
+        for (; nBits > 0; e2 = e2 * 256 + buffer[offset + i2], i2 += d, nBits -= 8) {
         }
-        m4 = e5 & (1 << -nBits) - 1;
-        e5 >>= -nBits;
+        m = e2 & (1 << -nBits) - 1;
+        e2 >>= -nBits;
         nBits += mLen;
-        for (; nBits > 0; m4 = m4 * 256 + buffer[offset + i4], i4 += d4, nBits -= 8) {
+        for (; nBits > 0; m = m * 256 + buffer[offset + i2], i2 += d, nBits -= 8) {
         }
-        if (e5 === 0) {
-          e5 = 1 - eBias;
-        } else if (e5 === eMax) {
-          return m4 ? NaN : (s4 ? -1 : 1) * Infinity;
+        if (e2 === 0) {
+          e2 = 1 - eBias;
+        } else if (e2 === eMax) {
+          return m ? NaN : (s2 ? -1 : 1) * Infinity;
         } else {
-          m4 = m4 + Math.pow(2, mLen);
-          e5 = e5 - eBias;
+          m = m + Math.pow(2, mLen);
+          e2 = e2 - eBias;
         }
-        return (s4 ? -1 : 1) * m4 * Math.pow(2, e5 - mLen);
+        return (s2 ? -1 : 1) * m * Math.pow(2, e2 - mLen);
       };
       exports2.write = function(buffer, value, offset, isLE, mLen, nBytes) {
-        var e5, m4, c4;
+        var e2, m, c2;
         var eLen = nBytes * 8 - mLen - 1;
         var eMax = (1 << eLen) - 1;
         var eBias = eMax >> 1;
         var rt = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0;
-        var i4 = isLE ? 0 : nBytes - 1;
-        var d4 = isLE ? 1 : -1;
-        var s4 = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
+        var i2 = isLE ? 0 : nBytes - 1;
+        var d = isLE ? 1 : -1;
+        var s2 = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
         value = Math.abs(value);
         if (isNaN(value) || value === Infinity) {
-          m4 = isNaN(value) ? 1 : 0;
-          e5 = eMax;
+          m = isNaN(value) ? 1 : 0;
+          e2 = eMax;
         } else {
-          e5 = Math.floor(Math.log(value) / Math.LN2);
-          if (value * (c4 = Math.pow(2, -e5)) < 1) {
-            e5--;
-            c4 *= 2;
+          e2 = Math.floor(Math.log(value) / Math.LN2);
+          if (value * (c2 = Math.pow(2, -e2)) < 1) {
+            e2--;
+            c2 *= 2;
           }
-          if (e5 + eBias >= 1) {
-            value += rt / c4;
+          if (e2 + eBias >= 1) {
+            value += rt / c2;
           } else {
             value += rt * Math.pow(2, 1 - eBias);
           }
-          if (value * c4 >= 2) {
-            e5++;
-            c4 /= 2;
+          if (value * c2 >= 2) {
+            e2++;
+            c2 /= 2;
           }
-          if (e5 + eBias >= eMax) {
-            m4 = 0;
-            e5 = eMax;
-          } else if (e5 + eBias >= 1) {
-            m4 = (value * c4 - 1) * Math.pow(2, mLen);
-            e5 = e5 + eBias;
+          if (e2 + eBias >= eMax) {
+            m = 0;
+            e2 = eMax;
+          } else if (e2 + eBias >= 1) {
+            m = (value * c2 - 1) * Math.pow(2, mLen);
+            e2 = e2 + eBias;
           } else {
-            m4 = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
-            e5 = 0;
+            m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+            e2 = 0;
           }
         }
-        for (; mLen >= 8; buffer[offset + i4] = m4 & 255, i4 += d4, m4 /= 256, mLen -= 8) {
+        for (; mLen >= 8; buffer[offset + i2] = m & 255, i2 += d, m /= 256, mLen -= 8) {
         }
-        e5 = e5 << mLen | m4;
+        e2 = e2 << mLen | m;
         eLen += mLen;
-        for (; eLen > 0; buffer[offset + i4] = e5 & 255, i4 += d4, e5 /= 256, eLen -= 8) {
+        for (; eLen > 0; buffer[offset + i2] = e2 & 255, i2 += d, e2 /= 256, eLen -= 8) {
         }
-        buffer[offset + i4 - d4] |= s4 * 128;
+        buffer[offset + i2 - d] |= s2 * 128;
       };
     }
   });
@@ -3443,7 +3443,7 @@ var Tabby = (() => {
           Object.setPrototypeOf(proto, Uint8Array.prototype);
           Object.setPrototypeOf(arr, proto);
           return arr.foo() === 42;
-        } catch (e5) {
+        } catch (e2) {
           return false;
         }
       }
@@ -3510,9 +3510,9 @@ var Tabby = (() => {
         if (valueOf != null && valueOf !== value) {
           return Buffer3.from(valueOf, encodingOrOffset, length);
         }
-        const b3 = fromObject(value);
-        if (b3)
-          return b3;
+        const b = fromObject(value);
+        if (b)
+          return b;
         if (typeof Symbol !== "undefined" && Symbol.toPrimitive != null && typeof value[Symbol.toPrimitive] === "function") {
           return Buffer3.from(value[Symbol.toPrimitive]("string"), encodingOrOffset, length);
         }
@@ -3573,8 +3573,8 @@ var Tabby = (() => {
       function fromArrayLike(array) {
         const length = array.length < 0 ? 0 : checked(array.length) | 0;
         const buf = createBuffer(length);
-        for (let i4 = 0; i4 < length; i4 += 1) {
-          buf[i4] = array[i4] & 255;
+        for (let i2 = 0; i2 < length; i2 += 1) {
+          buf[i2] = array[i2] & 255;
         }
         return buf;
       }
@@ -3635,33 +3635,33 @@ var Tabby = (() => {
         }
         return Buffer3.alloc(+length);
       }
-      Buffer3.isBuffer = function isBuffer2(b3) {
-        return b3 != null && b3._isBuffer === true && b3 !== Buffer3.prototype;
+      Buffer3.isBuffer = function isBuffer2(b) {
+        return b != null && b._isBuffer === true && b !== Buffer3.prototype;
       };
-      Buffer3.compare = function compare(a4, b3) {
-        if (isInstance(a4, Uint8Array))
-          a4 = Buffer3.from(a4, a4.offset, a4.byteLength);
-        if (isInstance(b3, Uint8Array))
-          b3 = Buffer3.from(b3, b3.offset, b3.byteLength);
-        if (!Buffer3.isBuffer(a4) || !Buffer3.isBuffer(b3)) {
+      Buffer3.compare = function compare(a2, b) {
+        if (isInstance(a2, Uint8Array))
+          a2 = Buffer3.from(a2, a2.offset, a2.byteLength);
+        if (isInstance(b, Uint8Array))
+          b = Buffer3.from(b, b.offset, b.byteLength);
+        if (!Buffer3.isBuffer(a2) || !Buffer3.isBuffer(b)) {
           throw new TypeError(
             'The "buf1", "buf2" arguments must be one of type Buffer or Uint8Array'
           );
         }
-        if (a4 === b3)
+        if (a2 === b)
           return 0;
-        let x3 = a4.length;
-        let y4 = b3.length;
-        for (let i4 = 0, len = Math.min(x3, y4); i4 < len; ++i4) {
-          if (a4[i4] !== b3[i4]) {
-            x3 = a4[i4];
-            y4 = b3[i4];
+        let x = a2.length;
+        let y2 = b.length;
+        for (let i2 = 0, len = Math.min(x, y2); i2 < len; ++i2) {
+          if (a2[i2] !== b[i2]) {
+            x = a2[i2];
+            y2 = b[i2];
             break;
           }
         }
-        if (x3 < y4)
+        if (x < y2)
           return -1;
-        if (y4 < x3)
+        if (y2 < x)
           return 1;
         return 0;
       };
@@ -3690,17 +3690,17 @@ var Tabby = (() => {
         if (list.length === 0) {
           return Buffer3.alloc(0);
         }
-        let i4;
+        let i2;
         if (length === void 0) {
           length = 0;
-          for (i4 = 0; i4 < list.length; ++i4) {
-            length += list[i4].length;
+          for (i2 = 0; i2 < list.length; ++i2) {
+            length += list[i2].length;
           }
         }
         const buffer = Buffer3.allocUnsafe(length);
         let pos = 0;
-        for (i4 = 0; i4 < list.length; ++i4) {
-          let buf = list[i4];
+        for (i2 = 0; i2 < list.length; ++i2) {
+          let buf = list[i2];
           if (isInstance(buf, Uint8Array)) {
             if (pos + buf.length > buffer.length) {
               if (!Buffer3.isBuffer(buf))
@@ -3816,18 +3816,18 @@ var Tabby = (() => {
         }
       }
       Buffer3.prototype._isBuffer = true;
-      function swap(b3, n4, m4) {
-        const i4 = b3[n4];
-        b3[n4] = b3[m4];
-        b3[m4] = i4;
+      function swap(b, n2, m) {
+        const i2 = b[n2];
+        b[n2] = b[m];
+        b[m] = i2;
       }
       Buffer3.prototype.swap16 = function swap16() {
         const len = this.length;
         if (len % 2 !== 0) {
           throw new RangeError("Buffer size must be a multiple of 16-bits");
         }
-        for (let i4 = 0; i4 < len; i4 += 2) {
-          swap(this, i4, i4 + 1);
+        for (let i2 = 0; i2 < len; i2 += 2) {
+          swap(this, i2, i2 + 1);
         }
         return this;
       };
@@ -3836,9 +3836,9 @@ var Tabby = (() => {
         if (len % 4 !== 0) {
           throw new RangeError("Buffer size must be a multiple of 32-bits");
         }
-        for (let i4 = 0; i4 < len; i4 += 4) {
-          swap(this, i4, i4 + 3);
-          swap(this, i4 + 1, i4 + 2);
+        for (let i2 = 0; i2 < len; i2 += 4) {
+          swap(this, i2, i2 + 3);
+          swap(this, i2 + 1, i2 + 2);
         }
         return this;
       };
@@ -3847,11 +3847,11 @@ var Tabby = (() => {
         if (len % 8 !== 0) {
           throw new RangeError("Buffer size must be a multiple of 64-bits");
         }
-        for (let i4 = 0; i4 < len; i4 += 8) {
-          swap(this, i4, i4 + 7);
-          swap(this, i4 + 1, i4 + 6);
-          swap(this, i4 + 2, i4 + 5);
-          swap(this, i4 + 3, i4 + 4);
+        for (let i2 = 0; i2 < len; i2 += 8) {
+          swap(this, i2, i2 + 7);
+          swap(this, i2 + 1, i2 + 6);
+          swap(this, i2 + 2, i2 + 5);
+          swap(this, i2 + 3, i2 + 4);
         }
         return this;
       };
@@ -3864,12 +3864,12 @@ var Tabby = (() => {
         return slowToString.apply(this, arguments);
       };
       Buffer3.prototype.toLocaleString = Buffer3.prototype.toString;
-      Buffer3.prototype.equals = function equals(b3) {
-        if (!Buffer3.isBuffer(b3))
+      Buffer3.prototype.equals = function equals(b) {
+        if (!Buffer3.isBuffer(b))
           throw new TypeError("Argument must be a Buffer");
-        if (this === b3)
+        if (this === b)
           return true;
-        return Buffer3.compare(this, b3) === 0;
+        return Buffer3.compare(this, b) === 0;
       };
       Buffer3.prototype.inspect = function inspect() {
         let str = "";
@@ -3921,21 +3921,21 @@ var Tabby = (() => {
         thisEnd >>>= 0;
         if (this === target)
           return 0;
-        let x3 = thisEnd - thisStart;
-        let y4 = end - start;
-        const len = Math.min(x3, y4);
+        let x = thisEnd - thisStart;
+        let y2 = end - start;
+        const len = Math.min(x, y2);
         const thisCopy = this.slice(thisStart, thisEnd);
         const targetCopy = target.slice(start, end);
-        for (let i4 = 0; i4 < len; ++i4) {
-          if (thisCopy[i4] !== targetCopy[i4]) {
-            x3 = thisCopy[i4];
-            y4 = targetCopy[i4];
+        for (let i2 = 0; i2 < len; ++i2) {
+          if (thisCopy[i2] !== targetCopy[i2]) {
+            x = thisCopy[i2];
+            y2 = targetCopy[i2];
             break;
           }
         }
-        if (x3 < y4)
+        if (x < y2)
           return -1;
-        if (y4 < x3)
+        if (y2 < x)
           return 1;
         return 0;
       };
@@ -4004,41 +4004,41 @@ var Tabby = (() => {
             byteOffset /= 2;
           }
         }
-        function read(buf, i5) {
+        function read(buf, i3) {
           if (indexSize === 1) {
-            return buf[i5];
+            return buf[i3];
           } else {
-            return buf.readUInt16BE(i5 * indexSize);
+            return buf.readUInt16BE(i3 * indexSize);
           }
         }
-        let i4;
+        let i2;
         if (dir) {
           let foundIndex = -1;
-          for (i4 = byteOffset; i4 < arrLength; i4++) {
-            if (read(arr, i4) === read(val, foundIndex === -1 ? 0 : i4 - foundIndex)) {
+          for (i2 = byteOffset; i2 < arrLength; i2++) {
+            if (read(arr, i2) === read(val, foundIndex === -1 ? 0 : i2 - foundIndex)) {
               if (foundIndex === -1)
-                foundIndex = i4;
-              if (i4 - foundIndex + 1 === valLength)
+                foundIndex = i2;
+              if (i2 - foundIndex + 1 === valLength)
                 return foundIndex * indexSize;
             } else {
               if (foundIndex !== -1)
-                i4 -= i4 - foundIndex;
+                i2 -= i2 - foundIndex;
               foundIndex = -1;
             }
           }
         } else {
           if (byteOffset + valLength > arrLength)
             byteOffset = arrLength - valLength;
-          for (i4 = byteOffset; i4 >= 0; i4--) {
+          for (i2 = byteOffset; i2 >= 0; i2--) {
             let found = true;
-            for (let j3 = 0; j3 < valLength; j3++) {
-              if (read(arr, i4 + j3) !== read(val, j3)) {
+            for (let j = 0; j < valLength; j++) {
+              if (read(arr, i2 + j) !== read(val, j)) {
                 found = false;
                 break;
               }
             }
             if (found)
-              return i4;
+              return i2;
           }
         }
         return -1;
@@ -4067,14 +4067,14 @@ var Tabby = (() => {
         if (length > strLen / 2) {
           length = strLen / 2;
         }
-        let i4;
-        for (i4 = 0; i4 < length; ++i4) {
-          const parsed = parseInt(string.substr(i4 * 2, 2), 16);
+        let i2;
+        for (i2 = 0; i2 < length; ++i2) {
+          const parsed = parseInt(string.substr(i2 * 2, 2), 16);
           if (numberIsNaN(parsed))
-            return i4;
-          buf[offset + i4] = parsed;
+            return i2;
+          buf[offset + i2] = parsed;
         }
-        return i4;
+        return i2;
       }
       function utf8Write(buf, string, offset, length) {
         return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length);
@@ -4163,12 +4163,12 @@ var Tabby = (() => {
       function utf8Slice(buf, start, end) {
         end = Math.min(buf.length, end);
         const res = [];
-        let i4 = start;
-        while (i4 < end) {
-          const firstByte = buf[i4];
+        let i2 = start;
+        while (i2 < end) {
+          const firstByte = buf[i2];
           let codePoint = null;
           let bytesPerSequence = firstByte > 239 ? 4 : firstByte > 223 ? 3 : firstByte > 191 ? 2 : 1;
-          if (i4 + bytesPerSequence <= end) {
+          if (i2 + bytesPerSequence <= end) {
             let secondByte, thirdByte, fourthByte, tempCodePoint;
             switch (bytesPerSequence) {
               case 1:
@@ -4177,7 +4177,7 @@ var Tabby = (() => {
                 }
                 break;
               case 2:
-                secondByte = buf[i4 + 1];
+                secondByte = buf[i2 + 1];
                 if ((secondByte & 192) === 128) {
                   tempCodePoint = (firstByte & 31) << 6 | secondByte & 63;
                   if (tempCodePoint > 127) {
@@ -4186,8 +4186,8 @@ var Tabby = (() => {
                 }
                 break;
               case 3:
-                secondByte = buf[i4 + 1];
-                thirdByte = buf[i4 + 2];
+                secondByte = buf[i2 + 1];
+                thirdByte = buf[i2 + 2];
                 if ((secondByte & 192) === 128 && (thirdByte & 192) === 128) {
                   tempCodePoint = (firstByte & 15) << 12 | (secondByte & 63) << 6 | thirdByte & 63;
                   if (tempCodePoint > 2047 && (tempCodePoint < 55296 || tempCodePoint > 57343)) {
@@ -4196,9 +4196,9 @@ var Tabby = (() => {
                 }
                 break;
               case 4:
-                secondByte = buf[i4 + 1];
-                thirdByte = buf[i4 + 2];
-                fourthByte = buf[i4 + 3];
+                secondByte = buf[i2 + 1];
+                thirdByte = buf[i2 + 2];
+                fourthByte = buf[i2 + 3];
                 if ((secondByte & 192) === 128 && (thirdByte & 192) === 128 && (fourthByte & 192) === 128) {
                   tempCodePoint = (firstByte & 15) << 18 | (secondByte & 63) << 12 | (thirdByte & 63) << 6 | fourthByte & 63;
                   if (tempCodePoint > 65535 && tempCodePoint < 1114112) {
@@ -4216,7 +4216,7 @@ var Tabby = (() => {
             codePoint = 56320 | codePoint & 1023;
           }
           res.push(codePoint);
-          i4 += bytesPerSequence;
+          i2 += bytesPerSequence;
         }
         return decodeCodePointsArray(res);
       }
@@ -4227,11 +4227,11 @@ var Tabby = (() => {
           return String.fromCharCode.apply(String, codePoints);
         }
         let res = "";
-        let i4 = 0;
-        while (i4 < len) {
+        let i2 = 0;
+        while (i2 < len) {
           res += String.fromCharCode.apply(
             String,
-            codePoints.slice(i4, i4 += MAX_ARGUMENTS_LENGTH)
+            codePoints.slice(i2, i2 += MAX_ARGUMENTS_LENGTH)
           );
         }
         return res;
@@ -4239,16 +4239,16 @@ var Tabby = (() => {
       function asciiSlice(buf, start, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i4 = start; i4 < end; ++i4) {
-          ret += String.fromCharCode(buf[i4] & 127);
+        for (let i2 = start; i2 < end; ++i2) {
+          ret += String.fromCharCode(buf[i2] & 127);
         }
         return ret;
       }
       function latin1Slice(buf, start, end) {
         let ret = "";
         end = Math.min(buf.length, end);
-        for (let i4 = start; i4 < end; ++i4) {
-          ret += String.fromCharCode(buf[i4]);
+        for (let i2 = start; i2 < end; ++i2) {
+          ret += String.fromCharCode(buf[i2]);
         }
         return ret;
       }
@@ -4259,16 +4259,16 @@ var Tabby = (() => {
         if (!end || end < 0 || end > len)
           end = len;
         let out = "";
-        for (let i4 = start; i4 < end; ++i4) {
-          out += hexSliceLookupTable[buf[i4]];
+        for (let i2 = start; i2 < end; ++i2) {
+          out += hexSliceLookupTable[buf[i2]];
         }
         return out;
       }
       function utf16leSlice(buf, start, end) {
         const bytes = buf.slice(start, end);
         let res = "";
-        for (let i4 = 0; i4 < bytes.length - 1; i4 += 2) {
-          res += String.fromCharCode(bytes[i4] + bytes[i4 + 1] * 256);
+        for (let i2 = 0; i2 < bytes.length - 1; i2 += 2) {
+          res += String.fromCharCode(bytes[i2] + bytes[i2 + 1] * 256);
         }
         return res;
       }
@@ -4309,9 +4309,9 @@ var Tabby = (() => {
           checkOffset(offset, byteLength2, this.length);
         let val = this[offset];
         let mul = 1;
-        let i4 = 0;
-        while (++i4 < byteLength2 && (mul *= 256)) {
-          val += this[offset + i4] * mul;
+        let i2 = 0;
+        while (++i2 < byteLength2 && (mul *= 256)) {
+          val += this[offset + i2] * mul;
         }
         return val;
       };
@@ -4389,9 +4389,9 @@ var Tabby = (() => {
           checkOffset(offset, byteLength2, this.length);
         let val = this[offset];
         let mul = 1;
-        let i4 = 0;
-        while (++i4 < byteLength2 && (mul *= 256)) {
-          val += this[offset + i4] * mul;
+        let i2 = 0;
+        while (++i2 < byteLength2 && (mul *= 256)) {
+          val += this[offset + i2] * mul;
         }
         mul *= 128;
         if (val >= mul)
@@ -4403,11 +4403,11 @@ var Tabby = (() => {
         byteLength2 = byteLength2 >>> 0;
         if (!noAssert)
           checkOffset(offset, byteLength2, this.length);
-        let i4 = byteLength2;
+        let i2 = byteLength2;
         let mul = 1;
-        let val = this[offset + --i4];
-        while (i4 > 0 && (mul *= 256)) {
-          val += this[offset + --i4] * mul;
+        let val = this[offset + --i2];
+        while (i2 > 0 && (mul *= 256)) {
+          val += this[offset + --i2] * mul;
         }
         mul *= 128;
         if (val >= mul)
@@ -4512,10 +4512,10 @@ var Tabby = (() => {
           checkInt(this, value, offset, byteLength2, maxBytes, 0);
         }
         let mul = 1;
-        let i4 = 0;
+        let i2 = 0;
         this[offset] = value & 255;
-        while (++i4 < byteLength2 && (mul *= 256)) {
-          this[offset + i4] = value / mul & 255;
+        while (++i2 < byteLength2 && (mul *= 256)) {
+          this[offset + i2] = value / mul & 255;
         }
         return offset + byteLength2;
       };
@@ -4527,11 +4527,11 @@ var Tabby = (() => {
           const maxBytes = Math.pow(2, 8 * byteLength2) - 1;
           checkInt(this, value, offset, byteLength2, maxBytes, 0);
         }
-        let i4 = byteLength2 - 1;
+        let i2 = byteLength2 - 1;
         let mul = 1;
-        this[offset + i4] = value & 255;
-        while (--i4 >= 0 && (mul *= 256)) {
-          this[offset + i4] = value / mul & 255;
+        this[offset + i2] = value & 255;
+        while (--i2 >= 0 && (mul *= 256)) {
+          this[offset + i2] = value / mul & 255;
         }
         return offset + byteLength2;
       };
@@ -4636,15 +4636,15 @@ var Tabby = (() => {
           const limit = Math.pow(2, 8 * byteLength2 - 1);
           checkInt(this, value, offset, byteLength2, limit - 1, -limit);
         }
-        let i4 = 0;
+        let i2 = 0;
         let mul = 1;
         let sub = 0;
         this[offset] = value & 255;
-        while (++i4 < byteLength2 && (mul *= 256)) {
-          if (value < 0 && sub === 0 && this[offset + i4 - 1] !== 0) {
+        while (++i2 < byteLength2 && (mul *= 256)) {
+          if (value < 0 && sub === 0 && this[offset + i2 - 1] !== 0) {
             sub = 1;
           }
-          this[offset + i4] = (value / mul >> 0) - sub & 255;
+          this[offset + i2] = (value / mul >> 0) - sub & 255;
         }
         return offset + byteLength2;
       };
@@ -4655,15 +4655,15 @@ var Tabby = (() => {
           const limit = Math.pow(2, 8 * byteLength2 - 1);
           checkInt(this, value, offset, byteLength2, limit - 1, -limit);
         }
-        let i4 = byteLength2 - 1;
+        let i2 = byteLength2 - 1;
         let mul = 1;
         let sub = 0;
-        this[offset + i4] = value & 255;
-        while (--i4 >= 0 && (mul *= 256)) {
-          if (value < 0 && sub === 0 && this[offset + i4 + 1] !== 0) {
+        this[offset + i2] = value & 255;
+        while (--i2 >= 0 && (mul *= 256)) {
+          if (value < 0 && sub === 0 && this[offset + i2 + 1] !== 0) {
             sub = 1;
           }
-          this[offset + i4] = (value / mul >> 0) - sub & 255;
+          this[offset + i2] = (value / mul >> 0) - sub & 255;
         }
         return offset + byteLength2;
       };
@@ -4839,10 +4839,10 @@ var Tabby = (() => {
         end = end === void 0 ? this.length : end >>> 0;
         if (!val)
           val = 0;
-        let i4;
+        let i2;
         if (typeof val === "number") {
-          for (i4 = start; i4 < end; ++i4) {
-            this[i4] = val;
+          for (i2 = start; i2 < end; ++i2) {
+            this[i2] = val;
           }
         } else {
           const bytes = Buffer3.isBuffer(val) ? val : Buffer3.from(val, encoding);
@@ -4850,14 +4850,14 @@ var Tabby = (() => {
           if (len === 0) {
             throw new TypeError('The value "' + val + '" is invalid for argument "value"');
           }
-          for (i4 = 0; i4 < end - start; ++i4) {
-            this[i4 + start] = bytes[i4 % len];
+          for (i2 = 0; i2 < end - start; ++i2) {
+            this[i2 + start] = bytes[i2 % len];
           }
         }
         return this;
       };
       var errors = {};
-      function E3(sym, getMessage, Base) {
+      function E(sym, getMessage, Base) {
         errors[sym] = class NodeError extends Base {
           constructor() {
             super();
@@ -4886,7 +4886,7 @@ var Tabby = (() => {
           }
         };
       }
-      E3(
+      E(
         "ERR_BUFFER_OUT_OF_BOUNDS",
         function(name2) {
           if (name2) {
@@ -4896,14 +4896,14 @@ var Tabby = (() => {
         },
         RangeError
       );
-      E3(
+      E(
         "ERR_INVALID_ARG_TYPE",
         function(name2, actual) {
           return `The "${name2}" argument must be of type number. Received type ${typeof actual}`;
         },
         TypeError
       );
-      E3(
+      E(
         "ERR_OUT_OF_RANGE",
         function(str, range, input) {
           let msg = `The value of "${str}" is out of range.`;
@@ -4924,12 +4924,12 @@ var Tabby = (() => {
       );
       function addNumericalSeparator(val) {
         let res = "";
-        let i4 = val.length;
+        let i2 = val.length;
         const start = val[0] === "-" ? 1 : 0;
-        for (; i4 >= start + 4; i4 -= 3) {
-          res = `_${val.slice(i4 - 3, i4)}${res}`;
+        for (; i2 >= start + 4; i2 -= 3) {
+          res = `_${val.slice(i2 - 3, i2)}${res}`;
         }
-        return `${val.slice(0, i4)}${res}`;
+        return `${val.slice(0, i2)}${res}`;
       }
       function checkBounds(buf, offset, byteLength2) {
         validateNumber(offset, "offset");
@@ -4939,16 +4939,16 @@ var Tabby = (() => {
       }
       function checkIntBI(value, min, max, buf, offset, byteLength2) {
         if (value > max || value < min) {
-          const n4 = typeof min === "bigint" ? "n" : "";
+          const n2 = typeof min === "bigint" ? "n" : "";
           let range;
           if (byteLength2 > 3) {
             if (min === 0 || min === BigInt(0)) {
-              range = `>= 0${n4} and < 2${n4} ** ${(byteLength2 + 1) * 8}${n4}`;
+              range = `>= 0${n2} and < 2${n2} ** ${(byteLength2 + 1) * 8}${n2}`;
             } else {
-              range = `>= -(2${n4} ** ${(byteLength2 + 1) * 8 - 1}${n4}) and < 2 ** ${(byteLength2 + 1) * 8 - 1}${n4}`;
+              range = `>= -(2${n2} ** ${(byteLength2 + 1) * 8 - 1}${n2}) and < 2 ** ${(byteLength2 + 1) * 8 - 1}${n2}`;
             }
           } else {
-            range = `>= ${min}${n4} and <= ${max}${n4}`;
+            range = `>= ${min}${n2} and <= ${max}${n2}`;
           }
           throw new errors.ERR_OUT_OF_RANGE("value", range, value);
         }
@@ -4990,15 +4990,15 @@ var Tabby = (() => {
         const length = string.length;
         let leadSurrogate = null;
         const bytes = [];
-        for (let i4 = 0; i4 < length; ++i4) {
-          codePoint = string.charCodeAt(i4);
+        for (let i2 = 0; i2 < length; ++i2) {
+          codePoint = string.charCodeAt(i2);
           if (codePoint > 55295 && codePoint < 57344) {
             if (!leadSurrogate) {
               if (codePoint > 56319) {
                 if ((units -= 3) > -1)
                   bytes.push(239, 191, 189);
                 continue;
-              } else if (i4 + 1 === length) {
+              } else if (i2 + 1 === length) {
                 if ((units -= 3) > -1)
                   bytes.push(239, 191, 189);
                 continue;
@@ -5054,20 +5054,20 @@ var Tabby = (() => {
       }
       function asciiToBytes(str) {
         const byteArray = [];
-        for (let i4 = 0; i4 < str.length; ++i4) {
-          byteArray.push(str.charCodeAt(i4) & 255);
+        for (let i2 = 0; i2 < str.length; ++i2) {
+          byteArray.push(str.charCodeAt(i2) & 255);
         }
         return byteArray;
       }
       function utf16leToBytes(str, units) {
-        let c4, hi, lo;
+        let c2, hi, lo;
         const byteArray = [];
-        for (let i4 = 0; i4 < str.length; ++i4) {
+        for (let i2 = 0; i2 < str.length; ++i2) {
           if ((units -= 2) < 0)
             break;
-          c4 = str.charCodeAt(i4);
-          hi = c4 >> 8;
-          lo = c4 % 256;
+          c2 = str.charCodeAt(i2);
+          hi = c2 >> 8;
+          lo = c2 % 256;
           byteArray.push(lo);
           byteArray.push(hi);
         }
@@ -5077,13 +5077,13 @@ var Tabby = (() => {
         return base642.toByteArray(base64clean(str));
       }
       function blitBuffer(src, dst, offset, length) {
-        let i4;
-        for (i4 = 0; i4 < length; ++i4) {
-          if (i4 + offset >= dst.length || i4 >= src.length)
+        let i2;
+        for (i2 = 0; i2 < length; ++i2) {
+          if (i2 + offset >= dst.length || i2 >= src.length)
             break;
-          dst[i4 + offset] = src[i4];
+          dst[i2 + offset] = src[i2];
         }
-        return i4;
+        return i2;
       }
       function isInstance(obj, type) {
         return obj instanceof type || obj != null && obj.constructor != null && obj.constructor.name != null && obj.constructor.name === type.name;
@@ -5094,10 +5094,10 @@ var Tabby = (() => {
       var hexSliceLookupTable = function() {
         const alphabet = "0123456789abcdef";
         const table = new Array(256);
-        for (let i4 = 0; i4 < 16; ++i4) {
-          const i16 = i4 * 16;
-          for (let j3 = 0; j3 < 16; ++j3) {
-            table[i16 + j3] = alphabet[i4] + alphabet[j3];
+        for (let i2 = 0; i2 < 16; ++i2) {
+          const i16 = i2 * 16;
+          for (let j = 0; j < 16; ++j) {
+            table[i16 + j] = alphabet[i2] + alphabet[j];
           }
         }
         return table;
@@ -5196,8 +5196,8 @@ var Tabby = (() => {
             bytes += value.toString().length;
           } else if (typeof value === "object" && objectList.indexOf(value) === -1) {
             objectList.push(value);
-            for (const i4 in value) {
-              stack.push(value[i4]);
+            for (const i2 in value) {
+              stack.push(value[i2]);
             }
           }
         }
@@ -5338,21 +5338,21 @@ var Tabby = (() => {
     if (obj === null || typeof obj === "undefined") {
       return;
     }
-    let i4;
-    let l4;
+    let i2;
+    let l2;
     if (typeof obj !== "object") {
       obj = [obj];
     }
     if (isArray(obj)) {
-      for (i4 = 0, l4 = obj.length; i4 < l4; i4++) {
-        fn.call(null, obj[i4], i4, obj);
+      for (i2 = 0, l2 = obj.length; i2 < l2; i2++) {
+        fn.call(null, obj[i2], i2, obj);
       }
     } else {
       const keys = allOwnKeys ? Object.getOwnPropertyNames(obj) : Object.keys(obj);
       const len = keys.length;
       let key;
-      for (i4 = 0; i4 < len; i4++) {
-        key = keys[i4];
+      for (i2 = 0; i2 < len; i2++) {
+        key = keys[i2];
         fn.call(null, obj[key], key, obj);
       }
     }
@@ -5360,10 +5360,10 @@ var Tabby = (() => {
   function findKey(obj, key) {
     key = key.toLowerCase();
     const keys = Object.keys(obj);
-    let i4 = keys.length;
+    let i2 = keys.length;
     let _key;
-    while (i4-- > 0) {
-      _key = keys[i4];
+    while (i2-- > 0) {
+      _key = keys[i2];
       if (key === _key.toLowerCase()) {
         return _key;
       }
@@ -5391,20 +5391,20 @@ var Tabby = (() => {
         result[targetKey] = val;
       }
     };
-    for (let i4 = 0, l4 = arguments.length; i4 < l4; i4++) {
-      arguments[i4] && forEach(arguments[i4], assignValue);
+    for (let i2 = 0, l2 = arguments.length; i2 < l2; i2++) {
+      arguments[i2] && forEach(arguments[i2], assignValue);
     }
     return result;
   }
-  var extend = (a4, b3, thisArg, { allOwnKeys } = {}) => {
-    forEach(b3, (val, key) => {
+  var extend = (a2, b, thisArg, { allOwnKeys } = {}) => {
+    forEach(b, (val, key) => {
       if (thisArg && isFunction(val)) {
-        a4[key] = bind(val, thisArg);
+        a2[key] = bind(val, thisArg);
       } else {
-        a4[key] = val;
+        a2[key] = val;
       }
     }, { allOwnKeys });
-    return a4;
+    return a2;
   };
   var stripBOM = (content) => {
     if (content.charCodeAt(0) === 65279) {
@@ -5422,7 +5422,7 @@ var Tabby = (() => {
   };
   var toFlatObject = (sourceObj, destObj, filter2, propFilter) => {
     let props;
-    let i4;
+    let i2;
     let prop;
     const merged = {};
     destObj = destObj || {};
@@ -5430,9 +5430,9 @@ var Tabby = (() => {
       return destObj;
     do {
       props = Object.getOwnPropertyNames(sourceObj);
-      i4 = props.length;
-      while (i4-- > 0) {
-        prop = props[i4];
+      i2 = props.length;
+      while (i2-- > 0) {
+        prop = props[i2];
         if ((!propFilter || propFilter(prop, sourceObj, destObj)) && !merged[prop]) {
           destObj[prop] = sourceObj[prop];
           merged[prop] = true;
@@ -5456,12 +5456,12 @@ var Tabby = (() => {
       return null;
     if (isArray(thing))
       return thing;
-    let i4 = thing.length;
-    if (!isNumber(i4))
+    let i2 = thing.length;
+    if (!isNumber(i2))
       return null;
-    const arr = new Array(i4);
-    while (i4-- > 0) {
-      arr[i4] = thing[i4];
+    const arr = new Array(i2);
+    while (i2-- > 0) {
+      arr[i2] = thing[i2];
     }
     return arr;
   };
@@ -5491,8 +5491,8 @@ var Tabby = (() => {
   var toCamelCase = (str) => {
     return str.toLowerCase().replace(
       /[-_\s]([a-z\d])(\w*)/g,
-      function replacer(m4, p1, p22) {
-        return p1.toUpperCase() + p22;
+      function replacer(m, p1, p2) {
+        return p1.toUpperCase() + p2;
       }
     );
   };
@@ -5564,19 +5564,19 @@ var Tabby = (() => {
   }
   var toJSONObject = (obj) => {
     const stack = new Array(10);
-    const visit = (source, i4) => {
+    const visit = (source, i2) => {
       if (isObject(source)) {
         if (stack.indexOf(source) >= 0) {
           return;
         }
         if (!("toJSON" in source)) {
-          stack[i4] = source;
+          stack[i2] = source;
           const target = isArray(source) ? [] : {};
           forEach(source, (value, key) => {
-            const reducedValue = visit(value, i4 + 1);
+            const reducedValue = visit(value, i2 + 1);
             !isUndefined(reducedValue) && (target[key] = reducedValue);
           });
-          stack[i4] = void 0;
+          stack[i2] = void 0;
           return target;
         }
       }
@@ -5764,9 +5764,9 @@ var Tabby = (() => {
   function renderKey(path, key, dots) {
     if (!path)
       return key;
-    return path.concat(key).map(function each(token, i4) {
+    return path.concat(key).map(function each(token, i2) {
       token = removeBrackets(token);
-      return !dots && i4 ? "[" + token + "]" : token;
+      return !dots && i2 ? "[" + token + "]" : token;
     }).join(dots ? "." : "");
   }
   function isFlatArray(arr) {
@@ -5988,9 +5988,9 @@ var Tabby = (() => {
      * @returns {void}
      */
     forEach(fn) {
-      utils_default.forEach(this.handlers, function forEachHandler(h5) {
-        if (h5 !== null) {
-          fn(h5);
+      utils_default.forEach(this.handlers, function forEachHandler(h2) {
+        if (h2 !== null) {
+          fn(h2);
         }
       });
     }
@@ -6126,11 +6126,11 @@ var Tabby = (() => {
   function arrayToObject(arr) {
     const obj = {};
     const keys = Object.keys(arr);
-    let i4;
+    let i2;
     const len = keys.length;
     let key;
-    for (i4 = 0; i4 < len; i4++) {
-      key = keys[i4];
+    for (i2 = 0; i2 < len; i2++) {
+      key = keys[i2];
       obj[key] = arr[key];
     }
     return obj;
@@ -6178,9 +6178,9 @@ var Tabby = (() => {
       try {
         (parser || JSON.parse)(rawValue);
         return utils_default.trim(rawValue);
-      } catch (e5) {
-        if (e5.name !== "SyntaxError") {
-          throw e5;
+      } catch (e2) {
+        if (e2.name !== "SyntaxError") {
+          throw e2;
         }
       }
     }
@@ -6242,12 +6242,12 @@ var Tabby = (() => {
         const strictJSONParsing = !silentJSONParsing && JSONRequested;
         try {
           return JSON.parse(data);
-        } catch (e5) {
+        } catch (e2) {
           if (strictJSONParsing) {
-            if (e5.name === "SyntaxError") {
-              throw AxiosError_default.from(e5, AxiosError_default.ERR_BAD_RESPONSE, this, null, this.response);
+            if (e2.name === "SyntaxError") {
+              throw AxiosError_default.from(e2, AxiosError_default.ERR_BAD_RESPONSE, this, null, this.response);
             }
-            throw e5;
+            throw e2;
           }
         }
       }
@@ -6319,11 +6319,11 @@ var Tabby = (() => {
     const parsed = {};
     let key;
     let val;
-    let i4;
+    let i2;
     rawHeaders && rawHeaders.split("\n").forEach(function parser(line) {
-      i4 = line.indexOf(":");
-      key = line.substring(0, i4).trim().toLowerCase();
-      val = line.substring(i4 + 1).trim();
+      i2 = line.indexOf(":");
+      key = line.substring(0, i2).trim().toLowerCase();
+      val = line.substring(i2 + 1).trim();
       if (!key || parsed[key] && ignoreDuplicateOf[key]) {
         return;
       }
@@ -6378,7 +6378,7 @@ var Tabby = (() => {
     }
   }
   function formatHeader(header) {
-    return header.trim().toLowerCase().replace(/([a-z\d])(\w*)/g, (w3, char, str) => {
+    return header.trim().toLowerCase().replace(/([a-z\d])(\w*)/g, (w, char, str) => {
       return char.toUpperCase() + str;
     });
   }
@@ -6471,10 +6471,10 @@ var Tabby = (() => {
     }
     clear(matcher) {
       const keys = Object.keys(this);
-      let i4 = keys.length;
+      let i2 = keys.length;
       let deleted = false;
-      while (i4--) {
-        const key = keys[i4];
+      while (i2--) {
+        const key = keys[i2];
         if (!matcher || matchHeaderValue(this, this[key], key, matcher, true)) {
           delete this[key];
           deleted = true;
@@ -6788,11 +6788,11 @@ var Tabby = (() => {
       }
       bytes[head] = chunkLength;
       timestamps[head] = now;
-      let i4 = tail;
+      let i2 = tail;
       let bytesCount = 0;
-      while (i4 !== head) {
-        bytesCount += bytes[i4++];
-        i4 = i4 % samplesCount;
+      while (i2 !== head) {
+        bytesCount += bytes[i2++];
+        i2 = i2 % samplesCount;
       }
       head = (head + 1) % samplesCount;
       if (head === tail) {
@@ -6811,9 +6811,9 @@ var Tabby = (() => {
   function progressEventReducer(listener, isDownloadStream) {
     let bytesNotified = 0;
     const _speedometer = speedometer_default(50, 250);
-    return (e5) => {
-      const loaded = e5.loaded;
-      const total = e5.lengthComputable ? e5.total : void 0;
+    return (e2) => {
+      const loaded = e2.loaded;
+      const total = e2.lengthComputable ? e2.total : void 0;
       const progressBytes = loaded - bytesNotified;
       const rate = _speedometer(progressBytes);
       const inRange = loaded <= total;
@@ -6825,7 +6825,7 @@ var Tabby = (() => {
         bytes: progressBytes,
         rate: rate ? rate : void 0,
         estimated: rate && total && inRange ? (total - loaded) / rate : void 0,
-        event: e5
+        event: e2
       };
       data[isDownloadStream ? "download" : "upload"] = true;
       listener(data);
@@ -6981,7 +6981,7 @@ var Tabby = (() => {
     if (fn) {
       try {
         Object.defineProperty(fn, "name", { value });
-      } catch (e5) {
+      } catch (e2) {
       }
       Object.defineProperty(fn, "adapterName", { value });
     }
@@ -6992,8 +6992,8 @@ var Tabby = (() => {
       const { length } = adapters;
       let nameOrAdapter;
       let adapter;
-      for (let i4 = 0; i4 < length; i4++) {
-        nameOrAdapter = adapters[i4];
+      for (let i2 = 0; i2 < length; i2++) {
+        nameOrAdapter = adapters[i2];
         if (adapter = utils_default.isString(nameOrAdapter) ? knownAdapters[nameOrAdapter.toLowerCase()] : nameOrAdapter) {
           break;
         }
@@ -7082,30 +7082,30 @@ var Tabby = (() => {
       }
       return source;
     }
-    function mergeDeepProperties(a4, b3, caseless) {
-      if (!utils_default.isUndefined(b3)) {
-        return getMergedValue(a4, b3, caseless);
-      } else if (!utils_default.isUndefined(a4)) {
-        return getMergedValue(void 0, a4, caseless);
+    function mergeDeepProperties(a2, b, caseless) {
+      if (!utils_default.isUndefined(b)) {
+        return getMergedValue(a2, b, caseless);
+      } else if (!utils_default.isUndefined(a2)) {
+        return getMergedValue(void 0, a2, caseless);
       }
     }
-    function valueFromConfig2(a4, b3) {
-      if (!utils_default.isUndefined(b3)) {
-        return getMergedValue(void 0, b3);
+    function valueFromConfig2(a2, b) {
+      if (!utils_default.isUndefined(b)) {
+        return getMergedValue(void 0, b);
       }
     }
-    function defaultToConfig2(a4, b3) {
-      if (!utils_default.isUndefined(b3)) {
-        return getMergedValue(void 0, b3);
-      } else if (!utils_default.isUndefined(a4)) {
-        return getMergedValue(void 0, a4);
+    function defaultToConfig2(a2, b) {
+      if (!utils_default.isUndefined(b)) {
+        return getMergedValue(void 0, b);
+      } else if (!utils_default.isUndefined(a2)) {
+        return getMergedValue(void 0, a2);
       }
     }
-    function mergeDirectKeys(a4, b3, prop) {
+    function mergeDirectKeys(a2, b, prop) {
       if (prop in config2) {
-        return getMergedValue(a4, b3);
+        return getMergedValue(a2, b);
       } else if (prop in config1) {
-        return getMergedValue(void 0, a4);
+        return getMergedValue(void 0, a2);
       }
     }
     const mergeMap = {
@@ -7136,7 +7136,7 @@ var Tabby = (() => {
       socketPath: defaultToConfig2,
       responseEncoding: defaultToConfig2,
       validateStatus: mergeDirectKeys,
-      headers: (a4, b3) => mergeDeepProperties(headersToObject(a4), headersToObject(b3), true)
+      headers: (a2, b) => mergeDeepProperties(headersToObject(a2), headersToObject(b), true)
     };
     utils_default.forEach(Object.keys(Object.assign({}, config1, config2)), function computeConfigValue(prop) {
       const merge2 = mergeMap[prop] || mergeDeepProperties;
@@ -7163,9 +7163,9 @@ var Tabby = (() => {
 
   // node_modules/axios/lib/helpers/validator.js
   var validators = {};
-  ["object", "boolean", "number", "function", "string", "symbol"].forEach((type, i4) => {
+  ["object", "boolean", "number", "function", "string", "symbol"].forEach((type, i2) => {
     validators[type] = function validator(thing) {
-      return typeof thing === type || "a" + (i4 < 1 ? "n " : " ") + type;
+      return typeof thing === type || "a" + (i2 < 1 ? "n " : " ") + type;
     };
   });
   var deprecatedWarnings = {};
@@ -7197,9 +7197,9 @@ var Tabby = (() => {
       throw new AxiosError_default("options must be an object", AxiosError_default.ERR_BAD_OPTION_VALUE);
     }
     const keys = Object.keys(options);
-    let i4 = keys.length;
-    while (i4-- > 0) {
-      const opt = keys[i4];
+    let i2 = keys.length;
+    while (i2-- > 0) {
+      const opt = keys[i2];
       const validator = schema[opt];
       if (validator) {
         const value = options[opt];
@@ -7292,7 +7292,7 @@ var Tabby = (() => {
         responseInterceptorChain.push(interceptor.fulfilled, interceptor.rejected);
       });
       let promise;
-      let i4 = 0;
+      let i2 = 0;
       let len;
       if (!synchronousRequestInterceptors) {
         const chain = [dispatchRequest.bind(this), void 0];
@@ -7300,17 +7300,17 @@ var Tabby = (() => {
         chain.push.apply(chain, responseInterceptorChain);
         len = chain.length;
         promise = Promise.resolve(config2);
-        while (i4 < len) {
-          promise = promise.then(chain[i4++], chain[i4++]);
+        while (i2 < len) {
+          promise = promise.then(chain[i2++], chain[i2++]);
         }
         return promise;
       }
       len = requestInterceptorChain.length;
       let newConfig = config2;
-      i4 = 0;
-      while (i4 < len) {
-        const onFulfilled = requestInterceptorChain[i4++];
-        const onRejected = requestInterceptorChain[i4++];
+      i2 = 0;
+      while (i2 < len) {
+        const onFulfilled = requestInterceptorChain[i2++];
+        const onRejected = requestInterceptorChain[i2++];
         try {
           newConfig = onFulfilled(newConfig);
         } catch (error) {
@@ -7323,10 +7323,10 @@ var Tabby = (() => {
       } catch (error) {
         return Promise.reject(error);
       }
-      i4 = 0;
+      i2 = 0;
       len = responseInterceptorChain.length;
-      while (i4 < len) {
-        promise = promise.then(responseInterceptorChain[i4++], responseInterceptorChain[i4++]);
+      while (i2 < len) {
+        promise = promise.then(responseInterceptorChain[i2++], responseInterceptorChain[i2++]);
       }
       return promise;
     }
@@ -7382,9 +7382,9 @@ var Tabby = (() => {
       this.promise.then((cancel) => {
         if (!token._listeners)
           return;
-        let i4 = token._listeners.length;
-        while (i4-- > 0) {
-          token._listeners[i4](cancel);
+        let i2 = token._listeners.length;
+        while (i2-- > 0) {
+          token._listeners[i2](cancel);
         }
         token._listeners = null;
       });
@@ -7447,8 +7447,8 @@ var Tabby = (() => {
      */
     static source() {
       let cancel;
-      const token = new CancelToken(function executor(c4) {
-        cancel = c4;
+      const token = new CancelToken(function executor(c2) {
+        cancel = c2;
       });
       return {
         token,
@@ -7623,170 +7623,170 @@ var Tabby = (() => {
   var e;
   var t;
   var n = "object" == typeof Reflect ? Reflect : null;
-  var r = n && "function" == typeof n.apply ? n.apply : function(e5, t5, n4) {
-    return Function.prototype.apply.call(e5, t5, n4);
+  var r = n && "function" == typeof n.apply ? n.apply : function(e2, t2, n2) {
+    return Function.prototype.apply.call(e2, t2, n2);
   };
-  t = n && "function" == typeof n.ownKeys ? n.ownKeys : Object.getOwnPropertySymbols ? function(e5) {
-    return Object.getOwnPropertyNames(e5).concat(Object.getOwnPropertySymbols(e5));
-  } : function(e5) {
-    return Object.getOwnPropertyNames(e5);
+  t = n && "function" == typeof n.ownKeys ? n.ownKeys : Object.getOwnPropertySymbols ? function(e2) {
+    return Object.getOwnPropertyNames(e2).concat(Object.getOwnPropertySymbols(e2));
+  } : function(e2) {
+    return Object.getOwnPropertyNames(e2);
   };
-  var i = Number.isNaN || function(e5) {
-    return e5 != e5;
+  var i = Number.isNaN || function(e2) {
+    return e2 != e2;
   };
   function o() {
     o.init.call(this);
   }
   e = o, o.EventEmitter = o, o.prototype._events = void 0, o.prototype._eventsCount = 0, o.prototype._maxListeners = void 0;
   var s = 10;
-  function u(e5) {
-    if ("function" != typeof e5)
-      throw new TypeError('The "listener" argument must be of type Function. Received type ' + typeof e5);
+  function u(e2) {
+    if ("function" != typeof e2)
+      throw new TypeError('The "listener" argument must be of type Function. Received type ' + typeof e2);
   }
-  function f(e5) {
-    return void 0 === e5._maxListeners ? o.defaultMaxListeners : e5._maxListeners;
+  function f(e2) {
+    return void 0 === e2._maxListeners ? o.defaultMaxListeners : e2._maxListeners;
   }
-  function v(e5, t5, n4, r5) {
-    var i4, o4, s4, v4;
-    if (u(n4), void 0 === (o4 = e5._events) ? (o4 = e5._events = /* @__PURE__ */ Object.create(null), e5._eventsCount = 0) : (void 0 !== o4.newListener && (e5.emit("newListener", t5, n4.listener ? n4.listener : n4), o4 = e5._events), s4 = o4[t5]), void 0 === s4)
-      s4 = o4[t5] = n4, ++e5._eventsCount;
-    else if ("function" == typeof s4 ? s4 = o4[t5] = r5 ? [n4, s4] : [s4, n4] : r5 ? s4.unshift(n4) : s4.push(n4), (i4 = f(e5)) > 0 && s4.length > i4 && !s4.warned) {
-      s4.warned = true;
-      var a4 = new Error("Possible EventEmitter memory leak detected. " + s4.length + " " + String(t5) + " listeners added. Use emitter.setMaxListeners() to increase limit");
-      a4.name = "MaxListenersExceededWarning", a4.emitter = e5, a4.type = t5, a4.count = s4.length, v4 = a4, console && console.warn && console.warn(v4);
+  function v(e2, t2, n2, r2) {
+    var i2, o2, s2, v2;
+    if (u(n2), void 0 === (o2 = e2._events) ? (o2 = e2._events = /* @__PURE__ */ Object.create(null), e2._eventsCount = 0) : (void 0 !== o2.newListener && (e2.emit("newListener", t2, n2.listener ? n2.listener : n2), o2 = e2._events), s2 = o2[t2]), void 0 === s2)
+      s2 = o2[t2] = n2, ++e2._eventsCount;
+    else if ("function" == typeof s2 ? s2 = o2[t2] = r2 ? [n2, s2] : [s2, n2] : r2 ? s2.unshift(n2) : s2.push(n2), (i2 = f(e2)) > 0 && s2.length > i2 && !s2.warned) {
+      s2.warned = true;
+      var a2 = new Error("Possible EventEmitter memory leak detected. " + s2.length + " " + String(t2) + " listeners added. Use emitter.setMaxListeners() to increase limit");
+      a2.name = "MaxListenersExceededWarning", a2.emitter = e2, a2.type = t2, a2.count = s2.length, v2 = a2, console && console.warn && console.warn(v2);
     }
-    return e5;
+    return e2;
   }
   function a() {
     if (!this.fired)
       return this.target.removeListener(this.type, this.wrapFn), this.fired = true, 0 === arguments.length ? this.listener.call(this.target) : this.listener.apply(this.target, arguments);
   }
-  function l(e5, t5, n4) {
-    var r5 = { fired: false, wrapFn: void 0, target: e5, type: t5, listener: n4 }, i4 = a.bind(r5);
-    return i4.listener = n4, r5.wrapFn = i4, i4;
+  function l(e2, t2, n2) {
+    var r2 = { fired: false, wrapFn: void 0, target: e2, type: t2, listener: n2 }, i2 = a.bind(r2);
+    return i2.listener = n2, r2.wrapFn = i2, i2;
   }
-  function h(e5, t5, n4) {
-    var r5 = e5._events;
-    if (void 0 === r5)
+  function h(e2, t2, n2) {
+    var r2 = e2._events;
+    if (void 0 === r2)
       return [];
-    var i4 = r5[t5];
-    return void 0 === i4 ? [] : "function" == typeof i4 ? n4 ? [i4.listener || i4] : [i4] : n4 ? function(e6) {
-      for (var t6 = new Array(e6.length), n5 = 0; n5 < t6.length; ++n5)
-        t6[n5] = e6[n5].listener || e6[n5];
-      return t6;
-    }(i4) : c(i4, i4.length);
+    var i2 = r2[t2];
+    return void 0 === i2 ? [] : "function" == typeof i2 ? n2 ? [i2.listener || i2] : [i2] : n2 ? function(e3) {
+      for (var t3 = new Array(e3.length), n3 = 0; n3 < t3.length; ++n3)
+        t3[n3] = e3[n3].listener || e3[n3];
+      return t3;
+    }(i2) : c(i2, i2.length);
   }
-  function p(e5) {
-    var t5 = this._events;
-    if (void 0 !== t5) {
-      var n4 = t5[e5];
-      if ("function" == typeof n4)
+  function p(e2) {
+    var t2 = this._events;
+    if (void 0 !== t2) {
+      var n2 = t2[e2];
+      if ("function" == typeof n2)
         return 1;
-      if (void 0 !== n4)
-        return n4.length;
+      if (void 0 !== n2)
+        return n2.length;
     }
     return 0;
   }
-  function c(e5, t5) {
-    for (var n4 = new Array(t5), r5 = 0; r5 < t5; ++r5)
-      n4[r5] = e5[r5];
-    return n4;
+  function c(e2, t2) {
+    for (var n2 = new Array(t2), r2 = 0; r2 < t2; ++r2)
+      n2[r2] = e2[r2];
+    return n2;
   }
   Object.defineProperty(o, "defaultMaxListeners", { enumerable: true, get: function() {
     return s;
-  }, set: function(e5) {
-    if ("number" != typeof e5 || e5 < 0 || i(e5))
-      throw new RangeError('The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' + e5 + ".");
-    s = e5;
+  }, set: function(e2) {
+    if ("number" != typeof e2 || e2 < 0 || i(e2))
+      throw new RangeError('The value of "defaultMaxListeners" is out of range. It must be a non-negative number. Received ' + e2 + ".");
+    s = e2;
   } }), o.init = function() {
     void 0 !== this._events && this._events !== Object.getPrototypeOf(this)._events || (this._events = /* @__PURE__ */ Object.create(null), this._eventsCount = 0), this._maxListeners = this._maxListeners || void 0;
-  }, o.prototype.setMaxListeners = function(e5) {
-    if ("number" != typeof e5 || e5 < 0 || i(e5))
-      throw new RangeError('The value of "n" is out of range. It must be a non-negative number. Received ' + e5 + ".");
-    return this._maxListeners = e5, this;
+  }, o.prototype.setMaxListeners = function(e2) {
+    if ("number" != typeof e2 || e2 < 0 || i(e2))
+      throw new RangeError('The value of "n" is out of range. It must be a non-negative number. Received ' + e2 + ".");
+    return this._maxListeners = e2, this;
   }, o.prototype.getMaxListeners = function() {
     return f(this);
-  }, o.prototype.emit = function(e5) {
-    for (var t5 = [], n4 = 1; n4 < arguments.length; n4++)
-      t5.push(arguments[n4]);
-    var i4 = "error" === e5, o4 = this._events;
-    if (void 0 !== o4)
-      i4 = i4 && void 0 === o4.error;
-    else if (!i4)
+  }, o.prototype.emit = function(e2) {
+    for (var t2 = [], n2 = 1; n2 < arguments.length; n2++)
+      t2.push(arguments[n2]);
+    var i2 = "error" === e2, o2 = this._events;
+    if (void 0 !== o2)
+      i2 = i2 && void 0 === o2.error;
+    else if (!i2)
       return false;
-    if (i4) {
-      var s4;
-      if (t5.length > 0 && (s4 = t5[0]), s4 instanceof Error)
-        throw s4;
-      var u4 = new Error("Unhandled error." + (s4 ? " (" + s4.message + ")" : ""));
-      throw u4.context = s4, u4;
+    if (i2) {
+      var s2;
+      if (t2.length > 0 && (s2 = t2[0]), s2 instanceof Error)
+        throw s2;
+      var u2 = new Error("Unhandled error." + (s2 ? " (" + s2.message + ")" : ""));
+      throw u2.context = s2, u2;
     }
-    var f4 = o4[e5];
-    if (void 0 === f4)
+    var f2 = o2[e2];
+    if (void 0 === f2)
       return false;
-    if ("function" == typeof f4)
-      r(f4, this, t5);
+    if ("function" == typeof f2)
+      r(f2, this, t2);
     else {
-      var v4 = f4.length, a4 = c(f4, v4);
-      for (n4 = 0; n4 < v4; ++n4)
-        r(a4[n4], this, t5);
+      var v2 = f2.length, a2 = c(f2, v2);
+      for (n2 = 0; n2 < v2; ++n2)
+        r(a2[n2], this, t2);
     }
     return true;
-  }, o.prototype.addListener = function(e5, t5) {
-    return v(this, e5, t5, false);
-  }, o.prototype.on = o.prototype.addListener, o.prototype.prependListener = function(e5, t5) {
-    return v(this, e5, t5, true);
-  }, o.prototype.once = function(e5, t5) {
-    return u(t5), this.on(e5, l(this, e5, t5)), this;
-  }, o.prototype.prependOnceListener = function(e5, t5) {
-    return u(t5), this.prependListener(e5, l(this, e5, t5)), this;
-  }, o.prototype.removeListener = function(e5, t5) {
-    var n4, r5, i4, o4, s4;
-    if (u(t5), void 0 === (r5 = this._events))
+  }, o.prototype.addListener = function(e2, t2) {
+    return v(this, e2, t2, false);
+  }, o.prototype.on = o.prototype.addListener, o.prototype.prependListener = function(e2, t2) {
+    return v(this, e2, t2, true);
+  }, o.prototype.once = function(e2, t2) {
+    return u(t2), this.on(e2, l(this, e2, t2)), this;
+  }, o.prototype.prependOnceListener = function(e2, t2) {
+    return u(t2), this.prependListener(e2, l(this, e2, t2)), this;
+  }, o.prototype.removeListener = function(e2, t2) {
+    var n2, r2, i2, o2, s2;
+    if (u(t2), void 0 === (r2 = this._events))
       return this;
-    if (void 0 === (n4 = r5[e5]))
+    if (void 0 === (n2 = r2[e2]))
       return this;
-    if (n4 === t5 || n4.listener === t5)
-      0 == --this._eventsCount ? this._events = /* @__PURE__ */ Object.create(null) : (delete r5[e5], r5.removeListener && this.emit("removeListener", e5, n4.listener || t5));
-    else if ("function" != typeof n4) {
-      for (i4 = -1, o4 = n4.length - 1; o4 >= 0; o4--)
-        if (n4[o4] === t5 || n4[o4].listener === t5) {
-          s4 = n4[o4].listener, i4 = o4;
+    if (n2 === t2 || n2.listener === t2)
+      0 == --this._eventsCount ? this._events = /* @__PURE__ */ Object.create(null) : (delete r2[e2], r2.removeListener && this.emit("removeListener", e2, n2.listener || t2));
+    else if ("function" != typeof n2) {
+      for (i2 = -1, o2 = n2.length - 1; o2 >= 0; o2--)
+        if (n2[o2] === t2 || n2[o2].listener === t2) {
+          s2 = n2[o2].listener, i2 = o2;
           break;
         }
-      if (i4 < 0)
+      if (i2 < 0)
         return this;
-      0 === i4 ? n4.shift() : !function(e6, t6) {
-        for (; t6 + 1 < e6.length; t6++)
-          e6[t6] = e6[t6 + 1];
-        e6.pop();
-      }(n4, i4), 1 === n4.length && (r5[e5] = n4[0]), void 0 !== r5.removeListener && this.emit("removeListener", e5, s4 || t5);
+      0 === i2 ? n2.shift() : !function(e3, t3) {
+        for (; t3 + 1 < e3.length; t3++)
+          e3[t3] = e3[t3 + 1];
+        e3.pop();
+      }(n2, i2), 1 === n2.length && (r2[e2] = n2[0]), void 0 !== r2.removeListener && this.emit("removeListener", e2, s2 || t2);
     }
     return this;
-  }, o.prototype.off = o.prototype.removeListener, o.prototype.removeAllListeners = function(e5) {
-    var t5, n4, r5;
-    if (void 0 === (n4 = this._events))
+  }, o.prototype.off = o.prototype.removeListener, o.prototype.removeAllListeners = function(e2) {
+    var t2, n2, r2;
+    if (void 0 === (n2 = this._events))
       return this;
-    if (void 0 === n4.removeListener)
-      return 0 === arguments.length ? (this._events = /* @__PURE__ */ Object.create(null), this._eventsCount = 0) : void 0 !== n4[e5] && (0 == --this._eventsCount ? this._events = /* @__PURE__ */ Object.create(null) : delete n4[e5]), this;
+    if (void 0 === n2.removeListener)
+      return 0 === arguments.length ? (this._events = /* @__PURE__ */ Object.create(null), this._eventsCount = 0) : void 0 !== n2[e2] && (0 == --this._eventsCount ? this._events = /* @__PURE__ */ Object.create(null) : delete n2[e2]), this;
     if (0 === arguments.length) {
-      var i4, o4 = Object.keys(n4);
-      for (r5 = 0; r5 < o4.length; ++r5)
-        "removeListener" !== (i4 = o4[r5]) && this.removeAllListeners(i4);
+      var i2, o2 = Object.keys(n2);
+      for (r2 = 0; r2 < o2.length; ++r2)
+        "removeListener" !== (i2 = o2[r2]) && this.removeAllListeners(i2);
       return this.removeAllListeners("removeListener"), this._events = /* @__PURE__ */ Object.create(null), this._eventsCount = 0, this;
     }
-    if ("function" == typeof (t5 = n4[e5]))
-      this.removeListener(e5, t5);
-    else if (void 0 !== t5)
-      for (r5 = t5.length - 1; r5 >= 0; r5--)
-        this.removeListener(e5, t5[r5]);
+    if ("function" == typeof (t2 = n2[e2]))
+      this.removeListener(e2, t2);
+    else if (void 0 !== t2)
+      for (r2 = t2.length - 1; r2 >= 0; r2--)
+        this.removeListener(e2, t2[r2]);
     return this;
-  }, o.prototype.listeners = function(e5) {
-    return h(this, e5, true);
-  }, o.prototype.rawListeners = function(e5) {
-    return h(this, e5, false);
-  }, o.listenerCount = function(e5, t5) {
-    return "function" == typeof e5.listenerCount ? e5.listenerCount(t5) : p.call(e5, t5);
+  }, o.prototype.listeners = function(e2) {
+    return h(this, e2, true);
+  }, o.prototype.rawListeners = function(e2) {
+    return h(this, e2, false);
+  }, o.listenerCount = function(e2, t2) {
+    return "function" == typeof e2.listenerCount ? e2.listenerCount(t2) : p.call(e2, t2);
   }, o.prototype.listenerCount = p, o.prototype.eventNames = function() {
     return this._eventsCount > 0 ? t(this._events) : [];
   };
@@ -7832,9 +7832,9 @@ var Tabby = (() => {
           return createIterResult(value, false);
         }
         if (error) {
-          const p4 = Promise.reject(error);
+          const p2 = Promise.reject(error);
           error = null;
-          return p4;
+          return p2;
         }
         if (finished) {
           return createIterResult(void 0, true);
@@ -7890,1847 +7890,82 @@ var Tabby = (() => {
     once: once2
   } = y;
 
-  // node_modules/@jspm/core/nodelibs/browser/assert.js
+  // node_modules/uuid/dist/esm-browser/index.js
   init_global();
   init_dirname();
   init_filename();
   init_buffer2();
   init_process2();
 
-  // node_modules/@jspm/core/nodelibs/browser/chunk-b4205b57.js
+  // node_modules/uuid/dist/esm-browser/rng.js
+  init_global();
+  init_dirname();
+  init_filename();
+  init_buffer2();
+  init_process2();
+  var getRandomValues;
+  var rnds8 = new Uint8Array(16);
+  function rng() {
+    if (!getRandomValues) {
+      getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+      if (!getRandomValues) {
+        throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+      }
+    }
+    return getRandomValues(rnds8);
+  }
+
+  // node_modules/uuid/dist/esm-browser/stringify.js
+  init_global();
+  init_dirname();
+  init_filename();
+  init_buffer2();
+  init_process2();
+  var byteToHex = [];
+  for (let i2 = 0; i2 < 256; ++i2) {
+    byteToHex.push((i2 + 256).toString(16).slice(1));
+  }
+  function unsafeStringify(arr, offset = 0) {
+    return (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase();
+  }
+
+  // node_modules/uuid/dist/esm-browser/v4.js
   init_global();
   init_dirname();
   init_filename();
   init_buffer2();
   init_process2();
 
-  // node_modules/@jspm/core/nodelibs/browser/chunk-5decc758.js
+  // node_modules/uuid/dist/esm-browser/native.js
   init_global();
   init_dirname();
   init_filename();
   init_buffer2();
   init_process2();
-  var e2;
-  var t2;
-  var n2;
-  var r2 = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : global;
-  var o2 = e2 = {};
-  function i2() {
-    throw new Error("setTimeout has not been defined");
-  }
-  function u2() {
-    throw new Error("clearTimeout has not been defined");
-  }
-  function c2(e5) {
-    if (t2 === setTimeout)
-      return setTimeout(e5, 0);
-    if ((t2 === i2 || !t2) && setTimeout)
-      return t2 = setTimeout, setTimeout(e5, 0);
-    try {
-      return t2(e5, 0);
-    } catch (n4) {
-      try {
-        return t2.call(null, e5, 0);
-      } catch (n5) {
-        return t2.call(this || r2, e5, 0);
-      }
-    }
-  }
-  !function() {
-    try {
-      t2 = "function" == typeof setTimeout ? setTimeout : i2;
-    } catch (e5) {
-      t2 = i2;
-    }
-    try {
-      n2 = "function" == typeof clearTimeout ? clearTimeout : u2;
-    } catch (e5) {
-      n2 = u2;
-    }
-  }();
-  var l2;
-  var s2 = [];
-  var f2 = false;
-  var a2 = -1;
-  function h2() {
-    f2 && l2 && (f2 = false, l2.length ? s2 = l2.concat(s2) : a2 = -1, s2.length && d());
-  }
-  function d() {
-    if (!f2) {
-      var e5 = c2(h2);
-      f2 = true;
-      for (var t5 = s2.length; t5; ) {
-        for (l2 = s2, s2 = []; ++a2 < t5; )
-          l2 && l2[a2].run();
-        a2 = -1, t5 = s2.length;
-      }
-      l2 = null, f2 = false, function(e6) {
-        if (n2 === clearTimeout)
-          return clearTimeout(e6);
-        if ((n2 === u2 || !n2) && clearTimeout)
-          return n2 = clearTimeout, clearTimeout(e6);
-        try {
-          n2(e6);
-        } catch (t6) {
-          try {
-            return n2.call(null, e6);
-          } catch (t7) {
-            return n2.call(this || r2, e6);
-          }
-        }
-      }(e5);
-    }
-  }
-  function m(e5, t5) {
-    (this || r2).fun = e5, (this || r2).array = t5;
-  }
-  function p2() {
-  }
-  o2.nextTick = function(e5) {
-    var t5 = new Array(arguments.length - 1);
-    if (arguments.length > 1)
-      for (var n4 = 1; n4 < arguments.length; n4++)
-        t5[n4 - 1] = arguments[n4];
-    s2.push(new m(e5, t5)), 1 !== s2.length || f2 || c2(d);
-  }, m.prototype.run = function() {
-    (this || r2).fun.apply(null, (this || r2).array);
-  }, o2.title = "browser", o2.browser = true, o2.env = {}, o2.argv = [], o2.version = "", o2.versions = {}, o2.on = p2, o2.addListener = p2, o2.once = p2, o2.off = p2, o2.removeListener = p2, o2.removeAllListeners = p2, o2.emit = p2, o2.prependListener = p2, o2.prependOnceListener = p2, o2.listeners = function(e5) {
-    return [];
-  }, o2.binding = function(e5) {
-    throw new Error("process.binding is not supported");
-  }, o2.cwd = function() {
-    return "/";
-  }, o2.chdir = function(e5) {
-    throw new Error("process.chdir is not supported");
-  }, o2.umask = function() {
-    return 0;
-  };
-  var T = e2;
-  T.addListener;
-  T.argv;
-  T.binding;
-  T.browser;
-  T.chdir;
-  T.cwd;
-  T.emit;
-  T.env;
-  T.listeners;
-  T.nextTick;
-  T.off;
-  T.on;
-  T.once;
-  T.prependListener;
-  T.prependOnceListener;
-  T.removeAllListeners;
-  T.removeListener;
-  T.title;
-  T.umask;
-  T.version;
-  T.versions;
-
-  // node_modules/@jspm/core/nodelibs/browser/chunk-b4205b57.js
-  var t3 = "function" == typeof Symbol && "symbol" == typeof Symbol.toStringTag;
-  var e3 = Object.prototype.toString;
-  var o3 = function(o4) {
-    return !(t3 && o4 && "object" == typeof o4 && Symbol.toStringTag in o4) && "[object Arguments]" === e3.call(o4);
-  };
-  var n3 = function(t5) {
-    return !!o3(t5) || null !== t5 && "object" == typeof t5 && "number" == typeof t5.length && t5.length >= 0 && "[object Array]" !== e3.call(t5) && "[object Function]" === e3.call(t5.callee);
-  };
-  var r3 = function() {
-    return o3(arguments);
-  }();
-  o3.isLegacyArguments = n3;
-  var l3 = r3 ? o3 : n3;
-  var t$1 = Object.prototype.toString;
-  var o$1 = Function.prototype.toString;
-  var n$1 = /^\s*(?:function)?\*/;
-  var e$1 = "function" == typeof Symbol && "symbol" == typeof Symbol.toStringTag;
-  var r$1 = Object.getPrototypeOf;
-  var c3 = function() {
-    if (!e$1)
-      return false;
-    try {
-      return Function("return function*() {}")();
-    } catch (t5) {
-    }
-  }();
-  var u3 = c3 ? r$1(c3) : {};
-  var i3 = function(c4) {
-    return "function" == typeof c4 && (!!n$1.test(o$1.call(c4)) || (e$1 ? r$1(c4) === u3 : "[object GeneratorFunction]" === t$1.call(c4)));
-  };
-  var t$2 = "function" == typeof Object.create ? function(t5, e5) {
-    e5 && (t5.super_ = e5, t5.prototype = Object.create(e5.prototype, { constructor: { value: t5, enumerable: false, writable: true, configurable: true } }));
-  } : function(t5, e5) {
-    if (e5) {
-      t5.super_ = e5;
-      var o4 = function() {
-      };
-      o4.prototype = e5.prototype, t5.prototype = new o4(), t5.prototype.constructor = t5;
-    }
-  };
-  var i$1 = function(e5) {
-    return e5 && "object" == typeof e5 && "function" == typeof e5.copy && "function" == typeof e5.fill && "function" == typeof e5.readUInt8;
-  };
-  var o$2 = {};
-  var u$1 = i$1;
-  var f3 = l3;
-  var a3 = i3;
-  function c$1(e5) {
-    return e5.call.bind(e5);
-  }
-  var s3 = "undefined" != typeof BigInt;
-  var p3 = "undefined" != typeof Symbol;
-  var y2 = p3 && void 0 !== Symbol.toStringTag;
-  var l$1 = "undefined" != typeof Uint8Array;
-  var d2 = "undefined" != typeof ArrayBuffer;
-  if (l$1 && y2)
-    var g = Object.getPrototypeOf(Uint8Array.prototype), b = c$1(Object.getOwnPropertyDescriptor(g, Symbol.toStringTag).get);
-  var m2 = c$1(Object.prototype.toString);
-  var h3 = c$1(Number.prototype.valueOf);
-  var j = c$1(String.prototype.valueOf);
-  var A = c$1(Boolean.prototype.valueOf);
-  if (s3)
-    var w = c$1(BigInt.prototype.valueOf);
-  if (p3)
-    var v2 = c$1(Symbol.prototype.valueOf);
-  function O(e5, t5) {
-    if ("object" != typeof e5)
-      return false;
-    try {
-      return t5(e5), true;
-    } catch (e6) {
-      return false;
-    }
-  }
-  function S(e5) {
-    return l$1 && y2 ? void 0 !== b(e5) : B(e5) || k(e5) || E(e5) || D(e5) || U(e5) || P(e5) || x(e5) || I(e5) || M(e5) || z(e5) || F(e5);
-  }
-  function B(e5) {
-    return l$1 && y2 ? "Uint8Array" === b(e5) : "[object Uint8Array]" === m2(e5) || u$1(e5) && void 0 !== e5.buffer;
-  }
-  function k(e5) {
-    return l$1 && y2 ? "Uint8ClampedArray" === b(e5) : "[object Uint8ClampedArray]" === m2(e5);
-  }
-  function E(e5) {
-    return l$1 && y2 ? "Uint16Array" === b(e5) : "[object Uint16Array]" === m2(e5);
-  }
-  function D(e5) {
-    return l$1 && y2 ? "Uint32Array" === b(e5) : "[object Uint32Array]" === m2(e5);
-  }
-  function U(e5) {
-    return l$1 && y2 ? "Int8Array" === b(e5) : "[object Int8Array]" === m2(e5);
-  }
-  function P(e5) {
-    return l$1 && y2 ? "Int16Array" === b(e5) : "[object Int16Array]" === m2(e5);
-  }
-  function x(e5) {
-    return l$1 && y2 ? "Int32Array" === b(e5) : "[object Int32Array]" === m2(e5);
-  }
-  function I(e5) {
-    return l$1 && y2 ? "Float32Array" === b(e5) : "[object Float32Array]" === m2(e5);
-  }
-  function M(e5) {
-    return l$1 && y2 ? "Float64Array" === b(e5) : "[object Float64Array]" === m2(e5);
-  }
-  function z(e5) {
-    return l$1 && y2 ? "BigInt64Array" === b(e5) : "[object BigInt64Array]" === m2(e5);
-  }
-  function F(e5) {
-    return l$1 && y2 ? "BigUint64Array" === b(e5) : "[object BigUint64Array]" === m2(e5);
-  }
-  function T2(e5) {
-    return "[object Map]" === m2(e5);
-  }
-  function N(e5) {
-    return "[object Set]" === m2(e5);
-  }
-  function W(e5) {
-    return "[object WeakMap]" === m2(e5);
-  }
-  function $(e5) {
-    return "[object WeakSet]" === m2(e5);
-  }
-  function C(e5) {
-    return "[object ArrayBuffer]" === m2(e5);
-  }
-  function V(e5) {
-    return "undefined" != typeof ArrayBuffer && (C.working ? C(e5) : e5 instanceof ArrayBuffer);
-  }
-  function G(e5) {
-    return "[object DataView]" === m2(e5);
-  }
-  function R(e5) {
-    return "undefined" != typeof DataView && (G.working ? G(e5) : e5 instanceof DataView);
-  }
-  function J(e5) {
-    return "[object SharedArrayBuffer]" === m2(e5);
-  }
-  function _(e5) {
-    return "undefined" != typeof SharedArrayBuffer && (J.working ? J(e5) : e5 instanceof SharedArrayBuffer);
-  }
-  function H(e5) {
-    return O(e5, h3);
-  }
-  function Z(e5) {
-    return O(e5, j);
-  }
-  function q(e5) {
-    return O(e5, A);
-  }
-  function K(e5) {
-    return s3 && O(e5, w);
-  }
-  function L(e5) {
-    return p3 && O(e5, v2);
-  }
-  o$2.isArgumentsObject = f3, o$2.isGeneratorFunction = a3, o$2.isPromise = function(e5) {
-    return "undefined" != typeof Promise && e5 instanceof Promise || null !== e5 && "object" == typeof e5 && "function" == typeof e5.then && "function" == typeof e5.catch;
-  }, o$2.isArrayBufferView = function(e5) {
-    return d2 && ArrayBuffer.isView ? ArrayBuffer.isView(e5) : S(e5) || R(e5);
-  }, o$2.isTypedArray = S, o$2.isUint8Array = B, o$2.isUint8ClampedArray = k, o$2.isUint16Array = E, o$2.isUint32Array = D, o$2.isInt8Array = U, o$2.isInt16Array = P, o$2.isInt32Array = x, o$2.isFloat32Array = I, o$2.isFloat64Array = M, o$2.isBigInt64Array = z, o$2.isBigUint64Array = F, T2.working = "undefined" != typeof Map && T2(/* @__PURE__ */ new Map()), o$2.isMap = function(e5) {
-    return "undefined" != typeof Map && (T2.working ? T2(e5) : e5 instanceof Map);
-  }, N.working = "undefined" != typeof Set && N(/* @__PURE__ */ new Set()), o$2.isSet = function(e5) {
-    return "undefined" != typeof Set && (N.working ? N(e5) : e5 instanceof Set);
-  }, W.working = "undefined" != typeof WeakMap && W(/* @__PURE__ */ new WeakMap()), o$2.isWeakMap = function(e5) {
-    return "undefined" != typeof WeakMap && (W.working ? W(e5) : e5 instanceof WeakMap);
-  }, $.working = "undefined" != typeof WeakSet && $(/* @__PURE__ */ new WeakSet()), o$2.isWeakSet = function(e5) {
-    return $(e5);
-  }, C.working = "undefined" != typeof ArrayBuffer && C(new ArrayBuffer()), o$2.isArrayBuffer = V, G.working = "undefined" != typeof ArrayBuffer && "undefined" != typeof DataView && G(new DataView(new ArrayBuffer(1), 0, 1)), o$2.isDataView = R, J.working = "undefined" != typeof SharedArrayBuffer && J(new SharedArrayBuffer()), o$2.isSharedArrayBuffer = _, o$2.isAsyncFunction = function(e5) {
-    return "[object AsyncFunction]" === m2(e5);
-  }, o$2.isMapIterator = function(e5) {
-    return "[object Map Iterator]" === m2(e5);
-  }, o$2.isSetIterator = function(e5) {
-    return "[object Set Iterator]" === m2(e5);
-  }, o$2.isGeneratorObject = function(e5) {
-    return "[object Generator]" === m2(e5);
-  }, o$2.isWebAssemblyCompiledModule = function(e5) {
-    return "[object WebAssembly.Module]" === m2(e5);
-  }, o$2.isNumberObject = H, o$2.isStringObject = Z, o$2.isBooleanObject = q, o$2.isBigIntObject = K, o$2.isSymbolObject = L, o$2.isBoxedPrimitive = function(e5) {
-    return H(e5) || Z(e5) || q(e5) || K(e5) || L(e5);
-  }, o$2.isAnyArrayBuffer = function(e5) {
-    return l$1 && (V(e5) || _(e5));
-  }, ["isProxy", "isExternal", "isModuleNamespaceObject"].forEach(function(e5) {
-    Object.defineProperty(o$2, e5, { enumerable: false, value: function() {
-      throw new Error(e5 + " is not supported in userland");
-    } });
-  });
-  var Q = "undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : global;
-  var X = {};
-  var Y = T;
-  var ee = Object.getOwnPropertyDescriptors || function(e5) {
-    for (var t5 = Object.keys(e5), r5 = {}, n4 = 0; n4 < t5.length; n4++)
-      r5[t5[n4]] = Object.getOwnPropertyDescriptor(e5, t5[n4]);
-    return r5;
-  };
-  var te = /%[sdj%]/g;
-  X.format = function(e5) {
-    if (!ge(e5)) {
-      for (var t5 = [], r5 = 0; r5 < arguments.length; r5++)
-        t5.push(oe(arguments[r5]));
-      return t5.join(" ");
-    }
-    r5 = 1;
-    for (var n4 = arguments, i4 = n4.length, o4 = String(e5).replace(te, function(e6) {
-      if ("%%" === e6)
-        return "%";
-      if (r5 >= i4)
-        return e6;
-      switch (e6) {
-        case "%s":
-          return String(n4[r5++]);
-        case "%d":
-          return Number(n4[r5++]);
-        case "%j":
-          try {
-            return JSON.stringify(n4[r5++]);
-          } catch (e7) {
-            return "[Circular]";
-          }
-        default:
-          return e6;
-      }
-    }), u4 = n4[r5]; r5 < i4; u4 = n4[++r5])
-      le(u4) || !he(u4) ? o4 += " " + u4 : o4 += " " + oe(u4);
-    return o4;
-  }, X.deprecate = function(e5, t5) {
-    if (void 0 !== Y && true === Y.noDeprecation)
-      return e5;
-    if (void 0 === Y)
-      return function() {
-        return X.deprecate(e5, t5).apply(this || Q, arguments);
-      };
-    var r5 = false;
-    return function() {
-      if (!r5) {
-        if (Y.throwDeprecation)
-          throw new Error(t5);
-        Y.traceDeprecation ? console.trace(t5) : console.error(t5), r5 = true;
-      }
-      return e5.apply(this || Q, arguments);
-    };
-  };
-  var re = {};
-  var ne = /^$/;
-  if (Y.env.NODE_DEBUG) {
-    ie = Y.env.NODE_DEBUG;
-    ie = ie.replace(/[|\\{}()[\]^$+?.]/g, "\\$&").replace(/\*/g, ".*").replace(/,/g, "$|^").toUpperCase(), ne = new RegExp("^" + ie + "$", "i");
-  }
-  var ie;
-  function oe(e5, t5) {
-    var r5 = { seen: [], stylize: fe };
-    return arguments.length >= 3 && (r5.depth = arguments[2]), arguments.length >= 4 && (r5.colors = arguments[3]), ye(t5) ? r5.showHidden = t5 : t5 && X._extend(r5, t5), be(r5.showHidden) && (r5.showHidden = false), be(r5.depth) && (r5.depth = 2), be(r5.colors) && (r5.colors = false), be(r5.customInspect) && (r5.customInspect = true), r5.colors && (r5.stylize = ue), ae(r5, e5, r5.depth);
-  }
-  function ue(e5, t5) {
-    var r5 = oe.styles[t5];
-    return r5 ? "\x1B[" + oe.colors[r5][0] + "m" + e5 + "\x1B[" + oe.colors[r5][1] + "m" : e5;
-  }
-  function fe(e5, t5) {
-    return e5;
-  }
-  function ae(e5, t5, r5) {
-    if (e5.customInspect && t5 && we(t5.inspect) && t5.inspect !== X.inspect && (!t5.constructor || t5.constructor.prototype !== t5)) {
-      var n4 = t5.inspect(r5, e5);
-      return ge(n4) || (n4 = ae(e5, n4, r5)), n4;
-    }
-    var i4 = function(e6, t6) {
-      if (be(t6))
-        return e6.stylize("undefined", "undefined");
-      if (ge(t6)) {
-        var r6 = "'" + JSON.stringify(t6).replace(/^"|"$/g, "").replace(/'/g, "\\'").replace(/\\"/g, '"') + "'";
-        return e6.stylize(r6, "string");
-      }
-      if (de(t6))
-        return e6.stylize("" + t6, "number");
-      if (ye(t6))
-        return e6.stylize("" + t6, "boolean");
-      if (le(t6))
-        return e6.stylize("null", "null");
-    }(e5, t5);
-    if (i4)
-      return i4;
-    var o4 = Object.keys(t5), u4 = function(e6) {
-      var t6 = {};
-      return e6.forEach(function(e7, r6) {
-        t6[e7] = true;
-      }), t6;
-    }(o4);
-    if (e5.showHidden && (o4 = Object.getOwnPropertyNames(t5)), Ae(t5) && (o4.indexOf("message") >= 0 || o4.indexOf("description") >= 0))
-      return ce(t5);
-    if (0 === o4.length) {
-      if (we(t5)) {
-        var f4 = t5.name ? ": " + t5.name : "";
-        return e5.stylize("[Function" + f4 + "]", "special");
-      }
-      if (me(t5))
-        return e5.stylize(RegExp.prototype.toString.call(t5), "regexp");
-      if (je(t5))
-        return e5.stylize(Date.prototype.toString.call(t5), "date");
-      if (Ae(t5))
-        return ce(t5);
-    }
-    var a4, c4 = "", s4 = false, p4 = ["{", "}"];
-    (pe(t5) && (s4 = true, p4 = ["[", "]"]), we(t5)) && (c4 = " [Function" + (t5.name ? ": " + t5.name : "") + "]");
-    return me(t5) && (c4 = " " + RegExp.prototype.toString.call(t5)), je(t5) && (c4 = " " + Date.prototype.toUTCString.call(t5)), Ae(t5) && (c4 = " " + ce(t5)), 0 !== o4.length || s4 && 0 != t5.length ? r5 < 0 ? me(t5) ? e5.stylize(RegExp.prototype.toString.call(t5), "regexp") : e5.stylize("[Object]", "special") : (e5.seen.push(t5), a4 = s4 ? function(e6, t6, r6, n5, i5) {
-      for (var o5 = [], u5 = 0, f5 = t6.length; u5 < f5; ++u5)
-        ke(t6, String(u5)) ? o5.push(se(e6, t6, r6, n5, String(u5), true)) : o5.push("");
-      return i5.forEach(function(i6) {
-        i6.match(/^\d+$/) || o5.push(se(e6, t6, r6, n5, i6, true));
-      }), o5;
-    }(e5, t5, r5, u4, o4) : o4.map(function(n5) {
-      return se(e5, t5, r5, u4, n5, s4);
-    }), e5.seen.pop(), function(e6, t6, r6) {
-      var n5 = 0;
-      if (e6.reduce(function(e7, t7) {
-        return n5++, t7.indexOf("\n") >= 0 && n5++, e7 + t7.replace(/\u001b\[\d\d?m/g, "").length + 1;
-      }, 0) > 60)
-        return r6[0] + ("" === t6 ? "" : t6 + "\n ") + " " + e6.join(",\n  ") + " " + r6[1];
-      return r6[0] + t6 + " " + e6.join(", ") + " " + r6[1];
-    }(a4, c4, p4)) : p4[0] + c4 + p4[1];
-  }
-  function ce(e5) {
-    return "[" + Error.prototype.toString.call(e5) + "]";
-  }
-  function se(e5, t5, r5, n4, i4, o4) {
-    var u4, f4, a4;
-    if ((a4 = Object.getOwnPropertyDescriptor(t5, i4) || { value: t5[i4] }).get ? f4 = a4.set ? e5.stylize("[Getter/Setter]", "special") : e5.stylize("[Getter]", "special") : a4.set && (f4 = e5.stylize("[Setter]", "special")), ke(n4, i4) || (u4 = "[" + i4 + "]"), f4 || (e5.seen.indexOf(a4.value) < 0 ? (f4 = le(r5) ? ae(e5, a4.value, null) : ae(e5, a4.value, r5 - 1)).indexOf("\n") > -1 && (f4 = o4 ? f4.split("\n").map(function(e6) {
-      return "  " + e6;
-    }).join("\n").substr(2) : "\n" + f4.split("\n").map(function(e6) {
-      return "   " + e6;
-    }).join("\n")) : f4 = e5.stylize("[Circular]", "special")), be(u4)) {
-      if (o4 && i4.match(/^\d+$/))
-        return f4;
-      (u4 = JSON.stringify("" + i4)).match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/) ? (u4 = u4.substr(1, u4.length - 2), u4 = e5.stylize(u4, "name")) : (u4 = u4.replace(/'/g, "\\'").replace(/\\"/g, '"').replace(/(^"|"$)/g, "'"), u4 = e5.stylize(u4, "string"));
-    }
-    return u4 + ": " + f4;
-  }
-  function pe(e5) {
-    return Array.isArray(e5);
-  }
-  function ye(e5) {
-    return "boolean" == typeof e5;
-  }
-  function le(e5) {
-    return null === e5;
-  }
-  function de(e5) {
-    return "number" == typeof e5;
-  }
-  function ge(e5) {
-    return "string" == typeof e5;
-  }
-  function be(e5) {
-    return void 0 === e5;
-  }
-  function me(e5) {
-    return he(e5) && "[object RegExp]" === ve(e5);
-  }
-  function he(e5) {
-    return "object" == typeof e5 && null !== e5;
-  }
-  function je(e5) {
-    return he(e5) && "[object Date]" === ve(e5);
-  }
-  function Ae(e5) {
-    return he(e5) && ("[object Error]" === ve(e5) || e5 instanceof Error);
-  }
-  function we(e5) {
-    return "function" == typeof e5;
-  }
-  function ve(e5) {
-    return Object.prototype.toString.call(e5);
-  }
-  function Oe(e5) {
-    return e5 < 10 ? "0" + e5.toString(10) : e5.toString(10);
-  }
-  X.debuglog = function(e5) {
-    if (e5 = e5.toUpperCase(), !re[e5])
-      if (ne.test(e5)) {
-        var t5 = Y.pid;
-        re[e5] = function() {
-          var r5 = X.format.apply(X, arguments);
-          console.error("%s %d: %s", e5, t5, r5);
-        };
-      } else
-        re[e5] = function() {
-        };
-    return re[e5];
-  }, X.inspect = oe, oe.colors = { bold: [1, 22], italic: [3, 23], underline: [4, 24], inverse: [7, 27], white: [37, 39], grey: [90, 39], black: [30, 39], blue: [34, 39], cyan: [36, 39], green: [32, 39], magenta: [35, 39], red: [31, 39], yellow: [33, 39] }, oe.styles = { special: "cyan", number: "yellow", boolean: "yellow", undefined: "grey", null: "bold", string: "green", date: "magenta", regexp: "red" }, X.types = o$2, X.isArray = pe, X.isBoolean = ye, X.isNull = le, X.isNullOrUndefined = function(e5) {
-    return null == e5;
-  }, X.isNumber = de, X.isString = ge, X.isSymbol = function(e5) {
-    return "symbol" == typeof e5;
-  }, X.isUndefined = be, X.isRegExp = me, X.types.isRegExp = me, X.isObject = he, X.isDate = je, X.types.isDate = je, X.isError = Ae, X.types.isNativeError = Ae, X.isFunction = we, X.isPrimitive = function(e5) {
-    return null === e5 || "boolean" == typeof e5 || "number" == typeof e5 || "string" == typeof e5 || "symbol" == typeof e5 || void 0 === e5;
-  }, X.isBuffer = i$1;
-  var Se = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  function Be() {
-    var e5 = /* @__PURE__ */ new Date(), t5 = [Oe(e5.getHours()), Oe(e5.getMinutes()), Oe(e5.getSeconds())].join(":");
-    return [e5.getDate(), Se[e5.getMonth()], t5].join(" ");
-  }
-  function ke(e5, t5) {
-    return Object.prototype.hasOwnProperty.call(e5, t5);
-  }
-  X.log = function() {
-    console.log("%s - %s", Be(), X.format.apply(X, arguments));
-  }, X.inherits = t$2, X._extend = function(e5, t5) {
-    if (!t5 || !he(t5))
-      return e5;
-    for (var r5 = Object.keys(t5), n4 = r5.length; n4--; )
-      e5[r5[n4]] = t5[r5[n4]];
-    return e5;
-  };
-  var Ee = "undefined" != typeof Symbol ? Symbol("util.promisify.custom") : void 0;
-  function De(e5, t5) {
-    if (!e5) {
-      var r5 = new Error("Promise was rejected with a falsy value");
-      r5.reason = e5, e5 = r5;
-    }
-    return t5(e5);
-  }
-  X.promisify = function(e5) {
-    if ("function" != typeof e5)
-      throw new TypeError('The "original" argument must be of type Function');
-    if (Ee && e5[Ee]) {
-      var t5;
-      if ("function" != typeof (t5 = e5[Ee]))
-        throw new TypeError('The "util.promisify.custom" argument must be of type Function');
-      return Object.defineProperty(t5, Ee, { value: t5, enumerable: false, writable: false, configurable: true }), t5;
-    }
-    function t5() {
-      for (var t6, r5, n4 = new Promise(function(e6, n5) {
-        t6 = e6, r5 = n5;
-      }), i4 = [], o4 = 0; o4 < arguments.length; o4++)
-        i4.push(arguments[o4]);
-      i4.push(function(e6, n5) {
-        e6 ? r5(e6) : t6(n5);
-      });
-      try {
-        e5.apply(this || Q, i4);
-      } catch (e6) {
-        r5(e6);
-      }
-      return n4;
-    }
-    return Object.setPrototypeOf(t5, Object.getPrototypeOf(e5)), Ee && Object.defineProperty(t5, Ee, { value: t5, enumerable: false, writable: false, configurable: true }), Object.defineProperties(t5, ee(e5));
-  }, X.promisify.custom = Ee, X.callbackify = function(e5) {
-    if ("function" != typeof e5)
-      throw new TypeError('The "original" argument must be of type Function');
-    function t5() {
-      for (var t6 = [], r5 = 0; r5 < arguments.length; r5++)
-        t6.push(arguments[r5]);
-      var n4 = t6.pop();
-      if ("function" != typeof n4)
-        throw new TypeError("The last argument must be of type Function");
-      var i4 = this || Q, o4 = function() {
-        return n4.apply(i4, arguments);
-      };
-      e5.apply(this || Q, t6).then(function(e6) {
-        Y.nextTick(o4.bind(null, null, e6));
-      }, function(e6) {
-        Y.nextTick(De.bind(null, e6, o4));
-      });
-    }
-    return Object.setPrototypeOf(t5, Object.getPrototypeOf(e5)), Object.defineProperties(t5, ee(e5)), t5;
+  var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+  var native_default = {
+    randomUUID
   };
 
-  // node_modules/@jspm/core/nodelibs/browser/assert.js
-  function e4(e5, r5) {
-    if (null == e5)
-      throw new TypeError("Cannot convert first argument to object");
-    for (var t5 = Object(e5), n4 = 1; n4 < arguments.length; n4++) {
-      var o4 = arguments[n4];
-      if (null != o4)
-        for (var a4 = Object.keys(Object(o4)), l4 = 0, i4 = a4.length; l4 < i4; l4++) {
-          var c4 = a4[l4], b3 = Object.getOwnPropertyDescriptor(o4, c4);
-          void 0 !== b3 && b3.enumerable && (t5[c4] = o4[c4]);
-        }
+  // node_modules/uuid/dist/esm-browser/v4.js
+  function v4(options, buf, offset) {
+    if (native_default.randomUUID && !buf && !options) {
+      return native_default.randomUUID();
     }
-    return t5;
+    options = options || {};
+    const rnds = options.random || (options.rng || rng)();
+    rnds[6] = rnds[6] & 15 | 64;
+    rnds[8] = rnds[8] & 63 | 128;
+    if (buf) {
+      offset = offset || 0;
+      for (let i2 = 0; i2 < 16; ++i2) {
+        buf[offset + i2] = rnds[i2];
+      }
+      return buf;
+    }
+    return unsafeStringify(rnds);
   }
-  var r4 = { assign: e4, polyfill: function() {
-    Object.assign || Object.defineProperty(Object, "assign", { enumerable: false, configurable: true, writable: true, value: e4 });
-  } };
-  var t4;
-  var e$12 = Object.prototype.toString;
-  var r$12 = function(t5) {
-    var r5 = e$12.call(t5), n4 = "[object Arguments]" === r5;
-    return n4 || (n4 = "[object Array]" !== r5 && null !== t5 && "object" == typeof t5 && "number" == typeof t5.length && t5.length >= 0 && "[object Function]" === e$12.call(t5.callee)), n4;
-  };
-  if (!Object.keys) {
-    n4 = Object.prototype.hasOwnProperty, o4 = Object.prototype.toString, c4 = r$12, l4 = Object.prototype.propertyIsEnumerable, i4 = !l4.call({ toString: null }, "toString"), a4 = l4.call(function() {
-    }, "prototype"), u4 = ["toString", "toLocaleString", "valueOf", "hasOwnProperty", "isPrototypeOf", "propertyIsEnumerable", "constructor"], f4 = function(t5) {
-      var e5 = t5.constructor;
-      return e5 && e5.prototype === t5;
-    }, p4 = { $applicationCache: true, $console: true, $external: true, $frame: true, $frameElement: true, $frames: true, $innerHeight: true, $innerWidth: true, $onmozfullscreenchange: true, $onmozfullscreenerror: true, $outerHeight: true, $outerWidth: true, $pageXOffset: true, $pageYOffset: true, $parent: true, $scrollLeft: true, $scrollTop: true, $scrollX: true, $scrollY: true, $self: true, $webkitIndexedDB: true, $webkitStorageInfo: true, $window: true }, s4 = function() {
-      if ("undefined" == typeof window)
-        return false;
-      for (var t5 in window)
-        try {
-          if (!p4["$" + t5] && n4.call(window, t5) && null !== window[t5] && "object" == typeof window[t5])
-            try {
-              f4(window[t5]);
-            } catch (t6) {
-              return true;
-            }
-        } catch (t6) {
-          return true;
-        }
-      return false;
-    }();
-    t4 = function(t5) {
-      var e5 = null !== t5 && "object" == typeof t5, r5 = "[object Function]" === o4.call(t5), l5 = c4(t5), p5 = e5 && "[object String]" === o4.call(t5), y4 = [];
-      if (!e5 && !r5 && !l5)
-        throw new TypeError("Object.keys called on a non-object");
-      var b3 = a4 && r5;
-      if (p5 && t5.length > 0 && !n4.call(t5, 0))
-        for (var g3 = 0; g3 < t5.length; ++g3)
-          y4.push(String(g3));
-      if (l5 && t5.length > 0)
-        for (var h5 = 0; h5 < t5.length; ++h5)
-          y4.push(String(h5));
-      else
-        for (var $3 in t5)
-          b3 && "prototype" === $3 || !n4.call(t5, $3) || y4.push(String($3));
-      if (i4)
-        for (var j3 = function(t6) {
-          if ("undefined" == typeof window || !s4)
-            return f4(t6);
-          try {
-            return f4(t6);
-          } catch (t7) {
-            return false;
-          }
-        }(t5), w3 = 0; w3 < u4.length; ++w3)
-          j3 && "constructor" === u4[w3] || !n4.call(t5, u4[w3]) || y4.push(u4[w3]);
-      return y4;
-    };
-  }
-  var n4;
-  var o4;
-  var c4;
-  var l4;
-  var i4;
-  var a4;
-  var u4;
-  var f4;
-  var p4;
-  var s4;
-  var y3 = t4;
-  var b2 = Array.prototype.slice;
-  var g2 = r$12;
-  var h4 = Object.keys;
-  var $2 = h4 ? function(t5) {
-    return h4(t5);
-  } : y3;
-  var j2 = Object.keys;
-  $2.shim = function() {
-    Object.keys ? function() {
-      var t5 = Object.keys(arguments);
-      return t5 && t5.length === arguments.length;
-    }(1, 2) || (Object.keys = function(t5) {
-      return g2(t5) ? j2(b2.call(t5)) : j2(t5);
-    }) : Object.keys = $2;
-    return Object.keys || $2;
-  };
-  var w2 = $2;
-  var r$2 = w2;
-  var e$2 = "function" == typeof Symbol && "symbol" == typeof Symbol("foo");
-  var o$12 = Object.prototype.toString;
-  var n$12 = Array.prototype.concat;
-  var a$1 = Object.defineProperty;
-  var c$12 = a$1 && function() {
-    var t5 = {};
-    try {
-      for (var r5 in a$1(t5, "x", { enumerable: false, value: t5 }), t5)
-        return false;
-      return t5.x === t5;
-    } catch (t6) {
-      return false;
-    }
-  }();
-  var l$12 = function(t5, r5, e5, n4) {
-    var l4;
-    (!(r5 in t5) || "function" == typeof (l4 = n4) && "[object Function]" === o$12.call(l4) && n4()) && (c$12 ? a$1(t5, r5, { configurable: true, enumerable: false, value: e5, writable: true }) : t5[r5] = e5);
-  };
-  var u$12 = function(t5, o4) {
-    var a4 = arguments.length > 2 ? arguments[2] : {}, c4 = r$2(o4);
-    e$2 && (c4 = n$12.call(c4, Object.getOwnPropertySymbols(o4)));
-    for (var u4 = 0; u4 < c4.length; u4 += 1)
-      l$12(t5, c4[u4], o4[c4[u4]], a4[c4[u4]]);
-  };
-  u$12.supportsDescriptors = !!c$12;
-  var f$1 = u$12;
-  var t$12 = function() {
-    if ("function" != typeof Symbol || "function" != typeof Object.getOwnPropertySymbols)
-      return false;
-    if ("symbol" == typeof Symbol.iterator)
-      return true;
-    var t5 = {}, e5 = Symbol("test"), r5 = Object(e5);
-    if ("string" == typeof e5)
-      return false;
-    if ("[object Symbol]" !== Object.prototype.toString.call(e5))
-      return false;
-    if ("[object Symbol]" !== Object.prototype.toString.call(r5))
-      return false;
-    for (e5 in t5[e5] = 42, t5)
-      return false;
-    if ("function" == typeof Object.keys && 0 !== Object.keys(t5).length)
-      return false;
-    if ("function" == typeof Object.getOwnPropertyNames && 0 !== Object.getOwnPropertyNames(t5).length)
-      return false;
-    var o4 = Object.getOwnPropertySymbols(t5);
-    if (1 !== o4.length || o4[0] !== e5)
-      return false;
-    if (!Object.prototype.propertyIsEnumerable.call(t5, e5))
-      return false;
-    if ("function" == typeof Object.getOwnPropertyDescriptor) {
-      var n4 = Object.getOwnPropertyDescriptor(t5, e5);
-      if (42 !== n4.value || true !== n4.enumerable)
-        return false;
-    }
-    return true;
-  };
-  var f$2 = ("undefined" != typeof globalThis ? globalThis : "undefined" != typeof self ? self : global).Symbol;
-  var e$3 = t$12;
-  var l$2 = function() {
-    return "function" == typeof f$2 && ("function" == typeof Symbol && ("symbol" == typeof f$2("foo") && ("symbol" == typeof Symbol("bar") && e$3())));
-  };
-  var t$22 = "Function.prototype.bind called on incompatible ";
-  var n$2 = Array.prototype.slice;
-  var o$22 = Object.prototype.toString;
-  var r$3 = function(r5) {
-    var e5 = this;
-    if ("function" != typeof e5 || "[object Function]" !== o$22.call(e5))
-      throw new TypeError(t$22 + e5);
-    for (var p4, i4 = n$2.call(arguments, 1), c4 = function() {
-      if (this instanceof p4) {
-        var t5 = e5.apply(this, i4.concat(n$2.call(arguments)));
-        return Object(t5) === t5 ? t5 : this;
-      }
-      return e5.apply(r5, i4.concat(n$2.call(arguments)));
-    }, a4 = Math.max(0, e5.length - i4.length), l4 = [], u4 = 0; u4 < a4; u4++)
-      l4.push("$" + u4);
-    if (p4 = Function("binder", "return function (" + l4.join(",") + "){ return binder.apply(this,arguments); }")(c4), e5.prototype) {
-      var y4 = function() {
-      };
-      y4.prototype = e5.prototype, p4.prototype = new y4(), y4.prototype = null;
-    }
-    return p4;
-  };
-  var e$4 = Function.prototype.bind || r$3;
-  var o$3 = TypeError;
-  var t$3 = Object.getOwnPropertyDescriptor;
-  if (t$3)
-    try {
-      t$3({}, "");
-    } catch (r5) {
-      t$3 = null;
-    }
-  var n$3 = function() {
-    throw new o$3();
-  };
-  var y$1 = t$3 ? function() {
-    try {
-      return arguments.callee, n$3;
-    } catch (r5) {
-      try {
-        return t$3(arguments, "callee").get;
-      } catch (r6) {
-        return n$3;
-      }
-    }
-  }() : n$3;
-  var a$2 = l$2();
-  var i$12 = Object.getPrototypeOf || function(r5) {
-    return r5.__proto__;
-  };
-  var d3 = "undefined" == typeof Uint8Array ? void 0 : i$12(Uint8Array);
-  var f$3 = { "%Array%": Array, "%ArrayBuffer%": "undefined" == typeof ArrayBuffer ? void 0 : ArrayBuffer, "%ArrayBufferPrototype%": "undefined" == typeof ArrayBuffer ? void 0 : ArrayBuffer.prototype, "%ArrayIteratorPrototype%": a$2 ? i$12([][Symbol.iterator]()) : void 0, "%ArrayPrototype%": Array.prototype, "%ArrayProto_entries%": Array.prototype.entries, "%ArrayProto_forEach%": Array.prototype.forEach, "%ArrayProto_keys%": Array.prototype.keys, "%ArrayProto_values%": Array.prototype.values, "%AsyncFromSyncIteratorPrototype%": void 0, "%AsyncFunction%": void 0, "%AsyncFunctionPrototype%": void 0, "%AsyncGenerator%": void 0, "%AsyncGeneratorFunction%": void 0, "%AsyncGeneratorPrototype%": void 0, "%AsyncIteratorPrototype%": void 0, "%Atomics%": "undefined" == typeof Atomics ? void 0 : Atomics, "%Boolean%": Boolean, "%BooleanPrototype%": Boolean.prototype, "%DataView%": "undefined" == typeof DataView ? void 0 : DataView, "%DataViewPrototype%": "undefined" == typeof DataView ? void 0 : DataView.prototype, "%Date%": Date, "%DatePrototype%": Date.prototype, "%decodeURI%": decodeURI, "%decodeURIComponent%": decodeURIComponent, "%encodeURI%": encodeURI, "%encodeURIComponent%": encodeURIComponent, "%Error%": Error, "%ErrorPrototype%": Error.prototype, "%eval%": eval, "%EvalError%": EvalError, "%EvalErrorPrototype%": EvalError.prototype, "%Float32Array%": "undefined" == typeof Float32Array ? void 0 : Float32Array, "%Float32ArrayPrototype%": "undefined" == typeof Float32Array ? void 0 : Float32Array.prototype, "%Float64Array%": "undefined" == typeof Float64Array ? void 0 : Float64Array, "%Float64ArrayPrototype%": "undefined" == typeof Float64Array ? void 0 : Float64Array.prototype, "%Function%": Function, "%FunctionPrototype%": Function.prototype, "%Generator%": void 0, "%GeneratorFunction%": void 0, "%GeneratorPrototype%": void 0, "%Int8Array%": "undefined" == typeof Int8Array ? void 0 : Int8Array, "%Int8ArrayPrototype%": "undefined" == typeof Int8Array ? void 0 : Int8Array.prototype, "%Int16Array%": "undefined" == typeof Int16Array ? void 0 : Int16Array, "%Int16ArrayPrototype%": "undefined" == typeof Int16Array ? void 0 : Int8Array.prototype, "%Int32Array%": "undefined" == typeof Int32Array ? void 0 : Int32Array, "%Int32ArrayPrototype%": "undefined" == typeof Int32Array ? void 0 : Int32Array.prototype, "%isFinite%": isFinite, "%isNaN%": isNaN, "%IteratorPrototype%": a$2 ? i$12(i$12([][Symbol.iterator]())) : void 0, "%JSON%": "object" == typeof JSON ? JSON : void 0, "%JSONParse%": "object" == typeof JSON ? JSON.parse : void 0, "%Map%": "undefined" == typeof Map ? void 0 : Map, "%MapIteratorPrototype%": "undefined" != typeof Map && a$2 ? i$12((/* @__PURE__ */ new Map())[Symbol.iterator]()) : void 0, "%MapPrototype%": "undefined" == typeof Map ? void 0 : Map.prototype, "%Math%": Math, "%Number%": Number, "%NumberPrototype%": Number.prototype, "%Object%": Object, "%ObjectPrototype%": Object.prototype, "%ObjProto_toString%": Object.prototype.toString, "%ObjProto_valueOf%": Object.prototype.valueOf, "%parseFloat%": parseFloat, "%parseInt%": parseInt, "%Promise%": "undefined" == typeof Promise ? void 0 : Promise, "%PromisePrototype%": "undefined" == typeof Promise ? void 0 : Promise.prototype, "%PromiseProto_then%": "undefined" == typeof Promise ? void 0 : Promise.prototype.then, "%Promise_all%": "undefined" == typeof Promise ? void 0 : Promise.all, "%Promise_reject%": "undefined" == typeof Promise ? void 0 : Promise.reject, "%Promise_resolve%": "undefined" == typeof Promise ? void 0 : Promise.resolve, "%Proxy%": "undefined" == typeof Proxy ? void 0 : Proxy, "%RangeError%": RangeError, "%RangeErrorPrototype%": RangeError.prototype, "%ReferenceError%": ReferenceError, "%ReferenceErrorPrototype%": ReferenceError.prototype, "%Reflect%": "undefined" == typeof Reflect ? void 0 : Reflect, "%RegExp%": RegExp, "%RegExpPrototype%": RegExp.prototype, "%Set%": "undefined" == typeof Set ? void 0 : Set, "%SetIteratorPrototype%": "undefined" != typeof Set && a$2 ? i$12((/* @__PURE__ */ new Set())[Symbol.iterator]()) : void 0, "%SetPrototype%": "undefined" == typeof Set ? void 0 : Set.prototype, "%SharedArrayBuffer%": "undefined" == typeof SharedArrayBuffer ? void 0 : SharedArrayBuffer, "%SharedArrayBufferPrototype%": "undefined" == typeof SharedArrayBuffer ? void 0 : SharedArrayBuffer.prototype, "%String%": String, "%StringIteratorPrototype%": a$2 ? i$12(""[Symbol.iterator]()) : void 0, "%StringPrototype%": String.prototype, "%Symbol%": a$2 ? Symbol : void 0, "%SymbolPrototype%": a$2 ? Symbol.prototype : void 0, "%SyntaxError%": SyntaxError, "%SyntaxErrorPrototype%": SyntaxError.prototype, "%ThrowTypeError%": y$1, "%TypedArray%": d3, "%TypedArrayPrototype%": d3 ? d3.prototype : void 0, "%TypeError%": o$3, "%TypeErrorPrototype%": o$3.prototype, "%Uint8Array%": "undefined" == typeof Uint8Array ? void 0 : Uint8Array, "%Uint8ArrayPrototype%": "undefined" == typeof Uint8Array ? void 0 : Uint8Array.prototype, "%Uint8ClampedArray%": "undefined" == typeof Uint8ClampedArray ? void 0 : Uint8ClampedArray, "%Uint8ClampedArrayPrototype%": "undefined" == typeof Uint8ClampedArray ? void 0 : Uint8ClampedArray.prototype, "%Uint16Array%": "undefined" == typeof Uint16Array ? void 0 : Uint16Array, "%Uint16ArrayPrototype%": "undefined" == typeof Uint16Array ? void 0 : Uint16Array.prototype, "%Uint32Array%": "undefined" == typeof Uint32Array ? void 0 : Uint32Array, "%Uint32ArrayPrototype%": "undefined" == typeof Uint32Array ? void 0 : Uint32Array.prototype, "%URIError%": URIError, "%URIErrorPrototype%": URIError.prototype, "%WeakMap%": "undefined" == typeof WeakMap ? void 0 : WeakMap, "%WeakMapPrototype%": "undefined" == typeof WeakMap ? void 0 : WeakMap.prototype, "%WeakSet%": "undefined" == typeof WeakSet ? void 0 : WeakSet, "%WeakSetPrototype%": "undefined" == typeof WeakSet ? void 0 : WeakSet.prototype };
-  var u$2 = e$4.call(Function.call, String.prototype.replace);
-  var A2 = /[^%.[\]]+|\[(?:(-?\d+(?:\.\d+)?)|(["'])((?:(?!\2)[^\\]|\\.)*?)\2)\]|(?=(?:\.|\[\])(?:\.|\[\]|%$))/g;
-  var l$3 = /\\(\\)?/g;
-  var v3 = function(r5) {
-    var e5 = [];
-    return u$2(r5, A2, function(r6, o4, t5, n4) {
-      e5[e5.length] = t5 ? u$2(n4, l$3, "$1") : o4 || r6;
-    }), e5;
-  };
-  var P2 = function(r5, e5) {
-    if (!(r5 in f$3))
-      throw new SyntaxError("intrinsic " + r5 + " does not exist!");
-    if (void 0 === f$3[r5] && !e5)
-      throw new o$3("intrinsic " + r5 + " exists, but is not available. Please file an issue!");
-    return f$3[r5];
-  };
-  var c$2 = function(r5, e5) {
-    if ("string" != typeof r5 || 0 === r5.length)
-      throw new TypeError("intrinsic name must be a non-empty string");
-    if (arguments.length > 1 && "boolean" != typeof e5)
-      throw new TypeError('"allowMissing" argument must be a boolean');
-    for (var n4 = v3(r5), y4 = P2("%" + (n4.length > 0 ? n4[0] : "") + "%", e5), a4 = 1; a4 < n4.length; a4 += 1)
-      if (null != y4)
-        if (t$3 && a4 + 1 >= n4.length) {
-          var i4 = t$3(y4, n4[a4]);
-          if (!e5 && !(n4[a4] in y4))
-            throw new o$3("base intrinsic for " + r5 + " exists, but the property is not available.");
-          y4 = i4 ? i4.get || i4.value : y4[n4[a4]];
-        } else
-          y4 = y4[n4[a4]];
-    return y4;
-  };
-  var t$4;
-  var p$1 = e$4;
-  var o$4 = c$2("%Function%");
-  var i$2 = o$4.apply;
-  var a$3 = o$4.call;
-  (t$4 = function() {
-    return p$1.apply(a$3, arguments);
-  }).apply = function() {
-    return p$1.apply(i$2, arguments);
-  };
-  var l$4 = t$4;
-  var r$4;
-  var n$4;
-  var i$3 = function(t5) {
-    return t5 != t5;
-  };
-  var o$5 = (r$4 = function(t5, e5) {
-    return 0 === t5 && 0 === e5 ? 1 / t5 == 1 / e5 : t5 === e5 || !(!i$3(t5) || !i$3(e5));
-  }, r$4);
-  var c$3 = (n$4 = function() {
-    return "function" == typeof Object.is ? Object.is : o$5;
-  }, n$4);
-  var f$4 = f$1;
-  var u$3 = f$1;
-  var s$1 = r$4;
-  var a$4 = n$4;
-  var l$5 = function() {
-    var t5 = c$3();
-    return f$4(Object, { is: t5 }, { is: function() {
-      return Object.is !== t5;
-    } }), t5;
-  };
-  var p$2 = l$4(a$4(), Object);
-  u$3(p$2, { getPolyfill: a$4, implementation: s$1, shim: l$5 });
-  var m3 = p$2;
-  N2 = function(r5) {
-    return r5 != r5;
-  };
-  var N2;
-  var e$5;
-  var i$4 = N2;
-  var n$5 = (e$5 = function() {
-    return Number.isNaN && Number.isNaN(NaN) && !Number.isNaN("a") ? Number.isNaN : i$4;
-  }, f$1);
-  var t$5 = e$5;
-  var u$4 = f$1;
-  var a$5 = N2;
-  var m$1 = e$5;
-  var o$6 = function() {
-    var r5 = t$5();
-    return n$5(Number, { isNaN: r5 }, { isNaN: function() {
-      return Number.isNaN !== r5;
-    } }), r5;
-  };
-  var s$2 = m$1();
-  u$4(s$2, { getPolyfill: m$1, implementation: a$5, shim: o$6 });
-  var f$5 = s$2;
-  var c$4 = {};
-  var a$6 = false;
-  function i$5() {
-    if (a$6)
-      return c$4;
-    function e5(t5) {
-      return (e5 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(t6) {
-        return typeof t6;
-      } : function(t6) {
-        return t6 && "function" == typeof Symbol && t6.constructor === Symbol && t6 !== Symbol.prototype ? "symbol" : typeof t6;
-      })(t5);
-    }
-    function n4(t5, n5) {
-      return !n5 || "object" !== e5(n5) && "function" != typeof n5 ? function(t6) {
-        if (void 0 === t6)
-          throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-        return t6;
-      }(t5) : n5;
-    }
-    function r5(t5) {
-      return (r5 = Object.setPrototypeOf ? Object.getPrototypeOf : function(t6) {
-        return t6.__proto__ || Object.getPrototypeOf(t6);
-      })(t5);
-    }
-    function o4(t5, e6) {
-      return (o4 = Object.setPrototypeOf || function(t6, e7) {
-        return t6.__proto__ = e7, t6;
-      })(t5, e6);
-    }
-    a$6 = true;
-    var i4, u4, l4 = {};
-    function f4(t5, e6, c4) {
-      c4 || (c4 = Error);
-      var a4 = function(c5) {
-        function a5(o5, c6, i5) {
-          var u5;
-          return !function(t6, e7) {
-            if (!(t6 instanceof e7))
-              throw new TypeError("Cannot call a class as a function");
-          }(this, a5), (u5 = n4(this, r5(a5).call(this, function(t6, n5, r6) {
-            return "string" == typeof e6 ? e6 : e6(t6, n5, r6);
-          }(o5, c6, i5)))).code = t5, u5;
-        }
-        return !function(t6, e7) {
-          if ("function" != typeof e7 && null !== e7)
-            throw new TypeError("Super expression must either be null or a function");
-          t6.prototype = Object.create(e7 && e7.prototype, { constructor: { value: t6, writable: true, configurable: true } }), e7 && o4(t6, e7);
-        }(a5, c5), a5;
-      }(c4);
-      l4[t5] = a4;
-    }
-    function s4(t5, e6) {
-      if (Array.isArray(t5)) {
-        var n5 = t5.length;
-        return t5 = t5.map(function(t6) {
-          return String(t6);
-        }), n5 > 2 ? "one of ".concat(e6, " ").concat(t5.slice(0, n5 - 1).join(", "), ", or ") + t5[n5 - 1] : 2 === n5 ? "one of ".concat(e6, " ").concat(t5[0], " or ").concat(t5[1]) : "of ".concat(e6, " ").concat(t5[0]);
-      }
-      return "of ".concat(e6, " ").concat(String(t5));
-    }
-    return f4("ERR_AMBIGUOUS_ARGUMENT", 'The "%s" argument is ambiguous. %s', TypeError), f4("ERR_INVALID_ARG_TYPE", function(t5, n5, r6) {
-      var o5, c4, u5;
-      if (void 0 === i4 && (i4 = tt()), i4("string" == typeof t5, "'name' must be a string"), "string" == typeof n5 && (c4 = "not ", n5.substr(0, c4.length) === c4) ? (o5 = "must not be", n5 = n5.replace(/^not /, "")) : o5 = "must be", function(t6, e6, n6) {
-        return (void 0 === n6 || n6 > t6.length) && (n6 = t6.length), t6.substring(n6 - e6.length, n6) === e6;
-      }(t5, " argument"))
-        u5 = "The ".concat(t5, " ").concat(o5, " ").concat(s4(n5, "type"));
-      else {
-        var l5 = function(t6, e6, n6) {
-          return "number" != typeof n6 && (n6 = 0), !(n6 + e6.length > t6.length) && -1 !== t6.indexOf(e6, n6);
-        }(t5, ".") ? "property" : "argument";
-        u5 = 'The "'.concat(t5, '" ').concat(l5, " ").concat(o5, " ").concat(s4(n5, "type"));
-      }
-      return u5 += ". Received type ".concat(e5(r6));
-    }, TypeError), f4("ERR_INVALID_ARG_VALUE", function(e6, n5) {
-      var r6 = arguments.length > 2 && void 0 !== arguments[2] ? arguments[2] : "is invalid";
-      void 0 === u4 && (u4 = X);
-      var o5 = u4.inspect(n5);
-      return o5.length > 128 && (o5 = "".concat(o5.slice(0, 128), "...")), "The argument '".concat(e6, "' ").concat(r6, ". Received ").concat(o5);
-    }, TypeError), f4("ERR_INVALID_RETURN_VALUE", function(t5, n5, r6) {
-      var o5;
-      return o5 = r6 && r6.constructor && r6.constructor.name ? "instance of ".concat(r6.constructor.name) : "type ".concat(e5(r6)), "Expected ".concat(t5, ' to be returned from the "').concat(n5, '"') + " function but got ".concat(o5, ".");
-    }, TypeError), f4("ERR_MISSING_ARGS", function() {
-      for (var t5 = arguments.length, e6 = new Array(t5), n5 = 0; n5 < t5; n5++)
-        e6[n5] = arguments[n5];
-      void 0 === i4 && (i4 = tt()), i4(e6.length > 0, "At least one arg needs to be specified");
-      var r6 = "The ", o5 = e6.length;
-      switch (e6 = e6.map(function(t6) {
-        return '"'.concat(t6, '"');
-      }), o5) {
-        case 1:
-          r6 += "".concat(e6[0], " argument");
-          break;
-        case 2:
-          r6 += "".concat(e6[0], " and ").concat(e6[1], " arguments");
-          break;
-        default:
-          r6 += e6.slice(0, o5 - 1).join(", "), r6 += ", and ".concat(e6[o5 - 1], " arguments");
-      }
-      return "".concat(r6, " must be specified");
-    }, TypeError), c$4.codes = l4, c$4;
-  }
-  var u$5 = {};
-  var l$6 = false;
-  function f$6() {
-    if (l$6)
-      return u$5;
-    l$6 = true;
-    var n4 = T;
-    function r5(t5, e5, n5) {
-      return e5 in t5 ? Object.defineProperty(t5, e5, { value: n5, enumerable: true, configurable: true, writable: true }) : t5[e5] = n5, t5;
-    }
-    function o4(t5, e5) {
-      for (var n5 = 0; n5 < e5.length; n5++) {
-        var r6 = e5[n5];
-        r6.enumerable = r6.enumerable || false, r6.configurable = true, "value" in r6 && (r6.writable = true), Object.defineProperty(t5, r6.key, r6);
-      }
-    }
-    function c4(t5, e5) {
-      return !e5 || "object" !== y4(e5) && "function" != typeof e5 ? a4(t5) : e5;
-    }
-    function a4(t5) {
-      if (void 0 === t5)
-        throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-      return t5;
-    }
-    function f4(t5) {
-      var e5 = "function" == typeof Map ? /* @__PURE__ */ new Map() : void 0;
-      return (f4 = function(t6) {
-        if (null === t6 || (n5 = t6, -1 === Function.toString.call(n5).indexOf("[native code]")))
-          return t6;
-        var n5;
-        if ("function" != typeof t6)
-          throw new TypeError("Super expression must either be null or a function");
-        if (void 0 !== e5) {
-          if (e5.has(t6))
-            return e5.get(t6);
-          e5.set(t6, r6);
-        }
-        function r6() {
-          return p4(t6, arguments, h5(this).constructor);
-        }
-        return r6.prototype = Object.create(t6.prototype, { constructor: { value: r6, enumerable: false, writable: true, configurable: true } }), g3(r6, t6);
-      })(t5);
-    }
-    function s4() {
-      if ("undefined" == typeof Reflect || !Reflect.construct)
-        return false;
-      if (Reflect.construct.sham)
-        return false;
-      if ("function" == typeof Proxy)
-        return true;
-      try {
-        return Date.prototype.toString.call(Reflect.construct(Date, [], function() {
-        })), true;
-      } catch (t5) {
-        return false;
-      }
-    }
-    function p4(t5, e5, n5) {
-      return (p4 = s4() ? Reflect.construct : function(t6, e6, n6) {
-        var r6 = [null];
-        r6.push.apply(r6, e6);
-        var o5 = new (Function.bind.apply(t6, r6))();
-        return n6 && g3(o5, n6.prototype), o5;
-      }).apply(null, arguments);
-    }
-    function g3(t5, e5) {
-      return (g3 = Object.setPrototypeOf || function(t6, e6) {
-        return t6.__proto__ = e6, t6;
-      })(t5, e5);
-    }
-    function h5(t5) {
-      return (h5 = Object.setPrototypeOf ? Object.getPrototypeOf : function(t6) {
-        return t6.__proto__ || Object.getPrototypeOf(t6);
-      })(t5);
-    }
-    function y4(t5) {
-      return (y4 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(t6) {
-        return typeof t6;
-      } : function(t6) {
-        return t6 && "function" == typeof Symbol && t6.constructor === Symbol && t6 !== Symbol.prototype ? "symbol" : typeof t6;
-      })(t5);
-    }
-    var b3 = X.inspect, v4 = i$5().codes.ERR_INVALID_ARG_TYPE;
-    function d4(t5, e5, n5) {
-      return (void 0 === n5 || n5 > t5.length) && (n5 = t5.length), t5.substring(n5 - e5.length, n5) === e5;
-    }
-    var m4 = "", E3 = "", w3 = "", S3 = "", j3 = { deepStrictEqual: "Expected values to be strictly deep-equal:", strictEqual: "Expected values to be strictly equal:", strictEqualObject: 'Expected "actual" to be reference-equal to "expected":', deepEqual: "Expected values to be loosely deep-equal:", equal: "Expected values to be loosely equal:", notDeepStrictEqual: 'Expected "actual" not to be strictly deep-equal to:', notStrictEqual: 'Expected "actual" to be strictly unequal to:', notStrictEqualObject: 'Expected "actual" not to be reference-equal to "expected":', notDeepEqual: 'Expected "actual" not to be loosely deep-equal to:', notEqual: 'Expected "actual" to be loosely unequal to:', notIdentical: "Values identical but not reference-equal:" };
-    function O3(t5) {
-      var e5 = Object.keys(t5), n5 = Object.create(Object.getPrototypeOf(t5));
-      return e5.forEach(function(e6) {
-        n5[e6] = t5[e6];
-      }), Object.defineProperty(n5, "message", { value: t5.message }), n5;
-    }
-    function x3(t5) {
-      return b3(t5, { compact: false, customInspect: false, depth: 1e3, maxArrayLength: 1 / 0, showHidden: false, breakLength: 1 / 0, showProxy: false, sorted: true, getters: true });
-    }
-    function q3(t5, e5, r6) {
-      var o5 = "", c5 = "", a5 = 0, i4 = "", u4 = false, l4 = x3(t5), f5 = l4.split("\n"), s5 = x3(e5).split("\n"), p5 = 0, g4 = "";
-      if ("strictEqual" === r6 && "object" === y4(t5) && "object" === y4(e5) && null !== t5 && null !== e5 && (r6 = "strictEqualObject"), 1 === f5.length && 1 === s5.length && f5[0] !== s5[0]) {
-        var h6 = f5[0].length + s5[0].length;
-        if (h6 <= 10) {
-          if (!("object" === y4(t5) && null !== t5 || "object" === y4(e5) && null !== e5 || 0 === t5 && 0 === e5))
-            return "".concat(j3[r6], "\n\n") + "".concat(f5[0], " !== ").concat(s5[0], "\n");
-        } else if ("strictEqualObject" !== r6) {
-          if (h6 < (n4.stderr && n4.stderr.isTTY ? n4.stderr.columns : 80)) {
-            for (; f5[0][p5] === s5[0][p5]; )
-              p5++;
-            p5 > 2 && (g4 = "\n  ".concat(function(t6, e6) {
-              if (e6 = Math.floor(e6), 0 == t6.length || 0 == e6)
-                return "";
-              var n5 = t6.length * e6;
-              for (e6 = Math.floor(Math.log(e6) / Math.log(2)); e6; )
-                t6 += t6, e6--;
-              return t6 += t6.substring(0, n5 - t6.length);
-            }(" ", p5), "^"), p5 = 0);
-          }
-        }
-      }
-      for (var b4 = f5[f5.length - 1], v5 = s5[s5.length - 1]; b4 === v5 && (p5++ < 2 ? i4 = "\n  ".concat(b4).concat(i4) : o5 = b4, f5.pop(), s5.pop(), 0 !== f5.length && 0 !== s5.length); )
-        b4 = f5[f5.length - 1], v5 = s5[s5.length - 1];
-      var O4 = Math.max(f5.length, s5.length);
-      if (0 === O4) {
-        var q4 = l4.split("\n");
-        if (q4.length > 30)
-          for (q4[26] = "".concat(m4, "...").concat(S3); q4.length > 27; )
-            q4.pop();
-        return "".concat(j3.notIdentical, "\n\n").concat(q4.join("\n"), "\n");
-      }
-      p5 > 3 && (i4 = "\n".concat(m4, "...").concat(S3).concat(i4), u4 = true), "" !== o5 && (i4 = "\n  ".concat(o5).concat(i4), o5 = "");
-      var R4 = 0, A3 = j3[r6] + "\n".concat(E3, "+ actual").concat(S3, " ").concat(w3, "- expected").concat(S3), k3 = " ".concat(m4, "...").concat(S3, " Lines skipped");
-      for (p5 = 0; p5 < O4; p5++) {
-        var _3 = p5 - a5;
-        if (f5.length < p5 + 1)
-          _3 > 1 && p5 > 2 && (_3 > 4 ? (c5 += "\n".concat(m4, "...").concat(S3), u4 = true) : _3 > 3 && (c5 += "\n  ".concat(s5[p5 - 2]), R4++), c5 += "\n  ".concat(s5[p5 - 1]), R4++), a5 = p5, o5 += "\n".concat(w3, "-").concat(S3, " ").concat(s5[p5]), R4++;
-        else if (s5.length < p5 + 1)
-          _3 > 1 && p5 > 2 && (_3 > 4 ? (c5 += "\n".concat(m4, "...").concat(S3), u4 = true) : _3 > 3 && (c5 += "\n  ".concat(f5[p5 - 2]), R4++), c5 += "\n  ".concat(f5[p5 - 1]), R4++), a5 = p5, c5 += "\n".concat(E3, "+").concat(S3, " ").concat(f5[p5]), R4++;
-        else {
-          var T4 = s5[p5], P3 = f5[p5], I3 = P3 !== T4 && (!d4(P3, ",") || P3.slice(0, -1) !== T4);
-          I3 && d4(T4, ",") && T4.slice(0, -1) === P3 && (I3 = false, P3 += ","), I3 ? (_3 > 1 && p5 > 2 && (_3 > 4 ? (c5 += "\n".concat(m4, "...").concat(S3), u4 = true) : _3 > 3 && (c5 += "\n  ".concat(f5[p5 - 2]), R4++), c5 += "\n  ".concat(f5[p5 - 1]), R4++), a5 = p5, c5 += "\n".concat(E3, "+").concat(S3, " ").concat(P3), o5 += "\n".concat(w3, "-").concat(S3, " ").concat(T4), R4 += 2) : (c5 += o5, o5 = "", 1 !== _3 && 0 !== p5 || (c5 += "\n  ".concat(P3), R4++));
-        }
-        if (R4 > 20 && p5 < O4 - 2)
-          return "".concat(A3).concat(k3, "\n").concat(c5, "\n").concat(m4, "...").concat(S3).concat(o5, "\n") + "".concat(m4, "...").concat(S3);
-      }
-      return "".concat(A3).concat(u4 ? k3 : "", "\n").concat(c5).concat(o5).concat(i4).concat(g4);
-    }
-    var R3 = function(t5) {
-      function e5(t6) {
-        var r6;
-        if (!function(t7, e6) {
-          if (!(t7 instanceof e6))
-            throw new TypeError("Cannot call a class as a function");
-        }(this, e5), "object" !== y4(t6) || null === t6)
-          throw new v4("options", "Object", t6);
-        var o5 = t6.message, i5 = t6.operator, u5 = t6.stackStartFn, l4 = t6.actual, f5 = t6.expected, s5 = Error.stackTraceLimit;
-        if (Error.stackTraceLimit = 0, null != o5)
-          r6 = c4(this, h5(e5).call(this, String(o5)));
-        else if (n4.stderr && n4.stderr.isTTY && (n4.stderr && n4.stderr.getColorDepth && 1 !== n4.stderr.getColorDepth() ? (m4 = "\x1B[34m", E3 = "\x1B[32m", S3 = "\x1B[39m", w3 = "\x1B[31m") : (m4 = "", E3 = "", S3 = "", w3 = "")), "object" === y4(l4) && null !== l4 && "object" === y4(f5) && null !== f5 && "stack" in l4 && l4 instanceof Error && "stack" in f5 && f5 instanceof Error && (l4 = O3(l4), f5 = O3(f5)), "deepStrictEqual" === i5 || "strictEqual" === i5)
-          r6 = c4(this, h5(e5).call(this, q3(l4, f5, i5)));
-        else if ("notDeepStrictEqual" === i5 || "notStrictEqual" === i5) {
-          var p5 = j3[i5], g4 = x3(l4).split("\n");
-          if ("notStrictEqual" === i5 && "object" === y4(l4) && null !== l4 && (p5 = j3.notStrictEqualObject), g4.length > 30)
-            for (g4[26] = "".concat(m4, "...").concat(S3); g4.length > 27; )
-              g4.pop();
-          r6 = 1 === g4.length ? c4(this, h5(e5).call(this, "".concat(p5, " ").concat(g4[0]))) : c4(this, h5(e5).call(this, "".concat(p5, "\n\n").concat(g4.join("\n"), "\n")));
-        } else {
-          var b4 = x3(l4), d5 = "", R4 = j3[i5];
-          "notDeepEqual" === i5 || "notEqual" === i5 ? (b4 = "".concat(j3[i5], "\n\n").concat(b4)).length > 1024 && (b4 = "".concat(b4.slice(0, 1021), "...")) : (d5 = "".concat(x3(f5)), b4.length > 512 && (b4 = "".concat(b4.slice(0, 509), "...")), d5.length > 512 && (d5 = "".concat(d5.slice(0, 509), "...")), "deepEqual" === i5 || "equal" === i5 ? b4 = "".concat(R4, "\n\n").concat(b4, "\n\nshould equal\n\n") : d5 = " ".concat(i5, " ").concat(d5)), r6 = c4(this, h5(e5).call(this, "".concat(b4).concat(d5)));
-        }
-        return Error.stackTraceLimit = s5, r6.generatedMessage = !o5, Object.defineProperty(a4(r6), "name", { value: "AssertionError [ERR_ASSERTION]", enumerable: false, writable: true, configurable: true }), r6.code = "ERR_ASSERTION", r6.actual = l4, r6.expected = f5, r6.operator = i5, Error.captureStackTrace && Error.captureStackTrace(a4(r6), u5), r6.stack, r6.name = "AssertionError", c4(r6);
-      }
-      var i4, u4;
-      return !function(t6, e6) {
-        if ("function" != typeof e6 && null !== e6)
-          throw new TypeError("Super expression must either be null or a function");
-        t6.prototype = Object.create(e6 && e6.prototype, { constructor: { value: t6, writable: true, configurable: true } }), e6 && g3(t6, e6);
-      }(e5, t5), i4 = e5, (u4 = [{ key: "toString", value: function() {
-        return "".concat(this.name, " [").concat(this.code, "]: ").concat(this.message);
-      } }, { key: b3.custom, value: function(t6, e6) {
-        return b3(this, function(t7) {
-          for (var e7 = 1; e7 < arguments.length; e7++) {
-            var n5 = null != arguments[e7] ? arguments[e7] : {}, o5 = Object.keys(n5);
-            "function" == typeof Object.getOwnPropertySymbols && (o5 = o5.concat(Object.getOwnPropertySymbols(n5).filter(function(t8) {
-              return Object.getOwnPropertyDescriptor(n5, t8).enumerable;
-            }))), o5.forEach(function(e8) {
-              r5(t7, e8, n5[e8]);
-            });
-          }
-          return t7;
-        }({}, e6, { customInspect: false, depth: 0 }));
-      } }]) && o4(i4.prototype, u4), e5;
-    }(f4(Error));
-    return u$5 = R3;
-  }
-  function s$3(t5, e5) {
-    return function(t6) {
-      if (Array.isArray(t6))
-        return t6;
-    }(t5) || function(t6, e6) {
-      var n4 = [], r5 = true, o4 = false, c4 = void 0;
-      try {
-        for (var a4, i4 = t6[Symbol.iterator](); !(r5 = (a4 = i4.next()).done) && (n4.push(a4.value), !e6 || n4.length !== e6); r5 = true)
-          ;
-      } catch (t7) {
-        o4 = true, c4 = t7;
-      } finally {
-        try {
-          r5 || null == i4.return || i4.return();
-        } finally {
-          if (o4)
-            throw c4;
-        }
-      }
-      return n4;
-    }(t5, e5) || function() {
-      throw new TypeError("Invalid attempt to destructure non-iterable instance");
-    }();
-  }
-  function p$3(t5) {
-    return (p$3 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(t6) {
-      return typeof t6;
-    } : function(t6) {
-      return t6 && "function" == typeof Symbol && t6.constructor === Symbol && t6 !== Symbol.prototype ? "symbol" : typeof t6;
-    })(t5);
-  }
-  var g$1 = void 0 !== /a/g.flags;
-  var h$1 = function(t5) {
-    var e5 = [];
-    return t5.forEach(function(t6) {
-      return e5.push(t6);
-    }), e5;
-  };
-  var y$2 = function(t5) {
-    var e5 = [];
-    return t5.forEach(function(t6, n4) {
-      return e5.push([n4, t6]);
-    }), e5;
-  };
-  var b$1 = Object.is ? Object.is : m3;
-  var v$1 = Object.getOwnPropertySymbols ? Object.getOwnPropertySymbols : function() {
-    return [];
-  };
-  var d$1 = Number.isNaN ? Number.isNaN : f$5;
-  function m$2(t5) {
-    return t5.call.bind(t5);
-  }
-  var E2 = m$2(Object.prototype.hasOwnProperty);
-  var w$1 = m$2(Object.prototype.propertyIsEnumerable);
-  var S2 = m$2(Object.prototype.toString);
-  var j$1 = X.types;
-  var O2 = j$1.isAnyArrayBuffer;
-  var x2 = j$1.isArrayBufferView;
-  var q2 = j$1.isDate;
-  var R2 = j$1.isMap;
-  var A$1 = j$1.isRegExp;
-  var k2 = j$1.isSet;
-  var _2 = j$1.isNativeError;
-  var T3 = j$1.isBoxedPrimitive;
-  var P$1 = j$1.isNumberObject;
-  var I2 = j$1.isStringObject;
-  var D2 = j$1.isBooleanObject;
-  var F2 = j$1.isBigIntObject;
-  var N$1 = j$1.isSymbolObject;
-  var L2 = j$1.isFloat32Array;
-  var M2 = j$1.isFloat64Array;
-  function U2(t5) {
-    if (0 === t5.length || t5.length > 10)
-      return true;
-    for (var e5 = 0; e5 < t5.length; e5++) {
-      var n4 = t5.charCodeAt(e5);
-      if (n4 < 48 || n4 > 57)
-        return true;
-    }
-    return 10 === t5.length && t5 >= Math.pow(2, 32);
-  }
-  function G2(t5) {
-    return Object.keys(t5).filter(U2).concat(v$1(t5).filter(Object.prototype.propertyIsEnumerable.bind(t5)));
-  }
-  function V2(t5, e5) {
-    if (t5 === e5)
-      return 0;
-    for (var n4 = t5.length, r5 = e5.length, o4 = 0, c4 = Math.min(n4, r5); o4 < c4; ++o4)
-      if (t5[o4] !== e5[o4]) {
-        n4 = t5[o4], r5 = e5[o4];
-        break;
-      }
-    return n4 < r5 ? -1 : r5 < n4 ? 1 : 0;
-  }
-  function B2(t5, e5, n4, r5) {
-    if (t5 === e5)
-      return 0 !== t5 || (!n4 || b$1(t5, e5));
-    if (n4) {
-      if ("object" !== p$3(t5))
-        return "number" == typeof t5 && d$1(t5) && d$1(e5);
-      if ("object" !== p$3(e5) || null === t5 || null === e5)
-        return false;
-      if (Object.getPrototypeOf(t5) !== Object.getPrototypeOf(e5))
-        return false;
-    } else {
-      if (null === t5 || "object" !== p$3(t5))
-        return (null === e5 || "object" !== p$3(e5)) && t5 == e5;
-      if (null === e5 || "object" !== p$3(e5))
-        return false;
-    }
-    var o4, c4, a4, i4, u4 = S2(t5);
-    if (u4 !== S2(e5))
-      return false;
-    if (Array.isArray(t5)) {
-      if (t5.length !== e5.length)
-        return false;
-      var l4 = G2(t5), f4 = G2(e5);
-      return l4.length === f4.length && C2(t5, e5, n4, r5, 1, l4);
-    }
-    if ("[object Object]" === u4 && (!R2(t5) && R2(e5) || !k2(t5) && k2(e5)))
-      return false;
-    if (q2(t5)) {
-      if (!q2(e5) || Date.prototype.getTime.call(t5) !== Date.prototype.getTime.call(e5))
-        return false;
-    } else if (A$1(t5)) {
-      if (!A$1(e5) || (a4 = t5, i4 = e5, !(g$1 ? a4.source === i4.source && a4.flags === i4.flags : RegExp.prototype.toString.call(a4) === RegExp.prototype.toString.call(i4))))
-        return false;
-    } else if (_2(t5) || t5 instanceof Error) {
-      if (t5.message !== e5.message || t5.name !== e5.name)
-        return false;
-    } else {
-      if (x2(t5)) {
-        if (n4 || !L2(t5) && !M2(t5)) {
-          if (!function(t6, e6) {
-            return t6.byteLength === e6.byteLength && 0 === V2(new Uint8Array(t6.buffer, t6.byteOffset, t6.byteLength), new Uint8Array(e6.buffer, e6.byteOffset, e6.byteLength));
-          }(t5, e5))
-            return false;
-        } else if (!function(t6, e6) {
-          if (t6.byteLength !== e6.byteLength)
-            return false;
-          for (var n5 = 0; n5 < t6.byteLength; n5++)
-            if (t6[n5] !== e6[n5])
-              return false;
-          return true;
-        }(t5, e5))
-          return false;
-        var s4 = G2(t5), h5 = G2(e5);
-        return s4.length === h5.length && C2(t5, e5, n4, r5, 0, s4);
-      }
-      if (k2(t5))
-        return !(!k2(e5) || t5.size !== e5.size) && C2(t5, e5, n4, r5, 2);
-      if (R2(t5))
-        return !(!R2(e5) || t5.size !== e5.size) && C2(t5, e5, n4, r5, 3);
-      if (O2(t5)) {
-        if (c4 = e5, (o4 = t5).byteLength !== c4.byteLength || 0 !== V2(new Uint8Array(o4), new Uint8Array(c4)))
-          return false;
-      } else if (T3(t5) && !function(t6, e6) {
-        return P$1(t6) ? P$1(e6) && b$1(Number.prototype.valueOf.call(t6), Number.prototype.valueOf.call(e6)) : I2(t6) ? I2(e6) && String.prototype.valueOf.call(t6) === String.prototype.valueOf.call(e6) : D2(t6) ? D2(e6) && Boolean.prototype.valueOf.call(t6) === Boolean.prototype.valueOf.call(e6) : F2(t6) ? F2(e6) && BigInt.prototype.valueOf.call(t6) === BigInt.prototype.valueOf.call(e6) : N$1(e6) && Symbol.prototype.valueOf.call(t6) === Symbol.prototype.valueOf.call(e6);
-      }(t5, e5))
-        return false;
-    }
-    return C2(t5, e5, n4, r5, 0);
-  }
-  function z2(t5, e5) {
-    return e5.filter(function(e6) {
-      return w$1(t5, e6);
-    });
-  }
-  function C2(t5, e5, n4, r5, o4, c4) {
-    if (5 === arguments.length) {
-      c4 = Object.keys(t5);
-      var a4 = Object.keys(e5);
-      if (c4.length !== a4.length)
-        return false;
-    }
-    for (var i4 = 0; i4 < c4.length; i4++)
-      if (!E2(e5, c4[i4]))
-        return false;
-    if (n4 && 5 === arguments.length) {
-      var u4 = v$1(t5);
-      if (0 !== u4.length) {
-        var l4 = 0;
-        for (i4 = 0; i4 < u4.length; i4++) {
-          var f4 = u4[i4];
-          if (w$1(t5, f4)) {
-            if (!w$1(e5, f4))
-              return false;
-            c4.push(f4), l4++;
-          } else if (w$1(e5, f4))
-            return false;
-        }
-        var s4 = v$1(e5);
-        if (u4.length !== s4.length && z2(e5, s4).length !== l4)
-          return false;
-      } else {
-        var p4 = v$1(e5);
-        if (0 !== p4.length && 0 !== z2(e5, p4).length)
-          return false;
-      }
-    }
-    if (0 === c4.length && (0 === o4 || 1 === o4 && 0 === t5.length || 0 === t5.size))
-      return true;
-    if (void 0 === r5)
-      r5 = { val1: /* @__PURE__ */ new Map(), val2: /* @__PURE__ */ new Map(), position: 0 };
-    else {
-      var g3 = r5.val1.get(t5);
-      if (void 0 !== g3) {
-        var h5 = r5.val2.get(e5);
-        if (void 0 !== h5)
-          return g3 === h5;
-      }
-      r5.position++;
-    }
-    r5.val1.set(t5, r5.position), r5.val2.set(e5, r5.position);
-    var y4 = Q2(t5, e5, n4, c4, r5, o4);
-    return r5.val1.delete(t5), r5.val2.delete(e5), y4;
-  }
-  function Y2(t5, e5, n4, r5) {
-    for (var o4 = h$1(t5), c4 = 0; c4 < o4.length; c4++) {
-      var a4 = o4[c4];
-      if (B2(e5, a4, n4, r5))
-        return t5.delete(a4), true;
-    }
-    return false;
-  }
-  function W2(t5) {
-    switch (p$3(t5)) {
-      case "undefined":
-        return null;
-      case "object":
-        return;
-      case "symbol":
-        return false;
-      case "string":
-        t5 = +t5;
-      case "number":
-        if (d$1(t5))
-          return false;
-    }
-    return true;
-  }
-  function H2(t5, e5, n4) {
-    var r5 = W2(n4);
-    return null != r5 ? r5 : e5.has(r5) && !t5.has(r5);
-  }
-  function J2(t5, e5, n4, r5, o4) {
-    var c4 = W2(n4);
-    if (null != c4)
-      return c4;
-    var a4 = e5.get(c4);
-    return !(void 0 === a4 && !e5.has(c4) || !B2(r5, a4, false, o4)) && (!t5.has(c4) && B2(r5, a4, false, o4));
-  }
-  function K2(t5, e5, n4, r5, o4, c4) {
-    for (var a4 = h$1(t5), i4 = 0; i4 < a4.length; i4++) {
-      var u4 = a4[i4];
-      if (B2(n4, u4, o4, c4) && B2(r5, e5.get(u4), o4, c4))
-        return t5.delete(u4), true;
-    }
-    return false;
-  }
-  function Q2(t5, e5, n4, r5, o4, c4) {
-    var a4 = 0;
-    if (2 === c4) {
-      if (!function(t6, e6, n5, r6) {
-        for (var o5 = null, c5 = h$1(t6), a5 = 0; a5 < c5.length; a5++) {
-          var i5 = c5[a5];
-          if ("object" === p$3(i5) && null !== i5)
-            null === o5 && (o5 = /* @__PURE__ */ new Set()), o5.add(i5);
-          else if (!e6.has(i5)) {
-            if (n5)
-              return false;
-            if (!H2(t6, e6, i5))
-              return false;
-            null === o5 && (o5 = /* @__PURE__ */ new Set()), o5.add(i5);
-          }
-        }
-        if (null !== o5) {
-          for (var u5 = h$1(e6), l5 = 0; l5 < u5.length; l5++) {
-            var f4 = u5[l5];
-            if ("object" === p$3(f4) && null !== f4) {
-              if (!Y2(o5, f4, n5, r6))
-                return false;
-            } else if (!n5 && !t6.has(f4) && !Y2(o5, f4, n5, r6))
-              return false;
-          }
-          return 0 === o5.size;
-        }
-        return true;
-      }(t5, e5, n4, o4))
-        return false;
-    } else if (3 === c4) {
-      if (!function(t6, e6, n5, r6) {
-        for (var o5 = null, c5 = y$2(t6), a5 = 0; a5 < c5.length; a5++) {
-          var i5 = s$3(c5[a5], 2), u5 = i5[0], l5 = i5[1];
-          if ("object" === p$3(u5) && null !== u5)
-            null === o5 && (o5 = /* @__PURE__ */ new Set()), o5.add(u5);
-          else {
-            var f4 = e6.get(u5);
-            if (void 0 === f4 && !e6.has(u5) || !B2(l5, f4, n5, r6)) {
-              if (n5)
-                return false;
-              if (!J2(t6, e6, u5, l5, r6))
-                return false;
-              null === o5 && (o5 = /* @__PURE__ */ new Set()), o5.add(u5);
-            }
-          }
-        }
-        if (null !== o5) {
-          for (var g3 = y$2(e6), h5 = 0; h5 < g3.length; h5++) {
-            var b3 = s$3(g3[h5], 2), v4 = (u5 = b3[0], b3[1]);
-            if ("object" === p$3(u5) && null !== u5) {
-              if (!K2(o5, t6, u5, v4, n5, r6))
-                return false;
-            } else if (!(n5 || t6.has(u5) && B2(t6.get(u5), v4, false, r6) || K2(o5, t6, u5, v4, false, r6)))
-              return false;
-          }
-          return 0 === o5.size;
-        }
-        return true;
-      }(t5, e5, n4, o4))
-        return false;
-    } else if (1 === c4)
-      for (; a4 < t5.length; a4++) {
-        if (!E2(t5, a4)) {
-          if (E2(e5, a4))
-            return false;
-          for (var i4 = Object.keys(t5); a4 < i4.length; a4++) {
-            var u4 = i4[a4];
-            if (!E2(e5, u4) || !B2(t5[u4], e5[u4], n4, o4))
-              return false;
-          }
-          return i4.length === Object.keys(e5).length;
-        }
-        if (!E2(e5, a4) || !B2(t5[a4], e5[a4], n4, o4))
-          return false;
-      }
-    for (a4 = 0; a4 < r5.length; a4++) {
-      var l4 = r5[a4];
-      if (!B2(t5[l4], e5[l4], n4, o4))
-        return false;
-    }
-    return true;
-  }
-  var X2 = { isDeepEqual: function(t5, e5) {
-    return B2(t5, e5, false);
-  }, isDeepStrictEqual: function(t5, e5) {
-    return B2(t5, e5, true);
-  } };
-  var Z2 = {};
-  var $$1 = false;
-  function tt() {
-    if ($$1)
-      return Z2;
-    $$1 = true;
-    var o4 = T;
-    function c4(t5) {
-      return (c4 = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(t6) {
-        return typeof t6;
-      } : function(t6) {
-        return t6 && "function" == typeof Symbol && t6.constructor === Symbol && t6 !== Symbol.prototype ? "symbol" : typeof t6;
-      })(t5);
-    }
-    var a4, u4, l4 = i$5().codes, s4 = l4.ERR_AMBIGUOUS_ARGUMENT, p4 = l4.ERR_INVALID_ARG_TYPE, g3 = l4.ERR_INVALID_ARG_VALUE, h5 = l4.ERR_INVALID_RETURN_VALUE, y4 = l4.ERR_MISSING_ARGS, b3 = f$6(), v4 = X.inspect, d4 = X.types, m$12 = d4.isPromise, E3 = d4.isRegExp, w3 = Object.assign ? Object.assign : r4.assign, S3 = Object.is ? Object.is : m3;
-    function j3() {
-      a4 = X2.isDeepEqual, u4 = X2.isDeepStrictEqual;
-    }
-    var O3 = false, x3 = Z2 = k3, q3 = {};
-    function R3(t5) {
-      if (t5.message instanceof Error)
-        throw t5.message;
-      throw new b3(t5);
-    }
-    function A3(t5, e5, n4, r5) {
-      if (!n4) {
-        var o5 = false;
-        if (0 === e5)
-          o5 = true, r5 = "No value argument passed to `assert.ok()`";
-        else if (r5 instanceof Error)
-          throw r5;
-        var c5 = new b3({ actual: n4, expected: true, message: r5, operator: "==", stackStartFn: t5 });
-        throw c5.generatedMessage = o5, c5;
-      }
-    }
-    function k3() {
-      for (var t5 = arguments.length, e5 = new Array(t5), n4 = 0; n4 < t5; n4++)
-        e5[n4] = arguments[n4];
-      A3.apply(void 0, [k3, e5.length].concat(e5));
-    }
-    x3.fail = function t5(e5, n4, r5, c5, a5) {
-      var i4, u5 = arguments.length;
-      if (0 === u5)
-        i4 = "Failed";
-      else if (1 === u5)
-        r5 = e5, e5 = void 0;
-      else {
-        if (false === O3) {
-          O3 = true;
-          var l5 = o4.emitWarning ? o4.emitWarning : console.warn.bind(console);
-          l5("assert.fail() with more than one argument is deprecated. Please use assert.strictEqual() instead or only pass a message.", "DeprecationWarning", "DEP0094");
-        }
-        2 === u5 && (c5 = "!=");
-      }
-      if (r5 instanceof Error)
-        throw r5;
-      var f4 = { actual: e5, expected: n4, operator: void 0 === c5 ? "fail" : c5, stackStartFn: a5 || t5 };
-      void 0 !== r5 && (f4.message = r5);
-      var s5 = new b3(f4);
-      throw i4 && (s5.message = i4, s5.generatedMessage = true), s5;
-    }, x3.AssertionError = b3, x3.ok = k3, x3.equal = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      e5 != n4 && R3({ actual: e5, expected: n4, message: r5, operator: "==", stackStartFn: t5 });
-    }, x3.notEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      e5 == n4 && R3({ actual: e5, expected: n4, message: r5, operator: "!=", stackStartFn: t5 });
-    }, x3.deepEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      void 0 === a4 && j3(), a4(e5, n4) || R3({ actual: e5, expected: n4, message: r5, operator: "deepEqual", stackStartFn: t5 });
-    }, x3.notDeepEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      void 0 === a4 && j3(), a4(e5, n4) && R3({ actual: e5, expected: n4, message: r5, operator: "notDeepEqual", stackStartFn: t5 });
-    }, x3.deepStrictEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      void 0 === a4 && j3(), u4(e5, n4) || R3({ actual: e5, expected: n4, message: r5, operator: "deepStrictEqual", stackStartFn: t5 });
-    }, x3.notDeepStrictEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      void 0 === a4 && j3();
-      u4(e5, n4) && R3({ actual: e5, expected: n4, message: r5, operator: "notDeepStrictEqual", stackStartFn: t5 });
-    }, x3.strictEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      S3(e5, n4) || R3({ actual: e5, expected: n4, message: r5, operator: "strictEqual", stackStartFn: t5 });
-    }, x3.notStrictEqual = function t5(e5, n4, r5) {
-      if (arguments.length < 2)
-        throw new y4("actual", "expected");
-      S3(e5, n4) && R3({ actual: e5, expected: n4, message: r5, operator: "notStrictEqual", stackStartFn: t5 });
-    };
-    var _3 = function t5(e5, n4, r5) {
-      var o5 = this;
-      !function(t6, e6) {
-        if (!(t6 instanceof e6))
-          throw new TypeError("Cannot call a class as a function");
-      }(this, t5), n4.forEach(function(t6) {
-        t6 in e5 && (void 0 !== r5 && "string" == typeof r5[t6] && E3(e5[t6]) && e5[t6].test(r5[t6]) ? o5[t6] = r5[t6] : o5[t6] = e5[t6]);
-      });
-    };
-    function T4(t5, e5, n4, r5, o5, c5) {
-      if (!(n4 in t5) || !u4(t5[n4], e5[n4])) {
-        if (!r5) {
-          var a5 = new _3(t5, o5), i4 = new _3(e5, o5, t5), l5 = new b3({ actual: a5, expected: i4, operator: "deepStrictEqual", stackStartFn: c5 });
-          throw l5.actual = t5, l5.expected = e5, l5.operator = c5.name, l5;
-        }
-        R3({ actual: t5, expected: e5, message: r5, operator: c5.name, stackStartFn: c5 });
-      }
-    }
-    function P3(t5, e5, n4, r5) {
-      if ("function" != typeof e5) {
-        if (E3(e5))
-          return e5.test(t5);
-        if (2 === arguments.length)
-          throw new p4("expected", ["Function", "RegExp"], e5);
-        if ("object" !== c4(t5) || null === t5) {
-          var o5 = new b3({ actual: t5, expected: e5, message: n4, operator: "deepStrictEqual", stackStartFn: r5 });
-          throw o5.operator = r5.name, o5;
-        }
-        var i4 = Object.keys(e5);
-        if (e5 instanceof Error)
-          i4.push("name", "message");
-        else if (0 === i4.length)
-          throw new g3("error", e5, "may not be an empty object");
-        return void 0 === a4 && j3(), i4.forEach(function(o6) {
-          "string" == typeof t5[o6] && E3(e5[o6]) && e5[o6].test(t5[o6]) || T4(t5, e5, o6, n4, i4, r5);
-        }), true;
-      }
-      return void 0 !== e5.prototype && t5 instanceof e5 || !Error.isPrototypeOf(e5) && true === e5.call({}, t5);
-    }
-    function I3(t5) {
-      if ("function" != typeof t5)
-        throw new p4("fn", "Function", t5);
-      try {
-        t5();
-      } catch (t6) {
-        return t6;
-      }
-      return q3;
-    }
-    function D3(t5) {
-      return m$12(t5) || null !== t5 && "object" === c4(t5) && "function" == typeof t5.then && "function" == typeof t5.catch;
-    }
-    function F3(t5) {
-      return Promise.resolve().then(function() {
-        var e5;
-        if ("function" == typeof t5) {
-          if (!D3(e5 = t5()))
-            throw new h5("instance of Promise", "promiseFn", e5);
-        } else {
-          if (!D3(t5))
-            throw new p4("promiseFn", ["Function", "Promise"], t5);
-          e5 = t5;
-        }
-        return Promise.resolve().then(function() {
-          return e5;
-        }).then(function() {
-          return q3;
-        }).catch(function(t6) {
-          return t6;
-        });
-      });
-    }
-    function N3(t5, e5, n4, r5) {
-      if ("string" == typeof n4) {
-        if (4 === arguments.length)
-          throw new p4("error", ["Object", "Error", "Function", "RegExp"], n4);
-        if ("object" === c4(e5) && null !== e5) {
-          if (e5.message === n4)
-            throw new s4("error/message", 'The error message "'.concat(e5.message, '" is identical to the message.'));
-        } else if (e5 === n4)
-          throw new s4("error/message", 'The error "'.concat(e5, '" is identical to the message.'));
-        r5 = n4, n4 = void 0;
-      } else if (null != n4 && "object" !== c4(n4) && "function" != typeof n4)
-        throw new p4("error", ["Object", "Error", "Function", "RegExp"], n4);
-      if (e5 === q3) {
-        var o5 = "";
-        n4 && n4.name && (o5 += " (".concat(n4.name, ")")), o5 += r5 ? ": ".concat(r5) : ".";
-        var a5 = "rejects" === t5.name ? "rejection" : "exception";
-        R3({ actual: void 0, expected: n4, operator: t5.name, message: "Missing expected ".concat(a5).concat(o5), stackStartFn: t5 });
-      }
-      if (n4 && !P3(e5, n4, r5, t5))
-        throw e5;
-    }
-    function L3(t5, e5, n4, r5) {
-      if (e5 !== q3) {
-        if ("string" == typeof n4 && (r5 = n4, n4 = void 0), !n4 || P3(e5, n4)) {
-          var o5 = r5 ? ": ".concat(r5) : ".", c5 = "doesNotReject" === t5.name ? "rejection" : "exception";
-          R3({ actual: e5, expected: n4, operator: t5.name, message: "Got unwanted ".concat(c5).concat(o5, "\n") + 'Actual message: "'.concat(e5 && e5.message, '"'), stackStartFn: t5 });
-        }
-        throw e5;
-      }
-    }
-    function M3() {
-      for (var t5 = arguments.length, e5 = new Array(t5), n4 = 0; n4 < t5; n4++)
-        e5[n4] = arguments[n4];
-      A3.apply(void 0, [M3, e5.length].concat(e5));
-    }
-    return x3.throws = function t5(e5) {
-      for (var n4 = arguments.length, r5 = new Array(n4 > 1 ? n4 - 1 : 0), o5 = 1; o5 < n4; o5++)
-        r5[o5 - 1] = arguments[o5];
-      N3.apply(void 0, [t5, I3(e5)].concat(r5));
-    }, x3.rejects = function t5(e5) {
-      for (var n4 = arguments.length, r5 = new Array(n4 > 1 ? n4 - 1 : 0), o5 = 1; o5 < n4; o5++)
-        r5[o5 - 1] = arguments[o5];
-      return F3(e5).then(function(e6) {
-        return N3.apply(void 0, [t5, e6].concat(r5));
-      });
-    }, x3.doesNotThrow = function t5(e5) {
-      for (var n4 = arguments.length, r5 = new Array(n4 > 1 ? n4 - 1 : 0), o5 = 1; o5 < n4; o5++)
-        r5[o5 - 1] = arguments[o5];
-      L3.apply(void 0, [t5, I3(e5)].concat(r5));
-    }, x3.doesNotReject = function t5(e5) {
-      for (var n4 = arguments.length, r5 = new Array(n4 > 1 ? n4 - 1 : 0), o5 = 1; o5 < n4; o5++)
-        r5[o5 - 1] = arguments[o5];
-      return F3(e5).then(function(e6) {
-        return L3.apply(void 0, [t5, e6].concat(r5));
-      });
-    }, x3.ifError = function t5(e5) {
-      if (null != e5) {
-        var n4 = "ifError got unwanted exception: ";
-        "object" === c4(e5) && "string" == typeof e5.message ? 0 === e5.message.length && e5.constructor ? n4 += e5.constructor.name : n4 += e5.message : n4 += v4(e5);
-        var r5 = new b3({ actual: e5, expected: null, operator: "ifError", message: n4, stackStartFn: t5 }), o5 = e5.stack;
-        if ("string" == typeof o5) {
-          var a5 = o5.split("\n");
-          a5.shift();
-          for (var i4 = r5.stack.split("\n"), u5 = 0; u5 < a5.length; u5++) {
-            var l5 = i4.indexOf(a5[u5]);
-            if (-1 !== l5) {
-              i4 = i4.slice(0, l5);
-              break;
-            }
-          }
-          r5.stack = "".concat(i4.join("\n"), "\n").concat(a5.join("\n"));
-        }
-        throw r5;
-      }
-    }, x3.strict = w3(M3, x3, { equal: x3.strictEqual, deepEqual: x3.deepStrictEqual, notEqual: x3.notStrictEqual, notDeepEqual: x3.notDeepStrictEqual }), x3.strict.strict = x3.strict, Z2;
-  }
-  var et = tt();
-  et.AssertionError;
-  et.deepEqual;
-  et.deepStrictEqual;
-  et.doesNotReject;
-  et.doesNotThrow;
-  et.equal;
-  et.fail;
-  et.ifError;
-  et.notDeepEqual;
-  et.notDeepStrictEqual;
-  et.notEqual;
-  et.notStrictEqual;
-  et.ok;
-  et.rejects;
-  et.strict;
-  et.strictEqual;
-  et.throws;
-  et.AssertionError;
-  et.deepEqual;
-  et.deepStrictEqual;
-  et.doesNotReject;
-  et.doesNotThrow;
-  et.equal;
-  et.fail;
-  et.ifError;
-  et.notDeepEqual;
-  et.notDeepStrictEqual;
-  et.notEqual;
-  et.notStrictEqual;
-  et.ok;
-  et.rejects;
-  et.strict;
-  et.strictEqual;
-  et.throws;
-  var AssertionError = et.AssertionError;
-  var deepEqual = et.deepEqual;
-  var deepStrictEqual = et.deepStrictEqual;
-  var doesNotReject = et.doesNotReject;
-  var doesNotThrow = et.doesNotThrow;
-  var equal = et.equal;
-  var fail = et.fail;
-  var ifError = et.ifError;
-  var notDeepEqual = et.notDeepEqual;
-  var notDeepStrictEqual = et.notDeepStrictEqual;
-  var notEqual = et.notEqual;
-  var notStrictEqual = et.notStrictEqual;
-  var ok = et.ok;
-  var rejects = et.rejects;
-  var strict = et.strict;
-  var strictEqual = et.strictEqual;
-  var throws = et.throws;
+  var v4_default = v4;
 
   // src/CompletionCache.ts
   init_global();
@@ -9761,7 +7996,7 @@ var Tabby = (() => {
         __publicField(this, "reason");
         __publicField(this, "aborted", false);
       }
-      addEventListener(_3, fn) {
+      addEventListener(_, fn) {
         this._onabort.push(fn);
       }
     };
@@ -9791,7 +8026,7 @@ var Tabby = (() => {
   }
   var shouldWarn = (code) => !warned.has(code);
   var TYPE = Symbol("type");
-  var isPosInt = (n4) => n4 && n4 === Math.floor(n4) && n4 > 0 && isFinite(n4);
+  var isPosInt = (n2) => n2 && n2 === Math.floor(n2) && n2 > 0 && isFinite(n2);
   var getUintArray = (max) => !isPosInt(max) ? null : max <= Math.pow(2, 8) ? Uint8Array : max <= Math.pow(2, 16) ? Uint16Array : max <= Math.pow(2, 32) ? Uint32Array : max <= Number.MAX_SAFE_INTEGER ? ZeroArray : null;
   var ZeroArray = class extends Array {
     constructor(size) {
@@ -9815,12 +8050,12 @@ var Tabby = (() => {
       if (!HeapCls)
         return [];
       __privateSet(_Stack, _constructing, true);
-      const s4 = new _Stack(max, HeapCls);
+      const s2 = new _Stack(max, HeapCls);
       __privateSet(_Stack, _constructing, false);
-      return s4;
+      return s2;
     }
-    push(n4) {
-      this.heap[this.length++] = n4;
+    push(n2) {
+      this.heap[this.length++] = n2;
     }
     pop() {
       return this.heap[--this.length];
@@ -10046,48 +8281,48 @@ var Tabby = (() => {
      *
      * @internal
      */
-    static unsafeExposeInternals(c4) {
+    static unsafeExposeInternals(c2) {
       return {
         // properties
-        starts: __privateGet(c4, _starts),
-        ttls: __privateGet(c4, _ttls),
-        sizes: __privateGet(c4, _sizes),
-        keyMap: __privateGet(c4, _keyMap),
-        keyList: __privateGet(c4, _keyList),
-        valList: __privateGet(c4, _valList),
-        next: __privateGet(c4, _next),
-        prev: __privateGet(c4, _prev),
+        starts: __privateGet(c2, _starts),
+        ttls: __privateGet(c2, _ttls),
+        sizes: __privateGet(c2, _sizes),
+        keyMap: __privateGet(c2, _keyMap),
+        keyList: __privateGet(c2, _keyList),
+        valList: __privateGet(c2, _valList),
+        next: __privateGet(c2, _next),
+        prev: __privateGet(c2, _prev),
         get head() {
-          return __privateGet(c4, _head);
+          return __privateGet(c2, _head);
         },
         get tail() {
-          return __privateGet(c4, _tail);
+          return __privateGet(c2, _tail);
         },
-        free: __privateGet(c4, _free),
+        free: __privateGet(c2, _free),
         // methods
-        isBackgroundFetch: (p4) => {
+        isBackgroundFetch: (p2) => {
           var _a;
-          return __privateMethod(_a = c4, _isBackgroundFetch, isBackgroundFetch_fn).call(_a, p4);
+          return __privateMethod(_a = c2, _isBackgroundFetch, isBackgroundFetch_fn).call(_a, p2);
         },
-        backgroundFetch: (k3, index, options, context) => {
+        backgroundFetch: (k, index, options, context) => {
           var _a;
-          return __privateMethod(_a = c4, _backgroundFetch, backgroundFetch_fn).call(_a, k3, index, options, context);
+          return __privateMethod(_a = c2, _backgroundFetch, backgroundFetch_fn).call(_a, k, index, options, context);
         },
         moveToTail: (index) => {
           var _a;
-          return __privateMethod(_a = c4, _moveToTail, moveToTail_fn).call(_a, index);
+          return __privateMethod(_a = c2, _moveToTail, moveToTail_fn).call(_a, index);
         },
         indexes: (options) => {
           var _a;
-          return __privateMethod(_a = c4, _indexes, indexes_fn).call(_a, options);
+          return __privateMethod(_a = c2, _indexes, indexes_fn).call(_a, options);
         },
         rindexes: (options) => {
           var _a;
-          return __privateMethod(_a = c4, _rindexes, rindexes_fn).call(_a, options);
+          return __privateMethod(_a = c2, _rindexes, rindexes_fn).call(_a, options);
         },
         isStale: (index) => {
           var _a;
-          return __privateGet(_a = c4, _isStale).call(_a, index);
+          return __privateGet(_a = c2, _isStale).call(_a, index);
         }
       };
     }
@@ -10145,9 +8380,9 @@ var Tabby = (() => {
      * in order from most recently used to least recently used.
      */
     *entries() {
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
-        if (__privateGet(this, _valList)[i4] !== void 0 && __privateGet(this, _keyList)[i4] !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield [__privateGet(this, _keyList)[i4], __privateGet(this, _valList)[i4]];
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
+        if (__privateGet(this, _valList)[i2] !== void 0 && __privateGet(this, _keyList)[i2] !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield [__privateGet(this, _keyList)[i2], __privateGet(this, _valList)[i2]];
         }
       }
     }
@@ -10158,9 +8393,9 @@ var Tabby = (() => {
      * in order from least recently used to most recently used.
      */
     *rentries() {
-      for (const i4 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
-        if (__privateGet(this, _valList)[i4] !== void 0 && __privateGet(this, _keyList)[i4] !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield [__privateGet(this, _keyList)[i4], __privateGet(this, _valList)[i4]];
+      for (const i2 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
+        if (__privateGet(this, _valList)[i2] !== void 0 && __privateGet(this, _keyList)[i2] !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield [__privateGet(this, _keyList)[i2], __privateGet(this, _valList)[i2]];
         }
       }
     }
@@ -10169,10 +8404,10 @@ var Tabby = (() => {
      * in order from most recently used to least recently used.
      */
     *keys() {
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
-        const k3 = __privateGet(this, _keyList)[i4];
-        if (k3 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield k3;
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
+        const k = __privateGet(this, _keyList)[i2];
+        if (k !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield k;
         }
       }
     }
@@ -10183,10 +8418,10 @@ var Tabby = (() => {
      * in order from least recently used to most recently used.
      */
     *rkeys() {
-      for (const i4 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
-        const k3 = __privateGet(this, _keyList)[i4];
-        if (k3 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield k3;
+      for (const i2 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
+        const k = __privateGet(this, _keyList)[i2];
+        if (k !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield k;
         }
       }
     }
@@ -10195,10 +8430,10 @@ var Tabby = (() => {
      * in order from most recently used to least recently used.
      */
     *values() {
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
-        const v4 = __privateGet(this, _valList)[i4];
-        if (v4 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield __privateGet(this, _valList)[i4];
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
+        const v2 = __privateGet(this, _valList)[i2];
+        if (v2 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield __privateGet(this, _valList)[i2];
         }
       }
     }
@@ -10209,10 +8444,10 @@ var Tabby = (() => {
      * in order from least recently used to most recently used.
      */
     *rvalues() {
-      for (const i4 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
-        const v4 = __privateGet(this, _valList)[i4];
-        if (v4 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i4])) {
-          yield __privateGet(this, _valList)[i4];
+      for (const i2 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
+        const v2 = __privateGet(this, _valList)[i2];
+        if (v2 !== void 0 && !__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, __privateGet(this, _valList)[i2])) {
+          yield __privateGet(this, _valList)[i2];
         }
       }
     }
@@ -10228,13 +8463,13 @@ var Tabby = (() => {
      * similar to Array.find().  fn is called as fn(value, key, cache).
      */
     find(fn, getOptions = {}) {
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
-        const v4 = __privateGet(this, _valList)[i4];
-        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) ? v4.__staleWhileFetching : v4;
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
+        const v2 = __privateGet(this, _valList)[i2];
+        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) ? v2.__staleWhileFetching : v2;
         if (value === void 0)
           continue;
-        if (fn(value, __privateGet(this, _keyList)[i4], this)) {
-          return this.get(__privateGet(this, _keyList)[i4], getOptions);
+        if (fn(value, __privateGet(this, _keyList)[i2], this)) {
+          return this.get(__privateGet(this, _keyList)[i2], getOptions);
         }
       }
     }
@@ -10245,12 +8480,12 @@ var Tabby = (() => {
      * Does not iterate over stale values.
      */
     forEach(fn, thisp = this) {
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
-        const v4 = __privateGet(this, _valList)[i4];
-        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) ? v4.__staleWhileFetching : v4;
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this)) {
+        const v2 = __privateGet(this, _valList)[i2];
+        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) ? v2.__staleWhileFetching : v2;
         if (value === void 0)
           continue;
-        fn.call(thisp, value, __privateGet(this, _keyList)[i4], this);
+        fn.call(thisp, value, __privateGet(this, _keyList)[i2], this);
       }
     }
     /**
@@ -10258,12 +8493,12 @@ var Tabby = (() => {
      * reverse order.  (ie, less recently used items are iterated over first.)
      */
     rforEach(fn, thisp = this) {
-      for (const i4 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
-        const v4 = __privateGet(this, _valList)[i4];
-        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) ? v4.__staleWhileFetching : v4;
+      for (const i2 of __privateMethod(this, _rindexes, rindexes_fn).call(this)) {
+        const v2 = __privateGet(this, _valList)[i2];
+        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) ? v2.__staleWhileFetching : v2;
         if (value === void 0)
           continue;
-        fn.call(thisp, value, __privateGet(this, _keyList)[i4], this);
+        fn.call(thisp, value, __privateGet(this, _keyList)[i2], this);
       }
     }
     /**
@@ -10272,9 +8507,9 @@ var Tabby = (() => {
      */
     purgeStale() {
       let deleted = false;
-      for (const i4 of __privateMethod(this, _rindexes, rindexes_fn).call(this, { allowStale: true })) {
-        if (__privateGet(this, _isStale).call(this, i4)) {
-          this.delete(__privateGet(this, _keyList)[i4]);
+      for (const i2 of __privateMethod(this, _rindexes, rindexes_fn).call(this, { allowStale: true })) {
+        if (__privateGet(this, _isStale).call(this, i2)) {
+          this.delete(__privateGet(this, _keyList)[i2]);
           deleted = true;
         }
       }
@@ -10286,20 +8521,20 @@ var Tabby = (() => {
      */
     dump() {
       const arr = [];
-      for (const i4 of __privateMethod(this, _indexes, indexes_fn).call(this, { allowStale: true })) {
-        const key = __privateGet(this, _keyList)[i4];
-        const v4 = __privateGet(this, _valList)[i4];
-        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) ? v4.__staleWhileFetching : v4;
+      for (const i2 of __privateMethod(this, _indexes, indexes_fn).call(this, { allowStale: true })) {
+        const key = __privateGet(this, _keyList)[i2];
+        const v2 = __privateGet(this, _valList)[i2];
+        const value = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) ? v2.__staleWhileFetching : v2;
         if (value === void 0 || key === void 0)
           continue;
         const entry = { value };
         if (__privateGet(this, _ttls) && __privateGet(this, _starts)) {
-          entry.ttl = __privateGet(this, _ttls)[i4];
-          const age = perf.now() - __privateGet(this, _starts)[i4];
+          entry.ttl = __privateGet(this, _ttls)[i2];
+          const age = perf.now() - __privateGet(this, _starts)[i2];
           entry.start = Math.floor(Date.now() - age);
         }
         if (__privateGet(this, _sizes)) {
-          entry.size = __privateGet(this, _sizes)[i4];
+          entry.size = __privateGet(this, _sizes)[i2];
         }
         arr.unshift([key, entry]);
       }
@@ -10326,29 +8561,29 @@ var Tabby = (() => {
      * Note: if `undefined` is specified as a value, this is an alias for
      * {@link LRUCache#delete}
      */
-    set(k3, v4, setOptions = {}) {
+    set(k, v2, setOptions = {}) {
       var _a, _b;
-      if (v4 === void 0) {
-        this.delete(k3);
+      if (v2 === void 0) {
+        this.delete(k);
         return this;
       }
       const { ttl = this.ttl, start, noDisposeOnSet = this.noDisposeOnSet, sizeCalculation = this.sizeCalculation, status } = setOptions;
       let { noUpdateTTL = this.noUpdateTTL } = setOptions;
-      const size = __privateGet(this, _requireSize).call(this, k3, v4, setOptions.size || 0, sizeCalculation);
+      const size = __privateGet(this, _requireSize).call(this, k, v2, setOptions.size || 0, sizeCalculation);
       if (this.maxEntrySize && size > this.maxEntrySize) {
         if (status) {
           status.set = "miss";
           status.maxEntrySizeExceeded = true;
         }
-        this.delete(k3);
+        this.delete(k);
         return this;
       }
-      let index = __privateGet(this, _size) === 0 ? void 0 : __privateGet(this, _keyMap).get(k3);
+      let index = __privateGet(this, _size) === 0 ? void 0 : __privateGet(this, _keyMap).get(k);
       if (index === void 0) {
         index = __privateGet(this, _size) === 0 ? __privateGet(this, _tail) : __privateGet(this, _free).length !== 0 ? __privateGet(this, _free).pop() : __privateGet(this, _size) === __privateGet(this, _max) ? __privateMethod(this, _evict, evict_fn).call(this, false) : __privateGet(this, _size);
-        __privateGet(this, _keyList)[index] = k3;
-        __privateGet(this, _valList)[index] = v4;
-        __privateGet(this, _keyMap).set(k3, index);
+        __privateGet(this, _keyList)[index] = k;
+        __privateGet(this, _valList)[index] = v2;
+        __privateGet(this, _keyMap).set(k, index);
         __privateGet(this, _next)[__privateGet(this, _tail)] = index;
         __privateGet(this, _prev)[index] = __privateGet(this, _tail);
         __privateSet(this, _tail, index);
@@ -10360,20 +8595,20 @@ var Tabby = (() => {
       } else {
         __privateMethod(this, _moveToTail, moveToTail_fn).call(this, index);
         const oldVal = __privateGet(this, _valList)[index];
-        if (v4 !== oldVal) {
+        if (v2 !== oldVal) {
           if (__privateGet(this, _hasFetchMethod) && __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, oldVal)) {
             oldVal.__abortController.abort(new Error("replaced"));
           } else if (!noDisposeOnSet) {
             if (__privateGet(this, _hasDispose)) {
-              (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, oldVal, k3, "set");
+              (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, oldVal, k, "set");
             }
             if (__privateGet(this, _hasDisposeAfter)) {
-              __privateGet(this, _disposed)?.push([oldVal, k3, "set"]);
+              __privateGet(this, _disposed)?.push([oldVal, k, "set"]);
             }
           }
           __privateGet(this, _removeItemSize).call(this, index);
           __privateGet(this, _addItemSize).call(this, index, size, status);
-          __privateGet(this, _valList)[index] = v4;
+          __privateGet(this, _valList)[index] = v2;
           if (status) {
             status.set = "replace";
             const oldValue = oldVal && __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, oldVal) ? oldVal.__staleWhileFetching : oldVal;
@@ -10439,12 +8674,12 @@ var Tabby = (() => {
      * Will not update item age unless
      * {@link LRUCache.OptionsBase.updateAgeOnHas} is set.
      */
-    has(k3, hasOptions = {}) {
+    has(k, hasOptions = {}) {
       const { updateAgeOnHas = this.updateAgeOnHas, status } = hasOptions;
-      const index = __privateGet(this, _keyMap).get(k3);
+      const index = __privateGet(this, _keyMap).get(k);
       if (index !== void 0) {
-        const v4 = __privateGet(this, _valList)[index];
-        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) && v4.__staleWhileFetching === void 0) {
+        const v2 = __privateGet(this, _valList)[index];
+        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) && v2.__staleWhileFetching === void 0) {
           return false;
         }
         if (!__privateGet(this, _isStale).call(this, index)) {
@@ -10472,15 +8707,15 @@ var Tabby = (() => {
      * Returns `undefined` if the item is stale, unless
      * {@link LRUCache.OptionsBase.allowStale} is set.
      */
-    peek(k3, peekOptions = {}) {
+    peek(k, peekOptions = {}) {
       const { allowStale = this.allowStale } = peekOptions;
-      const index = __privateGet(this, _keyMap).get(k3);
+      const index = __privateGet(this, _keyMap).get(k);
       if (index !== void 0 && (allowStale || !__privateGet(this, _isStale).call(this, index))) {
-        const v4 = __privateGet(this, _valList)[index];
-        return __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4) ? v4.__staleWhileFetching : v4;
+        const v2 = __privateGet(this, _valList)[index];
+        return __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2) ? v2.__staleWhileFetching : v2;
       }
     }
-    async fetch(k3, fetchOptions = {}) {
+    async fetch(k, fetchOptions = {}) {
       const {
         // get options
         allowStale = this.allowStale,
@@ -10505,7 +8740,7 @@ var Tabby = (() => {
       if (!__privateGet(this, _hasFetchMethod)) {
         if (status)
           status.fetch = "get";
-        return this.get(k3, {
+        return this.get(k, {
           allowStale,
           updateAgeOnGet,
           noDeleteOnStaleGet,
@@ -10528,22 +8763,22 @@ var Tabby = (() => {
         status,
         signal
       };
-      let index = __privateGet(this, _keyMap).get(k3);
+      let index = __privateGet(this, _keyMap).get(k);
       if (index === void 0) {
         if (status)
           status.fetch = "miss";
-        const p4 = __privateMethod(this, _backgroundFetch, backgroundFetch_fn).call(this, k3, index, options, context);
-        return p4.__returned = p4;
+        const p2 = __privateMethod(this, _backgroundFetch, backgroundFetch_fn).call(this, k, index, options, context);
+        return p2.__returned = p2;
       } else {
-        const v4 = __privateGet(this, _valList)[index];
-        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
-          const stale = allowStale && v4.__staleWhileFetching !== void 0;
+        const v2 = __privateGet(this, _valList)[index];
+        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
+          const stale = allowStale && v2.__staleWhileFetching !== void 0;
           if (status) {
             status.fetch = "inflight";
             if (stale)
               status.returnedStale = true;
           }
-          return stale ? v4.__staleWhileFetching : v4.__returned = v4;
+          return stale ? v2.__staleWhileFetching : v2.__returned = v2;
         }
         const isStale = __privateGet(this, _isStale).call(this, index);
         if (!forceRefresh && !isStale) {
@@ -10555,17 +8790,17 @@ var Tabby = (() => {
           }
           if (status)
             __privateGet(this, _statusTTL).call(this, status, index);
-          return v4;
+          return v2;
         }
-        const p4 = __privateMethod(this, _backgroundFetch, backgroundFetch_fn).call(this, k3, index, options, context);
-        const hasStale = p4.__staleWhileFetching !== void 0;
+        const p2 = __privateMethod(this, _backgroundFetch, backgroundFetch_fn).call(this, k, index, options, context);
+        const hasStale = p2.__staleWhileFetching !== void 0;
         const staleVal = hasStale && allowStale;
         if (status) {
           status.fetch = isStale ? "stale" : "refresh";
           if (staleVal && isStale)
             status.returnedStale = true;
         }
-        return staleVal ? p4.__staleWhileFetching : p4.__returned = p4;
+        return staleVal ? p2.__staleWhileFetching : p2.__returned = p2;
       }
     }
     /**
@@ -10574,9 +8809,9 @@ var Tabby = (() => {
      *
      * If the key is not found, get() will return `undefined`.
      */
-    get(k3, getOptions = {}) {
+    get(k, getOptions = {}) {
       const { allowStale = this.allowStale, updateAgeOnGet = this.updateAgeOnGet, noDeleteOnStaleGet = this.noDeleteOnStaleGet, status } = getOptions;
-      const index = __privateGet(this, _keyMap).get(k3);
+      const index = __privateGet(this, _keyMap).get(k);
       if (index !== void 0) {
         const value = __privateGet(this, _valList)[index];
         const fetching = __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, value);
@@ -10587,7 +8822,7 @@ var Tabby = (() => {
             status.get = "stale";
           if (!fetching) {
             if (!noDeleteOnStaleGet) {
-              this.delete(k3);
+              this.delete(k);
             }
             if (status && allowStale)
               status.returnedStale = true;
@@ -10618,29 +8853,29 @@ var Tabby = (() => {
      * Deletes a key out of the cache.
      * Returns true if the key was deleted, false otherwise.
      */
-    delete(k3) {
+    delete(k) {
       var _a, _b;
       let deleted = false;
       if (__privateGet(this, _size) !== 0) {
-        const index = __privateGet(this, _keyMap).get(k3);
+        const index = __privateGet(this, _keyMap).get(k);
         if (index !== void 0) {
           deleted = true;
           if (__privateGet(this, _size) === 1) {
             this.clear();
           } else {
             __privateGet(this, _removeItemSize).call(this, index);
-            const v4 = __privateGet(this, _valList)[index];
-            if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
-              v4.__abortController.abort(new Error("deleted"));
+            const v2 = __privateGet(this, _valList)[index];
+            if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
+              v2.__abortController.abort(new Error("deleted"));
             } else if (__privateGet(this, _hasDispose) || __privateGet(this, _hasDisposeAfter)) {
               if (__privateGet(this, _hasDispose)) {
-                (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v4, k3, "delete");
+                (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v2, k, "delete");
               }
               if (__privateGet(this, _hasDisposeAfter)) {
-                __privateGet(this, _disposed)?.push([v4, k3, "delete"]);
+                __privateGet(this, _disposed)?.push([v2, k, "delete"]);
               }
             }
-            __privateGet(this, _keyMap).delete(k3);
+            __privateGet(this, _keyMap).delete(k);
             __privateGet(this, _keyList)[index] = void 0;
             __privateGet(this, _valList)[index] = void 0;
             if (index === __privateGet(this, _tail)) {
@@ -10671,16 +8906,16 @@ var Tabby = (() => {
     clear() {
       var _a, _b;
       for (const index of __privateMethod(this, _rindexes, rindexes_fn).call(this, { allowStale: true })) {
-        const v4 = __privateGet(this, _valList)[index];
-        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
-          v4.__abortController.abort(new Error("deleted"));
+        const v2 = __privateGet(this, _valList)[index];
+        if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
+          v2.__abortController.abort(new Error("deleted"));
         } else {
-          const k3 = __privateGet(this, _keyList)[index];
+          const k = __privateGet(this, _keyList)[index];
           if (__privateGet(this, _hasDispose)) {
-            (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v4, k3, "delete");
+            (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v2, k, "delete");
           }
           if (__privateGet(this, _hasDisposeAfter)) {
-            __privateGet(this, _disposed)?.push([v4, k3, "delete"]);
+            __privateGet(this, _disposed)?.push([v2, k, "delete"]);
           }
         }
       }
@@ -10741,13 +8976,13 @@ var Tabby = (() => {
       starts[index] = ttl !== 0 ? start : 0;
       ttls[index] = ttl;
       if (ttl !== 0 && this.ttlAutopurge) {
-        const t5 = setTimeout(() => {
+        const t2 = setTimeout(() => {
           if (__privateGet(this, _isStale).call(this, index)) {
             this.delete(__privateGet(this, _keyList)[index]);
           }
         }, ttl + 1);
-        if (t5.unref) {
-          t5.unref();
+        if (t2.unref) {
+          t2.unref();
         }
       }
     });
@@ -10767,15 +9002,15 @@ var Tabby = (() => {
     });
     let cachedNow = 0;
     const getNow = () => {
-      const n4 = perf.now();
+      const n2 = perf.now();
       if (this.ttlResolution > 0) {
-        cachedNow = n4;
-        const t5 = setTimeout(() => cachedNow = 0, this.ttlResolution);
-        if (t5.unref) {
-          t5.unref();
+        cachedNow = n2;
+        const t2 = setTimeout(() => cachedNow = 0, this.ttlResolution);
+        if (t2.unref) {
+          t2.unref();
         }
       }
-      return n4;
+      return n2;
     };
     this.getRemainingTTL = (key) => {
       const index = __privateGet(this, _keyMap).get(key);
@@ -10807,8 +9042,8 @@ var Tabby = (() => {
       __privateSet(this, _calculatedSize, __privateGet(this, _calculatedSize) - sizes[index]);
       sizes[index] = 0;
     });
-    __privateSet(this, _requireSize, (k3, v4, size, sizeCalculation) => {
-      if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
+    __privateSet(this, _requireSize, (k, v2, size, sizeCalculation) => {
+      if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
         return 0;
       }
       if (!isPosInt(size)) {
@@ -10816,7 +9051,7 @@ var Tabby = (() => {
           if (typeof sizeCalculation !== "function") {
             throw new TypeError("sizeCalculation must be a function");
           }
-          size = sizeCalculation(v4, k3);
+          size = sizeCalculation(v2, k);
           if (!isPosInt(size)) {
             throw new TypeError("sizeCalculation return invalid (expect positive integer)");
           }
@@ -10847,17 +9082,17 @@ var Tabby = (() => {
   _indexes = new WeakSet();
   indexes_fn = function* ({ allowStale = this.allowStale } = {}) {
     if (__privateGet(this, _size)) {
-      for (let i4 = __privateGet(this, _tail); true; ) {
-        if (!__privateMethod(this, _isValidIndex, isValidIndex_fn).call(this, i4)) {
+      for (let i2 = __privateGet(this, _tail); true; ) {
+        if (!__privateMethod(this, _isValidIndex, isValidIndex_fn).call(this, i2)) {
           break;
         }
-        if (allowStale || !__privateGet(this, _isStale).call(this, i4)) {
-          yield i4;
+        if (allowStale || !__privateGet(this, _isStale).call(this, i2)) {
+          yield i2;
         }
-        if (i4 === __privateGet(this, _head)) {
+        if (i2 === __privateGet(this, _head)) {
           break;
         } else {
-          i4 = __privateGet(this, _prev)[i4];
+          i2 = __privateGet(this, _prev)[i2];
         }
       }
     }
@@ -10865,17 +9100,17 @@ var Tabby = (() => {
   _rindexes = new WeakSet();
   rindexes_fn = function* ({ allowStale = this.allowStale } = {}) {
     if (__privateGet(this, _size)) {
-      for (let i4 = __privateGet(this, _head); true; ) {
-        if (!__privateMethod(this, _isValidIndex, isValidIndex_fn).call(this, i4)) {
+      for (let i2 = __privateGet(this, _head); true; ) {
+        if (!__privateMethod(this, _isValidIndex, isValidIndex_fn).call(this, i2)) {
           break;
         }
-        if (allowStale || !__privateGet(this, _isStale).call(this, i4)) {
-          yield i4;
+        if (allowStale || !__privateGet(this, _isStale).call(this, i2)) {
+          yield i2;
         }
-        if (i4 === __privateGet(this, _tail)) {
+        if (i2 === __privateGet(this, _tail)) {
           break;
         } else {
-          i4 = __privateGet(this, _next)[i4];
+          i2 = __privateGet(this, _next)[i2];
         }
       }
     }
@@ -10888,16 +9123,16 @@ var Tabby = (() => {
   evict_fn = function(free) {
     var _a;
     const head = __privateGet(this, _head);
-    const k3 = __privateGet(this, _keyList)[head];
-    const v4 = __privateGet(this, _valList)[head];
-    if (__privateGet(this, _hasFetchMethod) && __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
-      v4.__abortController.abort(new Error("evicted"));
+    const k = __privateGet(this, _keyList)[head];
+    const v2 = __privateGet(this, _valList)[head];
+    if (__privateGet(this, _hasFetchMethod) && __privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
+      v2.__abortController.abort(new Error("evicted"));
     } else if (__privateGet(this, _hasDispose) || __privateGet(this, _hasDisposeAfter)) {
       if (__privateGet(this, _hasDispose)) {
-        (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v4, k3, "evict");
+        (_a = __privateGet(this, _dispose)) == null ? void 0 : _a.call(this, v2, k, "evict");
       }
       if (__privateGet(this, _hasDisposeAfter)) {
-        __privateGet(this, _disposed)?.push([v4, k3, "evict"]);
+        __privateGet(this, _disposed)?.push([v2, k, "evict"]);
       }
     }
     __privateGet(this, _removeItemSize).call(this, head);
@@ -10912,15 +9147,15 @@ var Tabby = (() => {
     } else {
       __privateSet(this, _head, __privateGet(this, _next)[head]);
     }
-    __privateGet(this, _keyMap).delete(k3);
+    __privateGet(this, _keyMap).delete(k);
     __privateWrapper(this, _size)._--;
     return head;
   };
   _backgroundFetch = new WeakSet();
-  backgroundFetch_fn = function(k3, index, options, context) {
-    const v4 = index === void 0 ? void 0 : __privateGet(this, _valList)[index];
-    if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v4)) {
-      return v4;
+  backgroundFetch_fn = function(k, index, options, context) {
+    const v2 = index === void 0 ? void 0 : __privateGet(this, _valList)[index];
+    if (__privateMethod(this, _isBackgroundFetch, isBackgroundFetch_fn).call(this, v2)) {
+      return v2;
     }
     const ac = new AC();
     const { signal } = options;
@@ -10932,9 +9167,9 @@ var Tabby = (() => {
       options,
       context
     };
-    const cb = (v5, updateCache = false) => {
+    const cb = (v3, updateCache = false) => {
       const { aborted } = ac.signal;
-      const ignoreAbort = options.ignoreFetchAbort && v5 !== void 0;
+      const ignoreAbort = options.ignoreFetchAbort && v3 !== void 0;
       if (options.status) {
         if (aborted && !updateCache) {
           options.status.fetchAborted = true;
@@ -10948,21 +9183,21 @@ var Tabby = (() => {
       if (aborted && !ignoreAbort && !updateCache) {
         return fetchFail(ac.signal.reason);
       }
-      const bf2 = p4;
-      if (__privateGet(this, _valList)[index] === p4) {
-        if (v5 === void 0) {
+      const bf2 = p2;
+      if (__privateGet(this, _valList)[index] === p2) {
+        if (v3 === void 0) {
           if (bf2.__staleWhileFetching) {
             __privateGet(this, _valList)[index] = bf2.__staleWhileFetching;
           } else {
-            this.delete(k3);
+            this.delete(k);
           }
         } else {
           if (options.status)
             options.status.fetchUpdated = true;
-          this.set(k3, v5, fetchOpts.options);
+          this.set(k, v3, fetchOpts.options);
         }
       }
-      return v5;
+      return v3;
     };
     const eb = (er) => {
       if (options.status) {
@@ -10976,11 +9211,11 @@ var Tabby = (() => {
       const allowStaleAborted = aborted && options.allowStaleOnFetchAbort;
       const allowStale = allowStaleAborted || options.allowStaleOnFetchRejection;
       const noDelete = allowStale || options.noDeleteOnFetchRejection;
-      const bf2 = p4;
-      if (__privateGet(this, _valList)[index] === p4) {
+      const bf2 = p2;
+      if (__privateGet(this, _valList)[index] === p2) {
         const del = !noDelete || bf2.__staleWhileFetching === void 0;
         if (del) {
-          this.delete(k3);
+          this.delete(k);
         } else if (!allowStaleAborted) {
           __privateGet(this, _valList)[index] = bf2.__staleWhileFetching;
         }
@@ -10996,46 +9231,46 @@ var Tabby = (() => {
     };
     const pcall = (res, rej) => {
       var _a;
-      const fmp = (_a = __privateGet(this, _fetchMethod)) == null ? void 0 : _a.call(this, k3, v4, fetchOpts);
+      const fmp = (_a = __privateGet(this, _fetchMethod)) == null ? void 0 : _a.call(this, k, v2, fetchOpts);
       if (fmp && fmp instanceof Promise) {
-        fmp.then((v5) => res(v5), rej);
+        fmp.then((v3) => res(v3), rej);
       }
       ac.signal.addEventListener("abort", () => {
         if (!options.ignoreFetchAbort || options.allowStaleOnFetchAbort) {
           res();
           if (options.allowStaleOnFetchAbort) {
-            res = (v5) => cb(v5, true);
+            res = (v3) => cb(v3, true);
           }
         }
       });
     };
     if (options.status)
       options.status.fetchDispatched = true;
-    const p4 = new Promise(pcall).then(cb, eb);
-    const bf = Object.assign(p4, {
+    const p2 = new Promise(pcall).then(cb, eb);
+    const bf = Object.assign(p2, {
       __abortController: ac,
-      __staleWhileFetching: v4,
+      __staleWhileFetching: v2,
       __returned: void 0
     });
     if (index === void 0) {
-      this.set(k3, bf, { ...fetchOpts.options, status: void 0 });
-      index = __privateGet(this, _keyMap).get(k3);
+      this.set(k, bf, { ...fetchOpts.options, status: void 0 });
+      index = __privateGet(this, _keyMap).get(k);
     } else {
       __privateGet(this, _valList)[index] = bf;
     }
     return bf;
   };
   _isBackgroundFetch = new WeakSet();
-  isBackgroundFetch_fn = function(p4) {
+  isBackgroundFetch_fn = function(p2) {
     if (!__privateGet(this, _hasFetchMethod))
       return false;
-    const b3 = p4;
-    return !!b3 && b3 instanceof Promise && b3.hasOwnProperty("__staleWhileFetching") && b3.__abortController instanceof AC;
+    const b = p2;
+    return !!b && b instanceof Promise && b.hasOwnProperty("__staleWhileFetching") && b.__abortController instanceof AC;
   };
   _connect = new WeakSet();
-  connect_fn = function(p4, n4) {
-    __privateGet(this, _prev)[n4] = p4;
-    __privateGet(this, _next)[p4] = n4;
+  connect_fn = function(p2, n2) {
+    __privateGet(this, _prev)[n2] = p2;
+    __privateGet(this, _next)[p2] = n2;
   };
   _moveToTail = new WeakSet();
   moveToTail_fn = function(index) {
@@ -11263,12 +9498,12 @@ var Tabby = (() => {
     const process2 = (key, value) => {
       if (isDefined(value)) {
         if (Array.isArray(value)) {
-          value.forEach((v4) => {
-            process2(key, v4);
+          value.forEach((v2) => {
+            process2(key, v2);
           });
         } else if (typeof value === "object") {
-          Object.entries(value).forEach(([k3, v4]) => {
-            process2(`${key}[${k3}]`, v4);
+          Object.entries(value).forEach(([k, v2]) => {
+            process2(`${key}[${k}]`, v2);
           });
         } else {
           append2(key, value);
@@ -11307,9 +9542,9 @@ var Tabby = (() => {
           formData.append(key, JSON.stringify(value));
         }
       };
-      Object.entries(options.formData).filter(([_3, value]) => isDefined(value)).forEach(([key, value]) => {
+      Object.entries(options.formData).filter(([_, value]) => isDefined(value)).forEach(([key, value]) => {
         if (Array.isArray(value)) {
-          value.forEach((v4) => process2(key, v4));
+          value.forEach((v2) => process2(key, v2));
         } else {
           process2(key, value);
         }
@@ -11335,7 +9570,7 @@ var Tabby = (() => {
       ...additionalHeaders,
       ...options.headers,
       ...formHeaders
-    }).filter(([_3, value]) => isDefined(value)).reduce((headers2, [key, value]) => ({
+    }).filter(([_, value]) => isDefined(value)).reduce((headers2, [key, value]) => ({
       ...headers2,
       [key]: String(value)
     }), {});
@@ -11549,13 +9784,16 @@ var Tabby = (() => {
 
   // src/utils.ts
   function sleep(milliseconds) {
-    return new Promise((r5) => setTimeout(r5, milliseconds));
+    return new Promise((r2) => setTimeout(r2, milliseconds));
   }
   function splitLines(input) {
     return input.match(/.*(?:$|\r?\n)/g).filter(Boolean);
   }
   function splitWords(input) {
     return input.match(/\w+|\W+/g).filter(Boolean);
+  }
+  function isBlank(input) {
+    return input.trim().length === 0;
   }
   function cancelable(promise, cancel) {
     return new CancelablePromise((resolve2, reject, onCancel) => {
@@ -11628,7 +9866,11 @@ var Tabby = (() => {
           return grouped;
         }, {});
         for (const prefix in entries) {
-          const cacheKey = { ...key, prompt: key.prompt + prefix };
+          const cacheKey = {
+            ...key,
+            text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
+            position: key.position + prefix.length
+          };
           const cacheValue = {
             ...value,
             choices: entries[prefix].map((choice) => {
@@ -11671,7 +9913,7 @@ var Tabby = (() => {
         positions.push(offset);
         offset++;
       }
-      return positions.filter((v4, i4, arr) => arr.indexOf(v4) === i4).sort((a4, b3) => a4 - b3);
+      return positions.filter((v2, i2, arr) => arr.indexOf(v2) === i2).sort((a2, b) => a2 - b);
     }
   };
 
@@ -11694,11 +9936,10 @@ var Tabby = (() => {
     }
     async ping(tries = 0) {
       try {
-        const response = await axios_default.get(`${this.serverUrl}/`);
-        strict(response.status == 200);
+        const response = await axios_default.get(this.serverUrl);
         this.changeStatus("ready");
         return true;
-      } catch (e5) {
+      } catch (e2) {
         if (tries > 5) {
           this.changeStatus("disconnected");
           return false;
@@ -11723,6 +9964,14 @@ var Tabby = (() => {
         }
       );
     }
+    createPrompt(request2) {
+      const maxLines = 20;
+      const prefix = request2.text.slice(0, request2.position);
+      const lines = splitLines(prefix);
+      const cutoff = Math.max(lines.length - maxLines, 0);
+      const prompt = lines.slice(cutoff).join("");
+      return prompt;
+    }
     setServerUrl(serverUrl) {
       this.serverUrl = serverUrl.replace(/\/$/, "");
       this.ping();
@@ -11741,7 +9990,20 @@ var Tabby = (() => {
           resolve2(this.completionCache.get(request2));
         });
       }
-      const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost(request2));
+      const prompt = this.createPrompt(request2);
+      if (isBlank(prompt)) {
+        return new CancelablePromise((resolve2) => {
+          resolve2({
+            id: "agent-" + v4_default(),
+            created: (/* @__PURE__ */ new Date()).getTime(),
+            choices: []
+          });
+        });
+      }
+      const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost({
+        prompt,
+        language: request2.language
+      }));
       return cancelable(
         promise.then((response) => {
           this.completionCache.set(request2, response);
@@ -11779,14 +10041,6 @@ buffer/index.js:
    * The buffer module from node.js, for the browser.
    *
    * @author   Feross Aboukhadijeh <https://feross.org>
-   * @license  MIT
-   *)
-
-@jspm/core/nodelibs/browser/assert.js:
-  (*!
-   * The buffer module from node.js, for the browser.
-   *
-   * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
    * @license  MIT
    *)
 */

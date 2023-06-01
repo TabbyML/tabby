@@ -1,4 +1,18 @@
-import { CancelablePromise, ChoiceEvent, CompletionEvent, CompletionRequest, CompletionResponse } from "./generated";
+import {
+  CancelablePromise,
+  ChoiceEvent,
+  CompletionEvent,
+  CompletionResponse as ApiCompletionResponse,
+} from "./generated";
+
+export type CompletionRequest = {
+  filepath: string;
+  language: string;
+  text: string;
+  position: number;
+};
+
+export type CompletionResponse = ApiCompletionResponse;
 
 export interface AgentFunction {
   setServerUrl(url: string): string;
@@ -11,10 +25,10 @@ export interface AgentFunction {
 export type StatusChangedEvent = {
   event: "statusChanged";
   status: "connecting" | "ready" | "disconnected";
-}
+};
 
 export type AgentEvent = StatusChangedEvent;
-export const agentEventNames: AgentEvent['event'][] = ["statusChanged"];
+export const agentEventNames: AgentEvent["event"][] = ["statusChanged"];
 
 export interface AgentEventEmitter {
   on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;

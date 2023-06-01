@@ -1,18 +1,10 @@
 import axios from "axios";
 import { EventEmitter } from "events";
-import { strict as assert } from "assert";
+import { v4 as uuid } from "uuid";
 import { CompletionCache } from "./CompletionCache";
-import { sleep, cancelable } from "./utils";
-import { Agent, AgentEvent } from "./types";
-import {
-  TabbyApi,
-  CancelablePromise,
-  ApiError,
-  CompletionRequest,
-  CompletionResponse,
-  ChoiceEvent,
-  CompletionEvent,
-} from "./generated";
+import { sleep, cancelable, splitLines, isBlank } from "./utils";
+import { Agent, AgentEvent, CompletionRequest, CompletionResponse } from "./types";
+import { TabbyApi, CancelablePromise, ApiError, ChoiceEvent, CompletionEvent } from "./generated";
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private serverUrl: string = "http://127.0.0.1:5000";
@@ -69,6 +61,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
+  private createPrompt(request: CompletionRequest): string {
+    const maxLines = 20;
+    const prefix = request.text.slice(0, request.position);
+    const lines = splitLines(prefix);
+    const cutoff = Math.max(lines.length - maxLines, 0);
+    const prompt = lines.slice(cutoff).join("");
+    return prompt;
+  }
+
   public setServerUrl(serverUrl: string): string {
     this.serverUrl = serverUrl.replace(/\/$/, ""); // Remove trailing slash
     this.ping();
@@ -90,7 +91,21 @@ export class TabbyAgent extends EventEmitter implements Agent {
         resolve(this.completionCache.get(request));
       });
     }
-    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost(request));
+    const prompt = this.createPrompt(request);
+    if (isBlank(prompt)) {
+      // Create a empty completion response
+      return new CancelablePromise((resolve) => {
+        resolve({
+          id: "agent-" + uuid(),
+          created: new Date().getTime(),
+          choices: []
+        });
+      });
+    }
+    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost({
+      prompt,
+      language: request.language,
+    }));
     return cancelable(
       promise.then((response: CompletionResponse) => {
         this.completionCache.set(request, response);

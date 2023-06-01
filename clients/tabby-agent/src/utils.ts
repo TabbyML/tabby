@@ -10,6 +10,10 @@ export function splitWords(input: string) {
   return input.match(/\w+|\W+/g).filter(Boolean); // Split consecutive words and non-words
 }
 
+export function isBlank(input: string) {
+  return input.trim().length === 0;
+}
+
 import { CancelablePromise } from "./generated";
 export function cancelable<T>(promise: Promise<T>, cancel: () => void): CancelablePromise<T> {
   return new CancelablePromise((resolve, reject, onCancel) => {

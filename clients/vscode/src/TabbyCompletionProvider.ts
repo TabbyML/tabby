@@ -42,13 +42,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
-    const promptRange = this.calculatePromptRange(position);
-    const prompt = document.getText(promptRange);
-    if (this.isNil(prompt)) {
-      console.debug("Prompt is empty, skipping");
-      return emptyResponse;
-    }
-
     const currentTimestamp = Date.now();
     this.latestTimestamp = currentTimestamp;
 
@@ -59,23 +52,18 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
     const replaceRange = this.calculateReplaceRange(document, position);
 
-    console.debug(
-      "Requesting: ",
-      {
-        uuid: this.uuid,
-        timestamp: currentTimestamp,
-        prompt,
-        language: document.languageId
-      }
-    );
-
     if (this.pendingCompletion) {
       this.pendingCompletion.cancel();
     }
-    this.pendingCompletion = this.agent.getCompletions({
-      prompt: prompt as string,   // Prompt is already nil-checked
+
+    const request = {
+      filepath: document.uri.fsPath,
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
-    });
+      text: document.getText(),
+      position: document.offsetAt(position),
+    };
+    console.debug("Request: ", request)
+    this.pendingCompletion = this.agent.getCompletions(request);
 
     const completion = await this.pendingCompletion.catch((_: Error) => {
       return null;
@@ -91,10 +79,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("enabled", true);
     this.suggestionDelay = configuration.get("suggestionDelay", 150);
-  }
-
-  private isNil(value: string | undefined | null): boolean {
-    return value === undefined || value === null || value.length === 0;
   }
 
   private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {
@@ -119,12 +103,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       new Range(position.line, position.character, position.line, position.character + 1)
     );
     return ")]}".indexOf(suffix) > -1;
-  }
-
-  private calculatePromptRange(position: Position): Range {
-    const maxLines = 20;
-    const firstLine = Math.max(position.line - maxLines, 0);
-    return new Range(firstLine, 0, position.line, position.character);
   }
 
   private calculateReplaceRange(document: TextDocument, position: Position): Range {

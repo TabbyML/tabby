@@ -59,7 +59,7 @@ module.exports = __toCommonJS(src_exports);
 // src/TabbyAgent.ts
 var import_axios2 = __toESM(require("axios"));
 var import_events = require("events");
-var import_assert = require("assert");
+var import_uuid = require("uuid");
 
 // src/CompletionCache.ts
 var import_lru_cache = require("lru-cache");
@@ -505,6 +505,9 @@ function splitLines(input) {
 function splitWords(input) {
   return input.match(/\w+|\W+/g).filter(Boolean);
 }
+function isBlank(input) {
+  return input.trim().length === 0;
+}
 function cancelable(promise, cancel) {
   return new CancelablePromise((resolve2, reject, onCancel) => {
     promise.then((resp) => {
@@ -576,7 +579,11 @@ var CompletionCache = class {
         return grouped;
       }, {});
       for (const prefix in entries) {
-        const cacheKey = { ...key, prompt: key.prompt + prefix };
+        const cacheKey = {
+          ...key,
+          text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
+          position: key.position + prefix.length
+        };
         const cacheValue = {
           ...value,
           choices: entries[prefix].map((choice) => {
@@ -642,8 +649,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
   }
   async ping(tries = 0) {
     try {
-      const response = await import_axios2.default.get(`${this.serverUrl}/`);
-      (0, import_assert.strict)(response.status == 200);
+      const response = await import_axios2.default.get(this.serverUrl);
       this.changeStatus("ready");
       return true;
     } catch (e) {
@@ -671,6 +677,14 @@ var TabbyAgent = class extends import_events.EventEmitter {
       }
     );
   }
+  createPrompt(request2) {
+    const maxLines = 20;
+    const prefix = request2.text.slice(0, request2.position);
+    const lines = splitLines(prefix);
+    const cutoff = Math.max(lines.length - maxLines, 0);
+    const prompt = lines.slice(cutoff).join("");
+    return prompt;
+  }
   setServerUrl(serverUrl) {
     this.serverUrl = serverUrl.replace(/\/$/, "");
     this.ping();
@@ -689,7 +703,20 @@ var TabbyAgent = class extends import_events.EventEmitter {
         resolve2(this.completionCache.get(request2));
       });
     }
-    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost(request2));
+    const prompt = this.createPrompt(request2);
+    if (isBlank(prompt)) {
+      return new CancelablePromise((resolve2) => {
+        resolve2({
+          id: "agent-" + (0, import_uuid.v4)(),
+          created: (/* @__PURE__ */ new Date()).getTime(),
+          choices: []
+        });
+      });
+    }
+    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost({
+      prompt,
+      language: request2.language
+    }));
     return cancelable(
       promise.then((response) => {
         this.completionCache.set(request2, response);
