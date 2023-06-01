@@ -63,6 +63,10 @@ pub struct ServeArgs {
 
 pub async fn main(args: &ServeArgs) -> Result<()> {
     valid_args(args)?;
+
+    // Ensure model exists.
+    crate::download::download_model(&args.model, true).await?;
+
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))

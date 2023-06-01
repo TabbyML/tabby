@@ -57,7 +57,7 @@ impl metadata::Metadata {
     }
 }
 
-async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<()> {
+pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<()> {
     let mut metadata = metadata::Metadata::from(model_id).await?;
 
     metadata
