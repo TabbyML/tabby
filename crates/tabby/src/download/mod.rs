@@ -1,3 +1,5 @@
+mod metadata;
+
 use std::cmp;
 use std::fs;
 use std::io::Write;

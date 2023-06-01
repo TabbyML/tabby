@@ -23,7 +23,7 @@ lazy_static = { workspace = true }
 rust-embed = "6.6.1"
 mime_guess = "2.0.4"
 strum = { version = "0.24", features = ["derive"] }
-reqwest = { version = "0.11.18", features = ["stream"] }
+reqwest = { version = "0.11.18", features = ["stream", "json"] }
 error-chain = "0.12.4"
 indicatif = "0.17.3"
 futures-util = "0.3.28"
