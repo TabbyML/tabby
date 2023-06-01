@@ -3,9 +3,9 @@ mod completions;
 mod events;
 
 use crate::Cli;
+use anyhow::Result;
 use axum::{routing, Router, Server};
 use clap::{error::ErrorKind, Args, CommandFactory};
-use hyper::Error;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
@@ -61,8 +61,8 @@ pub struct ServeArgs {
     experimental_admin_panel: bool,
 }
 
-pub async fn main(args: &ServeArgs) -> Result<(), Error> {
-    valid_args(args);
+pub async fn main(args: &ServeArgs) -> Result<()> {
+    valid_args(args)?;
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
@@ -71,7 +71,10 @@ pub async fn main(args: &ServeArgs) -> Result<(), Error> {
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     println!("Listening at {}", address);
-    Server::bind(&address).serve(app.into_make_service()).await
+    Server::bind(&address)
+        .serve(app.into_make_service())
+        .await?;
+    Ok(())
 }
 
 fn api_router(args: &ServeArgs) -> Router {
@@ -92,7 +95,7 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
     }
 }
 
-fn valid_args(args: &ServeArgs) {
+fn valid_args(args: &ServeArgs) -> Result<()> {
     if args.device == Device::CUDA && args.num_replicas_per_device != 1 {
         Cli::command()
             .error(
@@ -111,4 +114,6 @@ fn valid_args(args: &ServeArgs) {
             )
             .exit();
     }
+
+    Ok(())
 }
