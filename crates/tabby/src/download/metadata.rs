@@ -1,29 +1,9 @@
-use error_chain::error_chain;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use tabby_common::path::ModelDir;
-
-error_chain! {
-     foreign_links{
-         HttpRequest(reqwest::Error);
-         HeaderError(reqwest::header::ToStrError);
-         JsonParseError(serdeconv::Error);
-     }
-
-     errors {
-         PathNotExist(t: String) {
-            description("Path doesn't exist")
-            display("Path doesn't exist: '{}'", t)
-         }
-
-         EtagHeaderNotPresent(t: String) {
-            description("Missing etag header")
-            display("Missing etag header: '{}'", t)
-         }
-     }
-}
 
 #[derive(Deserialize)]
 struct HFTransformersInfo {
@@ -82,12 +62,12 @@ impl Metadata {
         let etag = self
             .etags
             .get(url)
-            .ok_or(ErrorKind::PathNotExist(path.to_owned()))?;
+            .ok_or(anyhow!("Path doesn't exist: {}", path))?;
         let etag_from_header = reqwest::get(url)
             .await?
             .headers()
             .get("etag")
-            .ok_or(ErrorKind::EtagHeaderNotPresent(url.to_owned()))?
+            .ok_or(anyhow!("URL doesn't have etag header: '{}'", url))?
             .to_str()?
             .to_owned();
 
