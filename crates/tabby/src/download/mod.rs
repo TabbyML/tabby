@@ -18,8 +18,8 @@ pub struct DownloadArgs {
     model: String,
 
     /// If true, skip checking for remote model file.
-    #[clap(long, default_value_t=true)] 
-    prefer_local: bool
+    #[clap(long, default_value_t = true)]
+    prefer_local: bool,
 }
 
 error_chain! {
@@ -35,7 +35,9 @@ error_chain! {
 }
 
 pub async fn main(args: &DownloadArgs) -> Result<()> {
-    download_model(&args.model, args.prefer_local).await.unwrap();
+    download_model(&args.model, args.prefer_local)
+        .await
+        .unwrap();
     Ok(())
 }
 
@@ -67,11 +69,21 @@ impl metadata::Metadata {
 async fn download_model(model_id: &str, prefer_local: bool) -> Result<()> {
     let mut metadata = metadata::Metadata::from(model_id).await?;
 
-    metadata.download(model_id, "tokenizer.json", prefer_local).await?;
-    metadata.download(model_id, "ctranslate2/config.json", prefer_local).await?;
-    metadata.download(model_id, "ctranslate2/vocabulary.txt", prefer_local).await?;
-    metadata.download(model_id, "ctranslate2/shared_vocabulary.txt", prefer_local).await?;
-    metadata.download(model_id, "ctranslate2/model.bin", prefer_local).await?;
+    metadata
+        .download(model_id, "tokenizer.json", prefer_local)
+        .await?;
+    metadata
+        .download(model_id, "ctranslate2/config.json", prefer_local)
+        .await?;
+    metadata
+        .download(model_id, "ctranslate2/vocabulary.txt", prefer_local)
+        .await?;
+    metadata
+        .download(model_id, "ctranslate2/shared_vocabulary.txt", prefer_local)
+        .await?;
+    metadata
+        .download(model_id, "ctranslate2/model.bin", prefer_local)
+        .await?;
     metadata.save(model_id)?;
     Ok(())
 }
@@ -84,10 +96,14 @@ async fn download_file(url: &str, path: &str) -> Result<String> {
         .await
         .or(Err(format!("Failed to GET from '{}'", url)))?;
 
-    let etag = res.headers().get("etag")
+    let etag = res
+        .headers()
+        .get("etag")
         .ok_or(ErrorKind::Msg(format!("Failed to get etag from '{}", url)))?
         .to_str()
-        .map_err(|_| -> Error { ErrorKind::Msg(format!("Failed to convert etag to string")).into() } )?
+        .map_err(|_| -> Error {
+            ErrorKind::Msg(format!("Failed to convert etag to string")).into()
+        })?
         .to_string();
 
     let total_size = res

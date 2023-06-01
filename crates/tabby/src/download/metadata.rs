@@ -1,5 +1,5 @@
-use serde::{Serialize, Deserialize};
 use error_chain::error_chain;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -27,22 +27,19 @@ error_chain! {
 
 #[derive(Deserialize)]
 struct HFTransformersInfo {
-    auto_model: String
+    auto_model: String,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HFMetadata {
-    transformers_info: HFTransformersInfo
+    transformers_info: HFTransformersInfo,
 }
 
 impl HFMetadata {
     async fn from(model_id: &str) -> Result<HFMetadata> {
         let api_url = format!("https://huggingface.co/api/models/{}", model_id);
-        let metadata = reqwest::get(api_url)
-            .await?
-            .json::<HFMetadata>()
-            .await?;
+        let metadata = reqwest::get(api_url).await?.json::<HFMetadata>().await?;
         Ok(metadata)
     }
 }
@@ -50,7 +47,7 @@ impl HFMetadata {
 #[derive(Serialize, Deserialize)]
 pub struct Metadata {
     auto_model: String,
-    etags: HashMap<String, String>
+    etags: HashMap<String, String>,
 }
 
 impl Metadata {
@@ -61,7 +58,7 @@ impl Metadata {
             let hf_metadata = HFMetadata::from(model_id).await?;
             let metadata = Metadata {
                 auto_model: hf_metadata.transformers_info.auto_model,
-                etags: HashMap::new()
+                etags: HashMap::new(),
             };
             Ok(metadata)
         }
@@ -82,11 +79,15 @@ impl Metadata {
     }
 
     pub async fn match_etag(&self, url: &str, path: &str) -> Result<bool> {
-        let etag = self.etags.get(url).ok_or(ErrorKind::PathNotExist(path.to_owned()))?;
+        let etag = self
+            .etags
+            .get(url)
+            .ok_or(ErrorKind::PathNotExist(path.to_owned()))?;
         let etag_from_header = reqwest::get(url)
             .await?
             .headers()
-            .get("etag").ok_or(ErrorKind::EtagHeaderNotPresent(url.to_owned()))?
+            .get("etag")
+            .ok_or(ErrorKind::EtagHeaderNotPresent(url.to_owned()))?
             .to_str()?
             .to_owned();
 
@@ -112,6 +113,9 @@ mod tests {
     #[tokio::test]
     async fn test_hf() {
         let hf_metadata = HFMetadata::from("TabbyML/J-350M").await.unwrap();
-        assert_eq!(hf_metadata.transformers_info.auto_model, "AutoModelForCausalLM");
+        assert_eq!(
+            hf_metadata.transformers_info.auto_model,
+            "AutoModelForCausalLM"
+        );
     }
 }
