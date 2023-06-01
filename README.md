@@ -52,9 +52,6 @@ After adding these aliases, you can use the `tabby` command as usual. Here are s
 # Usage
 tabby --help
 
-# Download model
-tabby download --model TabbyML/J-350M
-
 # Serve the model
 tabby serve --model TabbyML/J-350M
 ```
