@@ -51,6 +51,11 @@ impl metadata::Metadata {
 }
 
 pub async fn download_model(model_id: &str, prefer_local_file: bool) {
+    if fs::metadata(model_id).is_ok() {
+        // Local path, no need for downloading.
+        return;
+    }
+
     let mut metadata = metadata::Metadata::from(model_id).await;
 
     metadata
