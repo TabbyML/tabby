@@ -28,10 +28,10 @@ struct ApiDoc;
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
 pub enum Device {
     #[strum(serialize = "cpu")]
-    CPU,
+    Cpu,
 
     #[strum(serialize = "cuda")]
-    CUDA,
+    Cuda,
 }
 
 #[derive(Args)]
@@ -44,7 +44,7 @@ pub struct ServeArgs {
     port: u16,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::CPU)]
+    #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
     /// GPU indices to run models, only applicable for CUDA.
@@ -99,7 +99,7 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
 }
 
 fn valid_args(args: &ServeArgs) {
-    if args.device == Device::CUDA && args.num_replicas_per_device != 1 {
+    if args.device == Device::Cuda && args.num_replicas_per_device != 1 {
         Cli::command()
             .error(
                 ErrorKind::ValueValidation,
@@ -108,7 +108,7 @@ fn valid_args(args: &ServeArgs) {
             .exit();
     }
 
-    if args.device == Device::CPU && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
+    if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
         Cli::command()
             .error(
