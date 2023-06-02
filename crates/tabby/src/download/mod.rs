@@ -45,7 +45,7 @@ impl metadata::Metadata {
 
         if !local_file_ready {
             let etag = download_file(&url, &filepath, local_cache_key).await;
-            self.set_local_cache_key(&path, &etag).await
+            self.set_local_cache_key(path, &etag).await
         }
     }
 }

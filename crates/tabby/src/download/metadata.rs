@@ -87,7 +87,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_hf() {
-        let hf_metadata = HFMetadata::from("TabbyML/J-350M").await.unwrap();
+        let hf_metadata = HFMetadata::from("TabbyML/J-350M").await;
         assert_eq!(
             hf_metadata.transformers_info.auto_model,
             "AutoModelForCausalLM"

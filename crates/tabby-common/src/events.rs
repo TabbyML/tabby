@@ -67,7 +67,7 @@ impl Event<'_> {
             writer.by_ref(),
         )
         .unwrap();
-        write!(writer, "\n").unwrap();
+        writeln!(writer).unwrap();
         writer.flush().unwrap();
     }
 }

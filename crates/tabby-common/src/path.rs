@@ -33,11 +33,11 @@ impl ModelDir {
     }
 
     pub fn metadata_file(&self) -> String {
-        return self.path_string("metadata.json");
+        self.path_string("metadata.json")
     }
 
     pub fn tokenizer_file(&self) -> String {
-        return self.path_string("tokenizer.json");
+        self.path_string("tokenizer.json")
     }
 
     pub fn ctranslate2_dir(&self) -> String {
