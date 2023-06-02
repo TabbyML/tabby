@@ -41,7 +41,7 @@ jobs:
         run: cargo fmt --check
 
   release-docker:
-    needs: tests
+    needs: release-binary
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -134,6 +134,7 @@ jobs:
         with:
           toolchain: stable
           target: ${{ matrix.target }}
+          components: clippy
 
       - name: Sccache cache
         uses: mozilla-actions/sccache-action@v0.0.3
@@ -150,6 +151,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+
+      - name: Run cargo clippy check
+        run: cargo clippy -- -Dwarnings
+
+      - name: Run cargo tests
+        run: cargo test
 
       - name: Bulid release binary
         run: cargo build --release --target ${{ matrix.target }}

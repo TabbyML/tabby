@@ -3,7 +3,6 @@ mod completions;
 mod events;
 
 use crate::Cli;
-use anyhow::Result;
 use axum::{routing, Router, Server};
 use clap::{error::ErrorKind, Args, CommandFactory};
 use std::{
@@ -29,10 +28,10 @@ struct ApiDoc;
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
 pub enum Device {
     #[strum(serialize = "cpu")]
-    CPU,
+    Cpu,
 
     #[strum(serialize = "cuda")]
-    CUDA,
+    Cuda,
 }
 
 #[derive(Args)]
@@ -45,7 +44,7 @@ pub struct ServeArgs {
     port: u16,
 
     /// Device to run model inference.
-    #[clap(long, default_value_t=Device::CPU)]
+    #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
     /// GPU indices to run models, only applicable for CUDA.
@@ -61,11 +60,11 @@ pub struct ServeArgs {
     experimental_admin_panel: bool,
 }
 
-pub async fn main(args: &ServeArgs) -> Result<()> {
-    valid_args(args)?;
+pub async fn main(args: &ServeArgs) {
+    valid_args(args);
 
     // Ensure model exists.
-    crate::download::download_model(&args.model, true).await?;
+    crate::download::download_model(&args.model, true).await;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -77,8 +76,8 @@ pub async fn main(args: &ServeArgs) -> Result<()> {
     println!("Listening at {}", address);
     Server::bind(&address)
         .serve(app.into_make_service())
-        .await?;
-    Ok(())
+        .await
+        .expect("Error happends during model serving")
 }
 
 fn api_router(args: &ServeArgs) -> Router {
@@ -99,8 +98,8 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
     }
 }
 
-fn valid_args(args: &ServeArgs) -> Result<()> {
-    if args.device == Device::CUDA && args.num_replicas_per_device != 1 {
+fn valid_args(args: &ServeArgs) {
+    if args.device == Device::Cuda && args.num_replicas_per_device != 1 {
         Cli::command()
             .error(
                 ErrorKind::ValueValidation,
@@ -109,7 +108,7 @@ fn valid_args(args: &ServeArgs) -> Result<()> {
             .exit();
     }
 
-    if args.device == Device::CPU && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
+    if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
         Cli::command()
             .error(
@@ -118,6 +117,4 @@ fn valid_args(args: &ServeArgs) -> Result<()> {
             )
             .exit();
     }
-
-    Ok(())
 }

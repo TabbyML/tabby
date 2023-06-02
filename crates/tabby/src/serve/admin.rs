@@ -26,12 +26,12 @@ where
                 Response::builder()
                     .header(header::CONTENT_TYPE, mime.as_ref())
                     .body(body)
-                    .unwrap()
+                    .expect("Invalid response")
             }
             None => Response::builder()
                 .status(StatusCode::NOT_FOUND)
                 .body(boxed(Full::from("404")))
-                .unwrap(),
+                .expect("Invalid response"),
         }
     }
 }

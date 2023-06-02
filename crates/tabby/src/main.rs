@@ -25,15 +25,7 @@ async fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Serve(args) => {
-            serve::main(args)
-                .await
-                .expect("Error happens during the serve");
-        }
-        Commands::Download(args) => {
-            download::main(args)
-                .await
-                .expect("Error happens during the download");
-        }
+        Commands::Serve(args) => serve::main(args).await,
+        Commands::Download(args) => download::main(args).await,
     }
 }
