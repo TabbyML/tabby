@@ -7,13 +7,16 @@ use std::path::Path;
 use std::sync::Arc;
 use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
+use strfmt::{strfmt,strfmt_builder};
+
 
 mod languages;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct CompletionRequest {
     #[schema(example = "def fib(n):")]
-    prompt: String,
+    #[deprecated]
+    prompt: Option<String>,
 
     /// https://code.visualstudio.com/docs/languages/identifiers
     #[schema(example = "python")]
@@ -26,9 +29,11 @@ pub struct CompletionRequest {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
     /// Content that appears before the cursor in the editor window.
+    #[schema(example = "def fib(n):\n    ")]
     prefix: String,
 
     /// Content that appears after the cursor in the editor window.
+    #[schema(example = "\n        return fib(n - 1) + fib(n - 2)")]
     suffix: String,
 }
 
@@ -58,7 +63,14 @@ pub async fn completion(
         .sampling_temperature(0.2)
         .build()
         .expect("Invalid TextInferenceOptions");
-    let text = state.engine.inference(&request.prompt, options);
+
+    let prompt = if let Some(Segments{prefix, suffix}) = request.segments {
+        strfmt!(&state.prompt_template, prefix => prefix, suffix => suffix).expect("Failed to format prompt")
+    } else {
+        request.prompt.expect("No prompt is set")
+    };
+
+    let text = state.engine.inference(&prompt, options);
     let language = request.language.unwrap_or("unknown".into());
     let filtered_text = languages::remove_stop_words(&language, &text);
 
@@ -73,7 +85,7 @@ pub async fn completion(
     events::Event::Completion {
         completion_id: &response.id,
         language: &language,
-        prompt: &request.prompt,
+        prompt: &prompt,
         choices: vec![events::Choice {
             index: 0,
             text: filtered_text,
@@ -86,6 +98,7 @@ pub async fn completion(
 
 pub struct CompletionState {
     engine: TextInferenceEngine,
+    prompt_template: String,
 }
 
 impl CompletionState {
@@ -104,7 +117,7 @@ impl CompletionState {
             .build()
             .expect("Invalid TextInferenceEngineCreateOptions");
         let engine = TextInferenceEngine::create(options);
-        Self { engine }
+        Self { engine, prompt_template: metadata.prompt_template }
     }
 }
 
@@ -119,6 +132,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 #[derive(Deserialize)]
 struct Metadata {
     auto_model: String,
+    prompt_template: String,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
