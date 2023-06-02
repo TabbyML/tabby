@@ -61,6 +61,9 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
     let mut cache_info = CacheInfo::from(model_id).await;
 
     cache_info
+        .download(model_id, "tabby.json", prefer_local_file)
+        .await;
+    cache_info
         .download(model_id, "tokenizer.json", prefer_local_file)
         .await;
     cache_info
