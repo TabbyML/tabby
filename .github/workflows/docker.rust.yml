@@ -167,6 +167,7 @@ jobs:
 
   pre-release:
     if: github.event_name != 'pull_request'
+    needs: release-binary
     runs-on: ubuntu-latest
     steps:
       - name: Download a single artifact
