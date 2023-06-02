@@ -169,10 +169,10 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
-			- name: Download a single artifact
-				uses: actions/download-artifact@v3
-				with:
-					name: tabby_aarch64-apple-darwin
+      - name: Download a single artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tabby_aarch64-apple-darwin
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
