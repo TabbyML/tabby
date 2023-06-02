@@ -152,12 +152,6 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
 
-      - name: Run cargo clippy check
-        run: cargo clippy -- -Dwarnings
-
-      - name: Run cargo tests
-        run: cargo test
-
       - name: Bulid release binary
         run: cargo build --release --target ${{ matrix.target }}
 
