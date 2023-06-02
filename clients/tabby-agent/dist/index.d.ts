@@ -64,18 +64,7 @@ type CompletionEvent = {
     choices: Array<Choice>;
 };
 
-type CompletionRequest = {
-    /**
-     * Language for completion request
-     */
-    language?: string;
-    /**
-     * The context to generate completions for, encoded as a string.
-     */
-    prompt: string;
-};
-
-type CompletionResponse = {
+type CompletionResponse$1 = {
     id: string;
     created: number;
     choices: Array<Choice>;
@@ -108,6 +97,13 @@ type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
+type CompletionRequest = {
+    filepath: string;
+    language: string;
+    text: string;
+    position: number;
+};
+type CompletionResponse = CompletionResponse$1;
 interface AgentFunction {
     setServerUrl(url: string): string;
     getServerUrl(): string;
@@ -120,7 +116,7 @@ type StatusChangedEvent = {
     status: "connecting" | "ready" | "disconnected";
 };
 type AgentEvent = StatusChangedEvent;
-declare const agentEventNames: AgentEvent['event'][];
+declare const agentEventNames: AgentEvent["event"][];
 interface AgentEventEmitter {
     on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;
 }
@@ -135,6 +131,7 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private changeStatus;
     private ping;
     private wrapApiPromise;
+    private createPrompt;
     setServerUrl(serverUrl: string): string;
     getServerUrl(): string;
     getStatus(): "connecting" | "ready" | "disconnected";

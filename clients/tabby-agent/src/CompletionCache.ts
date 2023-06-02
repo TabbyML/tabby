@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache";
 import hashObject from "object-hash";
 import sizeOfObject from "object-sizeof";
-import { CompletionRequest, CompletionResponse } from "./generated";
+import { CompletionRequest, CompletionResponse } from "./types";
 import { splitLines, splitWords } from "./utils";
 
 type CompletionCacheKey = CompletionRequest;
@@ -76,7 +76,11 @@ export class CompletionCache {
           return grouped;
         }, {});
       for (const prefix in entries) {
-        const cacheKey = { ...key, prompt: key.prompt + prefix };
+        const cacheKey = {
+          ...key,
+          text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
+          position: key.position + prefix.length
+        };
         const cacheValue = {
           ...value,
           choices: entries[prefix].map((choice) => {
