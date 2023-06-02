@@ -54,7 +54,6 @@ Have a look at the guides to get tokens from your input string.
 int main(int argc, char* argv[]) {
 
     std::string model_path("opus-mt-en-de");
-    const auto model = ctranslate2::models::Model::load(model_path);
     const ctranslate2::models::ModelLoader model_loader(model_path);
     ctranslate2::Translator translator(model_loader);
 
