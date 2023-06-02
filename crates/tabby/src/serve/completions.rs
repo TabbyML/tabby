@@ -45,7 +45,7 @@ pub async fn completion(
         .max_decoding_length(64)
         .sampling_temperature(0.2)
         .build()
-        .unwrap();
+        .expect("Invalid TextInferenceOptions");
     let text = state.engine.inference(&request.prompt, options);
     let language = request.language.unwrap_or("unknown".into());
     let filtered_text = languages::remove_stop_words(&language, &text);
@@ -90,7 +90,7 @@ impl CompletionState {
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .build()
-            .unwrap();
+            .expect("Invalid TextInferenceEngineCreateOptions");
         let engine = TextInferenceEngine::create(options);
         Self { engine }
     }
@@ -110,5 +110,5 @@ struct Metadata {
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    serdeconv::from_json_file(model_dir.metadata_file()).unwrap()
+    serdeconv::from_json_file(model_dir.metadata_file()).expect("Invalid metadata")
 }
