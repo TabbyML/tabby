@@ -1,4 +1,4 @@
-mod metadata;
+mod cache_info;
 
 use std::cmp;
 use std::fs;
@@ -9,6 +9,8 @@ use clap::Args;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use tabby_common::path::ModelDir;
+
+use cache_info::CacheInfo;
 
 #[derive(Args)]
 pub struct DownloadArgs {
@@ -26,7 +28,7 @@ pub async fn main(args: &DownloadArgs) {
     println!("model '{}' is ready", args.model);
 }
 
-impl metadata::Metadata {
+impl CacheInfo {
     async fn download(&mut self, model_id: &str, path: &str, prefer_local_file: bool) {
         // Create url.
         let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
@@ -56,28 +58,28 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
         return;
     }
 
-    let mut metadata = metadata::Metadata::from(model_id).await;
+    let mut cache_info = CacheInfo::from(model_id).await;
 
-    metadata
+    cache_info
         .download(model_id, "tokenizer.json", prefer_local_file)
         .await;
-    metadata
+    cache_info
         .download(model_id, "ctranslate2/config.json", prefer_local_file)
         .await;
-    metadata
+    cache_info
         .download(model_id, "ctranslate2/vocabulary.txt", prefer_local_file)
         .await;
-    metadata
+    cache_info
         .download(
             model_id,
             "ctranslate2/shared_vocabulary.txt",
             prefer_local_file,
         )
         .await;
-    metadata
+    cache_info
         .download(model_id, "ctranslate2/model.bin", prefer_local_file)
         .await;
-    metadata
+    cache_info
         .save(model_id)
         .unwrap_or_else(|_| panic!("Failed to save model_id '{}'", model_id));
 }
@@ -91,7 +93,7 @@ async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>) -> 
         .await
         .unwrap_or_else(|_| panic!("Failed to GET from '{}'", url));
 
-    let remote_cache_key = metadata::Metadata::remote_cache_key(&res).to_string();
+    let remote_cache_key = CacheInfo::remote_cache_key(&res).to_string();
     if let Some(local_cache_key) = local_cache_key {
         if local_cache_key == remote_cache_key {
             return remote_cache_key;

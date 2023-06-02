@@ -32,8 +32,12 @@ impl ModelDir {
         self.0.join(name).display().to_string()
     }
 
+    pub fn cache_info_file(&self) -> String {
+        self.path_string(".cache_info.json")
+    }
+
     pub fn metadata_file(&self) -> String {
-        self.path_string("metadata.json")
+        self.path_string("tabby.json")
     }
 
     pub fn tokenizer_file(&self) -> String {

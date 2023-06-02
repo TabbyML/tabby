@@ -5,10 +5,9 @@ use ctranslate2_bindings::{
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Arc;
+use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
-use strfmt::{strfmt,strfmt_builder};
-
 
 mod languages;
 
@@ -64,8 +63,9 @@ pub async fn completion(
         .build()
         .expect("Invalid TextInferenceOptions");
 
-    let prompt = if let Some(Segments{prefix, suffix}) = request.segments {
-        strfmt!(&state.prompt_template, prefix => prefix, suffix => suffix).expect("Failed to format prompt")
+    let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
+        strfmt!(&state.prompt_template, prefix => prefix, suffix => suffix)
+            .expect("Failed to format prompt")
     } else {
         request.prompt.expect("No prompt is set")
     };
@@ -117,7 +117,10 @@ impl CompletionState {
             .build()
             .expect("Invalid TextInferenceEngineCreateOptions");
         let engine = TextInferenceEngine::create(options);
-        Self { engine, prompt_template: metadata.prompt_template }
+        Self {
+            engine,
+            prompt_template: metadata.prompt_template,
+        }
     }
 }
 
