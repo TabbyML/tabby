@@ -64,8 +64,13 @@ pub async fn completion(
         .expect("Invalid TextInferenceOptions");
 
     let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
-        strfmt!(&state.prompt_template, prefix => prefix, suffix => suffix)
-            .expect("Failed to format prompt")
+        if let Some(prompt_template) = &state.prompt_template {
+            strfmt!(prompt_template, prefix => prefix, suffix => suffix)
+                .expect("Failed to format prompt")
+        } else {
+            // If there's no prompt template, just use prefix.
+            prefix
+        }
     } else {
         request.prompt.expect("No prompt is set")
     };
@@ -98,7 +103,7 @@ pub async fn completion(
 
 pub struct CompletionState {
     engine: TextInferenceEngine,
-    prompt_template: String,
+    prompt_template: Option<String>,
 }
 
 impl CompletionState {
@@ -135,7 +140,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 #[derive(Deserialize)]
 struct Metadata {
     auto_model: String,
-    prompt_template: String,
+    prompt_template: Option<String>,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
