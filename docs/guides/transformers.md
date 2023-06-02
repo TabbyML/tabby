@@ -4,6 +4,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 
 * BART
 * BLOOM
+* CodeGen
 * LLaMa
 * M2M100
 * MarianMT
@@ -11,6 +12,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * MPT
 * NLLB
 * OpenAI GPT2
+* GPTBigCode
 * GPT-J
 * GPT-NeoX
 * OPT
@@ -225,6 +227,30 @@ print(tokenizer.decode(results[0].sequences_ids[0]))
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode("It is"))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
 print(tokenizer.decode(results[0].sequences_ids[0]))
+```
+
+## GPTBigCode
+
+[GPTBigCode](https://huggingface.co/docs/transformers/model_doc/gpt_bigcode) model was first proposed in SantaCoder: don’t reach for the stars, and used by models like StarCoder.
+
+```bash
+ct2-transformers-converter --model bigcode/starcoder --revision main --quantization float16 --output_dir starcoder_ct2
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("starcoder_ct2")
+tokenizer = transformers.AutoTokenizer.from_pretrained("bigcode/starcoder")
+
+prompt = "<fim_prefix>def print_hello_world():\n    <fim_suffix>\n    print('Hello world!')<fim_middle>"
+tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch([tokens], max_length=30, include_prompt_in_result=False)
+
+text = tokenizer.decode(results[0].sequences_ids[0])
+print(text)
 ```
 
 ## GPT-J
