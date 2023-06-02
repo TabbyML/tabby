@@ -169,17 +169,19 @@ jobs:
     if: github.event_name != 'pull_request'
     needs: release-binary
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Download a single artifact
         uses: actions/download-artifact@v3
         with:
           name: tabby_aarch64-apple-darwin
 
-      - uses: "marvinpinto/action-automatic-releases@latest"
+      - uses: ncipollo/release-action@v1
         with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
+          allowUpdates: true          
           prerelease: true
-          title: "Development Build"
-          files: |
-            tabby_aarch64-apple-darwin
+          name: "Development Build"
+          artifacts: tabby_aarch64-apple-darwin
+          tag: latest
+          removeArtifacts: true
