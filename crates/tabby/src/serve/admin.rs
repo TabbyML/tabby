@@ -31,7 +31,7 @@ where
             None => Response::builder()
                 .status(StatusCode::NOT_FOUND)
                 .body(boxed(Full::from("404")))
-                .expect("Invalid response")
+                .expect("Invalid response"),
         }
     }
 }
