@@ -155,9 +155,31 @@ jobs:
       - name: Bulid release binary
         run: cargo build --release --target ${{ matrix.target }}
 
+      - name: Rename release binary
+        run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           retention-days: 3
           name: tabby_${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/tabby
+          path: tabby_${{ matrix.target }}
+
+  pre-release:
+    if: github.event_name != 'pull_request'
+    needs: release-binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download a single artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tabby_aarch64-apple-darwin
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            tabby_aarch64-apple-darwin
