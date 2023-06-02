@@ -17,12 +17,13 @@ pub struct DownloadArgs {
     model: String,
 
     /// If true, skip checking for remote model file.
-    #[clap(long, default_value_t = true)]
+    #[clap(long, default_value_t = false)]
     prefer_local_file: bool,
 }
 
 pub async fn main(args: &DownloadArgs) {
     download_model(&args.model, args.prefer_local_file).await;
+    println!("model '{}' is ready", args.model);
 }
 
 impl metadata::Metadata {
@@ -30,21 +31,21 @@ impl metadata::Metadata {
         // Create url.
         let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
 
+        // Get cache key.
+        let local_cache_key = self.local_cache_key(path);
+
         // Create destination path.
         let filepath = ModelDir::new(model_id).path_string(path);
 
         // Cache hit.
-        let mut cache_hit = false;
-        if fs::metadata(&filepath).is_ok()
-            && self.has_etag(&url)
-            && (prefer_local_file || self.match_etag(&url, path).await.unwrap_or(false))
-        {
-            cache_hit = true
+        let mut local_file_ready = false;
+        if !prefer_local_file && local_cache_key.is_some() && fs::metadata(&filepath).is_ok() {
+            local_file_ready = true;
         }
 
-        if !cache_hit {
-            let etag = download_file(&url, &filepath).await;
-            self.update_etag(&url, &etag).await
+        if !local_file_ready {
+            let etag = download_file(&url, &filepath, local_cache_key).await;
+            self.set_local_cache_key(&path, &etag).await
         }
     }
 }
@@ -76,7 +77,7 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) {
         .unwrap_or_else(|_| panic!("Failed to save model_id '{}'", model_id));
 }
 
-async fn download_file(url: &str, path: &str) -> String {
+async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>) -> String {
     fs::create_dir_all(Path::new(path).parent().unwrap())
         .unwrap_or_else(|_| panic!("Failed to create path '{}'", path));
 
@@ -85,13 +86,12 @@ async fn download_file(url: &str, path: &str) -> String {
         .await
         .unwrap_or_else(|_| panic!("Failed to GET from '{}'", url));
 
-    let etag = res
-        .headers()
-        .get("etag")
-        .unwrap_or_else(|| panic!("Failed to GET ETAG header from '{}'", url))
-        .to_str()
-        .unwrap_or_else(|_| panic!("Failed to convert ETAG header into string '{}'", url))
-        .to_string();
+    let remote_cache_key = metadata::Metadata::remote_cache_key(&res).to_string();
+    if let Some(local_cache_key) = local_cache_key {
+        if local_cache_key == remote_cache_key {
+            return remote_cache_key;
+        }
+    }
 
     let total_size = res
         .content_length()
@@ -120,5 +120,5 @@ async fn download_file(url: &str, path: &str) -> String {
     }
 
     pb.finish_with_message(format!("Downloaded {}", path));
-    etag
+    remote_cache_key
 }
