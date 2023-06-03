@@ -33,7 +33,7 @@ pub struct Segments {
 
     /// Content that appears after the cursor in the editor window.
     #[schema(example = "\n        return fib(n - 1) + fib(n - 2)")]
-    suffix: Option<String>
+    suffix: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
