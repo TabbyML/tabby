@@ -33,7 +33,7 @@ pub struct Segments {
 
     /// Content that appears after the cursor in the editor window.
     #[schema(example = "\n        return fib(n - 1) + fib(n - 2)")]
-    suffix: String,
+    suffix: Option<String>
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -65,8 +65,13 @@ pub async fn completion(
 
     let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
         if let Some(prompt_template) = &state.prompt_template {
-            strfmt!(prompt_template, prefix => prefix, suffix => suffix)
-                .expect("Failed to format prompt")
+            if let Some(suffix) = suffix {
+                strfmt!(prompt_template, prefix => prefix, suffix => suffix)
+                    .expect("Failed to format prompt")
+            } else {
+                // If suffix is empty, just returns prefix.
+                prefix
+            }
         } else {
             // If there's no prompt template, just use prefix.
             prefix
