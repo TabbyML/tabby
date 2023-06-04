@@ -1,0 +1,6 @@
+#!/bin/bash
+
+SOURCE_FILE=$2
+OUTPUT_FILE=$3
+
+/opt/ctranslate2/bin/ct2-translator --model /model --src $SOURCE_FILE --out $OUTPUT_FILE --device auto --batch_size 32 --beam_size 4 --length_penalty 0 --compute_type ${COMPUTE_TYPE:-default}

@@ -1,0 +1,8 @@
+auto_config: true
+data:
+  source_vocabulary: wmtende.vocab
+  target_vocabulary: wmtende.vocab
+params:
+  beam_width: 4
+infer:
+  batch_size: 32

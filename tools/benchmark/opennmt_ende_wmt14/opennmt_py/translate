@@ -1,0 +1,16 @@
+#!/bin/bash
+
+DEVICE=$1
+SOURCE_FILE=$2
+OUTPUT_FILE=$3
+
+EXTRA_ARGS=""
+if [ $DEVICE = "GPU" ]; then
+    EXTRA_ARGS+=" -gpu 0"
+fi
+if [ ${INT8:-0} = "1" ]; then
+    EXTRA_ARGS+=" -int8"
+fi
+
+onmt_translate -model /workspace/averaged-10-epoch-v3.pt -src $SOURCE_FILE -out $OUTPUT_FILE \
+               -batch_size 32 -beam_size 4 -length_penalty none $EXTRA_ARGS
