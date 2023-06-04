@@ -1,3 +1,18 @@
-[submodule "crates/ctranslate2-bindings/CTranslate2"]
-	path = crates/ctranslate2-bindings/CTranslate2
-	url = https://github.com/OpenNMT/CTranslate2.git
+[submodule "third_party/cxxopts"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
+[submodule "third_party/thrust"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/thrust
+	url = https://github.com/NVIDIA/thrust.git
+[submodule "third_party/googletest"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/googletest
+	url = https://github.com/google/googletest.git
+[submodule "third_party/cpu_features"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/cpu_features
+	url = https://github.com/google/cpu_features.git
+[submodule "third_party/spdlog"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "third_party/ruy"]
+	path = crates/ctranslate2-bindings/ctranslate2/third_party/ruy
+	url = https://github.com/google/ruy.git
