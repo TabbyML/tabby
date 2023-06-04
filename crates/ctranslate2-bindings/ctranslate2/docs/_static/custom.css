@@ -1,0 +1,48 @@
+/* Newlines (\a) and spaces (\20) before each parameter */
+.sig-param::before {
+    content: "\a\20\20\20\20\20\20\20\20";
+    white-space: pre;
+}
+
+/* Newline after the last parameter (so the closing bracket is on a new line) */
+dt em.sig-param:last-of-type::after {
+    content: "\a";
+    white-space: pre;
+}
+
+/* To have blue background of width of the block (instead of width of content) */
+dl.class > dt:first-of-type {
+    display: block !important;
+}
+
+dl.py.property {
+    display: block !important;
+}
+
+.rst-content a code.literal {
+    color: #2980B9;
+}
+.rst-content a:hover code.literal {
+    color: #3091d1;
+}
+.rst-content a:visited code.literal {
+    color: #9B59B6;
+}
+
+.rst-content blockquote {
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 5px solid #999;
+    font-style: italic;
+}
+
+.wy-table-responsive table td, .wy-table-responsive table th {
+    white-space: inherit;
+}
+
+#build-options table td {
+    vertical-align: top;
+}
+#build-options table ul {
+    margin: 0;
+}

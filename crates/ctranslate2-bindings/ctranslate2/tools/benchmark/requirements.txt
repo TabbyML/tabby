@@ -1,0 +1,3 @@
+docker==4.3.1
+gputil==1.4.0
+sacrebleu==1.4.14
