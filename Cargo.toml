@@ -2,6 +2,7 @@
 members = [
     "crates/tabby",
     "crates/tabby-common",
+    "crates/tabby-scheduler",
     "crates/ctranslate2-bindings",
     "crates/rust-cxx-cmake-bridge",
 ]
