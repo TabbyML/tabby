@@ -28,6 +28,9 @@ mod ffi {
     }
 }
 
+unsafe impl Send for ffi::TextInferenceEngine {}
+unsafe impl Sync for ffi::TextInferenceEngine {}
+
 #[derive(Builder, Debug)]
 pub struct TextInferenceEngineCreateOptions {
     model_path: String,
@@ -59,9 +62,6 @@ pub struct TextInferenceEngine {
     engine: cxx::UniquePtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
 }
-
-unsafe impl Send for TextInferenceEngine {}
-unsafe impl Sync for TextInferenceEngine {}
 
 impl TextInferenceEngine {
     pub fn create(options: TextInferenceEngineCreateOptions) -> Self where {

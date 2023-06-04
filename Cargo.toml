@@ -16,3 +16,4 @@ homepage = "https://github.com/TabbyML/tabby"
 lazy_static = "1.4.0"
 serde = { version = "1.0", features = ["derive"] }
 serdeconv = "0.4.1"
+tokio = "1.28"
