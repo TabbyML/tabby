@@ -80,7 +80,7 @@ pub async fn completion(
         request.prompt.expect("No prompt is set")
     };
 
-    let text = state.engine.inference(&prompt, options);
+    let text = state.engine.inference(&prompt, options).await;
     let language = request.language.unwrap_or("unknown".into());
     let filtered_text = languages::remove_stop_words(&language, &text);
 

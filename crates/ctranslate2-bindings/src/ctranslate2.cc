@@ -77,7 +77,7 @@ class DecoderImpl: public TextInferenceEngine {
   std::unique_ptr<ctranslate2::Generator> generator_;
 };
 
-std::unique_ptr<TextInferenceEngine> create_engine(
+std::shared_ptr<TextInferenceEngine> create_engine(
     rust::Str model_path,
     rust::Str model_type,
     rust::Str device,
