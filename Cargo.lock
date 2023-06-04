@@ -491,6 +491,7 @@ dependencies = [
  "rust-cxx-cmake-bridge",
  "tokenizers",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]

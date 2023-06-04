@@ -1,10 +1,15 @@
 use tokenizers::tokenizer::Tokenizer;
+use tokio_util::sync::CancellationToken;
 
 #[macro_use]
 extern crate derive_builder;
 
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
+    extern "Rust" {
+        type InferenceContext;
+    }
+
     unsafe extern "C++" {
         include!("ctranslate2-bindings/include/ctranslate2.h");
 
@@ -20,6 +25,8 @@ mod ffi {
 
         fn inference(
             &self,
+            context: Box<InferenceContext>,
+            is_context_cancelled: fn(Box<InferenceContext>) -> bool,
             tokens: &[String],
             max_decoding_length: usize,
             sampling_temperature: f32,
@@ -58,6 +65,8 @@ pub struct TextInferenceOptions {
     beam_size: usize,
 }
 
+struct InferenceContext(CancellationToken);
+
 pub struct TextInferenceEngine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
@@ -81,8 +90,17 @@ impl TextInferenceEngine {
     pub async fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
         let engine = self.engine.clone();
+
+        let cancel = CancellationToken::new();
+        let cancel_for_inference = cancel.clone();
+        let _guard = cancel.drop_guard();
+
+        let context = InferenceContext(cancel_for_inference);
         let output_tokens = tokio::task::spawn_blocking(move || {
+            let context = Box::new(context);
             engine.inference(
+                context,
+                |context| context.0.is_cancelled(),
                 encoding.get_tokens(),
                 options.max_decoding_length,
                 options.sampling_temperature,

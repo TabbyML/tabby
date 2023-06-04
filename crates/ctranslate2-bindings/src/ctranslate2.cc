@@ -6,24 +6,32 @@
 namespace tabby {
 TextInferenceEngine::~TextInferenceEngine() {}
 
-class EncoderDecoderImpl: public TextInferenceEngine {
+template <class Model, class Child>
+class TextInferenceEngineImpl : public TextInferenceEngine {
+ protected:
+  struct Options {
+    size_t max_decoding_length;
+    float sampling_temperature;
+    size_t beam_size;
+  };
+
  public:
   rust::Vec<rust::String> inference(
+      rust::Box<InferenceContext> context,
+      rust::Fn<bool(rust::Box<InferenceContext>)> is_context_cancelled,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
       float sampling_temperature,
       size_t beam_size
   ) const {
-    // Create options.
-    ctranslate2::TranslationOptions options;
-    options.max_decoding_length = max_decoding_length;
-    options.sampling_temperature = sampling_temperature;
-    options.beam_size = beam_size;
+    // FIXME(meng): implement the cancellation.
+    if (is_context_cancelled(std::move(context))) {
+      return rust::Vec<rust::String>();
+    }
 
     // Inference.
     std::vector<std::string> input_tokens(tokens.begin(), tokens.end());
-    ctranslate2::TranslationResult result = translator_->translate_batch({ input_tokens }, options)[0];
-    const auto& output_tokens = result.output();
+    const auto output_tokens = process(input_tokens, Options{max_decoding_length, sampling_temperature, beam_size});
 
     // Convert to rust vec.
     rust::Vec<rust::String> output;
@@ -33,48 +41,43 @@ class EncoderDecoderImpl: public TextInferenceEngine {
   }
 
   static std::unique_ptr<TextInferenceEngine> create(const ctranslate2::models::ModelLoader& loader) {
-    auto impl = std::make_unique<EncoderDecoderImpl>();
-    impl->translator_ = std::make_unique<ctranslate2::Translator>(loader);
+    auto impl = std::make_unique<Child>();
+    impl->model_ = std::make_unique<Model>(loader);
     return impl;
   }
- private:
-  std::unique_ptr<ctranslate2::Translator> translator_;
+
+ protected:
+  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const = 0;
+  std::unique_ptr<Model> model_;
 };
 
-class DecoderImpl: public TextInferenceEngine {
- public:
-  rust::Vec<rust::String> inference(
-      rust::Slice<const rust::String> tokens,
-      size_t max_decoding_length,
-      float sampling_temperature,
-      size_t beam_size
-  ) const {
-    // Create options.
-    ctranslate2::GenerationOptions options;
-    options.include_prompt_in_result = false;
-    options.max_length = max_decoding_length;
-    options.sampling_temperature = sampling_temperature;
-    options.beam_size = beam_size;
-
-    // Inference.
-    std::vector<std::string> input_tokens(tokens.begin(), tokens.end());
-    ctranslate2::GenerationResult result = generator_->generate_batch_async({ input_tokens }, options)[0].get();
-    const auto& output_tokens = result.sequences[0];
-
-    // Convert to rust vec.
-    rust::Vec<rust::String> output;
-    output.reserve(output_tokens.size());
-    std::copy(output_tokens.begin(), output_tokens.end(), std::back_inserter(output));
-    return output;
+class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translator, EncoderDecoderImpl> {
+ protected:
+  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
+    ctranslate2::TranslationOptions x;
+    x.max_decoding_length = options.max_decoding_length;
+    x.sampling_temperature = options.sampling_temperature;
+    x.beam_size = options.beam_size;
+    ctranslate2::TranslationResult result = model_->translate_batch(
+        { tokens },
+        ctranslate2::TranslationOptions{
+        }
+    )[0];
+    return std::move(result.output());
   }
+};
 
-  static std::unique_ptr<TextInferenceEngine> create(const ctranslate2::models::ModelLoader& loader) {
-    auto impl = std::make_unique<DecoderImpl>();
-    impl->generator_ = std::make_unique<ctranslate2::Generator>(loader);
-    return impl;
+class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, DecoderImpl> {
+ protected:
+  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
+    ctranslate2::GenerationOptions x;
+    x.include_prompt_in_result = false;
+    x.max_length = options.max_decoding_length;
+    x.sampling_temperature = options.sampling_temperature;
+    x.beam_size = options.beam_size;
+    ctranslate2::GenerationResult result = model_->generate_batch_async({ tokens }, x)[0].get();
+    return std::move(result.sequences[0]);
   }
- private:
-  std::unique_ptr<ctranslate2::Generator> generator_;
 };
 
 std::shared_ptr<TextInferenceEngine> create_engine(
