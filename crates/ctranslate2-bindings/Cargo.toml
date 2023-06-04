@@ -8,6 +8,7 @@ cxx = "1.0"
 derive_builder = "0.12.0"
 tokenizers = "0.13.3"
 tokio = { workspace = true, features = ["rt"] }
+tokio-util = { workspace = true }
 
 [build-dependencies]
 cxx-build = "1.0"
@@ -15,5 +16,5 @@ cmake = { version = "0.1", optional = true }
 rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge", optional = true }
 
 [features]
-default = [ "dep:cmake", "dep:rust-cxx-cmake-bridge" ]
+default = ["dep:cmake", "dep:rust-cxx-cmake-bridge"]
 link_shared = []
