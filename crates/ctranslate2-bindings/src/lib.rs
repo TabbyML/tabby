@@ -1,3 +1,4 @@
+
 use tokenizers::tokenizer::Tokenizer;
 
 #[macro_use]
@@ -16,7 +17,7 @@ mod ffi {
             device: &str,
             device_indices: &[i32],
             num_replicas_per_device: usize,
-        ) -> UniquePtr<TextInferenceEngine>;
+        ) -> SharedPtr<TextInferenceEngine>;
 
         fn inference(
             &self,
@@ -59,7 +60,7 @@ pub struct TextInferenceOptions {
 }
 
 pub struct TextInferenceEngine {
-    engine: cxx::UniquePtr<ffi::TextInferenceEngine>,
+    engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
 }
 
@@ -78,14 +79,19 @@ impl TextInferenceEngine {
         };
     }
 
-    pub fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
+    pub async fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
-        let output_tokens = self.engine.inference(
-            encoding.get_tokens(),
-            options.max_decoding_length,
-            options.sampling_temperature,
-            options.beam_size,
-        );
+        let engine = self.engine.clone();
+        let output_tokens = tokio::task::spawn_blocking(move || {
+            engine.inference(
+                encoding.get_tokens(),
+                options.max_decoding_length,
+                options.sampling_temperature,
+                options.beam_size,
+            )
+        })
+        .await
+        .expect("Inference failed");
         let output_ids: Vec<u32> = output_tokens
             .iter()
             .filter_map(|x| match self.tokenizer.token_to_id(x) {
