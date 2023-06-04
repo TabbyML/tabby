@@ -54,12 +54,13 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translator, EncoderDecoderImpl> {
  protected:
   virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
+    ctranslate2::TranslationOptions x;
+    x.max_decoding_length = options.max_decoding_length;
+    x.sampling_temperature = options.sampling_temperature;
+    x.beam_size = options.beam_size;
     ctranslate2::TranslationResult result = model_->translate_batch(
         { tokens },
         ctranslate2::TranslationOptions{
-          .max_decoding_length = options.max_decoding_length,
-          .sampling_temperature = options.sampling_temperature,
-          .beam_size = options.beam_size,
         }
     )[0];
     return std::move(result.output());
@@ -69,15 +70,12 @@ class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translato
 class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, DecoderImpl> {
  protected:
   virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
-    ctranslate2::GenerationResult result = model_->generate_batch_async(
-        { tokens },
-        ctranslate2::GenerationOptions{
-          .include_prompt_in_result = false,
-          .max_length = options.max_decoding_length,
-          .sampling_temperature = options.sampling_temperature,
-          .beam_size = options.beam_size,
-        }
-    )[0].get();
+    ctranslate2::GenerationOptions x;
+    x.include_prompt_in_result = false;
+    x.max_length = options.max_decoding_length;
+    x.sampling_temperature = options.sampling_temperature;
+    x.beam_size = options.beam_size;
+    ctranslate2::GenerationResult result = model_->generate_batch_async({ tokens }, x)[0].get();
     return std::move(result.sequences[0]);
   }
 };
