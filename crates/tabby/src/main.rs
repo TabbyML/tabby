@@ -19,6 +19,7 @@ pub enum Commands {
     /// Download the model
     Download(download::DownloadArgs),
 
+    /// Starts the scheduler process.
     Scheduler,
 }
 
