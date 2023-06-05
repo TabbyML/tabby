@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono = "0.4.26"
+filenamify = "0.1.0"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }

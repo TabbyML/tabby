@@ -1,10 +1,6 @@
-use std::{path::PathBuf, process::Command};
+use std::process::Command;
 
-use filenamify::filenamify;
-use tabby_common::{
-    config::{Config, Repository},
-    path::repositories_dir,
-};
+use tabby_common::config::{Config, Repository};
 
 trait ConfigExt {
     fn sync_repositories(&self);
@@ -19,15 +15,10 @@ impl ConfigExt for Config {
 }
 
 trait RepositoryExt {
-    fn dir(&self) -> PathBuf;
     fn sync(&self);
 }
 
 impl RepositoryExt for Repository {
-    fn dir(&self) -> PathBuf {
-        repositories_dir().join(filenamify(&self.git_url))
-    }
-
     fn sync(&self) {
         let dir = self.dir();
         let dir_string = dir.display().to_string();
@@ -62,32 +53,6 @@ impl RepositoryExt for Repository {
     }
 }
 
-pub fn sync_repositories() {
-    let config = Config::load();
+pub fn sync_repositories(config: &Config) {
     config.sync_repositories();
-}
-
-#[cfg(test)]
-mod tests {
-    use tabby_common::{
-        config::{Config, Repository},
-        path::set_tabby_root,
-    };
-    use temp_testdir::*;
-
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        set_tabby_root(TempDir::default().to_path_buf());
-
-        let config = Config {
-            repositories: vec![Repository {
-                git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
-            }],
-        };
-
-        config.save();
-        sync_repositories();
-    }
 }

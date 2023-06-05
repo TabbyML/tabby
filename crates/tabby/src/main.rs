@@ -2,6 +2,7 @@ mod download;
 mod serve;
 
 use clap::{Parser, Subcommand};
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -20,18 +21,27 @@ pub enum Commands {
     Download(download::DownloadArgs),
 
     /// Starts the scheduler process.
-    Scheduler,
+    Scheduler(SchedulerArgs),
+}
+
+#[derive(clap::Args)]
+pub struct SchedulerArgs {
+    /// If true, runs scheduler jobs immediately.
+    #[clap(long, default_value_t = false)]
+    now: bool,
 }
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::fmt()
+        .with_env_filter(EnvFilter::from_default_env().add_directive("tabby=info".parse().unwrap()))
+        .init();
 
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
         Commands::Download(args) => download::main(args).await,
-        Commands::Scheduler => tabby_scheduler::scheduler(),
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now),
     }
 }
