@@ -440,7 +440,7 @@ namespace ctranslate2 {
                                                       keys_proj,
                                                       values_proj);
 
-          queries_proj.reshape({queries_proj.dim(0), queries_proj.dim(1) * _num_heads, _d_head});
+          queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
 
         } else {
           split_heads(fused_proj, 3 * _num_heads, queries_padder);
@@ -452,8 +452,18 @@ namespace ctranslate2 {
                                 ? cached_keys->dim(_cache_time_dim)
                                 : 0);
 
+          if (_multi_query) {
+            queries_proj.reshape({queries_proj.dim(0), -1, _d_model});
+            split_heads(queries_proj, _num_heads);
+          }
+
           _rotary_embeddings->apply(queries_proj, offset);
           _rotary_embeddings->apply(keys_proj, offset);
+
+          if (_multi_query) {
+            combine_heads(queries_proj, _num_heads);
+            queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
+          }
         }
 
         if (cached_keys != nullptr) {

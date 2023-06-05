@@ -5,6 +5,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * BART
 * BLOOM
 * CodeGen
+* Falcon
 * LLaMa
 * M2M100
 * MarianMT
@@ -95,6 +96,35 @@ text = "Hello, I am"
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
 print(tokenizer.decode(results[0].sequences_ids[0]))
+```
+
+## Falcon
+
+[Falcon](https://huggingface.co/tiiuae/falcon-7b) is a collection of generative language models trained by [TII](https://www.tii.ae/). The example below uses "Falcon-7B-Instruct" which is based on "Falcon-7B" and finetuned on a mixture of chat/instruct datasets.
+
+```bash
+ct2-transformers-converter --model tiiuae/falcon-7b-instruct --quantization float16 --output_dir falcon-7b-instruct --trust_remote_code
+```
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("falcon-7b-instruct", device="cuda")
+tokenizer = transformers.AutoTokenizer.from_pretrained("tiiuae/falcon-7b-instruct")
+
+prompt = (
+    "Girafatron is obsessed with giraffes, the most glorious animal on the face of this Earth. "
+    "Giraftron believes all other animals are irrelevant when compared to the glorious majesty "
+    "of the giraffe.\nDaniel: Hello, Girafatron!\nGirafatron:"
+)
+
+tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+results = generator.generate_batch([tokens], sampling_topk=10, max_length=200, include_prompt_in_result=False)
+output = tokenizer.decode(results[0].sequences_ids[0])
+
+print(output)
 ```
 
 ## MarianMT
