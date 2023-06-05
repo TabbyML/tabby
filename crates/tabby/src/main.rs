@@ -31,6 +31,6 @@ async fn main() {
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
         Commands::Download(args) => download::main(args).await,
-        Commands::Scheduler => tabby_scheduler::scheduler()
+        Commands::Scheduler => tabby_scheduler::scheduler(),
     }
 }
