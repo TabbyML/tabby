@@ -15,9 +15,9 @@ The Python wheels have the following requirements:
 * pip version: >= 19.3 to support `manylinux2014` wheels
 
 ```{admonition} GPU support
-The Linux and Windows Python wheels support GPU execution. Install [CUDA](https://developer.nvidia.com/cuda-toolkit) 11.2 or above to use the GPU.
+The Linux and Windows Python wheels support GPU execution. Install [CUDA](https://developer.nvidia.com/cuda-toolkit) 11.x to use the GPU.
 
-If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn).
+If you plan to run models with convolutional layers (e.g. for speech recognition), you should also install [cuDNN 8](https://developer.nvidia.com/cudnn) for CUDA 11.x.
 ```
 
 ```{note}
