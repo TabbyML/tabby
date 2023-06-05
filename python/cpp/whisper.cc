@@ -183,6 +183,12 @@ namespace ctranslate2 {
                                "Device this model is running on.")
         .def_property_readonly("device_index", &WhisperWrapper::device_index,
                                "List of device IDs where this model is running on.")
+        .def_property_readonly("num_workers", &WhisperWrapper::num_replicas,
+                               "Number of model workers backing this instance.")
+        .def_property_readonly("num_queued_batches", &WhisperWrapper::num_queued_batches,
+                               "Number of batches waiting to be processed.")
+        .def_property_readonly("num_active_batches", &WhisperWrapper::num_active_batches,
+                               "Number of batches waiting to be processed or currently processed.")
 
         .def("encode", &WhisperWrapper::encode,
              py::arg("features"),
