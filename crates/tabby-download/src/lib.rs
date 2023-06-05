@@ -1,15 +1,11 @@
 mod cache_info;
 
-use std::cmp;
-use std::fs;
-use std::io::Write;
-use std::path::Path;
+use std::{cmp, fs, io::Write, path::Path};
 
+use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use tabby_common::path::ModelDir;
-
-use cache_info::CacheInfo;
 
 impl CacheInfo {
     async fn download(&mut self, model_id: &str, path: &str, prefer_local_file: bool) {

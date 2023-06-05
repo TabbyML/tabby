@@ -1,10 +1,10 @@
+use std::{path::Path, sync::Arc};
+
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{
     TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder, TextInferenceOptionsBuilder,
 };
 use serde::{Deserialize, Serialize};
-use std::path::Path;
-use std::sync::Arc;
 use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;

@@ -1,12 +1,10 @@
-use std::path::PathBuf;
-use std::process::Command;
+use std::{path::PathBuf, process::Command};
 
+use filenamify::filenamify;
 use tabby_common::{
     config::{Config, Repository},
     path::repositories_dir,
 };
-
-use filenamify::filenamify;
 
 trait ConfigExt {
     fn sync_repositories(&self);
@@ -71,11 +69,13 @@ pub fn sync_repositories() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use tabby_common::{
+        config::{Config, Repository},
+        path::set_tabby_root,
+    };
     use temp_testdir::*;
 
-    use tabby_common::config::{Config, Repository};
-    use tabby_common::path::set_tabby_root;
+    use super::*;
 
     #[test]
     fn it_works() {

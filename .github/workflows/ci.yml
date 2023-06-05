@@ -31,12 +31,11 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          components: rustfmt, clippy
+          toolchain: nightly
+          components: rustfmt
 
       - name: Cargo fmt
-        run: cargo fmt --check
+        run: cargo +nightly fmt --check
 
   release-binary:
     needs: tests

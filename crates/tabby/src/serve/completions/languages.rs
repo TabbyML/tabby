@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::HashMap;
 
 lazy_static! {
     static ref DEFAULT: Regex = Regex::new(r"(?m)\n\n").unwrap();

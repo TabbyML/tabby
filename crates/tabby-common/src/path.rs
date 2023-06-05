@@ -1,7 +1,4 @@
-use std::cell::Cell;
-use std::env;
-use std::path::PathBuf;
-use std::sync::Mutex;
+use std::{cell::Cell, env, path::PathBuf, sync::Mutex};
 
 use lazy_static::lazy_static;
 

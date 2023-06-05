@@ -1,7 +1,8 @@
 mod repository;
 
-use job_scheduler::{Job, JobScheduler};
 use std::time::Duration;
+
+use job_scheduler::{Job, JobScheduler};
 use tracing::info;
 
 pub fn scheduler() {

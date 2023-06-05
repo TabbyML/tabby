@@ -1,9 +1,12 @@
+use std::{
+    fs,
+    io::{BufWriter, Write},
+    sync::Mutex,
+};
+
 use chrono::Utc;
 use lazy_static::lazy_static;
 use serde::Serialize;
-use std::fs;
-use std::io::{BufWriter, Write};
-use std::sync::Mutex;
 
 lazy_static! {
     static ref WRITER: Mutex<BufWriter<fs::File>> = {

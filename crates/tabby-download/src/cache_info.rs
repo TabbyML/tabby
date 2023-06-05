@@ -1,8 +1,7 @@
+use std::{collections::HashMap, fs, path::Path};
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
 use tabby_common::path::ModelDir;
 
 #[derive(Serialize, Deserialize)]
