@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 filenamify = "0.1.0"
+job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
+tracing = { workspace = true }
 
 [dev-dependencies]
 temp_testdir = "0.2"

@@ -10,6 +10,7 @@ use std::{
     sync::Arc,
 };
 use tower_http::cors::CorsLayer;
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -74,7 +75,7 @@ pub async fn main(args: &ServeArgs) {
         .layer(CorsLayer::permissive());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    println!("Listening at {}", address);
+    info!("Listening at {}", address);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await

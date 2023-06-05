@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ctranslate2-bindings = { path = "../ctranslate2-bindings" }
+tabby-common = { path = "../tabby-common" }
+tabby-scheduler = { path = "../tabby-scheduler" }
 axum = "0.6"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
@@ -15,7 +18,6 @@ serdeconv = { workspace = true }
 serde_json = "1.0"
 env_logger = "0.10.0"
 log = "0.4"
-ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 tower-http = { version = "0.4.0", features = ["cors"] }
 clap = { version = "4.3.0", features = ["derive"] }
 regex = "1.8.3"
@@ -26,9 +28,10 @@ strum = { version = "0.24", features = ["derive"] }
 reqwest = { version = "0.11.18", features = ["stream", "json"] }
 indicatif = "0.17.3"
 futures-util = "0.3.28"
-tabby-common = { path = "../tabby-common" }
 anyhow = "1.0.71"
 strfmt = "0.2.4"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 [dependencies.uuid]
 version = "1.3.3"

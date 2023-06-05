@@ -4,6 +4,7 @@ use std::cmp;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
+use tracing::info;
 
 use clap::Args;
 use futures_util::StreamExt;
@@ -25,7 +26,7 @@ pub struct DownloadArgs {
 
 pub async fn main(args: &DownloadArgs) {
     download_model(&args.model, args.prefer_local_file).await;
-    println!("model '{}' is ready", args.model);
+    info!("model '{}' is ready", args.model);
 }
 
 impl CacheInfo {
