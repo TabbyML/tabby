@@ -91,4 +91,3 @@ mod tests {
         sync_repositories();
     }
 }
-
