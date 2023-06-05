@@ -18,14 +18,19 @@ pub enum Commands {
 
     /// Download the model
     Download(download::DownloadArgs),
+
+    Scheduler,
 }
 
 #[tokio::main]
 async fn main() {
+    tracing_subscriber::fmt::init();
+
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
         Commands::Download(args) => download::main(args).await,
+        Commands::Scheduler => tabby_scheduler::scheduler()
     }
 }

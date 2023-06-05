@@ -3,6 +3,7 @@ mod completions;
 mod events;
 
 use crate::Cli;
+use tracing::info;
 use axum::{routing, Router, Server};
 use clap::{error::ErrorKind, Args, CommandFactory};
 use std::{
@@ -74,7 +75,7 @@ pub async fn main(args: &ServeArgs) {
         .layer(CorsLayer::permissive());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
-    println!("Listening at {}", address);
+    info!("Listening at {}", address);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
