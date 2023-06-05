@@ -496,7 +496,6 @@ namespace ctranslate2 {
                       _num_heads,
                       max_time,
                       step > 0 ? step + 1 : max_time,
-                      lengths,
                       _use_positive_positions_in_alibi));
         alibi->move_to(device, dtype);
       }

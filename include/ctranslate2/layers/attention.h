@@ -14,7 +14,6 @@ namespace ctranslate2 {
                             dim_t num_heads,
                             dim_t query_max_length,
                             dim_t key_max_length,
-                            const StorageView* key_lengths = nullptr,
                             bool use_positive_positions = false);
 
     class RotaryEmbeddings;
