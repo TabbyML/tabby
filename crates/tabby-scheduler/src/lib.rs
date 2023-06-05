@@ -1,14 +1,18 @@
 mod index;
 mod repository;
 
-use std::time::Duration;
-
 use job_scheduler::{Job, JobScheduler};
-use tracing::info;
+use tabby_common::config::Config;
+use tracing::{error, info};
 
-pub fn scheduler(run: bool) {
+pub fn scheduler(now: bool) {
     let config = Config::load();
+    if config.is_err() {
+        error!("Please create config.toml before using scheduler");
+        return;
+    }
 
+    let config = config.unwrap();
     let mut scheduler = JobScheduler::new();
 
     let job = || {
@@ -19,29 +23,32 @@ pub fn scheduler(run: bool) {
         index::index_repositories(&config);
     };
 
-    if run {
+    if now {
         job()
     } else {
         // Every 5 hours.
-        scheduler.add(Job::new("* * 1/5 * * *".parse().unwrap(), job));
+        scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job));
 
         info!("Scheduler activated...");
         loop {
-            info!("Checking for jobs in queue...");
             scheduler.tick();
-            std::thread::sleep(Duration::from_secs(10));
+            let duration = scheduler.time_till_next_job();
+            info!("Sleep {:?} for next job ...", duration);
+            std::thread::sleep(duration);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use tabby_common::{
+        config::{Config, Repository},
+        path::set_tabby_root,
+    };
     use temp_testdir::*;
-
-    use tabby_common::config::{Config, Repository};
-    use tabby_common::path::set_tabby_root;
     use tracing_test::traced_test;
+
+    use super::*;
 
     #[traced_test]
     #[test]

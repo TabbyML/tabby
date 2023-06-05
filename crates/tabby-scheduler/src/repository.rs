@@ -1,10 +1,6 @@
-use std::{path::PathBuf, process::Command};
+use std::process::Command;
 
-use filenamify::filenamify;
-use tabby_common::{
-    config::{Config, Repository},
-    path::repositories_dir,
-};
+use tabby_common::config::{Config, Repository};
 
 trait ConfigExt {
     fn sync_repositories(&self);

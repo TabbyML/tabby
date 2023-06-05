@@ -5,8 +5,9 @@ use tabby_common::{
     config::{Config, Repository},
     path::index_dir,
 };
-use tantivy::doc;
 use tantivy::{
+    directory::MmapDirectory,
+    doc,
     schema::{Schema, FAST, STORED, STRING, TEXT},
     Index, IndexWriter,
 };
@@ -69,9 +70,11 @@ pub fn index_repositories(config: &Config) {
     let schema = create_schema();
 
     fs::create_dir_all(index_dir()).unwrap();
-    let index = Index::create_in_dir(index_dir(), schema.clone()).unwrap();
+    let directory = MmapDirectory::open(index_dir()).unwrap();
+    let index = Index::open_or_create(directory, schema.clone()).unwrap();
     let mut writer = index.writer(10_000_000).unwrap();
 
+    writer.delete_all_documents().unwrap();
     for repository in config.repositories.as_slice() {
         repository.index(&schema, &mut writer);
     }

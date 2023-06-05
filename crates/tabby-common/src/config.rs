@@ -1,6 +1,6 @@
-use filenamify::filenamify;
 use std::path::PathBuf;
 
+use filenamify::filenamify;
 use serde::Deserialize;
 
 use crate::path::repositories_dir;
@@ -11,9 +11,8 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Self {
+    pub fn load() -> Result<Self, serdeconv::Error> {
         serdeconv::from_toml_file(crate::path::config_file().as_path())
-            .expect("Failed to read config file")
     }
 }
 
