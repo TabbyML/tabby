@@ -7,7 +7,7 @@ use std::sync::Mutex;
 
 lazy_static! {
     static ref WRITER: Mutex<BufWriter<fs::File>> = {
-        let events_dir = &crate::path::EVENTS_DIR;
+        let events_dir = crate::path::events_dir();
         std::fs::create_dir_all(events_dir.as_path()).ok();
 
         let now = Utc::now();

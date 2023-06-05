@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 filenamify = "0.1.0"
 tabby-common = { path = "../tabby-common" }
+
+[dev-dependencies]
+temp_testdir = "0.2"
+tabby-common = { path = "../tabby-common", features = [ "testutils" ] }

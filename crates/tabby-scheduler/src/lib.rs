@@ -3,7 +3,7 @@ use std::process::Command;
 
 use tabby_common::{
     config::{Config, Repository},
-    path::REPOSITORIES_DIR,
+    path::repositories_dir,
 };
 
 use filenamify::filenamify;
@@ -27,7 +27,7 @@ trait RepositoryExt {
 
 impl RepositoryExt for Repository {
     fn dir(&self) -> PathBuf {
-        REPOSITORIES_DIR.join(filenamify(&self.git_url))
+        repositories_dir().join(filenamify(&self.git_url))
     }
 
     fn sync(&self) {
@@ -40,7 +40,8 @@ impl RepositoryExt for Repository {
                 .status()
                 .expect("git could not be executed")
         } else {
-            std::fs::create_dir_all(&dir);
+            std::fs::create_dir_all(&dir)
+                .unwrap_or_else(|_| panic!("Failed to create dir {}", dir_string));
             Command::new("git")
                 .current_dir(dir.parent().unwrap())
                 .arg("clone")
@@ -66,20 +67,4 @@ impl RepositoryExt for Repository {
 pub fn job_sync_repositories() {
     let config = Config::load();
     config.sync_repositories();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let config = Config {
-            repositories: vec![Repository {
-                git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
-            }],
-        };
-
-        config.sync_repositories();
-    }
 }
