@@ -10,7 +10,9 @@ lazy_static! {
             Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
         }
     };
+    pub static ref CONFIG_FILE: PathBuf = TABBY_ROOT.join("config.toml");
     pub static ref EVENTS_DIR: PathBuf = TABBY_ROOT.join("events");
+    pub static ref REPOSITORIES_DIR: PathBuf = TABBY_ROOT.join("repositories");
 }
 
 pub struct ModelDir(PathBuf);

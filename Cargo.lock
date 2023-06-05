@@ -708,6 +708,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "filenamify"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b781e8974b2cc71ac3c587c881c11ee5fe9a379f43503674e1e1052647593b4c"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "filetime"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2160,6 +2169,14 @@ dependencies = [
  "lazy_static",
  "serde",
  "serdeconv",
+]
+
+[[package]]
+name = "tabby-scheduler"
+version = "0.1.0"
+dependencies = [
+ "filenamify",
+ "tabby-common",
 ]
 
 [[package]]
