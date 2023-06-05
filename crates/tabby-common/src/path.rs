@@ -1,23 +1,52 @@
+use std::cell::Cell;
 use std::env;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref TABBY_ROOT: PathBuf = {
-        match env::var("TABBY_ROOT") {
+    static ref TABBY_ROOT: Mutex<Cell<PathBuf>> = {
+        Mutex::new(Cell::new(match env::var("TABBY_ROOT") {
             Ok(x) => PathBuf::from(x),
             Err(_) => PathBuf::from(env::var("HOME").unwrap()).join(".tabby"),
-        }
+        }))
     };
-    pub static ref EVENTS_DIR: PathBuf = TABBY_ROOT.join("events");
+}
+
+#[cfg(feature = "testutils")]
+pub fn set_tabby_root(path: PathBuf) {
+    println!("SET TABBY ROOT: '{}'", path.display());
+    let cell = TABBY_ROOT.lock().unwrap();
+    cell.replace(path);
+}
+
+fn tabby_root() -> PathBuf {
+    let mut cell = TABBY_ROOT.lock().unwrap();
+    cell.get_mut().clone()
+}
+
+pub fn config_file() -> PathBuf {
+    tabby_root().join("config.toml")
+}
+
+pub fn repositories_dir() -> PathBuf {
+    tabby_root().join("repositories")
+}
+
+pub fn models_dir() -> PathBuf {
+    tabby_root().join("models")
+}
+
+pub fn events_dir() -> PathBuf {
+    tabby_root().join("events")
 }
 
 pub struct ModelDir(PathBuf);
 
 impl ModelDir {
     pub fn new(model: &str) -> Self {
-        Self(TABBY_ROOT.join("models").join(model))
+        Self(models_dir().join(model))
     }
 
     pub fn from(path: &str) -> Self {

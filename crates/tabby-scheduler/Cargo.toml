@@ -1,0 +1,14 @@
+[package]
+name = "tabby-scheduler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+filenamify = "0.1.0"
+tabby-common = { path = "../tabby-common" }
+
+[dev-dependencies]
+temp_testdir = "0.2"
+tabby-common = { path = "../tabby-common", features = [ "testutils" ] }

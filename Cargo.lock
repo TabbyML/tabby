@@ -709,6 +709,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "filenamify"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b781e8974b2cc71ac3c587c881c11ee5fe9a379f43503674e1e1052647593b4c"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "filetime"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2164,6 +2173,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tabby-scheduler"
+version = "0.1.0"
+dependencies = [
+ "filenamify",
+ "tabby-common",
+ "temp_testdir",
+]
+
+[[package]]
 name = "tar"
 version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2173,6 +2191,12 @@ dependencies = [
  "libc",
  "xattr",
 ]
+
+[[package]]
+name = "temp_testdir"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "921f1e9c427802414907a48b21a6504ff6b3a15a1a3cf37e699590949ad9befc"
 
 [[package]]
 name = "tempfile"
