@@ -31,6 +31,10 @@ pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
 
+pub fn index_dir() -> PathBuf {
+    tabby_root().join("index")
+}
+
 pub fn models_dir() -> PathBuf {
     tabby_root().join("models")
 }

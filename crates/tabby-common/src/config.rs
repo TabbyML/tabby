@@ -1,7 +1,11 @@
-use serde::{Deserialize, Serialize};
+use filenamify::filenamify;
+use std::path::PathBuf;
+
+use serde::Deserialize;
+
+use crate::path::repositories_dir;
 
 #[derive(Deserialize)]
-#[cfg_attr(feature = "testutils", derive(Serialize))]
 pub struct Config {
     pub repositories: Vec<Repository>,
 }
@@ -11,16 +15,15 @@ impl Config {
         serdeconv::from_toml_file(crate::path::config_file().as_path())
             .expect("Failed to read config file")
     }
-
-    #[cfg(feature = "testutils")]
-    pub fn save(&self) {
-        let config_file = crate::path::config_file();
-        std::fs::create_dir_all(config_file.parent().unwrap()).unwrap();
-        serdeconv::to_toml_file(self, config_file).expect("Failed to write config file")
-    }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 pub struct Repository {
     pub git_url: String,
+}
+
+impl Repository {
+    pub fn dir(&self) -> PathBuf {
+        repositories_dir().join(filenamify(&self.git_url))
+    }
 }
