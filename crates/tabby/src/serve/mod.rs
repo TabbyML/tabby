@@ -66,7 +66,7 @@ pub async fn main(args: &ServeArgs) {
     valid_args(args);
 
     // Ensure model exists.
-    crate::download::download_model(&args.model, true).await;
+    tabby_download::download_model(&args.model, true).await;
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

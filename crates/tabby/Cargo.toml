@@ -7,6 +7,7 @@ edition = "2021"
 ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
+tabby-download = { path = "../tabby-download" }
 axum = "0.6"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
@@ -25,10 +26,6 @@ lazy_static = { workspace = true }
 rust-embed = "6.6.1"
 mime_guess = "2.0.4"
 strum = { version = "0.24", features = ["derive"] }
-reqwest = { version = "0.11.18", features = ["stream", "json"] }
-indicatif = "0.17.3"
-futures-util = "0.3.28"
-anyhow = "1.0.71"
 strfmt = "0.2.4"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

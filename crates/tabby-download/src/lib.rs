@@ -4,30 +4,12 @@ use std::cmp;
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use tracing::info;
 
-use clap::Args;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use tabby_common::path::ModelDir;
 
 use cache_info::CacheInfo;
-
-#[derive(Args)]
-pub struct DownloadArgs {
-    /// model id to fetch.
-    #[clap(long)]
-    model: String,
-
-    /// If true, skip checking for remote model file.
-    #[clap(long, default_value_t = false)]
-    prefer_local_file: bool,
-}
-
-pub async fn main(args: &DownloadArgs) {
-    download_model(&args.model, args.prefer_local_file).await;
-    info!("model '{}' is ready", args.model);
-}
 
 impl CacheInfo {
     async fn download(&mut self, model_id: &str, path: &str, prefer_local_file: bool) {

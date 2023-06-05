@@ -2253,19 +2253,15 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 name = "tabby"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "axum",
  "clap",
  "ctranslate2-bindings",
  "env_logger",
- "futures-util",
  "hyper",
- "indicatif 0.17.3",
  "lazy_static",
  "log",
  "mime_guess",
  "regex",
- "reqwest",
  "rust-embed",
  "serde",
  "serde_json",
@@ -2273,6 +2269,7 @@ dependencies = [
  "strfmt",
  "strum",
  "tabby-common",
+ "tabby-download",
  "tabby-scheduler",
  "tokio",
  "tower",
@@ -2292,6 +2289,19 @@ dependencies = [
  "lazy_static",
  "serde",
  "serdeconv",
+]
+
+[[package]]
+name = "tabby-download"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures-util",
+ "indicatif 0.17.3",
+ "reqwest",
+ "serde",
+ "serdeconv",
+ "tabby-common",
 ]
 
 [[package]]
