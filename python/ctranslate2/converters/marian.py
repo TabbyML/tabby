@@ -259,7 +259,13 @@ def set_layer_norm(spec, weights, scope, pre_norm=False):
 
 def set_linear(spec, weights, scope, suffix="", reuse_weight=None):
     weight = weights.get("%s_W%s" % (scope, suffix))
-    spec.weight = reuse_weight if weight is None else weight.transpose()
+
+    if weight is None:
+        weight = weights.get("%s_Wt%s" % (scope, suffix), reuse_weight)
+    else:
+        weight = weight.transpose()
+
+    spec.weight = weight
 
     bias = weights.get("%s_b%s" % (scope, suffix))
     if bias is not None:
