@@ -1,18 +1,16 @@
-name: Create and publish docker image (rust)
+name: Build and release binaries.
 
 on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
     paths:
-      - 'Dockerfile.rust'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'crates/**'
   pull_request:
     branches: ["main" ]
     paths:
-      - 'Dockerfile.rust'
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'crates/**'
@@ -39,74 +37,6 @@ jobs:
 
       - name: Cargo fmt
         run: cargo fmt --check
-
-  release-docker:
-    needs: release-binary
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      # Workaround: https://github.com/docker/build-push-action/issues/461
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@v2.0.0
-
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into GitHub Container registry
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log into Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2.0.0
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Generate image name
-        run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
-
-      - uses: int128/docker-build-cache-config-action@v1
-        id: cache
-        with:
-          image: ghcr.io/${{ env.IMAGE_NAME }}/cache
-
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@v3.1.1
-        with:
-          file: Dockerfile.rust
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:latest
-          cache-from: ${{ steps.cache.outputs.cache-from }}
-          cache-to: ${{ steps.cache.outputs.cache-to }}
-
-      - name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: tabbyml/tabby
 
   release-binary:
     needs: tests
