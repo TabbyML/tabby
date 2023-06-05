@@ -8,10 +8,10 @@ use tabby_common::{
 use tantivy::{
     directory::MmapDirectory,
     doc,
-    schema::{Schema, FAST, STORED, STRING, TEXT},
+    schema::{Schema, STORED, STRING, TEXT},
     Index, IndexWriter,
 };
-use tracing::info;
+use tracing::{info, warn};
 use walkdir::{DirEntry, WalkDir};
 
 trait RepositoryExt {
@@ -33,18 +33,18 @@ impl RepositoryExt for Repository {
             .filter(|e| !e.file_type().is_dir());
 
         for entry in walk_dir {
-            info!(
-                "Indexing {:?}",
-                entry.path().strip_prefix(dir.as_path()).unwrap()
-            );
+            let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             if let Ok(file_content) = read_to_string(entry.path()) {
+                info!("Indexing {:?}", relative_path);
                 writer
                     .add_document(doc!(
                         git_url => self.git_url.clone(),
-                        filepath => entry.path().display().to_string(),
+                        filepath => relative_path.display().to_string(),
                         content => file_content,
                     ))
                     .unwrap();
+            } else {
+                warn!("Skip {:?}", relative_path);
             }
         }
     }
@@ -60,7 +60,7 @@ fn is_not_hidden(entry: &DirEntry) -> bool {
 
 fn create_schema() -> Schema {
     let mut builder = Schema::builder();
-    builder.add_text_field("git_url", STRING | FAST);
+    builder.add_text_field("git_url", STRING | STORED);
     builder.add_text_field("filepath", STRING | STORED);
     builder.add_text_field("content", TEXT | STORED);
     builder.build()
