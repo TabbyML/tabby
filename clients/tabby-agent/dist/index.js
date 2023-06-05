@@ -60,11 +60,8 @@ module.exports = __toCommonJS(src_exports);
 var import_axios2 = __toESM(require("axios"));
 var import_events = require("events");
 var import_uuid = require("uuid");
-
-// src/CompletionCache.ts
-var import_lru_cache = require("lru-cache");
-var import_object_hash = __toESM(require("object-hash"));
-var import_object_sizeof = __toESM(require("object-sizeof"));
+var import_deep_equal = __toESM(require("deep-equal"));
+var import_deepmerge = __toESM(require("deepmerge"));
 
 // src/generated/core/BaseHttpRequest.ts
 var BaseHttpRequest = class {
@@ -521,7 +518,29 @@ function cancelable(promise, cancel) {
   });
 }
 
+// src/AgentConfig.ts
+var defaultAgentConfig = {
+  server: {
+    endpoint: "http://localhost:8080"
+  },
+  logs: {
+    console: {
+      level: "off"
+    },
+    file: {
+      level: "off",
+      path: "~/.tabby/agent-logs"
+    }
+  },
+  analytics: {
+    enabled: true
+  }
+};
+
 // src/CompletionCache.ts
+var import_lru_cache = require("lru-cache");
+var import_object_hash = __toESM(require("object-hash"));
+var import_object_sizeof = __toESM(require("object-sizeof"));
 var CompletionCache = class {
   constructor() {
     this.options = {
@@ -634,11 +653,14 @@ var CompletionCache = class {
 var TabbyAgent = class extends import_events.EventEmitter {
   constructor() {
     super();
-    this.serverUrl = "http://127.0.0.1:5000";
+    this.config = defaultAgentConfig;
     this.status = "connecting";
-    this.ping();
-    this.api = new TabbyApi({ BASE: this.serverUrl });
     this.completionCache = new CompletionCache();
+    this.onConfigUpdated();
+  }
+  onConfigUpdated() {
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint });
+    this.ping();
   }
   changeStatus(status) {
     if (this.status != status) {
@@ -649,7 +671,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
   }
   async ping(tries = 0) {
     try {
-      const response = await import_axios2.default.get(this.serverUrl);
+      await import_axios2.default.get(this.config.server.endpoint);
       this.changeStatus("ready");
       return true;
     } catch (e) {
@@ -685,14 +707,23 @@ var TabbyAgent = class extends import_events.EventEmitter {
     const prompt = lines.slice(cutoff).join("");
     return prompt;
   }
-  setServerUrl(serverUrl) {
-    this.serverUrl = serverUrl.replace(/\/$/, "");
-    this.ping();
-    this.api = new TabbyApi({ BASE: this.serverUrl });
-    return this.serverUrl;
+  initialize(params) {
+    if (params.config) {
+      this.updateConfig(params.config);
+    }
+    return true;
   }
-  getServerUrl() {
-    return this.serverUrl;
+  updateConfig(config) {
+    if (!(0, import_deep_equal.default)(this.config, config)) {
+      this.config = (0, import_deepmerge.default)(this.config, config);
+      this.onConfigUpdated();
+      const event = { event: "configUpdated", config: this.config };
+      super.emit("configUpdated", event);
+    }
+    return true;
+  }
+  getConfig() {
+    return this.config;
   }
   getStatus() {
     return this.status;
@@ -713,10 +744,12 @@ var TabbyAgent = class extends import_events.EventEmitter {
         });
       });
     }
-    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost({
-      prompt,
-      language: request2.language
-    }));
+    const promise = this.wrapApiPromise(
+      this.api.default.completionsV1CompletionsPost({
+        prompt,
+        language: request2.language
+      })
+    );
     return cancelable(
       promise.then((response) => {
         this.completionCache.set(request2, response);
@@ -732,8 +765,8 @@ var TabbyAgent = class extends import_events.EventEmitter {
   }
 };
 
-// src/types.ts
-var agentEventNames = ["statusChanged"];
+// src/Agent.ts
+var agentEventNames = ["statusChanged", "configUpdated"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ApiError,

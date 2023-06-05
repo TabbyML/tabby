@@ -1,22 +1,28 @@
 import axios from "axios";
 import { EventEmitter } from "events";
 import { v4 as uuid } from "uuid";
-import { CompletionCache } from "./CompletionCache";
-import { sleep, cancelable, splitLines, isBlank } from "./utils";
-import { Agent, AgentEvent, CompletionRequest, CompletionResponse } from "./types";
+import deepEqual from "deep-equal";
+import deepMerge from "deepmerge";
 import { TabbyApi, CancelablePromise, ApiError, ChoiceEvent, CompletionEvent } from "./generated";
+import { sleep, cancelable, splitLines, isBlank } from "./utils";
+import { Agent, AgentEvent, AgentInitOptions, CompletionRequest, CompletionResponse } from "./Agent";
+import { AgentConfig, defaultAgentConfig } from "./AgentConfig";
+import { CompletionCache } from "./CompletionCache";
 
 export class TabbyAgent extends EventEmitter implements Agent {
-  private serverUrl: string = "http://127.0.0.1:5000";
+  private config: AgentConfig = defaultAgentConfig;
   private status: "connecting" | "ready" | "disconnected" = "connecting";
   private api: TabbyApi;
-  private completionCache: CompletionCache;
+  private completionCache: CompletionCache = new CompletionCache();
 
   constructor() {
     super();
+    this.onConfigUpdated();
+  }
+
+  private onConfigUpdated() {
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint });
     this.ping();
-    this.api = new TabbyApi({ BASE: this.serverUrl });
-    this.completionCache = new CompletionCache();
   }
 
   private changeStatus(status: "connecting" | "ready" | "disconnected") {
@@ -29,7 +35,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   private async ping(tries: number = 0): Promise<boolean> {
     try {
-      const response = await axios.get(this.serverUrl);
+      await axios.get(this.config.server.endpoint);
       this.changeStatus("ready");
       return true;
     } catch (e) {
@@ -70,15 +76,25 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return prompt;
   }
 
-  public setServerUrl(serverUrl: string): string {
-    this.serverUrl = serverUrl.replace(/\/$/, ""); // Remove trailing slash
-    this.ping();
-    this.api = new TabbyApi({ BASE: this.serverUrl });
-    return this.serverUrl;
+  public initialize(params: AgentInitOptions): boolean {
+    if (params.config) {
+      this.updateConfig(params.config);
+    }
+    return true;
   }
 
-  public getServerUrl(): string {
-    return this.serverUrl;
+  public updateConfig(config: AgentConfig): boolean {
+    if (!deepEqual(this.config, config)) {
+      this.config = deepMerge(this.config, config);
+      this.onConfigUpdated();
+      const event: AgentEvent = { event: "configUpdated", config: this.config };
+      super.emit("configUpdated", event);
+    }
+    return true;
+  }
+
+  public getConfig(): AgentConfig {
+    return this.config;
   }
 
   public getStatus(): "connecting" | "ready" | "disconnected" {
@@ -98,14 +114,16 @@ export class TabbyAgent extends EventEmitter implements Agent {
         resolve({
           id: "agent-" + uuid(),
           created: new Date().getTime(),
-          choices: []
+          choices: [],
         });
       });
     }
-    const promise = this.wrapApiPromise(this.api.default.completionsV1CompletionsPost({
-      prompt,
-      language: request.language,
-    }));
+    const promise = this.wrapApiPromise(
+      this.api.default.completionsV1CompletionsPost({
+        prompt,
+        language: request.language,
+      })
+    );
     return cancelable(
       promise.then((response: CompletionResponse) => {
         this.completionCache.set(request, response);
@@ -117,7 +135,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  public postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<any> {
+  public postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<boolean> {
     return this.wrapApiPromise(this.api.default.eventsV1EventsPost(request));
   }
 }

@@ -1,5 +1,5 @@
 import { CancelablePromise } from "./generated";
-import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./types";
+import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
 import { splitLines } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [

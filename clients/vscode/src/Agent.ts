@@ -1,5 +1,5 @@
 import { workspace } from "vscode";
-import { TabbyAgent } from "tabby-agent";
+import { TabbyAgent, AgentConfig } from "tabby-agent";
 
 export class Agent extends TabbyAgent {
   private static instance: Agent;
@@ -12,17 +12,25 @@ export class Agent extends TabbyAgent {
 
   private constructor() {
     super();
-    this.updateConfiguration();
+    super.initialize({
+      config: this.getWorkspaceConfiguration()
+    });
+
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("tabby")) {
-        this.updateConfiguration();
+        const config = this.getWorkspaceConfiguration();
+        super.updateConfig(config);
       }
     });
   }
 
-  private updateConfiguration() {
+  private getWorkspaceConfiguration(): AgentConfig {
     const configuration = workspace.getConfiguration("tabby");
-    const serverUrl = configuration.get("serverUrl", "http://localhost:5000");
-    this.setServerUrl(serverUrl);
+    const serverUrl = configuration.get<string>("serverUrl");
+    return {
+      server: {
+        endpoint: serverUrl
+      }
+    }
   }
 }
