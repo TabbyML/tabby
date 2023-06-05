@@ -1,5 +1,4 @@
-use std::io::Write;
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
 // ## lib_name: "protobufd"
 // ## dir: "..../api_circuits/target/debug/build/lib-circuits-wrapper-49025516ce40925e/out/build/_deps/protobuf_fetch-build"

@@ -2,17 +2,19 @@ mod admin;
 mod completions;
 mod events;
 
-use crate::Cli;
-use axum::{routing, Router, Server};
-use clap::{error::ErrorKind, Args, CommandFactory};
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
 };
+
+use axum::{routing, Router, Server};
+use clap::{error::ErrorKind, Args, CommandFactory};
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+
+use crate::Cli;
 
 #[derive(OpenApi)]
 #[openapi(
