@@ -15,6 +15,9 @@ alias tabby-gpu="docker run --gpus all -u $(id -u) -p 8080:8080 -v $HOME/.tabby:
 After adding these aliases, you can use the `tabby` command as usual. Here are some examples of its usage:
 
 ```shell
+# Create work directory for tabby
+mkdir -p $HOME/.tabby
+
 # Usage
 tabby --help
 
