@@ -39,7 +39,7 @@ mod ffi {
             tokens: &[String],
             max_decoding_length: usize,
             sampling_temperature: f32,
-        ) -> Vec<String>;
+        ) -> Vec<u32>;
     }
 }
 
@@ -122,7 +122,7 @@ impl TextInferenceEngine {
         };
 
         let context = InferenceContext::new(stop_re, cancel_for_inference);
-        let output_tokens = tokio::task::spawn_blocking(move || {
+        let output_ids = tokio::task::spawn_blocking(move || {
             let context = Box::new(context);
             engine.inference(
                 context,
@@ -134,23 +134,7 @@ impl TextInferenceEngine {
         })
         .await
         .expect("Inference failed");
-        let output_ids: Vec<u32> = output_tokens
-            .iter()
-            .filter_map(|x| match self.tokenizer.token_to_id(x) {
-                Some(y) => Some(y),
-                None => {
-                    println!("Warning: token ({}) missed in vocab", x);
-                    None
-                }
-            })
-            .collect();
-        let output_text = self.tokenizer.decode(output_ids, true).unwrap();
-        for stop_word in options.stop_words {
-            if let Some(stripped_text) = output_text.strip_suffix(stop_word) {
-                return stripped_text.to_string();
-            }
-        }
-        output_text
+        self.tokenizer.decode(output_ids, true).unwrap()
     }
 }
 

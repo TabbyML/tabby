@@ -12,7 +12,7 @@ typedef rust::Fn<bool(InferenceContext&, size_t, uint32_t, rust::String)> Infere
 class TextInferenceEngine {
  public:
   virtual ~TextInferenceEngine();
-  virtual rust::Vec<rust::String> inference(
+  virtual rust::Vec<uint32_t> inference(
       rust::Box<InferenceContext> context,
       InferenceCallback callback,
       rust::Slice<const rust::String> tokens,
