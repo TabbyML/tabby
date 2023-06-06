@@ -4,6 +4,24 @@
 
 ### Fixes and improvements
 
+## [v3.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.15.0) (2023-06-06)
+
+### New features
+
+* Initial support of encoder-only Transformer model via a new class `ctranslate2.Encoder`
+* Update the Transformers converter to support the Falcon models
+* Add a generation argument `static_prompt` to optimize the execution for models using system prompts: the model state for this prompt is cached and reused in future calls
+* Support early stopping in greedy search when the callback function returns `True`
+* Make the layer norm epsilon value configurable in the model configuration file `config.json`
+* Add Tanh as a possible activation function
+
+### Fixes and improvements
+
+* Fix a performance issue when running models using ALiBi on the GPU
+* Fix application of the rotary embeddings when the multi-query attention is used
+* Fix conversion of Marian models using `tied-embeddings-all: false`
+* Remove `use_fast` argument when loading Hugging Face tokenizers to use the default tokenizer for the model
+
 ## [v3.14.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.14.0) (2023-05-26)
 
 ### New features
