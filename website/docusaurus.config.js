@@ -101,6 +101,8 @@ const config = {
             href: 'https://github.com/TabbyML/tabby',
             label: 'GitHub',
             position: 'right',
+              className: "header-github-link",
+
           },
         ],
       },
@@ -152,6 +154,20 @@ const config = {
         darkTheme: darkCodeTheme,
       },
     }),
+
+  plugins: [
+    async function tailwind(context, options) {
+      return {
+        name: "docusaurus-tailwindcss",
+        configurePostCss(postcssOptions) {
+          // Appends TailwindCSS and AutoPrefixer.
+          postcssOptions.plugins.push(require("tailwindcss"));
+          postcssOptions.plugins.push(require("autoprefixer"));
+          return postcssOptions;
+        },
+      };
+    },
+  ]
 };
 
 module.exports = config;

@@ -21,9 +21,20 @@ function HomepageHeader() {
             Tutorial - 5min ⏱️
           </Link>
         </div>}
+        <div className="flex justify-center gap-1">
+          <ExternalLink href="https://github.com/TabbyML/tabby" imgUrl="https://img.shields.io/github/stars/TabbyML/tabby?style=social" />
+          <ExternalLink href="https://hub.docker.com/r/tabbyml/tabby" imgUrl="https://img.shields.io/docker/pulls/tabbyml/tabby?style=social" />
+        </div>
+        <img className="m-5" src="img/demo.gif" />
       </div>
     </header>
   );
+}
+
+function ExternalLink({href, imgUrl}) {
+  return <a target="_blanks" href={href}>
+    <img src={imgUrl} />
+  </a>
 }
 
 export default function Home() {
