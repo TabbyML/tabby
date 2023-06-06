@@ -45,6 +45,4 @@ export TABBY_ROOT=/data/tabby
 git_url = "https://github.com/TabbyML/tabby.git"
 ```
 
-### `[[repositories]]`
-
-Git repositories integrated into Tabby for prompting/fine-tuning.
+`repositories` is a list of git repositories integrated into Tabby for prompting/fine-tuning.
