@@ -57,6 +57,23 @@ const config = {
         },
       }),
     ],
+    [
+      'redocusaurus',
+      ({
+        // Plugin Options for loading OpenAPI files
+        specs: [
+          {
+            spec: 'static/openapi.json',
+            route: '/api/',
+          },
+        ],
+        // Theme Options for modifying how redoc renders them
+        theme: {
+          // Change with your site colors
+          primaryColor: '#2e8555',
+        },
+      }),
+    ],
   ],
 
   themeConfig:
@@ -75,8 +92,9 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Get Started',
+            label: 'Docs',
           },
+          {to: '/api', label: 'API', position: 'left'},
           // FIXME(meng): enable blog.
           // {to: '/blog', label: 'Blog', position: 'left'},
           {
@@ -93,8 +111,8 @@ const config = {
             title: 'Docs',
             items: [
               {
-                label: 'Configuration',
-                to: '/docs/server',
+                label: 'Docs',
+                to: '/docs',
               },
             ],
           },
