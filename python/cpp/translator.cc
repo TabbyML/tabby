@@ -172,7 +172,7 @@ namespace ctranslate2 {
                       size_t sampling_topk,
                       float sampling_temperature,
                       bool replace_unknowns,
-                      std::function<void(GenerationStepResult)> callback) {
+                      std::function<bool(GenerationStepResult)> callback) {
         if (source.empty())
           return {};
 

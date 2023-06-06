@@ -150,8 +150,8 @@ namespace ctranslate2 {
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(vocabulary.unk_id());
       if (options.callback)
-        decoding_options.callback = [&options, &vocabulary](DecodingStepResult step_result) {
-          options.callback(GenerationStepResult(step_result, vocabulary));
+        decoding_options.callback = [&options, &vocabulary](DecodingStepResult step_result) -> bool {
+          return options.callback(GenerationStepResult(step_result, vocabulary));
         };
 
       std::vector<std::vector<size_t>> start_ids = vocabulary.to_ids(start_tokens);

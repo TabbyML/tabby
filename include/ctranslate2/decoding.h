@@ -104,7 +104,7 @@ namespace ctranslate2 {
     // Penalties are only applied to return scores consistent with the beam search.
     GreedySearch(const float length_penalty = 0,
                  const float coverage_penalty = 0,
-                 std::function<void(DecodingStepResult)> callback = nullptr);
+                 std::function<bool(DecodingStepResult)> callback = nullptr);
 
     std::vector<DecodingResult>
     search(layers::Decoder& decoder,
@@ -126,7 +126,7 @@ namespace ctranslate2 {
   private:
     const float _length_penalty;
     const float _coverage_penalty;
-    const std::function<void(DecodingStepResult)> _callback;
+    const std::function<bool(DecodingStepResult)> _callback;
   };
 
 
@@ -154,7 +154,7 @@ namespace ctranslate2 {
     std::vector<size_t> disable_ids_begin;
     std::vector<std::vector<size_t>> disable_sequences;
     std::vector<std::shared_ptr<LogitsProcessor>> logits_processors;
-    std::function<void(DecodingStepResult)> callback = nullptr;
+    std::function<bool(DecodingStepResult)> callback = nullptr;
   };
 
   std::vector<DecodingResult>

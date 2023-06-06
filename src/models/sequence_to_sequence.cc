@@ -363,8 +363,8 @@ namespace ctranslate2 {
       if (options.disable_unk)
         decoding_options.disable_ids.push_back(target_vocabulary.unk_id());
       if (options.callback)
-        decoding_options.callback = [&options, &target_vocabulary](DecodingStepResult step_result) {
-          options.callback(GenerationStepResult(step_result, target_vocabulary));
+        decoding_options.callback = [&options, &target_vocabulary](DecodingStepResult step_result) -> bool {
+          return options.callback(GenerationStepResult(step_result, target_vocabulary));
         };
 
       const auto end_ids(std::visit(ResolveEndToken(target_vocabulary), options.end_token));

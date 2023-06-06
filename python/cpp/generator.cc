@@ -35,7 +35,7 @@ namespace ctranslate2 {
                      float min_alternative_expansion_prob,
                      size_t sampling_topk,
                      float sampling_temperature,
-                     std::function<void(GenerationStepResult)> callback) {
+                     std::function<bool(GenerationStepResult)> callback) {
         if (tokens.empty())
           return {};
 

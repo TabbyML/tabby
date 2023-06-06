@@ -77,7 +77,8 @@ namespace ctranslate2 {
     bool replace_unknowns = false;
 
     // Function to call for each generated token in greedy search.
-    std::function<void(GenerationStepResult)> callback = nullptr;
+    // Returns true indicate the current generation is considered finished thus can be stopped early.
+    std::function<bool(GenerationStepResult)> callback = nullptr;
   };
 
   struct TranslationResult {
