@@ -100,10 +100,7 @@ pub async fn completion(
 
     Json(CompletionResponse {
         id: completion_id,
-        choices: vec![Choice {
-            index: 0,
-            text,
-        }],
+        choices: vec![Choice { index: 0, text }],
     })
 }
 
