@@ -31,37 +31,6 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 
 
-## Get started: Server
+## Get Started
 
-### Docker
-
-We recommend adding the following aliases to your `.bashrc` or `.zshrc` file:
-
-```shell
-# Save aliases to bashrc / zshrc
-alias tabby="docker run -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
-
-# Alias for GPU (requires NVIDIA Container Toolkit)
-alias tabby-gpu="docker run --gpus all -u $(id -u) -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby"
-```
-
-After adding these aliases, you can use the `tabby` command as usual. Here are some examples of its usage:
-
-```shell
-# Usage
-tabby --help
-
-# Serve the model
-tabby serve --model TabbyML/J-350M
-```
-
-## Getting Started: Client
-We offer multiple methods to connect to Tabby Server, including using OpenAPI and editor extensions.
-
-### API
-Tabby has opened a FastAPI server at [localhost:8080](https://localhost:8080), which includes an OpenAPI documentation of the HTTP API. The same API documentation is also hosted at https://tabbyml.github.io/tabby
-
-### Editor Extensions
-
-* [VSCode Extension](./clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
-* [VIM Extension](./clients/vim)
+See https://tabbyml.github.io/tabby
