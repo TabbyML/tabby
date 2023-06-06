@@ -7,7 +7,7 @@ namespace tabby {
 
 struct InferenceContext;
 
-typedef rust::Fn<bool(const InferenceContext&, size_t, rust::String)> InferenceCallback;
+typedef rust::Fn<bool(InferenceContext&, size_t, uint32_t, rust::String)> InferenceCallback;
 
 class TextInferenceEngine {
  public:

@@ -65,7 +65,7 @@ class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translato
     x.sampling_temperature = options.sampling_temperature;
     x.beam_size = 1;
     x.callback = [&](ctranslate2::GenerationStepResult result) {
-      return callback(*context, result.step, rust::String(result.token));
+      return callback(*context, result.step, result.token_id, result.token);
     };
     ctranslate2::TranslationResult result = model_->translate_batch({ tokens }, x)[0];
     return std::move(result.output());
@@ -85,7 +85,7 @@ class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, Decod
     x.sampling_temperature = options.sampling_temperature;
     x.beam_size = 1;
     x.callback = [&](ctranslate2::GenerationStepResult result) {
-      return callback(*context, result.step, rust::String(result.token));
+      return callback(*context, result.step, result.token_id, result.token);
     };
     ctranslate2::GenerationResult result = model_->generate_batch_async({ tokens }, x)[0].get();
     return std::move(result.sequences[0]);
