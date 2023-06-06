@@ -69,20 +69,18 @@ pub struct TextInferenceOptions {
     #[builder(default = "1.0")]
     sampling_temperature: f32,
 
-    #[builder(default = "vec!()")]
-    stop_words: Vec<String>
+    stop_words: &'static Vec<&'static str>
 }
 
 pub struct InferenceContext {
-    stop_regexp: Regex,
+    stop_re: Option<Regex>,
     cancel: CancellationToken,
     output_text: String
 }
 
 impl InferenceContext {
-    fn new(stop_words: Vec<String>, cancel: CancellationToken) -> Self {
-        let stop_regexp = Regex::new(stop_words.join("|").as_ref()).unwrap();
-        InferenceContext { stop_regexp, cancel, output_text: "".to_owned() }
+    fn new(stop_re: Option<Regex>, cancel: CancellationToken) -> Self {
+        InferenceContext { stop_re, cancel, output_text: "".to_owned() }
     }
 }
 
@@ -114,7 +112,16 @@ impl TextInferenceEngine {
         let cancel_for_inference = cancel.clone();
         let _guard = cancel.drop_guard();
 
-        let context = InferenceContext::new(options.stop_words, cancel_for_inference);
+        let stop_re = if options.stop_words.is_empty() {
+            None
+        } else {
+            let encodings = self.tokenizer.encode_batch(options.stop_words.clone(), false).unwrap();
+            let stop_tokens : Vec<String> = encodings.iter().map(|x| x.get_tokens().join("")).collect();
+            let regex_string = r"(?m)".to_owned() + &stop_tokens.join("|");
+            Some(Regex::new(&regex_string).unwrap())
+        };
+
+        let context = InferenceContext::new(stop_re, cancel_for_inference);
         let output_tokens = tokio::task::spawn_blocking(move || {
             let context = Box::new(context);
             engine.inference(
@@ -137,7 +144,13 @@ impl TextInferenceEngine {
                 }
             })
             .collect();
-        self.tokenizer.decode(output_ids, true).unwrap()
+        let output_text = self.tokenizer.decode(output_ids, true).unwrap();
+        for stop_word in options.stop_words {
+            if let Some(stripped_text) = output_text.strip_suffix(stop_word) {
+                return stripped_text.to_string();
+            }
+        }
+        output_text
     }
 }
 
@@ -145,9 +158,9 @@ fn inference_callback(context: &mut InferenceContext, _step: usize, _token_id: u
     if context.cancel.is_cancelled() {
         true
     } else {
-        context.output_text.push_str(&token);
-        if let Some(_) = context.stop_regexp.find(&context.output_text) {
-            true
+        if let Some(re) = &context.stop_re {
+            context.output_text.push_str(&token);
+            re.find(&context.output_text).is_some()
         } else {
             false
         }

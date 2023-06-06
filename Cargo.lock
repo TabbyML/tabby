@@ -2504,7 +2504,6 @@ dependencies = [
  "hyper",
  "lazy_static",
  "mime_guess",
- "regex",
  "rust-embed",
  "serde",
  "serde_json",

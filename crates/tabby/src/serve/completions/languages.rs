@@ -1,26 +1,19 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use regex::Regex;
 
 lazy_static! {
-    static ref DEFAULT: Regex = Regex::new(r"(?m)\n\n").unwrap();
-    static ref LANGUAGES: HashMap<&'static str, Regex> = {
+    static ref DEFAULT: Vec<&'static str> = vec!("\n\n");
+    static ref LANGUAGES: HashMap<&'static str, Vec<&'static str>> = {
         let mut map = HashMap::new();
         map.insert(
             "python",
-            Regex::new(r"(?m)(\n\n|^def|^#|^from|^class)").unwrap(),
+            vec!("\n\n", "\ndef", "\n#", "\nfrom", "\nclass")
         );
         map
     };
 }
 
-pub fn remove_stop_words<'a>(language: &'a str, text: &'a str) -> &'a str {
-    let re = LANGUAGES.get(language).unwrap_or(&DEFAULT);
-    let position = re.find_iter(text).next();
-    if let Some(m) = position {
-        &text[..m.start()]
-    } else {
-        text
-    }
+pub fn get_stop_words(language: &str) -> &'static Vec<&'static str> {
+    LANGUAGES.get(language).unwrap_or(&DEFAULT)
 }
