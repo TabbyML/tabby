@@ -4,16 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
   pull_request:
     branches: ["main" ]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
@@ -22,8 +14,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.changes.outputs.src }}
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'crates/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+
   tests:
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.changes == 'true'
     steps:
       - uses: actions/checkout@v3
         with:
