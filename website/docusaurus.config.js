@@ -113,7 +113,7 @@ const config = {
             title: 'Docs',
             items: [
               {
-                label: 'Docs',
+                label: 'Configuration',
                 to: '/docs/server',
               },
             ],
