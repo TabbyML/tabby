@@ -181,6 +181,7 @@ fn create_stop_regex(tokenizer: &Tokenizer, stop_words: &Vec<&str>) -> Regex {
         .map(reverse)
         .collect();
 
+    // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
     let regex_string = r"(?m)\A".to_owned() + &stop_tokens.join("|");
     Regex::new(&regex_string).unwrap()
