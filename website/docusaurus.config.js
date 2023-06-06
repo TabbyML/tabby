@@ -43,7 +43,7 @@ const config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/TabbyML/tabby/tree/main/website',
+            'https://github.com/TabbyML/tabby/edit/main/website',
         },
         blog: {
           showReadingTime: true,
