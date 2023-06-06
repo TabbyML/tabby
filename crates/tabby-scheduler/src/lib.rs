@@ -2,6 +2,7 @@ mod dataset;
 mod document;
 mod index;
 mod repository;
+mod tags;
 
 use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
@@ -32,6 +33,8 @@ pub async fn scheduler(now: bool) -> Result<()> {
         if let Err(err) = ret {
             error!("Failed to index repositories, err: '{}'", err);
         }
+
+        tags::tag_repositories(&config);
     };
 
     if now {
