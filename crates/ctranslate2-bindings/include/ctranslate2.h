@@ -7,12 +7,14 @@ namespace tabby {
 
 struct InferenceContext;
 
+typedef rust::Fn<bool(const InferenceContext&, size_t, rust::String)> InferenceCallback;
+
 class TextInferenceEngine {
  public:
   virtual ~TextInferenceEngine();
   virtual rust::Vec<rust::String> inference(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      InferenceCallback callback,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
       float sampling_temperature

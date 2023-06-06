@@ -26,7 +26,13 @@ mod ffi {
         fn inference(
             &self,
             context: Box<InferenceContext>,
-            is_context_cancelled: fn(&InferenceContext) -> bool,
+            callback: fn(
+                &InferenceContext,
+                // step
+                usize,
+                // token
+                String,
+            ) -> bool,
             tokens: &[String],
             max_decoding_length: usize,
             sampling_temperature: f32,
@@ -61,7 +67,7 @@ pub struct TextInferenceOptions {
     sampling_temperature: f32,
 }
 
-struct InferenceContext(CancellationToken);
+pub struct InferenceContext(CancellationToken);
 
 pub struct TextInferenceEngine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
@@ -96,7 +102,7 @@ impl TextInferenceEngine {
             let context = Box::new(context);
             engine.inference(
                 context,
-                |context| context.0.is_cancelled(),
+                inference_callback,
                 encoding.get_tokens(),
                 options.max_decoding_length,
                 options.sampling_temperature,
@@ -115,5 +121,13 @@ impl TextInferenceEngine {
             })
             .collect();
         self.tokenizer.decode(output_ids, true).unwrap()
+    }
+}
+
+fn inference_callback(context: &InferenceContext, step: usize, token: String) -> bool {
+    if context.0.is_cancelled() {
+        true
+    } else {
+        false
     }
 }
