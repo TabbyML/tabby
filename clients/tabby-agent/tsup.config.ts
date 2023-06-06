@@ -4,7 +4,7 @@ import { dependencies } from "./package.json";
 
 export default async () => [
   defineConfig({
-    name: "lib-node",
+    name: "node-cjs",
     entry: ["src/index.ts"],
     platform: "node",
     format: ["cjs"],
@@ -12,17 +12,37 @@ export default async () => [
     clean: true,
   }),
   defineConfig({
-    name: "lib-browser",
+    name: "browser-iife",
     entry: ["src/index.ts"],
     platform: "browser",
     format: ["iife"],
     globalName: "Tabby",
+    minify: true,
     sourcemap: true,
-    esbuildPlugins: [polyfillNode()],
+    esbuildPlugins: [
+      polyfillNode({
+        polyfills: { fs: true },
+      }),
+    ],
     clean: true,
   }),
   defineConfig({
-    name: "lib-typedefs",
+    name: "browser-esm",
+    entry: ["src/index.ts"],
+    platform: "browser",
+    format: ["esm"],
+    // FIXME: bundle all dependencies to reduce module resolving problems, not a good solution
+    noExternal: Object.keys(dependencies),
+    sourcemap: true,
+    esbuildPlugins: [
+      polyfillNode({
+        polyfills: { fs: true },
+      }),
+    ],
+    clean: true,
+  }),
+  defineConfig({
+    name: "type-defs",
     entry: ["src/index.ts"],
     dts: {
       only: true,
@@ -35,6 +55,7 @@ export default async () => [
     platform: "node",
     noExternal: Object.keys(dependencies),
     minify: true,
+    sourcemap: true,
     clean: true,
   }),
 ];

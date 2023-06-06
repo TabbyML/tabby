@@ -62,7 +62,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       text: document.getText(),
       position: document.offsetAt(position),
     };
-    console.debug("Request: ", request)
     this.pendingCompletion = this.agent.getCompletions(request);
 
     const completion = await this.pendingCompletion.catch((_: Error) => {
@@ -71,7 +70,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     this.pendingCompletion = null;
 
     const completions = this.toInlineCompletions(completion, replaceRange);
-    console.debug("Result completions: ", completions);
     return Promise.resolve(completions);
   }
 

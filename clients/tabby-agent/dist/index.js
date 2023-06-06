@@ -247,13 +247,13 @@ var getQueryString = (params) => {
 };
 var getUrl = (config, options) => {
   const encoder = config.ENCODE_PATH || encodeURI;
-  const path = options.url.replace("{api-version}", config.VERSION).replace(/{(.*?)}/g, (substring, group) => {
+  const path2 = options.url.replace("{api-version}", config.VERSION).replace(/{(.*?)}/g, (substring, group) => {
     if (options.path?.hasOwnProperty(group)) {
       return encoder(String(options.path[group]));
     }
     return substring;
   });
-  const url = `${config.BASE}${path}`;
+  const url = `${config.BASE}${path2}`;
   if (options.query) {
     return `${url}${getQueryString(options.query)}`;
   }
@@ -524,7 +524,7 @@ var defaultAgentConfig = {
     endpoint: "http://localhost:8080"
   },
   logs: {
-    level: "silent"
+    level: "error"
   },
   anonymousUsageTracking: {
     disable: false
@@ -535,8 +535,33 @@ var defaultAgentConfig = {
 var import_lru_cache = require("lru-cache");
 var import_object_hash = __toESM(require("object-hash"));
 var import_object_sizeof = __toESM(require("object-sizeof"));
+
+// src/logger.ts
+var import_os = __toESM(require("os"));
+var import_path = __toESM(require("path"));
+var import_browser_or_node = require("browser-or-node");
+var rotatingFileStream = __toESM(require("rotating-file-stream"));
+var import_pino = __toESM(require("pino"));
+var stream = import_browser_or_node.isBrowser ? null : (
+  /**
+   * Default rotating file locate at `~/.tabby/agent-logs/`.
+   */
+  rotatingFileStream.createStream("tabby-agent.log", {
+    path: import_path.default.join(import_os.default.homedir(), ".tabby", "agent-logs"),
+    size: "10M",
+    interval: "1d"
+  })
+);
+var rootLogger = !!stream ? (0, import_pino.default)(stream) : (0, import_pino.default)();
+var allLoggers = [rootLogger];
+rootLogger.onChild = (child) => {
+  allLoggers.push(child);
+};
+
+// src/CompletionCache.ts
 var CompletionCache = class {
   constructor() {
+    this.logger = rootLogger.child({ component: "CompletionCache" });
     this.options = {
       maxSize: 1 * 1024 * 1024,
       // 1MB
@@ -566,8 +591,10 @@ var CompletionCache = class {
   }
   set(key, value) {
     for (const entry of this.createCacheEntries(key, value)) {
+      this.logger.debug({ entry }, "Setting cache entry");
       this.cache.set(this.hash(entry.key), entry.value);
     }
+    this.logger.debug({ size: this.cache.calculatedSize }, "Cache size");
   }
   get(key) {
     return this.cache.get(this.hash(key));
@@ -647,12 +674,14 @@ var CompletionCache = class {
 var TabbyAgent = class extends import_events.EventEmitter {
   constructor() {
     super();
+    this.logger = rootLogger.child({ component: "TabbyAgent" });
     this.config = defaultAgentConfig;
     this.status = "connecting";
     this.completionCache = new CompletionCache();
     this.onConfigUpdated();
   }
   onConfigUpdated() {
+    allLoggers.forEach((logger) => logger.level = this.config.logs.level);
     this.api = new TabbyApi({ BASE: this.config.server.endpoint });
     this.ping();
   }
@@ -660,6 +689,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
     if (this.status != status) {
       this.status = status;
       const event = { event: "statusChanged", status };
+      this.logger.debug({ event }, "Status changed");
       super.emit("statusChanged", event);
     }
   }
@@ -679,14 +709,18 @@ var TabbyAgent = class extends import_events.EventEmitter {
       return this.ping(tries + 1);
     }
   }
-  wrapApiPromise(promise) {
+  callApi(api, request2) {
+    this.logger.debug({ api: api.name, request: request2 }, "API request");
+    const promise = api.call(this.api.default, request2);
     return cancelable(
-      promise.then((resolved) => {
+      promise.then((response) => {
+        this.logger.debug({ api: api.name, response }, "API response");
         this.changeStatus("ready");
-        return resolved;
-      }).catch((err) => {
+        return response;
+      }).catch((error) => {
+        this.logger.error({ api: api.name, error }, "API error");
         this.changeStatus("disconnected");
-        throw err;
+        throw error;
       }),
       () => {
         promise.cancel();
@@ -705,13 +739,19 @@ var TabbyAgent = class extends import_events.EventEmitter {
     if (params.config) {
       this.updateConfig(params.config);
     }
+    if (params.client) {
+      allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: params.client }));
+    }
+    this.logger.debug({ params }, "Initialized");
     return true;
   }
   updateConfig(config) {
-    if (!(0, import_deep_equal.default)(this.config, config)) {
-      this.config = (0, import_deepmerge.default)(this.config, config);
+    const mergedConfig = (0, import_deepmerge.default)(this.config, config);
+    if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
+      this.config = mergedConfig;
       this.onConfigUpdated();
       const event = { event: "configUpdated", config: this.config };
+      this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
     }
     return true;
@@ -724,12 +764,14 @@ var TabbyAgent = class extends import_events.EventEmitter {
   }
   getCompletions(request2) {
     if (this.completionCache.has(request2)) {
+      this.logger.debug({ request: request2 }, "Completion cache hit");
       return new CancelablePromise((resolve2) => {
         resolve2(this.completionCache.get(request2));
       });
     }
     const prompt = this.createPrompt(request2);
     if (isBlank(prompt)) {
+      this.logger.debug("Prompt is blank, returning empty completion response");
       return new CancelablePromise((resolve2) => {
         resolve2({
           id: "agent-" + (0, import_uuid.v4)(),
@@ -738,12 +780,10 @@ var TabbyAgent = class extends import_events.EventEmitter {
         });
       });
     }
-    const promise = this.wrapApiPromise(
-      this.api.default.completionsV1CompletionsPost({
-        prompt,
-        language: request2.language
-      })
-    );
+    const promise = this.callApi(this.api.default.completionsV1CompletionsPost, {
+      prompt,
+      language: request2.language
+    });
     return cancelable(
       promise.then((response) => {
         this.completionCache.set(request2, response);
@@ -755,7 +795,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
     );
   }
   postEvent(request2) {
-    return this.wrapApiPromise(this.api.default.eventsV1EventsPost(request2));
+    return this.callApi(this.api.default.eventsV1EventsPost, request2);
   }
 };
 
