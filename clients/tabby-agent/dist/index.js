@@ -524,13 +524,7 @@ var defaultAgentConfig = {
     endpoint: "http://localhost:8080"
   },
   logs: {
-    console: {
-      level: "off"
-    },
-    file: {
-      level: "off",
-      path: "~/.tabby/agent-logs"
-    }
+    level: "silent"
   },
   analytics: {
     enabled: true

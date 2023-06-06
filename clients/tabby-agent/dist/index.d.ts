@@ -102,13 +102,7 @@ type AgentConfig = {
         endpoint?: string;
     };
     logs?: {
-        console?: {
-            level?: "debug" | "error" | "off";
-        };
-        file?: {
-            level?: "debug" | "error" | "off";
-            path?: string;
-        };
+        level?: "debug" | "error" | "silent";
     };
     analytics?: {
         enabled?: boolean;

@@ -3,13 +3,7 @@ export type AgentConfig = {
     endpoint?: string;
   };
   logs?: {
-    console?: {
-      level?: "debug" | "error" | "off";
-    };
-    file?: {
-      level?: "debug" | "error" | "off";
-      path?: string;
-    };
+    level?: "debug" | "error" | "silent";
   };
   analytics?: {
     enabled?: boolean;
@@ -21,13 +15,7 @@ export const defaultAgentConfig: AgentConfig = {
     endpoint: "http://localhost:8080",
   },
   logs: {
-    console: {
-      level: "off",
-    },
-    file: {
-      level: "off",
-      path: "~/.tabby/agent-logs",
-    },
+    level: "silent",
   },
   analytics: {
     enabled: true,
