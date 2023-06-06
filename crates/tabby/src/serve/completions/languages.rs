@@ -7,6 +7,22 @@ lazy_static! {
     static ref LANGUAGES: HashMap<&'static str, Vec<&'static str>> = {
         let mut map = HashMap::new();
         map.insert("python", vec!["\n\n", "\ndef", "\n#", "\nfrom", "\nclass"]);
+        map.insert(
+            "javascript",
+            vec!["\n\n", "\nfunction", "\n//", "\nimport", "\nclass"],
+        );
+        map.insert(
+            "typescript",
+            vec![
+                "\n\n",
+                "\nfunction",
+                "\n//",
+                "\nimport",
+                "\nclass",
+                "\ninterface",
+                "\ntype",
+            ],
+        );
         map
     };
 }
