@@ -12,7 +12,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   struct Options {
     size_t max_decoding_length;
     float sampling_temperature;
-    size_t beam_size;
   };
 
  public:
@@ -21,8 +20,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
-      float sampling_temperature,
-      size_t beam_size
+      float sampling_temperature
   ) const {
     // Inference.
     std::vector<std::string> input_tokens(tokens.begin(), tokens.end());
@@ -30,7 +28,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         std::move(context),
         std::move(is_context_cancelled),
         input_tokens,
-        Options{max_decoding_length, sampling_temperature, beam_size}
+        Options{max_decoding_length, sampling_temperature}
     );
 
     // Convert to rust vec.
