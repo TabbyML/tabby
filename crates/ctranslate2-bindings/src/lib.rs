@@ -26,7 +26,7 @@ mod ffi {
         fn inference(
             &self,
             context: Box<InferenceContext>,
-            is_context_cancelled: fn(Box<InferenceContext>) -> bool,
+            is_context_cancelled: fn(&InferenceContext) -> bool,
             tokens: &[String],
             max_decoding_length: usize,
             sampling_temperature: f32,
