@@ -75,7 +75,7 @@ const config = {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
-            label: 'Getting Started',
+            label: 'Get Started',
           },
           // FIXME(meng): enable blog.
           // {to: '/blog', label: 'Blog', position: 'left'},
@@ -94,7 +94,7 @@ const config = {
             items: [
               {
                 label: 'Configuration',
-                to: '/docs/configuration',
+                to: '/docs/server',
               },
             ],
           },
