@@ -12,11 +12,10 @@ class TextInferenceEngine {
   virtual ~TextInferenceEngine();
   virtual rust::Vec<rust::String> inference(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(rust::Box<InferenceContext>)> is_context_cancelled,
+      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
-      float sampling_temperature,
-      size_t beam_size
+      float sampling_temperature
   ) const = 0;
 };
 

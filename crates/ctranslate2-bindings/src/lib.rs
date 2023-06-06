@@ -26,11 +26,10 @@ mod ffi {
         fn inference(
             &self,
             context: Box<InferenceContext>,
-            is_context_cancelled: fn(Box<InferenceContext>) -> bool,
+            is_context_cancelled: fn(&InferenceContext) -> bool,
             tokens: &[String],
             max_decoding_length: usize,
             sampling_temperature: f32,
-            beam_size: usize,
         ) -> Vec<String>;
     }
 }
@@ -60,9 +59,6 @@ pub struct TextInferenceOptions {
 
     #[builder(default = "1.0")]
     sampling_temperature: f32,
-
-    #[builder(default = "2")]
-    beam_size: usize,
 }
 
 struct InferenceContext(CancellationToken);
@@ -104,7 +100,6 @@ impl TextInferenceEngine {
                 encoding.get_tokens(),
                 options.max_decoding_length,
                 options.sampling_temperature,
-                options.beam_size,
             )
         })
         .await

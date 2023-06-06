@@ -12,26 +12,24 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   struct Options {
     size_t max_decoding_length;
     float sampling_temperature;
-    size_t beam_size;
   };
 
  public:
   rust::Vec<rust::String> inference(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(rust::Box<InferenceContext>)> is_context_cancelled,
+      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
-      float sampling_temperature,
-      size_t beam_size
+      float sampling_temperature
   ) const {
-    // FIXME(meng): implement the cancellation.
-    if (is_context_cancelled(std::move(context))) {
-      return rust::Vec<rust::String>();
-    }
-
     // Inference.
     std::vector<std::string> input_tokens(tokens.begin(), tokens.end());
-    const auto output_tokens = process(input_tokens, Options{max_decoding_length, sampling_temperature, beam_size});
+    const auto output_tokens = process(
+        std::move(context),
+        std::move(is_context_cancelled),
+        input_tokens,
+        Options{max_decoding_length, sampling_temperature}
+    );
 
     // Convert to rust vec.
     rust::Vec<rust::String> output;
@@ -47,34 +45,48 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   }
 
  protected:
-  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const = 0;
+  virtual std::vector<std::string> process(
+      rust::Box<InferenceContext> context,
+      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      const std::vector<std::string>& tokens,
+      const Options& options) const = 0;
   std::unique_ptr<Model> model_;
 };
 
 class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translator, EncoderDecoderImpl> {
  protected:
-  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
+  virtual std::vector<std::string> process(
+      rust::Box<InferenceContext> context,
+      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      const std::vector<std::string>& tokens,
+      const Options& options) const override {
     ctranslate2::TranslationOptions x;
     x.max_decoding_length = options.max_decoding_length;
     x.sampling_temperature = options.sampling_temperature;
-    x.beam_size = options.beam_size;
-    ctranslate2::TranslationResult result = model_->translate_batch(
-        { tokens },
-        ctranslate2::TranslationOptions{
-        }
-    )[0];
+    x.beam_size = 1;
+    x.callback = [&](ctranslate2::GenerationStepResult result) {
+      return is_context_cancelled(*context);
+    };
+    ctranslate2::TranslationResult result = model_->translate_batch({ tokens }, x)[0];
     return std::move(result.output());
   }
 };
 
 class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, DecoderImpl> {
  protected:
-  virtual std::vector<std::string> process(const std::vector<std::string>& tokens, const Options& options) const override {
+  virtual std::vector<std::string> process(
+      rust::Box<InferenceContext> context,
+      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      const std::vector<std::string>& tokens,
+      const Options& options) const override {
     ctranslate2::GenerationOptions x;
     x.include_prompt_in_result = false;
     x.max_length = options.max_decoding_length;
     x.sampling_temperature = options.sampling_temperature;
-    x.beam_size = options.beam_size;
+    x.beam_size = 1;
+    x.callback = [&](ctranslate2::GenerationStepResult result) {
+      return is_context_cancelled(*context);
+    };
     ctranslate2::GenerationResult result = model_->generate_batch_async({ tokens }, x)[0].get();
     return std::move(result.sequences[0]);
   }
