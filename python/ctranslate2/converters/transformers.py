@@ -1325,6 +1325,76 @@ class RWLoader(ModelLoader):
             spec.bias = bias.numpy()
 
 
+@register_loader("BertConfig")
+class BertLoader(ModelLoader):
+    @property
+    def architecture_name(self):
+        return "BertModel"
+
+    def get_model_spec(self, model):
+        assert model.config.position_embedding_type == "absolute"
+
+        encoder_spec = transformer_spec.TransformerEncoderSpec(
+            model.config.num_hidden_layers,
+            model.config.num_attention_heads,
+            pre_norm=False,
+            activation=_SUPPORTED_ACTIVATIONS[model.config.hidden_act],
+            layernorm_embedding=True,
+            num_source_embeddings=2,
+            embeddings_merge=common_spec.EmbeddingsMerge.ADD,
+        )
+
+        spec = transformer_spec.TransformerEncoderModelSpec(
+            encoder_spec,
+            pooling_layer=True,
+            pooling_activation=common_spec.Activation.Tanh,
+        )
+
+        spec.encoder.scale_embeddings = False
+
+        self.set_embeddings(
+            spec.encoder.embeddings[0], model.embeddings.word_embeddings
+        )
+        self.set_embeddings(
+            spec.encoder.embeddings[1], model.embeddings.token_type_embeddings
+        )
+        self.set_position_encodings(
+            spec.encoder.position_encodings, model.embeddings.position_embeddings
+        )
+        self.set_layer_norm(
+            spec.encoder.layernorm_embedding, model.embeddings.LayerNorm
+        )
+
+        self.set_linear(spec.pooler_dense, model.pooler.dense)
+
+        for layer_spec, layer in zip(spec.encoder.layer, model.encoder.layer):
+            split_layers = [common_spec.LinearSpec() for _ in range(3)]
+            self.set_linear(split_layers[0], layer.attention.self.query)
+            self.set_linear(split_layers[1], layer.attention.self.key)
+            self.set_linear(split_layers[2], layer.attention.self.value)
+            utils.fuse_linear(layer_spec.self_attention.linear[0], split_layers)
+
+            self.set_linear(
+                layer_spec.self_attention.linear[1], layer.attention.output.dense
+            )
+            self.set_layer_norm(
+                layer_spec.self_attention.layer_norm, layer.attention.output.LayerNorm
+            )
+
+            self.set_linear(layer_spec.ffn.linear_0, layer.intermediate.dense)
+            self.set_linear(layer_spec.ffn.linear_1, layer.output.dense)
+            self.set_layer_norm(layer_spec.ffn.layer_norm, layer.output.LayerNorm)
+
+        return spec
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.unk_token = tokenizer.unk_token
+        config.layer_norm_epsilon = model.config.layer_norm_eps
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter

@@ -8,6 +8,8 @@ The project versioning follows [Semantic Versioning 2.0.0](https://semver.org/).
   * `ctranslate2.*`
   * `ctranslate2.converters.*`
 * C++ symbols:
+  * `ctranslate2::Encoder`
+  * `ctranslate2::EncoderForwardOutput`
   * `ctranslate2::GenerationOptions`
   * `ctranslate2::GenerationResult`
   * `ctranslate2::Generator`

@@ -293,5 +293,98 @@ namespace ctranslate2 {
       return logits;
     }
 
+
+    EncoderForwardOutput
+    SequenceEncoderReplica::forward(const std::vector<std::vector<std::string>>& tokens) {
+      const auto& vocabulary = _model->get_vocabulary();
+      return forward(vocabulary.to_ids(tokens));
+    }
+
+    EncoderForwardOutput
+    SequenceEncoderReplica::forward(const std::vector<std::vector<size_t>>& ids) {
+      StorageView lengths;
+      StorageView input_ids = layers::make_sequence_inputs(ids, Device::CPU, 1, &lengths);
+      return forward(input_ids, lengths);
+    }
+
+    EncoderForwardOutput
+    SequenceEncoderReplica::forward(const StorageView& ids, const StorageView& lengths) {
+      PROFILE("SequenceEncoderReplica::forward");
+      const auto& model = *this->model();
+      const auto device = model.device();
+      const auto scoped_device_setter = model.get_scoped_device_setter();
+
+      EncoderForwardOutput output;
+
+      if (ids.device() != device)
+        output = forward_impl(ids.to(device), lengths.to(device));
+      else
+        output = forward_impl(ids, lengths);
+
+      // Ensure all operations are finished before returning the output.
+      synchronize_stream(device);
+      return output;
+    }
+
+
+    EncoderReplica::EncoderReplica(const std::shared_ptr<const LanguageModel>& model,
+                                   std::unique_ptr<layers::Encoder> encoder)
+      : SequenceEncoderReplica(model)
+      , _model(model)
+      , _encoder(std::move(encoder))
+      , _pooler_activation(model->get_enum_value<ops::ActivationType>("pooler_activation"))
+      , _pooler_dense(layers::build_optional_layer<layers::Dense>(*model,
+                                                                  "pooler_dense",
+                                                                  &_pooler_activation))
+    {
+    }
+
+    EncoderForwardOutput
+    EncoderReplica::forward_impl(const StorageView& ids, const StorageView& lengths) {
+      if (ids.rank() != 2)
+        throw std::invalid_argument("Expected input ids to have 2 dimensions, but got "
+                                    + std::to_string(ids.rank())
+                                    + " dimension(s) instead");
+      if (lengths.size() != ids.dim(0))
+        throw std::invalid_argument("Expected lengths vector to have size "
+                                    + std::to_string(ids.dim(0))
+                                    + ", but got size "
+                                    + std::to_string(lengths.size())
+                                    + " instead");
+
+      const Device device = _model->device();
+      const DataType dtype = _encoder->output_type();
+
+      std::vector<StorageView> inputs{ids};
+
+      if (_encoder->num_input_features() > 1) {
+        StorageView token_type_ids(ids.shape(), ids.dtype(), device);
+        token_type_ids.zero();
+        inputs.emplace_back(std::move(token_type_ids));
+      }
+
+      StorageView last_hidden_state(dtype, device);
+      (*_encoder)(inputs, lengths, last_hidden_state);
+
+      EncoderForwardOutput output;
+      output.last_hidden_state = std::move(last_hidden_state);
+
+      if (_pooler_dense) {
+        StorageView first_index({ids.dim(0)}, int32_t(0), device);
+        StorageView first_token_state(dtype, device);
+
+        ops::Gather(/*axis=*/1, /*batch_dims=*/1)(output.last_hidden_state,
+                                                  first_index,
+                                                  first_token_state);
+
+        StorageView pooler_output(dtype, device);
+        (*_pooler_dense)(first_token_state, pooler_output);
+
+        output.pooler_output = std::move(pooler_output);
+      }
+
+      return output;
+    }
+
   }
 }

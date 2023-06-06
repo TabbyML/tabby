@@ -17,6 +17,8 @@ namespace ctranslate2 {
 
       register_model<TransformerDecoderModel>("TransformerDecoderSpec");
 
+      register_model<TransformerEncoderModel>("TransformerEncoderSpec");
+
       register_model<WhisperModel>("WhisperSpec");
     }
 

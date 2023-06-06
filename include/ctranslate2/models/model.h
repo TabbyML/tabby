@@ -18,6 +18,7 @@ namespace ctranslate2 {
 
     class SequenceToSequenceReplica;
     class SequenceGeneratorReplica;
+    class SequenceEncoderReplica;
 
     // Base class for models.
     class Model : public std::enable_shared_from_this<Model> {
@@ -33,6 +34,7 @@ namespace ctranslate2 {
 
       virtual std::unique_ptr<SequenceToSequenceReplica> as_sequence_to_sequence() const;
       virtual std::unique_ptr<SequenceGeneratorReplica> as_sequence_generator() const;
+      virtual std::unique_ptr<SequenceEncoderReplica> as_sequence_encoder() const;
 
       virtual ~Model();
 

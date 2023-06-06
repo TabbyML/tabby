@@ -68,5 +68,6 @@ PYBIND11_MODULE(_ext, m)
   ctranslate2::python::register_generation_result(m);
   ctranslate2::python::register_translator(m);
   ctranslate2::python::register_generator(m);
+  ctranslate2::python::register_encoder(m);
   ctranslate2::python::register_whisper(m);
 }

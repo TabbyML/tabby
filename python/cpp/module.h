@@ -7,6 +7,7 @@ namespace py = pybind11;
 namespace ctranslate2 {
   namespace python {
 
+    void register_encoder(py::module& m);
     void register_generation_result(py::module& m);
     void register_generator(py::module& m);
     void register_logging(py::module& m);

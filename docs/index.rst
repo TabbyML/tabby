@@ -14,14 +14,20 @@ The documentation includes installation instructions, usage guides, and API refe
    installation.md
 
 .. toctree::
-   :caption: Usage
+   :caption: Tasks
+   :maxdepth: 1
+
+   translation.md
+   generation.md
+   encoding.md
+   speech_recognition.md
+
+.. toctree::
+   :caption: Developer guides
    :maxdepth: 1
 
    conversion.md
    quantization.md
-   translation.md
-   generation.md
-   speech_recognition.md
    decoding.md
    parallel.md
    memory.md
@@ -29,7 +35,7 @@ The documentation includes installation instructions, usage guides, and API refe
    environment_variables.md
 
 .. toctree::
-   :caption: Guides
+   :caption: Framework guides
    :maxdepth: 1
    :glob:
 

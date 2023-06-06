@@ -108,6 +108,7 @@ set(SOURCES
   src/decoding_utils.cc
   src/devices.cc
   src/dtw.cc
+  src/encoder.cc
   src/env.cc
   src/filesystem.cc
   src/generator.cc

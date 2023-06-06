@@ -3,6 +3,7 @@
 CTranslate2 supports selected models from Hugging Face's [Transformers](https://github.com/huggingface/transformers). The following models are currently supported:
 
 * BART
+* BERT
 * BLOOM
 * CodeGen
 * Falcon
@@ -73,6 +74,53 @@ results = translator.translate_batch([source])
 target = results[0].hypotheses[0]
 
 print(tokenizer.decode(tokenizer.convert_tokens_to_ids(target), skip_special_tokens=True))
+```
+
+## BERT
+
+[BERT](https://huggingface.co/docs/transformers/model_doc/bert) is pretrained model on English language using a masked language modeling objective.
+
+CTranslate2 only implements the `BertModel` class from Transformers which includes the Transformer encoder and the pooling layer. Task-specific layers should be run with PyTorch as shown in the example below.
+
+```bash
+ct2-transformers-converter --model textattack/bert-base-uncased-yelp-polarity --output_dir bert-base-uncased-yelp-polarity
+```
+
+```python
+import ctranslate2
+import numpy as np
+import torch
+import transformers
+
+device = "cuda"
+encoder = ctranslate2.Encoder("bert-base-uncased-yelp-polarity", device=device)
+
+model_name = "textattack/bert-base-uncased-yelp-polarity"
+tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+classifier = transformers.AutoModelForSequenceClassification.from_pretrained(model_name).classifier
+classifier.eval()
+classifier.to(device)
+
+inputs = ["It was good!", "Worst experience in my life.", "It was not good."]
+tokens = tokenizer(inputs).input_ids
+
+output = encoder.forward_batch(tokens)
+pooler_output = output.pooler_output
+
+if device == "cuda":
+    pooler_output = torch.as_tensor(pooler_output, device=device)
+else:
+    pooler_output = np.array(pooler_output)
+    pooler_output = torch.as_tensor(pooler_output)
+
+logits = classifier(pooler_output)
+predicted_class_ids = logits.argmax(1)
+
+print(predicted_class_ids)
+```
+
+```{warning}
+The [token type input](https://huggingface.co/docs/transformers/glossary#token-type-ids) is currently not implemented. All tokens are assumed to come from the same sentence.
 ```
 
 ## BLOOM

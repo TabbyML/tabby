@@ -37,5 +37,16 @@ namespace ctranslate2 {
       std::unique_ptr<Model> clone() const override;
     };
 
+
+    class TransformerEncoderModel : public LanguageModel {
+    public:
+      size_t current_spec_revision() const override;
+      std::unique_ptr<SequenceEncoderReplica> as_sequence_encoder() const override;
+
+    protected:
+      bool is_linear_weight(const std::string& variable_name) const override;
+      std::unique_ptr<Model> clone() const override;
+    };
+
   }
 }

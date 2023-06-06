@@ -239,6 +239,62 @@ def test_transformers_marianmt_disable_unk(
 
 
 @test_utils.only_on_linux
+@test_utils.on_available_devices
+def test_transformers_bert(clear_transformers_cache, tmp_dir, device):
+    import torch
+    import transformers
+
+    text = ["Hello world!", "Hello, my dog is cute"]
+
+    model_name = "bert-base-uncased"
+    model = transformers.BertModel.from_pretrained(model_name)
+    tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+
+    inputs = tokenizer(text, return_tensors="pt", padding=True)
+    inputs.to(device)
+    model.to(device)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    mask = inputs.attention_mask.unsqueeze(-1).cpu().numpy()
+    ref_last_hidden_state = outputs.last_hidden_state.cpu().numpy()
+    ref_pooler_output = outputs.pooler_output.cpu().numpy()
+
+    converter = ctranslate2.converters.TransformersConverter(model_name)
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    encoder = ctranslate2.Encoder(output_dir, device=device)
+
+    ids = [tokenizer(t).input_ids for t in text]
+    outputs = encoder.forward_batch(ids)
+
+    last_hidden_state = _to_numpy(outputs.last_hidden_state, device)
+    assert last_hidden_state.shape == ref_last_hidden_state.shape
+
+    last_hidden_state *= mask
+    ref_last_hidden_state *= mask
+    np.testing.assert_array_almost_equal(
+        last_hidden_state, ref_last_hidden_state, decimal=5
+    )
+
+    pooler_output = _to_numpy(outputs.pooler_output, device)
+    assert pooler_output.shape == ref_pooler_output.shape
+    np.testing.assert_array_almost_equal(pooler_output, ref_pooler_output, decimal=5)
+
+
+def _to_numpy(storage, device):
+    import torch
+
+    return (
+        np.array(storage)
+        if device == "cpu"
+        else torch.as_tensor(storage, device=device).cpu().numpy()
+    )
+
+
+@test_utils.only_on_linux
 def test_transformers_gptbigcode(clear_transformers_cache, tmp_dir):
     import transformers
 

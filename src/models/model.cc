@@ -130,6 +130,10 @@ namespace ctranslate2 {
       throw std::runtime_error("This model cannot be used as a sequence generator");
     }
 
+    std::unique_ptr<SequenceEncoderReplica> Model::as_sequence_encoder() const {
+      throw std::runtime_error("This model cannot be used as a sequence encoder");
+    }
+
     Model::~Model() {
       if (!_variable_index.empty()) {
         _variable_index.clear();

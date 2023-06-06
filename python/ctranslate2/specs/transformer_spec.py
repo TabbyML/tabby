@@ -491,3 +491,57 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     def get_vocabulary_size(self):
         return self.decoder.embeddings.weight.shape[0]
+
+
+class TransformerEncoderModelConfig(model_spec.LanguageModelConfig):
+    """Configuration for Transformer encoder models."""
+
+    def __init__(self, layer_norm_epsilon: Optional[float] = None, **kwargs):
+        """Initializes the configuration for Transformer encoder models.
+
+        Args:
+          layer_norm_epsilon: The layer norm epsilon value.
+          **kwargs: Additional configuration.
+        """
+        super().__init__(layer_norm_epsilon=layer_norm_epsilon, **kwargs)
+
+
+class TransformerEncoderModelSpec(model_spec.LanguageModelSpec):
+    """Describes a Transformer encoder model (e.g. BERT)."""
+
+    def __init__(
+        self,
+        encoder: TransformerEncoderSpec,
+        pooling_layer: bool = False,
+        pooling_activation: common_spec.Activation = common_spec.Activation.Tanh,
+    ):
+        """Initializes a Transformer encoder model specification.
+
+        Args:
+          encoder: The encoder specification.
+          pooling_layer: Add the pooling layer.
+          pooling_activation: The activation to apply after the pooling layer.
+        """
+        if not isinstance(encoder, TransformerEncoderSpec):
+            raise TypeError("encoder argument must be a TransformerEncoderSpec")
+
+        super().__init__()
+        self.encoder = encoder
+
+        if pooling_layer:
+            self.pooler_dense = common_spec.LinearSpec()
+            self.pooler_activation = np.dtype("int8").type(pooling_activation)
+
+    @property
+    def name(self):
+        return "TransformerEncoderSpec"
+
+    @property
+    def revision(self):
+        return 1
+
+    def get_default_config(self):
+        return TransformerEncoderModelConfig()
+
+    def get_vocabulary_size(self):
+        return self.encoder.embeddings[0].weight.shape[0]
