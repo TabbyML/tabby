@@ -19,7 +19,6 @@ serdeconv = { workspace = true }
 serde_json = "1.0"
 tower-http = { version = "0.4.0", features = ["cors"] }
 clap = { version = "4.3.0", features = ["derive"] }
-regex = "1.8.3"
 lazy_static = { workspace = true }
 rust-embed = "6.6.1"
 mime_guess = "2.0.4"

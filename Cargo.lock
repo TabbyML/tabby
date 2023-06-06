@@ -578,7 +578,9 @@ dependencies = [
  "cmake",
  "cxx",
  "cxx-build",
+ "dashmap",
  "derive_builder",
+ "regex",
  "rust-cxx-cmake-bridge",
  "tokenizers",
  "tokio",
@@ -662,6 +664,19 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "dashmap"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "907076dfda823b0b36d2a1bb5f90c96660a5bbcd7729e10727f07858f22c4edc"
+dependencies = [
+ "cfg-if",
+ "hashbrown",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -2022,9 +2037,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.3"
+version = "1.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81ca098a9821bd52d6b24fd8b10bd081f47d39c22778cafaa75a2857a62c6390"
+checksum = "d0ab3ca65655bb1e41f2a8c8cd662eb4fb035e67c3f78da1d61dffe89d07300f"
 dependencies = [
  "aho-corasick 1.0.1",
  "memchr",
@@ -2503,7 +2518,6 @@ dependencies = [
  "hyper",
  "lazy_static",
  "mime_guess",
- "regex",
  "rust-embed",
  "serde",
  "serde_json",

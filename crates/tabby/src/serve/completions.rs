@@ -9,6 +9,8 @@ use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
 
+use self::languages::get_stop_words;
+
 mod languages;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -57,9 +59,11 @@ pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Json<CompletionResponse> {
+    let language = request.language.unwrap_or("unknown".into());
     let options = TextInferenceOptionsBuilder::default()
-        .max_decoding_length(64)
-        .sampling_temperature(0.2)
+        .max_decoding_length(128)
+        .sampling_temperature(0.1)
+        .stop_words(get_stop_words(&language))
         .build()
         .expect("Invalid TextInferenceOptions");
 
@@ -80,30 +84,24 @@ pub async fn completion(
         request.prompt.expect("No prompt is set")
     };
 
+    let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
     let text = state.engine.inference(&prompt, options).await;
-    let language = request.language.unwrap_or("unknown".into());
-    let filtered_text = languages::remove_stop_words(&language, &text);
-
-    let response = CompletionResponse {
-        id: format!("cmpl-{}", uuid::Uuid::new_v4()),
-        choices: vec![Choice {
-            index: 0,
-            text: filtered_text.to_string(),
-        }],
-    };
 
     events::Event::Completion {
-        completion_id: &response.id,
+        completion_id: &completion_id,
         language: &language,
         prompt: &prompt,
         choices: vec![events::Choice {
             index: 0,
-            text: filtered_text,
+            text: &text,
         }],
     }
     .log();
 
-    Json(response)
+    Json(CompletionResponse {
+        id: completion_id,
+        choices: vec![Choice { index: 0, text }],
+    })
 }
 
 pub struct CompletionState {

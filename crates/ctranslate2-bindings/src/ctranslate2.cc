@@ -15,27 +15,21 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   };
 
  public:
-  rust::Vec<rust::String> inference(
+  rust::Vec<uint32_t> inference(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      InferenceCallback callback,
       rust::Slice<const rust::String> tokens,
       size_t max_decoding_length,
       float sampling_temperature
   ) const {
     // Inference.
     std::vector<std::string> input_tokens(tokens.begin(), tokens.end());
-    const auto output_tokens = process(
+    return process(
         std::move(context),
-        std::move(is_context_cancelled),
+        std::move(callback),
         input_tokens,
         Options{max_decoding_length, sampling_temperature}
     );
-
-    // Convert to rust vec.
-    rust::Vec<rust::String> output;
-    output.reserve(output_tokens.size());
-    std::copy(output_tokens.begin(), output_tokens.end(), std::back_inserter(output));
-    return output;
   }
 
   static std::unique_ptr<TextInferenceEngine> create(const ctranslate2::models::ModelLoader& loader) {
@@ -45,9 +39,9 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   }
 
  protected:
-  virtual std::vector<std::string> process(
+  virtual rust::Vec<uint32_t> process(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      InferenceCallback callback,
       const std::vector<std::string>& tokens,
       const Options& options) const = 0;
   std::unique_ptr<Model> model_;
@@ -55,28 +49,35 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
 class EncoderDecoderImpl : public TextInferenceEngineImpl<ctranslate2::Translator, EncoderDecoderImpl> {
  protected:
-  virtual std::vector<std::string> process(
+  virtual rust::Vec<uint32_t> process(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      InferenceCallback callback,
       const std::vector<std::string>& tokens,
       const Options& options) const override {
     ctranslate2::TranslationOptions x;
     x.max_decoding_length = options.max_decoding_length;
     x.sampling_temperature = options.sampling_temperature;
     x.beam_size = 1;
+    rust::Vec<uint32_t> output_ids;
     x.callback = [&](ctranslate2::GenerationStepResult result) {
-      return is_context_cancelled(*context);
+      bool stop = callback(*context, result.step, result.token_id, result.token);
+      if (!stop) {
+        output_ids.push_back(result.token_id);
+      } else if (result.is_last) {
+        output_ids.push_back(result.token_id);
+      }
+      return stop;
     };
     ctranslate2::TranslationResult result = model_->translate_batch({ tokens }, x)[0];
-    return std::move(result.output());
+    return output_ids;
   }
 };
 
 class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, DecoderImpl> {
  protected:
-  virtual std::vector<std::string> process(
+  virtual rust::Vec<uint32_t> process(
       rust::Box<InferenceContext> context,
-      rust::Fn<bool(const InferenceContext&)> is_context_cancelled,
+      InferenceCallback callback,
       const std::vector<std::string>& tokens,
       const Options& options) const override {
     ctranslate2::GenerationOptions x;
@@ -84,11 +85,19 @@ class DecoderImpl : public TextInferenceEngineImpl<ctranslate2::Generator, Decod
     x.max_length = options.max_decoding_length;
     x.sampling_temperature = options.sampling_temperature;
     x.beam_size = 1;
+
+    rust::Vec<uint32_t> output_ids;
     x.callback = [&](ctranslate2::GenerationStepResult result) {
-      return is_context_cancelled(*context);
+      bool stop = callback(*context, result.step, result.token_id, result.token);
+      if (!stop) {
+        output_ids.push_back(result.token_id);
+      } else if (result.is_last) {
+        output_ids.push_back(result.token_id);
+      }
+      return stop;
     };
     ctranslate2::GenerationResult result = model_->generate_batch_async({ tokens }, x)[0].get();
-    return std::move(result.sequences[0]);
+    return output_ids;
   }
 };
 
