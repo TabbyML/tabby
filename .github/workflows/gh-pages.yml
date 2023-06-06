@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: 16.x
           cache: yarn
+          cache-dependency-path: website/yarn.lock
       - name: Install dependencies
         working-directory: website
         run: yarn install --frozen-lockfile --non-interactive
