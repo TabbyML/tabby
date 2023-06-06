@@ -1,5 +1,6 @@
 import { CancelablePromise } from "./generated";
 import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
+import { rootLogger } from "./logger";
 import { splitLines } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
@@ -8,7 +9,7 @@ type AgentFunctionRequest<T extends keyof AgentFunction> = [
     func: T;
     args: Parameters<AgentFunction[T]>;
   }
-]
+];
 
 type CancellationRequest = [
   id: number,
@@ -16,24 +17,24 @@ type CancellationRequest = [
     func: "cancelRequest";
     args: [id: number];
   }
-]
+];
 
 type Request = AgentFunctionRequest<any> | CancellationRequest;
 
 type AgentFunctionResponse<T extends keyof AgentFunction> = [
   id: number, // Matched request id
-  data: ReturnType<AgentFunction[T]>,
-]
+  data: ReturnType<AgentFunction[T]>
+];
 
 type AgentEventNotification = {
-  id: 0,
-  data: AgentEvent,
-}
+  id: 0;
+  data: AgentEvent;
+};
 
 type CancellationResponse = [
   id: number, // Matched request id
-  data: boolean,
-]
+  data: boolean
+];
 
 type Response = AgentFunctionResponse<any> | AgentEventNotification | CancellationResponse;
 
@@ -43,15 +44,14 @@ type Response = AgentFunctionResponse<any> | AgentEventNotification | Cancellati
 export class StdIO {
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
-  private readonly errLogger: NodeJS.WriteStream = process.stderr;
+  private readonly logger = rootLogger.child({ component: "StdIO" });
 
   private buffer: string = "";
   private ongoingRequests: { [id: number]: CancelablePromise<any> } = {};
 
   private agent: Agent | null = null;
 
-  constructor() {
-  }
+  constructor() {}
 
   private handleInput(data: Buffer): void {
     const input = data.toString();
@@ -69,12 +69,14 @@ export class StdIO {
       let request: Request | null = null;
       try {
         request = JSON.parse(line) as Request;
-      } catch (e) {
-        this.errLogger.write(JSON.stringify(e, Object.getOwnPropertyNames(e)) + "\n");
+      } catch (error) {
+        this.logger.error({ error }, `Failed to parse request: ${line}`);
         continue;
       }
+      this.logger.debug({ request }, "Received request");
       this.handleRequest(request).then((response) => {
         this.sendResponse(response);
+        this.logger.debug({ response }, "Sent response");
       });
     }
   }
@@ -104,8 +106,8 @@ export class StdIO {
           response[1] = result;
         }
       }
-    } catch (e) {
-      this.errLogger.write(JSON.stringify(e, Object.getOwnPropertyNames(e)) + "\n");
+    } catch (error) {
+      this.logger.error({ error }, `Failed to handle request: ${JSON.stringify(request)}`);
     } finally {
       return response;
     }
@@ -129,7 +131,7 @@ export class StdIO {
     for (const eventName of agentEventNames) {
       this.agent.on(eventName, (event) => {
         this.sendResponse([0, event]);
-      })
+      });
     }
   }
 

@@ -1,4 +1,4 @@
-import { workspace } from "vscode";
+import { workspace, env, version, UIKind } from "vscode";
 import { TabbyAgent, AgentConfig } from "tabby-agent";
 
 export class Agent extends TabbyAgent {
@@ -12,8 +12,10 @@ export class Agent extends TabbyAgent {
 
   private constructor() {
     super();
+    const uiKind = Object.keys(UIKind)[Object.values(UIKind).indexOf(env.uiKind)];
     super.initialize({
-      config: this.getWorkspaceConfiguration()
+      config: this.getWorkspaceConfiguration(),
+      client: `VSCode ${uiKind} ${version}`,
     });
 
     workspace.onDidChangeConfiguration((event) => {
@@ -27,10 +29,14 @@ export class Agent extends TabbyAgent {
   private getWorkspaceConfiguration(): AgentConfig {
     const configuration = workspace.getConfiguration("tabby");
     const serverUrl = configuration.get<string>("serverUrl");
+    const agentLogs = configuration.get<"debug" | "error" | "silent">("agentLogs");
     return {
       server: {
-        endpoint: serverUrl
-      }
-    }
+        endpoint: serverUrl,
+      },
+      logs: {
+        level: agentLogs,
+      },
+    };
   }
 }

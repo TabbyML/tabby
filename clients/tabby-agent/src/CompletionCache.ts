@@ -2,12 +2,14 @@ import { LRUCache } from "lru-cache";
 import hashObject from "object-hash";
 import sizeOfObject from "object-sizeof";
 import { CompletionRequest, CompletionResponse } from "./Agent";
+import { rootLogger } from "./logger";
 import { splitLines, splitWords } from "./utils";
 
 type CompletionCacheKey = CompletionRequest;
 type CompletionCacheValue = CompletionResponse;
 
 export class CompletionCache {
+  private readonly logger = rootLogger.child({ component: "CompletionCache" });
   private cache: LRUCache<string, CompletionCacheValue>;
   private options = {
     maxSize: 1 * 1024 * 1024, // 1MB
@@ -41,8 +43,10 @@ export class CompletionCache {
 
   set(key: CompletionCacheKey, value: CompletionCacheValue): void {
     for (const entry of this.createCacheEntries(key, value)) {
+      this.logger.debug({ entry }, "Setting cache entry");
       this.cache.set(this.hash(entry.key), entry.value);
     }
+    this.logger.debug({ size: this.cache.calculatedSize }, "Cache size");
   }
 
   get(key: CompletionCacheKey): CompletionCacheValue | undefined {
@@ -79,7 +83,7 @@ export class CompletionCache {
         const cacheKey = {
           ...key,
           text: key.text.slice(0, key.position) + prefix + key.text.slice(key.position),
-          position: key.position + prefix.length
+          position: key.position + prefix.length,
         };
         const cacheValue = {
           ...value,

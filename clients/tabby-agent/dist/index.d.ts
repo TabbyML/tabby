@@ -111,6 +111,7 @@ type AgentConfig = {
 
 type AgentInitOptions = {
     config?: AgentConfig;
+    client?: string;
 };
 type CompletionRequest = {
     filepath: string;
@@ -143,6 +144,7 @@ interface AgentEventEmitter {
 type Agent = AgentFunction & AgentEventEmitter;
 
 declare class TabbyAgent extends EventEmitter implements Agent {
+    private readonly logger;
     private config;
     private status;
     private api;
@@ -151,7 +153,7 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private onConfigUpdated;
     private changeStatus;
     private ping;
-    private wrapApiPromise;
+    private callApi;
     private createPrompt;
     initialize(params: AgentInitOptions): boolean;
     updateConfig(config: AgentConfig): boolean;

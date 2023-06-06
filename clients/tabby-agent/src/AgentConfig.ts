@@ -15,7 +15,7 @@ export const defaultAgentConfig: AgentConfig = {
     endpoint: "http://localhost:8080",
   },
   logs: {
-    level: "silent",
+    level: "error",
   },
   anonymousUsageTracking: {
     disable: false,

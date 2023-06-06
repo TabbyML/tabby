@@ -9,6 +9,7 @@ import { AgentConfig } from "./AgentConfig";
 
 export type AgentInitOptions = {
   config?: AgentConfig;
+  client?: string;
 };
 
 export type CompletionRequest = {

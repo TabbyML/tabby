@@ -62,6 +62,16 @@
           "default": 150,
           "minimum": 0,
           "description": "Specifies the delay in milliseconds after which the request is sent to the tabby."
+        },
+        "tabby.agentLogs": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "error",
+            "silent"
+          ],
+          "default": "error",
+          "markdownDescription": "Specifies the log level of tabby-agent for debugging purpose.  \n * If VSCode is running as desktop application, you can find log files in `$HOME/.tabby/agent-logs/`. It's recommend using `tail -f ~/.tabby/agent-logs/tabby-agent.log | npx pino-pretty` to monitor logs.  \n * If VSCode is running in browser, you can find logs in debug console.  "
         }
       }
     }
