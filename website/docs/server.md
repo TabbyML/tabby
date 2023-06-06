@@ -20,6 +20,9 @@ tabby --help
 
 # Serve the model
 tabby serve --model TabbyML/J-350M
+
+# Serve with cuda
+tabby-gpu --model TabbyML/J-350M --device cuda
 ```
 
 ## Configuration
