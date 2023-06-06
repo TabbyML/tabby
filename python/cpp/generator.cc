@@ -29,6 +29,8 @@ namespace ctranslate2 {
                      bool return_end_token,
                      size_t max_length,
                      size_t min_length,
+                     const std::optional<std::vector<std::string>>& static_prompt,
+                     bool cache_static_prompt,
                      bool include_prompt_in_result,
                      bool return_scores,
                      bool return_alternatives,
@@ -55,6 +57,7 @@ namespace ctranslate2 {
         options.return_end_token = return_end_token;
         options.return_scores = return_scores;
         options.return_alternatives = return_alternatives;
+        options.cache_static_prompt = cache_static_prompt;
         options.include_prompt_in_result = include_prompt_in_result;
         options.min_alternative_expansion_prob = min_alternative_expansion_prob;
         options.callback = std::move(callback);
@@ -62,6 +65,8 @@ namespace ctranslate2 {
           options.suppress_sequences = suppress_sequences.value();
         if (end_token)
           options.end_token = end_token.value();
+        if (static_prompt)
+          options.static_prompt = static_prompt.value();
 
         auto futures = _pool->generate_batch_async(tokens, options, max_batch_size, batch_type);
         return maybe_wait_on_futures(std::move(futures), asynchronous);
@@ -180,6 +185,8 @@ namespace ctranslate2 {
              py::arg("return_end_token")=false,
              py::arg("max_length")=512,
              py::arg("min_length")=0,
+             py::arg("static_prompt")=py::none(),
+             py::arg("cache_static_prompt")=true,
              py::arg("include_prompt_in_result")=true,
              py::arg("return_scores")=false,
              py::arg("return_alternatives")=false,
@@ -231,6 +238,11 @@ namespace ctranslate2 {
                    return_end_token: Include the end token in the results.
                    max_length: Maximum generation length.
                    min_length: Minimum generation length.
+                   static_prompt: If the model expects a static prompt (a.k.a. system prompt)
+                     it can be set here to simplify the inputs and optionally cache the model
+                     state for this prompt to accelerate future generations.
+                   cache_static_prompt: Cache the model state after the static prompt and
+                     reuse it for future generations using the same static prompt.
                    include_prompt_in_result: Include the :obj:`start_tokens` in the result.
                    return_scores: Include the scores in the output.
                    return_alternatives: Return alternatives at the first unconstrained decoding position.

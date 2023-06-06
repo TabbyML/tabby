@@ -138,5 +138,17 @@ namespace ctranslate2 {
         _to_output_word_id.emplace(_to_original_word_id[i], i);
     }
 
+
+    void DecoderStateCache::save(std::vector<size_t> prompt, DecoderState state) {
+      const std::lock_guard<std::mutex> lock(_mutex);
+      _cache.emplace(std::move(prompt), std::move(state));
+    }
+
+    const DecoderState* DecoderStateCache::get(const std::vector<size_t>& prompt) const {
+      const std::lock_guard<std::mutex> lock(_mutex);
+      const auto it = _cache.find(prompt);
+      return it == _cache.end() ? nullptr : &it->second;
+    }
+
   }
 }

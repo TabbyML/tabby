@@ -444,6 +444,39 @@ class TestGeneration:
         assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-4)
 
     @test_utils.only_on_linux
+    def test_transformers_generator_static_prompt(self, tmp_dir):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
+
+        max_length = 20
+        prompt = "Ċ The Ġfirst Ġtime ĠI".split()
+
+        expected_result = generator.generate_batch(
+            [prompt],
+            max_length=max_length,
+            include_prompt_in_result=False,
+        )[0]
+
+        result = generator.generate_batch(
+            [[expected_result.sequences[0][0]]],
+            max_length=max_length - 1,
+            static_prompt=prompt,
+        )[0]
+
+        assert result.sequences[0] == expected_result.sequences[0]
+
+        batch_results = generator.generate_batch(
+            [[expected_result.sequences[0][0]], [expected_result.sequences[0][0]]],
+            max_length=max_length - 1,
+            static_prompt=prompt,
+        )
+
+        assert batch_results[0].sequences[0] == expected_result.sequences[0]
+        assert batch_results[1].sequences[0] == expected_result.sequences[0]
+
+    @test_utils.only_on_linux
     @pytest.mark.parametrize("return_log_prob", [True, False])
     def test_transformers_generator_token_streaming(self, tmp_dir, return_log_prob):
         converter = ctranslate2.converters.TransformersConverter("gpt2")

@@ -58,6 +58,13 @@ namespace ctranslate2 {
     // Minimum probability to expand an alternative.
     float min_alternative_expansion_prob = 0;
 
+    // The static prompt will prefix all inputs for this model.
+    std::vector<std::string> static_prompt;
+
+    // Cache the model state after the static prompt and reuse it for future runs using
+    // the same static prompt.
+    bool cache_static_prompt = true;
+
     // Include the input tokens in the generation result.
     bool include_prompt_in_result = true;
 

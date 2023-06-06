@@ -12,13 +12,19 @@ namespace ctranslate2 {
     // Base class for language models.
     class LanguageModel : public Model {
     public:
+      LanguageModel();
+
       const Vocabulary& get_vocabulary() const;
+
+      // The returned cache is thread safe.
+      layers::DecoderStateCache& get_state_cache() const;
 
     protected:
       void initialize(ModelReader& model_reader) override;
 
     private:
       std::shared_ptr<const Vocabulary> _vocabulary;
+      std::shared_ptr<layers::DecoderStateCache> _state_cache;
     };
 
 

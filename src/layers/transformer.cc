@@ -325,8 +325,13 @@ namespace ctranslate2 {
 
     DecoderState TransformerDecoder::initial_state(bool iterative_decoding) const {
       DecoderState state;
+
       if (iterative_decoding) {
+        const size_t state_size = _layers.size() * (_with_encoder_attention ? 4 : 2);
+        state.reserve(state_size);
+
         const DataType dtype = output_type();
+
         for (size_t i = 0; i < _layers.size(); ++i) {
           const std::string i_str = std::to_string(i);
           state.emplace("self_keys_" + i_str, StorageView(dtype, _device));
@@ -337,6 +342,7 @@ namespace ctranslate2 {
           }
         }
       }
+
       return state;
     }
 

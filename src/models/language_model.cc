@@ -5,8 +5,17 @@
 namespace ctranslate2 {
   namespace models {
 
+    LanguageModel::LanguageModel()
+      : _state_cache(std::make_shared<layers::DecoderStateCache>())
+    {
+    }
+
     const Vocabulary& LanguageModel::get_vocabulary() const {
       return *_vocabulary;
+    }
+
+    layers::DecoderStateCache& LanguageModel::get_state_cache() const {
+      return *_state_cache;
     }
 
     void LanguageModel::initialize(ModelReader& model_reader) {
@@ -121,6 +130,20 @@ namespace ctranslate2 {
       return tokens.size() < 2;
     }
 
+    static void copy_state(const layers::DecoderState& from,
+                           layers::DecoderState& to,
+                           dim_t batch_size) {
+      if (batch_size == 1) {
+        for (const auto& [name, value] : from)
+          to[name] = value;
+
+      } else {
+        const ops::Tile tile_op(/*axis=*/0, /*repeats=*/batch_size);
+        for (const auto& [name, value] : from)
+          tile_op(value, to[name]);
+      }
+    }
+
     std::vector<GenerationResult>
     DecoderReplica::run_generation(const std::vector<std::vector<std::string>>& start_tokens,
                                    const GenerationOptions& options) {
@@ -157,6 +180,36 @@ namespace ctranslate2 {
       std::vector<std::vector<size_t>> start_ids = vocabulary.to_ids(start_tokens);
       layers::DecoderState state = _decoder->initial_state();
 
+      if (!options.static_prompt.empty()) {
+        std::vector<size_t> static_prompt_ids;
+        static_prompt_ids.reserve(options.static_prompt.size());
+        for (const auto& token : options.static_prompt)
+          static_prompt_ids.emplace_back(vocabulary.to_id(token));
+
+        auto& cache = _model->get_state_cache();
+        const dim_t batch_size = start_ids.size();
+        const layers::DecoderState* cached_state = (options.cache_static_prompt
+                                                    ? cache.get(static_prompt_ids)
+                                                    : nullptr);
+
+        if (cached_state) {
+          copy_state(*cached_state, state, batch_size);
+
+        } else {
+          layers::DecoderState static_state = _decoder->initial_state();
+          StorageView static_prompt = layers::make_sequence_inputs({static_prompt_ids},
+                                                                   _decoder->device());
+
+          (*_decoder)(0, static_prompt, static_state);
+          copy_state(static_state, state, batch_size);
+
+          if (options.cache_static_prompt)
+            cache.save(static_prompt_ids, std::move(static_state));
+        }
+
+        decoding_options.start_step += static_prompt_ids.size();
+      }
+
       if (!options.include_prompt_in_result) {
         size_t min_prompt_length = start_ids[0].size();
         for (const auto& start_sequence : start_ids)
@@ -173,9 +226,9 @@ namespace ctranslate2 {
           }
 
           StorageView prompt = layers::make_sequence_inputs(prompt_ids, _decoder->device());
-          (*_decoder)(0, prompt, state);
+          (*_decoder)(decoding_options.start_step, prompt, state);
 
-          decoding_options.start_step = prompt.dim(1);
+          decoding_options.start_step += prompt.dim(1);
           decoding_options.return_prefix = false;
         }
       }

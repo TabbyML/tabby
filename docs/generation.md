@@ -53,6 +53,44 @@ if output_ids:
 To implement a similar mechanism for batch generation, you can use the arguments `callback` and `include_prompt_in_result=False` in the method `generate_batch`. This is what `generate_tokens` use internally.
 ```
 
+## Prompt caching
+
+The methods `generate_batch` and `generate_tokens` have an argument `static_prompt` that can be used for models that always start with the same prompt (also known as a system prompt). The model is run once on this static prompt and the model state is cached and reused for future calls with the same static prompt.
+
+For example [StableLM](https://github.com/Stability-AI/StableLM) uses a system prompt which could be implemented like this:
+
+```python
+import ctranslate2
+import transformers
+
+generator = ctranslate2.Generator("stablelm-ct2/", device="cpu")
+tokenizer = transformers.AutoTokenizer.from_pretrained("stabilityai/stablelm-tuned-alpha-7b")
+
+system_prompt = """<|SYSTEM|># StableLM Tuned (Alpha version)
+- StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
+- StableLM is excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
+- StableLM is more than just an information source, StableLM is also able to write poetry, short stories, and make jokes.
+- StableLM will refuse to participate in anything that could harm a human.
+"""
+system_prompt_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(system_prompt))
+
+prompt = "<|USER|>What's your mood today?<|ASSISTANT|>"
+prompt_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(prompt))
+
+step_results = generator.generate_tokens(
+    prompt=prompt_tokens,
+    static_prompt=system_prompt_tokens,
+    max_length=512,
+    sampling_topk=10,
+    sampling_temperature=0.7,
+    end_token=[50278, 50279, 50277, 1, 0],
+)
+```
+
+```{note}
+At this time the cache size is unlimited and the cache is only cleared when the model is unloaded. Also if the model is loaded on multiple GPUs, each model replica manages its own cache to avoid copying the state between devices.
+```
+
 ## Special tokens
 
 Special tokens such as the decoder start token `<s>` should be explicitly included in the input if required by the model. No special tokens are added by the generator methods.

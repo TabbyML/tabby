@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
@@ -94,6 +96,17 @@ namespace ctranslate2 {
       std::vector<size_t> _to_original_word_id;
       std::unordered_map<size_t, size_t> _to_output_word_id;
       dim_t _vocabulary_size = 0;
+    };
+
+
+    class DecoderStateCache {
+    public:
+      void save(std::vector<size_t> prompt, DecoderState state);
+      const DecoderState* get(const std::vector<size_t>& prompt) const;
+
+    private:
+      std::map<std::vector<size_t>, DecoderState> _cache;
+      mutable std::mutex _mutex;
     };
 
   }
