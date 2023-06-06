@@ -104,8 +104,8 @@ type AgentConfig = {
     logs?: {
         level?: "debug" | "error" | "silent";
     };
-    analytics?: {
-        enabled?: boolean;
+    anonymousUsageTracking?: {
+        disable?: boolean;
     };
 };
 

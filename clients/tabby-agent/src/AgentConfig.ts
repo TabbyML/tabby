@@ -5,8 +5,8 @@ export type AgentConfig = {
   logs?: {
     level?: "debug" | "error" | "silent";
   };
-  analytics?: {
-    enabled?: boolean;
+  anonymousUsageTracking?: {
+    disable?: boolean;
   };
 };
 
@@ -17,7 +17,7 @@ export const defaultAgentConfig: AgentConfig = {
   logs: {
     level: "silent",
   },
-  analytics: {
-    enabled: true,
+  anonymousUsageTracking: {
+    disable: false,
   },
 };

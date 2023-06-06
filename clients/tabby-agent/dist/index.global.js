@@ -12250,8 +12250,8 @@ var Tabby = (() => {
     logs: {
       level: "silent"
     },
-    analytics: {
-      enabled: true
+    anonymousUsageTracking: {
+      disable: false
     }
   };
 
