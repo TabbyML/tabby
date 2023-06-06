@@ -28,6 +28,8 @@
   },
   "dependencies": {
     "axios": "^1.4.0",
+    "deep-equal": "^2.2.1",
+    "deepmerge": "^4.3.1",
     "form-data": "^4.0.0",
     "lru-cache": "^9.1.1",
     "object-hash": "^3.0.0",

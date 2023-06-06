@@ -52,7 +52,7 @@
         },
         "tabby.serverUrl": {
           "type": "string",
-          "default": "http://127.0.0.1:5000",
+          "default": "http://127.0.0.1:8080",
           "pattern": "^https?:\\/\\/[^\\s]+$",
           "patternErrorMessage": "Please enter a validate http or https URL.",
           "markdownDescription": "Specifies the url of [Tabby Server](https://github.com/TabbyML/tabby)."

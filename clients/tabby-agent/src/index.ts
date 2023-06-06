@@ -7,7 +7,8 @@ export {
   CompletionRequest,
   CompletionResponse,
   agentEventNames,
-} from "./types";
+} from "./Agent";
+export { AgentConfig } from "./AgentConfig";
 export {
   CancelablePromise,
   CancelError,

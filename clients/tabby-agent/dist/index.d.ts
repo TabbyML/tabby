@@ -97,6 +97,21 @@ type HTTPValidationError = {
     detail?: Array<ValidationError>;
 };
 
+type AgentConfig = {
+    server?: {
+        endpoint?: string;
+    };
+    logs?: {
+        level?: "debug" | "error" | "silent";
+    };
+    anonymousUsageTracking?: {
+        disable?: boolean;
+    };
+};
+
+type AgentInitOptions = {
+    config?: AgentConfig;
+};
 type CompletionRequest = {
     filepath: string;
     language: string;
@@ -105,17 +120,22 @@ type CompletionRequest = {
 };
 type CompletionResponse = CompletionResponse$1;
 interface AgentFunction {
-    setServerUrl(url: string): string;
-    getServerUrl(): string;
+    initialize(options?: AgentInitOptions): boolean;
+    updateConfig(config: AgentConfig): boolean;
+    getConfig(): AgentConfig;
     getStatus(): "connecting" | "ready" | "disconnected";
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-    postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<any>;
+    postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
 }
 type StatusChangedEvent = {
     event: "statusChanged";
     status: "connecting" | "ready" | "disconnected";
 };
-type AgentEvent = StatusChangedEvent;
+type ConfigUpdatedEvent = {
+    event: "configUpdated";
+    config: AgentConfig;
+};
+type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent;
 declare const agentEventNames: AgentEvent["event"][];
 interface AgentEventEmitter {
     on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;
@@ -123,20 +143,22 @@ interface AgentEventEmitter {
 type Agent = AgentFunction & AgentEventEmitter;
 
 declare class TabbyAgent extends EventEmitter implements Agent {
-    private serverUrl;
+    private config;
     private status;
     private api;
     private completionCache;
     constructor();
+    private onConfigUpdated;
     private changeStatus;
     private ping;
     private wrapApiPromise;
     private createPrompt;
-    setServerUrl(serverUrl: string): string;
-    getServerUrl(): string;
+    initialize(params: AgentInitOptions): boolean;
+    updateConfig(config: AgentConfig): boolean;
+    getConfig(): AgentConfig;
     getStatus(): "connecting" | "ready" | "disconnected";
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-    postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<any>;
+    postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
 }
 
-export { Agent, AgentEvent, AgentFunction, ApiError, CancelError, CancelablePromise, Choice, ChoiceEvent, CompletionEvent, CompletionRequest, CompletionResponse, EventType, HTTPValidationError, StatusChangedEvent, TabbyAgent, ValidationError, agentEventNames };
+export { Agent, AgentConfig, AgentEvent, AgentFunction, ApiError, CancelError, CancelablePromise, Choice, ChoiceEvent, CompletionEvent, CompletionRequest, CompletionResponse, EventType, HTTPValidationError, StatusChangedEvent, TabbyAgent, ValidationError, agentEventNames };

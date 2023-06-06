@@ -1,7 +1,7 @@
 import { LRUCache } from "lru-cache";
 import hashObject from "object-hash";
 import sizeOfObject from "object-sizeof";
-import { CompletionRequest, CompletionResponse } from "./types";
+import { CompletionRequest, CompletionResponse } from "./Agent";
 import { splitLines, splitWords } from "./utils";
 
 type CompletionCacheKey = CompletionRequest;
