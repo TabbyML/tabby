@@ -1,11 +1,10 @@
 <div align="center">
 
 # 🐾 Tabby
-
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![ci status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/ci.yml?label=ci)](https://github.com/TabbyML/tabby/actions/workflows/ci.yml)
+  
+[![build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/ci.yml?label=build)](https://github.com/TabbyML/tabby/actions/workflows/ci.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 </div>
 
