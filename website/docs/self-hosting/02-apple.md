@@ -6,7 +6,10 @@ Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge
 
 2. Run `tabby --help` to verify successful installation.
 
-3. Start the server with `tabby serve model --models TabbyML/T5P-220M`.
+3. Start the server with:
+```bash
+tabby serve model --models TabbyML/T5P-220M
+```
 
 
 :::tip
