@@ -35,14 +35,15 @@ function! tabby#virtual_text#Show(lines)
   endif
   if s:vim
     " virtual text requires 9.0.0534
+    " append line with a space to avoid empty line, which will result in unexpected behavior
     call prop_add(line('.'), col('.'), #{
       \ type: s:prop_type,
-      \ text: a:lines[0],
+      \ text: a:lines[0] . ' ', 
       \ })
     for line in a:lines[1:]
       call prop_add(line('.'), 0, #{
         \ type: s:prop_type,
-        \ text: line,
+        \ text: line . ' ',
         \ text_align: 'below',
         \ })
     endfor
