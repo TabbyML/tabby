@@ -127,10 +127,13 @@ if !exists('g:tabby_filetype_to_languages')
     \ }
 endif
 
-function! tabby#SetServerUrl(url)
-  let g:tabby_server_url = a:url
-  call s:UpdateServerUrl()
-endfunction
+if !exists('g:tabby_server_url')
+  let g:tabby_server_url = 'http://localhost:8080'
+endif
+
+if !exists('g:tabby_agent_logs')
+  let g:tabby_agent_logs = 'error'
+endif
 
 " 3. Node Job
 "
@@ -208,9 +211,7 @@ function! tabby#Start()
     \ exit_cb: function('s:HandleExit'),
     \ })
 
-  if exists('g:tabby_server_url')
-    call s:UpdateServerUrl()
-  endif
+  call s:Initialize()
 endfunction
 
 function! tabby#Stop()
@@ -243,13 +244,19 @@ function! tabby#Status()
   endif
 endfunction
 
-function! s:UpdateServerUrl()
+function! s:Initialize()
   if !tabby#IsRunning()
     return
   endif
   call tabby#job#Send(s:tabby, #{
-    \ func: 'setServerUrl',
-    \ args: [g:tabby_server_url],
+    \ func: 'initialize',
+    \ args: [#{
+      \ config: #{
+        \ server: #{ endpoint: g:tabby_server_url },
+        \ logs: #{ level: g:tabby_agent_logs },
+        \ },
+      \ client: s:GetVersionString()
+      \ }],
     \ })
 endfunction
 
@@ -267,10 +274,7 @@ function! s:GetCompletion(id)
 
   let s:pending_request_id = tabby#job#Send(s:tabby, #{
     \ func: 'getCompletions',
-    \ args: [#{
-      \ prompt: s:GetPrompt(),
-      \ language: s:GetLanguage(),
-      \ }],
+    \ args: [s:CreateCompletionRequest()],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
     \ })
@@ -520,12 +524,13 @@ endfunction
 
 " 6. Utils
 
-function! s:GetPrompt()
-  let max_lines = 20
-  let first_line = max([1, line('.') - max_lines])
-  let lines = getbufline('%', first_line, line('.'))
-  let lines[-1] = lines[-1][:col('.') - 2]
-  return join(lines, "\n")
+function! s:CreateCompletionRequest()
+  return #{
+    \ filepath: expand('%:p'),
+    \ language: s:GetLanguage(),
+    \ text: join(getbufline('%', 1, '$'), "\n"),
+    \ position: line2byte(line('.')) + col('.') - 2,
+    \ }
 endfunction
 
 function! s:GetLanguage()
@@ -535,4 +540,9 @@ function! s:GetLanguage()
   else
     return filetype
   endif
+endfunction
+
+function! s:GetVersionString()
+  let version_string = execute('version')
+  return split(version_string, "\n")[0]
 endfunction

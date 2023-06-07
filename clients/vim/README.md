@@ -16,7 +16,7 @@ filetype plugin on
 Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
 
 " Set URL of Tabby server
-let g:tabby_server_url = 'http://127.0.0.1:5000'
+let g:tabby_server_url = 'http://127.0.0.1:8080'
 ```
 
 ## Usage
