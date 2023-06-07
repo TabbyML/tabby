@@ -14,13 +14,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Serve the model
+    /// Starts the api endpoint for IDE / Editor extensions.
     Serve(serve::ServeArgs),
 
-    /// Download the model
+    /// Download the language model for serving.
     Download(download::DownloadArgs),
 
-    /// Starts the scheduler process.
+    /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 }
 
