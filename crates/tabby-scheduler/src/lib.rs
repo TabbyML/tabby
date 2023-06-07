@@ -4,15 +4,10 @@ mod repository;
 use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
+use anyhow::{Result, anyhow};
 
-pub fn scheduler(now: bool) {
-    let config = Config::load();
-    if config.is_err() {
-        error!("Please create config.toml before using scheduler");
-        return;
-    }
-
-    let config = config.unwrap();
+pub async fn scheduler(now: bool) -> Result<()> {
+    let config = Config::load()?;
     let mut scheduler = JobScheduler::new();
 
     let job = || {
@@ -24,7 +19,7 @@ pub fn scheduler(now: bool) {
     };
 
     if now {
-        job()
+        job();
     } else {
         // Every 5 hours.
         scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job));
@@ -37,6 +32,8 @@ pub fn scheduler(now: bool) {
             std::thread::sleep(duration);
         }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
