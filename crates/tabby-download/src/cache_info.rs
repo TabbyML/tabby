@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use tabby_common::path::ModelDir;
 
@@ -34,7 +34,9 @@ impl CacheInfo {
     }
 
     pub fn remote_cache_key(res: &reqwest::Response) -> Result<&str> {
-        let key = res.headers().get("etag")
+        let key = res
+            .headers()
+            .get("etag")
             .ok_or(anyhow!("etag key missing"))?
             .to_str()?;
         Ok(key)

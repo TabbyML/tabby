@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use tabby_common::config::{Config, Repository};
 
 trait ConfigExt {
@@ -26,10 +26,7 @@ impl RepositoryExt for Repository {
         let dir = self.dir();
         let dir_string = dir.display().to_string();
         let status = if dir.exists() {
-            Command::new("git")
-                .current_dir(&dir)
-                .arg("pull")
-                .status()
+            Command::new("git").current_dir(&dir).arg("pull").status()
         } else {
             std::fs::create_dir_all(&dir)
                 .unwrap_or_else(|_| panic!("Failed to create dir {}", dir_string));
@@ -45,7 +42,11 @@ impl RepositoryExt for Repository {
 
         if let Some(code) = status?.code() {
             if code != 0 {
-                return Err(anyhow!("Failed to pull remote '{}'. Consider remove dir '{}' and retry", &self.git_url, &dir_string));
+                return Err(anyhow!(
+                    "Failed to pull remote '{}'. Consider remove dir '{}' and retry",
+                    &self.git_url,
+                    &dir_string
+                ));
             }
         }
 

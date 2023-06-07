@@ -1,10 +1,10 @@
 mod index;
 mod repository;
 
+use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
-use anyhow::{Result, anyhow};
 
 pub async fn scheduler(now: bool) -> Result<()> {
     let config = Config::load()?;
@@ -22,7 +22,6 @@ pub async fn scheduler(now: bool) -> Result<()> {
         let ret = index::index_repositories(&config);
         if let Err(err) = ret {
             error!("Failed to index repositories, err: '{}'", err);
-            return;
         }
     };
 

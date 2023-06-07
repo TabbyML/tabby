@@ -36,12 +36,11 @@ impl RepositoryExt for Repository {
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             if let Ok(file_content) = read_to_string(entry.path()) {
                 info!("Indexing {:?}", relative_path);
-                writer
-                    .add_document(doc!(
-                        git_url => self.git_url.clone(),
-                        filepath => relative_path.display().to_string(),
-                        content => file_content,
-                    ))?;
+                writer.add_document(doc!(
+                    git_url => self.git_url.clone(),
+                    filepath => relative_path.display().to_string(),
+                    content => file_content,
+                ))?;
             } else {
                 warn!("Skip {:?}", relative_path);
             }

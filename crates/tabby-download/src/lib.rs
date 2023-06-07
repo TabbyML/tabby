@@ -2,14 +2,19 @@ mod cache_info;
 
 use std::{cmp, fs, io::Write, path::Path};
 
+use anyhow::{anyhow, Result};
 use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use tabby_common::path::ModelDir;
-use anyhow::{Result, anyhow};
 
 impl CacheInfo {
-    async fn download(&mut self, model_id: &str, path: &str, prefer_local_file: bool) -> Result<()> {
+    async fn download(
+        &mut self,
+        model_id: &str,
+        path: &str,
+        prefer_local_file: bool,
+    ) -> Result<()> {
         // Create url.
         let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
 
@@ -60,7 +65,9 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
             prefer_local_file,
         )
         .await?;
-    cache_info.download(model_id, "ctranslate2/model.bin", prefer_local_file).await?;
+    cache_info
+        .download(model_id, "ctranslate2/model.bin", prefer_local_file)
+        .await?;
     cache_info.save(model_id)?;
 
     Ok(())
@@ -83,7 +90,9 @@ async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>) -> 
         }
     }
 
-    let total_size = res.content_length().ok_or(anyhow!("No content length in headers"))?;
+    let total_size = res
+        .content_length()
+        .ok_or(anyhow!("No content length in headers"))?;
 
     // Indicatif setup
     let pb = ProgressBar::new(total_size);
