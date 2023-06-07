@@ -18,6 +18,11 @@ use crate::fatal;
 
 #[derive(OpenApi)]
 #[openapi(
+    info(title="Tabby Server", description = "OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-hosted AI coding assistant. ![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby?style=social)", license(name = "Apache 2.0", url="https://github.com/TabbyML/tabby/blob/main/LICENSE")),
+    servers(
+        (url = "https://app.tabbyml.com/api/workspace/tabbyml/tabby", description = "Local server"),
+        (url = "http://localhost:8080", description = "Local server"),
+    ),
     paths(events::log_event, completions::completion,),
     components(schemas(
         events::LogEventRequest,

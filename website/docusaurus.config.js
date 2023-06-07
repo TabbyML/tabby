@@ -35,7 +35,7 @@ const config = {
 
   presets: [
     [
-      'classic',
+      'docusaurus-preset-openapi',
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
@@ -44,6 +44,10 @@ const config = {
           // Remove this to remove the "edit this page" links.
           editUrl:
             'https://github.com/TabbyML/tabby/edit/main/website',
+        },
+        api: {
+          path: "static/openapi.json",
+          routeBasePath: "/api"
         },
         blog: {
           showReadingTime: true,
@@ -54,23 +58,6 @@ const config = {
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
-        },
-      }),
-    ],
-    [
-      'redocusaurus',
-      ({
-        // Plugin Options for loading OpenAPI files
-        specs: [
-          {
-            spec: 'static/openapi.json',
-            route: '/api/',
-          },
-        ],
-        // Theme Options for modifying how redoc renders them
-        theme: {
-          // Change with your site colors
-          primaryColor: '#2e8555',
         },
       }),
     ],
@@ -167,7 +154,7 @@ const config = {
         },
       };
     },
-  ]
+  ],
 };
 
 module.exports = config;
