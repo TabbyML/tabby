@@ -14,13 +14,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Serve the model
+    /// Starts the api endpoint for IDE / Editor extensions.
     Serve(serve::ServeArgs),
 
-    /// Download the model
+    /// Download the language model for serving.
     Download(download::DownloadArgs),
 
-    /// Starts the scheduler process.
+    /// Run scheduler progress for cron jobs integrating external code repositories.
     Scheduler(SchedulerArgs),
 }
 
@@ -42,6 +42,25 @@ async fn main() {
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
         Commands::Download(args) => download::main(args).await,
-        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now),
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
+            .await
+            .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
     }
+}
+
+#[macro_export]
+macro_rules! fatal {
+    ($msg:expr) => {
+        ({
+            tracing::error!($msg);
+            std::process::exit(1);
+        })
+    };
+
+    ($fmt:expr, $($arg:tt)*) => {
+        ({
+            tracing::error!($fmt, $($arg)*);
+            std::process::exit(1);
+        })
+    };
 }

@@ -1,30 +1,32 @@
 mod index;
 mod repository;
 
+use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
 
-pub fn scheduler(now: bool) {
-    let config = Config::load();
-    if config.is_err() {
-        error!("Please create config.toml before using scheduler");
-        return;
-    }
-
-    let config = config.unwrap();
+pub async fn scheduler(now: bool) -> Result<()> {
+    let config = Config::load()?;
     let mut scheduler = JobScheduler::new();
 
     let job = || {
         info!("Syncing repositories...");
-        repository::sync_repositories(&config);
+        let ret = repository::sync_repositories(&config);
+        if let Err(err) = ret {
+            error!("Failed to sync repositories, err: '{}'", err);
+            return;
+        }
 
         info!("Indexing repositories...");
-        index::index_repositories(&config);
+        let ret = index::index_repositories(&config);
+        if let Err(err) = ret {
+            error!("Failed to index repositories, err: '{}'", err);
+        }
     };
 
     if now {
-        job()
+        job();
     } else {
         // Every 5 hours.
         scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job));
@@ -37,6 +39,8 @@ pub fn scheduler(now: bool) {
             std::thread::sleep(duration);
         }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -61,7 +65,7 @@ mod tests {
             }],
         };
 
-        repository::sync_repositories(&config);
-        index::index_repositories(&config);
+        repository::sync_repositories(&config).unwrap();
+        index::index_repositories(&config).unwrap();
     }
 }

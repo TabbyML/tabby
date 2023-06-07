@@ -8,13 +8,13 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
-use clap::{error::ErrorKind, Args, CommandFactory};
+use clap::Args;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::Cli;
+use crate::fatal;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -68,7 +68,15 @@ pub async fn main(args: &ServeArgs) {
     valid_args(args);
 
     // Ensure model exists.
-    tabby_download::download_model(&args.model, true).await;
+    tabby_download::download_model(&args.model, true)
+        .await
+        .unwrap_or_else(|err| {
+            fatal!(
+                "Failed to fetch model due to '{}', is '{}' a valid model id?",
+                err,
+                args.model
+            )
+        });
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
@@ -81,7 +89,7 @@ pub async fn main(args: &ServeArgs) {
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
-        .expect("Error happends during model serving")
+        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
 fn api_router(args: &ServeArgs) -> Router {
@@ -104,21 +112,11 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
 
 fn valid_args(args: &ServeArgs) {
     if args.device == Device::Cuda && args.num_replicas_per_device != 1 {
-        Cli::command()
-            .error(
-                ErrorKind::ValueValidation,
-                "CUDA device only supports 1 replicas per device",
-            )
-            .exit();
+        fatal!("CUDA device only supports 1 replicas per device");
     }
 
     if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
-        Cli::command()
-            .error(
-                ErrorKind::ValueValidation,
-                "CPU device only supports device indices = [0]",
-            )
-            .exit();
+        fatal!("CPU device only supports device indices = [0]");
     }
 }

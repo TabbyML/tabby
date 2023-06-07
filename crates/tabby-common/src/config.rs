@@ -1,9 +1,12 @@
-use std::path::PathBuf;
+use std::{
+    io::{Error, ErrorKind},
+    path::PathBuf,
+};
 
 use filenamify::filenamify;
 use serde::Deserialize;
 
-use crate::path::repositories_dir;
+use crate::path::{config_file, repositories_dir};
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -11,8 +14,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self, serdeconv::Error> {
-        serdeconv::from_toml_file(crate::path::config_file().as_path())
+    pub fn load() -> Result<Self, Error> {
+        let file = serdeconv::from_toml_file(crate::path::config_file().as_path());
+        file.map_err(|_| {
+            Error::new(
+                ErrorKind::InvalidData,
+                format!("Config {:?} doesn't exist or is not valid", config_file()),
+            )
+        })
     }
 }
 
