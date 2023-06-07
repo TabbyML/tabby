@@ -81,6 +81,7 @@ const config = {
             position: 'left',
             label: 'Docs',
           },
+          {to: '/playground', label: 'Playground', position: 'left'},
           {to: '/api', label: 'API', position: 'left'},
           // FIXME(meng): enable blog.
           // {to: '/blog', label: 'Blog', position: 'left'},
@@ -97,11 +98,19 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Links',
             items: [
               {
-                label: 'Self Hosting',
-                to: '/docs/self-hosting',
+                label: 'Docs',
+                to: '/docs/getting-started',
+              },
+              {
+                label: 'Playground',
+                to: '/playground',
+              },
+              {
+                label: 'API',
+                to: '/api',
               },
             ],
           },
