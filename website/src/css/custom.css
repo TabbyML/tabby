@@ -18,17 +18,14 @@
   --ifm-color-primary-lighter: #443f45;
   --ifm-color-primary-lightest: #4d484e;
 
-  --ifm-background-color: #e9e1d4;
-  --ifm-background-surface-color: var(--ifm-background-color);
+  --ifm-background-color: #FFF8EC;
+  --ifm-background-surface-color: #E9E1D4;
 
-  --ifm-code-background: #FFF8EC;
-  --openapi-monaco-background-color-light: #FFF8EC !important;
+  --ifm-code-background: #FFFEFD;
+  --openapi-monaco-background-color-light: var(--ifm-code-background) !important;
   --openapi-card-background-color: var(--ifm-code-background) !important;
 }
 
-.monaco-editor{
-  background-color: var(--openapi-monaco-background-color-light) !important;
-}
 
 .markdown a {
   color: var(--ifm-color-success-darkest);
@@ -55,4 +52,8 @@
   line-height: 10px;
   height: 10px;
   font-weight: 600;
+}
+
+.Playground .monaco-editor {
+  padding-top: 15px;
 }
