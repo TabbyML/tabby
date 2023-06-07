@@ -172,8 +172,10 @@ fn reverse(s: String) -> String {
     s.chars().rev().collect()
 }
 
-fn create_stop_regex(tokenizer: &Tokenizer, stop_words: &Vec<&str>) -> Regex {
-    let encodings = tokenizer.encode_batch(stop_words.clone(), false).unwrap();
+fn create_stop_regex(tokenizer: &Tokenizer, stop_words: &[&str]) -> Regex {
+    let encodings = tokenizer
+        .encode_batch(stop_words.to_owned(), false)
+        .unwrap();
     let stop_tokens: Vec<String> = encodings
         .iter()
         .map(|x| x.get_tokens().join(""))

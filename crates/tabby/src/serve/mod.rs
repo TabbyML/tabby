@@ -8,13 +8,13 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
-use clap::{error::ErrorKind, Args, CommandFactory};
+use clap::Args;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::Cli;
+use crate::fatal;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -104,21 +104,11 @@ fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
 
 fn valid_args(args: &ServeArgs) {
     if args.device == Device::Cuda && args.num_replicas_per_device != 1 {
-        Cli::command()
-            .error(
-                ErrorKind::ValueValidation,
-                "CUDA device only supports 1 replicas per device",
-            )
-            .exit();
+        fatal!("CUDA device only supports 1 replicas per device");
     }
 
     if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
-        Cli::command()
-            .error(
-                ErrorKind::ValueValidation,
-                "CPU device only supports device indices = [0]",
-            )
-            .exit();
+        fatal!("CPU device only supports device indices = [0]");
     }
 }
