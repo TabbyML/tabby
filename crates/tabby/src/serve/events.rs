@@ -6,10 +6,13 @@ use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct LogEventRequest {
+    /// Event type, should be `view` or `select`.
     #[schema(example = "view")]
     #[serde(rename = "type")]
     event_type: String,
+
     completion_id: String,
+
     choice_index: u32,
 }
 
@@ -17,6 +20,12 @@ pub struct LogEventRequest {
     post,
     path = "/v1/events",
     request_body = LogEventRequest,
+    tag = "v1",
+    operation_id = "event",
+    responses(
+        (status = 200, description = "Success"),
+        (status = 400, description = "Bad Request")
+    )
 )]
 pub async fn log_event(Json(request): Json<LogEventRequest>) -> StatusCode {
     if request.event_type == "view" {

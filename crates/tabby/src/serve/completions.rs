@@ -21,6 +21,7 @@ pub struct CompletionRequest {
     #[deprecated]
     prompt: Option<String>,
 
+    /// Language identifier, full list is maintained at
     /// https://code.visualstudio.com/docs/languages/identifiers
     #[schema(example = "python")]
     language: Option<String>,
@@ -55,7 +56,13 @@ pub struct CompletionResponse {
 #[utoipa::path(
     post,
     path = "/v1/completions",
-    request_body = CompletionRequest ,
+    request_body = CompletionRequest,
+    operation_id = "completion",
+    tag = "v1",
+    responses(
+        (status = 200, description = "Success", body = CompletionResponse, content_type = "application/json"),
+        (status = 400, description = "Bad Request")
+    )
 )]
 pub async fn completion(
     State(state): State<Arc<CompletionState>>,

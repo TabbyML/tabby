@@ -32,3 +32,31 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+.post a {
+  display: flex;
+}
+
+.post a::after {
+  content: "post";
+  margin-left: auto;
+  display: inline-block;
+  position: relative;
+  top: 1px;
+  margin-right: -6px;
+  padding: 3px 6px;
+  border: 1px solid var(--ifm-color-warning);
+  border-radius: 3px;
+  color: black;
+  background: var(--ifm-color-warning);
+  text-transform: uppercase;
+  font-size: 10px;
+  line-height: 10px;
+  height: 10px;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .post a::after {
+  color: var(--ifm-color-warning);
+  background: none;
+}
