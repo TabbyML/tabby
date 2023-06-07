@@ -22,7 +22,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ## Demo
 <p align="center">
-  <a href="https://tabbyml.github.io/tabby/playground"><img alt="Open in Playground" src="https://img.shields.io/badge/OPEN%20IN%20PLAYGROUND-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
+  <a target="_blank" href="https://tabbyml.github.io/tabby/playground"><img alt="Open in Playground" src="https://img.shields.io/badge/OPEN%20IN%20PLAYGROUND-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
 </p>
 
 <p align="center">
