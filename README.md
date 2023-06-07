@@ -22,7 +22,7 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 
 ## Demo
 <p align="center">
-  <a href="https://huggingface.co/spaces/TabbyML/tabby"><img alt="Open in Spaces" src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-md.svg"></a>
+  <a href="https://tabbyml.github.io/tabby/playground"><img alt="Open in Playground" src="https://img.shields.io/badge/OPEN%20IN%20PLAYGROUND-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
 </p>
 
 <p align="center">
