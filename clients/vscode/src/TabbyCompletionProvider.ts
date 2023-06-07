@@ -10,7 +10,7 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
-import { CompletionResponse, EventType, ChoiceEvent, CancelablePromise } from "tabby-agent";
+import { CompletionResponse, CancelablePromise } from "tabby-agent";
 import { Agent } from "./Agent";
 import { sleep } from "./utils";
 
@@ -82,8 +82,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {
     return (
       tabbyCompletion?.choices?.map((choice: any) => {
-        let event: ChoiceEvent = {
-          type: EventType.SELECT,
+        let event = {
+          type: "select",
           completion_id: tabbyCompletion.id,
           choice_index: choice.index,
         };

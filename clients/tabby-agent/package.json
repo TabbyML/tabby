@@ -10,7 +10,7 @@
   "browser": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../docs/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
+    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../website/static/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
     "dev": "tsup --watch",
     "build": "tsup"
   },

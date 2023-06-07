@@ -12629,47 +12629,45 @@ var AxiosHttpRequest = class extends BaseHttpRequest {
   }
 };
 
-// src/generated/services/DefaultService.ts
+// src/generated/services/V1Service.ts
 init_global();
 init_dirname();
 init_filename();
 init_buffer2();
 init_process2();
-var DefaultService = class {
+var V1Service = class {
   constructor(httpRequest) {
     this.httpRequest = httpRequest;
   }
   /**
-   * Completions
    * @param requestBody
-   * @returns CompletionResponse Successful Response
+   * @returns CompletionResponse Success
    * @throws ApiError
    */
-  completionsV1CompletionsPost(requestBody) {
+  completion(requestBody) {
     return this.httpRequest.request({
       method: "POST",
       url: "/v1/completions",
       body: requestBody,
       mediaType: "application/json",
       errors: {
-        422: `Validation Error`
+        400: `Bad Request`
       }
     });
   }
   /**
-   * Events
    * @param requestBody
-   * @returns any Successful Response
+   * @returns any Success
    * @throws ApiError
    */
-  eventsV1EventsPost(requestBody) {
+  event(requestBody) {
     return this.httpRequest.request({
       method: "POST",
       url: "/v1/events",
       body: requestBody,
       mediaType: "application/json",
       errors: {
-        422: `Validation Error`
+        400: `Bad Request`
       }
     });
   }
@@ -12679,7 +12677,7 @@ var DefaultService = class {
 var TabbyApi = class {
   constructor(config2, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config2?.BASE ?? "",
+      BASE: config2?.BASE ?? "https://app.tabbyml.com/api/workspace/tabbyml/tabby",
       VERSION: config2?.VERSION ?? "0.1.0",
       WITH_CREDENTIALS: config2?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config2?.CREDENTIALS ?? "include",
@@ -12689,7 +12687,7 @@ var TabbyApi = class {
       HEADERS: config2?.HEADERS,
       ENCODE_PATH: config2?.ENCODE_PATH
     });
-    this.default = new DefaultService(this.request);
+    this.v1 = new V1Service(this.request);
   }
 };
 
@@ -12699,19 +12697,6 @@ init_dirname();
 init_filename();
 init_buffer2();
 init_process2();
-
-// src/generated/models/EventType.ts
-init_global();
-init_dirname();
-init_filename();
-init_buffer2();
-init_process2();
-var EventType = /* @__PURE__ */ ((EventType2) => {
-  EventType2["COMPLETION"] = "completion";
-  EventType2["VIEW"] = "view";
-  EventType2["SELECT"] = "select";
-  return EventType2;
-})(EventType || {});
 
 // src/utils.ts
 init_global();
@@ -32383,12 +32368,15 @@ var TabbyAgent = class extends EventEmitter {
   }
   callApi(api, request2) {
     this.logger.debug({ api: api.name, request: request2 }, "API request");
-    const promise = api.call(this.api.default, request2);
+    const promise = api.call(this.api.v1, request2);
     return cancelable(
       promise.then((response) => {
         this.logger.debug({ api: api.name, response }, "API response");
         this.changeStatus("ready");
         return response;
+      }).catch((error) => {
+        this.logger.debug({ api: api.name }, "API request canceled");
+        throw error;
       }).catch((error) => {
         this.logger.error({ api: api.name, error }, "API error");
         this.changeStatus("disconnected");
@@ -32399,13 +32387,16 @@ var TabbyAgent = class extends EventEmitter {
       }
     );
   }
-  createPrompt(request2) {
+  createSegments(request2) {
     const maxLines = 20;
     const prefix = request2.text.slice(0, request2.position);
-    const lines = splitLines(prefix);
-    const cutoff = Math.max(lines.length - maxLines, 0);
-    const prompt = lines.slice(cutoff).join("");
-    return prompt;
+    const prefixLines = splitLines(prefix);
+    const suffix = request2.text.slice(request2.position);
+    const suffixLines = splitLines(suffix);
+    return {
+      prefix: prefixLines.slice(Math.max(prefixLines.length - maxLines, 0)).join(""),
+      suffix: suffixLines.slice(0, maxLines).join("")
+    };
   }
   initialize(params) {
     if (params.config) {
@@ -32441,20 +32432,19 @@ var TabbyAgent = class extends EventEmitter {
         resolve4(this.completionCache.get(request2));
       });
     }
-    const prompt = this.createPrompt(request2);
-    if (isBlank(prompt)) {
-      this.logger.debug("Prompt is blank, returning empty completion response");
+    const segments = this.createSegments(request2);
+    if (isBlank(segments.prefix)) {
+      this.logger.debug("Segment prefix is blank, returning empty completion response");
       return new CancelablePromise((resolve4) => {
         resolve4({
           id: "agent-" + v4_default(),
-          created: (/* @__PURE__ */ new Date()).getTime(),
           choices: []
         });
       });
     }
-    const promise = this.callApi(this.api.default.completionsV1CompletionsPost, {
-      prompt,
-      language: request2.language
+    const promise = this.callApi(this.api.v1.completion, {
+      language: request2.language,
+      segments
     });
     return cancelable(
       promise.then((response) => {
@@ -32467,7 +32457,7 @@ var TabbyAgent = class extends EventEmitter {
     );
   }
   postEvent(request2) {
-    return this.callApi(this.api.default.eventsV1EventsPost, request2);
+    return this.callApi(this.api.v1.event, request2);
   }
 };
 
@@ -32482,7 +32472,6 @@ export {
   ApiError,
   CancelError,
   CancelablePromise,
-  EventType,
   TabbyAgent,
   agentEventNames
 };

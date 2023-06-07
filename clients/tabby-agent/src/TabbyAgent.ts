@@ -3,9 +3,9 @@ import { EventEmitter } from "events";
 import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import deepMerge from "deepmerge";
-import { TabbyApi, CancelablePromise, ApiError, ChoiceEvent, CompletionEvent } from "./generated";
+import { TabbyApi, CancelablePromise, ApiError, CancelError } from "./generated";
 import { sleep, cancelable, splitLines, isBlank } from "./utils";
-import { Agent, AgentEvent, AgentInitOptions, CompletionRequest, CompletionResponse } from "./Agent";
+import { Agent, AgentEvent, AgentInitOptions, CompletionRequest, CompletionResponse, LogEventRequest } from "./Agent";
 import { AgentConfig, defaultAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
 import { rootLogger, allLoggers } from "./logger";
@@ -59,13 +59,17 @@ export class TabbyAgent extends EventEmitter implements Agent {
     request: Request
   ): CancelablePromise<Response> {
     this.logger.debug({ api: api.name, request }, "API request");
-    const promise = api.call(this.api.default, request);
+    const promise = api.call(this.api.v1, request);
     return cancelable(
       promise
         .then((response: Response) => {
           this.logger.debug({ api: api.name, response }, "API response");
           this.changeStatus("ready");
           return response;
+        })
+        .catch((error: CancelError) => {
+          this.logger.debug({ api: api.name }, "API request canceled");
+          throw error;
         })
         .catch((error: ApiError) => {
           this.logger.error({ api: api.name, error }, "API error");
@@ -78,13 +82,17 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  private createPrompt(request: CompletionRequest): string {
+  private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
+    // max to 20 lines in prefix and max to 20 lines in suffix
     const maxLines = 20;
     const prefix = request.text.slice(0, request.position);
-    const lines = splitLines(prefix);
-    const cutoff = Math.max(lines.length - maxLines, 0);
-    const prompt = lines.slice(cutoff).join("");
-    return prompt;
+    const prefixLines = splitLines(prefix);
+    const suffix = request.text.slice(request.position);
+    const suffixLines = splitLines(suffix);
+    return {
+      prefix: prefixLines.slice(Math.max(prefixLines.length - maxLines, 0)).join(""),
+      suffix: suffixLines.slice(0, maxLines).join(""),
+    };
   }
 
   public initialize(params: AgentInitOptions): boolean {
@@ -127,20 +135,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
         resolve(this.completionCache.get(request));
       });
     }
-    const prompt = this.createPrompt(request);
-    if (isBlank(prompt)) {
-      this.logger.debug("Prompt is blank, returning empty completion response");
+    const segments = this.createSegments(request);
+    if (isBlank(segments.prefix)) {
+      this.logger.debug("Segment prefix is blank, returning empty completion response");
       return new CancelablePromise((resolve) => {
         resolve({
           id: "agent-" + uuid(),
-          created: new Date().getTime(),
           choices: [],
         });
       });
     }
-    const promise = this.callApi(this.api.default.completionsV1CompletionsPost, {
-      prompt,
+    const promise = this.callApi(this.api.v1.completion, {
       language: request.language,
+      segments,
     });
     return cancelable(
       promise.then((response: CompletionResponse) => {
@@ -153,7 +160,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  public postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<boolean> {
-    return this.callApi(this.api.default.eventsV1EventsPost, request);
+  public postEvent(request: LogEventRequest): CancelablePromise<boolean> {
+    return this.callApi(this.api.v1.event, request);
   }
 }
