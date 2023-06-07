@@ -397,6 +397,13 @@ function! tabby#Show()
     return
   endif
   let lines = split(choice.text, "\n")
+  " split will not give an empty line if text starts with "\n" or ends with "\n"
+  if choice.text[0] == "\n"
+    call insert(lines, '')
+  endif
+  if choice.text[-1] == "\n"
+    call add(lines, '')
+  endif
   call tabby#virtual_text#Show(lines)
   let s:shown_lines = lines
   call s:PostEvent('view')
