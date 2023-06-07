@@ -67,13 +67,12 @@ pub async fn completion(
         .sampling_temperature(0.1)
         .stop_words(get_stop_words(&language))
         .build()
-        .unwrap_or_else(|_| fatal!("Invalid TextInferenceOptions"));
+        .unwrap();
 
     let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
         if let Some(prompt_template) = &state.prompt_template {
             if let Some(suffix) = suffix {
-                strfmt!(prompt_template, prefix => prefix, suffix => suffix)
-                    .unwrap_or_else(|_| fatal!("Invalid prompt template'{}'", prompt_template))
+                strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
             } else {
                 // If suffix is empty, just returns prefix.
                 prefix
@@ -125,7 +124,7 @@ impl CompletionState {
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .build()
-            .unwrap_or_else(|_| fatal!("Invalid TextInferenceEngineCreateOptionsBuilder"));
+            .unwrap();
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,

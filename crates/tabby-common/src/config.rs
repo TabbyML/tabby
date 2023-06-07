@@ -11,12 +11,9 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self,Error> {
+    pub fn load() -> Result<Self, Error> {
         let file = serdeconv::from_toml_file(crate::path::config_file().as_path());
-        match file {
-            Ok(file) => Ok(file),
-            Err(_) => Err(std::io::Error::new(ErrorKind::InvalidData, format!("Config {:?} doesn't exist or is not valid", config_file())))
-        }
+        file.map_err(|_| Error::new(ErrorKind::InvalidData, format!("Config {:?} doesn't exist or is not valid", config_file())))
     }
 }
 

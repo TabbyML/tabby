@@ -12,10 +12,18 @@ pub async fn scheduler(now: bool) -> Result<()> {
 
     let job = || {
         info!("Syncing repositories...");
-        repository::sync_repositories(&config);
+        let ret = repository::sync_repositories(&config);
+        if let Err(err) = ret {
+            error!("Failed to sync repositories, err: '{}'", err);
+            return;
+        }
 
         info!("Indexing repositories...");
-        index::index_repositories(&config);
+        let ret = index::index_repositories(&config);
+        if let Err(err) = ret {
+            error!("Failed to index repositories, err: '{}'", err);
+            return;
+        }
     };
 
     if now {
@@ -58,7 +66,7 @@ mod tests {
             }],
         };
 
-        repository::sync_repositories(&config);
-        index::index_repositories(&config);
+        repository::sync_repositories(&config).unwrap();
+        index::index_repositories(&config).unwrap();
     }
 }
