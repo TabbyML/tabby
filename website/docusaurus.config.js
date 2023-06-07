@@ -168,6 +168,14 @@ const config = {
         },
       };
     },
+    [
+      "posthog-docusaurus",
+      {
+        apiKey: "phc_aBzNGHzlOy2C8n1BBDtH7d4qQsIw9d8T0unVlnKfdxB",
+        appUrl: "https://app.posthog.com",
+        enableInDevelopment: false,
+      },
+    ],
   ],
 };
 
