@@ -48,9 +48,9 @@ g:tabby_enable 		Controls Tabby whether auto-starts along with VIM or
 					*g:tabby_server_url*
 g:tabby_server_url	Specify the Tabby server URL. You always need this
 			setting in your vimrc file, unless you are using the
-			default value: "http://localhost:5000".
+			default value: "http://localhost:8080".
 >
-	let g:tabby_server_url = 'http://localhost:5000'
+	let g:tabby_server_url = 'http://localhost:8080'
 <
 					*g:tabby_suggestion_delay*
 g:tabby_suggestion_delay
@@ -81,6 +81,15 @@ g:tabby_filetype_to_languages
 		\ "objc": "objective-c",
 		\ "objcpp": "objective-cpp",
 		\ }
+<
+					*g:tabby_agent_logs*
+g:tabby_agent_logs
+			Controls the log level of tabby-agent, could be set to
+			'debug', 'error' or 'silent', default to 'error'.
+			You can find log files in "$HOME/.tabby/agent-logs/".
+			Logs could be prettily visualized by 'pino-pretty'.
+>
+	let g:tabby_agent_logs = 'error'
 <
 
 					*Tabby-keybindings* *Tabby-maps*
