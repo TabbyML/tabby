@@ -81,7 +81,7 @@ pub async fn main(args: &ServeArgs) {
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
-        .expect("Error happends during model serving")
+        .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
 fn api_router(args: &ServeArgs) -> Router {

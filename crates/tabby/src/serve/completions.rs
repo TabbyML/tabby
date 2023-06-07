@@ -10,6 +10,7 @@ use tabby_common::{events, path::ModelDir};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
+use crate::fatal;
 
 mod languages;
 
@@ -123,7 +124,7 @@ impl CompletionState {
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .build()
-            .expect("Invalid TextInferenceEngineCreateOptions");
+            .unwrap_or_else(|_| fatal!("Invalid TextInferenceEngineCreateOptionsBuilder"));
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,
