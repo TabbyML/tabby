@@ -16,6 +16,13 @@ pub struct DownloadArgs {
 
 pub async fn main(args: &DownloadArgs) {
     tabby_download::download_model(&args.model, args.prefer_local_file)
-        .await.unwrap_or_else(|err| fatal!("Failed to fetch model due to '{}', is '{}' a valid model id?", err, args.model));
+        .await
+        .unwrap_or_else(|err| {
+            fatal!(
+                "Failed to fetch model due to '{}', is '{}' a valid model id?",
+                err,
+                args.model
+            )
+        });
     info!("model '{}' is ready", args.model);
 }

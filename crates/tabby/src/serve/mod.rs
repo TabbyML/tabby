@@ -69,7 +69,14 @@ pub async fn main(args: &ServeArgs) {
 
     // Ensure model exists.
     tabby_download::download_model(&args.model, true)
-        .await.unwrap_or_else(|err| fatal!("Failed to fetch model due to '{}', is '{}' a valid model id?", err, args.model));
+        .await
+        .unwrap_or_else(|err| {
+            fatal!(
+                "Failed to fetch model due to '{}', is '{}' a valid model id?",
+                err,
+                args.model
+            )
+        });
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))

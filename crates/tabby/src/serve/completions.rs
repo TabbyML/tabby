@@ -148,5 +148,6 @@ struct Metadata {
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    serdeconv::from_json_file(model_dir.metadata_file()).unwrap_or_else(|_| fatal!("Invalid metadata file: {}", model_dir.metadata_file()))
+    serdeconv::from_json_file(model_dir.metadata_file())
+        .unwrap_or_else(|_| fatal!("Invalid metadata file: {}", model_dir.metadata_file()))
 }
