@@ -14,27 +14,19 @@ function HomepageHeader() {
       <div className="container">
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        {false && <div className={styles.buttons}>
+
+        <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            to="/docs/intro">
+            to="/docs/getting-started">
             Tutorial - 5min ⏱️
           </Link>
-        </div>}
-        <div className="flex justify-center gap-1">
-          <ExternalLink href="https://github.com/TabbyML/tabby" imgUrl="https://img.shields.io/github/stars/TabbyML/tabby?style=social" />
-          <ExternalLink href="https://hub.docker.com/r/tabbyml/tabby" imgUrl="https://img.shields.io/docker/pulls/tabbyml/tabby?style=social" />
         </div>
+
         <img className="m-5" src="img/demo.gif" />
       </div>
     </header>
   );
-}
-
-function ExternalLink({href, imgUrl}) {
-  return <a target="_blanks" href={href}>
-    <img src={imgUrl} />
-  </a>
 }
 
 export default function Home() {
