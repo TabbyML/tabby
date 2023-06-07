@@ -35,39 +35,23 @@ declare class CancelablePromise<T> implements Promise<T> {
     get isCancelled(): boolean;
 }
 
-/**
- * An enumeration.
- */
-declare enum EventType {
-    COMPLETION = "completion",
-    VIEW = "view",
-    SELECT = "select"
-}
-
-type ChoiceEvent = {
-    type: EventType;
-    completion_id: string;
-    choice_index: number;
-};
-
 type Choice = {
     index: number;
     text: string;
 };
 
-type CompletionEvent = {
-    type: EventType;
+type CompletionResponse$1 = {
     id: string;
-    language: string;
-    prompt: string;
-    created: number;
     choices: Array<Choice>;
 };
 
-type CompletionResponse$1 = {
-    id: string;
-    created: number;
-    choices: Array<Choice>;
+type LogEventRequest$1 = {
+    /**
+     * Event type, should be `view` or `select`.
+     */
+    type: string;
+    completion_id: string;
+    choice_index: number;
 };
 
 type ApiResult = {
@@ -86,16 +70,6 @@ declare class ApiError extends Error {
     readonly request: ApiRequestOptions;
     constructor(request: ApiRequestOptions, response: ApiResult, message: string);
 }
-
-type ValidationError = {
-    loc: Array<(string | number)>;
-    msg: string;
-    type: string;
-};
-
-type HTTPValidationError = {
-    detail?: Array<ValidationError>;
-};
 
 type AgentConfig = {
     server?: {
@@ -120,13 +94,14 @@ type CompletionRequest = {
     position: number;
 };
 type CompletionResponse = CompletionResponse$1;
+type LogEventRequest = LogEventRequest$1;
 interface AgentFunction {
     initialize(options?: AgentInitOptions): boolean;
     updateConfig(config: AgentConfig): boolean;
     getConfig(): AgentConfig;
     getStatus(): "connecting" | "ready" | "disconnected";
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-    postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
+    postEvent(event: LogEventRequest): CancelablePromise<boolean>;
 }
 type StatusChangedEvent = {
     event: "statusChanged";
@@ -154,13 +129,13 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private changeStatus;
     private ping;
     private callApi;
-    private createPrompt;
+    private createSegments;
     initialize(params: AgentInitOptions): boolean;
     updateConfig(config: AgentConfig): boolean;
     getConfig(): AgentConfig;
     getStatus(): "connecting" | "ready" | "disconnected";
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-    postEvent(request: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
+    postEvent(request: LogEventRequest): CancelablePromise<boolean>;
 }
 
-export { Agent, AgentConfig, AgentEvent, AgentFunction, ApiError, CancelError, CancelablePromise, Choice, ChoiceEvent, CompletionEvent, CompletionRequest, CompletionResponse, EventType, HTTPValidationError, StatusChangedEvent, TabbyAgent, ValidationError, agentEventNames };
+export { Agent, AgentConfig, AgentEvent, AgentFunction, ApiError, CancelError, CancelablePromise, Choice, CompletionRequest, CompletionResponse, StatusChangedEvent, TabbyAgent, agentEventNames };

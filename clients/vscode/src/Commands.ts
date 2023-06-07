@@ -9,7 +9,6 @@ import {
 } from "vscode";
 import { strict as assert } from "assert";
 import { Duration } from "@sapphire/duration";
-import { ChoiceEvent } from "tabby-agent";
 import { Agent } from "./Agent";
 
 const target = ConfigurationTarget.Global;
@@ -131,7 +130,7 @@ const openSettings: Command = {
 const agent = Agent.getInstance();
 const emitEvent: Command = {
   command: "tabby.emitEvent",
-  callback: (event: ChoiceEvent) => {
+  callback: (event) => {
     console.debug("Emit Event: ", event);
     agent.postEvent(event);
   },

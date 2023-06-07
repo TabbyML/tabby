@@ -1,7 +1,6 @@
 import {
   CancelablePromise,
-  ChoiceEvent,
-  CompletionEvent,
+  LogEventRequest as ApiLogEventRequest,
   CompletionResponse as ApiCompletionResponse,
 } from "./generated";
 
@@ -21,13 +20,15 @@ export type CompletionRequest = {
 
 export type CompletionResponse = ApiCompletionResponse;
 
+export type LogEventRequest = ApiLogEventRequest;
+
 export interface AgentFunction {
   initialize(options?: AgentInitOptions): boolean;
   updateConfig(config: AgentConfig): boolean;
   getConfig(): AgentConfig;
   getStatus(): "connecting" | "ready" | "disconnected";
   getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
-  postEvent(event: ChoiceEvent | CompletionEvent): CancelablePromise<boolean>;
+  postEvent(event: LogEventRequest): CancelablePromise<boolean>;
 }
 
 export type StatusChangedEvent = {

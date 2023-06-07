@@ -13,10 +13,5 @@ export {
   CancelablePromise,
   CancelError,
   ApiError,
-  HTTPValidationError,
-  ValidationError,
   Choice,
-  ChoiceEvent,
-  CompletionEvent,
-  EventType,
 } from "./generated";
