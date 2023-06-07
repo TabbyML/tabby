@@ -4,6 +4,7 @@ use axum::{extract::State, Json};
 use ctranslate2_bindings::{
     TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder, TextInferenceOptionsBuilder,
 };
+use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
@@ -59,20 +60,20 @@ pub struct CompletionResponse {
 pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
-) -> Json<CompletionResponse> {
-    let language = request.language.unwrap_or("unknown".into());
+) -> Result<Json<CompletionResponse>, StatusCode> {
+    let language = request.language.unwrap_or("unknown".to_string());
     let options = TextInferenceOptionsBuilder::default()
         .max_decoding_length(128)
         .sampling_temperature(0.1)
         .stop_words(get_stop_words(&language))
         .build()
-        .expect("Invalid TextInferenceOptions");
+        .unwrap_or_else(|_| fatal!("Invalid TextInferenceOptions"));
 
     let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
         if let Some(prompt_template) = &state.prompt_template {
             if let Some(suffix) = suffix {
                 strfmt!(prompt_template, prefix => prefix, suffix => suffix)
-                    .expect("Failed to format prompt")
+                    .unwrap_or_else(|_| fatal!("Invalid prompt template'{}'", prompt_template))
             } else {
                 // If suffix is empty, just returns prefix.
                 prefix
@@ -82,7 +83,7 @@ pub async fn completion(
             prefix
         }
     } else {
-        request.prompt.expect("No prompt is set")
+        return Err(StatusCode::BAD_REQUEST);
     };
 
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
@@ -99,10 +100,10 @@ pub async fn completion(
     }
     .log();
 
-    Json(CompletionResponse {
+    Ok(Json(CompletionResponse {
         id: completion_id,
         choices: vec![Choice { index: 0, text }],
-    })
+    }))
 }
 
 pub struct CompletionState {
@@ -148,5 +149,5 @@ struct Metadata {
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
-    serdeconv::from_json_file(model_dir.metadata_file()).expect("Invalid metadata")
+    serdeconv::from_json_file(model_dir.metadata_file()).unwrap_or_else(|_| fatal!("Invalid metadata file: {}", model_dir.metadata_file()))
 }
