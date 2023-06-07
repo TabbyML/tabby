@@ -24,6 +24,9 @@
   --ifm-code-background: #FFFEFD;
   --openapi-monaco-background-color-light: var(--ifm-code-background) !important;
   --openapi-card-background-color: var(--ifm-code-background) !important;
+
+  /* Fix footer hover color */
+  --ifm-footer-link-hover-color: var(--ifm-color-gray-500);
 }
 
 
