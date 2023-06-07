@@ -113,8 +113,8 @@ const config = {
             title: 'Docs',
             items: [
               {
-                label: 'Configuration',
-                to: '/docs/server',
+                label: 'Self Hosting',
+                to: '/docs/self-hosting',
               },
             ],
           },
