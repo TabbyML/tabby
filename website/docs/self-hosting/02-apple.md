@@ -7,3 +7,7 @@ Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge
 2. Run `tabby --help` to verify successful installation.
 
 3. Start the server with `tabby serve model --models TabbyML/T5P-220M`.
+
+
+:::tip
+The compute power of M1/M2 is limited and is likely to be sufficient only for individual usage. If you require a shared instance for a team, we recommend considering Docker hosting with CUDA. You can find more information about Docker [here](./docker).
