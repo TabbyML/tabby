@@ -31,4 +31,4 @@ def parse_expenses(expenses_string):
         2016-01-03 2.59 DKK
         2016-01-03 -2.72 EUR
     """
-    for line in expenses_string.split('\n'):`
+    for line in expenses_string.split('\\n'):`
