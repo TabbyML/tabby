@@ -59,7 +59,7 @@ module.exports = __toCommonJS(src_exports);
 var import_axios2 = __toESM(require("axios"));
 var import_events = require("events");
 var import_uuid = require("uuid");
-var import_deep_equal = __toESM(require("deep-equal"));
+var import_deep_equal2 = __toESM(require("deep-equal"));
 var import_deepmerge = __toESM(require("deepmerge"));
 
 // src/generated/core/BaseHttpRequest.ts
@@ -659,6 +659,41 @@ var CompletionCache = class {
   }
 };
 
+// src/postprocess.ts
+var import_deep_equal = __toESM(require("deep-equal"));
+var logger = rootLogger.child({ component: "Postprocess" });
+var removeDuplicateLines = (context) => {
+  return (input) => {
+    const suffix = context.text.slice(context.position);
+    const suffixLines = splitLines(suffix);
+    const inputLines = splitLines(input);
+    for (let index = Math.max(0, inputLines.length - suffixLines.length); index < inputLines.length; index++) {
+      if ((0, import_deep_equal.default)(inputLines.slice(index), suffixLines.slice(0, input.length - index))) {
+        logger.debug({ input, suffix, duplicateAt: index }, "Remove duplicate lines");
+        return input.slice(0, index);
+      }
+    }
+    return input;
+  };
+};
+var dropBlank = (input) => {
+  return isBlank(input) ? null : input;
+};
+var applyFilter = (filter) => {
+  return async (response) => {
+    response.choices = (await Promise.all(
+      response.choices.map(async (choice) => {
+        choice.text = await filter(choice.text);
+        return choice;
+      })
+    )).filter(Boolean);
+    return response;
+  };
+};
+async function postprocess(request2, response) {
+  return new Promise((resolve2) => resolve2(response)).then(applyFilter(removeDuplicateLines(request2))).then(applyFilter(dropBlank));
+}
+
 // src/TabbyAgent.ts
 var TabbyAgent = class extends import_events.EventEmitter {
   constructor() {
@@ -670,7 +705,7 @@ var TabbyAgent = class extends import_events.EventEmitter {
     this.onConfigUpdated();
   }
   onConfigUpdated() {
-    allLoggers.forEach((logger) => logger.level = this.config.logs.level);
+    allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
     this.api = new TabbyApi({ BASE: this.config.server.endpoint });
     this.ping();
   }
@@ -735,14 +770,14 @@ var TabbyAgent = class extends import_events.EventEmitter {
       this.updateConfig(params.config);
     }
     if (params.client) {
-      allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: params.client }));
+      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: params.client }));
     }
     this.logger.debug({ params }, "Initialized");
     return true;
   }
   updateConfig(config) {
     const mergedConfig = (0, import_deepmerge.default)(this.config, config);
-    if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
+    if (!(0, import_deep_equal2.default)(this.config, mergedConfig)) {
       this.config = mergedConfig;
       this.onConfigUpdated();
       const event = { event: "configUpdated", config: this.config };
@@ -780,6 +815,8 @@ var TabbyAgent = class extends import_events.EventEmitter {
     });
     return cancelable(
       promise.then((response) => {
+        return postprocess(request2, response);
+      }).then((response) => {
         this.completionCache.set(request2, response);
         return response;
       }),

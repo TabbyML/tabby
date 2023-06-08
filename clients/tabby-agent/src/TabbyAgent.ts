@@ -8,6 +8,7 @@ import { sleep, cancelable, splitLines, isBlank } from "./utils";
 import { Agent, AgentEvent, AgentInitOptions, CompletionRequest, CompletionResponse, LogEventRequest } from "./Agent";
 import { AgentConfig, defaultAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
+import { postprocess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 
 export class TabbyAgent extends EventEmitter implements Agent {
@@ -150,10 +151,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
       segments,
     });
     return cancelable(
-      promise.then((response: CompletionResponse) => {
-        this.completionCache.set(request, response);
-        return response;
-      }),
+      promise
+        .then((response) => {
+          return postprocess(request, response);
+        })
+        .then((response) => {
+          this.completionCache.set(request, response);
+          return response;
+        }),
       () => {
         promise.cancel();
       }
