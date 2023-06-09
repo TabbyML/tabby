@@ -126,11 +126,21 @@ TEST(ModelTest, DecoderIterativeSequence) {
     }
   }
 
-  // Forward the sequence.
+  // Forward sequence by sequence.
   layers::DecoderState state_sequence = decoder.initial_state();
   state_sequence.emplace("memory", encoder_output);
+
+  StorageView seq1(target_ids.dtype());
+  StorageView seq2(target_ids.dtype());
+  ops::Split(-1, {3, 2})(target_ids, seq1, seq2);
+
+  StorageView logits1;
+  StorageView logits2;
+  decoder(0, seq1, state_sequence, &logits1);
+  decoder(seq1.dim(-1), seq2, state_sequence, &logits2);
+
   StorageView logits_sequence;
-  decoder(0, target_ids, state_sequence, &logits_sequence);
+  ops::Concat(1)({&logits1, &logits2}, logits_sequence);
 
   expect_storage_eq(logits_sequence, logits_by_step, 1e-5);
 

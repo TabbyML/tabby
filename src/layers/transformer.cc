@@ -447,10 +447,6 @@ namespace ctranslate2 {
       std::unique_ptr<const StorageView> input_lengths_mask;
 
       if (is_sequence && !lengths) {
-        if (step > 0)
-          throw std::runtime_error("Forwarding a sequence in the Transformer decoder after the "
-                                   "first decoding step is currently not supported");
-
         input_lengths = std::make_unique<StorageView>(Shape{ids.dim(0)}, int32_t(max_time), device);
         lengths = input_lengths.get();
       }
@@ -462,12 +458,18 @@ namespace ctranslate2 {
         }
 
         const bool multi_query = _layers.front()->get_self_attention().multi_query();
-        input_lengths_mask = std::make_unique<StorageView>(
-          layers::MultiHeadAttention::prepare_length_mask(*lengths,
-                                                          _num_heads,
-                                                          max_time,
-                                                          /*mask_future=*/true,
-                                                          multi_query));
+
+        StorageView lengths_mask = layers::MultiHeadAttention::prepare_length_mask(
+          *lengths,
+          _num_heads,
+          max_time,
+          /*mask_future=*/true,
+          multi_query);
+
+        if (step > 0)
+          ops::Add()(lengths_mask, StorageView(int32_t(step)), lengths_mask);
+
+        input_lengths_mask = std::make_unique<StorageView>(std::move(lengths_mask));
       }
 
       StorageView* memory = nullptr;

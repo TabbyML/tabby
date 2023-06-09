@@ -523,6 +523,18 @@ class TestGeneration:
 
         assert result.sequences[0] == expected_result.sequences[0]
 
+        result = generator.generate_batch(
+            [expected_result.sequences[0][:2]],
+            max_length=max_length - 2,
+            static_prompt=prompt,
+            include_prompt_in_result=False,
+        )[0]
+
+        assert (
+            expected_result.sequences[0][:2] + result.sequences[0]
+            == expected_result.sequences[0]
+        )
+
         batch_results = generator.generate_batch(
             [[expected_result.sequences[0][0]], [expected_result.sequences[0][0]]],
             max_length=max_length - 1,
