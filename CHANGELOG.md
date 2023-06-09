@@ -4,6 +4,13 @@
 
 ### Fixes and improvements
 
+## [v3.15.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.15.1) (2023-06-09)
+
+### Fixes and improvements
+
+* Fix an error when using the new `static_prompt` argument in the methods `generate_tokens` and `generate_batch`
+* Improve the performance of models using ALiBi
+
 ## [v3.15.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.15.0) (2023-06-06)
 
 ### New features
