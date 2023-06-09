@@ -75,13 +75,15 @@ namespace ctranslate2 {
                                                      const std::string& scope,
                                                      const dim_t num_heads,
                                                      const bool pre_norm,
-                                                     const ops::ActivationType activation_type)
+                                                     const ops::ActivationType activation_type,
+                                                     Alibi* alibi)
       : _self_attention(model,
                         scope + "/self_attention",
                         num_heads,
                         /*self_attention=*/true,
                         pre_norm,
-                        /*is_decoder=*/true)
+                        /*is_decoder=*/true,
+                        alibi)
       , _shared_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/shared_layer_norm"))
       , _input_layer_norm(build_optional_layer<LayerNorm>(model, scope + "/input_layer_norm"))
       , _post_attention_layer_norm(build_optional_layer<LayerNorm>(
@@ -107,8 +109,7 @@ namespace ctranslate2 {
                                              StorageView* attention,
                                              const Padder* input_padder,
                                              const Padder* memory_padder,
-                                             bool return_normalized_attention,
-                                             const StorageView* alibi) const {
+                                             bool return_normalized_attention) const {
       PROFILE("TransformerDecoderLayer");
 
       const DataType dtype = input.dtype();
@@ -135,8 +136,7 @@ namespace ctranslate2 {
                         nullptr,
                         input_padder,
                         input_padder,
-                        true,
-                        alibi);
+                        true);
 
         if (_post_attention_layer_norm)
           (*_post_attention_layer_norm)(input, hidden);
@@ -158,8 +158,7 @@ namespace ctranslate2 {
                       nullptr,
                       input_padder,
                       input_padder,
-                      true,
-                      alibi);
+                      true);
 
       StorageView context(dtype, device);
       if (_encoder_attention) {
@@ -278,6 +277,17 @@ namespace ctranslate2 {
     }
 
 
+    static std::unique_ptr<Alibi> make_alibi(const models::Model& model, const std::string& scope) {
+      const bool use_alibi = model.get_flag_with_default(scope + "/alibi", false);
+      if (!use_alibi)
+        return nullptr;
+
+      const bool use_positive_positions = model.get_flag_with_default(
+        scope + "/alibi_use_positive_positions", true);
+
+      return std::make_unique<Alibi>(use_positive_positions);
+    }
+
     TransformerDecoder::TransformerDecoder(const models::Model& model, const std::string& scope)
       : Decoder(model.device())
       , _num_heads(model.get_attribute_with_default<int32_t>(scope + "/num_heads", 8))
@@ -285,20 +295,20 @@ namespace ctranslate2 {
       , _embeddings(model, scope + "/embeddings")
       , _start_from_zero_embedding(model.get_flag_with_default(scope + "/start_from_zero_embedding",
                                                                false))
-      , _use_alibi(model.get_flag_with_default(scope + "/alibi", false))
-      , _use_positive_positions_in_alibi(model.get_flag_with_default(scope + "/alibi_use_positive_positions", true))
       , _embeddings_scale(build_embeddings_scale(model, scope, _embeddings))
       , _layernorm_embedding(build_optional_layer<LayerNorm>(model, scope + "/layernorm_embedding"))
       , _output_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _project_in(build_optional_layer<Dense>(model, scope + "/project_in"))
       , _project_out(build_optional_layer<Dense>(model, scope + "/project_out"))
+      , _alibi(make_alibi(model, scope))
       , _layers(build_layers_list<const TransformerDecoderLayer>(
                   model,
                   scope + "/layer",
                   _num_heads,
                   model.get_flag_with_default(scope + "/pre_norm", true),
-                  model.get_enum_value<ops::ActivationType>(scope + "/activation")))
-      , _position_encoder(_layers.front()->get_self_attention().has_positional_embeddings() || _use_alibi
+                  model.get_enum_value<ops::ActivationType>(scope + "/activation"),
+                  _alibi.get()))
+      , _position_encoder(_layers.front()->get_self_attention().has_positional_embeddings()
                           ? nullptr
                           : build_position_encoder(model, scope + "/position_encodings", _embeddings))
       , _with_encoder_attention(_layers.front()->has_cross_attention())
@@ -497,17 +507,6 @@ namespace ctranslate2 {
         }
       }
 
-      std::unique_ptr<StorageView> alibi;
-      if (_use_alibi) {
-        alibi = std::make_unique<StorageView>(
-          build_alibi(batch_size,
-                      _num_heads,
-                      max_time,
-                      step > 0 ? step + 1 : max_time,
-                      _use_positive_positions_in_alibi));
-        alibi->move_to(device, dtype);
-      }
-
       std::vector<StorageView> alignment_heads;
       if (attention)
         alignment_heads.reserve(_layers.size());
@@ -545,8 +544,7 @@ namespace ctranslate2 {
                       layer_attention.get(),
                       input_padder.get(),
                       memory_padder.get(),
-                      return_normalized_attention(),
-                      alibi.get());
+                      return_normalized_attention());
         layer_in = std::move(layer_out);
 
         if (layer_attention) {

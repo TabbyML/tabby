@@ -127,6 +127,8 @@ set(SOURCES
   src/models/whisper.cc
   src/ops/activation.cc
   src/ops/add.cc
+  src/ops/alibi_add.cc
+  src/ops/alibi_add_cpu.cc
   src/ops/bias_add.cc
   src/ops/bias_add_cpu.cc
   src/ops/concat.cc
@@ -495,6 +497,7 @@ if (WITH_CUDA)
     src/cuda/primitives.cu
     src/cuda/random.cu
     src/cuda/utils.cc
+    src/ops/alibi_add_gpu.cu
     src/ops/bias_add_gpu.cu
     src/ops/concat_split_gpu.cu
     src/ops/conv1d_gpu.cu

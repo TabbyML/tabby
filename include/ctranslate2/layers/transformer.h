@@ -74,7 +74,8 @@ namespace ctranslate2 {
                               const std::string& scope,
                               const dim_t num_heads,
                               const bool pre_norm = true,
-                              const ops::ActivationType activation_type = ops::ActivationType::ReLU);
+                              const ops::ActivationType activation_type = ops::ActivationType::ReLU,
+                              Alibi* alibi = nullptr);
 
       void operator()(const StorageView& input,
                       const StorageView* input_lengths,
@@ -88,8 +89,7 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* input_padder = nullptr,
                       const Padder* memory_padder = nullptr,
-                      bool return_normalized_attention = true,
-                      const StorageView* alibi = nullptr) const;
+                      bool return_normalized_attention = true) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -194,14 +194,13 @@ namespace ctranslate2 {
       const ComputeType _compute_type;
       const Embeddings _embeddings;
       const bool _start_from_zero_embedding;
-      const bool _use_alibi;
-      const bool _use_positive_positions_in_alibi;
       const std::unique_ptr<const StorageView> _embeddings_scale;
       std::unique_ptr<const StorageView> _outputs_scale;
       const std::unique_ptr<const LayerNorm> _layernorm_embedding;
       const std::unique_ptr<const LayerNorm> _output_norm;
       const std::unique_ptr<const Dense> _project_in;
       const std::unique_ptr<const Dense> _project_out;
+      const std::unique_ptr<Alibi> _alibi;
       const std::vector<std::unique_ptr<const TransformerDecoderLayer>> _layers;
       const std::unique_ptr<PositionEncoder> _position_encoder;
       const bool _with_encoder_attention;

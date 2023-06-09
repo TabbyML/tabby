@@ -10,13 +10,8 @@ namespace ctranslate2 {
                                         dim_t max_position,
                                         bool with_cache = false);
 
-    StorageView build_alibi(dim_t batch_size,
-                            dim_t num_heads,
-                            dim_t query_max_length,
-                            dim_t key_max_length,
-                            bool use_positive_positions = false);
-
     class RotaryEmbeddings;
+    class Alibi;
 
     class MultiHeadAttention : public Layer
     {
@@ -26,7 +21,8 @@ namespace ctranslate2 {
                          dim_t num_heads,
                          bool self_attention,
                          bool pre_norm = true,
-                         bool is_decoder = false);
+                         bool is_decoder = false,
+                         Alibi* alibi = nullptr);
       DataType output_type() const override;
       dim_t output_size() const override;
       void operator()(const StorageView& queries,
@@ -38,11 +34,10 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* queries_padder = nullptr,
                       const Padder* values_padder = nullptr,
-                      bool return_normalized_attention = true,
-                      const StorageView* alibi = nullptr) const;
+                      bool return_normalized_attention = true) const;
 
       bool has_positional_embeddings() const {
-        return _relative_position_keys || _relative_attention_bias || _rotary_embeddings;
+        return _relative_position_keys || _relative_attention_bias || _rotary_embeddings || _alibi;
       }
 
       bool multi_query() const {
@@ -65,6 +60,7 @@ namespace ctranslate2 {
       const bool _pre_norm;
       const std::unique_ptr<const LayerNorm> _layer_norm;
       const std::unique_ptr<RotaryEmbeddings> _rotary_embeddings;
+      Alibi* _alibi;
       const StorageView* _relative_attention_bias;
       const StorageView* _relative_position_keys;
       const StorageView* _relative_position_values;
@@ -97,6 +93,21 @@ namespace ctranslate2 {
 
       StorageView _sin;
       StorageView _cos;
+    };
+
+
+    class Alibi {
+    public:
+      Alibi(const bool use_positive_positions = false, const dim_t num_initial_positions = 2048);
+
+      void apply(StorageView& x);
+
+    private:
+      const bool _use_positive_positions;
+      const dim_t _num_initial_positions;
+      const ops::AlibiAdd _alibi_op;
+
+      StorageView _alibi;
     };
 
   }

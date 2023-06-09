@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 #include "dispatch.h"
 
@@ -102,11 +103,9 @@ namespace ctranslate2 {
       return values_t;
     }
 
-    StorageView build_alibi(dim_t batch_size,
-                            dim_t num_heads,
-                            dim_t query_max_length,
-                            dim_t key_max_length,
-                            bool use_positive_positions) {
+    static StorageView build_alibi(dim_t num_heads,
+                                   dim_t key_max_length,
+                                   bool use_positive_positions) {
       const float closest_power_of_2_f = std::pow(2.f, std::floor(std::log2f(num_heads)));
       const dim_t closest_power_of_2 = closest_power_of_2_f;
 
@@ -127,17 +126,18 @@ namespace ctranslate2 {
           slopes.emplace_back(std::pow(extra_base, float(power)));
       }
 
-      StorageView alibi({batch_size, num_heads, query_max_length, key_max_length});
+      std::vector<float> positions(key_max_length);
+      std::iota(positions.begin(),
+                positions.end(),
+                use_positive_positions ? 0 : -key_max_length + 1);
 
-      for (dim_t b = 0; b < batch_size; ++b) {
-        for (dim_t h = 0; h < num_heads; ++h) {
-          for (dim_t q = 0; q < query_max_length; ++q) {
-            for (dim_t k = 0; k < key_max_length; ++k) {
-              float position = use_positive_positions ? k : -key_max_length + k + 1;
-              alibi.at<float>({b, h, q, k}) = position * slopes[h];
-            }
-          }
-        }
+      StorageView alibi({1, num_heads, 1, key_max_length});
+
+      for (dim_t h = 0; h < num_heads; ++h) {
+        primitives<Device::CPU>::mul(slopes[h],
+                                     positions.data(),
+                                     alibi.index<float>({0, h, 0, 0}),
+                                     key_max_length);
       }
 
       return alibi;
@@ -196,7 +196,6 @@ namespace ctranslate2 {
     static void dot_product_attention(const StorageView& queries,
                                       const StorageView& keys,
                                       const StorageView& values,
-                                      const StorageView* alibi,
                                       const StorageView* values_lengths,
                                       const StorageView* relative_position_keys,
                                       const StorageView* relative_position_values,
@@ -208,7 +207,8 @@ namespace ctranslate2 {
                                       float queries_scale = 1,
                                       bool is_decoder = false,
                                       bool with_cache = false,
-                                      dim_t beam_size = 1) {
+                                      dim_t beam_size = 1,
+                                      Alibi* alibi = nullptr) {
       PROFILE("dot_product_attention");
 
       std::unique_ptr<const StorageView> relative_positions;
@@ -247,7 +247,7 @@ namespace ctranslate2 {
       }
 
       if (alibi)
-        ops::Add()(output, *alibi, output);
+        alibi->apply(output);
 
       StorageView attn(values.dtype(), values.device());
       ops::SoftMax()(output, values_lengths, attn);
@@ -344,7 +344,8 @@ namespace ctranslate2 {
                                            dim_t num_heads,
                                            bool self_attention,
                                            bool pre_norm,
-                                           bool is_decoder)
+                                           bool is_decoder,
+                                           Alibi* alibi)
       : _num_heads(num_heads)
       , _self_attention(self_attention)
       , _is_decoder(is_decoder)
@@ -354,6 +355,7 @@ namespace ctranslate2 {
       , _pre_norm(pre_norm)
       , _layer_norm(build_optional_layer<LayerNorm>(model, scope + "/layer_norm"))
       , _rotary_embeddings(make_rotary_embeddings(model, scope))
+      , _alibi(alibi)
       , _relative_attention_bias(model.get_variable_if_exists(scope + "/relative_attention_bias"))
       , _relative_position_keys(model.get_variable_if_exists(scope + "/relative_position_keys"))
       , _relative_position_values(model.get_variable_if_exists(scope + "/relative_position_values"))
@@ -389,8 +391,7 @@ namespace ctranslate2 {
                                         StorageView* attention,
                                         const Padder* queries_padder,
                                         const Padder* values_padder,
-                                        bool return_normalized_attention,
-                                        const StorageView* alibi) const {
+                                        bool return_normalized_attention) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -488,7 +489,6 @@ namespace ctranslate2 {
       dot_product_attention(queries_proj,
                             keys_proj,
                             values_proj,
-                            alibi,
                             values_lengths,
                             _relative_position_keys,
                             _relative_position_values,
@@ -500,7 +500,8 @@ namespace ctranslate2 {
                             _queries_scale,
                             _is_decoder,
                             bool(cached_keys),
-                            beam_size);
+                            beam_size,
+                            _alibi);
 
       if (_multi_query) {
         context.reshape(queries.shape());
@@ -615,6 +616,28 @@ namespace ctranslate2 {
       ops::Cos()(emb, cos_tmp);
       cos_tmp.move_to(device, dtype);
       _cos = std::move(cos_tmp);
+    }
+
+
+    Alibi::Alibi(const bool use_positive_positions, const dim_t num_initial_positions)
+      : _use_positive_positions(use_positive_positions)
+      , _num_initial_positions(num_initial_positions)
+      , _alibi_op(use_positive_positions)
+    {
+    }
+
+    void Alibi::apply(StorageView& x) {
+      const dim_t cur_length = _alibi ? _alibi.dim(-1) : 0;
+      const dim_t key_length = x.dim(-1);
+
+      if (key_length > cur_length) {
+        const dim_t num_heads = x.dim(1);
+        const dim_t new_length = cur_length + _num_initial_positions;
+        _alibi = build_alibi(num_heads, new_length, _use_positive_positions);
+        _alibi.move_to(x.device(), x.dtype());
+      }
+
+      _alibi_op(x, _alibi, x);
     }
 
   }

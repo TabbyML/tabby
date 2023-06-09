@@ -19,8 +19,12 @@ TEST(LayerTest, MakeRelativePositions2D) {
 }
 
 TEST(LayerTest, Alibi) {
+  const Device device = Device::CPU;
+  const DataType dtype = DataType::FLOAT32;
+
+  const StorageView zero({3, 4, 2, 5}, 0.f, device);
+
   {
-    const StorageView alibi = layers::build_alibi(3, 4, 2, 5);
     const StorageView expected({3, 4, 2, 5}, std::vector<float>{
         -1.0, -0.75, -0.5, -0.25, 0.0,
         -1.0, -0.75, -0.5, -0.25, 0.0,
@@ -47,11 +51,13 @@ TEST(LayerTest, Alibi) {
         -0.015625, -0.01171875, -0.0078125, -0.00390625, 0.0,
         -0.015625, -0.01171875, -0.0078125, -0.00390625, 0.0});
 
-    expect_storage_eq(alibi, expected, 1e-4);
+    layers::Alibi alibi;
+    StorageView x = zero.to(dtype);
+    alibi.apply(x);
+    expect_storage_eq(x.to_float32(), expected, 1e-4);
   }
 
   {
-    const StorageView alibi = layers::build_alibi(3, 4, 2, 5, /*use_positive_positions=*/true);
     const StorageView expected({3, 4, 2, 5}, std::vector<float>{
         0.0000, 0.2500, 0.5000, 0.7500, 1.0000,
         0.0000, 0.2500, 0.5000, 0.7500, 1.0000,
@@ -78,7 +84,10 @@ TEST(LayerTest, Alibi) {
         0.0000, 0.0039, 0.0078, 0.0117, 0.0156,
         0.0000, 0.0039, 0.0078, 0.0117, 0.0156});
 
-    expect_storage_eq(alibi, expected, 1e-4);
+    layers::Alibi alibi(/*use_positive_positions=*/true);
+    StorageView x = zero.to(dtype);
+    alibi.apply(x);
+    expect_storage_eq(x.to_float32(), expected, 1e-4);
   }
 }
 
