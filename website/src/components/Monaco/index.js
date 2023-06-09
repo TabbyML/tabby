@@ -3,7 +3,7 @@ import axios from "axios"
 import React, { useRef, useEffect } from "react"
 import Editor, { useMonaco } from "@monaco-editor/react"
 
-let TabbyServerURL = "https://app.tabbyml.com/api/workspace/tabbyml/tabby";
+let TabbyServerURL = "https://tabbyml.app.tabbyml.com/tabby";
 
 export default function MonacoEditor(props) {
   function beforeMount(monaco) {
