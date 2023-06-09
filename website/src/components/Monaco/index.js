@@ -51,11 +51,11 @@ class CompletionProvider {
   }
 
   async provideInlineCompletions(document, position, context, token) {
-    const prompt = this.getPrompt(document, position)
+    const segments = this.getSegments(document, position)
     const emptyResponse = Promise.resolve({ items: [] })
 
-    if (this.isNil(prompt)) {
-      console.debug("Prompt is empty, skipping")
+    if (this.isNil(segments.prefix)) {
+      console.debug("Prefix is empty, skipping")
       return emptyResponse
     }
 
@@ -70,7 +70,7 @@ class CompletionProvider {
 
     let response
     try {
-      response = await this.callTabbyApi(currentTimestamp, prompt)
+      response = await this.callTabbyApi(currentTimestamp, segments)
     } catch (err) {
       console.error("error", err)
       return emptyResponse
@@ -99,16 +99,25 @@ class CompletionProvider {
 
   freeInlineCompletions() {}
 
-  getPrompt(document, position) {
+  getSegments(document, position) {
     const firstLine = Math.max(position.lineNumber - 120, 0)
-
-    const range = new this.monaco.Range(
+    const prefixRange = new this.monaco.Range(
       firstLine,
       0,
       position.lineNumber,
       position.column
     )
-    return document.getValueInRange(range)
+    const lastLine = Math.min(position.lineNumber + 120, document.getLineCount() - 1)
+    const suffixRange = new this.monaco.Range(
+      position.lineNumber,
+      position.column,
+      lastLine,
+      document.getLineLength(lastLine)
+    )
+    return {
+      prefix: document.getValueInRange(prefixRange),
+      suffix: document.getValueInRange(suffixRange),
+    }
   }
 
   isNil(value) {
@@ -119,12 +128,12 @@ class CompletionProvider {
     return new Promise((r) => setTimeout(r, milliseconds))
   }
 
-  async callTabbyApi(timestamp, prompt) {
+  async callTabbyApi(timestamp, segments) {
     const request = (this.pendingRequest = axios.post(
       `${TabbyServerURL}/v1/completions`,
       {
         language: "python",
-        prompt,
+        segments,
       }
     ))
     const response = await request
