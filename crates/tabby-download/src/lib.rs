@@ -55,17 +55,16 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
     cache_info
         .download(model_id, "ctranslate2/config.json", prefer_local_file)
         .await?;
-    cache_info
+    let _ = cache_info
         .download(model_id, "ctranslate2/vocabulary.txt", prefer_local_file)
-        .await?;
-    cache_info
+        .await;
+    let _ = cache_info
         .download(
             model_id,
             "ctranslate2/shared_vocabulary.txt",
             prefer_local_file,
         )
-        .await
-        .unwrap_or(());
+        .await;
     cache_info
         .download(model_id, "ctranslate2/model.bin", prefer_local_file)
         .await?;
