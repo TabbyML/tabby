@@ -2,7 +2,13 @@ mod download;
 mod serve;
 
 use clap::{Parser, Subcommand};
-use tracing_subscriber::EnvFilter;
+use opentelemetry::{
+    global,
+    sdk::{propagation::TraceContextPropagator, trace, trace::Sampler, Resource},
+    KeyValue,
+};
+use opentelemetry_otlp::WithExportConfig;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -10,6 +16,10 @@ use tracing_subscriber::EnvFilter;
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+
+    /// Open Telemetry endpoint.
+    #[clap(long)]
+    otlp_endpoint: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -33,11 +43,8 @@ pub struct SchedulerArgs {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive("tabby=info".parse().unwrap()))
-        .init();
-
     let cli = Cli::parse();
+    init_logging(cli.otlp_endpoint);
 
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
@@ -46,6 +53,8 @@ async fn main() {
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
     }
+
+    opentelemetry::global::shutdown_tracer_provider();
 }
 
 #[macro_export]
@@ -63,4 +72,48 @@ macro_rules! fatal {
             std::process::exit(1);
         })
     };
+}
+
+fn init_logging(otlp_endpoint: Option<String>) {
+    let mut layers = Vec::new();
+
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_file(true)
+        .with_line_number(true)
+        .boxed();
+
+    layers.push(fmt_layer);
+
+    if let Some(otlp_endpoint) = &otlp_endpoint {
+        global::set_text_map_propagator(TraceContextPropagator::new());
+
+        let tracer = opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::new_exporter()
+                    .tonic()
+                    .with_endpoint(otlp_endpoint),
+            )
+            .with_trace_config(
+                trace::config()
+                    .with_resource(Resource::new(vec![KeyValue::new(
+                        "service.name",
+                        "tabby.server",
+                    )]))
+                    .with_sampler(Sampler::AlwaysOn),
+            )
+            .install_batch(opentelemetry::runtime::Tokio);
+
+        if let Ok(tracer) = tracer {
+            layers.push(tracing_opentelemetry::layer().with_tracer(tracer).boxed());
+            axum_tracing_opentelemetry::init_propagator().unwrap();
+        };
+    }
+
+    let env_filter = EnvFilter::from_default_env().add_directive("tabby=info".parse().unwrap());
+
+    tracing_subscriber::registry()
+        .with(layers)
+        .with(env_filter)
+        .init();
 }

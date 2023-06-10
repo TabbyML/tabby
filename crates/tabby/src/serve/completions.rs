@@ -8,6 +8,7 @@ use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
+use tracing::instrument;
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
@@ -64,6 +65,7 @@ pub struct CompletionResponse {
         (status = 400, description = "Bad Request")
     )
 )]
+#[instrument(skip(state, request))]
 pub async fn completion(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
