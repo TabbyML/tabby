@@ -88,6 +88,8 @@ pub async fn completion(
             // If there's no prompt template, just use prefix.
             prefix
         }
+    } else if let Some(prompt) = request.prompt {
+        prompt
     } else {
         return Err(StatusCode::BAD_REQUEST);
     };
