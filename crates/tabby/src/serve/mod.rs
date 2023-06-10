@@ -141,5 +141,4 @@ fn valid_args(args: &ServeArgs) {
         (status = 200, description = "Health"),
     )
 )]
-async fn health() {
-}
+async fn health() {}
