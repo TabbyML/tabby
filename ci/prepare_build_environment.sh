@@ -1,5 +1,5 @@
 #!/bin/bash
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  brew install protoc
+  brew install protobuf
 fi
