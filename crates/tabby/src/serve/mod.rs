@@ -29,13 +29,13 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         (url = "https://app.tabbyml.com/api/workspace/tabbyml/tabby", description = "Local server"),
         (url = "http://localhost:8080", description = "Local server"),
     ),
-    paths(events::log_event, completions::completion,),
+    paths(events::log_event, completions::completion, health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
-        completions::Choice
+        completions::Choice,
     ))
 )]
 struct ApiDoc;
@@ -106,6 +106,7 @@ pub async fn main(args: &ServeArgs) {
 fn api_router(args: &ServeArgs) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
+        .route("/health", routing::post(health))
         .route(
             "/completions",
             routing::post(completions::completion)
@@ -131,3 +132,13 @@ fn valid_args(args: &ServeArgs) {
         fatal!("CPU device only supports device indices = [0]");
     }
 }
+
+#[utoipa::path(
+    post,
+    path = "/v1/health",
+    tag = "v1",
+    responses(
+        (status = 200, description = "Health"),
+    )
+)]
+async fn health() {}
