@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://app.tabbyml.com/api/workspace/tabbyml/tabby",
+      "url": "https://tabbyml.app.tabbyml.com/tabby",
       "description": "Local server"
     },
     {
@@ -75,6 +75,19 @@
           },
           "400": {
             "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/v1/health": {
+      "post": {
+        "tags": [
+          "v1"
+        ],
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Health"
           }
         }
       }
