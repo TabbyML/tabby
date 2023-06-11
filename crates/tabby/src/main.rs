@@ -110,7 +110,10 @@ fn init_logging(otlp_endpoint: Option<String>) {
         };
     }
 
-    let env_filter = EnvFilter::from_default_env().add_directive("tabby=info".parse().unwrap());
+    let env_filter = EnvFilter::from_default_env()
+        .add_directive("tabby=info".parse().unwrap())
+        .add_directive("axum_tracing_opentelemetry=info".parse().unwrap())
+        .add_directive("otel=debug".parse().unwrap());
 
     tracing_subscriber::registry()
         .with(layers)
