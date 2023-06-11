@@ -8,6 +8,7 @@ use std::{
 };
 
 use axum::{routing, Router, Server};
+use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tower_http::cors::CorsLayer;
 use tracing::info;
@@ -92,8 +93,7 @@ pub async fn main(args: &ServeArgs) {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
-        .fallback(fallback(args.experimental_admin_panel))
-        .layer(CorsLayer::permissive());
+        .fallback(fallback(args.experimental_admin_panel));
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
@@ -112,6 +112,8 @@ fn api_router(args: &ServeArgs) -> Router {
             routing::post(completions::completion)
                 .with_state(Arc::new(completions::CompletionState::new(args))),
         )
+        .layer(CorsLayer::permissive())
+        .layer(opentelemetry_tracing_layer())
 }
 
 fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {

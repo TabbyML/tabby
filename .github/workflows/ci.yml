@@ -80,7 +80,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-
+      - run: bash ./ci/prepare_build_environment.sh
       - name: Bulid release binary
         run: cargo build --release --target ${{ matrix.target }}
 
