@@ -9,6 +9,7 @@ RUN apt-get update && \
         curl \
         pkg-config \
         libssl-dev \
+        protobuf-compiler \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
