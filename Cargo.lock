@@ -886,6 +886,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "file-rotate"
+version = "0.7.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddf221ceec4517f3cb764dae3541b2bd87666fc8832e51322fbb97250b468c71"
+dependencies = [
+ "chrono",
+ "flate2",
+]
+
+[[package]]
 name = "filenamify"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2824,6 +2834,7 @@ name = "tabby-scheduler"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "file-rotate",
  "filenamify",
  "job_scheduler",
  "lazy_static",

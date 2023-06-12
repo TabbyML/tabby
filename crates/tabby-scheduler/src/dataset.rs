@@ -1,13 +1,15 @@
 use std::{
     collections::HashMap,
     ffi::OsStr,
-    fs::{self, read_to_string, File},
+    fs::{self, read_to_string},
+    io::Write,
 };
 
 use anyhow::Result;
+use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use lazy_static::lazy_static;
 use serde::Serialize;
-use serde_jsonlines::JsonLinesWriter;
+use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, Repository},
     path::dataset_dir,
@@ -62,11 +64,11 @@ lazy_static! {
 }
 
 trait RepositoryExt {
-    fn create_dataset(&self, writer: &mut JsonLinesWriter<File>) -> Result<()>;
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
 
 impl RepositoryExt for Repository {
-    fn create_dataset(&self, writer: &mut JsonLinesWriter<File>) -> Result<()> {
+    fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 
         info!("Start indexing repository {}", self.git_url);
@@ -80,14 +82,14 @@ impl RepositoryExt for Repository {
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
             if let Ok(file_content) = read_to_string(entry.path()) {
                 info!("Building {:?}", relative_path);
-                writer.write(&Document {
+                writer.write_json_lines([Document {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
                     content: file_content,
                     language: get_language(relative_path.extension().unwrap())
                         .unwrap()
                         .to_owned(),
-                })?;
+                }])?;
             } else {
                 error!("Cannot read {:?}", relative_path);
             }
@@ -129,8 +131,14 @@ fn is_not_hidden(entry: &DirEntry) -> bool {
 pub fn create_dataset(config: &Config) -> Result<()> {
     fs::remove_dir_all(dataset_dir()).ok();
     fs::create_dir_all(dataset_dir())?;
-    let file = File::create(dataset_dir().join("data.jsonl"))?;
-    let mut writer = JsonLinesWriter::new(file);
+    let mut writer = FileRotate::new(
+        dataset_dir().join("data.jsonl"),
+        AppendCount::new(usize::max_value()),
+        ContentLimit::Lines(1000),
+        Compression::None,
+        #[cfg(unix)]
+        None,
+    );
 
     for repository in config.repositories.as_slice() {
         repository.create_dataset(&mut writer)?;
