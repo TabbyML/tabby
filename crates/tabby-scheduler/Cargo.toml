@@ -13,6 +13,9 @@ tabby-common = { path = "../tabby-common" }
 tantivy = "0.19.2"
 tracing = { workspace = true }
 walkdir = "2.3.3"
+lazy_static = { workspace = true }
+serde = { workspace = true }
+serde-jsonlines = "0.4.0"
 
 [dev-dependencies]
 temp_testdir = "0.2"
