@@ -26,10 +26,12 @@ pub async fn scheduler(now: bool) -> Result<()> {
             return;
         }
 
-        info!("Indexing repositories...");
-        let ret = index::index_repositories(&config);
-        if let Err(err) = ret {
-            error!("Failed to index repositories, err: '{}'", err);
+        if false {
+            info!("Indexing repositories...");
+            let ret = index::index_repositories(&config);
+            if let Err(err) = ret {
+                error!("Failed to index repositories, err: '{}'", err);
+            }
         }
     };
 
