@@ -8,7 +8,6 @@ use std::{
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
 use lazy_static::lazy_static;
-use serde::Serialize;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, Repository},
@@ -16,6 +15,8 @@ use tabby_common::{
 };
 use tracing::{error, info};
 use walkdir::{DirEntry, WalkDir};
+
+use crate::document::Document;
 
 lazy_static! {
     static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
@@ -97,14 +98,6 @@ impl RepositoryExt for Repository {
 
         Ok(())
     }
-}
-
-#[derive(Serialize)]
-struct Document {
-    git_url: String,
-    filepath: String,
-    content: String,
-    language: String,
 }
 
 fn get_language(ext: &OsStr) -> Option<&str> {

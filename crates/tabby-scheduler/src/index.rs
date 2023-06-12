@@ -1,82 +1,53 @@
-use std::fs::{self, read_to_string};
+use std::{
+    fs::{self, File},
+    io::BufReader,
+};
 
 use anyhow::Result;
+use serde_jsonlines::JsonLinesReader;
 use tabby_common::{
-    config::{Config, Repository},
-    path::index_dir,
+    config::Config,
+    path::{dataset_dir, index_dir},
 };
 use tantivy::{
     directory::MmapDirectory,
     doc,
     schema::{Schema, STORED, STRING, TEXT},
-    Index, IndexWriter,
+    Index,
 };
-use tracing::{info, warn};
-use walkdir::{DirEntry, WalkDir};
+use tracing::info;
 
-trait RepositoryExt {
-    fn index(&self, schema: &Schema, writer: &mut IndexWriter) -> Result<()>;
-}
+use crate::document::Document;
 
-impl RepositoryExt for Repository {
-    fn index(&self, schema: &Schema, writer: &mut IndexWriter) -> Result<()> {
-        let git_url = schema.get_field("git_url").unwrap();
-        let filepath = schema.get_field("filepath").unwrap();
-        let content = schema.get_field("content").unwrap();
-        let dir = self.dir();
-
-        info!("Start indexing repository {}", self.git_url);
-        let walk_dir = WalkDir::new(dir.as_path())
-            .into_iter()
-            .filter_entry(is_not_hidden)
-            .filter_map(Result::ok)
-            .filter(|e| !e.file_type().is_dir());
-
-        for entry in walk_dir {
-            let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
-            if let Ok(file_content) = read_to_string(entry.path()) {
-                info!("Indexing {:?}", relative_path);
-                writer.add_document(doc!(
-                    git_url => self.git_url.clone(),
-                    filepath => relative_path.display().to_string(),
-                    content => file_content,
-                ))?;
-            } else {
-                warn!("Skip {:?}", relative_path);
-            }
-        }
-
-        Ok(())
-    }
-}
-
-fn is_not_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| entry.depth() == 0 || !s.starts_with('.'))
-        .unwrap_or(false)
-}
-
-fn create_schema() -> Schema {
+pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
-    builder.add_text_field("git_url", STRING | STORED);
-    builder.add_text_field("filepath", STRING | STORED);
-    builder.add_text_field("content", TEXT | STORED);
-    builder.build()
-}
-
-pub fn index_repositories(config: &Config) -> Result<()> {
-    let schema = create_schema();
+    let git_url = builder.add_text_field("git_url", STRING | STORED);
+    let filepath = builder.add_text_field("filepath", STRING | STORED);
+    let content = builder.add_text_field("content", TEXT | STORED);
+    let language = builder.add_text_field("language", TEXT | STORED);
+    let schema = builder.build();
 
     fs::create_dir_all(index_dir())?;
     let directory = MmapDirectory::open(index_dir())?;
-    let index = Index::open_or_create(directory, schema.clone())?;
+    let index = Index::open_or_create(directory, schema)?;
     let mut writer = index.writer(10_000_000)?;
-
     writer.delete_all_documents()?;
-    for repository in config.repositories.as_slice() {
-        repository.index(&schema, &mut writer)?;
+
+    for path in dataset_dir().read_dir()? {
+        let path = path?.path();
+        info!("Indexing {:?}", path.as_path());
+
+        let fp = BufReader::new(File::open(path.as_path())?);
+        let reader = JsonLinesReader::new(fp);
+        for doc in reader.read_all::<Document>() {
+            let doc = doc?;
+            writer.add_document(doc!(
+                    git_url => doc.git_url,
+                    filepath => doc.filepath,
+                    content => doc.content,
+                    language => doc.language,
+            ))?;
+        }
     }
 
     writer.commit()?;
