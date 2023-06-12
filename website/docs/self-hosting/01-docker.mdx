@@ -63,12 +63,13 @@ services:
         - "$HOME/.tabby:/data"
       ports:
         - 8080:8080
-      resources:
-      reservations:
-        devices:
-        - driver: nvidia
-          count: 1
-          capabilities: [gpu]
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
   ```
 
   </TabItem>
