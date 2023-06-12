@@ -86,10 +86,13 @@ impl RepositoryExt for Repository {
                 writer.write_json_lines([Document {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
-                    content: file_content,
                     language: get_language(relative_path.extension().unwrap())
                         .unwrap()
                         .to_owned(),
+                    max_line_length: metrics::max_line_length(&file_content),
+                    avg_line_length: metrics::avg_line_length(&file_content),
+                    alphanum_fraction: metrics::alphanum_fraction(&file_content),
+                    content: file_content,
                 }])?;
             } else {
                 error!("Cannot read {:?}", relative_path);
@@ -139,4 +142,31 @@ pub fn create_dataset(config: &Config) -> Result<()> {
 
     writer.flush()?;
     Ok(())
+}
+
+mod metrics {
+    use std::cmp::max;
+
+    pub fn max_line_length(content: &str) -> usize {
+        content.lines().map(|x| x.len()).reduce(max).unwrap_or(0)
+    }
+
+    pub fn avg_line_length(content: &str) -> f32 {
+        let mut total = 0;
+        let mut len = 0;
+        for x in content.lines() {
+            len += 1;
+            total += x.len();
+        }
+
+        total as f32 / len as f32
+    }
+
+    pub fn alphanum_fraction(content: &str) -> f32 {
+        let num_alphanumn: f32 = content
+            .chars()
+            .map(|x| f32::from(u8::from(x.is_alphanumeric())))
+            .sum();
+        num_alphanumn / content.len() as f32
+    }
 }
