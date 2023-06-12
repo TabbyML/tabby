@@ -1,3 +1,4 @@
+mod dataset;
 mod index;
 mod repository;
 
@@ -18,10 +19,19 @@ pub async fn scheduler(now: bool) -> Result<()> {
             return;
         }
 
-        info!("Indexing repositories...");
-        let ret = index::index_repositories(&config);
+        info!("Building dataset...");
+        let ret = dataset::create_dataset(&config);
         if let Err(err) = ret {
-            error!("Failed to index repositories, err: '{}'", err);
+            error!("Failed to build dataset, err: '{}'", err);
+            return;
+        }
+
+        if false {
+            info!("Indexing repositories...");
+            let ret = index::index_repositories(&config);
+            if let Err(err) = ret {
+                error!("Failed to index repositories, err: '{}'", err);
+            }
         }
     };
 
@@ -66,6 +76,7 @@ mod tests {
         };
 
         repository::sync_repositories(&config).unwrap();
+        dataset::create_dataset(&config).unwrap();
         index::index_repositories(&config).unwrap();
     }
 }

@@ -35,6 +35,10 @@ pub fn index_dir() -> PathBuf {
     tabby_root().join("index")
 }
 
+pub fn dataset_dir() -> PathBuf {
+    tabby_root().join("dataset")
+}
+
 pub fn models_dir() -> PathBuf {
     tabby_root().join("models")
 }
