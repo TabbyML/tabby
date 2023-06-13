@@ -1,4 +1,3 @@
-mod admin;
 mod completions;
 mod events;
 
@@ -70,10 +69,6 @@ pub struct ServeArgs {
     /// Number of replicas per device, only applicable for CPU.
     #[clap(long, default_value_t = 1)]
     num_replicas_per_device: usize,
-
-    /// *INTERNAL ONLY*
-    #[clap(long, default_value_t = false)]
-    experimental_admin_panel: bool,
 }
 
 pub async fn main(args: &ServeArgs) {
@@ -93,7 +88,7 @@ pub async fn main(args: &ServeArgs) {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
-        .fallback(fallback(args.experimental_admin_panel));
+        .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
@@ -116,12 +111,8 @@ fn api_router(args: &ServeArgs) -> Router {
         .layer(opentelemetry_tracing_layer())
 }
 
-fn fallback(experimental_admin_panel: bool) -> routing::MethodRouter {
-    if experimental_admin_panel {
-        routing::get(admin::handler)
-    } else {
-        routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })
-    }
+fn fallback() -> routing::MethodRouter {
+    routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })
 }
 
 fn valid_args(args: &ServeArgs) {
