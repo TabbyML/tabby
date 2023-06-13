@@ -1,5 +1,6 @@
 mod completions;
 mod events;
+mod health;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -29,13 +30,14 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         (url = "https://tabbyml.app.tabbyml.com/tabby", description = "Local server"),
         (url = "http://localhost:8080", description = "Local server"),
     ),
-    paths(events::log_event, completions::completion, health),
+    paths(events::log_event, completions::completion, health::health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
         completions::Choice,
+        health::HealthState,
     ))
 )]
 struct ApiDoc;
@@ -134,7 +136,10 @@ pub async fn main(args: &ServeArgs) {
 fn api_router(args: &ServeArgs) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
-        .route("/health", routing::post(health))
+        .route(
+            "/health",
+            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
+        )
         .route(
             "/completions",
             routing::post(completions::completion)
@@ -159,16 +164,9 @@ fn valid_args(args: &ServeArgs) {
     }
 
     if args.device == Device::Cpu && args.compute_type != ComputeType::Int8 {
-        fatal!("CPU device only supports int8 compute type");
+        match args.compute_type {
+            ComputeType::Auto | ComputeType::Int8 => {}
+            _ => fatal!("CPU device only supports int8 compute type"),
+        }
     }
 }
-
-#[utoipa::path(
-    post,
-    path = "/v1/health",
-    tag = "v1",
-    responses(
-        (status = 200, description = "Health"),
-    )
-)]
-async fn health() {}
