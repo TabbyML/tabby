@@ -118,7 +118,7 @@ std::shared_ptr<TextInferenceEngine> create_engine(
   if (loader.device == ctranslate2::Device::CPU) {
     loader.compute_type = ctranslate2::ComputeType::INT8;
   } else if (loader.device == ctranslate2::Device::CUDA) {
-    loader.compute_type = ctranslate2::ComputeType::FLOAT16;
+    loader.compute_type = ctranslate2::ComputeType::INT8_FLOAT16;
   }
 
   if (model_type_str == "AutoModelForCausalLM") {
