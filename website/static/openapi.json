@@ -11,8 +11,8 @@
   },
   "servers": [
     {
-      "url": "https://tabbyml.app.tabbyml.com/tabby",
-      "description": "Local server"
+      "url": "https://playground.app.tabbyml.com/tabby",
+      "description": "Playground server"
     },
     {
       "url": "http://localhost:8080",
@@ -87,7 +87,14 @@
         "operationId": "health",
         "responses": {
           "200": {
-            "description": "Health"
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthState"
+                }
+              }
+            }
           }
         }
       }
@@ -152,6 +159,25 @@
             "items": {
               "$ref": "#/components/schemas/Choice"
             }
+          }
+        }
+      },
+      "HealthState": {
+        "type": "object",
+        "required": [
+          "model",
+          "device",
+          "compute_type"
+        ],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "device": {
+            "type": "string"
+          },
+          "compute_type": {
+            "type": "string"
           }
         }
       },
