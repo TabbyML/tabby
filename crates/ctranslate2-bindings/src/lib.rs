@@ -21,6 +21,7 @@ mod ffi {
             model_path: &str,
             model_type: &str,
             device: &str,
+            compute_type: &str,
             device_indices: &[i32],
             num_replicas_per_device: usize,
         ) -> SharedPtr<TextInferenceEngine>;
@@ -60,6 +61,8 @@ pub struct TextInferenceEngineCreateOptions {
     device_indices: Vec<i32>,
 
     num_replicas_per_device: usize,
+
+    compute_type: String,
 }
 
 #[derive(Builder, Debug)]
@@ -101,6 +104,7 @@ impl TextInferenceEngine {
             &options.model_path,
             &options.model_type,
             &options.device,
+            &options.compute_type,
             &options.device_indices,
             options.num_replicas_per_device,
         );

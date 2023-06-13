@@ -49,6 +49,35 @@ pub enum Device {
     Cuda,
 }
 
+#[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
+#[clap(rename_all = "snake_case")]
+pub enum ComputeType {
+    /// Set quantization automatically based on device:
+    ///
+    /// CPU: Int8
+    /// CUDA: Int8Float32
+    #[strum(serialize = "auto")]
+    Auto,
+
+    /// Quantize model weights to use int8 for inference.
+    ///
+    /// On CUDA devices, embedding / linear layers runs on int8, while other layers runs on
+    /// float32.
+    #[strum(serialize = "cpu")]
+    Int8,
+
+    /// Use float16 for inference, only supported on CUDA devices.
+    #[strum(serialize = "float16")]
+    Float16,
+
+    /// Use int8 / float16 mixed precision for inference, only supported on CUDA devices.
+    ///
+    /// This mode is the same as int8 for CUDA devices, but all non quantized layers are run in float16
+    /// instead of float32.
+    #[strum(serialize = "int8_float16")]
+    Int8Float16,
+}
+
 #[derive(Args)]
 pub struct ServeArgs {
     /// Model id for serving.
@@ -69,6 +98,10 @@ pub struct ServeArgs {
     /// Number of replicas per device, only applicable for CPU.
     #[clap(long, default_value_t = 1)]
     num_replicas_per_device: usize,
+
+    /// Compute type
+    #[clap(long, default_value_t=ComputeType::Auto)]
+    compute_type: ComputeType,
 }
 
 pub async fn main(args: &ServeArgs) {
@@ -123,6 +156,10 @@ fn valid_args(args: &ServeArgs) {
     if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
         fatal!("CPU device only supports device indices = [0]");
+    }
+
+    if args.device == Device::Cpu && args.compute_type != ComputeType::Int8 {
+        fatal!("CPU device only supports int8 compute type");
     }
 }
 

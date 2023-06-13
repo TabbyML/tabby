@@ -105,6 +105,7 @@ std::shared_ptr<TextInferenceEngine> create_engine(
     rust::Str model_path,
     rust::Str model_type,
     rust::Str device,
+    rust::Str compute_type,
     rust::Slice<const int32_t> device_indices,
     size_t num_replicas_per_device
 ) {
@@ -115,10 +116,15 @@ std::shared_ptr<TextInferenceEngine> create_engine(
   loader.device_indices = std::vector<int>(device_indices.begin(), device_indices.end());
   loader.num_replicas_per_device = num_replicas_per_device;
 
-  if (loader.device == ctranslate2::Device::CPU) {
-    loader.compute_type = ctranslate2::ComputeType::INT8;
-  } else if (loader.device == ctranslate2::Device::CUDA) {
-    loader.compute_type = ctranslate2::ComputeType::INT8_FLOAT16;
+  std::string compute_type_str(compute_type);
+  if (compute_type_str == "auto") {
+    if (loader.device == ctranslate2::Device::CPU) {
+      loader.compute_type = ctranslate2::ComputeType::INT8;
+    } else if (loader.device == ctranslate2::Device::CUDA) {
+      loader.compute_type = ctranslate2::ComputeType::INT8_FLOAT16;
+    }
+  } else {
+      loader.compute_type = ctranslate2::str_to_compute_type(compute_type_str);
   }
 
   if (model_type_str == "AutoModelForCausalLM") {

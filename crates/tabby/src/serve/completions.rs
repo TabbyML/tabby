@@ -127,6 +127,7 @@ impl CompletionState {
         let metadata = read_metadata(&model_dir);
 
         let device = format!("{}", args.device);
+        let compute_type = format!("{}", args.compute_type);
         let options = TextInferenceEngineCreateOptionsBuilder::default()
             .model_path(model_dir.ctranslate2_dir())
             .tokenizer_path(model_dir.tokenizer_file())
@@ -134,6 +135,7 @@ impl CompletionState {
             .model_type(metadata.auto_model)
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
+            .compute_type(compute_type)
             .build()
             .unwrap();
         let engine = TextInferenceEngine::create(options);
