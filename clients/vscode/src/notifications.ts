@@ -16,7 +16,7 @@ function showInformationWhenDisabled() {
   window.showInformationMessage("Tabby is disabled. Enable it?", "Enable", "Settings").then((selection) => {
     switch (selection) {
       case "Enable":
-        commands.executeCommand("tabby.toggleEnable");
+        commands.executeCommand("tabby.toggleEnabled");
         break;
       case "Settings":
         commands.executeCommand("tabby.openSettings");
@@ -31,7 +31,7 @@ function showInformationWhenReady() {
     .then((selection) => {
       switch (selection) {
         case "Disable":
-          commands.executeCommand("tabby.toggleEnable");
+          commands.executeCommand("tabby.toggleEnabled");
           break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");
