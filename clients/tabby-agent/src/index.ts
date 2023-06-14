@@ -1,17 +1,16 @@
-export { TabbyAgent } from "./TabbyAgent";
+export { TabbyAgent, TabbyAgentOptions } from "./TabbyAgent";
 export {
   Agent,
+  AgentStatus,
   AgentFunction,
   AgentEvent,
   StatusChangedEvent,
+  ConfigUpdatedEvent,
   CompletionRequest,
   CompletionResponse,
+  LogEventRequest,
   agentEventNames,
 } from "./Agent";
 export { AgentConfig } from "./AgentConfig";
-export {
-  CancelablePromise,
-  CancelError,
-  ApiError,
-  Choice,
-} from "./generated";
+export { DataStore } from "./dataStore";
+export { CancelablePromise } from "./generated";

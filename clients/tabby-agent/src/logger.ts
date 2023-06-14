@@ -1,19 +1,17 @@
-import os from "os";
-import path from "path";
-import { isBrowser } from "browser-or-node";
-import * as rotatingFileStream from "rotating-file-stream";
 import pino from "pino";
+
+declare var IS_BROWSER: boolean;
 
 /**
  * Stream not available in browser, will use default console output.
  */
-const stream = isBrowser
+const stream = IS_BROWSER
   ? null
   : /**
      * Default rotating file locate at `~/.tabby/agent-logs/`.
      */
-    rotatingFileStream.createStream("tabby-agent.log", {
-      path: path.join(os.homedir(), ".tabby", "agent-logs"),
+    require("rotating-file-stream").createStream("tabby-agent.log", {
+      path: require("path").join(require("os").homedir(), ".tabby", "agent-logs"),
       size: "10M",
       interval: "1d",
     });

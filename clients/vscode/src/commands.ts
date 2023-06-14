@@ -3,15 +3,18 @@ import {
   InputBoxValidationSeverity,
   QuickPickItem,
   QuickPickItemKind,
+  Uri,
   workspace,
   window,
+  env,
   commands,
 } from "vscode";
 import { strict as assert } from "assert";
 import { Duration } from "@sapphire/duration";
-import { Agent } from "./Agent";
+import { agent } from "./agent";
+import { notifications } from "./notifications";
 
-const target = ConfigurationTarget.Global;
+const configTarget = ConfigurationTarget.Global;
 
 type Command = {
   command: string;
@@ -19,13 +22,13 @@ type Command = {
   thisArg?: any;
 };
 
-const toogleEnabled: Command = {
+const toggleEnabled: Command = {
   command: "tabby.toggleEnabled",
   callback: () => {
     const configuration = workspace.getConfiguration("tabby");
     const enabled = configuration.get("enabled", true);
     console.debug(`Toggle Enabled: ${enabled} -> ${!enabled}.`);
-    configuration.update("enabled", !enabled, target, false);
+    configuration.update("enabled", !enabled, configTarget, false);
   },
 };
 
@@ -35,9 +38,9 @@ const setSuggestionDelay: Command = {
     const configuration = workspace.getConfiguration("tabby");
     const current = configuration.get("suggestionDelay", 150);
     const items = {
-      "Immediately": 0, // ms
-      "Default": 150,
-      "Slowly": 1000,
+      Immediately: 0, // ms
+      Default: 150,
+      Slowly: 1000,
     };
     const createQuickPickItem = (value: number): QuickPickItem => {
       const tags: string[] = [];
@@ -84,7 +87,7 @@ const setSuggestionDelay: Command = {
       quickPick.hide();
       const delay = new Duration(quickPick.selectedItems[0].label).offset;
       console.debug("Set suggestion delay: ", delay);
-      configuration.update("suggestionDelay", delay, target, false);
+      configuration.update("suggestionDelay", delay, configTarget, false);
     });
     quickPick.show();
   },
@@ -114,7 +117,7 @@ const setServerUrl: Command = {
       .then((url) => {
         if (url) {
           console.debug("Set Tabby Server URL: ", url);
-          configuration.update("serverUrl", url, target, false);
+          configuration.update("serverUrl", url, configTarget, false);
         }
       });
   },
@@ -127,15 +130,51 @@ const openSettings: Command = {
   },
 };
 
-const agent = Agent.getInstance();
 const emitEvent: Command = {
   command: "tabby.emitEvent",
   callback: (event) => {
     console.debug("Emit Event: ", event);
-    agent.postEvent(event);
+    agent().postEvent(event);
   },
 };
 
-export const tabbyCommands = [toogleEnabled, setServerUrl, setSuggestionDelay, openSettings, emitEvent].map((command) =>
-  commands.registerCommand(command.command, command.callback, command.thisArg)
-);
+const openAuthPage: Command = {
+  command: "tabby.openAuthPage",
+  callback: () => {
+    agent()
+      .startAuth()
+      .then((authUrl) => {
+        if (authUrl) {
+          env.openExternal(Uri.parse(authUrl));
+        }
+      });
+  },
+};
+
+const statusBarItemClicked: Command = {
+  command: "tabby.statusBarItemClicked",
+  callback: (status) => {
+    switch (status) {
+      case "loading":
+        notifications.showInformationWhenLoading();
+        break;
+      case "ready":
+        notifications.showInformationWhenReady();
+        break;
+      case "disconnected":
+        notifications.showInformationWhenDisconnected();
+        break;
+      case "unauthorized":
+        notifications.showInformationStartAuth();
+        break;
+      case "disabled":
+        notifications.showInformationWhenDisabled();
+        break;
+    }
+  },
+};
+
+export const tabbyCommands = () =>
+  [toggleEnabled, setServerUrl, setSuggestionDelay, openSettings, emitEvent, openAuthPage, statusBarItemClicked].map(
+    (command) => commands.registerCommand(command.command, command.callback, command.thisArg)
+  );

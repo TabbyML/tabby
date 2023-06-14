@@ -1,57 +1,82 @@
-import axios from "axios";
 import { EventEmitter } from "events";
 import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import deepMerge from "deepmerge";
-import { TabbyApi, CancelablePromise, ApiError, CancelError } from "./generated";
-import { sleep, cancelable, splitLines, isBlank } from "./utils";
-import { Agent, AgentEvent, AgentInitOptions, CompletionRequest, CompletionResponse, LogEventRequest } from "./Agent";
+import { TabbyApi, CancelablePromise } from "./generated";
+import { cancelable, splitLines, isBlank } from "./utils";
+import {
+  Agent,
+  AgentStatus,
+  AgentEvent,
+  AgentInitOptions,
+  CompletionRequest,
+  CompletionResponse,
+  LogEventRequest,
+} from "./Agent";
+import { Auth } from "./Auth";
 import { AgentConfig, defaultAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
+import { DataStore } from "./dataStore";
 import { postprocess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
+
+/**
+ * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
+ * so it is not suitable for cli, but only used when imported as module by other js project.
+ */
+export type TabbyAgentOptions = {
+  dataStore: DataStore;
+};
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = rootLogger.child({ component: "TabbyAgent" });
   private config: AgentConfig = defaultAgentConfig;
-  private status: "connecting" | "ready" | "disconnected" = "connecting";
+  private status: AgentStatus = "notInitialized";
   private api: TabbyApi;
+  private auth: Auth;
+  private dataStore: DataStore | null = null;
   private completionCache: CompletionCache = new CompletionCache();
+  static readonly tryConnectInterval = 1000 * 30; // 30s
+  private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor() {
+  private constructor() {
     super();
-    this.onConfigUpdated();
+
+    this.tryingConnectTimer = setInterval(async () => {
+      if (this.status === "disconnected") {
+        this.logger.debug("Trying to connect...");
+        await this.healthCheck();
+      }
+    }, TabbyAgent.tryConnectInterval);
   }
 
-  private onConfigUpdated() {
+  static async create(options?: TabbyAgentOptions): Promise<TabbyAgent> {
+    const agent = new TabbyAgent();
+    agent.dataStore = options?.dataStore;
+    await agent.applyConfig();
+    return agent;
+  }
+
+  private async applyConfig() {
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint });
-    this.ping();
+    if (this.config.server.endpoint !== this.auth?.endpoint) {
+      this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
+      this.auth.on("updated", this.onAuthUpdated.bind(this));
+    }
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
   }
 
-  private changeStatus(status: "connecting" | "ready" | "disconnected") {
+  private async onAuthUpdated() {
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+    await this.healthCheck();
+  }
+
+  private changeStatus(status: AgentStatus) {
     if (this.status != status) {
       this.status = status;
       const event: AgentEvent = { event: "statusChanged", status };
       this.logger.debug({ event }, "Status changed");
       super.emit("statusChanged", event);
-    }
-  }
-
-  private async ping(tries: number = 0): Promise<boolean> {
-    try {
-      await axios.get(this.config.server.endpoint);
-      this.changeStatus("ready");
-      return true;
-    } catch (e) {
-      if (tries > 5) {
-        this.changeStatus("disconnected");
-        return false;
-      }
-      this.changeStatus("connecting");
-      const pingRetryDelay = 1000;
-      await sleep(pingRetryDelay);
-      return this.ping(tries + 1);
     }
   }
 
@@ -68,19 +93,29 @@ export class TabbyAgent extends EventEmitter implements Agent {
           this.changeStatus("ready");
           return response;
         })
-        .catch((error: CancelError) => {
-          this.logger.debug({ api: api.name }, "API request canceled");
-          throw error;
-        })
-        .catch((error: ApiError) => {
-          this.logger.error({ api: api.name, error }, "API error");
-          this.changeStatus("disconnected");
+        .catch((error) => {
+          if (!!error.isCancelled) {
+            this.logger.debug({ api: api.name, error }, "API request canceled");
+          } else if (error.name === "ApiError" && [401, 403, 405].indexOf(error.status) !== -1) {
+            this.logger.debug({ api: api.name, error }, "API unauthorized");
+            this.changeStatus("unauthorized");
+          } else if (error.name === "ApiError") {
+            this.logger.error({ api: api.name, error }, "API error");
+            this.changeStatus("disconnected");
+          } else {
+            this.logger.error({ api: api.name, error }, "API request failed with unknown error");
+            this.changeStatus("disconnected");
+          }
           throw error;
         }),
       () => {
         promise.cancel();
       }
     );
+  }
+
+  private async healthCheck(): Promise<void> {
+    return this.callApi(this.api.v1.health, {}).catch(() => {});
   }
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
@@ -96,40 +131,60 @@ export class TabbyAgent extends EventEmitter implements Agent {
     };
   }
 
-  public initialize(params: AgentInitOptions): boolean {
-    if (params.config) {
-      this.updateConfig(params.config);
-    }
-    if (params.client) {
+  public async initialize(options: Partial<AgentInitOptions>): Promise<boolean> {
+    if (options.client) {
       // Client info is only used in logging for now
       // `pino.Logger.setBindings` is not present in the browser
-      allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: params.client }));
+      allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: options.client }));
     }
-    this.logger.debug({ params }, "Initialized");
-    return true;
+    if (options.config) {
+      await this.updateConfig(options.config);
+    }
+    this.logger.debug({ options }, "Initialized");
+    return this.status !== "notInitialized";
   }
 
-  public updateConfig(config: AgentConfig): boolean {
+  public async updateConfig(config: Partial<AgentConfig>): Promise<boolean> {
     const mergedConfig = deepMerge(this.config, config);
     if (!deepEqual(this.config, mergedConfig)) {
       this.config = mergedConfig;
-      this.onConfigUpdated();
+      await this.applyConfig();
       const event: AgentEvent = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
     }
-    return true;
+    await this.healthCheck();
+    return this.status !== "notInitialized";
   }
 
   public getConfig(): AgentConfig {
     return this.config;
   }
 
-  public getStatus(): "connecting" | "ready" | "disconnected" {
+  public getStatus(): AgentStatus {
     return this.status;
   }
 
+  public startAuth(): CancelablePromise<string | null> {
+    return cancelable(
+      this.healthCheck().then(() => {
+        if (this.status === "unauthorized") {
+          return this.auth.requestToken();
+        }
+        return null;
+      }),
+      () => {
+        if (this.status === "unauthorized") {
+          this.auth.reset();
+        }
+      }
+    );
+  }
+
   public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
     if (this.completionCache.has(request)) {
       this.logger.debug({ request }, "Completion cache hit");
       return new CancelablePromise((resolve) => {
@@ -166,6 +221,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public postEvent(request: LogEventRequest): CancelablePromise<boolean> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
     return this.callApi(this.api.v1.event, request);
   }
 }

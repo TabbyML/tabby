@@ -47,8 +47,6 @@ var __privateSet = (obj, member, value, setter) => {
 // src/index.ts
 var src_exports = {};
 __export(src_exports, {
-  ApiError: () => ApiError,
-  CancelError: () => CancelError,
   CancelablePromise: () => CancelablePromise,
   TabbyAgent: () => TabbyAgent,
   agentEventNames: () => agentEventNames
@@ -56,8 +54,7 @@ __export(src_exports, {
 module.exports = __toCommonJS(src_exports);
 
 // src/TabbyAgent.ts
-var import_axios2 = __toESM(require("axios"));
-var import_events = require("events");
+var import_events2 = require("events");
 var import_uuid = require("uuid");
 var import_deep_equal2 = __toESM(require("deep-equal"));
 var import_deepmerge = __toESM(require("deepmerge"));
@@ -246,13 +243,13 @@ var getQueryString = (params) => {
 };
 var getUrl = (config, options) => {
   const encoder = config.ENCODE_PATH || encodeURI;
-  const path2 = options.url.replace("{api-version}", config.VERSION).replace(/{(.*?)}/g, (substring, group) => {
+  const path = options.url.replace("{api-version}", config.VERSION).replace(/{(.*?)}/g, (substring, group) => {
     if (options.path?.hasOwnProperty(group)) {
       return encoder(String(options.path[group]));
     }
     return substring;
   });
-  const url = `${config.BASE}${path2}`;
+  const url = `${config.BASE}${path}`;
   if (options.query) {
     return `${url}${getQueryString(options.query)}`;
   }
@@ -461,13 +458,23 @@ var V1Service = class {
       }
     });
   }
+  /**
+   * @returns any Health
+   * @throws ApiError
+   */
+  health() {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/v1/health"
+    });
+  }
 };
 
 // src/generated/TabbyApi.ts
 var TabbyApi = class {
   constructor(config, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config?.BASE ?? "https://app.tabbyml.com/api/workspace/tabbyml/tabby",
+      BASE: config?.BASE ?? "https://tabbyml.app.tabbyml.com/tabby",
       VERSION: config?.VERSION ?? "0.1.0",
       WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config?.CREDENTIALS ?? "include",
@@ -482,9 +489,6 @@ var TabbyApi = class {
 };
 
 // src/utils.ts
-function sleep(milliseconds) {
-  return new Promise((r) => setTimeout(r, milliseconds));
-}
 function splitLines(input) {
   return input.match(/.*(?:$|\r?\n)/g).filter(Boolean);
 }
@@ -507,36 +511,79 @@ function cancelable(promise, cancel) {
   });
 }
 
-// src/AgentConfig.ts
-var defaultAgentConfig = {
-  server: {
-    endpoint: "http://localhost:8080"
-  },
-  logs: {
-    level: "error"
-  },
-  anonymousUsageTracking: {
-    disable: false
+// src/Auth.ts
+var import_events = require("events");
+
+// src/cloud/services/ApiService.ts
+var ApiService = class {
+  constructor(httpRequest) {
+    this.httpRequest = httpRequest;
+  }
+  /**
+   * @returns DeviceTokenResponse Success
+   * @throws ApiError
+   */
+  deviceToken() {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/api/device-token"
+    });
+  }
+  /**
+   * @param code
+   * @returns DeviceTokenAcceptResponse Success
+   * @throws ApiError
+   */
+  deviceTokenAccept(query) {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/api/device-token/accept",
+      query
+    });
   }
 };
 
-// src/CompletionCache.ts
-var import_lru_cache = require("lru-cache");
-var import_object_hash = __toESM(require("object-hash"));
-var import_object_sizeof = __toESM(require("object-sizeof"));
+// src/cloud/CloudApi.ts
+var CloudApi = class {
+  constructor(config, HttpRequest = AxiosHttpRequest) {
+    this.request = new HttpRequest({
+      BASE: config?.BASE ?? "http://localhost:3000",
+      VERSION: config?.VERSION ?? "0.0.0",
+      WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
+      CREDENTIALS: config?.CREDENTIALS ?? "include",
+      TOKEN: config?.TOKEN,
+      USERNAME: config?.USERNAME,
+      PASSWORD: config?.PASSWORD,
+      HEADERS: config?.HEADERS,
+      ENCODE_PATH: config?.ENCODE_PATH
+    });
+    this.api = new ApiService(this.request);
+  }
+};
+
+// src/dataStore.ts
+var dataStore = false ? null : (() => {
+  const dataFile = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");
+  const fs = require("fs-extra");
+  return {
+    data: {},
+    load: async function() {
+      this.data = await fs.readJson(dataFile, { throws: false }) || {};
+    },
+    save: async function() {
+      await fs.outputJson(dataFile, this.data);
+    }
+  };
+})();
 
 // src/logger.ts
-var import_os = __toESM(require("os"));
-var import_path = __toESM(require("path"));
-var import_browser_or_node = require("browser-or-node");
-var rotatingFileStream = __toESM(require("rotating-file-stream"));
 var import_pino = __toESM(require("pino"));
-var stream = import_browser_or_node.isBrowser ? null : (
+var stream = false ? null : (
   /**
    * Default rotating file locate at `~/.tabby/agent-logs/`.
    */
-  rotatingFileStream.createStream("tabby-agent.log", {
-    path: import_path.default.join(import_os.default.homedir(), ".tabby", "agent-logs"),
+  require("rotating-file-stream").createStream("tabby-agent.log", {
+    path: require("path").join(require("os").homedir(), ".tabby", "agent-logs"),
     size: "10M",
     interval: "1d"
   })
@@ -547,7 +594,148 @@ rootLogger.onChild = (child) => {
   allLoggers.push(child);
 };
 
+// src/Auth.ts
+var _Auth = class extends import_events.EventEmitter {
+  constructor(options) {
+    super();
+    // 3 days
+    this.logger = rootLogger.child({ component: "Auth" });
+    this.dataStore = null;
+    this.pollingTokenTimer = null;
+    this.refreshTokenTimer = null;
+    this.jwt = null;
+    this.endpoint = options.endpoint;
+    this.dataStore = options.dataStore || dataStore;
+    this.cloudApi = new CloudApi();
+  }
+  static async create(options) {
+    const auth = new _Auth(options);
+    await auth.load();
+    return auth;
+  }
+  get token() {
+    return this.jwt;
+  }
+  async load() {
+    if (!this.dataStore)
+      return;
+    try {
+      await this.dataStore.load();
+      const storedJwt = this.dataStore.data["auth"]?.[this.endpoint]?.jwt;
+      if (typeof storedJwt === "string" && this.jwt !== storedJwt) {
+        this.logger.debug({ storedJwt }, "Load jwt from data store.");
+        this.jwt = storedJwt;
+        this.scheduleRefreshToken();
+      }
+    } catch (error) {
+      this.logger.debug({ error }, "Error when loading auth");
+    }
+  }
+  async save() {
+    if (!this.dataStore)
+      return;
+    try {
+      if (this.jwt) {
+        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt)
+          return;
+        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt } };
+      } else {
+        if (typeof this.dataStore.data["auth"]?.[this.endpoint] === "undefined")
+          return;
+        delete this.dataStore.data["auth"][this.endpoint];
+      }
+      await this.dataStore.save();
+      this.logger.debug("Save changes to data store.");
+    } catch (error) {
+      this.logger.error({ error }, "Error when saving auth");
+    }
+  }
+  async reset() {
+    if (this.jwt) {
+      this.jwt = null;
+      await this.save();
+    }
+    if (this.refreshTokenTimer) {
+      clearTimeout(this.refreshTokenTimer);
+      this.refreshTokenTimer = null;
+    }
+    if (this.pollingTokenTimer) {
+      clearInterval(this.pollingTokenTimer);
+      this.pollingTokenTimer = null;
+    }
+  }
+  async requestToken() {
+    try {
+      await this.reset();
+      const deviceToken = await this.cloudApi.api.deviceToken();
+      this.logger.debug({ deviceToken }, "Request device token response");
+      const authUrl = new URL(_Auth.authUrl);
+      authUrl.searchParams.append("code", deviceToken.data.code);
+      this.schedulePollingToken(deviceToken.data.code);
+      return authUrl.toString();
+    } catch (error) {
+      this.logger.error({ error }, "Error when requesting device token");
+      throw error;
+    }
+  }
+  async schedulePollingToken(code) {
+    this.pollingTokenTimer = setInterval(async () => {
+      try {
+        const response = await this.cloudApi.api.deviceTokenAccept({ code });
+        this.logger.debug({ response }, "Poll jwt response");
+        this.jwt = response.data.jwt;
+        await this.save();
+        this.scheduleRefreshToken();
+        super.emit("updated", this.jwt);
+        clearInterval(this.pollingTokenTimer);
+        this.pollingTokenTimer = null;
+      } catch (error) {
+        if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+          this.logger.debug({ error }, "Expected error when polling jwt");
+        } else {
+          this.logger.error({ error }, "Error when polling jwt");
+        }
+      }
+    }, _Auth.pollTokenInterval);
+  }
+  scheduleRefreshToken() {
+    if (this.refreshTokenTimer) {
+      clearTimeout(this.refreshTokenTimer);
+      this.refreshTokenTimer = null;
+    }
+    if (!this.jwt) {
+      return null;
+    }
+    const expireAt = Date.now() / 1e3 + 60 * 60 * 24 * 7;
+    const refreshDelay = Math.max(0, expireAt * 1e3 - Date.now() - _Auth.refreshTokenInterval);
+    this.refreshTokenTimer = setTimeout(async () => {
+      this.logger.debug({ expireAt }, "Refresh token");
+    }, refreshDelay);
+  }
+};
+var Auth = _Auth;
+Auth.authUrl = "https://app.tabbyml.com/account/device-token";
+Auth.pollTokenInterval = 5e3;
+// 5 seconds
+Auth.refreshTokenInterval = 1e3 * 60 * 60 * 24 * 3;
+
+// src/AgentConfig.ts
+var defaultAgentConfig = {
+  server: {
+    endpoint: "http://localhost:8080"
+  },
+  logs: {
+    level: "silent"
+  },
+  anonymousUsageTracking: {
+    disable: false
+  }
+};
+
 // src/CompletionCache.ts
+var import_lru_cache = require("lru-cache");
+var import_object_hash = __toESM(require("object-hash"));
+var import_object_sizeof = __toESM(require("object-sizeof"));
 var CompletionCache = class {
   constructor() {
     this.logger = rootLogger.child({ component: "CompletionCache" });
@@ -695,19 +883,40 @@ async function postprocess(request2, response) {
 }
 
 // src/TabbyAgent.ts
-var TabbyAgent = class extends import_events.EventEmitter {
+var _TabbyAgent = class extends import_events2.EventEmitter {
   constructor() {
     super();
     this.logger = rootLogger.child({ component: "TabbyAgent" });
     this.config = defaultAgentConfig;
-    this.status = "connecting";
+    this.status = "notInitialized";
+    this.dataStore = null;
     this.completionCache = new CompletionCache();
-    this.onConfigUpdated();
+    // 30s
+    this.tryingConnectTimer = null;
+    this.tryingConnectTimer = setInterval(async () => {
+      if (this.status === "disconnected") {
+        this.logger.debug("Trying to connect...");
+        await this.healthCheck();
+      }
+    }, _TabbyAgent.tryConnectInterval);
   }
-  onConfigUpdated() {
+  static async create(options) {
+    const agent = new _TabbyAgent();
+    agent.dataStore = options?.dataStore;
+    await agent.applyConfig();
+    return agent;
+  }
+  async applyConfig() {
     allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint });
-    this.ping();
+    if (this.config.server.endpoint !== this.auth?.endpoint) {
+      this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
+      this.auth.on("updated", this.onAuthUpdated.bind(this));
+    }
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+  }
+  async onAuthUpdated() {
+    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+    await this.healthCheck();
   }
   changeStatus(status) {
     if (this.status != status) {
@@ -715,22 +924,6 @@ var TabbyAgent = class extends import_events.EventEmitter {
       const event = { event: "statusChanged", status };
       this.logger.debug({ event }, "Status changed");
       super.emit("statusChanged", event);
-    }
-  }
-  async ping(tries = 0) {
-    try {
-      await import_axios2.default.get(this.config.server.endpoint);
-      this.changeStatus("ready");
-      return true;
-    } catch (e) {
-      if (tries > 5) {
-        this.changeStatus("disconnected");
-        return false;
-      }
-      this.changeStatus("connecting");
-      const pingRetryDelay = 1e3;
-      await sleep(pingRetryDelay);
-      return this.ping(tries + 1);
     }
   }
   callApi(api, request2) {
@@ -742,17 +935,28 @@ var TabbyAgent = class extends import_events.EventEmitter {
         this.changeStatus("ready");
         return response;
       }).catch((error) => {
-        this.logger.debug({ api: api.name }, "API request canceled");
-        throw error;
-      }).catch((error) => {
-        this.logger.error({ api: api.name, error }, "API error");
-        this.changeStatus("disconnected");
+        if (!!error.isCancelled) {
+          this.logger.debug({ api: api.name, error }, "API request canceled");
+        } else if (error.name === "ApiError" && [401, 403, 405].indexOf(error.status) !== -1) {
+          this.logger.debug({ api: api.name, error }, "API unauthorized");
+          this.changeStatus("unauthorized");
+        } else if (error.name === "ApiError") {
+          this.logger.error({ api: api.name, error }, "API error");
+          this.changeStatus("disconnected");
+        } else {
+          this.logger.error({ api: api.name, error }, "API request failed with unknown error");
+          this.changeStatus("disconnected");
+        }
         throw error;
       }),
       () => {
         promise.cancel();
       }
     );
+  }
+  async healthCheck() {
+    return this.callApi(this.api.v1.health, {}).catch(() => {
+    });
   }
   createSegments(request2) {
     const maxLines = 20;
@@ -765,26 +969,27 @@ var TabbyAgent = class extends import_events.EventEmitter {
       suffix: suffixLines.slice(0, maxLines).join("")
     };
   }
-  initialize(params) {
-    if (params.config) {
-      this.updateConfig(params.config);
+  async initialize(options) {
+    if (options.client) {
+      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: options.client }));
     }
-    if (params.client) {
-      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: params.client }));
+    if (options.config) {
+      await this.updateConfig(options.config);
     }
-    this.logger.debug({ params }, "Initialized");
-    return true;
+    this.logger.debug({ options }, "Initialized");
+    return this.status !== "notInitialized";
   }
-  updateConfig(config) {
+  async updateConfig(config) {
     const mergedConfig = (0, import_deepmerge.default)(this.config, config);
     if (!(0, import_deep_equal2.default)(this.config, mergedConfig)) {
       this.config = mergedConfig;
-      this.onConfigUpdated();
+      await this.applyConfig();
       const event = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
     }
-    return true;
+    await this.healthCheck();
+    return this.status !== "notInitialized";
   }
   getConfig() {
     return this.config;
@@ -792,7 +997,25 @@ var TabbyAgent = class extends import_events.EventEmitter {
   getStatus() {
     return this.status;
   }
+  startAuth() {
+    return cancelable(
+      this.healthCheck().then(() => {
+        if (this.status === "unauthorized") {
+          return this.auth.requestToken();
+        }
+        return null;
+      }),
+      () => {
+        if (this.status === "unauthorized") {
+          this.auth.reset();
+        }
+      }
+    );
+  }
   getCompletions(request2) {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
     if (this.completionCache.has(request2)) {
       this.logger.debug({ request: request2 }, "Completion cache hit");
       return new CancelablePromise((resolve2) => {
@@ -826,16 +1049,19 @@ var TabbyAgent = class extends import_events.EventEmitter {
     );
   }
   postEvent(request2) {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
     return this.callApi(this.api.v1.event, request2);
   }
 };
+var TabbyAgent = _TabbyAgent;
+TabbyAgent.tryConnectInterval = 1e3 * 30;
 
 // src/Agent.ts
 var agentEventNames = ["statusChanged", "configUpdated"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
-  ApiError,
-  CancelError,
   CancelablePromise,
   TabbyAgent,
   agentEventNames
