@@ -80,6 +80,7 @@ namespace ctranslate2 {
                      bool use_vmap,
                      bool with_scores,
                      size_t sampling_topk,
+                     float sampling_topp,
                      float sampling_temperature,
                      bool replace_unknowns,
                      const TokenizeFn& source_tokenize_fn,
@@ -102,6 +103,7 @@ namespace ctranslate2 {
         options.disable_unk = disable_unk;
         options.prefix_bias_beta = prefix_bias_beta;
         options.sampling_topk = sampling_topk;
+        options.sampling_topp = sampling_topp;
         options.sampling_temperature = sampling_temperature;
         options.max_input_length = max_input_length;
         options.max_decoding_length = max_decoding_length;
@@ -170,6 +172,7 @@ namespace ctranslate2 {
                       bool return_alternatives,
                       float min_alternative_expansion_prob,
                       size_t sampling_topk,
+                      float sampling_topp,
                       float sampling_temperature,
                       bool replace_unknowns,
                       std::function<bool(GenerationStepResult)> callback) {
@@ -187,6 +190,7 @@ namespace ctranslate2 {
         options.disable_unk = disable_unk;
         options.prefix_bias_beta = prefix_bias_beta;
         options.sampling_topk = sampling_topk;
+        options.sampling_topp = sampling_topp;
         options.sampling_temperature = sampling_temperature;
         options.max_input_length = max_input_length;
         options.max_decoding_length = max_decoding_length;
@@ -440,6 +444,7 @@ namespace ctranslate2 {
              py::arg("return_alternatives")=false,
              py::arg("min_alternative_expansion_prob")=0,
              py::arg("sampling_topk")=1,
+             py::arg("sampling_topp")=1,
              py::arg("sampling_temperature")=1,
              py::arg("replace_unknowns")=false,
              py::arg("callback")=nullptr,
@@ -481,6 +486,8 @@ namespace ctranslate2 {
                    return_alternatives: Return alternatives at the first unconstrained decoding position.
                    min_alternative_expansion_prob: Minimum initial probability to expand an alternative.
                    sampling_topk: Randomly sample predictions from the top K candidates.
+                   sampling_topp: Keep the most probable tokens whose cumulative probability exceeds
+                     this value.
                    sampling_temperature: Sampling temperature to generate more random samples.
                    replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
                    callback: Optional function that is called for each generated token.
@@ -518,6 +525,7 @@ namespace ctranslate2 {
              py::arg("use_vmap")=false,
              py::arg("with_scores")=false,
              py::arg("sampling_topk")=1,
+             py::arg("sampling_topp")=1,
              py::arg("sampling_temperature")=1,
              py::arg("replace_unknowns")=false,
              py::arg("source_tokenize_fn")=nullptr,
@@ -559,6 +567,8 @@ namespace ctranslate2 {
                    use_vmap: Use the vocabulary mapping file saved in this model
                    with_scores: Include the scores in the output.
                    sampling_topk: Randomly sample predictions from the top K candidates.
+                   sampling_topp: Keep the most probable tokens whose cumulative probability exceeds
+                     this value.
                    sampling_temperature: Sampling temperature to generate more random samples.
                    replace_unknowns: Replace unknown target tokens by the source token with the highest attention.
                    source_tokenize_fn: Function to tokenize source lines.

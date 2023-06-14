@@ -32,8 +32,9 @@ namespace ctranslate2 {
   }
 
 
-  RandomSampler::RandomSampler(dim_t from_topk, float temperature)
+  RandomSampler::RandomSampler(dim_t from_topk, float topp, float temperature)
     : _from_topk(from_topk)
+    , _topp(topp)
     , _temperature(temperature) {
   }
 
@@ -65,10 +66,19 @@ namespace ctranslate2 {
     }
 
     // Divide scores by the temperature constant.
-    StorageView scaled_scores(dtype, device);
     if (_temperature != 1) {
+      StorageView scaled_scores(dtype, device);
       ops::Mul()(*final_scores, StorageView(float(1) / _temperature).to(dtype), scaled_scores);
-      final_scores = &scaled_scores;
+      top_scores = std::move(scaled_scores);
+      final_scores = &top_scores;
+    }
+
+    if (_topp < 1) {
+      StorageView masked_scores(dtype, device);
+      const ops::TopPMask mask_op(_topp);
+      mask_op(*final_scores, masked_scores);
+      top_scores = std::move(masked_scores);
+      final_scores = &top_scores;
     }
 
     // The current Multinomial operator samples with replacement. We can use it when

@@ -37,7 +37,7 @@ void expect_array_eq(const T* x, const T* y, size_t n, T abs_diff = 0) {
 template<>
 inline void expect_array_eq(const float* x, const float* y, size_t n, float abs_diff) {
   for (size_t i = 0; i < n; ++i) {
-    if (abs_diff == 0) {
+    if (abs_diff == 0 || !std::isfinite(y[i])) {
       EXPECT_FLOAT_EQ(x[i], y[i]) << "Value mismatch at index " << i;
     } else {
       EXPECT_NEAR(x[i], y[i], abs_diff) << "Absolute difference greater than "

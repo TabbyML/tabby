@@ -348,6 +348,7 @@ namespace ctranslate2 {
       decoding_options.max_length = options.max_decoding_length;
       decoding_options.min_length = options.min_decoding_length;
       decoding_options.sampling_topk = options.sampling_topk;
+      decoding_options.sampling_topp = options.sampling_topp;
       decoding_options.sampling_temperature = options.sampling_temperature;
       decoding_options.num_hypotheses = options.num_hypotheses;
       decoding_options.return_scores = options.return_scores;

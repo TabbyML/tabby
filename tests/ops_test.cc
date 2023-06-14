@@ -590,6 +590,24 @@ TEST_P(OpDeviceTest, TopKChangeK) {
   expect_storage_eq(indices_k3, expected_indices_k3);
 }
 
+TEST_P(OpDeviceFPTest, TopPMask) {
+  const Device device = GetParam().first;
+  const DataType dtype = GetParam().second;
+  constexpr float inf = std::numeric_limits<float>::infinity();
+
+  StorageView x = StorageView({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -1.1, 0.0,
+      4.6, 3.3, 0.2, -1.6, 1.0}, device).to(dtype);
+  StorageView expected = StorageView({2, 5}, std::vector<float>{
+      -0.2, 3.0, 1.2, -inf, 0.0,
+      4.6, 3.3, -inf, -inf, 1.0}, device);
+  StorageView y(dtype, device);
+
+  ops::TopPMask(0.97)(x, y);
+
+  expect_storage_eq(y.to_float32(), expected, dtype == DataType::FLOAT16 ? 1e-2 : 1e-5);
+}
+
 TEST_P(OpDeviceFPTest, SoftMax) {
   const Device device = GetParam().first;
   const DataType dtype = GetParam().second;

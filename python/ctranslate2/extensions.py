@@ -189,6 +189,7 @@ def translator_generate_tokens(
     max_decoding_length: int = 256,
     min_decoding_length: int = 1,
     sampling_topk: int = 1,
+    sampling_topp: float = 1,
     sampling_temperature: float = 1,
     return_log_prob: bool = False,
     repetition_penalty: float = 1,
@@ -207,6 +208,7 @@ def translator_generate_tokens(
       max_decoding_length: Maximum prediction length.
       min_decoding_length: Minimum prediction length.
       sampling_topk: Randomly sample predictions from the top K candidates.
+      sampling_topp: Keep the most probable tokens whose cumulative probability exceeds this value.
       sampling_temperature: Sampling temperature to generate more random samples.
       return_log_prob: Include the token log probability in the result.
       repetition_penalty: Penalty applied to the score of previously generated tokens
@@ -237,6 +239,7 @@ def translator_generate_tokens(
         max_decoding_length=max_decoding_length,
         min_decoding_length=min_decoding_length,
         sampling_topk=sampling_topk,
+        sampling_topp=sampling_topp,
         sampling_temperature=sampling_temperature,
         return_scores=return_log_prob,
         max_input_length=max_input_length,
@@ -251,6 +254,7 @@ def generator_generate_tokens(
     max_length: int = 512,
     min_length: int = 0,
     sampling_topk: int = 1,
+    sampling_topp: float = 1,
     sampling_temperature: float = 1,
     return_log_prob: bool = False,
     repetition_penalty: float = 1,
@@ -268,6 +272,7 @@ def generator_generate_tokens(
       max_length: Maximum generation length.
       min_length: Minimum generation length.
       sampling_topk: Randomly sample predictions from the top K candidates.
+      sampling_topp: Keep the most probable tokens whose cumulative probability exceeds this value.
       sampling_temperature: Sampling temperature to generate more random samples.
       return_log_prob: Include the token log probability in the result.
       repetition_penalty: Penalty applied to the score of previously generated tokens
@@ -300,6 +305,7 @@ def generator_generate_tokens(
         max_length=max_length,
         min_length=min_length,
         sampling_topk=sampling_topk,
+        sampling_topp=sampling_topp,
         sampling_temperature=sampling_temperature,
         return_scores=return_log_prob,
         static_prompt=static_prompt,

@@ -36,6 +36,7 @@ namespace ctranslate2 {
                      bool return_alternatives,
                      float min_alternative_expansion_prob,
                      size_t sampling_topk,
+                     float sampling_topp,
                      float sampling_temperature,
                      std::function<bool(GenerationStepResult)> callback) {
         if (tokens.empty())
@@ -50,6 +51,7 @@ namespace ctranslate2 {
         options.no_repeat_ngram_size = no_repeat_ngram_size;
         options.disable_unk = disable_unk;
         options.sampling_topk = sampling_topk;
+        options.sampling_topp = sampling_topp;
         options.sampling_temperature = sampling_temperature;
         options.max_length = max_length;
         options.min_length = min_length;
@@ -192,6 +194,7 @@ namespace ctranslate2 {
              py::arg("return_alternatives")=false,
              py::arg("min_alternative_expansion_prob")=0,
              py::arg("sampling_topk")=1,
+             py::arg("sampling_topp")=1,
              py::arg("sampling_temperature")=1,
              py::arg("callback")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
@@ -248,6 +251,8 @@ namespace ctranslate2 {
                    return_alternatives: Return alternatives at the first unconstrained decoding position.
                    min_alternative_expansion_prob: Minimum initial probability to expand an alternative.
                    sampling_topk: Randomly sample predictions from the top K candidates.
+                   sampling_topp: Keep the most probable tokens whose cumulative probability exceeds
+                     this value.
                    sampling_temperature: Sampling temperature to generate more random samples.
                    callback: Optional function that is called for each generated token.
                      This requires a beam size of 1.

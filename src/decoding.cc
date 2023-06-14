@@ -878,7 +878,7 @@ namespace ctranslate2 {
     return std::make_pair(std::move(start_ids), std::move(prefix_ids));
   }
 
-  static void validate_decoding_options(const DecodingOptions& options) {
+  static void validate_decoding_options(const DecodingOptions& options, const Device device) {
     if (options.beam_size == 0)
       throw std::invalid_argument("The beam size must be > 0");
     if (options.patience <= 0)
@@ -910,6 +910,15 @@ namespace ctranslate2 {
     if (options.callback && (options.beam_size != 1 || options.prefix_bias_beta > 0))
       throw std::invalid_argument("The callback function is not compatible with "
                                   "beam_size > 1 or prefix_bias_beta > 0");
+
+    if (options.sampling_topp <= 0 || options.sampling_topp > 1)
+      throw std::invalid_argument("The sampling_topp parameter must be between 0 and 1");
+    if (options.sampling_topp < 1
+        && options.sampling_topk > static_cast<size_t>(ops::TopPMask::max_num_classes(device)))
+      throw std::invalid_argument(
+        "The sampling_topp parameter currently requires sampling_topk <= "
+        + std::to_string(ops::TopPMask::max_num_classes(device))
+        + " when running on a " + device_to_str(device) + " device");
   }
 
   static std::unique_ptr<const Sampler>
@@ -917,7 +926,9 @@ namespace ctranslate2 {
     if (options.sampling_topk == 1)
       return std::make_unique<BestSampler>();
     else
-      return std::make_unique<RandomSampler>(options.sampling_topk, options.sampling_temperature);
+      return std::make_unique<RandomSampler>(options.sampling_topk,
+                                             options.sampling_topp,
+                                             options.sampling_temperature);
   }
 
   static std::unique_ptr<const SearchStrategy>
@@ -1144,7 +1155,7 @@ namespace ctranslate2 {
          std::vector<std::vector<size_t>> start_tokens,
          std::vector<size_t> end_ids,
          DecodingOptions options) {
-    validate_decoding_options(options);
+    validate_decoding_options(options, decoder.device());
     const size_t batch_size = start_tokens.size();
 
     if (batch_size == 0)

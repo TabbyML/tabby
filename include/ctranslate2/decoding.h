@@ -142,6 +142,7 @@ namespace ctranslate2 {
     size_t max_length = 256;
     size_t min_length = 0;
     size_t sampling_topk = 1;
+    float sampling_topp = 1;
     float sampling_temperature = 1;
     size_t num_hypotheses = 1;
     bool include_eos_in_hypotheses = true;

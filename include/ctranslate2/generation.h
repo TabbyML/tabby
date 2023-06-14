@@ -43,6 +43,8 @@ namespace ctranslate2 {
 
     // Randomly sample from the top K candidates (set 0 to sample from the full output distribution).
     size_t sampling_topk = 1;
+    // Keep the most probable tokens whose cumulative probability exceeds this value.
+    float sampling_topp = 1;
     // High temperature increase randomness.
     float sampling_temperature = 1;
 

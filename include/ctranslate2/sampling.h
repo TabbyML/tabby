@@ -33,7 +33,7 @@ namespace ctranslate2 {
 
   class RandomSampler : public Sampler {
   public:
-    RandomSampler(dim_t from_topk = 0, float temperature = 1);
+    RandomSampler(dim_t from_topk = 0, float topp = 1, float temperature = 1);
   protected:
     void sample(const StorageView& scores,
                 dim_t num_samples,
@@ -41,6 +41,7 @@ namespace ctranslate2 {
                 StorageView& sampled_scores) const final;
   private:
     dim_t _from_topk;
+    float _topp;
     float _temperature;
   };
 
