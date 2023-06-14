@@ -49,6 +49,7 @@ pub enum Event<'a> {
         language: &'a str,
         prompt: &'a str,
         choices: Vec<Choice<'a>>,
+        user: Option<&'a str>,
     },
 }
 

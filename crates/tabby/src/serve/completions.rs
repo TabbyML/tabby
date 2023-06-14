@@ -17,9 +17,15 @@ use crate::fatal;
 mod languages;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[schema(example=json!({
+    "language": "python",
+    "segments": {
+        "prefix": "def fib(n)\n    ",
+        "suffix": "\n        return fib(n - 1) + fib(n - 2)"
+    }
+}))]
 pub struct CompletionRequest {
     #[schema(example = "def fib(n):")]
-    #[deprecated]
     prompt: Option<String>,
 
     /// Language identifier, full list is maintained at
@@ -29,16 +35,18 @@ pub struct CompletionRequest {
 
     /// When segments are set, the `prompt` is ignored during the inference.
     segments: Option<Segments>,
+
+    // A unique identifier representing your end-user, which can help Tabby to monitor & generating
+    // reports.
+    user: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
     /// Content that appears before the cursor in the editor window.
-    #[schema(example = "def fib(n):\n    ")]
     prefix: String,
 
     /// Content that appears after the cursor in the editor window.
-    #[schema(example = "\n        return fib(n - 1) + fib(n - 2)")]
     suffix: Option<String>,
 }
 
@@ -107,6 +115,7 @@ pub async fn completion(
             index: 0,
             text: &text,
         }],
+        user: request.user.as_deref(),
     }
     .log();
 
