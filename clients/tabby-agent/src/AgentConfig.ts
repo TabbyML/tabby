@@ -1,12 +1,12 @@
 export type AgentConfig = {
-  server?: {
-    endpoint?: string;
+  server: {
+    endpoint: string;
   };
-  logs?: {
-    level?: "debug" | "error" | "silent";
+  logs: {
+    level: "debug" | "error" | "silent";
   };
-  anonymousUsageTracking?: {
-    disable?: boolean;
+  anonymousUsageTracking: {
+    disable: boolean;
   };
 };
 
@@ -15,7 +15,7 @@ export const defaultAgentConfig: AgentConfig = {
     endpoint: "http://localhost:8080",
   },
   logs: {
-    level: "error",
+    level: "silent",
   },
   anonymousUsageTracking: {
     disable: false,

@@ -82,6 +82,7 @@
     "watch": "webpack --watch",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
     "dev:web": "code --extensionDevelopmentPath=$PWD --extensionDevelopmentKind=web --disable-extensions && yarn watch",
+    "dev:web-browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && yarn watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "compile-tests": "tsc -p . --outDir out",
     "watch-tests": "tsc -p . -w --outDir out",
@@ -99,6 +100,7 @@
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "@vscode/test-electron": "^2.1.5",
+    "@vscode/test-web": "^0.0.44",
     "assert": "^2.0.0",
     "eslint": "^8.20.0",
     "glob": "^8.0.3",
@@ -113,6 +115,7 @@
   },
   "dependencies": {
     "@sapphire/duration": "^1.1.0",
+    "@xstate/fsm": "^2.0.1",
     "tabby-agent": "file:../tabby-agent"
   }
 }

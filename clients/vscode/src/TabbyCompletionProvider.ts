@@ -11,7 +11,7 @@ import {
   workspace,
 } from "vscode";
 import { CompletionResponse, CancelablePromise } from "tabby-agent";
-import { Agent } from "./Agent";
+import { agent } from "./agent";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
@@ -19,7 +19,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private latestTimestamp: number = 0;
   private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
-  private agent = Agent.getInstance();
   // User Settings
   private enabled: boolean = true;
   private suggestionDelay: number = 150;
@@ -62,7 +61,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       text: document.getText(),
       position: document.offsetAt(position),
     };
-    this.pendingCompletion = this.agent.getCompletions(request);
+    this.pendingCompletion = agent().getCompletions(request);
 
     const completion = await this.pendingCompletion.catch((_: Error) => {
       return null;
@@ -88,7 +87,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
           choice_index: choice.index,
         };
         return new InlineCompletionItem(choice.text, range, {
-          title: "Tabby: Emit Event",
+          title: "",
           command: "tabby.emitEvent",
           arguments: [event],
         });

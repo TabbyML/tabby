@@ -47,7 +47,7 @@ export class StdIO {
   private readonly logger = rootLogger.child({ component: "StdIO" });
 
   private buffer: string = "";
-  private ongoingRequests: { [id: number]: CancelablePromise<any> } = {};
+  private ongoingRequests: { [id: number]: PromiseLike<any> } = {};
 
   private agent: Agent | null = null;
 
@@ -98,7 +98,7 @@ export class StdIO {
           throw new Error(`Unknown function: ${funcName}`);
         }
         const result = func.apply(this.agent, request[1].args);
-        if (result instanceof CancelablePromise) {
+        if (typeof result === "object" && typeof result.then === "function") {
           this.ongoingRequests[request[0]] = result;
           response[1] = await result;
           delete this.ongoingRequests[request[0]];
@@ -118,7 +118,10 @@ export class StdIO {
     if (!ongoing) {
       return false;
     }
-    ongoing.cancel();
+    if (ongoing instanceof CancelablePromise) {
+      ongoing.cancel();
+    }
+    delete this.ongoingRequests[request[1].args[0]];
     return true;
   }
 

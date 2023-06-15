@@ -7,8 +7,8 @@ import {
 import { AgentConfig } from "./AgentConfig";
 
 export type AgentInitOptions = {
-  config?: AgentConfig;
-  client?: string;
+  config: Partial<AgentConfig>;
+  client: string;
 };
 
 export type CompletionRequest = {
@@ -22,18 +22,38 @@ export type CompletionResponse = ApiCompletionResponse;
 
 export type LogEventRequest = ApiLogEventRequest;
 
+export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
+
 export interface AgentFunction {
-  initialize(options?: AgentInitOptions): boolean;
-  updateConfig(config: AgentConfig): boolean;
+  initialize(options: Partial<AgentInitOptions>): Promise<boolean>;
+  updateConfig(config: Partial<AgentConfig>):  Promise<boolean>;
   getConfig(): AgentConfig;
-  getStatus(): "connecting" | "ready" | "disconnected";
+  getStatus(): AgentStatus;
+
+  /**
+   * @returns string auth url if AgentStatus is `unauthorized`, null otherwise
+   * @throws Error if agent is not initialized
+   */
+  startAuth(): CancelablePromise<string | null>;
+
+  /**
+   * @param request 
+   * @returns
+   * @throws Error if agent is not initialized
+   */
   getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
+
+  /**
+   * @param event 
+   * @returns
+   * @throws Error if agent is not initialized
+   */
   postEvent(event: LogEventRequest): CancelablePromise<boolean>;
 }
 
 export type StatusChangedEvent = {
   event: "statusChanged";
-  status: "connecting" | "ready" | "disconnected";
+  status: AgentStatus;
 };
 export type ConfigUpdatedEvent = {
   event: "configUpdated";

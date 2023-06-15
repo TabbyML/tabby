@@ -15,6 +15,7 @@
     "build": "tsup"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.1",
     "@types/node": "^16.18.32",
     "esbuild-plugin-polyfill-node": "^0.2.0",
     "openapi-typescript-codegen": "^0.24.0",
@@ -24,10 +25,10 @@
   },
   "dependencies": {
     "axios": "^1.4.0",
-    "browser-or-node": "^2.1.1",
     "deep-equal": "^2.2.1",
     "deepmerge": "^4.3.1",
     "form-data": "^4.0.0",
+    "fs-extra": "^11.1.1",
     "lru-cache": "^9.1.1",
     "object-hash": "^3.0.0",
     "object-sizeof": "^2.6.1",

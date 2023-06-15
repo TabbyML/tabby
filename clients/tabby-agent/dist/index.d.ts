@@ -1,23 +1,5 @@
 import { EventEmitter } from 'events';
 
-type ApiRequestOptions = {
-    readonly method: 'GET' | 'PUT' | 'POST' | 'DELETE' | 'OPTIONS' | 'HEAD' | 'PATCH';
-    readonly url: string;
-    readonly path?: Record<string, any>;
-    readonly cookies?: Record<string, any>;
-    readonly headers?: Record<string, any>;
-    readonly query?: Record<string, any>;
-    readonly formData?: Record<string, any>;
-    readonly body?: any;
-    readonly mediaType?: string;
-    readonly responseHeader?: string;
-    readonly errors?: Record<number, string>;
-};
-
-declare class CancelError extends Error {
-    constructor(message: string);
-    get isCancelled(): boolean;
-}
 interface OnCancel {
     readonly isResolved: boolean;
     readonly isRejected: boolean;
@@ -54,38 +36,21 @@ type LogEventRequest$1 = {
     choice_index: number;
 };
 
-type ApiResult = {
-    readonly url: string;
-    readonly ok: boolean;
-    readonly status: number;
-    readonly statusText: string;
-    readonly body: any;
-};
-
-declare class ApiError extends Error {
-    readonly url: string;
-    readonly status: number;
-    readonly statusText: string;
-    readonly body: any;
-    readonly request: ApiRequestOptions;
-    constructor(request: ApiRequestOptions, response: ApiResult, message: string);
-}
-
 type AgentConfig = {
-    server?: {
-        endpoint?: string;
+    server: {
+        endpoint: string;
     };
-    logs?: {
-        level?: "debug" | "error" | "silent";
+    logs: {
+        level: "debug" | "error" | "silent";
     };
-    anonymousUsageTracking?: {
-        disable?: boolean;
+    anonymousUsageTracking: {
+        disable: boolean;
     };
 };
 
 type AgentInitOptions = {
-    config?: AgentConfig;
-    client?: string;
+    config: Partial<AgentConfig>;
+    client: string;
 };
 type CompletionRequest = {
     filepath: string;
@@ -95,17 +60,33 @@ type CompletionRequest = {
 };
 type CompletionResponse = CompletionResponse$1;
 type LogEventRequest = LogEventRequest$1;
+type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
 interface AgentFunction {
-    initialize(options?: AgentInitOptions): boolean;
-    updateConfig(config: AgentConfig): boolean;
+    initialize(options: Partial<AgentInitOptions>): Promise<boolean>;
+    updateConfig(config: Partial<AgentConfig>): Promise<boolean>;
     getConfig(): AgentConfig;
-    getStatus(): "connecting" | "ready" | "disconnected";
+    getStatus(): AgentStatus;
+    /**
+     * @returns string auth url if AgentStatus is `unauthorized`, null otherwise
+     * @throws Error if agent is not initialized
+     */
+    startAuth(): CancelablePromise<string | null>;
+    /**
+     * @param request
+     * @returns
+     * @throws Error if agent is not initialized
+     */
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
+    /**
+     * @param event
+     * @returns
+     * @throws Error if agent is not initialized
+     */
     postEvent(event: LogEventRequest): CancelablePromise<boolean>;
 }
 type StatusChangedEvent = {
     event: "statusChanged";
-    status: "connecting" | "ready" | "disconnected";
+    status: AgentStatus;
 };
 type ConfigUpdatedEvent = {
     event: "configUpdated";
@@ -118,24 +99,51 @@ interface AgentEventEmitter {
 }
 type Agent = AgentFunction & AgentEventEmitter;
 
+type StoredData = {
+    auth: {
+        [endpoint: string]: {
+            jwt: string;
+        };
+    };
+};
+interface DataStore {
+    data: Partial<StoredData>;
+    load(): PromiseLike<void>;
+    save(): PromiseLike<void>;
+}
+
+/**
+ * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
+ * so it is not suitable for cli, but only used when imported as module by other js project.
+ */
+type TabbyAgentOptions = {
+    dataStore: DataStore;
+};
 declare class TabbyAgent extends EventEmitter implements Agent {
     private readonly logger;
     private config;
     private status;
     private api;
+    private auth;
+    private dataStore;
     private completionCache;
-    constructor();
-    private onConfigUpdated;
+    static readonly tryConnectInterval: number;
+    private tryingConnectTimer;
+    private constructor();
+    static create(options?: Partial<TabbyAgentOptions>): Promise<TabbyAgent>;
+    private applyConfig;
+    private onAuthUpdated;
     private changeStatus;
-    private ping;
     private callApi;
+    private healthCheck;
     private createSegments;
-    initialize(params: AgentInitOptions): boolean;
-    updateConfig(config: AgentConfig): boolean;
+    initialize(options: Partial<AgentInitOptions>): Promise<boolean>;
+    updateConfig(config: Partial<AgentConfig>): Promise<boolean>;
     getConfig(): AgentConfig;
-    getStatus(): "connecting" | "ready" | "disconnected";
+    getStatus(): AgentStatus;
+    startAuth(): CancelablePromise<string | null>;
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
     postEvent(request: LogEventRequest): CancelablePromise<boolean>;
 }
 
-export { Agent, AgentConfig, AgentEvent, AgentFunction, ApiError, CancelError, CancelablePromise, Choice, CompletionRequest, CompletionResponse, StatusChangedEvent, TabbyAgent, agentEventNames };
+export { Agent, AgentConfig, AgentEvent, AgentFunction, AgentStatus, CancelablePromise, CompletionRequest, CompletionResponse, ConfigUpdatedEvent, DataStore, LogEventRequest, StatusChangedEvent, TabbyAgent, TabbyAgentOptions, agentEventNames };
