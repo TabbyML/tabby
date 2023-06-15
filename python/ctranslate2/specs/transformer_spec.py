@@ -92,6 +92,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
+        num_heads_kv: Optional[int] = None,
     ):
         """Initializes a Transformer decoder specification.
 
@@ -124,13 +125,21 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
             attention layer norms.
-          multi_query_attention: Use multi-query attention.
+          multi_query_attention: Use multi-query attention (alias for num_heads_kv=1).
+          num_heads_kv: Number of attention heads for the key and value.
         """
         if parallel_residual:
             if not pre_norm:
                 raise ValueError("The GPT-J block expects a pre-norm architecture")
             if with_encoder_attention:
                 raise ValueError("The GPT-J block does not have cross attention")
+
+        if multi_query_attention:
+            if num_heads_kv is not None and num_heads_kv != 1:
+                raise ValueError(
+                    "Enabling multi_query_attention implies num_heads_kv=1"
+                )
+            num_heads_kv = 1
 
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
@@ -165,7 +174,7 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 rotary_interleave=rotary_interleave,
                 parallel_residual=parallel_residual,
                 shared_layer_norm=shared_layer_norm,
-                multi_query_attention=multi_query_attention,
+                num_heads_kv=num_heads_kv,
             )
             for _ in range(num_layers)
         ]
@@ -205,7 +214,7 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         rotary_interleave=True,
         parallel_residual=False,
         shared_layer_norm=False,
-        multi_query_attention=False,
+        num_heads_kv=None,
     ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
             self_attention=True,
@@ -214,7 +223,7 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             rms_norm=rms_norm,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
-            multi_query=multi_query_attention,
+            num_heads_kv=num_heads_kv,
         )
         if with_encoder_attention:
             self.attention = attention_spec.MultiHeadAttentionSpec(rms_norm=rms_norm)
@@ -427,6 +436,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
+        num_heads_kv: Optional[int] = None,
     ):
         """Creates a Transformer decoder model specification.
 
@@ -453,7 +463,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
             attention layer norms.
-          multi_query_attention: Use multi-query attention.
+          multi_query_attention: Use multi-query attention (alias for num_heads_kv=1).
+          num_heads_kv: Number of attention heads for the key and value.
         """
         decoder = TransformerDecoderSpec(
             num_layers,
@@ -474,6 +485,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             parallel_residual=parallel_residual,
             shared_layer_norm=shared_layer_norm,
             multi_query_attention=multi_query_attention,
+            num_heads_kv=num_heads_kv,
         )
 
         return cls(decoder)
@@ -484,7 +496,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 6
+        return 7
 
     def get_default_config(self):
         return TransformerDecoderModelConfig()

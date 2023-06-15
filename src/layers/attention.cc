@@ -293,6 +293,12 @@ namespace ctranslate2 {
       }
     }
 
+    static void replicate_heads(StorageView& x, dim_t repeats) {
+      x.expand_dims(2);
+      ops::Tile(2, repeats)(x);
+      x.reshape({x.dim(0), x.dim(1) * x.dim(2), x.dim(3), x.dim(4)});
+    }
+
     static void combine_heads(StorageView& x,
                               dim_t num_heads,
                               const Padder* padder = nullptr,
@@ -362,8 +368,11 @@ namespace ctranslate2 {
       , _queries_scale(model.get_attribute_with_default<float>(
                          scope + "/queries_scale",
                          1.f / std::sqrt(static_cast<float>(_d_head))))
-      , _multi_query(model.get_flag_with_default(scope + "/multi_query", false))
-      , _cache_time_dim(_multi_query ? 1 : 2)
+      , _num_heads_kv(model.get_flag_with_default(scope + "/multi_query", false)
+                      ? 1
+                      : model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv",
+                                                                  _num_heads))
+      , _cache_time_dim(_num_heads_kv == 1 ? 1 : 2)
     {
       if (_relative_position_keys)
         _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
@@ -430,16 +439,23 @@ namespace ctranslate2 {
 
       } else {
 
-        if (_multi_query) {
+        if (_num_heads_kv < _num_heads) {
           if (queries_padder)
             queries_padder->add_padding(fused_proj);
 
-          ops::Split(2, {_d_model, _d_head, _d_head})(fused_proj,
-                                                      queries_proj,
-                                                      keys_proj,
-                                                      values_proj);
+          const ops::Split split_op(2, {_d_model, _num_heads_kv * _d_head, _num_heads_kv * _d_head});
+          split_op(fused_proj, queries_proj, keys_proj, values_proj);
 
-          queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
+          if (_num_heads_kv == 1) {
+            queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
+          } else {
+            split_heads(queries_proj, _num_heads);
+            split_heads(keys_proj, _num_heads_kv);
+            split_heads(values_proj, _num_heads_kv);
+
+            replicate_heads(keys_proj, _num_heads / _num_heads_kv);
+            replicate_heads(values_proj, _num_heads / _num_heads_kv);
+          }
 
         } else {
           split_heads(fused_proj, 3 * _num_heads, queries_padder);
@@ -451,7 +467,7 @@ namespace ctranslate2 {
                                 ? cached_keys->dim(_cache_time_dim)
                                 : 0);
 
-          if (_multi_query) {
+          if (_num_heads_kv == 1) {
             queries_proj.reshape({queries_proj.dim(0), -1, _d_model});
             split_heads(queries_proj, _num_heads);
           }
@@ -459,7 +475,7 @@ namespace ctranslate2 {
           _rotary_embeddings->apply(queries_proj, offset);
           _rotary_embeddings->apply(keys_proj, offset);
 
-          if (_multi_query) {
+          if (_num_heads_kv == 1) {
             combine_heads(queries_proj, _num_heads);
             queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
           }
@@ -503,7 +519,7 @@ namespace ctranslate2 {
                             beam_size,
                             _alibi);
 
-      if (_multi_query) {
+      if (_num_heads_kv == 1) {
         context.reshape(queries.shape());
         if (queries_padder)
           queries_padder->remove_padding(context);

@@ -1249,6 +1249,11 @@ class RWLoader(ModelLoader):
         return "AutoModelForCausalLM"
 
     def get_model_spec(self, model):
+        if getattr(model.config, "multi_query", False):
+            num_heads_kv = 1
+        else:
+            num_heads_kv = getattr(model.config, "n_head_kv", None)
+
         spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             model.config.n_layer,
             model.config.n_head,
@@ -1259,8 +1264,8 @@ class RWLoader(ModelLoader):
             rotary_dim=0,
             rotary_interleave=False,
             parallel_residual=model.config.parallel_attn,
-            shared_layer_norm=True,
-            multi_query_attention=model.config.multi_query,
+            shared_layer_norm=num_heads_kv == 1,
+            num_heads_kv=num_heads_kv,
         )
 
         self.set_decoder(spec.decoder, model.transformer)
@@ -1281,7 +1286,10 @@ class RWLoader(ModelLoader):
         self.set_layer_norm(spec.layer_norm, module.ln_f)
 
         for layer_spec, layer in zip(spec.layer, module.h):
-            if hasattr(layer_spec, "shared_layer_norm"):
+            if hasattr(layer, "ln_attn"):
+                self.set_layer_norm(layer_spec.input_layer_norm, layer.ln_attn)
+                self.set_layer_norm(layer_spec.post_attention_layer_norm, layer.ln_mlp)
+            elif hasattr(layer_spec, "shared_layer_norm"):
                 self.set_layer_norm(layer_spec.shared_layer_norm, layer.input_layernorm)
             else:
                 self.set_layer_norm(
@@ -1291,7 +1299,7 @@ class RWLoader(ModelLoader):
                     layer_spec.ffn.layer_norm, layer.post_attention_layernorm
                 )
 
-            if layer.self_attention.multi_query:
+            if layer.self_attention.num_kv == 1:
                 self.set_linear(
                     layer_spec.self_attention.linear[0],
                     layer.self_attention.query_key_value,
@@ -1301,6 +1309,9 @@ class RWLoader(ModelLoader):
                     layer_spec.self_attention.linear[0],
                     layer.self_attention.query_key_value,
                     layer.self_attention.num_heads,
+                    layer.self_attention.num_kv
+                    if layer.self_attention.num_kv < layer.self_attention.num_heads
+                    else None,
                 )
 
             self.set_linear(
@@ -1310,18 +1321,49 @@ class RWLoader(ModelLoader):
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.dense_h_to_4h)
             self.set_linear(layer_spec.ffn.linear_1, layer.mlp.dense_4h_to_h)
 
-    def set_qkv_linear(self, spec, module, num_heads):
+    def set_qkv_linear(self, spec, module, num_heads, num_kv=None):
+        import torch
+
         weight = module.weight
-        weight = weight.reshape(num_heads, 3, -1, weight.shape[-1])
-        weight = weight.transpose(0, 1)
-        weight = weight.reshape(-1, weight.shape[-1])
+
+        if num_kv is None:
+            weight = weight.reshape(num_heads, 3, -1, weight.shape[-1])
+            weight = weight.transpose(0, 1)
+            weight = weight.reshape(-1, weight.shape[-1])
+        else:
+            head_dim = weight.shape[0] // (num_heads + num_kv * 2)
+            weight = weight.reshape(
+                -1, num_heads // num_kv + 2, head_dim, weight.shape[-1]
+            )
+            q, k, v = weight.split([num_heads // num_kv, 1, 1], dim=1)
+            weight = torch.cat(
+                [
+                    q.reshape(num_heads * head_dim, -1),
+                    k.reshape(num_kv * head_dim, -1),
+                    v.reshape(num_kv * head_dim, -1),
+                ]
+            )
+
         spec.weight = weight.numpy()
 
         if module.bias is not None:
             bias = module.bias
-            bias = bias.reshape(num_heads, 3, -1)
-            bias = bias.transpose(0, 1)
-            bias = bias.reshape(-1)
+
+            if num_kv is None:
+                bias = bias.reshape(num_heads, 3, -1)
+                bias = bias.transpose(0, 1)
+                bias = bias.reshape(-1)
+            else:
+                bias = bias.reshape(-1, num_heads // num_kv + 2, head_dim)
+                q, k, v = bias.split([num_heads // num_kv, 1, 1], dim=1)
+                bias = torch.cat(
+                    [
+                        q.reshape(num_heads * head_dim),
+                        k.reshape(num_kv * head_dim),
+                        v.reshape(num_kv * head_dim),
+                    ]
+                )
+
             spec.bias = bias.numpy()
 
 
