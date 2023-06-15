@@ -14,6 +14,7 @@ impl CacheInfo {
         model_id: &str,
         path: &str,
         prefer_local_file: bool,
+        is_optional: bool,
     ) -> Result<()> {
         // Create url.
         let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
@@ -40,7 +41,7 @@ impl CacheInfo {
         };
 
         if !local_file_ready {
-            let etag = download_file(&url, &filepath, local_cache_key).await?;
+            let etag = download_file(&url, &filepath, local_cache_key, is_optional).await?;
             self.set_local_cache_key(path, &etag).await;
         }
         Ok(())
@@ -56,40 +57,41 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
     let mut cache_info = CacheInfo::from(model_id).await;
 
     cache_info
-        .download(model_id, "tabby.json", prefer_local_file)
+        .download(model_id, "tabby.json", prefer_local_file, false)
         .await?;
     cache_info
-        .download(model_id, "tokenizer.json", prefer_local_file)
+        .download(model_id, "tokenizer.json", prefer_local_file, false)
         .await?;
     cache_info
-        .download(model_id, "ctranslate2/config.json", prefer_local_file)
+        .download(model_id, "ctranslate2/config.json", prefer_local_file, false)
         .await?;
-    let _ = cache_info
-        .download(model_id, "ctranslate2/vocabulary.txt", prefer_local_file)
-        .await;
-    let _ = cache_info
+    cache_info
+        .download(model_id, "ctranslate2/vocabulary.txt", prefer_local_file, true)
+        .await?;
+    cache_info
         .download(
             model_id,
             "ctranslate2/shared_vocabulary.txt",
             prefer_local_file,
+            true
         )
-        .await;
+        .await?;
     cache_info
-        .download(model_id, "ctranslate2/model.bin", prefer_local_file)
+        .download(model_id, "ctranslate2/model.bin", prefer_local_file, false)
         .await?;
     cache_info.save(model_id)?;
 
     Ok(())
 }
 
-async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>) -> Result<String> {
+async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>, is_optional: bool) -> Result<String> {
     fs::create_dir_all(Path::new(path).parent().unwrap())?;
 
     // Reqwest setup
     let res = reqwest::get(url).await?;
 
-    if res.status() == 404 {
-        // Cache 404.
+    if is_optional && res.status() == 404 {
+        // Cache 404 for optional file.
         return Ok("404".to_owned());
     }
 
