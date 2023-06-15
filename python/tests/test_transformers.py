@@ -500,6 +500,31 @@ class TestGeneration:
         assert cum_score_wo_prompt == pytest.approx(cum_score_w_prompt, abs=1e-4)
 
     @test_utils.only_on_linux
+    @pytest.mark.parametrize("beam_size", [1, 2])
+    def test_transformers_generator_ignore_prompt_batch(self, tmp_dir, beam_size):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
+
+        new_tokens = 2
+        prompt = [
+            "Ċ The Ġfirst Ġtime ĠI".split(),
+            "Ċ The Ġfirst".split(),
+        ]
+
+        results = generator.generate_batch(
+            prompt,
+            beam_size=beam_size,
+            min_length=new_tokens,
+            max_length=new_tokens,
+            include_prompt_in_result=False,
+        )
+
+        for tokens, result in zip(prompt, results):
+            assert len(result.sequences[0]) == new_tokens
+
+    @test_utils.only_on_linux
     def test_transformers_generator_static_prompt(self, tmp_dir):
         converter = ctranslate2.converters.TransformersConverter("gpt2")
         output_dir = str(tmp_dir.join("ctranslate2_model"))
