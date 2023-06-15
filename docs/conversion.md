@@ -20,8 +20,8 @@ The conversion produces a model directory containing a binary model file, a JSON
 ```text
 config.json
 model.bin
-source_vocabulary.txt
-target_vocabulary.txt
+source_vocabulary.json
+target_vocabulary.json
 ```
 
 ```{tip}
