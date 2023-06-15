@@ -4,6 +4,21 @@
 
 ### Fixes and improvements
 
+## [v3.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.16.0) (2023-06-15)
+
+### New features
+
+* Update the Transformers converter to support more architectures:
+  * Falcon-40B
+  * XLM-RoBERTa
+* Add the generation option `sampling_topp` to enable top-p (nucleus) sampling
+* Save vocabulary files in the JSON format to better support tokens containing newlines or carriage returns
+
+### Fixes and improvements
+
+* Fix the application of `min_length` and `max_length` when using `include_prompt_in_result=False` and a batch input with variable lengths: the length constraint should only apply to the sequence after the prompt
+* Update oneDNN to 3.1.1
+
 ## [v3.15.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.15.1) (2023-06-09)
 
 ### Fixes and improvements
