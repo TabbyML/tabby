@@ -100,19 +100,19 @@ class CompletionProvider {
   freeInlineCompletions() {}
 
   getSegments(document, position) {
-    const firstLine = Math.max(position.lineNumber - 120, 0)
+    const firstLine = Math.max(position.lineNumber - 120, 1)
     const prefixRange = new this.monaco.Range(
       firstLine,
-      0,
+      1,
       position.lineNumber,
       position.column
     )
-    const lastLine = Math.min(position.lineNumber + 120, document.getLineCount() - 1)
+    const lastLine = Math.min(position.lineNumber + 120, document.getLineCount())
     const suffixRange = new this.monaco.Range(
       position.lineNumber,
       position.column,
       lastLine,
-      document.getLineLength(lastLine)
+      document.getLineLength(lastLine) + 1
     )
     return {
       prefix: document.getValueInRange(prefixRange),
