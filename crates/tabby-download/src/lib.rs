@@ -56,35 +56,48 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
 
     let mut cache_info = CacheInfo::from(model_id).await;
 
-    cache_info
-        .download(model_id, "tabby.json", prefer_local_file, false)
-        .await?;
-    cache_info
-        .download(model_id, "tokenizer.json", prefer_local_file, false)
-        .await?;
-    cache_info
-        .download(model_id, "ctranslate2/config.json", prefer_local_file, false)
-        .await?;
-    cache_info
-        .download(model_id, "ctranslate2/vocabulary.txt", prefer_local_file, true)
-        .await?;
-    cache_info
-        .download(
-            model_id,
-            "ctranslate2/shared_vocabulary.txt",
-            prefer_local_file,
-            true
-        )
-        .await?;
-    cache_info
-        .download(model_id, "ctranslate2/model.bin", prefer_local_file, false)
-        .await?;
-    cache_info.save(model_id)?;
+    let optional_files = vec![
+        "ctranslate2/vocabulary.txt",
+        "ctranslate2/shared_vocabulary.txt",
+    ];
+    for path in optional_files {
+        cache_info
+            .download(
+                model_id,
+                path,
+                prefer_local_file,
+                /* is_optional */ true,
+            )
+            .await?;
+    }
 
+    let required_files = vec![
+        "tabby.json",
+        "tokenizer.json",
+        "ctranslate2/config.json",
+        "ctranslate2/model.bin",
+    ];
+    for path in required_files {
+        cache_info
+            .download(
+                model_id,
+                path,
+                prefer_local_file,
+                /* required= */ false,
+            )
+            .await?;
+    }
+
+    cache_info.save(model_id)?;
     Ok(())
 }
 
-async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>, is_optional: bool) -> Result<String> {
+async fn download_file(
+    url: &str,
+    path: &str,
+    local_cache_key: Option<&str>,
+    is_optional: bool,
+) -> Result<String> {
     fs::create_dir_all(Path::new(path).parent().unwrap())?;
 
     // Reqwest setup
