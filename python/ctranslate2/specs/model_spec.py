@@ -497,8 +497,7 @@ class SequenceToSequenceModelSpec(ModelSpec):
             vocabularies = {"shared": all_vocabularies[0]}
 
         for name, tokens in vocabularies.items():
-            path = os.path.join(output_dir, "%s_vocabulary.txt" % name)
-            _save_lines(path, tokens)
+            _save_vocabulary(output_dir, "%s_vocabulary" % name, tokens)
 
         # Save the rest of the model.
         super().save(output_dir)
@@ -566,15 +565,14 @@ class LanguageModelSpec(ModelSpec):
 
     def save(self, output_dir: str) -> None:
         # Save the vocabulary.
-        vocabulary_path = os.path.join(output_dir, "vocabulary.txt")
-        _save_lines(vocabulary_path, self._vocabulary)
+        _save_vocabulary(output_dir, "vocabulary", self._vocabulary)
 
         # Save the rest of the model.
         super().save(output_dir)
 
 
-def _save_lines(path, lines):
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        for line in lines:
-            f.write(line)
-            f.write("\n")
+def _save_vocabulary(output_dir, name, tokens):
+    vocabulary_path = os.path.join(output_dir, "%s.json" % name)
+
+    with open(vocabulary_path, "w", encoding="utf-8") as vocabulary_file:
+        json.dump(tokens, vocabulary_file, indent=2)

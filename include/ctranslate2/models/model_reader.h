@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "ctranslate2/vocabulary.h"
+
 namespace ctranslate2 {
   namespace models {
 
@@ -49,6 +51,12 @@ namespace ctranslate2 {
       std::string _model_name;
       std::unordered_map<std::string, std::string> _files;
     };
+
+
+    std::shared_ptr<Vocabulary>
+    load_vocabulary(ModelReader& model_reader,
+                    const std::string& filename,
+                    VocabularyInfo vocab_info);
 
   }
 }

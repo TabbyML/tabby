@@ -58,8 +58,8 @@ def test_opennmt_py_source_features(tmp_dir, filename):
     converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
     output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
-    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.txt"))
-    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.json"))
+    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.json"))
 
     source = [
         ["آ", "ت", "ز", "م", "و", "ن"],

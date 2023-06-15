@@ -4,7 +4,6 @@
 #include "ctranslate2/layers/whisper.h"
 #include "ctranslate2/models/model.h"
 #include "ctranslate2/replica_pool.h"
-#include "ctranslate2/vocabulary.h"
 
 namespace ctranslate2 {
   namespace models {

@@ -27,8 +27,10 @@ namespace ctranslate2 {
       vocab_info.unk_token = "<|endoftext|>";
       vocab_info.bos_token = "<|startoftranscript|>";
       vocab_info.eos_token = "<|endoftext|>";
-      _vocabulary = std::make_shared<Vocabulary>(*model_reader.get_required_file("vocabulary.txt"),
-                                                 std::move(vocab_info));
+
+      _vocabulary = load_vocabulary(model_reader, "vocabulary", std::move(vocab_info));
+      if (!_vocabulary)
+        throw std::runtime_error("Cannot load the vocabulary from the model directory");
     }
 
     bool WhisperModel::is_quantizable(const std::string& variable_name) const {

@@ -215,8 +215,9 @@ def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmp_dir):
     output_dir = str(tmp_dir.join("ctranslate2_model"))
     output_dir = converter.convert(output_dir)
 
-    with open(os.path.join(output_dir, "shared_vocabulary.txt")) as vocab_file:
-        vocab = list(line.rstrip("\n") for line in vocab_file)
+    vocabulary_path = os.path.join(output_dir, "shared_vocabulary.json")
+    with open(vocabulary_path, encoding="utf-8") as vocabulary_file:
+        vocab = json.load(vocabulary_file)
 
     assert vocab[-1] != "<pad>"
 

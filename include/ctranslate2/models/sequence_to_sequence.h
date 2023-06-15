@@ -5,7 +5,6 @@
 #include "ctranslate2/models/model.h"
 #include "ctranslate2/scoring.h"
 #include "ctranslate2/translation.h"
-#include "ctranslate2/vocabulary.h"
 #include "ctranslate2/vocabulary_map.h"
 
 namespace ctranslate2 {

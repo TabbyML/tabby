@@ -6,7 +6,6 @@
 #include "ctranslate2/encoding.h"
 #include "ctranslate2/generation.h"
 #include "ctranslate2/scoring.h"
-#include "ctranslate2/vocabulary.h"
 
 namespace ctranslate2 {
   namespace models {

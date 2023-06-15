@@ -75,5 +75,23 @@ namespace ctranslate2 {
       return std::make_unique<imemstream>(content.data(), content.size());
     }
 
+
+    std::shared_ptr<Vocabulary>
+    load_vocabulary(ModelReader& model_reader,
+                    const std::string& filename,
+                    VocabularyInfo vocab_info) {
+      std::unique_ptr<std::istream> file;
+
+      file = model_reader.get_file(filename + ".json");
+      if (file)
+        return std::make_shared<Vocabulary>(Vocabulary::from_json_file(*file, std::move(vocab_info)));
+
+      file = model_reader.get_file(filename + ".txt");
+      if (file)
+        return std::make_shared<Vocabulary>(Vocabulary::from_text_file(*file, std::move(vocab_info)));
+
+      return nullptr;
+    }
+
   }
 }

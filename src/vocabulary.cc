@@ -1,12 +1,12 @@
 #include "ctranslate2/vocabulary.h"
 
+#include <nlohmann/json.hpp>
+
 #include "ctranslate2/utils.h"
 
 namespace ctranslate2 {
 
-  Vocabulary::Vocabulary(std::istream& in, VocabularyInfo info)
-    : _info(std::move(info))
-  {
+  Vocabulary Vocabulary::from_text_file(std::istream& in, VocabularyInfo info) {
     std::vector<std::string> tokens;
     std::string line;
 
@@ -21,12 +21,25 @@ namespace ctranslate2 {
       tokens.emplace_back(std::move(line));
     }
 
+    if (remove_carriage_return) {
+      for (auto& token : tokens)
+        token.pop_back();
+    }
+
+    return Vocabulary(std::move(tokens), std::move(info));
+  }
+
+  Vocabulary Vocabulary::from_json_file(std::istream& in, VocabularyInfo info) {
+    return Vocabulary(nlohmann::json::parse(in).get<std::vector<std::string>>(), std::move(info));
+  }
+
+  Vocabulary::Vocabulary(std::vector<std::string> tokens, VocabularyInfo info)
+    : _info(std::move(info))
+  {
     _token_to_id.reserve(tokens.size());
     _id_to_token.reserve(tokens.size());
 
     for (auto& token : tokens) {
-      if (remove_carriage_return)
-        token.pop_back();
       add_token(std::move(token));
     }
 

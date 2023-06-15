@@ -39,15 +39,6 @@ def test_opennmt_tf_model_conversion(tmp_dir, model_path):
     output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
-    src_vocab_path = os.path.join(output_dir, "source_vocabulary.txt")
-    tgt_vocab_path = os.path.join(output_dir, "target_vocabulary.txt")
-
-    # Check lines end with \n on all platforms.
-    with open(src_vocab_path, encoding="utf-8", newline="") as vocab_file:
-        assert vocab_file.readline() == "<blank>\n"
-    with open(tgt_vocab_path, encoding="utf-8", newline="") as vocab_file:
-        assert vocab_file.readline() == "<blank>\n"
-
     translator = ctranslate2.Translator(output_dir)
     output = translator.translate_batch([["آ", "ت", "ز", "م", "و", "ن"]])
     assert output[0].hypotheses[0] == ["a", "t", "z", "m", "o", "n"]
@@ -145,7 +136,7 @@ def test_opennmt_tf_shared_embeddings_conversion(tmp_dir):
     output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
-    assert os.path.isfile(os.path.join(output_dir, "shared_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "shared_vocabulary.json"))
 
     # Check that the translation runs.
     translator = ctranslate2.Translator(output_dir)
@@ -192,7 +183,7 @@ def test_opennmt_tf_gpt_conversion(tmp_dir):
     converter = ctranslate2.converters.OpenNMTTFConverter(model)
     converter.convert(output_dir)
 
-    assert os.path.isfile(os.path.join(output_dir, "vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "vocabulary.json"))
 
 
 def test_opennmt_tf_multi_features(tmp_dir):
@@ -224,5 +215,5 @@ def test_opennmt_tf_multi_features(tmp_dir):
     output_dir = str(tmp_dir.join("ctranslate2_model"))
     converter.convert(output_dir)
 
-    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.txt"))
-    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.txt"))
+    assert os.path.isfile(os.path.join(output_dir, "source_1_vocabulary.json"))
+    assert os.path.isfile(os.path.join(output_dir, "source_2_vocabulary.json"))
