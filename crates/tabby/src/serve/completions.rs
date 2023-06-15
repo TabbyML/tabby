@@ -87,11 +87,10 @@ pub async fn completion(
         .unwrap();
 
     let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
-        if let Some(prompt_template) = &state.prompt_template {
-            if let Some(suffix) = suffix {
+        if let (Some(prompt_template), Some(suffix)) = (&state.prompt_template, suffix) {
+            if !suffix.is_empty() {
                 strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
             } else {
-                // If suffix is empty, just returns prefix.
                 prefix
             }
         } else {
