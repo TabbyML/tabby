@@ -25,10 +25,19 @@ impl CacheInfo {
         let filepath = ModelDir::new(model_id).path_string(path);
 
         // Cache hit.
-        let mut local_file_ready = false;
-        if !prefer_local_file && local_cache_key.is_some() && fs::metadata(&filepath).is_ok() {
-            local_file_ready = true;
-        }
+        let local_file_ready = if prefer_local_file {
+            if let Some(local_cache_key) = local_cache_key {
+                if local_cache_key == "404" {
+                    true
+                } else {
+                    fs::metadata(&filepath).is_ok()
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
 
         if !local_file_ready {
             let etag = download_file(&url, &filepath, local_cache_key).await?;
@@ -78,6 +87,11 @@ async fn download_file(url: &str, path: &str, local_cache_key: Option<&str>) -> 
 
     // Reqwest setup
     let res = reqwest::get(url).await?;
+
+    if res.status() == 404 {
+        // Cache 404.
+        return Ok("404".to_owned());
+    }
 
     if !res.status().is_success() {
         return Err(anyhow!(format!("Invalid url: {}", url)));
