@@ -108,8 +108,8 @@ type StoredData = {
 };
 interface DataStore {
     data: Partial<StoredData>;
-    load(): Promise<void>;
-    save(): Promise<void>;
+    load(): PromiseLike<void>;
+    save(): PromiseLike<void>;
 }
 
 /**
@@ -130,7 +130,7 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     static readonly tryConnectInterval: number;
     private tryingConnectTimer;
     private constructor();
-    static create(options?: TabbyAgentOptions): Promise<TabbyAgent>;
+    static create(options?: Partial<TabbyAgentOptions>): Promise<TabbyAgent>;
     private applyConfig;
     private onAuthUpdated;
     private changeStatus;

@@ -9,7 +9,7 @@ export type StorageData = {
 };
 
 export class Auth extends EventEmitter {
-  static readonly authUrl = "https://app.tabbyml.com/account/device-token";
+  static readonly authPageUrl = "https://app.tabbyml.com/account/device-token";
   static readonly pollTokenInterval = 5000; // 5 seconds
   static readonly refreshTokenInterval = 1000 * 60 * 60 * 24 * 3; // 3 days
 
@@ -18,7 +18,7 @@ export class Auth extends EventEmitter {
   readonly dataStore: DataStore | null = null;
   private pollingTokenTimer: ReturnType<typeof setInterval> | null = null;
   private refreshTokenTimer: ReturnType<typeof setTimeout> | null = null;
-  private cloudApi: CloudApi;
+  private authApi: CloudApi | null = null;
   private jwt: string | null = null;
 
   static async create(options: { endpoint: string; dataStore?: DataStore }): Promise<Auth> {
@@ -31,7 +31,11 @@ export class Auth extends EventEmitter {
     super();
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-    this.cloudApi = new CloudApi();
+
+    // From tabby endpoint: http[s]://{namespace}.app.tabbyml.com/tabby[/] 
+    // To auth endpoint: http[s]://{namespace}.app.tabbyml.com/api
+    const authApiBase = this.endpoint.replace(/\/tabby\/?$/, "/api");
+    this.authApi = new CloudApi({ BASE: authApiBase });
   }
 
   get token(): string | null {
@@ -88,14 +92,14 @@ export class Auth extends EventEmitter {
   async requestToken(): Promise<string> {
     try {
       await this.reset();
-      const deviceToken = await this.cloudApi.api.deviceToken();
+      const deviceToken = await this.authApi.api.deviceToken();
       this.logger.debug({ deviceToken }, "Request device token response");
-      const authUrl = new URL(Auth.authUrl);
+      const authUrl = new URL(Auth.authPageUrl);
       authUrl.searchParams.append("code", deviceToken.data.code);
       this.schedulePollingToken(deviceToken.data.code);
       return authUrl.toString();
     } catch (error) {
-      this.logger.error({ error }, "Error when requesting device token");
+      this.logger.error({ error }, "Error when requesting token");
       throw error;
     }
   }
@@ -103,7 +107,7 @@ export class Auth extends EventEmitter {
   async schedulePollingToken(code: string) {
     this.pollingTokenTimer = setInterval(async () => {
       try {
-        const response = await this.cloudApi.api.deviceTokenAccept({ code });
+        const response = await this.authApi.api.deviceTokenAccept({ code });
         this.logger.debug({ response }, "Poll jwt response");
         this.jwt = response.data.jwt;
         await this.save();

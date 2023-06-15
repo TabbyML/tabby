@@ -14,7 +14,7 @@ export class ApiService {
   public deviceToken(): CancelablePromise<DeviceTokenResponse> {
     return this.httpRequest.request({
       method: "POST",
-      url: "/api/device-token",
+      url: "/device-token",
     });
   }
 
@@ -26,7 +26,7 @@ export class ApiService {
   public deviceTokenAccept(query: { code: string }): CancelablePromise<DeviceTokenAcceptResponse> {
     return this.httpRequest.request({
       method: "POST",
-      url: "/api/device-token/accept",
+      url: "/device-token/accept",
       query,
     });
   }

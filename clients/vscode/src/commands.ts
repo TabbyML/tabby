@@ -147,6 +147,9 @@ const openAuthPage: Command = {
         if (authUrl) {
           env.openExternal(Uri.parse(authUrl));
         }
+      })
+      .catch((error) => {
+        console.debug("Error to start auth", { error })
       });
   },
 };

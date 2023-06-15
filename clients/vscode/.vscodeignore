@@ -1,5 +1,6 @@
 .vscode/**
 .vscode-test/**
+.vscode-test-web/**
 out/**
 node_modules/**
 src/**

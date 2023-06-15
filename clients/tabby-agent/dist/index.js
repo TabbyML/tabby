@@ -526,7 +526,7 @@ var ApiService = class {
   deviceToken() {
     return this.httpRequest.request({
       method: "POST",
-      url: "/api/device-token"
+      url: "/device-token"
     });
   }
   /**
@@ -537,7 +537,7 @@ var ApiService = class {
   deviceTokenAccept(query) {
     return this.httpRequest.request({
       method: "POST",
-      url: "/api/device-token/accept",
+      url: "/device-token/accept",
       query
     });
   }
@@ -547,7 +547,7 @@ var ApiService = class {
 var CloudApi = class {
   constructor(config, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config?.BASE ?? "http://localhost:3000",
+      BASE: config?.BASE ?? "https://tabbyml.app.tabbyml.com/tabby",
       VERSION: config?.VERSION ?? "0.0.0",
       WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config?.CREDENTIALS ?? "include",
@@ -603,10 +603,12 @@ var _Auth = class extends import_events.EventEmitter {
     this.dataStore = null;
     this.pollingTokenTimer = null;
     this.refreshTokenTimer = null;
+    this.authApi = null;
     this.jwt = null;
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-    this.cloudApi = new CloudApi();
+    const authApiBase = this.endpoint.replace(/\/tabby\/?$/, "/api");
+    this.authApi = new CloudApi({ BASE: authApiBase });
   }
   static async create(options) {
     const auth = new _Auth(options);
@@ -667,21 +669,21 @@ var _Auth = class extends import_events.EventEmitter {
   async requestToken() {
     try {
       await this.reset();
-      const deviceToken = await this.cloudApi.api.deviceToken();
+      const deviceToken = await this.authApi.api.deviceToken();
       this.logger.debug({ deviceToken }, "Request device token response");
-      const authUrl = new URL(_Auth.authUrl);
+      const authUrl = new URL(_Auth.authPageUrl);
       authUrl.searchParams.append("code", deviceToken.data.code);
       this.schedulePollingToken(deviceToken.data.code);
       return authUrl.toString();
     } catch (error) {
-      this.logger.error({ error }, "Error when requesting device token");
+      this.logger.error({ error }, "Error when requesting token");
       throw error;
     }
   }
   async schedulePollingToken(code) {
     this.pollingTokenTimer = setInterval(async () => {
       try {
-        const response = await this.cloudApi.api.deviceTokenAccept({ code });
+        const response = await this.authApi.api.deviceTokenAccept({ code });
         this.logger.debug({ response }, "Poll jwt response");
         this.jwt = response.data.jwt;
         await this.save();
@@ -714,7 +716,7 @@ var _Auth = class extends import_events.EventEmitter {
   }
 };
 var Auth = _Auth;
-Auth.authUrl = "https://app.tabbyml.com/account/device-token";
+Auth.authPageUrl = "https://app.tabbyml.com/account/device-token";
 Auth.pollTokenInterval = 5e3;
 // 5 seconds
 Auth.refreshTokenInterval = 1e3 * 60 * 60 * 24 * 3;

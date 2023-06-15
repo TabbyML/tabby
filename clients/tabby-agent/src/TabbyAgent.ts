@@ -50,7 +50,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }, TabbyAgent.tryConnectInterval);
   }
 
-  static async create(options?: TabbyAgentOptions): Promise<TabbyAgent> {
+  static async create(options?: Partial<TabbyAgentOptions>): Promise<TabbyAgent> {
     const agent = new TabbyAgent();
     agent.dataStore = options?.dataStore;
     await agent.applyConfig();

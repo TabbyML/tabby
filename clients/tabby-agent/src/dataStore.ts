@@ -4,8 +4,8 @@ export type StoredData = {
 
 export interface DataStore {
   data: Partial<StoredData>;
-  load(): Promise<void>;
-  save(): Promise<void>;
+  load(): PromiseLike<void>;
+  save(): PromiseLike<void>;
 }
 
 declare var IS_BROWSER: boolean;

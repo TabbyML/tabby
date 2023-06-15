@@ -10,7 +10,7 @@ import { tabbyStatusBarItem } from "./statusBarItem";
 // your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
   console.debug("Activating Tabby extension", new Date());
-  await createAgentInstance();
+  await createAgentInstance(context);
   context.subscriptions.push(
     languages.registerInlineCompletionItemProvider(
       { pattern: "**" },

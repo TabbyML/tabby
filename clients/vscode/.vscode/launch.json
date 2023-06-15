@@ -22,8 +22,22 @@
       "preLaunchTask": "${defaultBuildTask}"
     },
     {
+      "name": "Run Web Extension in Browser",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vscode-test-web",
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--browserType=chromium",
+        "--port=3000",
+      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
       "name": "Run Web Extension in VS Code",
-      "type": "pwa-extensionHost",
+      "type": "extensionHost",
       "debugWebWorkerHost": true,
       "request": "launch",
       "args": [
