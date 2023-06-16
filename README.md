@@ -6,6 +6,9 @@
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+
+[![Slack Community](https://shields.io/badge/slack-join-orange?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+
 </div>
 
 Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub Copilot.
