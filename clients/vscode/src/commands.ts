@@ -26,9 +26,9 @@ const toggleEnabled: Command = {
   command: "tabby.toggleEnabled",
   callback: () => {
     const configuration = workspace.getConfiguration("tabby");
-    const enabled = configuration.get("enabled", true);
+    const enabled = configuration.get("codeCompletion", true);
     console.debug(`Toggle Enabled: ${enabled} -> ${!enabled}.`);
-    configuration.update("enabled", !enabled, configTarget, false);
+    configuration.update("codeCompletion", !enabled, configTarget, false);
   },
 };
 
@@ -36,7 +36,7 @@ const setSuggestionDelay: Command = {
   command: "tabby.setSuggestionDelay",
   callback: () => {
     const configuration = workspace.getConfiguration("tabby");
-    const current = configuration.get("suggestionDelay", 150);
+    const current = configuration.get("developerOptions.suggestionDelay", 150);
     const items = {
       Immediately: 0, // ms
       Default: 150,
@@ -87,20 +87,20 @@ const setSuggestionDelay: Command = {
       quickPick.hide();
       const delay = new Duration(quickPick.selectedItems[0].label).offset;
       console.debug("Set suggestion delay: ", delay);
-      configuration.update("suggestionDelay", delay, configTarget, false);
+      configuration.update("developerOptions.suggestionDelay", delay, configTarget, false);
     });
     quickPick.show();
   },
 };
 
-const setServerUrl: Command = {
-  command: "tabby.setServerUrl",
+const setApiEndpoint: Command = {
+  command: "tabby.setApiEndpoint",
   callback: () => {
     const configuration = workspace.getConfiguration("tabby");
     window
       .showInputBox({
         prompt: "Enter the URL of your Tabby Server",
-        value: configuration.get("serverUrl", ""),
+        value: configuration.get("api.endpoint", ""),
         validateInput: (input: string) => {
           try {
             let url = new URL(input);
@@ -117,7 +117,7 @@ const setServerUrl: Command = {
       .then((url) => {
         if (url) {
           console.debug("Set Tabby Server URL: ", url);
-          configuration.update("serverUrl", url, configTarget, false);
+          configuration.update("api.endpoint", url, configTarget, false);
         }
       });
   },
@@ -126,7 +126,7 @@ const setServerUrl: Command = {
 const openSettings: Command = {
   command: "tabby.openSettings",
   callback: () => {
-    commands.executeCommand("workbench.action.openSettings", "tabby");
+    commands.executeCommand("workbench.action.openSettings", "@ext:TabbyML.vscode-tabby");
   },
 };
 
@@ -178,6 +178,6 @@ const statusBarItemClicked: Command = {
 };
 
 export const tabbyCommands = () =>
-  [toggleEnabled, setServerUrl, setSuggestionDelay, openSettings, emitEvent, openAuthPage, statusBarItemClicked].map(
+  [toggleEnabled, setApiEndpoint, setSuggestionDelay, openSettings, emitEvent, openAuthPage, statusBarItemClicked].map(
     (command) => commands.registerCommand(command.command, command.callback, command.thisArg)
   );

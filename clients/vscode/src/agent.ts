@@ -4,21 +4,21 @@ import { TabbyAgent, AgentConfig, DataStore } from "tabby-agent";
 function getWorkspaceConfiguration(): Partial<AgentConfig> {
   const configuration = workspace.getConfiguration("tabby");
   const config: Partial<AgentConfig> = {};
-  const serverUrl = configuration.get<string>("serverUrl");
-  if (serverUrl) {
+  const endpoint = configuration.get<string>("api.endpoint");
+  if (endpoint) {
     config.server = {
-      endpoint: serverUrl,
+      endpoint,
     };
   }
-  const agentLogs = configuration.get<"debug" | "error" | "silent">("agentLogs");
+  const agentLogs = configuration.get<"debug" | "error" | "silent">("developerOptions.agent.logs");
   if (agentLogs) {
     config.logs = {
       level: agentLogs,
     };
   }
-  const disableAnonymousUsageTracking = configuration.get<boolean>("disableAnonymousUsageTracking", false);
+  const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
   config.anonymousUsageTracking = {
-    disable: disableAnonymousUsageTracking,
+    disable: anonymousUsageTrackingDisabled,
   };
   return config;
 }

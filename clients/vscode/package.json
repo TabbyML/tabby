@@ -2,7 +2,7 @@
   "name": "vscode-tabby",
   "publisher": "TabbyML",
   "displayName": "Tabby",
-  "description": "Get completions from Tabby server",
+  "description": "Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time.",
   "repository": "https://github.com/TabbyML/tabby",
   "version": "0.0.6",
   "keywords": [
@@ -30,12 +30,8 @@
         "title": "Tabby: Toggle Code Suggestion On/Off"
       },
       {
-        "command": "tabby.setServerUrl",
-        "title": "Tabby: Set URL of Tabby Server"
-      },
-      {
-        "command": "tabby.setSuggestionDelay",
-        "title": "Tabby: Set suggestion delay"
+        "command": "tabby.setApiEndpoint",
+        "title": "Tabby: Specify API Endpoint of Tabby"
       },
       {
         "command": "tabby.openSettings",
@@ -45,38 +41,50 @@
     "configuration": {
       "title": "Tabby",
       "properties": {
-        "tabby.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Tabby code suggestion or not."
-        },
-        "tabby.serverUrl": {
+        "tabby.api.endpoint": {
           "type": "string",
-          "default": "http://127.0.0.1:8080",
+          "default": "http://localhost:8080",
+          "format": "uri",
           "pattern": "^https?:\\/\\/[^\\s]+$",
           "patternErrorMessage": "Please enter a validate http or https URL.",
-          "markdownDescription": "Specifies the url of [Tabby Server](https://github.com/TabbyML/tabby)."
+          "description": "Specify API Endpoint of Tabby."
         },
-        "tabby.disableAnonymousUsageTracking": {
+        "tabby.codeCompletion": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Tabby code completion or not."
+        },
+        "tabby.developerOptions": {
+          "type": "object",
+          "description": "Developer options for Tabby.",
+          "properties": {
+            "suggestionDelay": {
+              "type": "number",
+              "default": 150,
+              "minimum": 0,
+              "description": "Specifies the delay in milliseconds after which the request is sent to the tabby."
+            },
+            "agent": {
+              "type": "object",
+              "properties": {
+                "logs": {
+                  "type": "string",
+                  "enum": [
+                    "debug",
+                    "error",
+                    "silent"
+                  ],
+                  "default": "error",
+                  "markdownDescription": "Specifies the log level for tabby-agent."
+                }
+              }
+            }
+          }
+        },
+        "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
           "default": false,
           "description": "Disable anonymous usage tracking."
-        },
-        "tabby.suggestionDelay": {
-          "type": "number",
-          "default": 150,
-          "minimum": 0,
-          "description": "Specifies the delay in milliseconds after which the request is sent to the tabby."
-        },
-        "tabby.agentLogs": {
-          "type": "string",
-          "enum": [
-            "debug",
-            "error",
-            "silent"
-          ],
-          "default": "error",
-          "markdownDescription": "Specifies the log level of tabby-agent for debugging purpose.  \n * If VSCode is running as desktop application, you can find log files in `$HOME/.tabby/agent-logs/`. It's recommend using `tail -f ~/.tabby/agent-logs/tabby-agent.log | npx pino-pretty` to monitor logs.  \n * If VSCode is running in browser, you can find logs in debug console.  "
         }
       }
     }
