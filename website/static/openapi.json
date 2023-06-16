@@ -112,7 +112,7 @@
           "index": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0
+            "minimum": 0.0
           },
           "text": {
             "type": "string"
@@ -124,7 +124,6 @@
         "properties": {
           "prompt": {
             "type": "string",
-            "deprecated": true,
             "example": "def fib(n):",
             "nullable": true
           },
@@ -141,6 +140,17 @@
               }
             ],
             "nullable": true
+          },
+          "user": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "language": "python",
+          "segments": {
+            "prefix": "def fib(n)\n    ",
+            "suffix": "\n        return fib(n - 1) + fib(n - 2)"
           }
         }
       },
@@ -200,7 +210,7 @@
           "choice_index": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0
+            "minimum": 0.0
           }
         }
       },
@@ -212,13 +222,11 @@
         "properties": {
           "prefix": {
             "type": "string",
-            "description": "Content that appears before the cursor in the editor window.",
-            "example": "def fib(n):\n    "
+            "description": "Content that appears before the cursor in the editor window."
           },
           "suffix": {
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
-            "example": "\n        return fib(n - 1) + fib(n - 2)",
             "nullable": true
           }
         }
