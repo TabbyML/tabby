@@ -4,7 +4,7 @@
   "displayName": "Tabby",
   "description": "Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time.",
   "repository": "https://github.com/TabbyML/tabby",
-  "version": "0.0.6",
+  "version": "0.1.0",
   "keywords": [
     "code-suggestion",
     "copilot",
