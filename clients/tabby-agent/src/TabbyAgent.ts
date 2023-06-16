@@ -144,7 +144,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (options.config) {
       await this.updateConfig(options.config);
     }
-    await this.anonymousUsageLogger.event("Agent:Initialize", {
+    await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client,
     });
     this.logger.debug({ options }, "Initialized");
