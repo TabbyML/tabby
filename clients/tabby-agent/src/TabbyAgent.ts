@@ -118,7 +118,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  private async healthCheck(): Promise<void> {
+  private async healthCheck(): Promise<any> {
     return this.callApi(this.api.v1.health, {}).catch(() => {});
   }
 
@@ -211,6 +211,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const promise = this.callApi(this.api.v1.completion, {
       language: request.language,
       segments,
+      user: this.auth?.user,
     });
     return cancelable(
       promise

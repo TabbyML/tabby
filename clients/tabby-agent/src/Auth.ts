@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import decodeJwt from "jwt-decode";
 import { CloudApi } from "./cloud";
 import { ApiError } from "./generated";
 import { dataStore, DataStore } from "./dataStore";
@@ -19,7 +20,7 @@ export class Auth extends EventEmitter {
   private pollingTokenTimer: ReturnType<typeof setInterval> | null = null;
   private refreshTokenTimer: ReturnType<typeof setTimeout> | null = null;
   private authApi: CloudApi | null = null;
-  private jwt: string | null = null;
+  private jwt: { token: string; payload: { email: string; exp: number } } | null = null;
 
   static async create(options: { endpoint: string; dataStore?: DataStore }): Promise<Auth> {
     const auth = new Auth(options);
@@ -39,7 +40,11 @@ export class Auth extends EventEmitter {
   }
 
   get token(): string | null {
-    return this.jwt;
+    return this.jwt?.token;
+  }
+
+  get user(): string | null {
+    return this.jwt?.payload.email;
   }
 
   private async load(): Promise<void> {
@@ -47,9 +52,12 @@ export class Auth extends EventEmitter {
     try {
       await this.dataStore.load();
       const storedJwt = this.dataStore.data["auth"]?.[this.endpoint]?.jwt;
-      if (typeof storedJwt === "string" && this.jwt !== storedJwt) {
+      if (typeof storedJwt === "string" && this.jwt?.token !== storedJwt) {
         this.logger.debug({ storedJwt }, "Load jwt from data store.");
-        this.jwt = storedJwt;
+        this.jwt = {
+          token: storedJwt,
+          payload: decodeJwt(storedJwt),
+        };
         this.scheduleRefreshToken();
       }
     } catch (error: any) {
@@ -61,8 +69,8 @@ export class Auth extends EventEmitter {
     if (!this.dataStore) return;
     try {
       if (this.jwt) {
-        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt) return;
-        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt } };
+        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt.token) return;
+        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt.token } };
       } else {
         if (typeof this.dataStore.data["auth"]?.[this.endpoint] === "undefined") return;
         delete this.dataStore.data["auth"][this.endpoint];
@@ -109,7 +117,10 @@ export class Auth extends EventEmitter {
       try {
         const response = await this.authApi.api.deviceTokenAccept({ code });
         this.logger.debug({ response }, "Poll jwt response");
-        this.jwt = response.data.jwt;
+        this.jwt = {
+          token: response.data.jwt,
+          payload: decodeJwt(response.data.jwt),
+        };
         await this.save();
         this.scheduleRefreshToken();
         super.emit("updated", this.jwt);
@@ -134,11 +145,10 @@ export class Auth extends EventEmitter {
     if (!this.jwt) {
       return null;
     }
-    // FIXME: assume jwt expires after 7 days, should get exp from decode jwt payload
-    const expireAt = Date.now() / 1000 + 60 * 60 * 24 * 7;
-    const refreshDelay = Math.max(0, expireAt * 1000 - Date.now() - Auth.refreshTokenInterval);
+
+    const refreshDelay = Math.max(0, this.jwt.payload.exp * 1000 - Date.now() - Auth.refreshTokenInterval);
     this.refreshTokenTimer = setTimeout(async () => {
-      this.logger.debug({ expireAt }, "Refresh token");
+      this.logger.debug({ expireAt: this.jwt.payload.exp }, "Refresh token");
       // FIXME: not implemented
     }, refreshDelay);
   }

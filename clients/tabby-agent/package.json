@@ -29,6 +29,7 @@
     "deepmerge": "^4.3.1",
     "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
+    "jwt-decode": "^3.1.2",
     "lru-cache": "^9.1.1",
     "object-hash": "^3.0.0",
     "object-sizeof": "^2.6.1",

@@ -2163,6 +2163,11 @@ jszip@^3.10.1:
     readable-stream "~2.3.6"
     setimmediate "^1.0.5"
 
+jwt-decode@^3.1.2:
+  version "3.1.2"
+  resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-3.1.2.tgz#3fb319f3675a2df0c2895c8f5e9fa4b67b04ed59"
+  integrity sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==
+
 keygrip@~1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/keygrip/-/keygrip-1.1.0.tgz#871b1681d5e159c62a445b0c74b615e0917e7226"
@@ -3296,6 +3301,7 @@ supports-preserve-symlinks-flag@^1.0.0:
     deepmerge "^4.3.1"
     form-data "^4.0.0"
     fs-extra "^11.1.1"
+    jwt-decode "^3.1.2"
     lru-cache "^9.1.1"
     object-hash "^3.0.0"
     object-sizeof "^2.6.1"
