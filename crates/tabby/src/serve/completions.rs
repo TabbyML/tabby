@@ -20,7 +20,7 @@ mod languages;
 #[schema(example=json!({
     "language": "python",
     "segments": {
-        "prefix": "def fib(n)\n    ",
+        "prefix": "def fib(n):\n    ",
         "suffix": "\n        return fib(n - 1) + fib(n - 2)"
     }
 }))]

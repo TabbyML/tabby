@@ -112,7 +112,7 @@
           "index": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           },
           "text": {
             "type": "string"
@@ -149,7 +149,7 @@
         "example": {
           "language": "python",
           "segments": {
-            "prefix": "def fib(n)\n    ",
+            "prefix": "def fib(n):\n    ",
             "suffix": "\n        return fib(n - 1) + fib(n - 2)"
           }
         }
@@ -210,7 +210,7 @@
           "choice_index": {
             "type": "integer",
             "format": "int32",
-            "minimum": 0.0
+            "minimum": 0
           }
         }
       },
