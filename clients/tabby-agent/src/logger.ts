@@ -1,11 +1,10 @@
 import pino from "pino";
-
-declare var IS_BROWSER: boolean;
+import { isBrowser } from "./utils";
 
 /**
  * Stream not available in browser, will use default console output.
  */
-const stream = IS_BROWSER
+const stream = isBrowser
   ? null
   : /**
      * Default rotating file locate at `~/.tabby/agent-logs/`.

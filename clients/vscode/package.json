@@ -57,6 +57,11 @@
           "patternErrorMessage": "Please enter a validate http or https URL.",
           "markdownDescription": "Specifies the url of [Tabby Server](https://github.com/TabbyML/tabby)."
         },
+        "tabby.disableAnonymousUsageTracking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable anonymous usage tracking."
+        },
         "tabby.suggestionDelay": {
           "type": "number",
           "default": 150,

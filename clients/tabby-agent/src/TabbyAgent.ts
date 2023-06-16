@@ -19,6 +19,7 @@ import { CompletionCache } from "./CompletionCache";
 import { DataStore } from "./dataStore";
 import { postprocess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
+import { anonymousUsageLogger } from "./anonymousUsageLogger";
 
 /**
  * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
@@ -139,6 +140,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
     if (options.config) {
       await this.updateConfig(options.config);
+    }
+    if (!this.config.anonymousUsageTracking.disable) {
+      await anonymousUsageLogger.event({
+        event: "Initialize Agent",
+        client: options.client,
+      });
     }
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";

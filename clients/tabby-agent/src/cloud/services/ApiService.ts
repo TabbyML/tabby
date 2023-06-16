@@ -30,4 +30,15 @@ export class ApiService {
       query,
     });
   }
+
+  /**
+   * @param body object for anonymous usage tracking
+   */
+  public usage(body: any): CancelablePromise<any> {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/usage",
+      body,
+    });
+  }
 }

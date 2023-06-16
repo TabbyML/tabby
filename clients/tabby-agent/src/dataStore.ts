@@ -1,3 +1,5 @@
+import { isBrowser } from "./utils";
+
 export type StoredData = {
   auth: { [endpoint: string]: { jwt: string } };
 };
@@ -8,8 +10,7 @@ export interface DataStore {
   save(): PromiseLike<void>;
 }
 
-declare var IS_BROWSER: boolean;
-export const dataStore: DataStore = IS_BROWSER
+export const dataStore: DataStore = isBrowser
   ? null
   : (() => {
       const dataFile = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");

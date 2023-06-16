@@ -5,8 +5,8 @@ var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+  for (var name2 in all)
+    __defProp(target, name2, { get: all[name2], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -218,15 +218,15 @@ var getQueryString = (params) => {
   const append = (key, value) => {
     qs.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
   };
-  const process = (key, value) => {
+  const process2 = (key, value) => {
     if (isDefined(value)) {
       if (Array.isArray(value)) {
         value.forEach((v) => {
-          process(key, v);
+          process2(key, v);
         });
       } else if (typeof value === "object") {
         Object.entries(value).forEach(([k, v]) => {
-          process(`${key}[${k}]`, v);
+          process2(`${key}[${k}]`, v);
         });
       } else {
         append(key, value);
@@ -234,7 +234,7 @@ var getQueryString = (params) => {
     }
   };
   Object.entries(params).forEach(([key, value]) => {
-    process(key, value);
+    process2(key, value);
   });
   if (qs.length > 0) {
     return `?${qs.join("&")}`;
@@ -258,7 +258,7 @@ var getUrl = (config, options) => {
 var getFormData = (options) => {
   if (options.formData) {
     const formData = new import_form_data.default();
-    const process = (key, value) => {
+    const process2 = (key, value) => {
       if (isString(value) || isBlob(value)) {
         formData.append(key, value);
       } else {
@@ -267,9 +267,9 @@ var getFormData = (options) => {
     };
     Object.entries(options.formData).filter(([_, value]) => isDefined(value)).forEach(([key, value]) => {
       if (Array.isArray(value)) {
-        value.forEach((v) => process(key, v));
+        value.forEach((v) => process2(key, v));
       } else {
-        process(key, value);
+        process2(key, value);
       }
     });
     return formData;
@@ -489,6 +489,7 @@ var TabbyApi = class {
 };
 
 // src/utils.ts
+var isBrowser = false;
 function splitLines(input) {
   return input.match(/.*(?:$|\r?\n)/g).filter(Boolean);
 }
@@ -541,6 +542,16 @@ var ApiService = class {
       query
     });
   }
+  /**
+   * @param body object for anonymous usage tracking
+   */
+  usage(body) {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/usage",
+      body
+    });
+  }
 };
 
 // src/cloud/CloudApi.ts
@@ -562,7 +573,7 @@ var CloudApi = class {
 };
 
 // src/dataStore.ts
-var dataStore = false ? null : (() => {
+var dataStore = isBrowser ? null : (() => {
   const dataFile = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");
   const fs = require("fs-extra");
   return {
@@ -578,7 +589,7 @@ var dataStore = false ? null : (() => {
 
 // src/logger.ts
 var import_pino = __toESM(require("pino"));
-var stream = false ? null : (
+var stream = isBrowser ? null : (
   /**
    * Default rotating file locate at `~/.tabby/agent-logs/`.
    */
@@ -884,6 +895,29 @@ async function postprocess(request2, response) {
   return new Promise((resolve2) => resolve2(response)).then(applyFilter(removeDuplicateLines(request2))).then(applyFilter(dropBlank));
 }
 
+// package.json
+var name = "tabby-agent";
+var version = "0.0.1";
+
+// src/anonymousUsageLogger.ts
+var anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
+var logger2 = rootLogger.child({ component: "AnonymousUsage" });
+var systemData = {
+  agent: { name, version },
+  browser: isBrowser ? navigator?.userAgent || "browser" : void 0,
+  node: isBrowser ? void 0 : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`
+};
+var anonymousUsageLogger = {
+  event: async (data) => {
+    await anonymousUsageTrackingApi.api.usage({
+      ...systemData,
+      ...data
+    }).catch((error) => {
+      logger2.error({ error }, "Error when sending anonymous usage data");
+    });
+  }
+};
+
 // src/TabbyAgent.ts
 var _TabbyAgent = class extends import_events2.EventEmitter {
   constructor() {
@@ -909,7 +943,7 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     return agent;
   }
   async applyConfig() {
-    allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
+    allLoggers.forEach((logger3) => logger3.level = this.config.logs.level);
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
       this.auth.on("updated", this.onAuthUpdated.bind(this));
@@ -973,10 +1007,16 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   }
   async initialize(options) {
     if (options.client) {
-      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: options.client }));
+      allLoggers.forEach((logger3) => logger3.setBindings && logger3.setBindings({ client: options.client }));
     }
     if (options.config) {
       await this.updateConfig(options.config);
+    }
+    if (!this.config.anonymousUsageTracking.disable) {
+      await anonymousUsageLogger.event({
+        event: "Initialize Agent",
+        client: options.client
+      });
     }
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";
