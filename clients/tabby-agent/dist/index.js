@@ -55,7 +55,7 @@ module.exports = __toCommonJS(src_exports);
 
 // src/TabbyAgent.ts
 var import_events2 = require("events");
-var import_uuid = require("uuid");
+var import_uuid2 = require("uuid");
 var import_deep_equal2 = __toESM(require("deep-equal"));
 var import_deepmerge = __toESM(require("deepmerge"));
 
@@ -899,21 +899,55 @@ async function postprocess(request2, response) {
 var name = "tabby-agent";
 var version = "0.0.1";
 
-// src/anonymousUsageLogger.ts
-var anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
-var logger2 = rootLogger.child({ component: "AnonymousUsage" });
-var systemData = {
-  agent: { name, version },
-  browser: isBrowser ? navigator?.userAgent || "browser" : void 0,
-  node: isBrowser ? void 0 : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`
-};
-var anonymousUsageLogger = {
-  event: async (data) => {
-    await anonymousUsageTrackingApi.api.usage({
-      ...systemData,
-      ...data
+// src/AnonymousUsageLogger.ts
+var import_uuid = require("uuid");
+var AnonymousUsageLogger = class {
+  constructor() {
+    this.anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
+    this.logger = rootLogger.child({ component: "AnonymousUsage" });
+    this.systemData = {
+      agent: `${name}, ${version}`,
+      browser: isBrowser ? navigator?.userAgent || "browser" : void 0,
+      node: isBrowser ? void 0 : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`
+    };
+    this.dataStore = null;
+  }
+  static async create(options) {
+    const anonymousUsageLogger = new AnonymousUsageLogger();
+    anonymousUsageLogger.dataStore = options.dataStore || dataStore;
+    if (anonymousUsageLogger.dataStore) {
+      try {
+        await dataStore.load();
+      } catch (_) {
+      }
+      if (typeof dataStore.data["anonymousId"] === "string") {
+        anonymousUsageLogger.anonymousId = dataStore.data["anonymousId"];
+      } else {
+        anonymousUsageLogger.anonymousId = (0, import_uuid.v4)();
+        dataStore.data["anonymousId"] = anonymousUsageLogger.anonymousId;
+        try {
+          await dataStore.save();
+        } catch (_) {
+        }
+      }
+    } else {
+      anonymousUsageLogger.anonymousId = (0, import_uuid.v4)();
+    }
+    return anonymousUsageLogger;
+  }
+  async event(event, data) {
+    if (this.disabled) {
+      return;
+    }
+    await this.anonymousUsageTrackingApi.api.usage({
+      distinctId: this.anonymousId,
+      event,
+      properties: {
+        ...this.systemData,
+        ...data
+      }
     }).catch((error) => {
-      logger2.error({ error }, "Error when sending anonymous usage data");
+      this.logger.error({ error }, "Error when sending anonymous usage data");
     });
   }
 };
@@ -939,11 +973,13 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   static async create(options) {
     const agent = new _TabbyAgent();
     agent.dataStore = options?.dataStore;
+    agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
     await agent.applyConfig();
     return agent;
   }
   async applyConfig() {
-    allLoggers.forEach((logger3) => logger3.level = this.config.logs.level);
+    allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
+    this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
       this.auth.on("updated", this.onAuthUpdated.bind(this));
@@ -1007,17 +1043,14 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   }
   async initialize(options) {
     if (options.client) {
-      allLoggers.forEach((logger3) => logger3.setBindings && logger3.setBindings({ client: options.client }));
+      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: options.client }));
     }
     if (options.config) {
       await this.updateConfig(options.config);
     }
-    if (!this.config.anonymousUsageTracking.disable) {
-      await anonymousUsageLogger.event({
-        event: "Initialize Agent",
-        client: options.client
-      });
-    }
+    await this.anonymousUsageLogger.event("Initialize Agent", {
+      client: options.client
+    });
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";
   }
@@ -1069,7 +1102,7 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
       this.logger.debug("Segment prefix is blank, returning empty completion response");
       return new CancelablePromise((resolve2) => {
         resolve2({
-          id: "agent-" + (0, import_uuid.v4)(),
+          id: "agent-" + (0, import_uuid2.v4)(),
           choices: []
         });
       });

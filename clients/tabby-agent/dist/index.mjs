@@ -6937,13 +6937,13 @@ var require_browser2 = __commonJS({
       if (opts.enabled === false || opts.browser.disabled)
         opts.level = "silent";
       const level = opts.level || "info";
-      const logger3 = Object.create(proto);
-      if (!logger3.log)
-        logger3.log = noop3;
-      Object.defineProperty(logger3, "levelVal", {
+      const logger2 = Object.create(proto);
+      if (!logger2.log)
+        logger2.log = noop3;
+      Object.defineProperty(logger2, "levelVal", {
         get: getLevelVal
       });
-      Object.defineProperty(logger3, "level", {
+      Object.defineProperty(logger2, "level", {
         get: getLevel,
         set: setLevel
       });
@@ -6954,15 +6954,15 @@ var require_browser2 = __commonJS({
         levels,
         timestamp: getTimeFunction(opts)
       };
-      logger3.levels = getLevels(opts);
-      logger3.level = level;
-      logger3.setMaxListeners = logger3.getMaxListeners = logger3.emit = logger3.addListener = logger3.on = logger3.prependListener = logger3.once = logger3.prependOnceListener = logger3.removeListener = logger3.removeAllListeners = logger3.listeners = logger3.listenerCount = logger3.eventNames = logger3.write = logger3.flush = noop3;
-      logger3.serializers = serializers;
-      logger3._serialize = serialize;
-      logger3._stdErrSerialize = stdErrSerialize;
-      logger3.child = child;
+      logger2.levels = getLevels(opts);
+      logger2.level = level;
+      logger2.setMaxListeners = logger2.getMaxListeners = logger2.emit = logger2.addListener = logger2.on = logger2.prependListener = logger2.once = logger2.prependOnceListener = logger2.removeListener = logger2.removeAllListeners = logger2.listeners = logger2.listenerCount = logger2.eventNames = logger2.write = logger2.flush = noop3;
+      logger2.serializers = serializers;
+      logger2._serialize = serialize;
+      logger2._stdErrSerialize = stdErrSerialize;
+      logger2.child = child;
       if (transmit2)
-        logger3._logEvent = createLogEventShape();
+        logger2._logEvent = createLogEventShape();
       function getLevelVal() {
         return this.level === "silent" ? Infinity : this.levels.values[this.level];
       }
@@ -6974,14 +6974,14 @@ var require_browser2 = __commonJS({
           throw Error("unknown level " + level2);
         }
         this._level = level2;
-        set(setOpts, logger3, "error", "log");
-        set(setOpts, logger3, "fatal", "error");
-        set(setOpts, logger3, "warn", "error");
-        set(setOpts, logger3, "info", "log");
-        set(setOpts, logger3, "debug", "log");
-        set(setOpts, logger3, "trace", "log");
+        set(setOpts, logger2, "error", "log");
+        set(setOpts, logger2, "fatal", "error");
+        set(setOpts, logger2, "warn", "error");
+        set(setOpts, logger2, "info", "log");
+        set(setOpts, logger2, "debug", "log");
+        set(setOpts, logger2, "trace", "log");
         customLevels.forEach(function(level3) {
-          set(setOpts, logger3, level3, "log");
+          set(setOpts, logger2, level3, "log");
         });
       }
       function child(bindings, childOptions) {
@@ -7020,7 +7020,7 @@ var require_browser2 = __commonJS({
         Child.prototype = this;
         return new Child(this);
       }
-      return logger3;
+      return logger2;
     }
     function getLevels(opts) {
       const customLevels = opts.customLevels || {};
@@ -7058,15 +7058,15 @@ var require_browser2 = __commonJS({
     };
     pino2.stdSerializers = stdSerializers;
     pino2.stdTimeFunctions = Object.assign({}, { nullTime, epochTime, unixTime, isoTime });
-    function set(opts, logger3, level, fallback) {
-      const proto = Object.getPrototypeOf(logger3);
-      logger3[level] = logger3.levelVal > logger3.levels.values[level] ? noop3 : proto[level] ? proto[level] : _console[level] || _console[fallback] || noop3;
-      wrap(opts, logger3, level);
+    function set(opts, logger2, level, fallback) {
+      const proto = Object.getPrototypeOf(logger2);
+      logger2[level] = logger2.levelVal > logger2.levels.values[level] ? noop3 : proto[level] ? proto[level] : _console[level] || _console[fallback] || noop3;
+      wrap(opts, logger2, level);
     }
-    function wrap(opts, logger3, level) {
-      if (!opts.transmit && logger3[level] === noop3)
+    function wrap(opts, logger2, level) {
+      if (!opts.transmit && logger2[level] === noop3)
         return;
-      logger3[level] = function(write2) {
+      logger2[level] = function(write2) {
         return function LOG() {
           const ts = opts.timestamp();
           const args = new Array(arguments.length);
@@ -7081,9 +7081,9 @@ var require_browser2 = __commonJS({
           else
             write2.apply(proto, args);
           if (opts.transmit) {
-            const transmitLevel = opts.transmit.level || logger3.level;
-            const transmitValue = logger3.levels.values[transmitLevel];
-            const methodValue = logger3.levels.values[level];
+            const transmitLevel = opts.transmit.level || logger2.level;
+            const transmitValue = logger2.levels.values[transmitLevel];
+            const methodValue = logger2.levels.values[level];
             if (methodValue < transmitValue)
               return;
             transmit(this, {
@@ -7091,25 +7091,25 @@ var require_browser2 = __commonJS({
               methodLevel: level,
               methodValue,
               transmitLevel,
-              transmitValue: logger3.levels.values[opts.transmit.level || logger3.level],
+              transmitValue: logger2.levels.values[opts.transmit.level || logger2.level],
               send: opts.transmit.send,
-              val: logger3.levelVal
+              val: logger2.levelVal
             }, args);
           }
         };
-      }(logger3[level]);
+      }(logger2[level]);
     }
-    function asObject(logger3, level, args, ts) {
-      if (logger3._serialize)
-        applySerializers(args, logger3._serialize, logger3.serializers, logger3._stdErrSerialize);
+    function asObject(logger2, level, args, ts) {
+      if (logger2._serialize)
+        applySerializers(args, logger2._serialize, logger2.serializers, logger2._stdErrSerialize);
       const argsCloned = args.slice();
       let msg = argsCloned[0];
       const o8 = {};
       if (ts) {
         o8.time = ts;
       }
-      o8.level = logger3.levels.values[level];
-      let lvl = (logger3._childLevel | 0) + 1;
+      o8.level = logger2.levels.values[level];
+      let lvl = (logger2._childLevel | 0) + 1;
       if (lvl < 1)
         lvl = 1;
       if (msg !== null && typeof msg === "object") {
@@ -7146,27 +7146,27 @@ var require_browser2 = __commonJS({
         return parent[level].apply(this, args);
       };
     }
-    function transmit(logger3, opts, args) {
+    function transmit(logger2, opts, args) {
       const send = opts.send;
       const ts = opts.ts;
       const methodLevel = opts.methodLevel;
       const methodValue = opts.methodValue;
       const val = opts.val;
-      const bindings = logger3._logEvent.bindings;
+      const bindings = logger2._logEvent.bindings;
       applySerializers(
         args,
-        logger3._serialize || Object.keys(logger3.serializers),
-        logger3.serializers,
-        logger3._stdErrSerialize === void 0 ? true : logger3._stdErrSerialize
+        logger2._serialize || Object.keys(logger2.serializers),
+        logger2.serializers,
+        logger2._stdErrSerialize === void 0 ? true : logger2._stdErrSerialize
       );
-      logger3._logEvent.ts = ts;
-      logger3._logEvent.messages = args.filter(function(arg) {
+      logger2._logEvent.ts = ts;
+      logger2._logEvent.messages = args.filter(function(arg) {
         return bindings.indexOf(arg) === -1;
       });
-      logger3._logEvent.level.label = methodLevel;
-      logger3._logEvent.level.value = methodValue;
-      send(methodLevel, logger3._logEvent, val);
-      logger3._logEvent = createLogEventShape(bindings);
+      logger2._logEvent.level.label = methodLevel;
+      logger2._logEvent.level.value = methodValue;
+      send(methodLevel, logger2._logEvent, val);
+      logger2._logEvent = createLogEventShape(bindings);
     }
     function createLogEventShape(bindings) {
       return {
@@ -14882,7 +14882,7 @@ async function postprocess(request2, response) {
   return new Promise((resolve4) => resolve4(response)).then(applyFilter(removeDuplicateLines(request2))).then(applyFilter(dropBlank));
 }
 
-// src/anonymousUsageLogger.ts
+// src/AnonymousUsageLogger.ts
 init_global();
 init_dirname();
 init_filename();
@@ -14893,21 +14893,54 @@ init_process2();
 var name2 = "tabby-agent";
 var version3 = "0.0.1";
 
-// src/anonymousUsageLogger.ts
-var anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
-var logger2 = rootLogger.child({ component: "AnonymousUsage" });
-var systemData = {
-  agent: { name: name2, version: version3 },
-  browser: navigator?.userAgent || "browser" ,
-  node: void 0 
-};
-var anonymousUsageLogger = {
-  event: async (data) => {
-    await anonymousUsageTrackingApi.api.usage({
-      ...systemData,
-      ...data
+// src/AnonymousUsageLogger.ts
+var AnonymousUsageLogger = class {
+  constructor() {
+    this.anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
+    this.logger = rootLogger.child({ component: "AnonymousUsage" });
+    this.systemData = {
+      agent: `${name2}, ${version3}`,
+      browser: navigator?.userAgent || "browser" ,
+      node: void 0 
+    };
+    this.dataStore = null;
+  }
+  static async create(options) {
+    const anonymousUsageLogger = new AnonymousUsageLogger();
+    anonymousUsageLogger.dataStore = options.dataStore || dataStore;
+    if (anonymousUsageLogger.dataStore) {
+      try {
+        await dataStore.load();
+      } catch (_4) {
+      }
+      if (typeof dataStore.data["anonymousId"] === "string") {
+        anonymousUsageLogger.anonymousId = dataStore.data["anonymousId"];
+      } else {
+        anonymousUsageLogger.anonymousId = v4_default();
+        dataStore.data["anonymousId"] = anonymousUsageLogger.anonymousId;
+        try {
+          await dataStore.save();
+        } catch (_4) {
+        }
+      }
+    } else {
+      anonymousUsageLogger.anonymousId = v4_default();
+    }
+    return anonymousUsageLogger;
+  }
+  async event(event, data) {
+    if (this.disabled) {
+      return;
+    }
+    await this.anonymousUsageTrackingApi.api.usage({
+      distinctId: this.anonymousId,
+      event,
+      properties: {
+        ...this.systemData,
+        ...data
+      }
     }).catch((error) => {
-      logger2.error({ error }, "Error when sending anonymous usage data");
+      this.logger.error({ error }, "Error when sending anonymous usage data");
     });
   }
 };
@@ -14933,11 +14966,13 @@ var _TabbyAgent = class extends EventEmitter {
   static async create(options) {
     const agent = new _TabbyAgent();
     agent.dataStore = options?.dataStore;
+    agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
     await agent.applyConfig();
     return agent;
   }
   async applyConfig() {
-    allLoggers.forEach((logger3) => logger3.level = this.config.logs.level);
+    allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
+    this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
       this.auth.on("updated", this.onAuthUpdated.bind(this));
@@ -15001,17 +15036,14 @@ var _TabbyAgent = class extends EventEmitter {
   }
   async initialize(options) {
     if (options.client) {
-      allLoggers.forEach((logger3) => logger3.setBindings && logger3.setBindings({ client: options.client }));
+      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: options.client }));
     }
     if (options.config) {
       await this.updateConfig(options.config);
     }
-    if (!this.config.anonymousUsageTracking.disable) {
-      await anonymousUsageLogger.event({
-        event: "Initialize Agent",
-        client: options.client
-      });
-    }
+    await this.anonymousUsageLogger.event("Initialize Agent", {
+      client: options.client
+    });
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";
   }

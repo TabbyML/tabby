@@ -121,6 +121,7 @@ type TabbyAgentOptions = {
 };
 declare class TabbyAgent extends EventEmitter implements Agent {
     private readonly logger;
+    private anonymousUsageLogger;
     private config;
     private status;
     private api;
