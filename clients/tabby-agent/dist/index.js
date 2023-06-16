@@ -524,10 +524,11 @@ var ApiService = class {
    * @returns DeviceTokenResponse Success
    * @throws ApiError
    */
-  deviceToken() {
+  deviceToken(body) {
     return this.httpRequest.request({
       method: "POST",
-      url: "/device-token"
+      url: "/device-token",
+      body
     });
   }
   /**
@@ -680,7 +681,7 @@ var _Auth = class extends import_events.EventEmitter {
   async requestToken() {
     try {
       await this.reset();
-      const deviceToken = await this.authApi.api.deviceToken();
+      const deviceToken = await this.authApi.api.deviceToken({ auth_url: this.endpoint });
       this.logger.debug({ deviceToken }, "Request device token response");
       const authUrl = new URL(_Auth.authPageUrl);
       authUrl.searchParams.append("code", deviceToken.data.code);
