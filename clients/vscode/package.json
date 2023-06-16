@@ -49,10 +49,10 @@
           "patternErrorMessage": "Please enter a validate http or https URL.",
           "description": "Specify API Endpoint of Tabby."
         },
-        "tabby.completion.enabled": {
+        "tabby.codeCompletion": {
           "type": "boolean",
           "default": true,
-          "description": "Enable Tabby code suggestion or not."
+          "description": "Enable Tabby code completion or not."
         },
         "tabby.developerOptions": {
           "type": "object",
@@ -81,10 +81,10 @@
             }
           }
         },
-        "tabby.usage.anonymousUsageTracking.enabled": {
+        "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
-          "default": true,
-          "description": "Enabled anonymous usage tracking."
+          "default": false,
+          "description": "Disable anonymous usage tracking."
         }
       }
     }

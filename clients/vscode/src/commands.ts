@@ -26,9 +26,9 @@ const toggleEnabled: Command = {
   command: "tabby.toggleEnabled",
   callback: () => {
     const configuration = workspace.getConfiguration("tabby");
-    const enabled = configuration.get("completion.enabled", true);
+    const enabled = configuration.get("codeCompletion", true);
     console.debug(`Toggle Enabled: ${enabled} -> ${!enabled}.`);
-    configuration.update("completion.enabled", !enabled, configTarget, false);
+    configuration.update("codeCompletion", !enabled, configTarget, false);
   },
 };
 

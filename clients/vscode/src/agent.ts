@@ -16,9 +16,9 @@ function getWorkspaceConfiguration(): Partial<AgentConfig> {
       level: agentLogs,
     };
   }
-  const anonymousUsageTracking = configuration.get<boolean>("usage.anonymousUsageTracking.enabled", false);
+  const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
   config.anonymousUsageTracking = {
-    disable: !anonymousUsageTracking,
+    disable: anonymousUsageTrackingDisabled,
   };
   return config;
 }

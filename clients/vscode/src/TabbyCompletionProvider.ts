@@ -74,7 +74,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
-    this.enabled = configuration.get("completion.enabled", true);
+    this.enabled = configuration.get("codeCompletion", true);
     this.suggestionDelay = configuration.get("developerOptions.suggestionDelay", 150);
   }
 
