@@ -459,7 +459,7 @@ var V1Service = class {
     });
   }
   /**
-   * @returns any Health
+   * @returns HealthState Success
    * @throws ApiError
    */
   health() {
@@ -474,7 +474,7 @@ var V1Service = class {
 var TabbyApi = class {
   constructor(config, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config?.BASE ?? "https://tabbyml.app.tabbyml.com/tabby",
+      BASE: config?.BASE ?? "https://playground.app.tabbyml.com/tabby",
       VERSION: config?.VERSION ?? "0.1.0",
       WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config?.CREDENTIALS ?? "include",
@@ -514,6 +514,7 @@ function cancelable(promise, cancel) {
 
 // src/Auth.ts
 var import_events = require("events");
+var import_jwt_decode = __toESM(require("jwt-decode"));
 
 // src/cloud/services/ApiService.ts
 var ApiService = class {
@@ -628,7 +629,10 @@ var _Auth = class extends import_events.EventEmitter {
     return auth;
   }
   get token() {
-    return this.jwt;
+    return this.jwt?.token;
+  }
+  get user() {
+    return this.jwt?.payload.email;
   }
   async load() {
     if (!this.dataStore)
@@ -636,9 +640,12 @@ var _Auth = class extends import_events.EventEmitter {
     try {
       await this.dataStore.load();
       const storedJwt = this.dataStore.data["auth"]?.[this.endpoint]?.jwt;
-      if (typeof storedJwt === "string" && this.jwt !== storedJwt) {
+      if (typeof storedJwt === "string" && this.jwt?.token !== storedJwt) {
         this.logger.debug({ storedJwt }, "Load jwt from data store.");
-        this.jwt = storedJwt;
+        this.jwt = {
+          token: storedJwt,
+          payload: (0, import_jwt_decode.default)(storedJwt)
+        };
         this.scheduleRefreshToken();
       }
     } catch (error) {
@@ -650,9 +657,9 @@ var _Auth = class extends import_events.EventEmitter {
       return;
     try {
       if (this.jwt) {
-        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt)
+        if (this.dataStore.data["auth"]?.[this.endpoint]?.jwt === this.jwt.token)
           return;
-        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt } };
+        this.dataStore.data["auth"] = { ...this.dataStore.data["auth"], [this.endpoint]: { jwt: this.jwt.token } };
       } else {
         if (typeof this.dataStore.data["auth"]?.[this.endpoint] === "undefined")
           return;
@@ -697,7 +704,10 @@ var _Auth = class extends import_events.EventEmitter {
       try {
         const response = await this.authApi.api.deviceTokenAccept({ code });
         this.logger.debug({ response }, "Poll jwt response");
-        this.jwt = response.data.jwt;
+        this.jwt = {
+          token: response.data.jwt,
+          payload: (0, import_jwt_decode.default)(response.data.jwt)
+        };
         await this.save();
         this.scheduleRefreshToken();
         super.emit("updated", this.jwt);
@@ -720,10 +730,9 @@ var _Auth = class extends import_events.EventEmitter {
     if (!this.jwt) {
       return null;
     }
-    const expireAt = Date.now() / 1e3 + 60 * 60 * 24 * 7;
-    const refreshDelay = Math.max(0, expireAt * 1e3 - Date.now() - _Auth.refreshTokenInterval);
+    const refreshDelay = Math.max(0, this.jwt.payload.exp * 1e3 - Date.now() - _Auth.refreshTokenInterval);
     this.refreshTokenTimer = setTimeout(async () => {
-      this.logger.debug({ expireAt }, "Refresh token");
+      this.logger.debug({ expireAt: this.jwt.payload.exp }, "Refresh token");
     }, refreshDelay);
   }
 };
@@ -1115,7 +1124,8 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     }
     const promise = this.callApi(this.api.v1.completion, {
       language: request2.language,
-      segments
+      segments,
+      user: this.auth?.user
     });
     return cancelable(
       promise.then((response) => {
