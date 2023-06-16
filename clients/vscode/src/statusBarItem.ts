@@ -92,7 +92,7 @@ function toDisabled() {
 }
 
 function updateStatusBarItem() {
-  const enabled = workspace.getConfiguration("tabby").get("enabled", true);
+  const enabled = workspace.getConfiguration("tabby").get("completion.enabled", true);
   if (!enabled) {
     fsmService.send("disabled");
   } else {
