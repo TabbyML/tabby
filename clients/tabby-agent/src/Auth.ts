@@ -32,7 +32,7 @@ export class Auth extends EventEmitter {
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
 
-    // From tabby endpoint: http[s]://{namespace}.app.tabbyml.com/tabby[/] 
+    // From tabby endpoint: http[s]://{namespace}.app.tabbyml.com/tabby[/]
     // To auth endpoint: http[s]://{namespace}.app.tabbyml.com/api
     const authApiBase = this.endpoint.replace(/\/tabby\/?$/, "/api");
     this.authApi = new CloudApi({ BASE: authApiBase });
@@ -92,7 +92,7 @@ export class Auth extends EventEmitter {
   async requestToken(): Promise<string> {
     try {
       await this.reset();
-      const deviceToken = await this.authApi.api.deviceToken();
+      const deviceToken = await this.authApi.api.deviceToken({ auth_url: this.endpoint });
       this.logger.debug({ deviceToken }, "Request device token response");
       const authUrl = new URL(Auth.authPageUrl);
       authUrl.searchParams.append("code", deviceToken.data.code);

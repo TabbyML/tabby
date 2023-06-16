@@ -1,6 +1,7 @@
 import type { CancelablePromise } from "../../generated/core/CancelablePromise";
 import type { BaseHttpRequest } from "../../generated/core/BaseHttpRequest";
 
+import { DeviceTokenRequest } from "../models/DeviceTokenRequest";
 import { DeviceTokenResponse } from "../models/DeviceTokenResponse";
 import { DeviceTokenAcceptResponse } from "../models/DeviceTokenAcceptResponse";
 
@@ -11,10 +12,11 @@ export class ApiService {
    * @returns DeviceTokenResponse Success
    * @throws ApiError
    */
-  public deviceToken(): CancelablePromise<DeviceTokenResponse> {
+  public deviceToken(body: DeviceTokenRequest): CancelablePromise<DeviceTokenResponse> {
     return this.httpRequest.request({
       method: "POST",
       url: "/device-token",
+      body,
     });
   }
 
