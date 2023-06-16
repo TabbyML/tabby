@@ -19,6 +19,7 @@ import { CompletionCache } from "./CompletionCache";
 import { DataStore } from "./dataStore";
 import { postprocess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
+import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 
 /**
  * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
@@ -30,6 +31,7 @@ export type TabbyAgentOptions = {
 
 export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = rootLogger.child({ component: "TabbyAgent" });
+  private anonymousUsageLogger: AnonymousUsageLogger;
   private config: AgentConfig = defaultAgentConfig;
   private status: AgentStatus = "notInitialized";
   private api: TabbyApi;
@@ -53,12 +55,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
   static async create(options?: Partial<TabbyAgentOptions>): Promise<TabbyAgent> {
     const agent = new TabbyAgent();
     agent.dataStore = options?.dataStore;
+    agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
     await agent.applyConfig();
     return agent;
   }
 
   private async applyConfig() {
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
+    this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
       this.auth.on("updated", this.onAuthUpdated.bind(this));
@@ -140,6 +144,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (options.config) {
       await this.updateConfig(options.config);
     }
+    await this.anonymousUsageLogger.event("AgentInitialized", {
+      client: options.client,
+    });
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";
   }

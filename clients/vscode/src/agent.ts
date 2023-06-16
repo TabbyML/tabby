@@ -16,6 +16,10 @@ function getWorkspaceConfiguration(): Partial<AgentConfig> {
       level: agentLogs,
     };
   }
+  const disableAnonymousUsageTracking = configuration.get<boolean>("disableAnonymousUsageTracking", false);
+  config.anonymousUsageTracking = {
+    disable: disableAnonymousUsageTracking,
+  };
   return config;
 }
 
@@ -44,7 +48,7 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
     const agent = await TabbyAgent.create({ dataStore: env.appHost === "desktop" ? undefined : extensionDataStore });
     agent.initialize({
       config: getWorkspaceConfiguration(),
-      client: `${env.appName} ${env.appHost} ${version}`,
+      client: `${env.appName} ${env.appHost} ${version}, ${context.extension.id} ${context.extension.packageJSON.version}`,
     });
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("tabby")) {
