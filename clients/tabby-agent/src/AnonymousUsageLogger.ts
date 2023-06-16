@@ -23,25 +23,33 @@ export class AnonymousUsageLogger {
   private constructor() {}
 
   static async create(options: { dataStore: DataStore }): Promise<AnonymousUsageLogger> {
-    const anonymousUsageLogger = new AnonymousUsageLogger();
-    anonymousUsageLogger.dataStore = options.dataStore || dataStore;
-    if (anonymousUsageLogger.dataStore) {
+    const logger = new AnonymousUsageLogger();
+    logger.dataStore = options.dataStore || dataStore;
+    await logger.checkAnonymousId();
+    return logger;
+  }
+
+  private async checkAnonymousId() {
+    if (this.dataStore) {
       try {
-        await dataStore.load();
-      } catch (_) {}
-      if (typeof dataStore.data["anonymousId"] === "string") {
-        anonymousUsageLogger.anonymousId = dataStore.data["anonymousId"];
+        await this.dataStore.load();
+      } catch (error) {
+        this.logger.debug({ error }, "Error when loading anonymousId");
+      }
+      if (typeof this.dataStore.data["anonymousId"] === "string") {
+        this.anonymousId = this.dataStore.data["anonymousId"];
       } else {
-        anonymousUsageLogger.anonymousId = uuid();
-        dataStore.data["anonymousId"] = anonymousUsageLogger.anonymousId;
+        this.anonymousId = uuid();
+        this.dataStore.data["anonymousId"] = this.anonymousId;
         try {
-          await dataStore.save();
-        } catch (_) {}
+          await this.dataStore.save();
+        } catch (error) {
+          this.logger.debug({ error }, "Error when saving anonymousId");
+        }
       }
     } else {
-      anonymousUsageLogger.anonymousId = uuid();
+      this.anonymousId = uuid();
     }
-    return anonymousUsageLogger;
   }
 
   async event(event: string, data: any) {

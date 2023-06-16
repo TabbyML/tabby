@@ -100,6 +100,7 @@ interface AgentEventEmitter {
 type Agent = AgentFunction & AgentEventEmitter;
 
 type StoredData = {
+    anonymousId: string;
     auth: {
         [endpoint: string]: {
             jwt: string;

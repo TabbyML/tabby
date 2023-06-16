@@ -913,27 +913,32 @@ var AnonymousUsageLogger = class {
     this.dataStore = null;
   }
   static async create(options) {
-    const anonymousUsageLogger = new AnonymousUsageLogger();
-    anonymousUsageLogger.dataStore = options.dataStore || dataStore;
-    if (anonymousUsageLogger.dataStore) {
+    const logger2 = new AnonymousUsageLogger();
+    logger2.dataStore = options.dataStore || dataStore;
+    await logger2.checkAnonymousId();
+    return logger2;
+  }
+  async checkAnonymousId() {
+    if (this.dataStore) {
       try {
-        await dataStore.load();
-      } catch (_) {
+        await this.dataStore.load();
+      } catch (error) {
+        this.logger.debug({ error }, "Error when loading anonymousId");
       }
-      if (typeof dataStore.data["anonymousId"] === "string") {
-        anonymousUsageLogger.anonymousId = dataStore.data["anonymousId"];
+      if (typeof this.dataStore.data["anonymousId"] === "string") {
+        this.anonymousId = this.dataStore.data["anonymousId"];
       } else {
-        anonymousUsageLogger.anonymousId = (0, import_uuid.v4)();
-        dataStore.data["anonymousId"] = anonymousUsageLogger.anonymousId;
+        this.anonymousId = (0, import_uuid.v4)();
+        this.dataStore.data["anonymousId"] = this.anonymousId;
         try {
-          await dataStore.save();
-        } catch (_) {
+          await this.dataStore.save();
+        } catch (error) {
+          this.logger.debug({ error }, "Error when saving anonymousId");
         }
       }
     } else {
-      anonymousUsageLogger.anonymousId = (0, import_uuid.v4)();
+      this.anonymousId = (0, import_uuid.v4)();
     }
-    return anonymousUsageLogger;
   }
   async event(event, data) {
     if (this.disabled) {

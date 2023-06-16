@@ -1,6 +1,7 @@
 import { isBrowser } from "./utils";
 
 export type StoredData = {
+  anonymousId: string;
   auth: { [endpoint: string]: { jwt: string } };
 };
 
