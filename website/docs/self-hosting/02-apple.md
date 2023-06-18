@@ -7,7 +7,7 @@ Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge
 
 3. Start the server with:
 ```bash
-tabby serve model --models TabbyML/T5P-220M
+tabby serve --model TabbyML/T5P-220M
 ```
 
 
