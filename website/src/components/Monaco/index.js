@@ -63,16 +63,21 @@ class CompletionProvider {
     this.latestTimestamp = currentTimestamp
 
     await this.sleep(500)
-    if (this.pendingRequest) await this.pendingRequest
     if (currentTimestamp < this.latestTimestamp) {
       return emptyResponse
     }
 
+    if (this.pendingRequest) {
+      this.pendingRequest.cancelToken.cancel()
+      this.pendingRequest = null
+    }
     let response
     try {
-      response = await this.callTabbyApi(currentTimestamp, segments)
+      response = await this.requestCompletion(segments)
     } catch (err) {
-      console.error("error", err)
+      if (err.code !== "ERR_CANCELED") {
+        console.error("error", err)
+      }
       return emptyResponse
     }
     const hasSuffixParen = this.hasSuffixParen(document, position)
@@ -128,15 +133,22 @@ class CompletionProvider {
     return new Promise((r) => setTimeout(r, milliseconds))
   }
 
-  async callTabbyApi(timestamp, segments) {
-    const request = (this.pendingRequest = axios.post(
-      `${TabbyServerURL}/v1/completions`,
-      {
-        language: "python",
-        segments,
-      }
-    ))
-    const response = await request
+  async requestCompletion(segments) {
+    const cancelToken = axios.CancelToken.source()
+    this.pendingRequest = {
+      promise: axios.post(
+        `${TabbyServerURL}/v1/completions`,
+        {
+          language: "python",
+          segments,
+        },
+        {
+          cancelToken: cancelToken.token,
+        }
+      ),
+      cancelToken,
+    }
+    const response = await this.pendingRequest.promise
     this.pendingRequest = null
     return response
   }
