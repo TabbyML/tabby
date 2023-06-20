@@ -643,9 +643,10 @@ namespace ctranslate2 {
     }
 
     std::future<StorageView> Whisper::encode(const StorageView& features, const bool to_cpu) {
-      return post<StorageView>([features = features.sync_copy(), to_cpu](WhisperReplica& replica) {
-        return replica.encode(std::move(features), to_cpu);
-      });
+      return post<StorageView>(
+        [features = features.sync_copy(), to_cpu](WhisperReplica& replica) mutable {
+          return replica.encode(std::move(features), to_cpu);
+        });
     }
 
     std::vector<std::future<WhisperGenerationResult>>
@@ -655,7 +656,7 @@ namespace ctranslate2 {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
         [features = features.sync_copy(), prompts = std::move(prompts), options]
-        (WhisperReplica& replica) {
+        (WhisperReplica& replica) mutable {
           return replica.generate(std::move(features), prompts, options);
         },
         batch_size);
@@ -668,7 +669,7 @@ namespace ctranslate2 {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
         [features = features.sync_copy(), prompts = std::move(prompts), options]
-        (WhisperReplica& replica) {
+        (WhisperReplica& replica) mutable {
           return replica.generate(std::move(features), prompts, options);
         },
         batch_size);
@@ -678,7 +679,7 @@ namespace ctranslate2 {
     Whisper::detect_language(const StorageView& features) {
       const size_t batch_size = features.dim(0);
       return post_batch<std::vector<std::pair<std::string, float>>>(
-        [features = features.sync_copy()](WhisperReplica& replica) {
+        [features = features.sync_copy()](WhisperReplica& replica) mutable {
           return replica.detect_language(std::move(features));
         },
         batch_size);

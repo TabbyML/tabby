@@ -57,7 +57,7 @@ namespace ctranslate2 {
     // The function must have the signature: Result(Replica&)
     template <typename Result, typename Func>
     std::future<Result> post(Func func) {
-      auto batched_func = [func = std::move(func)](Replica& replica) {
+      auto batched_func = [func = std::move(func)](Replica& replica) mutable {
         std::vector<Result> results;
         results.reserve(1);
         results.emplace_back(func(replica));
@@ -87,7 +87,7 @@ namespace ctranslate2 {
     // Same as above, but taking the list of promises directly.
     template <typename Result, typename Func>
     void post_batch(Func func, std::vector<std::promise<Result>> promises) {
-      auto wrapped_func = [func = std::move(func)]() {
+      auto wrapped_func = [func = std::move(func)]() mutable {
         return func(get_thread_replica());
       };
 
@@ -292,7 +292,7 @@ namespace ctranslate2 {
 
     private:
       std::vector<std::promise<Result>> _promises;
-      const Func _func;
+      Func _func;
     };
 
   };
