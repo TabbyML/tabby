@@ -135,6 +135,7 @@ set(SOURCES
   src/ops/concat_split_cpu.cc
   src/ops/conv1d.cc
   src/ops/conv1d_cpu.cc
+  src/ops/cos.cc
   src/ops/dequantize.cc
   src/ops/dequantize_cpu.cc
   src/ops/gather.cc
@@ -161,6 +162,7 @@ set(SOURCES
   src/ops/rms_norm_cpu.cc
   src/ops/rotary.cc
   src/ops/rotary_cpu.cc
+  src/ops/sin.cc
   src/ops/softmax.cc
   src/ops/softmax_cpu.cc
   src/ops/split.cc

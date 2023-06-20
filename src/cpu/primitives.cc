@@ -346,6 +346,7 @@ namespace ctranslate2 {
   }
 
   template<>
+  template<>
   void primitives<Device::CPU>::cos(const float* x, float* y, dim_t size) {
 #ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
@@ -354,6 +355,7 @@ namespace ctranslate2 {
     CPU_ISA_DISPATCH((cpu::cos<ISA>(x, y, size)));
   }
 
+  template<>
   template<>
   void primitives<Device::CPU>::sin(const float* x, float* y, dim_t size) {
 #ifdef CT2_WITH_MKL

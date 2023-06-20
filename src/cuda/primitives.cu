@@ -617,6 +617,24 @@ namespace ctranslate2 {
 
   template<>
   template <typename T>
+  void primitives<Device::CUDA>::sin(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::sin_func<cuda::device_type<T>>());
+  }
+
+  template void primitives<Device::CUDA>::sin(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::sin(const float16_t*, float16_t*, dim_t);
+
+  template<>
+  template <typename T>
+  void primitives<Device::CUDA>::cos(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::cos_func<cuda::device_type<T>>());
+  }
+
+  template void primitives<Device::CUDA>::cos(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::cos(const float16_t*, float16_t*, dim_t);
+
+  template<>
+  template <typename T>
   void primitives<Device::CUDA>::tanh(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::tanh_func<cuda::device_type<T>>());
   }

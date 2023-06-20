@@ -260,6 +260,36 @@ namespace ctranslate2 {
       }
     };
 
+    template <typename T>
+    struct sin_func {
+      __device__ T operator()(T x) const {
+        return sinf(x);
+      }
+    };
+
+    template <typename T>
+    struct cos_func {
+      __device__ T operator()(T x) const {
+        return cosf(x);
+      }
+    };
+
+#if CUDA_CAN_USE_HALF
+    template<>
+    struct sin_func<__half> {
+      __device__ __half operator()(__half x) const {
+        return hsin(x);
+      }
+    };
+
+    template<>
+    struct cos_func<__half> {
+      __device__ __half operator()(__half x) const {
+        return hcos(x);
+      }
+    };
+#endif
+
     // The following kernels are adapted from:
     // https://github.com/pytorch/pytorch/blob/40eff454ce5638fbff638a7f4502e29ffb9a2f0d/aten/src/ATen/native/cuda/SoftMax.cu
     // They help define row-wise reduction where each block handles a single row.

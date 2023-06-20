@@ -606,32 +606,40 @@ namespace ctranslate2 {
       StorageView inv_freq({1, dim / 2});
       for (dim_t i = 0; i < inv_freq.size(); ++i)
         inv_freq.at<float>(i) = 1.f / std::pow(_base, float(i * 2) / float(dim));
+      if (inv_freq.device() != device)
+        inv_freq = inv_freq.to(device);
 
       StorageView t({num_positions, 1});
       for (dim_t i = 0; i < t.size(); ++i)
         t.at<float>(i) = i;
+      if (t.device() != device)
+        t = t.to(device);
 
-      StorageView freqs;
+      StorageView freqs(device);
       ops::MatMul()(t, inv_freq, freqs);
 
       if (_interleave)
         freqs.expand_dims(-1);
 
-      StorageView emb;
+      StorageView emb(device);
       ops::Concat(-1)({&freqs, &freqs}, emb);
 
       if (_interleave)
         emb.reshape({num_positions, dim});
 
-      StorageView sin_tmp;
-      ops::Sin()(emb, sin_tmp);
-      sin_tmp.move_to(device, dtype);
-      _sin = std::move(sin_tmp);
+      StorageView sin(device);
+      ops::Sin()(emb, sin);
+      if (sin.dtype() == dtype)
+        _sin = std::move(sin);
+      else
+        _sin = sin.to(dtype);
 
-      StorageView cos_tmp;
-      ops::Cos()(emb, cos_tmp);
-      cos_tmp.move_to(device, dtype);
-      _cos = std::move(cos_tmp);
+      StorageView cos(device);
+      ops::Cos()(emb, cos);
+      if (cos.dtype() == dtype)
+        _cos = std::move(cos);
+      else
+        _cos = cos.to(dtype);
     }
 
 
