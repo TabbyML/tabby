@@ -1279,13 +1279,11 @@ namespace ctranslate2 {
                                         prefix_ids.empty() ? nullptr : &prefix_ids);
     }
 
-    for (size_t b = 0; b < batch_size; ++b) {
-      auto& result = results[b];
-
-      for (size_t i = 0; i < result.hypotheses.size(); ++i) {
-        // Restore original word ids.
-        if (decoder.output_layer_is_updated()) {
-          for (auto& id : result.hypotheses[i])
+    if (decoder.output_layer_is_updated()) {
+      // Restore original word ids.
+      for (auto& result : results) {
+        for (auto& hypothesis : result.hypotheses) {
+          for (auto& id : hypothesis)
             id = decoder.to_original_word_id(id);
         }
       }
