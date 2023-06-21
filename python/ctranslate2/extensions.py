@@ -389,11 +389,27 @@ def _process_iterable(process_func, iterables, max_batch_size, batch_type, **kwa
 
 def _batch_iterator(iterable, batch_size, batch_type):
     streams = None
-    cur_batch_size = 0
+    max_length = 0
 
     for example in iterable:
         if not isinstance(example, tuple):
             example = (example,)
+
+        if batch_type == "examples":
+            if streams and len(streams[0]) == batch_size:
+                yield streams
+                streams = None
+
+        elif batch_type == "tokens":
+            max_length = max(max_length, len(example[0]))
+
+            if streams and (len(streams[0]) + 1) * max_length > batch_size:
+                yield streams
+                streams = None
+                max_length = len(example[0])
+
+        else:
+            raise ValueError("Invalid batch type %s" % batch_type)
 
         if streams is None:
             streams = tuple([] for _ in example)
@@ -401,18 +417,6 @@ def _batch_iterator(iterable, batch_size, batch_type):
             if element is None and len(streams) > 1:
                 raise ValueError("Input iterables do not have the same length")
             batch.append(element)
-
-        if batch_type == "examples":
-            cur_batch_size += 1
-        elif batch_type == "tokens":
-            cur_batch_size += len(example[0])
-        else:
-            raise ValueError("Invalid batch type %s" % batch_type)
-
-        if cur_batch_size >= batch_size:
-            yield streams
-            streams = None
-            cur_batch_size = 0
 
     if streams is not None:
         yield streams
