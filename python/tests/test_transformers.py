@@ -150,6 +150,26 @@ def test_transformers_translation(
 
 _TRANSFORMERS_GENERATION_TESTS = [
     (
+        "bigcode/tiny_starcoder_py",
+        (
+            "<fim_prefix> def Ġprint _ one _ two _ three (): ĊĠĠĠ Ġprint (' one ') "
+            "ĊĠĠĠĠ <fim_suffix> ĊĠĠĠ Ġprint (' three ') <fim_middle>"
+        ),
+        26,
+        (
+            "<fim_prefix> def Ġprint _ one _ two _ three (): ĊĠĠĠ Ġprint (' one ') "
+            "ĊĠĠĠĠ <fim_suffix> ĊĠĠĠ Ġprint (' three ') <fim_middle>"
+            " print (' two ')"
+        ),
+    ),
+    (
+        "Salesforce/codegen-350M-mono",
+        "def Ġhello _ name ( name ):",
+        25,
+        "def Ġhello _ name ( name ):"
+        ' Ċ      print ( f " Hello Ġ{ name } ") Ċ Ċ hello _ name (" John ")',
+    ),
+    (
         "gpt2",
         "<|endoftext|>",
         10,
