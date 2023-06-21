@@ -1,7 +1,7 @@
 import { name as agentName, version as agentVersion } from "../package.json";
 import { CloudApi } from "./cloud";
 import { v4 as uuid } from "uuid";
-import { isBrowser } from "./utils";
+import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
 import { dataStore, DataStore } from "./dataStore";
 

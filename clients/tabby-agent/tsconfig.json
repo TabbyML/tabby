@@ -4,7 +4,7 @@
     "target": "ES2020",
     "lib": ["ES2020", "dom"],
     "sourceMap": true,
-    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true
   },
   "include": ["./src"]

@@ -1,4 +1,4 @@
-import { isBrowser } from "./utils";
+import { isBrowser } from "./env";
 
 export type StoredData = {
   anonymousId: string;
