@@ -1,6 +1,6 @@
 import { PostprocessFilter, PostprocessContext, logger } from "./filter";
 
-export const removeDuplicatedContent: (context: PostprocessContext) => PostprocessFilter = (context) => {
+export const removeOverlapping: (context: PostprocessContext) => PostprocessFilter = (context) => {
   return (input) => {
     const suffix = context.text.slice(context.position);
     for (let index = Math.max(0, input.length - suffix.length); index < input.length; index++) {

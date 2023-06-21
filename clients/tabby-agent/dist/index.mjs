@@ -14945,13 +14945,13 @@ var applyFilter = (filter2) => {
   };
 };
 
-// src/postprocess/removeDuplicatedContent.ts
+// src/postprocess/removeOverlapping.ts
 init_global();
 init_dirname();
 init_filename();
 init_buffer2();
 init_process2();
-var removeDuplicatedContent = (context) => {
+var removeOverlapping = (context) => {
   return (input) => {
     const suffix = context.text.slice(context.position);
     for (let index = Math.max(0, input.length - suffix.length); index < input.length; index++) {
@@ -14978,7 +14978,7 @@ var dropBlank = () => {
 
 // src/postprocess/index.ts
 async function postprocess(request2, response) {
-  return new Promise((resolve4) => resolve4(response)).then(applyFilter(removeDuplicatedContent(request2))).then(applyFilter(dropBlank()));
+  return new Promise((resolve4) => resolve4(response)).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
 }
 
 // src/AnonymousUsageLogger.ts

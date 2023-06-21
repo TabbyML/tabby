@@ -1,6 +1,6 @@
 import { CompletionRequest, CompletionResponse } from "../Agent";
 import { applyFilter } from "./filter";
-import { removeDuplicatedContent } from "./removeDuplicatedContent";
+import { removeOverlapping } from "./removeOverlapping";
 import { dropBlank } from "./dropBlank";
 
 export async function postprocess(
@@ -8,6 +8,6 @@ export async function postprocess(
   response: CompletionResponse
 ): Promise<CompletionResponse> {
   return new Promise((resolve) => resolve(response))
-    .then(applyFilter(removeDuplicatedContent(request)))
+    .then(applyFilter(removeOverlapping(request)))
     .then(applyFilter(dropBlank()));
 }
