@@ -1,5 +1,4 @@
 mod dataset;
-mod document;
 mod index;
 mod repository;
 mod tags;

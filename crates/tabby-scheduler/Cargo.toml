@@ -17,7 +17,7 @@ tree-sitter-tags = "0.20.2"
 walkdir = "2.3.3"
 lazy_static = { workspace = true }
 serde = { workspace = true }
-serde-jsonlines = "0.4.0"
+serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 
 [dev-dependencies]

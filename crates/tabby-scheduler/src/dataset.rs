@@ -12,11 +12,10 @@ use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, Repository},
     path::dataset_dir,
+    Document,
 };
 use tracing::{error, info};
 use walkdir::{DirEntry, WalkDir};
-
-use crate::document::Document;
 
 lazy_static! {
     static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
@@ -159,7 +158,11 @@ mod metrics {
             total += x.len();
         }
 
-        total as f32 / len as f32
+        if len > 0 {
+            total as f32 / len as f32
+        } else {
+            0.0
+        }
     }
 
     pub fn alphanum_fraction(content: &str) -> f32 {
@@ -167,6 +170,10 @@ mod metrics {
             .chars()
             .map(|x| f32::from(u8::from(x.is_alphanumeric())))
             .sum();
-        num_alphanumn / content.len() as f32
+        if !content.is_empty() {
+            num_alphanumn / content.len() as f32
+        } else {
+            0.0
+        }
     }
 }

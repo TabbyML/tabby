@@ -2813,6 +2813,7 @@ dependencies = [
  "filenamify",
  "lazy_static",
  "serde",
+ "serde-jsonlines",
  "serdeconv",
 ]
 
