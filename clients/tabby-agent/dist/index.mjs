@@ -14945,6 +14945,58 @@ var applyFilter = (filter2) => {
   };
 };
 
+// src/postprocess/limitScopeByIndentation.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
+function calcIndentLevel(line) {
+  return line.match(/^[ \t]*/)?.[0]?.length || 0;
+}
+function isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) {
+  let index = 1;
+  while (index < suffixLines.length && isBlank(suffixLines[index])) {
+    index++;
+  }
+  if (index >= suffixLines.length) {
+    return true;
+  } else {
+    const indentLevel = calcIndentLevel(suffixLines[index]);
+    return indentLevel < currentIndentLevel;
+  }
+}
+function isOpeningIndentBlock(lines, index) {
+  if (index >= lines.length - 1) {
+    return false;
+  }
+  return calcIndentLevel(lines[index]) < calcIndentLevel(lines[index + 1]);
+}
+var limitScopeByIndentation = (context) => {
+  return (input) => {
+    const prefix = context.text.slice(0, context.position);
+    const suffix = context.text.slice(context.position);
+    const prefixLines = splitLines(prefix);
+    const suffixLines = splitLines(suffix);
+    const inputLines = splitLines(input);
+    const currentIndentLevel = calcIndentLevel(prefixLines[prefixLines.length - 1]);
+    let index;
+    for (index = 1; index < inputLines.length; index++) {
+      if (isBlank(inputLines[index])) {
+        continue;
+      }
+      const indentLevel = calcIndentLevel(inputLines[index]);
+      if (indentLevel < currentIndentLevel) {
+        if (isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) && !isOpeningIndentBlock(inputLines, index)) {
+          index++;
+        }
+        break;
+      }
+    }
+    return inputLines.slice(0, index).join("").trimEnd();
+  };
+};
+
 // src/postprocess/removeOverlapping.ts
 init_global();
 init_dirname();
@@ -14978,7 +15030,7 @@ var dropBlank = () => {
 
 // src/postprocess/index.ts
 async function postprocess(request2, response) {
-  return new Promise((resolve4) => resolve4(response)).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
+  return new Promise((resolve4) => resolve4(response)).then(applyFilter(limitScopeByIndentation(request2))).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
 }
 
 // src/AnonymousUsageLogger.ts
