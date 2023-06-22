@@ -2846,7 +2846,9 @@ dependencies = [
  "temp_testdir",
  "tracing",
  "tracing-test",
+ "tree-sitter-java",
  "tree-sitter-javascript",
+ "tree-sitter-python",
  "tree-sitter-tags",
  "walkdir",
 ]
@@ -3494,10 +3496,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "tree-sitter-java"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0bf5d3f508cbffcbfe1805834101c0d24297a8b6c2184ad9c595556c46d2420"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
 name = "tree-sitter-javascript"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2490fab08630b2c8943c320f7b63473cbf65511c8d83aec551beb9b4375906ed"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-python"
+version = "0.20.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dda114f58048f5059dcf158aff691dffb8e113e6d2b50d94263fd68711975287"
 dependencies = [
  "cc",
  "tree-sitter",

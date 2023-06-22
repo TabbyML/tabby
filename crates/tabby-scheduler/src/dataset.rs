@@ -222,16 +222,40 @@ lazy_static! {
         map
     };
     static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
-        HashMap::from([(
-            "javascript",
-            TagsConfigurationSync(
-                TagsConfiguration::new(
-                    tree_sitter_javascript::language(),
-                    tree_sitter_javascript::TAGGING_QUERY,
-                    tree_sitter_javascript::LOCALS_QUERY,
-                )
-                .unwrap(),
+        HashMap::from([
+            (
+                "javascript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_javascript::language(),
+                        tree_sitter_javascript::TAGGING_QUERY,
+                        tree_sitter_javascript::LOCALS_QUERY,
+                    )
+                    .unwrap(),
+                ),
             ),
-        )])
+            (
+                "python",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_python::language(),
+                        tree_sitter_python::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "java",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_java::language(),
+                        tree_sitter_java::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+        ])
     };
 }
