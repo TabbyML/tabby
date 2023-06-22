@@ -4,16 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
   pull_request:
     branches: ["main" ]
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }} 
@@ -22,7 +14,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v36
+        with:
+          files: |
+            Cargo.toml
+            Cargo.lock
+            crates/**
+
   tests:
+    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -38,6 +43,7 @@ jobs:
         run: cargo +nightly fmt --check
 
   release-binary:
+    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true'
     needs: tests
     runs-on: ${{ matrix.os }}
     strategy:
@@ -95,7 +101,7 @@ jobs:
           path: tabby_${{ matrix.target }}
 
   pre-release:
-    if: github.event_name != 'pull_request'
+    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true' && github.event_name != 'pull_request'
     needs: release-binary
     runs-on: ubuntu-latest
     permissions:
