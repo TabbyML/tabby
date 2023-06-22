@@ -31,6 +31,7 @@ pub enum Commands {
     Download(download::DownloadArgs),
 
     /// Run scheduler progress for cron jobs integrating external code repositories.
+    #[cfg(feature="scheduler")]
     Scheduler(SchedulerArgs),
 }
 
@@ -49,6 +50,7 @@ async fn main() {
     match &cli.command {
         Commands::Serve(args) => serve::main(args).await,
         Commands::Download(args) => download::main(args).await,
+        #[cfg(feature="scheduler")]
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
