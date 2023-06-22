@@ -1,4 +1,4 @@
-use std::fs::{self};
+use std::fs;
 
 use anyhow::Result;
 use tabby_common::{config::Config, path::index_dir, Document};

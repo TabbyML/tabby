@@ -5,6 +5,7 @@ pub mod path;
 use std::{
     fs::File,
     io::{BufReader, Error},
+    ops::Range,
 };
 
 use path::dataset_dir;
@@ -20,6 +21,7 @@ pub struct Document {
     pub max_line_length: usize,
     pub avg_line_length: f32,
     pub alphanum_fraction: f32,
+    pub tags: Vec<Tag>,
 }
 
 impl Document {
@@ -32,4 +34,14 @@ impl Document {
         });
         Ok(iter)
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Tag {
+    pub range: Range<usize>,
+    pub name_range: Range<usize>,
+    pub line_range: Range<usize>,
+    pub docs: Option<String>,
+    pub is_definition: bool,
+    pub syntax_type_name: String,
 }
