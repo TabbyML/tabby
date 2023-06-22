@@ -44,11 +44,5 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 }
 
 fn is_valid_doc(x: &Document) -> bool {
-    if x.max_line_length > 1000 {
-        false
-    } else if x.avg_line_length > 100.0 {
-        false
-    } else {
-        x.alphanum_fraction >= 0.25
-    }
+    x.max_line_length < 1000 && x.avg_line_length < 100.0 && x.alphanum_fraction > 0.25
 }

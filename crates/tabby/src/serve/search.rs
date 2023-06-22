@@ -1,19 +1,21 @@
 use std::sync::Arc;
 
-use axum::{extract::{State, Query}, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::path::index_dir;
 use tantivy::{
     collector::TopDocs,
     query::{QueryParser, QueryParserError},
-    DocAddress, Index, Score, TantivyError, schema::Field, IndexReader,
+    schema::Field,
+    DocAddress, Index, IndexReader, Score, TantivyError,
 };
-use tracing::info;
-use utoipa::{ToSchema, IntoParams};
+use utoipa::{IntoParams, ToSchema};
 
 pub struct SearchState {
-    index: Index,
     reader: IndexReader,
     query_parser: QueryParser,
     git_url_field: Field,
@@ -35,7 +37,6 @@ impl SearchState {
             content_field,
             language_field,
             git_url_field,
-            index,
         };
 
         Some(state)
@@ -61,7 +62,7 @@ pub struct SearchRequest {
     #[param(example = "10")]
     limit: Option<usize>,
     #[param(example = "0")]
-    offset: Option<usize>
+    offset: Option<usize>,
 }
 
 #[utoipa::path(
@@ -78,17 +79,15 @@ pub async fn search(
     State(state): State<Arc<SearchState>>,
     params: Query<SearchRequest>,
 ) -> Result<Json<SearchResponse>, StatusCode> {
-    let searcher = state
-        .reader
-        .searcher();
+    let searcher = state.reader.searcher();
 
     let query = state
         .query_parser
         .parse_query(&params.q)
         .map_err(QueryParserError::status)?;
 
-    let search_options = TopDocs::with_limit(params.limit.unwrap_or(10))
-        .and_offset(params.offset.unwrap_or(0));
+    let search_options =
+        TopDocs::with_limit(params.limit.unwrap_or(10)).and_offset(params.offset.unwrap_or(0));
     let top_docs: Vec<(Score, DocAddress)> = searcher
         .search(&query, &search_options)
         .map_err(TantivyError::status)?;
@@ -101,9 +100,24 @@ pub async fn search(
             };
 
             Some(Document {
-                git_url: retrieved_doc.get_first(state.git_url_field).unwrap().as_text().unwrap().to_owned(),
-                language: retrieved_doc.get_first(state.language_field).unwrap().as_text().unwrap().to_owned(),
-                content: retrieved_doc.get_first(state.content_field).unwrap().as_text().unwrap().to_owned(),
+                git_url: retrieved_doc
+                    .get_first(state.git_url_field)
+                    .unwrap()
+                    .as_text()
+                    .unwrap()
+                    .to_owned(),
+                language: retrieved_doc
+                    .get_first(state.language_field)
+                    .unwrap()
+                    .as_text()
+                    .unwrap()
+                    .to_owned(),
+                content: retrieved_doc
+                    .get_first(state.content_field)
+                    .unwrap()
+                    .as_text()
+                    .unwrap()
+                    .to_owned(),
             })
         })
         .collect();
