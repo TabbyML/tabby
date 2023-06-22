@@ -15268,10 +15268,10 @@ var _TabbyAgent = class extends EventEmitter {
     });
     return cancelable(
       promise.then((response) => {
-        return postprocess(request2, response);
-      }).then((response) => {
         this.completionCache.set(request2, response);
         return response;
+      }).then((response) => {
+        return postprocess(request2, response);
       }),
       () => {
         promise.cancel();
