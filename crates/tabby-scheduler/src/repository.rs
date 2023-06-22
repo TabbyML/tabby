@@ -33,8 +33,6 @@ impl RepositoryExt for Repository {
             Command::new("git")
                 .current_dir(dir.parent().unwrap())
                 .arg("clone")
-                .arg("--depth")
-                .arg("1")
                 .arg(&self.git_url)
                 .arg(dir)
                 .status()
