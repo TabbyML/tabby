@@ -46,9 +46,8 @@ jobs:
         run: cargo +nightly fmt --check
 
   release-binary:
-    need: changes
+    needs: [tests, changes]
     if: needs.changes.outputs.changed == 'true'
-    needs: tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
