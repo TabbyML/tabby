@@ -25,9 +25,12 @@ jobs:
             Cargo.toml
             Cargo.lock
             crates/**
+    outputs:
+      changed: ${{ steps.changed-files.outputs.any_changed }}
 
   tests:
-    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true'
+    needs: changes
+    if: needs.changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -43,7 +46,8 @@ jobs:
         run: cargo +nightly fmt --check
 
   release-binary:
-    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true'
+    need: changes
+    if: needs.changes.outputs.changed == 'true'
     needs: tests
     runs-on: ${{ matrix.os }}
     strategy:
@@ -101,8 +105,8 @@ jobs:
           path: tabby_${{ matrix.target }}
 
   pre-release:
-    if: jobs.changes.steps.changed-files.outputs.any_changed == 'true' && github.event_name != 'pull_request'
-    needs: release-binary
+    needs: [changes, release-binary]
+    if: needs.changes.outputs.changed == 'true' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
