@@ -1,7 +1,6 @@
 mod completions;
 mod events;
 mod health;
-mod search;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -31,7 +30,7 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         (url = "https://playground.app.tabbyml.com/tabby", description = "Playground server"),
         (url = "http://localhost:8080", description = "Local server"),
     ),
-    paths(events::log_event, completions::completion, health::health, search::search),
+    paths(events::log_event, completions::completion, health::health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
@@ -39,8 +38,6 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         completions::Segments,
         completions::Choice,
         health::HealthState,
-        search::SearchResponse,
-        search::Document,
     ))
 )]
 struct ApiDoc;
@@ -126,7 +123,6 @@ pub async fn main(args: &ServeArgs) {
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args))
-        .nest("/experimental", experimental_router())
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
@@ -151,22 +147,6 @@ fn api_router(args: &ServeArgs) -> Router {
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
-}
-
-fn experimental_router() -> Router {
-    let state = search::SearchState::new();
-
-    if let Some(state) = state {
-        Router::new()
-            .route(
-                "/search",
-                routing::get(search::search).with_state(Arc::new(state)),
-            )
-            .layer(CorsLayer::permissive())
-            .layer(opentelemetry_tracing_layer())
-    } else {
-        Router::new()
-    }
 }
 
 fn fallback() -> routing::MethodRouter {
