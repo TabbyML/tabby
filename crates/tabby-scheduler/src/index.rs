@@ -8,7 +8,6 @@ use tantivy::{
     schema::{Schema, STORED, STRING, TEXT},
     Index,
 };
-use tracing::info;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
@@ -25,24 +24,15 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.delete_all_documents()?;
 
     for doc in Document::all()? {
-        if is_valid_doc(&doc) {
-            writer.add_document(doc!(
-                    git_url => doc.git_url,
-                    filepath => doc.filepath,
-                    content => doc.content,
-                    language => doc.language,
-            ))?;
-        } else {
-            info!("Skip {} - {}", doc.git_url, doc.filepath);
-        }
+        writer.add_document(doc!(
+                git_url => doc.git_url,
+                filepath => doc.filepath,
+                content => doc.content,
+                language => doc.language,
+        ))?;
     }
 
-    info!("Finalize index...");
     writer.commit()?;
 
     Ok(())
-}
-
-fn is_valid_doc(x: &Document) -> bool {
-    x.max_line_length < 1000 && x.avg_line_length < 100.0 && x.alphanum_fraction > 0.25
 }
