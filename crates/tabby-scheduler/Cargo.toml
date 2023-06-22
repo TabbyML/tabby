@@ -10,7 +10,7 @@ anyhow = { workspace = true }
 filenamify = "0.1.0"
 job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
-tantivy = "0.19.2"
+tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-javascript = "0.20.0"
 tree-sitter-tags = "0.20.2"
