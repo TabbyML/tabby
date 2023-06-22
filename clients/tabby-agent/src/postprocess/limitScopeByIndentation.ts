@@ -49,6 +49,10 @@ export const limitScopeByIndentation: (context: PostprocessContext) => Postproce
         break;
       }
     }
-    return inputLines.slice(0, index).join("").trimEnd();
+    if (index < inputLines.length) {
+      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of scope");
+      return inputLines.slice(0, index).join("").trimEnd();
+    }
+    return input;
   };
 };

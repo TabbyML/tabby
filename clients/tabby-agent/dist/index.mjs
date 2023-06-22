@@ -14993,7 +14993,11 @@ var limitScopeByIndentation = (context) => {
         break;
       }
     }
-    return inputLines.slice(0, index).join("").trimEnd();
+    if (index < inputLines.length) {
+      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of scope");
+      return inputLines.slice(0, index).join("").trimEnd();
+    }
+    return input;
   };
 };
 
@@ -15008,7 +15012,7 @@ var removeOverlapping = (context) => {
     const suffix = context.text.slice(context.position);
     for (let index = Math.max(0, input.length - suffix.length); index < input.length; index++) {
       if (input.slice(index) === suffix.slice(0, input.length - index)) {
-        logger.debug({ input, suffix, duplicateAt: index }, "Remove duplicate content");
+        logger.debug({ input, suffix, overlappedAt: index }, "Remove overlapped content");
         return input.slice(0, index);
       }
     }
