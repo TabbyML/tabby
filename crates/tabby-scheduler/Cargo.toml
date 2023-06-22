@@ -12,10 +12,12 @@ job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
 tantivy = "0.19.2"
 tracing = { workspace = true }
+tree-sitter-javascript = "0.20.0"
+tree-sitter-tags = "0.20.2"
 walkdir = "2.3.3"
 lazy_static = { workspace = true }
 serde = { workspace = true }
-serde-jsonlines = "0.4.0"
+serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 
 [dev-dependencies]

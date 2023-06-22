@@ -1,23 +1,13 @@
-use std::{
-    fs::{self, File},
-    io::BufReader,
-};
+use std::fs;
 
 use anyhow::Result;
-use serde_jsonlines::JsonLinesReader;
-use tabby_common::{
-    config::Config,
-    path::{dataset_dir, index_dir},
-};
+use tabby_common::{config::Config, path::index_dir, Document};
 use tantivy::{
     directory::MmapDirectory,
     doc,
     schema::{Schema, STORED, STRING, TEXT},
     Index,
 };
-use tracing::info;
-
-use crate::document::Document;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
@@ -33,21 +23,13 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut writer = index.writer(10_000_000)?;
     writer.delete_all_documents()?;
 
-    for path in dataset_dir().read_dir()? {
-        let path = path?.path();
-        info!("Indexing {:?}", path.as_path());
-
-        let fp = BufReader::new(File::open(path.as_path())?);
-        let reader = JsonLinesReader::new(fp);
-        for doc in reader.read_all::<Document>() {
-            let doc = doc?;
-            writer.add_document(doc!(
-                    git_url => doc.git_url,
-                    filepath => doc.filepath,
-                    content => doc.content,
-                    language => doc.language,
-            ))?;
-        }
+    for doc in Document::all()? {
+        writer.add_document(doc!(
+                git_url => doc.git_url,
+                filepath => doc.filepath,
+                content => doc.content,
+                language => doc.language,
+        ))?;
     }
 
     writer.commit()?;

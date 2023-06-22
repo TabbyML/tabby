@@ -12,57 +12,11 @@ use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, Repository},
     path::dataset_dir,
+    Document,
 };
 use tracing::{error, info};
+use tree_sitter_tags::{TagsConfiguration, TagsContext};
 use walkdir::{DirEntry, WalkDir};
-
-use crate::document::Document;
-
-lazy_static! {
-    static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
-        HashMap::from([
-            ("c", vec!["c", "h"]),
-            ("csharp", vec!["cs"]),
-            (
-                "cpp",
-                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H"],
-            ),
-            ("css", vec!["css"]),
-            ("dockerfile", vec!["Dockerfile"]),
-            ("go", vec!["go"]),
-            ("haskell", vec!["hs"]),
-            ("html", vec!["html"]),
-            ("java", vec!["java"]),
-            ("javascript", vec!["js"]),
-            ("julia", vec!["jl"]),
-            ("lua", vec!["lua"]),
-            ("makefile", vec!["Makefile"]),
-            ("markdown", vec!["md", "markdown"]),
-            ("php", vec!["php", "php3", "php4", "php5", "phps", "phpt"]),
-            ("perl", vec!["pl", "pm", "pod", "perl"]),
-            ("powershell", vec!["ps1", "psd1", "psm1"]),
-            ("python", vec!["py"]),
-            ("ruby", vec!["rb"]),
-            ("rust", vec!["rs"]),
-            ("sql", vec!["sql"]),
-            ("scala", vec!["scala"]),
-            ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            ("typescript", vec!["ts", "tsx"]),
-            ("tex", vec!["tex"]),
-            ("vb", vec!["vb"]),
-        ])
-    };
-    static ref EXTENSION_LANGUAGE: HashMap<&'static str, &'static str> = {
-        let mut map = HashMap::new();
-        for (lang, exts) in &*LANGUAGE_EXTENSION {
-            for ext in exts {
-                map.insert(*ext, *lang);
-            }
-        }
-
-        map
-    };
-}
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -79,21 +33,25 @@ impl RepositoryExt for Repository {
             .filter_map(Result::ok)
             .filter(is_source_code);
 
+        let mut context = TagsContext::new();
         for entry in walk_dir {
             let relative_path = entry.path().strip_prefix(dir.as_path()).unwrap();
+            let language = get_language(relative_path.extension().unwrap())
+                .unwrap()
+                .to_owned();
             if let Ok(file_content) = read_to_string(entry.path()) {
                 info!("Building {:?}", relative_path);
-                writer.write_json_lines([Document {
+                let doc = Document {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
-                    language: get_language(relative_path.extension().unwrap())
-                        .unwrap()
-                        .to_owned(),
                     max_line_length: metrics::max_line_length(&file_content),
                     avg_line_length: metrics::avg_line_length(&file_content),
                     alphanum_fraction: metrics::alphanum_fraction(&file_content),
+                    tags: tags::collect(&mut context, &language, &file_content),
+                    language,
                     content: file_content,
-                }])?;
+                };
+                writer.write_json_lines([doc])?;
             } else {
                 error!("Cannot read {:?}", relative_path);
             }
@@ -159,7 +117,11 @@ mod metrics {
             total += x.len();
         }
 
-        total as f32 / len as f32
+        if len > 0 {
+            total as f32 / len as f32
+        } else {
+            0.0
+        }
     }
 
     pub fn alphanum_fraction(content: &str) -> f32 {
@@ -167,6 +129,109 @@ mod metrics {
             .chars()
             .map(|x| f32::from(u8::from(x.is_alphanumeric())))
             .sum();
-        num_alphanumn / content.len() as f32
+        if !content.is_empty() {
+            num_alphanumn / content.len() as f32
+        } else {
+            0.0
+        }
     }
+}
+
+mod tags {
+    use tabby_common::Tag;
+    use tree_sitter_tags::TagsContext;
+
+    use super::LANGUAGE_TAGS;
+
+    pub fn collect(context: &mut TagsContext, language: &str, content: &str) -> Vec<Tag> {
+        let config = LANGUAGE_TAGS.get(language);
+        let empty = Vec::new();
+
+        let Some(config) = config else {
+        return empty;
+    };
+
+        let Ok((tags, has_error)) = context.generate_tags(&config.0, content.as_bytes(), None) else {
+        return empty;
+    };
+
+        if has_error {
+            return empty;
+        }
+
+        tags.filter_map(|x| x.ok())
+            .map(|x| Tag {
+                range: x.range,
+                name_range: x.name_range,
+                line_range: x.line_range,
+                docs: x.docs,
+                is_definition: x.is_definition,
+                syntax_type_name: config.0.syntax_type_name(x.syntax_type_id).to_owned(),
+            })
+            .collect()
+    }
+}
+
+// Mark TagsConfiguration as thread sync / safe.
+struct TagsConfigurationSync(TagsConfiguration);
+unsafe impl Send for TagsConfigurationSync {}
+unsafe impl Sync for TagsConfigurationSync {}
+
+lazy_static! {
+    static ref LANGUAGE_EXTENSION: HashMap<&'static str, Vec<&'static str>> = {
+        HashMap::from([
+            ("c", vec!["c", "h"]),
+            ("csharp", vec!["cs"]),
+            (
+                "cpp",
+                vec!["cpp", "hpp", "c++", "h++", "cc", "hh", "C", "H"],
+            ),
+            ("css", vec!["css"]),
+            ("dockerfile", vec!["Dockerfile"]),
+            ("go", vec!["go"]),
+            ("haskell", vec!["hs"]),
+            ("html", vec!["html"]),
+            ("java", vec!["java"]),
+            ("javascript", vec!["js"]),
+            ("julia", vec!["jl"]),
+            ("lua", vec!["lua"]),
+            ("makefile", vec!["Makefile"]),
+            ("markdown", vec!["md", "markdown"]),
+            ("php", vec!["php", "php3", "php4", "php5", "phps", "phpt"]),
+            ("perl", vec!["pl", "pm", "pod", "perl"]),
+            ("powershell", vec!["ps1", "psd1", "psm1"]),
+            ("python", vec!["py"]),
+            ("ruby", vec!["rb"]),
+            ("rust", vec!["rs"]),
+            ("sql", vec!["sql"]),
+            ("scala", vec!["scala"]),
+            ("shellscript", vec!["sh", "bash", "command", "zsh"]),
+            ("typescript", vec!["ts", "tsx"]),
+            ("tex", vec!["tex"]),
+            ("vb", vec!["vb"]),
+        ])
+    };
+    static ref EXTENSION_LANGUAGE: HashMap<&'static str, &'static str> = {
+        let mut map = HashMap::new();
+        for (lang, exts) in &*LANGUAGE_EXTENSION {
+            for ext in exts {
+                map.insert(*ext, *lang);
+            }
+        }
+
+        map
+    };
+    static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
+        HashMap::from([(
+            "javascript",
+            TagsConfigurationSync(
+                TagsConfiguration::new(
+                    tree_sitter_javascript::language(),
+                    tree_sitter_javascript::TAGGING_QUERY,
+                    tree_sitter_javascript::LOCALS_QUERY,
+                )
+                .unwrap(),
+            ),
+        )])
+    };
 }

@@ -9,6 +9,7 @@ filenamify = "0.1.0"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
+serde-jsonlines = { workspace = true }
 
 [features]
 testutils = []

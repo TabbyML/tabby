@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 tabby-common = { path = "../tabby-common" }
-tabby-scheduler = { path = "../tabby-scheduler" }
+tabby-scheduler = { path = "../tabby-scheduler", optional = true }
 tabby-download = { path = "../tabby-download" }
 axum = "0.6"
 hyper = { version = "0.14", features = ["full"] }
@@ -41,4 +41,6 @@ features = [
 ]
 
 [features]
+default = [ "scheduler" ]
 link_shared = ["ctranslate2-bindings/link_shared"]
+scheduler = [ "tabby-scheduler" ]
