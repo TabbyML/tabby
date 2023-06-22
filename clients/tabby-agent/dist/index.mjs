@@ -15097,14 +15097,15 @@ var _TabbyAgent = class extends EventEmitter {
     });
   }
   createSegments(request2) {
-    const maxLines = 20;
+    const maxPrefixLines = request2.maxPrefixLines;
+    const maxSuffixLines = request2.maxSuffixLines;
     const prefix = request2.text.slice(0, request2.position);
     const prefixLines = splitLines(prefix);
     const suffix = request2.text.slice(request2.position);
     const suffixLines = splitLines(suffix);
     return {
-      prefix: prefixLines.slice(Math.max(prefixLines.length - maxLines, 0)).join(""),
-      suffix: suffixLines.slice(0, maxLines).join("")
+      prefix: prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join(""),
+      suffix: suffixLines.slice(0, maxSuffixLines).join("")
     };
   }
   async initialize(options) {

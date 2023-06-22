@@ -107,7 +107,7 @@ export class StdIO {
         }
       }
     } catch (error) {
-      this.logger.error({ error }, `Failed to handle request: ${JSON.stringify(request)}`);
+      this.logger.error({ error, request }, `Failed to handle request`);
     } finally {
       return response;
     }

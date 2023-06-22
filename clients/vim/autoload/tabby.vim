@@ -105,6 +105,8 @@ endfunction
 " - g:tabby_suggestion_delay
 " - g:tabby_filetype_to_languages
 " - g:tabby_server_url
+" - g:tabby_max_prefix_lines
+" - g:tabby_max_suffix_lines
 "
 
 if !exists('g:tabby_enabled')
@@ -113,6 +115,13 @@ endif
 
 if !exists('g:tabby_suggestion_delay')
   let g:tabby_suggestion_delay = 150
+endif
+
+if !exists('g:tabby_max_prefix_lines')
+  let g:tabby_max_prefix_lines = 20
+endif
+if !exists('g:tabby_max_suffix_lines')
+  let g:tabby_max_suffix_lines = 20
 endif
 
 if !exists('g:tabby_filetype_to_languages')
@@ -530,6 +539,8 @@ function! s:CreateCompletionRequest()
     \ language: s:GetLanguage(),
     \ text: join(getbufline('%', 1, '$'), "\n"),
     \ position: line2byte(line('.')) + col('.') - 2,
+    \ maxPrefixLines: g:tabby_max_prefix_lines,
+    \ maxSuffixLines: g:tabby_max_suffix_lines,
     \ }
 endfunction
 

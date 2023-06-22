@@ -58,6 +58,16 @@
           "type": "object",
           "description": "Developer options for Tabby.",
           "properties": {
+            "maxPrefixLines": {
+              "type": "number",
+              "default": 20,
+              "description": "Number of lines to include in the Prefix for completion requests"
+            },
+            "maxSuffixLines": {
+              "type": "number",
+              "default": 20,
+              "description": "Number of lines to include in the Suffix for completion requests"
+            },
             "suggestionDelay": {
               "type": "number",
               "default": 150,
