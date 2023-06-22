@@ -217,11 +217,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return cancelable(
       promise
         .then((response) => {
-          return postprocess(request, response);
-        })
-        .then((response) => {
           this.completionCache.set(request, response);
           return response;
+        })
+        .then((response) => {
+          return postprocess(request, response);
         }),
       () => {
         promise.cancel();

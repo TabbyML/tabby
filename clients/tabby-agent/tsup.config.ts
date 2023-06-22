@@ -2,10 +2,14 @@ import { defineConfig } from "tsup";
 import { polyfillNode } from "esbuild-plugin-polyfill-node";
 import { dependencies } from "./package.json";
 
-const defineIsBrowser = (targetOptions, isBrowser: boolean) => {
-  targetOptions["define"] = { ...targetOptions["define"], "IS_BROWSER": isBrowser.toString() };
+const defineEnvs = (targetOptions, envs: { browser: boolean }) => {
+  targetOptions["define"] = {
+    ...targetOptions["define"],
+    "process.env.IS_TEST": "false",
+    "process.env.IS_BROWSER": Boolean(envs?.browser).toString(),
+  };
   return targetOptions;
-}
+};
 
 export default async () => [
   defineConfig({
@@ -15,7 +19,7 @@ export default async () => [
     format: ["cjs"],
     sourcemap: true,
     esbuildOptions(options) {
-      defineIsBrowser(options, false);
+      defineEnvs(options, { browser: false });
     },
     clean: true,
   }),
@@ -34,7 +38,7 @@ export default async () => [
       }),
     ],
     esbuildOptions(options) {
-      defineIsBrowser(options, true);
+      defineEnvs(options, { browser: true });
     },
     clean: true,
   }),
@@ -53,7 +57,7 @@ export default async () => [
       }),
     ],
     esbuildOptions(options) {
-      defineIsBrowser(options, true);
+      defineEnvs(options, { browser: true });
     },
     clean: true,
   }),
@@ -74,7 +78,7 @@ export default async () => [
     minify: true,
     sourcemap: true,
     esbuildOptions(options) {
-      defineIsBrowser(options, false);
+      defineEnvs(options, { browser: false });
     },
     clean: true,
   }),

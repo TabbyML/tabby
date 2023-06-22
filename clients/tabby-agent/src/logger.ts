@@ -1,5 +1,5 @@
 import pino from "pino";
-import { isBrowser } from "./utils";
+import { isBrowser } from "./env";
 
 /**
  * Stream not available in browser, will use default console output.

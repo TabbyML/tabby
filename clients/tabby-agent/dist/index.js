@@ -56,7 +56,7 @@ module.exports = __toCommonJS(src_exports);
 // src/TabbyAgent.ts
 var import_events2 = require("events");
 var import_uuid2 = require("uuid");
-var import_deep_equal2 = __toESM(require("deep-equal"));
+var import_deep_equal = __toESM(require("deep-equal"));
 var import_deepmerge = __toESM(require("deepmerge"));
 
 // src/generated/core/BaseHttpRequest.ts
@@ -489,7 +489,6 @@ var TabbyApi = class {
 };
 
 // src/utils.ts
-var isBrowser = false;
 function splitLines(input) {
   return input.match(/.*(?:$|\r?\n)/g).filter(Boolean);
 }
@@ -573,6 +572,9 @@ var CloudApi = class {
     this.api = new ApiService(this.request);
   }
 };
+
+// src/env.ts
+var isBrowser = false;
 
 // src/dataStore.ts
 var dataStore = isBrowser ? null : (() => {
@@ -870,26 +872,8 @@ var CompletionCache = class {
   }
 };
 
-// src/postprocess.ts
-var import_deep_equal = __toESM(require("deep-equal"));
+// src/postprocess/filter.ts
 var logger = rootLogger.child({ component: "Postprocess" });
-var removeDuplicateLines = (context) => {
-  return (input) => {
-    const suffix = context.text.slice(context.position);
-    const suffixLines = splitLines(suffix);
-    const inputLines = splitLines(input);
-    for (let index = Math.max(0, inputLines.length - suffixLines.length); index < inputLines.length; index++) {
-      if ((0, import_deep_equal.default)(inputLines.slice(index), suffixLines.slice(0, input.length - index))) {
-        logger.debug({ input, suffix, duplicateAt: index }, "Remove duplicate lines");
-        return input.slice(0, index);
-      }
-    }
-    return input;
-  };
-};
-var dropBlank = (input) => {
-  return isBlank(input) ? null : input;
-};
 var applyFilter = (filter) => {
   return async (response) => {
     response.choices = (await Promise.all(
@@ -901,8 +885,82 @@ var applyFilter = (filter) => {
     return response;
   };
 };
+
+// src/postprocess/limitScopeByIndentation.ts
+function calcIndentLevel(line) {
+  return line.match(/^[ \t]*/)?.[0]?.length || 0;
+}
+function isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) {
+  let index = 1;
+  while (index < suffixLines.length && isBlank(suffixLines[index])) {
+    index++;
+  }
+  if (index >= suffixLines.length) {
+    return true;
+  } else {
+    const indentLevel = calcIndentLevel(suffixLines[index]);
+    return indentLevel < currentIndentLevel;
+  }
+}
+function isOpeningIndentBlock(lines, index) {
+  if (index >= lines.length - 1) {
+    return false;
+  }
+  return calcIndentLevel(lines[index]) < calcIndentLevel(lines[index + 1]);
+}
+var limitScopeByIndentation = (context) => {
+  return (input) => {
+    const prefix = context.text.slice(0, context.position);
+    const suffix = context.text.slice(context.position);
+    const prefixLines = splitLines(prefix);
+    const suffixLines = splitLines(suffix);
+    const inputLines = splitLines(input);
+    const currentIndentLevel = calcIndentLevel(prefixLines[prefixLines.length - 1]);
+    let index;
+    for (index = 1; index < inputLines.length; index++) {
+      if (isBlank(inputLines[index])) {
+        continue;
+      }
+      const indentLevel = calcIndentLevel(inputLines[index]);
+      if (indentLevel < currentIndentLevel) {
+        if (isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) && !isOpeningIndentBlock(inputLines, index)) {
+          index++;
+        }
+        break;
+      }
+    }
+    if (index < inputLines.length) {
+      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of scope");
+      return inputLines.slice(0, index).join("").trimEnd();
+    }
+    return input;
+  };
+};
+
+// src/postprocess/removeOverlapping.ts
+var removeOverlapping = (context) => {
+  return (input) => {
+    const suffix = context.text.slice(context.position);
+    for (let index = Math.max(0, input.length - suffix.length); index < input.length; index++) {
+      if (input.slice(index) === suffix.slice(0, input.length - index)) {
+        logger.debug({ input, suffix, overlappedAt: index }, "Remove overlapped content");
+        return input.slice(0, index);
+      }
+    }
+    return input;
+  };
+};
+
+// src/postprocess/dropBlank.ts
+var dropBlank = () => {
+  return (input) => {
+    return isBlank(input) ? null : input;
+  };
+};
+
+// src/postprocess/index.ts
 async function postprocess(request2, response) {
-  return new Promise((resolve2) => resolve2(response)).then(applyFilter(removeDuplicateLines(request2))).then(applyFilter(dropBlank));
+  return new Promise((resolve2) => resolve2(response)).then(applyFilter(limitScopeByIndentation(request2))).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
 }
 
 // package.json
@@ -1072,7 +1130,7 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   }
   async updateConfig(config) {
     const mergedConfig = (0, import_deepmerge.default)(this.config, config);
-    if (!(0, import_deep_equal2.default)(this.config, mergedConfig)) {
+    if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
       this.config = mergedConfig;
       await this.applyConfig();
       const event = { event: "configUpdated", config: this.config };
@@ -1130,10 +1188,10 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     });
     return cancelable(
       promise.then((response) => {
-        return postprocess(request2, response);
-      }).then((response) => {
         this.completionCache.set(request2, response);
         return response;
+      }).then((response) => {
+        return postprocess(request2, response);
       }),
       () => {
         promise.cancel();

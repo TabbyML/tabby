@@ -6184,7 +6184,7 @@ var require_deep_equal = __commonJS({
       }
       return true;
     }
-    module.exports = function deepEqual4(a7, b5, opts) {
+    module.exports = function deepEqual3(a7, b5, opts) {
       return internalDeepEqual(a7, b5, opts, getSideChannel());
     };
   }
@@ -10295,7 +10295,7 @@ function v4(options, buf, offset) {
 var v4_default = v4;
 
 // src/TabbyAgent.ts
-var import_deep_equal2 = __toESM(require_deep_equal());
+var import_deep_equal = __toESM(require_deep_equal());
 var import_deepmerge = __toESM(require_cjs());
 
 // src/generated/index.ts
@@ -13311,6 +13311,15 @@ init_dirname();
 init_filename();
 init_buffer2();
 init_process2();
+
+// src/env.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
+
+// src/dataStore.ts
 var dataStore = null ;
 
 // src/logger.ts
@@ -14910,31 +14919,20 @@ var CompletionCache = class {
   }
 };
 
-// src/postprocess.ts
+// src/postprocess/index.ts
 init_global();
 init_dirname();
 init_filename();
 init_buffer2();
 init_process2();
-var import_deep_equal = __toESM(require_deep_equal());
+
+// src/postprocess/filter.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
 var logger = rootLogger.child({ component: "Postprocess" });
-var removeDuplicateLines = (context) => {
-  return (input) => {
-    const suffix = context.text.slice(context.position);
-    const suffixLines = splitLines(suffix);
-    const inputLines = splitLines(input);
-    for (let index = Math.max(0, inputLines.length - suffixLines.length); index < inputLines.length; index++) {
-      if ((0, import_deep_equal.default)(inputLines.slice(index), suffixLines.slice(0, input.length - index))) {
-        logger.debug({ input, suffix, duplicateAt: index }, "Remove duplicate lines");
-        return input.slice(0, index);
-      }
-    }
-    return input;
-  };
-};
-var dropBlank = (input) => {
-  return isBlank(input) ? null : input;
-};
 var applyFilter = (filter2) => {
   return async (response) => {
     response.choices = (await Promise.all(
@@ -14946,8 +14944,97 @@ var applyFilter = (filter2) => {
     return response;
   };
 };
+
+// src/postprocess/limitScopeByIndentation.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
+function calcIndentLevel(line) {
+  return line.match(/^[ \t]*/)?.[0]?.length || 0;
+}
+function isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) {
+  let index = 1;
+  while (index < suffixLines.length && isBlank(suffixLines[index])) {
+    index++;
+  }
+  if (index >= suffixLines.length) {
+    return true;
+  } else {
+    const indentLevel = calcIndentLevel(suffixLines[index]);
+    return indentLevel < currentIndentLevel;
+  }
+}
+function isOpeningIndentBlock(lines, index) {
+  if (index >= lines.length - 1) {
+    return false;
+  }
+  return calcIndentLevel(lines[index]) < calcIndentLevel(lines[index + 1]);
+}
+var limitScopeByIndentation = (context) => {
+  return (input) => {
+    const prefix = context.text.slice(0, context.position);
+    const suffix = context.text.slice(context.position);
+    const prefixLines = splitLines(prefix);
+    const suffixLines = splitLines(suffix);
+    const inputLines = splitLines(input);
+    const currentIndentLevel = calcIndentLevel(prefixLines[prefixLines.length - 1]);
+    let index;
+    for (index = 1; index < inputLines.length; index++) {
+      if (isBlank(inputLines[index])) {
+        continue;
+      }
+      const indentLevel = calcIndentLevel(inputLines[index]);
+      if (indentLevel < currentIndentLevel) {
+        if (isIndentBlockClosingAllowed(currentIndentLevel, suffixLines) && !isOpeningIndentBlock(inputLines, index)) {
+          index++;
+        }
+        break;
+      }
+    }
+    if (index < inputLines.length) {
+      logger.debug({ input, prefix, suffix, scopeEndAt: index }, "Remove content out of scope");
+      return inputLines.slice(0, index).join("").trimEnd();
+    }
+    return input;
+  };
+};
+
+// src/postprocess/removeOverlapping.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
+var removeOverlapping = (context) => {
+  return (input) => {
+    const suffix = context.text.slice(context.position);
+    for (let index = Math.max(0, input.length - suffix.length); index < input.length; index++) {
+      if (input.slice(index) === suffix.slice(0, input.length - index)) {
+        logger.debug({ input, suffix, overlappedAt: index }, "Remove overlapped content");
+        return input.slice(0, index);
+      }
+    }
+    return input;
+  };
+};
+
+// src/postprocess/dropBlank.ts
+init_global();
+init_dirname();
+init_filename();
+init_buffer2();
+init_process2();
+var dropBlank = () => {
+  return (input) => {
+    return isBlank(input) ? null : input;
+  };
+};
+
+// src/postprocess/index.ts
 async function postprocess(request2, response) {
-  return new Promise((resolve4) => resolve4(response)).then(applyFilter(removeDuplicateLines(request2))).then(applyFilter(dropBlank));
+  return new Promise((resolve4) => resolve4(response)).then(applyFilter(limitScopeByIndentation(request2))).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
 }
 
 // src/AnonymousUsageLogger.ts
@@ -15123,7 +15210,7 @@ var _TabbyAgent = class extends EventEmitter {
   }
   async updateConfig(config2) {
     const mergedConfig = (0, import_deepmerge.default)(this.config, config2);
-    if (!(0, import_deep_equal2.default)(this.config, mergedConfig)) {
+    if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
       this.config = mergedConfig;
       await this.applyConfig();
       const event = { event: "configUpdated", config: this.config };
@@ -15181,10 +15268,10 @@ var _TabbyAgent = class extends EventEmitter {
     });
     return cancelable(
       promise.then((response) => {
-        return postprocess(request2, response);
-      }).then((response) => {
         this.completionCache.set(request2, response);
         return response;
+      }).then((response) => {
+        return postprocess(request2, response);
       }),
       () => {
         promise.cancel();

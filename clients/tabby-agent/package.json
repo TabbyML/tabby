@@ -12,14 +12,22 @@
   "scripts": {
     "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../website/static/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
     "dev": "tsup --watch",
-    "build": "tsup"
+    "build": "tsup",
+    "test:watch": "mocha --watch",
+    "test": "mocha"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.5",
     "@types/fs-extra": "^11.0.1",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^16.18.32",
+    "chai": "^4.3.7",
+    "dedent": "^0.7.0",
     "esbuild-plugin-polyfill-node": "^0.2.0",
+    "mocha": "^10.2.0",
     "openapi-typescript-codegen": "^0.24.0",
     "rimraf": "^5.0.1",
+    "ts-node": "^10.9.1",
     "tsup": "^6.7.0",
     "typescript": "^5.0.3"
   },

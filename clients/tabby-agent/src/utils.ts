@@ -1,8 +1,5 @@
-declare const IS_BROWSER: boolean;
-export const isBrowser = IS_BROWSER;
-
 export function splitLines(input: string) {
-  return input.match(/.*(?:$|\r?\n)/g).filter(Boolean) // Split lines and keep newline character
+  return input.match(/.*(?:$|\r?\n)/g).filter(Boolean); // Split lines and keep newline character
 }
 
 export function splitWords(input: string) {
