@@ -57,6 +57,8 @@ type CompletionRequest = {
     language: string;
     text: string;
     position: number;
+    maxPrefixLines: number;
+    maxSuffixLines: number;
 };
 type CompletionResponse = CompletionResponse$1;
 type LogEventRequest = LogEventRequest$1;

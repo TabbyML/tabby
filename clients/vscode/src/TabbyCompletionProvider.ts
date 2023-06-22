@@ -22,6 +22,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   // User Settings
   private enabled: boolean = true;
   private suggestionDelay: number = 150;
+  private maxPrefixLines: number = 20;
+  private maxSuffixLines: number = 20;
 
   constructor() {
     this.updateConfiguration();
@@ -60,6 +62,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
       text: document.getText(),
       position: document.offsetAt(position),
+      maxPrefixLines: this.maxPrefixLines,
+      maxSuffixLines: this.maxSuffixLines,
     };
     this.pendingCompletion = agent().getCompletions(request);
 
@@ -76,6 +80,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("codeCompletion", true);
     this.suggestionDelay = configuration.get("developerOptions.suggestionDelay", 150);
+    this.maxPrefixLines = configuration.get("developerOptions.maxPrefixLines", 20);
+    this.maxSuffixLines = configuration.get("developerOptions.maxSuffixLines", 20);
   }
 
   private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {
