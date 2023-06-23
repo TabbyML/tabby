@@ -13465,6 +13465,7 @@ var _Auth = class extends EventEmitter {
       } else {
         this.logger.error({ error }, "Unknown error when refreshing jwt");
         if (retry < _Auth.tokenStrategy.refresh.maxTry) {
+          await new Promise((resolve4) => setTimeout(resolve4, _Auth.tokenStrategy.refresh.retryDelay));
           this.logger.debug("Retry refreshing jwt");
           return this.refreshToken(jwt, retry + 1);
         }
