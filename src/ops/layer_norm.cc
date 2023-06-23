@@ -43,36 +43,15 @@ namespace ctranslate2 {
       for (dim_t i = axis + 1; i < input.rank(); ++i)
         inner_size *= input.dim(i);
 
-      switch (input.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(input.device(), (compute<D, float>(beta,
-                                                           gamma,
-                                                           input,
-                                                           axis,
-                                                           outer_size,
-                                                           axis_size,
-                                                           inner_size,
-                                                           output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (input.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 LayerNorm is only supported on GPU");
-        compute<Device::CUDA, float16_t>(beta,
-                                         gamma,
-                                         input,
-                                         axis,
-                                         outer_size,
-                                         axis_size,
-                                         inner_size,
-                                         output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("LayerNorm only supports float (or float16 on GPU)");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("LayerNorm", input.device(), input.dtype(),
+                                (compute<D, T>(beta,
+                                               gamma,
+                                               input,
+                                               axis,
+                                               outer_size,
+                                               axis_size,
+                                               inner_size,
+                                               output)));
     }
 
   }

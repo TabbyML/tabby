@@ -38,23 +38,8 @@ namespace ctranslate2 {
       for (dim_t i = axis + 1; i < input.rank(); ++i)
         inner_size *= input.dim(i);
 
-      switch (input.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(input.device(),
-                        (compute<D, float>(input, outer_size, axis_size, inner_size, output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (input.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 Mean is only supported on GPU");
-        compute<Device::CUDA, float16_t>(input, outer_size, axis_size, inner_size, output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("Mean only supports float (or float16 on GPU)");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("Mean", input.device(), input.dtype(),
+                                (compute<D, T>(input, outer_size, axis_size, inner_size, output)));
     }
 
   }

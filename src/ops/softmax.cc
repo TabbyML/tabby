@@ -43,22 +43,7 @@ namespace ctranslate2 {
                                       + std::to_string(batch_size));
       }
 
-      switch (x.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(x.device(), (compute<D, float>(x, lengths, y)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (x.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 SoftMax is only supported on GPU");
-        compute<Device::CUDA, float16_t>(x, lengths, y);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("SoftMax only supports float (or float16 on GPU)");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("SoftMax", x.device(), x.dtype(), (compute<D, T>(x, lengths, y)));
     }
 
   }

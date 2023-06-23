@@ -46,22 +46,8 @@ namespace ctranslate2 {
 
       output.resize({batch_size, out_channels, output_length});
 
-      switch (input.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(input.device(), (compute<D, float>(input, weight, bias, output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (input.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 Conv1D is only supported on GPU");
-        compute<Device::CUDA, float16_t>(input, weight, bias, output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("Conv1D only supports float (or float16 on GPU)");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("Conv1D", input.device(), input.dtype(),
+                                (compute<D, T>(input, weight, bias, output)));
     }
 
   }

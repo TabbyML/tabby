@@ -17,22 +17,8 @@ namespace ctranslate2 {
 
       output.resize_as(input);
 
-      switch (input.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(input.device(), (compute<D, float>(gamma, input, output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (input.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 RMSNorm is only supported on GPU");
-        compute<Device::CUDA, float16_t>(gamma, input, output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("RMSNorm only supports float types");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("RMSNorm", input.device(), input.dtype(),
+                                (compute<D, T>(gamma, input, output)));
     }
 
   }

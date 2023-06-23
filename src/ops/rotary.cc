@@ -17,23 +17,8 @@ namespace ctranslate2 {
                             StorageView& output) const {
       output.resize_as(input);
 
-      switch (input.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(input.device(), (compute<D, float>(input, sin, cos, output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (input.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 Rotary is only supported on GPU");
-        compute<Device::CUDA, float16_t>(input, sin, cos, output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("Rotary only supports float types");
-      }
-
+      DEVICE_AND_FLOAT_DISPATCH("Rotary", input.device(), input.dtype(),
+                                (compute<D, T>(input, sin, cos, output)));
     }
 
   }

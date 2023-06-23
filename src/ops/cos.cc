@@ -10,22 +10,8 @@ namespace ctranslate2 {
 
       y.resize_as(x);
 
-      switch (x.dtype()) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(x.device(), (primitives<D>::cos(x.data<float>(), y.data<float>(), x.size())));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (x.device() != Device::CUDA)
-          throw std::invalid_argument("FP16 Cos is only supported on GPU");
-        primitives<Device::CUDA>::cos(x.data<float16_t>(), y.data<float16_t>(), x.size());
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("Cos only supports float types");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("Cos", x.device(), x.dtype(),
+                                (primitives<D>::cos(x.data<T>(), y.data<T>(), x.size())));
     }
 
   }

@@ -18,16 +18,7 @@ namespace ctranslate2 {
 
       StorageView y(x.shape(), x.dtype(), x.device());
 
-      switch (x.dtype()) {
-      case DataType::FLOAT32:
-        DEVICE_DISPATCH(x.device(), (add_gumbel_noise<D, float>(x, y)));
-        break;
-      case DataType::FLOAT16:
-        DEVICE_DISPATCH(x.device(), (add_gumbel_noise<D, float16_t>(x, y)));
-        break;
-      default:
-        throw std::invalid_argument("GumbelMax only supports float types");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("GumbelMax", x.device(), x.dtype(), (add_gumbel_noise<D, T>(x, y)));
 
       _topk_op(y, values, indices);
 

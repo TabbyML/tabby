@@ -68,7 +68,7 @@ namespace ctranslate2 {
       if (_sample_size != 1) {
         // The current CUDA kernel only returns a single sample per batch, so fallback on CPU.
         StorageView output_host(output.shape(), output.dtype());
-        dispatch(input.to(Device::CPU), output_host);
+        dispatch(input.to_float32().to(Device::CPU), output_host);
         output.copy_from(output_host);
         return;
       }

@@ -24,22 +24,7 @@ namespace ctranslate2 {
 
       output.resize_as(input);
 
-      switch (dtype) {
-      case DataType::FLOAT32: {
-        DEVICE_DISPATCH(device, (compute<D, float>(input, probs, output)));
-        break;
-      }
-#ifdef CT2_WITH_CUDA
-      case DataType::FLOAT16: {
-        if (device != Device::CUDA)
-          throw std::invalid_argument("FP16 TopPMask is only supported on GPU");
-        compute<Device::CUDA, float16_t>(input, probs, output);
-        break;
-      }
-#endif
-      default:
-        throw std::invalid_argument("TopPMask only supports float types");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("TopPMask", device, dtype, (compute<D, T>(input, probs, output)));
     }
 
     dim_t TopPMask::max_num_classes(const Device device) {

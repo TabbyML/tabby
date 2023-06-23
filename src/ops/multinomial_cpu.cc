@@ -40,7 +40,6 @@ namespace ctranslate2 {
                                          StorageView& output) const;
 
     DECLARE_IMPL(float)
-    DECLARE_IMPL(float16_t)
 
   }
 }

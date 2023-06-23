@@ -20,16 +20,8 @@ namespace ctranslate2 {
     }
 
     void Multinomial::dispatch(const StorageView& input, StorageView& output) const {
-      switch (input.dtype()) {
-      case DataType::FLOAT32:
-        DEVICE_DISPATCH(input.device(), (compute<D, float>(input, output)));
-        break;
-      case DataType::FLOAT16:
-        DEVICE_DISPATCH(input.device(), (compute<D, float16_t>(input, output)));
-        break;
-      default:
-        throw std::invalid_argument("Multinomial only supports float types");
-      }
+      DEVICE_AND_FLOAT_DISPATCH("Multinomial", input.device(), input.dtype(),
+                                (compute<D, T>(input, output)));
     }
 
   }
