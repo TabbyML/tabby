@@ -7,8 +7,15 @@ call tabby#Start()
 
 command! -nargs=* -complete=customlist,tabby#CompleteCommands Tabby call tabby#Command(<q-args>)
 
-imap  <script><silent><nowait><expr>  <Tab>  tabby#Accept(pumvisible() ? "\<C-N>" : "\t")
-imap  <script><silent><nowait><expr>  <C-]>  tabby#Dismiss("\<C-]>")
+if !exists('g:tabby_accept_binding')
+  let g:tabby_accept_binding = '<Tab>'
+endif
+if !exists('g:tabby_dismiss_binding')
+  let g:tabby_dismiss_binding = '<C-]>'
+endif
+
+exec 'imap <script><silent><nowait><expr> ' . g:tabby_accept_binding . ' tabby#Accept(pumvisible() ? "\<C-N>" : "\t")'
+exec 'imap <script><silent><nowait><expr> ' . g:tabby_dismiss_binding . ' tabby#Dismiss("\<C-]>")'
 
 imap  <Plug>(tabby-next)  <Cmd>call tabby#Next()<CR>
 imap  <Plug>(tabby-prev)  <Cmd>call tabby#Prev()<CR>

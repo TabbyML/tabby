@@ -46,3 +46,15 @@ let g:tabby_server_url = 'http://127.0.0.1:8080'
 1. In insert mode, Tabby will show code suggestion when you stop typing. Press `<Tab>` to accpet the current suggestion, `<M-]>` to see the next suggestion, `<M-[>` to see previous suggestion, or `<C-]>` to dismiss.
 2. Use command `:Tabby enable` to enable, `:Tabby disable` to disable Tabby, and `:Tabby status` to check status.
 3. Use command `:help Tabby` for more information.
+
+## Configuration
+
+### KeyBindings
+
+The default key bindings for accept/dismiss(`<Tab>/<C-]>`) can be customized
+with the following global settings.
+
+```vimscript
+let g:tabby_accept_binding = '<Tab>'
+let g:tabby_dismiss_binding = '<C-]>'
+```
