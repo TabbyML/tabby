@@ -48,9 +48,7 @@ export class Auth extends EventEmitter {
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
 
-    // From tabby endpoint: http[s]://{namespace}.app.tabbyml.com/tabby[/]
-    // To auth endpoint: http[s]://{namespace}.app.tabbyml.com/api
-    const authApiBase = this.endpoint.replace(/\/tabby\/?$/, "/api");
+    const authApiBase = "https://app.tabbyml.com/api";
     this.authApi = new CloudApi({ BASE: authApiBase });
   }
 

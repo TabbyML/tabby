@@ -634,7 +634,7 @@ var _Auth = class extends import_events.EventEmitter {
     this.jwt = null;
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-    const authApiBase = this.endpoint.replace(/\/tabby\/?$/, "/api");
+    const authApiBase = "https://app.tabbyml.com/api";
     this.authApi = new CloudApi({ BASE: authApiBase });
   }
   static async create(options) {
