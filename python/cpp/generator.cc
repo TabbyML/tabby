@@ -254,8 +254,9 @@ namespace ctranslate2 {
                    sampling_topp: Keep the most probable tokens whose cumulative probability exceeds
                      this value.
                    sampling_temperature: Sampling temperature to generate more random samples.
-                   callback: Optional function that is called for each generated token.
-                     This requires a beam size of 1.
+                   callback: Optional function that is called for each generated token when
+                     :obj:`beam_size` is 1. If the callback function returns ``True``, the
+                     decoding will stop for this batch.
 
                  Returns:
                    A list of generation results.
