@@ -1,9 +1,10 @@
 import type { CancelablePromise } from "../../generated/core/CancelablePromise";
 import type { BaseHttpRequest } from "../../generated/core/BaseHttpRequest";
 
-import { DeviceTokenRequest } from "../models/DeviceTokenRequest";
-import { DeviceTokenResponse } from "../models/DeviceTokenResponse";
-import { DeviceTokenAcceptResponse } from "../models/DeviceTokenAcceptResponse";
+import type { DeviceTokenRequest } from "../models/DeviceTokenRequest";
+import type { DeviceTokenResponse } from "../models/DeviceTokenResponse";
+import type { DeviceTokenAcceptResponse } from "../models/DeviceTokenAcceptResponse";
+import type { DeviceTokenRefreshResponse } from "../models/DeviceTokenRefreshResponse";
 
 export class ApiService {
   constructor(public readonly httpRequest: BaseHttpRequest) {}
@@ -30,6 +31,19 @@ export class ApiService {
       method: "POST",
       url: "/device-token/accept",
       query,
+    });
+  }
+
+  /**
+   * @param token
+   * @returns DeviceTokenRefreshResponse Success
+   * @throws ApiError
+   */
+  public deviceTokenRefresh(token: string): CancelablePromise<DeviceTokenRefreshResponse> {
+    return this.httpRequest.request({
+      method: "POST",
+      url: "/device-token/refresh",
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 

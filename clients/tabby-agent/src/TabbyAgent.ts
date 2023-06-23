@@ -56,7 +56,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const agent = new TabbyAgent();
     agent.dataStore = options?.dataStore;
     agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
-    await agent.applyConfig();
     return agent;
   }
 
@@ -142,9 +141,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       // `pino.Logger.setBindings` is not present in the browser
       allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: options.client }));
     }
-    if (options.config) {
-      await this.updateConfig(options.config);
-    }
+    await this.updateConfig(options.config || {});
     await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client,
     });
@@ -162,7 +159,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       super.emit("configUpdated", event);
     }
     await this.healthCheck();
-    return this.status !== "notInitialized";
+    return true;
   }
 
   public getConfig(): AgentConfig {
@@ -174,6 +171,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public startAuth(): CancelablePromise<string | null> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
     return cancelable(
       this.healthCheck().then(() => {
         if (this.status === "unauthorized") {

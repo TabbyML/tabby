@@ -32,11 +32,23 @@ const fsm = createMachine({
       entry: () => toDisconnected(),
     },
     unauthorized: {
-      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled" },
+      on: {
+        ready: "ready",
+        disconnected: "disconnected",
+        disabled: "disabled",
+        openAuthPage: "unauthorizedAndAuthPageOpen",
+      },
       entry: () => {
         toUnauthorized();
-        notifications.showInformationStartAuth();
+        notifications.showInformationStartAuth({
+          onOpenAuthPage: () => {
+            fsmService.send("openAuthPage");
+          },
+        });
       },
+    },
+    unauthorizedAndAuthPageOpen: {
+      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled" },
       exit: (_, event) => {
         if (event.type === "ready") {
           notifications.showInformationAuthSuccess();
@@ -79,7 +91,7 @@ function toUnauthorized() {
   item.color = colorWarning;
   item.backgroundColor = backgroundColorWarning;
   item.text = `${iconUnauthorized} ${label}`;
-  item.tooltip = "Tabby Server requires authentication. Click to continue.";
+  item.tooltip = "Tabby Server requires authorization. Click to continue.";
   item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["unauthorized"] };
 }
 

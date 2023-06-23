@@ -11,7 +11,7 @@ export class CloudApi {
 
   constructor(config?: Partial<OpenAPIConfig>, HttpRequest: HttpRequestConstructor = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config?.BASE ?? 'https://tabbyml.app.tabbyml.com/tabby',
+      BASE: config?.BASE,
       VERSION: config?.VERSION ?? "0.0.0",
       WITH_CREDENTIALS: config?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config?.CREDENTIALS ?? "include",

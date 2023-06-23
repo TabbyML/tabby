@@ -140,16 +140,22 @@ const emitEvent: Command = {
 
 const openAuthPage: Command = {
   command: "tabby.openAuthPage",
-  callback: () => {
+  callback: (callbacks?: { onOpenAuthPage?: () => void }) => {
     agent()
       .startAuth()
       .then((authUrl) => {
         if (authUrl) {
+          callbacks?.onOpenAuthPage?.();
           env.openExternal(Uri.parse(authUrl));
+        } else if (agent().getStatus() === "ready") {
+          notifications.showInformationWhenStartAuthButAlreadyAuthorized();
+        } else {
+          notifications.showInformationWhenStartAuthFailed();
         }
       })
       .catch((error) => {
-        console.debug("Error to start auth", { error })
+        console.debug("Error to start auth", { error });
+        notifications.showInformationWhenStartAuthFailed();
       });
   },
 };
