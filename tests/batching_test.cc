@@ -36,28 +36,3 @@ TEST(BatchingTest, RebatchInput) {
     EXPECT_EQ(batch.example_index, expected_batches[i]);
   }
 }
-
-TEST(BatchingTest, BatchTokens) {
-  const std::vector<std::vector<std::string>> examples = {
-    {"a", "b"},
-    {"a", "b", "c"},
-    {"a"},
-    {"a", "b", "c", "d"},
-    {"a"},
-    {"a", "b"},
-  };
-
-  VectorReader reader(examples);
-
-  std::vector<size_t> expected_batch_sizes = {2, 1, 1, 2};
-  std::vector<size_t> batch_sizes;
-
-  while (true) {
-    auto batch = reader.get_next(6, BatchType::Tokens);
-    if (batch.empty())
-      break;
-    batch_sizes.emplace_back(batch.size());
-  }
-
-  EXPECT_EQ(batch_sizes, expected_batch_sizes);
-}

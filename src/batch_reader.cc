@@ -15,6 +15,16 @@ namespace ctranslate2 {
     throw std::invalid_argument("Invalid batch type: " + batch_type);
   }
 
+  static inline size_t get_batch_size_increment(const Example& example,
+                                                const BatchType batch_type) {
+    switch (batch_type) {
+    case BatchType::Tokens:
+      return example.length();
+    default:
+      return 1;
+    };
+  }
+
   std::vector<std::vector<std::string>> Batch::get_stream(size_t index) const {
     std::vector<std::vector<std::string>> stream;
     if (examples.empty() || index >= examples.front().num_streams())
@@ -42,33 +52,15 @@ namespace ctranslate2 {
 
     batch.reserve(max_batch_size);
 
-    switch (batch_type) {
+    size_t batch_size = 0;
 
-    case BatchType::Examples: {
-      while (!_next.empty() && batch.size() < max_batch_size) {
-        batch.emplace_back(std::move(_next));
-        _next = get_next_example();
-      }
-      break;
-    }
-
-    case BatchType::Tokens: {
-      size_t max_length = 0;
-
-      while (!_next.empty()) {
-        const size_t current_batch_size = batch.size();
-        max_length = std::max(max_length, _next.length());
-
-        if (current_batch_size > 0 && (current_batch_size + 1) * max_length > max_batch_size)
-          break;
-
-        batch.emplace_back(std::move(_next));
-        _next = get_next_example();
-      }
-
-      break;
-    }
-
+    while (!_next.empty()) {
+      const size_t batch_size_increment = get_batch_size_increment(_next, batch_type);
+      if (batch_size > 0 && batch_size + batch_size_increment > max_batch_size)
+        break;
+      batch.emplace_back(std::move(_next));
+      batch_size += batch_size_increment;
+      _next = get_next_example();
     }
 
     return batch;
