@@ -193,8 +193,8 @@ TEST_P(OpDeviceTest, Sub) {
 
 TEST_P(OpDeviceTest, TileFirstDim) {
   Device device = GetParam();
-  StorageView input({2, 2}, std::vector<float>{1, 2, 3, 4}, device);
-  StorageView expected_output({4, 2}, std::vector<float>{1, 2, 3, 4, 1, 2, 3, 4}, device);
+  StorageView input({2, 4}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8}, device);
+  StorageView expected_output({4, 4}, std::vector<float>{1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8}, device);
   StorageView output(device);
   ops::Tile(0, 2)(input, output);
   expect_storage_eq(output, expected_output);

@@ -37,14 +37,32 @@ namespace ctranslate2 {
                        const dim_t,
                        const dim_t inner_size,
                        StorageView& output) const {
-      auto gather_ids = thrust::make_transform_iterator(
-        thrust::counting_iterator<cuda::index_t>(0),
-        tiled_index_map<cuda::index_t>(inner_size, _num_tiles));
-      THRUST_CALL(thrust::gather,
-                  gather_ids,
-                  gather_ids + output.size(),
-                  input.data<T>(),
-                  output.data<T>());
+      const T* src = input.data<T>();
+      T* dst = output.data<T>();
+
+      const dim_t inner_bytes = inner_size * sizeof (T);
+      const dim_t output_bytes = output.size() * sizeof (T);
+
+      if (inner_bytes % sizeof (uint4) == 0) {
+        auto gather_ids = thrust::make_transform_iterator(
+          thrust::counting_iterator<cuda::index_t>(0),
+          tiled_index_map<cuda::index_t>(inner_bytes / sizeof (uint4), _num_tiles));
+        THRUST_CALL(thrust::gather,
+                    gather_ids,
+                    gather_ids + output_bytes / sizeof (uint4),
+                    reinterpret_cast<const uint4*>(src),
+                    reinterpret_cast<uint4*>(dst));
+
+      } else {
+        auto gather_ids = thrust::make_transform_iterator(
+          thrust::counting_iterator<cuda::index_t>(0),
+          tiled_index_map<cuda::index_t>(inner_size, _num_tiles));
+        THRUST_CALL(thrust::gather,
+                    gather_ids,
+                    gather_ids + output.size(),
+                    src,
+                    dst);
+      }
     }
 
 #define DECLARE_IMPL(T)                                          \
