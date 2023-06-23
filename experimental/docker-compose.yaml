@@ -13,8 +13,6 @@ services:
     image: tabbyml/tabby
     platform: linux/amd64
     command: serve --model TabbyML/T5P-220M
-    environment:
-      TABBY_ROOT: /data
     volumes:
       - "$HOME/.tabby:/data"
 
@@ -23,12 +21,11 @@ services:
     image: tabbyml/tabby
     platform: linux/amd64
     command: scheduler
-    environment:
-      TABBY_ROOT: /data
     volumes:
       - "$HOME/.tabby:/data"
 
   klaus:
+    restart: always
     image: jonashaag/klaus
     environment:
       KLAUS_REPOS_ROOT: /repos
