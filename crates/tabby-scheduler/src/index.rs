@@ -1,6 +1,7 @@
-use std::fs;
+use std::{fs, collections::HashMap};
 
 use anyhow::Result;
+use lazy_static::lazy_static;
 use tabby_common::{config::Config, path::index_dir, Document};
 use tantivy::{
     directory::MmapDirectory,
@@ -11,8 +12,8 @@ use tantivy::{
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
-    let git_url = builder.add_text_field("git_url", STRING | STORED);
-    let filepath = builder.add_text_field("filepath", STRING | STORED);
+    let git_url = builder.add_text_field("name", STRING | STORED);
+    let filepath = builder.add_text_field("body", STRING | STORED);
     let content = builder.add_text_field("content", TEXT | STORED);
     let language = builder.add_text_field("language", TEXT | STORED);
     let schema = builder.build();
@@ -24,6 +25,26 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.delete_all_documents()?;
 
     for doc in Document::all()? {
+        for tag in doc.tags {
+            let name = doc.content.get(tag.name_range).unwrap();
+            if name.len() < 5 {
+                continue;
+            }
+
+            let body = doc.content.get(tag.range).unwrap();
+            let count_body_lines = body.lines().count();
+            if count_body_lines < 3 || count_body_lines > 10 {
+                continue;
+            }
+
+            if let Some(blacklist) = LANGUAGE_NAME_BLACKLIST.get(doc.language.as_str()) {
+                if blacklist.contains(&name) {
+                    continue;
+                }
+            }
+
+            println!("TYPE: {}, NAME: {}", tag.syntax_type_name, name);
+        }
         writer.add_document(doc!(
                 git_url => doc.git_url,
                 filepath => doc.filepath,
@@ -35,4 +56,15 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.commit()?;
 
     Ok(())
+}
+
+lazy_static! {
+    static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> = {
+        let javascript = vec!["Error", "exports", "Promise"];
+
+        HashMap::from([
+            ("javascript", javascript.clone()),
+            ("typescript", javascript.clone()),
+        ])
+    };
 }
