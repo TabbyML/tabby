@@ -11,7 +11,7 @@ pub async fn scheduler(now: bool) -> Result<()> {
     let config = Config::load()?;
     let mut scheduler = JobScheduler::new();
 
-    let job = || {
+    let job1 = || {
         info!("Syncing repositories...");
         let ret = repository::sync_repositories(&config);
         if let Err(err) = ret {
@@ -25,7 +25,9 @@ pub async fn scheduler(now: bool) -> Result<()> {
             error!("Failed to build dataset, err: '{}'", err);
             return;
         }
+    };
 
+    let job2 = || {
         info!("Indexing repositories...");
         let ret = index::index_repositories(&config);
         if let Err(err) = ret {
@@ -34,10 +36,14 @@ pub async fn scheduler(now: bool) -> Result<()> {
     };
 
     if now {
-        job();
+        job1();
+        job2();
     } else {
+        // Every 5 minutes.
+        scheduler.add(Job::new("0 1/5 * * * * *".parse().unwrap(), job1));
+
         // Every 5 hours.
-        scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job));
+        scheduler.add(Job::new("0 0 1/5 * * * *".parse().unwrap(), job2));
 
         info!("Scheduler activated...");
         loop {

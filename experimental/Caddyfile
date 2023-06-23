@@ -1,0 +1,11 @@
+http://*:8080 {
+  handle_path /repos* {
+    reverse_proxy klaus:8080 {
+      header_up X-Script-Name "/repos"
+    }
+  }
+
+  handle_path /* {
+    reverse_proxy tabby:8080
+  }
+}
