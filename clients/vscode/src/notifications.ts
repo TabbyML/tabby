@@ -52,17 +52,17 @@ function showInformationWhenDisconnected() {
     });
 }
 
-function showInformationStartAuth() {
+function showInformationStartAuth(callbacks?: { onOpenAuthPage?: () => void }) {
   window
     .showInformationMessage(
-      "Tabby Server requires authentication. Continue to open authentication page in your browser.",
+      "Tabby Server requires authorization. Continue to open authorization page in your browser.",
       "Continue",
       "Settings"
     )
     .then((selection) => {
       switch (selection) {
         case "Continue":
-          commands.executeCommand("tabby.openAuthPage");
+          commands.executeCommand("tabby.openAuthPage", callbacks);
           break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");
@@ -74,6 +74,20 @@ function showInformationAuthSuccess() {
   window.showInformationMessage("Congrats, you're authorized, start to use Tabby now.");
 }
 
+function showInformationWhenStartAuthButAlreadyAuthorized() {
+  window.showInformationMessage("You are already authorized now.");
+}
+
+function showInformationWhenStartAuthFailed() {
+  window.showInformationMessage("Cannot connect to server. Please check settings.", "Settings").then((selection) => {
+    switch (selection) {
+      case "Settings":
+        commands.executeCommand("tabby.openSettings");
+        break;
+    }
+  });
+}
+
 export const notifications = {
   showInformationWhenLoading,
   showInformationWhenDisabled,
@@ -81,4 +95,6 @@ export const notifications = {
   showInformationWhenDisconnected,
   showInformationStartAuth,
   showInformationAuthSuccess,
+  showInformationWhenStartAuthButAlreadyAuthorized,
+  showInformationWhenStartAuthFailed,
 };

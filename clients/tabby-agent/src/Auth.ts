@@ -9,18 +9,33 @@ export type StorageData = {
   auth: { [endpoint: string]: { jwt: string } };
 };
 
+type JWT = { token: string; payload: { email: string; exp: number } };
+
 export class Auth extends EventEmitter {
   static readonly authPageUrl = "https://app.tabbyml.com/account/device-token";
-  static readonly pollTokenInterval = 5000; // 5 seconds
-  static readonly refreshTokenInterval = 1000 * 60 * 60 * 24 * 3; // 3 days
+  static readonly tokenStrategy = {
+    polling: {
+      // polling token after auth url generated
+      interval: 5000, // polling token every 5 seconds
+      timeout: 5 * 60 * 1000, // stop polling after trying for 5 min
+    },
+    refresh: {
+      // refresh token 30 min before token expires
+      // assume a new token expires in 1 day, much longer than 30 min
+      beforeExpire: 30 * 60 * 1000,
+      maxTry: 5, // try to refresh token 5 times
+      retryDelay: 2000, // retry after 2 seconds
+    },
+  };
 
   private readonly logger = rootLogger.child({ component: "Auth" });
   readonly endpoint: string;
   readonly dataStore: DataStore | null = null;
   private pollingTokenTimer: ReturnType<typeof setInterval> | null = null;
+  private stopPollingTokenTimer: ReturnType<typeof setTimeout> | null = null;
   private refreshTokenTimer: ReturnType<typeof setTimeout> | null = null;
   private authApi: CloudApi | null = null;
-  private jwt: { token: string; payload: { email: string; exp: number } } | null = null;
+  private jwt: JWT | null = null;
 
   static async create(options: { endpoint: string; dataStore?: DataStore }): Promise<Auth> {
     const auth = new Auth(options);
@@ -54,10 +69,17 @@ export class Auth extends EventEmitter {
       const storedJwt = this.dataStore.data["auth"]?.[this.endpoint]?.jwt;
       if (typeof storedJwt === "string" && this.jwt?.token !== storedJwt) {
         this.logger.debug({ storedJwt }, "Load jwt from data store.");
-        this.jwt = {
+        const jwt: JWT = {
           token: storedJwt,
           payload: decodeJwt(storedJwt),
         };
+        // refresh token if it is about to expire or has expired
+        if (jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
+          this.jwt = await this.refreshToken(jwt);
+          await this.save();
+        } else {
+          this.jwt = jwt;
+        }
         this.scheduleRefreshToken();
       }
     } catch (error: any) {
@@ -95,11 +117,16 @@ export class Auth extends EventEmitter {
       clearInterval(this.pollingTokenTimer);
       this.pollingTokenTimer = null;
     }
+    if (this.stopPollingTokenTimer) {
+      clearTimeout(this.stopPollingTokenTimer);
+      this.stopPollingTokenTimer = null;
+    }
   }
 
   async requestToken(): Promise<string> {
     try {
       await this.reset();
+      this.logger.debug("Start to request device token");
       const deviceToken = await this.authApi.api.deviceToken({ auth_url: this.endpoint });
       this.logger.debug({ deviceToken }, "Request device token response");
       const authUrl = new URL(Auth.authPageUrl);
@@ -112,7 +139,31 @@ export class Auth extends EventEmitter {
     }
   }
 
-  async schedulePollingToken(code: string) {
+  private async refreshToken(jwt: JWT, retry = 0): Promise<JWT> {
+    try {
+      this.logger.debug({ retry }, "Start to refresh token");
+      const refreshedJwt = await this.authApi.api.deviceTokenRefresh(jwt.token);
+      this.logger.debug({ refreshedJwt }, "Refresh token response");
+      return {
+        token: refreshedJwt.data.jwt,
+        payload: decodeJwt(refreshedJwt.data.jwt),
+      };
+    } catch (error) {
+      if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+        this.logger.debug({ error }, "Error when refreshing jwt");
+      } else {
+        // unknown error, retry a few times
+        this.logger.error({ error }, "Unknown error when refreshing jwt");
+        if (retry < Auth.tokenStrategy.refresh.maxTry) {
+          this.logger.debug("Retry refreshing jwt");
+          return this.refreshToken(jwt, retry + 1);
+        }
+      }
+      throw { ...error, retry };
+    }
+  }
+
+  private async schedulePollingToken(code: string) {
     this.pollingTokenTimer = setInterval(async () => {
       try {
         const response = await this.authApi.api.deviceTokenAccept({ code });
@@ -134,7 +185,13 @@ export class Auth extends EventEmitter {
           this.logger.error({ error }, "Error when polling jwt");
         }
       }
-    }, Auth.pollTokenInterval);
+    }, Auth.tokenStrategy.polling.interval);
+    this.stopPollingTokenTimer = setTimeout(() => {
+      if (this.pollingTokenTimer) {
+        clearInterval(this.pollingTokenTimer);
+        this.pollingTokenTimer = null;
+      }
+    }, Auth.tokenStrategy.polling.timeout);
   }
 
   private scheduleRefreshToken() {
@@ -146,10 +203,16 @@ export class Auth extends EventEmitter {
       return null;
     }
 
-    const refreshDelay = Math.max(0, this.jwt.payload.exp * 1000 - Date.now() - Auth.refreshTokenInterval);
+    const refreshDelay = Math.max(
+      0,
+      this.jwt.payload.exp * 1000 - Auth.tokenStrategy.refresh.beforeExpire - Date.now()
+    );
+    this.logger.debug({ refreshDelay }, "Schedule refresh token");
     this.refreshTokenTimer = setTimeout(async () => {
-      this.logger.debug({ expireAt: this.jwt.payload.exp }, "Refresh token");
-      // FIXME: not implemented
+      this.jwt = await this.refreshToken(this.jwt);
+      await this.save();
+      this.scheduleRefreshToken();
+      super.emit("updated", this.jwt);
     }, refreshDelay);
   }
 }
