@@ -1,5 +1,12 @@
 #pragma once
 
+// __FMA__ is not defined in MSVC, however it is implied with AVX2.
+#if defined(_MSC_VER) && defined(__AVX2__)
+#  ifndef __FMA__
+#  define __FMA__
+#  endif
+#endif
+
 #include <immintrin.h>
 #include <avx_mathfun.h>
 
