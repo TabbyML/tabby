@@ -1,14 +1,9 @@
-from typing import Iterator, Optional
+from typing import Iterator
 
 import glob
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from transformers import HfArgumentParser
-
-
-@dataclass
-class Arguments:
-    filepattern: str = field(metadata={"help": "filepattern for tabby dataset"})
 
 
 @dataclass
@@ -52,11 +47,6 @@ def iter_items(doc) -> Iterator[Item]:
         )
 
 
-def parse_args() -> Arguments:
-    parser = HfArgumentParser(Arguments)
-    return parser.parse_args()
-
-
 def iter_docs(filepattern: str):
     for filepath in glob.glob(filepattern):
         with open(filepath) as f:
@@ -94,8 +84,6 @@ def get_suffix(content: str, end: int, max=20):
     return content[end : suffix_end - 1]
 
 
-if __name__ == "__main__":
-    args = parse_args()
-    for doc in iter_docs(args.filepattern):
-        for item in iter_items(doc):
-            pass
+def items_from_filepattern(filepattern: str):
+    for doc in iter_docs(filepattern):
+        yield from iter_items(doc)
