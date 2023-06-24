@@ -6,7 +6,7 @@ services:
     platform: linux/amd64
     command: scheduler --now
     volumes:
-      - "$HOME/.tabby:/data"
+      - "$PWD/tabby:/data"
 
   tabby:
     depends_on:
@@ -16,4 +16,4 @@ services:
     platform: linux/amd64
     command: serve --model TabbyML/T5P-220M
     volumes:
-      - "$HOME/.tabby:/data"
+      - "$PWD/.tabby:/data"

@@ -1,5 +1,11 @@
 #!/bin/bash
+set -x
 
-TABBY_ROOT=$PWD/tabby cargo run scheduler --now
+docker-compose up -d
 
-./eval.sh
+while ! curl -X POST http://localhost:8080/v1/health; do
+  echo "server not ready, waiting..."
+  sleep 5
+fi
+
+echo done
