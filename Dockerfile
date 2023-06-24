@@ -34,6 +34,13 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 
 FROM ghcr.io/opennmt/ctranslate2:3.15.0-ubuntu20.04-cuda11.2
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /opt/tabby /opt/tabby
 
 ENV TABBY_ROOT=/data
