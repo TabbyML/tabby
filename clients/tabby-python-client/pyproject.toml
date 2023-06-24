@@ -1,26 +1,3 @@
-[tool.poetry]
-name = "tabby-python-client"
-version = "0.1.0"
-description = "A client library for accessing Tabby Server"
-
-authors = []
-
-readme = "README.md"
-packages = [
-    {include = "tabby_client"},
-]
-include = ["CHANGELOG.md", "tabby_client/py.typed"]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-httpx = ">=0.15.4,<0.25.0"
-attrs = ">=21.3.0"
-python-dateutil = "^2.8.0"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.black]
 line-length = 120
 target_version = ['py38', 'py39', 'py310', 'py311']
