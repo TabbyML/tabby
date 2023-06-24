@@ -20,11 +20,19 @@ export class Auth extends EventEmitter {
       timeout: 5 * 60 * 1000, // stop polling after trying for 5 min
     },
     refresh: {
-      // refresh token 30 min before token expires
-      // assume a new token expires in 1 day, much longer than 30 min
+      // check token every 15 min, refresh token if it expires in 30 min
+      interval: 15 * 60 * 1000,
       beforeExpire: 30 * 60 * 1000,
-      maxTry: 5, // try to refresh token 5 times
-      retryDelay: 2000, // retry after 2 seconds
+      whenLoaded: {
+        // after token loaded from data store, refresh token if it is about to expire or has expired
+        maxTry: 5, // keep loading time not too long
+        retryDelay: 1000, // retry after 1 seconds
+      },
+      whenScheduled: {
+        // if running until token is about to expire, refresh token as scheduled
+        maxTry: 60,
+        retryDelay: 30 * 1000, // retry after 30 seconds
+      },
     },
   };
 
@@ -33,7 +41,7 @@ export class Auth extends EventEmitter {
   readonly dataStore: DataStore | null = null;
   private pollingTokenTimer: ReturnType<typeof setInterval> | null = null;
   private stopPollingTokenTimer: ReturnType<typeof setTimeout> | null = null;
-  private refreshTokenTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshTokenTimer: ReturnType<typeof setInterval> | null = null;
   private authApi: CloudApi | null = null;
   private jwt: JWT | null = null;
 
@@ -47,9 +55,7 @@ export class Auth extends EventEmitter {
     super();
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-
-    const authApiBase = "https://app.tabbyml.com/api";
-    this.authApi = new CloudApi({ BASE: authApiBase });
+    this.authApi = new CloudApi();
   }
 
   get token(): string | null {
@@ -73,7 +79,7 @@ export class Auth extends EventEmitter {
         };
         // refresh token if it is about to expire or has expired
         if (jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
-          this.jwt = await this.refreshToken(jwt);
+          this.jwt = await this.refreshToken(jwt, Auth.tokenStrategy.refresh.whenLoaded);
           await this.save();
         } else {
           this.jwt = jwt;
@@ -137,7 +143,7 @@ export class Auth extends EventEmitter {
     }
   }
 
-  private async refreshToken(jwt: JWT, retry = 0): Promise<JWT> {
+  private async refreshToken(jwt: JWT, options = { maxTry: 1, retryDelay: 1000 }, retry = 0): Promise<JWT> {
     try {
       this.logger.debug({ retry }, "Start to refresh token");
       const refreshedJwt = await this.authApi.api.deviceTokenRefresh(jwt.token);
@@ -147,15 +153,15 @@ export class Auth extends EventEmitter {
         payload: decodeJwt(refreshedJwt.data.jwt),
       };
     } catch (error) {
-      if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+      if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
         this.logger.debug({ error }, "Error when refreshing jwt");
       } else {
         // unknown error, retry a few times
         this.logger.error({ error }, "Unknown error when refreshing jwt");
-        if (retry < Auth.tokenStrategy.refresh.maxTry) {
-          await new Promise((resolve) => setTimeout(resolve, Auth.tokenStrategy.refresh.retryDelay));
-          this.logger.debug("Retry refreshing jwt");
-          return this.refreshToken(jwt, retry + 1);
+        if (retry < options.maxTry) {
+          this.logger.debug(`Retry refreshing jwt after ${options.retryDelay}ms`);
+          await new Promise((resolve) => setTimeout(resolve, options.retryDelay));
+          return this.refreshToken(jwt, options, retry + 1);
         }
       }
       throw { ...error, retry };
@@ -177,7 +183,7 @@ export class Auth extends EventEmitter {
         clearInterval(this.pollingTokenTimer);
         this.pollingTokenTimer = null;
       } catch (error) {
-        if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+        if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
           this.logger.debug({ error }, "Expected error when polling jwt");
         } else {
           // unknown error but still keep polling
@@ -202,16 +208,19 @@ export class Auth extends EventEmitter {
       return null;
     }
 
-    const refreshDelay = Math.max(
-      0,
-      this.jwt.payload.exp * 1000 - Auth.tokenStrategy.refresh.beforeExpire - Date.now()
-    );
-    this.logger.debug({ refreshDelay }, "Schedule refresh token");
-    this.refreshTokenTimer = setTimeout(async () => {
-      this.jwt = await this.refreshToken(this.jwt);
-      await this.save();
-      this.scheduleRefreshToken();
-      super.emit("updated", this.jwt);
-    }, refreshDelay);
+    this.refreshTokenTimer = setInterval(async () => {
+      if (this.jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
+        try {
+          this.jwt = await this.refreshToken(this.jwt, Auth.tokenStrategy.refresh.whenScheduled);
+          await this.save();
+          this.scheduleRefreshToken();
+          super.emit("updated", this.jwt);
+        } catch (error) {
+          this.logger.error({ error }, "Error when refreshing jwt");
+        }
+      } else {
+        this.logger.debug("Check token, still valid");
+      }
+    }, Auth.tokenStrategy.refresh.interval);
   }
 }

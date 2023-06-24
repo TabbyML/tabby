@@ -64,13 +64,16 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
-      this.auth.on("updated", this.onAuthUpdated.bind(this));
+      this.auth.on("updated", this.setupApi.bind(this));
     }
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+    await this.setupApi();
   }
 
-  private async onAuthUpdated() {
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+  private async setupApi() {
+    this.api = new TabbyApi({
+      BASE: this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
+      TOKEN: this.auth?.token,
+    });
     await this.healthCheck();
   }
 
@@ -117,7 +120,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  private async healthCheck(): Promise<any> {
+  private healthCheck(): Promise<any> {
     return this.callApi(this.api.v1.health, {}).catch(() => {});
   }
 
@@ -139,9 +142,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (options.client) {
       // Client info is only used in logging for now
       // `pino.Logger.setBindings` is not present in the browser
-      allLoggers.forEach((logger) => logger.setBindings && logger.setBindings({ client: options.client }));
+      allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client }));
     }
-    await this.updateConfig(options.config || {});
+    if (options.config) {
+      this.config = deepMerge(this.config, options.config);
+    }
+    await this.applyConfig();
     await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client,
     });
@@ -158,7 +164,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
     }
-    await this.healthCheck();
     return true;
   }
 

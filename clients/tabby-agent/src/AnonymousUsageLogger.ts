@@ -6,7 +6,7 @@ import { rootLogger } from "./logger";
 import { dataStore, DataStore } from "./dataStore";
 
 export class AnonymousUsageLogger {
-  private anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
+  private anonymousUsageTrackingApi = new CloudApi();
   private logger = rootLogger.child({ component: "AnonymousUsage" });
   private systemData = {
     agent: `${agentName}, ${agentVersion}`,
