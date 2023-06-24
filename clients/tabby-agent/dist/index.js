@@ -627,14 +627,13 @@ var _Auth = class extends import_events.EventEmitter {
     super();
     this.logger = rootLogger.child({ component: "Auth" });
     this.dataStore = null;
-    this.pollingTokenTimer = null;
-    this.stopPollingTokenTimer = null;
     this.refreshTokenTimer = null;
     this.authApi = null;
     this.jwt = null;
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
     this.authApi = new CloudApi();
+    this.scheduleRefreshToken();
   }
   static async create(options) {
     const auth = new _Auth(options);
@@ -665,7 +664,6 @@ var _Auth = class extends import_events.EventEmitter {
         } else {
           this.jwt = jwt;
         }
-        this.scheduleRefreshToken();
       }
     } catch (error) {
       this.logger.debug({ error }, "Error when loading auth");
@@ -695,33 +693,63 @@ var _Auth = class extends import_events.EventEmitter {
       this.jwt = null;
       await this.save();
     }
-    if (this.refreshTokenTimer) {
-      clearTimeout(this.refreshTokenTimer);
-      this.refreshTokenTimer = null;
-    }
-    if (this.pollingTokenTimer) {
-      clearInterval(this.pollingTokenTimer);
-      this.pollingTokenTimer = null;
-    }
-    if (this.stopPollingTokenTimer) {
-      clearTimeout(this.stopPollingTokenTimer);
-      this.stopPollingTokenTimer = null;
-    }
   }
-  async requestToken() {
-    try {
-      await this.reset();
-      this.logger.debug("Start to request device token");
-      const deviceToken = await this.authApi.api.deviceToken({ auth_url: this.endpoint });
-      this.logger.debug({ deviceToken }, "Request device token response");
-      const authUrl = new URL(_Auth.authPageUrl);
-      authUrl.searchParams.append("code", deviceToken.data.code);
-      this.schedulePollingToken(deviceToken.data.code);
-      return authUrl.toString();
-    } catch (error) {
-      this.logger.error({ error }, "Error when requesting token");
-      throw error;
-    }
+  requestAuthUrl() {
+    return new CancelablePromise(async (resolve2, reject, onCancel) => {
+      let apiRequest;
+      onCancel(() => {
+        apiRequest?.cancel();
+      });
+      try {
+        await this.reset();
+        if (onCancel.isCancelled)
+          return;
+        this.logger.debug("Start to request device token");
+        apiRequest = this.authApi.api.deviceToken({ auth_url: this.endpoint });
+        const deviceToken = await apiRequest;
+        this.logger.debug({ deviceToken }, "Request device token response");
+        const authUrl = new URL(_Auth.authPageUrl);
+        authUrl.searchParams.append("code", deviceToken.data.code);
+        resolve2({ authUrl: authUrl.toString(), code: deviceToken.data.code });
+      } catch (error) {
+        this.logger.error({ error }, "Error when requesting token");
+        reject(error);
+      }
+    });
+  }
+  pollingToken(code) {
+    return new CancelablePromise((resolve2, reject, onCancel) => {
+      let apiRequest;
+      const timer = setInterval(async () => {
+        try {
+          apiRequest = this.authApi.api.deviceTokenAccept({ code });
+          const response = await apiRequest;
+          this.logger.debug({ response }, "Poll jwt response");
+          this.jwt = {
+            token: response.data.jwt,
+            payload: (0, import_jwt_decode.default)(response.data.jwt)
+          };
+          super.emit("updated", this.jwt);
+          await this.save();
+          clearInterval(timer);
+          resolve2(true);
+        } catch (error) {
+          if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+            this.logger.debug({ error }, "Expected error when polling jwt");
+          } else {
+            this.logger.error({ error }, "Error when polling jwt");
+          }
+        }
+      }, _Auth.tokenStrategy.polling.interval);
+      setTimeout(() => {
+        clearInterval(timer);
+        reject(new Error("Timeout when polling token"));
+      }, _Auth.tokenStrategy.polling.timeout);
+      onCancel(() => {
+        apiRequest?.cancel();
+        clearInterval(timer);
+      });
+    });
   }
   async refreshToken(jwt, options = { maxTry: 1, retryDelay: 1e3 }, retry = 0) {
     try {
@@ -746,50 +774,16 @@ var _Auth = class extends import_events.EventEmitter {
       throw { ...error, retry };
     }
   }
-  async schedulePollingToken(code) {
-    this.pollingTokenTimer = setInterval(async () => {
-      try {
-        const response = await this.authApi.api.deviceTokenAccept({ code });
-        this.logger.debug({ response }, "Poll jwt response");
-        this.jwt = {
-          token: response.data.jwt,
-          payload: (0, import_jwt_decode.default)(response.data.jwt)
-        };
-        await this.save();
-        this.scheduleRefreshToken();
-        super.emit("updated", this.jwt);
-        clearInterval(this.pollingTokenTimer);
-        this.pollingTokenTimer = null;
-      } catch (error) {
-        if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
-          this.logger.debug({ error }, "Expected error when polling jwt");
-        } else {
-          this.logger.error({ error }, "Error when polling jwt");
-        }
-      }
-    }, _Auth.tokenStrategy.polling.interval);
-    this.stopPollingTokenTimer = setTimeout(() => {
-      if (this.pollingTokenTimer) {
-        clearInterval(this.pollingTokenTimer);
-        this.pollingTokenTimer = null;
-      }
-    }, _Auth.tokenStrategy.polling.timeout);
-  }
   scheduleRefreshToken() {
-    if (this.refreshTokenTimer) {
-      clearTimeout(this.refreshTokenTimer);
-      this.refreshTokenTimer = null;
-    }
-    if (!this.jwt) {
-      return null;
-    }
     this.refreshTokenTimer = setInterval(async () => {
+      if (!this.jwt) {
+        return null;
+      }
       if (this.jwt.payload.exp * 1e3 - Date.now() < _Auth.tokenStrategy.refresh.beforeExpire) {
         try {
           this.jwt = await this.refreshToken(this.jwt, _Auth.tokenStrategy.refresh.whenScheduled);
-          await this.save();
-          this.scheduleRefreshToken();
           super.emit("updated", this.jwt);
+          await this.save();
         } catch (error) {
           this.logger.error({ error }, "Error when refreshing jwt");
         }
@@ -1211,6 +1205,10 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
       this.config = (0, import_deepmerge.default)(this.config, options.config);
     }
     await this.applyConfig();
+    if (this.status === "unauthorized") {
+      const event = { event: "authRequired", server: this.config.server };
+      super.emit("authRequired", event);
+    }
     await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client
     });
@@ -1220,11 +1218,16 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   async updateConfig(config) {
     const mergedConfig = (0, import_deepmerge.default)(this.config, config);
     if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
+      const serverUpdated = !(0, import_deep_equal.default)(this.config.server, mergedConfig.server);
       this.config = mergedConfig;
       await this.applyConfig();
       const event = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
+      if (serverUpdated && this.status === "unauthorized") {
+        const event2 = { event: "authRequired", server: this.config.server };
+        super.emit("authRequired", event2);
+      }
     }
     return true;
   }
@@ -1234,27 +1237,46 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   getStatus() {
     return this.status;
   }
-  startAuth() {
+  requestAuthUrl() {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {
+      });
     }
+    return new CancelablePromise(async (resolve2, reject, onCancel) => {
+      let request2;
+      onCancel(() => {
+        request2?.cancel();
+      });
+      await this.healthCheck();
+      if (onCancel.isCancelled)
+        return;
+      if (this.status === "unauthorized") {
+        request2 = this.auth.requestAuthUrl();
+        resolve2(request2);
+      } else {
+      }
+      resolve2(null);
+    });
+  }
+  waitForAuthToken(code) {
+    if (this.status === "notInitialized") {
+      return cancelable(Promise.reject("Agent is not initialized"), () => {
+      });
+    }
+    const polling = this.auth.pollingToken(code);
     return cancelable(
-      this.healthCheck().then(() => {
-        if (this.status === "unauthorized") {
-          return this.auth.requestToken();
-        }
-        return null;
+      polling.then(() => {
+        return this.setupApi();
       }),
       () => {
-        if (this.status === "unauthorized") {
-          this.auth.reset();
-        }
+        polling.cancel();
       }
     );
   }
   getCompletions(request2) {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {
+      });
     }
     if (this.completionCache.has(request2)) {
       this.logger.debug({ request: request2 }, "Completion cache hit");
@@ -1291,7 +1313,8 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   }
   postEvent(request2) {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {
+      });
     }
     return this.callApi(this.api.v1.event, request2);
   }
@@ -1300,7 +1323,7 @@ var TabbyAgent = _TabbyAgent;
 TabbyAgent.tryConnectInterval = 1e3 * 30;
 
 // src/Agent.ts
-var agentEventNames = ["statusChanged", "configUpdated"];
+var agentEventNames = ["statusChanged", "configUpdated", "authRequired"];
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   CancelablePromise,

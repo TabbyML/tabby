@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import decodeJwt from "jwt-decode";
-import { CloudApi } from "./cloud";
-import { ApiError } from "./generated";
+import { CloudApi, DeviceTokenResponse, DeviceTokenAcceptResponse } from "./cloud";
+import { ApiError, CancelablePromise } from "./generated";
 import { dataStore, DataStore } from "./dataStore";
 import { rootLogger } from "./logger";
 
@@ -39,8 +39,6 @@ export class Auth extends EventEmitter {
   private readonly logger = rootLogger.child({ component: "Auth" });
   readonly endpoint: string;
   readonly dataStore: DataStore | null = null;
-  private pollingTokenTimer: ReturnType<typeof setInterval> | null = null;
-  private stopPollingTokenTimer: ReturnType<typeof setTimeout> | null = null;
   private refreshTokenTimer: ReturnType<typeof setInterval> | null = null;
   private authApi: CloudApi | null = null;
   private jwt: JWT | null = null;
@@ -56,6 +54,7 @@ export class Auth extends EventEmitter {
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
     this.authApi = new CloudApi();
+    this.scheduleRefreshToken();
   }
 
   get token(): string | null {
@@ -84,7 +83,6 @@ export class Auth extends EventEmitter {
         } else {
           this.jwt = jwt;
         }
-        this.scheduleRefreshToken();
       }
     } catch (error: any) {
       this.logger.debug({ error }, "Error when loading auth");
@@ -113,34 +111,65 @@ export class Auth extends EventEmitter {
       this.jwt = null;
       await this.save();
     }
-    if (this.refreshTokenTimer) {
-      clearTimeout(this.refreshTokenTimer);
-      this.refreshTokenTimer = null;
-    }
-    if (this.pollingTokenTimer) {
-      clearInterval(this.pollingTokenTimer);
-      this.pollingTokenTimer = null;
-    }
-    if (this.stopPollingTokenTimer) {
-      clearTimeout(this.stopPollingTokenTimer);
-      this.stopPollingTokenTimer = null;
-    }
   }
 
-  async requestToken(): Promise<string> {
-    try {
-      await this.reset();
-      this.logger.debug("Start to request device token");
-      const deviceToken = await this.authApi.api.deviceToken({ auth_url: this.endpoint });
-      this.logger.debug({ deviceToken }, "Request device token response");
-      const authUrl = new URL(Auth.authPageUrl);
-      authUrl.searchParams.append("code", deviceToken.data.code);
-      this.schedulePollingToken(deviceToken.data.code);
-      return authUrl.toString();
-    } catch (error) {
-      this.logger.error({ error }, "Error when requesting token");
-      throw error;
-    }
+  requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string }> {
+    return new CancelablePromise(async (resolve, reject, onCancel) => {
+      let apiRequest: CancelablePromise<DeviceTokenResponse>;
+      onCancel(() => {
+        apiRequest?.cancel();
+      });
+      try {
+        await this.reset();
+        if (onCancel.isCancelled) return;
+        this.logger.debug("Start to request device token");
+        apiRequest = this.authApi.api.deviceToken({ auth_url: this.endpoint });
+        const deviceToken = await apiRequest;
+        this.logger.debug({ deviceToken }, "Request device token response");
+        const authUrl = new URL(Auth.authPageUrl);
+        authUrl.searchParams.append("code", deviceToken.data.code);
+        resolve({ authUrl: authUrl.toString(), code: deviceToken.data.code });
+      } catch (error) {
+        this.logger.error({ error }, "Error when requesting token");
+        reject(error);
+      }
+    });
+  }
+
+  pollingToken(code: string): CancelablePromise<boolean> {
+    return new CancelablePromise((resolve, reject, onCancel) => {
+      let apiRequest: CancelablePromise<DeviceTokenAcceptResponse>;
+      const timer = setInterval(async () => {
+        try {
+          apiRequest = this.authApi.api.deviceTokenAccept({ code });
+          const response = await apiRequest;
+          this.logger.debug({ response }, "Poll jwt response");
+          this.jwt = {
+            token: response.data.jwt,
+            payload: decodeJwt(response.data.jwt),
+          };
+          super.emit("updated", this.jwt);
+          await this.save();
+          clearInterval(timer);
+          resolve(true);
+        } catch (error) {
+          if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+            this.logger.debug({ error }, "Expected error when polling jwt");
+          } else {
+            // unknown error but still keep polling
+            this.logger.error({ error }, "Error when polling jwt");
+          }
+        }
+      }, Auth.tokenStrategy.polling.interval);
+      setTimeout(() => {
+        clearInterval(timer);
+        reject(new Error("Timeout when polling token"));
+      }, Auth.tokenStrategy.polling.timeout);
+      onCancel(() => {
+        apiRequest?.cancel();
+        clearInterval(timer);
+      });
+    });
   }
 
   private async refreshToken(jwt: JWT, options = { maxTry: 1, retryDelay: 1000 }, retry = 0): Promise<JWT> {
@@ -168,53 +197,16 @@ export class Auth extends EventEmitter {
     }
   }
 
-  private async schedulePollingToken(code: string) {
-    this.pollingTokenTimer = setInterval(async () => {
-      try {
-        const response = await this.authApi.api.deviceTokenAccept({ code });
-        this.logger.debug({ response }, "Poll jwt response");
-        this.jwt = {
-          token: response.data.jwt,
-          payload: decodeJwt(response.data.jwt),
-        };
-        await this.save();
-        this.scheduleRefreshToken();
-        super.emit("updated", this.jwt);
-        clearInterval(this.pollingTokenTimer);
-        this.pollingTokenTimer = null;
-      } catch (error) {
-        if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
-          this.logger.debug({ error }, "Expected error when polling jwt");
-        } else {
-          // unknown error but still keep polling
-          this.logger.error({ error }, "Error when polling jwt");
-        }
-      }
-    }, Auth.tokenStrategy.polling.interval);
-    this.stopPollingTokenTimer = setTimeout(() => {
-      if (this.pollingTokenTimer) {
-        clearInterval(this.pollingTokenTimer);
-        this.pollingTokenTimer = null;
-      }
-    }, Auth.tokenStrategy.polling.timeout);
-  }
-
   private scheduleRefreshToken() {
-    if (this.refreshTokenTimer) {
-      clearTimeout(this.refreshTokenTimer);
-      this.refreshTokenTimer = null;
-    }
-    if (!this.jwt) {
-      return null;
-    }
-
     this.refreshTokenTimer = setInterval(async () => {
+      if (!this.jwt) {
+        return null;
+      }
       if (this.jwt.payload.exp * 1000 - Date.now() < Auth.tokenStrategy.refresh.beforeExpire) {
         try {
           this.jwt = await this.refreshToken(this.jwt, Auth.tokenStrategy.refresh.whenScheduled);
-          await this.save();
-          this.scheduleRefreshToken();
           super.emit("updated", this.jwt);
+          await this.save();
         } catch (error) {
           this.logger.error({ error }, "Error when refreshing jwt");
         }

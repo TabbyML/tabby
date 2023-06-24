@@ -36,24 +36,14 @@ const fsm = createMachine({
         ready: "ready",
         disconnected: "disconnected",
         disabled: "disabled",
-        openAuthPage: "unauthorizedAndAuthPageOpen",
+        authStart: "unauthorizedAndAuthInProgress",
       },
-      entry: () => {
-        toUnauthorized();
-        notifications.showInformationStartAuth({
-          onOpenAuthPage: () => {
-            fsmService.send("openAuthPage");
-          },
-        });
-      },
+      entry: () => toUnauthorized(),
     },
-    unauthorizedAndAuthPageOpen: {
-      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled" },
-      exit: (_, event) => {
-        if (event.type === "ready") {
-          notifications.showInformationAuthSuccess();
-        }
-      },
+    unauthorizedAndAuthInProgress: {
+      // if auth succeeds, we will get `ready` before `authEnd` event
+      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled", authEnd: "unauthorized" },
+      entry: () => toUnauthorizedAndAuthInProgress(),
     },
     disabled: {
       on: { loading: "loading", ready: "ready", disconnected: "disconnected", unauthorized: "unauthorized" },
@@ -95,6 +85,14 @@ function toUnauthorized() {
   item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["unauthorized"] };
 }
 
+function toUnauthorizedAndAuthInProgress() {
+  item.color = colorWarning;
+  item.backgroundColor = backgroundColorWarning;
+  item.text = `${iconUnauthorized} ${label}`;
+  item.tooltip = "Waiting for authorization.";
+  item.command = undefined;
+}
+
 function toDisabled() {
   item.color = colorWarning;
   item.backgroundColor = backgroundColorWarning;
@@ -132,6 +130,17 @@ export const tabbyStatusBarItem = () => {
     }
   });
   agent().on("statusChanged", updateStatusBarItem);
+
+  agent().on("authRequired", () => {
+    notifications.showInformationStartAuth({
+      onAuthStart: () => {
+        fsmService.send("authStart");
+      },
+      onAuthEnd: () => {
+        fsmService.send("authEnd");
+      },
+    });
+  });
 
   item.show();
   return item;
