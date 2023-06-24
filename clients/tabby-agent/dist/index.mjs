@@ -13289,7 +13289,7 @@ var ApiService = class {
 var CloudApi = class {
   constructor(config2, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config2?.BASE,
+      BASE: config2?.BASE ?? "https://app.tabbyml.com/api",
       VERSION: config2?.VERSION ?? "0.0.0",
       WITH_CREDENTIALS: config2?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config2?.CREDENTIALS ?? "include",
@@ -13360,8 +13360,7 @@ var _Auth = class extends EventEmitter {
     this.jwt = null;
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-    const authApiBase = "https://app.tabbyml.com/api";
-    this.authApi = new CloudApi({ BASE: authApiBase });
+    this.authApi = new CloudApi();
   }
   static async create(options) {
     const auth = new _Auth(options);
@@ -13387,7 +13386,7 @@ var _Auth = class extends EventEmitter {
           payload: jwt_decode_esm_default(storedJwt)
         };
         if (jwt.payload.exp * 1e3 - Date.now() < _Auth.tokenStrategy.refresh.beforeExpire) {
-          this.jwt = await this.refreshToken(jwt);
+          this.jwt = await this.refreshToken(jwt, _Auth.tokenStrategy.refresh.whenLoaded);
           await this.save();
         } else {
           this.jwt = jwt;
@@ -13450,7 +13449,7 @@ var _Auth = class extends EventEmitter {
       throw error;
     }
   }
-  async refreshToken(jwt, retry = 0) {
+  async refreshToken(jwt, options = { maxTry: 1, retryDelay: 1e3 }, retry = 0) {
     try {
       this.logger.debug({ retry }, "Start to refresh token");
       const refreshedJwt = await this.authApi.api.deviceTokenRefresh(jwt.token);
@@ -13460,14 +13459,14 @@ var _Auth = class extends EventEmitter {
         payload: jwt_decode_esm_default(refreshedJwt.data.jwt)
       };
     } catch (error) {
-      if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+      if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
         this.logger.debug({ error }, "Error when refreshing jwt");
       } else {
         this.logger.error({ error }, "Unknown error when refreshing jwt");
-        if (retry < _Auth.tokenStrategy.refresh.maxTry) {
-          await new Promise((resolve4) => setTimeout(resolve4, _Auth.tokenStrategy.refresh.retryDelay));
-          this.logger.debug("Retry refreshing jwt");
-          return this.refreshToken(jwt, retry + 1);
+        if (retry < options.maxTry) {
+          this.logger.debug(`Retry refreshing jwt after ${options.retryDelay}ms`);
+          await new Promise((resolve4) => setTimeout(resolve4, options.retryDelay));
+          return this.refreshToken(jwt, options, retry + 1);
         }
       }
       throw { ...error, retry };
@@ -13488,7 +13487,7 @@ var _Auth = class extends EventEmitter {
         clearInterval(this.pollingTokenTimer);
         this.pollingTokenTimer = null;
       } catch (error) {
-        if (error instanceof ApiError && [401, 403, 405].indexOf(error.status) !== -1) {
+        if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
           this.logger.debug({ error }, "Expected error when polling jwt");
         } else {
           this.logger.error({ error }, "Error when polling jwt");
@@ -13510,17 +13509,20 @@ var _Auth = class extends EventEmitter {
     if (!this.jwt) {
       return null;
     }
-    const refreshDelay = Math.max(
-      0,
-      this.jwt.payload.exp * 1e3 - _Auth.tokenStrategy.refresh.beforeExpire - Date.now()
-    );
-    this.logger.debug({ refreshDelay }, "Schedule refresh token");
-    this.refreshTokenTimer = setTimeout(async () => {
-      this.jwt = await this.refreshToken(this.jwt);
-      await this.save();
-      this.scheduleRefreshToken();
-      super.emit("updated", this.jwt);
-    }, refreshDelay);
+    this.refreshTokenTimer = setInterval(async () => {
+      if (this.jwt.payload.exp * 1e3 - Date.now() < _Auth.tokenStrategy.refresh.beforeExpire) {
+        try {
+          this.jwt = await this.refreshToken(this.jwt, _Auth.tokenStrategy.refresh.whenScheduled);
+          await this.save();
+          this.scheduleRefreshToken();
+          super.emit("updated", this.jwt);
+        } catch (error) {
+          this.logger.error({ error }, "Error when refreshing jwt");
+        }
+      } else {
+        this.logger.debug("Check token, still valid");
+      }
+    }, _Auth.tokenStrategy.refresh.interval);
   }
 };
 var Auth = _Auth;
@@ -13534,13 +13536,22 @@ Auth.tokenStrategy = {
     // stop polling after trying for 5 min
   },
   refresh: {
-    // refresh token 30 min before token expires
-    // assume a new token expires in 1 day, much longer than 30 min
+    // check token every 15 min, refresh token if it expires in 30 min
+    interval: 15 * 60 * 1e3,
     beforeExpire: 30 * 60 * 1e3,
-    maxTry: 5,
-    // try to refresh token 5 times
-    retryDelay: 2e3
-    // retry after 2 seconds
+    whenLoaded: {
+      // after token loaded from data store, refresh token if it is about to expire or has expired
+      maxTry: 5,
+      // keep loading time not too long
+      retryDelay: 1e3
+      // retry after 1 seconds
+    },
+    whenScheduled: {
+      // if running until token is about to expire, refresh token as scheduled
+      maxTry: 60,
+      retryDelay: 30 * 1e3
+      // retry after 30 seconds
+    }
   }
 };
 
@@ -15125,7 +15136,7 @@ var version3 = "0.0.1";
 // src/AnonymousUsageLogger.ts
 var AnonymousUsageLogger = class {
   constructor() {
-    this.anonymousUsageTrackingApi = new CloudApi({ BASE: "https://app.tabbyml.com/api" });
+    this.anonymousUsageTrackingApi = new CloudApi();
     this.logger = rootLogger.child({ component: "AnonymousUsage" });
     this.systemData = {
       agent: `${name2}, ${version3}`,
@@ -15208,12 +15219,16 @@ var _TabbyAgent = class extends EventEmitter {
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
       this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
-      this.auth.on("updated", this.onAuthUpdated.bind(this));
+      this.auth.on("updated", this.setupApi.bind(this));
     }
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+    await this.setupApi();
   }
-  async onAuthUpdated() {
-    this.api = new TabbyApi({ BASE: this.config.server.endpoint, TOKEN: this.auth.token });
+  async setupApi() {
+    this.api = new TabbyApi({
+      BASE: this.config.server.endpoint.replace(/\/+$/, ""),
+      // remove trailing slash
+      TOKEN: this.auth?.token
+    });
     await this.healthCheck();
   }
   changeStatus(status) {
@@ -15252,7 +15267,7 @@ var _TabbyAgent = class extends EventEmitter {
       }
     );
   }
-  async healthCheck() {
+  healthCheck() {
     return this.callApi(this.api.v1.health, {}).catch(() => {
     });
   }
@@ -15270,9 +15285,12 @@ var _TabbyAgent = class extends EventEmitter {
   }
   async initialize(options) {
     if (options.client) {
-      allLoggers.forEach((logger2) => logger2.setBindings && logger2.setBindings({ client: options.client }));
+      allLoggers.forEach((logger2) => logger2.setBindings?.({ client: options.client }));
     }
-    await this.updateConfig(options.config || {});
+    if (options.config) {
+      this.config = (0, import_deepmerge.default)(this.config, options.config);
+    }
+    await this.applyConfig();
     await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client
     });
@@ -15288,7 +15306,6 @@ var _TabbyAgent = class extends EventEmitter {
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
     }
-    await this.healthCheck();
     return true;
   }
   getConfig() {
