@@ -52,7 +52,7 @@ function showInformationWhenDisconnected() {
     });
 }
 
-function showInformationStartAuth(callbacks?: { onStartAuth?: () => void; onCancelAuth?: () => void }) {
+function showInformationStartAuth(callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) {
   window
     .showWarningMessage(
       "Tabby Server requires authorization. Continue to open authorization page in your browser.",

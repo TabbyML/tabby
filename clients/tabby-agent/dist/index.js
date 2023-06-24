@@ -1263,7 +1263,15 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
       return cancelable(Promise.reject("Agent is not initialized"), () => {
       });
     }
-    return this.auth.pollingToken(code);
+    const polling = this.auth.pollingToken(code);
+    return cancelable(
+      polling.then(() => {
+        return this.setupApi();
+      }),
+      () => {
+        polling.cancel();
+      }
+    );
   }
   getCompletions(request2) {
     if (this.status === "notInitialized") {

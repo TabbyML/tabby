@@ -36,12 +36,13 @@ const fsm = createMachine({
         ready: "ready",
         disconnected: "disconnected",
         disabled: "disabled",
-        startAuth: "unauthorizedAndAuthInProgress",
+        authStart: "unauthorizedAndAuthInProgress",
       },
       entry: () => toUnauthorized(),
     },
     unauthorizedAndAuthInProgress: {
-      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled", cancelAuth: "unauthorized" },
+      // if auth succeeds, we will get `ready` before `authEnd` event
+      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled", authEnd: "unauthorized" },
       entry: () => toUnauthorizedAndAuthInProgress(),
     },
     disabled: {
@@ -132,11 +133,11 @@ export const tabbyStatusBarItem = () => {
 
   agent().on("authRequired", () => {
     notifications.showInformationStartAuth({
-      onStartAuth: () => {
-        fsmService.send("startAuth");
+      onAuthStart: () => {
+        fsmService.send("authStart");
       },
-      onCancelAuth: () => {
-        fsmService.send("cancelAuth");
+      onAuthEnd: () => {
+        fsmService.send("authEnd");
       },
     });
   });

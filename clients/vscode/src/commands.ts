@@ -142,7 +142,7 @@ const emitEvent: Command = {
 
 const openAuthPage: Command = {
   command: "tabby.openAuthPage",
-  callback: (callbacks?: { onStartAuth?: () => void; onCancelAuth?: () => void }) => {
+  callback: (callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) => {
     window.withProgress(
       {
         location: ProgressLocation.Notification,
@@ -153,12 +153,11 @@ const openAuthPage: Command = {
         let requestAuthUrl: CancelablePromise<{ authUrl: string; code: string } | null>;
         let waitForAuthToken: CancelablePromise<any>;
         token.onCancellationRequested(() => {
-          callbacks?.onCancelAuth?.();
           requestAuthUrl?.cancel();
           waitForAuthToken?.cancel();
         });
         try {
-          callbacks?.onStartAuth?.();
+          callbacks?.onAuthStart?.();
           progress.report({ message: "Generating authorization url..." });
           requestAuthUrl = agent().requestAuthUrl();
           let authUrl = await requestAuthUrl;
@@ -178,6 +177,8 @@ const openAuthPage: Command = {
           if (error.isCancelled) return;
           console.debug("Error auth", { error });
           notifications.showInformationWhenAuthFailed();
+        } finally {
+          callbacks?.onAuthEnd?.();
         }
       }
     );

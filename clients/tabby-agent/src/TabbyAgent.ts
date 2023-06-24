@@ -208,7 +208,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
-    return this.auth.pollingToken(code);
+    const polling = this.auth.pollingToken(code);
+    return cancelable(
+      polling.then(() => {
+        return this.setupApi();
+      }),
+      () => {
+        polling.cancel();
+      }
+    );
   }
 
   public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
