@@ -1,6 +1,9 @@
 resources:
   accelerators: T4:1
 
+# tabby base dir
+workdir: ../../
+
 setup: |
   set -ex
 
@@ -8,9 +11,9 @@ setup: |
   sudo curl -L https://github.com/docker/compose/releases/download/v2.17.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
   sudo chmod a+x /usr/local/bin/docker-compose
 
-  # Pull tabby images.
-  git clone https://github.com/TabbyML/tabby.git || true
-  cd tabby/experimental
+  # Install tabby python client.
+  cd tabby/experimental/eval
+  pip install -r requirements.txt
 
   # On certain cloud providers (e.g lambda cloud), the default user is not added to docker group, so we need sudo here
   sudo docker-compose pull
@@ -20,5 +23,7 @@ setup: |
 
 
 run: |
-  cd tabby/experimental
-  sudo docker-compose up
+  cd tabby/experimental/eval
+  sudo docker-compose up -d
+
+  ./eval.sh
