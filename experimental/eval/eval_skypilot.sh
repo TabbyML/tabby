@@ -1,8 +1,10 @@
 #!/bin/bash
 set -ex
 
-if ! sky exec tabby-eval skypilot.yaml; then
-  sky launch -c tabby-eval skypilot.yaml
+ARGS="tabby-eval skypilot.yaml --env MAX_RECORDS=100"
+
+if ! sky exec $ARGS; then
+  sky launch -c $ARGS
 fi
 
 scp tabby-eval:~/sky_workdir/reports.html ./

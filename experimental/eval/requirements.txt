@@ -1,6 +1,5 @@
 papermill
 git+https://github.com/TabbyML/tabby.git#egg=tabby-python-client&subdirectory=clients/tabby-python-client
-itables
 transformers
 editdistance
 matplotlib
