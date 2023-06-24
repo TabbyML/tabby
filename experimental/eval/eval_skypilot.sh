@@ -7,4 +7,5 @@ if ! sky exec $ARGS; then
   sky launch -c $ARGS
 fi
 
+scp tabby-eval:~/sky_workdir/reports.ipynb ./
 scp tabby-eval:~/sky_workdir/reports.html ./
