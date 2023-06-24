@@ -36,24 +36,13 @@ const fsm = createMachine({
         ready: "ready",
         disconnected: "disconnected",
         disabled: "disabled",
-        openAuthPage: "unauthorizedAndAuthPageOpen",
+        startAuth: "unauthorizedAndAuthInProgress",
       },
-      entry: () => {
-        toUnauthorized();
-        notifications.showInformationStartAuth({
-          onOpenAuthPage: () => {
-            fsmService.send("openAuthPage");
-          },
-        });
-      },
+      entry: () => toUnauthorized(),
     },
-    unauthorizedAndAuthPageOpen: {
-      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled" },
-      exit: (_, event) => {
-        if (event.type === "ready") {
-          notifications.showInformationAuthSuccess();
-        }
-      },
+    unauthorizedAndAuthInProgress: {
+      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled", cancelAuth: "unauthorized" },
+      entry: () => toUnauthorizedAndAuthInProgress(),
     },
     disabled: {
       on: { loading: "loading", ready: "ready", disconnected: "disconnected", unauthorized: "unauthorized" },
@@ -95,6 +84,14 @@ function toUnauthorized() {
   item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["unauthorized"] };
 }
 
+function toUnauthorizedAndAuthInProgress() {
+  item.color = colorWarning;
+  item.backgroundColor = backgroundColorWarning;
+  item.text = `${iconUnauthorized} ${label}`;
+  item.tooltip = "Waiting for authorization.";
+  item.command = undefined;
+}
+
 function toDisabled() {
   item.color = colorWarning;
   item.backgroundColor = backgroundColorWarning;
@@ -132,6 +129,17 @@ export const tabbyStatusBarItem = () => {
     }
   });
   agent().on("statusChanged", updateStatusBarItem);
+
+  agent().on("authRequired", () => {
+    notifications.showInformationStartAuth({
+      onStartAuth: () => {
+        fsmService.send("startAuth");
+      },
+      onCancelAuth: () => {
+        fsmService.send("cancelAuth");
+      },
+    });
+  });
 
   item.show();
   return item;

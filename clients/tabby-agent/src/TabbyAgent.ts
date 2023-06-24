@@ -148,6 +148,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.config = deepMerge(this.config, options.config);
     }
     await this.applyConfig();
+    if (this.status === "unauthorized") {
+      const event: AgentEvent = { event: "authRequired", server: this.config.server };
+      super.emit("authRequired", event);
+    }
     await this.anonymousUsageLogger.event("AgentInitialized", {
       client: options.client,
     });
@@ -158,11 +162,16 @@ export class TabbyAgent extends EventEmitter implements Agent {
   public async updateConfig(config: Partial<AgentConfig>): Promise<boolean> {
     const mergedConfig = deepMerge(this.config, config);
     if (!deepEqual(this.config, mergedConfig)) {
+      const serverUpdated = !deepEqual(this.config.server, mergedConfig.server);
       this.config = mergedConfig;
       await this.applyConfig();
       const event: AgentEvent = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");
       super.emit("configUpdated", event);
+      if (serverUpdated && this.status === "unauthorized") {
+        const event: AgentEvent = { event: "authRequired", server: this.config.server };
+        super.emit("authRequired", event);
+      }
     }
     return true;
   }
@@ -175,28 +184,36 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.status;
   }
 
-  public startAuth(): CancelablePromise<string | null> {
+  public requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string } | null> {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
-    return cancelable(
-      this.healthCheck().then(() => {
-        if (this.status === "unauthorized") {
-          return this.auth.requestToken();
-        }
-        return null;
-      }),
-      () => {
-        if (this.status === "unauthorized") {
-          this.auth.reset();
-        }
+    return new CancelablePromise(async (resolve, reject, onCancel) => {
+      let request: CancelablePromise<{ authUrl: string; code: string }>;
+      onCancel(() => {
+        request?.cancel();
+      });
+      await this.healthCheck();
+      if (onCancel.isCancelled) return;
+      if (this.status === "unauthorized") {
+        request = this.auth.requestAuthUrl();
+        resolve(request);
+      } else {
       }
-    );
+      resolve(null);
+    });
+  }
+
+  public waitForAuthToken(code: string): CancelablePromise<any> {
+    if (this.status === "notInitialized") {
+      return cancelable(Promise.reject("Agent is not initialized"), () => {});
+    }
+    return this.auth.pollingToken(code);
   }
 
   public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
     if (this.completionCache.has(request)) {
       this.logger.debug({ request }, "Completion cache hit");
@@ -236,7 +253,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   public postEvent(request: LogEventRequest): CancelablePromise<boolean> {
     if (this.status === "notInitialized") {
-      throw new Error("Agent is not initialized");
+      return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
     return this.callApi(this.api.v1.event, request);
   }

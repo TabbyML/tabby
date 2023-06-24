@@ -52,9 +52,9 @@ function showInformationWhenDisconnected() {
     });
 }
 
-function showInformationStartAuth(callbacks?: { onOpenAuthPage?: () => void }) {
+function showInformationStartAuth(callbacks?: { onStartAuth?: () => void; onCancelAuth?: () => void }) {
   window
-    .showInformationMessage(
+    .showWarningMessage(
       "Tabby Server requires authorization. Continue to open authorization page in your browser.",
       "Continue",
       "Settings"
@@ -78,8 +78,8 @@ function showInformationWhenStartAuthButAlreadyAuthorized() {
   window.showInformationMessage("You are already authorized now.");
 }
 
-function showInformationWhenStartAuthFailed() {
-  window.showInformationMessage("Cannot connect to server. Please check settings.", "Settings").then((selection) => {
+function showInformationWhenAuthFailed() {
+  window.showWarningMessage("Cannot connect to server. Please check settings.", "Settings").then((selection) => {
     switch (selection) {
       case "Settings":
         commands.executeCommand("tabby.openSettings");
@@ -96,5 +96,5 @@ export const notifications = {
   showInformationStartAuth,
   showInformationAuthSuccess,
   showInformationWhenStartAuthButAlreadyAuthorized,
-  showInformationWhenStartAuthFailed,
+  showInformationWhenAuthFailed,
 };

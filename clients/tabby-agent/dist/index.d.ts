@@ -69,10 +69,21 @@ interface AgentFunction {
     getConfig(): AgentConfig;
     getStatus(): AgentStatus;
     /**
-     * @returns string auth url if AgentStatus is `unauthorized`, null otherwise
+     * @returns the auth url for redirecting, and the code for next step `waitingForAuth`, only return value when
+     *          `AgentStatus` is `unauthorized`, return null otherwise
      * @throws Error if agent is not initialized
      */
-    startAuth(): CancelablePromise<string | null>;
+    requestAuthUrl(): CancelablePromise<{
+        authUrl: string;
+        code: string;
+    } | null>;
+    /**
+     * Wait for auth token to be ready after redirecting user to auth url,
+     * returns nothing, but `AgentStatus` will change to `ready` if resolved successfully
+     * @param code from `requestAuthUrl`
+     * @throws Error if agent is not initialized
+     */
+    waitForAuthToken(code: string): CancelablePromise<any>;
     /**
      * @param request
      * @returns
@@ -94,7 +105,11 @@ type ConfigUpdatedEvent = {
     event: "configUpdated";
     config: AgentConfig;
 };
-type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent;
+type AuthRequiredEvent = {
+    event: "authRequired";
+    server: AgentConfig["server"];
+};
+type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent;
 declare const agentEventNames: AgentEvent["event"][];
 interface AgentEventEmitter {
     on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;
@@ -145,7 +160,11 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     updateConfig(config: Partial<AgentConfig>): Promise<boolean>;
     getConfig(): AgentConfig;
     getStatus(): AgentStatus;
-    startAuth(): CancelablePromise<string | null>;
+    requestAuthUrl(): CancelablePromise<{
+        authUrl: string;
+        code: string;
+    } | null>;
+    waitForAuthToken(code: string): CancelablePromise<any>;
     getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
     postEvent(request: LogEventRequest): CancelablePromise<boolean>;
 }

@@ -1,6 +1,7 @@
 import {
   ConfigurationTarget,
   InputBoxValidationSeverity,
+  ProgressLocation,
   QuickPickItem,
   QuickPickItemKind,
   Uri,
@@ -11,6 +12,7 @@ import {
 } from "vscode";
 import { strict as assert } from "assert";
 import { Duration } from "@sapphire/duration";
+import { CancelablePromise } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 
@@ -140,23 +142,45 @@ const emitEvent: Command = {
 
 const openAuthPage: Command = {
   command: "tabby.openAuthPage",
-  callback: (callbacks?: { onOpenAuthPage?: () => void }) => {
-    agent()
-      .startAuth()
-      .then((authUrl) => {
-        if (authUrl) {
-          callbacks?.onOpenAuthPage?.();
-          env.openExternal(Uri.parse(authUrl));
-        } else if (agent().getStatus() === "ready") {
-          notifications.showInformationWhenStartAuthButAlreadyAuthorized();
-        } else {
-          notifications.showInformationWhenStartAuthFailed();
+  callback: (callbacks?: { onStartAuth?: () => void; onCancelAuth?: () => void }) => {
+    window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Tabby Server Authorization",
+        cancellable: true,
+      },
+      async (progress, token) => {
+        let requestAuthUrl: CancelablePromise<{ authUrl: string; code: string } | null>;
+        let waitForAuthToken: CancelablePromise<any>;
+        token.onCancellationRequested(() => {
+          callbacks?.onCancelAuth?.();
+          requestAuthUrl?.cancel();
+          waitForAuthToken?.cancel();
+        });
+        try {
+          callbacks?.onStartAuth?.();
+          progress.report({ message: "Generating authorization url..." });
+          requestAuthUrl = agent().requestAuthUrl();
+          let authUrl = await requestAuthUrl;
+          if (authUrl) {
+            env.openExternal(Uri.parse(authUrl.authUrl));
+            progress.report({ message: "Waiting for authorization from browser..." });
+            waitForAuthToken = agent().waitForAuthToken(authUrl.code);
+            await waitForAuthToken;
+            assert(agent().getStatus() === "ready");
+            notifications.showInformationAuthSuccess();
+          } else if (agent().getStatus() === "ready") {
+            notifications.showInformationWhenStartAuthButAlreadyAuthorized();
+          } else {
+            notifications.showInformationWhenAuthFailed();
+          }
+        } catch (error: any) {
+          if (error.isCancelled) return;
+          console.debug("Error auth", { error });
+          notifications.showInformationWhenAuthFailed();
         }
-      })
-      .catch((error) => {
-        console.debug("Error to start auth", { error });
-        notifications.showInformationWhenStartAuthFailed();
-      });
+      }
+    );
   },
 };
 
