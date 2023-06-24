@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://playground.app.tabbyml.com/tabby",
+      "url": "https://playground.app.tabbyml.com",
       "description": "Playground server"
     },
     {

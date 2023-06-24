@@ -27,7 +27,7 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         license(name = "Apache 2.0", url="https://github.com/TabbyML/tabby/blob/main/LICENSE")
     ),
     servers(
-        (url = "https://playground.app.tabbyml.com/tabby", description = "Playground server"),
+        (url = "https://playground.app.tabbyml.com", description = "Playground server"),
         (url = "http://localhost:8080", description = "Local server"),
     ),
     paths(events::log_event, completions::completion, health::health),
