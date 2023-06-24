@@ -15,5 +15,7 @@ services:
     image: tabbyml/tabby
     platform: linux/amd64
     command: serve --model TabbyML/T5P-220M
+    ports:
+      - "8080:8080"
     volumes:
-      - "$PWD/.tabby:/data"
+      - "$PWD/tabby:/data"

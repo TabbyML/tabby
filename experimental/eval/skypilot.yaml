@@ -2,7 +2,7 @@ resources:
   accelerators: T4:1
 
 # tabby base dir
-workdir: ../../
+workdir: ./
 
 setup: |
   set -ex
@@ -12,7 +12,6 @@ setup: |
   sudo chmod a+x /usr/local/bin/docker-compose
 
   # Install tabby python client.
-  cd tabby/experimental/eval
   pip install -r requirements.txt
 
   # On certain cloud providers (e.g lambda cloud), the default user is not added to docker group, so we need sudo here
@@ -23,7 +22,4 @@ setup: |
 
 
 run: |
-  cd tabby/experimental/eval
-  sudo docker-compose up -d
-
   ./eval.sh

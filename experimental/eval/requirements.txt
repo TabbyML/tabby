@@ -1,2 +1,2 @@
 papermill
-../../clients/tabby-python-client
+git+https://github.com/TabbyML/tabby.git#egg=tabby_client&subdirectory=clients%2Ftabby-python-client
