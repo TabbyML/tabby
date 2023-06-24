@@ -17,7 +17,6 @@ Self-hosted AI coding assistant. An opensource / on-prem alternative to GitHub C
 ## Features
 
 * Self-contained, with no need for a DBMS or cloud service
-* Web UI for visualizing and configuration models and MLOps.
 * OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
 * Consumer level GPU supports (FP-16 weight loading with various optimization).
 
