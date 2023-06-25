@@ -23,7 +23,6 @@ pub async fn scheduler(now: bool) -> Result<()> {
         let ret = dataset::create_dataset(&config);
         if let Err(err) = ret {
             error!("Failed to build dataset, err: '{}'", err);
-            return;
         }
     };
 
