@@ -58,16 +58,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const agent = new TabbyAgent();
     agent.dataStore = options?.dataStore;
     agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
-    
-    if (userAgentConfig) {
-      await userAgentConfig.load();
-      agent.userConfig = userAgentConfig.config;
-      userAgentConfig.on("updated", async (config) => {
-        agent.userConfig = config;
-        await agent.applyConfig();
-      });
-      userAgentConfig.watch();
-    }
     return agent;
   }
 
@@ -156,6 +146,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
       // Client info is only used in logging for now
       // `pino.Logger.setBindings` is not present in the browser
       allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client }));
+    }
+    if (userAgentConfig) {
+      await userAgentConfig.load();
+      this.userConfig = userAgentConfig.config;
+      userAgentConfig.on("updated", async (config) => {
+        this.userConfig = config;
+        await this.applyConfig();
+      });
+      userAgentConfig.watch();
     }
     if (options.config) {
       this.clientConfig = deepMerge(this.clientConfig, options.config);

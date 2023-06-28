@@ -1195,15 +1195,6 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     const agent = new _TabbyAgent();
     agent.dataStore = options?.dataStore;
     agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
-    if (userAgentConfig) {
-      await userAgentConfig.load();
-      agent.userConfig = userAgentConfig.config;
-      userAgentConfig.on("updated", async (config) => {
-        agent.userConfig = config;
-        await agent.applyConfig();
-      });
-      userAgentConfig.watch();
-    }
     return agent;
   }
   async applyConfig() {
@@ -1279,6 +1270,15 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
   async initialize(options) {
     if (options.client) {
       allLoggers.forEach((logger2) => logger2.setBindings?.({ client: options.client }));
+    }
+    if (userAgentConfig) {
+      await userAgentConfig.load();
+      this.userConfig = userAgentConfig.config;
+      userAgentConfig.on("updated", async (config) => {
+        this.userConfig = config;
+        await this.applyConfig();
+      });
+      userAgentConfig.watch();
     }
     if (options.config) {
       this.clientConfig = (0, import_deepmerge.default)(this.clientConfig, options.config);
