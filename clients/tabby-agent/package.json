@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "axios": "^1.4.0",
+    "chokidar": "^3.5.3",
     "deep-equal": "^2.2.1",
     "deepmerge": "^4.3.1",
     "form-data": "^4.0.0",
@@ -43,6 +44,7 @@
     "object-sizeof": "^2.6.1",
     "pino": "^8.14.1",
     "rotating-file-stream": "^3.1.0",
+    "toml": "^3.0.0",
     "uuid": "^9.0.0"
   }
 }

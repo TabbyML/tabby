@@ -14,7 +14,7 @@ import {
   LogEventRequest,
 } from "./Agent";
 import { Auth } from "./Auth";
-import { AgentConfig, defaultAgentConfig } from "./AgentConfig";
+import { AgentConfig, defaultAgentConfig, userAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
 import { DataStore } from "./dataStore";
 import { postprocess } from "./postprocess";
@@ -33,6 +33,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = rootLogger.child({ component: "TabbyAgent" });
   private anonymousUsageLogger: AnonymousUsageLogger;
   private config: AgentConfig = defaultAgentConfig;
+  private userConfig: Partial<AgentConfig> = {}; // config from `~/.tabby/agent/config.toml`
+  private clientConfig: Partial<AgentConfig> = {}; // config from `initialize` and `updateConfig` method
   private status: AgentStatus = "notInitialized";
   private api: TabbyApi;
   private auth: Auth;
@@ -56,10 +58,21 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const agent = new TabbyAgent();
     agent.dataStore = options?.dataStore;
     agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
+    
+    if (userAgentConfig) {
+      await userAgentConfig.load();
+      agent.userConfig = userAgentConfig.config;
+      userAgentConfig.on("updated", async (config) => {
+        agent.userConfig = config;
+        await agent.applyConfig();
+      });
+      userAgentConfig.watch();
+    }
     return agent;
   }
 
   private async applyConfig() {
+    this.config = deepMerge.all<AgentConfig>([defaultAgentConfig, this.userConfig, this.clientConfig]);
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
@@ -145,7 +158,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client }));
     }
     if (options.config) {
-      this.config = deepMerge(this.config, options.config);
+      this.clientConfig = deepMerge(this.clientConfig, options.config);
     }
     await this.applyConfig();
     if (this.status === "unauthorized") {
@@ -160,10 +173,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async updateConfig(config: Partial<AgentConfig>): Promise<boolean> {
-    const mergedConfig = deepMerge(this.config, config);
-    if (!deepEqual(this.config, mergedConfig)) {
+    const mergedConfig = deepMerge(this.clientConfig, config);
+    if (!deepEqual(this.clientConfig, mergedConfig)) {
       const serverUpdated = !deepEqual(this.config.server, mergedConfig.server);
-      this.config = mergedConfig;
+      this.clientConfig = mergedConfig;
       await this.applyConfig();
       const event: AgentEvent = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");

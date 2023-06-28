@@ -4,6 +4,11 @@ import {
   CompletionResponse as ApiCompletionResponse,
 } from "./generated";
 
+// Configuration override order:
+// 1. Default config
+// 2. User config file `~/.tabby/agent/config.toml` (not available in browser)
+// 3. Agent `initialize` method options
+// 4. Agent `updateConfig` method after initialization
 import { AgentConfig } from "./AgentConfig";
 
 export type AgentInitOptions = {

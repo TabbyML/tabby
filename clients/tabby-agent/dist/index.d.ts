@@ -141,6 +141,8 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private readonly logger;
     private anonymousUsageLogger;
     private config;
+    private userConfig;
+    private clientConfig;
     private status;
     private api;
     private auth;

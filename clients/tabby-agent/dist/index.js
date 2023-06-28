@@ -4,6 +4,9 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
 var __export = (target, all) => {
   for (var name2 in all)
     __defProp(target, name2, { get: all[name2], enumerable: true });
@@ -43,6 +46,43 @@ var __privateSet = (obj, member, value, setter) => {
   setter ? setter.call(obj, value) : member.set(obj, value);
   return value;
 };
+
+// src/env.ts
+var isBrowser;
+var init_env = __esm({
+  "src/env.ts"() {
+    isBrowser = false;
+  }
+});
+
+// src/logger.ts
+var logger_exports = {};
+__export(logger_exports, {
+  allLoggers: () => allLoggers,
+  rootLogger: () => rootLogger
+});
+var import_pino, stream, rootLogger, allLoggers;
+var init_logger = __esm({
+  "src/logger.ts"() {
+    import_pino = __toESM(require("pino"));
+    init_env();
+    stream = isBrowser ? null : (
+      /**
+       * Default rotating file locate at `~/.tabby/agent-logs/`.
+       */
+      require("rotating-file-stream").createStream("tabby-agent.log", {
+        path: require("path").join(require("os").homedir(), ".tabby", "agent-logs"),
+        size: "10M",
+        interval: "1d"
+      })
+    );
+    rootLogger = !!stream ? (0, import_pino.default)(stream) : (0, import_pino.default)();
+    allLoggers = [rootLogger];
+    rootLogger.onChild = (child) => {
+      allLoggers.push(child);
+    };
+  }
+});
 
 // src/index.ts
 var src_exports = {};
@@ -585,10 +625,8 @@ var CloudApi = class {
   }
 };
 
-// src/env.ts
-var isBrowser = false;
-
 // src/dataStore.ts
+init_env();
 var dataStore = isBrowser ? null : (() => {
   const dataFile = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");
   const fs = require("fs-extra");
@@ -603,25 +641,8 @@ var dataStore = isBrowser ? null : (() => {
   };
 })();
 
-// src/logger.ts
-var import_pino = __toESM(require("pino"));
-var stream = isBrowser ? null : (
-  /**
-   * Default rotating file locate at `~/.tabby/agent-logs/`.
-   */
-  require("rotating-file-stream").createStream("tabby-agent.log", {
-    path: require("path").join(require("os").homedir(), ".tabby", "agent-logs"),
-    size: "10M",
-    interval: "1d"
-  })
-);
-var rootLogger = !!stream ? (0, import_pino.default)(stream) : (0, import_pino.default)();
-var allLoggers = [rootLogger];
-rootLogger.onChild = (child) => {
-  allLoggers.push(child);
-};
-
 // src/Auth.ts
+init_logger();
 var _Auth = class extends import_events.EventEmitter {
   constructor(options) {
     super();
@@ -824,6 +845,7 @@ Auth.tokenStrategy = {
 };
 
 // src/AgentConfig.ts
+init_env();
 var defaultAgentConfig = {
   server: {
     endpoint: "http://localhost:8080"
@@ -835,11 +857,48 @@ var defaultAgentConfig = {
     disable: false
   }
 };
+var userAgentConfig = isBrowser ? null : (() => {
+  const EventEmitter3 = require("events");
+  const fs = require("fs-extra");
+  const toml = require("toml");
+  const chokidar = require("chokidar");
+  class ConfigFile extends EventEmitter3 {
+    constructor(filepath) {
+      super();
+      this.data = {};
+      this.watcher = null;
+      this.logger = (init_logger(), __toCommonJS(logger_exports)).rootLogger.child({ component: "ConfigFile" });
+      this.filepath = filepath;
+    }
+    get config() {
+      return this.data;
+    }
+    async load() {
+      try {
+        const fileContent = await fs.readFile(this.filepath, "utf8");
+        this.data = toml.parse(fileContent);
+        super.emit("updated", this.data);
+      } catch (error) {
+        this.logger.error({ error }, "Failed to load config file");
+      }
+    }
+    watch() {
+      this.watcher = chokidar.watch(this.filepath, {
+        interval: 1e3
+      });
+      this.watcher.on("add", this.load.bind(this));
+      this.watcher.on("change", this.load.bind(this));
+    }
+  }
+  const configFile = require("path").join(require("os").homedir(), ".tabby", "agent", "config.toml");
+  return new ConfigFile(configFile);
+})();
 
 // src/CompletionCache.ts
 var import_lru_cache = require("lru-cache");
 var import_object_hash = __toESM(require("object-hash"));
 var import_object_sizeof = __toESM(require("object-sizeof"));
+init_logger();
 var CompletionCache = class {
   constructor() {
     this.logger = rootLogger.child({ component: "CompletionCache" });
@@ -952,6 +1011,7 @@ var CompletionCache = class {
 };
 
 // src/postprocess/filter.ts
+init_logger();
 var logger = rootLogger.child({ component: "Postprocess" });
 var applyFilter = (filter) => {
   return async (response) => {
@@ -1042,12 +1102,17 @@ async function postprocess(request2, response) {
   return new Promise((resolve2) => resolve2(response)).then(applyFilter(limitScopeByIndentation(request2))).then(applyFilter(removeOverlapping(request2))).then(applyFilter(dropBlank()));
 }
 
+// src/TabbyAgent.ts
+init_logger();
+
 // package.json
 var name = "tabby-agent";
 var version = "0.0.1";
 
 // src/AnonymousUsageLogger.ts
 var import_uuid = require("uuid");
+init_env();
+init_logger();
 var AnonymousUsageLogger = class {
   constructor() {
     this.anonymousUsageTrackingApi = new CloudApi();
@@ -1110,6 +1175,10 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     super();
     this.logger = rootLogger.child({ component: "TabbyAgent" });
     this.config = defaultAgentConfig;
+    this.userConfig = {};
+    // config from `~/.tabby/agent/config.toml`
+    this.clientConfig = {};
+    // config from `initialize` and `updateConfig` method
     this.status = "notInitialized";
     this.dataStore = null;
     this.completionCache = new CompletionCache();
@@ -1126,9 +1195,19 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     const agent = new _TabbyAgent();
     agent.dataStore = options?.dataStore;
     agent.anonymousUsageLogger = await AnonymousUsageLogger.create({ dataStore: options?.dataStore });
+    if (userAgentConfig) {
+      await userAgentConfig.load();
+      agent.userConfig = userAgentConfig.config;
+      userAgentConfig.on("updated", async (config) => {
+        agent.userConfig = config;
+        await agent.applyConfig();
+      });
+      userAgentConfig.watch();
+    }
     return agent;
   }
   async applyConfig() {
+    this.config = import_deepmerge.default.all([defaultAgentConfig, this.userConfig, this.clientConfig]);
     allLoggers.forEach((logger2) => logger2.level = this.config.logs.level);
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
     if (this.config.server.endpoint !== this.auth?.endpoint) {
@@ -1202,7 +1281,7 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
       allLoggers.forEach((logger2) => logger2.setBindings?.({ client: options.client }));
     }
     if (options.config) {
-      this.config = (0, import_deepmerge.default)(this.config, options.config);
+      this.clientConfig = (0, import_deepmerge.default)(this.clientConfig, options.config);
     }
     await this.applyConfig();
     if (this.status === "unauthorized") {
@@ -1216,10 +1295,10 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     return this.status !== "notInitialized";
   }
   async updateConfig(config) {
-    const mergedConfig = (0, import_deepmerge.default)(this.config, config);
-    if (!(0, import_deep_equal.default)(this.config, mergedConfig)) {
+    const mergedConfig = (0, import_deepmerge.default)(this.clientConfig, config);
+    if (!(0, import_deep_equal.default)(this.clientConfig, mergedConfig)) {
       const serverUpdated = !(0, import_deep_equal.default)(this.config.server, mergedConfig.server);
-      this.config = mergedConfig;
+      this.clientConfig = mergedConfig;
       await this.applyConfig();
       const event = { event: "configUpdated", config: this.config };
       this.logger.debug({ event }, "Config updated");
