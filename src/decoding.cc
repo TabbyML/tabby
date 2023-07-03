@@ -365,7 +365,7 @@ namespace ctranslate2 {
 
       for (size_t i = 0; i < batch_size; ++i) {
         const dim_t batch_id = batch_offset[i];
-        const dim_t prefix_length = prefix_ids[batch_id].size();
+        const dim_t prefix_length = prefix_ids->at(batch_id).size();
 
         if (step < prefix_length + min_length) {
           for (const size_t end_id : end_ids)
