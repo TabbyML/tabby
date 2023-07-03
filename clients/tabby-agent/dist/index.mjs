@@ -43357,7 +43357,7 @@ var V1Service = class {
 var TabbyApi = class {
   constructor(config2, HttpRequest = AxiosHttpRequest) {
     this.request = new HttpRequest({
-      BASE: config2?.BASE ?? "https://playground.app.tabbyml.com/tabby",
+      BASE: config2?.BASE ?? "https://playground.app.tabbyml.com",
       VERSION: config2?.VERSION ?? "0.1.0",
       WITH_CREDENTIALS: config2?.WITH_CREDENTIALS ?? false,
       CREDENTIALS: config2?.CREDENTIALS ?? "include",

@@ -4,11 +4,6 @@ import {
   CompletionResponse as ApiCompletionResponse,
 } from "./generated";
 
-// Configuration override order:
-// 1. Default config
-// 2. User config file `~/.tabby/agent/config.toml` (not available in browser)
-// 3. Agent `initialize` method options
-// 4. Agent `updateConfig` method after initialization
 import { AgentConfig } from "./AgentConfig";
 
 export type AgentInitOptions = {
@@ -34,7 +29,20 @@ export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unautho
 export interface AgentFunction {
   initialize(options: Partial<AgentInitOptions>): Promise<boolean>;
   updateConfig(config: Partial<AgentConfig>): Promise<boolean>;
+
+  /**
+   * @returns the current config
+   *
+   * Configuration precedence:
+   * 1. Default config
+   * 2. User config file `~/.tabby/agent/config.toml` (not available in browser)
+   * 3. Agent `initialize` and `updateConfig` methods
+   */
   getConfig(): AgentConfig;
+
+  /**
+   * @returns the current status
+   */
   getStatus(): AgentStatus;
 
   /**
@@ -77,7 +85,7 @@ export type ConfigUpdatedEvent = {
 };
 export type AuthRequiredEvent = {
   event: "authRequired";
-  server: AgentConfig["server"]
+  server: AgentConfig["server"];
 };
 
 export type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent;
