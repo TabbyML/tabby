@@ -7,10 +7,10 @@ import { isBrowser } from "./env";
 const stream = isBrowser
   ? null
   : /**
-     * Default rotating file locate at `~/.tabby/agent-logs/`.
+     * Default rotating file locate at `~/.tabby/agent/logs/`.
      */
     require("rotating-file-stream").createStream("tabby-agent.log", {
-      path: require("path").join(require("os").homedir(), ".tabby", "agent-logs"),
+      path: require("path").join(require("os").homedir(), ".tabby", "agent", "logs"),
       size: "10M",
       interval: "1d",
     });
