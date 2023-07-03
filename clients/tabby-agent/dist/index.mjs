@@ -28477,10 +28477,10 @@ var init_logger = __esm({
     init_env();
     stream = isBrowser ? null : (
       /**
-       * Default rotating file locate at `~/.tabby/agent-logs/`.
+       * Default rotating file locate at `~/.tabby/agent/logs/`.
        */
       (init_es(), __toCommonJS(es_exports)).createStream("tabby-agent.log", {
-        path: (init_path(), __toCommonJS(path_exports)).join((init_os(), __toCommonJS(os_exports)).homedir(), ".tabby", "agent-logs"),
+        path: (init_path(), __toCommonJS(path_exports)).join((init_os(), __toCommonJS(os_exports)).homedir(), ".tabby", "agent", "logs"),
         size: "10M",
         interval: "1d"
       })
