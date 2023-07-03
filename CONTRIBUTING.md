@@ -115,3 +115,10 @@ src/ops/my_op_gpu.cu             # CUDA-specific implementation
 ```
 
 In particular, no compilation flags should be used in the header file to make it easy to use the project as a library.
+
+## Release procedure
+
+1. Add the release note for the new version in `CHANGELOG.md`
+1. Update the version number in `python/ctranslate2/version.py`
+1. Tag the latest commit in the format `vX.Y.Z`
+1. When the release pipeline is finished, create a new release on GitHub and copy the note from `CHANGELOG.md`
