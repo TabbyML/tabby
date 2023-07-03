@@ -47,6 +47,8 @@ namespace ctranslate2 {
                         py::object files)
         : _model_loader(create_model_reader(model_path, files))
       {
+        pybind11::gil_scoped_release nogil;
+
         _model_loader.device = str_to_device(device);
         _model_loader.device_indices = std::visit(DeviceIndexResolver(), device_index);
         _model_loader.compute_type = std::visit(ComputeTypeResolver(device), compute_type);
