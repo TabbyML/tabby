@@ -66,7 +66,18 @@ type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
 interface AgentFunction {
     initialize(options: Partial<AgentInitOptions>): Promise<boolean>;
     updateConfig(config: Partial<AgentConfig>): Promise<boolean>;
+    /**
+     * @returns the current config
+     *
+     * Configuration precedence:
+     * 1. Default config
+     * 2. User config file `~/.tabby/agent/config.toml` (not available in browser)
+     * 3. Agent `initialize` and `updateConfig` methods
+     */
     getConfig(): AgentConfig;
+    /**
+     * @returns the current status
+     */
     getStatus(): AgentStatus;
     /**
      * @returns the auth url for redirecting, and the code for next step `waitingForAuth`, only return value when
@@ -141,6 +152,8 @@ declare class TabbyAgent extends EventEmitter implements Agent {
     private readonly logger;
     private anonymousUsageLogger;
     private config;
+    private userConfig;
+    private clientConfig;
     private status;
     private api;
     private auth;
