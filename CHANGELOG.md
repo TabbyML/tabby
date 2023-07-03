@@ -4,6 +4,17 @@
 
 ### Fixes and improvements
 
+## [v3.16.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.16.1) (2023-07-03)
+
+### Fixes and improvements
+
+* Fix repeated outputs in version 3.16.0 when using `include_prompt_in_result=False` and a batch input with variable lengths: a typo in the code led to `min_length` being incorrectly applied
+* Update the Transformers converter to accept extra tokens for Falcon models
+* Release the Python GIL when loading the model
+* Initialize the rotary embeddings on the GPU instead of the CPU
+* Avoid a copy for the input features passed to the Whisper methods
+* Vectorize copy in the Tile CUDA operator
+
 ## [v3.16.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.16.0) (2023-06-15)
 
 ### New features
