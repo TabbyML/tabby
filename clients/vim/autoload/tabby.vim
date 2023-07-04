@@ -78,7 +78,7 @@ function! tabby#CompleteCommands(arglead, cmd, pos)
     return candidates
   else
     return filter(candidates, { idx, val ->
-      \ val[0:end_index] ==# a:arglead
+      \ val[0:end_index] == a:arglead
       \})
   endif
 endfunction
@@ -357,7 +357,7 @@ function! tabby#Schedule()
   let s:scheduled = timer_start(g:tabby_suggestion_delay, function('tabby#Trigger'))
 endfunction
 
-function! tabby#Trigger(timer)
+function! tabby#Trigger(...)
   if !tabby#IsRunning()
     return
   endif
@@ -434,9 +434,15 @@ endfunction
 
 " This function is designed to replace <Tab> key input, so we need a fallback
 " when completion UI is not shown.
-function! tabby#Accept(fallback)
+function! tabby#Accept(...)
   if !exists('s:shown_lines')
-    return a:fallback
+    if a:0 < 1
+      return "\<Ignore>"
+    elseif type(a:1) == v:t_string
+      return a:1
+    elseif type(a:1) == v:t_func
+      return call(a:1, [])
+    endif
   endif
   let lines = s:shown_lines
   if len(lines) == 1
@@ -446,7 +452,7 @@ function! tabby#Accept(fallback)
     let current_line = getbufline('%', line('.'), line('.'))[0]
     let suffix_chars_to_replace = len(current_line) - col('.') + 1
     let s:text_to_insert = join(lines, "\n")
-    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
+    let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>\<End>"
   endif
   call s:HideCompletion()
   call s:PostEvent('select')
@@ -455,9 +461,15 @@ endfunction
 
 " This function is designed to replace <C-]> key input, so we need a fallback
 " when completion UI is not shown.
-function! tabby#Dismiss(fallback)
+function! tabby#Dismiss(...)
   if !exists('s:shown_lines')
-    return a:fallback
+    if a:0 < 1
+      return "\<Ignore>"
+    elseif type(a:1) == v:t_string
+      return a:1
+    elseif type(a:1) == v:t_func
+      return call(a:1, [])
+    endif
   endif
   call s:HideCompletion()
   return ''
