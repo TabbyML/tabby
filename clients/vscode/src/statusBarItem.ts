@@ -1,4 +1,4 @@
-import { StatusBarAlignment, ThemeColor, window, workspace, commands } from "vscode";
+import { StatusBarAlignment, ThemeColor, window, workspace } from "vscode";
 import { createMachine, interpret } from "@xstate/fsm";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
