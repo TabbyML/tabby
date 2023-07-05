@@ -10,7 +10,7 @@ Tabby will show inline suggestions when you stop typing. You can press the `Tab`
 
 Hover over the inline suggestion text to see the toolbar providing more actions.
 
-![InlineCompletionToolbar](../toolbar.png)
+![InlineCompletionToolbar](./toolbar.png)
 
 ### Cycling Through Choices
 
