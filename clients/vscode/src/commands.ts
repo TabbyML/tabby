@@ -132,6 +132,13 @@ const openSettings: Command = {
   },
 };
 
+const gettingStarted: Command = {
+  command: "tabby.gettingStarted",
+  callback: () => {
+    commands.executeCommand("workbench.action.openWalkthrough", "TabbyML.vscode-tabby#gettingStarted");
+  },
+};
+
 const emitEvent: Command = {
   command: "tabby.emitEvent",
   callback: (event) => {
@@ -209,6 +216,13 @@ const statusBarItemClicked: Command = {
 };
 
 export const tabbyCommands = () =>
-  [toggleEnabled, setApiEndpoint, setSuggestionDelay, openSettings, emitEvent, openAuthPage, statusBarItemClicked].map(
-    (command) => commands.registerCommand(command.command, command.callback, command.thisArg)
-  );
+  [
+    toggleEnabled,
+    setApiEndpoint,
+    setSuggestionDelay,
+    openSettings,
+    gettingStarted,
+    emitEvent,
+    openAuthPage,
+    statusBarItemClicked,
+  ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));

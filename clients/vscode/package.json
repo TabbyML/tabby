@@ -4,18 +4,25 @@
   "displayName": "Tabby",
   "description": "Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time.",
   "repository": "https://github.com/TabbyML/tabby",
+  "license": "Apache-2.0",
   "version": "0.1.1",
   "keywords": [
-    "code-suggestion",
+    "ai",
+    "autocomplete",
+    "code completion",
     "copilot",
-    "code-inference",
+    "intellisense",
+    "intellicode",
+    "snippets",
     "tabby"
   ],
-  "icon": "images/logo.png",
+  "icon": "assets/logo.png",
   "engines": {
     "vscode": "^1.70.0"
   },
   "categories": [
+    "Programming Languages",
+    "Machine Learning",
     "Other"
   ],
   "activationEvents": [
@@ -36,6 +43,53 @@
       {
         "command": "tabby.openSettings",
         "title": "Tabby: Open Settings"
+      },
+      {
+        "command": "tabby.gettingStarted",
+        "title": "Tabby: Getting Started"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "gettingStarted",
+        "title": "Getting Started with Tabby",
+        "description": "Set up your own AI coding assistant",
+        "steps": [
+          {
+            "id": "getTabbyServerReady",
+            "title": "Get Tabby Server Ready",
+            "description": "The Tabby VSCode extension requires a Tabby server to work. Please follow this guide to get your Tabby server ready.",
+            "media": {
+              "markdown": "assets/walkthroughs/server.md"
+            }
+          },
+          {
+            "id": "connectToTabbyServer",
+            "title": "Connect to Tabby Server",
+            "description": "Once your Tabby server is ready, specify the server API endpoint here. If you are using a Tabby Cloud endpoint, please follow the popup messages to complete authorization. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
+            "media": {
+              "image": "assets/walkthroughs/setApiEndpoint.png",
+              "altText": "Tabby: Specify API Endpoint of Tabby"
+            }
+          },
+          {
+            "id": "codeCompletion",
+            "title": "Code Completion",
+            "description": "Tabby provides inline suggestions automatically, and you can accept suggestions by just pressing the Tab key. Follow this guide to find more useful actions.",
+            "media": {
+              "markdown": "assets/walkthroughs/codeCompletion.md"
+            }
+          },
+          {
+            "id": "commands",
+            "title": "Commands",
+            "description": "Type `>Tabby:` in quick open prompt to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
+            "media": {
+              "image": "assets/walkthroughs/commands.png",
+              "altText": "Tabby Commands"
+            }
+          }
+        ]
       }
     ],
     "configuration": {
@@ -128,7 +182,6 @@
     "eslint": "^8.20.0",
     "glob": "^8.0.3",
     "mocha": "^10.0.0",
-    "openapi-typescript-codegen": "^0.24.0",
     "process": "^0.11.10",
     "ts-loader": "^9.3.1",
     "typescript": "^4.7.4",
