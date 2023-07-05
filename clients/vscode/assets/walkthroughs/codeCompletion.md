@@ -4,7 +4,7 @@
 
 Tabby will show inline suggestions when you stop typing. You can press the `Tab` key to accept the current suggestion.
 
-![Demo](../demo.gif)
+![Demo](https://tabbyml.github.io/tabby/img/demo.gif)
 
 ## More Actions
 
