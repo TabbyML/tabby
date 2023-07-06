@@ -4,6 +4,10 @@ export type AgentConfig = {
   server: {
     endpoint: string;
   };
+  completion: {
+    maxPrefixLines: number;
+    maxSuffixLines: number;
+  };
   logs: {
     level: "debug" | "error" | "silent";
   };
@@ -15,6 +19,10 @@ export type AgentConfig = {
 export const defaultAgentConfig: AgentConfig = {
   server: {
     endpoint: "http://localhost:8080",
+  },
+  completion: {
+    maxPrefixLines: 20,
+    maxSuffixLines: 20,
   },
   logs: {
     level: "silent",

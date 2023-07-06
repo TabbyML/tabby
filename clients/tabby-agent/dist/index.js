@@ -850,6 +850,10 @@ var defaultAgentConfig = {
   server: {
     endpoint: "http://localhost:8080"
   },
+  completion: {
+    maxPrefixLines: 20,
+    maxSuffixLines: 20
+  },
   logs: {
     level: "silent"
   },
@@ -1256,8 +1260,8 @@ var _TabbyAgent = class extends import_events2.EventEmitter {
     });
   }
   createSegments(request2) {
-    const maxPrefixLines = request2.maxPrefixLines;
-    const maxSuffixLines = request2.maxSuffixLines;
+    const maxPrefixLines = request2.maxPrefixLines ?? this.config.completion.maxPrefixLines;
+    const maxSuffixLines = request2.maxSuffixLines ?? this.config.completion.maxSuffixLines;
     const prefix = request2.text.slice(0, request2.position);
     const prefixLines = splitLines(prefix);
     const suffix = request2.text.slice(request2.position);

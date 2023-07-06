@@ -129,8 +129,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
     // max lines in prefix and suffix configurable
-    const maxPrefixLines = request.maxPrefixLines;
-    const maxSuffixLines = request.maxSuffixLines;
+    const maxPrefixLines = request.maxPrefixLines ?? this.config.completion.maxPrefixLines;
+    const maxSuffixLines = request.maxSuffixLines ?? this.config.completion.maxSuffixLines;
     const prefix = request.text.slice(0, request.position);
     const prefixLines = splitLines(prefix);
     const suffix = request.text.slice(request.position);
