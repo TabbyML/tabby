@@ -45,10 +45,22 @@
         "title": "Tabby: Open Settings"
       },
       {
+        "command": "tabby.openTabbyAgentSettings",
+        "title": "Tabby: Open Tabby Agent Settings"
+      },
+      {
         "command": "tabby.gettingStarted",
         "title": "Tabby: Getting Started"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "tabby.openTabbyAgentSettings",
+          "when": "!isWeb"
+        }
+      ]
+    },
     "walkthroughs": [
       {
         "id": "gettingStarted",
@@ -83,7 +95,7 @@
           {
             "id": "commands",
             "title": "Commands",
-            "description": "Type `>Tabby:` in quick open prompt to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
+            "description": "Type `>Tabby:` in command palette to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
             "media": {
               "image": "assets/walkthroughs/commands.png",
               "altText": "Tabby Commands"
@@ -97,53 +109,15 @@
       "properties": {
         "tabby.api.endpoint": {
           "type": "string",
-          "default": "http://localhost:8080",
-          "format": "uri",
-          "pattern": "^https?:\\/\\/[^\\s]+$",
+          "default": "",
+          "pattern": "(^$)|(^https?:\\/\\/\\S+$)",
           "patternErrorMessage": "Please enter a validate http or https URL.",
-          "description": "Specify API Endpoint of Tabby."
+          "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
         },
         "tabby.codeCompletion": {
           "type": "boolean",
           "default": true,
           "description": "Enable Tabby code completion or not."
-        },
-        "tabby.developerOptions": {
-          "type": "object",
-          "description": "Developer options for Tabby.",
-          "properties": {
-            "maxPrefixLines": {
-              "type": "number",
-              "default": 20,
-              "description": "Number of lines to include in the Prefix for completion requests"
-            },
-            "maxSuffixLines": {
-              "type": "number",
-              "default": 20,
-              "description": "Number of lines to include in the Suffix for completion requests"
-            },
-            "suggestionDelay": {
-              "type": "number",
-              "default": 150,
-              "minimum": 0,
-              "description": "Specifies the delay in milliseconds after which the request is sent to the tabby."
-            },
-            "agent": {
-              "type": "object",
-              "properties": {
-                "logs": {
-                  "type": "string",
-                  "enum": [
-                    "debug",
-                    "error",
-                    "silent"
-                  ],
-                  "default": "error",
-                  "markdownDescription": "Specifies the log level for tabby-agent."
-                }
-              }
-            }
-          }
         },
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
@@ -190,7 +164,6 @@
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
-    "@sapphire/duration": "^1.1.0",
     "@xstate/fsm": "^2.0.1",
     "tabby-agent": "file:../tabby-agent"
   }

@@ -5,15 +5,9 @@ function getWorkspaceConfiguration(): Partial<AgentConfig> {
   const configuration = workspace.getConfiguration("tabby");
   const config: Partial<AgentConfig> = {};
   const endpoint = configuration.get<string>("api.endpoint");
-  if (endpoint) {
+  if (endpoint && endpoint.trim().length > 0) {
     config.server = {
       endpoint,
-    };
-  }
-  const agentLogs = configuration.get<"debug" | "error" | "silent">("developerOptions.agent.logs");
-  if (agentLogs) {
-    config.logs = {
-      level: agentLogs,
     };
   }
   const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);

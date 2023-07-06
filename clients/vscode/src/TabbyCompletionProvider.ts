@@ -21,6 +21,8 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
   // User Settings
   private enabled: boolean = true;
+
+  // These settings will be move to tabby-agent
   private suggestionDelay: number = 150;
   private maxPrefixLines: number = 20;
   private maxSuffixLines: number = 20;
@@ -79,9 +81,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("codeCompletion", true);
-    this.suggestionDelay = configuration.get("developerOptions.suggestionDelay", 150);
-    this.maxPrefixLines = configuration.get("developerOptions.maxPrefixLines", 20);
-    this.maxSuffixLines = configuration.get("developerOptions.maxSuffixLines", 20);
   }
 
   private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {

@@ -1,6 +1,4 @@
-import { commands, window, workspace, ConfigurationTarget } from "vscode";
-
-const configTarget = ConfigurationTarget.Global;
+import { commands, window } from "vscode";
 
 function showInformationWhenLoading() {
   window.showInformationMessage("Tabby is initializing.", "Settings").then((selection) => {

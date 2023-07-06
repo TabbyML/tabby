@@ -16,8 +16,8 @@ export type CompletionRequest = {
   language: string;
   text: string;
   position: number;
-  maxPrefixLines: number;
-  maxSuffixLines: number;
+  maxPrefixLines?: number;
+  maxSuffixLines?: number;
 };
 
 export type CompletionResponse = ApiCompletionResponse;
