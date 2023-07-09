@@ -7,6 +7,10 @@ use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use tabby_common::path::ModelDir;
+use tokio_retry::{
+    strategy::{jitter, ExponentialBackoff},
+    Retry,
+};
 
 impl CacheInfo {
     async fn download(
@@ -41,7 +45,11 @@ impl CacheInfo {
         };
 
         if !local_file_ready {
-            let etag = download_file(&url, &filepath, local_cache_key, is_optional).await?;
+            let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(3);
+            let etag = Retry::spawn(strategy, || {
+                download_file(&url, &filepath, local_cache_key, is_optional)
+            })
+            .await?;
             self.set_local_cache_key(path, &etag).await;
         }
         Ok(())
