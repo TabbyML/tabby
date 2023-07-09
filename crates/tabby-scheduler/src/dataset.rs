@@ -148,12 +148,13 @@ mod tags {
         let empty = Vec::new();
 
         let Some(config) = config else {
-        return empty;
-    };
+            return empty;
+        };
 
-        let Ok((tags, has_error)) = context.generate_tags(&config.0, content.as_bytes(), None) else {
-        return empty;
-    };
+        let Ok((tags, has_error)) = context.generate_tags(&config.0, content.as_bytes(), None)
+        else {
+            return empty;
+        };
 
         if has_error {
             return empty;
