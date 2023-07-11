@@ -6,7 +6,7 @@ services:
     platform: linux/amd64
     command: scheduler --now
     volumes:
-      - "$HOME/.tabby:/data"
+      - "$PWD/tabby:/data"
 
   tabby:
     depends_on:
@@ -15,5 +15,7 @@ services:
     image: tabbyml/tabby
     platform: linux/amd64
     command: serve --model TabbyML/T5P-220M
+    ports:
+      - "8080:8080"
     volumes:
-      - "$HOME/.tabby:/data"
+      - "$PWD/tabby:/data"
