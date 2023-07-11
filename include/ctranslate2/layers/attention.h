@@ -34,7 +34,8 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* queries_padder = nullptr,
                       const Padder* values_padder = nullptr,
-                      bool return_normalized_attention = true) const;
+                      bool return_normalized_attention = true,
+                      StorageView* position_bias = nullptr) const;
 
       bool has_positional_embeddings() const {
         return _relative_position_keys || _relative_attention_bias || _rotary_embeddings || _alibi;

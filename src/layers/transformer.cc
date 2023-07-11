@@ -63,10 +63,21 @@ namespace ctranslate2 {
     void TransformerEncoderLayer::operator()(const StorageView& input,
                                              const StorageView* lengths,
                                              StorageView& output,
-                                             const Padder* padder) const {
+                                             const Padder* padder,
+                                             StorageView* position_bias) const {
       PROFILE("TransformerEncoderLayer");
       StorageView context(input.dtype(), input.device());
-      _self_attention(input, input, lengths, context, nullptr, nullptr, nullptr, padder, padder);
+      _self_attention(input,
+                      input,
+                      lengths,
+                      context,
+                      nullptr,
+                      nullptr,
+                      nullptr,
+                      padder,
+                      padder,
+                      true,
+                      position_bias);
       _ff(context, output);
     }
 
@@ -109,7 +120,8 @@ namespace ctranslate2 {
                                              StorageView* attention,
                                              const Padder* input_padder,
                                              const Padder* memory_padder,
-                                             bool return_normalized_attention) const {
+                                             bool return_normalized_attention,
+                                             StorageView* position_bias) const {
       PROFILE("TransformerDecoderLayer");
 
       const DataType dtype = input.dtype();
@@ -136,7 +148,8 @@ namespace ctranslate2 {
                         nullptr,
                         input_padder,
                         input_padder,
-                        true);
+                        true,
+                        position_bias);
 
         if (_post_attention_layer_norm)
           (*_post_attention_layer_norm)(input, hidden);
@@ -158,7 +171,8 @@ namespace ctranslate2 {
                       nullptr,
                       input_padder,
                       input_padder,
-                      true);
+                      true,
+                      position_bias);
 
       StorageView context(dtype, device);
       if (_encoder_attention) {
@@ -265,8 +279,10 @@ namespace ctranslate2 {
           layers::MultiHeadAttention::prepare_length_mask(*lengths, _num_heads, max_time));
       }
 
+      StorageView position_bias(output.dtype(), output.device());
+
       for (size_t l = 0; l < _layers.size(); ++l) {
-        (*_layers[l])(input, lengths_mask.get(), output, padder.get());
+        (*_layers[l])(input, lengths_mask.get(), output, padder.get(), &position_bias);
         if (l + 1 < _layers.size())
           input = std::move(output);
       }
@@ -511,6 +527,8 @@ namespace ctranslate2 {
       if (attention)
         alignment_heads.reserve(_layers.size());
 
+      StorageView position_bias(dtype, device);
+
       for (size_t l = 0; l < _layers.size(); ++l) {
         StorageView* cached_self_attn_keys = nullptr;
         StorageView* cached_self_attn_values = nullptr;
@@ -544,7 +562,8 @@ namespace ctranslate2 {
                       layer_attention.get(),
                       input_padder.get(),
                       memory_padder.get(),
-                      return_normalized_attention());
+                      return_normalized_attention(),
+                      &position_bias);
         layer_in = std::move(layer_out);
 
         if (layer_attention) {

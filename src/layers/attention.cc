@@ -208,7 +208,8 @@ namespace ctranslate2 {
                                       bool is_decoder = false,
                                       bool with_cache = false,
                                       dim_t beam_size = 1,
-                                      Alibi* alibi = nullptr) {
+                                      Alibi* alibi = nullptr,
+                                      StorageView* position_bias = nullptr) {
       PROFILE("dot_product_attention");
 
       std::unique_ptr<const StorageView> relative_positions;
@@ -230,19 +231,26 @@ namespace ctranslate2 {
                                      output);
 
       if (relative_attention_bias) {
-        const dim_t query_length = queries.dim(2);
-        const dim_t key_length = keys.dim(2);
-        const StorageView position_bias = compute_relative_bias(*relative_attention_bias,
-                                                                query_length,
-                                                                key_length,
-                                                                maximum_relative_position,
-                                                                is_decoder,
-                                                                with_cache ? key_length - 1 : 0);
+        StorageView local_position_bias(output.dtype(), output.device());
+
+        if (!position_bias)
+          position_bias = &local_position_bias;
+
+        if (position_bias->empty()) {
+          const dim_t query_length = queries.dim(2);
+          const dim_t key_length = keys.dim(2);
+          *position_bias = compute_relative_bias(*relative_attention_bias,
+                                                 query_length,
+                                                 key_length,
+                                                 maximum_relative_position,
+                                                 is_decoder,
+                                                 with_cache ? key_length - 1 : 0);
+        }
 
         DEVICE_AND_TYPE_DISPATCH(output.device(), output.dtype(),
-                                 primitives<D>::add_batch_broadcast(position_bias.data<T>(),
+                                 primitives<D>::add_batch_broadcast(position_bias->data<T>(),
                                                                     output.data<T>(),
-                                                                    position_bias.size(),
+                                                                    position_bias->size(),
                                                                     output.size()));
       }
 
@@ -400,7 +408,8 @@ namespace ctranslate2 {
                                         StorageView* attention,
                                         const Padder* queries_padder,
                                         const Padder* values_padder,
-                                        bool return_normalized_attention) const {
+                                        bool return_normalized_attention,
+                                        StorageView* position_bias) const {
       PROFILE("MultiHeadAttention");
       const Device device = queries.device();
       const DataType dtype = queries.dtype();
@@ -517,7 +526,8 @@ namespace ctranslate2 {
                             _is_decoder,
                             bool(cached_keys),
                             beam_size,
-                            _alibi);
+                            _alibi,
+                            position_bias);
 
       if (_num_heads_kv == 1) {
         context.reshape(queries.shape());

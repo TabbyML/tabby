@@ -48,7 +48,8 @@ namespace ctranslate2 {
       void operator()(const StorageView& input,
                       const StorageView* lengths,
                       StorageView& output,
-                      const Padder* padder = nullptr) const;
+                      const Padder* padder = nullptr,
+                      StorageView* position_bias = nullptr) const;
 
       DataType output_type() const override {
         return _ff.output_type();
@@ -89,7 +90,8 @@ namespace ctranslate2 {
                       StorageView* attention = nullptr,
                       const Padder* input_padder = nullptr,
                       const Padder* memory_padder = nullptr,
-                      bool return_normalized_attention = true) const;
+                      bool return_normalized_attention = true,
+                      StorageView* position_bias = nullptr) const;
 
       DataType output_type() const override {
         return _ff.output_type();
