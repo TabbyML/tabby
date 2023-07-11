@@ -3,7 +3,6 @@ from typing import Iterator
 import glob
 import json
 from dataclasses import dataclass
-from transformers import HfArgumentParser
 
 
 @dataclass

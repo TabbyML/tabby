@@ -17,9 +17,7 @@ while ! curl -X POST http://localhost:8080/v1/health; do
   sleep 5
 done
 
-papermill main.ipynb ./reports.ipynb -r filepattern "./tabby/dataset/*.jsonl" -r max_records "${MAX_RECORDS:-3}"
-
-jupyter nbconvert reports.ipynb --TagRemovePreprocessor.enabled=True --TagRemovePreprocessor.remove_cell_tags remove --to html
+python main.py "./tabby/dataset/*.jsonl" ${MAX_RECORDS:-3} > reports.jsonl
 
 docker-compose down
 
