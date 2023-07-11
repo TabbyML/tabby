@@ -47,8 +47,6 @@ export default async () => [
     entry: ["src/index.ts"],
     platform: "browser",
     format: ["esm"],
-    // FIXME: bundle all dependencies to reduce module resolving problems, not a good solution
-    noExternal: Object.keys(dependencies),
     treeshake: true,
     sourcemap: true,
     esbuildPlugins: [

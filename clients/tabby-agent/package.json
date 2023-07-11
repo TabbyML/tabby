@@ -3,15 +3,14 @@
   "version": "0.0.1",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "repository": "https://github.com/TabbyML/tabby",
-  "files": [
-    "dist"
-  ],
   "main": "./dist/index.js",
   "browser": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ../../website/static/openapi.json --output ./src/generated --client axios --name TabbyApi --indent 2",
-    "dev": "tsup --watch",
+    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ./openapi/tabby.json --output ./src/generated --client axios --name TabbyApi --indent 2",
+    "predev": "yarn openapi-codegen",
+    "dev": "tsup --watch --no-minify --no-treeshake",
+    "prebuild": "yarn openapi-codegen",
     "build": "tsup",
     "test:watch": "mocha --watch",
     "test": "mocha"
@@ -23,12 +22,13 @@
     "@types/node": "^16.18.32",
     "chai": "^4.3.7",
     "dedent": "^0.7.0",
-    "esbuild-plugin-polyfill-node": "^0.2.0",
+    "esbuild-plugin-polyfill-node": "^0.3.0",
     "mocha": "^10.2.0",
     "openapi-typescript-codegen": "^0.24.0",
+    "prettier": "^3.0.0",
     "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
-    "tsup": "^6.7.0",
+    "tsup": "^7.1.0",
     "typescript": "^5.0.3"
   },
   "dependencies": {
