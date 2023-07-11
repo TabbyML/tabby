@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "workspaces": [
+    "clients/tabby-agent",
+    "clients/vscode",
+    "clients/vim"
+  ]
+}
