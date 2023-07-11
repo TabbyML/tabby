@@ -207,7 +207,8 @@ lazy_static! {
             ("sql", vec!["sql"]),
             ("scala", vec!["scala"]),
             ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            ("typescript", vec!["ts", "tsx"]),
+            ("typescript", vec!["ts"]),
+            ("tsx", vec!["tsx"]),
             ("tex", vec!["tex"]),
             ("vb", vec!["vb"]),
         ])
@@ -231,6 +232,28 @@ lazy_static! {
                         tree_sitter_javascript::language(),
                         tree_sitter_javascript::TAGGING_QUERY,
                         tree_sitter_javascript::LOCALS_QUERY,
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "typescript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_typescript(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        tree_sitter_typescript::LOCALS_QUERY,
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "tsx",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_tsx(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        tree_sitter_typescript::LOCALS_QUERY,
                     )
                     .unwrap(),
                 ),

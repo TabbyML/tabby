@@ -21,6 +21,7 @@ serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 tree-sitter-java = "0.20.0"
 tree-sitter-python = "0.20.2"
+tree-sitter-typescript = "0.20.2"
 
 [dev-dependencies]
 temp_testdir = "0.2"
