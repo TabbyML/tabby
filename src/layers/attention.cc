@@ -5,6 +5,7 @@
 #include <numeric>
 
 #include "dispatch.h"
+#include "cpu/parallel.h"
 
 namespace ctranslate2 {
   namespace layers {
@@ -36,18 +37,21 @@ namespace ctranslate2 {
                                                     dim_t max_distance,
                                                     dim_t query_offset = 0) {
       StorageView relative_buckets({query_length, key_length}, DataType::INT32);
+      int32_t* relative_buckets_data = relative_buckets.data<int32_t>();
 
       if (bidirectional)
         num_buckets /= 2;
 
       const dim_t max_exact = num_buckets / 2;
+      const float log_max_distance_over_max_exact = std::log(float(max_distance) / float(max_exact));
 
-      for (dim_t i = 0; i < query_length; ++i) {
-        for (dim_t j = 0; j < key_length; ++j) {
+      cpu::parallel_for(0, query_length * key_length, 8, [&](const dim_t begin, const dim_t end) {
+        for (dim_t flat_index = begin; flat_index < end; ++flat_index) {
+          const dim_t i = flat_index / key_length;
+          const dim_t j = flat_index % key_length;
+
           int32_t relative_position = j - (i + query_offset);
-          int32_t& relative_bucket = relative_buckets.at<int32_t>(i * key_length + j);
-
-          relative_bucket = 0;
+          int32_t relative_bucket = 0;
 
           if (bidirectional) {
             if (relative_position > 0)
@@ -64,15 +68,15 @@ namespace ctranslate2 {
             relative_position = std::min(
               int32_t(float(max_exact)
                       + std::log(float(relative_position) / float(max_exact))
-                      / std::log(float(max_distance) / float(max_exact))
+                      / log_max_distance_over_max_exact
                       * float(num_buckets - max_exact)),
               int32_t(num_buckets - 1));
           }
 
           relative_bucket += relative_position;
-
+          relative_buckets_data[flat_index] = relative_bucket;
         }
-      }
+      });
 
       return relative_buckets;
     }
