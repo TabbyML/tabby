@@ -22,6 +22,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
         relative_attention_bias: bool = False,
         ffn_glu: bool = False,
         rms_norm: bool = False,
+        multi_query_attention: bool = False,
     ):
         """Initializes a Transformer encoder specification.
 
@@ -42,6 +43,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
           ffn_glu: Use gated linear units in the FFN layers as described in
             https://arxiv.org/abs/2002.05202.
           rms_norm: Use the root mean square layer normalization.
+          multi_query_attention: Use multi-query attention.
         """
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
@@ -63,6 +65,7 @@ class TransformerEncoderSpec(model_spec.LayerSpec):
                 relative_attention_bias=relative_attention_bias,
                 ffn_glu=ffn_glu,
                 rms_norm=rms_norm,
+                num_heads_kv=1 if multi_query_attention else None,
             )
             for _ in range(num_layers)
         ]
@@ -141,6 +144,12 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 )
             num_heads_kv = 1
 
+        if with_encoder_attention and num_heads_kv not in (None, 1, num_heads):
+            raise ValueError(
+                "num_heads_kv=%d is not supported in the cross-attention layers"
+                % num_heads_kv
+            )
+
         self.num_heads = np.dtype("int16").type(num_heads)
         self.pre_norm = pre_norm
         self.activation = np.dtype("int8").type(activation)
@@ -192,12 +201,14 @@ class TransformerEncoderLayerSpec(model_spec.LayerSpec):
         relative_attention_bias=False,
         ffn_glu=False,
         rms_norm=False,
+        num_heads_kv=None,
     ):
         self.self_attention = attention_spec.MultiHeadAttentionSpec(
             self_attention=True,
             relative_position=relative_position,
             relative_attention_bias=relative_attention_bias,
             rms_norm=rms_norm,
+            num_heads_kv=num_heads_kv,
         )
         self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 
@@ -225,8 +236,13 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             rotary_interleave=rotary_interleave,
             num_heads_kv=num_heads_kv,
         )
+
         if with_encoder_attention:
-            self.attention = attention_spec.MultiHeadAttentionSpec(rms_norm=rms_norm)
+            self.attention = attention_spec.MultiHeadAttentionSpec(
+                rms_norm=rms_norm,
+                num_heads_kv=num_heads_kv,
+            )
+
         self.ffn = FeedForwardSpec(glu=ffn_glu, rms_norm=rms_norm)
 
         if parallel_residual:
@@ -309,6 +325,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
         relative_attention_bias: bool = False,
         ffn_glu: bool = False,
         rms_norm: bool = False,
+        multi_query_attention: bool = False,
     ):
         """Creates a Transformer model specification.
 
@@ -332,6 +349,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
           ffn_glu: Use gated linear units in the FFN layer as described in
             https://arxiv.org/abs/2002.05202.
           rms_norm: Use the root mean square layer normalization.
+          multi_query_attention: Use multi-query attention.
         """
         if isinstance(num_layers, (list, tuple)):
             num_encoder_layers, num_decoder_layers = num_layers
@@ -351,6 +369,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             relative_attention_bias=relative_attention_bias,
             ffn_glu=ffn_glu,
             rms_norm=rms_norm,
+            multi_query_attention=multi_query_attention,
         )
 
         decoder = TransformerDecoderSpec(
@@ -366,6 +385,7 @@ class TransformerSpec(model_spec.SequenceToSequenceModelSpec):
             alignment_heads=alignment_heads,
             ffn_glu=ffn_glu,
             rms_norm=rms_norm,
+            multi_query_attention=multi_query_attention,
         )
 
         return cls(encoder, decoder)

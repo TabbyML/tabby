@@ -437,8 +437,15 @@ namespace ctranslate2 {
 
         if (cached_keys == nullptr || cached_keys->empty()) {
           _linear[1](values, fused_proj);
-          split_heads(fused_proj, 2 * _num_heads, values_padder);
-          ops::Split(1)(fused_proj, keys_proj, values_proj);
+
+          if (_num_heads_kv == 1) {
+            if (values_padder)
+              values_padder->add_padding(fused_proj);
+            ops::Split(2, {_d_head, _d_head})(fused_proj, keys_proj, values_proj);
+          } else {
+            split_heads(fused_proj, 2 * _num_heads, values_padder);
+            ops::Split(1)(fused_proj, keys_proj, values_proj);
+          }
 
           if (cached_keys != nullptr) {
             *cached_keys = std::move(keys_proj);
@@ -448,7 +455,14 @@ namespace ctranslate2 {
 
         if (queries_proj.dim(1) == 1 && cached_keys)
           beam_size = queries_proj.dim(0) / cached_keys->dim(0);
-        split_heads(queries_proj, _num_heads, queries_padder, beam_size);
+
+        if (_num_heads_kv == 1) {
+          if (queries_padder)
+            queries_padder->add_padding(queries_proj);
+          queries_proj.reshape({queries_proj.dim(0) / beam_size, -1, _d_head});
+        } else {
+          split_heads(queries_proj, _num_heads, queries_padder, beam_size);
+        }
 
       } else {
 

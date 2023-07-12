@@ -82,6 +82,7 @@ def _get_model_spec_seq2seq(
         alignment_heads=alignment_heads,
         num_source_embeddings=num_source_embeddings,
         embeddings_merge=_SUPPORTED_FEATURES_MERGE[feat_merge],
+        multi_query_attention=getattr(opt, "multiquery", False),
     )
 
     model_spec.config.decoder_start_token = getattr(opt, "decoder_start_token", "<s>")
@@ -115,6 +116,7 @@ def _get_model_spec_lm(opt, variables, src_vocabs, tgt_vocabs, num_source_embedd
         rms_norm=opt.layer_norm == "rms",
         rotary_dim=rotary_dim,
         rotary_interleave=True,
+        multi_query_attention=getattr(opt, "multiquery", False),
     )
 
     set_transformer_decoder(
