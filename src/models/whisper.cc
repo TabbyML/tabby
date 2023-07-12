@@ -746,7 +746,7 @@ namespace ctranslate2 {
           // Suppress <|notimestamps|>.
           disable_tokens.add(batch_id, _no_timestamps_id);
 
-          if (step == sample_begin) {
+          if (step == sample_begin && step == 0) {
             // Suppress non timestamps at the beginning.
             for (size_t i = 0; i < _timestamp_begin_id; ++i)
               disable_tokens.add(batch_id, i);
