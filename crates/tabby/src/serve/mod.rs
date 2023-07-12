@@ -54,10 +54,7 @@ pub enum Device {
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
 #[clap(rename_all = "snake_case")]
 pub enum ComputeType {
-    /// Set quantization automatically based on device:
-    ///
-    /// CPU: Int8
-    /// CUDA: Int8Float32
+    /// Use the fastest computation type that is supported on this system and device
     #[strum(serialize = "auto")]
     Auto,
 
@@ -65,7 +62,7 @@ pub enum ComputeType {
     ///
     /// On CUDA devices, embedding / linear layers runs on int8, while other layers runs on
     /// float32.
-    #[strum(serialize = "cpu")]
+    #[strum(serialize = "int8")]
     Int8,
 
     /// Use float16 for inference, only supported on CUDA devices.
@@ -78,6 +75,10 @@ pub enum ComputeType {
     /// instead of float32.
     #[strum(serialize = "int8_float16")]
     Int8Float16,
+
+    /// Use float32 for inference.
+    #[strum(serialize = "float32")]
+    Float32,
 }
 
 #[derive(Args)]
