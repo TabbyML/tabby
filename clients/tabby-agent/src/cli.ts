@@ -8,4 +8,3 @@ TabbyAgent.create().then((agent) => {
   stdio.bind(agent);
   stdio.listen();
 });
-

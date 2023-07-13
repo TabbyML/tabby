@@ -2,15 +2,6 @@ import { expect } from "chai";
 import { documentContext, inline } from "./testUtils";
 import { limitScopeByIndentation } from "./limitScopeByIndentation";
 
-const buildContext = (doc: string) => {
-  return {
-    filepath: null,
-    language: "javascript",
-    text: doc.replace(/║/, ""),
-    position: doc.indexOf("║"),
-  };
-};
-
 describe("postprocess", () => {
   describe("limitScopeByIndentation", () => {
     it("should remove content out of current intent scope", () => {
@@ -66,7 +57,6 @@ describe("postprocess", () => {
       `;
       expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
     });
-
 
     it("should allow single level closing bracket", () => {
       const context = {

@@ -107,6 +107,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     return ")]}".indexOf(suffix) > -1;
   }
 
+  // FIXME: move replace range calculation to tabby-agent
   private calculateReplaceRange(document: TextDocument, position: Position): Range {
     const hasSuffixParen = this.hasSuffixParen(document, position);
     if (hasSuffixParen) {

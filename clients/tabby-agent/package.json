@@ -12,8 +12,9 @@
     "dev": "tsup --watch --no-minify --no-treeshake",
     "prebuild": "yarn openapi-codegen",
     "build": "tsup",
-    "test:watch": "mocha --watch",
-    "test": "mocha"
+    "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
+    "test": "mocha",
+    "lint": "prettier --write ."
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",
@@ -36,6 +37,7 @@
     "chokidar": "^3.5.3",
     "deep-equal": "^2.2.1",
     "deepmerge": "^4.3.1",
+    "fast-levenshtein": "^3.0.0",
     "form-data": "^4.0.0",
     "fs-extra": "^11.1.1",
     "jwt-decode": "^3.1.2",

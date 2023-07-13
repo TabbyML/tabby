@@ -1,4 +1,4 @@
-import { PostprocessFilter } from "./filter";
+import { PostprocessFilter } from "./base";
 import { isBlank } from "../utils";
 
 export const dropBlank: () => PostprocessFilter = () => {
