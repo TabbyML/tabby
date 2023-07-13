@@ -19,7 +19,7 @@ pub struct PromptBuilder {
 impl PromptBuilder {
     pub fn new(prompt_template: Option<String>, enable_prompt_rewrite: bool) -> Self {
         let index = if enable_prompt_rewrite {
-            info!("Experimental feature `enable_prompt_rewrite` is enabled, loading index..");
+            info!("Experimental feature `enable_prompt_rewrite` is enabled, loading index ...");
             let index = IndexState::new();
             if let Err(err) = &index {
                 warn!("Failed to open index in {:?}: {:?}", index_dir(), err);
