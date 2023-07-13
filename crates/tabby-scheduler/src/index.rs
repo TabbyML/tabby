@@ -16,9 +16,9 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let field_git_url = builder.add_text_field("git_url", STRING | STORED);
     let field_filepath = builder.add_text_field("filepath", STRING | STORED);
     let field_language = builder.add_text_field("language", STRING | STORED);
-    let field_name= builder.add_text_field("name", STRING | STORED);
+    let field_name = builder.add_text_field("name", STRING | STORED);
     let field_kind = builder.add_text_field("kind", STRING | STORED);
-    let field_body= builder.add_text_field("body", TEXT | STORED);
+    let field_body = builder.add_text_field("body", TEXT | STORED);
 
     let schema = builder.build();
 
