@@ -583,7 +583,7 @@ configure_file(cmake/${PROJECT_NAME}Config.cmake
   COPYONLY
 )
 
-set(ConfigPackageLocation lib/cmake/${PROJECT_NAME})
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 if(BUILD_SHARED_LIBS)
   install(EXPORT ${PROJECT_NAME}Targets
