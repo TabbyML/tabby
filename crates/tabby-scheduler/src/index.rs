@@ -1,4 +1,4 @@
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, fs};
 
 use anyhow::Result;
 use lazy_static::lazy_static;
@@ -33,7 +33,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 
             let body = doc.content.get(tag.range).unwrap();
             let count_body_lines = body.lines().count();
-            if count_body_lines < 3 || count_body_lines > 10 {
+            if !(3..=10).contains(&count_body_lines) {
                 continue;
             }
 
@@ -57,9 +57,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 }
 
 lazy_static! {
-    static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> = {
-        HashMap::from([
-            ("python", vec!["__init__"])
-        ])
-    };
+    static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> =
+        HashMap::from([("python", vec!["__init__"])]);
 }
