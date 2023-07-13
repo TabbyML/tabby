@@ -224,16 +224,29 @@ lazy_static! {
         map
     };
     static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
-        HashMap::from([(
-            "python",
-            TagsConfigurationSync(
-                TagsConfiguration::new(
-                    tree_sitter_python::language(),
-                    tree_sitter_python::TAGGING_QUERY,
-                    "",
-                )
-                .unwrap(),
+        HashMap::from([
+            (
+                "python",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_python::language(),
+                        tree_sitter_python::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
             ),
-        )])
+            (
+                "rust",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_rust::language(),
+                        tree_sitter_rust::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+        ])
     };
 }
