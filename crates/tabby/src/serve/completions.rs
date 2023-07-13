@@ -9,8 +9,8 @@ use ctranslate2_bindings::{
 };
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{events, path::ModelDir};
-use tracing::instrument;
+use tabby_common::{config::Config, events, path::ModelDir};
+use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
@@ -97,7 +97,9 @@ pub async fn completion(
         return Err(StatusCode::BAD_REQUEST);
     };
 
+    debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
     let prompt = state.prompt_builder.build(&language, segments);
+    debug!("PROMPT: {}", prompt);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
     let text = state.engine.inference(&prompt, options).await;
 
@@ -125,7 +127,7 @@ pub struct CompletionState {
 }
 
 impl CompletionState {
-    pub fn new(args: &crate::serve::ServeArgs) -> Self {
+    pub fn new(args: &crate::serve::ServeArgs, config: &Config) -> Self {
         let model_dir = get_model_dir(&args.model);
         let metadata = read_metadata(&model_dir);
 
@@ -144,7 +146,10 @@ impl CompletionState {
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(metadata.prompt_template),
+            prompt_builder: prompt::PromptBuilder::new(
+                metadata.prompt_template,
+                config.experimental.enable_prompt_rewrite,
+            ),
         }
     }
 }

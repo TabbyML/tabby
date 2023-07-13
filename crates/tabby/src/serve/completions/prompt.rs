@@ -7,7 +7,7 @@ use tabby_common::path::index_dir;
 use tantivy::{
     collector::TopDocs, query::QueryParser, schema::Field, Index, ReloadPolicy, Searcher,
 };
-use tracing::warn;
+use tracing::{info, warn};
 
 use super::Segments;
 
@@ -17,15 +17,21 @@ pub struct PromptBuilder {
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>) -> Self {
-        let index = IndexState::new();
-        if let Err(err) = &index {
-            warn!("Failed to open index in {:?}: {:?}", index_dir(), err);
-        }
+    pub fn new(prompt_template: Option<String>, enable_prompt_rewrite: bool) -> Self {
+        let index = if enable_prompt_rewrite {
+            info!("Experimental feature `enable_prompt_rewrite` is enabled, loading index..");
+            let index = IndexState::new();
+            if let Err(err) = &index {
+                warn!("Failed to open index in {:?}: {:?}", index_dir(), err);
+            }
+            index.ok()
+        } else {
+            None
+        };
 
         PromptBuilder {
             prompt_template,
-            index: index.ok(),
+            index,
         }
     }
 
@@ -39,7 +45,6 @@ impl PromptBuilder {
 
     pub fn build(&self, language: &str, segments: Segments) -> String {
         let segments = self.rewrite(language, segments);
-        println!("segments\n{}", segments.prefix);
         if let Some(suffix) = segments.suffix {
             self.build_prompt(segments.prefix, suffix)
         } else {

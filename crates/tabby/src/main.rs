@@ -8,6 +8,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
+use tabby_common::config::Config;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Layer};
 
 #[derive(Parser)]
@@ -47,8 +48,10 @@ async fn main() {
     let cli = Cli::parse();
     init_logging(cli.otlp_endpoint);
 
+    let config = Config::load().unwrap_or(Config::default());
+
     match &cli.command {
-        Commands::Serve(args) => serve::main(args).await,
+        Commands::Serve(args) => serve::main(&config, args).await,
         Commands::Download(args) => download::main(args).await,
         #[cfg(feature = "scheduler")]
         Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
