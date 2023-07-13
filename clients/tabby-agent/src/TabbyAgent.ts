@@ -17,7 +17,7 @@ import { Auth } from "./Auth";
 import { AgentConfig, defaultAgentConfig, userAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
 import { DataStore } from "./dataStore";
-import { postprocess } from "./postprocess";
+import { postprocess, preCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 
@@ -91,7 +91,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   private callApi<Request, Response>(
     api: (request: Request) => CancelablePromise<Response>,
-    request: Request
+    request: Request,
   ): CancelablePromise<Response> {
     this.logger.debug({ api: api.name, request }, "API request");
     const promise = api.call(this.api.v1, request);
@@ -119,7 +119,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }),
       () => {
         promise.cancel();
-      }
+      },
     );
   }
 
@@ -227,7 +227,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }),
       () => {
         polling.cancel();
-      }
+      },
     );
   }
 
@@ -235,39 +235,50 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
-    if (this.completionCache.has(request)) {
-      this.logger.debug({ request }, "Completion cache hit");
-      return new CancelablePromise((resolve) => {
-        resolve(this.completionCache.get(request));
-      });
-    }
-    const segments = this.createSegments(request);
-    if (isBlank(segments.prefix)) {
-      this.logger.debug("Segment prefix is blank, returning empty completion response");
-      return new CancelablePromise((resolve) => {
-        resolve({
-          id: "agent-" + uuid(),
-          choices: [],
-        });
-      });
-    }
-    const promise = this.callApi(this.api.v1.completion, {
-      language: request.language,
-      segments,
-      user: this.auth?.user,
-    });
+    const cancelableList: CancelablePromise<any>[] = [];
     return cancelable(
-      promise
-        .then((response) => {
-          this.completionCache.set(request, response);
-          return response;
+      Promise.resolve(null)
+        // From cache
+        .then((response: CompletionResponse | null) => {
+          if (response) return response;
+          if (this.completionCache.has(request)) {
+            this.logger.debug({ request }, "Completion cache hit");
+            return this.completionCache.get(request);
+          }
         })
-        .then((response) => {
+        // From api
+        .then((response: CompletionResponse | null) => {
+          if (response) return response;
+          const segments = this.createSegments(request);
+          if (isBlank(segments.prefix)) {
+            this.logger.debug("Segment prefix is blank, returning empty completion response");
+            return {
+              id: "agent-" + uuid(),
+              choices: [],
+            };
+          }
+          const apiRequest = this.callApi(this.api.v1.completion, {
+            language: request.language,
+            segments,
+            user: this.auth?.user,
+          });
+          cancelableList.push(apiRequest);
+          return apiRequest
+            .then((response) => {
+              return preCacheProcess(request, response);
+            })
+            .then((response) => {
+              this.completionCache.set(request, response);
+              return response;
+            });
+        })
+        // Postprocess
+        .then((response: CompletionResponse | null) => {
           return postprocess(request, response);
         }),
       () => {
-        promise.cancel();
-      }
+        cancelableList.forEach((cancelable) => cancelable.cancel());
+      },
     );
   }
 

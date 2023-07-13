@@ -59,7 +59,7 @@ export class CompletionCache {
 
   private createCacheEntries(
     key: CompletionCacheKey,
-    value: CompletionCacheValue
+    value: CompletionCacheValue,
   ): { key: CompletionCacheKey; value: CompletionCacheValue }[] {
     const list = [{ key, value }];
     if (this.options.partiallyAcceptedCacheGeneration.enabled) {

@@ -1,4 +1,4 @@
-import { PostprocessFilter, PostprocessContext, logger } from "./filter";
+import { PostprocessFilter, PostprocessContext, logger } from "./base";
 import { isBlank, splitLines } from "../utils";
 
 function calcIndentLevel(line) {
@@ -27,10 +27,7 @@ function isOpeningIndentBlock(lines, index) {
 
 export const limitScopeByIndentation: (context: PostprocessContext) => PostprocessFilter = (context) => {
   return (input) => {
-    const prefix = context.text.slice(0, context.position);
-    const suffix = context.text.slice(context.position);
-    const prefixLines = splitLines(prefix);
-    const suffixLines = splitLines(suffix);
+    const { prefix, suffix, prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);
     const currentIndentLevel = calcIndentLevel(prefixLines[prefixLines.length - 1]);
     let index;

@@ -22,9 +22,7 @@
   "paths": {
     "/v1/completions": {
       "post": {
-        "tags": [
-          "v1"
-        ],
+        "tags": ["v1"],
         "operationId": "completion",
         "requestBody": {
           "content": {
@@ -55,9 +53,7 @@
     },
     "/v1/events": {
       "post": {
-        "tags": [
-          "v1"
-        ],
+        "tags": ["v1"],
         "operationId": "event",
         "requestBody": {
           "content": {
@@ -81,9 +77,7 @@
     },
     "/v1/health": {
       "post": {
-        "tags": [
-          "v1"
-        ],
+        "tags": ["v1"],
         "operationId": "health",
         "responses": {
           "200": {
@@ -104,10 +98,7 @@
     "schemas": {
       "Choice": {
         "type": "object",
-        "required": [
-          "index",
-          "text"
-        ],
+        "required": ["index", "text"],
         "properties": {
           "index": {
             "type": "integer",
@@ -156,10 +147,7 @@
       },
       "CompletionResponse": {
         "type": "object",
-        "required": [
-          "id",
-          "choices"
-        ],
+        "required": ["id", "choices"],
         "properties": {
           "id": {
             "type": "string"
@@ -174,11 +162,7 @@
       },
       "HealthState": {
         "type": "object",
-        "required": [
-          "model",
-          "device",
-          "compute_type"
-        ],
+        "required": ["model", "device", "compute_type"],
         "properties": {
           "model": {
             "type": "string"
@@ -193,11 +177,7 @@
       },
       "LogEventRequest": {
         "type": "object",
-        "required": [
-          "type",
-          "completion_id",
-          "choice_index"
-        ],
+        "required": ["type", "completion_id", "choice_index"],
         "properties": {
           "type": {
             "type": "string",
@@ -216,9 +196,7 @@
       },
       "Segments": {
         "type": "object",
-        "required": [
-          "prefix"
-        ],
+        "required": ["prefix"],
         "properties": {
           "prefix": {
             "type": "string",

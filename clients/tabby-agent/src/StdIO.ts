@@ -8,7 +8,7 @@ type AgentFunctionRequest<T extends keyof AgentFunction> = [
   data: {
     func: T;
     args: Parameters<AgentFunction[T]>;
-  }
+  },
 ];
 
 type CancellationRequest = [
@@ -16,14 +16,14 @@ type CancellationRequest = [
   data: {
     func: "cancelRequest";
     args: [id: number];
-  }
+  },
 ];
 
 type Request = AgentFunctionRequest<any> | CancellationRequest;
 
 type AgentFunctionResponse<T extends keyof AgentFunction> = [
   id: number, // Matched request id
-  data: ReturnType<AgentFunction[T]>
+  data: ReturnType<AgentFunction[T]>,
 ];
 
 type AgentEventNotification = {
@@ -33,7 +33,7 @@ type AgentEventNotification = {
 
 type CancellationResponse = [
   id: number, // Matched request id
-  data: boolean
+  data: boolean,
 ];
 
 type Response = AgentFunctionResponse<any> | AgentEventNotification | CancellationResponse;

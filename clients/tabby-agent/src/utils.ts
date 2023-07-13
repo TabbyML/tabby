@@ -10,6 +10,14 @@ export function isBlank(input: string) {
   return input.trim().length === 0;
 }
 
+// Using string levenshtein distance is not good, because variable name may create a large distance.
+// Such as distance is 9 between `const fooFooFoo = 1;` and `const barBarBar = 1;`, but maybe 1 is enough.
+// May be better to count distance based on words instead of characters.
+import * as levenshtein from "fast-levenshtein";
+export function calcDistance(a: string, b: string) {
+  return levenshtein.get(a, b);
+}
+
 import { CancelablePromise } from "./generated";
 export function cancelable<T>(promise: Promise<T>, cancel: () => void): CancelablePromise<T> {
   return new CancelablePromise((resolve, reject, onCancel) => {

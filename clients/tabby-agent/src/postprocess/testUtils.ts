@@ -1,18 +1,18 @@
 import dedent from "dedent";
-import type { PostprocessContext } from "./filter";
+import { buildContext, PostprocessContext } from "./base";
 
 // `║` is the cursor position
 
 export function documentContext(strings): PostprocessContext {
   const doc = dedent(strings);
-  return {
+  return buildContext({
     filepath: null,
     language: null,
     text: doc.replace(/║/, ""),
     position: doc.indexOf("║"),
     maxPrefixLines: 20,
     maxSuffixLines: 20,
-  };
+  });
 }
 
 // `├` start of the inline completion to insert
