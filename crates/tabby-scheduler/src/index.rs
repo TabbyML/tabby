@@ -12,10 +12,14 @@ use tantivy::{
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
-    let git_url = builder.add_text_field("name", STRING | STORED);
-    let filepath = builder.add_text_field("body", STRING | STORED);
-    let content = builder.add_text_field("content", TEXT | STORED);
-    let language = builder.add_text_field("language", TEXT | STORED);
+
+    let field_git_url = builder.add_text_field("git_url", STRING | STORED);
+    let field_filepath = builder.add_text_field("filepath", STRING | STORED);
+    let field_language = builder.add_text_field("language", STRING | STORED);
+    let field_name= builder.add_text_field("name", STRING | STORED);
+    let field_kind = builder.add_text_field("kind", STRING | STORED);
+    let field_body= builder.add_text_field("body", TEXT | STORED);
+
     let schema = builder.build();
 
     fs::create_dir_all(index_dir())?;
@@ -42,13 +46,15 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     continue;
                 }
             }
+            writer.add_document(doc!(
+                    field_git_url => doc.git_url.clone(),
+                    field_filepath => doc.filepath.clone(),
+                    field_language => doc.language.clone(),
+                    field_name => name,
+                    field_body => body,
+                    field_kind => tag.syntax_type_name,
+            ))?;
         }
-        writer.add_document(doc!(
-                git_url => doc.git_url,
-                filepath => doc.filepath,
-                content => doc.content,
-                language => doc.language,
-        ))?;
     }
 
     writer.commit()?;
