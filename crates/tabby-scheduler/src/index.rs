@@ -42,8 +42,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     continue;
                 }
             }
-
-            println!("TYPE: {}, NAME: {}", tag.syntax_type_name, name);
         }
         writer.add_document(doc!(
                 git_url => doc.git_url,
@@ -60,11 +58,8 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 
 lazy_static! {
     static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> = {
-        let javascript = vec!["Error", "exports", "Promise"];
-
         HashMap::from([
-            ("javascript", javascript.clone()),
-            ("typescript", javascript.clone()),
+            ("python", vec!["__init__"])
         ])
     };
 }

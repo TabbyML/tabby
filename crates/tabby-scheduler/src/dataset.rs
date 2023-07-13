@@ -226,55 +226,11 @@ lazy_static! {
     static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
         HashMap::from([
             (
-                "javascript",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_javascript::language(),
-                        tree_sitter_javascript::TAGGING_QUERY,
-                        tree_sitter_javascript::LOCALS_QUERY,
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "typescript",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_typescript::language_typescript(),
-                        tree_sitter_typescript::TAGGING_QUERY,
-                        tree_sitter_typescript::LOCALS_QUERY,
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "tsx",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_typescript::language_tsx(),
-                        tree_sitter_typescript::TAGGING_QUERY,
-                        tree_sitter_typescript::LOCALS_QUERY,
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
                 "python",
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_python::language(),
                         tree_sitter_python::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "java",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_java::language(),
-                        tree_sitter_java::TAGGING_QUERY,
                         "",
                     )
                     .unwrap(),
