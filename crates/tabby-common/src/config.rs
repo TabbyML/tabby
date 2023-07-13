@@ -8,9 +8,15 @@ use serde::Deserialize;
 
 use crate::path::{config_file, repositories_dir};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct Config {
     pub repositories: Vec<Repository>,
+    pub experimental: Experimental,
+}
+
+#[derive(Deserialize, Default)]
+pub struct Experimental {
+    pub enable_prompt_rewrite: bool,
 }
 
 impl Config {

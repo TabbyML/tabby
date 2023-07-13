@@ -2776,6 +2776,7 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 name = "tabby"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "axum",
  "axum-tracing-opentelemetry",
  "clap",
@@ -2794,6 +2795,7 @@ dependencies = [
  "tabby-common",
  "tabby-download",
  "tabby-scheduler",
+ "tantivy",
  "tokio",
  "tower",
  "tower-http 0.4.0",

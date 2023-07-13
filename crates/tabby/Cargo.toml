@@ -30,6 +30,8 @@ opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }
 opentelemetry-otlp = "0.11.0"
 axum-tracing-opentelemetry = "0.10.0"
 tracing-opentelemetry = "0.18.0"
+tantivy = { workspace = true }
+anyhow = { workspace = true }
 
 
 [dependencies.uuid]

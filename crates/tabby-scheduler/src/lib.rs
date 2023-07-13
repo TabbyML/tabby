@@ -59,7 +59,7 @@ pub async fn scheduler(now: bool) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use tabby_common::{
-        config::{Config, Repository},
+        config::{Config, Experimental, Repository},
         path::set_tabby_root,
     };
     use temp_testdir::*;
@@ -76,6 +76,7 @@ mod tests {
             repositories: vec![Repository {
                 git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
             }],
+            experimental: Experimental::default(),
         };
 
         repository::sync_repositories(&config).unwrap();

@@ -10,6 +10,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
+use tabby_common::config::Config;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
@@ -107,7 +108,7 @@ pub struct ServeArgs {
     compute_type: ComputeType,
 }
 
-pub async fn main(args: &ServeArgs) {
+pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     // Ensure model exists.
@@ -123,7 +124,7 @@ pub async fn main(args: &ServeArgs) {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .nest("/v1", api_router(args))
+        .nest("/v1", api_router(args, config))
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
@@ -134,7 +135,7 @@ pub async fn main(args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs) -> Router {
+fn api_router(args: &ServeArgs, config: &Config) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
@@ -144,7 +145,7 @@ fn api_router(args: &ServeArgs) -> Router {
         .route(
             "/completions",
             routing::post(completions::completion)
-                .with_state(Arc::new(completions::CompletionState::new(args))),
+                .with_state(Arc::new(completions::CompletionState::new(args, config))),
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
