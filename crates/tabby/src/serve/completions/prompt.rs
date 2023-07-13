@@ -73,8 +73,10 @@ fn rewrite_with_index(index: &IndexState, language: &str, segments: Segments) ->
 
 fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
     let comment_char = LANGUAGE_LINE_COMMENT_CHAR.get(language).unwrap();
-    let mut lines: Vec<String> =
-        vec!["Below are some relevant code snippets found in the repository:".to_owned()];
+    let mut lines: Vec<String> = vec![format!(
+        "Below are some relevant {} snippets found in the repository:",
+        language
+    )];
 
     for (i, snippet) in snippets.iter().enumerate() {
         lines.push(format!("== Snippet {} ==", i + 1));
@@ -114,13 +116,27 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
         .searcher
         .search(&query, &TopDocs::with_limit(5))
         .unwrap();
+
+    let mut names: HashMap<String, u32> = HashMap::new();
     for (_score, doc_address) in top_docs {
         let doc = index.searcher.doc(doc_address).unwrap();
-        if let Some(body) = doc.get_first(index.field_body) {
-            if let Some(snippet) = body.as_text() {
-                ret.push(snippet.to_owned());
-            }
+        let name = doc
+            .get_first(index.field_name)
+            .and_then(|x| x.as_text())
+            .unwrap();
+        let count = *names.get(name).unwrap_or(&0);
+
+        // Max 1 snippet per identifier.
+        if count >= 1 {
+            continue;
         }
+
+        let body = doc
+            .get_first(index.field_body)
+            .and_then(|x| x.as_text())
+            .unwrap();
+        names.insert(name.to_owned(), count + 1);
+        ret.push(body.to_owned());
     }
 
     ret
@@ -135,6 +151,7 @@ fn sanitize_text(text: &str) -> String {
 struct IndexState {
     searcher: Searcher,
     query_parser: QueryParser,
+    field_name: Field,
     field_body: Field,
 }
 
@@ -157,6 +174,7 @@ impl IndexState {
         Ok(Self {
             searcher: reader.searcher(),
             query_parser,
+            field_name,
             field_body,
         })
     }
