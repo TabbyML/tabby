@@ -1,3 +1,6 @@
+mod languages;
+mod prompt;
+
 use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
@@ -6,15 +9,12 @@ use ctranslate2_bindings::{
 };
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use strfmt::{strfmt, strfmt_builder};
 use tabby_common::{events, path::ModelDir};
 use tracing::instrument;
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
 use crate::fatal;
-
-mod languages;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -86,23 +86,18 @@ pub async fn completion(
         .build()
         .unwrap();
 
-    let prompt = if let Some(Segments { prefix, suffix }) = request.segments {
-        if let (Some(prompt_template), Some(suffix)) = (&state.prompt_template, suffix) {
-            if !suffix.is_empty() {
-                strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
-            } else {
-                prefix
-            }
-        } else {
-            // If there's no prompt template, just use prefix.
-            prefix
-        }
+    let segments = if let Some(segments) = request.segments {
+        segments
     } else if let Some(prompt) = request.prompt {
-        prompt
+        Segments {
+            prefix: prompt,
+            suffix: None,
+        }
     } else {
         return Err(StatusCode::BAD_REQUEST);
     };
 
+    let prompt = state.prompt_builder.build(&language, segments);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
     let text = state.engine.inference(&prompt, options).await;
 
@@ -126,7 +121,7 @@ pub async fn completion(
 
 pub struct CompletionState {
     engine: TextInferenceEngine,
-    prompt_template: Option<String>,
+    prompt_builder: prompt::PromptBuilder,
 }
 
 impl CompletionState {
@@ -149,7 +144,7 @@ impl CompletionState {
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,
-            prompt_template: metadata.prompt_template,
+            prompt_builder: prompt::PromptBuilder::new(metadata.prompt_template),
         }
     }
 }
