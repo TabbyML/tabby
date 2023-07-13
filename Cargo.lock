@@ -2794,6 +2794,7 @@ dependencies = [
  "tabby-common",
  "tabby-download",
  "tabby-scheduler",
+ "tantivy",
  "tokio",
  "tower",
  "tower-http 0.4.0",
