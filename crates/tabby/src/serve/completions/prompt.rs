@@ -11,6 +11,10 @@ use tracing::{info, warn};
 
 use super::Segments;
 
+static MAX_SNIPPETS_TO_FETCH: usize = 20;
+static MAX_SNIPPET_PER_NAME: u32 = 1;
+static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 1024;
+
 pub struct PromptBuilder {
     prompt_template: Option<String>,
     index: Option<IndexState>,
@@ -78,11 +82,19 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
         language
     )];
 
+    let mut count_characters = 0;
     for (i, snippet) in snippets.iter().enumerate() {
+        if count_characters + snippet.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+            break;
+        }
+
         lines.push(format!("== Snippet {} ==", i + 1));
         for line in snippet.lines() {
             lines.push(line.to_owned());
+            count_characters += line.len();
         }
+
+        count_characters += snippet.len();
     }
 
     let commented_lines: Vec<String> = lines
@@ -114,7 +126,7 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
 
     let top_docs = index
         .searcher
-        .search(&query, &TopDocs::with_limit(5))
+        .search(&query, &TopDocs::with_limit(MAX_SNIPPETS_TO_FETCH))
         .unwrap();
 
     let mut names: HashMap<String, u32> = HashMap::new();
@@ -127,7 +139,7 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
         let count = *names.get(name).unwrap_or(&0);
 
         // Max 1 snippet per identifier.
-        if count >= 1 {
+        if count >= MAX_SNIPPET_PER_NAME {
             continue;
         }
 
