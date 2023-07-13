@@ -155,8 +155,12 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
 }
 
 fn sanitize_text(text: &str) -> String {
-    let x = text.replace(|c: char| !c.is_ascii_digit() && !c.is_alphabetic(), " ");
-    let tokens: Vec<&str> = x.split(' ').collect();
+    // Only keep [a-zA-Z0-9-_]
+    let x = text.replace(
+        |c: char| !c.is_ascii_digit() && !c.is_alphabetic() && c != '_' && c != '-',
+        " ",
+    );
+    let tokens: Vec<&str> = x.split(' ').filter(|x| x.len() > 5).collect();
     tokens.join(" ")
 }
 
@@ -182,7 +186,7 @@ impl IndexState {
             .schema()
             .get_field("body")
             .ok_or(anyhow!("Index doesn't have required field"))?;
-        let query_parser = QueryParser::for_index(&index, vec![field_name]);
+        let query_parser = QueryParser::for_index(&index, vec![field_body]);
         Ok(Self {
             searcher: reader.searcher(),
             query_parser,
@@ -194,5 +198,5 @@ impl IndexState {
 
 lazy_static! {
     static ref LANGUAGE_LINE_COMMENT_CHAR: HashMap<&'static str, &'static str> =
-        HashMap::from([("python", "#")]);
+        HashMap::from([("python", "#"), ("rust", "//"),]);
 }
