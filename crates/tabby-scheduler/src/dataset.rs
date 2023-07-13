@@ -207,7 +207,8 @@ lazy_static! {
             ("sql", vec!["sql"]),
             ("scala", vec!["scala"]),
             ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            ("typescript", vec!["ts", "tsx"]),
+            ("typescript", vec!["ts"]),
+            ("tsx", vec!["tsx"]),
             ("tex", vec!["tex"]),
             ("vb", vec!["vb"]),
         ])
@@ -223,40 +224,16 @@ lazy_static! {
         map
     };
     static ref LANGUAGE_TAGS: HashMap<&'static str, TagsConfigurationSync> = {
-        HashMap::from([
-            (
-                "javascript",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_javascript::language(),
-                        tree_sitter_javascript::TAGGING_QUERY,
-                        tree_sitter_javascript::LOCALS_QUERY,
-                    )
-                    .unwrap(),
-                ),
+        HashMap::from([(
+            "python",
+            TagsConfigurationSync(
+                TagsConfiguration::new(
+                    tree_sitter_python::language(),
+                    tree_sitter_python::TAGGING_QUERY,
+                    "",
+                )
+                .unwrap(),
             ),
-            (
-                "python",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_python::language(),
-                        tree_sitter_python::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-            (
-                "java",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_java::language(),
-                        tree_sitter_java::TAGGING_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
-        ])
+        )])
     };
 }

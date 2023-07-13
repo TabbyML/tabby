@@ -2847,7 +2847,6 @@ dependencies = [
  "temp_testdir",
  "tracing",
  "tracing-test",
- "tree-sitter-java",
  "tree-sitter-javascript",
  "tree-sitter-python",
  "tree-sitter-tags",
@@ -3505,16 +3504,6 @@ checksum = "e747b1f9b7b931ed39a548c1fae149101497de3c1fc8d9e18c62c1a66c683d3d"
 dependencies = [
  "cc",
  "regex",
-]
-
-[[package]]
-name = "tree-sitter-java"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0bf5d3f508cbffcbfe1805834101c0d24297a8b6c2184ad9c595556c46d2420"
-dependencies = [
- "cc",
- "tree-sitter",
 ]
 
 [[package]]
