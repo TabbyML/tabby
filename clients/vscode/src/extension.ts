@@ -12,10 +12,7 @@ export async function activate(context: ExtensionContext) {
   console.debug("Activating Tabby extension", new Date());
   await createAgentInstance(context);
   context.subscriptions.push(
-    languages.registerInlineCompletionItemProvider(
-      { pattern: "**" },
-      new TabbyCompletionProvider()
-    ),
+    languages.registerInlineCompletionItemProvider({ pattern: "**" }, new TabbyCompletionProvider()),
     tabbyStatusBarItem(),
     ...tabbyCommands(),
   );

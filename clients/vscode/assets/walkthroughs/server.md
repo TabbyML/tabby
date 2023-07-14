@@ -4,8 +4,8 @@ Choose your preferred way to host your Tabby server, either through Tabby Cloud 
 
 ## Tabby Cloud
 
-You can get a Tabby Cloud account [here](https://app.tabbyml.com). Once you create or join a workspace, you will receive a URL for your Tabby server endpoint.   
-*Note*: Tabby Cloud is currently in beta. Join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and ask in Tabby Cloud channel to get a beta invite.
+You can get a Tabby Cloud account [here](https://app.tabbyml.com). Once you create or join a workspace, you will receive a URL for your Tabby server endpoint.  
+**Note**: Tabby Cloud is currently in beta. Join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and ask in Tabby Cloud channel to get a beta invite.
 
 ## Self-Hosting
 

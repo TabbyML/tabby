@@ -121,24 +121,61 @@
           "default": true,
           "description": "Enable Tabby code completion or not."
         },
+        "tabby.keybindings": {
+          "type": "string",
+          "enum": [
+            "tabby-style",
+            "vscode-style"
+          ],
+          "default": "tabby-style",
+          "markdownDescription": "Select keybinding profile to accept current inline completion. \n  | | Accept Full Completion | Accept Next Word | Accept Next Line | \n |---:|:--:|:--:|:--:| \n | _tabby-style_ | Ctrl + Tab | Ctrl + RightArrow | Tab | \n | _vscode-style_ | Tab | Ctrl + RightArrow | - | \n "
+        },
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
           "default": false,
           "description": "Disable anonymous usage tracking."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "tabby.inlineCompletion.accept",
+        "key": "tab",
+        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !editorTabMovesFocus && inlineSuggestionHasIndentationLessThanTabSize"
+      },
+      {
+        "command": "tabby.inlineCompletion.acceptNextWord",
+        "key": "ctrl+right",
+        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly"
+      },
+      {
+        "command": "tabby.inlineCompletion.accept",
+        "key": "ctrl+tab",
+        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly"
+      },
+      {
+        "command": "tabby.inlineCompletion.acceptNextWord",
+        "key": "ctrl+right",
+        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly"
+      },
+      {
+        "command": "tabby.inlineCompletion.acceptNextLine",
+        "key": "tab",
+        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !editorTabMovesFocus"
+      }
+    ]
   },
   "scripts": {
+    "prebuild": "cd ../tabby-agent && yarn build",
     "build": "tsup --minify --treeshake smallest",
     "watch": "tsup --sourcemap --watch ./ --ignore-watch ./dist --watch ../tabby-agent/dist",
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && yarn watch",
-    "lint": "eslint . --fix",
+    "lint": "prettier --write .",
     "vscode:prepackage": "yarn build",
-    "vscode:package": "vsce package",
+    "vscode:package": "vsce package --no-dependencies",
     "vscode:prepublish": "yarn build",
-    "vscode:publish": "vsce publish"
+    "vscode:publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/glob": "^7.2.0",
@@ -153,7 +190,6 @@
     "assert": "^2.0.0",
     "esbuild-plugin-polyfill-node": "^0.3.0",
     "eslint": "^8.20.0",
-    "eslint-config-prettier": "^8.8.0",
     "glob": "^8.0.3",
     "prettier": "^3.0.0",
     "tsup": "^7.1.0",
