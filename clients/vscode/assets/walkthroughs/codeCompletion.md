@@ -26,5 +26,5 @@ You can select a keybinding profile in the [settings](command:tabby.openSettings
 
 |                | Accept Full Completion | Accept Next Word  | Accept Next Line |
 | -------------: | :--------------------: | :---------------: | :--------------: |
-| _vscode-style_ |          Tab           | Ctrl + RightArrow |        -         |
 |  _tabby-style_ |       Ctrl + Tab       | Ctrl + RightArrow |       Tab        |
+| _vscode-style_ |          Tab           | Ctrl + RightArrow |        -         |
