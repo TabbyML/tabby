@@ -84,8 +84,15 @@ const openTabbyAgentSettings: Command = {
       },
       () => {
         window.showWarningMessage("Tabby Agent config file not found.", { modal: true });
-      }
+      },
     );
+  },
+};
+
+const openKeybindings: Command = {
+  command: "tabby.openKeybindings",
+  callback: () => {
+    commands.executeCommand("workbench.action.openGlobalKeybindings", "tabby.inlineCompletion");
   },
 };
 
@@ -138,13 +145,15 @@ const openAuthPage: Command = {
             notifications.showInformationWhenAuthFailed();
           }
         } catch (error: any) {
-          if (error.isCancelled) return;
+          if (error.isCancelled) {
+            return;
+          }
           console.debug("Error auth", { error });
           notifications.showInformationWhenAuthFailed();
         } finally {
           callbacks?.onAuthEnd?.();
         }
-      }
+      },
     );
   },
 };
@@ -172,14 +181,41 @@ const statusBarItemClicked: Command = {
   },
 };
 
+const acceptInlineCompletion: Command = {
+  command: "tabby.inlineCompletion.accept",
+  callback: () => {
+    commands.executeCommand("editor.action.inlineSuggest.commit");
+  },
+};
+
+const acceptInlineCompletionNextWord: Command = {
+  command: "tabby.inlineCompletion.acceptNextWord",
+  callback: () => {
+    // FIXME: sent event when partially accept?
+    commands.executeCommand("editor.action.inlineSuggest.acceptNextWord");
+  },
+};
+
+const acceptInlineCompletionNextLine: Command = {
+  command: "tabby.inlineCompletion.acceptNextLine",
+  callback: () => {
+    // FIXME: sent event when partially accept?
+    commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
+  },
+};
+
 export const tabbyCommands = () =>
   [
     toggleEnabled,
     setApiEndpoint,
     openSettings,
     openTabbyAgentSettings,
+    openKeybindings,
     gettingStarted,
     emitEvent,
     openAuthPage,
     statusBarItemClicked,
+    acceptInlineCompletion,
+    acceptInlineCompletionNextWord,
+    acceptInlineCompletionNextLine,
   ].map((command) => commands.registerCommand(command.command, command.callback, command.thisArg));

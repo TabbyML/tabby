@@ -2,11 +2,13 @@
 .vscode-test/**
 .vscode-test-web/**
 out/**
-node_modules/**
+**/node_modules/**
 src/**
 .gitignore
+.gitattributes
+.prettierrc.json
+tsup.config.ts
 .yarnrc
-webpack.config.js
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map

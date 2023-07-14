@@ -55,7 +55,7 @@ function showInformationStartAuth(callbacks?: { onAuthStart?: () => void; onAuth
     .showWarningMessage(
       "Tabby Server requires authorization. Continue to open authorization page in your browser.",
       "Continue",
-      "Settings"
+      "Settings",
     )
     .then((selection) => {
       switch (selection) {

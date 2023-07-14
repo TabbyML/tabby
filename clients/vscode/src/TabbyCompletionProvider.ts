@@ -102,7 +102,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
   private hasSuffixParen(document: TextDocument, position: Position) {
     const suffix = document.getText(
-      new Range(position.line, position.character, position.line, position.character + 1)
+      new Range(position.line, position.character, position.line, position.character + 1),
     );
     return ")]}".indexOf(suffix) > -1;
   }
