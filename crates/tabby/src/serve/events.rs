@@ -41,7 +41,10 @@ pub async fn log_event(
         .log();
         StatusCode::OK
     } else if request.event_type == "select" {
-        let is_line = params.get("select_kind").map(|x| x == "line").unwrap_or(false);
+        let is_line = params
+            .get("select_kind")
+            .map(|x| x == "line")
+            .unwrap_or(false);
         events::Event::Select {
             completion_id: &request.completion_id,
             choice_index: request.choice_index,
