@@ -35,6 +35,12 @@ pub struct Choice<'a> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
+pub enum SelectKind {
+    Line,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Event<'a> {
     View {
         completion_id: &'a str,
@@ -43,6 +49,8 @@ pub enum Event<'a> {
     Select {
         completion_id: &'a str,
         choice_index: u32,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        kind: Option<SelectKind>,
     },
     Completion {
         completion_id: &'a str,
