@@ -28,8 +28,6 @@ export function agent(): TabbyAgent {
 
 export async function createAgentInstance(context: ExtensionContext): Promise<TabbyAgent> {
   if (!instance) {
-    // NOTE: env.appHost will be "desktop" when running target "Run Web Extension in VS Code"
-    // To test data store in the web extension, run target "Run Web Extension in Browser"
     const extensionDataStore: DataStore = {
       data: {},
       load: async function () {

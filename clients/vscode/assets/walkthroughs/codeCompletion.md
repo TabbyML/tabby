@@ -2,8 +2,7 @@
 
 ## Basic Usage
 
-Tabby will show inline suggestions when you stop typing.  
-You can accept press `Tab` to accept by line, `Ctrl +Tab` key to accept full suggestion, or `Ctrl + RightArrow` to accept single word.
+Tabby will show inline suggestions when you stop typing, and you can accept suggestions by just pressing the `Tab` key.
 
 ![Demo](https://tabbyml.github.io/tabby/img/demo.gif)
 
@@ -15,7 +14,7 @@ When multiple choices are available, you can cycle through them by pressing `Alt
 
 You can select a keybinding profile in the [settings](command:tabby.openSettings), or customize your own [keybindings](command:tabby.openKeybindings).
 
-|                | Accept Full Completion | Accept Next Word  | Accept Next Line |
-| -------------: | :--------------------: | :---------------: | :--------------: |
-|  _tabby-style_ |       Ctrl + Tab       | Ctrl + RightArrow |       Tab        |
-| _vscode-style_ |          Tab           | Ctrl + RightArrow |        -         |
+|                                    | Next Line | Full Completion |     Next Word     |
+| :--------------------------------- | :-------- | :-------------- | :---------------- |
+|           _vscode-style_           |     -     |       Tab       | Ctrl + RightArrow |
+| _tabby-style_<br/>_(experimental)_ |    Tab    |    Ctrl + Tab   | Ctrl + RightArrow |

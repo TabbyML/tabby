@@ -124,11 +124,11 @@
         "tabby.keybindings": {
           "type": "string",
           "enum": [
-            "tabby-style",
-            "vscode-style"
+            "vscode-style",
+            "tabby-style"
           ],
-          "default": "tabby-style",
-          "markdownDescription": "Select keybinding profile to accept current inline completion. \n  | | Accept Full Completion | Accept Next Word | Accept Next Line | \n |---:|:--:|:--:|:--:| \n | _tabby-style_ | Ctrl + Tab | Ctrl + RightArrow | Tab | \n | _vscode-style_ | Tab | Ctrl + RightArrow | - | \n "
+          "default": "vscode-style",
+          "markdownDescription": "Select keybinding profile to accept current inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
         },
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
