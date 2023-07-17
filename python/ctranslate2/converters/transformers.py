@@ -1242,8 +1242,8 @@ class LlamaLoader(ModelLoader):
             gc.collect()
 
 
-@register_loader("FalconConfig")
-class FalconLoader(ModelLoader):
+@register_loader("RWConfig")
+class RWLoader(ModelLoader):
     @property
     def architecture_name(self):
         return "AutoModelForCausalLM"
@@ -1252,11 +1252,11 @@ class FalconLoader(ModelLoader):
         if getattr(model.config, "multi_query", False):
             num_heads_kv = 1
         else:
-            num_heads_kv = getattr(model.config, "num_kv_heads", None)
+            num_heads_kv = getattr(model.config, "n_head_kv", None)
 
         spec = transformer_spec.TransformerDecoderModelSpec.from_config(
-            model.config.num_hidden_layers,
-            model.config.num_attention_heads,
+            model.config.n_layer,
+            model.config.n_head,
             pre_norm=True,
             activation=common_spec.Activation.GELU,
             alibi=model.config.alibi,
@@ -1308,7 +1308,7 @@ class FalconLoader(ModelLoader):
                     layer_spec.ffn.layer_norm, layer.post_attention_layernorm
                 )
 
-            if layer.self_attention.num_kv_heads == 1:
+            if layer.self_attention.num_kv == 1:
                 self.set_linear(
                     layer_spec.self_attention.linear[0],
                     layer.self_attention.query_key_value,
@@ -1318,9 +1318,8 @@ class FalconLoader(ModelLoader):
                     layer_spec.self_attention.linear[0],
                     layer.self_attention.query_key_value,
                     layer.self_attention.num_heads,
-                    layer.self_attention.num_kv_heads
-                    if layer.self_attention.num_kv_heads
-                    < layer.self_attention.num_heads
+                    layer.self_attention.num_kv
+                    if layer.self_attention.num_kv < layer.self_attention.num_heads
                     else None,
                 )
 
@@ -1331,24 +1330,24 @@ class FalconLoader(ModelLoader):
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.dense_h_to_4h)
             self.set_linear(layer_spec.ffn.linear_1, layer.mlp.dense_4h_to_h)
 
-    def set_qkv_linear(self, spec, module, num_heads, num_kv_heads=None):
+    def set_qkv_linear(self, spec, module, num_heads, num_kv=None):
         weight = module.weight
 
-        if num_kv_heads is None:
+        if num_kv is None:
             weight = weight.reshape(num_heads, 3, -1, weight.shape[-1])
             weight = weight.transpose(0, 1)
             weight = weight.reshape(-1, weight.shape[-1])
         else:
-            head_dim = weight.shape[0] // (num_heads + num_kv_heads * 2)
+            head_dim = weight.shape[0] // (num_heads + num_kv * 2)
             weight = weight.reshape(
-                -1, num_heads // num_kv_heads + 2, head_dim, weight.shape[-1]
+                -1, num_heads // num_kv + 2, head_dim, weight.shape[-1]
             )
-            q, k, v = weight.split([num_heads // num_kv_heads, 1, 1], dim=1)
+            q, k, v = weight.split([num_heads // num_kv, 1, 1], dim=1)
             weight = torch.cat(
                 [
                     q.reshape(num_heads * head_dim, -1),
-                    k.reshape(num_kv_heads * head_dim, -1),
-                    v.reshape(num_kv_heads * head_dim, -1),
+                    k.reshape(num_kv * head_dim, -1),
+                    v.reshape(num_kv * head_dim, -1),
                 ]
             )
 
@@ -1357,18 +1356,18 @@ class FalconLoader(ModelLoader):
         if module.bias is not None:
             bias = module.bias
 
-            if num_kv_heads is None:
+            if num_kv is None:
                 bias = bias.reshape(num_heads, 3, -1)
                 bias = bias.transpose(0, 1)
                 bias = bias.reshape(-1)
             else:
-                bias = bias.reshape(-1, num_heads // num_kv_heads + 2, head_dim)
-                q, k, v = bias.split([num_heads // num_kv_heads, 1, 1], dim=1)
+                bias = bias.reshape(-1, num_heads // num_kv + 2, head_dim)
+                q, k, v = bias.split([num_heads // num_kv, 1, 1], dim=1)
                 bias = torch.cat(
                     [
                         q.reshape(num_heads * head_dim),
-                        k.reshape(num_kv_heads * head_dim),
-                        v.reshape(num_kv_heads * head_dim),
+                        k.reshape(num_kv * head_dim),
+                        v.reshape(num_kv * head_dim),
                     ]
                 )
 
