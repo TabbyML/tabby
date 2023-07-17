@@ -30,6 +30,17 @@ namespace ctranslate2 {
       }
     };
 
+    template<>
+    struct absolute_maximum_func<__nv_bfloat16> {
+      __device__ __forceinline__ __nv_bfloat16 operator()(__nv_bfloat16 a, __nv_bfloat16 b) const {
+#if CUDA_CAN_USE_BF16_MATH
+        return __hmax(__habs(a), __habs(b));
+#else
+        return fmaxf(fabsf(a), fabsf(b));
+#endif
+      }
+    };
+
     struct rescale_func {
       __device__ __forceinline__ rescale_func(float scale)
         : _scale(scale) {
@@ -64,8 +75,8 @@ namespace ctranslate2 {
       input += blockIdx.x * depth;
       output += blockIdx.x * depth;
 
-      T thread_max = cuda::ilp_reduce(input, depth, absolute_maximum_func<T>(), T(0));
-      float max = cuda::block_reduce(sdata, thread_max, cuda::maximum<T>(), T(0));
+      T thread_max = cuda::ilp_reduce(input, depth, absolute_maximum_func<T>(), T(0.f));
+      float max = cuda::block_reduce(sdata, thread_max, cuda::maximum<T>(), T(0.f));
 
       __shared__ float scale;
 
@@ -110,6 +121,10 @@ namespace ctranslate2 {
     Quantize::quantize<Device::CUDA, float16_t, int8_t>(const StorageView&,
                                                         StorageView&,
                                                         StorageView&) const;
+    template void
+    Quantize::quantize<Device::CUDA, bfloat16_t, int8_t>(const StorageView&,
+                                                         StorageView&,
+                                                         StorageView&) const;
 
   }
 }

@@ -65,6 +65,7 @@ namespace ctranslate2 {
       spdlog::info(" - Allow FP16: {} (with Tensor Cores: {})",
                    mayiuse_float16(Device::CUDA, i),
                    cuda::gpu_has_fp16_tensor_cores(i));
+      spdlog::info(" - Allow BF16: {}", mayiuse_bfloat16(Device::CUDA, i));
     }
 #endif
   }

@@ -27,7 +27,14 @@ class Converter(abc.ABC):
         parser.add_argument(
             "--quantization",
             default=None,
-            choices=["int8", "int8_float16", "int16", "float16"],
+            choices=[
+                "int8",
+                "int8_float16",
+                "int8_bfloat16",
+                "int16",
+                "float16",
+                "bfloat16",
+            ],
             help="Weight quantization type.",
         )
         parser.add_argument(

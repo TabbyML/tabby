@@ -64,6 +64,12 @@ namespace ctranslate2 {
           throw std::invalid_argument("FP16 GEMM is only supported on GPU");
         compute<Device::CUDA, float16_t, float16_t>(a, b, c, a_shift_compensation);
         break;
+
+      case DataType::BFLOAT16:
+        if (a.device() != Device::CUDA)
+          throw std::invalid_argument("BF16 GEMM is only supported on GPU");
+        compute<Device::CUDA, bfloat16_t, bfloat16_t>(a, b, c, a_shift_compensation);
+        break;
 #endif
 
       default:

@@ -37,24 +37,8 @@ namespace ctranslate2 {
         const dim_t batch_size = input.size() / depth;
         scale.resize({batch_size});
 
-        switch (input.dtype()) {
-        case DataType::FLOAT32: {
-          DEVICE_DISPATCH(input.device(), (quantize<D, float, int8_t>(input, output, scale)));
-          break;
-        }
-
-#ifdef CT2_WITH_CUDA
-        case DataType::FLOAT16: {
-          if (input.device() != Device::CUDA)
-            throw std::invalid_argument("Quantize: float16 input is only supported on CUDA");
-          quantize<Device::CUDA, float16_t, int8_t>(input, output, scale);
-          break;
-        }
-#endif
-
-        default:
-          throw std::invalid_argument("Quantize: input should have a float type");
-        }
+        DEVICE_AND_FLOAT_DISPATCH("Quantize", input.device(), input.dtype(),
+                                  (quantize<D, T, int8_t>(input, output, scale)));
 
         break;
       }

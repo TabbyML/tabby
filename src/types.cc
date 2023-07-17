@@ -23,6 +23,8 @@ namespace ctranslate2 {
       return "int32";
     case DataType::FLOAT16:
       return "float16";
+    case DataType::BFLOAT16:
+      return "bfloat16";
     default:
       return "";
     }
@@ -32,6 +34,7 @@ namespace ctranslate2 {
     switch (type) {
     case DataType::FLOAT32:
     case DataType::FLOAT16:
+    case DataType::BFLOAT16:
       return true;
     default:
       return false;
@@ -43,12 +46,16 @@ namespace ctranslate2 {
       return ComputeType::INT8;
     if (compute_type == "int8_float16")
       return ComputeType::INT8_FLOAT16;
+    if (compute_type == "int8_bfloat16")
+      return ComputeType::INT8_BFLOAT16;
     if (compute_type == "int16")
       return ComputeType::INT16;
     if (compute_type == "float32" || compute_type == "float")
       return ComputeType::FLOAT32;
     if (compute_type == "float16")
       return ComputeType::FLOAT16;
+    if (compute_type == "bfloat16")
+      return ComputeType::BFLOAT16;
     if (compute_type == "default")
       return ComputeType::DEFAULT;
     if (compute_type == "auto")
@@ -68,12 +75,32 @@ namespace ctranslate2 {
       return "int8";
     case ComputeType::INT8_FLOAT16:
       return "int8_float16";
+    case ComputeType::INT8_BFLOAT16:
+      return "int8_bfloat16";
     case ComputeType::INT16:
       return "int16";
     case ComputeType::FLOAT16:
       return "float16";
+    case ComputeType::BFLOAT16:
+      return "bfloat16";
     };
     throw std::invalid_argument("Invalid compute type value");
+  }
+
+  bool mayiuse_bfloat16(const Device device, const int device_index) {
+    switch (device) {
+    case Device::CUDA: {
+#ifdef CT2_WITH_CUDA
+      static const bool allow_bfloat16 = read_bool_from_env("CT2_CUDA_ALLOW_BF16");
+      return allow_bfloat16 || cuda::get_device_properties(device_index).major >= 8;
+#else
+      (void)device_index;
+      return false;
+#endif
+    }
+    default:
+      return false;
+    }
   }
 
   bool mayiuse_float16(const Device device, const int device_index) {
@@ -127,6 +154,7 @@ namespace ctranslate2 {
                                    const Device device,
                                    const int device_index,
                                    const bool enable_fallback) {
+    const bool support_bfloat16 = mayiuse_bfloat16(device, device_index);
     const bool support_float16 = mayiuse_float16(device, device_index);
     const bool support_int16 = mayiuse_int16(device, device_index);
     const bool support_int8 = mayiuse_int8(device, device_index);
@@ -142,6 +170,14 @@ namespace ctranslate2 {
         return ComputeType::FLOAT16;
       if (!enable_fallback)
         unsupported_compute_type("float16");
+      return ComputeType::FLOAT32;
+    }
+
+    case ComputeType::BFLOAT16: {
+      if (support_bfloat16)
+        return ComputeType::BFLOAT16;
+      if (!enable_fallback)
+        unsupported_compute_type("bfloat16");
       return ComputeType::FLOAT32;
     }
 
@@ -183,6 +219,18 @@ namespace ctranslate2 {
       return ComputeType::FLOAT32;
     }
 
+    case ComputeType::INT8_BFLOAT16: {
+      if (support_int8 && support_bfloat16)
+        return ComputeType::INT8_BFLOAT16;
+      if (!enable_fallback)
+        unsupported_compute_type("int8_bfloat16");
+      if (support_int8)
+        return ComputeType::INT8;
+      if (support_bfloat16)
+        return ComputeType::BFLOAT16;
+      return ComputeType::FLOAT32;
+    }
+
     case ComputeType::AUTO: {
       if (device == Device::CUDA) {
         if (support_int8 && support_float16)
@@ -221,10 +269,14 @@ namespace ctranslate2 {
       return std::make_pair(DataType::INT8, DataType::FLOAT32);
     case ComputeType::INT8_FLOAT16:
       return std::make_pair(DataType::INT8, DataType::FLOAT16);
+    case ComputeType::INT8_BFLOAT16:
+      return std::make_pair(DataType::INT8, DataType::BFLOAT16);
     case ComputeType::INT16:
       return std::make_pair(DataType::INT16, DataType::FLOAT32);
     case ComputeType::FLOAT16:
       return std::make_pair(DataType::FLOAT16, DataType::FLOAT16);
+    case ComputeType::BFLOAT16:
+      return std::make_pair(DataType::BFLOAT16, DataType::BFLOAT16);
     default:
       throw std::invalid_argument("resolve_compute_type should be called first");
     }
@@ -232,12 +284,22 @@ namespace ctranslate2 {
 
   ComputeType data_type_to_compute_type(const DataType weight_type, const DataType float_type) {
     switch (weight_type) {
-    case DataType::INT8:
-      return float_type == DataType::FLOAT16 ? ComputeType::INT8_FLOAT16 : ComputeType::INT8;
+    case DataType::INT8: {
+      switch (float_type) {
+      case DataType::FLOAT16:
+        return ComputeType::INT8_FLOAT16;
+      case DataType::BFLOAT16:
+        return ComputeType::INT8_BFLOAT16;
+      default:
+        return ComputeType::INT8;
+      }
+    }
     case DataType::INT16:
       return ComputeType::INT16;
     case DataType::FLOAT16:
       return ComputeType::FLOAT16;
+    case DataType::BFLOAT16:
+      return ComputeType::BFLOAT16;
     default:
       return ComputeType::FLOAT32;
     }
@@ -252,7 +314,8 @@ namespace ctranslate2 {
                                     const int device_index) {
 #ifdef CT2_WITH_CUDA
     if (device == Device::CUDA) {
-      if (compute_type == ComputeType::FLOAT16 && cuda::gpu_has_fp16_tensor_cores(device_index))
+      if ((compute_type == ComputeType::FLOAT16 || compute_type == ComputeType::BFLOAT16)
+          && cuda::gpu_has_fp16_tensor_cores(device_index))
         return 8;
     }
 #else

@@ -1,7 +1,5 @@
 import enum
 
-import numpy as np
-
 from ctranslate2.specs import model_spec
 
 
@@ -39,7 +37,7 @@ class LinearSpec(model_spec.LayerSpec):
         self.bias = model_spec.OPTIONAL
 
     def has_bias(self):
-        return isinstance(self.bias, np.ndarray)
+        return not isinstance(self.bias, str)
 
 
 class Conv1DSpec(model_spec.LayerSpec):

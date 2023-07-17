@@ -4,6 +4,7 @@
 #include <limits>
 
 #include <cuda_fp16.h>
+#include <cuda_bf16.h>
 
 #include "ctranslate2/types.h"
 
@@ -13,6 +14,12 @@
 #  define CUDA_CAN_USE_HALF 1
 #else
 #  define CUDA_CAN_USE_HALF 0
+#endif
+
+#if defined(__CUDACC__) && (__CUDA_ARCH__ >= 800 || !defined(__CUDA_ARCH__))
+#  define CUDA_CAN_USE_BF16_MATH 1
+#else
+#  define CUDA_CAN_USE_BF16_MATH 0
 #endif
 
 namespace ctranslate2 {
@@ -30,11 +37,15 @@ namespace ctranslate2 {
       using type = T;
     };
 
-    // float16_t (a.k.a. half_float::half) can't be used in device code so there is a bit
-    // of template work to cast values and pointers to __half.
+    // Map float16_t and bfloat16_t to their corresponding device types.
     template<>
     struct DeviceType<float16_t> {
       using type = __half;
+    };
+
+    template<>
+    struct DeviceType<bfloat16_t> {
+      using type = __nv_bfloat16;
     };
 
     template <typename T>
@@ -207,7 +218,7 @@ namespace ctranslate2 {
     template <typename T>
     struct relu_func {
       __device__ T operator()(T x) const {
-        return x > T(0) ? x : T(0);
+        return x > T(0.f) ? x : T(0.f);
       }
     };
 
@@ -285,6 +296,22 @@ namespace ctranslate2 {
     template<>
     struct cos_func<__half> {
       __device__ __half operator()(__half x) const {
+        return hcos(x);
+      }
+    };
+#endif
+
+#if CUDA_CAN_USE_BF16_MATH
+    template<>
+    struct sin_func<__nv_bfloat16> {
+      __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) const {
+        return hsin(x);
+      }
+    };
+
+    template<>
+    struct cos_func<__nv_bfloat16> {
+      __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) const {
         return hcos(x);
       }
     };

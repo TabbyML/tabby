@@ -76,6 +76,10 @@ namespace ctranslate2 {
 
   template void primitives<Device::CPU>::convert(const float*, float16_t*, dim_t);
   template void primitives<Device::CPU>::convert(const float16_t*, float*, dim_t);
+  template void primitives<Device::CPU>::convert(const float*, bfloat16_t*, dim_t);
+  template void primitives<Device::CPU>::convert(const bfloat16_t*, float*, dim_t);
+  template void primitives<Device::CPU>::convert(const float16_t*, bfloat16_t*, dim_t);
+  template void primitives<Device::CPU>::convert(const bfloat16_t*, float16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -1152,5 +1156,6 @@ namespace ctranslate2 {
   DECLARE_IMPL_NO_FLOAT(int16_t)
   DECLARE_IMPL_NO_FLOAT(int32_t)
   DECLARE_IMPL_NO_FLOAT(float16_t)
+  DECLARE_IMPL_NO_FLOAT(bfloat16_t)
 
 }

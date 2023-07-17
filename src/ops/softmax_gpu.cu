@@ -38,6 +38,7 @@ namespace ctranslate2 {
 
     DECLARE_IMPL(float)
     DECLARE_IMPL(float16_t)
+    DECLARE_IMPL(bfloat16_t)
 
   }
 }
@@ -212,7 +213,7 @@ namespace at {
         // Directly set 0 in output for out of range positions.
         size = lengths[row];
         for (index_t i = size + threadIdx.x; i < classes; i += blockDim.x)
-          output[i] = 0;
+          output[i] = 0.f;
       }
 
       // find the max

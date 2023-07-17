@@ -31,24 +31,8 @@ namespace ctranslate2 {
         if (scale.size() != batch_size)
           throw std::invalid_argument("INT8 dequantization expects per-batch scales");
 
-        switch (output.dtype()) {
-        case DataType::FLOAT32: {
-          DEVICE_DISPATCH(input.device(), (dequantize<D, int8_t, float>(input, scale, output)));
-          break;
-        }
-
-#ifdef CT2_WITH_CUDA
-        case DataType::FLOAT16: {
-          if (output.device() != Device::CUDA)
-            throw std::invalid_argument("Dequantize: float16 ouput is only supported on CUDA");
-          dequantize<Device::CUDA, int8_t, float16_t>(input, scale, output);
-          break;
-        }
-#endif
-
-        default:
-          throw std::invalid_argument("Dequantize: output should have a float type");
-        }
+        DEVICE_AND_FLOAT_DISPATCH("Dequantize", output.device(), output.dtype(),
+                                  (dequantize<D, int8_t, T>(input, scale, output)));
 
         break;
       }

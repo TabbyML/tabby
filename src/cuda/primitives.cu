@@ -57,6 +57,27 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::convert(const float*, float16_t*, dim_t);
   template void primitives<Device::CUDA>::convert(const float16_t*, float*, dim_t);
+  template void primitives<Device::CUDA>::convert(const float*, bfloat16_t*, dim_t);
+  template void primitives<Device::CUDA>::convert(const bfloat16_t*, float*, dim_t);
+
+  struct convert_via_float {
+    template <typename T>
+    __device__ float operator()(T x) const {
+      return x;
+    }
+  };
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::convert(const float16_t* x, bfloat16_t* y, dim_t size) {
+    cuda::unary_transform(x, y, size, convert_via_float());
+  }
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::convert(const bfloat16_t* x, float16_t* y, dim_t size) {
+    cuda::unary_transform(x, y, size, convert_via_float());
+  }
 
   template<>
   template <typename T>
@@ -181,6 +202,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::relu(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::relu(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::relu(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -190,6 +212,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::gelu(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::gelu(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::gelu(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -199,6 +222,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::gelu_tanh(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::gelu_tanh(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::gelu_tanh(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -208,6 +232,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::gelu_sigmoid(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::gelu_sigmoid(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::gelu_sigmoid(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -217,6 +242,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::swish(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::swish(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::swish(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template <typename T>
   struct perm_indices_2d {
@@ -500,6 +526,31 @@ namespace ctranslate2 {
                                       bool transpose_a, bool transpose_b,
                                       dim_t m, dim_t n, dim_t k,
                                       float alpha,
+                                      const bfloat16_t* a, dim_t lda,
+                                      const bfloat16_t* b, dim_t ldb,
+                                      float beta,
+                                      bfloat16_t* c, dim_t ldc,
+                                      const bfloat16_t*) {
+    // cuBLAS assumes column-major storage, so swap a and b accordingly.
+    CUBLAS_CHECK(cublasGemmEx(cuda::get_cublas_handle(),
+                              transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                              transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
+                              n, m, k,
+                              &alpha,
+                              b, CUDA_R_16BF, ldb,
+                              a, CUDA_R_16BF, lda,
+                              &beta,
+                              c, CUDA_R_16BF, ldc,
+                              CUDA_R_32F,
+                              CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+  }
+
+  template<>
+  template<>
+  void primitives<Device::CUDA>::gemm(bool, bool,
+                                      bool transpose_a, bool transpose_b,
+                                      dim_t m, dim_t n, dim_t k,
+                                      float alpha,
                                       const int8_t* a, dim_t lda,
                                       const int8_t* b, dim_t ldb,
                                       float beta,
@@ -583,6 +634,31 @@ namespace ctranslate2 {
                                             CUBLAS_GEMM_DEFAULT_TENSOR_OP));
   }
 
+  template<>
+  template<>
+  void primitives<Device::CUDA>::gemm_batch_strided(bool transpose_a, bool transpose_b,
+                                                    dim_t m, dim_t n, dim_t k,
+                                                    float alpha,
+                                                    const bfloat16_t* a, dim_t lda, dim_t stridea,
+                                                    const bfloat16_t* b, dim_t ldb, dim_t strideb,
+                                                    float beta,
+                                                    bfloat16_t* c, dim_t ldc, dim_t stridec,
+                                                    dim_t batch_size) {
+    // cuBLAS assumes column-major storage, so swap a and b accordingly.
+    CUBLAS_CHECK(cublasGemmStridedBatchedEx(cuda::get_cublas_handle(),
+                                            transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                            transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
+                                            n, m, k,
+                                            &alpha,
+                                            b, CUDA_R_16BF, ldb, strideb,
+                                            a, CUDA_R_16BF, lda, stridea,
+                                            &beta,
+                                            c, CUDA_R_16BF, ldc, stridec,
+                                            batch_size,
+                                            CUDA_R_32F,
+                                            CUBLAS_GEMM_DEFAULT_TENSOR_OP));
+  }
+
   template <typename T>
   class exp_minus_max_func {
   private:
@@ -614,6 +690,7 @@ namespace ctranslate2 {
 
   template float primitives<Device::CUDA>::logsumexp(const float*, dim_t);
   template float primitives<Device::CUDA>::logsumexp(const float16_t*, dim_t);
+  template float primitives<Device::CUDA>::logsumexp(const bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -623,6 +700,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::sin(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::sin(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::sin(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -632,6 +710,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::cos(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::cos(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::cos(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -641,6 +720,7 @@ namespace ctranslate2 {
 
   template void primitives<Device::CUDA>::tanh(const float*, float*, dim_t);
   template void primitives<Device::CUDA>::tanh(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::tanh(const bfloat16_t*, bfloat16_t*, dim_t);
 
   struct exp_func {
     __device__
@@ -652,34 +732,40 @@ namespace ctranslate2 {
     cuda::unary_transform(x, y, size, exp_func());
   }
 
+  template <typename T>
   struct log_func {
-    __device__
-    float operator()(float x) { return logf(x); }
+    __device__ float operator()(float x) {
+      return logf(x);
+    }
   };
-
-  template<>
-  template<>
-  void primitives<Device::CUDA>::log(const float* x, float* y, dim_t size) {
-    cuda::unary_transform(x, y, size, log_func());
-  }
 
 #if CUDA_CAN_USE_HALF
-  struct hlog_func {
-    __device__
-    __half operator()(__half x) { return hlog(x); }
+  template<>
+  struct log_func<__half> {
+    __device__ __half operator()(__half x) {
+      return hlog(x);
+    }
   };
-#else
-  struct hlog_func {
-    __device__
-    __half operator()(__half x) { return __half(logf(float(x))); }
+#endif
+
+#if CUDA_CAN_USE_BF16_MATH
+  template<>
+  struct log_func<__nv_bfloat16> {
+    __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) {
+      return hlog(x);
+    }
   };
 #endif
 
   template<>
-  template<>
-  void primitives<Device::CUDA>::log(const float16_t* x, float16_t* y, dim_t size) {
-    cuda::unary_transform(x, y, size, hlog_func());
+  template <typename T>
+  void primitives<Device::CUDA>::log(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, log_func<cuda::device_type<T>>());
   }
+
+  template void primitives<Device::CUDA>::log(const float*, float*, dim_t);
+  template void primitives<Device::CUDA>::log(const float16_t*, float16_t*, dim_t);
+  template void primitives<Device::CUDA>::log(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>

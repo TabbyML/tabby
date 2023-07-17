@@ -135,6 +135,8 @@ namespace ctranslate2 {
         return CUDNN_DATA_FLOAT;
       case DataType::FLOAT16:
         return CUDNN_DATA_HALF;
+      case DataType::BFLOAT16:
+        return CUDNN_DATA_BFLOAT16;
       case DataType::INT32:
         return CUDNN_DATA_INT32;
       case DataType::INT8:

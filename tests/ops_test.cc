@@ -137,7 +137,14 @@ TEST(OpTest, MedianFilter) {
 class OpDeviceTest : public ::testing::TestWithParam<Device> {
 };
 
-class OpDeviceFPTest : public ::testing::TestWithParam<std::pair<Device, DataType>> {
+
+struct FloatType {
+  Device device;
+  DataType dtype;
+  float error;
+};
+
+class OpDeviceFPTest : public ::testing::TestWithParam<FloatType> {
 };
 
 
@@ -488,8 +495,9 @@ TEST_P(OpDeviceTest, Transpose3DReverse) {
 }
 
 TEST_P(OpDeviceFPTest, Gemm) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView a(
     {4, 4}, std::vector<float>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}, device);
   StorageView b(a);
@@ -499,7 +507,7 @@ TEST_P(OpDeviceFPTest, Gemm) {
   ops::Gemm op(1.0, 1.0, false, false);
   y = y.to(dtype);
   op(a.to(dtype), b.to(dtype), y);
-  expect_storage_eq(y.to_float32(), expected);
+  expect_storage_eq(y.to_float32(), expected, error);
 };
 
 TEST_P(OpDeviceTest, GemmInt8) {
@@ -530,8 +538,9 @@ TEST_P(OpDeviceTest, GemmInt8) {
 };
 
 TEST_P(OpDeviceFPTest, TopK) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const int k = 3;
   StorageView input({2, 6}, std::vector<float>{0.1, -0.5, 2.0, 0.0, 0.2, 0.6, 1.0, 1.1, 0.2, 0.3, -0.2, 0.0}, device);
   StorageView expected_values({2, 3}, std::vector<float>{2.0, 0.6, 0.2, 1.1, 1.0, 0.3}, device);
@@ -540,7 +549,7 @@ TEST_P(OpDeviceFPTest, TopK) {
   StorageView indices(expected_indices.dtype(), device);
   ops::TopK op(k);
   op(input.to(dtype), values, indices);
-  expect_storage_eq(values.to_float32(), expected_values, 1e-3);
+  expect_storage_eq(values.to_float32(), expected_values, error);
   expect_storage_eq(indices, expected_indices);
 }
 
@@ -591,8 +600,9 @@ TEST_P(OpDeviceTest, TopKChangeK) {
 }
 
 TEST_P(OpDeviceFPTest, TopPMask) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   constexpr float inf = std::numeric_limits<float>::infinity();
 
   StorageView x = StorageView({2, 5}, std::vector<float>{
@@ -605,12 +615,13 @@ TEST_P(OpDeviceFPTest, TopPMask) {
 
   ops::TopPMask(0.97)(x, y);
 
-  expect_storage_eq(y.to_float32(), expected, dtype == DataType::FLOAT16 ? 1e-2 : 1e-5);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, SoftMax) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x = StorageView({2, 5}, std::vector<float>{
       -0.2, 3.0, 1.2, -1.1, 0.0,
       4.6, 3.3, 0.2, -1.6, 1.0}, device).to(dtype);
@@ -619,14 +630,15 @@ TEST_P(OpDeviceFPTest, SoftMax) {
       0.760941, 0.207381, 0.009342, 0.001544, 0.020792}, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x, y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
   ops::SoftMax()(x);
-  expect_storage_eq(x.to_float32(), expected, 1e-3);
+  expect_storage_eq(x.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, LogSoftMax) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x = StorageView({2, 10}, std::vector<float>{
       -0.2, 3.0, 1.2, -1.1, 0.0, 0.2, -3.0, -1.2, 1.1, 0.0,
       4.6, 3.3, 0.2, -1.6, 1.0, -4.6, -3.3, -0.2, 1.6, -1.0}, device).to(dtype);
@@ -635,14 +647,15 @@ TEST_P(OpDeviceFPTest, LogSoftMax) {
       -0.319434, -1.619434, -4.719434, -6.519434, -3.919434, -9.519434, -8.219434, -5.119434, -3.319434, -5.919434}, device);
   StorageView y(dtype, device);
   ops::LogSoftMax()(x, y);
-  expect_storage_eq(y.to_float32(), expected, 1e-2);
+  expect_storage_eq(y.to_float32(), expected, error * 10);
   ops::LogSoftMax()(x);
-  expect_storage_eq(x.to_float32(), expected, 1e-2);
+  expect_storage_eq(x.to_float32(), expected, error * 10);
 }
 
 TEST_P(OpDeviceFPTest, MaskedSoftMax) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x({2, 5}, std::vector<float>{
       -0.2, 3.0, 1.2, -1.1, 0.0,
       4.6, 3.3, 0.2, -1.6, 1.0}, device);
@@ -652,12 +665,13 @@ TEST_P(OpDeviceFPTest, MaskedSoftMax) {
       0.777098, 0.211783, 0.009540, 0.001577, 0}, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x.to(dtype), lengths, y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, MaskedSoftMaxTriangular) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x({2, 2, 3, 3}, std::vector<float>{
       0.08784354, 0.67030656, 0.8866086,
       0.08053982, 0.9826797, 0.7965635,
@@ -690,12 +704,13 @@ TEST_P(OpDeviceFPTest, MaskedSoftMaxTriangular) {
     }, device);
   StorageView y(dtype, device);
   ops::SoftMax()(x.to(dtype), mask, y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, LayerNorm) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView gamma({5}, std::vector<float>{0.2, 2.1, 1.1, -0.6, 0.7}, device);
   StorageView beta({5}, std::vector<float>{-6.6, -5.7, 0.01, 2.0, 0}, device);
   StorageView x({2, 5}, std::vector<float>{
@@ -706,15 +721,16 @@ TEST_P(OpDeviceFPTest, LayerNorm) {
       -6.319339, -3.988876, -0.637330, 2.841982, -0.158437}, device);
   StorageView y(dtype, device);
   ops::LayerNorm()(beta.to(dtype), gamma.to(dtype), x.to(dtype), y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, LayerNormAxis) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA) {
     GTEST_SKIP() << "Generalized LayerNorm is not implemented on GPU";
   }
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x({2, 3, 2}, std::vector<float>{
       0.08830845355987549, 0.7807812690734863,
       0.34740084409713745, 0.8272842764854431,
@@ -731,12 +747,13 @@ TEST_P(OpDeviceFPTest, LayerNormAxis) {
       1.4136513471603394, -1.3856042623519897}, device);
   StorageView y(dtype, device);
   ops::LayerNorm(1, 0)(x.to(dtype), y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, RMSNorm) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView gamma({5}, std::vector<float>{0.2, 2.1, 1.1, -0.6, 0.7}, device);
   StorageView x({2, 5}, std::vector<float>{
       -0.2, 3.0, 1.2, -1.1, 0.0,
@@ -746,7 +763,7 @@ TEST_P(OpDeviceFPTest, RMSNorm) {
       0.3445, 2.5953, 0.0824, 0.3595, 0.2622}, device);
   StorageView y(dtype, device);
   ops::RMSNorm()(gamma.to(dtype), x.to(dtype), y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error * 10);
 }
 
 TEST_P(OpDeviceTest, QuantizeINT8) {
@@ -798,8 +815,8 @@ TEST_P(OpDeviceTest, QuantizeINT8ZeroRow) {
 }
 
 TEST_P(OpDeviceFPTest, Multinomial) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
   StorageView input({2, 4}, std::vector<float>{0.2, 0.1, 0.6, 0.1, 0.7, 0.2, 0.0, 0.1}, device);
   StorageView output(DataType::INT32, device);
   StorageView counts(input.shape(), int32_t(0));
@@ -820,72 +837,79 @@ TEST_P(OpDeviceFPTest, Multinomial) {
 }
 
 TEST_P(OpDeviceFPTest, ReLU) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView input({2, 5}, std::vector<float>{-1, 1, 2, -2, 2, 4, -3, 0, -1, -3}, device);
   StorageView expected({2, 5}, std::vector<float>{0, 1, 2, 0, 2, 4, 0, 0, 0, 0}, device);
   StorageView output(dtype, device);
   ops::ReLU()(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, GELU) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
   StorageView expected({2}, std::vector<float>{0.11585195362567902, -0.1258406937122345}, device);
   StorageView output(dtype, device);
   ops::GELU()(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, GELUTanh) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
   StorageView expected({2}, std::vector<float>{0.11585142463445663, -0.1260710209608078}, device);
   StorageView output(dtype, device);
   const ops::GELU gelu_op(ops::GELU::Approximation::Tanh);
   gelu_op(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, GELUSigmoid) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
   StorageView expected({2}, std::vector<float>{0.11685754358768463, -0.128212109208107}, device);
   StorageView output(dtype, device);
   const ops::GELU gelu_op(ops::GELU::Approximation::Sigmoid);
   gelu_op(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Swish) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView input({2}, std::vector<float>{0.2, -1.3}, device);
   StorageView expected({2}, std::vector<float>{0.10996679, -0.27841452}, device);
   StorageView output(dtype, device);
   ops::Swish()(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected, 1e-4);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Tanh) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   StorageView x({1, 5}, std::vector<float>{-2, -1.5, 0, 1.5, 2}, device);
   StorageView y(dtype, device);
   StorageView expected({1, 5},
                        std::vector<float>{-0.96402758, -0.90514825, 0., 0.90514825, 0.96402758},
                        device);
   ops::Tanh()(x.to(dtype), y);
-  expect_storage_eq(y.to_float32(), expected, 1e-3);
+  expect_storage_eq(y.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Log) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   std::vector<float > input_vec({0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4});
   std::vector<float > expected_vec;
   expected_vec.reserve(input_vec.size());
@@ -895,12 +919,12 @@ TEST_P(OpDeviceFPTest, Log) {
   StorageView expected({2, 4}, expected_vec, device);
   StorageView output(dtype, device);
   ops::Log()(input.to(dtype), output);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, LogLimits) {
-  const Device device = GetParam().first;
-  const DataType dtype = GetParam().second;
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
 
   StorageView values({2}, std::vector<float>{0.f, -1.f}, device);
   values = values.to(dtype);
@@ -978,10 +1002,11 @@ static const StorageView conv_bias({4}, std::vector<float>{
     0.4631361f, -0.1047785f, 0.1047658f, -0.3157263f});
 
 TEST_P(OpDeviceFPTest, Conv1D) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA)
     GUARD_CONV1D_GPU_TEST;
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const StorageView expected({2, 4, 2}, std::vector<float>{
       0.9309945f, 0.7959076f, 0.0533122f, -0.1099610f,
       -0.1100256f, -0.1701476f, -0.4144599f, -0.8630960f,
@@ -993,14 +1018,15 @@ TEST_P(OpDeviceFPTest, Conv1D) {
                 conv_bias.to(device).to(dtype),
                 output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DNoBias) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA)
     GUARD_CONV1D_GPU_TEST;
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const StorageView expected({2, 4, 2}, std::vector<float>{
       0.4678584f, 0.3327716f, 0.1580907f, -0.005182412f,
       -0.2147914f, -0.2749133f, -0.09873369f, -0.5473697f,
@@ -1011,14 +1037,15 @@ TEST_P(OpDeviceFPTest, Conv1DNoBias) {
                 conv_weight.to(device).to(dtype),
                 output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DPadding) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA)
     GUARD_CONV1D_GPU_TEST;
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const StorageView expected({2, 4, 4}, std::vector<float>{
       0.5646521f, 0.9309945f, 0.7959076f, 0.7011377f,
       -0.0035750f, 0.0533122f, -0.1099610f, 0.1816810f,
@@ -1034,14 +1061,15 @@ TEST_P(OpDeviceFPTest, Conv1DPadding) {
                     conv_bias.to(device).to(dtype),
                     output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DStride) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA)
     GUARD_CONV1D_GPU_TEST;
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const StorageView expected({2, 4, 1}, std::vector<float>{
       0.9309945f, 0.0533122f, -0.1100256f, -0.4144599f,
       1.0512151f, 0.1242856f, -0.1661695f, -0.4387956f});
@@ -1051,14 +1079,15 @@ TEST_P(OpDeviceFPTest, Conv1DStride) {
                  conv_bias.to(device).to(dtype),
                  output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 TEST_P(OpDeviceFPTest, Conv1DPaddingAndStride) {
-  const Device device = GetParam().first;
+  const Device device = GetParam().device;
   if (device == Device::CUDA)
     GUARD_CONV1D_GPU_TEST;
-  const DataType dtype = GetParam().second;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
   const StorageView expected({2, 4, 2}, std::vector<float>{
       0.5646521f, 0.7959076f, -0.0035750f, -0.1099610f,
       0.0519716f, -0.1701476f, -0.2886650f, -0.8630960f,
@@ -1070,22 +1099,23 @@ TEST_P(OpDeviceFPTest, Conv1DPaddingAndStride) {
                     conv_bias.to(device).to(dtype),
                     output);
   EXPECT_EQ(output.dtype(), dtype);
-  expect_storage_eq(output.to_float32(), expected, 1e-3);
+  expect_storage_eq(output.to_float32(), expected, error);
 }
 
 
-static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataType>> param_info) {
-  return dtype_name(param_info.param.second);
+static std::string fp_test_name(::testing::TestParamInfo<FloatType> param_info) {
+  return dtype_name(param_info.param.dtype);
 }
 
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT32)),
+                         ::testing::Values(FloatType{Device::CPU, DataType::FLOAT32, 1e-5}),
                          fp_test_name);
 #ifdef CT2_WITH_CUDA
 INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceTest, ::testing::Values(Device::CUDA));
 INSTANTIATE_TEST_SUITE_P(CUDA, OpDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT32),
-                                           std::make_pair(Device::CUDA, DataType::FLOAT16)),
+                         ::testing::Values(FloatType{Device::CUDA, DataType::FLOAT32, 1e-5},
+                                           FloatType{Device::CUDA, DataType::FLOAT16, 1e-2},
+                                           FloatType{Device::CUDA, DataType::BFLOAT16, 1e-2}),
                          fp_test_name);
 #endif

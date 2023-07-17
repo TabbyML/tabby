@@ -175,7 +175,7 @@ namespace ctranslate2 {
         auto& variable = *variable_pair.second;
 
         // Convert "weight" variables to the expected compute type.
-        // Other float variables (e.g. biases) may be converted from or to float16.
+        // Other float variables (e.g. biases) may be converted to another float type.
         if (is_quantizable(name))
           ensure_dtype(name, variable, weight_dtype);
         else if (is_convertible(variable, name)
@@ -256,18 +256,13 @@ namespace ctranslate2 {
     void Model::ensure_dtype(const std::string& name,
                              StorageView& variable,
                              const DataType target_dtype) {
-      const bool is_int8 = variable.dtype() == DataType::INT8;
-      const bool is_int16 = variable.dtype() == DataType::INT16;
-      const bool is_float32 = variable.dtype() == DataType::FLOAT32;
-      const bool is_float16 = variable.dtype() == DataType::FLOAT16;
-
       const std::string scale_name = name + "_scale";
       const StorageView* saved_scale = nullptr;
-      if (is_int8 || is_int16) {
+      if (!is_float_type(variable.dtype())) {
         // Check that the quantization scale of the variable exists.
         saved_scale = get_variable_if_exists(scale_name);
         if (!saved_scale) {
-          if (is_int16) {
+          if (variable.dtype() == DataType::INT16) {
             // Backward compatibility with int16 models without a saved scale.
             register_variable(scale_name, StorageView(ops::Quantize::global_int16_scale));
             saved_scale = get_variable_if_exists(scale_name);
@@ -287,27 +282,25 @@ namespace ctranslate2 {
       const ops::Dequantize dequantize_op{};
       StorageView target_variable(target_dtype);
 
-      if (target_dtype == DataType::FLOAT32 || target_dtype == DataType::FLOAT16) {
-        if (is_float16) {
-          target_variable = variable.to_float32();
-        } else if (is_float32) {
-          target_variable = variable.to_float16();
+      if (is_float_type(target_dtype)) {
+        if (is_float_type(variable.dtype())) {
+          target_variable = variable.to(target_dtype);
         } else {
-          // Dequantize int8 or int16 back to float32.
+          // Dequantize int8 or int16 back to float.
           StorageView dequantized;
           dequantize_op(variable, *saved_scale, dequantized);
           remove_variable(scale_name);  // The scale is no longer needed.
-          if (target_dtype == DataType::FLOAT16) {
-            target_variable = dequantized.to_float16();
-          } else {
+          if (dequantized.dtype() == target_dtype) {
             target_variable = std::move(dequantized);
+          } else {
+            target_variable = dequantized.to(target_dtype);
           }
         }
 
-      } else if (is_float32 || is_float16) {
-        // Quantize float32 to int8 or int16.
+      } else if (is_float_type(variable.dtype())) {
+        // Quantize float to int8 or int16.
         StorageView scale;
-        if (is_float16) {
+        if (variable.dtype() != DataType::FLOAT32) {
           quantize_op(variable.to_float32(), target_variable, scale);
         } else {
           quantize_op(variable, target_variable, scale);

@@ -26,14 +26,14 @@ def test_layer_spec_validate():
 
     spec = Spec()
     spec.validate()
-    assert spec.a.dtype == np.float32
-    assert spec.b.dtype == np.float16
-    assert spec.c.dtype == np.int32
+    assert spec.a.dtype == "float32"
+    assert spec.b.dtype == "float16"
+    assert spec.c.dtype == "int32"
     assert spec.d == OPTIONAL
-    assert spec.e.a.dtype == np.float16
-    assert test_utils.array_equal(spec.f, np.int8(1))
+    assert spec.e.a.dtype == "float16"
+    assert test_utils.array_equal(spec.f.numpy(), np.int8(1))
     assert test_utils.array_equal(
-        spec.g, np.array([104, 101, 108, 108, 111], dtype=np.int8)
+        spec.g.numpy(), np.array([104, 101, 108, 108, 111], dtype=np.int8)
     )
 
     with pytest.raises(AttributeError, match="Attribute z does not exist"):
@@ -73,22 +73,24 @@ def test_layer_spec_optimize():
             self.sub = SubSpec()
 
     spec = Spec()
+    spec.validate()
     spec.optimize(quantization="int16")
-    assert spec.a.dtype == np.float32
+    assert spec.a.dtype == "float32"
     assert spec.b == "a"
-    assert spec.c.dtype == np.int32
-    assert spec.d.dtype == np.float32
-    assert spec.sub.weight.dtype == np.int16
-    assert spec.sub.weight_scale.dtype == np.float32
+    assert spec.c.dtype == "int32"
+    assert spec.d.dtype == "float32"
+    assert spec.sub.weight.dtype == "int16"
+    assert spec.sub.weight_scale.dtype == "float32"
 
     spec = Spec()
+    spec.validate()
     spec.optimize(quantization="float16")
-    assert spec.a.dtype == np.float16
+    assert spec.a.dtype == "float16"
     assert spec.b == "a"
-    assert spec.c.dtype == np.int32
-    assert spec.d.dtype == np.float32
-    assert spec.sub.weight.dtype == np.float16
-    assert spec.sub.a.dtype == np.float16
+    assert spec.c.dtype == "int32"
+    assert spec.d.dtype == "float32"
+    assert spec.sub.weight.dtype == "float16"
+    assert spec.sub.a.dtype == "float16"
 
 
 def test_int8_quantization():
@@ -98,12 +100,14 @@ def test_int8_quantization():
             self.weight_scale = OPTIONAL
 
     spec = Spec()
+    spec.validate()
     spec.optimize(quantization="int8")
     assert test_utils.array_equal(
-        spec.weight, np.array([[-127, -38, 64, 25], [0, 0, 0, 0]], dtype=np.int8)
+        spec.weight.numpy(),
+        np.array([[-127, -38, 64, 25], [0, 0, 0, 0]], dtype=np.int8),
     )
     assert test_utils.array_equal(
-        spec.weight_scale, np.array([12.7, 1], dtype=np.float32)
+        spec.weight_scale.numpy(), np.array([12.7, 1], dtype=np.float32)
     )
 
 
@@ -158,20 +162,20 @@ def test_fp16_weights(
     spec.validate()
     spec.optimize(quantization=quantization)
 
-    assert test_utils.array_equal(spec.weight, expected_weight)
-    assert test_utils.array_equal(spec.bias, expected_bias)
+    assert test_utils.array_equal(spec.weight.numpy(), expected_weight)
+    assert test_utils.array_equal(spec.bias.numpy(), expected_bias)
 
     # Check the weights were not copied or converted.
     if quantization == "float16":
-        assert spec.weight is weight
-        assert spec.bias is bias
+        assert spec.weight.numpy() is weight
+        assert spec.bias.numpy() is bias
     elif quantization == "int8_float16":
-        assert spec.bias is bias
+        assert spec.bias.numpy() is bias
 
     if expected_weight_scale is None:
         assert spec.weight_scale == OPTIONAL
     else:
-        assert test_utils.array_equal(spec.weight_scale, expected_weight_scale)
+        assert test_utils.array_equal(spec.weight_scale.numpy(), expected_weight_scale)
 
 
 def test_index_spec():
@@ -203,3 +207,80 @@ def test_fuse_linear_no_bias():
     assert test_utils.array_equal(spec.bias[:64], np.zeros([64], dtype=np.float32))
     assert test_utils.array_equal(spec.bias[64:128], np.ones([64], dtype=np.float32))
     assert test_utils.array_equal(spec.bias[128:], np.zeros([64], dtype=np.float32))
+
+
+@test_utils.skip_on_windows
+def test_fuse_linear_torch():
+    import torch
+
+    layers = []
+    for _ in range(3):
+        spec = common_spec.LinearSpec()
+        spec.weight = torch.zeros([64, 64], dtype=torch.float32)
+        spec.bias = torch.zeros([64], dtype=torch.float32)
+        layers.append(spec)
+
+    spec = common_spec.LinearSpec()
+    conversion_utils.fuse_linear(spec, layers)
+    assert spec.weight.shape[0] == 64 * 3
+    assert spec.bias.shape[0] == 64 * 3
+
+
+@test_utils.skip_on_windows
+def test_smooth_activation_torch():
+    import torch
+
+    layer_norm = common_spec.LayerNormSpec()
+    layer_norm.beta = torch.rand([64], dtype=torch.float16)
+    layer_norm.gamma = torch.rand([64], dtype=torch.float16)
+
+    linear = common_spec.LinearSpec()
+    linear.weight = torch.rand([64, 64], dtype=torch.float16)
+
+    activation_scales = torch.rand([64], dtype=torch.float32)
+
+    # Just check that no error is raised.
+    conversion_utils.smooth_activation(layer_norm, linear, activation_scales)
+
+
+@test_utils.skip_on_windows
+@pytest.mark.parametrize("variable_dtype", ["float32", "float16", "bfloat16"])
+@pytest.mark.parametrize(
+    "quantization,expected_weight_dtype,expected_bias_dtype",
+    [
+        (None, "float32", "float32"),
+        ("int8", "int8", "float32"),
+        ("int8_float16", "int8", "float16"),
+        ("int8_bfloat16", "int8", "bfloat16"),
+        ("int16", "int16", "float32"),
+        ("float16", "float16", "float16"),
+        ("bfloat16", "bfloat16", "bfloat16"),
+    ],
+)
+def test_torch_variables(
+    tmp_dir, variable_dtype, quantization, expected_weight_dtype, expected_bias_dtype
+):
+    import torch
+
+    variable_dtype = getattr(torch, variable_dtype)
+
+    class TorchModel(ctranslate2.specs.ModelSpec):
+        def __init__(self):
+            super().__init__()
+            self.dense = common_spec.LinearSpec()
+            self.dense.weight = torch.ones([16, 4], dtype=variable_dtype)
+            self.dense.bias = torch.ones([16], dtype=variable_dtype)
+
+        @property
+        def name(self):
+            return "TorchModel"
+
+    model = TorchModel()
+    model.validate()
+    model.optimize(quantization)
+
+    variables = model.variables()
+    assert variables["dense/weight"].dtype == expected_weight_dtype
+    assert variables["dense/bias"].dtype == expected_bias_dtype
+
+    model.save(tmp_dir)

@@ -4,6 +4,7 @@ each required variable of the specification is set.
 """
 
 import abc
+import ctypes
 import json
 import os
 import shutil
@@ -12,6 +13,13 @@ import struct
 from typing import Dict, List, Optional
 
 import numpy as np
+
+try:
+    import torch
+
+    torch_is_available = True
+except ImportError:
+    torch_is_available = False
 
 OPTIONAL = "__optional"
 CURRENT_BINARY_VERSION = 6
@@ -103,6 +111,11 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                 if value != OPTIONAL:
                     value = np.frombuffer(value.encode("utf-8"), dtype=np.int8)
 
+            if isinstance(value, np.ndarray) or isinstance(value, np.generic):
+                value = NumpyVariable(value)
+            elif torch_is_available and isinstance(value, torch.Tensor):
+                value = PyTorchVariable(value)
+
             attr_name = _split_scope(name)[-1]
             setattr(spec, attr_name, value)
 
@@ -151,7 +164,7 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                     break
                 # Because variables can be transformed on load (e.g. transposed),
                 # we use an element-wise equality check.
-                if not np.isscalar(value) and _is_same_weight(value, other_value):
+                if not value.is_scalar() and value.equal(other_value):
                     # Replace variable value by the alias name.
                     scope, attr_name = _parent_scope(name)
                     spec = index_spec(self, scope)
@@ -162,17 +175,17 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
         """Possibly quantizes the variable of the layer."""
 
         def _quantize(spec, name, value):
-            if not isinstance(value, np.ndarray):
+            if not isinstance(value, Variable) or value.is_scalar():
                 return
 
             key = _split_scope(name)[-1]
             scale = None
             is_quantizable = hasattr(spec, "%s_scale" % key)
+            is_convertible = value.dtype in ("float32", "float16", "bfloat16")
 
             if is_quantizable:
                 if quantization == "int16":
-                    if value.dtype != np.float32:
-                        value = value.astype(np.float32)
+                    value = value.to("float32").numpy()
                     # Represent the value with 10 bits so the multiplication is 20 bits
                     # and 12 bits are left for accumulation.
                     scale = np.float32(2**10 / np.amax(np.absolute(value)))
@@ -182,22 +195,30 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
                         value, np.iinfo(np.int16).min, np.iinfo(np.int16).max
                     )
                     value = value.astype(np.int16)
-                elif quantization in ("int8", "int8_float16"):
-                    if value.dtype != np.float32:
-                        value = value.astype(np.float32)
+                    scale = NumpyVariable(scale)
+                    value = NumpyVariable(value)
+                elif quantization in ("int8", "int8_float16", "int8_bfloat16"):
+                    value = value.to("float32").numpy()
                     amax = np.amax(np.absolute(value), axis=1)
                     amax[amax == 0] = 127.0
                     scale = 127.0 / amax
                     value *= np.expand_dims(scale, 1)
                     value = np.rint(value)
                     value = value.astype(np.int8)
+                    scale = NumpyVariable(scale)
+                    value = NumpyVariable(value)
+                elif quantization in ("float16", "bfloat16"):
+                    value = value.to(quantization)
+                else:
+                    value = value.to("float32")
 
-            if quantization in ("float16", "int8_float16"):
-                if value.dtype == np.float32:
-                    value = value.astype(np.float16)
-            else:
-                if value.dtype == np.float16:
-                    value = value.astype(np.float32)
+            elif is_convertible:
+                if quantization in ("float16", "int8_float16"):
+                    value = value.to("float16")
+                elif quantization in ("bfloat16", "int8_bfloat16"):
+                    value = value.to("bfloat16")
+                else:
+                    value = value.to("float32")
 
             setattr(spec, key, value)
             if scale is not None:
@@ -223,26 +244,15 @@ class LayerSpec(FrozenAttr, metaclass=FrozenMeta):
         visit_spec(self, fn)
 
 
-def _is_same_weight(a, b):
-    # Because variables can be transformed on load (e.g. transposed),
-    # we also use an element-wise equality check.
-    return a is b or (
-        a.dtype == b.dtype
-        and a.shape == b.shape
-        and a.flat[0] == b.flat[0]
-        and np.array_equal(a, b)
-    )
-
-
 def _dtype_to_type_id(object_dtype):
     # Order should match the DataType enum in include/ctranslate2/types.h
-    dtypes = (np.float32, np.int8, np.int16, np.int32, np.float16)
+    dtypes = ("float32", "int8", "int16", "int32", "float16", "bfloat16")
     try:
         return dtypes.index(object_dtype)
     except ValueError:
         raise ValueError(
             "%s is not in list of supported dtypes: %s"
-            % (str(object_dtype), ", ".join(map(str, dtypes)))
+            % (object_dtype, ", ".join(dtypes))
         )
 
 
@@ -360,8 +370,8 @@ class ModelSpec(LayerSpec):
                 for dim in value.shape:
                     model.write(struct.pack("I", dim))
                 model.write(struct.pack("B", _dtype_to_type_id(value.dtype)))
-                model.write(struct.pack("I", value.nbytes))
-                model.write(value.tobytes())
+                model.write(struct.pack("I", value.num_bytes()))
+                model.write(value.to_bytes())
             model.write(struct.pack("I", len(aliases)))
             for alias, variable_name in aliases:
                 _write_string(alias)
@@ -576,3 +586,136 @@ def _save_vocabulary(output_dir, name, tokens):
 
     with open(vocabulary_path, "w", encoding="utf-8") as vocabulary_file:
         json.dump(tokens, vocabulary_file, indent=2)
+
+
+class Variable(abc.ABC):
+    """Abstract base class for model variables."""
+
+    @property
+    @abc.abstractmethod
+    def shape(self) -> List[int]:
+        raise NotImplementedError()
+
+    def is_scalar(self) -> bool:
+        return len(self.shape) == 0
+
+    @property
+    @abc.abstractmethod
+    def dtype(self) -> str:
+        raise NotImplementedError()
+
+    def to(self, dtype: str) -> "Variable":
+        if dtype == self.dtype:
+            return self
+        return self._to(dtype)
+
+    @abc.abstractmethod
+    def numpy(self) -> np.ndarray:
+        raise NotImplementedError()
+
+    def equal(self, other) -> bool:
+        return type(self) is type(other) and self._equal(other)
+
+    @abc.abstractmethod
+    def num_bytes(self) -> int:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def to_bytes(self) -> bytes:
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _to(self, dtype: str) -> "Variable":
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def _equal(self, other) -> bool:
+        raise NotImplementedError()
+
+
+class NumpyVariable(Variable):
+    """Model variable as a Numpy array."""
+
+    def __init__(self, array):
+        self.array = array
+
+    @property
+    def shape(self) -> List[int]:
+        return self.array.shape
+
+    @property
+    def dtype(self) -> str:
+        return self.array.dtype.name
+
+    def numpy(self) -> np.ndarray:
+        return self.array
+
+    def num_bytes(self) -> int:
+        return self.array.nbytes
+
+    def to_bytes(self) -> bytes:
+        return self.array.tobytes()
+
+    def _to(self, dtype: str) -> Variable:
+        if dtype == "bfloat16":
+            if not torch_is_available:
+                raise RuntimeError(
+                    "Converting to bfloat16 requires torch to be installed"
+                )
+            return PyTorchVariable.from_numpy(self.array).to(dtype)
+
+        dtype = np.dtype(dtype)
+        self.array = self.array.astype(dtype)
+        return self
+
+    def _equal(self, other) -> bool:
+        a = self.array
+        b = other.array
+        return a is b or (
+            a.dtype == b.dtype
+            and a.shape == b.shape
+            and a.flat[0] == b.flat[0]
+            and np.array_equal(a, b)
+        )
+
+
+class PyTorchVariable(Variable):
+    """Model variable as a PyTorch tensor."""
+
+    def __init__(self, tensor):
+        if isinstance(tensor, torch.nn.Parameter):
+            tensor = tensor.data
+
+        self.tensor = tensor.contiguous()
+
+    @classmethod
+    def from_numpy(cls, array):
+        tensor = torch.from_numpy(array)
+        return cls(tensor)
+
+    @property
+    def shape(self) -> List[int]:
+        return list(self.tensor.shape)
+
+    @property
+    def dtype(self) -> str:
+        return str(self.tensor.dtype).replace("torch.", "")
+
+    def numpy(self) -> np.ndarray:
+        return self.tensor.numpy()
+
+    def num_bytes(self) -> int:
+        return self.tensor.numel() * self.tensor.element_size()
+
+    def to_bytes(self) -> bytes:
+        return ctypes.string_at(self.tensor.data_ptr(), self.num_bytes())
+
+    def _to(self, dtype: str) -> Variable:
+        dtype = getattr(torch, dtype)
+        self.tensor = self.tensor.to(dtype)
+        return self
+
+    def _equal(self, other) -> bool:
+        a = self.tensor
+        b = other.tensor
+        return a is b or (a.dtype == b.dtype and torch.equal(a, b))

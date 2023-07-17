@@ -5,7 +5,12 @@ def fuse_linear(spec, layers):
     if not layers:
         raise ValueError("Cannot fuse linear layers: at least one layer is required")
 
-    spec.weight = np.concatenate([layer.weight for layer in layers])
+    if isinstance(layers[0].weight, np.ndarray):
+        np_api = np
+    else:
+        import torch as np_api
+
+    spec.weight = np_api.concatenate([layer.weight for layer in layers])
 
     bias_dtype = None
     for layer in layers:
@@ -14,11 +19,11 @@ def fuse_linear(spec, layers):
             break
 
     if bias_dtype is not None:
-        spec.bias = np.concatenate(
+        spec.bias = np_api.concatenate(
             [
                 layer.bias
                 if layer.has_bias()
-                else np.zeros([layer.weight.shape[0]], dtype=bias_dtype)
+                else np_api.zeros([layer.weight.shape[0]], dtype=bias_dtype)
                 for layer in layers
             ]
         )
@@ -49,8 +54,13 @@ def smooth_activation(layer_norm, linear, activation_scales):
     """Applies the activation smoothing technique described in
     https://github.com/mit-han-lab/smoothquant.
     """
+    if not isinstance(linear.weight, np.ndarray):
+        linear_weight = linear.weight.numpy()
+        activation_scales = activation_scales.numpy()
+    else:
+        linear_weight = linear.weight
 
-    weight_scales = np.amax(np.absolute(linear.weight), axis=0)
+    weight_scales = np.amax(np.absolute(linear_weight), axis=0)
     weight_scales = np.maximum(weight_scales, 1e-5)
 
     activation_scales = activation_scales.astype(weight_scales.dtype)
@@ -58,10 +68,15 @@ def smooth_activation(layer_norm, linear, activation_scales):
     scales = np.sqrt(activation_scales / weight_scales)
     scales = np.maximum(scales, 1e-5)
 
+    if not isinstance(linear.weight, np.ndarray):
+        import torch
+
+        scales = torch.from_numpy(scales)
+
     layer_norm.gamma /= scales
     layer_norm.beta /= scales
 
-    linear.weight *= np.expand_dims(scales, 0)
+    linear.weight *= scales.reshape(1, -1)
 
 
 def raise_unsupported(reasons):

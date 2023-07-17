@@ -8,6 +8,13 @@ from typing import List, Optional
 
 import numpy as np
 
+try:
+    import huggingface_hub
+    import torch
+    import transformers
+except ImportError:
+    pass
+
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
 from ctranslate2.specs import common_spec, model_spec, transformer_spec, whisper_spec
@@ -77,9 +84,6 @@ class TransformersConverter(Converter):
         self._trust_remote_code = trust_remote_code
 
     def _load(self):
-        import torch
-        import transformers
-
         with torch.no_grad():
             config = transformers.AutoConfig.from_pretrained(
                 self._model_name_or_path, trust_remote_code=self._trust_remote_code
@@ -142,8 +146,6 @@ class TransformersConverter(Converter):
         if os.path.isdir(self._model_name_or_path):
             path = os.path.join(self._model_name_or_path, filename)
         else:
-            import huggingface_hub
-
             try:
                 path = huggingface_hub.hf_hub_download(
                     repo_id=self._model_name_or_path, filename=filename
@@ -195,23 +197,21 @@ class ModelLoader(abc.ABC):
         pass
 
     def set_layer_norm(self, spec, module):
-        spec.gamma = module.weight.numpy()
-        spec.beta = module.bias.numpy()
+        spec.gamma = module.weight
+        spec.beta = module.bias
 
     def set_linear(self, spec, module):
-        import transformers
-
-        spec.weight = module.weight.numpy()
+        spec.weight = module.weight
         if isinstance(module, transformers.Conv1D):
-            spec.weight = spec.weight.transpose()
+            spec.weight = spec.weight.transpose(0, 1)
         if module.bias is not None:
-            spec.bias = module.bias.numpy()
+            spec.bias = module.bias
 
     def set_embeddings(self, spec, module):
-        spec.weight = module.weight.numpy()
+        spec.weight = module.weight
 
     def set_position_encodings(self, spec, module):
-        spec.encodings = module.weight.numpy()
+        spec.encodings = module.weight
         offset = getattr(module, "offset", 0)
         if offset > 0:
             spec.encodings = spec.encodings[offset:]
@@ -243,7 +243,7 @@ class BartLoader(ModelLoader):
 
         final_logits_bias = getattr(model, "final_logits_bias", None)
         if final_logits_bias is not None and final_logits_bias.nonzero().numel() != 0:
-            spec.decoder.projection.bias = final_logits_bias.squeeze().numpy()
+            spec.decoder.projection.bias = final_logits_bias.squeeze()
 
         return spec
 
@@ -392,7 +392,7 @@ class MarianMTLoader(BartLoader):
                 vocab_spec.weight = vocab_spec.weight[:-1]
             if (
                 isinstance(vocab_spec, common_spec.LinearSpec)
-                and isinstance(vocab_spec.bias, np.ndarray)
+                and vocab_spec.has_bias()
                 and vocab_spec.bias.shape[0] == new_vocab_size + 1
             ):
                 vocab_spec.bias = vocab_spec.bias[:-1]
@@ -410,7 +410,7 @@ class M2M100Loader(BartLoader):
         return super().get_model_spec(model)
 
     def set_position_encodings(self, spec, module):
-        spec.encodings = module.weights.numpy()[module.offset :]
+        spec.encodings = module.weights[module.offset :]
 
     def get_vocabulary(self, model, tokenizer):
         tokens = super().get_vocabulary(model, tokenizer)
@@ -489,13 +489,13 @@ class OPTLoader(BartLoader):
             utils.smooth_activation(
                 layer.self_attention.layer_norm,
                 layer.self_attention.linear[0],
-                activation_scales["%s.self_attn.q_proj" % layer_scope].numpy(),
+                activation_scales["%s.self_attn.q_proj" % layer_scope],
             )
 
             utils.smooth_activation(
                 layer.ffn.layer_norm,
                 layer.ffn.linear_0,
-                activation_scales["%s.fc1" % layer_scope].numpy(),
+                activation_scales["%s.fc1" % layer_scope],
             )
 
     def set_vocabulary(self, spec, tokens):
@@ -669,14 +669,14 @@ class GPTJLoader(ModelLoader):
         for layer_spec, layer in zip(spec.layer, module.h):
             self.set_layer_norm(layer_spec.shared_layer_norm, layer.ln_1)
 
-            qw = layer.attn.q_proj.weight.numpy()
-            kw = layer.attn.k_proj.weight.numpy()
-            vw = layer.attn.v_proj.weight.numpy()
+            qw = layer.attn.q_proj.weight
+            kw = layer.attn.k_proj.weight
+            vw = layer.attn.v_proj.weight
 
             qw = utils.permute_for_sliced_rotary(qw, num_heads, rotary_dim)
             kw = utils.permute_for_sliced_rotary(kw, num_heads, rotary_dim)
 
-            layer_spec.self_attention.linear[0].weight = np.concatenate((qw, kw, vw))
+            layer_spec.self_attention.linear[0].weight = torch.cat((qw, kw, vw))
             self.set_linear(layer_spec.self_attention.linear[1], layer.attn.out_proj)
 
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.fc_in)
@@ -744,16 +744,15 @@ class CodeGenLoader(ModelLoader):
 
         base_permutation = np.arange(0, mp_num * 3).reshape(-1, 3).T.flatten().tolist()
         local_dim = embed_dim // mp_num
-        permutation = np.concatenate(
-            [np.arange(i * local_dim, (i + 1) * local_dim) for i in base_permutation]
+        permutation = torch.cat(
+            [torch.arange(i * local_dim, (i + 1) * local_dim) for i in base_permutation]
         )
 
         for layer_spec, layer in zip(spec.layer, module.h):
             self.set_layer_norm(layer_spec.shared_layer_norm, layer.ln_1)
             # [start convert CodeGen to GPT-J format]
-            # numpy conversion, adapted from torch code in
             # see https://github.com/fauxpilot/fauxpilot/blob/fb4073a9078dd001ebeb7dfefb8cb2ecc8a88f4b/converter/codegen_gptj_convert.py # noqa
-            qkv_proj = layer.attn.qkv_proj.weight.numpy()
+            qkv_proj = layer.attn.qkv_proj.weight
 
             # GPT-J and CodeGen slice up the qkv projection slightly differently.
             # the following permutation brings Codegen 'qkv_proj'
@@ -761,13 +760,13 @@ class CodeGenLoader(ModelLoader):
             # we permute the *rows* here because the computation is xA.T
             new_qkv_proj = qkv_proj[permutation, :]
             # the name QKV is misleading here; they are actually stored in QVK
-            qw, vw, kw = np.array_split(new_qkv_proj, 3, axis=0)
+            qw, vw, kw = new_qkv_proj.chunk(3, dim=0)
             # [end convert CodeGen to GPT-J.]
 
             qw = utils.permute_for_sliced_rotary(qw, num_heads, rotary_dim)
             kw = utils.permute_for_sliced_rotary(kw, num_heads, rotary_dim)
 
-            layer_spec.self_attention.linear[0].weight = np.concatenate((qw, kw, vw))
+            layer_spec.self_attention.linear[0].weight = torch.cat((qw, kw, vw))
             self.set_linear(layer_spec.self_attention.linear[1], layer.attn.out_proj)
 
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.fc_in)
@@ -835,8 +834,8 @@ class GPTNeoXLoader(ModelLoader):
                     layer_spec.ffn.layer_norm, layer.post_attention_layernorm
                 )
 
-            qkv_w = layer.attention.query_key_value.weight.numpy()
-            qkv_b = layer.attention.query_key_value.bias.numpy()
+            qkv_w = layer.attention.query_key_value.weight
+            qkv_b = layer.attention.query_key_value.bias
 
             qkv_w = (
                 qkv_w.reshape(num_heads, 3, -1, qkv_w.shape[-1])
@@ -917,8 +916,8 @@ class WhisperLoader(BartLoader):
         self.set_layer_norm(spec.layer_norm, module.layer_norm)
 
     def set_conv1d(self, spec, module):
-        spec.weight = module.weight.numpy()
-        spec.bias = module.bias.numpy()
+        spec.weight = module.weight
+        spec.bias = module.bias
 
 
 @register_loader("T5Config")
@@ -1030,15 +1029,13 @@ class T5Loader(ModelLoader):
         self.set_linear(spec.linear[-1], attention.o)
 
         if attention.has_relative_attention_bias:
-            spec.relative_attention_bias = (
-                attention.relative_attention_bias.weight.numpy()
-            )
+            spec.relative_attention_bias = attention.relative_attention_bias.weight
             spec.relative_attention_max_distance = np.dtype("int32").type(
                 attention.relative_attention_max_distance
             )
 
     def set_layer_norm(self, spec, layer_norm):
-        spec.gamma = layer_norm.weight.numpy()
+        spec.gamma = layer_norm.weight
 
 
 @register_loader("MT5Config")
@@ -1122,8 +1119,8 @@ class BloomLoader(ModelLoader):
         bias = bias.transpose(0, 1)
         bias = bias.reshape(-1)
 
-        spec.weight = weight.numpy()
-        spec.bias = bias.numpy()
+        spec.weight = weight
+        spec.bias = bias
 
 
 @register_loader("MPTConfig")
@@ -1178,8 +1175,8 @@ class MPTLoader(ModelLoader):
             self.set_linear(layer_spec.ffn.linear_1, layer.ffn.down_proj)
 
     def set_layer_norm(self, spec, module):
-        spec.gamma = module.weight.numpy()
-        spec.beta = np.zeros_like(spec.gamma)
+        spec.gamma = module.weight
+        spec.beta = torch.zeros_like(spec.gamma)
 
 
 @register_loader("LlamaConfig")
@@ -1213,7 +1210,7 @@ class LlamaLoader(ModelLoader):
         config.unk_token = tokenizer.unk_token
 
     def set_layer_norm(self, spec, layer_norm):
-        spec.gamma = layer_norm.weight.numpy()
+        spec.gamma = layer_norm.weight
 
     def set_decoder(self, spec, module):
         spec.scale_embeddings = False
@@ -1228,12 +1225,12 @@ class LlamaLoader(ModelLoader):
                 layer_spec.ffn.layer_norm, layer.post_attention_layernorm
             )
 
-            wq = layer.self_attn.q_proj.weight.numpy()
-            wk = layer.self_attn.k_proj.weight.numpy()
-            wv = layer.self_attn.v_proj.weight.numpy()
-            wo = layer.self_attn.o_proj.weight.numpy()
+            wq = layer.self_attn.q_proj.weight
+            wk = layer.self_attn.k_proj.weight
+            wv = layer.self_attn.v_proj.weight
+            wo = layer.self_attn.o_proj.weight
 
-            layer_spec.self_attention.linear[0].weight = np.concatenate([wq, wk, wv])
+            layer_spec.self_attention.linear[0].weight = torch.cat([wq, wk, wv])
             layer_spec.self_attention.linear[1].weight = wo
 
             self.set_linear(layer_spec.ffn.linear_0, layer.mlp.gate_proj)
@@ -1335,8 +1332,6 @@ class FalconLoader(ModelLoader):
             self.set_linear(layer_spec.ffn.linear_1, layer.mlp.dense_4h_to_h)
 
     def set_qkv_linear(self, spec, module, num_heads, num_kv_heads=None):
-        import torch
-
         weight = module.weight
 
         if num_kv_heads is None:
@@ -1357,7 +1352,7 @@ class FalconLoader(ModelLoader):
                 ]
             )
 
-        spec.weight = weight.numpy()
+        spec.weight = weight
 
         if module.bias is not None:
             bias = module.bias
@@ -1377,7 +1372,7 @@ class FalconLoader(ModelLoader):
                     ]
                 )
 
-            spec.bias = bias.numpy()
+            spec.bias = bias
 
 
 @register_loader("BertConfig")
@@ -1535,7 +1530,7 @@ class XLMRobertaLoader(ModelLoader):
         config.layer_norm_epsilon = model.config.layer_norm_eps
 
     def set_position_encodings(self, spec, module):
-        spec.encodings = module.weight.numpy()
+        spec.encodings = module.weight
         offset = getattr(module, "padding_idx", 0)
         if offset > 0:
             spec.encodings = spec.encodings[offset + 1 :]

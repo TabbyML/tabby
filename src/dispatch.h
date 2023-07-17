@@ -31,6 +31,12 @@
       constexpr Device D = Device::CUDA;                                \
       (STMTS);                                                          \
     })                                                                  \
+    TYPE_CASE(bfloat16_t, {                                             \
+      if (DEVICE != Device::CUDA)                                       \
+        throw std::invalid_argument("BF16 " NAME " is only supported on GPU"); \
+      constexpr Device D = Device::CUDA;                                \
+      (STMTS);                                                          \
+    })                                                                  \
     NON_FLOAT_CASE(NAME)                                                \
   }
 

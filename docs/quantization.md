@@ -5,6 +5,7 @@ Quantization is a technique that can reduce the model size and accelerate its ex
 * 8-bit integers (INT8)
 * 16-bit integers (INT16)
 * 16-bit floating points (FP16)
+* 16-bit brain floating points (BF16)
 
 ```{tip}
 See the benchmark results in the main [README](https://github.com/OpenNMT/CTranslate2#benchmarks) to compare the performance and memory usage with and without quantization.
@@ -16,8 +17,10 @@ Enabling the quantization when converting the model is helpful to reduce its siz
 
 * `int8`
 * `int8_float16`
+* `int8_bfloat16`
 * `int16`
 * `float16`
+* `bfloat16`
 
 For example,
 
@@ -36,8 +39,10 @@ For reference, the table below compares the model size on disk for a base Transf
 | None | 364MB |
 | `int16` | 187MB |
 | `float16` | 182MB |
+| `bfloat16` | 182MB |
 | `int8` | 100MB |
 | `int8_float16` | 95MB |
+| `int8_bfloat16` | 95MB |
 
 ## Quantize on model loading
 
@@ -47,9 +52,11 @@ Quantization can also be enabled or changed when loading the model. The translat
 * `auto`: use the fastest computation type that is supported on this system and device
 * `int8`
 * `int8_float16`
+* `int8_bfloat16`
 * `int16`
 * `float16`
 * `float32`
+* `bfloat16`
 
 For example,
 
@@ -67,21 +74,22 @@ By default, the runtime tries to use the type that is saved in the converted mod
 
 **On CPU:**
 
-| Architecture | int8 | int8_float16 | int16 | float16 |
+| Architecture | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
 | --- | --- | --- | --- | --- |
-| x86-64 (Intel) | int8 | int8 | int16 | float32 |
-| x86-64 (other) | int8 | int8 | int8 | float32 |
-| AArch64/ARM64 (Apple) | int8 | int8 | int8 | float32 |
-| AArch64/ARM64 (other) | int8 | int8 | int8 | float32 |
+| x86-64 (Intel) | int8 | int8 | int8 | int16 | float32 | float32 |
+| x86-64 (other) | int8 | int8 | int8 | int8 | float32 | float32 |
+| AArch64/ARM64 (Apple) | int8 | int8 | int8 | int8 | float32 | float32 |
+| AArch64/ARM64 (other) | int8 | int8 | int8 | int8 | float32 | float32 |
 
 **On GPU:**
 
-| Compute Capability | int8 | int8_float16 | int16 | float16 |
+| Compute Capability | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
 | --- | --- | --- | --- | --- |
-| >= 7.0 | int8 | int8_float16 | float16 | float16 |
-| 6.2 | float32 | float32 | float32 | float32 |
-| 6.1 | int8 | int8 | float32 | float32 |
-| <= 6.0 | float32 | float32 | float32 | float32 |
+| >= 8.0 | int8 | int8_float16 | int8_bfloat16 | float16 | float16 | bfloat16 |
+| >= 7.0, < 8.0 | int8 | int8_float16 | int8 | float16 | float16 | float32 |
+| 6.2 | float32 | float32 | float32 | float32 | float32 | float32 |
+| 6.1 | int8 | int8 | int8 | float32 | float32 | float32 |
+| <= 6.0 | float32 | float32 | float32 | float32 | float32 | float32 |
 
 ```{tip}
 You can get more information about the detected capabilities of your system by enabling the info logs (set the environment variable `CT2_VERBOSE=1` or call ``ctranslate2.set_log_level(logging.INFO)``).
@@ -127,7 +135,7 @@ As suggested by the author, the idea is to use 10 bits for the input so that the
 
 Similar to the `int8` quantization, only the weights of the embedding and linear layers are quantized to 16-bit integers.
 
-### 16-bit floating points (`float16`)
+### 16-bit floating points (`float16` or `bfloat16`)
 
 **Supported on:**
 
@@ -135,10 +143,10 @@ Similar to the `int8` quantization, only the weights of the embedding and linear
 
 In this mode, all model weights are stored in half precision and all layers are run in half precision.
 
-### Mixed 8-bit integers and 16-bit floating points (`int8_float16`)
+### Mixed 8-bit integers and 16-bit floating points (`int8_float16` or `int8_bfloat16`)
 
 **Supported on:**
 
 * NVIDIA GPU with Compute Capability >= 7.0
 
-This mode is the same as `int8`, but all non quantized layers are run in FP16 instead of FP32.
+This mode is the same as `int8`, but all non quantized layers are run in FP16 or BF16 instead of FP32.

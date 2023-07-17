@@ -5,6 +5,7 @@
 
 #include <half_float/half.hpp>
 
+#include "bfloat16.h"
 #include "devices.h"
 
 namespace ctranslate2 {
@@ -17,7 +18,8 @@ namespace ctranslate2 {
     INT8,
     INT16,
     INT32,
-    FLOAT16
+    FLOAT16,
+    BFLOAT16,
   };
 
   std::string dtype_name(DataType type);
@@ -29,13 +31,16 @@ namespace ctranslate2 {
     FLOAT32,
     INT8,
     INT8_FLOAT16,
+    INT8_BFLOAT16,
     INT16,
-    FLOAT16
+    FLOAT16,
+    BFLOAT16,
   };
 
   ComputeType str_to_compute_type(const std::string& compute_type);
   std::string compute_type_to_str(const ComputeType compute_type);
 
+  bool mayiuse_bfloat16(const Device device, const int device_index = 0);
   bool mayiuse_float16(const Device device, const int device_index = 0);
   bool mayiuse_int16(const Device device, const int device_index = 0);
   bool mayiuse_int8(const Device device, const int device_index = 0);

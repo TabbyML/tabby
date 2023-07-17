@@ -5,7 +5,26 @@
 namespace ctranslate2 {
   namespace ops {
 
-    template <typename T, bool interleave>
+    template <typename T>
+    struct ComputeType {
+      using type = T;
+    };
+
+#if !CUDA_CAN_USE_HALF
+    template<>
+    struct ComputeType<__half> {
+      using type = float;
+    };
+#endif
+
+#if !CUDA_CAN_USE_BF16_MATH
+    template<>
+    struct ComputeType<__nv_bfloat16> {
+      using type = float;
+    };
+#endif
+
+    template <typename T, typename C, bool interleave>
     __global__ void rotary_kernel(const T* x,
                                   const T* sin,
                                   const T* cos,
@@ -21,12 +40,6 @@ namespace ctranslate2 {
 
       sin += time * ndims;
       cos += time * ndims;
-
-#if CUDA_CAN_USE_HALF
-      using C = T;
-#else
-      using C = float;
-#endif
 
       for (cuda::index_t i = threadIdx.x; i < depth; i += blockDim.x) {
         if (i >= ndims)
@@ -55,11 +68,14 @@ namespace ctranslate2 {
       const auto* c = cuda::device_cast(cos.data<T>());
       auto* y = cuda::device_cast(output.data<T>());
 
+      using DeviceT = cuda::device_type<T>;
+      using ComputeT = typename ComputeType<DeviceT>::type;
+
       if (_interleave)
-        rotary_kernel<cuda::device_type<T>, true><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+        rotary_kernel<DeviceT, ComputeT, true><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
           x, s, c, y, max_time, ndims, depth);
       else
-        rotary_kernel<cuda::device_type<T>, false><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+        rotary_kernel<DeviceT, ComputeT, false><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
           x, s, c, y, max_time, ndims, depth);
     }
 
@@ -72,6 +88,7 @@ namespace ctranslate2 {
 
     DECLARE_IMPL(float)
     DECLARE_IMPL(float16_t)
+    DECLARE_IMPL(bfloat16_t)
 
   }
 }

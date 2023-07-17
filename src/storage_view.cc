@@ -102,6 +102,18 @@ namespace ctranslate2 {
     } else if (_dtype == DataType::FLOAT16 && dtype == DataType::FLOAT32) {
       DEVICE_DISPATCH(_device,
                       primitives<D>::convert(data<float16_t>(), converted.data<float>(), _size));
+    } else if (_dtype == DataType::FLOAT32 && dtype == DataType::BFLOAT16) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<float>(), converted.data<bfloat16_t>(), _size));
+    } else if (_dtype == DataType::BFLOAT16 && dtype == DataType::FLOAT32) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<bfloat16_t>(), converted.data<float>(), _size));
+    } else if (_dtype == DataType::BFLOAT16 && dtype == DataType::FLOAT16) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<bfloat16_t>(), converted.data<float16_t>(), _size));
+    } else if (_dtype == DataType::FLOAT16 && dtype == DataType::BFLOAT16) {
+      DEVICE_DISPATCH(_device,
+                      primitives<D>::convert(data<float16_t>(), converted.data<bfloat16_t>(), _size));
     } else {
       // TODO: support other conversions.
       throw std::invalid_argument("Conversion from " + dtype_name(_dtype)
