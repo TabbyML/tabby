@@ -75,7 +75,7 @@ By default, the runtime tries to use the type that is saved in the converted mod
 **On CPU:**
 
 | Architecture | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- |
 | x86-64 (Intel) | int8 | int8 | int8 | int16 | float32 | float32 |
 | x86-64 (other) | int8 | int8 | int8 | int8 | float32 | float32 |
 | AArch64/ARM64 (Apple) | int8 | int8 | int8 | int8 | float32 | float32 |
@@ -84,7 +84,7 @@ By default, the runtime tries to use the type that is saved in the converted mod
 **On GPU:**
 
 | Compute Capability | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | -- |
 | >= 8.0 | int8 | int8_float16 | int8_bfloat16 | float16 | float16 | bfloat16 |
 | >= 7.0, < 8.0 | int8 | int8_float16 | int8 | float16 | float16 | float32 |
 | 6.2 | float32 | float32 | float32 | float32 | float32 | float32 |
@@ -135,7 +135,7 @@ As suggested by the author, the idea is to use 10 bits for the input so that the
 
 Similar to the `int8` quantization, only the weights of the embedding and linear layers are quantized to 16-bit integers.
 
-### 16-bit floating points (`float16` or `bfloat16`)
+### 16-bit floating points (`float16`)
 
 **Supported on:**
 
@@ -143,10 +143,26 @@ Similar to the `int8` quantization, only the weights of the embedding and linear
 
 In this mode, all model weights are stored in half precision and all layers are run in half precision.
 
-### Mixed 8-bit integers and 16-bit floating points (`int8_float16` or `int8_bfloat16`)
+### 16-bit brain floating points (`bfloat16`)
+
+**Supported on:**
+
+* NVIDIA GPU with Compute Capability >= 8.0
+
+In this mode, all model weights are stored in BF16 and all layers are run with this type.
+
+### Mixed 8-bit integers and 16-bit floating points (`int8_float16`)
 
 **Supported on:**
 
 * NVIDIA GPU with Compute Capability >= 7.0
 
-This mode is the same as `int8`, but all non quantized layers are run in FP16 or BF16 instead of FP32.
+This mode is the same as `int8`, but all non quantized layers are run in FP16 instead of FP32.
+
+### Mixed 8-bit integers and 16-bit brain floating points (`int8_bfloat16`)
+
+**Supported on:**
+
+* NVIDIA GPU with Compute Capability >= 8.0
+
+This mode is the same as `int8`, but all non quantized layers are run in BF16 instead of FP32.
