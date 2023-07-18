@@ -4,6 +4,21 @@
 
 ### Fixes and improvements
 
+## [v3.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.17.0) (2023-07-18)
+
+### New features
+
+* Add new computation types: `bfloat16` and `int8_bfloat16` (require a GPU with Compute Capability 8.0 or above)
+* Support multi-query attention for encoder-decoder models
+* Allow converters to register weights as PyTorch tensors instead of Numpy arrays
+
+### Fixes and improvements
+
+* Pass the flag `trust_remote_code` when loading the tokenizer in the Transformers converter
+* Improve performance of T5 models by reusing the same relative position bias in every layers
+* Whisper: disable the first timestamp decoding rule when a prefix is used
+* Install the CMake configuration in the correct library directory (e.g. some platforms use `lib64` instead of `lib`)
+
 ## [v3.16.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.16.1) (2023-07-03)
 
 ### Fixes and improvements
