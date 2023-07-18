@@ -122,3 +122,27 @@ In particular, no compilation flags should be used in the header file to make it
 1. Update the version number in `python/ctranslate2/version.py`
 1. Tag the latest commit in the format `vX.Y.Z`
 1. When the release pipeline is finished, create a new release on GitHub and copy the note from `CHANGELOG.md`
+
+### Managing PyPI project size limit
+
+Projects on PyPI have a size limit. The default limit is 10GB and [we already requested](https://github.com/pypi/support/issues/1480) an increase to 20GB in the past. Because increase requests can take several months to be accepted, we now try to work with this 20GB limit.
+
+So older releases need to be regularly deleted on PyPI to make room for new releases. **However, make sure to keep the latest release of each major version.**
+
+Here's the process to delete a release:
+
+1. Download the releases to be deleted (see an example script below)
+1. Upload the wheels in the `ctranslate2-wheels` bucket of the OpenNMT AWS S3 account
+1. Delete the release on PyPI
+
+**Example script to download the wheels of a release:**
+
+```bash
+#! /bin/bash
+
+VERSION="1.20.0"
+
+wget https://pypi.org/simple/ctranslate2/ -O /tmp/ctranslate2.html
+mkdir -p /tmp/wheels
+grep -F "$VERSION" /tmp/ctranslate2.html | sed -E 's/.*<a href="([^"]+)".*/\1/i' | xargs wget -P /tmp/wheels
+```
