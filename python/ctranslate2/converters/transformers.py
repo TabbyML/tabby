@@ -1186,20 +1186,36 @@ class LlamaLoader(ModelLoader):
         return "LlamaForCausalLM"
 
     def get_model_spec(self, model):
+        num_layers = model.config.num_hidden_layers
+
+        num_heads = model.config.num_attention_heads
+        num_heads_kv = getattr(model.config, "num_key_value_heads", num_heads)
+        if num_heads_kv == num_heads:
+            num_heads_kv = None
+
         spec = transformer_spec.TransformerDecoderModelSpec.from_config(
-            model.config.num_hidden_layers,
-            model.config.num_attention_heads,
+            num_layers,
+            num_heads,
             activation=common_spec.Activation.SWISH,
             pre_norm=True,
             ffn_glu=True,
             rms_norm=True,
             rotary_dim=0,
             rotary_interleave=False,
+            num_heads_kv=num_heads_kv,
         )
 
         self.set_decoder(spec.decoder, model.model)
         self.set_linear(spec.decoder.projection, model.lm_head)
         return spec
+
+    def get_vocabulary(self, model, tokenizer):
+        tokens = super().get_vocabulary(model, tokenizer)
+
+        if len(tokens) > model.config.vocab_size:
+            tokens = tokens[: model.config.vocab_size]
+
+        return tokens
 
     def set_vocabulary(self, spec, tokens):
         spec.register_vocabulary(tokens)
