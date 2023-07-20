@@ -6,7 +6,7 @@ CTranslate2 exposes high-level classes to run generative language models such as
 | --- | --- | --- |
 | `generate_batch` | Generate text from a batch of prompts or start tokens. | {ref}`guides/transformers:gpt-2` |
 | `score_batch` | Compute the token-level log-likelihood and the sequence perplexity. | {ref}`guides/fairseq:wmt19 language model` |
-| `generate_tokens` | Stream the generated tokens. | {ref}`generation:token streaming` |
+| `generate_tokens` | Stream the generated tokens. | {ref}`generation:token streaming`<br/>[Chat with Llama 2](https://github.com/OpenNMT/CTranslate2/tree/master/examples/llama2) |
 | `forward_batch` | Get the full output logits (or log probs) for a sequence. | |
 
 ## Token streaming
@@ -51,6 +51,10 @@ if output_ids:
 
 ```{tip}
 To implement a similar mechanism for batch generation, you can use the arguments `callback` and `include_prompt_in_result=False` in the method `generate_batch`. This is what `generate_tokens` use internally.
+```
+
+```{seealso}
+The example [Chat with Llama 2](https://github.com/OpenNMT/CTranslate2/tree/master/examples/llama2) which uses token streaming in an interactive chat session.
 ```
 
 ## Prompt caching

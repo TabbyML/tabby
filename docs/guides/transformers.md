@@ -7,7 +7,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * BLOOM
 * CodeGen
 * Falcon
-* LLaMa
+* Llama
 * M2M100
 * MarianMT
 * MBART
@@ -173,6 +173,24 @@ results = generator.generate_batch([tokens], sampling_topk=10, max_length=200, i
 output = tokenizer.decode(results[0].sequences_ids[0])
 
 print(output)
+```
+
+## Llama 2
+
+[Llama 2](https://ai.meta.com/llama/) is a collection of pretrained and fine-tuned generative text models ranging in scale from 7 billion to 70 billion parameters.
+
+The models with the suffix "-hf" such as [meta-llama/Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) can be converted with the Transformers converter. For example:
+
+```bash
+ct2-transformers-converter --model meta-llama/Llama-2-7b-chat-hf --quantization float16 --output_dir llama-2-7b-chat-ct2
+```
+
+```{important}
+You need to request an access to the Llama 2 models before you can download them from the Hugging Face Hub. See the instructions on the [model page](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf). Once you have access to the model, you should login with `huggingface-cli login` before running the conversion command.
+```
+
+```{seealso}
+The example [Chat with Llama 2](https://github.com/OpenNMT/CTranslate2/tree/master/examples/llama2) which demonstrates how to implement an interactive chat session using CTranslate2.
 ```
 
 ## MarianMT
