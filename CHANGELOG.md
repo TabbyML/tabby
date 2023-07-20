@@ -4,6 +4,15 @@
 
 ### Fixes and improvements
 
+## [v3.17.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.17.1) (2023-07-20)
+
+### Fixes and improvements
+
+* Fix an error when running models with the new `int8_bfloat16` computation type
+* Fix a vocabulary error when converting Llama 2 models with the Transformers converter
+* Update the Transformers converter to correctly convert Llama models using GQA
+* Stop the decoding when the generator returned by the method `generate_tokens` is closed
+
 ## [v3.17.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.17.0) (2023-07-18)
 
 ### New features
