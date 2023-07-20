@@ -637,6 +637,20 @@ class TestGeneration:
                 expected_result.scores[0], abs=1e-5
             )
 
+    @test_utils.only_on_linux
+    def test_transformers_generator_token_streaming_early_stop(self, tmp_dir):
+        converter = ctranslate2.converters.TransformersConverter("gpt2")
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        generator = ctranslate2.Generator(output_dir)
+
+        prompt = "Ċ The Ġfirst Ġtime ĠI".split()
+        results = generator.generate_tokens(prompt)
+        for result in results:
+            break
+
+        results.close()
+
 
 class TestWhisper:
     @classmethod

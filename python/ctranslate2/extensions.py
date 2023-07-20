@@ -316,12 +316,15 @@ def generator_generate_tokens(
 
 def _generate_tokens(process_func, *args, **kwargs):
     step_results = queue.Queue()
+    generator_closed = threading.Event()
 
     def _callback(step_result):
         step_results.put(step_result)
 
         if step_result.is_last:
             step_results.put(None)
+
+        return generator_closed.is_set()
 
     kwargs.update(
         {
@@ -351,7 +354,11 @@ def _generate_tokens(process_func, *args, **kwargs):
         if isinstance(step_result, Exception):
             raise step_result
 
-        yield step_result
+        try:
+            yield step_result
+        except GeneratorExit:
+            generator_closed.set()
+            break
 
     # Wait for the job to terminate before exiting.
     thread.join()
