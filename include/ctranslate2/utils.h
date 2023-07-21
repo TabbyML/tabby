@@ -29,7 +29,7 @@ namespace ctranslate2 {
   std::vector<std::vector<std::vector<std::string>>>
   extract_features(std::vector<std::vector<std::string>> batch,
                    size_t num_features,
-                   const std::string& features_separator = "￨");
+                   const std::string& features_separator = "\uFFE8");
 
   template <typename T, typename I>
   static std::vector<T> index_vector(const std::vector<T>& v,
