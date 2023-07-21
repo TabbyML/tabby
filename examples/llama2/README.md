@@ -28,10 +28,13 @@ ct2-transformers-converter --model meta-llama/Llama-2-7b-chat-hf --copy_files to
 
 ## Start a chat session
 
-Simply type your question when the prompt "You :" is displayed.
+```
+python3 chat.py llama-2-7b-chat-ct2/
+```
+
+Simply type your question when the prompt "You:" is displayed.
 
 ```
-$ python3 chat.py llama-2-7b-chat-ct2/
 Loading the model...
 
 You: Hello, how can you help me?

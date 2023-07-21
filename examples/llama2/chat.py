@@ -36,6 +36,7 @@ def main():
             prompt_tokens = build_prompt(sp, dialog)
             if len(prompt_tokens) <= max_prompt_length:
                 break
+            # Remove old conversations to reduce the prompt size.
             dialog = dialog[2:]
 
         step_results = generator.generate_tokens(
@@ -47,30 +48,39 @@ def main():
         )
 
         print("")
-        print("Llama2:", end="", flush=True)
+        print("Llama2: ", end="", flush=True)
 
         text_output = ""
-        tokens_buffer = []
 
-        for step_result in step_results:
-            is_new_word = step_result.token.startswith("▁")
-
-            if is_new_word and tokens_buffer:
-                word = sp.decode(tokens_buffer) + " "
-                print(word, end="", flush=True)
-                text_output += word
-                tokens_buffer = []
-
-            tokens_buffer.append(step_result.token_id)
-
-        if tokens_buffer:
-            word = sp.decode(tokens_buffer)
+        for word in generate_words(sp, step_results):
+            if text_output:
+                word = " " + word
+            print(word, end="", flush=True)
             text_output += word
-            print(word)
-        else:
-            print("")
+
+        print("")
 
         dialog.append({"role": "assistant", "content": text_output.strip()})
+
+
+def generate_words(sp, step_results):
+    tokens_buffer = []
+
+    for step_result in step_results:
+        is_new_word = step_result.token.startswith("▁")
+
+        if is_new_word and tokens_buffer:
+            word = sp.decode(tokens_buffer)
+            if word:
+                yield word
+            tokens_buffer = []
+
+        tokens_buffer.append(step_result.token_id)
+
+    if tokens_buffer:
+        word = sp.decode(tokens_buffer)
+        if word:
+            yield word
 
 
 # The code below is adapted from
