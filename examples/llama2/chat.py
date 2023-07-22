@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 import ctranslate2
 import sentencepiece as spm
@@ -32,6 +33,9 @@ def main():
             # Remove old conversations to reduce the prompt size.
             dialog = dialog[2:]
 
+        start = time.time()
+        tokens_counter = TokensCounter()
+
         step_results = generator.generate_tokens(
             prompt_tokens,
             max_length=max_generation_length,
@@ -39,6 +43,8 @@ def main():
             sampling_topk=20,
             sampling_topp=1,
         )
+
+        step_results = tokens_counter(step_results)
 
         print("")
         print("Llama2: ", end="", flush=True)
@@ -51,6 +57,16 @@ def main():
             print(word, end="", flush=True)
             text_output += word
 
+        print("")
+
+        end = time.time()
+        duration = end - start
+
+        print("")
+        print(
+            "(generated %d tokens in %.2f seconds: %.1f tokens/s)"
+            % (tokens_counter.count, duration, tokens_counter.count / duration)
+        )
         print("")
 
         dialog.append({"role": "assistant", "content": text_output.strip()})
@@ -74,6 +90,16 @@ def generate_words(sp, step_results):
         word = sp.decode(tokens_buffer)
         if word:
             yield word
+
+
+class TokensCounter:
+    def __init__(self):
+        self.count = 0
+
+    def __call__(self, iterable):
+        for element in iterable:
+            self.count += 1
+            yield element
 
 
 # The code below is adapted from
