@@ -8,16 +8,9 @@ import sentencepiece as spm
 def main():
     model_dir = sys.argv[1]
 
-    device = "cuda"
-    compute_type = "float16"  # Use "int8_float16" to reduce VRAM usage.
-
     print("Loading the model...")
+    generator = ctranslate2.Generator(model_dir, device="cuda")
     sp = spm.SentencePieceProcessor(os.path.join(model_dir, "tokenizer.model"))
-    generator = ctranslate2.Generator(
-        model_dir,
-        device=device,
-        compute_type=compute_type,
-    )
 
     context_length = 4096
     max_generation_length = 512

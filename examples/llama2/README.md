@@ -24,6 +24,8 @@ ct2-transformers-converter --model meta-llama/Llama-2-7b-chat-hf --copy_files to
     --output_dir llama-2-7b-chat-ct2 --quantization float16 --low_cpu_mem_usage
 ```
 
+For 8-bit quantization, replace `float16` by `int8_float16`.
+
 **Note:** You need to request an access to the Llama 2 models before you can download them from the Hugging Face Hub. See the instructions on the [model page](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf). Once you have access to the model, you should login with `huggingface-cli login` before running the conversion command.
 
 ## Start a chat session
