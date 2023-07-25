@@ -3,6 +3,7 @@
   "workspaces": [
     "clients/tabby-agent",
     "clients/vscode",
-    "clients/vim"
+    "clients/vim",
+    "clients/intellij"
   ]
 }
