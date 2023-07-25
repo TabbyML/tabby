@@ -1,0 +1,50 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>com.tabbyml.intellij-tabby</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Tabby</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor url="https://tabbyml.com">TabbyML</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    Early version of Tabby for IntelliJ.<br>
+    Require Node.js 16.0+ installed and added to PATH.<br>
+  ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+    </extensions>
+
+    <actions>
+        <action id="Tabby.TriggerCompletion"
+                class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
+                text="TriggerCompletion"
+                description="Trigger completion at current position.">
+            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
+        </action>
+        <action id="Tabby.AcceptCompletion"
+                class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
+                text="AcceptCompletion"
+                description="Trigger completion at current position.">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="Tabby.TriggerCompletion"/>
+        </action>
+        <action id="Tabby.DismissCompletion"
+                class="com.tabbyml.intellijtabby.actions.DismissCompletion"
+                text="DismissCompletion"
+                description="Trigger completion at current position.">
+            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="Tabby.AcceptCompletion"/>
+        </action>
+    </actions>
+</idea-plugin>
