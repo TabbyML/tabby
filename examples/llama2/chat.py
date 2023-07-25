@@ -32,8 +32,11 @@ def main():
             # Remove old conversations to reduce the prompt size.
             dialog = dialog[2:]
 
+        system_prompt_tokens, prompt_tokens = extract_system_prompt(sp, prompt_tokens)
+
         step_results = generator.generate_tokens(
             prompt_tokens,
+            static_prompt=system_prompt_tokens,
             max_length=max_generation_length,
             sampling_temperature=0.6,
             sampling_topk=20,
@@ -74,6 +77,25 @@ def generate_words(sp, step_results):
         word = sp.decode(tokens_buffer)
         if word:
             yield word
+
+
+def extract_system_prompt(sp, tokens):
+    end_tokens = sp.encode_as_pieces(E_SYS)[1:]
+    end_position = None
+
+    for start in range(len(tokens)):
+        end = start + len(end_tokens)
+        if tokens[start:end] == end_tokens:
+            end_position = end
+            break
+
+    if end_position is None:
+        system_tokens = None
+    else:
+        system_tokens = tokens[:end_position]
+        tokens = tokens[end_position:]
+
+    return system_tokens, tokens
 
 
 # The code below is adapted from

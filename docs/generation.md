@@ -99,6 +99,10 @@ step_results = generator.generate_tokens(
 At this time the cache size is unlimited and the cache is only cleared when the model is unloaded. Also if the model is loaded on multiple GPUs, each model replica manages its own cache to avoid copying the state between devices.
 ```
 
+```{seealso}
+The example [Chat with Llama 2](https://github.com/OpenNMT/CTranslate2/tree/master/examples/llama2) which caches the system prompt in an interactive chat session.
+```
+
 ## Special tokens
 
 Special tokens such as the decoder start token `<s>` should be explicitly included in the input if required by the model. No special tokens are added by the generator methods.
