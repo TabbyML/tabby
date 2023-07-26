@@ -801,14 +801,9 @@ namespace ctranslate2 {
           for (const dim_t batch_id : check_timestamps_prob_for_batch) {
             bool sample_timestamp = false;
 
-            if (log_probs.device() == Device::CPU)
-              sample_timestamp = should_sample_timestamp<Device::CPU, float>(log_probs, batch_id);
-#ifdef CT2_WITH_CUDA
-            else if (log_probs.dtype() == DataType::FLOAT32)
-              sample_timestamp = should_sample_timestamp<Device::CUDA, float>(log_probs, batch_id);
-            else
-              sample_timestamp = should_sample_timestamp<Device::CUDA, float16_t>(log_probs, batch_id);
-#endif
+            DEVICE_AND_FLOAT_DISPATCH(
+              "ApplyTimestampRules", log_probs.device(), log_probs.dtype(),
+              (sample_timestamp = should_sample_timestamp<D, T>(log_probs, batch_id)));
 
             if (sample_timestamp) {
               for (size_t i = 0; i < _timestamp_begin_id; ++i)
