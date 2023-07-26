@@ -4,6 +4,7 @@
 
 :::tip
 The configuration file is not mandatory; Tabby can be run with just a single line of command.
+:::
 
 Server config can be found at `~/.tabby/config.toml`
 
