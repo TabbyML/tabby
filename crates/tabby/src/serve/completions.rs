@@ -143,6 +143,7 @@ impl CompletionState {
             .compute_type(compute_type)
             .build()
             .unwrap();
+        debug!("Initializing TextInferenceEngine...");
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,
