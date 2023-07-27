@@ -57,11 +57,11 @@ impl CacheInfo {
 }
 
 pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<()> {
-    tracing::info!("Starting to download model: {}", model_id);
     if fs::metadata(model_id).is_ok() {
         // Local path, no need for downloading.
         return Ok(());
     }
+    tracing::info!("Starting to download model: {}", model_id);
 
     let mut cache_info = CacheInfo::from(model_id).await;
 
