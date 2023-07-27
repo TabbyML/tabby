@@ -1,6 +1,6 @@
 package com.tabbyml.intellijtabby.editor
 
-import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
@@ -14,50 +14,56 @@ import com.tabbyml.intellijtabby.agent.Agent
 import java.awt.Graphics
 import java.awt.Rectangle
 
+
 @Service
 class InlineCompletionService {
   private val logger = Logger.getInstance(InlineCompletionService::class.java)
-  var currentText: String? = null
+
+  data class InlineCompletion(val editor: Editor, val text: String, val offset: Int, val inlays: List<Inlay<*>>)
+
+  var shownInlineCompletion: InlineCompletion? = null
     private set
-  var currentOffset: Int? = null
-    private set
-  private var currentInlays: MutableList<Inlay<*>> = mutableListOf()
 
   fun show(editor: Editor, offset: Int, completion: Agent.CompletionResponse) {
+    dismiss()
     if (completion.choices.isEmpty()) {
       return
     }
-    val text = completion.choices.first().text
-    logger.info("Showing inline completion at $offset: $text")
-    val lines = text.split("\n")
-    lines.forEachIndexed { index, line -> addInlayLine(editor, offset, line, index) }
-    currentText = text
-    currentOffset = offset
+    invokeLater {
+      val text = completion.choices.first().text
+      logger.info("Showing inline completion at $offset: $text")
+      val lines = text.split("\n")
+      val inlays = lines
+        .mapIndexed { index, line -> createInlayLine(editor, offset, line, index) }
+        .filterNotNull()
+      shownInlineCompletion = InlineCompletion(editor, text, offset, inlays)
+    }
   }
 
-  fun accept(editor: Editor) {
-    currentText?.let {
-      WriteCommandAction.runWriteCommandAction(editor.project) {
-        editor.document.insertString(currentOffset!!, it)
-        editor.caretModel.moveToOffset(currentOffset!! + it.length)
+  fun accept() {
+    shownInlineCompletion?.let {
+      logger.info("Accept inline completion at ${it.offset}: ${it.text}")
+      WriteCommandAction.runWriteCommandAction(it.editor.project) {
+        it.editor.document.insertString(it.offset, it.text)
+        it.editor.caretModel.moveToOffset(it.offset + it.text.length)
       }
-      currentText = null
-      currentOffset = null
-      currentInlays.forEach(Disposer::dispose)
-      currentInlays = mutableListOf()
+      invokeLater {
+        it.inlays.forEach(Disposer::dispose)
+      }
+      shownInlineCompletion = null
     }
   }
 
   fun dismiss() {
-    currentText?.let {
-      currentText = null
-      currentOffset = null
-      currentInlays.forEach(Disposer::dispose)
-      currentInlays = mutableListOf()
+    shownInlineCompletion?.let {
+      invokeLater {
+        it.inlays.forEach(Disposer::dispose)
+      }
+      shownInlineCompletion = null
     }
   }
 
-  private fun addInlayLine(editor: Editor, offset: Int, line: String, index: Int) {
+  private fun createInlayLine(editor: Editor, offset: Int, line: String, index: Int): Inlay<*>? {
     val renderer = object : EditorCustomElementRenderer {
       override fun calcWidthInPixels(inlay: Inlay<*>): Int {
         // FIXME: Calc width?
@@ -69,13 +75,10 @@ class InlineCompletionService {
         graphics.drawString(line, targetRect.x, targetRect.y + inlay.editor.ascent)
       }
     }
-    val inlay = if (index == 0) {
+    return if (index == 0) {
       editor.inlayModel.addInlineElement(offset, true, renderer)
     } else {
       editor.inlayModel.addBlockElement(offset, true, false, -index, renderer)
-    }
-    inlay?.let {
-      currentInlays.add(it)
     }
   }
 }

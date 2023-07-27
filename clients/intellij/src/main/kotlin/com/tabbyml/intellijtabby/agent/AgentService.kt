@@ -1,8 +1,10 @@
 package com.tabbyml.intellijtabby.agent
 
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import java.util.concurrent.CompletableFuture
 
@@ -23,14 +25,20 @@ class AgentService {
     }
   }
 
-  fun getCompletion(editor: Editor, file: PsiFile, offset: Int): CompletableFuture<Agent.CompletionResponse>? {
-    return agent.thenCompose {
-      it?.getCompletions(Agent.CompletionRequest(
-        file.virtualFile.path,
-        file.language.id, // FIXME: map language id
-        editor.document.text,
-        offset
-      ))
+  fun getCompletion(editor: Editor, offset: Int): CompletableFuture<Agent.CompletionResponse>? {
+    return agent.thenCompose {agent ->
+      ReadAction.compute<PsiFile, Throwable> {
+        editor.project?.let { project ->
+          PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
+        }
+      }?.let { file ->
+        agent?.getCompletions(Agent.CompletionRequest(
+          file.virtualFile.path,
+          file.language.id, // FIXME: map language id
+          editor.document.text,
+          offset
+        ))
+      }
     }
   }
 }

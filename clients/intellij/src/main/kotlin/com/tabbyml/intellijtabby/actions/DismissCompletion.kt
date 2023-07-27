@@ -16,9 +16,10 @@ class DismissCompletion : AnAction() {
 
   override fun update(e: AnActionEvent) {
     val inlineCompletionService = service<InlineCompletionService>()
-    e.presentation.isEnabled = e.getData(CommonDataKeys.EDITOR) != null
-        && e.project != null
-        && inlineCompletionService.currentText != null
+    e.presentation.isEnabled = e.project != null
+        && e.getData(CommonDataKeys.EDITOR) != null
+        && inlineCompletionService.shownInlineCompletion != null
+        && e.getData(CommonDataKeys.EDITOR) == inlineCompletionService.shownInlineCompletion?.editor
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread {

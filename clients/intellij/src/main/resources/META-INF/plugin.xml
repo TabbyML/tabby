@@ -25,26 +25,30 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
     </extensions>
 
     <actions>
-        <action id="Tabby.TriggerCompletion"
-                class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
-                text="TriggerCompletion"
-                description="Trigger completion at current position.">
-            <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-        </action>
-        <action id="Tabby.AcceptCompletion"
-                class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
-                text="AcceptCompletion"
-                description="Trigger completion at current position.">
-            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="Tabby.TriggerCompletion"/>
-        </action>
-        <action id="Tabby.DismissCompletion"
-                class="com.tabbyml.intellijtabby.actions.DismissCompletion"
-                text="DismissCompletion"
-                description="Trigger completion at current position.">
-            <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="Tabby.AcceptCompletion"/>
-        </action>
+        <group id="Tabby.ToolsMenu" popup="true" text="Tabby" description="Tabby AI code assistant">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="Tabby.TriggerCompletion"
+                    class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
+                    text="Trigger Completion"
+                    description="Trigger completion at current position.">
+                <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
+            </action>
+            <action id="Tabby.AcceptCompletion"
+                    class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
+                    text="Accept Completion"
+                    description="Trigger completion at current position.">
+                <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
+            </action>
+            <action id="Tabby.DismissCompletion"
+                    class="com.tabbyml.intellijtabby.actions.DismissCompletion"
+                    text="Dismiss Completion"
+                    description="Trigger completion at current position.">
+                <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            </action>
+        </group>
     </actions>
 </idea-plugin>
