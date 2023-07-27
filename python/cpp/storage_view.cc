@@ -48,7 +48,10 @@ namespace ctranslate2 {
       case DataType::INT32:
         return "<i4";
       default:
-        return "";
+        throw std::runtime_error("Data type " + dtype_name(dtype) + " is not supported in the array "
+                                 "interface. You should first convert this storage to a supported "
+                                 "type, for example with "
+                                 "`storage = storage.to(ctranslate2.DataType.float32)`");
       }
     }
 
@@ -94,6 +97,15 @@ namespace ctranslate2 {
     }
 
     void register_storage_view(py::module& m) {
+      py::enum_<DataType>(m, "DataType")
+        .value("float32", DataType::FLOAT32)
+        .value("float16", DataType::FLOAT16)
+        .value("bfloat16", DataType::BFLOAT16)
+        .value("int8", DataType::INT8)
+        .value("int16", DataType::INT16)
+        .value("int32", DataType::INT32)
+        ;
+
       py::class_<StorageView>(
         m, "StorageView",
         R"pbdoc(
@@ -140,6 +152,21 @@ namespace ctranslate2 {
                             uses an unsupported array specification.
                     )pbdoc")
 
+        .def_property_readonly("dtype", &StorageView::dtype,
+                               "Data type used by the storage.")
+
+        .def_property_readonly("shape", &StorageView::shape,
+                               "Shape of the storage view.")
+
+        .def_property_readonly("device_index", &StorageView::device_index,
+                               "Device index.")
+
+        .def_property_readonly("device",
+                               [](const StorageView& view) {
+                                 return device_to_str(view.device());
+                               },
+                               "Device where the storage is allocated (\"cpu\" or \"cuda\").")
+
         .def_property_readonly("__array_interface__", [](const StorageView& view) {
           if (view.device() == Device::CUDA)
             throw py::attribute_error("Cannot get __array_interface__ when the StorageView "
@@ -159,6 +186,25 @@ namespace ctranslate2 {
           stream << view;
           return stream.str();
         })
+
+        .def("to",
+             [](const StorageView& view, DataType dtype) {
+               ScopedDeviceSetter device_setter(view.device(), view.device_index());
+               StorageView converted = view.to(dtype);
+               synchronize_stream(view.device());
+               return converted;
+             },
+             py::arg("dtype"),
+             py::call_guard<py::gil_scoped_release>(),
+             R"pbdoc(
+                 Converts the storage to another type.
+
+                 Arguments:
+                   dtype: The data type to convert to.
+
+                 Returns:
+                   A new ``StorageView`` instance.
+             )pbdoc")
 
         ;
     }

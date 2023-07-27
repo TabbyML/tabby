@@ -34,6 +34,9 @@ get_supported_compute_types(const std::string& device_str, const int device_inde
 
 PYBIND11_MODULE(_ext, m)
 {
+  py::options options;
+  options.disable_enum_members_docstring();
+
   m.def("contains_model", &ctranslate2::models::contains_model, py::arg("path"),
         "Helper function to check if a directory seems to contain a CTranslate2 model.");
 
