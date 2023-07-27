@@ -10,7 +10,7 @@ use ctranslate2_bindings::{
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
-use tracing::{debug, instrument};
+use tracing::{debug, info, instrument};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
@@ -143,7 +143,7 @@ impl CompletionState {
             .compute_type(compute_type)
             .build()
             .unwrap();
-        debug!("Initializing TextInferenceEngine...");
+        info!("Initializing TextInferenceEngine...");
         let engine = TextInferenceEngine::create(options);
         Self {
             engine,
