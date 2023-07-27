@@ -2,6 +2,9 @@
 #include "ctranslate2/layers/layers.h"
 #include "ctranslate2/padder.h"
 
+class LayerDeviceFPTest : public ::testing::TestWithParam<FloatType> {
+};
+
 TEST(LayerTest, MakeRelativePositions1D) {
   const StorageView positions = layers::make_relative_positions(4, 2, true);
   const StorageView expected({1, 4}, std::vector<int32_t>{0, 0, 1, 2});
@@ -18,9 +21,10 @@ TEST(LayerTest, MakeRelativePositions2D) {
   expect_storage_eq(positions, expected);
 }
 
-TEST(LayerTest, Alibi) {
-  const Device device = Device::CPU;
-  const DataType dtype = DataType::FLOAT32;
+TEST_P(LayerDeviceFPTest, Alibi) {
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = std::max(GetParam().error, float(1e-4));
 
   const StorageView zero({3, 4, 2, 5}, 0.f, device);
 
@@ -54,7 +58,7 @@ TEST(LayerTest, Alibi) {
     layers::Alibi alibi;
     StorageView x = zero.to(dtype);
     alibi.apply(x);
-    expect_storage_eq(x.to_float32(), expected, 1e-4);
+    expect_storage_eq(x.to_float32(), expected, error);
   }
 
   {
@@ -87,11 +91,15 @@ TEST(LayerTest, Alibi) {
     layers::Alibi alibi(/*use_positive_positions=*/true);
     StorageView x = zero.to(dtype);
     alibi.apply(x);
-    expect_storage_eq(x.to_float32(), expected, 1e-4);
+    expect_storage_eq(x.to_float32(), expected, error);
   }
 }
 
-TEST(LayerTest, RotaryEmbedding) {
+TEST_P(LayerDeviceFPTest, RotaryEmbedding) {
+  const Device device = GetParam().device;
+  const DataType dtype = GetParam().dtype;
+  const float error = GetParam().error;
+
   const StorageView input({2, 4, 2, 6}, std::vector<float>{
       0.8822692632675171, 0.9150039553642273, 0.38286375999450684, 0.9593056440353394,
       0.3904482126235962, 0.600895345211029, 0.10531491041183472, 0.26949483156204224,
@@ -117,7 +125,7 @@ TEST(LayerTest, RotaryEmbedding) {
       0.9146959185600281, 0.20364904403686523, 0.20180100202560425, 0.20178300142288208,
       0.9497213959693909, 0.6666255593299866, 0.6057037711143494, 0.3725206255912781,
       0.7980347275733948, 0.8399046063423157, 0.13741332292556763, 0.2330659031867981
-    });
+    }, device);
 
   const StorageView expected({2, 4, 2, 6}, std::vector<float>{
       -1.1991642713546753, 0.421469122171402, 0.29228904843330383, 0.9906659722328186,
@@ -144,7 +152,7 @@ TEST(LayerTest, RotaryEmbedding) {
       -0.565825343132019, 0.7469826936721802, 0.18222710490226746, 0.21962082386016846,
       0.9468401670455933, 0.6707115769386292, -0.6522123217582703, -0.2833157181739807,
       0.6737331748008728, 0.9425405859947205, 0.13590410351753235, 0.2339491844177246
-    });
+    }, device);
 
   const auto permute = [](const StorageView& in) {
     StorageView x = in;
@@ -159,16 +167,16 @@ TEST(LayerTest, RotaryEmbedding) {
 
   {
     layers::RotaryEmbeddings rotary_embeddings;
-    StorageView x = input;
+    StorageView x = input.to(dtype);
     rotary_embeddings.apply(x, 2);
-    expect_storage_eq(x, expected, 1e-6);
+    expect_storage_eq(x.to_float32(), expected, error);
   }
 
   {
     layers::RotaryEmbeddings rotary_embeddings(0, false);
-    StorageView x = permute(input);
+    StorageView x = permute(input).to(dtype);
     rotary_embeddings.apply(x, 2);
-    expect_storage_eq(x, permute(expected), 1e-6);
+    expect_storage_eq(x.to_float32(), permute(expected), error);
   }
 }
 
@@ -238,3 +246,15 @@ TEST(LayerTest, PositionEncoderNoSharedState) {
     expect_storage_eq(input, expected, 1e-5);
   }
 }
+
+
+INSTANTIATE_TEST_SUITE_P(CPU, LayerDeviceFPTest,
+                         ::testing::Values(FloatType{Device::CPU, DataType::FLOAT32, 1e-5}),
+                         fp_test_name);
+#ifdef CT2_WITH_CUDA
+INSTANTIATE_TEST_SUITE_P(CUDA, LayerDeviceFPTest,
+                         ::testing::Values(FloatType{Device::CUDA, DataType::FLOAT32, 1e-5},
+                                           FloatType{Device::CUDA, DataType::FLOAT16, 1e-2},
+                                           FloatType{Device::CUDA, DataType::BFLOAT16, 1e-2}),
+                         fp_test_name);
+#endif

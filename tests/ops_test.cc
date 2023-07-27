@@ -137,13 +137,6 @@ TEST(OpTest, MedianFilter) {
 class OpDeviceTest : public ::testing::TestWithParam<Device> {
 };
 
-
-struct FloatType {
-  Device device;
-  DataType dtype;
-  float error;
-};
-
 class OpDeviceFPTest : public ::testing::TestWithParam<FloatType> {
 };
 
@@ -1102,10 +1095,6 @@ TEST_P(OpDeviceFPTest, Conv1DPaddingAndStride) {
   expect_storage_eq(output.to_float32(), expected, error);
 }
 
-
-static std::string fp_test_name(::testing::TestParamInfo<FloatType> param_info) {
-  return dtype_name(param_info.param.dtype);
-}
 
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceTest, ::testing::Values(Device::CPU));
 INSTANTIATE_TEST_SUITE_P(CPU, OpDeviceFPTest,

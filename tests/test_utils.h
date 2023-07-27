@@ -69,3 +69,13 @@ inline void expect_storage_eq(const StorageView& got,
   assert_vector_eq(got.shape(), expected.shape());
   TYPE_DISPATCH(got.dtype(), expect_array_eq(got_cpu.data<T>(), expected_cpu.data<T>(), got.size(), static_cast<T>(abs_diff)));
 }
+
+struct FloatType {
+  Device device;
+  DataType dtype;
+  float error = 0;
+};
+
+inline std::string fp_test_name(::testing::TestParamInfo<FloatType> param_info) {
+  return dtype_name(param_info.param.dtype);
+}

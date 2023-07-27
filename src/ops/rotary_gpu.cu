@@ -24,7 +24,7 @@ namespace ctranslate2 {
     };
 #endif
 
-    template <typename T, typename C, bool interleave>
+    template <typename T, bool interleave>
     __global__ void rotary_kernel(const T* x,
                                   const T* sin,
                                   const T* cos,
@@ -40,6 +40,8 @@ namespace ctranslate2 {
 
       sin += time * ndims;
       cos += time * ndims;
+
+      using C = typename ComputeType<T>::type;
 
       for (cuda::index_t i = threadIdx.x; i < depth; i += blockDim.x) {
         if (i >= ndims)
@@ -69,13 +71,12 @@ namespace ctranslate2 {
       auto* y = cuda::device_cast(output.data<T>());
 
       using DeviceT = cuda::device_type<T>;
-      using ComputeT = typename ComputeType<DeviceT>::type;
 
       if (_interleave)
-        rotary_kernel<DeviceT, ComputeT, true><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+        rotary_kernel<DeviceT, true><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
           x, s, c, y, max_time, ndims, depth);
       else
-        rotary_kernel<DeviceT, ComputeT, false><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
+        rotary_kernel<DeviceT, false><<<blocks, threads, 0, cuda::get_cuda_stream()>>>(
           x, s, c, y, max_time, ndims, depth);
     }
 

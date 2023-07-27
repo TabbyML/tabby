@@ -508,12 +508,12 @@ TEST(TranslatorTest, TranslateBatchWithWeaklyBiasedPrefix) {
   EXPECT_EQ(result[3].output(), (std::vector<std::string>{"a", "z", "z", "a"}));
 }
 
-class BiasedDecodingDeviceFPTest : public ::testing::TestWithParam<std::pair<Device, DataType>> {
+class BiasedDecodingDeviceFPTest : public ::testing::TestWithParam<FloatType> {
 };
 
 TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeam) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 1;
     const dim_t beam_size = 1;
@@ -546,8 +546,8 @@ TEST_P(BiasedDecodingDeviceFPTest, OneBatchOneBeam) {
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 2;
     const dim_t beam_size = 2;
@@ -596,8 +596,8 @@ TEST_P(BiasedDecodingDeviceFPTest, TwoBatchesTwoBeams) {
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, BeamDiverged) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 1;
     const dim_t beam_size = 1;
@@ -624,8 +624,8 @@ TEST_P(BiasedDecodingDeviceFPTest, BeamDiverged) {
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, TimeStepPastPrefix) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 1;
     const dim_t beam_size = 1;
@@ -652,8 +652,8 @@ TEST_P(BiasedDecodingDeviceFPTest, TimeStepPastPrefix) {
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepBias) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 1;
     const dim_t beam_size = 1;
@@ -685,8 +685,8 @@ TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepBias) {
 }
 
 TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
-    const Device device = GetParam().first;
-    const DataType dtype = GetParam().second;
+    const Device device = GetParam().device;
+    const DataType dtype = GetParam().dtype;
     const dim_t vocab_size = 2;
     const dim_t batch_size = 1;
     const dim_t beam_size = 1;
@@ -712,16 +712,13 @@ TEST_P(BiasedDecodingDeviceFPTest, NonZeroTimestepDiverge) {
     expect_storage_eq(log_probs.to_float32(), expected_log_probs, 0.01);
 }
 
-static std::string fp_test_name(::testing::TestParamInfo<std::pair<Device, DataType>> param_info) {
-  return dtype_name(param_info.param.second);
-}
 INSTANTIATE_TEST_SUITE_P(CPU, BiasedDecodingDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CPU, DataType::FLOAT32)),
+                         ::testing::Values(FloatType{Device::CPU, DataType::FLOAT32}),
                          fp_test_name);
 #ifdef CT2_WITH_CUDA
 INSTANTIATE_TEST_SUITE_P(CUDA, BiasedDecodingDeviceFPTest,
-                         ::testing::Values(std::make_pair(Device::CUDA, DataType::FLOAT32),
-                                           std::make_pair(Device::CUDA, DataType::FLOAT16)),
+                         ::testing::Values(FloatType{Device::CUDA, DataType::FLOAT32},
+                                           FloatType{Device::CUDA, DataType::FLOAT16}),
                          fp_test_name);
 #endif
 
