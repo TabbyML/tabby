@@ -84,14 +84,14 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  fun getCompletions(request: CompletionRequest): CompletableFuture<CompletionResponse> {
+  fun getCompletions(request: CompletionRequest): CompletableFuture<CompletionResponse?> {
     return request("getCompletions", listOf(request))
   }
 
   private var requestId = 1
   private var ongoingRequest = mutableMapOf<Int, (response: String) -> Unit>()
 
-  private inline fun <reified T : Any> request(func: String, args: List<Any> = emptyList()): CompletableFuture<T> {
+  private inline fun <reified T : Any?> request(func: String, args: List<Any> = emptyList()): CompletableFuture<T> {
     val id = requestId++
     val data = listOf(id, mapOf("func" to func, "args" to args))
     val json = gson.toJson(data)
