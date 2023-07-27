@@ -56,6 +56,7 @@ impl CacheInfo {
     }
 }
 
+// This function handles the downloading of models. It first checks if the model already exists locally. If not, it initiates the download.
 pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<()> {
     if fs::metadata(model_id).is_ok() {
         // Local path, no need for downloading.
