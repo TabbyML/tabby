@@ -1,3 +1,4 @@
+# PVC
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,6 +12,7 @@ spec:
   storageClassName: <my-storage-class>
   volumeName: <volume-name>
 ---
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
