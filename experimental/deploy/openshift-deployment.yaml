@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tabby-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: <my-storage-class>
+  volumeName: <volume-name>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tabby
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 10
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: tabby
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: tabby
+    spec:
+      containers:
+      - args:
+        - serve
+        - --model
+        - TabbyML/SantaCoder-1B
+        env:
+        - name: FOO
+          value: BAR
+        image: ghcr.io/tabbyml/tabby:latest
+        imagePullPolicy: Always
+        name: tabby
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /data
+          name: tabby-data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: tabby-data
+        persistentVolumeClaim:
+          claimName: tabby-data
