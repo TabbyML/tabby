@@ -12,6 +12,31 @@ spec:
   storageClassName: <my-storage-class>
   volumeName: <volume-name>
 ---
+# Config Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tabby-config
+immutable: false
+data:
+  config.toml: |-
+    [logs]
+    level = "debug"
+---
+# Service Tabby
+apiVersion: v1
+kind: Service
+metadata:
+  name: tabby
+spec:
+  selector:
+    app: tabby
+  ports:
+    - name: frontend
+      protocol: TCP
+      port: 8080
+      targetPort: frontend
+---
 # Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -19,7 +44,7 @@ metadata:
   name: tabby
 spec:
   progressDeadlineSeconds: 600
-  replicas: 10
+  replicas: 1
   revisionHistoryLimit: 10
   selector:
     matchLabels:
@@ -48,6 +73,7 @@ spec:
         name: tabby
         ports:
         - containerPort: 8080
+          name: frontend
           protocol: TCP
         securityContext:
           allowPrivilegeEscalation: false
@@ -59,11 +85,22 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: tabby-data
+        - mountPath: /.tabby/agent/config.toml
+          name: config-volume
+          subPath: config.toml
+      - image: corfr/tcpdump
+        name: tcpdump
+        command:
+          - /bin/sleep
+          - infinity
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
       terminationGracePeriodSeconds: 30
       volumes:
+      - name: config-volume
+        configMap:
+          name: tabby-config
       - name: tabby-data
         persistentVolumeClaim:
           claimName: tabby-data
