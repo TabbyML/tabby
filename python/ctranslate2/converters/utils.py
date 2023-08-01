@@ -7,10 +7,13 @@ def fuse_linear(spec, layers):
 
     if isinstance(layers[0].weight, np.ndarray):
         np_api = np
+        f_concatenate = np_api.concatenate
     else:
         import torch as np_api
 
-    spec.weight = np_api.concatenate([layer.weight for layer in layers])
+        f_concatenate = np_api.cat
+
+    spec.weight = f_concatenate([layer.weight for layer in layers])
 
     bias_dtype = None
     for layer in layers:
@@ -19,7 +22,7 @@ def fuse_linear(spec, layers):
             break
 
     if bias_dtype is not None:
-        spec.bias = np_api.concatenate(
+        spec.bias = f_concatenate(
             [
                 layer.bias
                 if layer.has_bias()
