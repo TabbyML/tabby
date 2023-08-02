@@ -2834,6 +2834,7 @@ dependencies = [
  "serdeconv",
  "tabby-common",
  "tokio-retry",
+ "tracing",
 ]
 
 [[package]]
