@@ -1,10 +1,10 @@
+use async_trait::async_trait;
 use dashmap::DashMap;
+use derive_builder::Builder;
 use regex::Regex;
+use tabby_inference::{TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio_util::sync::CancellationToken;
-
-#[macro_use]
-extern crate derive_builder;
 
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
@@ -49,7 +49,7 @@ unsafe impl Send for ffi::TextInferenceEngine {}
 unsafe impl Sync for ffi::TextInferenceEngine {}
 
 #[derive(Builder, Debug)]
-pub struct TextInferenceEngineCreateOptions {
+pub struct CTranslate2EngineOptions {
     model_path: String,
 
     model_type: String,
@@ -63,17 +63,6 @@ pub struct TextInferenceEngineCreateOptions {
     num_replicas_per_device: usize,
 
     compute_type: String,
-}
-
-#[derive(Builder, Debug)]
-pub struct TextInferenceOptions {
-    #[builder(default = "256")]
-    max_decoding_length: usize,
-
-    #[builder(default = "1.0")]
-    sampling_temperature: f32,
-
-    stop_words: &'static Vec<&'static str>,
 }
 
 pub struct InferenceContext {
@@ -92,14 +81,14 @@ impl InferenceContext {
     }
 }
 
-pub struct TextInferenceEngine {
+pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
-impl TextInferenceEngine {
-    pub fn create(options: TextInferenceEngineCreateOptions) -> Self where {
+impl CTranslate2Engine {
+    pub fn create(options: CTranslate2EngineOptions) -> Self where {
         let engine = ffi::create_engine(
             &options.model_path,
             &options.model_type,
@@ -108,14 +97,18 @@ impl TextInferenceEngine {
             &options.device_indices,
             options.num_replicas_per_device,
         );
-        return TextInferenceEngine {
+
+        return Self {
             engine,
             stop_regex_cache: DashMap::new(),
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         };
     }
+}
 
-    pub async fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
+#[async_trait]
+impl TextGeneration for CTranslate2Engine {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
         let engine = self.engine.clone();
 

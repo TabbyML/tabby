@@ -4,6 +4,7 @@ members = [
     "crates/tabby-common",
     "crates/tabby-scheduler",
     "crates/tabby-download",
+    "crates/tabby-inference",
     "crates/ctranslate2-bindings",
     "crates/rust-cxx-cmake-bridge",
 ]
@@ -25,3 +26,4 @@ tracing-subscriber = "0.3"
 anyhow = "1.0.71"
 serde-jsonlines = "0.4.0"
 tantivy = "0.19.2"
+async-trait = "0.1.72"

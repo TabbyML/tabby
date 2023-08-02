@@ -4,12 +4,11 @@ mod prompt;
 use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
-use ctranslate2_bindings::{
-    TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder, TextInferenceOptionsBuilder,
-};
+use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
+use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
@@ -79,7 +78,7 @@ pub async fn completion(
     Json(request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     let language = request.language.unwrap_or("unknown".to_string());
-    let options = TextInferenceOptionsBuilder::default()
+    let options = TextGenerationOptionsBuilder::default()
         .max_decoding_length(128)
         .sampling_temperature(0.1)
         .stop_words(get_stop_words(&language))
@@ -101,7 +100,7 @@ pub async fn completion(
     let prompt = state.prompt_builder.build(&language, segments);
     debug!("PROMPT: {}", prompt);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
-    let text = state.engine.inference(&prompt, options).await;
+    let text = state.engine.generate(&prompt, options).await;
 
     events::Event::Completion {
         completion_id: &completion_id,
@@ -122,7 +121,7 @@ pub async fn completion(
 }
 
 pub struct CompletionState {
-    engine: TextInferenceEngine,
+    engine: CTranslate2Engine,
     prompt_builder: prompt::PromptBuilder,
 }
 
@@ -133,7 +132,7 @@ impl CompletionState {
 
         let device = format!("{}", args.device);
         let compute_type = format!("{}", args.compute_type);
-        let options = TextInferenceEngineCreateOptionsBuilder::default()
+        let options = CTranslate2EngineOptionsBuilder::default()
             .model_path(model_dir.ctranslate2_dir())
             .tokenizer_path(model_dir.tokenizer_file())
             .device(device)
@@ -143,7 +142,7 @@ impl CompletionState {
             .compute_type(compute_type)
             .build()
             .unwrap();
-        let engine = TextInferenceEngine::create(options);
+        let engine = CTranslate2Engine::create(options);
         Self {
             engine,
             prompt_builder: prompt::PromptBuilder::new(

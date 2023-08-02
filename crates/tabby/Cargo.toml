@@ -8,6 +8,7 @@ ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler", optional = true }
 tabby-download = { path = "../tabby-download" }
+tabby-inference = { path = "../tabby-inference" }
 axum = "0.6"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
