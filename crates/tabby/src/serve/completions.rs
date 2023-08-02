@@ -5,13 +5,14 @@ use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{
-    TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder, TextInferenceOptionsBuilder,
+    TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder
 };
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
+use tabby_inference::{TextGenerationOptionsBuilder, TextGeneration};
 
 use self::languages::get_stop_words;
 use crate::fatal;
@@ -79,7 +80,7 @@ pub async fn completion(
     Json(request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     let language = request.language.unwrap_or("unknown".to_string());
-    let options = TextInferenceOptionsBuilder::default()
+    let options = TextGenerationOptionsBuilder::default()
         .max_decoding_length(128)
         .sampling_temperature(0.1)
         .stop_words(get_stop_words(&language))
@@ -101,7 +102,7 @@ pub async fn completion(
     let prompt = state.prompt_builder.build(&language, segments);
     debug!("PROMPT: {}", prompt);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
-    let text = state.engine.inference(&prompt, options).await;
+    let text = state.engine.generate(&prompt, options).await;
 
     events::Event::Completion {
         completion_id: &completion_id,

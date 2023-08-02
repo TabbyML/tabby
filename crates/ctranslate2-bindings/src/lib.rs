@@ -2,9 +2,9 @@ use dashmap::DashMap;
 use regex::Regex;
 use tokenizers::tokenizer::Tokenizer;
 use tokio_util::sync::CancellationToken;
-
-#[macro_use]
-extern crate derive_builder;
+use tabby_inference::{TextGeneration, TextGenerationOptions};
+use derive_builder::Builder;
+use async_trait::async_trait;
 
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
@@ -65,17 +65,6 @@ pub struct TextInferenceEngineCreateOptions {
     compute_type: String,
 }
 
-#[derive(Builder, Debug)]
-pub struct TextInferenceOptions {
-    #[builder(default = "256")]
-    max_decoding_length: usize,
-
-    #[builder(default = "1.0")]
-    sampling_temperature: f32,
-
-    stop_words: &'static Vec<&'static str>,
-}
-
 pub struct InferenceContext {
     stop_re: Option<Regex>,
     cancel: CancellationToken,
@@ -114,8 +103,11 @@ impl TextInferenceEngine {
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         };
     }
+}
 
-    pub async fn inference(&self, prompt: &str, options: TextInferenceOptions) -> String {
+#[async_trait]
+impl TextGeneration for TextInferenceEngine {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
         let engine = self.engine.clone();
 
@@ -153,6 +145,7 @@ impl TextInferenceEngine {
         self.tokenizer.decode(output_ids, true).unwrap()
     }
 }
+
 
 fn inference_callback(
     context: &mut InferenceContext,

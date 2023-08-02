@@ -1,14 +1,18 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+use async_trait::async_trait;
+use derive_builder::Builder;
+
+#[derive(Builder, Debug)]
+pub struct TextGenerationOptions {
+    #[builder(default = "256")]
+    pub max_decoding_length: usize,
+
+    #[builder(default = "1.0")]
+    pub sampling_temperature: f32,
+
+    pub stop_words: &'static Vec<&'static str>,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[async_trait]
+pub trait TextGeneration {
+    async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;
 }

@@ -11,6 +11,8 @@ regex = "1.8.4"
 tokenizers = "0.13.3"
 tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
+tabby-inference = { path = "../tabby-inference" }
+async-trait = { workspace = true }
 
 [build-dependencies]
 cxx-build = "1.0"
