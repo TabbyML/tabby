@@ -7,7 +7,7 @@ This example demonstrates how to implement an interactive chat session using Lla
 ## Installation
 
 ```
-pip install -r requirements
+pip install -r requirements.txt
 ```
 
 * The dependencies `transformers` and `torch` are only needed to convert the models.
