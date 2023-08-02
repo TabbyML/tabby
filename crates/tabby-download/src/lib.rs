@@ -12,6 +12,8 @@ use tokio_retry::{
     Retry,
 };
 
+use tracing::info;
+
 impl CacheInfo {
     async fn download(
         &mut self,
@@ -61,6 +63,8 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
         // Local path, no need for downloading.
         return Ok(());
     }
+
+    info!("Start downloading model `{}`", model_id);
 
     let mut cache_info = CacheInfo::from(model_id).await;
 
