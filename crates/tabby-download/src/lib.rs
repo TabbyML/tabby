@@ -70,6 +70,8 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
     let optional_files = vec![
         "ctranslate2/vocabulary.txt",
         "ctranslate2/shared_vocabulary.txt",
+        "ctranslate2/vocabulary.json",
+        "ctranslate2/shared_vocabulary.json",
     ];
     for path in optional_files {
         cache_info
