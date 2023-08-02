@@ -4,15 +4,13 @@ mod prompt;
 use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
-use ctranslate2_bindings::{
-    TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder
-};
+use ctranslate2_bindings::{TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
+use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
-use tabby_inference::{TextGenerationOptionsBuilder, TextGeneration};
 
 use self::languages::get_stop_words;
 use crate::fatal;

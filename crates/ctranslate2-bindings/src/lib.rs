@@ -1,10 +1,10 @@
+use async_trait::async_trait;
 use dashmap::DashMap;
+use derive_builder::Builder;
 use regex::Regex;
+use tabby_inference::{TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio_util::sync::CancellationToken;
-use tabby_inference::{TextGeneration, TextGenerationOptions};
-use derive_builder::Builder;
-use async_trait::async_trait;
 
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
@@ -145,7 +145,6 @@ impl TextGeneration for TextInferenceEngine {
         self.tokenizer.decode(output_ids, true).unwrap()
     }
 }
-
 
 fn inference_callback(
     context: &mut InferenceContext,
