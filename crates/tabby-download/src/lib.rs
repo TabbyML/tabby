@@ -11,7 +11,6 @@ use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
-
 use tracing::info;
 
 impl CacheInfo {
