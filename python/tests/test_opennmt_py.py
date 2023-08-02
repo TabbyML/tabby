@@ -44,6 +44,29 @@ def test_opennmt_py_relative_transformer(tmp_dir):
 
 
 @test_utils.skip_on_windows
+def test_opennmt_py_relative_transformer_return_alternatives(tmp_dir):
+    # Test for issue https://github.com/OpenNMT/CTranslate2/issues/1394
+    model_path = os.path.join(
+        test_utils.get_data_dir(),
+        "models",
+        "transliteration-aren-all",
+        "opennmt_py",
+        "aren_relative_6000.pt",
+    )
+    converter = ctranslate2.converters.OpenNMTPyConverter(model_path)
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
+    converter.convert(output_dir)
+    translator = ctranslate2.Translator(output_dir)
+    translator.translate_batch(
+        [["آ", "ت", "ز", "م", "و", "ن"]],
+        target_prefix=[["a", "t"]],
+        return_alternatives=True,
+        beam_size=5,
+        num_hypotheses=5,
+    )
+
+
+@test_utils.skip_on_windows
 @pytest.mark.parametrize(
     "filename", ["aren_features_concat_10000.pt", "aren_features_sum_10000.pt"]
 )

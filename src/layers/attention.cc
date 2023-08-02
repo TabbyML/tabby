@@ -10,20 +10,18 @@
 namespace ctranslate2 {
   namespace layers {
 
-    StorageView make_relative_positions(dim_t length, dim_t max_position, bool with_cache) {
-      StorageView positions({with_cache ? 1 : length, length}, DataType::INT32);
+    StorageView make_relative_positions(dim_t queries_length,
+                                        dim_t keys_length,
+                                        dim_t max_position) {
+      StorageView positions({queries_length, keys_length}, DataType::INT32);
       auto* positions_data = positions.data<int32_t>();
 
-      if (with_cache) {
-        for (dim_t i = 0; i < length; ++i) {
-          positions_data[i] = std::max(i - length + 1, -max_position) + max_position;
-        }
-      } else {
-        for (dim_t i = 0; i < length; ++i) {
-          auto* row = positions_data + i * length;
-          for (dim_t j = 0; j < length; ++j) {
-            row[j] = std::min(std::max(j - i, -max_position), max_position) + max_position;
-          }
+      const dim_t offset = keys_length - queries_length;
+
+      for (dim_t i = 0; i < queries_length; ++i) {
+        auto* row = positions_data + i * keys_length;
+        for (dim_t j = 0; j < keys_length; ++j) {
+          row[j] = std::min(std::max(j - (i + offset), -max_position), max_position) + max_position;
         }
       }
 
@@ -216,13 +214,15 @@ namespace ctranslate2 {
                                       StorageView* position_bias = nullptr) {
       PROFILE("dot_product_attention");
 
+      const dim_t query_length = queries.dim(2);
+      const dim_t key_length = keys.dim(2);
+
       std::unique_ptr<const StorageView> relative_positions;
       if (relative_position_keys || relative_position_values) {
-        const dim_t max_time = keys.dim(2);
         relative_positions = std::make_unique<StorageView>(
-          make_relative_positions(max_time,
-                                  maximum_relative_position,
-                                  with_cache).to(queries.device()));
+          make_relative_positions(query_length,
+                                  key_length,
+                                  maximum_relative_position).to(queries.device()));
       }
 
       const ops::MatMul keys_matmul(/*trans_a=*/false, /*trans_b=*/true, queries_scale);
@@ -241,8 +241,6 @@ namespace ctranslate2 {
           position_bias = &local_position_bias;
 
         if (position_bias->empty()) {
-          const dim_t query_length = queries.dim(2);
-          const dim_t key_length = keys.dim(2);
           *position_bias = compute_relative_bias(*relative_attention_bias,
                                                  query_length,
                                                  key_length,

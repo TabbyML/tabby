@@ -6,9 +6,9 @@
 namespace ctranslate2 {
   namespace layers {
 
-    StorageView make_relative_positions(dim_t length,
-                                        dim_t max_position,
-                                        bool with_cache = false);
+    StorageView make_relative_positions(dim_t queries_length,
+                                        dim_t keys_lengths,
+                                        dim_t max_position);
 
     class RotaryEmbeddings;
     class Alibi;
