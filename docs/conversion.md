@@ -38,6 +38,8 @@ New versions of CTranslate2 are backward compatible with models that were previo
 
 ```{attention}
 Forward compatibility is not guaranteed, however. The CTranslate2 version loading the model should not be older than the version that converted the model.
+
+For example a new model is converted with CTranslate2 3.17.0, but the production server is still using an older version 3.15.0. There is no guarantee that this new model can be loaded and executed without issues. The production server should be updated to use version 3.17.0 or greater.
 ```
 
 ## Portability

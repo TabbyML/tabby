@@ -1,6 +1,10 @@
 # Decoding features
 
-This page describes CTranslate2 decoding features. The text translation API is used for demonstration but most features are also available for text generation.
+This page describes CTranslate2 decoding features.
+
+```{note}
+The text translation API is used for demonstration but most features are also available for text generation.
+```
 
 The examples use the following symbols that are left unspecified:
 

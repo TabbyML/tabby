@@ -10,7 +10,6 @@ The documentation includes installation instructions, usage guides, and API refe
    :maxdepth: 1
 
    quickstart.md
-   quickstart_cpp.md
    installation.md
 
 .. toctree::
