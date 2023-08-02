@@ -49,7 +49,7 @@ unsafe impl Send for ffi::TextInferenceEngine {}
 unsafe impl Sync for ffi::TextInferenceEngine {}
 
 #[derive(Builder, Debug)]
-pub struct TextInferenceEngineCreateOptions {
+pub struct CTranslate2EngineOptions {
     model_path: String,
 
     model_type: String,
@@ -81,14 +81,14 @@ impl InferenceContext {
     }
 }
 
-pub struct TextInferenceEngine {
+pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
-impl TextInferenceEngine {
-    pub fn create(options: TextInferenceEngineCreateOptions) -> Self where {
+impl CTranslate2Engine {
+    pub fn create(options: CTranslate2EngineOptions) -> Self where {
         let engine = ffi::create_engine(
             &options.model_path,
             &options.model_type,
@@ -97,7 +97,8 @@ impl TextInferenceEngine {
             &options.device_indices,
             options.num_replicas_per_device,
         );
-        return TextInferenceEngine {
+
+        return Self {
             engine,
             stop_regex_cache: DashMap::new(),
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
@@ -106,7 +107,7 @@ impl TextInferenceEngine {
 }
 
 #[async_trait]
-impl TextGeneration for TextInferenceEngine {
+impl TextGeneration for CTranslate2Engine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
         let engine = self.engine.clone();

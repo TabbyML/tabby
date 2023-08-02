@@ -4,7 +4,7 @@ mod prompt;
 use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
-use ctranslate2_bindings::{TextInferenceEngine, TextInferenceEngineCreateOptionsBuilder};
+use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
@@ -121,7 +121,7 @@ pub async fn completion(
 }
 
 pub struct CompletionState {
-    engine: TextInferenceEngine,
+    engine: CTranslate2Engine,
     prompt_builder: prompt::PromptBuilder,
 }
 
@@ -132,7 +132,7 @@ impl CompletionState {
 
         let device = format!("{}", args.device);
         let compute_type = format!("{}", args.compute_type);
-        let options = TextInferenceEngineCreateOptionsBuilder::default()
+        let options = CTranslate2EngineOptionsBuilder::default()
             .model_path(model_dir.ctranslate2_dir())
             .tokenizer_path(model_dir.tokenizer_file())
             .device(device)
@@ -142,7 +142,7 @@ impl CompletionState {
             .compute_type(compute_type)
             .build()
             .unwrap();
-        let engine = TextInferenceEngine::create(options);
+        let engine = CTranslate2Engine::create(options);
         Self {
             engine,
             prompt_builder: prompt::PromptBuilder::new(
