@@ -73,6 +73,10 @@ namespace ctranslate2 {
         return _model_loader.device_indices;
       }
 
+      std::string compute_type() const {
+        return compute_type_to_str(model()->effective_compute_type());
+      }
+
       size_t num_replicas() const {
         return _pool->num_replicas();
       }
@@ -89,6 +93,10 @@ namespace ctranslate2 {
       std::unique_ptr<T> _pool;
       models::ModelLoader _model_loader;
       ReplicaPoolConfig _pool_config;
+
+      const std::shared_ptr<const models::Model>& model() const {
+        return _pool->get_first_replica().model();
+      }
     };
 
   }

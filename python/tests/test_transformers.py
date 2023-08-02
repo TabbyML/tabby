@@ -228,6 +228,18 @@ def test_transformers_generation(
 
 
 @test_utils.only_on_linux
+def test_transformers_dtype(clear_transformers_cache, tmp_dir):
+    converter = ctranslate2.converters.TransformersConverter("facebook/opt-350m")
+    output_dir = str(tmp_dir.join("ctranslate2_model"))
+    output_dir = converter.convert(output_dir)
+
+    model_b = os.path.getsize(os.path.join(output_dir, "model.bin"))
+    model_mb = model_b / (1000**2)
+
+    assert model_mb < 700
+
+
+@test_utils.only_on_linux
 def test_transformers_marianmt_vocabulary(clear_transformers_cache, tmp_dir):
     converter = ctranslate2.converters.TransformersConverter(
         "Helsinki-NLP/opus-mt-en-de"

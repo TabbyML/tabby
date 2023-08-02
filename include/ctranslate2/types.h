@@ -30,6 +30,7 @@ namespace ctranslate2 {
     AUTO,
     FLOAT32,
     INT8,
+    INT8_FLOAT32,
     INT8_FLOAT16,
     INT8_BFLOAT16,
     INT16,

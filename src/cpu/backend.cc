@@ -48,17 +48,22 @@ namespace ctranslate2 {
     }
 
     GemmBackend get_gemm_backend(ComputeType compute_type) {
+      const bool is_int8 = (compute_type == ComputeType::INT8
+                            || compute_type == ComputeType::INT8_FLOAT32
+                            || compute_type == ComputeType::INT8_FLOAT16
+                            || compute_type == ComputeType::INT8_BFLOAT16);
+
 #ifdef CT2_WITH_MKL
       if (mayiuse_mkl()
           && (compute_type == ComputeType::FLOAT32
               || compute_type == ComputeType::INT16
-              || compute_type == ComputeType::INT8)) {
+              || is_int8)) {
         return GemmBackend::MKL;
       }
 #endif
 
 #ifdef CT2_WITH_DNNL
-      if (compute_type == ComputeType::FLOAT32 || compute_type == ComputeType::INT8) {
+      if (compute_type == ComputeType::FLOAT32 || is_int8) {
         return GemmBackend::DNNL;
       }
 #endif
@@ -76,7 +81,7 @@ namespace ctranslate2 {
 #endif
 
 #ifdef CT2_WITH_RUY
-      if (compute_type == ComputeType::INT8) {
+      if (is_int8) {
         return GemmBackend::RUY;
       }
 #endif

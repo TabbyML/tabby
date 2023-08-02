@@ -5,7 +5,7 @@ import shutil
 
 from typing import Optional
 
-from ctranslate2.specs.model_spec import ModelSpec
+from ctranslate2.specs.model_spec import ACCEPTED_MODEL_TYPES, ModelSpec
 
 
 class Converter(abc.ABC):
@@ -27,14 +27,7 @@ class Converter(abc.ABC):
         parser.add_argument(
             "--quantization",
             default=None,
-            choices=[
-                "int8",
-                "int8_float16",
-                "int8_bfloat16",
-                "int16",
-                "float16",
-                "bfloat16",
-            ],
+            choices=ACCEPTED_MODEL_TYPES,
             help="Weight quantization type.",
         )
         parser.add_argument(
@@ -74,8 +67,8 @@ class Converter(abc.ABC):
           output_dir: Output directory where the CTranslate2 model is saved.
           vmap: Optional path to a vocabulary mapping file that will be included
             in the converted model directory.
-          quantization: Weight quantization scheme
-            (possible values are: int8, int8_float16, int16, float16).
+          quantization: Weight quantization scheme (possible values are: int8, int8_float32,
+            int8_float16, int8_bfloat16, int16, float16, bfloat16, float32).
           force: Override the output directory if it already exists.
 
         Returns:

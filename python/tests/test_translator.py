@@ -68,6 +68,7 @@ def test_get_supported_compute_types():
     compute_types = ctranslate2.get_supported_compute_types("cpu")
     assert "float32" in compute_types
     assert "int8" in compute_types
+    assert "int8_float32" in compute_types
 
 
 def test_translator_properties():
@@ -85,8 +86,14 @@ def test_compute_type():
         ctranslate2.Translator(model_path, compute_type="float64")
     with pytest.raises(TypeError, match="incompatible constructor arguments"):
         ctranslate2.Translator(model_path, compute_type=["int8", "int16"])
-    ctranslate2.Translator(model_path, compute_type="int8")
-    ctranslate2.Translator(model_path, compute_type={"cuda": "float16", "cpu": "int8"})
+
+    translator = ctranslate2.Translator(model_path, compute_type="int8")
+    assert translator.compute_type == "int8_float32"
+
+    translator = ctranslate2.Translator(
+        model_path, compute_type={"cuda": "float16", "cpu": "int8"}
+    )
+    assert translator.compute_type == "int8_float32"
 
 
 @pytest.mark.parametrize("max_batch_size", [0, 1])

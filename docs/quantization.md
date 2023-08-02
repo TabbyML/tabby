@@ -16,11 +16,13 @@ See the benchmark results in the main [README](https://github.com/OpenNMT/CTrans
 Enabling the quantization when converting the model is helpful to reduce its size on disk. The converters expose the option `quantization` that accepts the following values:
 
 * `int8`
+* `int8_float32`
 * `int8_float16`
 * `int8_bfloat16`
 * `int16`
 * `float16`
 * `bfloat16`
+* `float32`
 
 For example,
 
@@ -28,7 +30,9 @@ For example,
 ct2-opennmt-py-converter --model_path model.pt --quantization int8 --output_dir ct2_model
 ```
 
-```{note}
+When the option `--quantization` is not set, the converted model will be saved with the same type as the original model (typically one of float32, float16, or bfloat16).
+
+```{important}
 Whatever quantization type is selected here, the runtime ensures the model can be loaded and executed efficiently. This implies the model weights are possibly converted to another type when the model is loaded, see {ref}`quantization:implicit type conversion on load`.
 ```
 
@@ -36,11 +40,11 @@ For reference, the table below compares the model size on disk for a base Transf
 
 | Quantization | Model size |
 | --- | --- |
-| None | 364MB |
+| `float32` | 364MB |
 | `int16` | 187MB |
 | `float16` | 182MB |
 | `bfloat16` | 182MB |
-| `int8` | 100MB |
+| `int8_float32` | 100MB |
 | `int8_float16` | 95MB |
 | `int8_bfloat16` | 95MB |
 
@@ -51,6 +55,7 @@ Quantization can also be enabled or changed when loading the model. The translat
 * `default`: keep the same quantization that was used during model conversion (see {ref}`quantization:implicit type conversion on load` for exceptions)
 * `auto`: use the fastest computation type that is supported on this system and device
 * `int8`
+* `int8_float32`
 * `int8_float16`
 * `int8_bfloat16`
 * `int16`
@@ -74,21 +79,21 @@ By default, the runtime tries to use the type that is saved in the converted mod
 
 **On CPU:**
 
-| Architecture | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
+| Architecture | int8_float32 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
 | --- | --- | --- | --- | --- | --- | --- |
-| x86-64 (Intel) | int8 | int8 | int8 | int16 | float32 | float32 |
-| x86-64 (other) | int8 | int8 | int8 | int8 | float32 | float32 |
-| AArch64/ARM64 (Apple) | int8 | int8 | int8 | int8 | float32 | float32 |
-| AArch64/ARM64 (other) | int8 | int8 | int8 | int8 | float32 | float32 |
+| x86-64 (Intel) | int8_float32 | int8_float32 | int8_float32 | int16 | float32 | float32 |
+| x86-64 (other) | int8_float32 | int8_float32 | int8_float32 | int8_float32 | float32 | float32 |
+| AArch64/ARM64 (Apple) | int8_float32 | int8_float32 | int8_float32 | int8_float32 | float32 | float32 |
+| AArch64/ARM64 (other) | int8_float32 | int8_float32 | int8_float32 | int8_float32 | float32 | float32 |
 
 **On GPU:**
 
-| Compute Capability | int8 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
+| Compute Capability | int8_float32 | int8_float16 | int8_bfloat16 | int16 | float16 | bfloat16 |
 | --- | --- | --- | --- | --- | --- | -- |
-| >= 8.0 | int8 | int8_float16 | int8_bfloat16 | float16 | float16 | bfloat16 |
-| >= 7.0, < 8.0 | int8 | int8_float16 | int8 | float16 | float16 | float32 |
+| >= 8.0 | int8_float32 | int8_float16 | int8_bfloat16 | float16 | float16 | bfloat16 |
+| >= 7.0, < 8.0 | int8_float32 | int8_float16 | int8_float32 | float16 | float16 | float32 |
 | 6.2 | float32 | float32 | float32 | float32 | float32 | float32 |
-| 6.1 | int8 | int8 | int8 | float32 | float32 | float32 |
+| 6.1 | int8_float32 | int8_float32 | int8_float32 | float32 | float32 | float32 |
 | <= 6.0 | float32 | float32 | float32 | float32 | float32 | float32 |
 
 ```{tip}
@@ -119,6 +124,12 @@ WQ[i,j] = round(scale[i] * W[i,j])
 This formula corresponds to a symmetric quantization (absolute maximum of the input range instead of separate min/max values).
 ```
 
+Non quantized layers are run in the floating point precision of the original model. For example, if the model is saved in `float16`, the actual quantization type will be `int8_float16`. This behavior can be changed by selecting more specific quantization types:
+
+* `int8_float32`
+* `int8_float16`
+* `int8_bfloat16`
+
 ### 16-bit integers (`int16`)
 
 **Supported on:**
@@ -133,7 +144,7 @@ scale = 2^10 / max(abs(W))
 
 As suggested by the author, the idea is to use 10 bits for the input so that the multiplication is 20 bits which gives 12 bits left for accumulation.
 
-Similar to the `int8` quantization, only the weights of the embedding and linear layers are quantized to 16-bit integers.
+Similar to the `int8` quantization, only the weights of the embedding and linear layers are quantized to 16-bit integers. The other layers are run in FP32.
 
 ### 16-bit floating points (`float16`)
 
@@ -150,19 +161,3 @@ In this mode, all model weights are stored in half precision and all layers are 
 * NVIDIA GPU with Compute Capability >= 8.0
 
 In this mode, all model weights are stored in BF16 and all layers are run with this type.
-
-### Mixed 8-bit integers and 16-bit floating points (`int8_float16`)
-
-**Supported on:**
-
-* NVIDIA GPU with Compute Capability >= 7.0
-
-This mode is the same as `int8`, but all non quantized layers are run in FP16 instead of FP32.
-
-### Mixed 8-bit integers and 16-bit brain floating points (`int8_bfloat16`)
-
-**Supported on:**
-
-* NVIDIA GPU with Compute Capability >= 8.0
-
-This mode is the same as `int8`, but all non quantized layers are run in BF16 instead of FP32.

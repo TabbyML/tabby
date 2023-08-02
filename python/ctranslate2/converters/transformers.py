@@ -102,9 +102,14 @@ class TransformersConverter(Converter):
             model_class = getattr(transformers, loader.architecture_name)
             tokenizer_class = transformers.AutoTokenizer
 
-            kwargs = {}
-            if self._load_as_float16:
-                kwargs["torch_dtype"] = torch.float16
+            kwargs = {
+                "torch_dtype": (
+                    torch.float16
+                    if self._load_as_float16
+                    else getattr(config, "torch_dtype", None)
+                )
+            }
+
             if self._revision:
                 kwargs["revision"] = self._revision
             if self._low_cpu_mem_usage:

@@ -81,8 +81,8 @@ namespace ctranslate2 {
                    device: Device to use (possible values are: cpu, cuda, auto).
                    device_index: Device IDs where to place this encoder on.
                    compute_type: Model computation type or a dictionary mapping a device name
-                     to the computation type (possible values are: default, auto, int8, int8_float16,
-                     int8_bfloat16, int16, float16, bfloat16, float32).
+                     to the computation type (possible values are: default, auto, int8, int8_float32,
+                     int8_float16, int8_bfloat16, int16, float16, bfloat16, float32).
                    inter_threads: Maximum number of parallel generations.
                    intra_threads: Number of OpenMP threads per encoder (0 to use a default value).
                    max_queued_batches: Maximum numbers of batches in the queue (-1 for unlimited,
@@ -97,6 +97,8 @@ namespace ctranslate2 {
                                "Device this encoder is running on.")
         .def_property_readonly("device_index", &EncoderWrapper::device_index,
                                "List of device IDs where this encoder is running on.")
+        .def_property_readonly("compute_type", &EncoderWrapper::compute_type,
+                               "Computation type used by the model.")
         .def_property_readonly("num_encoders", &EncoderWrapper::num_replicas,
                                "Number of encoders backing this instance.")
         .def_property_readonly("num_queued_batches", &EncoderWrapper::num_queued_batches,

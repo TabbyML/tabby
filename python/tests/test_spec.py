@@ -92,6 +92,11 @@ def test_layer_spec_optimize():
     assert spec.sub.weight.dtype == "float16"
     assert spec.sub.a.dtype == "float16"
 
+    spec = Spec()
+    spec.validate()
+    with pytest.raises(ValueError, match="not a valid quantization type"):
+        spec.optimize(quantization="int32")
+
 
 def test_int8_quantization():
     class Spec(ctranslate2.specs.LayerSpec):
@@ -116,6 +121,12 @@ def test_int8_quantization():
     [
         (
             None,
+            np.array([[-10, -3, 5, 2]], dtype=np.float16),
+            None,
+            np.array([4], dtype=np.float16),
+        ),
+        (
+            "float32",
             np.array([[-10, -3, 5, 2]], dtype=np.float32),
             None,
             np.array([4], dtype=np.float32),
@@ -130,13 +141,19 @@ def test_int8_quantization():
             "int8",
             np.array([[-127, -38, 64, 25]], dtype=np.int8),
             np.array([12.7], dtype=np.float32),
-            np.array([4], dtype=np.float32),
+            np.array([4], dtype=np.float16),
         ),
         (
             "int8_float16",
             np.array([[-127, -38, 64, 25]], dtype=np.int8),
             np.array([12.7], dtype=np.float32),
             np.array([4], dtype=np.float16),
+        ),
+        (
+            "int8_float32",
+            np.array([[-127, -38, 64, 25]], dtype=np.int8),
+            np.array([12.7], dtype=np.float32),
+            np.array([4], dtype=np.float32),
         ),
         (
             "int16",
@@ -166,10 +183,10 @@ def test_fp16_weights(
     assert test_utils.array_equal(spec.bias.numpy(), expected_bias)
 
     # Check the weights were not copied or converted.
-    if quantization == "float16":
+    if quantization in (None, "float16"):
         assert spec.weight.numpy() is weight
         assert spec.bias.numpy() is bias
-    elif quantization == "int8_float16":
+    elif quantization in ("int8", "int8_float16"):
         assert spec.bias.numpy() is bias
 
     if expected_weight_scale is None:
@@ -248,19 +265,26 @@ def test_smooth_activation_torch():
 @pytest.mark.parametrize(
     "quantization,expected_weight_dtype,expected_bias_dtype",
     [
-        (None, "float32", "float32"),
-        ("int8", "int8", "float32"),
+        (None, None, None),
+        ("int8", "int8", None),
+        ("int8_float32", "int8", "float32"),
         ("int8_float16", "int8", "float16"),
         ("int8_bfloat16", "int8", "bfloat16"),
         ("int16", "int16", "float32"),
         ("float16", "float16", "float16"),
         ("bfloat16", "bfloat16", "bfloat16"),
+        ("float32", "float32", "float32"),
     ],
 )
 def test_torch_variables(
     tmp_dir, variable_dtype, quantization, expected_weight_dtype, expected_bias_dtype
 ):
     import torch
+
+    if expected_weight_dtype is None:
+        expected_weight_dtype = variable_dtype
+    if expected_bias_dtype is None:
+        expected_bias_dtype = variable_dtype
 
     variable_dtype = getattr(torch, variable_dtype)
 
