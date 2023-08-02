@@ -64,7 +64,7 @@ By default, the input is truncated after 1024 tokens to limit the maximum memory
 
 ## Autocompletion
 
-The `target_prefix` argument can be used to force the start of the translation. Let's say we want to replace the first occurence of `die` by `das` in the translation:
+The `target_prefix` argument can be used to force the start of the translation. Let's say we want to replace the first occurrence of `die` by `das` in the translation:
 
 ```python
 results = translator.translate_batch(
