@@ -13,6 +13,7 @@ import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -21,29 +22,36 @@ class AgentService : Disposable {
   private val logger = Logger.getInstance(AgentService::class.java)
   private var agent: Agent = Agent()
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+  val status get() = agent.status
 
   init {
+    val settings = service<ApplicationSettingsState>()
     scope.launch {
       try {
-        agent.initialize(createAgentConfig())
+        agent.initialize(createAgentConfig(settings.data))
         logger.info("Agent init done.")
       } catch (e: Error) {
         logger.error("Agent init failed: $e")
       }
     }
+
+    scope.launch {
+      settings.state.collect {
+        updateConfig(createAgentConfig(it))
+      }
+    }
   }
 
-  private fun createAgentConfig(): Agent.Config {
-    val appSettings = service<ApplicationSettingsState>()
+  private fun createAgentConfig(state: ApplicationSettingsState.State): Agent.Config {
     return Agent.Config(
-      server = if (appSettings.serverEndpoint.isNotBlank()) {
+      server = if (state.serverEndpoint.isNotBlank()) {
         Agent.Config.Server(
-          endpoint = appSettings.serverEndpoint,
+          endpoint = state.serverEndpoint,
         )
       } else {
         null
       },
-      anonymousUsageTracking = if (appSettings.isAnonymousUsageTrackingDisabled) {
+      anonymousUsageTracking = if (state.isAnonymousUsageTrackingDisabled) {
         Agent.Config.AnonymousUsageTracking(
           disabled = true,
         )
@@ -57,9 +65,9 @@ class AgentService : Disposable {
     agent.status.first { it != Agent.Status.NOT_INITIALIZED }
   }
 
-  suspend fun updateConfig() {
+  suspend fun updateConfig(config: Agent.Config) {
     waitForInitialized()
-    agent.updateConfig(createAgentConfig())
+    agent.updateConfig(config)
   }
 
   suspend fun getCompletion(editor: Editor, offset: Int): Agent.CompletionResponse? {

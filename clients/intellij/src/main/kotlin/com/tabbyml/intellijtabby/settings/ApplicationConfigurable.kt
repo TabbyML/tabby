@@ -2,8 +2,6 @@ package com.tabbyml.intellijtabby.settings
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.options.Configurable
-import com.tabbyml.intellijtabby.agent.AgentService
-import kotlinx.coroutines.launch
 import javax.swing.JComponent
 
 class ApplicationConfigurable : Configurable {
@@ -13,7 +11,7 @@ class ApplicationConfigurable : Configurable {
     return "Tabby"
   }
 
-  override fun createComponent(): JComponent? {
+  override fun createComponent(): JComponent {
     settingsPanel = ApplicationSettingsPanel()
     return settingsPanel.mainPanel
   }
@@ -30,8 +28,6 @@ class ApplicationConfigurable : Configurable {
     settings.isAutoCompletionEnabled = settingsPanel.isAutoCompletionEnabled
     settings.serverEndpoint = settingsPanel.serverEndpoint
     settings.isAnonymousUsageTrackingDisabled = settingsPanel.isAnonymousUsageTrackingDisabled
-    val agentService = service<AgentService>()
-    agentService.scope.launch { agentService.updateConfig() }
   }
 
   override fun reset() {
