@@ -1,11 +1,15 @@
 package com.tabbyml.intellijtabby.agent
 
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -20,7 +24,7 @@ class AgentService {
   init {
     scope.launch {
       try {
-        agent.initialize()
+        agent.initialize(createAgentConfig())
         logger.info("Agent init done.")
       } catch (e: Error) {
         logger.error("Agent init failed: $e")
@@ -28,8 +32,33 @@ class AgentService {
     }
   }
 
+  private fun createAgentConfig(): Agent.Config {
+    val appSettings = service<ApplicationSettingsState>()
+    return Agent.Config(
+      server = if (appSettings.serverEndpoint.isNotBlank()) {
+        Agent.Config.Server(
+          endpoint = appSettings.serverEndpoint,
+        )
+      } else {
+        null
+      },
+      anonymousUsageTracking = if (appSettings.isAnonymousUsageTrackingDisabled) {
+        Agent.Config.AnonymousUsageTracking(
+          disabled = true,
+        )
+      } else {
+        null
+      },
+    )
+  }
+
   private suspend fun waitForInitialized() {
     agent.status.first { it != Agent.Status.NOT_INITIALIZED }
+  }
+
+  suspend fun updateConfig() {
+    waitForInitialized()
+    agent.updateConfig(createAgentConfig())
   }
 
   suspend fun getCompletion(editor: Editor, offset: Int): Agent.CompletionResponse? {

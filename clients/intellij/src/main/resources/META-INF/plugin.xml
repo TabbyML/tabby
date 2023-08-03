@@ -25,29 +25,45 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable
+                parentId="editor"
+                instance="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
+                id="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
+                displayName="Tabby"
+                nonDefaultProject="true"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
     </extensions>
 
     <actions>
         <group id="Tabby.ToolsMenu" popup="true" text="Tabby" description="Tabby AI code assistant">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="CodeCompletionGroup"/>
+            <action id="Tabby.ToggleAutoCompletionEnabled"
+                    class="com.tabbyml.intellijtabby.actions.ToggleAutoCompletionEnabled">
+            </action>
+            <separator/>
             <action id="Tabby.TriggerCompletion"
                     class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
                     text="Show Inline Completion"
-                    description="Show inline completion at caret's position.">
+                    description="Show inline completion suggestions at the caret's position.">
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
             </action>
             <action id="Tabby.AcceptCompletion"
                     class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
                     text="Accept Completion"
-                    description="Accept shown completion and insert text.">
+                    description="Accept the shown suggestions and insert the text.">
                 <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
             </action>
             <action id="Tabby.DismissCompletion"
                     class="com.tabbyml.intellijtabby.actions.DismissCompletion"
                     text="Dismiss Completion"
-                    description="Hide shown completion.">
+                    description="Hide the shown suggestions.">
                 <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            </action>
+            <separator/>
+            <action id="Tabby.OpenSettings"
+                    class="com.tabbyml.intellijtabby.actions.OpenSettings"
+                    text="Open Settings..."
+                    description="Show settings for Tabby.">
             </action>
         </group>
     </actions>

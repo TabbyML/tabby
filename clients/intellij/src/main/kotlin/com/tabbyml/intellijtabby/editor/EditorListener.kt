@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.util.messages.MessageBus
 import com.intellij.util.messages.MessageBusConnection
 
 class EditorListener : EditorFactoryListener {

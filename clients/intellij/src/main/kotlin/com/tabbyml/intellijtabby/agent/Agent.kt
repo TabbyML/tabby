@@ -31,6 +31,7 @@ class Agent : ProcessAdapter() {
     DISCONNECTED,
     UNAUTHORIZED,
   }
+
   private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
   val status = statusFlow.asStateFlow()
 
@@ -66,12 +67,40 @@ class Agent : ProcessAdapter() {
     streamWriter = process.processInput.writer()
   }
 
-  suspend fun initialize(): Boolean {
-    return request("initialize", listOf(mapOf("client" to "intellij-tabby"))) // FIXME: correct client info
+  data class Config(
+    val server: Server? = null,
+    val completion: Completion? = null,
+    val logs: Logs? = null,
+    val anonymousUsageTracking: AnonymousUsageTracking? = null,
+  ) {
+    data class Server(
+      val endpoint: String,
+    )
+    data class Completion(
+      val maxPrefixLines: Int,
+      val maxSuffixLines: Int,
+    )
+    data class Logs(
+      val level: String,
+    )
+    data class AnonymousUsageTracking(
+      val disabled: Boolean,
+    )
   }
 
-  suspend fun updateConfig(): Boolean {
-    return request("updateConfig", listOf(emptyMap<Any, Any>()))
+  suspend fun initialize(config: Config): Boolean {
+    return request(
+      "initialize", listOf(
+        mapOf(
+          "config" to config,
+          "client" to "IntelliJ Tabby", // FIXME: correct client info
+        )
+      )
+    )
+  }
+
+  suspend fun updateConfig(config: Config): Boolean {
+    return request("updateConfig", listOf(config))
   }
 
   data class CompletionRequest(
@@ -178,12 +207,15 @@ class Agent : ProcessAdapter() {
           else -> Status.NOT_INITIALIZED
         }
       }
+
       "configUpdated" -> {
         logger.info("Agent notification $event")
       }
+
       "authRequired" -> {
         logger.info("Agent notification $event")
       }
+
       else -> {
         logger.error("Agent notification, unknown event name: ${event["event"]}")
       }
