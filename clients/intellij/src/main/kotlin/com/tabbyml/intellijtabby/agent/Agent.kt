@@ -9,6 +9,7 @@ import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Key
@@ -76,24 +77,30 @@ class Agent : ProcessAdapter() {
     data class Server(
       val endpoint: String,
     )
+
     data class Completion(
       val maxPrefixLines: Int,
       val maxSuffixLines: Int,
     )
+
     data class Logs(
       val level: String,
     )
+
     data class AnonymousUsageTracking(
       val disabled: Boolean,
     )
   }
 
   suspend fun initialize(config: Config): Boolean {
+    val appInfo = ApplicationInfo.getInstance().fullApplicationName
+    val pluginId = "com.tabbyml.intellij-tabby"
+    val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
     return request(
       "initialize", listOf(
         mapOf(
           "config" to config,
-          "client" to "IntelliJ Tabby", // FIXME: correct client info
+          "client" to "$appInfo $pluginId $pluginVersion",
         )
       )
     )
