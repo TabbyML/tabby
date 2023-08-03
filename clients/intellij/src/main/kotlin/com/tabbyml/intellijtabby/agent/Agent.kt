@@ -1,6 +1,7 @@
 package com.tabbyml.intellijtabby.agent
 
 import com.google.gson.Gson
+import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.configurations.PathEnvironmentVariableUtil
@@ -129,6 +130,21 @@ class Agent : ProcessAdapter() {
 
   suspend fun getCompletions(request: CompletionRequest): CompletionResponse? {
     return request("getCompletions", listOf(request))
+  }
+
+  data class LogEventRequest(
+    val type: EventType,
+    @SerializedName("completion_id") val completionId: String,
+    @SerializedName("choice_index") val choiceIndex: Int,
+  ) {
+    enum class EventType {
+      @SerializedName("view") VIEW,
+      @SerializedName("select") SELECT,
+    }
+  }
+
+  suspend fun postEvent(event: LogEventRequest): Boolean {
+    return request("postEvent", listOf(event))
   }
 
   fun close() {

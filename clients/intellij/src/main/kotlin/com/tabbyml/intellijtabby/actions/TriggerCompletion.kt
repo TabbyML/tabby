@@ -5,9 +5,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
-import com.tabbyml.intellijtabby.agent.AgentService
 import com.tabbyml.intellijtabby.editor.CompletionScheduler
-import com.tabbyml.intellijtabby.editor.InlineCompletionService
 
 
 class TriggerCompletion : AnAction() {

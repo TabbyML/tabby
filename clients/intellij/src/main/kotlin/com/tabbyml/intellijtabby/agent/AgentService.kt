@@ -3,17 +3,12 @@ package com.tabbyml.intellijtabby.agent
 import com.intellij.lang.Language
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ReadAction
-import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
-import com.intellij.openapi.components.State
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.fileTypes.impl.AbstractFileType
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.tabbyml.intellijtabby.agent.AgentService.Companion.getLanguageId
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
@@ -74,7 +69,6 @@ class AgentService : Disposable {
         PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
       }
     }?.let { file ->
-      logger.info("Language id: ${file.language}")
       agent.getCompletions(
         Agent.CompletionRequest(
           file.virtualFile.path,
@@ -86,8 +80,9 @@ class AgentService : Disposable {
     }
   }
 
-  suspend fun postEvent() {
+  suspend fun postEvent(event: Agent.LogEventRequest) {
     waitForInitialized()
+    agent.postEvent(event)
   }
 
   override fun dispose() {
