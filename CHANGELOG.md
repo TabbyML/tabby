@@ -4,6 +4,37 @@
 
 ### Fixes and improvements
 
+## [v3.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.18.0) (2023-08-03)
+
+### Changes
+
+Converted models now uses the same floating point precision as the original models. For example, a model saved in float16 will be converted to a float16 model. Before this change, the weights were casted to float32 by default.
+
+Similarly, selecting int8 keeps non quantized weights in their original precision unless a more specific quantization type is selected:
+
+* int8_float32
+* int8_float16
+* int8_bfloat16
+
+### New features
+
+* Add property `compute_type` to model instances
+* Extend the Python class `StorageView` with additional methods and properties:
+  * `to(dtype)`
+  * `device_index`
+  * `device`
+  * `dtype`
+  * `shape`
+
+### Fixes and improvements
+
+* Update the function `get_supported_compute_types` to correctly return bfloat16 when supported
+* Update the HF Llama converter to accept extra tokens in the vocabulary
+* Fix a shape error when enabling `return_alternatives` with a model using relative positions
+* Fix a conversion error when using `torch<1.13`
+* Fix a type error when running Whisper models with the bfloat16 type
+* Update pybind11 to 2.11.1
+
 ## [v3.17.1](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.17.1) (2023-07-20)
 
 ### Fixes and improvements
