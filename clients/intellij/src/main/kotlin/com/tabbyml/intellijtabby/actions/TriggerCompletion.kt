@@ -6,20 +6,16 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
 import com.tabbyml.intellijtabby.agent.AgentService
+import com.tabbyml.intellijtabby.editor.CompletionScheduler
 import com.tabbyml.intellijtabby.editor.InlineCompletionService
 
 
 class TriggerCompletion : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
-    val agentService = service<AgentService>()
-    val inlineCompletionService = service<InlineCompletionService>()
+    val completionScheduler = service<CompletionScheduler>()
     val editor = e.getRequiredData(CommonDataKeys.EDITOR)
     val offset = editor.caretModel.primaryCaret.offset
-
-    inlineCompletionService.dismiss()
-    agentService.getCompletion(editor, offset)?.thenAccept {
-      inlineCompletionService.show(editor, offset, it)
-    }
+    completionScheduler.schedule(editor, offset, 0)
   }
 
   override fun update(e: AnActionEvent) {

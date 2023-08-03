@@ -14,8 +14,10 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Key
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.io.BaseOutputReader
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.OutputStreamWriter
-import java.util.concurrent.CompletableFuture
 
 class Agent : ProcessAdapter() {
   private val logger = Logger.getInstance(Agent::class.java)
@@ -23,11 +25,16 @@ class Agent : ProcessAdapter() {
   private val process: KillableProcessHandler
   private val streamWriter: OutputStreamWriter
 
-  var status = "notInitialized"
-    private set
+  enum class Status {
+    NOT_INITIALIZED,
+    READY,
+    DISCONNECTED,
+    UNAUTHORIZED,
+  }
+  private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
+  val status = statusFlow.asStateFlow()
 
   init {
-    logger.info("Agent init.")
     logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
 
     val node = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
@@ -49,7 +56,7 @@ class Agent : ProcessAdapter() {
     }
 
     val cmd = GeneralCommandLine(node.absolutePath, script.absolutePath)
-    process = object: KillableProcessHandler(cmd) {
+    process = object : KillableProcessHandler(cmd) {
       override fun readerOptions(): BaseOutputReader.Options {
         return BaseOutputReader.Options.forMostlySilentProcess()
       }
@@ -59,11 +66,11 @@ class Agent : ProcessAdapter() {
     streamWriter = process.processInput.writer()
   }
 
-  fun initialize(): CompletableFuture<Boolean> {
-    return request("initialize", listOf(mapOf("client" to "intellij-tabby")))
+  suspend fun initialize(): Boolean {
+    return request("initialize", listOf(mapOf("client" to "intellij-tabby"))) // FIXME: correct client info
   }
 
-  fun updateConfig(): CompletableFuture<Boolean> {
+  suspend fun updateConfig(): Boolean {
     return request("updateConfig", listOf(emptyMap<Any, Any>()))
   }
 
@@ -84,28 +91,45 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  fun getCompletions(request: CompletionRequest): CompletableFuture<CompletionResponse?> {
+  suspend fun getCompletions(request: CompletionRequest): CompletionResponse? {
     return request("getCompletions", listOf(request))
+  }
+
+  fun close() {
+    streamWriter.close()
+    process.destroyProcess()
   }
 
   private var requestId = 1
   private var ongoingRequest = mutableMapOf<Int, (response: String) -> Unit>()
 
-  private inline fun <reified T : Any?> request(func: String, args: List<Any> = emptyList()): CompletableFuture<T> {
-    val id = requestId++
-    val data = listOf(id, mapOf("func" to func, "args" to args))
-    val json = gson.toJson(data)
-    streamWriter.write(json + "\n")
-    streamWriter.flush()
-    logger.info("Agent request: $json")
-    val future = CompletableFuture<T>()
-    ongoingRequest[id] = { response ->
-      logger.info("Agent response: $response")
-      val result = gson.fromJson<T>(response, object : TypeToken<T>() {}.type)
-      future.complete(result)
+  private suspend inline fun <reified T : Any?> request(func: String, args: List<Any> = emptyList()): T =
+    suspendCancellableCoroutine { continuation ->
+      val id = requestId++
+      ongoingRequest[id] = { response ->
+        logger.info("Agent response: $response")
+        val result = gson.fromJson<T>(response, object : TypeToken<T>() {}.type)
+        continuation.resumeWith(Result.success(result))
+      }
+      val data = listOf(id, mapOf("func" to func, "args" to args))
+      val json = gson.toJson(data)
+      logger.info("Agent request: $json")
+      streamWriter.write(json + "\n")
+      streamWriter.flush()
+
+      continuation.invokeOnCancellation {
+        logger.info("Agent request cancelled")
+        val cancellationId = requestId++
+        ongoingRequest[cancellationId] = { response ->
+          logger.info("Agent cancellation response: $response")
+        }
+        val cancellationData = listOf(cancellationId, mapOf("func" to "cancelRequest", "args" to listOf(id)))
+        val cancellationJson = gson.toJson(cancellationData)
+        logger.info("Agent cancellation request: $cancellationJson")
+        streamWriter.write(cancellationJson + "\n")
+        streamWriter.flush()
+      }
     }
-    return future
-  }
 
   private var outputBuffer: String = ""
 
@@ -131,7 +155,9 @@ class Agent : ProcessAdapter() {
     logger.info("Parsed agent output: $data")
     val id = (data[0] as Number).toInt()
     if (id == 0) {
-      handleNotification(gson.toJson(data[1]))
+      if (data[1] is Map<*, *>) {
+        handleNotification(data[1] as Map<*, *>)
+      }
     } else {
       ongoingRequest[id]?.let { callback ->
         callback(gson.toJson(data[1]))
@@ -140,7 +166,27 @@ class Agent : ProcessAdapter() {
     }
   }
 
-  private fun handleNotification(event: String) {
-    logger.info("Agent notification: $event")
+  private fun handleNotification(event: Map<*, *>) {
+    when (event["event"]) {
+      "statusChanged" -> {
+        logger.info("Agent notification $event")
+        statusFlow.value = when (event["status"]) {
+          "notInitialized" -> Status.NOT_INITIALIZED
+          "ready" -> Status.READY
+          "disconnected" -> Status.DISCONNECTED
+          "unauthorized" -> Status.UNAUTHORIZED
+          else -> Status.NOT_INITIALIZED
+        }
+      }
+      "configUpdated" -> {
+        logger.info("Agent notification $event")
+      }
+      "authRequired" -> {
+        logger.info("Agent notification $event")
+      }
+      else -> {
+        logger.error("Agent notification, unknown event name: ${event["event"]}")
+      }
+    }
   }
 }

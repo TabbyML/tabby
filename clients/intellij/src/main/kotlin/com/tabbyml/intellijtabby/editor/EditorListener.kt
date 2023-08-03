@@ -2,11 +2,17 @@ package com.tabbyml.intellijtabby.editor
 
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.event.*
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.util.messages.MessageBus
+import com.intellij.util.messages.MessageBusConnection
 
 class EditorListener : EditorFactoryListener {
   private val logger = Logger.getInstance(EditorListener::class.java)
+  private val messagesConnection = mutableMapOf<Editor, MessageBusConnection>()
 
   override fun editorCreated(event: EditorFactoryEvent) {
     val editor = event.editor
@@ -33,5 +39,25 @@ class EditorListener : EditorFactoryListener {
         }
       }
     })
+
+    editor.project?.messageBus?.connect()?.let {
+      it.subscribe(
+        FileEditorManagerListener.FILE_EDITOR_MANAGER,
+        object: FileEditorManagerListener {
+          override fun selectionChanged(event: FileEditorManagerEvent) {
+            logger.info("FileEditorManagerListener selectionChanged.")
+            completionScheduler.clear()
+          }
+        }
+      )
+      messagesConnection[editor] = it
+    }
+  }
+
+  override fun editorReleased(event: EditorFactoryEvent) {
+    messagesConnection[event.editor]?.let {
+      it.disconnect()
+      it.dispose()
+    }
   }
 }

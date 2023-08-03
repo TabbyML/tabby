@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.tabbyml"
-version = "0.0.1-SNAPSHOT"
+version = "0.0.1"
 
 repositories {
   mavenCentral()
@@ -41,7 +41,7 @@ tasks {
     into("build/idea-sandbox/plugins/intellij-tabby/node_scripts")
   }
 
-  buildPlugin {
+  buildSearchableOptions {
     dependsOn(copyNodeScripts)
   }
 
@@ -57,5 +57,6 @@ tasks {
 
   publishPlugin {
     token.set(System.getenv("PUBLISH_TOKEN"))
+    channels.set(listOf("alpha"))
   }
 }
