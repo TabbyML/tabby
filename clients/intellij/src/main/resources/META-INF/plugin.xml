@@ -21,7 +21,6 @@
         If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> for more support!</p>
         <h2 id="demo">Demo</h2>
         <p>Try our online demo <a href="https://tabbyml.github.io/tabby/playground">here</a>.</p>
-        <p><img src="https://tabbyml.github.io/tabby/img/demo.gif" alt="Demo"></p>
         <h2 id="requirements">Requirements</h2>
         Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> 16.0+ installed and added into <code>PATH</code> enviroment variable. </p>
         <h2 id="get-started">Get Started</h2>
