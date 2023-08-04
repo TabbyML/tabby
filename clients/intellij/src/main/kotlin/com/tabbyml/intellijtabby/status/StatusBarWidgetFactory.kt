@@ -31,7 +31,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
 
   override fun createWidget(project: Project): StatusBarWidget {
     return object : EditorBasedStatusBarPopup(project, false) {
-      val scope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+      val updateStatusScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
       val text = "Tabby"
       var icon = AllIcons.Actions.Refresh
       var tooltip = "Tabby: Initializing"
@@ -39,7 +39,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
       init {
         val settings = service<ApplicationSettingsState>()
         val agentService = service<AgentService>()
-        scope.launch {
+        updateStatusScope.launch {
           settings.state.combine(agentService.status) { settings, agentStatus ->
             Pair(settings, agentStatus)
           }.collect {
