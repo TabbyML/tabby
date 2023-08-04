@@ -9,7 +9,6 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.ListPopup
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.StatusBarWidget
-import com.intellij.openapi.wm.WindowManager
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
 import com.intellij.openapi.wm.impl.status.widget.StatusBarEditorBasedWidgetFactory
 import com.tabbyml.intellijtabby.agent.Agent
@@ -34,8 +33,8 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
     return object : EditorBasedStatusBarPopup(project, false) {
       val scope: CoroutineScope = CoroutineScope(Dispatchers.Main)
       val text = "Tabby"
-      var icon = AllIcons.Plugins.Disabled
-      var tooltip = "Tabbysss"
+      var icon = AllIcons.Actions.Refresh
+      var tooltip = "Tabby: Initializing"
 
       init {
         val settings = service<ApplicationSettingsState>()
