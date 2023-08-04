@@ -149,7 +149,7 @@ class Agent : ProcessAdapter() {
 
   fun close() {
     streamWriter.close()
-    process.destroyProcess()
+    process.killProcess()
   }
 
   private var requestId = 1
