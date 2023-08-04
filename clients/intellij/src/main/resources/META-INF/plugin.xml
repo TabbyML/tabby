@@ -14,8 +14,21 @@
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
     <description><![CDATA[
-    Early version of Tabby for IntelliJ.<br>
-    Require Node.js 16.0+ installed and added to PATH.<br>
+        <h1 id="tabby-plugin-for-intellij-platform">Tabby Plugin for IntelliJ Platform</h1>
+        <p>Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.</p>
+        <p><strong>Requirements</strong> Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> 16.0+ installed and added into <code>PATH</code> enviroment variable. </p>
+        <p>For more information, please check out our <a href="https://tabbyml.com/">Website</a> and <a href="https://github.com/TabbyML/tabby">GitHub</a>.
+        If you encounter any problem or have any suggestion, please <a href="https://github.com/TabbyML/tabby/issues/new">open an issue</a>, or join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> for more support!</p>
+        <h2 id="demo">Demo</h2>
+        <p>Try our online demo <a href="https://tabbyml.github.io/tabby/playground">here</a>.</p>
+        <p><img src="https://tabbyml.github.io/tabby/img/demo.gif" alt="Demo"></p>
+        <h2 id="get-started">Get Started</h2>
+        <ol>
+        <li>Please following <a href="https://tabbyml.github.io/tabby/docs/self-hosting/">this guide</a> to setup a self-hosted Tabby server.</li>
+        <li>Open the settings page <code>Settings &gt; Editor &gt; Tabby</code>, or click the <code>Tabby</code> status bar item and <code>Open Settings...</code>. Fill in the server endpoint URL to connect the plugin to your Tabby server. The status bar item will show a checked icon if the connection is successful.</li>
+        <li>Once setup is complete, Tabby will provide inline suggestions automatically, and you can accept suggestions by just pressing the <code>Tab</code> key.</li>
+        <li>You can find more actions and hotkey in the IDE tools menu <code>Code &gt; Tabby</code>.</li>
+        </ol>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -25,29 +38,45 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable
+                parentId="editor"
+                instance="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
+                id="com.tabbyml.intellijtabby.settings.ApplicationConfigurable"
+                displayName="Tabby"
+                nonDefaultProject="true"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
+        <statusBarWidgetFactory implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
     </extensions>
 
     <actions>
         <group id="Tabby.ToolsMenu" popup="true" text="Tabby" description="Tabby AI code assistant">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="CodeMenu" anchor="after" relative-to-action="CodeCompletionGroup"/>
             <action id="Tabby.TriggerCompletion"
                     class="com.tabbyml.intellijtabby.actions.TriggerCompletion"
-                    text="Trigger Completion"
-                    description="Trigger completion at current position.">
+                    text="Show Inline Completion"
+                    description="Show inline completion suggestions at the caret's position.">
                 <keyboard-shortcut first-keystroke="alt BACK_SLASH" keymap="$default"/>
             </action>
             <action id="Tabby.AcceptCompletion"
                     class="com.tabbyml.intellijtabby.actions.AcceptCompletion"
                     text="Accept Completion"
-                    description="Trigger completion at current position.">
+                    description="Accept the shown suggestions and insert the text.">
                 <keyboard-shortcut first-keystroke="TAB" keymap="$default"/>
             </action>
             <action id="Tabby.DismissCompletion"
                     class="com.tabbyml.intellijtabby.actions.DismissCompletion"
                     text="Dismiss Completion"
-                    description="Trigger completion at current position.">
+                    description="Hide the shown suggestions.">
                 <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
+            </action>
+            <separator/>
+            <action id="Tabby.ToggleAutoCompletionEnabled"
+                    class="com.tabbyml.intellijtabby.actions.ToggleAutoCompletionEnabled">
+            </action>
+            <action id="Tabby.OpenSettings"
+                    class="com.tabbyml.intellijtabby.actions.OpenSettings"
+                    text="Open Settings..."
+                    description="Show settings for Tabby.">
             </action>
         </group>
     </actions>
