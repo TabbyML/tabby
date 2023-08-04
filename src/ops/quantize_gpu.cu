@@ -7,39 +7,30 @@ namespace ctranslate2 {
 
     template <typename T>
     struct absolute_maximum_func {
-      __device__ __forceinline__ T operator()(T a, T b) const;
-    };
-
-    template<>
-    struct absolute_maximum_func<float> {
-      __device__ __forceinline__ float operator()(float a, float b) const {
+      __device__ __forceinline__ T operator()(T a, T b) const {
         return fmaxf(fabsf(a), fabsf(b));
       }
     };
 
+#if CUDA_CAN_USE_HALF
     template<>
     struct absolute_maximum_func<__half> {
       __device__ __forceinline__ __half operator()(__half a, __half b) const {
-#if CUDA_CAN_USE_HALF
         a = __habs(a);
         b = __habs(b);
         return a > b ? a : b;
-#else
-        return fmaxf(fabsf(a), fabsf(b));
-#endif
       }
     };
+#endif
 
+#if CUDA_CAN_USE_BF16_MATH
     template<>
     struct absolute_maximum_func<__nv_bfloat16> {
       __device__ __forceinline__ __nv_bfloat16 operator()(__nv_bfloat16 a, __nv_bfloat16 b) const {
-#if CUDA_CAN_USE_BF16_MATH
         return __hmax(__habs(a), __habs(b));
-#else
-        return fmaxf(fabsf(a), fabsf(b));
-#endif
       }
     };
+#endif
 
     struct rescale_func {
       __device__ __forceinline__ rescale_func(float scale)
