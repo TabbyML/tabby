@@ -1397,6 +1397,64 @@ class RWLoader(ModelLoader):
             spec.bias = bias
 
 
+@register_loader("DistilBertConfig")
+class DistilBertLoader(ModelLoader):
+    @property
+    def architecture_name(self):
+        return "DistilBertModel"
+
+    def get_model_spec(self, model):
+        encoder_spec = transformer_spec.TransformerEncoderSpec(
+            model.config.n_layers,
+            model.config.n_heads,
+            pre_norm=False,
+            activation=_SUPPORTED_ACTIVATIONS[model.config.activation],
+            layernorm_embedding=True,
+        )
+        spec = transformer_spec.TransformerEncoderModelSpec(
+            encoder_spec,
+        )
+
+        spec.encoder.scale_embeddings = False
+
+        self.set_embeddings(
+            spec.encoder.embeddings[0], model.embeddings.word_embeddings
+        )
+        self.set_position_encodings(
+            spec.encoder.position_encodings, model.embeddings.position_embeddings
+        )
+        self.set_layer_norm(
+            spec.encoder.layernorm_embedding, model.embeddings.LayerNorm
+        )
+
+        for layer_spec, layer in zip(spec.encoder.layer, model.transformer.layer):
+            split_layers = [common_spec.LinearSpec() for _ in range(3)]
+            self.set_linear(split_layers[0], layer.attention.q_lin)
+            self.set_linear(split_layers[1], layer.attention.k_lin)
+            self.set_linear(split_layers[2], layer.attention.v_lin)
+            utils.fuse_linear(layer_spec.self_attention.linear[0], split_layers)
+
+            self.set_linear(
+                layer_spec.self_attention.linear[1], layer.attention.out_lin
+            )
+            self.set_layer_norm(
+                layer_spec.self_attention.layer_norm, layer.sa_layer_norm
+            )
+
+            self.set_linear(layer_spec.ffn.linear_0, layer.ffn.lin1)
+            self.set_linear(layer_spec.ffn.linear_1, layer.ffn.lin2)
+            self.set_layer_norm(layer_spec.ffn.layer_norm, layer.output_layer_norm)
+
+        return spec
+
+    def set_vocabulary(self, spec, tokens):
+        spec.register_vocabulary(tokens)
+
+    def set_config(self, config, model, tokenizer):
+        config.unk_token = tokenizer.unk_token
+        config.layer_norm_epsilon = 1e-12
+
+
 @register_loader("BertConfig")
 class BertLoader(ModelLoader):
     @property

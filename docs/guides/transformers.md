@@ -6,6 +6,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * BERT
 * BLOOM
 * CodeGen
+* DistilBERT
 * Falcon
 * Llama
 * M2M100
@@ -144,6 +145,16 @@ text = "Hello, I am"
 start_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
 results = generator.generate_batch([start_tokens], max_length=30, sampling_topk=10)
 print(tokenizer.decode(results[0].sequences_ids[0]))
+```
+
+## DistilBERT
+
+[DistilBERT](https://huggingface.co/docs/transformers/model_doc/distilbert) is a small, fast, cheap and light Transformer Encoder model trained by distilling BERT base.
+
+CTranslate2 only implements the `DistilBertModel` class from Transformers which includes the Transformer encoder. Task-specific layers should be run with PyTorch, similar to the example for {ref}`guides/transformers:bert`.
+
+```bash
+ct2-transformers-converter --model distilbert-base-uncased --output_dir distilbert-base-uncased
 ```
 
 ## Falcon
