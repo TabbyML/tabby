@@ -10,22 +10,30 @@ use crate::path::{config_file, repositories_dir};
 
 #[derive(Deserialize, Default)]
 pub struct Config {
+    #[serde(default)]
     pub repositories: Vec<Repository>,
+
+    #[serde(default)]
     pub experimental: Experimental,
 }
 
 #[derive(Deserialize, Default)]
 pub struct Experimental {
+    #[serde(default = "default_as_false")]
     pub enable_prompt_rewrite: bool,
 }
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
         let file = serdeconv::from_toml_file(crate::path::config_file().as_path());
-        file.map_err(|_| {
+        file.map_err(|err| {
             Error::new(
                 ErrorKind::InvalidData,
-                format!("Config {:?} doesn't exist or is not valid", config_file()),
+                format!(
+                    "Config {:?} doesn't exist or is not valid: `{:?}`",
+                    config_file(),
+                    err
+                ),
             )
         })
     }
@@ -39,5 +47,20 @@ pub struct Repository {
 impl Repository {
     pub fn dir(&self) -> PathBuf {
         repositories_dir().join(filenamify(&self.git_url))
+    }
+}
+
+fn default_as_false() -> bool {
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Config;
+
+    #[test]
+    fn it_parses_empty_config() {
+        let config = serdeconv::from_toml_str::<Config>("");
+        debug_assert!(config.is_ok(), "{}", config.err().unwrap());
     }
 }
