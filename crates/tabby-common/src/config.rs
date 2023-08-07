@@ -11,11 +11,15 @@ use crate::path::{config_file, repositories_dir};
 #[derive(Deserialize, Default)]
 pub struct Config {
     pub repositories: Vec<Repository>,
+
+    #[serde(default)]
     pub experimental: Experimental,
 }
 
 #[derive(Deserialize, Default)]
 pub struct Experimental {
+
+    #[serde(default = "default_as_false")]
     pub enable_prompt_rewrite: bool,
 }
 
@@ -40,4 +44,8 @@ impl Repository {
     pub fn dir(&self) -> PathBuf {
         repositories_dir().join(filenamify(&self.git_url))
     }
+}
+
+fn default_as_false() -> bool {
+    false
 }
