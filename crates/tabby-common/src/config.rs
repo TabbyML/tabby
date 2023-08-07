@@ -19,7 +19,6 @@ pub struct Config {
 
 #[derive(Deserialize, Default)]
 pub struct Experimental {
-
     #[serde(default = "default_as_false")]
     pub enable_prompt_rewrite: bool,
 }
@@ -30,7 +29,11 @@ impl Config {
         file.map_err(|err| {
             Error::new(
                 ErrorKind::InvalidData,
-                format!("Config {:?} doesn't exist or is not valid: `{:?}`", config_file(), err),
+                format!(
+                    "Config {:?} doesn't exist or is not valid: `{:?}`",
+                    config_file(),
+                    err
+                ),
             )
         })
     }
