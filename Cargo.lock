@@ -2807,7 +2807,7 @@ dependencies = [
  "tracing-subscriber 0.3.17",
  "utoipa",
  "utoipa-swagger-ui",
- "uuid 1.3.3",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -2817,9 +2817,12 @@ dependencies = [
  "chrono",
  "filenamify",
  "lazy_static",
+ "reqwest",
  "serde",
  "serde-jsonlines",
  "serdeconv",
+ "tokio",
+ "uuid 1.4.1",
 ]
 
 [[package]]
@@ -2916,7 +2919,7 @@ dependencies = [
  "tempfile",
  "thiserror",
  "time 0.3.21",
- "uuid 1.3.3",
+ "uuid 1.4.1",
  "winapi",
 ]
 
@@ -3706,9 +3709,9 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "1.3.3"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "345444e32442451b267fc254ae85a209c64be56d2890e601a0c37ff0c3c5ecd2"
+checksum = "79daa5ed5740825c40b389c5e50312b9c86df53fccd33f281df655642b43869d"
 dependencies = [
  "getrandom",
  "rand",
@@ -3718,9 +3721,9 @@ dependencies = [
 
 [[package]]
 name = "uuid-macro-internal"
-version = "1.3.3"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f67b459f42af2e6e1ee213cb9da4dbd022d3320788c3fb3e1b893093f1e45da"
+checksum = "f7e1ba1f333bd65ce3c9f27de592fcbc256dafe3af2717f56d7c87761fbaccf4"
 dependencies = [
  "proc-macro2",
  "quote",

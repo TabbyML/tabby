@@ -1,6 +1,7 @@
 pub mod config;
 pub mod events;
 pub mod path;
+pub mod usage;
 
 use std::{
     fs::File,
