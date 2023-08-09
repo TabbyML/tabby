@@ -47,6 +47,14 @@
                 nonDefaultProject="true"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
         <statusBarWidgetFactory implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
+        <notificationGroup id="com.tabbyml.intellijtabby.notification.info"
+                           displayType="BALLOON"
+                           bundle="strings"
+                           key="tabby.info"/>
+        <notificationGroup id="com.tabbyml.intellijtabby.notification.warning"
+                           displayType="STICKY_BALLOON"
+                           bundle="strings"
+                           key="tabby.warning"/>
     </extensions>
 
     <actions>
@@ -71,6 +79,11 @@
                 <keyboard-shortcut first-keystroke="ESCAPE" keymap="$default"/>
             </action>
             <separator/>
+            <action id="Tabby.OpenAuthPage"
+                    class="com.tabbyml.intellijtabby.actions.OpenAuthPage"
+                    text="Open Authorization Page..."
+                    description="Open the authorization web page in your web browser.">
+            </action>
             <action id="Tabby.ToggleAutoCompletionEnabled"
                     class="com.tabbyml.intellijtabby.actions.ToggleAutoCompletionEnabled">
             </action>

@@ -16,7 +16,9 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Key
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.io.BaseOutputReader
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.OutputStreamWriter
@@ -36,6 +38,8 @@ class Agent : ProcessAdapter() {
 
   private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
   val status = statusFlow.asStateFlow()
+  private val authRequiredEventFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+  val authRequiredEvent = authRequiredEventFlow.asSharedFlow()
 
   init {
     logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
@@ -147,6 +151,19 @@ class Agent : ProcessAdapter() {
     return request("postEvent", listOf(event))
   }
 
+  data class AuthUrlResponse(
+    val authUrl: String,
+    val code: String,
+  )
+
+  suspend fun requestAuthUrl(): AuthUrlResponse? {
+    return request("requestAuthUrl", listOf())
+  }
+
+  suspend fun waitForAuthToken(code: String) {
+    return request("waitForAuthToken", listOf(code))
+  }
+
   fun close() {
     streamWriter.close()
     process.killProcess()
@@ -237,6 +254,7 @@ class Agent : ProcessAdapter() {
 
       "authRequired" -> {
         logger.info("Agent notification $event")
+        authRequiredEventFlow.tryEmit(Unit)
       }
 
       else -> {
