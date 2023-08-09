@@ -72,6 +72,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             override fun getChildren(e: AnActionEvent?): Array<AnAction> {
               val actionManager = ActionManager.getInstance()
               return arrayOf(
+                actionManager.getAction("Tabby.OpenAuthPage"),
                 actionManager.getAction("Tabby.ToggleAutoCompletionEnabled"),
                 actionManager.getAction("Tabby.OpenSettings"),
               )
@@ -103,7 +104,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
               tooltip = "Tabby: Cannot connect to Server"
             }
             Agent.Status.UNAUTHORIZED -> {
-              icon = AllIcons.General.Error
+              icon = AllIcons.General.Warning
               tooltip = "Tabby: Requires authorization"
             }
           }

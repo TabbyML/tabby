@@ -1,18 +1,28 @@
 package com.tabbyml.intellijtabby.agent
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.lang.Language
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.tabbyml.intellijtabby.actions.OpenAuthPage
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -40,6 +50,32 @@ class AgentService : Disposable {
         updateConfig(createAgentConfig(it))
       }
     }
+
+    scope.launch {
+      logger.info("Add authRequired event listener.")
+      agent.authRequiredEvent.collect {
+        logger.info("Will show auth required notification.")
+        val notification = Notification(
+          "com.tabbyml.intellijtabby.notification.warning",
+          "Authorization required for Tabby server",
+          NotificationType.WARNING,
+        )
+        notification.addAction(object : OpenAuthPage() {
+          init {
+            getTemplatePresentation().text = "Open Authorization Page..."
+            getTemplatePresentation().description = "Open the authorization web page in your web browser."
+          }
+
+          override fun actionPerformed(e: AnActionEvent) {
+            notification.expire()
+            super.actionPerformed(e)
+          }
+        })
+        invokeLater {
+          Notifications.Bus.notify(notification)
+        }
+      }
+    }
   }
 
   private fun createAgentConfig(state: ApplicationSettingsState.State): Agent.Config {
@@ -65,7 +101,7 @@ class AgentService : Disposable {
     agent.status.first { it != Agent.Status.NOT_INITIALIZED }
   }
 
-  suspend fun updateConfig(config: Agent.Config) {
+  private suspend fun updateConfig(config: Agent.Config) {
     waitForInitialized()
     agent.updateConfig(config)
   }
@@ -91,6 +127,40 @@ class AgentService : Disposable {
   suspend fun postEvent(event: Agent.LogEventRequest) {
     waitForInitialized()
     agent.postEvent(event)
+  }
+
+  suspend fun requestAuth(progress: ProgressIndicator) {
+    waitForInitialized()
+    progress.isIndeterminate = true
+    progress.text = "Generating authorization url..."
+    val authUrlResponse = agent.requestAuthUrl()
+    val notification = if (authUrlResponse != null) {
+      BrowserUtil.browse(authUrlResponse.authUrl)
+      progress.text = "Waiting for authorization from browser..."
+      agent.waitForAuthToken(authUrlResponse.code)
+      if (status.value == Agent.Status.READY) {
+        Notification(
+          "com.tabbyml.intellijtabby.notification.info",
+          "Congrats, you're authorized, start to use Tabby now.",
+          NotificationType.INFORMATION
+        )
+      } else {
+        Notification(
+          "com.tabbyml.intellijtabby.notification.warning",
+          "Connection error, please check settings and try again.",
+          NotificationType.WARNING
+        )
+      }
+    } else {
+      Notification(
+        "com.tabbyml.intellijtabby.notification.info",
+        "You are already authorized.",
+        NotificationType.INFORMATION
+      )
+    }
+    invokeLater {
+      Notifications.Bus.notify(notification)
+    }
   }
 
   override fun dispose() {
