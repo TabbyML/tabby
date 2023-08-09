@@ -5,17 +5,20 @@ mod health;
 use std::{
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
+    time::Duration,
 };
 
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::config::Config;
+use tabby_common::{config::Config, usage};
+use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+use self::health::HealthState;
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -129,6 +132,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
+
+    start_heartbeat(args);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
@@ -171,4 +176,14 @@ fn valid_args(args: &ServeArgs) {
             _ => fatal!("CPU device only supports int8 compute type"),
         }
     }
+}
+
+fn start_heartbeat(args: &ServeArgs) {
+    let state = HealthState::new(args);
+    tokio::spawn(async move {
+        loop {
+            usage::capture("ServeHealth", &state).await;
+            sleep(Duration::from_secs(60)).await;
+        }
+    });
 }

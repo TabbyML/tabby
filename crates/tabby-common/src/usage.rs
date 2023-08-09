@@ -1,10 +1,8 @@
-use std::{
-    collections::HashMap,
-    fs::{self},
-};
+use std::fs;
 
 use lazy_static::lazy_static;
 use reqwest::Client;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::path::usage_id_file;
@@ -34,12 +32,19 @@ impl UsageTracker {
         Self { id, client }
     }
 
-    async fn capture(&self, event: &str) {
+    async fn capture<T>(&self, event: &str, properties: T)
+    where
+        T: Serialize,
+    {
         if let Some(client) = &self.client {
-            let params = HashMap::from([("distinctId", self.id.as_ref()), ("event", event)]);
+            let payload = Payload {
+                distinct_id: self.id.as_ref(),
+                event,
+                properties,
+            };
             client
                 .post(USAGE_API_ENDPOINT)
-                .json(&params)
+                .json(&payload)
                 .send()
                 .await
                 .ok();
@@ -47,20 +52,21 @@ impl UsageTracker {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Payload<'a, T> {
+    distinct_id: &'a str,
+    event: &'a str,
+    properties: T,
+}
+
 lazy_static! {
     static ref TRACKER: UsageTracker = UsageTracker::new();
 }
 
-pub async fn capture(event: &str) {
-    TRACKER.capture(event).await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::capture;
-
-    #[tokio::test]
-    async fn it_fire_event() {
-        capture("UsageTest").await
-    }
+pub async fn capture<T>(event: &str, properties: T)
+where
+    T: Serialize,
+{
+    TRACKER.capture(event, properties).await
 }
