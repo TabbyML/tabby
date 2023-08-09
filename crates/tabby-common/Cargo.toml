@@ -10,7 +10,7 @@ lazy_static = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde-jsonlines = { workspace = true }
-reqwest = { workspace = true }
+reqwest = { workspace = true, features = [ "json" ] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { version = "1.4.1", features = ["v4"] }
 

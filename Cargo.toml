@@ -27,4 +27,4 @@ anyhow = "1.0.71"
 serde-jsonlines = "0.4.0"
 tantivy = "0.19.2"
 async-trait = "0.1.72"
-reqwest = { version = "0.11.18", features = ["stream", "json"] }
+reqwest = { version = "0.11.18" }
