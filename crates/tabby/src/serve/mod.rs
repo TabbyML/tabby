@@ -4,7 +4,8 @@ mod health;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
-    sync::Arc, time::Duration,
+    sync::Arc,
+    time::Duration,
 };
 
 use axum::{routing, Router, Server};
@@ -17,9 +18,8 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::fatal;
-
 use self::health::HealthState;
+use crate::fatal;
 
 #[derive(OpenApi)]
 #[openapi(

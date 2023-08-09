@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    fs::{self},
-};
+use std::fs::{self};
 
 use lazy_static::lazy_static;
 use reqwest::Client;
@@ -35,7 +32,10 @@ impl UsageTracker {
         Self { id, client }
     }
 
-    async fn capture<T>(&self, event: &str, properties: T) where T : Serialize {
+    async fn capture<T>(&self, event: &str, properties: T)
+    where
+        T: Serialize,
+    {
         if let Some(client) = &self.client {
             let payload = Payload {
                 distinct_id: self.id.as_ref(),
@@ -57,13 +57,16 @@ impl UsageTracker {
 struct Payload<'a, T> {
     distinct_id: &'a str,
     event: &'a str,
-    properties: T
+    properties: T,
 }
 
 lazy_static! {
     static ref TRACKER: UsageTracker = UsageTracker::new();
 }
 
-pub async fn capture<T>(event: &str, properties: T)  where T : Serialize{
+pub async fn capture<T>(event: &str, properties: T)
+where
+    T: Serialize,
+{
     TRACKER.capture(event, properties).await
 }
