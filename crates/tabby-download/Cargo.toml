@@ -7,7 +7,7 @@ edition = "2021"
 tabby-common = { path = "../tabby-common" }
 indicatif = "0.17.3"
 futures-util = "0.3.28"
-reqwest = { workspace = true, features = [ "json", "stream" ] }
+reqwest = { workspace = true, features = [ "stream", "json" ] }
 anyhow = { workspace = true }
 serde = { workspace = true }
 serdeconv = { workspace = true }
