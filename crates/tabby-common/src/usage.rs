@@ -9,6 +9,8 @@ use uuid::Uuid;
 
 use crate::path::usage_id_file;
 
+static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
+
 struct UsageTracker {
     id: String,
     client: reqwest::Client,
@@ -31,7 +33,7 @@ impl UsageTracker {
     async fn capture(&self, event: &str) {
         let params = HashMap::from([("distinctId", self.id.as_ref()), ("event", event)]);
         self.client
-            .post("https://app.tabbyml.com/api/usage")
+            .post(USAGE_API_ENDPOINT)
             .json(&params)
             .send()
             .await
