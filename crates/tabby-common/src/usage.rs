@@ -13,7 +13,7 @@ static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 
 struct UsageTracker {
     id: String,
-    client: reqwest::Client,
+    client: Client,
 }
 
 impl UsageTracker {
