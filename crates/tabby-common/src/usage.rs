@@ -13,7 +13,7 @@ static USAGE_API_ENDPOINT: &str = "https://app.tabbyml.com/api/usage";
 
 struct UsageTracker {
     id: String,
-    client: Client,
+    client: Option<Client>,
 }
 
 impl UsageTracker {
@@ -25,19 +25,25 @@ impl UsageTracker {
         }
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
-        let client = Client::new();
+        let client = if std::env::var("TABBY_DISABLE_USAGE_COLLECTION").is_ok() {
+            None
+        } else {
+            Some(Client::new())
+        };
 
         Self { id, client }
     }
 
     async fn capture(&self, event: &str) {
-        let params = HashMap::from([("distinctId", self.id.as_ref()), ("event", event)]);
-        self.client
-            .post(USAGE_API_ENDPOINT)
-            .json(&params)
-            .send()
-            .await
-            .ok();
+        if let Some(client) = &self.client {
+            let params = HashMap::from([("distinctId", self.id.as_ref()), ("event", event)]);
+            client
+                .post(USAGE_API_ENDPOINT)
+                .json(&params)
+                .send()
+                .await
+                .ok();
+        }
     }
 }
 
