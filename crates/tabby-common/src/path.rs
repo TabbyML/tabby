@@ -27,6 +27,10 @@ pub fn config_file() -> PathBuf {
     tabby_root().join("config.toml")
 }
 
+pub fn usage_id_file() -> PathBuf {
+    tabby_root().join("usage_anonymous_id")
+}
+
 pub fn repositories_dir() -> PathBuf {
     tabby_root().join("repositories")
 }
