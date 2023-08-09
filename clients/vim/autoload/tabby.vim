@@ -449,8 +449,7 @@ function! tabby#Accept(...)
     let s:text_to_insert = lines[0]
     let insertion = "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
   else
-    let current_line = getbufline('%', line('.'), line('.'))[0]
-    let suffix_chars_to_replace = len(current_line) - col('.') + 1
+    let suffix_chars_to_replace = strchars(getline(line('.'))[col('.') - 1:])
     let s:text_to_insert = join(lines, "\n")
     let insertion = repeat("\<Del>", suffix_chars_to_replace) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>\<End>"
   endif
@@ -550,10 +549,20 @@ function! s:CreateCompletionRequest()
     \ filepath: expand('%:p'),
     \ language: s:GetLanguage(),
     \ text: join(getbufline('%', 1, '$'), "\n"),
-    \ position: line2byte(line('.')) + col('.') - 2,
+    \ position: s:CountCharsToCursor(),
     \ maxPrefixLines: g:tabby_max_prefix_lines,
     \ maxSuffixLines: g:tabby_max_suffix_lines,
     \ }
+endfunction
+
+function! s:CountCharsToCursor()
+  let lines = getline(1, line('.') - 1)
+  if col('.') > 1
+    let lines += [getline(line('.'))[:col('.') - 2]]
+  else
+    let lines += ['']
+  endif
+  return strchars(join(lines, "\n"))
 endfunction
 
 function! s:GetLanguage()
