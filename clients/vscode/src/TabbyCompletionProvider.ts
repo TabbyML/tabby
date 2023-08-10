@@ -12,6 +12,7 @@ import {
 } from "vscode";
 import { CompletionResponse, CancelablePromise } from "tabby-agent";
 import { agent } from "./agent";
+import { notifications } from "./notifications";
 import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
@@ -30,7 +31,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   constructor() {
     this.updateConfiguration();
     workspace.onDidChangeConfiguration((event) => {
-      if (event.affectsConfiguration("tabby")) {
+      if (event.affectsConfiguration("tabby") || event.affectsConfiguration("editor.inlineSuggest")) {
         this.updateConfiguration();
       }
     });
@@ -81,6 +82,16 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
   private updateConfiguration() {
     const configuration = workspace.getConfiguration("tabby");
     this.enabled = configuration.get("codeCompletion", true);
+    this.checkInlineCompletionEnabled();
+  }
+
+  private checkInlineCompletionEnabled() {
+    const configuration = workspace.getConfiguration("editor.inlineSuggest");
+    const inlineSuggestEnabled = configuration.get("enabled", true);
+    if (this.enabled && !inlineSuggestEnabled) {
+      console.debug("Tabby code completion is enabled but inline suggest is disabled.");
+      notifications.showInformationWhenInlineSuggestDisabled();
+    }
   }
 
   private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {

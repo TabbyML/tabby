@@ -1,4 +1,4 @@
-import { commands, window } from "vscode";
+import { commands, window, workspace, ConfigurationTarget } from "vscode";
 
 function showInformationWhenLoading() {
   window.showInformationMessage("Tabby is initializing.", "Settings").then((selection) => {
@@ -11,16 +11,18 @@ function showInformationWhenLoading() {
 }
 
 function showInformationWhenDisabled() {
-  window.showInformationMessage("Tabby is disabled. Enable it?", "Enable", "Settings").then((selection) => {
-    switch (selection) {
-      case "Enable":
-        commands.executeCommand("tabby.toggleEnabled");
-        break;
-      case "Settings":
-        commands.executeCommand("tabby.openSettings");
-        break;
-    }
-  });
+  window
+    .showInformationMessage("Tabby code completion is disabled. Enable it?", "Enable", "Settings")
+    .then((selection) => {
+      switch (selection) {
+        case "Enable":
+          commands.executeCommand("tabby.toggleEnabled");
+          break;
+        case "Settings":
+          commands.executeCommand("tabby.openSettings");
+          break;
+      }
+    });
 }
 
 function showInformationWhenReady() {
@@ -86,6 +88,27 @@ function showInformationWhenAuthFailed() {
   });
 }
 
+function showInformationWhenInlineSuggestDisabled() {
+  window
+    .showWarningMessage(
+      "Tabby code completion is enabled but editor inline suggest is disabled. Please enable editor inline suggest.",
+      "Enable",
+      "Settings",
+    )
+    .then((selection) => {
+      switch (selection) {
+        case "Enable":
+          const configuration = workspace.getConfiguration("editor");
+          console.debug(`Set editor.inlineSuggest.enabled: true.`);
+          configuration.update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
+          break;
+        case "Settings":
+          commands.executeCommand("workbench.action.openSettings", "@id:editor.inlineSuggest.enabled");
+          break;
+      }
+    });
+}
+
 export const notifications = {
   showInformationWhenLoading,
   showInformationWhenDisabled,
@@ -95,4 +118,5 @@ export const notifications = {
   showInformationAuthSuccess,
   showInformationWhenStartAuthButAlreadyAuthorized,
   showInformationWhenAuthFailed,
+  showInformationWhenInlineSuggestDisabled,
 };

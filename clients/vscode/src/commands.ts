@@ -175,7 +175,13 @@ const statusBarItemClicked: Command = {
         notifications.showInformationStartAuth();
         break;
       case "disabled":
-        notifications.showInformationWhenDisabled();
+        const enabled = workspace.getConfiguration("tabby").get("codeCompletion", true);
+        const inlineSuggestEnabled = workspace.getConfiguration("editor").get("inlineSuggest.enabled", true);
+        if (enabled && !inlineSuggestEnabled) {
+          notifications.showInformationWhenInlineSuggestDisabled();
+        } else {
+          notifications.showInformationWhenDisabled();
+        }
         break;
     }
   },
