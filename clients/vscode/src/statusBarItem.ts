@@ -103,7 +103,8 @@ function toDisabled() {
 
 function updateStatusBarItem() {
   const enabled = workspace.getConfiguration("tabby").get("codeCompletion", true);
-  if (!enabled) {
+  const inlineSuggestEnabled = workspace.getConfiguration("editor").get("inlineSuggest.enabled", true);
+  if (!enabled || !inlineSuggestEnabled) {
     fsmService.send("disabled");
   } else {
     const status = agent().getStatus();
@@ -125,7 +126,7 @@ export const tabbyStatusBarItem = () => {
   updateStatusBarItem();
 
   workspace.onDidChangeConfiguration((event) => {
-    if (event.affectsConfiguration("tabby")) {
+    if (event.affectsConfiguration("tabby") || event.affectsConfiguration("editor.inlineSuggest")) {
       updateStatusBarItem();
     }
   });
