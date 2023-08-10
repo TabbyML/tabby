@@ -91,7 +91,7 @@ function showInformationWhenAuthFailed() {
 function showInformationWhenInlineSuggestDisabled() {
   window
     .showWarningMessage(
-      "Tabby code completion is enabled but editor inline suggest is disabled. Please enable editor inline suggest.",
+      "Tabby's suggestion is not showing because inline suggestion is disabled. Please enable it first.",
       "Enable",
       "Settings",
     )
