@@ -87,7 +87,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.logger.debug({ event }, "Status changed");
       super.emit("statusChanged", event);
       if (this.status == "ready") {
-        this.anonymousUsageLogger.uniqueEvent("Connected");
+        this.anonymousUsageLogger.uniqueEvent("AgentConnected");
       }
     }
   }
