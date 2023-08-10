@@ -86,6 +86,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
       const event: AgentEvent = { event: "statusChanged", status };
       this.logger.debug({ event }, "Status changed");
       super.emit("statusChanged", event);
+      if (this.status == "ready") {
+        this.anonymousUsageLogger.uniqueEvent("Connected");
+      }
     }
   }
 
@@ -146,6 +149,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       // Client info is only used in logging for now
       // `pino.Logger.setBindings` is not present in the browser
       allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client }));
+      this.anonymousUsageLogger.addProperties({ client: options.client });
     }
     if (userAgentConfig) {
       await userAgentConfig.load();
@@ -164,9 +168,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       const event: AgentEvent = { event: "authRequired", server: this.config.server };
       super.emit("authRequired", event);
     }
-    await this.anonymousUsageLogger.event("AgentInitialized", {
-      client: options.client,
-    });
+    await this.anonymousUsageLogger.uniqueEvent("AgentInitialized");
     this.logger.debug({ options }, "Initialized");
     return this.status !== "notInitialized";
   }

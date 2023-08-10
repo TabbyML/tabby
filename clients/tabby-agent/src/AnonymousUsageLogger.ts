@@ -15,6 +15,8 @@ export class AnonymousUsageLogger {
       ? undefined
       : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`,
   };
+  private properties: { [key: string]: any } = {};
+  private emittedUniqueEvent: string[] = [];
   private dataStore: DataStore | null = null;
   private anonymousId: string;
 
@@ -52,8 +54,20 @@ export class AnonymousUsageLogger {
     }
   }
 
-  async event(event: string, data: any) {
+  addProperties(properties: { [key: string]: any }) {
+    // not a deep merge
+    this.properties = { ...this.properties, ...properties };
+  }
+
+  async uniqueEvent(event: string, data: { [key: string]: any } = {}) {
+    await this.event(event, data, true);
+  }
+
+  async event(event: string, data: { [key: string]: any } = {}, unique = false) {
     if (this.disabled) {
+      return;
+    }
+    if (unique && this.emittedUniqueEvent.indexOf(event) >= 0) {
       return;
     }
     await this.anonymousUsageTrackingApi.api
@@ -62,8 +76,14 @@ export class AnonymousUsageLogger {
         event,
         properties: {
           ...this.systemData,
+          ...this.properties,
           ...data,
         },
+      })
+      .then(() => {
+        if (unique) {
+          this.emittedUniqueEvent.push(event);
+        }
       })
       .catch((error) => {
         this.logger.error({ error }, "Error when sending anonymous usage data");
