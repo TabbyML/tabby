@@ -11,6 +11,6 @@ export {
   LogEventRequest,
   agentEventNames,
 } from "./Agent";
-export { AgentConfig } from "./AgentConfig";
+export { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 export { DataStore } from "./dataStore";
 export { CancelablePromise } from "./generated";
