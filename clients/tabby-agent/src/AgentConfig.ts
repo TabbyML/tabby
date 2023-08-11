@@ -3,6 +3,7 @@ import { isBrowser } from "./env";
 export type AgentConfig = {
   server: {
     endpoint: string;
+    requestHeaders: Record<string, string>;
   };
   completion: {
     maxPrefixLines: number;
@@ -16,9 +17,20 @@ export type AgentConfig = {
   };
 };
 
+type RecursivePartial<T> = {
+  [P in keyof T]?: T[P] extends (infer U)[]
+    ? RecursivePartial<U>[]
+    : T[P] extends object | undefined
+    ? RecursivePartial<T[P]>
+    : T[P];
+};
+
+export type PartialAgentConfig = RecursivePartial<AgentConfig>;
+
 export const defaultAgentConfig: AgentConfig = {
   server: {
     endpoint: "http://localhost:8080",
+    requestHeaders: {},
   },
   completion: {
     maxPrefixLines: 20,
@@ -42,7 +54,7 @@ export const userAgentConfig = isBrowser
 
       class ConfigFile extends EventEmitter {
         filepath: string;
-        data: Partial<AgentConfig> = {};
+        data: PartialAgentConfig = {};
         watcher: ReturnType<typeof chokidar.watch> | null = null;
         logger = require("./logger").rootLogger.child({ component: "ConfigFile" });
 
@@ -51,7 +63,7 @@ export const userAgentConfig = isBrowser
           this.filepath = filepath;
         }
 
-        get config(): Partial<AgentConfig> {
+        get config(): PartialAgentConfig {
           return this.data;
         }
 
