@@ -44,7 +44,7 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
     });
     workspace.onDidChangeConfiguration(async (event) => {
       await initPromise;
-      const configuration = workspace.getConfiguration("tabby")
+      const configuration = workspace.getConfiguration("tabby");
       if (event.affectsConfiguration("tabby.api.endpoint")) {
         const endpoint = configuration.get<string>("api.endpoint");
         if (endpoint && endpoint.trim().length > 0) {

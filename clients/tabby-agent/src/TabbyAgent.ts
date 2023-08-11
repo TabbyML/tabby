@@ -122,7 +122,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
         .catch((error) => {
           if (!!error.isCancelled) {
             this.logger.debug({ api: api.name, error }, "API request canceled");
-          } else if (error.name === "ApiError" && 
+          } else if (
+            error.name === "ApiError" &&
             [401, 403, 405].indexOf(error.status) !== -1 &&
             new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
             this.config.server.requestHeaders["Authorization"] === undefined
@@ -199,7 +200,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       await this.applyConfig();
       // If status unchanged, `authRequired` will not be emitted when `applyConfig`,
       // so we need to emit it manually.
-      if (prevStatus === "unauthorized" && this.status === "unauthorized") {
+      if (key.startsWith("server") && prevStatus === "unauthorized" && this.status === "unauthorized") {
         this.emitAuthRequired();
       }
       const event: AgentEvent = { event: "configUpdated", config: this.config };
