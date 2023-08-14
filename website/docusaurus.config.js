@@ -7,7 +7,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Tabby',
-  tagline: 'Opensource, self-hosted AI coding assitant',
+  tagline: 'Opensource, self-hosted AI coding assistant',
   // FIXME(meng): favicon
   // favicon: 'img/favicon.ico',
 
