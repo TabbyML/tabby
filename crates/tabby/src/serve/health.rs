@@ -1,11 +1,10 @@
-use std::sync::Arc;
-use std::env::consts::ARCH;
+use std::{env::consts::ARCH, sync::Arc};
 
 use axum::{extract::State, Json};
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
-use sysinfo::{System, SystemExt, CpuExt};
 use rust_gpu_tools::Device;
+use serde::{Deserialize, Serialize};
+use sysinfo::{System, SystemExt, CpuExt};
+use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 struct CPUInfo {
