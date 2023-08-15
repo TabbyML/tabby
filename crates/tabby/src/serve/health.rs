@@ -4,7 +4,7 @@ use std::env::consts::ARCH;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
-use sysinfo::{System, SystemExt};
+use sysinfo::{System, SystemExt, CpuExt};
 use rust_gpu_tools::Device;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -19,7 +19,8 @@ impl CPUInfo {
         sys.refresh_cpu();
         let cpus = sys.cpus();
         let brand = if cpus.len() > 0 {
-            cpus[0]
+            let cpu = cpus[0];
+            cpu.brand().to_string();
         } else {
             "no cpus assigned".to_string()
         };
@@ -38,7 +39,7 @@ struct GPUInfo {
 impl GPUInfo {
     pub fn new() -> Self {
         let mut gpu_list = vec![];
-        let devices = *Device::all();
+        let devices = Device::all();
         for device in devices.iter() {
             gpu_list.push(device.name());
         }
@@ -53,7 +54,7 @@ pub struct HealthState {
     compute_type: String,
     architecture_info: String,
     cpu_info: CPUInfo,
-    gpu_info: Vec<String>,
+    gpu_info: GPUInfo,
 }
 
 impl HealthState {
