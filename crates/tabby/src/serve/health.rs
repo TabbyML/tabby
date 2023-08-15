@@ -20,7 +20,7 @@ impl CPUInfo {
         let cpus = sys.cpus();
         let brand = if cpus.len() > 0 {
             let cpu = cpus[0];
-            cpu.brand().to_string();
+            cpu.brand().to_string()
         } else {
             "no cpus assigned".to_string()
         };
