@@ -6,46 +6,34 @@ use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-struct CPUInfo {
-    brand: String,
-    number: usize,
-}
-
-impl CPUInfo {
-    pub fn new() -> Self {
-        let mut sys = System::new_all();
-        sys.refresh_cpu();
-        let cpus = sys.cpus();
-        let brand = if cpus.len() > 0 {
-            let cpu = &cpus[0];
-            cpu.brand().to_string()
-        } else {
-            "no cpus assigned".to_string()
-        };
-        Self {
-            brand,
-            number: cpus.len(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
     model: String,
     device: String,
     compute_type: String,
-    architecture_info: String,
-    cpu_info: CPUInfo,
+    arch: String,
+    cpu_info: String,
+    cpu_count: u32,
 }
 
 impl HealthState {
     pub fn new(args: &super::ServeArgs) -> Self {
+        let mut sys = System::new_all();
+        sys.refresh_cpu();
+        let cpus = sys.cpus();
+        let cpu_info = if cpus.len() > 0 {
+            let cpu = &cpus[0];
+            cpu.brand().to_string()
+        } else {
+            "unknown cpu".to_string()
+        };
+
         Self {
             model: args.model.clone(),
             device: args.device.to_string(),
             compute_type: args.compute_type.to_string(),
-            architecture_info: ARCH.to_string(),
-            cpu_info: CPUInfo::new(),
+            arch: ARCH.to_string(),
+            cpu_info,
+            cpu_count: cpus.len() as u32,
         }
     }
 }
