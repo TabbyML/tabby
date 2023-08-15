@@ -34,7 +34,6 @@ tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
-rust-gpu-tools = "0.7.2"
 
 
 [dependencies.uuid]
