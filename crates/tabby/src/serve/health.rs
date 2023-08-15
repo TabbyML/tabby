@@ -24,7 +24,7 @@ impl HealthState {
             let cpu = &cpus[0];
             cpu.brand().to_string()
         } else {
-            "unknown cpu".to_string()
+            "unknown".to_string()
         };
 
         Self {
