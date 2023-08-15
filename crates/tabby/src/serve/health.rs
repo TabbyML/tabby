@@ -12,7 +12,7 @@ pub struct HealthState {
     compute_type: String,
     arch: String,
     cpu_info: String,
-    cpu_count: u32,
+    cpu_count: usize,
 }
 
 impl HealthState {
@@ -33,7 +33,7 @@ impl HealthState {
             compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),
             cpu_info,
-            cpu_count: cpus.len() as u32,
+            cpu_count: cpus.len(),
         }
     }
 }
