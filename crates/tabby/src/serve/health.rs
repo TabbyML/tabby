@@ -3,7 +3,7 @@ use std::{env::consts::ARCH, sync::Arc};
 use axum::{extract::State, Json};
 use rust_gpu_tools::Device;
 use serde::{Deserialize, Serialize};
-use sysinfo::{System, SystemExt, CpuExt};
+use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
