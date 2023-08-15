@@ -33,6 +33,7 @@ axum-tracing-opentelemetry = "0.10.0"
 tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
+sysinfo = "0.29.8"
 
 
 [dependencies.uuid]
