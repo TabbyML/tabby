@@ -1,0 +1,4 @@
+ctranslate2
+huggingface_hub
+transformers
+python-dotenv
