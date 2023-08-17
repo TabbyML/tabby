@@ -8,6 +8,7 @@ const iconLoading = "$(loading~spin)";
 const iconReady = "$(check)";
 const iconDisconnected = "$(plug)";
 const iconUnauthorized = "$(key)";
+const iconIssueExist = "$(warning)";
 const iconDisabled = "$(x)";
 const colorNormal = new ThemeColor("statusBar.foreground");
 const colorWarning = new ThemeColor("statusBarItem.warningForeground");
@@ -20,15 +21,33 @@ const fsm = createMachine({
   initial: "loading",
   states: {
     loading: {
-      on: { ready: "ready", disconnected: "disconnected", unauthorized: "unauthorized", disabled: "disabled" },
+      on: {
+        ready: "ready",
+        disconnected: "disconnected",
+        unauthorized: "unauthorized",
+        issuesExist: "issuesExist",
+        disabled: "disabled",
+      },
       entry: () => toLoading(),
     },
     ready: {
-      on: { disconnected: "disconnected", unauthorized: "unauthorized", disabled: "disabled" },
+      on: {
+        loading: "loading",
+        disconnected: "disconnected",
+        unauthorized: "unauthorized",
+        issuesExist: "issuesExist",
+        disabled: "disabled",
+      },
       entry: () => toReady(),
     },
     disconnected: {
-      on: { ready: "ready", unauthorized: "unauthorized", disabled: "disabled" },
+      on: {
+        loading: "loading",
+        ready: "ready",
+        unauthorized: "unauthorized",
+        issuesExist: "issuesExist",
+        disabled: "disabled",
+      },
       entry: () => toDisconnected(),
     },
     unauthorized: {
@@ -36,17 +55,39 @@ const fsm = createMachine({
         ready: "ready",
         disconnected: "disconnected",
         disabled: "disabled",
+        issuesExist: "issuesExist",
         authStart: "unauthorizedAndAuthInProgress",
       },
       entry: () => toUnauthorized(),
     },
     unauthorizedAndAuthInProgress: {
-      // if auth succeeds, we will get `ready` before `authEnd` event
-      on: { ready: "ready", disconnected: "disconnected", disabled: "disabled", authEnd: "unauthorized" },
+      on: {
+        ready: "ready",
+        disconnected: "disconnected",
+        issuesExist: "issuesExist",
+        disabled: "disabled",
+        authEnd: "unauthorized", // if auth succeeds, we will get `ready` before `authEnd` event
+      },
       entry: () => toUnauthorizedAndAuthInProgress(),
     },
+    issuesExist: {
+      on: {
+        loading: "loading",
+        ready: "ready",
+        disconnected: "disconnected",
+        unauthorized: "unauthorized",
+        disabled: "disabled",
+      },
+      entry: () => toIssuesExist(),
+    },
     disabled: {
-      on: { loading: "loading", ready: "ready", disconnected: "disconnected", unauthorized: "unauthorized" },
+      on: {
+        loading: "loading",
+        ready: "ready",
+        disconnected: "disconnected",
+        unauthorized: "unauthorized",
+        issuesExist: "issuesExist",
+      },
       entry: () => toDisabled(),
     },
   },
@@ -93,6 +134,24 @@ function toUnauthorizedAndAuthInProgress() {
   item.command = undefined;
 }
 
+function toIssuesExist() {
+  item.color = colorWarning;
+  item.backgroundColor = backgroundColorWarning;
+  item.text = `${iconIssueExist} ${label}`;
+  switch (agent().getIssues()[0]?.name) {
+    case "slowCompletionResponseTime":
+      item.tooltip = "Completion requests appear to take too much time.";
+      break;
+    case "highCompletionTimeoutRate":
+      item.tooltip = "Most completion requests timed out.";
+      break;
+    default:
+      item.tooltip = "";
+      break;
+  }
+  item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["issuesExist"] };
+}
+
 function toDisabled() {
   item.color = colorWarning;
   item.backgroundColor = backgroundColorWarning;
@@ -115,6 +174,7 @@ function updateStatusBarItem() {
       case "ready":
       case "disconnected":
       case "unauthorized":
+      case "issuesExist":
         fsmService.send(status);
         break;
     }
@@ -141,6 +201,14 @@ export const tabbyStatusBarItem = () => {
         fsmService.send("authEnd");
       },
     });
+  });
+
+  agent().on("newIssue", (event) => {
+    if (event.issue.name === "slowCompletionResponseTime") {
+      notifications.showInformationWhenSlowCompletionResponseTime();
+    } else if (event.issue.name === "highCompletionTimeoutRate") {
+      notifications.showInformationWhenHighCompletionTimeoutRate();
+    }
   });
 
   item.show();

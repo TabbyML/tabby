@@ -174,6 +174,16 @@ const statusBarItemClicked: Command = {
       case "unauthorized":
         notifications.showInformationStartAuth();
         break;
+      case "issuesExist":
+        switch (agent().getIssues()[0]?.name) {
+          case "slowCompletionResponseTime":
+            notifications.showInformationWhenSlowCompletionResponseTime(true);
+            break;
+          case "highCompletionTimeoutRate":
+            notifications.showInformationWhenHighCompletionTimeoutRate(true);
+            break;
+        }
+        break;
       case "disabled":
         const enabled = workspace.getConfiguration("tabby").get("codeCompletion", true);
         const inlineSuggestEnabled = workspace.getConfiguration("editor").get("inlineSuggest.enabled", true);

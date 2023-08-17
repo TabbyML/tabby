@@ -4,8 +4,13 @@ export type AgentConfig = {
   server: {
     endpoint: string;
     requestHeaders: Record<string, string>;
+    requestTimeout: number;
   };
   completion: {
+    timeout: {
+      auto: number;
+      manually: number;
+    };
     maxPrefixLines: number;
     maxSuffixLines: number;
   };
@@ -31,8 +36,13 @@ export const defaultAgentConfig: AgentConfig = {
   server: {
     endpoint: "http://localhost:8080",
     requestHeaders: {},
+    requestTimeout: 30000, // 30s
   },
   completion: {
+    timeout: {
+      auto: 5000, // 5s
+      manually: 30000, // 30s
+    },
     maxPrefixLines: 20,
     maxSuffixLines: 20,
   },
