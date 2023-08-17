@@ -129,7 +129,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
   message += " - A poor network connection. Please check your network and proxy settings.\n";
   message += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
   if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-    message += ` - The running model ${serverHealthState?.model ?? ""} is too large to run on your Tabby server.`;
+    message += ` - The running model ${serverHealthState?.model ?? ""} is too large to run on your Tabby server. `;
     message += "Please try a smaller model. You can find supported model list by search TabbyML on HuggingFace.\n";
   }
   return message;
