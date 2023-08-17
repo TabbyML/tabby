@@ -1,0 +1,3 @@
+ctranslate2
+huggingface_hub
+transformers
