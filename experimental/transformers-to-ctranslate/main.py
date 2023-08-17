@@ -5,11 +5,15 @@ import shutil
 
 from ctranslate2.converters.transformers import TransformersConverter
 from huggingface_hub import snapshot_download
-from transformers.convert_slow_tokenizers_checkpoints_to_fast import convert_slow_checkpoint_to_fast
+from transformers.convert_slow_tokenizers_checkpoints_to_fast import (
+    convert_slow_checkpoint_to_fast,
+)
+
 
 class InvalidConvertionException(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
+
 
 def convert_tokenizer():
     if os.path.exists("./tokenizer.json"):
@@ -17,20 +21,22 @@ def convert_tokenizer():
         return
 
     # Infer tokenizer name
-    if not os.path.isfile('tokenizer_config.json'):
-        raise InvalidConvertionException("cannot find tokenizer_config.json, unable to infer tokenizer name")
+    if not os.path.isfile("tokenizer_config.json"):
+        raise InvalidConvertionException(
+            "cannot find tokenizer_config.json, unable to infer tokenizer name"
+        )
 
     data = {}
-    with open('tokenizer_config.json', 'r', encoding='utf-8') as f:
+    with open("tokenizer_config.json", "r", encoding="utf-8") as f:
         data = json.load(f)
     tokenizer_name = data["tokenizer_class"]
 
-    convert_tmp_dir = './convert_tmp'
+    convert_tmp_dir = "./convert_tmp"
 
     # Start to convert
     convert_slow_checkpoint_to_fast(
         tokenizer_name=tokenizer_name,
-        checkpoint_name='./',
+        checkpoint_name="./",
         dump_path=convert_tmp_dir,
         force_download=True,
     )
@@ -39,11 +45,12 @@ def convert_tokenizer():
     for root, dirs, files in os.walk(convert_tmp_dir):
         for f in files:
             fpath = os.path.join(root, f)
-            shutil.copy2(fpath, './')
+            shutil.copy2(fpath, "./")
         for d in dirs:
             dpath = os.path.join(root, d)
-            shutil.copy2(dpath, './')
+            shutil.copy2(dpath, "./")
     shutil.rmtree(convert_tmp_dir)
+
 
 def generate_tabby_json(args):
     if os.path.exists("./tabby.json"):
@@ -51,11 +58,16 @@ def generate_tabby_json(args):
         return
 
     data = {}
-    data["auto_model"] = "AutoModelForCausalLM" if args.inference_mode == "causallm" else "AutoModelForSeq2SeqLM"
+    data["auto_model"] = (
+        "AutoModelForCausalLM"
+        if args.inference_mode == "causallm"
+        else "AutoModelForSeq2SeqLM"
+    )
     if args.prompt_template:
         data["prompt_template"] = args.prompt_template
     with open("tabby.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
+
 
 def main():
     # Set up args
@@ -80,10 +92,7 @@ def main():
         trust_remote_code=True,
     )
     converter.convert(
-        output_dir=convert_output_dir,
-        vmap=None,
-        quantization='float16',
-        force=True
+        output_dir=convert_output_dir, vmap=None, quantization="float16", force=True
     )
 
     # Convert model with fast tokenizer
@@ -91,6 +100,7 @@ def main():
 
     # Generate tabby.json
     generate_tabby_json(args)
+
 
 if __name__ == "__main__":
     main()

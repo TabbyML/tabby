@@ -1,6 +1,7 @@
 import argparse
 
-def make_parser():    
+
+def make_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
@@ -12,11 +13,7 @@ def make_parser():
             "or path to a directory containing the pretrained model."
         ),
     )
-    parser.add_argument(
-        "--output_dir",
-        required=True,
-        help="Output model directory."
-    )
+    parser.add_argument("--output_dir", required=True, help="Output model directory.")
     parser.add_argument(
         "--inference_mode",
         required=True,
@@ -24,9 +21,7 @@ def make_parser():
         help="Model inference mode. ",
     )
     parser.add_argument(
-        "--prompt_template",
-        default=None,
-        help="prompt template for fim"
+        "--prompt_template", default=None, help="prompt template for fim"
     )
 
     return parser
