@@ -26,7 +26,7 @@ def convert_tokenizer():
         tokenizer_name=tokenizer_name,
         checkpoint_name='./',
         dump_path='./',
-        force_download=False,
+        force_download=True,
     )
 
 def main():
