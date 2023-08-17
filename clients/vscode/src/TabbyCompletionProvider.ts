@@ -4,6 +4,7 @@ import {
   InlineCompletionItem,
   InlineCompletionItemProvider,
   InlineCompletionList,
+  InlineCompletionTriggerKind,
   Position,
   ProviderResult,
   Range,
@@ -65,6 +66,7 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
       text: document.getText(),
       position: document.offsetAt(position),
+      manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
       maxPrefixLines: this.maxPrefixLines,
       maxSuffixLines: this.maxSuffixLines,
     };

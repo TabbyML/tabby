@@ -2,6 +2,7 @@ import {
   CancelablePromise,
   LogEventRequest as ApiLogEventRequest,
   CompletionResponse as ApiCompletionResponse,
+  HealthState,
 } from "./generated";
 
 import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
@@ -11,11 +12,14 @@ export type AgentInitOptions = Partial<{
   client: string;
 }>;
 
+export type ServerHealthState = HealthState;
+
 export type CompletionRequest = {
   filepath: string;
   language: string;
   text: string;
   position: number;
+  manually?: boolean;
   maxPrefixLines?: number;
   maxSuffixLines?: number;
 };
@@ -24,16 +28,31 @@ export type CompletionResponse = ApiCompletionResponse;
 
 export type LogEventRequest = ApiLogEventRequest;
 
+export type SlowCompletionResponseTimeIssue = {
+  name: "slowCompletionResponseTime";
+  completionResponseStats: Record<string, number>;
+};
+export type HighCompletionTimeoutRateIssue = {
+  name: "highCompletionTimeoutRate";
+  completionResponseStats: Record<string, number>;
+};
+export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeoutRateIssue;
+
 /**
- * `notInitialized`: When the agent is not initialized.
- * `ready`: When the agent get a valid response from the server, and is ready to use.
- * `disconnected`: When the agent failed to connect to the server.
- * `unauthorized`: When the server is set to a Tabby Cloud endpoint that requires auth,
+ * Represents the status of the agent.
+ * @enum
+ * @property {string} notInitialized - When the agent is not initialized.
+ * @property {string} ready - When the agent gets a valid response from the server.
+ * @property {string} disconnected - When the agent fails to connect to the server.
+ * @property {string} unauthorized - When the server is set to a Tabby Cloud endpoint that requires auth,
  *   and no `Authorization` request header is provided in the agent config,
- *   and user has not completed the auth flow or the auth token is expired.
+ *   and the user has not completed the auth flow or the auth token is expired.
  *   See also `requestAuthUrl` and `waitForAuthToken`.
+ * @property {string} issuesExist - When the agent gets a valid response from the server, but still
+ *   has some non-blocking issues, e.g. the average completion response time is too slow,
+ *   or the timeout rate is too high.
  */
-export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
+export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized" | "issuesExist";
 
 export interface AgentFunction {
   /**
@@ -69,6 +88,16 @@ export interface AgentFunction {
    * @returns the current status
    */
   getStatus(): AgentStatus;
+
+  /**
+   * @returns the current issues if AgentStatus is `issuesExist`, otherwise returns empty array
+   */
+  getIssues(): AgentIssue[];
+
+  /**
+   * @returns server info returned from latest server health check, returns null if not available
+   */
+  getServerHealthState(): ServerHealthState | null;
 
   /**
    * Request auth url for Tabby Cloud endpoint. Only return value when the `AgentStatus` is `unauthorized`.
@@ -117,9 +146,13 @@ export type AuthRequiredEvent = {
   event: "authRequired";
   server: AgentConfig["server"];
 };
+export type NewIssueEvent = {
+  event: "newIssue";
+  issue: AgentIssue;
+};
 
-export type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent;
-export const agentEventNames: AgentEvent["event"][] = ["statusChanged", "configUpdated", "authRequired"];
+export type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent | NewIssueEvent;
+export const agentEventNames: AgentEvent["event"][] = ["statusChanged", "configUpdated", "authRequired", "newIssue"];
 
 export interface AgentEventEmitter {
   on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;

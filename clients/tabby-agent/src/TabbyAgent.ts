@@ -8,8 +8,10 @@ import { cancelable, splitLines, isBlank } from "./utils";
 import {
   Agent,
   AgentStatus,
+  AgentIssue,
   AgentEvent,
   AgentInitOptions,
+  ServerHealthState,
   CompletionRequest,
   CompletionResponse,
   LogEventRequest,
@@ -21,6 +23,7 @@ import { DataStore } from "./dataStore";
 import { postprocess, preCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
+import { ResponseStats, completionResponseTimeStatsStrategy } from "./ResponseStats";
 
 /**
  * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
@@ -37,12 +40,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private userConfig: PartialAgentConfig = {}; // config from `~/.tabby/agent/config.toml`
   private clientConfig: PartialAgentConfig = {}; // config from `initialize` and `updateConfig` method
   private status: AgentStatus = "notInitialized";
+  private issues: AgentIssue["name"][] = [];
+  private serverHealthState: ServerHealthState | null = null;
   private api: TabbyApi;
   private auth: Auth;
   private dataStore: DataStore | null = null;
   private completionCache: CompletionCache = new CompletionCache();
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
+  private completionResponseStats: ResponseStats = new ResponseStats(completionResponseTimeStatsStrategy);
 
   private constructor() {
     super();
@@ -53,6 +59,23 @@ export class TabbyAgent extends EventEmitter implements Agent {
         await this.healthCheck();
       }
     }, TabbyAgent.tryConnectInterval);
+
+    this.completionResponseStats.on("healthy", () => {
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
+    });
+    this.completionResponseStats.on("highTimeoutRate", () => {
+      if (this.status === "ready" || this.status === "issuesExist") {
+        this.popIssue("slowCompletionResponseTime");
+        this.pushIssue("highCompletionTimeoutRate");
+      }
+    });
+    this.completionResponseStats.on("slowResponseTime", () => {
+      if (this.status === "ready" || this.status === "issuesExist") {
+        this.popIssue("highCompletionTimeoutRate");
+        this.pushIssue("slowCompletionResponseTime");
+      }
+    });
   }
 
   static async create(options?: TabbyAgentOptions): Promise<TabbyAgent> {
@@ -101,6 +124,38 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
+  private issueWithDetails(issue: AgentIssue["name"]): AgentIssue {
+    switch (issue) {
+      case "highCompletionTimeoutRate":
+        return {
+          name: "highCompletionTimeoutRate",
+          completionResponseStats: this.completionResponseStats.stats(),
+        };
+      case "slowCompletionResponseTime":
+        return {
+          name: "slowCompletionResponseTime",
+          completionResponseStats: this.completionResponseStats.stats(),
+        };
+    }
+  }
+
+  private pushIssue(issue: AgentIssue["name"]) {
+    if (this.issues.indexOf(issue) === -1) {
+      this.issues.push(issue);
+      this.changeStatus("issuesExist");
+      const event: AgentEvent = { event: "newIssue", issue: this.issueWithDetails(issue) };
+      this.logger.debug({ event }, "New issue");
+      super.emit("newIssue", event);
+    }
+  }
+
+  private popIssue(issue: AgentIssue["name"]) {
+    this.issues = this.issues.filter((i) => i !== issue);
+    if (this.issues.length === 0 && this.status === "issuesExist") {
+      this.changeStatus("ready");
+    }
+  }
+
   private emitAuthRequired() {
     const event: AgentEvent = { event: "authRequired", server: this.config.server };
     super.emit("authRequired", event);
@@ -109,44 +164,99 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private callApi<Request, Response>(
     api: (request: Request) => CancelablePromise<Response>,
     request: Request,
+    options: { timeout?: number } = { timeout: this.config.server.requestTimeout },
   ): CancelablePromise<Response> {
-    this.logger.debug({ api: api.name, request }, "API request");
-    const promise = api.call(this.api.v1, request);
-    return cancelable(
-      promise
+    return new CancelablePromise((resolve, reject, onCancel) => {
+      const requestId = uuid();
+      this.logger.debug({ requestId, api: api.name, request }, "API request");
+      let timeout: ReturnType<typeof setTimeout> | null = null;
+      let timeoutCancelled = false;
+      const apiRequest = api.call(this.api.v1, request);
+      const requestStartedAt = performance.now();
+      apiRequest
         .then((response: Response) => {
-          this.logger.debug({ api: api.name, response }, "API response");
-          this.changeStatus("ready");
-          return response;
+          this.logger.debug({ requestId, api: api.name, response }, "API response");
+          if (this.status !== "issuesExist") {
+            this.changeStatus("ready");
+          }
+          if (api.name === "completion") {
+            this.completionResponseStats.push({
+              name: api.name,
+              status: 200,
+              responseTime: performance.now() - requestStartedAt,
+            });
+          }
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          resolve(response);
         })
         .catch((error) => {
-          if (!!error.isCancelled) {
-            this.logger.debug({ api: api.name, error }, "API request canceled");
+          if (
+            (!!error.isCancelled && timeoutCancelled) ||
+            (!error.isCancelled && error.code === "ECONNABORTED") ||
+            (error.name === "ApiError" && [408, 499].indexOf(error.status) !== -1)
+          ) {
+            error.isTimeoutError = true;
+            this.logger.debug({ requestId, api: api.name, error }, "API request timeout");
+          } else if (!!error.isCancelled) {
+            this.logger.debug({ requestId, api: api.name, error }, "API request cancelled");
           } else if (
             error.name === "ApiError" &&
             [401, 403, 405].indexOf(error.status) !== -1 &&
             new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
             this.config.server.requestHeaders["Authorization"] === undefined
           ) {
-            this.logger.debug({ api: api.name, error }, "API unauthorized");
+            this.logger.debug({ requestId, api: api.name, error }, "API unauthorized");
             this.changeStatus("unauthorized");
           } else if (error.name === "ApiError") {
-            this.logger.error({ api: api.name, error }, "API error");
+            this.logger.error({ requestId, api: api.name, error }, "API error");
             this.changeStatus("disconnected");
           } else {
-            this.logger.error({ api: api.name, error }, "API request failed with unknown error");
+            this.logger.error({ requestId, api: api.name, error }, "API request failed with unknown error");
             this.changeStatus("disconnected");
           }
-          throw error;
-        }),
-      () => {
-        promise.cancel();
-      },
-    );
+          // don't record cancelled request in stats
+          if (api.name === "completion" && (error.isTimeoutError || !error.isCancelled)) {
+            this.completionResponseStats.push({
+              name: api.name,
+              status: error.status,
+              responseTime: performance.now() - requestStartedAt,
+              error,
+            });
+          }
+          if (timeout) {
+            clearTimeout(timeout);
+          }
+          reject(error);
+        });
+      // It seems that openapi-typescript-codegen does not provide timeout options passing to axios,
+      // Just use setTimeout to cancel the request manually.
+      if (options.timeout && options.timeout > 0) {
+        timeout = setTimeout(
+          () => {
+            this.logger.debug({ api: api.name, timeout: options.timeout }, "Cancel API request due to timeout");
+            timeoutCancelled = true;
+            apiRequest.cancel();
+          },
+          Math.min(options.timeout, 0x7fffffff),
+        );
+      }
+      onCancel(() => {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
+        apiRequest.cancel();
+      });
+    });
   }
 
   private healthCheck(): Promise<any> {
-    return this.callApi(this.api.v1.health, {}).catch(() => {});
+    return this.callApi(this.api.v1.health, {})
+      .then((healthState) => {
+        this.serverHealthState = healthState;
+      })
+      .catch(() => {});
   }
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
@@ -198,6 +308,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
       const prevStatus = this.status;
       await this.applyConfig();
+      // If server config changed, clear server health state
+      if (key.startsWith("server")) {
+        this.serverHealthState = null;
+      }
       // If status unchanged, `authRequired` will not be emitted when `applyConfig`,
       // so we need to emit it manually.
       if (key.startsWith("server") && prevStatus === "unauthorized" && this.status === "unauthorized") {
@@ -220,6 +334,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   public getStatus(): AgentStatus {
     return this.status;
+  }
+
+  public getIssues(): AgentIssue[] {
+    return this.issues.map((issue) => this.issueWithDetails(issue));
+  }
+
+  public getServerHealthState(): ServerHealthState | null {
+    return this.serverHealthState;
   }
 
   public requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string } | null> {
@@ -283,11 +405,17 @@ export class TabbyAgent extends EventEmitter implements Agent {
               choices: [],
             };
           }
-          const apiRequest = this.callApi(this.api.v1.completion, {
-            language: request.language,
-            segments,
-            user: this.auth?.user,
-          });
+          const apiRequest = this.callApi(
+            this.api.v1.completion,
+            {
+              language: request.language,
+              segments,
+              user: this.auth?.user,
+            },
+            {
+              timeout: request.manually ? this.config.completion.timeout.manually : this.config.completion.timeout.auto,
+            },
+          );
           cancelableList.push(apiRequest);
           return apiRequest
             .then((response) => {

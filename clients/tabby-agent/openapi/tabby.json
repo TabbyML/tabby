@@ -37,17 +37,9 @@
         "responses": {
           "200": {
             "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompletionResponse"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompletionResponse" } } }
           },
-          "400": {
-            "description": "Bad Request"
-          }
+          "400": { "description": "Bad Request" }
         }
       }
     },
@@ -56,23 +48,10 @@
         "tags": ["v1"],
         "operationId": "event",
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LogEventRequest"
-              }
-            }
-          },
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LogEventRequest" } } },
           "required": true
         },
-        "responses": {
-          "200": {
-            "description": "Success"
-          },
-          "400": {
-            "description": "Bad Request"
-          }
-        }
+        "responses": { "200": { "description": "Success" }, "400": { "description": "Bad Request" } }
       }
     },
     "/v1/health": {
@@ -82,13 +61,7 @@
         "responses": {
           "200": {
             "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthState"
-                }
-              }
-            }
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthState" } } }
           }
         }
       }
@@ -100,108 +73,62 @@
         "type": "object",
         "required": ["index", "text"],
         "properties": {
-          "index": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "text": {
-            "type": "string"
-          }
+          "index": { "type": "integer", "format": "int32", "minimum": 0.0 },
+          "text": { "type": "string" }
         }
       },
       "CompletionRequest": {
         "type": "object",
         "properties": {
-          "prompt": {
-            "type": "string",
-            "example": "def fib(n):",
-            "nullable": true
-          },
+          "prompt": { "type": "string", "example": "def fib(n):", "nullable": true },
           "language": {
             "type": "string",
             "description": "Language identifier, full list is maintained at\nhttps://code.visualstudio.com/docs/languages/identifiers",
             "example": "python",
             "nullable": true
           },
-          "segments": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Segments"
-              }
-            ],
-            "nullable": true
-          },
-          "user": {
-            "type": "string",
-            "nullable": true
-          }
+          "segments": { "allOf": [{ "$ref": "#/components/schemas/Segments" }], "nullable": true },
+          "user": { "type": "string", "nullable": true }
         },
         "example": {
           "language": "python",
-          "segments": {
-            "prefix": "def fib(n):\n    ",
-            "suffix": "\n        return fib(n - 1) + fib(n - 2)"
-          }
+          "segments": { "prefix": "def fib(n):\n    ", "suffix": "\n        return fib(n - 1) + fib(n - 2)" }
         }
       },
       "CompletionResponse": {
         "type": "object",
         "required": ["id", "choices"],
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "choices": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Choice"
-            }
-          }
+          "id": { "type": "string" },
+          "choices": { "type": "array", "items": { "$ref": "#/components/schemas/Choice" } }
         }
       },
       "HealthState": {
         "type": "object",
-        "required": ["model", "device", "compute_type"],
+        "required": ["model", "device", "compute_type", "arch", "cpu_info", "cpu_count"],
         "properties": {
-          "model": {
-            "type": "string"
-          },
-          "device": {
-            "type": "string"
-          },
-          "compute_type": {
-            "type": "string"
-          }
+          "model": { "type": "string" },
+          "device": { "type": "string" },
+          "compute_type": { "type": "string" },
+          "arch": { "type": "string" },
+          "cpu_info": { "type": "string" },
+          "cpu_count": { "type": "integer", "minimum": 0.0 }
         }
       },
       "LogEventRequest": {
         "type": "object",
         "required": ["type", "completion_id", "choice_index"],
         "properties": {
-          "type": {
-            "type": "string",
-            "description": "Event type, should be `view` or `select`.",
-            "example": "view"
-          },
-          "completion_id": {
-            "type": "string"
-          },
-          "choice_index": {
-            "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          }
+          "type": { "type": "string", "description": "Event type, should be `view` or `select`.", "example": "view" },
+          "completion_id": { "type": "string" },
+          "choice_index": { "type": "integer", "format": "int32", "minimum": 0.0 }
         }
       },
       "Segments": {
         "type": "object",
         "required": ["prefix"],
         "properties": {
-          "prefix": {
-            "type": "string",
-            "description": "Content that appears before the cursor in the editor window."
-          },
+          "prefix": { "type": "string", "description": "Content that appears before the cursor in the editor window." },
           "suffix": {
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",

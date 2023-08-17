@@ -1,4 +1,5 @@
-import { commands, window, workspace, ConfigurationTarget } from "vscode";
+import { commands, window, workspace, env, ConfigurationTarget, Uri } from "vscode";
+import { agent } from "./agent";
 
 function showInformationWhenLoading() {
   window.showInformationMessage("Tabby is initializing.", "Settings").then((selection) => {
@@ -109,6 +110,113 @@ function showInformationWhenInlineSuggestDisabled() {
     });
 }
 
+function getHelpMessageForCompletionResponseTimeIssue() {
+  let helpMessageForRunningLargeModelOnCPU = "";
+  const serverHealthState = agent().getServerHealthState();
+  if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9\.]+B$/)) {
+    helpMessageForRunningLargeModelOnCPU +=
+      `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
+      "This model is too large to run on CPU, please try a smaller model or switch to GPU. " +
+      "You can find supported model list by search TabbyML on HuggingFace. \n";
+  }
+  let message = "";
+  if (helpMessageForRunningLargeModelOnCPU.length > 0) {
+    message += helpMessageForRunningLargeModelOnCPU + "\n";
+    message += "Other possible causes of this issue are: \n";
+  } else {
+    message += "Possible causes of this issue are: \n";
+  }
+  message += " - A poor network connection. Please check your network and proxy settings.\n";
+  message += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
+  if (helpMessageForRunningLargeModelOnCPU.length == 0) {
+    message += ` - The running model ${serverHealthState?.model ?? ""} is too large to run on your Tabby server. `;
+    message += "Please try a smaller model. You can find supported model list by search TabbyML on HuggingFace.\n";
+  }
+  return message;
+}
+
+function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
+  if (modal) {
+    const stats = agent()
+      .getIssues()
+      .find((issue) => issue.name === "slowCompletionResponseTime")?.completionResponseStats;
+    let statsMessage = "";
+    if (stats && stats["responses"] && stats["averageResponseTime"]) {
+      statsMessage = `The average response time of recent ${stats["responses"]} completion requests is ${Number(
+        stats["averageResponseTime"],
+      ).toFixed(0)}ms.\n\n`;
+    }
+    window
+      .showWarningMessage(
+        "Completion requests appear to take too much time.",
+        {
+          modal: true,
+          detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
+        },
+        "Supported Models",
+      )
+      .then((selection) => {
+        switch (selection) {
+          case "Supported Models":
+            env.openExternal(Uri.parse("https://huggingface.co/models?search=tabbyml"));
+            break;
+        }
+      });
+  } else {
+    window
+      .showWarningMessage("Completion requests appear to take too much time.", "Detail", "Settings")
+      .then((selection) => {
+        switch (selection) {
+          case "Detail":
+            showInformationWhenSlowCompletionResponseTime(true);
+            break;
+          case "Settings":
+            commands.executeCommand("tabby.openSettings");
+            break;
+        }
+      });
+  }
+}
+
+function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
+  if (modal) {
+    const stats = agent()
+      .getIssues()
+      .find((issue) => issue.name === "highCompletionTimeoutRate")?.completionResponseStats;
+    let statsMessage = "";
+    if (stats && stats["total"] && stats["timeouts"]) {
+      statsMessage = `${stats["timeouts"]} of ${stats["total"]} completion requests timed out.\n\n`;
+    }
+    window
+      .showWarningMessage(
+        "Most completion requests timed out.",
+        {
+          modal: true,
+          detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
+        },
+        "Supported Models",
+      )
+      .then((selection) => {
+        switch (selection) {
+          case "Supported Models":
+            env.openExternal(Uri.parse("https://huggingface.co/models?search=tabbyml"));
+            break;
+        }
+      });
+  } else {
+    window.showWarningMessage("Most completion requests timed out.", "Detail", "Settings").then((selection) => {
+      switch (selection) {
+        case "Detail":
+          showInformationWhenHighCompletionTimeoutRate(true);
+          break;
+        case "Settings":
+          commands.executeCommand("tabby.openSettings");
+          break;
+      }
+    });
+  }
+}
+
 export const notifications = {
   showInformationWhenLoading,
   showInformationWhenDisabled,
@@ -119,4 +227,6 @@ export const notifications = {
   showInformationWhenStartAuthButAlreadyAuthorized,
   showInformationWhenAuthFailed,
   showInformationWhenInlineSuggestDisabled,
+  showInformationWhenSlowCompletionResponseTime,
+  showInformationWhenHighCompletionTimeoutRate,
 };
