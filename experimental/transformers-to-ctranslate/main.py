@@ -2,7 +2,6 @@ from args import make_parser
 import json
 import os
 
-from dotenv import load_dotenv
 from ctranslate2.converters.transformers import TransformersConverter
 from huggingface_hub import snapshot_download
 from transformers.convert_slow_tokenizers_checkpoints_to_fast import convert_slow_checkpoint_to_fast
@@ -34,9 +33,6 @@ def main():
     parser = make_parser()
 
     args = parser.parse_args()
-
-    # Load env
-    load_dotenv()
 
     # Check out model
     model_path = snapshot_download(
