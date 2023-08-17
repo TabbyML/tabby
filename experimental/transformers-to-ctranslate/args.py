@@ -1,5 +1,4 @@
 import argparse
-from ctranslate2.converters.converter import Converter
 
 def make_parser():    
     parser = argparse.ArgumentParser(
@@ -14,19 +13,20 @@ def make_parser():
         ),
     )
     parser.add_argument(
-        "--revision",
-        help="Revision of the model to download from the Hugging Face Hub.",
+        "--output_dir",
+        required=True,
+        help="Output model directory."
     )
     parser.add_argument(
-        "--low_cpu_mem_usage",
-        action="store_true",
-        help="Enable the flag low_cpu_mem_usage when loading the model with from_pretrained.",
+        "--inference_mode",
+        required=True,
+        choices=["causallm", "seq2seq"],
+        help="Model inference mode. ",
     )
     parser.add_argument(
-        "--trust_remote_code",
-        action="store_true",
-        help="Allow converting models using custom code.",
+        "--prompt_template",
+        default=None,
+        help="prompt template for fim"
     )
 
-    Converter.declare_arguments(parser)
     return parser
