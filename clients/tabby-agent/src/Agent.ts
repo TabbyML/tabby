@@ -2,6 +2,7 @@ import {
   CancelablePromise,
   LogEventRequest as ApiLogEventRequest,
   CompletionResponse as ApiCompletionResponse,
+  HealthState,
 } from "./generated";
 
 import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
@@ -10,6 +11,8 @@ export type AgentInitOptions = Partial<{
   config: PartialAgentConfig;
   client: string;
 }>;
+
+export type ServerHealthState = HealthState;
 
 export type CompletionRequest = {
   filepath: string;
@@ -90,6 +93,11 @@ export interface AgentFunction {
    * @returns the current issues if AgentStatus is `issuesExist`, otherwise returns empty array
    */
   getIssues(): AgentIssue[];
+
+  /**
+   * @returns server info returned from latest server health check, returns null if not available
+   */
+  getServerHealthState(): ServerHealthState | null;
 
   /**
    * Request auth url for Tabby Cloud endpoint. Only return value when the `AgentStatus` is `unauthorized`.

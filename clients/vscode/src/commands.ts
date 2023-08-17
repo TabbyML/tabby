@@ -177,10 +177,10 @@ const statusBarItemClicked: Command = {
       case "issuesExist":
         switch (agent().getIssues()[0]?.name) {
           case "slowCompletionResponseTime":
-            notifications.showInformationWhenSlowCompletionResponseTime(true);
+            notifications.showInformationWhenSlowCompletionResponseTime();
             break;
           case "highCompletionTimeoutRate":
-            notifications.showInformationWhenHighCompletionTimeoutRate(true);
+            notifications.showInformationWhenHighCompletionTimeoutRate();
             break;
         }
         break;

@@ -11,6 +11,7 @@ import {
   AgentIssue,
   AgentEvent,
   AgentInitOptions,
+  ServerHealthState,
   CompletionRequest,
   CompletionResponse,
   LogEventRequest,
@@ -40,6 +41,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private clientConfig: PartialAgentConfig = {}; // config from `initialize` and `updateConfig` method
   private status: AgentStatus = "notInitialized";
   private issues: AgentIssue["name"][] = [];
+  private serverHealthState: ServerHealthState | null = null;
   private api: TabbyApi;
   private auth: Auth;
   private dataStore: DataStore | null = null;
@@ -250,7 +252,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private healthCheck(): Promise<any> {
-    return this.callApi(this.api.v1.health, {}).catch(() => {});
+    return this.callApi(this.api.v1.health, {})
+      .then((healthState) => {
+        this.serverHealthState = healthState;
+      })
+      .catch(() => {});
   }
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
@@ -302,6 +308,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
       const prevStatus = this.status;
       await this.applyConfig();
+      // If server config changed, clear server health state
+      if (key.startsWith("server")) {
+        this.serverHealthState = null;
+      }
       // If status unchanged, `authRequired` will not be emitted when `applyConfig`,
       // so we need to emit it manually.
       if (key.startsWith("server") && prevStatus === "unauthorized" && this.status === "unauthorized") {
@@ -328,6 +338,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   public getIssues(): AgentIssue[] {
     return this.issues.map((issue) => this.issueWithDetails(issue));
+  }
+
+  public getServerHealthState(): ServerHealthState | null {
+    return this.serverHealthState;
   }
 
   public requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string } | null> {
