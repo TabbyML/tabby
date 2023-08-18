@@ -1,3 +1,11 @@
+## 0.3.0
+
+Features:
+
+- Added check to see if the editor inline suggestion is enabled. Notifies the user to enable it if it's not.
+- Added timeout for auto completion requests. The default timeout is 5 seconds. Added statistics for completion response time and notifies the user if it is too slow.
+- Supported setting HTTP request headers in `$HOME/.tabby/agent/config.toml`. The `Authorization` header can be used to set a token for self-hosted servers authorization.
+
 ## 0.2.1
 
 Fixes:
