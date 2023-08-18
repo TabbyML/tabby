@@ -14,7 +14,7 @@ When multiple choices are available, you can cycle through them by pressing `Alt
 
 You can select a keybinding profile in the [settings](command:tabby.openSettings), or customize your own [keybindings](command:tabby.openKeybindings).
 
-|                                    | Next Line | Full Completion |     Next Word     |
+|                                    | Next Line | Full Completion | Next Word         |
 | :--------------------------------- | :-------- | :-------------- | :---------------- |
-|           _vscode-style_           |     -     |       Tab       | Ctrl + RightArrow |
-| _tabby-style_<br/>_(experimental)_ |    Tab    |    Ctrl + Tab   | Ctrl + RightArrow |
+| _vscode-style_                     | -         | Tab             | Ctrl + RightArrow |
+| _tabby-style_<br/>_(experimental)_ | Tab       | Ctrl + Tab      | Ctrl + RightArrow |
