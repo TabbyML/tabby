@@ -10,7 +10,6 @@ import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.ide.plugins.PluginManagerCore
-import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Key
@@ -26,8 +25,8 @@ import java.io.OutputStreamWriter
 class Agent : ProcessAdapter() {
   private val logger = Logger.getInstance(Agent::class.java)
   private val gson = Gson()
-  private val process: KillableProcessHandler
-  private val streamWriter: OutputStreamWriter
+  private lateinit var process: KillableProcessHandler
+  private lateinit var streamWriter: OutputStreamWriter
 
   enum class Status {
     NOT_INITIALIZED,
@@ -41,7 +40,7 @@ class Agent : ProcessAdapter() {
   private val authRequiredEventFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   val authRequiredEvent = authRequiredEventFlow.asSharedFlow()
 
-  init {
+  fun open() {
     logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
 
     val node = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
@@ -97,15 +96,12 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  suspend fun initialize(config: Config): Boolean {
-    val appInfo = ApplicationInfo.getInstance().fullApplicationName
-    val pluginId = "com.tabbyml.intellij-tabby"
-    val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
+  suspend fun initialize(config: Config, client: String): Boolean {
     return request(
       "initialize", listOf(
         mapOf(
           "config" to config,
-          "client" to "$appInfo $pluginId $pluginVersion",
+          "client" to client,
         )
       )
     )
