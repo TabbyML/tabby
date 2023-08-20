@@ -1,7 +1,6 @@
 use std::{env::consts::ARCH, sync::Arc};
 
 use axum::{extract::State, Json};
-use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
