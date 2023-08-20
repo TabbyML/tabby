@@ -1,6 +1,7 @@
 mod completions;
 mod events;
 mod health;
+mod utils;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -18,7 +19,7 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::health::HealthState;
+use self::{health::HealthState, utils::TabbyContext};
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -113,6 +114,7 @@ pub struct ServeArgs {
 
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
+    let context = TabbyContext::new();
 
     // Ensure model exists.
     tabby_download::download_model(&args.model, true)
@@ -127,25 +129,25 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .nest("/v1", api_router(args, config))
+        .nest("/v1", api_router(args, config, &context))
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    start_heartbeat(args);
+    start_heartbeat(args, &context);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config) -> Router {
+fn api_router(args: &ServeArgs, config: &Config, context: &TabbyContext) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
             "/health",
-            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
+            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args, context))),
         )
         .route(
             "/completions",
@@ -178,8 +180,8 @@ fn valid_args(args: &ServeArgs) {
     }
 }
 
-fn start_heartbeat(args: &ServeArgs) {
-    let state = HealthState::new(args);
+fn start_heartbeat(args: &ServeArgs, context: &TabbyContext) {
+    let state = HealthState::new(args, context);
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;

@@ -1,9 +1,12 @@
 use std::{env::consts::ARCH, sync::Arc};
 
 use axum::{extract::State, Json};
+use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
 use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
+
+use super::utils::TabbyContext;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
@@ -13,11 +16,12 @@ pub struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
+    gpu_info: Vec<String>,
     version: Version,
 }
 
 impl HealthState {
-    pub fn new(args: &super::ServeArgs) -> Self {
+    pub fn new(args: &super::ServeArgs, context: &TabbyContext) -> Self {
         let mut sys = System::new_all();
         sys.refresh_cpu();
         let cpus = sys.cpus();
@@ -28,6 +32,13 @@ impl HealthState {
             "unknown".to_string()
         };
 
+        let gpu_info_res = context.gpu_stats_manager.get_gpu_stats();
+        let gpu_info = if gpu_info_res.is_err() {
+            vec![]
+        } else {
+            gpu_info_res.unwrap()
+        };
+
         Self {
             model: args.model.clone(),
             device: args.device.to_string(),
@@ -35,6 +46,7 @@ impl HealthState {
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count: cpus.len(),
+            gpu_info,
             version: Version::new(),
         }
     }

@@ -34,6 +34,7 @@ tracing-opentelemetry = "0.18.0"
 tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
+nvml-wrapper = "0.9.0"
 
 
 [dependencies.uuid]
