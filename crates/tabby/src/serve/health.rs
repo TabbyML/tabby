@@ -13,7 +13,7 @@ pub struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    git_hash: String,
+    version: Version,
 }
 
 impl HealthState {
@@ -21,7 +21,7 @@ impl HealthState {
         let mut sys = System::new_all();
         sys.refresh_cpu();
         let cpus = sys.cpus();
-        let cpu_info = if cpus.len() > 0 {
+        let cpu_info = if !cpus.is_empty() {
             let cpu = &cpus[0];
             cpu.brand().to_string()
         } else {
@@ -35,7 +35,26 @@ impl HealthState {
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count: cpus.len(),
-            git_hash: env!("GIT_HASH").to_string()
+            version: Version::new(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct Version {
+    build_date: String,
+    build_timestamp: String,
+    git_sha: String,
+    git_describe: String,
+}
+
+impl Version {
+    fn new() -> Self {
+        Self {
+            build_date: env!("VERGEN_BUILD_DATE").to_string(),
+            build_timestamp: env!("VERGEN_BUILD_TIMESTAMP").to_string(),
+            git_sha: env!("VERGEN_GIT_SHA").to_string(),
+            git_describe: env!("VERGEN_GIT_DESCRIBE").to_string(),
         }
     }
 }

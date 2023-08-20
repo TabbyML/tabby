@@ -45,6 +45,9 @@ features = [
 ]
 
 [features]
-default = [ "scheduler" ]
+default = ["scheduler"]
 link_shared = ["ctranslate2-bindings/link_shared"]
-scheduler = [ "tabby-scheduler" ]
+scheduler = ["tabby-scheduler"]
+
+[build-dependencies]
+vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
