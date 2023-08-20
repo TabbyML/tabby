@@ -1,7 +1,7 @@
 mod completions;
+mod context;
 mod events;
 mod health;
-mod context;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -19,7 +19,7 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::{health::HealthState, context::TabbyContext};
+use self::{context::TabbyContext, health::HealthState};
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -147,7 +147,8 @@ fn api_router(args: &ServeArgs, config: &Config, context: &mut TabbyContext) -> 
         .route("/events", routing::post(events::log_event))
         .route(
             "/health",
-            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args, context))),
+            routing::post(health::health)
+                .with_state(Arc::new(health::HealthState::new(args, context))),
         )
         .route(
             "/completions",

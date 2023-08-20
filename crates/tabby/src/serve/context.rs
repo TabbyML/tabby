@@ -30,7 +30,9 @@ pub struct CPUStatsManager {
 
 impl CPUStatsManager {
     pub fn init() -> Self {
-        Self { system: System::new_all() }
+        Self {
+            system: System::new_all(),
+        }
     }
 
     pub fn get_stats(self: &mut Self) -> CPUStat {
@@ -44,10 +46,7 @@ impl CPUStatsManager {
             "unknown".to_string()
         };
 
-        CPUStat {
-            info,
-            count,
-        }
+        CPUStat { info, count }
     }
 }
 
@@ -68,9 +67,7 @@ impl GPUStatsManager {
             Ok(n) => Some(n),
             Err(_) => None,
         };
-        Self {
-            nvml,
-        }
+        Self { nvml }
     }
 
     pub fn get_stats(self: &Self) -> Result<Vec<String>> {
