@@ -24,7 +24,7 @@ impl HealthState {
 
         let gpu_info_res = context.gpu_stats_manager.get_stats();
         let gpu_info = match gpu_info_res {
-            Some(s) => s,
+            Ok(s) => s,
             Err(_) => vec![],
         };
 
