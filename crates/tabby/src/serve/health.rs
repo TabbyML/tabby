@@ -13,6 +13,7 @@ pub struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
+    git_hash: String,
 }
 
 impl HealthState {
@@ -34,6 +35,7 @@ impl HealthState {
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count: cpus.len(),
+            git_hash: env!("GIT_HASH").to_string()
         }
     }
 }
