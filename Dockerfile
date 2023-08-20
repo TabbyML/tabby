@@ -14,6 +14,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Make link to libnvidia-ml.so (NVML) library
+# so that we could get GPU stats.
+RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
+        /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+
 # setup rust.
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
