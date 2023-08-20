@@ -129,20 +129,20 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .nest("/v1", api_router(args, config, &context))
+        .nest("/v1", api_router(args, config, &mut context))
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
 
-    start_heartbeat(args, &context);
+    start_heartbeat(args, &mut context);
     Server::bind(&address)
         .serve(app.into_make_service())
         .await
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config, context: &TabbyContext) -> Router {
+fn api_router(args: &ServeArgs, config: &Config, context: &mut TabbyContext) -> Router {
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
@@ -180,7 +180,7 @@ fn valid_args(args: &ServeArgs) {
     }
 }
 
-fn start_heartbeat(args: &ServeArgs, context: &TabbyContext) {
+fn start_heartbeat(args: &ServeArgs, context: &mut TabbyContext) {
     let state = HealthState::new(args, context);
     tokio::spawn(async move {
         loop {

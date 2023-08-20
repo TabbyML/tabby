@@ -19,7 +19,7 @@ pub struct HealthState {
 }
 
 impl HealthState {
-    pub fn new(args: &super::ServeArgs, context: &TabbyContext) -> Self {
+    pub fn new(args: &super::ServeArgs, context: &mut TabbyContext) -> Self {
         let cpu_stats = context.cpu_stats_manager.get_stats();
 
         let gpu_info_res = context.gpu_stats_manager.get_stats();
