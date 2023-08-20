@@ -114,7 +114,7 @@ pub struct ServeArgs {
 
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
-    let context = TabbyContext::new();
+    let mut context = TabbyContext::new();
 
     // Ensure model exists.
     tabby_download::download_model(&args.model, true)
