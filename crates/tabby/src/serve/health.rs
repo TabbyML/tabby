@@ -4,7 +4,7 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use super::utils::TabbyContext;
+use super::context::TabbyContext;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {

@@ -1,7 +1,7 @@
 mod completions;
 mod events;
 mod health;
-mod utils;
+mod context;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -19,7 +19,7 @@ use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::{health::HealthState, utils::TabbyContext};
+use self::{health::HealthState, context::TabbyContext};
 use crate::fatal;
 
 #[derive(OpenApi)]

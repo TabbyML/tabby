@@ -20,7 +20,6 @@ impl TabbyContext {
     }
 }
 
-
 pub struct CPUStat {
     pub info: String,
     pub count: usize,
