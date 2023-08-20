@@ -2,7 +2,6 @@ use std::{env::consts::ARCH, sync::Arc};
 
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
-use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
 
 use super::utils::TabbyContext;
@@ -21,21 +20,12 @@ pub struct HealthState {
 
 impl HealthState {
     pub fn new(args: &super::ServeArgs, context: &TabbyContext) -> Self {
-        let mut sys = System::new_all();
-        sys.refresh_cpu();
-        let cpus = sys.cpus();
-        let cpu_info = if !cpus.is_empty() {
-            let cpu = &cpus[0];
-            cpu.brand().to_string()
-        } else {
-            "unknown".to_string()
-        };
+        let cpu_stats = context.cpu_stats_manager.get_stats();
 
-        let gpu_info_res = context.gpu_stats_manager.get_gpu_stats();
-        let gpu_info = if gpu_info_res.is_err() {
-            vec![]
-        } else {
-            gpu_info_res.unwrap()
+        let gpu_info_res = context.gpu_stats_manager.get_stats();
+        let gpu_info = match gpu_info_res {
+            Some(s) => s,
+            Err(_) => vec![],
         };
 
         Self {
@@ -43,8 +33,8 @@ impl HealthState {
             device: args.device.to_string(),
             compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),
-            cpu_info,
-            cpu_count: cpus.len(),
+            cpu_info: cpu_stats.info,
+            cpu_count: cpu_stats.count,
             gpu_info,
             version: Version::new(),
         }
