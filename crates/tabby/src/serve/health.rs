@@ -1,6 +1,6 @@
 use std::{env::consts::ARCH, sync::Arc};
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use axum::{extract::State, Json};
 use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
