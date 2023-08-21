@@ -1,28 +1,30 @@
 package com.tabbyml.intellijtabby.agent
 
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.lang.Language
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.tabbyml.intellijtabby.actions.OpenAuthPage
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
+import com.tabbyml.intellijtabby.usage.AnonymousUsageLogger
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -36,12 +38,23 @@ class AgentService : Disposable {
 
   init {
     val settings = service<ApplicationSettingsState>()
+    val anonymousUsageLogger = service<AnonymousUsageLogger>()
     scope.launch {
+      val appInfo = ApplicationInfo.getInstance().fullApplicationName
+      val pluginId = "com.tabbyml.intellij-tabby"
+      val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
+      val client = "$appInfo $pluginId $pluginVersion"
+
       try {
-        agent.initialize(createAgentConfig(settings.data))
+        agent.open()
+        agent.initialize(createAgentConfig(settings.data), client)
         logger.info("Agent init done.")
-      } catch (e: Error) {
+      } catch (e: Exception) {
         logger.error("Agent init failed: $e")
+        anonymousUsageLogger.event("IntelliJInitFailed", mapOf(
+          "client" to client,
+          "error" to e.stackTraceToString()
+        ))
       }
     }
 
