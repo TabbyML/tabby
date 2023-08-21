@@ -49,10 +49,11 @@ pub struct CPUStat {
 
 fn get_cpu_stats() -> CPUStat {
     let mut system = System::new_all();
+    system.refresh_cpu();
     let cpus = system.cpus();
     let count = cpus.len();
     let info = if count > 0 {
-        let cpu = cpus[0];
+        let cpu = &cpus[0];
         cpu.brand().to_string()
     } else {
         "unknown".to_string()
