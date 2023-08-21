@@ -1,4 +1,5 @@
 # Tabby Plugin for IntelliJ Platform
+[![JetBrains plugins](https://img.shields.io/jetbrains/plugin/d/22379-tabby)](https://plugins.jetbrains.com/plugin/22379-tabby)
 
 ## Requirements
 - Tabby plugin works with all IntelliJ Platform IDEs that have build 2022.2.5 or later versions, such as Idea, PyCharm, Android Studio, and more.
