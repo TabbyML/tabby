@@ -40,6 +40,8 @@ class Agent : ProcessAdapter() {
   private val authRequiredEventFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   val authRequiredEvent = authRequiredEventFlow.asSharedFlow()
 
+  open class AgentException(message: String) : Exception(message)
+
   fun open() {
     logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
 
@@ -48,7 +50,7 @@ class Agent : ProcessAdapter() {
       logger.info("Node bin path: ${node.absolutePath}")
     } else {
       logger.error("Node bin not found")
-      throw Error("Node bin not found")
+      throw AgentException("Node bin not found")
     }
 
     val script =
@@ -58,7 +60,7 @@ class Agent : ProcessAdapter() {
       logger.info("Node script path: ${script.absolutePath}")
     } else {
       logger.error("Node script not found")
-      throw Error("Node script not found")
+      throw AgentException("Node script not found")
     }
 
     val cmd = GeneralCommandLine(node.absolutePath, script.absolutePath)
@@ -138,8 +140,11 @@ class Agent : ProcessAdapter() {
     @SerializedName("choice_index") val choiceIndex: Int,
   ) {
     enum class EventType {
-      @SerializedName("view") VIEW,
-      @SerializedName("select") SELECT,
+      @SerializedName("view")
+      VIEW,
+
+      @SerializedName("select")
+      SELECT,
     }
   }
 

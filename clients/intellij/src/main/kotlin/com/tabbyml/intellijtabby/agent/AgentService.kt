@@ -40,20 +40,21 @@ class AgentService : Disposable {
     val settings = service<ApplicationSettingsState>()
     val anonymousUsageLogger = service<AnonymousUsageLogger>()
     scope.launch {
+      val appInfo = ApplicationInfo.getInstance().fullApplicationName
+      val pluginId = "com.tabbyml.intellij-tabby"
+      val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
+      val client = "$appInfo $pluginId $pluginVersion"
+
       try {
-        val appInfo = ApplicationInfo.getInstance().fullApplicationName
-        val pluginId = "com.tabbyml.intellij-tabby"
-        val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
-        val client = "$appInfo $pluginId $pluginVersion"
-
-        anonymousUsageLogger.event("PluginActivated", mapOf("client" to client))
         agent.open()
-
         agent.initialize(createAgentConfig(settings.data), client)
-
         logger.info("Agent init done.")
-      } catch (e: Error) {
+      } catch (e: Exception) {
         logger.error("Agent init failed: $e")
+        anonymousUsageLogger.event("IntelliJInitFailed", mapOf(
+          "client" to client,
+          "error" to e.stackTraceToString()
+        ))
       }
     }
 
