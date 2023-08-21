@@ -21,7 +21,7 @@ pub struct HealthState {
 
 impl HealthState {
     pub fn new(args: &super::ServeArgs) -> Self {
-        let cpu_stats = get_cpu_stats();
+        let cpu_stats_tuple = get_cpu_stats();
 
         let gpu_info_res = get_gpu_stats();
         let gpu_info = match gpu_info_res {
@@ -34,8 +34,8 @@ impl HealthState {
             device: args.device.to_string(),
             compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),
-            cpu_info: cpu_stats.info,
-            cpu_count: cpu_stats.count,
+            cpu_info: cpu_stats_tuple.0,
+            cpu_count: cpu_stats_tuple.1,
             gpu_info,
             version: Version::new(),
         }
@@ -47,7 +47,7 @@ pub struct CPUStat {
     pub count: usize,
 }
 
-fn get_cpu_stats() -> CPUStat {
+fn get_cpu_stats() -> (String, usize) {
     let mut system = System::new_all();
     system.refresh_cpu();
     let cpus = system.cpus();
@@ -59,7 +59,7 @@ fn get_cpu_stats() -> CPUStat {
         "unknown".to_string()
     };
 
-    CPUStat { info, count }
+    (info, count)
 }
 
 fn get_gpu_stats() -> Result<Vec<String>> {
