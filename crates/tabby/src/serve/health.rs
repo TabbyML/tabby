@@ -15,16 +15,15 @@ pub struct HealthState {
     arch: String,
     cpu_info: String,
     cpu_count: usize,
-    gpu_info: Vec<String>,
+    cuda_devices: Vec<String>,
     version: Version,
 }
 
 impl HealthState {
     pub fn new(args: &super::ServeArgs) -> Self {
-        let cpu_stats_tuple = get_cpu_stats();
+        let (cpu_info, cpu_count) = read_cpu_info();
 
-        let gpu_info_res = get_gpu_stats();
-        let gpu_info = match gpu_info_res {
+        let cuda_devices = match read_cuda_devices() {
             Ok(s) => s,
             Err(_) => vec![],
         };
@@ -34,15 +33,15 @@ impl HealthState {
             device: args.device.to_string(),
             compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),
-            cpu_info: cpu_stats_tuple.0,
-            cpu_count: cpu_stats_tuple.1,
-            gpu_info,
+            cpu_info,
+            cpu_count,
+            cuda_devices,
             version: Version::new(),
         }
     }
 }
 
-fn get_cpu_stats() -> (String, usize) {
+fn read_cpu_info() -> (String, usize) {
     let mut system = System::new_all();
     system.refresh_cpu();
     let cpus = system.cpus();
@@ -57,19 +56,19 @@ fn get_cpu_stats() -> (String, usize) {
     (info, count)
 }
 
-fn get_gpu_stats() -> Result<Vec<String>> {
+fn read_cuda_devices() -> Result<Vec<String>> {
     // In cases of MacOS or docker containers where --gpus are not specified,
     // the Nvml::init() would return an error. In these scenarios, we
-    // assign gpu_info to be empty, indicating that the current runtime
+    // assign cuda_devices to be empty, indicating that the current runtime
     // environment does not support cuda interface.
     let nvml = Nvml::init()?;
-    let mut gpu_info = vec![];
+    let mut cuda_devices = vec![];
     let device_count = nvml.device_count()?;
     for i in 0..device_count {
         let name = nvml.device_by_index(i)?.name()?;
-        gpu_info.push(name);
+        cuda_devices.push(name);
     }
-    Ok(gpu_info)
+    Ok(cuda_devices)
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
