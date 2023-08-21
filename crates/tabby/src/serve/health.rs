@@ -1,10 +1,11 @@
 use std::{env::consts::ARCH, sync::Arc};
 
+use anyhow::{Ok, Result};
 use axum::{extract::State, Json};
+use nvml_wrapper::Nvml;
 use serde::{Deserialize, Serialize};
+use sysinfo::{CpuExt, System, SystemExt};
 use utoipa::ToSchema;
-
-use super::context::TabbyContext;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
@@ -19,10 +20,10 @@ pub struct HealthState {
 }
 
 impl HealthState {
-    pub fn new(args: &super::ServeArgs, context: &mut TabbyContext) -> Self {
-        let cpu_stats = context.cpu_stats_manager.get_stats();
+    pub fn new(args: &super::ServeArgs) -> Self {
+        let cpu_stats = get_cpu_stats();
 
-        let gpu_info_res = context.gpu_stats_manager.get_stats();
+        let gpu_info_res = get_gpu_stats();
         let gpu_info = match gpu_info_res {
             Ok(s) => s,
             Err(_) => vec![],
@@ -39,6 +40,40 @@ impl HealthState {
             version: Version::new(),
         }
     }
+}
+
+pub struct CPUStat {
+    pub info: String,
+    pub count: usize,
+}
+
+fn get_cpu_stats() -> CPUStat {
+    let mut system = System::new_all();
+    let cpus = system.cpus();
+    let count = cpus.len();
+    let info = if count > 0 {
+        let cpu = cpus[0];
+        cpu.brand().to_string()
+    } else {
+        "unknown".to_string()
+    };
+
+    CPUStat { info, count }
+}
+
+fn get_gpu_stats() -> Result<Vec<String>> {
+    // In cases of MacOS or docker containers where --gpus are not specified,
+    // the Nvml::init() would return an error. In these scenarios, we
+    // assign gpu_info to be empty, indicating that the current runtime
+    // environment does not support cuda interface.
+    let nvml = Nvml::init()?;
+    let mut gpu_info = vec![];
+    let device_count = nvml.device_count()?;
+    for i in 0..device_count {
+        let name = nvml.device_by_index(i)?.name()?;
+        gpu_info.push(name);
+    }
+    Ok(gpu_info)
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
