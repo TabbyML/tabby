@@ -42,11 +42,6 @@ impl HealthState {
     }
 }
 
-pub struct CPUStat {
-    pub info: String,
-    pub count: usize,
-}
-
 fn get_cpu_stats() -> (String, usize) {
     let mut system = System::new_all();
     system.refresh_cpu();
