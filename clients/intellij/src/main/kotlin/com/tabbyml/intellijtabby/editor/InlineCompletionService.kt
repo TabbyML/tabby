@@ -100,7 +100,7 @@ class InlineCompletionService {
   private fun createInlayLine(editor: Editor, offset: Int, line: String, index: Int): Inlay<*>? {
     val renderer = object : EditorCustomElementRenderer {
       override fun calcWidthInPixels(inlay: Inlay<*>): Int {
-        return getWidth(inlay.editor, line)
+        return maxOf(getWidth(inlay.editor, line), 1)
       }
 
       override fun paint(inlay: Inlay<*>, graphics: Graphics, targetRect: Rectangle, textAttributes: TextAttributes) {
