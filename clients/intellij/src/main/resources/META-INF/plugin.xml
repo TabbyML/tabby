@@ -25,7 +25,10 @@
         Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> 16.0+ installed and added into <code>PATH</code> enviroment variable. </p>
         <h2 id="get-started">Get Started</h2>
         <ol>
-        <li>Please following <a href="https://tabbyml.github.io/tabby/docs/self-hosting/">this guide</a> to setup a self-hosted Tabby server.</li>
+        <li>
+            Set up the Tabby server: you can get a Tabby Cloud hosted server <a href="https://app.tabbyml.com">here</a>, or build your self-hosted Tabby server following <a href="https://tabbyml.github.io/tabby/docs/self-hosting/">this guide</a>.<br/>
+            <b>Note:</b> Tabby Cloud is currently in beta. Join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> and ask in Tabby Cloud channel to get a beta invite.
+        </li>
         <li>Open the settings page <code>Settings &gt; Editor &gt; Tabby</code>, or click the <code>Tabby</code> status bar item and <code>Open Settings...</code>. Fill in the server endpoint URL to connect the plugin to your Tabby server. The status bar item will show a checked icon if the connection is successful.</li>
         <li>Once setup is complete, Tabby will provide inline suggestions automatically, and you can accept suggestions by just pressing the <code>Tab</code> key.</li>
         <li>You can find more actions and hotkey in the IDE tools menu <code>Code &gt; Tabby</code>.</li>
