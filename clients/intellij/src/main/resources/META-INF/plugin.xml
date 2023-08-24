@@ -46,7 +46,8 @@
                 displayName="Tabby"
                 nonDefaultProject="true"/>
         <editorFactoryListener implementation="com.tabbyml.intellijtabby.editor.EditorListener"/>
-        <statusBarWidgetFactory implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
+        <statusBarWidgetFactory id="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"
+                                implementation="com.tabbyml.intellijtabby.status.StatusBarWidgetFactory"/>
         <notificationGroup id="com.tabbyml.intellijtabby.notification.info"
                            displayType="BALLOON"
                            bundle="strings"

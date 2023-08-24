@@ -8,12 +8,16 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorCustomElementRenderer
 import com.intellij.openapi.editor.Inlay
+import com.intellij.openapi.editor.colors.EditorFontType
+import com.intellij.openapi.editor.impl.FontInfo
 import com.intellij.openapi.editor.markup.TextAttributes
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.JBColor
+import com.intellij.util.ui.UIUtil
 import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
 import kotlinx.coroutines.launch
+import java.awt.Font
 import java.awt.Graphics
 import java.awt.Rectangle
 
@@ -96,13 +100,25 @@ class InlineCompletionService {
   private fun createInlayLine(editor: Editor, offset: Int, line: String, index: Int): Inlay<*>? {
     val renderer = object : EditorCustomElementRenderer {
       override fun calcWidthInPixels(inlay: Inlay<*>): Int {
-        // FIXME: Calc width?
-        return 1
+        return getWidth(inlay.editor, line)
       }
 
       override fun paint(inlay: Inlay<*>, graphics: Graphics, targetRect: Rectangle, textAttributes: TextAttributes) {
+        graphics.font = getFont(inlay.editor)
         graphics.color = JBColor.GRAY
         graphics.drawString(line, targetRect.x, targetRect.y + inlay.editor.ascent)
+      }
+
+      private fun getFont(editor: Editor): Font {
+        return editor.colorsScheme.getFont(EditorFontType.PLAIN).let {
+          UIUtil.getFontWithFallbackIfNeeded(it, line).deriveFont(editor.colorsScheme.editorFontSize)
+        }
+      }
+
+      private fun getWidth(editor: Editor, line: String): Int {
+        val font = getFont(editor)
+        val metrics = FontInfo.getFontMetrics(font, FontInfo.getFontRenderContext(editor.contentComponent))
+        return metrics.stringWidth(line)
       }
     }
     return if (index == 0) {
