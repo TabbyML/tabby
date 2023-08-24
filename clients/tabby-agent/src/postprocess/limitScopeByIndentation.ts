@@ -62,13 +62,13 @@ function processContext(
 
     result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
     // allow closing line if first line is opening a new indent block
-    result.allowClosingLine = !!(lines[1]) && calcIndentLevel(lines[1]) > referenceLineInPrefixIndent; 
+    result.allowClosingLine = !!lines[1] && calcIndentLevel(lines[1]) > referenceLineInPrefixIndent;
   } else if (referenceLineInCompletionIndent > referenceLineInPrefixIndent) {
     // if reference line in completion has more indent than reference line in prefix, it is opening a new indent block
 
     result.indentLevelLimit = referenceLineInPrefixIndent + 1;
     result.allowClosingLine = true;
-  } else if (referenceLineInCompletionIndent < referenceLineInPrefixIndent ) {
+  } else if (referenceLineInCompletionIndent < referenceLineInPrefixIndent) {
     // if reference line in completion has less indent than reference line in prefix, allow this closing
 
     result.indentLevelLimit = referenceLineInPrefixIndent;
@@ -89,7 +89,6 @@ function processContext(
   if (firstNonBlankLineInSuffix < suffixLines.length) {
     result.allowClosingLine &&= calcIndentLevel(suffixLines[firstNonBlankLineInSuffix]) < result.indentLevelLimit;
   }
-  console.log(result)
   return result;
 }
 
