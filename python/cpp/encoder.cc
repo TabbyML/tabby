@@ -129,7 +129,7 @@ namespace ctranslate2 {
                    lengths: The length of each sequence as a int32 array with shape
                      ``[batch_size]``. Required when :obj:`inputs` is a dense array.
                    token_type_ids: A batch of token type IDs of same shape as :obj:`inputs`.
-                     ``[batch_size, max_length]``. 
+                     ``[batch_size, max_length]``.
 
                  Returns:
                    The encoder model output.
