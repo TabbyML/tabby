@@ -140,6 +140,7 @@ impl CompletionState {
             .device_indices(args.device_indices.clone())
             .num_replicas_per_device(args.num_replicas_per_device)
             .compute_type(compute_type)
+            .stop_words_encoding_offset(metadata.stop_words_encoding_offset)
             .build()
             .unwrap();
         let engine = CTranslate2Engine::create(options);
@@ -165,6 +166,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 struct Metadata {
     auto_model: String,
     prompt_template: Option<String>,
+    stop_words_encoding_offset: Option<usize>,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {
