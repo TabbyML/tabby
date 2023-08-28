@@ -125,6 +125,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
             )
         });
 
+    info!("Starting server, this might takes a few minutes...");
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/v1", api_router(args, config))
