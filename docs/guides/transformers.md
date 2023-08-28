@@ -120,10 +120,6 @@ predicted_class_ids = logits.argmax(1)
 print(predicted_class_ids)
 ```
 
-```{warning}
-The [token type input](https://huggingface.co/docs/transformers/glossary#token-type-ids) is currently not implemented. All tokens are assumed to come from the same sentence.
-```
-
 ## BLOOM
 
 [BLOOM](https://huggingface.co/docs/transformers/model_doc/bloom) is a collection of multilingual language models trained by the [BigScience workshop](https://bigscience.huggingface.co/).
