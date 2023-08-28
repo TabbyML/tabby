@@ -15,7 +15,9 @@ namespace ctranslate2 {
       batch_type,
       [options](models::SequenceGeneratorReplica& generator, const Batch& batch) {
         spdlog::debug("Running batch generation on {} examples", batch.num_examples());
-        auto results = generator.generate(batch.get_stream(0), options);
+        auto results = generator.generate(
+          batch.get_stream(0),
+          restore_batch_ids_in_callback(options, batch.example_index));
         spdlog::debug("Finished batch generation");
         return results;
       });

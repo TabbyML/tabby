@@ -228,6 +228,36 @@ def test_callback_hypothesis_id():
     assert len(hypotheses) == 3
 
 
+def test_callback_batch_id():
+    # The method will internally sort the input from longest to shortest,
+    # but we check that the returned batch ids match the user input.
+
+    source = [
+        ["ن"] * 1,
+        ["ن"] * 2,
+        ["ن"] * 3,
+    ]
+
+    target_prefix = [
+        ["a"],
+        ["b"],
+        ["c"],
+    ]
+
+    def _callback(step_result):
+        assert step_result.token == target_prefix[step_result.batch_id][0]
+        return True
+
+    translator = _get_transliterator()
+    translator.translate_batch(
+        source,
+        target_prefix,
+        max_batch_size=2,
+        beam_size=1,
+        callback=_callback,
+    )
+
+
 def test_file_translation(tmp_dir):
     input_path = str(tmp_dir.join("input.txt"))
     output_path = str(tmp_dir.join("output.txt"))

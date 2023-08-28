@@ -111,6 +111,22 @@ namespace ctranslate2 {
     }
   };
 
+  template <typename Options>
+  Options restore_batch_ids_in_callback(Options options, const std::vector<size_t>& example_index) {
+    if (options.callback) {
+      std::function<bool(GenerationStepResult)> wrapped_callback =
+        [&example_index, callback = std::move(options.callback)]
+        (GenerationStepResult step_result) {
+          step_result.batch_id = example_index[step_result.batch_id];
+          return callback(std::move(step_result));
+        };
+
+      options.callback = std::move(wrapped_callback);
+    }
+
+    return options;
+  }
+
   class ResolveEndToken {
   private:
     const Vocabulary& _vocabulary;

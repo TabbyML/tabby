@@ -184,7 +184,9 @@ namespace ctranslate2 {
                   const Batch& batch,
                   const TranslationOptions& options) {
     spdlog::debug("Running batch translation on {} examples", batch.num_examples());
-    auto results = model.translate(batch.get_stream(0), batch.get_stream(1), options);
+    auto results = model.translate(batch.get_stream(0),
+                                   batch.get_stream(1),
+                                   restore_batch_ids_in_callback(options, batch.example_index));
     spdlog::debug("Finished batch translation");
     return results;
   }
