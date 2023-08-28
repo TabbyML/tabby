@@ -721,7 +721,7 @@ class PyTorchVariable(Variable):
         return str(self.tensor.dtype).replace("torch.", "")
 
     def numpy(self) -> np.ndarray:
-        return self.tensor.numpy()
+        return self.tensor.detach().numpy()
 
     def num_bytes(self) -> int:
         return self.tensor.numel() * self.tensor.element_size()
