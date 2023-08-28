@@ -1,3 +1,4 @@
+import collections
 import inspect
 import io
 import logging
@@ -205,6 +206,26 @@ def test_token_streaming_exception():
 
     with pytest.raises(ValueError, match="decoding length"):
         step_results = list(step_results)
+
+
+def test_callback_hypothesis_id():
+    hypotheses = collections.defaultdict(list)
+
+    def _callback(step_result):
+        assert step_result.batch_id == 0
+        hypotheses[step_result.hypothesis_id].append(step_result.token)
+
+    source = ["آ", "ت", "ز", "م", "و", "ن"]
+    translator = _get_transliterator()
+    translator.translate_batch(
+        [source],
+        beam_size=1,
+        sampling_topk=20,
+        num_hypotheses=3,
+        callback=_callback,
+    )
+
+    assert len(hypotheses) == 3
 
 
 def test_file_translation(tmp_dir):

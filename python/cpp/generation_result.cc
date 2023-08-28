@@ -17,6 +17,8 @@ namespace ctranslate2 {
                       "The batch index.")
         .def_readonly("token_id", &GenerationStepResult::token_id,
                       "ID of the generated token.")
+        .def_readonly("hypothesis_id", &GenerationStepResult::hypothesis_id,
+                      "Index of the hypothesis in the batch.")
         .def_readonly("token", &GenerationStepResult::token,
                       "String value of the generated token.")
         .def_readonly("log_prob", &GenerationStepResult::log_prob,
@@ -28,6 +30,7 @@ namespace ctranslate2 {
           return "GenerationStepResult(step=" + std::string(py::repr(py::cast(result.step)))
             + ", batch_id=" + std::string(py::repr(py::cast(result.batch_id)))
             + ", token_id=" + std::string(py::repr(py::cast(result.token_id)))
+            + ", hypothesis_id=" + std::string(py::repr(py::cast(result.hypothesis_id)))
             + ", token=" + std::string(py::repr(py::cast(result.token)))
             + ", log_prob=" + std::string(py::repr(py::cast(result.log_prob)))
             + ", is_last=" + std::string(py::repr(py::cast(result.is_last)))

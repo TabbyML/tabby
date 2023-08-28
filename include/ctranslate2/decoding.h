@@ -21,6 +21,7 @@ namespace ctranslate2 {
     size_t step;
     size_t batch_id;
     size_t token_id;
+    size_t hypothesis_id;
     std::optional<float> log_prob;
     bool is_last = false;
   };

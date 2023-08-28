@@ -720,21 +720,36 @@ namespace ctranslate2 {
       if (prefix_ids)
         repeat_prefix_ids = repeat_vector(*prefix_ids, num_hypotheses);
 
-      std::vector<DecodingResult> results = search(decoder,
-                                                   state,
-                                                   sampler,
-                                                   repeat_start_ids,
-                                                   end_ids,
-                                                   start_step,
-                                                   max_length,
-                                                   min_length,
-                                                   /*return_scores=*/true,
-                                                   return_attention,
-                                                   return_prefix,
-                                                   /*num_hypotheses=*/1,
-                                                   include_eos_in_hypotheses,
-                                                   logits_processors,
-                                                   prefix_ids ? &repeat_prefix_ids : nullptr);
+      std::unique_ptr<GreedySearch> greedy;
+
+      if (_callback) {
+        auto hypothesis_callback = [this, num_hypotheses](DecodingStepResult result) {
+          result.hypothesis_id = result.batch_id % num_hypotheses;
+          result.batch_id /= num_hypotheses;
+          return _callback(std::move(result));
+        };
+
+        greedy = std::make_unique<GreedySearch>(_length_penalty,
+                                                _coverage_penalty,
+                                                std::move(hypothesis_callback));
+      }
+
+      std::vector<DecodingResult> results = (greedy ? greedy.get() : this)->search(
+        decoder,
+        state,
+        sampler,
+        repeat_start_ids,
+        end_ids,
+        start_step,
+        max_length,
+        min_length,
+        /*return_scores=*/true,
+        return_attention,
+        return_prefix,
+        /*num_hypotheses=*/1,
+        include_eos_in_hypotheses,
+        logits_processors,
+        prefix_ids ? &repeat_prefix_ids : nullptr);
 
       std::vector<DecodingResult> final_results(batch_size);
 
@@ -857,6 +872,7 @@ namespace ctranslate2 {
           step_result.step = step;
           step_result.batch_id = batch_id;
           step_result.token_id = word_id;
+          step_result.hypothesis_id = 0;
           step_result.is_last = is_finished;
           if (return_scores)
             step_result.log_prob = score;

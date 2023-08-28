@@ -93,6 +93,7 @@ namespace ctranslate2 {
     size_t step;
     size_t batch_id;
     size_t token_id;
+    size_t hypothesis_id;
     std::string token;
     std::optional<float> log_prob;
     bool is_last;
@@ -102,6 +103,7 @@ namespace ctranslate2 {
       : step(result.step)
       , batch_id(result.batch_id)
       , token_id(result.token_id)
+      , hypothesis_id(result.hypothesis_id)
       , token(vocabulary.to_token(result.token_id))
       , log_prob(result.log_prob)
       , is_last(result.is_last)
