@@ -11,13 +11,17 @@ namespace ctranslate2 {
     using ReplicaPool::ReplicaPool;
 
     std::future<EncoderForwardOutput>
-    forward_batch_async(std::vector<std::vector<std::string>> tokens);
+    forward_batch_async(std::vector<std::vector<std::string>> tokens,
+                        std::vector<std::vector<size_t>> token_type_ids = {});
 
     std::future<EncoderForwardOutput>
-    forward_batch_async(std::vector<std::vector<size_t>> ids);
+    forward_batch_async(std::vector<std::vector<size_t>> ids,
+                        std::vector<std::vector<size_t>> token_type_ids = {});
 
     std::future<EncoderForwardOutput>
-    forward_batch_async(const StorageView& ids, const StorageView& lengths);
+    forward_batch_async(const StorageView& ids,
+                        const StorageView& lengths,
+                        std::vector<std::vector<size_t>> token_type_ids = {});
   };
 
 }

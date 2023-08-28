@@ -123,13 +123,19 @@ namespace ctranslate2 {
         return model.as_sequence_encoder();
       }
 
-      EncoderForwardOutput forward(const std::vector<std::vector<std::string>>& tokens);
-      EncoderForwardOutput forward(const std::vector<std::vector<size_t>>& ids);
-      EncoderForwardOutput forward(const StorageView& ids, const StorageView& lengths);
+      EncoderForwardOutput forward(const std::vector<std::vector<std::string>>& tokens,
+                                   const std::vector<std::vector<size_t>>& token_type_ids = {});
+      EncoderForwardOutput forward(const std::vector<std::vector<size_t>>& ids,
+                                   const std::vector<std::vector<size_t>>& token_type_ids = {});
+      EncoderForwardOutput forward(const StorageView& ids,
+                                   const StorageView& lengths,
+                                   const std::vector<std::vector<size_t>>& token_type_ids = {});
 
     protected:
       virtual EncoderForwardOutput
-      forward_impl(const StorageView& ids, const StorageView& lengths) = 0;
+      forward_impl(const StorageView& ids,
+                   const StorageView& lengths,
+                   const StorageView& token_type_ids) = 0;
 
     private:
       const std::shared_ptr<const LanguageModel> _model;
@@ -144,7 +150,9 @@ namespace ctranslate2 {
 
     protected:
       EncoderForwardOutput
-      forward_impl(const StorageView& ids, const StorageView& lengths) override;
+      forward_impl(const StorageView& ids,
+                   const StorageView& lengths,
+                   const StorageView& token_type_ids) override;
 
     private:
       const std::shared_ptr<const LanguageModel> _model;

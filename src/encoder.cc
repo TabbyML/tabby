@@ -3,29 +3,35 @@
 namespace ctranslate2 {
 
   std::future<EncoderForwardOutput>
-  Encoder::forward_batch_async(std::vector<std::vector<std::string>> tokens) {
+  Encoder::forward_batch_async(std::vector<std::vector<std::string>> tokens,
+                               std::vector<std::vector<size_t>> token_type_ids) {
     return post<EncoderForwardOutput>(
-      [tokens = std::move(tokens)]
+      [tokens = std::move(tokens), token_type_ids = std::move(token_type_ids)]
       (models::SequenceEncoderReplica& encoder) {
-        return encoder.forward(tokens);
+        return encoder.forward(tokens, token_type_ids);
       });
   }
 
   std::future<EncoderForwardOutput>
-  Encoder::forward_batch_async(std::vector<std::vector<size_t>> ids) {
+  Encoder::forward_batch_async(std::vector<std::vector<size_t>> ids,
+                               std::vector<std::vector<size_t>> token_type_ids) {
     return post<EncoderForwardOutput>(
-      [ids = std::move(ids)]
+      [ids = std::move(ids), token_type_ids = std::move(token_type_ids)]
       (models::SequenceEncoderReplica& encoder) {
-        return encoder.forward(ids);
+        return encoder.forward(ids, token_type_ids);
       });
   }
 
   std::future<EncoderForwardOutput>
-  Encoder::forward_batch_async(const StorageView& ids, const StorageView& lengths) {
+  Encoder::forward_batch_async(const StorageView& ids,
+                               const StorageView& lengths,
+                               std::vector<std::vector<size_t>> token_type_ids) {
     return post<EncoderForwardOutput>(
-      [ids = ids.sync_copy(), lengths = lengths.sync_copy()]
+      [ids = ids.sync_copy(),
+       lengths = lengths.sync_copy(),
+       token_type_ids = std::move(token_type_ids)]
       (models::SequenceEncoderReplica& encoder) {
-        return encoder.forward(ids, lengths);
+        return encoder.forward(ids, lengths, token_type_ids);
       });
   }
 

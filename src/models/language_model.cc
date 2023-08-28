@@ -297,31 +297,36 @@ namespace ctranslate2 {
 
 
     EncoderForwardOutput
-    SequenceEncoderReplica::forward(const std::vector<std::vector<std::string>>& tokens) {
+    SequenceEncoderReplica::forward(const std::vector<std::vector<std::string>>& tokens,
+                                    const std::vector<std::vector<size_t>>& token_type_ids) {
       const auto& vocabulary = _model->get_vocabulary();
-      return forward(vocabulary.to_ids(tokens));
+      return forward(vocabulary.to_ids(tokens), token_type_ids);
     }
 
     EncoderForwardOutput
-    SequenceEncoderReplica::forward(const std::vector<std::vector<size_t>>& ids) {
+    SequenceEncoderReplica::forward(const std::vector<std::vector<size_t>>& ids,
+                                    const std::vector<std::vector<size_t>>& token_type_ids) {
       StorageView lengths;
       StorageView input_ids = layers::make_sequence_inputs(ids, Device::CPU, 1, &lengths);
-      return forward(input_ids, lengths);
+      return forward(input_ids, lengths, token_type_ids);
     }
 
     EncoderForwardOutput
-    SequenceEncoderReplica::forward(const StorageView& ids, const StorageView& lengths) {
+    SequenceEncoderReplica::forward(const StorageView& ids,
+                                    const StorageView& lengths,
+                                    const std::vector<std::vector<size_t>>& token_type_ids) {
       PROFILE("SequenceEncoderReplica::forward");
       const auto& model = *this->model();
       const auto device = model.device();
       const auto scoped_device_setter = model.get_scoped_device_setter();
 
+      StorageView input_token_type_ids = layers::make_sequence_inputs(token_type_ids, device);
       EncoderForwardOutput output;
 
       if (ids.device() != device)
-        output = forward_impl(ids.to(device), lengths.to(device));
+        output = forward_impl(ids.to(device), lengths.to(device), input_token_type_ids);
       else
-        output = forward_impl(ids, lengths);
+        output = forward_impl(ids, lengths, input_token_type_ids);
 
       // Ensure all operations are finished before returning the output.
       synchronize_stream(device);
@@ -342,7 +347,9 @@ namespace ctranslate2 {
     }
 
     EncoderForwardOutput
-    EncoderReplica::forward_impl(const StorageView& ids, const StorageView& lengths) {
+    EncoderReplica::forward_impl(const StorageView& ids,
+                                 const StorageView& lengths,
+                                 const StorageView& token_type_ids) {
       if (ids.rank() != 2)
         throw std::invalid_argument("Expected input ids to have 2 dimensions, but got "
                                     + std::to_string(ids.rank())
@@ -360,9 +367,13 @@ namespace ctranslate2 {
       std::vector<StorageView> inputs{ids};
 
       if (_encoder->num_input_features() > 1) {
-        StorageView token_type_ids(ids.shape(), ids.dtype(), device);
-        token_type_ids.zero();
-        inputs.emplace_back(std::move(token_type_ids));
+        if (token_type_ids.empty()) {
+          StorageView placeholder_type_ids(ids.shape(), ids.dtype(), device);
+          placeholder_type_ids.zero();
+          inputs.emplace_back(std::move(placeholder_type_ids));
+        } else {
+          inputs.emplace_back(token_type_ids);
+        }
       }
 
       StorageView last_hidden_state(dtype, device);

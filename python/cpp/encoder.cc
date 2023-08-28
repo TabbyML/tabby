@@ -13,20 +13,28 @@ namespace ctranslate2 {
 
       EncoderForwardOutput
       forward_batch(const std::variant<BatchTokens, BatchIds, StorageView>& inputs,
-                    const std::optional<StorageView>& lengths) {
+                    const std::optional<StorageView>& lengths,
+                    const std::optional<BatchIds>& token_type_ids) {
         std::future<EncoderForwardOutput> future;
 
         switch (inputs.index()) {
         case 0:
-          future = _pool->forward_batch_async(std::get<BatchTokens>(inputs));
+          future = _pool->forward_batch_async(
+            std::get<BatchTokens>(inputs),
+            token_type_ids.value_or(std::vector<std::vector<size_t>>()));
           break;
         case 1:
-          future = _pool->forward_batch_async(std::get<BatchIds>(inputs));
+          future = _pool->forward_batch_async(
+            std::get<BatchIds>(inputs),
+            token_type_ids.value_or(std::vector<std::vector<size_t>>()));
           break;
         case 2:
           if (!lengths)
             throw std::invalid_argument("lengths vector is required when passing a dense input");
-          future = _pool->forward_batch_async(std::get<StorageView>(inputs), lengths.value());
+          future = _pool->forward_batch_async(
+            std::get<StorageView>(inputs),
+            lengths.value(),
+            token_type_ids.value_or(std::vector<std::vector<size_t>>()));
           break;
         }
 
@@ -109,6 +117,7 @@ namespace ctranslate2 {
         .def("forward_batch", &EncoderWrapper::forward_batch,
              py::arg("inputs"),
              py::arg("lengths")=py::none(),
+             py::arg("token_type_ids")=py::none(),
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
                  Forwards a batch of sequences in the encoder.
@@ -119,6 +128,8 @@ namespace ctranslate2 {
                      ``[batch_size, max_length]`` (e.g. created from a Numpy array or PyTorch tensor).
                    lengths: The length of each sequence as a int32 array with shape
                      ``[batch_size]``. Required when :obj:`inputs` is a dense array.
+                   token_type_ids: A batch of token type IDs of same shape as :obj:`inputs`.
+                     ``[batch_size, max_length]``. 
 
                  Returns:
                    The encoder model output.
