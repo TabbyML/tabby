@@ -87,7 +87,7 @@ pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     tokenizer: Tokenizer,
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
-    stop_words_encoding_offset: Option<usize>
+    stop_words_encoding_offset: Option<usize>,
 }
 
 impl CTranslate2Engine {
@@ -105,7 +105,7 @@ impl CTranslate2Engine {
             engine,
             stop_regex_cache: DashMap::new(),
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
-            stop_words_encoding_offset: options.stop_words_encoding_offset
+            stop_words_encoding_offset: options.stop_words_encoding_offset,
         };
     }
 }
@@ -127,7 +127,11 @@ impl TextGeneration for CTranslate2Engine {
             if re.is_none() {
                 self.stop_regex_cache.insert(
                     options.stop_words,
-                    create_stop_regex(&self.tokenizer, options.stop_words, self.stop_words_encoding_offset),
+                    create_stop_regex(
+                        &self.tokenizer,
+                        options.stop_words,
+                        self.stop_words_encoding_offset,
+                    ),
                 );
                 re = self.stop_regex_cache.get(options.stop_words);
             }
@@ -160,7 +164,7 @@ fn inference_callback(
     if context.cancel.is_cancelled() {
         true
     } else if let Some(re) = &context.stop_re {
-        let mut new_token = reverse(token);
+        let mut new_token = reverse(&token);
         new_token.push_str(&context.reversed_output_text);
         context.reversed_output_text = new_token;
         re.find(&context.reversed_output_text).is_some()
@@ -169,20 +173,37 @@ fn inference_callback(
     }
 }
 
-fn reverse(s: String) -> String {
-    s.chars().rev().collect()
+fn reverse(s: &String) -> String {
+    // Special treatment for byte fallback token.
+    // https://github.com/huggingface/tokenizers/blob/main/tokenizers/src/decoders/byte_fallback.rs
+    if s.len() == 6 && s.starts_with("<0x") && s.ends_with('>') {
+        // Keep byte fallback tokens like <0x0A> as is, do not reverse it.
+        // This won't really affect stop words regex logic, but brings more readability when
+        // debugging decoding steps.
+        s.to_owned()
+    } else {
+        s.chars().rev().collect()
+    }
 }
 
-fn create_stop_regex(tokenizer: &Tokenizer, stop_words: &[&str], stop_words_encoding_offset: Option<usize>) -> Regex {
+fn create_stop_regex(
+    tokenizer: &Tokenizer,
+    stop_words: &[&str],
+    stop_words_encoding_offset: Option<usize>,
+) -> Regex {
     let encodings = tokenizer
         .encode_batch(stop_words.to_owned(), false)
         .unwrap();
-
     let stop_tokens: Vec<String> = encodings
         .iter()
-        .map(|x| x.get_tokens()[stop_words_encoding_offset.unwrap_or(0)..].join(""))
-        // Reverse for efficient suffix matching.
-        .map(reverse)
+        .map(|x| {
+            x.get_tokens()[stop_words_encoding_offset.unwrap_or(0)..]
+                .iter()
+                .rev()
+                .map(reverse)
+                .collect::<Vec<String>>()
+                .join("")
+        })
         .collect();
 
     // (?m) enables multi-line matching mode.
