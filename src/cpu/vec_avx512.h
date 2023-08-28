@@ -64,7 +64,7 @@ namespace ctranslate2 {
       }
 
       static inline mask_type lt(value_type a, value_type b) {
-        return _mm512_cmplt_ps_mask(a, b);
+        return _mm512_cmp_ps_mask(a, b, _CMP_LT_OS);
       }
 
       static inline value_type select(mask_type mask, value_type a, value_type b) {
