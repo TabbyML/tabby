@@ -6,18 +6,18 @@ namespace ctranslate2 {
 
   std::vector<std::future<TranslationResult>>
   Translator::translate_batch_async(const std::vector<std::vector<std::string>>& source,
-                                        const TranslationOptions& options,
-                                        const size_t max_batch_size,
-                                        const BatchType batch_type) {
+                                    const TranslationOptions& options,
+                                    const size_t max_batch_size,
+                                    const BatchType batch_type) {
     return translate_batch_async(source, {}, options, max_batch_size, batch_type);
   }
 
   std::vector<std::future<TranslationResult>>
   Translator::translate_batch_async(const std::vector<std::vector<std::string>>& source,
-                                        const std::vector<std::vector<std::string>>& target_prefix,
-                                        const TranslationOptions& options,
-                                        const size_t max_batch_size,
-                                        const BatchType batch_type) {
+                                    const std::vector<std::vector<std::string>>& target_prefix,
+                                    const TranslationOptions& options,
+                                    const size_t max_batch_size,
+                                    const BatchType batch_type) {
     return post_examples<TranslationResult>(
       load_examples({source, target_prefix}),
       max_batch_size,
@@ -29,10 +29,10 @@ namespace ctranslate2 {
 
   std::vector<std::future<ScoringResult>>
   Translator::score_batch_async(const std::vector<std::vector<std::string>>& source,
-                                    const std::vector<std::vector<std::string>>& target,
-                                    const ScoringOptions& options,
-                                    const size_t max_batch_size,
-                                    const BatchType batch_type) {
+                                const std::vector<std::vector<std::string>>& target,
+                                const ScoringOptions& options,
+                                const size_t max_batch_size,
+                                const BatchType batch_type) {
     return post_examples<ScoringResult>(
       load_examples({source, target}),
       max_batch_size,
@@ -44,9 +44,9 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& source,
-                                  const TranslationOptions& options,
-                                  const size_t max_batch_size,
-                                  const BatchType batch_type) {
+                              const TranslationOptions& options,
+                              const size_t max_batch_size,
+                              const BatchType batch_type) {
     return translate_batch(source, {}, options, max_batch_size, batch_type);
   }
 
@@ -61,10 +61,10 @@ namespace ctranslate2 {
 
   std::vector<TranslationResult>
   Translator::translate_batch(const std::vector<std::vector<std::string>>& source,
-                                  const std::vector<std::vector<std::string>>& target_prefix,
-                                  const TranslationOptions& options,
-                                  const size_t max_batch_size,
-                                  const BatchType batch_type) {
+                              const std::vector<std::vector<std::string>>& target_prefix,
+                              const TranslationOptions& options,
+                              const size_t max_batch_size,
+                              const BatchType batch_type) {
     return get_results_from_futures(translate_batch_async(source,
                                                           target_prefix,
                                                           options,
@@ -74,21 +74,21 @@ namespace ctranslate2 {
 
   std::vector<ScoringResult>
   Translator::score_batch(const std::vector<std::vector<std::string>>& source,
-                              const std::vector<std::vector<std::string>>& target,
-                              const ScoringOptions& options,
-                              const size_t max_batch_size,
-                              const BatchType batch_type) {
+                          const std::vector<std::vector<std::string>>& target,
+                          const ScoringOptions& options,
+                          const size_t max_batch_size,
+                          const BatchType batch_type) {
     return get_results_from_futures(score_batch_async(source, target, options, max_batch_size, batch_type));
   }
 
   ExecutionStats Translator::translate_text_file(const std::string& source_file,
-                                                     const std::string& output_file,
-                                                     const TranslationOptions& options,
-                                                     size_t max_batch_size,
-                                                     size_t read_batch_size,
-                                                     BatchType batch_type,
-                                                     bool with_scores,
-                                                     const std::string* target_file) {
+                                                 const std::string& output_file,
+                                                 const TranslationOptions& options,
+                                                 size_t max_batch_size,
+                                                 size_t read_batch_size,
+                                                 BatchType batch_type,
+                                                 bool with_scores,
+                                                 const std::string* target_file) {
     auto source = open_file_read(source_file);
     auto output = open_file_write(output_file);
     auto target = (target_file
@@ -106,13 +106,13 @@ namespace ctranslate2 {
   }
 
   ExecutionStats Translator::translate_text_file(std::istream& source,
-                                                     std::ostream& output,
-                                                     const TranslationOptions& options,
-                                                     size_t max_batch_size,
-                                                     size_t read_batch_size,
-                                                     BatchType batch_type,
-                                                     bool with_scores,
-                                                     std::istream* target) {
+                                                 std::ostream& output,
+                                                 const TranslationOptions& options,
+                                                 size_t max_batch_size,
+                                                 size_t read_batch_size,
+                                                 BatchType batch_type,
+                                                 bool with_scores,
+                                                 std::istream* target) {
     return translate_raw_text_file(source,
                                    target,
                                    output,
@@ -127,13 +127,13 @@ namespace ctranslate2 {
   }
 
   ExecutionStats Translator::score_text_file(const std::string& source_file,
-                                                 const std::string& target_file,
-                                                 const std::string& output_file,
-                                                 const ScoringOptions& options,
-                                                 size_t max_batch_size,
-                                                 size_t read_batch_size,
-                                                 BatchType batch_type,
-                                                 bool with_tokens_score) {
+                                             const std::string& target_file,
+                                             const std::string& output_file,
+                                             const ScoringOptions& options,
+                                             size_t max_batch_size,
+                                             size_t read_batch_size,
+                                             BatchType batch_type,
+                                             bool with_tokens_score) {
     auto source = open_file_read(source_file);
     auto target = open_file_read(target_file);
     auto output = open_file_write(output_file);
@@ -148,13 +148,13 @@ namespace ctranslate2 {
   }
 
   ExecutionStats Translator::score_text_file(std::istream& source,
-                                                 std::istream& target,
-                                                 std::ostream& output,
-                                                 const ScoringOptions& options,
-                                                 size_t max_batch_size,
-                                                 size_t read_batch_size,
-                                                 BatchType batch_type,
-                                                 bool with_tokens_score) {
+                                             std::istream& target,
+                                             std::ostream& output,
+                                             const ScoringOptions& options,
+                                             size_t max_batch_size,
+                                             size_t read_batch_size,
+                                             BatchType batch_type,
+                                             bool with_tokens_score) {
     return score_raw_text_file(source,
                                target,
                                output,
