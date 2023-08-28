@@ -144,6 +144,61 @@ namespace ctranslate2 {
                                             scalar_reduce_func);
     }
 
+    struct relu_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        return VecType::max(v, VecType::load(0.f));
+      }
+    };
+
+    struct gelu_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        auto u = VecType::mul(VecType::load(0.7071067811865475f), v);
+        u = VecType::add(VecType::load(1.f), VecType::erf(u));
+        u = VecType::mul(v, u);
+        u = VecType::mul(VecType::load(0.5f), u);
+        return u;
+      }
+    };
+
+    struct gelu_tanh_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        auto u = VecType::mul(VecType::mul(v, v), v);
+        u = VecType::mul_add(VecType::load(0.044715f), u, v);
+        u = VecType::mul(VecType::load(0.7978845608028654f), u);
+        u = VecType::tanh(u);
+        u = VecType::add(VecType::load(1.f), u);
+        u = VecType::mul(v, u);
+        u = VecType::mul(VecType::load(0.5f), u);
+        return u;
+      }
+    };
+
+    struct gelu_sigmoid_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        return VecType::div(v, VecType::add(VecType::load(1.f),
+                                            VecType::exp(VecType::mul(VecType::load(-1.702f), v))));
+      }
+    };
+
+    struct swish_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        return VecType::div(v, VecType::add(VecType::load(1.f), VecType::exp(VecType::neg(v))));
+      }
+    };
+
+    struct tanh_func {
+      vec_type<float, TARGET_ISA> operator()(vec_type<float, TARGET_ISA> v) const {
+        using VecType = Vec<float, TARGET_ISA>;
+        return VecType::tanh(v);
+      }
+    };
+
+
     template <CpuIsa ISA, typename T>
     void rcp(const T* x, T* y, dim_t size) {
       vectorized_unary_transform<ISA>(x, y, size, Vec<T, ISA>::rcp);
@@ -176,54 +231,22 @@ namespace ctranslate2 {
 
     template<>
     void gelu<TARGET_ISA>(const float* x, float* y, dim_t size) {
-      using VecType = Vec<float, TARGET_ISA>;
-      vectorized_unary_transform<TARGET_ISA>(
-        x, y, size,
-        [](vec_type<float, TARGET_ISA> v) {
-          auto u = VecType::mul(VecType::load(0.7071067811865475f), v);
-          u = VecType::add(VecType::load(1.f), VecType::erf(u));
-          u = VecType::mul(v, u);
-          u = VecType::mul(VecType::load(0.5f), u);
-          return u;
-        });
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, gelu_func());
     }
 
     template<>
     void gelu_tanh<TARGET_ISA>(const float* x, float* y, dim_t size) {
-      using VecType = Vec<float, TARGET_ISA>;
-      vectorized_unary_transform<TARGET_ISA>(
-        x, y, size,
-        [](vec_type<float, TARGET_ISA> v) {
-          auto u = VecType::mul(VecType::mul(v, v), v);
-          u = VecType::mul_add(VecType::load(0.044715f), u, v);
-          u = VecType::mul(VecType::load(0.7978845608028654f), u);
-          u = VecType::tanh(u);
-          u = VecType::add(VecType::load(1.f), u);
-          u = VecType::mul(v, u);
-          u = VecType::mul(VecType::load(0.5f), u);
-          return u;
-        });
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, gelu_tanh_func());
     }
 
     template<>
     void gelu_sigmoid<TARGET_ISA>(const float* x, float* y, dim_t size) {
-      using VecType = Vec<float, TARGET_ISA>;
-      vectorized_unary_transform<TARGET_ISA>(
-        x, y, size,
-        [](vec_type<float, TARGET_ISA> v) {
-          return VecType::div(v, VecType::add(VecType::load(1.f),
-                                              VecType::exp(VecType::mul(VecType::load(-1.702f), v))));
-        });
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, gelu_sigmoid_func());
     }
 
     template<>
     void swish<TARGET_ISA>(const float* x, float* y, dim_t size) {
-      using VecType = Vec<float, TARGET_ISA>;
-      vectorized_unary_transform<TARGET_ISA>(
-        x, y, size,
-        [](vec_type<float, TARGET_ISA> v) {
-          return VecType::div(v, VecType::add(VecType::load(1.f), VecType::exp(VecType::neg(v))));
-        });
+      vectorized_unary_transform<TARGET_ISA>(x, y, size, swish_func());
     }
 
     template <CpuIsa ISA, typename T>
@@ -586,6 +609,108 @@ namespace ctranslate2 {
         quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, std::nearbyintf);
       else
         quantize_s8_batch(x, y, scales, batch_size, depth, shift_to_uint8, identity());
+    }
+
+    template <bool with_bias, typename EpilogueFunc>
+    static void dequantize_gemm_output_row(const int32_t* c,
+                                           const float a_scale,
+                                           const float* b_scale,
+                                           const float* bias,
+                                           dim_t m,
+                                           float* y,
+                                           const EpilogueFunc& epilogue_func) {
+      using VecType = Vec<float, TARGET_ISA>;
+
+      const dim_t remaining = m % VecType::width;
+      m -= remaining;
+
+      auto vec_r_a_scale = VecType::load(1.f / a_scale);
+
+      for (dim_t i = 0; i < m; i += VecType::width) {
+        auto v = VecType::load_and_convert(c + i);
+        v = VecType::mul(v, vec_r_a_scale);
+        v = VecType::div(v, VecType::load(b_scale + i));
+        if (with_bias)
+          v = VecType::add(v, VecType::load(bias + i));
+        VecType::store(epilogue_func(v), y + i);
+      }
+
+      if (remaining != 0) {
+        auto v = VecType::load_and_convert(c + m, remaining);
+        v = VecType::mul(v, vec_r_a_scale);
+        v = VecType::div(v, VecType::load(b_scale + m, remaining));
+        if (with_bias)
+          v = VecType::add(v, VecType::load(bias + m, remaining));
+        VecType::store(epilogue_func(v), y + m, remaining);
+      }
+    }
+
+    template <bool with_bias>
+    static void dequantize_gemm_output_row(const int32_t* c,
+                                           const float a_scale,
+                                           const float* b_scale,
+                                           const float* bias,
+                                           dim_t m,
+                                           float* y,
+                                           const ops::ActivationType* activation_type) {
+      if (!activation_type) {
+        dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, identity());
+      } else {
+        switch (*activation_type) {
+        case ops::ActivationType::ReLU:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, relu_func());
+          break;
+        case ops::ActivationType::GELU:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, gelu_func());
+          break;
+        case ops::ActivationType::GELUTanh:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, gelu_tanh_func());
+          break;
+        case ops::ActivationType::GELUSigmoid:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, gelu_sigmoid_func());
+          break;
+        case ops::ActivationType::Swish:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, swish_func());
+          break;
+        case ops::ActivationType::Tanh:
+          dequantize_gemm_output_row<with_bias>(c, a_scale, b_scale, bias, m, y, tanh_func());
+          break;
+        }
+      }
+    }
+
+    template<>
+    void dequantize_gemm_output<TARGET_ISA>(const int32_t* c,
+                                            const float* a_scale,
+                                            const float* b_scale,
+                                            dim_t n,
+                                            dim_t m,
+                                            float* y,
+                                            const float* bias,
+                                            const ops::ActivationType* activation_type) {
+      parallel_for(0, n, 1, [&](dim_t begin, dim_t end) {
+        for (dim_t i = begin; i < end; ++i) {
+          const int32_t* c_row = c + i * m;
+          float* y_row = y + i * m;
+
+          if (bias)
+            dequantize_gemm_output_row<true>(c_row,
+                                             a_scale[i],
+                                             b_scale,
+                                             bias,
+                                             m,
+                                             y_row,
+                                             activation_type);
+          else
+            dequantize_gemm_output_row<false>(c_row,
+                                              a_scale[i],
+                                              b_scale,
+                                              bias,
+                                              m,
+                                              y_row,
+                                              activation_type);
+        }
+      });
     }
 
   }

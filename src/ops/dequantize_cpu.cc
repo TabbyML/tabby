@@ -63,6 +63,7 @@ namespace ctranslate2 {
       if (a_scale.is_scalar() && b_scale.is_scalar()) {
         const auto scale = a_scale.as_scalar<float>() * b_scale.as_scalar<float>();
         dequantize_kernel(c_data, scale, c.size(), y_data);
+        apply_bias_and_activation(y, bias, _activation_type);
 
       } else {
         const dim_t batch_size = a_scale.size();
@@ -72,23 +73,14 @@ namespace ctranslate2 {
         const auto* b_scale_data = b_scale.data<float>();
 
         if (!transpose_a && transpose_b) {
-          // Optimize the common case using transform and minimizing the number of division.
-          auto& allocator = get_allocator<Device::CPU>();
-          auto* r_b_scale = static_cast<float*>(allocator.allocate(depth * sizeof (float)));
-          CPU_ISA_DISPATCH((cpu::rcp<ISA>(b_scale_data, r_b_scale, depth)));
-
-          cpu::parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
-            for (dim_t i = begin; i < end; ++i) {
-              const float r_a_scale = 1.f / a_scale_data[i];
-              const dim_t offset = i * depth;
-              cpu::binary_transform(c_data + offset, r_b_scale, y_data + offset, depth,
-                                    [r_a_scale](int32_t v, float r_b_scale) {
-                                      return static_cast<float>(v) * r_a_scale * r_b_scale;
-                                    });
-            }
-          });
-
-          allocator.free(r_b_scale);
+          CPU_ISA_DISPATCH((cpu::dequantize_gemm_output<ISA>(c_data,
+                                                             a_scale_data,
+                                                             b_scale_data,
+                                                             batch_size,
+                                                             depth,
+                                                             y_data,
+                                                             bias ? bias->data<float>() : nullptr,
+                                                             _activation_type)));
 
         } else {
           // Generic implementation.
@@ -102,10 +94,10 @@ namespace ctranslate2 {
               }
             }
           });
+
+          apply_bias_and_activation(y, bias, _activation_type);
         }
       }
-
-      apply_bias_and_activation(y, bias, _activation_type);
     }
 
   }

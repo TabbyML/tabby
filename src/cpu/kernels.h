@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ctranslate2/types.h"
+#include "ctranslate2/ops/activation.h"
 #include "cpu_isa.h"
 
 namespace ctranslate2 {
@@ -105,6 +106,17 @@ namespace ctranslate2 {
                      dim_t depth,
                      bool shift_to_uint8,
                      bool round_before_cast);
+
+    // Assumes transpose_a=false, transpose_b=true.
+    template <CpuIsa ISA>
+    void dequantize_gemm_output(const int32_t* c,
+                                const float* a_scale,
+                                const float* b_scale,
+                                dim_t n,
+                                dim_t m,
+                                float* y,
+                                const float* bias = nullptr,
+                                const ops::ActivationType* activation_type = nullptr);
 
     struct identity {
       template <typename T>

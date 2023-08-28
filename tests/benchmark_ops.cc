@@ -97,12 +97,14 @@ void benchmark_quantize(Device device, DataType dtype) {
 }
 
 void benchmark_dequantize(Device device) {
-  StorageView x({32, 1536}, DataType::INT32, device);
+  StorageView x({64, 8192}, DataType::INT32, device);
   StorageView input_scale({32}, DataType::FLOAT32, device);
-  StorageView weight_scale({1536}, DataType::FLOAT32, device);
+  StorageView weight_scale({8192}, DataType::FLOAT32, device);
+  StorageView bias({8192}, DataType::FLOAT32, device);
   StorageView y(device);
-  const ops::Dequantize dequantize_op{};
-  BENCHMARK(dequantize_op(x, input_scale, weight_scale, false, true, y), 100000);
+  const ops::ActivationType activation_type = ops::ActivationType::ReLU;
+  const ops::Dequantize dequantize_op(&activation_type);
+  BENCHMARK(dequantize_op(x, input_scale, weight_scale, false, true, y, &bias), 10000);
 }
 
 void benchmark_conv1d(Device device) {

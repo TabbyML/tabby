@@ -40,6 +40,23 @@ namespace ctranslate2 {
         }
       }
 
+      static inline value_type load_and_convert(const int32_t* ptr) {
+        return vcvtq_f32_s32(vld1q_s32(ptr));
+      }
+
+      static inline value_type load_and_convert(const int32_t* ptr,
+                                                dim_t count,
+                                                int32_t default_value = 0) {
+        if (count == width) {
+          return load_and_convert(ptr);
+        } else {
+          __ct2_align16__ int32_t tmp_values[width];
+          std::fill(tmp_values, tmp_values + width, default_value);
+          std::copy(ptr, ptr + count, tmp_values);
+          return load_and_convert(tmp_values);
+        }
+      }
+
       static inline void store(value_type value, float* ptr) {
         vst1q_f32(ptr, value);
       }

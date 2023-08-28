@@ -31,6 +31,18 @@ namespace ctranslate2 {
         return *ptr;
       }
 
+      static inline value_type load_and_convert(const int32_t* ptr) {
+        return *ptr;
+      }
+
+      static inline value_type load_and_convert(const int32_t* ptr,
+                                                dim_t count,
+                                                int32_t default_value = 0) {
+        (void)count;
+        (void)default_value;
+        return *ptr;
+      }
+
       static inline void store(value_type value, T* ptr) {
         *ptr = value;
       }
