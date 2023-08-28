@@ -40,8 +40,14 @@ Simply type your question when the prompt "You:" is displayed.
 >
 > You: Hello, how can you help me?
 >
-> Llama2: Hello! I'm here to help you in any way I can. Please feel free to ask me any question, and I will do my best to provide a helpful and safe response. Whether you need information on a specific topic, guidance on how to approach a problem, or simply someone to talk to, I'm here to listen and assist.
-Remember, I'm just an AI and not a human, so I can't provide personal advice or engage in discussions that promote harmful or unethical content. My responses are designed to be socially unbiased and positive in nature, and I will always strive to provide accurate and helpful information.
-So, what can I help you with today?
+> Llama2: Hello! I'm here to help you in any way I can. Please feel free to ask me any question, and I will do my best to provide a helpful and safe response. Whether you need information on a specific topic, guidance on how to approach a problem, or simply someone to talk to, I'm here to listen and assist.<br/>
+> Remember, I'm just an AI and not a human, so I can't provide personal advice or engage in discussions that promote harmful or unethical content. My responses are designed to be socially unbiased and positive in nature, and I will always strive to provide accurate and helpful information.<br/>
+> So, what can I help you with today?
 >
 > You: 
+
+You can also set a system prompt on the command line:
+
+```
+python3 chat.py llama-2-7b-chat-ct2/ "Always answer with emojis"
+```

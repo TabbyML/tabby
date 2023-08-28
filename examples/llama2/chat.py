@@ -7,6 +7,7 @@ import sentencepiece as spm
 
 def main():
     model_dir = sys.argv[1]
+    system_prompt = sys.argv[2] if len(sys.argv) > 2 else None
 
     print("Loading the model...")
     generator = ctranslate2.Generator(model_dir, device="cuda")
@@ -17,6 +18,9 @@ def main():
     max_prompt_length = context_length - max_generation_length
 
     dialog = []
+
+    if system_prompt:
+        dialog.append({"role": "system", "content": system_prompt})
 
     while True:
         print("")
@@ -30,13 +34,13 @@ def main():
             if len(prompt_tokens) <= max_prompt_length:
                 break
             # Remove old conversations to reduce the prompt size.
-            dialog = dialog[2:]
-
-        system_prompt_tokens, prompt_tokens = extract_system_prompt(sp, prompt_tokens)
+            if system_prompt:
+                dialog = [dialog[0]] + dialog[3:]
+            else:
+                dialog = dialog[2:]
 
         step_results = generator.generate_tokens(
             prompt_tokens,
-            static_prompt=system_prompt_tokens,
             max_length=max_generation_length,
             sampling_temperature=0.6,
             sampling_topk=20,
@@ -79,52 +83,21 @@ def generate_words(sp, step_results):
             yield word
 
 
-def extract_system_prompt(sp, tokens):
-    end_tokens = sp.encode_as_pieces(E_SYS)[1:]
-    end_position = None
-
-    for start in range(len(tokens)):
-        end = start + len(end_tokens)
-        if tokens[start:end] == end_tokens:
-            end_position = end
-            break
-
-    if end_position is None:
-        system_tokens = None
-    else:
-        system_tokens = tokens[:end_position]
-        tokens = tokens[end_position:]
-
-    return system_tokens, tokens
-
-
 # The code below is adapted from
 # https://github.com/facebookresearch/llama/blob/6c7fe276574e78057f917549435a2554000a876d/llama/generation.py#L225-L268
 
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-DEFAULT_SYSTEM_PROMPT = """\
-You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
-
-If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
-
 
 def build_prompt(sp, dialog):
-    if dialog[0]["role"] != "system":
+    if dialog[0]["role"] == "system":
         dialog = [
             {
-                "role": "system",
-                "content": DEFAULT_SYSTEM_PROMPT,
+                "role": dialog[1]["role"],
+                "content": B_SYS + dialog[0]["content"] + E_SYS + dialog[1]["content"],
             }
-        ] + dialog
-
-    dialog = [
-        {
-            "role": dialog[1]["role"],
-            "content": B_SYS + dialog[0]["content"] + E_SYS + dialog[1]["content"],
-        }
-    ] + dialog[2:]
+        ] + dialog[2:]
 
     assert all([msg["role"] == "user" for msg in dialog[::2]]) and all(
         [msg["role"] == "assistant" for msg in dialog[1::2]]
