@@ -52,7 +52,7 @@ impl PromptBuilder {
         if let Some(suffix) = segments.suffix {
             self.build_prompt(segments.prefix, suffix)
         } else {
-            self.build_prompt(segments.prefix, "".to_owned())
+            self.build_prompt(segments.prefix, "\n".to_owned())
         }
     }
 
