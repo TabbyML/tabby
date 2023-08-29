@@ -33,7 +33,15 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 👋 Get Started
 
-See https://tabbyml.github.io/tabby
+The easiest way to start a Tabby server is by using the following Docker command:
+
+```bash
+docker run -it \
+  --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
+  tabbyml/tabby \
+  serve --model TabbyML/SantaCoder-1B --device cuda
+```
+For additional configuration options (e.g CPU), please refer to the documentation at https://tabbyml.github.io/tabby.
 
 ## 🌟 Star History
 
