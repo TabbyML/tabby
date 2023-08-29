@@ -41,7 +41,7 @@ docker run -it \
   tabbyml/tabby \
   serve --model TabbyML/SantaCoder-1B --device cuda
 ```
-For additional configuration options (e.g CPU), please refer to the documentation at https://tabbyml.github.io/tabby.
+For additional options (e.g inference type, parallelism), please refer to the documentation at https://tabbyml.github.io/tabby.
 
 ## 🌟 Star History
 
