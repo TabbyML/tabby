@@ -13,9 +13,9 @@
 > Tabby is still in the alpha phase
 
 Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot. It boasts several key features:
-1. Self-contained, with no need for a DBMS or cloud service.
-2. OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
-3. Supports consumer-grade GPUs.
+* Self-contained, with no need for a DBMS or cloud service.
+* OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
+* Supports consumer-grade GPUs.
 
 <p align="center">
   <a target="_blank" href="https://tabbyml.github.io/tabby/playground"><img alt="Open in Playground" src="https://img.shields.io/badge/OPEN%20IN%20PLAYGROUND-blue?logo=xcode&style=for-the-badge&logoColor=green"></a>
