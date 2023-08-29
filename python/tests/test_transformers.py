@@ -945,7 +945,7 @@ class TestWhisper:
         )
 
     @test_utils.only_on_linux
-    def test_transformers_whisper_invalid_shape(self, tmp_dir):
+    def test_transformers_whisper_partial_audio_context(self, tmp_dir):
         import transformers
 
         model_name = "openai/whisper-tiny"
@@ -963,13 +963,9 @@ class TestWhisper:
         features = ctranslate2.StorageView.from_array(inputs.input_features)
 
         model = ctranslate2.models.Whisper(output_dir)
+        encoder_output = model.encode(features)
 
-        with pytest.raises(ValueError) as exception_info:
-            model.detect_language(features)
-
-        error_message = str(exception_info.value)
-        assert "(1, 80, 3000)" in error_message
-        assert "(1, 80, 1100)" in error_message
+        assert encoder_output.shape == [1, features.shape[2] // 2, 384]
 
     @test_utils.only_on_linux
     def test_transformers_whisper_include_tokenizer_json(self, tmp_dir):

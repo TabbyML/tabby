@@ -106,9 +106,7 @@ namespace ctranslate2 {
 
       features.move_to(device, dtype);
 
-      // Already encoded.
-      if (features.dim(-1) == _encoder->output_size()
-          && features.dim(-2) == _encoder->output_time())
+      if (_encoder->is_encoded(features))
         return features;
 
       StorageView encoder_output(dtype, device);

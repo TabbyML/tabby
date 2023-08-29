@@ -21,20 +21,18 @@ namespace ctranslate2 {
     void WhisperEncoder::operator()(const StorageView& features, StorageView& output) {
       PROFILE("WhisperEncoder");
 
-      const dim_t expected_depth = _conv1.input_size();
-      const dim_t expected_time = input_time();
-
       if (features.rank() != 3)
         throw std::invalid_argument("Expected input features to have 3 dimensions, but got "
                                     + std::to_string(features.rank())
                                     + " dimension(s) instead");
-      if (features.dim(1) != expected_depth || features.dim(2) != expected_time)
+
+      if (features.dim(1) != input_size() || features.dim(2) > max_input_time())
         throw std::invalid_argument("Invalid input features shape: expected an input with shape ("
                                     + std::to_string(features.dim(0))
                                     + ", "
-                                    + std::to_string(expected_depth)
+                                    + std::to_string(input_size())
                                     + ", "
-                                    + std::to_string(expected_time)
+                                    + std::to_string(std::min(features.dim(2), max_input_time()))
                                     + "), but got an input with shape ("
                                     + std::to_string(features.dim(0))
                                     + ", "

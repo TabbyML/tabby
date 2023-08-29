@@ -19,12 +19,27 @@ namespace ctranslate2 {
         return _output_norm.output_size();
       }
 
-      dim_t output_time() const {
+      dim_t max_output_time() const {
         return _position_embedding.num_positions();
       }
 
-      dim_t input_time() const {
-        return output_time() * 2;
+      dim_t input_size() const {
+        return _conv1.input_size();
+      }
+
+      dim_t max_input_time() const {
+        return max_output_time() * 2;
+      }
+
+      bool is_encoded(const StorageView& features) const {
+        // Input features shape: [batch_size, input_size, input_time]
+        // Encoder output shape: [batch_size, input_time // 2, output_size]
+        //
+        // input_time is variable so we check that dimension 1 is different than its original value.
+
+        return (features.rank() == 3
+                && features.dim(2) == output_size()
+                && features.dim(1) != input_size());
       }
 
     private:
