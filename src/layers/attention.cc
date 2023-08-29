@@ -351,7 +351,16 @@ namespace ctranslate2 {
         return nullptr;
 
       const bool interleave = model.get_flag_with_default(scope + "/rotary_interleave", true);
-      return std::make_unique<RotaryEmbeddings>(rotary_dim, interleave);
+
+      const auto scaling_type = model.get_enum_value<RotaryScalingType>(
+        scope + "/rotary_scaling_type", -1);
+      const auto scaling_factor = model.get_attribute_with_default<float>(
+        scope + "/rotary_scaling_factor", 1.f);
+
+      return std::make_unique<RotaryEmbeddings>(rotary_dim,
+                                                interleave,
+                                                scaling_type,
+                                                scaling_factor);
     }
 
 
@@ -590,10 +599,14 @@ namespace ctranslate2 {
 
     RotaryEmbeddings::RotaryEmbeddings(const dim_t dim,
                                        const bool interleave,
+                                       const RotaryScalingType scaling_type,
+                                       const float scaling_factor,
                                        const dim_t num_initial_positions,
                                        const float base)
       : _dim(dim)
       , _interleave(interleave)
+      , _scaling_type(scaling_type)
+      , _scaling_factor(scaling_factor)
       , _num_initial_positions(num_initial_positions)
       , _base(base)
       , _rotary_op(dim, interleave)
@@ -637,7 +650,7 @@ namespace ctranslate2 {
 
       StorageView t({num_positions, 1});
       for (dim_t i = 0; i < t.size(); ++i)
-        t.at<float>(i) = i;
+        t.at<float>(i) = _scaling_type == RotaryScalingType::None ? i : float(i) / _scaling_factor;
       if (t.device() != device)
         t = t.to(device);
 

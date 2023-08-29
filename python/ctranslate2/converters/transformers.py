@@ -17,7 +17,13 @@ except ImportError:
 
 from ctranslate2.converters import utils
 from ctranslate2.converters.converter import Converter
-from ctranslate2.specs import common_spec, model_spec, transformer_spec, whisper_spec
+from ctranslate2.specs import (
+    attention_spec,
+    common_spec,
+    model_spec,
+    transformer_spec,
+    whisper_spec,
+)
 
 _SUPPORTED_ACTIVATIONS = {
     "gelu": common_spec.Activation.GELU,
@@ -29,6 +35,10 @@ _SUPPORTED_ACTIVATIONS = {
     "relu": common_spec.Activation.RELU,
     "silu": common_spec.Activation.SWISH,
     "swish": common_spec.Activation.SWISH,
+}
+
+_SUPPORTED_ROPE_SCALING = {
+    "linear": attention_spec.RotaryScalingType.Linear,
 }
 
 _MODEL_LOADERS = {}
@@ -1198,6 +1208,21 @@ class LlamaLoader(ModelLoader):
         if num_heads_kv == num_heads:
             num_heads_kv = None
 
+        rope_scaling = getattr(model.config, "rope_scaling", None)
+        if rope_scaling:
+            rotary_scaling_type = _SUPPORTED_ROPE_SCALING.get(rope_scaling["type"])
+            rotary_scaling_factor = rope_scaling["factor"]
+
+            if rotary_scaling_type is None:
+                raise NotImplementedError(
+                    "RoPE scaling type '%s' is not yet implemented. "
+                    "The following RoPE scaling types are currently supported: %s"
+                    % (rope_scaling["type"], ", ".join(_SUPPORTED_ROPE_SCALING.keys()))
+                )
+        else:
+            rotary_scaling_type = None
+            rotary_scaling_factor = 1
+
         spec = transformer_spec.TransformerDecoderModelSpec.from_config(
             num_layers,
             num_heads,
@@ -1207,6 +1232,8 @@ class LlamaLoader(ModelLoader):
             rms_norm=True,
             rotary_dim=0,
             rotary_interleave=False,
+            rotary_scaling_type=rotary_scaling_type,
+            rotary_scaling_factor=rotary_scaling_factor,
             num_heads_kv=num_heads_kv,
         )
 

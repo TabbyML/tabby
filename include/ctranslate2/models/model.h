@@ -118,8 +118,8 @@ namespace ctranslate2 {
       bool get_flag_with_default(const std::string& name, bool default_value) const;
 
       template <typename Enum>
-      Enum get_enum_value(const std::string& name) const {
-        return static_cast<Enum>(get_attribute_with_default<int32_t>(name, 0));
+      Enum get_enum_value(const std::string& name, int32_t default_index = 0) const {
+        return static_cast<Enum>(get_attribute_with_default<int32_t>(name, default_index));
       }
 
     protected:

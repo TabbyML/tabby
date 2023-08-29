@@ -1,3 +1,4 @@
+from ctranslate2.specs.attention_spec import RotaryScalingType
 from ctranslate2.specs.common_spec import Activation, EmbeddingsMerge
 from ctranslate2.specs.model_spec import (
     LanguageModelSpec,

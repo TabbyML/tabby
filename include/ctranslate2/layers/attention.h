@@ -71,10 +71,17 @@ namespace ctranslate2 {
       const dim_t _cache_time_dim;
     };
 
+    enum class RotaryScalingType {
+      None = -1,
+      Linear,
+    };
+
     class RotaryEmbeddings {
     public:
       RotaryEmbeddings(const dim_t dim = 0,
                        const bool interleave = true,
+                       const RotaryScalingType scaling_type = RotaryScalingType::None,
+                       const float scaling_factor = 1,
                        const dim_t num_initial_positions = 2048,
                        const float base = 10000);
 
@@ -88,6 +95,8 @@ namespace ctranslate2 {
 
       const dim_t _dim;
       const bool _interleave;
+      const RotaryScalingType _scaling_type;
+      const float _scaling_factor;
       const dim_t _num_initial_positions;
       const float _base;
       const ops::Rotary _rotary_op;

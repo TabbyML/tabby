@@ -1,6 +1,15 @@
+import enum
+
 import numpy as np
 
 from ctranslate2.specs import common_spec, model_spec
+
+
+# This enum should match the C++ equivalent in include/ctranslate2/layers/attention.h.
+class RotaryScalingType(enum.IntEnum):
+    """RoPE scaling type."""
+
+    Linear = 0
 
 
 class MultiHeadAttentionSpec(model_spec.LayerSpec):
@@ -12,6 +21,8 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         rms_norm=False,
         rotary_dim=None,
         rotary_interleave=True,
+        rotary_scaling_type=None,
+        rotary_scaling_factor=1,
         num_heads_kv=None,
     ):
         self.queries_scale = model_spec.OPTIONAL
@@ -32,6 +43,12 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         if rotary_dim is not None:
             self.rotary_dim = np.dtype("int32").type(rotary_dim)
             self.rotary_interleave = rotary_interleave
+
+            if rotary_scaling_type is not None:
+                self.rotary_scaling_type = np.dtype("int8").type(rotary_scaling_type)
+                self.rotary_scaling_factor = np.dtype("float32").type(
+                    rotary_scaling_factor
+                )
 
         if num_heads_kv is not None:
             self.num_heads_kv = np.dtype("int32").type(num_heads_kv)

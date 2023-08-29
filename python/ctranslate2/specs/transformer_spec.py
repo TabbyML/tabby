@@ -92,6 +92,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
         alibi_use_positive_positions: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
+        rotary_scaling_type: Optional[attention_spec.RotaryScalingType] = None,
+        rotary_scaling_factor: float = 1,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
@@ -124,6 +126,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
             Otherwise the head dimensions are sliced in half.
+          rotary_scaling_type: Type of RoPE scaling.
+          rotary_scaling_factor: Factor used in the RoPE scaling.
           parallel_residual: Use parallel residual connections in each layer block, as used
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
@@ -181,6 +185,8 @@ class TransformerDecoderSpec(model_spec.LayerSpec):
                 rms_norm=rms_norm,
                 rotary_dim=rotary_dim,
                 rotary_interleave=rotary_interleave,
+                rotary_scaling_type=rotary_scaling_type,
+                rotary_scaling_factor=rotary_scaling_factor,
                 parallel_residual=parallel_residual,
                 shared_layer_norm=shared_layer_norm,
                 num_heads_kv=num_heads_kv,
@@ -223,6 +229,8 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
         rms_norm=False,
         rotary_dim=None,
         rotary_interleave=True,
+        rotary_scaling_type=None,
+        rotary_scaling_factor=1,
         parallel_residual=False,
         shared_layer_norm=False,
         num_heads_kv=None,
@@ -234,6 +242,8 @@ class TransformerDecoderLayerSpec(model_spec.LayerSpec):
             rms_norm=rms_norm,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
+            rotary_scaling_type=rotary_scaling_type,
+            rotary_scaling_factor=rotary_scaling_factor,
             num_heads_kv=num_heads_kv,
         )
 
@@ -453,6 +463,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
         alibi_use_positive_positions: bool = False,
         rotary_dim: Optional[int] = None,
         rotary_interleave: bool = True,
+        rotary_scaling_type: Optional[attention_spec.RotaryScalingType] = None,
+        rotary_scaling_factor: float = 1,
         parallel_residual: bool = False,
         shared_layer_norm: bool = False,
         multi_query_attention: bool = False,
@@ -479,6 +491,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             embeddings are applied to all dimensions.
           rotary_interleave: Interleave the head dimensions when rotary embeddings are applied.
             Otherwise the head dimensions are sliced in half.
+          rotary_scaling_type: Type of RoPE scaling.
+          rotary_scaling_factor: Factor used in the RoPE scaling.
           parallel_residual: Use parallel residual connections in each layer block, as used
             by the GPT-J and GPT-NeoX models.
           shared_layer_norm: When using parallel residual, share the input and post
@@ -502,6 +516,8 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
             alibi_use_positive_positions=alibi_use_positive_positions,
             rotary_dim=rotary_dim,
             rotary_interleave=rotary_interleave,
+            rotary_scaling_type=rotary_scaling_type,
+            rotary_scaling_factor=rotary_scaling_factor,
             parallel_residual=parallel_residual,
             shared_layer_norm=shared_layer_norm,
             multi_query_attention=multi_query_attention,
