@@ -10,6 +10,7 @@ RUN apt-get update && \
         pkg-config \
         libssl-dev \
         protobuf-compiler \
+        git \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -19,9 +20,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 WORKDIR /root/workspace
-COPY Cargo.toml Cargo.toml
-COPY Cargo.lock Cargo.lock
-COPY crates crates
+COPY . .
 
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
