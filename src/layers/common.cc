@@ -151,7 +151,7 @@ namespace ctranslate2 {
     void PositionEncoder::operator()(StorageView& input, dim_t index) {
       const dim_t time = input.dim(1);
       const dim_t depth = input.dim(-1);
-      const dim_t max_time = std::max(time, index + 1);
+      const dim_t max_time = time + index;
       const StorageView& encodings = get_position_encoding(max_time);
       const dim_t num_encodings = encodings.dim(0);
 
