@@ -1234,6 +1234,7 @@ class LlamaLoader(ModelLoader):
             rotary_interleave=False,
             rotary_scaling_type=rotary_scaling_type,
             rotary_scaling_factor=rotary_scaling_factor,
+            rotary_base=getattr(model.config, "rope_theta", 10000),
             num_heads_kv=num_heads_kv,
         )
 

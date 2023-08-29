@@ -351,6 +351,7 @@ namespace ctranslate2 {
         return nullptr;
 
       const bool interleave = model.get_flag_with_default(scope + "/rotary_interleave", true);
+      const float base = model.get_attribute_with_default<float>(scope + "/rotary_base", 10000.f);
 
       const auto scaling_type = model.get_enum_value<RotaryScalingType>(
         scope + "/rotary_scaling_type", -1);
@@ -360,7 +361,8 @@ namespace ctranslate2 {
       return std::make_unique<RotaryEmbeddings>(rotary_dim,
                                                 interleave,
                                                 scaling_type,
-                                                scaling_factor);
+                                                scaling_factor,
+                                                base);
     }
 
 
@@ -601,14 +603,14 @@ namespace ctranslate2 {
                                        const bool interleave,
                                        const RotaryScalingType scaling_type,
                                        const float scaling_factor,
-                                       const dim_t num_initial_positions,
-                                       const float base)
+                                       const float base,
+                                       const dim_t num_initial_positions)
       : _dim(dim)
       , _interleave(interleave)
       , _scaling_type(scaling_type)
       , _scaling_factor(scaling_factor)
-      , _num_initial_positions(num_initial_positions)
       , _base(base)
+      , _num_initial_positions(num_initial_positions)
       , _rotary_op(dim, interleave)
     {
     }

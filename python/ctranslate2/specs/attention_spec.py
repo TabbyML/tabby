@@ -23,6 +23,7 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         rotary_interleave=True,
         rotary_scaling_type=None,
         rotary_scaling_factor=1,
+        rotary_base=10000,
         num_heads_kv=None,
     ):
         self.queries_scale = model_spec.OPTIONAL
@@ -43,6 +44,7 @@ class MultiHeadAttentionSpec(model_spec.LayerSpec):
         if rotary_dim is not None:
             self.rotary_dim = np.dtype("int32").type(rotary_dim)
             self.rotary_interleave = rotary_interleave
+            self.rotary_base = np.dtype("float32").type(rotary_base)
 
             if rotary_scaling_type is not None:
                 self.rotary_scaling_type = np.dtype("int8").type(rotary_scaling_type)
