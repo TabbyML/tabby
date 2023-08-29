@@ -532,7 +532,7 @@ class TransformerDecoderModelSpec(model_spec.LanguageModelSpec):
 
     @property
     def revision(self):
-        return 7
+        return 8
 
     def get_default_config(self):
         return TransformerDecoderModelConfig()
