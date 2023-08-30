@@ -38,7 +38,7 @@ fn link_static() -> PathBuf {
         config
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE")
-            .define("WITH_RUY", "ON")
+            .define("WITH_OPENBLAS", "ON")
             .cxxflag("-msse4.1")
     } else if cfg!(target_os = "macos") {
         config
