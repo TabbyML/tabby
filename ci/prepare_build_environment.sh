@@ -5,5 +5,5 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 if [[ "$OSTYPE" == "linux"* ]]; then
-  apt-get -y install protobuf
+  sudo apt-get -y install protobuf
 fi
