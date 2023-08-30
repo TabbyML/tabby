@@ -36,14 +36,10 @@ fn link_static() -> PathBuf {
 
     if cfg!(target_os = "linux") {
         config
-            .define("WITH_CUDA", "ON")
-            .define("WITH_CUDNN", "ON")
-            .define("WITH_MKL", "ON")
-            .define("WITH_DNNL", "ON")
-            .define("OPENMP_RUNTIME", "COMP")
+            .define("WITH_MKL", "OFF")
+            .define("OPENMP_RUNTIME", "NONE")
+            .define("WITH_RUY", "ON")
             .cxxflag("-msse4.1")
-            .define("CUDA_NVCC_FLAGS", "-Xfatbin=-compress-all")
-            .define("CUDA_ARCH_LIST", "Common")
     } else if cfg!(target_os = "macos") {
         config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
