@@ -1,32 +1,34 @@
 # Multithreading and parallelism
 
-CTranslate2 has 2 levels of parallelization:
+## Intra-op multithreading on CPU
 
-* `inter_threads` which is the maximum number of batches executed in parallel.<br/>**=> Increase this value to increase the throughput.**
-* `intra_threads` which is the number of computation threads that is used per batch.<br/>**=> Increase this value to decrease the latency on CPU.**
+Most model operations (matmul, softmax, etc.) are using multiple threads on CPU. The number of threads can be configured with the parameter `intra_threads` (the default value is 4):
 
-The total number of computing threads launched by the process is `inter_threads * intra_threads`.
-
-```{note}
-Even though the model data are shared between parallel replicas, increasing `inter_threads` will still increase the memory usage as some internal buffers are duplicated for thread safety.
+```python
+translator = ctranslate2.Translator(model_path, device="cpu", intra_threads=8)
 ```
 
-On GPU, batches processed in parallel are using separate CUDA streams. Depending on the workload and GPU specifications this may or may not improve the global throughput. For better parallelism on GPU, consider using multiple GPUs as described below.
+This multithreading is generally implemented with [OpenMP](https://www.openmp.org/) so the threads behavior can also be customized with the different `OMP_*` environment variables.
 
-## Parallel execution
+When OpenMP is disabled (which is the case for example in the Python ARM64 wheels for macOS), the multithreading is implemented with [`BS::thread_pool`](https://github.com/bshoshany/thread-pool).
+
+## Data parallelism
 
 Objects running models such as the [`Translator`](python/ctranslate2.Translator.rst) and [`Generator`](python/ctranslate2.Generator.rst) can be configured to process multiple batches in parallel, including on multiple GPUs:
 
 ```python
-# Create a CPU translator with 4 workers each using 1 thread:
+# Create a CPU translator with 4 workers each using 1 intra-op thread:
 translator = ctranslate2.Translator(model_path, device="cpu", inter_threads=4, intra_threads=1)
 
 # Create a GPU translator with 4 workers each running on a separate GPU:
 translator = ctranslate2.Translator(model_path, device="cuda", device_index=[0, 1, 2, 3])
 
 # Create a GPU translator with 4 workers each using a different CUDA stream:
+# (Note: depending on the workload and GPU specifications this may not improve the global throughput.)
 translator = ctranslate2.Translator(model_path, device="cuda", inter_threads=4)
 ```
+
+When the workers are running on the same device, the model weights are shared to save on memory.
 
 Multiple batches should be submitted concurrently to enable this parallelization. Parallel executions are enabled in the following cases:
 
@@ -38,6 +40,10 @@ Multiple batches should be submitted concurrently to enable this parallelization
 ```{note}
 Parallelization with multiple Python threads is possible because all computation methods release the [Python GIL](https://wiki.python.org/moin/GlobalInterpreterLock).
 ```
+
+## Model and tensor parallelism
+
+These types of parallelism are not yet implemented in CTranslate2.
 
 ## Asynchronous execution
 
