@@ -42,10 +42,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11]
+        os: [macos-11, ubuntu-latest]
         include:
           - os: macos-11
             target: aarch64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -101,16 +103,17 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download a single artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v3
-        with:
-          name: tabby_aarch64-apple-darwin
+
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - uses: ncipollo/release-action@v1
         with:
           allowUpdates: true          
           prerelease: true
           name: "Development Build"
-          artifacts: tabby_aarch64-apple-darwin
+          artifacts: "tabby_*/tabby_*"
           tag: latest
           removeArtifacts: true
