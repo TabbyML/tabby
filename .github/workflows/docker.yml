@@ -54,7 +54,7 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
-          echo "TAG_NAME=$(echo $REF_NAME | sed 's/main/latest/g')" >>${GITHUB_ENV}
+          echo "TAG_NAME=$(echo $REF_NAME | sed 's/main/latest/g' | sed 's/^v//g')" >>${GITHUB_ENV}
           
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
