@@ -33,7 +33,7 @@ def translator_translate_iterable(
     batch_type: str = "examples",
     **kwargs,
 ) -> Iterable[TranslationResult]:
-    """Translates an iterable of tokens.
+    """Translates an iterable of tokenized examples.
 
     This method is built on top of :meth:`ctranslate2.Translator.translate_batch`
     to efficiently translate an arbitrarily large stream of data. It enables the
@@ -45,8 +45,8 @@ def translator_translate_iterable(
     * local sorting by length
 
     Arguments:
-      source: An iterable on source tokens.
-      target_prefix: An optional iterable on target tokens used as prefix.
+      source: An iterable of tokenized source examples.
+      target_prefix: An optional iterable of tokenized target prefixes.
       max_batch_size: The maximum batch size.
       batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       **kwargs: Any translation options accepted by
@@ -54,6 +54,24 @@ def translator_translate_iterable(
 
     Returns:
       A generator iterator over :class:`ctranslate2.TranslationResult` instances.
+
+    Example:
+      This method can be used to efficiently translate text files:
+
+      .. code-block:: python
+
+          # Replace by your own tokenization and detokenization functions.
+          tokenize_fn = lambda line: line.strip().split()
+          detokenize_fn = lambda tokens: " ".join(tokens)
+
+          with open("input.txt") as input_file:
+              source = map(tokenize_fn, input_file)
+              results = translator.translate_iterable(source, max_batch_size=64)
+
+              for result in results:
+                  tokens = result.hypotheses[0]
+                  target = detokenize_fn(tokens)
+                  print(target)
     """
     iterables = [source]
     if target_prefix is not None:
@@ -76,7 +94,7 @@ def translator_score_iterable(
     batch_type: str = "examples",
     **kwargs,
 ) -> Iterable[ScoringResult]:
-    """Scores an iterable of tokens.
+    """Scores an iterable of tokenized examples.
 
     This method is built on top of :meth:`ctranslate2.Translator.score_batch`
     to efficiently score an arbitrarily large stream of data. It enables the
@@ -88,8 +106,8 @@ def translator_score_iterable(
     * local sorting by length
 
     Arguments:
-      source: An iterable on source tokens.
-      target: An iterable on target tokens.
+      source: An iterable of tokenized source examples.
+      target: An iterable of tokenized target examples.
       max_batch_size: The maximum batch size.
       batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       **kwargs: Any scoring options accepted by
@@ -114,7 +132,7 @@ def generator_generate_iterable(
     batch_type: str = "examples",
     **kwargs,
 ) -> Iterable[GenerationResult]:
-    """Generates from an iterable of start tokens.
+    """Generates from an iterable of tokenized prompts.
 
     This method is built on top of :meth:`ctranslate2.Generator.generate_batch`
     to efficiently run generation on an arbitrarily large stream of data. It enables
@@ -126,7 +144,7 @@ def generator_generate_iterable(
     * local sorting by length
 
     Arguments:
-      start_tokens: An iterable on start tokens.
+      start_tokens: An iterable of tokenized prompts.
       max_batch_size: The maximum batch size.
       batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       **kwargs: Any generation options accepted by
@@ -151,7 +169,7 @@ def generator_score_iterable(
     batch_type: str = "examples",
     **kwargs,
 ) -> Iterable[ScoringResult]:
-    """Scores an iterable of tokens.
+    """Scores an iterable of tokenized examples.
 
     This method is built on top of :meth:`ctranslate2.Generator.score_batch`
     to efficiently score an arbitrarily large stream of data. It enables
@@ -163,7 +181,7 @@ def generator_score_iterable(
     * local sorting by length
 
     Arguments:
-      tokens: An iterable on tokens.
+      tokens: An iterable of tokenized examples.
       max_batch_size: The maximum batch size.
       batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       **kwargs: Any score options accepted by
