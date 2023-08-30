@@ -50,6 +50,10 @@ jobs:
         run: |
           echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
+      - name: Generate tag name
+        run: |
+          echo "TAG_NAME=$(echo $GITHUB_REF | sed 's/main/latest/g')" >>${GITHUB_ENV}
+          
       - uses: int128/docker-build-cache-config-action@v1
         id: cache
         with:
@@ -65,8 +69,8 @@ jobs:
           push: true
           context: .
           tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:latest
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}
+            ${{ env.IMAGE_NAME }}:${{ env.TAG_NAME }}
           cache-from: ${{ steps.cache.outputs.cache-from }}
           cache-to: ${{ steps.cache.outputs.cache-to }}
 
