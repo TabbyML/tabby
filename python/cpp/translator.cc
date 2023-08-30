@@ -536,7 +536,7 @@ namespace ctranslate2 {
              py::arg("target_detokenize_fn")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
-                 Translates a file.
+                 Translates a tokenized text file.
 
                  Arguments:
                    source_path: Path to the source file.
@@ -627,7 +627,7 @@ namespace ctranslate2 {
              py::arg("target_detokenize_fn")=nullptr,
              py::call_guard<py::gil_scoped_release>(),
              R"pbdoc(
-                 Scores a parallel file.
+                 Scores a parallel tokenized text file.
 
                  Each line in :obj:`output_path` will have the format:
 
