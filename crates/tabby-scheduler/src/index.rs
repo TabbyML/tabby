@@ -46,10 +46,12 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     continue;
                 }
             }
+
+            let language = reduce_language_if_needed(doc.language.as_str());
             writer.add_document(doc!(
                     field_git_url => doc.git_url.clone(),
                     field_filepath => doc.filepath.clone(),
-                    field_language => doc.language.clone(),
+                    field_language => language,
                     field_name => name,
                     field_body => body,
                     field_kind => tag.syntax_type_name,
@@ -62,7 +64,22 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     Ok(())
 }
 
+fn reduce_language_if_needed(language: &str) -> String {
+    return match LANGUAGE_REDUCE_MAP.get(language) {
+        Some(res) => res.to_string(),
+        None => language.to_string(),
+    }
+}
+
 lazy_static! {
     static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> =
         HashMap::from([("python", vec!["__init__"])]);
+
+    static ref LANGUAGE_REDUCE_MAP: HashMap<&'static str, &'static str> = 
+        HashMap::from([
+            ("javascript", "js_ts"),
+            ("typescript", "js_ts"),
+            ("jsx", "js_ts"),
+            ("tsx", "js_ts"),
+        ]);
 }
