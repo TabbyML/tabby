@@ -42,6 +42,7 @@ OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-host
         completions::Segments,
         completions::Choice,
         health::HealthState,
+        health::Version,
     ))
 )]
 struct ApiDoc;
