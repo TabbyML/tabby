@@ -48,7 +48,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
             }
 
             let language = reduce_language_if_needed(&doc.language);
-            print!("{}", language);
             writer.add_document(doc!(
                     field_git_url => doc.git_url.clone(),
                     field_filepath => doc.filepath.clone(),
@@ -67,9 +66,10 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 
 fn reduce_language_if_needed(language: &str) -> &str {
     if ["javascript", "jsx", "typescript", "tsx"].contains(&language) {
-        return "js_ts";
+        "javascript-typescript"
+    } else {
+        language
     }
-    language
 }
 
 lazy_static! {
