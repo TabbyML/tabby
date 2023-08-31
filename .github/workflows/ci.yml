@@ -3,6 +3,8 @@ name: Build and release binaries.
 on:
   workflow_dispatch:
   push:
+    tags:
+      - 'v*'
     branches: [ "main" ]
     paths:
       - 'Cargo.toml'
