@@ -46,10 +46,13 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     continue;
                 }
             }
+
+            let language = reduce_language_if_needed(&doc.language);
+            print!("{}", language);
             writer.add_document(doc!(
                     field_git_url => doc.git_url.clone(),
                     field_filepath => doc.filepath.clone(),
-                    field_language => doc.language.clone(),
+                    field_language => language,
                     field_name => name,
                     field_body => body,
                     field_kind => tag.syntax_type_name,
@@ -60,6 +63,13 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     writer.commit()?;
 
     Ok(())
+}
+
+fn reduce_language_if_needed(language: &str) -> &str {
+    if ["javascript", "jsx", "typescript", "tsx"].contains(&language) {
+        return "js_ts"
+    }
+    language
 }
 
 lazy_static! {
