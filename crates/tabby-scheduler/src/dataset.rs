@@ -312,6 +312,17 @@ lazy_static! {
                     )
                     .unwrap(),
                 )
+            ),
+            (
+                "lua",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_lua::language(),
+                        tree_sitter_lua::TAGS_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
             )
         ])
     };
