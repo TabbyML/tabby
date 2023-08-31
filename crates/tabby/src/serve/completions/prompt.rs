@@ -205,7 +205,7 @@ lazy_static! {
 mod tests {
     use super::*;
 
-    fn init_prompt_builder(with_template: bool) -> PromptBuilder {
+    fn create_prompt_builder(with_template: bool) -> PromptBuilder {
         let prompt_template = if with_template {
             // Init prompt builder with codellama prompt template
             Some("<PRE> {prefix} <SUF>{suffix} <MID>".into())
@@ -218,8 +218,8 @@ mod tests {
     }
 
     #[test]
-    fn test_w_template() {
-        let pb = init_prompt_builder(true);
+    fn test_prompt_template() {
+        let pb = create_prompt_builder(true);
 
         // Rewrite disabled, so the language doesn't matter.
         let language = "python";
@@ -292,8 +292,8 @@ mod tests {
     }
 
     #[test]
-    fn test_wo_template() {
-        let pb = init_prompt_builder(false);
+    fn test_no_prompt_template() {
+        let pb = create_prompt_builder(false);
 
         // Rewrite disabled, so the language doesn't matter.
         let language = "python";
