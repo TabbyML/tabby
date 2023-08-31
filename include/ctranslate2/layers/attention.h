@@ -68,6 +68,7 @@ namespace ctranslate2 {
       dim_t _maximum_relative_position;
       const float _queries_scale;
       const dim_t _num_heads_kv;
+      const bool _merge_time_and_head_dims;
       const dim_t _cache_time_dim;
     };
 

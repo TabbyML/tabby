@@ -215,11 +215,10 @@ namespace ctranslate2 {
                                       StorageView* position_bias = nullptr) {
       PROFILE("dot_product_attention");
 
-      const dim_t query_length = queries.dim(2);
-      const dim_t key_length = keys.dim(2);
-
       std::unique_ptr<const StorageView> relative_positions;
       if (relative_position_keys || relative_position_values) {
+        const dim_t query_length = queries.dim(2);
+        const dim_t key_length = keys.dim(2);
         relative_positions = std::make_unique<StorageView>(
           make_relative_positions(query_length,
                                   key_length,
@@ -242,6 +241,8 @@ namespace ctranslate2 {
           position_bias = &local_position_bias;
 
         if (position_bias->empty()) {
+          const dim_t query_length = queries.dim(2);
+          const dim_t key_length = keys.dim(2);
           *position_bias = compute_relative_bias(*relative_attention_bias,
                                                  query_length,
                                                  key_length,
@@ -394,7 +395,11 @@ namespace ctranslate2 {
                       ? 1
                       : model.get_attribute_with_default<int32_t>(scope + "/num_heads_kv",
                                                                   _num_heads))
-      , _cache_time_dim(_num_heads_kv == 1 ? 1 : 2)
+      , _merge_time_and_head_dims(_num_heads_kv == 1
+                                  && !_relative_attention_bias
+                                  && !_relative_position_keys
+                                  && !_relative_position_values)
+      , _cache_time_dim(_merge_time_and_head_dims ? 1 : 2)
     {
       if (_relative_position_keys)
         _maximum_relative_position = (_relative_position_keys->dim(0) - 1) / 2;
@@ -483,7 +488,7 @@ namespace ctranslate2 {
           const ops::Split split_op(2, {_d_model, _num_heads_kv * _d_head, _num_heads_kv * _d_head});
           split_op(fused_proj, queries_proj, keys_proj, values_proj);
 
-          if (_num_heads_kv == 1) {
+          if (_merge_time_and_head_dims) {
             queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
           } else {
             split_heads(queries_proj, _num_heads);
@@ -504,7 +509,7 @@ namespace ctranslate2 {
                                 ? cached_keys->dim(_cache_time_dim)
                                 : 0);
 
-          if (_num_heads_kv == 1) {
+          if (_merge_time_and_head_dims) {
             queries_proj.reshape({queries_proj.dim(0), -1, _d_model});
             split_heads(queries_proj, _num_heads);
           }
@@ -512,7 +517,7 @@ namespace ctranslate2 {
           _rotary_embeddings->apply(queries_proj, offset);
           _rotary_embeddings->apply(keys_proj, offset);
 
-          if (_num_heads_kv == 1) {
+          if (_merge_time_and_head_dims) {
             combine_heads(queries_proj, _num_heads);
             queries_proj.reshape({queries_proj.dim(0), -1, _d_head});
           }
@@ -557,7 +562,7 @@ namespace ctranslate2 {
                             _alibi,
                             position_bias);
 
-      if (_num_heads_kv == 1) {
+      if (_merge_time_and_head_dims) {
         context.reshape(queries.shape());
         if (queries_padder)
           queries_padder->remove_padding(context);
