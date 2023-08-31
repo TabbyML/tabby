@@ -10,8 +10,6 @@ use tantivy::{
     Index,
 };
 
-use crate::utils::reduce_language_if_needed;
-
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
 
@@ -48,12 +46,10 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
                     continue;
                 }
             }
-
-            let language = reduce_language_if_needed(doc.language.as_str());
             writer.add_document(doc!(
                     field_git_url => doc.git_url.clone(),
                     field_filepath => doc.filepath.clone(),
-                    field_language => language,
+                    field_language => doc.language.clone(),
                     field_name => name,
                     field_body => body,
                     field_kind => tag.syntax_type_name,

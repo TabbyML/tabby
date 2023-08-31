@@ -18,8 +18,6 @@ use tracing::{error, info};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
 use walkdir::{DirEntry, WalkDir};
 
-use crate::utils::reduce_language_if_needed;
-
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
@@ -69,6 +67,13 @@ fn get_language(ext: &OsStr) -> Option<&str> {
         Some(reduce_language_if_needed(language))
     } else {
         None
+    };
+}
+
+fn reduce_language_if_needed(language: &str) -> &str {
+    return match LANGUAGE_REDUCE_MAP.get(language) {
+        Some(res) => res,
+        None => language,
     };
 }
 
@@ -333,4 +338,11 @@ lazy_static! {
             ),
         ])
     };
+
+    static ref LANGUAGE_REDUCE_MAP: HashMap<&'static str, &'static str> = HashMap::from([
+        ("javascript", "js_ts"),
+        ("typescript", "js_ts"),
+        ("jsx", "js_ts"),
+        ("tsx", "js_ts"),
+    ]);
 }
