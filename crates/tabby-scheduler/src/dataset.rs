@@ -247,6 +247,72 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "javascript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_javascript::language(),
+                        tree_sitter_javascript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            ),
+            (
+                "jsx",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_javascript::language(),
+                        tree_sitter_javascript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            ),
+            (
+                "typescript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_typescript(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            ),
+            (
+                "tsx",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_tsx(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            ),
+            (
+                "java",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_java::language(),
+                        tree_sitter_java::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            ),
+            (
+                "go",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_go::language(),
+                        tree_sitter_go::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                )
+            )
         ])
     };
 }
