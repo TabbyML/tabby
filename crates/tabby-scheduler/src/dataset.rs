@@ -18,6 +18,8 @@ use tracing::{error, info};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
 use walkdir::{DirEntry, WalkDir};
 
+use crate::utils::reduce_language_if_needed;
+
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
@@ -63,7 +65,11 @@ impl RepositoryExt for Repository {
 
 fn get_language(ext: &OsStr) -> Option<&str> {
     let ext = ext.to_str().unwrap_or("");
-    EXTENSION_LANGUAGE.get(ext).copied()
+    return if let Some(language) = EXTENSION_LANGUAGE.get(ext) {
+        Some(reduce_language_if_needed(language))
+    } else {
+        None
+    };
 }
 
 fn is_source_code(entry: &DirEntry) -> bool {

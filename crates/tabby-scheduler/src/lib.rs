@@ -1,6 +1,7 @@
 mod dataset;
 mod index;
 mod repository;
+mod utils;
 
 use anyhow::Result;
 use job_scheduler::{Job, JobScheduler};
