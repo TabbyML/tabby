@@ -1,7 +1,5 @@
 #pragma once
 
-// Operators following ONNX specifications.
-
 #include "add.h"
 #include "bias_add.h"
 #include "concat.h"
