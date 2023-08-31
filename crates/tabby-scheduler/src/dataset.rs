@@ -257,7 +257,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "jsx",
@@ -268,7 +268,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "typescript",
@@ -279,7 +279,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "tsx",
@@ -290,7 +290,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "java",
@@ -301,7 +301,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "go",
@@ -312,7 +312,7 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
+                ),
             ),
             (
                 "lua",
@@ -323,8 +323,8 @@ lazy_static! {
                         "",
                     )
                     .unwrap(),
-                )
-            )
+                ),
+            ),
         ])
     };
 }
