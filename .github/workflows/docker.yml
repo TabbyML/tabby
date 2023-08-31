@@ -58,20 +58,20 @@ jobs:
         with:
           image: ghcr.io/${{ env.IMAGE_NAME }}/cache
 
-     - name: Docker meta
-       id: meta
-       uses: docker/metadata-action@v4
-       with:
-         # list of Docker images to use as base name for tags
-         images: |
-           ghcr.io/${{ env.IMAGE_NAME }}
-           ${{ env.IMAGE_NAME }}
-         # generate Docker tags based on the following events/attributes
-         tags: |
-           type=schedule,pattern=nightly
-           type=schedule,pattern={{date 'YYYYMMDD'}}
-           type=match,pattern=^v\d+.\d+.\d+$,value=latest
-           type=match,pattern=v(.*)
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ghcr.io/${{ env.IMAGE_NAME }}
+            ${{ env.IMAGE_NAME }}
+          # generate Docker tags based on the following events/attributes
+          tags: |
+            type=schedule,pattern=nightly
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=match,pattern=^v\d+.\d+.\d+$,value=latest
+            type=match,pattern=v(.*)
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
