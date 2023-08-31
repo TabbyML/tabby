@@ -207,17 +207,14 @@ mod tests {
 
     fn init_prompt_builder(with_template: bool) -> PromptBuilder {
         let prompt_template = if with_template {
-            // Init prompt builder with codellama prompt template 
+            // Init prompt builder with codellama prompt template
             Some("<PRE> {prefix} <SUF>{suffix} <MID>".into())
         } else {
             None
         };
 
         // Init prompt builder with prompt rewrite disabled.
-        PromptBuilder::new(
-            prompt_template,
-            false
-        )
+        PromptBuilder::new(prompt_template, false)
     }
 
     #[test]
@@ -233,7 +230,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: Some("this is some suffix".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE> this is some prefix <SUF>this is some suffix <MID>");
+            assert_eq!(
+                pb.build(language, segments),
+                "<PRE> this is some prefix <SUF>this is some suffix <MID>"
+            );
         }
 
         // Test w/ prefix, w/o suffix.
@@ -242,7 +242,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: None,
             };
-            assert_eq!(pb.build(language, segments), "<PRE> this is some prefix <SUF>\n <MID>");
+            assert_eq!(
+                pb.build(language, segments),
+                "<PRE> this is some prefix <SUF>\n <MID>"
+            );
         }
 
         // Test w/ prefix, w/ empty suffix.
@@ -251,7 +254,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE> this is some prefix <SUF> <MID>");
+            assert_eq!(
+                pb.build(language, segments),
+                "<PRE> this is some prefix <SUF> <MID>"
+            );
         }
 
         // Test w/ empty prefix, w/ suffix.
@@ -260,7 +266,10 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("this is some suffix".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE>  <SUF>this is some suffix <MID>");
+            assert_eq!(
+                pb.build(language, segments),
+                "<PRE>  <SUF>this is some suffix <MID>"
+            );
         }
 
         // Test w/ empty prefix, w/o suffix.
@@ -282,7 +291,7 @@ mod tests {
         }
     }
 
-        #[test]
+    #[test]
     fn test_wo_template() {
         let pb = init_prompt_builder(false);
 
