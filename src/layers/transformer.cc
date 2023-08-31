@@ -300,8 +300,10 @@ namespace ctranslate2 {
 
       const bool use_positive_positions = model.get_flag_with_default(
         scope + "/alibi_use_positive_positions", true);
+      const bool scale_alibi = model.get_flag_with_default(
+        scope + "/scale_alibi", false);
 
-      return std::make_unique<Alibi>(use_positive_positions);
+      return std::make_unique<Alibi>(use_positive_positions, scale_alibi);
     }
 
     TransformerDecoder::TransformerDecoder(const models::Model& model, const std::string& scope)
