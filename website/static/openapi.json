@@ -177,7 +177,12 @@
         "required": [
           "model",
           "device",
-          "compute_type"
+          "compute_type",
+          "arch",
+          "cpu_info",
+          "cpu_count",
+          "cuda_devices",
+          "version"
         ],
         "properties": {
           "model": {
@@ -188,6 +193,25 @@
           },
           "compute_type": {
             "type": "string"
+          },
+          "arch": {
+            "type": "string"
+          },
+          "cpu_info": {
+            "type": "string"
+          },
+          "cpu_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cuda_devices": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "version": {
+            "$ref": "#/components/schemas/Version"
           }
         }
       },
@@ -228,6 +252,29 @@
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
+          }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "required": [
+          "build_date",
+          "build_timestamp",
+          "git_sha",
+          "git_describe"
+        ],
+        "properties": {
+          "build_date": {
+            "type": "string"
+          },
+          "build_timestamp": {
+            "type": "string"
+          },
+          "git_sha": {
+            "type": "string"
+          },
+          "git_describe": {
+            "type": "string"
           }
         }
       }
