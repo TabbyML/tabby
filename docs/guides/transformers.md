@@ -22,6 +22,7 @@ CTranslate2 supports selected models from Hugging Face's [Transformers](https://
 * Pegasus
 * T5
 * Whisper
+* XLM-RoBERTa
 
 The converter takes as argument the pretrained model name or the path to a model directory:
 
