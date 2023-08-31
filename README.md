@@ -9,9 +9,6 @@
 
 </div>
 
-> **Warning**
-> Tabby is still in the alpha phase
-
 Tabby is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot. It boasts several key features:
 * Self-contained, with no need for a DBMS or cloud service.
 * OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
@@ -26,8 +23,8 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 👀 What's New
+* **08/31/2023** tabby's first stable release [v0.0.1](https://github.com/TabbyML/tabby/releases/tag/v0.0.1) 🥳.
 * **08/28/2023** Experimental support for the [CodeLlama 7B](https://github.com/TabbyML/tabby/issues/370).
-
 * **08/24/2023** Tabby is now on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)!
 
 
