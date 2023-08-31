@@ -263,7 +263,7 @@ mod tests {
             assert_eq!(pb.build(language, segments), "<PRE>  <SUF>this is some suffix <MID>");
         }
 
-        // Test w/ prefix, w/o suffix.
+        // Test w/ empty prefix, w/o suffix.
         {
             let segments = Segments {
                 prefix: "".into(),
@@ -272,7 +272,7 @@ mod tests {
             assert_eq!(pb.build(language, segments), "<PRE>  <SUF>\n <MID>");
         }
 
-        // Test w/ prefix, w/ empty suffix.
+        // Test w/ emtpy prefix, w/ empty suffix.
         {
             let segments = Segments {
                 prefix: "".into(),
@@ -325,7 +325,7 @@ mod tests {
             assert_eq!(pb.build(language, segments), "");
         }
 
-        // Test w/ prefix, w/o suffix.
+        // Test w/ empty prefix, w/o suffix.
         {
             let segments = Segments {
                 prefix: "".into(),
@@ -334,7 +334,7 @@ mod tests {
             assert_eq!(pb.build(language, segments), "");
         }
 
-        // Test w/ prefix, w/ empty suffix.
+        // Test w/ empty prefix, w/ empty suffix.
         {
             let segments = Segments {
                 prefix: "".into(),
