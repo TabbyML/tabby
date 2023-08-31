@@ -193,7 +193,8 @@ lazy_static! {
             ("haskell", vec!["hs"]),
             ("html", vec!["html"]),
             ("java", vec!["java"]),
-            ("javascript", vec!["js"]),
+            ("javascript", vec!["js", "mjs"]),
+            ("jsx", vec!["jsx"]),
             ("julia", vec!["jl"]),
             ("lua", vec!["lua"]),
             ("makefile", vec!["Makefile"]),
@@ -207,7 +208,7 @@ lazy_static! {
             ("sql", vec!["sql"]),
             ("scala", vec!["scala"]),
             ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            ("typescript", vec!["ts"]),
+            ("typescript", vec!["ts", "mts"]),
             ("tsx", vec!["tsx"]),
             ("tex", vec!["tex"]),
             ("vb", vec!["vb"]),
@@ -242,6 +243,83 @@ lazy_static! {
                     TagsConfiguration::new(
                         tree_sitter_rust::language(),
                         tree_sitter_rust::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "javascript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_javascript::language(),
+                        tree_sitter_javascript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "jsx",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_javascript::language(),
+                        tree_sitter_javascript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "typescript",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_typescript(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "tsx",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_typescript::language_tsx(),
+                        tree_sitter_typescript::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "java",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_java::language(),
+                        tree_sitter_java::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "go",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_go::language(),
+                        tree_sitter_go::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+            (
+                "lua",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_lua::language(),
+                        tree_sitter_lua::TAGS_QUERY,
                         "",
                     )
                     .unwrap(),
