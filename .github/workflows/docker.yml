@@ -66,6 +66,8 @@ jobs:
           images: |
             ghcr.io/${{ env.IMAGE_NAME }}
             ${{ env.IMAGE_NAME }}
+          flavor:
+            latest=false
           # generate Docker tags based on the following events/attributes
           tags: |
             type=schedule,pattern=nightly
