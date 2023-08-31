@@ -4,6 +4,34 @@
 
 ### Fixes and improvements
 
+## [v3.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.19.0) (2023-08-31)
+
+### Changes
+
+* Binary wheels for Python 3.7 are no longer built
+
+### New features
+
+* Build wheels for Python 3.12
+* Update the Transformers converter to support more model architectures:
+  * Falcon-RW
+  * DistilBERT
+  * Llama with linear RoPE scaling (e.g. Vicuna v1.5)
+  * Llama with a non default RoPE base period (e.g. CodeLlama)
+* Accept the token type IDs as inputs for encoder models
+* Add property `GenerationStepResult.hypothesis_id` to identify the different hypotheses when running random sampling with `num_hypotheses` > 1
+
+### Fixes and improvements
+
+* Improve performance of 8-bit models on CPU:
+  * Vectorize the GEMM output dequantization
+  * Fuse the GEMM output dequantization with bias and activation
+* Allow inputs shorter than 30 seconds in Whisper methods
+* Fix incorrect `batch_id` values passed to the callback function
+* Fix a shape error in models using both MQA and relative positions
+* Fix compilation error related to AVX512 when using GCC 7
+* Call `.detach()` on PyTorch tensors before getting the Numpy array in converters
+
 ## [v3.18.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.18.0) (2023-08-03)
 
 ### Changes
