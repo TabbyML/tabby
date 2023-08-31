@@ -110,3 +110,4 @@ jobs:
           artifacts: "tabby_*/tabby_*"
           tag: ${{ github.ref_name }}
           removeArtifacts: true
+          bodyFile: ci/RELEASE_NOTES.md
