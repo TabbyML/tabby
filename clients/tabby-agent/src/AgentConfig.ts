@@ -7,12 +7,18 @@ export type AgentConfig = {
     requestTimeout: number;
   };
   completion: {
+    prompt: {
+      maxPrefixLines: number;
+      maxSuffixLines: number;
+    };
+    debounce: {
+      mode: "adaptive" | "fixed";
+      interval: number;
+    };
     timeout: {
       auto: number;
       manually: number;
     };
-    maxPrefixLines: number;
-    maxSuffixLines: number;
   };
   logs: {
     level: "debug" | "error" | "silent";
@@ -39,12 +45,18 @@ export const defaultAgentConfig: AgentConfig = {
     requestTimeout: 30000, // 30s
   },
   completion: {
+    prompt: {
+      maxPrefixLines: 20,
+      maxSuffixLines: 20,
+    },
+    debounce: {
+      mode: "adaptive",
+      interval: 250, // ms
+    },
     timeout: {
       auto: 5000, // 5s
       manually: 30000, // 30s
     },
-    maxPrefixLines: 20,
-    maxSuffixLines: 20,
   },
   logs: {
     level: "silent",

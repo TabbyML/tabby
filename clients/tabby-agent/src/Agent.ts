@@ -20,8 +20,6 @@ export type CompletionRequest = {
   text: string;
   position: number;
   manually?: boolean;
-  maxPrefixLines?: number;
-  maxSuffixLines?: number;
 };
 
 export type CompletionResponse = ApiCompletionResponse;
@@ -116,11 +114,14 @@ export interface AgentFunction {
   waitForAuthToken(code: string): CancelablePromise<any>;
 
   /**
+   * Provide completions for the given request. This method is debounced, calling it before the previous
+   * call is resolved will cancel the previous call. The debouncing interval is automatically calculated
+   * or can be set in the config.
    * @param request
    * @returns
    * @throws Error if agent is not initialized
    */
-  getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
+  provideCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
 
   /**
    * @param event
