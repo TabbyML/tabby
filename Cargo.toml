@@ -7,6 +7,7 @@ members = [
     "crates/tabby-inference",
     "crates/ctranslate2-bindings",
     "crates/rust-cxx-cmake-bridge",
+    "crates/llama-cpp-bindings",
 ]
 
 [workspace.package]
