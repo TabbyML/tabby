@@ -31,6 +31,11 @@ jobs:
           toolchain: nightly
           components: rustfmt
 
+      - name: Install compilation dependency
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libopenblas-dev
+
       - name: Cargo fmt
         run: cargo +nightly fmt --check
 
