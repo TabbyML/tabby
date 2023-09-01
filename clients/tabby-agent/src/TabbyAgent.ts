@@ -19,6 +19,7 @@ import {
 import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig, userAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
+import { CompletionDebounce } from "./CompletionDebounce";
 import { DataStore } from "./dataStore";
 import { postprocess, preCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
@@ -46,6 +47,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private auth: Auth;
   private dataStore: DataStore | null = null;
   private completionCache: CompletionCache = new CompletionCache();
+  private CompletionDebounce: CompletionDebounce = new CompletionDebounce();
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
   private completionResponseStats: ResponseStats = new ResponseStats(completionResponseTimeStatsStrategy);
@@ -261,8 +263,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
     // max lines in prefix and suffix configurable
-    const maxPrefixLines = request.maxPrefixLines ?? this.config.completion.maxPrefixLines;
-    const maxSuffixLines = request.maxSuffixLines ?? this.config.completion.maxSuffixLines;
+    const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
+    const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
     const prefix = request.text.slice(0, request.position);
     const prefixLines = splitLines(prefix);
     const suffix = request.text.slice(request.position);
@@ -379,7 +381,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     );
   }
 
-  public getCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
+  public provideCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
     if (this.status === "notInitialized") {
       return cancelable(Promise.reject("Agent is not initialized"), () => {});
     }
@@ -387,15 +389,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return cancelable(
       Promise.resolve(null)
         // From cache
-        .then((response: CompletionResponse | null) => {
+        .then(async (response: CompletionResponse | null) => {
           if (response) return response;
           if (this.completionCache.has(request)) {
             this.logger.debug({ request }, "Completion cache hit");
+            const debounce = this.CompletionDebounce.debounce(request, this.config.completion.debounce, 0);
+            cancelableList.push(debounce);
+            await debounce;
             return this.completionCache.get(request);
           }
+          return null;
         })
         // From api
-        .then((response: CompletionResponse | null) => {
+        .then(async (response: CompletionResponse | null) => {
           if (response) return response;
           const segments = this.createSegments(request);
           if (isBlank(segments.prefix)) {
@@ -405,6 +411,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
               choices: [],
             };
           }
+          const debounce = this.CompletionDebounce.debounce(
+            request,
+            this.config.completion.debounce,
+            this.completionResponseStats.stats()["averageResponseTime"],
+          );
+          cancelableList.push(debounce);
+          await debounce;
           const apiRequest = this.callApi(
             this.api.v1.completion,
             {
@@ -417,17 +430,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
             },
           );
           cancelableList.push(apiRequest);
-          return apiRequest
-            .then((response) => {
-              return preCacheProcess(request, response);
-            })
-            .then((response) => {
-              this.completionCache.set(request, response);
-              return response;
-            });
+          let res = await apiRequest;
+          res = await preCacheProcess(request, res);
+          this.completionCache.set(request, res);
+          return res;
         })
         // Postprocess
-        .then((response: CompletionResponse | null) => {
+        .then(async (response: CompletionResponse | null) => {
           return postprocess(request, response);
         }),
       () => {

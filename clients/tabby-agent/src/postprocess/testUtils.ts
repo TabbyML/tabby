@@ -10,8 +10,6 @@ export function documentContext(strings): PostprocessContext {
     language: null,
     text: doc.replace(/║/, ""),
     position: doc.indexOf("║"),
-    maxPrefixLines: 20,
-    maxSuffixLines: 20,
   });
 }
 

@@ -14,20 +14,12 @@ import {
 import { CompletionResponse, CancelablePromise } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
-import { sleep } from "./utils";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
-  private uuid = Date.now();
-  private latestTimestamp: number = 0;
   private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
 
   // User Settings
   private enabled: boolean = true;
-
-  // These settings will be move to tabby-agent
-  private suggestionDelay: number = 150;
-  private maxPrefixLines: number = 20;
-  private maxSuffixLines: number = 20;
 
   constructor() {
     this.updateConfiguration();
@@ -47,14 +39,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
-    const currentTimestamp = Date.now();
-    this.latestTimestamp = currentTimestamp;
-
-    await sleep(this.suggestionDelay);
-    if (currentTimestamp < this.latestTimestamp) {
-      return emptyResponse;
-    }
-
     const replaceRange = this.calculateReplaceRange(document, position);
 
     if (this.pendingCompletion) {
@@ -67,12 +51,10 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       text: document.getText(),
       position: document.offsetAt(position),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
-      maxPrefixLines: this.maxPrefixLines,
-      maxSuffixLines: this.maxSuffixLines,
     };
-    this.pendingCompletion = agent().getCompletions(request);
+    this.pendingCompletion = agent().provideCompletions(request);
 
-    const completion = await this.pendingCompletion.catch((_: Error) => {
+    const completion = await this.pendingCompletion.catch((e: Error) => {
       return null;
     });
     this.pendingCompletion = null;
