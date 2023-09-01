@@ -34,6 +34,9 @@ jobs:
       - name: Cargo fmt
         run: cargo +nightly fmt --check
 
+      - name: Cargo test
+        run: cargo test
+
   release-binary:
     needs: tests
     runs-on: ${{ matrix.os }}
