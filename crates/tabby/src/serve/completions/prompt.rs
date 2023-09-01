@@ -200,7 +200,7 @@ lazy_static! {
     static ref LANGUAGE_LINE_COMMENT_CHAR: HashMap<&'static str, &'static str> = HashMap::from([
         ("python", "#"),
         ("rust", "//"),
-        ("js_ts", "//"),
+        ("javascript-typescript", "//"),
         ("go", "//"),
         ("java", "//"),
         ("lua", "--"),
