@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use derive_builder::Builder;
 use stop_words::{StopWords, StopWordsCondition};
@@ -83,7 +85,7 @@ impl InferenceContext {
 pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     stop_words: StopWords,
-    tokenizer: Tokenizer,
+    tokenizer: Arc<Tokenizer>,
     stop_words_encoding_offset: Option<usize>,
 }
 
@@ -101,7 +103,7 @@ impl CTranslate2Engine {
         return Self {
             engine,
             stop_words: StopWords::new(),
-            tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
+            tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
             stop_words_encoding_offset: options.stop_words_encoding_offset,
         };
     }
@@ -118,7 +120,7 @@ impl TextGeneration for CTranslate2Engine {
         let _guard = cancel.drop_guard();
 
         let stop_condition = self.stop_words.create_condition(
-            &self.tokenizer,
+            self.tokenizer.clone(),
             options.stop_words,
             self.stop_words_encoding_offset,
         );

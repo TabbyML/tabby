@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, Arc};
 
 use async_trait::async_trait;
 use derive_builder::Builder;
@@ -33,7 +33,7 @@ pub struct LlamaEngineOptions {
 
 pub struct LlamaEngine {
     engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
-    tokenizer: Tokenizer,
+    tokenizer: Arc<Tokenizer>,
     stop_words: StopWords,
     stop_words_encoding_offset: Option<usize>,
 }
@@ -42,7 +42,7 @@ impl LlamaEngine {
     pub fn create(options: LlamaEngineOptions) -> Self {
         LlamaEngine {
             engine: Mutex::new(create_engine(&options.model_path)),
-            tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
+            tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
             stop_words: StopWords::new(),
             stop_words_encoding_offset: options.stop_words_encoding_offset,
         }
@@ -58,7 +58,7 @@ impl TextGeneration for LlamaEngine {
         let mut output_ids = vec![next_token_id];
 
         let mut stop_condition = self.stop_words.create_condition(
-            &self.tokenizer,
+            self.tokenizer.clone(),
             options.stop_words,
             self.stop_words_encoding_offset,
         );

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use dashmap::DashMap;
 use regex::Regex;
 use tokenizers::tokenizer::Tokenizer;
@@ -19,7 +21,7 @@ impl StopWords {
 
     pub fn create_condition(
         &self,
-        tokenizer: &Tokenizer,
+        tokenizer: Arc<Tokenizer>,
         stop_words: &'static Vec<&'static str>,
         stop_words_encoding_offset: Option<usize>,
     ) -> StopWordsCondition {
@@ -30,7 +32,7 @@ impl StopWords {
             if re.is_none() {
                 self.stop_regex_cache.insert(
                     stop_words,
-                    create_stop_regex(tokenizer, stop_words, stop_words_encoding_offset),
+                    create_stop_regex(stop_words),
                 );
                 re = self.stop_regex_cache.get(stop_words);
             }
@@ -41,11 +43,7 @@ impl StopWords {
     }
 }
 
-fn create_stop_regex(
-    _tokenizer: &Tokenizer,
-    stop_words: &[&str],
-    _stop_words_encoding_offset: Option<usize>,
-) -> Regex {
+fn create_stop_regex(stop_words: &[&str]) -> Regex {
     let tokens: Vec<String> = stop_words.iter().map(reverse).collect();
 
     // (?m) enables multi-line matching mode.
@@ -55,15 +53,15 @@ fn create_stop_regex(
 }
 
 pub struct StopWordsCondition {
-    tokenizer: Tokenizer,
+    tokenizer: Arc<Tokenizer>,
     stop_re: Option<Regex>,
     reversed_output_text: String,
 }
 
 impl StopWordsCondition {
-    pub fn new(tokenizer: &Tokenizer, stop_re: Option<Regex>) -> Self {
+    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>) -> Self {
         Self {
-            tokenizer: tokenizer.clone(),
+            tokenizer,
             stop_re,
             reversed_output_text: String::new(),
         }
