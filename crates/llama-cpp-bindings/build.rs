@@ -8,7 +8,8 @@ fn main() {
     println!("cargo:rerun-if-changed=cc/*.h");
     println!("cargo:rerun-if-changed=cc/*.cc");
     cxx_build::bridge("src/lib.rs")
-        .file("cc/engine.cc")
+        .file("src/engine.cc")
+        .flag_if_supported("-Iinclude")
         .flag_if_supported("-Illama.cpp")
         .flag_if_supported("-std=c++14")
         .compile("cxxbridge");

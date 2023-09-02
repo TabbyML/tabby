@@ -1,7 +1,7 @@
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
     unsafe extern "C++" {
-        include!("llama-cpp-bindings/cc/engine.h");
+        include!("llama-cpp-bindings/include/engine.h");
 
         type LlamaEngine;
 

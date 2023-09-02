@@ -8,3 +8,4 @@ cxx-build = "1.0"
 cmake = "0.1"
 
 [dependencies]
+cxx = "1.0"
