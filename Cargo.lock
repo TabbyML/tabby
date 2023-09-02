@@ -1561,6 +1561,7 @@ dependencies = [
  "cxx",
  "cxx-build",
  "derive_builder",
+ "stop-words",
  "tabby-inference",
  "tokenizers",
  "tokio",

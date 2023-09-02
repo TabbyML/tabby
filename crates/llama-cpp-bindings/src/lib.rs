@@ -3,6 +3,7 @@ use std::sync::Mutex;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
+use stop_words::StopWords;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 
@@ -27,11 +28,14 @@ unsafe impl Sync for ffi::TextInferenceEngine {}
 pub struct LlamaEngineOptions {
     model_path: String,
     tokenizer_path: String,
+    stop_words_encoding_offset: Option<usize>,
 }
 
 pub struct LlamaEngine {
     engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
     tokenizer: Tokenizer,
+    stop_words: StopWords,
+    stop_words_encoding_offset: Option<usize>,
 }
 
 impl LlamaEngine {
@@ -39,6 +43,8 @@ impl LlamaEngine {
         LlamaEngine {
             engine: Mutex::new(create_engine(&options.model_path)),
             tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
+            stop_words: StopWords::new(),
+            stop_words_encoding_offset: options.stop_words_encoding_offset,
         }
     }
 }
@@ -50,8 +56,18 @@ impl TextGeneration for LlamaEngine {
         let mut next_token_id = engine.start(prompt);
         let mut n_remains = options.max_decoding_length - 1;
         let mut output_ids = vec![next_token_id];
+
+        let mut stop_condition = self.stop_words.create_condition(
+            &self.tokenizer,
+            options.stop_words,
+            self.stop_words_encoding_offset,
+        );
+
         while n_remains > 0 {
             next_token_id = engine.step(next_token_id);
+            if stop_condition.next_token(next_token_id) {
+                break;
+            }
             output_ids.push(next_token_id);
             n_remains -= 1;
         }

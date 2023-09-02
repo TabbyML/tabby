@@ -6,23 +6,14 @@ pub struct StopWords {
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
-fn reverse(s: &String) -> String {
-    // Special treatment for byte fallback token.
-    // https://github.com/huggingface/tokenizers/blob/main/tokenizers/src/decoders/byte_fallback.rs
-    if s.len() == 6 && s.starts_with("<0x") && s.ends_with('>') {
-        // Keep byte fallback tokens like <0x0A> as is, do not reverse it.
-        // This won't really affect stop words regex logic, but brings more readability when
-        // debugging decoding steps.
-        s.to_owned()
-    } else {
-        s.chars().rev().collect()
-    }
+fn reverse(s: &&str) -> String {
+    s.chars().rev().collect()
 }
 
 impl StopWords {
     pub fn new() -> Self {
         Self {
-            stop_regex_cache: DashMap::new()
+            stop_regex_cache: DashMap::new(),
         }
     }
 
@@ -46,52 +37,42 @@ impl StopWords {
             re.map(|x| x.value().clone())
         };
 
-        StopWordsCondition::new(re)
+        StopWordsCondition::new(tokenizer, re)
     }
 }
 
 fn create_stop_regex(
-    tokenizer: &Tokenizer,
+    _tokenizer: &Tokenizer,
     stop_words: &[&str],
-    stop_words_encoding_offset: Option<usize>,
+    _stop_words_encoding_offset: Option<usize>,
 ) -> Regex {
-    let encodings = tokenizer
-        .encode_batch(stop_words.to_owned(), false)
-        .unwrap();
-    let stop_tokens: Vec<String> = encodings
-        .iter()
-        .map(|x| {
-            x.get_tokens()[stop_words_encoding_offset.unwrap_or(0)..]
-                .iter()
-                .rev()
-                .map(reverse)
-                .collect::<Vec<String>>()
-                .join("")
-        })
-        .collect();
+    let tokens: Vec<String> = stop_words.iter().map(reverse).collect();
 
     // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
-    let regex_string = r"(?m)\A".to_owned() + &stop_tokens.join("|");
+    let regex_string = r"(?m)\A".to_owned() + &tokens.join("|");
     Regex::new(&regex_string).unwrap()
 }
 
 pub struct StopWordsCondition {
+    tokenizer: Tokenizer,
     stop_re: Option<Regex>,
     reversed_output_text: String,
 }
 
 impl StopWordsCondition {
-    pub fn new(stop_re: Option<Regex>) -> Self {
+    pub fn new(tokenizer: &Tokenizer, stop_re: Option<Regex>) -> Self {
         Self {
+            tokenizer: tokenizer.clone(),
             stop_re,
             reversed_output_text: String::new(),
         }
     }
 
-    pub fn next_token(&mut self, token: String) -> bool {
+    pub fn next_token(&mut self, token_id: u32) -> bool {
         if let Some(re) = &self.stop_re {
-            let mut new_token = reverse(&token);
+            let token = self.tokenizer.decode(vec![token_id], false).unwrap();
+            let mut new_token = reverse(&token.as_str());
             new_token.push_str(&self.reversed_output_text);
             self.reversed_output_text = new_token;
             re.find(&self.reversed_output_text).is_some()

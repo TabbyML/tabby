@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use derive_builder::Builder;
+use stop_words::{StopWords, StopWordsCondition};
 use tabby_inference::{TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio_util::sync::CancellationToken;
-use stop_words::{StopWords, StopWordsCondition};
 
 #[cxx::bridge(namespace = "tabby")]
 mod ffi {
@@ -75,7 +75,7 @@ impl InferenceContext {
     fn new(stop_condition: StopWordsCondition, cancel: CancellationToken) -> Self {
         InferenceContext {
             stop_condition,
-            cancel
+            cancel,
         }
     }
 }
@@ -120,7 +120,7 @@ impl TextGeneration for CTranslate2Engine {
         let stop_condition = self.stop_words.create_condition(
             &self.tokenizer,
             options.stop_words,
-            self.stop_words_encoding_offset
+            self.stop_words_encoding_offset,
         );
         let context = InferenceContext::new(stop_condition, cancel_for_inference);
         let output_ids = tokio::task::spawn_blocking(move || {
@@ -142,12 +142,12 @@ impl TextGeneration for CTranslate2Engine {
 fn inference_callback(
     context: &mut InferenceContext,
     _step: usize,
-    _token_id: u32,
-    token: String,
+    token_id: u32,
+    _token: String,
 ) -> bool {
     if context.cancel.is_cancelled() {
         true
     } else {
-        context.stop_condition.next_token(token)
+        context.stop_condition.next_token(token_id)
     }
 }

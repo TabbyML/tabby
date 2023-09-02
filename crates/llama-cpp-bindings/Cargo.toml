@@ -14,3 +14,4 @@ tokio = { workspace = true, features = ["rt"] }
 tabby-inference = { path = "../tabby-inference" }
 derive_builder = { workspace = true }
 tokenizers = { workspace = true }
+stop-words = { version = "0.1.0", path = "../stop-words" }

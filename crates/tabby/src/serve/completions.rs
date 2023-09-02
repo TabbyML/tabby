@@ -151,6 +151,7 @@ impl CompletionState {
             let options = LlamaEngineOptionsBuilder::default()
                 .model_path(model_dir.ggml_model_file())
                 .tokenizer_path(model_dir.tokenizer_file())
+                .stop_words_encoding_offset(metadata.stop_words_encoding_offset)
                 .build()
                 .unwrap();
 
