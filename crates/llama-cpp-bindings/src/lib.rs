@@ -21,7 +21,6 @@ mod ffi {
     }
 }
 
-
 unsafe impl Send for ffi::TextInferenceEngine {}
 unsafe impl Sync for ffi::TextInferenceEngine {}
 
@@ -31,20 +30,25 @@ pub struct LlamaEngineOptions {
 }
 
 pub struct LlamaEngine {
-    engine: cxx::SharedPtr<ffi::TextInferenceEngine>
+    engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
 }
 
 impl LlamaEngine {
     pub fn create(options: LlamaEngineOptions) -> Self {
-        LlamaEngine { engine: create_engine(&options.model_path) }
+        LlamaEngine {
+            engine: create_engine(&options.model_path),
+        }
     }
 }
-
 
 #[async_trait]
 impl TextGeneration for LlamaEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        self.engine.inference(prompt, options.max_decoding_length, options.sampling_temperature);
+        self.engine.inference(
+            prompt,
+            options.max_decoding_length,
+            options.sampling_temperature,
+        );
         "abc".to_owned()
     }
 }

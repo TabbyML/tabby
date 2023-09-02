@@ -13,6 +13,6 @@ pub struct TextGenerationOptions {
 }
 
 #[async_trait]
-pub trait TextGeneration : Sync + Send {
+pub trait TextGeneration: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;
 }

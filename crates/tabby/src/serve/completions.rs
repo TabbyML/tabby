@@ -5,8 +5,8 @@ use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
-use llama_cpp_bindings::{LlamaEngine, LlamaEngineOptionsBuilder};
 use hyper::StatusCode;
+use llama_cpp_bindings::{LlamaEngine, LlamaEngineOptionsBuilder};
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
@@ -14,9 +14,8 @@ use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
-use crate::fatal;
-
 use super::Device;
+use crate::fatal;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -133,7 +132,7 @@ impl CompletionState {
         let model_dir = get_model_dir(&args.model);
         let metadata = read_metadata(&model_dir);
 
-        let engine : Box<dyn TextGeneration> = if args.device != Device::Metal {
+        let engine: Box<dyn TextGeneration> = if args.device != Device::Metal {
             let device = format!("{}", args.device);
             let compute_type = format!("{}", args.compute_type);
             let options = CTranslate2EngineOptionsBuilder::default()
@@ -151,7 +150,8 @@ impl CompletionState {
         } else {
             let options = LlamaEngineOptionsBuilder::default()
                 .model_path(model_dir.ggml_model_file())
-                .build().unwrap();
+                .build()
+                .unwrap();
 
             Box::new(LlamaEngine::create(options))
         };

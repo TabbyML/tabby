@@ -1,9 +1,7 @@
 use cmake::Config;
 
 fn main() {
-    let dst = Config::new("llama.cpp")
-        .define("LLAMA_METAL", "ON")
-        .build();
+    let dst = Config::new("llama.cpp").define("LLAMA_METAL", "ON").build();
 
     println!("cargo:rerun-if-changed=cc/*.h");
     println!("cargo:rerun-if-changed=cc/*.cc");
