@@ -1,8 +1,9 @@
+use std::sync::Mutex;
+
 use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
-use std::sync::{Mutex, MutexGuard};
 use tokenizers::tokenizer::Tokenizer;
 
 #[cxx::bridge(namespace = "llama")]
