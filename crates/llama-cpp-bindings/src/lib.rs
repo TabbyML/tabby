@@ -3,7 +3,7 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
 
-#[cxx::bridge(namespace = "tabby")]
+#[cxx::bridge(namespace = "llama")]
 mod ffi {
     unsafe extern "C++" {
         include!("llama-cpp-bindings/include/engine.h");

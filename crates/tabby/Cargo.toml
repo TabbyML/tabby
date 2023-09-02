@@ -35,6 +35,7 @@ tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
+llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 
 
 [dependencies.uuid]

@@ -6,7 +6,7 @@
 #include <ggml.h>
 #include <llama.h>
 
-namespace tabby {
+namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {

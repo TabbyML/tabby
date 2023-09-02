@@ -3,7 +3,7 @@
 #include "rust/cxx.h"
 #include <memory>
 
-namespace tabby {
+namespace llama {
 
 class TextInferenceEngine {
  public:
