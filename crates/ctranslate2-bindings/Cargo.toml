@@ -5,14 +5,13 @@ edition = "2021"
 
 [dependencies]
 cxx = "1.0"
-dashmap = "5.4.0"
 derive_builder = { workspace = true }
-regex = "1.8.4"
 tokenizers = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
 tabby-inference = { path = "../tabby-inference" }
 async-trait = { workspace = true }
+stop-words = { path = "../stop-words" }
 
 [build-dependencies]
 cxx-build = "1.0"

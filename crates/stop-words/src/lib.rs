@@ -20,22 +20,33 @@ fn reverse(s: &String) -> String {
 }
 
 impl StopWords {
+    pub fn new() -> Self {
+        Self {
+            stop_regex_cache: DashMap::new()
+        }
+    }
+
     pub fn create_condition(
-        &mut self,
+        &self,
         tokenizer: &Tokenizer,
         stop_words: &'static Vec<&'static str>,
         stop_words_encoding_offset: Option<usize>,
     ) -> StopWordsCondition {
-        let mut re = self.stop_regex_cache.get(stop_words);
-        if re.is_none() {
-            self.stop_regex_cache.insert(
-                stop_words,
-                create_stop_regex(tokenizer, stop_words, stop_words_encoding_offset),
-            );
-            re = self.stop_regex_cache.get(stop_words);
-        }
+        let re = if stop_words.is_empty() {
+            None
+        } else {
+            let mut re = self.stop_regex_cache.get(stop_words);
+            if re.is_none() {
+                self.stop_regex_cache.insert(
+                    stop_words,
+                    create_stop_regex(tokenizer, stop_words, stop_words_encoding_offset),
+                );
+                re = self.stop_regex_cache.get(stop_words);
+            }
+            re.map(|x| x.value().clone())
+        };
 
-        StopWordsCondition::new(re.map(|x| x.value().clone()))
+        StopWordsCondition::new(re)
     }
 }
 
