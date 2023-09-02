@@ -5,10 +5,10 @@ fn main() {
         .define("LLAMA_METAL", "ON")
         .build();
 
-    println!("cargo:rerun-if-changed=engine/*.h");
-    println!("cargo:rerun-if-changed=engine/*.cc");
-    cxx_build::bridge("bridge/lib.rs")
-        .file("bridge/engine.cc")
+    println!("cargo:rerun-if-changed=cc/*.h");
+    println!("cargo:rerun-if-changed=cc/*.cc");
+    cxx_build::bridge("src/lib.rs")
+        .file("cc/engine.cc")
         .flag_if_supported("-Illama.cpp")
         .flag_if_supported("-std=c++14")
         .compile("cxxbridge");

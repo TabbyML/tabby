@@ -1,14 +1,21 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+#[cxx::bridge(namespace = "tabby")]
+mod ffi {
+    unsafe extern "C++" {
+        include!("llama-cpp-bindings/cc/engine.h");
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+        type LlamaEngine;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+        fn create_engine(model_path: &str) -> SharedPtr<LlamaEngine>;
+
+        fn inference(
+            &self,
+            tokens: &str,
+            max_decoding_length: usize,
+            sampling_temperature: f32,
+        ) -> Vec<u32>;
     }
 }
+
+
+unsafe impl Send for ffi::LlamaEngine {}
+unsafe impl Sync for ffi::LlamaEngine {}
