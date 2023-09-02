@@ -9,7 +9,7 @@ class LlamaEngine {
  public:
   virtual ~LlamaEngine();
   virtual rust::Vec<uint32_t> inference(
-      rust::Slice<const rust::String> tokens,
+      const rust::Str prompt,
       size_t max_decoding_length,
       float sampling_temperature
   ) const = 0;

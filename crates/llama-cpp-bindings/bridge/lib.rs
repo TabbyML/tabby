@@ -9,7 +9,7 @@ mod ffi {
 
         fn inference(
             &self,
-            tokens: &[String],
+            tokens: &str,
             max_decoding_length: usize,
             sampling_temperature: f32,
         ) -> Vec<u32>;
