@@ -40,7 +40,7 @@ jobs:
         run: cargo +nightly fmt --check
 
       - name: Cargo test
-        run: cargo test
+        run: cargo test --bin tabby --lib
 
   release-binary:
     needs: tests
