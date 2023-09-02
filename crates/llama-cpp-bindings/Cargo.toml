@@ -9,3 +9,7 @@ cmake = "0.1"
 
 [dependencies]
 cxx = "1.0"
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+tabby-inference = { path = "../tabby-inference" }
+derive_builder = { workspace = true }

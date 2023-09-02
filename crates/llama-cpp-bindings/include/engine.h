@@ -5,9 +5,9 @@
 
 namespace tabby {
 
-class LlamaEngine {
+class TextInferenceEngine {
  public:
-  virtual ~LlamaEngine();
+  virtual ~TextInferenceEngine();
   virtual rust::Vec<uint32_t> inference(
       const rust::Str prompt,
       size_t max_decoding_length,
@@ -15,5 +15,5 @@ class LlamaEngine {
   ) const = 0;
 };
 
-std::shared_ptr<LlamaEngine> create_engine(rust::Str model_path);
+std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path);
 }  // namespace

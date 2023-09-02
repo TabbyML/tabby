@@ -7,15 +7,15 @@
 #include <common/common.h>
 
 namespace tabby {
-LlamaEngine::~LlamaEngine() {}
+TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
-class LlamaEngineImpl : public LlamaEngine {
+class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
-  LlamaEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
+  TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
     model_(std::move(model)),
     ctx_(std::move(ctx)) {
   }
@@ -83,7 +83,7 @@ struct BackendInitializer {
 };
 } // namespace
 
-std::shared_ptr<LlamaEngine> create_engine(rust::Str model_path) {
+std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   static BackendInitializer initializer;
 
   llama_context_params ctx_params = llama_context_default_params();
@@ -96,7 +96,7 @@ std::shared_ptr<LlamaEngine> create_engine(rust::Str model_path) {
 
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
 
-  return std::make_unique<LlamaEngineImpl>(
+  return std::make_unique<TextInferenceEngineImpl>(
       owned<llama_model>(model, llama_free_model),
       owned<llama_context>(ctx, llama_free)
   );
