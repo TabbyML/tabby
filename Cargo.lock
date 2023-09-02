@@ -2920,6 +2920,7 @@ dependencies = [
  "ctranslate2-bindings",
  "hyper",
  "lazy_static",
+ "llama-cpp-bindings",
  "mime_guess",
  "nvml-wrapper",
  "opentelemetry",

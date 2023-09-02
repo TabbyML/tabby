@@ -1,10 +1,10 @@
 #include "engine.h"
 
 #include <functional>
+#include <vector>
 
 #include <ggml.h>
 #include <llama.h>
-#include <common/common.h>
 
 namespace tabby {
 TextInferenceEngine::~TextInferenceEngine() {}
@@ -12,6 +12,35 @@ TextInferenceEngine::~TextInferenceEngine() {}
 namespace {
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
+
+std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string & text, bool add_bos) {
+    // upper limit for the number of tokens
+    int n_tokens = text.length() + add_bos;
+    std::vector<llama_token> result(n_tokens);
+    n_tokens = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
+    if (n_tokens < 0) {
+        result.resize(-n_tokens);
+        int check = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
+        GGML_ASSERT(check == -n_tokens);
+    } else {
+        result.resize(n_tokens);
+    }
+    return result;
+}
+
+std::string llama_token_to_piece(const struct llama_context * ctx, llama_token token) {
+    std::vector<char> result(8, 0);
+    const int n_tokens = llama_token_to_piece(ctx, token, result.data(), result.size());
+    if (n_tokens < 0) {
+        result.resize(-n_tokens);
+        int check = llama_token_to_piece(ctx, token, result.data(), result.size());
+        GGML_ASSERT(check == -n_tokens);
+    } else {
+        result.resize(n_tokens);
+    }
+
+    return std::string(result.data(), result.size());
+}
 
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
@@ -26,7 +55,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       float sampling_temperature
   ) const override {
     auto* ctx = ctx_.get();
-    std::vector<llama_token> tokens_list = llama_tokenize(ctx, std::string(prompt), true);
+    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), true);
 
     rust::Vec<uint32_t> ret;
     for (size_t n_remain = max_decoding_length; n_remain > 0; --n_remain) {
@@ -59,7 +88,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         break;
       }
 
-      fprintf(stderr, "Next Token: %d\n", new_token_id);
+      printf("%s", llama_token_to_piece(ctx, new_token_id).c_str());
+      // fprintf(stderr, "Next Token: %d, remaining: %d\n", new_token_id, n_remain);
       tokens_list.push_back(new_token_id);
       ret.push_back(new_token_id);
     }
@@ -87,6 +117,8 @@ std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   static BackendInitializer initializer;
 
   llama_context_params ctx_params = llama_context_default_params();
+  ctx_params.n_gpu_layers = 4;
+
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), ctx_params);
 
   if (!model) {
