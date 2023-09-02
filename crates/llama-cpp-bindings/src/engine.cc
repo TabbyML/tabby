@@ -28,20 +28,6 @@ std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string 
     return result;
 }
 
-std::string llama_token_to_piece(const struct llama_context * ctx, llama_token token) {
-    std::vector<char> result(8, 0);
-    const int n_tokens = llama_token_to_piece(ctx, token, result.data(), result.size());
-    if (n_tokens < 0) {
-        result.resize(-n_tokens);
-        int check = llama_token_to_piece(ctx, token, result.data(), result.size());
-        GGML_ASSERT(check == -n_tokens);
-    } else {
-        result.resize(n_tokens);
-    }
-
-    return std::string(result.data(), result.size());
-}
-
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
   TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
@@ -51,13 +37,12 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
   uint32_t start(const rust::Str prompt) const override {
     auto* ctx = ctx_.get();
-    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), true);
+    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), /* add_bos = */ true);
     eval(tokens_list, /* reset = */ true);
     return sample();
   }
 
   uint32_t step(uint32_t next_token_id) const override {
-    auto* ctx = ctx_.get();
     eval({ static_cast<llama_token>(next_token_id) }, /* reset = */ false);
     return sample();
   }
