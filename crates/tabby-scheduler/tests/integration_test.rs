@@ -1,6 +1,4 @@
-use tabby_scheduler::dataset;
-use tabby_scheduler::index;
-use tabby_scheduler::repository;
+use tabby_scheduler::{dataset, index, repository};
 
 #[cfg(test)]
 mod tests {
