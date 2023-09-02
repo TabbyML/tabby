@@ -68,6 +68,6 @@ impl TextGeneration for LlamaEngine {
             n_remains -= 1;
         }
 
-        self.tokenizer.decode(output_ids, true).unwrap()
+        self.tokenizer.decode(&output_ids, true).unwrap()
     }
 }

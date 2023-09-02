@@ -131,7 +131,7 @@ impl TextGeneration for CTranslate2Engine {
         })
         .await
         .expect("Inference failed");
-        self.tokenizer.decode(output_ids, true).unwrap()
+        self.tokenizer.decode(&output_ids, true).unwrap()
     }
 }
 

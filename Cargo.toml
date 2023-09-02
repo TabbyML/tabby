@@ -31,4 +31,4 @@ tantivy = "0.19.2"
 async-trait = "0.1.72"
 reqwest = { version = "0.11.18" }
 derive_builder = "0.12.0"
-tokenizers = "0.13.3"
+tokenizers = "0.13.4-rc3"

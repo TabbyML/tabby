@@ -68,7 +68,7 @@ impl StopWordsCondition {
 
     pub fn next_token(&mut self, token_id: u32) -> bool {
         if let Some(re) = &self.stop_re {
-            let token = self.tokenizer.decode(vec![token_id], false).unwrap();
+            let token = self.tokenizer.decode(&[token_id], false).unwrap();
             let mut new_token = reverse(&token.as_str());
             new_token.push_str(&self.reversed_output_text);
             self.reversed_output_text = new_token;
