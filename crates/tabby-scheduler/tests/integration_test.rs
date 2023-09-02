@@ -12,8 +12,8 @@ mod tests {
     use super::*;
 
     #[traced_test]
-    #[test]
-    fn end_to_end() {
+    #[tokio::test]
+    async fn end_to_end() {
         set_tabby_root(TempDir::default().to_path_buf());
 
         let config = Config {
@@ -23,6 +23,7 @@ mod tests {
             experimental: Experimental::default(),
         };
 
-        tabby_scheduler::scheduler(true);
+        let res = tabby_scheduler::scheduler(true, Some(config)).await;
+        assert!(res.is_ok());
     }
 }

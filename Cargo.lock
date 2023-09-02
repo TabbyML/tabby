@@ -3030,6 +3030,7 @@ dependencies = [
  "tabby-common",
  "tantivy",
  "temp_testdir",
+ "tokio",
  "tracing",
  "tracing-test",
  "tree-sitter-go",

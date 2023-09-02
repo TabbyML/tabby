@@ -54,7 +54,7 @@ async fn main() {
         Commands::Serve(args) => serve::main(&config, args).await,
         Commands::Download(args) => download::main(args).await,
         #[cfg(feature = "scheduler")]
-        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now)
+        Commands::Scheduler(args) => tabby_scheduler::scheduler(args.now, None)
             .await
             .unwrap_or_else(|err| fatal!("Scheduler failed due to '{}'", err)),
     }
