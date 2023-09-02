@@ -49,55 +49,52 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     ctx_(std::move(ctx)) {
   }
 
-  rust::Vec<uint32_t> inference(
-      const rust::Str prompt,
-      size_t max_decoding_length,
-      float sampling_temperature
-  ) const override {
+  uint32_t start(const rust::Str prompt) const override {
     auto* ctx = ctx_.get();
     std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), true);
+    eval(tokens_list, /* reset = */ true);
+    return sample();
+  }
 
-    rust::Vec<uint32_t> ret;
-    for (size_t n_remain = max_decoding_length; n_remain > 0; --n_remain) {
-      if (llama_eval(
-            ctx,
-            tokens_list.data(),
-            tokens_list.size(),
-            llama_get_kv_cache_token_count(ctx),
-            /* n_threads = */ 1)) {
-        fprintf(stderr, "%s : failed to eval\n", __func__);
-        return {};
-      }
-
-      tokens_list.clear();
-
-      auto logits = llama_get_logits(ctx);
-      auto n_vocab = llama_n_vocab(ctx);
-
-      std::vector<llama_token_data> candidates;
-      candidates.reserve(n_vocab);
-      for (llama_token token_id = 0; token_id < n_vocab; ++token_id) {
-        candidates.emplace_back(llama_token_data{token_id, logits[token_id], 0.0f});
-      }
-
-      llama_token_data_array candidates_p = { candidates.data(), candidates.size(), false };
-
-      llama_token new_token_id = llama_sample_token_greedy(ctx , &candidates_p);
-
-      if (new_token_id == llama_token_eos(ctx)) {
-        break;
-      }
-
-      printf("%s", llama_token_to_piece(ctx, new_token_id).c_str());
-      // fprintf(stderr, "Next Token: %d, remaining: %d\n", new_token_id, n_remain);
-      tokens_list.push_back(new_token_id);
-      ret.push_back(new_token_id);
-    }
-
-    return ret;
+  uint32_t step(uint32_t next_token_id) const override {
+    auto* ctx = ctx_.get();
+    eval({ static_cast<llama_token>(next_token_id) }, /* reset = */ false);
+    return sample();
   }
 
  private:
+  uint32_t sample() const {
+    auto* ctx = ctx_.get();
+
+    auto logits = llama_get_logits(ctx);
+    auto n_vocab = llama_n_vocab(ctx);
+
+    std::vector<llama_token_data> candidates;
+    candidates.reserve(n_vocab);
+    for (llama_token token_id = 0; token_id < n_vocab; ++token_id) {
+      candidates.emplace_back(llama_token_data{token_id, logits[token_id], 0.0f});
+    }
+
+    llama_token_data_array candidates_p = { candidates.data(), candidates.size(), false };
+
+    return llama_sample_token_greedy(ctx , &candidates_p);
+  }
+
+  bool eval(const std::vector<llama_token>& tokens_list, bool reset) const {
+    auto* ctx = ctx_.get();
+    if (llama_eval(
+          ctx,
+          tokens_list.data(),
+          tokens_list.size(),
+          reset ? 0 : llama_get_kv_cache_token_count(ctx),
+          /* n_threads = */ 1)) {
+      fprintf(stderr, "%s : failed to eval\n", __func__);
+      return false;
+    }
+
+    return true;
+  }
+
   owned<llama_model> model_;
   owned<llama_context> ctx_;
 };
@@ -128,7 +125,7 @@ std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
 
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
 
-  return std::make_unique<TextInferenceEngineImpl>(
+  return std::make_shared<TextInferenceEngineImpl>(
       owned<llama_model>(model, llama_free_model),
       owned<llama_context>(ctx, llama_free)
   );

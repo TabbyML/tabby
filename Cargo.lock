@@ -1557,6 +1557,7 @@ dependencies = [
  "cxx-build",
  "derive_builder",
  "tabby-inference",
+ "tokenizers",
  "tokio",
 ]
 

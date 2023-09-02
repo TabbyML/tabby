@@ -2,6 +2,8 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
+use std::sync::{Mutex, MutexGuard};
+use tokenizers::tokenizer::Tokenizer;
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
@@ -12,12 +14,8 @@ mod ffi {
 
         fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
 
-        fn inference(
-            &self,
-            prompt: &str,
-            max_decoding_length: usize,
-            sampling_temperature: f32,
-        ) -> Vec<u32>;
+        fn start(&self, prompt: &str) -> u32;
+        fn step(&self, next_token_id: u32) -> u32;
     }
 }
 
@@ -27,16 +25,19 @@ unsafe impl Sync for ffi::TextInferenceEngine {}
 #[derive(Builder, Debug)]
 pub struct LlamaEngineOptions {
     model_path: String,
+    tokenizer_path: String,
 }
 
 pub struct LlamaEngine {
-    engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
+    engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
+    tokenizer: Tokenizer,
 }
 
 impl LlamaEngine {
     pub fn create(options: LlamaEngineOptions) -> Self {
         LlamaEngine {
-            engine: create_engine(&options.model_path),
+            engine: Mutex::new(create_engine(&options.model_path)),
+            tokenizer: Tokenizer::from_file(&options.tokenizer_path).unwrap(),
         }
     }
 }
@@ -44,11 +45,16 @@ impl LlamaEngine {
 #[async_trait]
 impl TextGeneration for LlamaEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        self.engine.inference(
-            prompt,
-            options.max_decoding_length,
-            options.sampling_temperature,
-        );
-        "abc".to_owned()
+        let engine = self.engine.lock().unwrap();
+        let mut next_token_id = engine.start(prompt);
+        let mut n_remains = options.max_decoding_length - 1;
+        let mut output_ids = vec![next_token_id];
+        while n_remains > 0 {
+            next_token_id = engine.step(next_token_id);
+            output_ids.push(next_token_id);
+            n_remains -= 1;
+        }
+
+        self.tokenizer.decode(output_ids, true).unwrap()
     }
 }

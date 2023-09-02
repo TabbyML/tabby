@@ -8,7 +8,7 @@ cxx = "1.0"
 dashmap = "5.4.0"
 derive_builder = { workspace = true }
 regex = "1.8.4"
-tokenizers = "0.13.3"
+tokenizers = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
 tokio-util = { workspace = true }
 tabby-inference = { path = "../tabby-inference" }

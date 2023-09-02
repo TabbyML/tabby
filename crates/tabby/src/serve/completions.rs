@@ -150,6 +150,7 @@ impl CompletionState {
         } else {
             let options = LlamaEngineOptionsBuilder::default()
                 .model_path(model_dir.ggml_model_file())
+                .tokenizer_path(model_dir.tokenizer_file())
                 .build()
                 .unwrap();
 

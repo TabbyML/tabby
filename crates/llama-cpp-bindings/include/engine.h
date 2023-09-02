@@ -8,11 +8,9 @@ namespace llama {
 class TextInferenceEngine {
  public:
   virtual ~TextInferenceEngine();
-  virtual rust::Vec<uint32_t> inference(
-      const rust::Str prompt,
-      size_t max_decoding_length,
-      float sampling_temperature
-  ) const = 0;
+
+  virtual uint32_t start(const rust::Str prompt) const = 0;
+  virtual uint32_t step(uint32_t next_token_id) const = 0;
 };
 
 std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path);
