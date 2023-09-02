@@ -85,4 +85,8 @@ impl ModelDir {
     pub fn ctranslate2_dir(&self) -> String {
         self.path_string("ctranslate2")
     }
+
+    pub fn ggml_model_file(&self) -> String {
+        self.path_string("ggml/default.gguf")
+    }
 }
