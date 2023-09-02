@@ -12,6 +12,7 @@ fn main() {
     println!("cargo:rustc-link-lib=llama");
     println!("cargo:rustc-link-lib=ggml_static");
     println!("cargo:rustc-link-lib=framework=Foundation");
+    println!("cargo:rustc-link-lib=framework=Accelerate");
     println!("cargo:rustc-link-lib=framework=Metal");
     println!("cargo:rustc-link-lib=framework=MetalKit");
 
