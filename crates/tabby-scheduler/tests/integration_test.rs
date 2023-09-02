@@ -1,4 +1,4 @@
-use tabby_scheduler::{dataset, index, repository};
+use tabby_scheduler;
 
 #[cfg(test)]
 mod tests {
@@ -23,8 +23,6 @@ mod tests {
             experimental: Experimental::default(),
         };
 
-        repository::sync_repositories(&config).unwrap();
-        dataset::create_dataset(&config).unwrap();
-        index::index_repositories(&config).unwrap();
+        tabby_scheduler::scheduler(true);
     }
 }
