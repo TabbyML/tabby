@@ -64,8 +64,6 @@ pub struct CTranslate2EngineOptions {
     num_replicas_per_device: usize,
 
     compute_type: String,
-
-    stop_words_encoding_offset: Option<usize>,
 }
 
 pub struct InferenceContext {
@@ -86,7 +84,6 @@ pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
     stop_words: StopWords,
     tokenizer: Arc<Tokenizer>,
-    stop_words_encoding_offset: Option<usize>,
 }
 
 impl CTranslate2Engine {
@@ -102,9 +99,8 @@ impl CTranslate2Engine {
 
         return Self {
             engine,
-            stop_words: StopWords::new(),
+            stop_words: StopWords::default(),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
-            stop_words_encoding_offset: options.stop_words_encoding_offset,
         };
     }
 }
@@ -119,11 +115,9 @@ impl TextGeneration for CTranslate2Engine {
         let cancel_for_inference = cancel.clone();
         let _guard = cancel.drop_guard();
 
-        let stop_condition = self.stop_words.create_condition(
-            self.tokenizer.clone(),
-            options.stop_words,
-            self.stop_words_encoding_offset,
-        );
+        let stop_condition = self
+            .stop_words
+            .create_condition(self.tokenizer.clone(), options.stop_words);
         let context = InferenceContext::new(stop_condition, cancel_for_inference);
         let output_ids = tokio::task::spawn_blocking(move || {
             let context = Box::new(context);

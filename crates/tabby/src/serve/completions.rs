@@ -143,7 +143,6 @@ impl CompletionState {
                 .device_indices(args.device_indices.clone())
                 .num_replicas_per_device(args.num_replicas_per_device)
                 .compute_type(compute_type)
-                .stop_words_encoding_offset(metadata.stop_words_encoding_offset)
                 .build()
                 .unwrap();
             Box::new(CTranslate2Engine::create(options))
@@ -151,7 +150,6 @@ impl CompletionState {
             let options = LlamaEngineOptionsBuilder::default()
                 .model_path(model_dir.ggml_model_file())
                 .tokenizer_path(model_dir.tokenizer_file())
-                .stop_words_encoding_offset(metadata.stop_words_encoding_offset)
                 .build()
                 .unwrap();
 
@@ -180,7 +178,6 @@ fn get_model_dir(model: &str) -> ModelDir {
 struct Metadata {
     auto_model: String,
     prompt_template: Option<String>,
-    stop_words_encoding_offset: Option<usize>,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {

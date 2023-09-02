@@ -12,28 +12,27 @@ fn reverse(s: &&str) -> String {
     s.chars().rev().collect()
 }
 
-impl StopWords {
-    pub fn new() -> Self {
+impl Default for StopWords {
+    fn default() -> Self {
         Self {
             stop_regex_cache: DashMap::new(),
         }
     }
+}
 
+impl StopWords {
     pub fn create_condition(
         &self,
         tokenizer: Arc<Tokenizer>,
         stop_words: &'static Vec<&'static str>,
-        stop_words_encoding_offset: Option<usize>,
     ) -> StopWordsCondition {
         let re = if stop_words.is_empty() {
             None
         } else {
             let mut re = self.stop_regex_cache.get(stop_words);
             if re.is_none() {
-                self.stop_regex_cache.insert(
-                    stop_words,
-                    create_stop_regex(stop_words),
-                );
+                self.stop_regex_cache
+                    .insert(stop_words, create_stop_regex(stop_words));
                 re = self.stop_regex_cache.get(stop_words);
             }
             re.map(|x| x.value().clone())
