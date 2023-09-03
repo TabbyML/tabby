@@ -407,8 +407,6 @@ def this_is_prefix():\n";
 
         let generated_prompt = build_prefix("python", prefix, snippets);
 
-        println!("{}", generated_prompt);
-
         for i in 0..snippets_expected + 1 {
             let st = format!("# == Snippet {} ==", i + 1);
             if i < snippets_expected {
