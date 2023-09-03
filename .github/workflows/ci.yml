@@ -43,10 +43,10 @@ jobs:
         include:
           - os: macos-11
             target: aarch64-apple-darwin
-            features: "metal"
+            flags: "--features metal"
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            features: ""
+            flags: ""
 
     env:
       SCCACHE_GHA_ENABLED: true
@@ -83,7 +83,7 @@ jobs:
             ~/.cargo/git
       - run: bash ./ci/prepare_build_environment.sh
       - name: Bulid release binary
-        run: cargo build --no-default-features --features ${{ matrix.features }} --release --target ${{ matrix.target }}
+        run: cargo build --no-default-features ${{ matrix.flags }} --release --target ${{ matrix.target }}
 
       - name: Rename release binary
         run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
