@@ -1,6 +1,3 @@
 [submodule "crates/ctranslate2-bindings/CTranslate2"]
 	path = crates/ctranslate2-bindings/CTranslate2
 	url = https://github.com/OpenNMT/CTranslate2.git
-[submodule "crates/llama-cpp-bindings/llama.cpp"]
-	path = crates/llama-cpp-bindings/llama.cpp
-	url = https://github.com/ggerganov/llama.cpp
