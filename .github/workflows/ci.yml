@@ -34,12 +34,6 @@ jobs:
       - name: Cargo fmt
         run: cargo +nightly fmt --check
 
-      - name: Setup build environment
-        run: bash ./ci/prepare_build_environment.sh
-
-      - name: Cargo test
-        run: cargo test --bin tabby --lib
-
   release-binary:
     needs: tests
     runs-on: ${{ matrix.os }}
@@ -88,8 +82,12 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
       - run: bash ./ci/prepare_build_environment.sh
+
+      - name: Run unit tests
+        run: cargo test --bin tabby --lib
+
       - name: Bulid release binary
-        run: cargo build --bin tabby --no-default-features ${{ matrix.flags }} --release --target ${{ matrix.target }}
+        run: cargo build --no-default-features ${{ matrix.flags }} --release --target ${{ matrix.target }}
 
       - name: Rename release binary
         run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}
