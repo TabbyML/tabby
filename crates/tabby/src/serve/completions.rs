@@ -121,7 +121,7 @@ pub async fn completion(
 }
 
 pub struct CompletionState {
-    engine: CTranslate2Engine,
+    engine: Box<dyn TextGeneration>,
     prompt_builder: prompt::PromptBuilder,
 }
 
@@ -129,21 +129,8 @@ impl CompletionState {
     pub fn new(args: &crate::serve::ServeArgs, config: &Config) -> Self {
         let model_dir = get_model_dir(&args.model);
         let metadata = read_metadata(&model_dir);
+        let engine = create_engine(args, &model_dir, &metadata);
 
-        let device = format!("{}", args.device);
-        let compute_type = format!("{}", args.compute_type);
-        let options = CTranslate2EngineOptionsBuilder::default()
-            .model_path(model_dir.ctranslate2_dir())
-            .tokenizer_path(model_dir.tokenizer_file())
-            .device(device)
-            .model_type(metadata.auto_model)
-            .device_indices(args.device_indices.clone())
-            .num_replicas_per_device(args.num_replicas_per_device)
-            .compute_type(compute_type)
-            .stop_words_encoding_offset(metadata.stop_words_encoding_offset)
-            .build()
-            .unwrap();
-        let engine = CTranslate2Engine::create(options);
         Self {
             engine,
             prompt_builder: prompt::PromptBuilder::new(
@@ -152,6 +139,59 @@ impl CompletionState {
             ),
         }
     }
+}
+
+#[cfg(not(feature = "metal"))]
+fn create_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    create_ctranslate2_engine(args, model_dir, metadata)
+}
+
+#[cfg(feature = "metal")]
+fn create_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    if args.device != super::Device::Metal {
+        create_ctranslate2_engine(args, model_dir, metadata)
+    } else {
+        create_llama_engine(model_dir)
+    }
+}
+
+fn create_ctranslate2_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    let device = format!("{}", args.device);
+    let compute_type = format!("{}", args.compute_type);
+    let options = CTranslate2EngineOptionsBuilder::default()
+        .model_path(model_dir.ctranslate2_dir())
+        .tokenizer_path(model_dir.tokenizer_file())
+        .device(device)
+        .model_type(metadata.auto_model.clone())
+        .device_indices(args.device_indices.clone())
+        .num_replicas_per_device(args.num_replicas_per_device)
+        .compute_type(compute_type)
+        .build()
+        .unwrap();
+    Box::new(CTranslate2Engine::create(options))
+}
+
+#[cfg(feature = "metal")]
+fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
+    let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
+        .model_path(model_dir.ggml_model_file())
+        .tokenizer_path(model_dir.tokenizer_file())
+        .build()
+        .unwrap();
+
+    Box::new(llama_cpp_bindings::LlamaEngine::create(options))
 }
 
 fn get_model_dir(model: &str) -> ModelDir {
@@ -166,7 +206,6 @@ fn get_model_dir(model: &str) -> ModelDir {
 struct Metadata {
     auto_model: String,
     prompt_template: Option<String>,
-    stop_words_encoding_offset: Option<usize>,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {

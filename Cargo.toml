@@ -7,6 +7,8 @@ members = [
     "crates/tabby-inference",
     "crates/ctranslate2-bindings",
     "crates/rust-cxx-cmake-bridge",
+    "crates/llama-cpp-bindings",
+    "crates/stop-words",
 ]
 
 [workspace.package]
@@ -28,3 +30,5 @@ serde-jsonlines = "0.4.0"
 tantivy = "0.19.2"
 async-trait = "0.1.72"
 reqwest = { version = "0.11.18" }
+derive_builder = "0.12.0"
+tokenizers = "0.13.4-rc3"

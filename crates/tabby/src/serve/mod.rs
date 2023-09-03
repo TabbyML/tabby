@@ -54,6 +54,10 @@ pub enum Device {
 
     #[strum(serialize = "cuda")]
     Cuda,
+
+    #[cfg(feature = "metal")]
+    #[strum(serialize = "metal")]
+    Metal,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]

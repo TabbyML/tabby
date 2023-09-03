@@ -1,0 +1,17 @@
+[package]
+name = "llama-cpp-bindings"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+cxx-build = "1.0"
+cmake = "0.1"
+
+[dependencies]
+cxx = "1.0"
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["rt"] }
+tabby-inference = { path = "../tabby-inference" }
+derive_builder = { workspace = true }
+tokenizers = { workspace = true }
+stop-words = { version = "0.1.0", path = "../stop-words" }
