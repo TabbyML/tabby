@@ -115,7 +115,6 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
         "language:{} AND kind:call AND ({})",
         language, sanitized_text
     );
-
     let query = match index.query_parser.parse_query(&query_text) {
         Ok(query) => query,
         Err(err) => {
