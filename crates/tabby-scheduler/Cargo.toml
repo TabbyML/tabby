@@ -25,9 +25,9 @@ tree-sitter-go = "0.20.0"
 tree-sitter-java = "0.20.0"
 tree-sitter-typescript = "0.20.2"
 tree-sitter-lua = "0.0.19"
-tokio = { workspace = true, features = ["rt"] }
 
 [dev-dependencies]
 temp_testdir = "0.2"
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
 tracing-test = "0.1"
+tokio = { workspace = true, features = ["rt"] }

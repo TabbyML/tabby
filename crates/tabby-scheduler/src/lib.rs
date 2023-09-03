@@ -7,11 +7,8 @@ use job_scheduler::{Job, JobScheduler};
 use tabby_common::config::Config;
 use tracing::{error, info};
 
-pub async fn scheduler(now: bool, config: Option<Config>) -> Result<()> {
-    let config = match config {
-        Some(config) => config,
-        None => Config::load()?,
-    };
+pub async fn scheduler(now: bool) -> Result<()> {
+    let config = Config::load()?;
     let mut scheduler = JobScheduler::new();
 
     let job1 = || {

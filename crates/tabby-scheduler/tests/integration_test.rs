@@ -1,7 +1,7 @@
-use tabby_scheduler;
-
 #[cfg(test)]
 mod tests {
+    use std::fs::create_dir_all;
+
     use tabby_common::{
         config::{Config, Experimental, Repository},
         path::set_tabby_root,
@@ -14,7 +14,9 @@ mod tests {
     #[traced_test]
     #[tokio::test]
     async fn end_to_end() {
-        set_tabby_root(TempDir::default().to_path_buf());
+        let root = TempDir::default();
+        create_dir_all(&root).expect("Failed to create tabby root");
+        set_tabby_root(root.to_path_buf());
 
         let config = Config {
             repositories: vec![Repository {
@@ -23,7 +25,9 @@ mod tests {
             experimental: Experimental::default(),
         };
 
-        let res = tabby_scheduler::scheduler(true, Some(config)).await;
-        assert!(res.is_ok());
+        config.save();
+
+        let res = tabby_scheduler::scheduler(true).await;
+        res.expect("Failed to run scheduler");
     }
 }
