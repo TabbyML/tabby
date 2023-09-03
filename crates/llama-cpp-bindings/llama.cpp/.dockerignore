@@ -1,0 +1,17 @@
+*.o
+*.a
+.cache/
+.vs/
+.vscode/
+.DS_Store
+
+build*/
+
+models/*
+
+/main
+/quantize
+
+arm_neon.h
+compile_commands.json
+Dockerfile
