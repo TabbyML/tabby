@@ -55,6 +55,7 @@ pub enum Device {
     #[strum(serialize = "cuda")]
     Cuda,
 
+    #[cfg(feature = "metal")]
     #[strum(serialize = "metal")]
     Metal,
 }

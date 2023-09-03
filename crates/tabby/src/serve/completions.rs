@@ -6,7 +6,6 @@ use std::{path::Path, sync::Arc};
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
 use hyper::StatusCode;
-use llama_cpp_bindings::{LlamaEngine, LlamaEngineOptionsBuilder};
 use serde::{Deserialize, Serialize};
 use tabby_common::{config::Config, events, path::ModelDir};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
@@ -14,7 +13,6 @@ use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
-use super::Device;
 use crate::fatal;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -131,30 +129,7 @@ impl CompletionState {
     pub fn new(args: &crate::serve::ServeArgs, config: &Config) -> Self {
         let model_dir = get_model_dir(&args.model);
         let metadata = read_metadata(&model_dir);
-
-        let engine: Box<dyn TextGeneration> = if args.device != Device::Metal {
-            let device = format!("{}", args.device);
-            let compute_type = format!("{}", args.compute_type);
-            let options = CTranslate2EngineOptionsBuilder::default()
-                .model_path(model_dir.ctranslate2_dir())
-                .tokenizer_path(model_dir.tokenizer_file())
-                .device(device)
-                .model_type(metadata.auto_model)
-                .device_indices(args.device_indices.clone())
-                .num_replicas_per_device(args.num_replicas_per_device)
-                .compute_type(compute_type)
-                .build()
-                .unwrap();
-            Box::new(CTranslate2Engine::create(options))
-        } else {
-            let options = LlamaEngineOptionsBuilder::default()
-                .model_path(model_dir.ggml_model_file())
-                .tokenizer_path(model_dir.tokenizer_file())
-                .build()
-                .unwrap();
-
-            Box::new(LlamaEngine::create(options))
-        };
+        let engine = create_engine(args, &model_dir, &metadata);
 
         Self {
             engine,
@@ -164,6 +139,59 @@ impl CompletionState {
             ),
         }
     }
+}
+
+#[cfg(not(feature = "metal"))]
+fn create_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    create_ctranslate2_engine(args, model_dir, metadata)
+}
+
+#[cfg(feature = "metal")]
+fn create_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    if args.device != super::Device::Metal {
+        create_ctranslate2_engine(args, model_dir, metadata)
+    } else {
+        create_llama_engine(model_dir)
+    }
+}
+
+fn create_ctranslate2_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    let device = format!("{}", args.device);
+    let compute_type = format!("{}", args.compute_type);
+    let options = CTranslate2EngineOptionsBuilder::default()
+        .model_path(model_dir.ctranslate2_dir())
+        .tokenizer_path(model_dir.tokenizer_file())
+        .device(device)
+        .model_type(metadata.auto_model.clone())
+        .device_indices(args.device_indices.clone())
+        .num_replicas_per_device(args.num_replicas_per_device)
+        .compute_type(compute_type)
+        .build()
+        .unwrap();
+    Box::new(CTranslate2Engine::create(options))
+}
+
+#[cfg(feature = "metal")]
+fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
+    let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
+        .model_path(model_dir.ggml_model_file())
+        .tokenizer_path(model_dir.tokenizer_file())
+        .build()
+        .unwrap();
+
+    Box::new(llama_cpp_bindings::LlamaEngine::create(options))
 }
 
 fn get_model_dir(model: &str) -> ModelDir {
