@@ -69,7 +69,7 @@ impl TextGeneration for LlamaEngine {
             while n_remains > 0 {
                 if cancel_for_inference.is_cancelled() {
                     // The token was cancelled
-                    break
+                    break;
                 }
 
                 next_token_id = engine.step(next_token_id);
