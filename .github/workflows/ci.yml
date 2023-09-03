@@ -31,11 +31,11 @@ jobs:
           toolchain: nightly
           components: rustfmt
 
-      - name: Install build dependency
-        run: sudo apt install -y libopenblas-dev curl pkg-config libssl-dev protobuf-compiler git
-
       - name: Cargo fmt
         run: cargo +nightly fmt --check
+
+      - name: Setup build environment
+        run: bash ./ci/prepare_build_environment.sh
 
       - name: Cargo test
         run: cargo test --bin tabby --lib
