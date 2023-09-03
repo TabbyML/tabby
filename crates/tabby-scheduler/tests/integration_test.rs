@@ -9,8 +9,6 @@ mod tests {
     use temp_testdir::*;
     use tracing_test::traced_test;
 
-    use super::*;
-
     #[traced_test]
     #[tokio::test]
     async fn end_to_end() {
