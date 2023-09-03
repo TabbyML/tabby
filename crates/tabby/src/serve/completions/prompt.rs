@@ -389,7 +389,10 @@ mod tests {
 #     print(\"This is snipptet 5\")
 def this_is_prefix():\n";
 
-        assert_eq!(build_prefix("python", prefix, snippets), expected_built_prefix);
+        assert_eq!(
+            build_prefix("python", prefix, snippets),
+            expected_built_prefix
+        );
     }
 
     #[test]
