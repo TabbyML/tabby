@@ -47,6 +47,11 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     return sample();
   }
 
+
+  uint32_t eos_token() const override {
+    return llama_token_eos(ctx_.get());
+  }
+
  private:
   uint32_t sample() const {
     auto* ctx = ctx_.get();
