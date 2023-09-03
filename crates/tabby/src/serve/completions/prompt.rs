@@ -91,7 +91,6 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
         lines.push(format!("== Snippet {} ==", i + 1));
         for line in snippet.lines() {
             lines.push(line.to_owned());
-            count_characters += line.len();
         }
 
         count_characters += snippet.len();
@@ -116,6 +115,7 @@ fn collect_snippets(index: &IndexState, language: &str, text: &str) -> Vec<Strin
         "language:{} AND kind:call AND ({})",
         language, sanitized_text
     );
+
     let query = match index.query_parser.parse_query(&query_text) {
         Ok(query) => query,
         Err(err) => {
@@ -356,6 +356,64 @@ mod tests {
                 suffix: Some("".into()),
             };
             assert_eq!(pb.build(language, segments), "");
+        }
+    }
+
+    #[test]
+    fn test_build_prefix_readable() {
+        let snippets = vec![
+            "def snippet_1():\n    print(\"This is snipptet 1\")\n".to_string(),
+            "def snippet_2():\n    print(\"This is snipptet 2\")\n".to_string(),
+            "def snippet_3():\n    print(\"This is snipptet 3\")\n".to_string(),
+            "def snippet_4():\n    print(\"This is snipptet 4\")\n".to_string(),
+            "def snippet_5():\n    print(\"This is snipptet 5\")\n".to_string(),
+        ];
+
+        let prefix = "def this_is_prefix():\n";
+
+        let expected_built_prefix = "\
+# Below are some relevant python snippets found in the repository:
+# == Snippet 1 ==
+# def snippet_1():
+#     print(\"This is snipptet 1\")
+# == Snippet 2 ==
+# def snippet_2():
+#     print(\"This is snipptet 2\")
+# == Snippet 3 ==
+# def snippet_3():
+#     print(\"This is snipptet 3\")
+# == Snippet 4 ==\n# def snippet_4():
+#     print(\"This is snipptet 4\")
+# == Snippet 5 ==
+# def snippet_5():
+#     print(\"This is snipptet 5\")
+def this_is_prefix():\n";
+
+        assert_eq!(build_prefix("python", prefix, snippets), expected_built_prefix);
+    }
+
+    #[test]
+    fn test_build_prefix_count_chars() {
+        let snippets_expected = 4;
+        let snippet_payload = "a".repeat(MAX_SNIPPET_CHARS_IN_PROMPT / snippets_expected);
+        let mut snippets = vec![];
+        for _ in 0..snippets_expected {
+            snippets.push(snippet_payload.clone());
+        }
+
+        let prefix = "def this_is_prefix():\n";
+
+        let generated_prompt = build_prefix("python", prefix, snippets);
+
+        println!("{}", generated_prompt);
+
+        for i in 0..snippets_expected + 1 {
+            let st = format!("# == Snippet {} ==", i + 1);
+            if i < snippets_expected {
+                assert!(generated_prompt.contains(&st));
+            } else {
+                assert!(!generated_prompt.contains(&st));
+            }
         }
     }
 }
