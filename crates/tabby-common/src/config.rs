@@ -4,11 +4,11 @@ use std::{
 };
 
 use filenamify::filenamify;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::path::{config_file, repositories_dir};
 
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
     pub repositories: Vec<Repository>,
@@ -17,7 +17,7 @@ pub struct Config {
     pub experimental: Experimental,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct Experimental {
     #[serde(default = "default_as_false")]
     pub enable_prompt_rewrite: bool,
@@ -37,9 +37,15 @@ impl Config {
             )
         })
     }
+
+    #[cfg(feature = "testutils")]
+    pub fn save(&self) {
+        serdeconv::to_toml_file(self, crate::path::config_file().as_path())
+            .expect("Failed to write config file");
+    }
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Repository {
     pub git_url: String,
 }

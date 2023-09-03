@@ -30,3 +30,4 @@ tree-sitter-lua = "0.0.19"
 temp_testdir = "0.2"
 tabby-common = { path = "../tabby-common", features = [ "testutils" ] }
 tracing-test = "0.1"
+tokio = { workspace = true, features = ["rt"] }
