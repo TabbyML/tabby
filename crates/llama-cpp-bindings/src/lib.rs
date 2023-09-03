@@ -19,6 +19,9 @@ mod ffi {
 
         fn start(&self, prompt: &str) -> u32;
         fn step(&self, next_token_id: u32) -> u32;
+        fn end(&self);
+
+        fn eos_token(&self) -> u32;
     }
 }
 
@@ -62,7 +65,13 @@ impl TextGeneration for LlamaEngine {
 
         let output_ids = tokio::task::spawn_blocking(move || {
             let engine = engine.lock().unwrap();
+            let eos_token = engine.eos_token();
+
             let mut next_token_id = engine.start(&prompt);
+            if next_token_id == eos_token {
+                return Vec::new();
+            }
+
             let mut n_remains = options.max_decoding_length - 1;
             let mut output_ids = vec![next_token_id];
 
@@ -73,6 +82,10 @@ impl TextGeneration for LlamaEngine {
                 }
 
                 next_token_id = engine.step(next_token_id);
+                if next_token_id == eos_token {
+                    break;
+                }
+
                 if stop_condition.next_token(next_token_id) {
                     break;
                 }
@@ -80,11 +93,11 @@ impl TextGeneration for LlamaEngine {
                 n_remains -= 1;
             }
 
+            engine.end();
             output_ids
         })
         .await
         .expect("Inference failed");
-
         self.tokenizer.decode(&output_ids, true).unwrap()
     }
 }

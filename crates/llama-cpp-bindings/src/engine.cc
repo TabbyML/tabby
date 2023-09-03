@@ -37,6 +37,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
   uint32_t start(const rust::Str prompt) const override {
     auto* ctx = ctx_.get();
+    llama_reset_timings(ctx);
     std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), /* add_bos = */ true);
     eval(tokens_list, /* reset = */ true);
     return sample();
@@ -47,6 +48,9 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     return sample();
   }
 
+  void end() const override {
+    llama_print_timings(ctx_.get());
+  }
 
   uint32_t eos_token() const override {
     return llama_token_eos(ctx_.get());
@@ -70,7 +74,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
           tokens_list.data(),
           tokens_list.size(),
           reset ? 0 : llama_get_kv_cache_token_count(ctx),
-          /* n_threads = */ 1)) {
+          /* n_threads = */ 4)) {
       fprintf(stderr, "%s : failed to eval\n", __func__);
       return false;
     }
@@ -97,7 +101,8 @@ std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   static BackendInitializer initializer;
 
   llama_context_params ctx_params = llama_context_default_params();
-  ctx_params.n_gpu_layers = 4;
+  ctx_params.n_ctx = 2048;
+  ctx_params.n_gpu_layers = 1;
 
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), ctx_params);
 
