@@ -368,7 +368,11 @@ mod tests {
             "res_5 = invoke_function_5(n)".to_string(),
         ];
 
-        let prefix = "def this_is_prefix():\n";
+        let prefix = "\
+'''
+Use some invoke_function to do some job.
+'''
+def this_is_prefix():\n";
 
         let expected_built_prefix = "\
 # Below are some relevant python snippets found in the repository:
@@ -382,6 +386,9 @@ mod tests {
 # res_4 = invoke_function_4(n)
 # == Snippet 5 ==
 # res_5 = invoke_function_5(n)
+'''
+Use some invoke_function to do some job.
+'''
 def this_is_prefix():\n";
 
         assert_eq!(
