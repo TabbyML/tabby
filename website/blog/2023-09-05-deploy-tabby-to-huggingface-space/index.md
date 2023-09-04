@@ -107,7 +107,8 @@ WORKDIR $HOME/app
 
 COPY --chown=user . $HOME/app
 
-CMD ["serve", "--model", "TabbyML/SantaCoder-1B"]
+CMD ["serve", ”--device", "cuda", "--model", "TabbyML/SantaCoder-1B"]
+
 ```
 
 #### CURL Command
