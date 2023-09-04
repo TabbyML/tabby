@@ -1,4 +1,4 @@
-# Getting Started
+# 👋 Getting Started
 
 Install Tabby in your code editors, if your favorite editor is not supported yet, consider filing an [Feature Request](https://github.com/TabbyML/tabby/issues/new?assignees=&labels=enhancement&projects=&template=feature_request.md&title=).
 

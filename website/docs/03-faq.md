@@ -1,4 +1,4 @@
-# Frequently Asked Questions
+# ⁉️ Frequently Asked Questions
 
 <details>
   <summary>How much VRAM a LLM model consumes?</summary>
