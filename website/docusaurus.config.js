@@ -82,9 +82,8 @@ const config = {
             label: 'Docs',
           },
           {to: '/playground', label: 'Playground', position: 'left'},
+          {to: '/blog', label: 'Blog', position: 'left'},
           {to: '/api', label: 'API', position: 'left'},
-          // FIXME(meng): enable blog.
-          // {to: '/blog', label: 'Blog', position: 'left'},
           {
             href: 'https://github.com/TabbyML/tabby',
             label: 'GitHub',
@@ -130,12 +129,10 @@ const config = {
           {
             title: 'More',
             items: [
-              /*
               {
                 label: 'Blog',
                 to: '/blog',
               },
-              */
               {
                 label: 'GitHub',
                 href: 'https://github.com/TabbyML/tabby',
