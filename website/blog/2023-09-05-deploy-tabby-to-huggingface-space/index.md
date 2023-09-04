@@ -10,7 +10,7 @@ authors:
 tags: [deployment]
 ---
 
-[Hugging Face Spaces](https://huggingface.co/spaces) provide an easy way for anyone to host their machine learning models.
+[Hugging Face Spaces](https://huggingface.co/spaces) provides an easy way for anyone to host their machine learning models.
 In this blog post, we are going to show you how to deploy a Tabby instance in Hugging Face Spaces. If you have not heard of Tabby, it’s an open-source Github Copilot alternative that supports code completion.
 Check out more details [here](https://github.com/TabbyML/tabby).
 
