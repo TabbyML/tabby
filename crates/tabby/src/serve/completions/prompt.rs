@@ -361,31 +361,34 @@ mod tests {
     #[test]
     fn test_build_prefix_readable() {
         let snippets = vec![
-            "def snippet_1():\n    print(\"This is snipptet 1\")\n".to_string(),
-            "def snippet_2():\n    print(\"This is snipptet 2\")\n".to_string(),
-            "def snippet_3():\n    print(\"This is snipptet 3\")\n".to_string(),
-            "def snippet_4():\n    print(\"This is snipptet 4\")\n".to_string(),
-            "def snippet_5():\n    print(\"This is snipptet 5\")\n".to_string(),
+            "res_1 = invoke_function_1(n)".to_string(),
+            "res_2 = invoke_function_2(n)".to_string(),
+            "res_3 = invoke_function_3(n)".to_string(),
+            "res_4 = invoke_function_4(n)".to_string(),
+            "res_5 = invoke_function_5(n)".to_string(),
         ];
 
-        let prefix = "def this_is_prefix():\n";
+        let prefix = "\
+'''
+Use some invoke_function to do some job.
+'''
+def this_is_prefix():\n";
 
         let expected_built_prefix = "\
 # Below are some relevant python snippets found in the repository:
 # == Snippet 1 ==
-# def snippet_1():
-#     print(\"This is snipptet 1\")
+# res_1 = invoke_function_1(n)
 # == Snippet 2 ==
-# def snippet_2():
-#     print(\"This is snipptet 2\")
+# res_2 = invoke_function_2(n)
 # == Snippet 3 ==
-# def snippet_3():
-#     print(\"This is snipptet 3\")
-# == Snippet 4 ==\n# def snippet_4():
-#     print(\"This is snipptet 4\")
+# res_3 = invoke_function_3(n)
+# == Snippet 4 ==
+# res_4 = invoke_function_4(n)
 # == Snippet 5 ==
-# def snippet_5():
-#     print(\"This is snipptet 5\")
+# res_5 = invoke_function_5(n)
+'''
+Use some invoke_function to do some job.
+'''
 def this_is_prefix():\n";
 
         assert_eq!(
@@ -399,7 +402,7 @@ def this_is_prefix():\n";
         let snippets_expected = 4;
         let snippet_payload = "a".repeat(MAX_SNIPPET_CHARS_IN_PROMPT / snippets_expected);
         let mut snippets = vec![];
-        for _ in 0..snippets_expected {
+        for _ in 0..snippets_expected + 1 {
             snippets.push(snippet_payload.clone());
         }
 
