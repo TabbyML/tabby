@@ -361,11 +361,11 @@ mod tests {
     #[test]
     fn test_build_prefix_readable() {
         let snippets = vec![
-            "snippet_1() = build_snippet_1(n)".to_string(),
-            "snippet_2() = build_snippet_2(n)".to_string(),
-            "snippet_3() = build_snippet_3(n)".to_string(),
-            "snippet_4() = build_snippet_4(n)".to_string(),
-            "snippet_5() = build_snippet_5(n)".to_string(),
+            "res_1 = invoke_function_1(n)".to_string(),
+            "res_2 = invoke_function_2(n)".to_string(),
+            "res_3 = invoke_function_3(n)".to_string(),
+            "res_4 = invoke_function_4(n)".to_string(),
+            "res_5 = invoke_function_5(n)".to_string(),
         ];
 
         let prefix = "def this_is_prefix():\n";
@@ -373,15 +373,15 @@ mod tests {
         let expected_built_prefix = "\
 # Below are some relevant python snippets found in the repository:
 # == Snippet 1 ==
-# snippet_1() = build_snippet_1(n)
+# res_1 = invoke_function_1(n)
 # == Snippet 2 ==
-# snippet_2() = build_snippet_2(n)
+# res_2 = invoke_function_2(n)
 # == Snippet 3 ==
-# snippet_3() = build_snippet_3(n)
+# res_3 = invoke_function_3(n)
 # == Snippet 4 ==
-# snippet_4() = build_snippet_4(n)
+# res_4 = invoke_function_4(n)
 # == Snippet 5 ==
-# snippet_5() = build_snippet_5(n)
+# res_5 = invoke_function_5(n)
 def this_is_prefix():\n";
 
         assert_eq!(
