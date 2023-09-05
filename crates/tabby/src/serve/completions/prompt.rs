@@ -49,11 +49,7 @@ impl PromptBuilder {
 
     pub fn build(&self, language: &str, segments: Segments) -> String {
         let segments = self.rewrite(language, segments);
-        if let Some(suffix) = segments.suffix {
-            self.build_prompt(segments.prefix, suffix)
-        } else {
-            self.build_prompt(segments.prefix, "\n".to_owned())
-        }
+        self.build_prompt(segments.prefix, get_default_suffix(segments.suffix))
     }
 
     fn rewrite(&self, language: &str, segments: Segments) -> Segments {
@@ -62,6 +58,19 @@ impl PromptBuilder {
         } else {
             segments
         }
+    }
+}
+
+fn get_default_suffix(suffix: Option<String>) -> String {
+    if suffix.is_none() {
+        return "\n".to_owned();
+    }
+
+    let suffix = suffix.unwrap();
+    if suffix.is_empty() {
+        "\n".to_owned()
+    } else {
+        suffix
     }
 }
 
@@ -261,7 +270,7 @@ mod tests {
             };
             assert_eq!(
                 pb.build(language, segments),
-                "<PRE> this is some prefix <SUF> <MID>"
+                "<PRE> this is some prefix <SUF>\n <MID>"
             );
         }
 
@@ -292,7 +301,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE>  <SUF> <MID>");
+            assert_eq!(pb.build(language, segments), "<PRE>  <SUF>\n <MID>");
         }
     }
 
