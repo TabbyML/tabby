@@ -63,7 +63,7 @@ impl PromptBuilder {
 
 fn get_default_suffix(suffix: Option<String>) -> String {
     if suffix.is_none() {
-        return "\n".to_owned()
+        return "\n".to_owned();
     }
 
     let suffix = suffix.unwrap();
