@@ -40,10 +40,10 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         val settings = service<ApplicationSettingsState>()
         val agentService = service<AgentService>()
         updateStatusScope.launch {
-          settings.state.combine(agentService.status) { settings, agentStatus ->
-            Pair(settings, agentStatus)
+          combine(settings.state, agentService.status, agentService.currentIssue) { settings, agentStatus, currentIssue ->
+            Triple(settings, agentStatus, currentIssue)
           }.collect {
-            updateStatus(it.first, it.second)
+            updateStatus(it.first, it.second, it.third)
           }
         }
       }
@@ -73,6 +73,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
               val actionManager = ActionManager.getInstance()
               return arrayOf(
                 actionManager.getAction("Tabby.OpenAuthPage"),
+                actionManager.getAction("Tabby.CheckIssueDetail"),
                 actionManager.getAction("Tabby.ToggleAutoCompletionEnabled"),
                 actionManager.getAction("Tabby.OpenSettings"),
               )
@@ -85,7 +86,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         )
       }
 
-      private fun updateStatus(settingsState: ApplicationSettingsState.State, agentStatus: Agent.Status) {
+      private fun updateStatus(settingsState: ApplicationSettingsState.State, agentStatus: Agent.Status, currentIssue: String?) {
         if (!settingsState.isAutoCompletionEnabled) {
           icon = AllIcons.Windows.CloseSmall
           tooltip = "Tabby: Auto completion is disabled"
@@ -106,6 +107,14 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
             Agent.Status.UNAUTHORIZED -> {
               icon = AllIcons.General.Warning
               tooltip = "Tabby: Requires authorization"
+            }
+            Agent.Status.ISSUES_EXIST -> {
+              icon = AllIcons.General.Warning
+              tooltip = when(currentIssue) {
+                "slowCompletionResponseTime" -> "Tabby: Completion requests appear to take too much time"
+                "highCompletionTimeoutRate" -> "Tabby: Most completion requests timed out"
+                else -> "Tabby: Issues exist"
+              }
             }
           }
         }
