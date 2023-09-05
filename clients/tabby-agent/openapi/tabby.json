@@ -3,21 +3,12 @@
   "info": {
     "title": "Tabby Server",
     "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](https://github.com/TabbyML/tabby)\n\nOpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-hosted AI coding assistant.",
-    "license": {
-      "name": "Apache 2.0",
-      "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
-    },
+    "license": { "name": "Apache 2.0", "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE" },
     "version": "0.1.0"
   },
   "servers": [
-    {
-      "url": "https://playground.app.tabbyml.com",
-      "description": "Playground server"
-    },
-    {
-      "url": "http://localhost:8080",
-      "description": "Local server"
-    }
+    { "url": "https://playground.app.tabbyml.com", "description": "Playground server" },
+    { "url": "http://localhost:8080", "description": "Local server" }
   ],
   "paths": {
     "/v1/completions": {
@@ -25,13 +16,7 @@
         "tags": ["v1"],
         "operationId": "completion",
         "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompletionRequest"
-              }
-            }
-          },
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CompletionRequest" } } },
           "required": true
         },
         "responses": {
@@ -105,14 +90,16 @@
       },
       "HealthState": {
         "type": "object",
-        "required": ["model", "device", "compute_type", "arch", "cpu_info", "cpu_count"],
+        "required": ["model", "device", "compute_type", "arch", "cpu_info", "cpu_count", "cuda_devices", "version"],
         "properties": {
           "model": { "type": "string" },
           "device": { "type": "string" },
           "compute_type": { "type": "string" },
           "arch": { "type": "string" },
           "cpu_info": { "type": "string" },
-          "cpu_count": { "type": "integer", "minimum": 0.0 }
+          "cpu_count": { "type": "integer", "minimum": 0.0 },
+          "cuda_devices": { "type": "array", "items": { "type": "string" } },
+          "version": { "$ref": "#/components/schemas/Version" }
         }
       },
       "LogEventRequest": {
@@ -134,6 +121,16 @@
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
           }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "required": ["build_date", "build_timestamp", "git_sha", "git_describe"],
+        "properties": {
+          "build_date": { "type": "string" },
+          "build_timestamp": { "type": "string" },
+          "git_sha": { "type": "string" },
+          "git_describe": { "type": "string" }
         }
       }
     }
