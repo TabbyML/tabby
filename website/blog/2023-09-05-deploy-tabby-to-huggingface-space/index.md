@@ -3,14 +3,15 @@ slug: deploy-tabby-to-huggingface-space.md
 title: Deploying a Tabby Instance in Hugging Face Spaces
 authors:
   - name: Rand Xie
-    title: Contributor of Tabby
+    title: Community Member
     url: https://github.com/randxie
     image_url: https://github.com/randxie.png
   - meng
 tags: [deployment]
 ---
 
-[Hugging Face Spaces](https://huggingface.co/spaces) provides an easy way for anyone to host their machine learning models.
+[Hugging Face Spaces](https://huggingface.co/spaces) offers an easy-to-use Nvidia GPU hosting runtime, allowing anyone to host their machine learning models or AI applications.
+
 In this blog post, we are going to show you how to deploy a Tabby instance in Hugging Face Spaces. If you have not heard of Tabby, it’s an open-source Github Copilot alternative that supports code completion.
 Check out more details [here](https://github.com/TabbyML/tabby).
 
@@ -18,16 +19,18 @@ Check out more details [here](https://github.com/TabbyML/tabby).
 
 Let’s firstly take a look at what steps are needed to deploy a Tabby instance in Hugging Face. It’s super easy and you don’t need much coding knowledge. Buckle up and let’s get started.
 
-**Step 1:** Create a Hugging Face account. You will need the account to create your Space. Sign up at [this link](https://huggingface.co/welcome) if you don’t have a Hugging Face account.
+**Step 1:** Create a new Hugging Face Space ([link](https://huggingface.co/new-space)). Spaces are code repositories that host application code.
 
-**Step 2:** Create a new Hugging Face Space ([link](https://huggingface.co/new-space)). Spaces are code repositories that host application code for Machine Learning demos.
+**Step 2:** Create a Dockerfile to capture your machine learning models' logic, and bring up a server to serve requests.
 
-**Step 3:** Create a Dockerfile to capture your machine learning models’ logic, and bring up a server to serve requests.
+**Step 3:** After space is built, you will be able to send requests to the APIs.
 
-**Step 4:** After the Dockerfile is built, you will be able to send requests to the APIs.
-
-That’s it! With the hosted APIs, you will be able to call these APIs in your apps. Next, we will deep dive into each step with screenshots!!
+That's it! With the hosted APIs, now you can connect Tabby's [IDE extensions](/docs/getting-started) to the API endpoint. Next, we will deep dive into each step with screenshots!!
 **Everything will be done in the Hugging Face UI. No local setup is needed.**
+
+:::tip
+Looking to quickly start a Tabby instance? You can skip the tutorials entirely and simply [duplicate the space](https://huggingface.co/spaces/randxie/tabbyml?duplicate=true).
+:::
 
 ### Deep Dive
 
@@ -35,6 +38,8 @@ That’s it! With the hosted APIs, you will be able to call these APIs in your a
 
 After you create a Hugging Face account, you should be able to see the following page by clicking this [link](https://huggingface.co/new-space).
 The owner name will be your account name. Fill in a Space name, e.g. "tabbyml", and select Docker as Space SDK. Then click "Create Space" at the bottom.
+
+In this walkthrough we recommend using **Nvidia T4** instance to deploying a model of ~1B parameter size.
 
 ![Create a new Space](./new-space.png)
 
@@ -48,26 +53,26 @@ After clicking on the "Files", you will be able to see a "Add file" button, clic
 
 ![Empty Space](./empty-space.png)
 
-Then you will be redirected to the page below. Set the filename to “Dockerfile” and copy the content to the “Edit” input box. You can copy the code from the [appendix](#dockerfile) here. Once ready, click the button “Commit new file to main” on the bottom.
+Then you will be redirected to the page below. Set the filename to "Dockerfile" and copy the content to the "Edit" input box. You can copy the code from the [appendix](#dockerfile) here. Once ready, click the button "Commit new file to main" on the bottom.
 
 ![Edit Dockerfile](./edit-dockerfile.png)
 
 #### Edit Readme
 
-You also need to add a new line the README.md. Click the “edit” button in the README.md file.
+You also need to add a new line the README.md. Click the "edit" button in the README.md file.
 
 
 ![Empty README](./empty-readme.png)
 
-Add this line “app_port: 8080” after “sdk: docker”
+Add this line "app_port: 8080" after "sdk: docker"
 
 ![Edit README](./edit-readme.png)
 
-Click the button “Commit to main” to save the changes.
+Click the button "Commit to main" to save the changes.
 
 #### Verify Tabby is running
 
-Click on the “App” button, you should be able to see the container is building:
+Click on the "App" button, you should be able to see the container is building:
 
 ![Space Building](./building.png)
 
@@ -83,7 +88,9 @@ To test if your APIs are up and running, use [this online tool](https://reqbin.c
 
 ![curl](./curl.png)
 
-The full curl command can be found in the [appendix](#curl-command) as well. Make sure you have changed the URL to match with your Hugging Face Spaces settings!!
+The complete curl command can also be located in the [appendix](#curl-command). Ensure that you have adjusted the URL to align with your Hugging Face Spaces settings!
+
+(If you are setting the space to private, you will need to fill in your Huggingface Access Token as bearer token in HTTP Headers, like `Authorization: Bearer $HF_ACCESS_TOKEN`.)
 
 ### Conclusion
 In this post, we covered the detailed steps for deploying a Tabby instance to Hugging Face Spaces. By following these steps, anyone is able to bring up their own code completion APIs easily.
