@@ -3,10 +3,10 @@ slug: deploy-tabby-to-huggingface-space.md
 title: Deploying a Tabby Instance in Hugging Face Spaces
 authors:
   - name: Rand Xie
-    title: Community Member
     url: https://github.com/randxie
     image_url: https://github.com/randxie.png
   - meng
+  - gyxlucy
 tags: [deployment]
 ---
 
