@@ -53,7 +53,7 @@ After clicking on the "Files", you will be able to see a "Add file" button, clic
 
 ![Empty Space](./empty-space.png)
 
-Then you will be redirected to the page below. Set the filename to "Dockerfile" and copy the content to the "Edit" input box. You can copy the code from the [appendix](#dockerfile) here. Once ready, click the button "Commit new file to main" on the bottom.
+Then you will be redirected to the page below. Set the filename to “Dockerfile” and copy the content to the “Edit” input box. You can copy the code from the [appendix](#dockerfile) here to bring up the [SantaCoder-1B](https://huggingface.co/TabbyML/SantaCoder-1B) model. Once ready, click the button “Commit new file to main” on the bottom.
 
 ![Edit Dockerfile](./edit-dockerfile.png)
 
