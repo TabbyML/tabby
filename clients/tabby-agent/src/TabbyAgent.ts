@@ -120,9 +120,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
       if (this.status === "unauthorized") {
         this.emitAuthRequired();
       }
-      if (this.status == "ready") {
-        this.anonymousUsageLogger.uniqueEvent("AgentConnected");
-      }
     }
   }
 
@@ -257,6 +254,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.callApi(this.api.v1.health, {})
       .then((healthState) => {
         this.serverHealthState = healthState;
+        if (this.status === "ready") {
+          this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
+        }
       })
       .catch(() => {});
   }

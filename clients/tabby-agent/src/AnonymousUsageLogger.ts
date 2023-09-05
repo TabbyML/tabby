@@ -70,6 +70,9 @@ export class AnonymousUsageLogger {
     if (unique && this.emittedUniqueEvent.indexOf(event) >= 0) {
       return;
     }
+    if (unique) {
+      this.emittedUniqueEvent.push(event);
+    }
     await this.anonymousUsageTrackingApi.api
       .usage({
         distinctId: this.anonymousId,
@@ -79,11 +82,6 @@ export class AnonymousUsageLogger {
           ...this.properties,
           ...data,
         },
-      })
-      .then(() => {
-        if (unique) {
-          this.emittedUniqueEvent.push(event);
-        }
       })
       .catch((error) => {
         this.logger.error({ error }, "Error when sending anonymous usage data");
