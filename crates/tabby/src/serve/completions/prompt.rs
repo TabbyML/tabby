@@ -270,7 +270,7 @@ mod tests {
             };
             assert_eq!(
                 pb.build(language, segments),
-                "<PRE> this is some prefix <SUF> <MID>"
+                "<PRE> this is some prefix <SUF>\n <MID>"
             );
         }
 
@@ -301,7 +301,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE>  <SUF> <MID>");
+            assert_eq!(pb.build(language, segments), "<PRE>  <SUF>\n <MID>");
         }
     }
 
