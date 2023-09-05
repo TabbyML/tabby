@@ -141,7 +141,7 @@ impl CompletionState {
     }
 }
 
-#[cfg(not(feature = "metal"))]
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 fn create_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
@@ -150,7 +150,7 @@ fn create_engine(
     create_ctranslate2_engine(args, model_dir, metadata)
 }
 
-#[cfg(feature = "metal")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn create_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
@@ -183,7 +183,7 @@ fn create_ctranslate2_engine(
     Box::new(CTranslate2Engine::create(options))
 }
 
-#[cfg(feature = "metal")]
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
         .model_path(model_dir.ggml_model_file())

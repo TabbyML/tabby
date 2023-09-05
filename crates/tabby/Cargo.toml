@@ -35,7 +35,9 @@ tantivy = { workspace = true }
 anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
-llama-cpp-bindings = { path = "../llama-cpp-bindings", optional = true }
+
+[target.'cfg(all(target_os="macos", target_arch="aarch64"))'.dependencies]
+llama-cpp-bindings = { path = "../llama-cpp-bindings" }
 
 [dependencies.uuid]
 version = "1.3.3"
@@ -49,7 +51,6 @@ features = [
 default = ["scheduler"]
 link_shared = ["ctranslate2-bindings/link_shared"]
 scheduler = ["tabby-scheduler"]
-metal = ["llama-cpp-bindings"]
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
