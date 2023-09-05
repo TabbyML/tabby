@@ -80,7 +80,7 @@ If the App is up successfully, you should see this page:
 
 ![Tabby Swagger](./tabby-swagger.png)
 
-#### Call the API to do Code Completion
+#### Call code completion API
 
 Now, you are able to call the completion API. The full URL is https://{YOUR-ACCOUNT-NAME}-tabbyml.hf.space/v1/completions. In this post, the URL is https://randxie-tabbyml.hf.space/v1/completions.
 
