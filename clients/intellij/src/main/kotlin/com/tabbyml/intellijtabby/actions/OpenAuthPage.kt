@@ -13,10 +13,13 @@ import com.tabbyml.intellijtabby.agent.AgentService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-open class OpenAuthPage : AnAction() {
+class OpenAuthPage : AnAction() {
   private val logger = Logger.getInstance(OpenAuthPage::class.java)
 
   override fun actionPerformed(e: AnActionEvent) {
+    val agentService = service<AgentService>()
+    agentService.authNotification?.expire()
+
     val task = object : Task.Modal(
       e.project,
       "Tabby Server Authorization",
@@ -24,7 +27,6 @@ open class OpenAuthPage : AnAction() {
     ) {
       lateinit var job: Job
       override fun run(indicator: ProgressIndicator) {
-        val agentService = service<AgentService>()
         job = agentService.scope.launch {
           agentService.requestAuth(indicator)
         }

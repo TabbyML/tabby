@@ -7,6 +7,7 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ReadAction
@@ -34,7 +35,12 @@ class AgentService : Disposable {
   private val logger = Logger.getInstance(AgentService::class.java)
   private var agent: Agent = Agent()
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+  var authNotification: Notification? = null
+    private set
+  var issueNotification: Notification? = null
+    private set
   val status get() = agent.status
+  val currentIssue get() = agent.currentIssue
 
   init {
     val settings = service<ApplicationSettingsState>()
@@ -51,21 +57,26 @@ class AgentService : Disposable {
         logger.info("Agent init done.")
       } catch (e: Exception) {
         logger.error("Agent init failed: $e")
-        anonymousUsageLogger.event("IntelliJInitFailed", mapOf(
-          "client" to client,
-          "error" to e.stackTraceToString()
-        ))
+        anonymousUsageLogger.event(
+          "IntelliJInitFailed", mapOf(
+            "client" to client, "error" to e.stackTraceToString()
+          )
+        )
       }
     }
 
     scope.launch {
       settings.state.collect {
-        updateConfig(createAgentConfig(it))
+        if (it.serverEndpoint.isNotBlank()) {
+          updateConfig("server.endpoint", it.serverEndpoint)
+        } else {
+          clearConfig("server.endpoint")
+        }
+        updateConfig("anonymousUsageTracking.disable", it.isAnonymousUsageTrackingDisabled)
       }
     }
 
     scope.launch {
-      logger.info("Add authRequired event listener.")
       agent.authRequiredEvent.collect {
         logger.info("Will show auth required notification.")
         val notification = Notification(
@@ -73,18 +84,31 @@ class AgentService : Disposable {
           "Authorization required for Tabby server",
           NotificationType.WARNING,
         )
-        notification.addAction(object : OpenAuthPage() {
-          init {
-            getTemplatePresentation().text = "Open Authorization Page..."
-            getTemplatePresentation().description = "Open the authorization web page in your web browser."
-          }
-
-          override fun actionPerformed(e: AnActionEvent) {
-            notification.expire()
-            super.actionPerformed(e)
-          }
-        })
+        notification.addAction(ActionManager.getInstance().getAction("Tabby.OpenAuthPage"))
         invokeLater {
+          authNotification?.expire()
+          authNotification = notification
+          Notifications.Bus.notify(notification)
+        }
+      }
+    }
+
+    scope.launch {
+      agent.currentIssue.collect { issueName ->
+        val content = when (issueName) {
+          "slowCompletionResponseTime" -> "Completion requests appear to take too much time"
+          "highCompletionTimeoutRate" -> "Most completion requests timed out"
+          else -> return@collect
+        }
+        val notification = Notification(
+          "com.tabbyml.intellijtabby.notification.warning",
+          content,
+          NotificationType.WARNING,
+        )
+        notification.addAction(ActionManager.getInstance().getAction("Tabby.CheckIssueDetail"))
+        invokeLater {
+          issueNotification?.expire()
+          issueNotification = notification
           Notifications.Bus.notify(notification)
         }
       }
@@ -114,24 +138,30 @@ class AgentService : Disposable {
     agent.status.first { it != Agent.Status.NOT_INITIALIZED }
   }
 
-  private suspend fun updateConfig(config: Agent.Config) {
+  private suspend fun updateConfig(key: String, config: Any) {
     waitForInitialized()
-    agent.updateConfig(config)
+    agent.updateConfig(key, config)
   }
 
-  suspend fun getCompletion(editor: Editor, offset: Int): Agent.CompletionResponse? {
+  private suspend fun clearConfig(key: String) {
+    waitForInitialized()
+    agent.clearConfig(key)
+  }
+
+  suspend fun provideCompletion(editor: Editor, offset: Int, manually: Boolean = false): Agent.CompletionResponse? {
     waitForInitialized()
     return ReadAction.compute<PsiFile, Throwable> {
       editor.project?.let { project ->
         PsiDocumentManager.getInstance(project).getPsiFile(editor.document)
       }
     }?.let { file ->
-      agent.getCompletions(
+      agent.provideCompletions(
         Agent.CompletionRequest(
           file.virtualFile.path,
           file.getLanguageId(),
           editor.document.text,
-          offset
+          offset,
+          manually,
         )
       )
     }
@@ -166,14 +196,24 @@ class AgentService : Disposable {
       }
     } else {
       Notification(
-        "com.tabbyml.intellijtabby.notification.info",
-        "You are already authorized.",
-        NotificationType.INFORMATION
+        "com.tabbyml.intellijtabby.notification.info", "You are already authorized.", NotificationType.INFORMATION
       )
     }
     invokeLater {
+      authNotification?.expire()
+      authNotification = notification
       Notifications.Bus.notify(notification)
     }
+  }
+
+  suspend fun getCurrentIssueDetail(): Map<String, Any>? {
+    waitForInitialized()
+    return agent.getIssues().firstOrNull { it["name"] == currentIssue.value }
+  }
+
+  suspend fun getServerHealthState(): Map<String, Any>? {
+    waitForInitialized()
+    return agent.getServerHealthState()
   }
 
   override fun dispose() {
@@ -183,15 +223,16 @@ class AgentService : Disposable {
   companion object {
     // Language id: https://code.visualstudio.com/docs/languages/identifiers
     private fun PsiFile.getLanguageId(): String {
-      if (this.language != Language.ANY
-        && this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf("txt", "text", "textmate")
+      if (this.language != Language.ANY && this.language.id.toLowerCasePreservingASCIIRules() !in arrayOf(
+          "txt",
+          "text",
+          "textmate"
+        )
       ) {
         if (languageIdMap.containsKey(this.language.id)) {
           return languageIdMap[this.language.id]!!
         }
-        return this.language.id.toLowerCasePreservingASCIIRules()
-          .replace("#", "sharp")
-          .replace("++", "pp")
+        return this.language.id.toLowerCasePreservingASCIIRules().replace("#", "sharp").replace("++", "pp")
           .replace(" ", "")
       }
       return if (filetypeMap.containsKey(this.fileType.defaultExtension)) {

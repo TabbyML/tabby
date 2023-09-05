@@ -88,6 +88,11 @@
                     text="Open Authorization Page..."
                     description="Open the authorization web page in your web browser.">
             </action>
+            <action id="Tabby.CheckIssueDetail"
+                    class="com.tabbyml.intellijtabby.actions.CheckIssueDetail"
+                    text="Check Issue Detail..."
+                    description="Show detail information for current issue.">
+            </action>
             <action id="Tabby.ToggleAutoCompletionEnabled"
                     class="com.tabbyml.intellijtabby.actions.ToggleAutoCompletionEnabled">
             </action>

@@ -33,12 +33,15 @@ class Agent : ProcessAdapter() {
     READY,
     DISCONNECTED,
     UNAUTHORIZED,
+    ISSUES_EXIST,
   }
 
   private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
   val status = statusFlow.asStateFlow()
   private val authRequiredEventFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
   val authRequiredEvent = authRequiredEventFlow.asSharedFlow()
+  private val currentIssueFlow = MutableStateFlow<String?>(null)
+  val currentIssue = currentIssueFlow.asStateFlow()
 
   open class AgentException(message: String) : Exception(message)
 
@@ -81,20 +84,38 @@ class Agent : ProcessAdapter() {
     val anonymousUsageTracking: AnonymousUsageTracking? = null,
   ) {
     data class Server(
-      val endpoint: String,
+      val endpoint: String? = null,
+      val requestHeaders: Map<String, String>? = null,
+      val requestTimeout: Int? = null,
     )
 
     data class Completion(
-      val maxPrefixLines: Int,
-      val maxSuffixLines: Int,
-    )
+      val prompt: Prompt? = null,
+      val debounce: Debounce? = null,
+      val timeout: Timeout? = null,
+    ) {
+      data class Prompt(
+        val maxPrefixLines: Int? = null,
+        val maxSuffixLines: Int? = null,
+      )
+
+      data class Debounce(
+        val mode: String? = null,
+        val interval: Int? = null,
+      )
+
+      data class Timeout(
+        val auto: Int? = null,
+        val manually: Int? = null,
+      )
+    }
 
     data class Logs(
-      val level: String,
+      val level: String? = null,
     )
 
     data class AnonymousUsageTracking(
-      val disabled: Boolean,
+      val disabled: Boolean? = null,
     )
   }
 
@@ -109,8 +130,20 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  suspend fun updateConfig(config: Config): Boolean {
-    return request("updateConfig", listOf(config))
+  suspend fun updateConfig(key: String, config: Any): Boolean {
+    return request("updateConfig", listOf(key, config))
+  }
+
+  suspend fun clearConfig(key: String): Boolean {
+    return request("clearConfig", listOf(key))
+  }
+
+  suspend fun getIssues(): List<Map<String, Any>> {
+    return request("getIssues", listOf())
+  }
+
+  suspend fun getServerHealthState(): Map<String, Any>? {
+    return request("getServerHealthState", listOf())
   }
 
   data class CompletionRequest(
@@ -118,6 +151,7 @@ class Agent : ProcessAdapter() {
     val language: String,
     val text: String,
     val position: Int,
+    val manually: Boolean?,
   )
 
   data class CompletionResponse(
@@ -130,8 +164,16 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  suspend fun getCompletions(request: CompletionRequest): CompletionResponse? {
-    return request("getCompletions", listOf(request))
+  suspend fun requestAuthUrl(): AuthUrlResponse? {
+    return request("requestAuthUrl", listOf())
+  }
+
+  suspend fun waitForAuthToken(code: String) {
+    return request("waitForAuthToken", listOf(code))
+  }
+
+  suspend fun provideCompletions(request: CompletionRequest): CompletionResponse? {
+    return request("provideCompletions", listOf(request))
   }
 
   data class LogEventRequest(
@@ -148,7 +190,7 @@ class Agent : ProcessAdapter() {
     }
   }
 
-  suspend fun postEvent(event: LogEventRequest): Boolean {
+  suspend fun postEvent(event: LogEventRequest) {
     return request("postEvent", listOf(event))
   }
 
@@ -156,14 +198,6 @@ class Agent : ProcessAdapter() {
     val authUrl: String,
     val code: String,
   )
-
-  suspend fun requestAuthUrl(): AuthUrlResponse? {
-    return request("requestAuthUrl", listOf())
-  }
-
-  suspend fun waitForAuthToken(code: String) {
-    return request("waitForAuthToken", listOf(code))
-  }
 
   fun close() {
     streamWriter.close()
@@ -245,7 +279,11 @@ class Agent : ProcessAdapter() {
           "ready" -> Status.READY
           "disconnected" -> Status.DISCONNECTED
           "unauthorized" -> Status.UNAUTHORIZED
+          "issuesExist" -> Status.ISSUES_EXIST
           else -> Status.NOT_INITIALIZED
+        }
+        if (statusFlow.value !== Status.ISSUES_EXIST) {
+          currentIssueFlow.value = null
         }
       }
 
@@ -256,6 +294,11 @@ class Agent : ProcessAdapter() {
       "authRequired" -> {
         logger.info("Agent notification $event")
         authRequiredEventFlow.tryEmit(Unit)
+      }
+
+      "newIssue" -> {
+        logger.info("Agent notification $event")
+        currentIssueFlow.value = (event["issue"] as Map<*, *>)["name"] as String?
       }
 
       else -> {

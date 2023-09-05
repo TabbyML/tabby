@@ -7,7 +7,6 @@ import com.intellij.openapi.editor.Editor
 import com.tabbyml.intellijtabby.agent.AgentService
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Service
@@ -19,7 +18,7 @@ class CompletionScheduler {
   var scheduled: CompletionContext? = null
     private set
 
-  fun schedule(editor: Editor, offset: Int, triggerDelay: Long = 150, manually: Boolean = false) {
+  fun schedule(editor: Editor, offset: Int, manually: Boolean = false) {
     val agentService = service<AgentService>()
     val inlineCompletionService = service<InlineCompletionService>()
     val settings = service<ApplicationSettingsState>()
@@ -28,14 +27,10 @@ class CompletionScheduler {
       if (!manually && !settings.isAutoCompletionEnabled) {
         return@launch
       }
-      logger.info("Schedule completion at $offset after $triggerDelay ms.")
 
-      delay(triggerDelay)
-      if (!manually && !settings.isAutoCompletionEnabled) {
-        return@launch
-      }
       logger.info("Trigger completion at $offset")
-      agentService.getCompletion(editor, offset)?.let {
+      agentService.provideCompletion(editor, offset, manually)?.let {
+        logger.info("Show completion at $offset: $it")
         inlineCompletionService.show(editor, offset, it)
       }
     }
