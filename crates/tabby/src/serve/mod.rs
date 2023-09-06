@@ -116,19 +116,35 @@ pub struct ServeArgs {
     compute_type: ComputeType,
 }
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+fn should_download_ggml_files(device: &Device) -> bool {
+    false
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn should_download_ggml_files(device: &Device) -> bool {
+    *device == Device::Metal
+}
+
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     // Ensure model exists.
-    tabby_download::download_model(&args.model, true)
-        .await
-        .unwrap_or_else(|err| {
-            fatal!(
-                "Failed to fetch model due to '{}', is '{}' a valid model id?",
-                err,
-                args.model
-            )
-        });
+    tabby_download::download_model(
+        &args.model,
+        /* download_ctranslate2_files= */
+        !should_download_ggml_files(&args.device),
+        /* download_ggml_files= */ should_download_ggml_files(&args.device),
+        /* prefer_local_file= */ true,
+    )
+    .await
+    .unwrap_or_else(|err| {
+        fatal!(
+            "Failed to fetch model due to '{}', is '{}' a valid model id?",
+            err,
+            args.model
+        )
+    });
 
     info!("Starting server, this might takes a few minutes...");
     let app = Router::new()
