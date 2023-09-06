@@ -64,6 +64,9 @@ apt-get install protobuf-compiler libopenblas-dev
 
 3. Now, you can build Tabby by running the command `cargo build`.
 
+### Start Hacking!
+... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/pulls/new)
+
 
 ## 🌟 Star History
 
