@@ -186,7 +186,7 @@ fn create_ctranslate2_engine(
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
-        .model_path(model_dir.ggml_model_file())
+        .model_path(model_dir.ggml_q8_0_file())
         .tokenizer_path(model_dir.tokenizer_file())
         .build()
         .unwrap();
