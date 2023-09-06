@@ -57,7 +57,12 @@ impl CacheInfo {
     }
 }
 
-pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<()> {
+pub async fn download_model(
+    model_id: &str,
+    download_ctranslate2_files: bool,
+    download_ggml_files: bool,
+    prefer_local_file: bool,
+) -> Result<()> {
     if fs::metadata(model_id).is_ok() {
         // Local path, no need for downloading.
         return Ok(());
@@ -67,13 +72,18 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
 
     let mut cache_info = CacheInfo::from(model_id).await;
 
-    let optional_files = vec![
-        "ctranslate2/vocabulary.txt",
-        "ctranslate2/shared_vocabulary.txt",
-        "ctranslate2/vocabulary.json",
-        "ctranslate2/shared_vocabulary.json",
-        "ggml/q8_0.gguf"
-    ];
+    let mut optional_files = vec![];
+    if download_ctranslate2_files {
+        optional_files.push("ctranslate2/vocabulary.txt");
+        optional_files.push("ctranslate2/shared_vocabulary.txt");
+        optional_files.push("ctranslate2/vocabulary.json");
+        optional_files.push("ctranslate2/shared_vocabulary.json");
+    }
+
+    if download_ggml_files {
+        optional_files.push("ggml/q8_0.gguf");
+    }
+
     for path in optional_files {
         cache_info
             .download(
@@ -85,12 +95,13 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
             .await?;
     }
 
-    let required_files = vec![
-        "tabby.json",
-        "tokenizer.json",
-        "ctranslate2/config.json",
-        "ctranslate2/model.bin",
-    ];
+    let mut required_files = vec!["tabby.json", "tokenizer.json"];
+
+    if download_ctranslate2_files {
+        required_files.push("ctranslate2/config.json");
+        required_files.push("ctranslate2/model.bin");
+    }
+
     for path in required_files {
         cache_info
             .download(
