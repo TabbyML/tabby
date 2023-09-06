@@ -51,18 +51,18 @@ cd tabby
 
 ### Build
 
-1. Setup rust environment: [tutorial](https://www.rust-lang.org/learn/get-started)
+1. Set up the Rust environment by following this [tutorial](https://www.rust-lang.org/learn/get-started).
 
-2. Install dependencies
+2. Install the required dependencies:
 ```bash
-# MacOS
+# For MacOS
 brew install protobuf
 
-# Ubuntu / Debian
+# For Ubuntu / Debian
 apt-get install protobuf-compiler libopenblas-dev
 ```
 
-3. Then tabby can be built with `cargo build`
+3. Now, you can build Tabby by running the command `cargo build`.
 
 
 ## 🌟 Star History
