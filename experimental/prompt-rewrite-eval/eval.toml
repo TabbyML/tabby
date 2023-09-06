@@ -1,0 +1,9 @@
+
+# Tabby config
+tabby_path = "/home/jiachen/workspace/tabbyml/tabby/target/debug/tabby"
+
+# Indexing / prompt rewriting config
+index_repo_url = "https://github.com/huggingface/transformers"
+sample_repo_url = "https://github.com/huggingface/transformers"
+language = "python"
+prompt_count = 10

@@ -1,0 +1,4 @@
+requests
+GitPython
+streamlit
+jsonlines
