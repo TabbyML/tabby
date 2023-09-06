@@ -7,7 +7,7 @@
   "browser": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ./openapi/tabby.json --output ./src/generated --client axios --name TabbyApi --indent 2",
+    "openapi-codegen": "rimraf ./src/generated  &&  openapi --input ./openapi/tabby.json --output ./src/generated --client axios --request ./openapi/request.ts --name TabbyApi --indent 2",
     "predev": "yarn openapi-codegen",
     "dev": "tsup --watch --no-minify --no-treeshake",
     "prebuild": "yarn openapi-codegen",
@@ -46,6 +46,7 @@
     "object-hash": "^3.0.0",
     "object-sizeof": "^2.6.1",
     "pino": "^8.14.1",
+    "proxy-agent": "^6.3.1",
     "rotating-file-stream": "^3.1.0",
     "toml": "^3.0.0",
     "uuid": "^9.0.0"
