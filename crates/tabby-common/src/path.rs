@@ -86,10 +86,6 @@ impl ModelDir {
         self.path_string("ctranslate2")
     }
 
-    pub fn ggml_fp16_file(&self) -> String {
-        self.path_string("ggml/fp16.gguf")
-    }
-
     pub fn ggml_q8_0_file(&self) -> String {
         self.path_string("ggml/q8_0.gguf")
     }

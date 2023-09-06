@@ -72,6 +72,7 @@ pub async fn download_model(model_id: &str, prefer_local_file: bool) -> Result<(
         "ctranslate2/shared_vocabulary.txt",
         "ctranslate2/vocabulary.json",
         "ctranslate2/shared_vocabulary.json",
+        "ggml/q8_0.gguf"
     ];
     for path in optional_files {
         cache_info
