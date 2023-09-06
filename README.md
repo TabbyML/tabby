@@ -28,7 +28,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * **08/24/2023** Tabby is now on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)!
 
 
-## 👋 Get Started
+## 👋 Usage
 
 The easiest way to start a Tabby server is by using the following Docker command:
 
@@ -39,6 +39,31 @@ docker run -it \
   serve --model TabbyML/SantaCoder-1B --device cuda
 ```
 For additional options (e.g inference type, parallelism), please refer to the documentation at https://tabbyml.github.io/tabby.
+
+## 🤝 Contributing
+
+### Get the Code
+
+```bash
+git clone --recurse https://github.com/TabbyML/tabby
+cd tabby
+```
+
+### Build
+
+1. Setup rust environment: [tutorial](https://www.rust-lang.org/learn/get-started)
+
+2. Install dependencies
+```bash
+# MacOS
+brew install protobuf
+
+# Ubuntu / Debian
+apt-get install protobuf-compiler libopenblas-dev
+```
+
+3. Then tabby can be built with `cargo build`
+
 
 ## 🌟 Star History
 
