@@ -7,8 +7,9 @@ LANGUAGE_LIST = [
     "rust",
     "go",
     "java",
-    "javascript",
+    "javascript_typescript",
     "lua",
+    "php"
 ]
 
 st.title(":wave: Prompt rewriting dashboard")
@@ -33,8 +34,9 @@ with jsonlines.open(log_file_path) as log:
         prompts.append(obj["event"]["completion"]["prompt"])
 
 prompts = prompts[-entry_count:]
+code_language = language if language != "javascript_typescript" else "javascript"
 for i in range(len(prompts)):
     st.divider()
     prompt = prompts[i]
     st.write(f"**[prompt {i+1}]**")
-    st.code(prompt, language=language)
+    st.code(prompt, language=code_language)
