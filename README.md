@@ -28,7 +28,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * **08/24/2023** Tabby is now on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)!
 
 
-## 👋 Usage
+## 👋 Getting Started
 
 The easiest way to start a Tabby server is by using the following Docker command:
 
