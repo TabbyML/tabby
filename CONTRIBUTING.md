@@ -94,16 +94,19 @@ To maximize performance, the implementation avoid new allocations when possible:
 
 #### Abstraction levels
 
-* *primitives*: low-level compute functions, specialized depending on the data type and target device.
+From lowest to highest level:
+
+* *kernels*: low-level compute functions (e.g. CUDA implementation of Softmax)
+* *primitives*: basic vector and matrix processing functions (e.g. addition of two C arrays)
 * *ops*: neural network operations (e.g. Softmax, Gemm, etc.)
-* *layers*: stateful neural network layers like `Dense`, `LayerNorm`, etc.
-* *models*: collection of neural network layers to achieve a certain tasks (e.g. `Transformer` for NMT)
-* *translators*: high-level class using a model to implement the text translation logic
-* *translators pool*: pool of parallel translators sharing the same model
+* *layers*: stateful neural network layers (e.g. `Dense`, `LayerNorm`, etc.)
+* *models*: collection of neural network layers and weights (e.g. `Transformer`)
+* *replicas*: runnable instances of a model
+* *replicas pool*: thread pool of model replicas
 
 #### Ops
 
-Ops define the basic neural network operations. Whenever possible, they follow the [ONNX specification](https://github.com/onnx/onnx/blob/master/docs/Operators.md).
+Ops define the basic neural network operations. The op interface is sometimes inspired by the [ONNX specification](https://github.com/onnx/onnx/blob/master/docs/Operators.md).
 
 Their implementation typically require multiple source files:
 
