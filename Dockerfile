@@ -11,6 +11,7 @@ RUN apt-get update && \
         libssl-dev \
         protobuf-compiler \
         git \
+        cmake \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
