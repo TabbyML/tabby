@@ -291,9 +291,9 @@ def generator_generate_tokens(
 
     Arguments:
       prompt: Batch of start tokens. If the decoder starts from a
-      special start token like <s>, this token should be added to this input.
+        special start token like <s>, this token should be added to this input.
       max_batch_size: The maximum batch size.
-      batch_type: Whether `max_batch_size` is the number of “examples” or “tokens”.
+      batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       max_length: Maximum generation length.
       min_length: Minimum generation length.
       sampling_topk: Randomly sample predictions from the top K candidates.
@@ -367,10 +367,9 @@ async def generator_async_generate_tokens(
 
     Arguments:
       prompt: Batch of start tokens. If the decoder starts from a
-      special start token like <s>, this token should be added to this input.
+        special start token like <s>, this token should be added to this input.
       max_batch_size: The maximum batch size.
-      batch_type: Whether `max_batch_size` is the number of “examples” or “tokens”.
-
+      batch_type: Whether :obj:`max_batch_size` is the number of "examples" or "tokens".
       max_length: Maximum generation length.
       min_length: Minimum generation length.
       sampling_topk: Randomly sample predictions from the top K candidates.
