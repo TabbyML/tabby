@@ -16,7 +16,8 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Create Tag
-        uses: ydataai/create-tag@v1
+        uses: richardsimko/update-tag@v1
         with:
-          tag: "nightly"
-          message: "Nightly Tag"
+          tag_name: "nightly"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
