@@ -1,4 +1,3 @@
 requests
-GitPython
 streamlit
 jsonlines
