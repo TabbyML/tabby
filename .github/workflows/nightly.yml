@@ -1,4 +1,4 @@
-name: Create and publish docker image
+name: Update nightly branch
 
 on:
   workflow_dispatch:
