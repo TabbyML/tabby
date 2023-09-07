@@ -53,8 +53,8 @@ if output_ids:
 If you `break` out of the loop, the generation will still run to completion in the background. To stop the generation early you should close the generator, for example using `step_results.close()`.
 ```
 
-```{tip}
-To implement a similar mechanism for batch generation, you can use the arguments `callback` and `include_prompt_in_result=False` in the method `generate_batch`. This is what `generate_tokens` use internally.
+```{seealso}
+The `callback` argument in the method `generate_batch` which can also be used to implement token streaming. This is what `generate_tokens` use internally.
 ```
 
 ```{seealso}
