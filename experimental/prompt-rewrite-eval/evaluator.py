@@ -153,7 +153,6 @@ def rewrite_prompt(args):
 
     # Generate segments
     segments = generate_completion_segments(args)
-    print(segments)
 
     # Start tabby server
     serve_command = [binary, "serve", "--model", "TabbyML/T5P-220M"]
