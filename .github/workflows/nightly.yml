@@ -8,10 +8,13 @@ on:
 jobs:
   sync-branches:
     runs-on: ubuntu-latest
-    name: Syncing nightly branches
+    name: Update nightly tag
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+
       - name: Create Tag
         uses: ydataai/create-tag@v1
         with:
