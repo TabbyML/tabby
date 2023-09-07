@@ -9,6 +9,7 @@ members = [
     "crates/rust-cxx-cmake-bridge",
     "crates/llama-cpp-bindings",
     "crates/stop-words",
+    "crates/http-api-bindings",
 ]
 
 [workspace.package]
