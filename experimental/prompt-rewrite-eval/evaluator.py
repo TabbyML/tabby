@@ -1,3 +1,4 @@
+import jsonlines
 import logging
 import os
 import random
@@ -6,44 +7,10 @@ import subprocess
 import toml
 
 import time
-from git import Repo
 
 logging.getLogger().setLevel(logging.INFO)
 
 PORT = 8080
-LANGUAGE_SUFFIX_MAP = {
-    "python": ["py"],
-    "go": ["go"],
-    "java": ["java"],
-    "javascript_typescript": ["js", "jsx", "mjs", "ts", "tsx", "mts"],
-    "rust": ["rs"],
-    "php": ["php", "php3", "php4", "php5", "phps", "phpt"],
-    "lua": ["lua"]
-}
-
-# Handy index class to help get completion requests from sample repository.
-class Index():
-    # Could use a skiplist to implement the Index.
-    # But since typically total numbers of files in a repository
-    # is not likely to be a lot, a simple array should suffice.
-    def __init__(self):
-        self.arr = []
-        self.dic = {}
-    
-    # Need to guarantee the keys in add operations are
-    # always monotonously incremental.
-    def add(self, key, val):
-        self.arr.append(key)
-        self.dic[key] = val
-
-    def get(self, key):
-        pk = 0
-        for k in self.arr:
-            if k > key:
-                # Return file and the line number in the file
-                return self.dic[k], key - pk
-            pk = k
-        return self.dic[k], key - pk
 
 def wait_for_online(timeout):
     logging.info("Trying to connect to tabby")
@@ -91,73 +58,87 @@ def index(args):
     subprocess.run(cmd)
 
 def generate_completion_segments(args):
+    binary = args["tabby_path"]
     sample_repo_url = args["sample_repo_url"]
     language = args["language"]
     prompt_count = args["prompt_count"]
 
     segments = []
 
-    # Checkout the sample repo
-    repo_name = sample_repo_url.split("/")[-1]
-    repo_path = os.path.expanduser(repo_name)
-    if not os.path.exists(repo_path):
-        logging.info("Fetching sample repo")
-        Repo.clone_from(sample_repo_url, repo_path)
-    
-    # Index the files
-    sample_file_name = f"tabby_{language}.index"
-    sample_file_path = os.path.join(repo_path, sample_file_name)
-    if not os.path.exists(sample_file_path):
-        logging.info("Traversing the repo to make sample index")
-        total_lines = 0
-        with open(sample_file_path, "a+") as sample_file_w:
-            for root, _, files in os.walk(repo_path):
-                for fname in files:
-                    fpath = os.path.join(root, fname)
-                    # Exclude the sample file itself
-                    if fpath == sample_file_path:
-                        continue
-                    # Exclude files not in the working language
-                    if fname.split(".")[-1] not in LANGUAGE_SUFFIX_MAP[language]:
-                        continue
-                    with open(fpath, "r") as f:
-                        total_lines += len(f.readlines())
-                        sample_file_w.write(f'{total_lines} {fpath}\n')
+    # Index the sample repo
+    sample_path = os.path.expanduser("~/.tabby/eval_sample")
+    sample_config_file_path = os.path.join(sample_path, "config.toml")
+    config = {
+        "repositories": [
+            {
+                "git_url": sample_repo_url,
+            }
+        ]
+    }
 
-    # Build the index
-    # The index file is like:
-    #
-    # 15 main.py                      (suppose the main.py has 15 loc)
-    # 115 src/request.py              (suppose the src/request.py has 100 loc)
-    # 265 src/utils.py                (suppose the src/utils has 150 loc)
-    # ...
-    index = Index()
-    with open(sample_file_path, "r") as sample_file_r:
-        lines = sample_file_r.readlines()
-        for l in lines:
-            arr = l.split(" ")
-            ln, fpath = arr
-            # fpath has "\n" as suffix, trim it
-            index.add(int(ln), fpath[:-1])
+    if not os.path.exists(sample_path):
+        os.mkdir(sample_path)
 
+    with open(sample_config_file_path, "w+") as f:
+        toml.dump(config, f)
+
+    sample_index_command = [binary, "scheduler", "--now"]
+    subprocess.run(sample_index_command, env={"TABBY_ROOT": sample_path})
+
+    # Read in dataset.jsonl and build segments
+    contents = []
+    dataset_path = os.path.join(sample_path, "dataset")
+    # in dir dataset/, could have multiple jsonl files:
+    # data.jsonl, data.jsonl.1, data.jsonl.2, etc
+    files = os.listdir(dataset_path)
+    for file_name in files:
+        dataset_file_path = os.path.join(dataset_path, file_name)
+        with jsonlines.open(dataset_file_path) as dataset:
+            for obj in dataset:
+                if obj["language"] != language:
+                    continue
+                contents.append(obj["content"])
+
+    # Generate random segments
     for _ in range(prompt_count):
-        # Randomly pick a line
-        maxline = index.arr[-1]
-        line = random.randrange(maxline)
-        file_path, line_in_file = index.get(line)
-        with open(file_path, "r") as f:
-            lines = f.readlines()
-            # May overflow but it is okay. Python handles this
-            prefix_lines = lines[line_in_file: line_in_file+10]
-            suffix_lines = lines[line_in_file+10: line_in_file+20]
-            
-            prefix = "".join(prefix_lines)
-            suffix = "".join(suffix_lines)
+        # Randomly pick a file content
+        content = ""
 
-            segments.append({
-                "prefix": prefix,
-                "suffix": suffix
-            })
+        # We are only interested in files that have content,
+        # So we have this while loop to retry-and-fence
+        while not content:
+            file_content = random.randrange(len(contents))
+            content = contents[file_content]
+        
+        # Randomly pick a cursor
+        cursor = random.randrange(len(content))
+        
+        # Look backward to generate prefix
+        lb = 0
+        pc = cursor
+        while True:
+            if pc < 0 or lb == 10:
+                break
+            if content[pc] == "\n":
+                lb += 1
+            pc -= 1
+        prefix = content[pc: cursor + 1]
+
+        # Look forward to generate suffix
+        lb = 0
+        sc = cursor + 1
+        while True:
+            if sc >= len(content) or lb == 10:
+                break
+            if content[sc] == "\n":
+                lb += 1
+            sc += 1
+        suffix = content[cursor + 1: sc]
+
+        segments.append({
+            "prefix": prefix,
+            "suffix": suffix
+        })
 
     # Generate query segment
     return segments
@@ -165,6 +146,9 @@ def generate_completion_segments(args):
 def rewrite_prompt(args):
     binary = args["tabby_path"]
     language = args["language"]
+
+    # Generate segments
+    segments = generate_completion_segments(args)
 
     # Start tabby server
     serve_command = [binary, "serve", "--model", "TabbyML/T5P-220M"]
@@ -178,7 +162,6 @@ def rewrite_prompt(args):
         
         # Generate completion request messages
         completion_url = f"http://127.0.0.1:{PORT}/v1/completions"
-        segments = generate_completion_segments(args)
         for s in segments:
             req = {
                 "language": language,
