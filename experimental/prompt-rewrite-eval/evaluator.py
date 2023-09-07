@@ -83,7 +83,7 @@ def generate_completion_segments(args):
         toml.dump(config, f)
 
     sample_index_command = [binary, "scheduler", "--now"]
-    subprocess.run(sample_index_command, env={"TABBY_ROOT": sample_path})
+    # subprocess.run(sample_index_command, env={"TABBY_ROOT": sample_path})
 
     # Read in dataset.jsonl and build segments
     contents = []
@@ -117,21 +117,25 @@ def generate_completion_segments(args):
         lb = 0
         pc = cursor
         while True:
-            if pc < 0 or lb == 10:
+            if pc < 0:
                 break
             if content[pc] == "\n":
                 lb += 1
+                if lb == 10:
+                    break
             pc -= 1
-        prefix = content[pc: cursor + 1]
+        prefix = content[pc + 1: cursor + 1]
 
         # Look forward to generate suffix
         lb = 0
         sc = cursor + 1
         while True:
-            if sc >= len(content) or lb == 10:
+            if sc >= len(content):
                 break
             if content[sc] == "\n":
                 lb += 1
+                if lb == 10:
+                    break
             sc += 1
         suffix = content[cursor + 1: sc]
 
@@ -149,6 +153,7 @@ def rewrite_prompt(args):
 
     # Generate segments
     segments = generate_completion_segments(args)
+    print(segments)
 
     # Start tabby server
     serve_command = [binary, "serve", "--model", "TabbyML/T5P-220M"]
@@ -175,7 +180,7 @@ def rewrite_prompt(args):
 
 def main():
     args = toml.load("eval.toml")
-    index(args)
+    # index(args)
     rewrite_prompt(args)
 
 if __name__ == "__main__":
