@@ -10,6 +10,8 @@ namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
+static size_t N_BATCHES = 512;
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -39,12 +41,17 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     auto* ctx = ctx_.get();
     llama_reset_timings(ctx);
     std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), /* add_bos = */ true);
-    eval(tokens_list, /* reset = */ true);
+
+    for (size_t i = 0; i < tokens_list.size(); i += N_BATCHES) {
+      const size_t size = std::min(N_BATCHES, tokens_list.size() - i);
+      eval(tokens_list.data() + i, size, /* reset = */ i == 0);
+    }
     return sample();
   }
 
   uint32_t step(uint32_t next_token_id) const override {
-    eval({ static_cast<llama_token>(next_token_id) }, /* reset = */ false);
+    const llama_token id = next_token_id;
+    eval(&id, 1, /* reset = */ false);
     return sample();
   }
 
@@ -67,12 +74,12 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     return std::distance(logits, std::max_element(logits, logits + n_vocab));
   }
 
-  bool eval(const std::vector<llama_token>& tokens_list, bool reset) const {
+  bool eval(const llama_token* data, size_t size, bool reset) const {
     auto* ctx = ctx_.get();
     if (llama_eval(
           ctx,
-          tokens_list.data(),
-          tokens_list.size(),
+          data,
+          size,
           reset ? 0 : llama_get_kv_cache_token_count(ctx),
           /* n_threads = */ 4)) {
       fprintf(stderr, "%s : failed to eval\n", __func__);
@@ -102,6 +109,7 @@ std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
 
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = 2048;
+  ctx_params.n_batch = 512;
   ctx_params.n_gpu_layers = 1;
 
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), ctx_params);
