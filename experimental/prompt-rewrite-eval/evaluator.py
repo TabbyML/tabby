@@ -83,7 +83,7 @@ def generate_completion_segments(args):
         toml.dump(config, f)
 
     sample_index_command = [binary, "scheduler", "--now"]
-    # subprocess.run(sample_index_command, env={"TABBY_ROOT": sample_path})
+    subprocess.run(sample_index_command, env={"TABBY_ROOT": sample_path})
 
     # Read in dataset.jsonl and build segments
     contents = []
@@ -179,7 +179,7 @@ def rewrite_prompt(args):
 
 def main():
     args = toml.load("eval.toml")
-    # index(args)
+    index(args)
     rewrite_prompt(args)
 
 if __name__ == "__main__":
