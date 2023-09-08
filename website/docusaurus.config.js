@@ -109,6 +109,10 @@ const config = {
                 label: 'API',
                 to: '/api',
               },
+              {
+                label: "Status",
+                href: "https://uptime.tabbyml.com"
+              }
             ],
           },
           {
