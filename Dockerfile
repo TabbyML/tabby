@@ -4,6 +4,7 @@ FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
 COPY --from=source $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
