@@ -5,6 +5,8 @@ on:
   push:
     tags:
       - 'v*'
+  create:
+    tags:
       - nightly
   pull_request:
     branches: ["main" ]
