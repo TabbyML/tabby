@@ -45,7 +45,7 @@ For additional options (e.g inference type, parallelism), please refer to the do
 ### Get the Code
 
 ```bash
-git clone --recurse https://github.com/TabbyML/tabby
+git clone --recurse-submodules https://github.com/TabbyML/tabby
 cd tabby
 ```
 
