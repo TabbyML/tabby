@@ -13,15 +13,22 @@ namespace {
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
-std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string & text, bool add_bos) {
+std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string & text, size_t max_input_length, bool add_bos) {
     // upper limit for the number of tokens
-    int n_tokens = text.length() + add_bos;
+    int n_tokens = max_input_length;
     std::vector<llama_token> result(n_tokens);
     n_tokens = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
     if (n_tokens < 0) {
         result.resize(-n_tokens);
         int check = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
         GGML_ASSERT(check == -n_tokens);
+
+        int start = check - max_input_length;
+        GGML_ASSERT(start >= 0);
+        result = std::vector<llama_token>(result.begin() + start, result.end());
+        if (add_bos) {
+          result[0] = llama_token_bos(ctx);
+        }
     } else {
         result.resize(n_tokens);
     }
@@ -35,10 +42,10 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     ctx_(std::move(ctx)) {
   }
 
-  uint32_t start(const rust::Str prompt) const override {
+  uint32_t start(const rust::Str prompt, size_t max_input_length) const override {
     auto* ctx = ctx_.get();
     llama_reset_timings(ctx);
-    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), /* add_bos = */ true);
+    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), max_input_length, /* add_bos = */ true);
     eval(tokens_list, /* reset = */ true);
     return sample();
   }
