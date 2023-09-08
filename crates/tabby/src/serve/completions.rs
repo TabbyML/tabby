@@ -79,6 +79,7 @@ pub async fn completion(
 ) -> Result<Json<CompletionResponse>, StatusCode> {
     let language = request.language.unwrap_or("unknown".to_string());
     let options = TextGenerationOptionsBuilder::default()
+        .max_input_length(1024 + 512)
         .max_decoding_length(128)
         .sampling_temperature(0.1)
         .stop_words(get_stop_words(&language))
