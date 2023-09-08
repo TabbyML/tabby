@@ -124,7 +124,7 @@ impl TextGeneration for CTranslate2Engine {
             engine.inference(
                 context,
                 inference_callback,
-                encoding.get_tokens(),
+                truncate_tokens(encoding.get_tokens(), options.max_input_length),
                 options.max_decoding_length,
                 options.sampling_temperature,
             )
@@ -133,6 +133,11 @@ impl TextGeneration for CTranslate2Engine {
         .expect("Inference failed");
         self.tokenizer.decode(&output_ids, true).unwrap()
     }
+}
+
+fn truncate_tokens(tokens: &[String], max_length: usize) -> &[String] {
+    let start = std::cmp::max(tokens.len() - max_length, 0);
+    &tokens[start..]
 }
 
 fn inference_callback(

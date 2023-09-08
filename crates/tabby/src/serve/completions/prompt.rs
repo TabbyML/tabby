@@ -13,7 +13,7 @@ use super::Segments;
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_PER_NAME: u32 = 1;
-static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 1024;
+static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 512;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,

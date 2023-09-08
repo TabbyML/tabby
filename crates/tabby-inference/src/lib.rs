@@ -3,6 +3,9 @@ use derive_builder::Builder;
 
 #[derive(Builder, Debug)]
 pub struct TextGenerationOptions {
+    #[builder(default = "1024")]
+    pub max_input_length: usize,
+
     #[builder(default = "256")]
     pub max_decoding_length: usize,
 
