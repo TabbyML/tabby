@@ -17,7 +17,7 @@ mod ffi {
 
         fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
 
-        fn start(&self, prompt: &str) -> u32;
+        fn start(&self, prompt: &str, max_input_length: usize) -> u32;
         fn step(&self, next_token_id: u32) -> u32;
         fn end(&self);
 
@@ -67,7 +67,7 @@ impl TextGeneration for LlamaEngine {
             let engine = engine.lock().unwrap();
             let eos_token = engine.eos_token();
 
-            let mut next_token_id = engine.start(&prompt);
+            let mut next_token_id = engine.start(&prompt, options.max_input_length);
             if next_token_id == eos_token {
                 return Vec::new();
             }
