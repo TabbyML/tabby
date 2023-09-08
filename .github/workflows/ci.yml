@@ -5,9 +5,7 @@ on:
   push:
     tags:
       - 'v*'
-  create:
-    tags:
-      - nightly
+      - 'nightly'
   pull_request:
     branches: ["main" ]
     paths:
