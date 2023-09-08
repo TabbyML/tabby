@@ -39,6 +39,12 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
+    // Check if autocomplete widget is visible
+    if (context.selectedCompletionInfo !== undefined) {
+      console.debug("Autocomplete widget is visible, skipping.");
+      return emptyResponse;
+    }
+
     const replaceRange = this.calculateReplaceRange(document, position);
 
     if (this.pendingCompletion) {
