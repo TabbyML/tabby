@@ -10,7 +10,7 @@ namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
-static size_t N_BATCHES = 512;
+static size_t N_BATCH = 512;
 
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
@@ -49,8 +49,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_reset_timings(ctx);
     std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), max_input_length, /* add_bos = */ true);
 
-    for (size_t i = 0; i < tokens_list.size(); i += N_BATCHES) {
-      const size_t size = std::min(N_BATCHES, tokens_list.size() - i);
+    for (size_t i = 0; i < tokens_list.size(); i += N_BATCH) {
+      const size_t size = std::min(N_BATCH, tokens_list.size() - i);
       eval(tokens_list.data() + i, size, /* reset = */ i == 0);
     }
     return sample();
@@ -116,7 +116,7 @@ std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
 
   llama_context_params ctx_params = llama_context_default_params();
   ctx_params.n_ctx = 2048;
-  ctx_params.n_batch = 512;
+  ctx_params.n_batch = N_BATCH;
   ctx_params.n_gpu_layers = 1;
 
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), ctx_params);
