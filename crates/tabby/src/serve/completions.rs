@@ -173,7 +173,7 @@ fn create_engine(args: &crate::serve::ServeArgs) -> (Box<dyn TextGeneration>, Op
             .as_str()
             .expect("Type unmatched");
         let engine = Box::new(VertexAIEngine::create(api_endpoint, authorization));
-        (engine, None)
+        (engine, Some(VertexAIEngine::prompt_template()))
     }
 }
 

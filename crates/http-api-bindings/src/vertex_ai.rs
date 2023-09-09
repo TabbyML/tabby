@@ -56,6 +56,10 @@ impl VertexAIEngine {
             client,
         }
     }
+
+    pub fn prompt_template() -> String {
+        "{prefix}<MID>{suffix}".to_owned()
+    }
 }
 
 #[async_trait]
@@ -69,10 +73,11 @@ impl TextGeneration for VertexAIEngine {
             .take(5)
             .collect();
 
+        let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {
             instances: vec![Instance {
-                prefix: prompt.to_owned(),
-                suffix: None,
+                prefix: tokens[0].to_owned(),
+                suffix: Some(tokens[1].to_owned()),
             }],
             // options.max_input_length is ignored.
             parameters: Parameters {
