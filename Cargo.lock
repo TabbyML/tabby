@@ -1241,6 +1241,7 @@ dependencies = [
  "reqwest",
  "serde",
  "tabby-inference",
+ "tokio",
 ]
 
 [[package]]
