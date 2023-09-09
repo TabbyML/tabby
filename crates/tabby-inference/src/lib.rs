@@ -16,7 +16,7 @@ pub struct TextGenerationOptions {
     pub stop_words: &'static Vec<&'static str>,
 }
 
-static DEFAULT_STOP_WORDS : Vec<&'static str> = vec![];
+static DEFAULT_STOP_WORDS: Vec<&'static str> = vec![];
 
 #[async_trait]
 pub trait TextGeneration: Sync + Send {
