@@ -62,7 +62,7 @@ export interface AgentFunction {
   /**
    * The agent configuration has the following levels, will be deep merged in the order:
    * 1. Default config
-   * 2. User config file `~/.tabby/agent/config.toml` (not available in browser)
+   * 2. User config file `~/.tabby-client/agent/config.toml` (not available in browser)
    * 3. Agent `initialize` and `updateConfig` methods
    *
    * This method will update the 3rd level config.

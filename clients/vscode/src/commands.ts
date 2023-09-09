@@ -75,7 +75,7 @@ const openTabbyAgentSettings: Command = {
       window.showWarningMessage("Tabby Agent config file is not supported on web.", { modal: true });
       return;
     }
-    const agentUserConfig = Uri.joinPath(Uri.file(require("os").homedir()), ".tabby", "agent", "config.toml");
+    const agentUserConfig = Uri.joinPath(Uri.file(require("os").homedir()), ".tabby-client", "agent", "config.toml");
     workspace.fs.stat(agentUserConfig).then(
       () => {
         workspace.openTextDocument(agentUserConfig).then((document) => {

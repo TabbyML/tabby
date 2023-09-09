@@ -14,7 +14,7 @@ export interface DataStore {
 export const dataStore: DataStore = isBrowser
   ? null
   : (() => {
-      const dataFile = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");
+      const dataFile = require("path").join(require("os").homedir(), ".tabby-client", "agent", "data.json");
       const fs = require("fs-extra");
       return {
         data: {},

@@ -38,7 +38,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private readonly logger = rootLogger.child({ component: "TabbyAgent" });
   private anonymousUsageLogger: AnonymousUsageLogger;
   private config: AgentConfig = defaultAgentConfig;
-  private userConfig: PartialAgentConfig = {}; // config from `~/.tabby/agent/config.toml`
+  private userConfig: PartialAgentConfig = {}; // config from `~/.tabby-client/agent/config.toml`
   private clientConfig: PartialAgentConfig = {}; // config from `initialize` and `updateConfig` method
   private status: AgentStatus = "notInitialized";
   private issues: AgentIssue["name"][] = [];
