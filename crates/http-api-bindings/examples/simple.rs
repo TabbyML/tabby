@@ -9,7 +9,10 @@ async fn main() {
     let authorization = env::var("AUTHORIZATION").expect("AUTHORIZATION not set");
     let engine = VertexAIEngine::create(&api_endpoint, &authorization);
 
-    let options = TextGenerationOptionsBuilder::default().max_decoding_length(32).build().unwrap();
+    let options = TextGenerationOptionsBuilder::default()
+        .max_decoding_length(32)
+        .build()
+        .unwrap();
     let text = engine.generate("def fib(n)", options).await;
     println!("text: {}", text);
 }
