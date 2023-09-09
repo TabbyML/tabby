@@ -14,7 +14,7 @@ use clap::Args;
 use tabby_common::{config::Config, usage};
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
-use tracing::info;
+use tracing::{info, warn};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -58,6 +58,9 @@ pub enum Device {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
     Metal,
+
+    #[strum(serialize = "experimental_http")]
+    ExperimentalHttp,
 }
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
@@ -129,22 +132,28 @@ fn should_download_ggml_files(device: &Device) -> bool {
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
-    // Ensure model exists.
-    tabby_download::download_model(
-        &args.model,
-        /* download_ctranslate2_files= */
-        !should_download_ggml_files(&args.device),
-        /* download_ggml_files= */ should_download_ggml_files(&args.device),
-        /* prefer_local_file= */ true,
-    )
-    .await
-    .unwrap_or_else(|err| {
-        fatal!(
-            "Failed to fetch model due to '{}', is '{}' a valid model id?",
-            err,
-            args.model
+    if args.device != Device::ExperimentalHttp {
+        let download_ctranslate2_files = !should_download_ggml_files(&args.device);
+        let download_ggml_files = should_download_ggml_files(&args.device);
+
+        // Ensure model exists.
+        tabby_download::download_model(
+            &args.model,
+            download_ctranslate2_files,
+            download_ggml_files,
+            /* prefer_local_file= */ true,
         )
-    });
+        .await
+        .unwrap_or_else(|err| {
+            fatal!(
+                "Failed to fetch model due to '{}', is '{}' a valid model id?",
+                err,
+                args.model
+            )
+        });
+    } else {
+        warn!("HTTP device is unstable and does not comply with semver expectations.")
+    }
 
     info!("Starting server, this might takes a few minutes...");
     let app = Router::new()
