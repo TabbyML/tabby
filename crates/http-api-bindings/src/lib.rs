@@ -1,3 +1,3 @@
 mod vertex_ai;
 
-pub use vertex_ai::CodeGeckoEngine;
+pub use vertex_ai::VertexAIEngine;
