@@ -33,12 +33,12 @@ struct Prediction {
     content: String
 }
 
-pub struct CodeGeckoEngine {
+pub struct VertexAIEngine {
     client: reqwest::Client,
     api_endpoint: String,
 }
 
-impl CodeGeckoEngine {
+impl VertexAIEngine {
     pub fn create(api_endpoint: &str, authorization: &str) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
@@ -50,12 +50,12 @@ impl CodeGeckoEngine {
             .default_headers(headers)
             .build()
             .expect("Failed to construct HTTP client");
-        CodeGeckoEngine { api_endpoint: api_endpoint.to_owned(), client }
+        Self { api_endpoint: api_endpoint.to_owned(), client }
     }
 }
 
 #[async_trait]
-impl TextGeneration for CodeGeckoEngine {
+impl TextGeneration for VertexAIEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let stop_sequences: Vec<String> = options.stop_words
             .iter()
