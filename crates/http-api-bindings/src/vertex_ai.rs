@@ -1,7 +1,9 @@
 use async_trait::async_trait;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
+use tracing::error;
 
 #[derive(Serialize)]
 struct Request {
@@ -77,16 +79,21 @@ impl TextGeneration for VertexAIEngine {
         };
 
         // API Documentation: https://cloud.google.com/vertex-ai/docs/generative-ai/learn/models#code-completion-prompt-parameters
-        let resp: Response = self
+        let resp = self
             .client
             .post(&self.api_endpoint)
             .json(&request)
             .send()
             .await
-            .expect("Failed to making completion request")
-            .json()
-            .await
-            .expect("Failed to parse response");
+            .expect("Failed to making completion request");
+
+        if resp.status() != 200 {
+            let err: Value = resp.json().await.expect("Failed to parse response");
+            error!("Request failed: {}", err);
+            std::process::exit(1);
+        }
+
+        let resp: Response = resp.json().await.expect("Failed to parse response");
 
         resp.predictions[0].content.clone()
     }

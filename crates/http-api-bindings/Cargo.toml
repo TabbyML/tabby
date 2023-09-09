@@ -7,7 +7,10 @@ edition = "2021"
 async-trait.workspace = true
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = "1.0.105"
 tabby-inference = { version = "0.1.0", path = "../tabby-inference" }
+tracing.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
+tracing-subscriber.workspace = true
