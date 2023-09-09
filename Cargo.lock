@@ -1243,8 +1243,6 @@ dependencies = [
  "serde_json",
  "tabby-inference",
  "tokio",
- "tracing",
- "tracing-subscriber 0.3.17",
 ]
 
 [[package]]

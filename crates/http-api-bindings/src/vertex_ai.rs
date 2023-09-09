@@ -3,7 +3,6 @@ use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tabby_inference::{TextGeneration, TextGenerationOptions};
-use tracing::error;
 
 #[derive(Serialize)]
 struct Request {
@@ -89,7 +88,7 @@ impl TextGeneration for VertexAIEngine {
 
         if resp.status() != 200 {
             let err: Value = resp.json().await.expect("Failed to parse response");
-            error!("Request failed: {}", err);
+            println!("Request failed: {}", err);
             std::process::exit(1);
         }
 
