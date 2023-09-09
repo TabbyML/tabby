@@ -12,11 +12,11 @@ pub struct TextGenerationOptions {
     #[builder(default = "1.0")]
     pub sampling_temperature: f32,
 
-    #[builder(default = "&DEFAULT_STOP_WORDS")]
+    #[builder(default = "&EMPTY_STOP_WORDS")]
     pub stop_words: &'static Vec<&'static str>,
 }
 
-static DEFAULT_STOP_WORDS: Vec<&'static str> = vec![];
+static EMPTY_STOP_WORDS: Vec<&'static str> = vec![];
 
 #[async_trait]
 pub trait TextGeneration: Sync + Send {
