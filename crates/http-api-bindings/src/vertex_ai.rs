@@ -69,6 +69,7 @@ impl TextGeneration for CodeGeckoEngine {
                     suffix: None,
                 }
             ],
+            // options.max_input_length is ignored.
             parameters: Parameters {
                 temperature: options.sampling_temperature,
                 max_output_tokens: options.max_decoding_length,
@@ -76,6 +77,7 @@ impl TextGeneration for CodeGeckoEngine {
             }
         };
 
+        // API Documentation: https://cloud.google.com/vertex-ai/docs/generative-ai/learn/models#code-completion-prompt-parameters
         let resp: Response = self
             .client
             .post(&self.api_endpoint)
