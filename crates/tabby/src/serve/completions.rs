@@ -5,8 +5,10 @@ use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
+use http_api_bindings::vertex_ai::VertexAIEngine;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tabby_common::{config::Config, events, path::ModelDir};
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
@@ -128,22 +130,55 @@ pub struct CompletionState {
 
 impl CompletionState {
     pub fn new(args: &crate::serve::ServeArgs, config: &Config) -> Self {
-        let model_dir = get_model_dir(&args.model);
-        let metadata = read_metadata(&model_dir);
-        let engine = create_engine(args, &model_dir, &metadata);
+        let (engine, prompt_template) = create_engine(args);
 
         Self {
             engine,
             prompt_builder: prompt::PromptBuilder::new(
-                metadata.prompt_template,
+                prompt_template,
                 config.experimental.enable_prompt_rewrite,
             ),
         }
     }
 }
 
+fn create_engine(args: &crate::serve::ServeArgs) -> (Box<dyn TextGeneration>, Option<String>) {
+    if args.device != super::Device::ExperimentalHttp {
+        let model_dir = get_model_dir(&args.model);
+        let metadata = read_metadata(&model_dir);
+        let engine = create_local_engine(args, &model_dir, &metadata);
+        (engine, metadata.prompt_template)
+    } else {
+        let params: Value =
+            serdeconv::from_json_str(&args.model).expect("Failed to parse model string");
+
+        let kind = params
+            .get("kind")
+            .expect("Missing kind field")
+            .as_str()
+            .expect("Type unmatched");
+
+        if kind != "vertex-ai" {
+            fatal!("Only vertex_ai is supported for http backend");
+        }
+
+        let api_endpoint = params
+            .get("api_endpoint")
+            .expect("Missing api_endpoint field")
+            .as_str()
+            .expect("Type unmatched");
+        let authorization = params
+            .get("authorization")
+            .expect("Missing authorization field")
+            .as_str()
+            .expect("Type unmatched");
+        let engine = Box::new(VertexAIEngine::create(api_endpoint, authorization));
+        (engine, None)
+    }
+}
+
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-fn create_engine(
+fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,
@@ -152,7 +187,7 @@ fn create_engine(
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn create_engine(
+fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,

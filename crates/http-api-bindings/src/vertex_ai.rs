@@ -61,8 +61,13 @@ impl VertexAIEngine {
 #[async_trait]
 impl TextGeneration for VertexAIEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let stop_sequences: Vec<String> =
-            options.stop_words.iter().map(|x| x.to_string()).collect();
+        let stop_sequences: Vec<String> = options
+            .stop_words
+            .iter()
+            .map(|x| x.to_string())
+            // vertex supports at most 5 stop sequence.
+            .take(5)
+            .collect();
 
         let request = Request {
             instances: vec![Instance {
@@ -72,7 +77,8 @@ impl TextGeneration for VertexAIEngine {
             // options.max_input_length is ignored.
             parameters: Parameters {
                 temperature: options.sampling_temperature,
-                max_output_tokens: options.max_decoding_length,
+                // vertex supports at most 64 output tokens.
+                max_output_tokens: std::cmp::min(options.max_decoding_length, 64),
                 stop_sequences,
             },
         };

@@ -2959,6 +2959,7 @@ dependencies = [
  "axum-tracing-opentelemetry",
  "clap",
  "ctranslate2-bindings",
+ "http-api-bindings",
  "hyper",
  "lazy_static",
  "llama-cpp-bindings",
