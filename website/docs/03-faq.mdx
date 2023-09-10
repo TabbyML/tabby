@@ -1,3 +1,5 @@
+import CodeBlock from '@theme/CodeBlock';
+
 # ⁉️ Frequently Asked Questions
 
 <details>
@@ -16,5 +18,16 @@
     <p>
       To determine the mapping between the GPU card type and its compute capability, please visit <a href="https://developer.nvidia.com/cuda-gpus">this page</a>
     </p>
+  </div>
+</details>
+
+<details>
+  <summary>How to utilize multiple NVIDIA GPUs?</summary>
+  <div>
+    <p>Tabby supports replicating models on multiple GPUs to increase throughput. You can specify the devices for model replication by using the <b>--device-indices</b> option.</p>
+    <CodeBlock language="bash">
+    # Replicate model to GPU 0 and GPU 1.{'\n'}
+    tabby serve ... --device-indices 0 --device-indices 1
+    </CodeBlock>
   </div>
 </details>
