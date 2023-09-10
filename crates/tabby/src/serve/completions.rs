@@ -5,7 +5,7 @@ use std::{path::Path, sync::Arc};
 
 use axum::{extract::State, Json};
 use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
-use http_api_bindings::vertex_ai::VertexAIEngine;
+use http_api_bindings::{fastchat::FastChatEngine, vertex_ai::VertexAIEngine};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -142,6 +142,15 @@ impl CompletionState {
     }
 }
 
+fn get_param(params: &Value, key: &str) -> String {
+    params
+        .get(key)
+        .expect(format!("Missing {} field", key).as_str())
+        .as_str()
+        .expect("Type unmatched")
+        .to_string()
+}
+
 fn create_engine(args: &crate::serve::ServeArgs) -> (Box<dyn TextGeneration>, Option<String>) {
     if args.device != super::Device::ExperimentalHttp {
         let model_dir = get_model_dir(&args.model);
@@ -152,28 +161,29 @@ fn create_engine(args: &crate::serve::ServeArgs) -> (Box<dyn TextGeneration>, Op
         let params: Value =
             serdeconv::from_json_str(&args.model).expect("Failed to parse model string");
 
-        let kind = params
-            .get("kind")
-            .expect("Missing kind field")
-            .as_str()
-            .expect("Type unmatched");
+        let kind = get_param(&params, "kind");
 
-        if kind != "vertex-ai" {
-            fatal!("Only vertex_ai is supported for http backend");
+        if kind == "vertex-ai" {
+            let api_endpoint = get_param(&params, "api_endpoint");
+            let authorization = get_param(&params, "authorization");
+            let engine = Box::new(VertexAIEngine::create(
+                api_endpoint.as_str(),
+                authorization.as_str(),
+            ));
+            (engine, Some(VertexAIEngine::prompt_template()))
+        } else if kind == "fastchat" {
+            let model_name = get_param(&params, "model_name");
+            let api_endpoint = get_param(&params, "api_endpoint");
+            let authorization = get_param(&params, "authorization");
+            let engine = Box::new(FastChatEngine::create(
+                api_endpoint.as_str(),
+                model_name.as_str(),
+                authorization.as_str(),
+            ));
+            (engine, Some(FastChatEngine::prompt_template()))
+        } else {
+            fatal!("Only vertex_ai and fastchat are supported for http backend");
         }
-
-        let api_endpoint = params
-            .get("api_endpoint")
-            .expect("Missing api_endpoint field")
-            .as_str()
-            .expect("Type unmatched");
-        let authorization = params
-            .get("authorization")
-            .expect("Missing authorization field")
-            .as_str()
-            .expect("Type unmatched");
-        let engine = Box::new(VertexAIEngine::create(api_endpoint, authorization));
-        (engine, Some(VertexAIEngine::prompt_template()))
     }
 }
 

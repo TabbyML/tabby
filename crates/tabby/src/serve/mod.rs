@@ -120,7 +120,7 @@ pub struct ServeArgs {
 }
 
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-fn should_download_ggml_files(device: &Device) -> bool {
+fn should_download_ggml_files(_device: &Device) -> bool {
     false
 }
 
