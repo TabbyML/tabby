@@ -1,3 +1,8 @@
+DOCKER_BUILD_ARG:=
+
+build_docker:
+	docker buildx build ${DOCKER_BUILD_ARG} -f Dockerfile_base -t tabby_base .
+	docker buildx build ${DOCKER_BUILD_ARG} -f Dockerfile -t tabby .
 smoke:
 	k6 run tests/*.smoke.js
 

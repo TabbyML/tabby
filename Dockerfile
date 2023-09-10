@@ -1,25 +1,6 @@
-FROM ghcr.io/opennmt/ctranslate2:3.17.1-ubuntu20.04-cuda11.2 as source
-FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
+# syntax = docker/dockerfile:experimental
 
-ENV CTRANSLATE2_ROOT=/opt/ctranslate2
-COPY --from=source $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        pkg-config \
-        libssl-dev \
-        protobuf-compiler \
-        git \
-        cmake \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# setup rust.
-RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
+FROM tabby_base as builder
 
 WORKDIR /root/workspace
 COPY . .
