@@ -24,7 +24,7 @@ import CodeBlock from '@theme/CodeBlock';
 <details>
   <summary>How to utilize multiple NVIDIA GPUs?</summary>
   <div>
-    <p>Tabby supports replicating models across multiple devices to increase throughput. You can specify the GPUs for model replication by using the <b>--device-indices</b> option with the <b>tabby serve</b> command.</p>
+    <p>Tabby supports replicating models on multiple GPUs to increase throughput. You can specify the devices for model replication by using the <b>--device-indices</b> option.</p>
     <CodeBlock language="bash">
     # Replicate model to GPU 0 and GPU 1.{'\n'}
     tabby serve ... --device-indices 0 --device-indices 1
