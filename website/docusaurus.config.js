@@ -108,22 +108,18 @@ const config = {
                 label: 'API',
                 to: '/api',
               },
-              {
-                label: "Status",
-                href: "https://uptime.tabbyml.com"
-              }
             ],
           },
           {
             title: 'Community',
             items: [
               {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/tabby',
+                label: 'Slack',
+                href: 'https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA',
               },
               {
-                label: 'Twitter',
-                href: 'https://twitter.com/mzh1024',
+                label: 'GitHub',
+                href: 'https://github.com/TabbyML/tabby',
               },
             ],
           },
@@ -135,9 +131,9 @@ const config = {
                 to: '/blog',
               },
               {
-                label: 'GitHub',
-                href: 'https://github.com/TabbyML/tabby',
-              },
+                label: "Status",
+                href: "https://uptime.tabbyml.com"
+              }
             ],
           },
         ],
