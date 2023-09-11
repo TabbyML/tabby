@@ -1,3 +1,6 @@
+---
+sidebar_position: 0
+---
 # 👋 Getting Started
 
 Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team can set up its own LLM-powered code completion server with ease.
