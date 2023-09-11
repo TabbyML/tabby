@@ -26,19 +26,6 @@ namespace ctranslate2 {
                              cuda::repeat_vec_depth<dim_t>(depth));
     }
 
-    template void
-    Dequantize::dequantize<Device::CUDA, int8_t, float>(const StorageView&,
-                                                        const StorageView&,
-                                                        StorageView&) const;
-    template void
-    Dequantize::dequantize<Device::CUDA, int8_t, float16_t>(const StorageView&,
-                                                            const StorageView&,
-                                                            StorageView&) const;
-    template void
-    Dequantize::dequantize<Device::CUDA, int8_t, bfloat16_t>(const StorageView&,
-                                                             const StorageView&,
-                                                             StorageView&) const;
-
 
     template <typename Epilogue, typename T>
     __global__ void dequantize_gemm_output_kernel(const int32_t* c,
@@ -150,30 +137,25 @@ namespace ctranslate2 {
         depth);
     }
 
-    template void
-    Dequantize::dequantize_gemm_output<Device::CUDA, float>(const StorageView&,
-                                                            const StorageView&,
-                                                            const StorageView&,
-                                                            const bool,
-                                                            const bool,
-                                                            const StorageView*,
-                                                            StorageView&) const;
-    template void
-    Dequantize::dequantize_gemm_output<Device::CUDA, float16_t>(const StorageView&,
-                                                                const StorageView&,
-                                                                const StorageView&,
-                                                                const bool,
-                                                                const bool,
-                                                                const StorageView*,
-                                                                StorageView&) const;
-    template void
-    Dequantize::dequantize_gemm_output<Device::CUDA, bfloat16_t>(const StorageView&,
-                                                                 const StorageView&,
-                                                                 const StorageView&,
-                                                                 const bool,
-                                                                 const bool,
-                                                                 const StorageView*,
-                                                                 StorageView&) const;
+#define DECLARE_IMPL(T)                                                 \
+    template void                                                       \
+    Dequantize::dequantize<Device::CUDA, int8_t, T>(                    \
+      const StorageView&,                                               \
+      const StorageView&,                                               \
+      StorageView&) const;                                              \
+    template void                                                       \
+    Dequantize::dequantize_gemm_output<Device::CUDA, T>(                \
+      const StorageView&,                                               \
+      const StorageView&,                                               \
+      const StorageView&,                                               \
+      const bool,                                                       \
+      const bool,                                                       \
+      const StorageView*,                                               \
+      StorageView&) const;
+
+    DECLARE_IMPL(float)
+    DECLARE_IMPL(float16_t)
+    DECLARE_IMPL(bfloat16_t)
 
   }
 }

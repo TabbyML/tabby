@@ -200,19 +200,11 @@ namespace ctranslate2 {
     cuda::unary_transform(x, y, size, cuda::relu_func<cuda::device_type<T>>());
   }
 
-  template void primitives<Device::CUDA>::relu(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::relu(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::relu(const bfloat16_t*, bfloat16_t*, dim_t);
-
   template<>
   template <typename T>
   void primitives<Device::CUDA>::gelu(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::gelu_func<cuda::device_type<T>>());
   }
-
-  template void primitives<Device::CUDA>::gelu(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::gelu(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::gelu(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -220,29 +212,17 @@ namespace ctranslate2 {
     cuda::unary_transform(x, y, size, cuda::gelu_tanh_func<cuda::device_type<T>>());
   }
 
-  template void primitives<Device::CUDA>::gelu_tanh(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::gelu_tanh(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::gelu_tanh(const bfloat16_t*, bfloat16_t*, dim_t);
-
   template<>
   template <typename T>
   void primitives<Device::CUDA>::gelu_sigmoid(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::gelu_sigmoid_func<cuda::device_type<T>>());
   }
 
-  template void primitives<Device::CUDA>::gelu_sigmoid(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::gelu_sigmoid(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::gelu_sigmoid(const bfloat16_t*, bfloat16_t*, dim_t);
-
   template<>
   template <typename T>
   void primitives<Device::CUDA>::swish(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::swish_func<cuda::device_type<T>>());
   }
-
-  template void primitives<Device::CUDA>::swish(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::swish(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::swish(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template <typename T>
   struct perm_indices_2d {
@@ -688,19 +668,11 @@ namespace ctranslate2 {
     return std::log(exp_sum) + max_value;
   }
 
-  template float primitives<Device::CUDA>::logsumexp(const float*, dim_t);
-  template float primitives<Device::CUDA>::logsumexp(const float16_t*, dim_t);
-  template float primitives<Device::CUDA>::logsumexp(const bfloat16_t*, dim_t);
-
   template<>
   template <typename T>
   void primitives<Device::CUDA>::sin(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::sin_func<cuda::device_type<T>>());
   }
-
-  template void primitives<Device::CUDA>::sin(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::sin(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::sin(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -708,64 +680,23 @@ namespace ctranslate2 {
     cuda::unary_transform(x, y, size, cuda::cos_func<cuda::device_type<T>>());
   }
 
-  template void primitives<Device::CUDA>::cos(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::cos(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::cos(const bfloat16_t*, bfloat16_t*, dim_t);
-
   template<>
   template <typename T>
   void primitives<Device::CUDA>::tanh(const T* x, T* y, dim_t size) {
     cuda::unary_transform(x, y, size, cuda::tanh_func<cuda::device_type<T>>());
   }
 
-  template void primitives<Device::CUDA>::tanh(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::tanh(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::tanh(const bfloat16_t*, bfloat16_t*, dim_t);
-
-  struct exp_func {
-    __device__
-    float operator()(float x) { return expf(x); }
-  };
-
   template<>
-  void primitives<Device::CUDA>::exp(const float* x, float* y, dim_t size) {
-    cuda::unary_transform(x, y, size, exp_func());
-  }
-
   template <typename T>
-  struct log_func {
-    __device__ float operator()(float x) {
-      return logf(x);
-    }
-  };
-
-#if CUDA_CAN_USE_HALF
-  template<>
-  struct log_func<__half> {
-    __device__ __half operator()(__half x) {
-      return hlog(x);
-    }
-  };
-#endif
-
-#if CUDA_CAN_USE_BF16_MATH
-  template<>
-  struct log_func<__nv_bfloat16> {
-    __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) {
-      return hlog(x);
-    }
-  };
-#endif
+  void primitives<Device::CUDA>::exp(const T* x, T* y, dim_t size) {
+    cuda::unary_transform(x, y, size, cuda::exp_func<cuda::device_type<T>>());
+  }
 
   template<>
   template <typename T>
   void primitives<Device::CUDA>::log(const T* x, T* y, dim_t size) {
-    cuda::unary_transform(x, y, size, log_func<cuda::device_type<T>>());
+    cuda::unary_transform(x, y, size, cuda::log_func<cuda::device_type<T>>());
   }
-
-  template void primitives<Device::CUDA>::log(const float*, float*, dim_t);
-  template void primitives<Device::CUDA>::log(const float16_t*, float16_t*, dim_t);
-  template void primitives<Device::CUDA>::log(const bfloat16_t*, bfloat16_t*, dim_t);
 
   template<>
   template <typename T>
@@ -851,5 +782,23 @@ namespace ctranslate2 {
   cross_device_primitives<Device::CUDA, Device::CPU>::copy<T>(const T*, T*, dim_t);
 
   DECLARE_ALL_TYPES(DECLARE_IMPL)
+
+
+#define DECLARE_FLOAT_IMPL(T)                                           \
+  template void primitives<Device::CUDA>::relu(const T*, T*, dim_t);    \
+  template void primitives<Device::CUDA>::gelu(const T*, T*, dim_t);    \
+  template void primitives<Device::CUDA>::gelu_tanh(const T*, T*, dim_t); \
+  template void primitives<Device::CUDA>::gelu_sigmoid(const T*, T*, dim_t); \
+  template void primitives<Device::CUDA>::swish(const T*, T*, dim_t);   \
+  template float primitives<Device::CUDA>::logsumexp(const T*, dim_t);  \
+  template void primitives<Device::CUDA>::sin(const T*, T*, dim_t);     \
+  template void primitives<Device::CUDA>::cos(const T*, T*, dim_t);     \
+  template void primitives<Device::CUDA>::tanh(const T*, T*, dim_t);    \
+  template void primitives<Device::CUDA>::exp(const T*, T*, dim_t);     \
+  template void primitives<Device::CUDA>::log(const T*, T*, dim_t);
+
+  DECLARE_FLOAT_IMPL(float)
+  DECLARE_FLOAT_IMPL(float16_t)
+  DECLARE_FLOAT_IMPL(bfloat16_t)
 
 }

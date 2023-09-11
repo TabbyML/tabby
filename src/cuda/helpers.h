@@ -285,6 +285,20 @@ namespace ctranslate2 {
       }
     };
 
+    template <typename T>
+    struct exp_func {
+      __device__ T operator()(T x) const {
+        return expf(x);
+      }
+    };
+
+    template <typename T>
+    struct log_func {
+      __device__ T operator()(T x) const {
+        return logf(x);
+      }
+    };
+
 #if CUDA_CAN_USE_HALF
     template<>
     struct sin_func<__half> {
@@ -297,6 +311,20 @@ namespace ctranslate2 {
     struct cos_func<__half> {
       __device__ __half operator()(__half x) const {
         return hcos(x);
+      }
+    };
+
+    template<>
+    struct exp_func<__half> {
+      __device__ __half operator()(__half x) const {
+        return hexp(x);
+      }
+    };
+
+    template<>
+    struct log_func<__half> {
+      __device__ __half operator()(__half x) const {
+        return hlog(x);
       }
     };
 #endif
@@ -313,6 +341,20 @@ namespace ctranslate2 {
     struct cos_func<__nv_bfloat16> {
       __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) const {
         return hcos(x);
+      }
+    };
+
+    template<>
+    struct exp_func<__nv_bfloat16> {
+      __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) const {
+        return hexp(x);
+      }
+    };
+
+    template<>
+    struct log_func<__nv_bfloat16> {
+      __device__ __nv_bfloat16 operator()(__nv_bfloat16 x) const {
+        return hlog(x);
       }
     };
 #endif

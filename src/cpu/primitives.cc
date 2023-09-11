@@ -331,6 +331,7 @@ namespace ctranslate2 {
   }
 
   template<>
+  template<>
   void primitives<Device::CPU>::exp(const float* x, float* y, dim_t size) {
 #ifdef CT2_WITH_MKL
     if (cpu::mayiuse_mkl())
