@@ -25,9 +25,14 @@ use crate::fatal;
 #[openapi(
     info(title="Tabby Server",
         description = "
-[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](https://github.com/TabbyML/tabby)
+[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)
+[![Join Slack](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
 
-OpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-hosted AI coding assistant.",
+Install following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).
+* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
+* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)
+* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)
+",
         license(name = "Apache 2.0", url="https://github.com/TabbyML/tabby/blob/main/LICENSE")
     ),
     servers(
