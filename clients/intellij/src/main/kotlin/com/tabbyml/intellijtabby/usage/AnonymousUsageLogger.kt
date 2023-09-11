@@ -34,13 +34,13 @@ class AnonymousUsageLogger {
       try {
         val home = System.getProperty("user.home")
         logger.info("User home: $home")
-        val datafile = Path(home).resolve(".tabby/agent/data.json").toFile()
+        val datafile = Path(home).resolve(".tabby-client/agent/data.json").toFile()
         var data: Map<*, *>? = null
         try {
           val dataJson = datafile.inputStream().bufferedReader().use { it.readText() }
           data = gson.fromJson(dataJson, Map::class.java)
         } catch (e: Exception) {
-          logger.error("Failed to load anonymous ID: ${e.message}")
+          logger.info("Failed to load anonymous ID: ${e.message}")
         }
         if (data?.get("anonymousId") != null) {
           anonymousId = data["anonymousId"].toString()
@@ -50,11 +50,12 @@ class AnonymousUsageLogger {
           val newData = data?.toMutableMap() ?: mutableMapOf()
           newData["anonymousId"] = anonymousId
           val newDataJson = gson.toJson(newData)
+          datafile.parentFile.mkdirs()
           datafile.writeText(newDataJson)
           logger.info("Create new anonymous ID: $anonymousId")
         }
       } catch (e: Exception) {
-        logger.error("Failed when init anonymous ID: ${e.message}")
+        logger.warn("Failed when init anonymous ID: ${e.message}")
         anonymousId = UUID.randomUUID().toString()
       } finally {
         initialized.value = true
@@ -97,13 +98,13 @@ class AnonymousUsageLogger {
 
         val responseCode = connection.responseCode
         if (responseCode == HttpURLConnection.HTTP_OK) {
-          logger.info("Usage event sent successfully.")
+          logger.info("Usage event sent successfully: $requestString")
         } else {
-          logger.error("Usage event failed to send: $responseCode")
+          logger.warn("Usage event failed to send: $responseCode")
         }
         connection.disconnect()
       } catch (e: Exception) {
-        logger.error("Usage event failed to send: ${e.message}")
+        logger.warn("Usage event failed to send: ${e.message}")
       }
     }
 

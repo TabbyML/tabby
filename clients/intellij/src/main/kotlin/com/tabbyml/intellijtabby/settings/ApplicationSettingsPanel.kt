@@ -13,7 +13,7 @@ class ApplicationSettingsPanel {
   val mainPanel: JPanel = FormBuilder.createFormBuilder()
     .addLabeledComponent("Server endpoint", serverEndpointTextField, 1, false)
     .addTooltip("A http or https URL of Tabby server endpoint.")
-    .addTooltip("If leave empty, server endpoint config in `~/.tabby/agent/config.toml` will be used")
+    .addTooltip("If leave empty, server endpoint config in `~/.tabby-client/agent/config.toml` will be used")
     .addTooltip("Default to 'http://localhost:8080'.")
     .addSeparator()
     .addComponent(isAutoCompletionEnabledCheckBox, 1)

@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 
 class Agent : ProcessAdapter() {
@@ -52,9 +54,10 @@ class Agent : ProcessAdapter() {
     if (node?.exists() == true) {
       logger.info("Node bin path: ${node.absolutePath}")
     } else {
-      logger.error("Node bin not found")
-      throw AgentException("Node bin not found")
+      throw AgentException("Node bin not found. Please install Node.js v16+ and add bin path to system environment variable PATH, then restart IDE.")
     }
+
+    checkNodeVersion(node.absolutePath)
 
     val script =
       PluginManagerCore.getPlugin(PluginId.getId("com.tabbyml.intellij-tabby"))?.pluginPath?.resolve("node_scripts/tabby-agent.js")
@@ -62,8 +65,7 @@ class Agent : ProcessAdapter() {
     if (script?.exists() == true) {
       logger.info("Node script path: ${script.absolutePath}")
     } else {
-      logger.error("Node script not found")
-      throw AgentException("Node script not found")
+      throw AgentException("Node script not found. Please reinstall Tabby plugin.")
     }
 
     val cmd = GeneralCommandLine(node.absolutePath, script.absolutePath)
@@ -75,6 +77,25 @@ class Agent : ProcessAdapter() {
     process.startNotify()
     process.addProcessListener(this)
     streamWriter = process.processInput.writer()
+  }
+
+  private fun checkNodeVersion(node: String) {
+    try {
+      val process = GeneralCommandLine(node, "--version").createProcess()
+      val version = BufferedReader(InputStreamReader(process.inputStream)).readLine()
+      val regResult = Regex("v([0-9]+)\\.([0-9]+)\\.([0-9]+)").find(version)
+      if (regResult != null && regResult.groupValues[1].toInt() >= 16) {
+        return
+      } else {
+        throw AgentException("Node version is too old: $version. Please install Node.js v16+ and add bin path to system environment variable PATH, then restart IDE.")
+      }
+    } catch (e: Exception) {
+      if (e is AgentException) {
+        throw e
+      } else {
+        throw AgentException("Failed to check node version: $e. Please check your node installation.")
+      }
+    }
   }
 
   data class Config(
@@ -191,7 +212,7 @@ class Agent : ProcessAdapter() {
   }
 
   suspend fun postEvent(event: LogEventRequest) {
-    return request("postEvent", listOf(event))
+    request<Any>("postEvent", listOf(event))
   }
 
   data class AuthUrlResponse(
@@ -200,8 +221,12 @@ class Agent : ProcessAdapter() {
   )
 
   fun close() {
-    streamWriter.close()
-    process.killProcess()
+    try {
+      streamWriter.close()
+      process.killProcess()
+    } catch (e: Exception) {
+      // ignore
+    }
   }
 
   private var requestId = 1
@@ -249,11 +274,11 @@ class Agent : ProcessAdapter() {
     val data = try {
       gson.fromJson(output, Array::class.java).toList()
     } catch (e: Exception) {
-      logger.error("Failed to parse agent output: $output")
+      logger.warn("Failed to parse agent output: $output")
       return
     }
     if (data.size != 2 || data[0] !is Number) {
-      logger.error("Failed to parse agent output: $output")
+      logger.warn("Failed to parse agent output: $output")
       return
     }
     logger.info("Parsed agent output: $data")
@@ -302,7 +327,7 @@ class Agent : ProcessAdapter() {
       }
 
       else -> {
-        logger.error("Agent notification, unknown event name: ${event["event"]}")
+        logger.warn("Agent notification, unknown event name: ${event["event"]}")
       }
     }
   }
