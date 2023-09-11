@@ -1,3 +1,4 @@
 ctranslate2>=3.17.1,<4
 sentencepiece
 transformers[torch]==4.31.*
+accelerate
