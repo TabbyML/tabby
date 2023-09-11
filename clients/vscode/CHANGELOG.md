@@ -1,3 +1,16 @@
+## 0.4.0
+
+Features:
+
+- Relocated the user data directory from `$HOME/.tabby/agent` to `$HOME/.tabby-client/agent` to avoid conflicts with Tabby server data. Note that the old data will not be migrated automatically. Please update the config file manually if you have made changes in the old path.
+- Added a template config file for Tabby client agent located at `$HOME/.tabby-client/agent/config.toml`.
+- Improved code suggestion filtering by indentation context. Suggestions now prioritize completing the current line or logic block, preventing excessively long suggestions.
+- Added adaptive completion debouncing for auto completion requests.
+
+Fixes:
+
+- Resolved conflict with the auto completion widget. The Tabby inline completion will no longer be displayed when the auto completion widget is visible.
+
 ## 0.3.0
 
 Features:
