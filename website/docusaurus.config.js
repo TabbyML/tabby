@@ -8,8 +8,7 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 const config = {
   title: 'Tabby',
   tagline: 'Opensource, self-hosted AI coding assistant',
-  // FIXME(meng): favicon
-  // favicon: 'img/favicon.ico',
+  favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
   url: 'https://tabbyml.github.io',
