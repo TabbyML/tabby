@@ -2,10 +2,11 @@ plugins {
   id("java")
   id("org.jetbrains.kotlin.jvm") version "1.8.21"
   id("org.jetbrains.intellij") version "1.13.3"
+  id("org.jetbrains.changelog") version "2.2.0"
 }
 
 group = "com.tabbyml"
-version = "0.2.0"
+version = "0.4.0"
 
 repositories {
   mavenCentral()
@@ -33,6 +34,12 @@ tasks {
   patchPluginXml {
     sinceBuild.set("222")
     untilBuild.set("232.*")
+    changeNotes.set(provider {
+      changelog.renderItem(
+        changelog.getLatest(),
+        org.jetbrains.changelog.Changelog.OutputType.HTML
+      )
+    })
   }
 
   val copyNodeScripts by register<Copy>("copyNodeScripts") {
