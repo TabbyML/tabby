@@ -86,15 +86,19 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         )
       }
 
-      private fun updateStatus(settingsState: ApplicationSettingsState.State, agentStatus: Agent.Status, currentIssue: String?) {
+      private fun updateStatus(settingsState: ApplicationSettingsState.State, agentStatus: Enum<*>, currentIssue: String?) {
         if (!settingsState.isAutoCompletionEnabled) {
           icon = AllIcons.Windows.CloseSmall
           tooltip = "Tabby: Auto completion is disabled"
         } else {
           when(agentStatus) {
-            Agent.Status.NOT_INITIALIZED -> {
+            AgentService.Status.INITIALIZING, Agent.Status.NOT_INITIALIZED -> {
               icon = AllIcons.Actions.Refresh
               tooltip = "Tabby: Initializing"
+            }
+            AgentService.Status.INITIALIZATION_FAILED -> {
+              icon = AllIcons.General.Error
+              tooltip = "Tabby: Initialization failed"
             }
             Agent.Status.READY -> {
               icon = AllIcons.Actions.Checked

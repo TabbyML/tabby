@@ -8,7 +8,6 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.application.invokeLater
@@ -20,14 +19,12 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.tabbyml.intellijtabby.actions.OpenAuthPage
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import com.tabbyml.intellijtabby.usage.AnonymousUsageLogger
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 @Service
@@ -35,11 +32,27 @@ class AgentService : Disposable {
   private val logger = Logger.getInstance(AgentService::class.java)
   private var agent: Agent = Agent()
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+  private var initFailedNotification: Notification? = null
   var authNotification: Notification? = null
     private set
   var issueNotification: Notification? = null
     private set
-  val status get() = agent.status
+
+  enum class Status {
+    INITIALIZING,
+    INITIALIZATION_FAILED,
+  }
+  private var initResultFlow: MutableStateFlow<Boolean?> = MutableStateFlow(null)
+  val status get() = initResultFlow.combine(agent.status) { initResult, agentStatus ->
+    if (initResult == null) {
+      Status.INITIALIZING
+    } else if (initResult) {
+      agentStatus
+    } else {
+      Status.INITIALIZATION_FAILED
+    }
+  }.stateIn(scope, SharingStarted.WhileSubscribed(), Status.INITIALIZING)
+
   val currentIssue get() = agent.currentIssue
 
   init {
@@ -54,14 +67,28 @@ class AgentService : Disposable {
       try {
         agent.open()
         agent.initialize(createAgentConfig(settings.data), client)
+        initResultFlow.value = true
         logger.info("Agent init done.")
       } catch (e: Exception) {
-        logger.error("Agent init failed: $e")
+        initResultFlow.value = false
+        logger.warn("Agent init failed: $e")
         anonymousUsageLogger.event(
           "IntelliJInitFailed", mapOf(
             "client" to client, "error" to e.stackTraceToString()
           )
         )
+        val notification = Notification(
+          "com.tabbyml.intellijtabby.notification.warning",
+          "Tabby initialization failed",
+          "${e.message}",
+          NotificationType.ERROR,
+        )
+        // FIXME: Add action to open FAQ page to help user set up nodejs.
+        invokeLater {
+          initFailedNotification?.expire()
+          initFailedNotification = notification
+          Notifications.Bus.notify(notification)
+        }
       }
     }
 
@@ -181,7 +208,7 @@ class AgentService : Disposable {
       BrowserUtil.browse(authUrlResponse.authUrl)
       progress.text = "Waiting for authorization from browser..."
       agent.waitForAuthToken(authUrlResponse.code)
-      if (status.value == Agent.Status.READY) {
+      if (agent.status.value == Agent.Status.READY) {
         Notification(
           "com.tabbyml.intellijtabby.notification.info",
           "Congrats, you're authorized, start to use Tabby now.",
