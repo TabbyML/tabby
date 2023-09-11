@@ -31,7 +31,7 @@ pub struct FastChatEngine {
 impl FastChatEngine {
     pub fn create(api_endpoint: &str, model_name: &str, authorization: &str) -> Self {
         let mut headers = reqwest::header::HeaderMap::new();
-        if authorization.len() > 0 {
+        if !authorization.is_empty() {
             headers.insert(
                 "Authorization",
                 header::HeaderValue::from_str(authorization)

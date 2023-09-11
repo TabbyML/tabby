@@ -145,7 +145,7 @@ impl CompletionState {
 fn get_param(params: &Value, key: &str) -> String {
     params
         .get(key)
-        .expect(format!("Missing {} field", key).as_str())
+        .unwrap_or_else(|| panic!("Missing {} field", key))
         .as_str()
         .expect("Type unmatched")
         .to_string()

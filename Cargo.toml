@@ -1,4 +1,5 @@
 [workspace]
+resolver = "1"
 members = [
     "crates/tabby",
     "crates/tabby-common",
