@@ -29,7 +29,7 @@ That's it! With the hosted APIs, now you can connect Tabby's [IDE extensions](/d
 **Everything will be done in the Hugging Face UI. No local setup is needed.**
 
 :::tip
-Looking to quickly start a Tabby instance? You can skip the tutorials entirely and simply [duplicate the space](https://huggingface.co/spaces/randxie/tabbyml?duplicate=true).
+Looking to quickly start a Tabby instance? You can skip the tutorials entirely and simply create space from [this template](https://huggingface.co/new-space?template=TabbyML/tabby-template-space).
 :::
 
 ### Deep Dive
@@ -101,20 +101,7 @@ In this post, we covered the detailed steps for deploying a Tabby instance to Hu
 ```Dockerfile
 FROM tabbyml/tabby
 
-RUN useradd -m -u 1000 user
-
-USER user
-
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH
-
-ENV TABBY_ROOT=$HOME/app
-
-WORKDIR $HOME/app
-
-COPY --chown=user . $HOME/app
-
-CMD ["serve", ”--device", "cuda", "--model", "TabbyML/SantaCoder-1B"]
+CMD ["serve", "--device", "cuda", "--model", "TabbyML/SantaCoder-1B"]
 
 ```
 
