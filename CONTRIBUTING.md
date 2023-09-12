@@ -119,6 +119,39 @@ src/ops/my_op_gpu.cu             # CUDA-specific implementation
 
 In particular, no compilation flags should be used in the header file to make it easy to use the project as a library.
 
+## Maintenance
+
+### Updating the Python build matrix
+
+Binary Python wheels are built for multiple Python versions in the `build-python-wheels` GitHub Actions job. The list of Python versions is defined by the intersection of:
+
+* `python_requires` in file `python/setup.py`
+* the default build list in [`cibuildwheel`](https://github.com/pypa/cibuildwheel)
+
+Building wheels for a new Python version usually means updating the `cibuildwheel` version in `.github/workflows/ci.yml`. See for example commit [8f4c7ade1](https://github.com/OpenNMT/CTranslate2/commit/8f4c7ade14cba114c8acad2cc700edc1704c8396).
+
+### CUDA support in Python wheels
+
+Python wheels for Linux and Windows are compiled against NVIDIA libraries to support GPU execution.
+
+To limit the size of the packages pushed to PyPI, some libraries are not included in the package and are dynamically loaded at runtime with `dlopen` (or `LoadLibraryA` on Windows).
+
+* `libcudart_static.a` (statically linked)
+* `libcublas.so.11` (dlopened at runtime in [`cublas_stub.cc`](https://github.com/OpenNMT/CTranslate2/blob/master/src/cuda/cublas_stub.cc))
+* `libcudnn.so.8` (dynamically linked)
+  * `libcudnn_ops_infer.so.8` (dlopened at runtime by `libcudnn.so.8`)
+  * `libcudnn_cnn_infer.so.8` (dlopened at runtime by `libcudnn.so.8`)
+
+One of the benefits of this dynamic loading is that multiple versions of cuBLAS and cuDNN are supported by the same binary. In particular, users can install any CUDA 11.x version as long as it provides `libcublas.so.11`.
+
+However, supporting a new major CUDA version (e.g. CUDA 11 to 12) requires updating the CUDA libraries used during compilation. This will be a breaking change for existing users since they would need to update their cuBLAS/cuDNN libraries and possibly [update their GPU driver](https://docs.nvidia.com/deploy/cuda-compatibility/).
+
+### Updating other dependencies
+
+Updating dependencies such as oneMKL or oneDNN can fix security issues, improve performance, or enable new features. Most dependencies were already updated at least once. Search the commit history to see how it was done before.
+
+If a dependency needs an update, it is particularly important that it is updated consistently for all binaries and platforms where it is used.
+
 ## Release procedure
 
 1. Add the release note for the new version in `CHANGELOG.md`
