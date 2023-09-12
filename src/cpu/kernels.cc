@@ -393,8 +393,7 @@ namespace ctranslate2 {
                              float* output,
                              dim_t batch_size,
                              dim_t depth,
-                             bool log,
-                             float epsilon) {
+                             bool log) {
       using VecType = Vec<float, TARGET_ISA>;
 
       parallel_for(0, batch_size, 1, [&](dim_t begin, dim_t end) {
@@ -441,7 +440,7 @@ namespace ctranslate2 {
           } else {
             vectorized_unary_transform<TARGET_ISA>(x, y, size, vec_exp_func);
             const auto exp_sum = reduce_sum<TARGET_ISA>(y, size);
-            mul<TARGET_ISA>(static_cast<float>(1) / (exp_sum + epsilon), y, y, size);
+            mul<TARGET_ISA>(static_cast<float>(1) / exp_sum, y, y, size);
           }
         }
       });

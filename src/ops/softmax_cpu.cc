@@ -9,7 +9,6 @@ namespace ctranslate2 {
     void SoftMax::compute(const StorageView& input,
                           const StorageView* lengths,
                           StorageView& output) const {
-      constexpr float epsilon = 0.000001f;
       const dim_t depth = input.dim(-1);
       const dim_t batch_size = input.size() / depth;
 
@@ -18,8 +17,7 @@ namespace ctranslate2 {
                                           output.data<T>(),
                                           batch_size,
                                           depth,
-                                          _log,
-                                          epsilon)));
+                                          _log)));
     }
 
 #define DECLARE_IMPL(T)                                                 \
