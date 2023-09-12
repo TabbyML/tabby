@@ -5,14 +5,13 @@ sidebar_position: 3
 # Homebrew (Apple M1/M2)
 This guide explains how to install Tabby using homebrew.
 
-:::info
-Apple M1/M2 support is under **alpha** test.
-:::
-
 Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge devices with reasonable inference speed. Follow the steps below to set it up using homebrew:
 
 ```bash
 brew tap TabbyML/tabby
+brew install tabby
+
+# Use the flag --HEAD if you're instered in the nightly build.
 brew install --HEAD tabby
 
 # Start server with CodeLlama
