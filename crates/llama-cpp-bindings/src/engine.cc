@@ -100,8 +100,21 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   owned<llama_context> ctx_;
 };
 
+static int g_llama_cpp_log_level = 0;
+static void llama_log_callback(llama_log_level level, const char * text, void * user_data) {
+  (void)user_data;
+  if (level < g_llama_cpp_log_level) {
+    fputs(text, stderr);
+    fflush(stderr);
+  }
+}
+
 struct BackendInitializer {
   BackendInitializer() {
+    if (const char* level = std::getenv("LLAMA_CPP_LOG_LEVEL")) {
+      g_llama_cpp_log_level = std::stoi(level);
+    }
+    llama_log_set(llama_log_callback, nullptr);
     llama_backend_init(false);
   }
 
