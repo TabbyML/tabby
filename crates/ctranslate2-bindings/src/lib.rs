@@ -136,8 +136,12 @@ impl TextGeneration for CTranslate2Engine {
 }
 
 fn truncate_tokens(tokens: &[String], max_length: usize) -> &[String] {
-    let start = std::cmp::max(tokens.len() - max_length, 0);
-    &tokens[start..]
+    if max_length < tokens.len() {
+        let start = tokens.len() - max_length;
+        &tokens[start..]
+    } else {
+        tokens
+    }
 }
 
 fn inference_callback(
