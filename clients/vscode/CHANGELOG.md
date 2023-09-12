@@ -1,3 +1,10 @@
+## 0.4.1
+
+Fixes:
+
+- Updated expired links in the documentation.
+- Migrated Tabby cloud authorization tokens and anonymous usage tracking id from the old data directory to the new one.
+
 ## 0.4.0
 
 Features:
