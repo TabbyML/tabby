@@ -14,9 +14,9 @@ If you encounter any problem or have any suggestion, please [open an issue](http
 
 ## Demo
 
-Try our online demo [here](https://tabbyml.github.io/tabby/playground).
+Try our online demo [here](https://tabby.tabbyml.com/playground).
 
-![Demo](https://tabbyml.github.io/tabby/img/demo.gif)
+![Demo](https://tabby.tabbyml.com/img/demo.gif)
 
 ## Get Started
 

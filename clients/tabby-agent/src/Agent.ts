@@ -10,6 +10,7 @@ import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 export type AgentInitOptions = Partial<{
   config: PartialAgentConfig;
   client: string;
+  clientProperties: Record<string, any>;
 }>;
 
 export type ServerHealthState = HealthState;

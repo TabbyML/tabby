@@ -41,6 +41,16 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
     const initPromise = agent.initialize({
       config: getWorkspaceConfiguration(),
       client: `${env.appName} ${env.appHost} ${version}, ${context.extension.id} ${context.extension.packageJSON.version}`,
+      clientProperties: {
+        ide: {
+          name: `${env.appName} ${env.appHost}`,
+          version: version,
+        },
+        tabby_plugin: {
+          name: context.extension.id,
+          version: context.extension.packageJSON.version,
+        },
+      },
     });
     workspace.onDidChangeConfiguration(async (event) => {
       await initPromise;

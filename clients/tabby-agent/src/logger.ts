@@ -19,6 +19,8 @@ const stream =
 export const rootLogger = !!stream ? pino(stream) : pino();
 if (isTest && testLogDebug) {
   rootLogger.level = "debug";
+} else {
+  rootLogger.level = "silent";
 }
 
 export const allLoggers = [rootLogger];

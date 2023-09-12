@@ -253,9 +253,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private healthCheck(): Promise<any> {
     return this.callApi(this.api.v1.health, {})
       .then((healthState) => {
-        this.serverHealthState = healthState;
-        if (this.status === "ready") {
-          this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
+        if (
+          typeof healthState === "object" &&
+          healthState["model"] !== undefined &&
+          healthState["device"] !== undefined
+        ) {
+          this.serverHealthState = healthState;
+          if (this.status === "ready") {
+            this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
+          }
         }
       })
       .catch(() => {});
@@ -276,11 +282,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
-    if (options.client) {
+    if (options.client || options.clientProperties) {
       // Client info is only used in logging for now
       // `pino.Logger.setBindings` is not present in the browser
-      allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client }));
-      this.anonymousUsageLogger.addProperties({ client: options.client });
+      allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client, ...options.clientProperties }));
+      this.anonymousUsageLogger.addProperties({ client: options.client, ...options.clientProperties });
     }
     if (userAgentConfig) {
       await userAgentConfig.load();

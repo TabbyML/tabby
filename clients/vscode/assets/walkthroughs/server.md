@@ -9,4 +9,4 @@ You can get a Tabby Cloud account [here](https://app.tabbyml.com). Once you crea
 
 ## Self-Hosting
 
-Tabby is an open-source project and supports self-hosting. For more details, please refer to our [self-hosting guide](https://tabbyml.github.io/tabby/docs/self-hosting/) and visit our [Github repository](https://github.com/tabbyml/tabby).
+Tabby is an open-source project and supports self-hosting. For more details, please refer to our [self-hosting guide](https://tabby.tabbyml.com/docs/installation/) and visit our [Github repository](https://github.com/tabbyml/tabby).
