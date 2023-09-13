@@ -8,9 +8,9 @@ We maintains a curated list of models varies from 200M to 10B+.
 
 | Model ID                                                              | License                                                                                     | <span title="Apple M1/M2 Only">Metal Support</span> |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | :-------------------------------------------------: |
-| [TabbyML/CodeLlama-13B](https://huggingface.co/TabbyML/CodeLlama-13B) | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ❌                          |
+| [TabbyML/CodeLlama-13B](https://huggingface.co/TabbyML/CodeLlama-13B) | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ✅                          |
 | [TabbyML/CodeLlama-7B](https://huggingface.co/TabbyML/CodeLlama-7B)   | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ✅                          |
-| [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         ❌                          |
+| [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         🔜                         |
 | [TabbyML/SantaCoder-1B](https://huggingface.co/TabbyML/SantaCoder-1B) | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         ❌                          |
 | [TabbyML/J-350M](https://huggingface.co/TabbyML/J-350M)               | [BSD-3](https://opensource.org/license/bsd-3-clause/)                                       |                         ❌                          |
 | [TabbyML/T5P-220M](https://huggingface.co/TabbyML/T5P-220M)           | [BSD-3](https://opensource.org/license/bsd-3-clause/)                                       |                         ❌                          |
