@@ -104,18 +104,15 @@ namespace ctranslate2 {
         _round_before_cast);
     }
 
-    template void
-    Quantize::quantize<Device::CUDA, float, int8_t>(const StorageView&,
-                                                    StorageView&,
-                                                    StorageView&) const;
-    template void
-    Quantize::quantize<Device::CUDA, float16_t, int8_t>(const StorageView&,
-                                                        StorageView&,
-                                                        StorageView&) const;
-    template void
-    Quantize::quantize<Device::CUDA, bfloat16_t, int8_t>(const StorageView&,
-                                                         StorageView&,
-                                                         StorageView&) const;
+#define DECLARE_IMPL(T)                                                 \
+    template void                                                       \
+    Quantize::quantize<Device::CUDA, T, int8_t>(const StorageView&,     \
+                                                StorageView&,           \
+                                                StorageView&) const;
+
+    DECLARE_IMPL(float)
+    DECLARE_IMPL(float16_t)
+    DECLARE_IMPL(bfloat16_t)
 
   }
 }
