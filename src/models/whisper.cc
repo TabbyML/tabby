@@ -653,7 +653,9 @@ namespace ctranslate2 {
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
-        [features = features.sync_copy(), prompts = std::move(prompts), options]
+        [features = features.sync_copy(),
+         prompts = std::move(prompts),
+         options = std::move(options)]
         (WhisperReplica& replica) mutable {
           return replica.generate(std::move(features), prompts, options);
         },
@@ -666,7 +668,9 @@ namespace ctranslate2 {
                       WhisperOptions options) {
       const size_t batch_size = features.dim(0);
       return post_batch<WhisperGenerationResult>(
-        [features = features.sync_copy(), prompts = std::move(prompts), options]
+        [features = features.sync_copy(),
+         prompts = std::move(prompts),
+         options = std::move(options)]
         (WhisperReplica& replica) mutable {
           return replica.generate(std::move(features), prompts, options);
         },

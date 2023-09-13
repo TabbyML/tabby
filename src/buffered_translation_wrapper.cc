@@ -8,7 +8,7 @@ namespace ctranslate2 {
                                                          TranslationOptions options,
                                                          size_t max_buffer_size)
     : _translator(std::move(translator))
-    , _options(options)
+    , _options(std::move(options))
     , _max_batch_size(max_batch_size)
     , _max_buffer_size(max_buffer_size == 0 ? max_batch_size : max_buffer_size)
     , _buffer_timeout(buffer_timeout_in_micros)
