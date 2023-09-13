@@ -6,14 +6,14 @@ sidebar_position: 4
 
 We maintains a recommended collection of models varies from 200M to 10B+ for various use cases.
 
-| Model ID                                                              | License          | <span title="Apple M1/M2 Only">Metal Support</span> |
-| --------------------------------------------------------------------- | ---------------- | :-------------------------------------------------: |
-| [TabbyML/CodeLlama-13B](https://huggingface.co/TabbyML/CodeLlama-13B) | Llama2           |                         ❌                          |
-| [TabbyML/CodeLlama-7B](https://huggingface.co/TabbyML/CodeLlama-7B)   | Llama2           |                         ✅                          |
-| [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | BigCode-OpenRAIL |                         ❌                          |
-| [TabbyML/SantaCoder-1B](https://huggingface.co/TabbyML/SantaCoder-1B) | OpenRAIL         |                         ❌                          |
-| [TabbyML/J-350M](https://huggingface.co/TabbyML/J-350M)               | BSD-3            |                         ❌                          |
-| [TabbyML/T5P-220M](https://huggingface.co/TabbyML/T5P-220M)           | BSD-3            |                         ❌                          |
+| Model ID                                                              | License                                                                                     | <span title="Apple M1/M2 Only">Metal Support</span> |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | :-------------------------------------------------: |
+| [TabbyML/CodeLlama-13B](https://huggingface.co/TabbyML/CodeLlama-13B) | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ❌                          |
+| [TabbyML/CodeLlama-7B](https://huggingface.co/TabbyML/CodeLlama-7B)   | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ✅                          |
+| [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         ❌                          |
+| [TabbyML/SantaCoder-1B](https://huggingface.co/TabbyML/SantaCoder-1B) | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         ❌                          |
+| [TabbyML/J-350M](https://huggingface.co/TabbyML/J-350M)               | [BSD-3](https://opensource.org/license/bsd-3-clause/)                                       |                         ❌                          |
+| [TabbyML/T5P-220M](https://huggingface.co/TabbyML/T5P-220M)           | [BSD-3](https://opensource.org/license/bsd-3-clause/)                                       |                         ❌                          |
 
 ### CodeLlama-7B / CodeLlama-13B
 Code Llama is a collection of pretrained and fine-tuned generative text models. Theses model is designed for general code synthesis and understanding.
