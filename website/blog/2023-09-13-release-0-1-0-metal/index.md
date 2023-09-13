@@ -1,3 +1,6 @@
+---
+authors: [ meng ]
+---
 # Highlights of Tabby v0.1.0: Apple M1/M2 Support
 We are thrilled to announce the release of Tabby v0.1.0.
 
