@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # 🧑‍🔬 Models Directory
 
-We maintains a recommended collection of models varies from 200M to 10B+ for various use cases.
+We maintains a curated list of models varies from 200M to 10B+.
 
 | Model ID                                                              | License                                                                                     | <span title="Apple M1/M2 Only">Metal Support</span> |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | :-------------------------------------------------: |
