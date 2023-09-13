@@ -38,16 +38,20 @@ export class CompletionDebounce {
     },
   };
 
-  debounce(
-    request: CompletionRequest,
-    config: AgentConfig["completion"]["debounce"],
-    responseTime: number,
-  ): CancelablePromise<any> {
+  debounce<T>(
+    callback: () => T | CancelablePromise<T>,
+    context: {
+      request: CompletionRequest;
+      config: AgentConfig["completion"]["debounce"];
+      responseTime: number;
+    },
+  ): CancelablePromise<T> {
+    const { request, config, responseTime } = context;
     if (request.manually) {
-      return this.renewPromise(0);
+      return this.renewPromise(0, callback);
     }
     if (config.mode === "fixed") {
-      return this.renewPromise(config.interval);
+      return this.renewPromise(config.interval, callback);
     }
     const now = Date.now();
     this.updateBaseInterval(now - this.lastCalledTimeStamp);
@@ -57,21 +61,27 @@ export class CompletionDebounce {
       this.options.adaptiveRate.max - (this.options.adaptiveRate.max - this.options.adaptiveRate.min) * contextScore;
     const expectedLatency = adaptiveRate * this.baseInterval;
     const delay = clamp(this.options.requestDelay.min, this.options.requestDelay.max, expectedLatency - responseTime);
-    return this.renewPromise(delay);
+    return this.renewPromise(delay, callback);
   }
 
-  private renewPromise(delay: number): CancelablePromise<any> {
+  private renewPromise<T>(delay: number, callback: () => T | CancelablePromise<T>): CancelablePromise<T> {
     if (this.ongoing) {
       this.ongoing.cancel();
     }
-    this.ongoing = new CancelablePromise<any>((resolve, reject, onCancel) => {
+    this.ongoing = new CancelablePromise<T>((resolve, reject, onCancel) => {
+      let cancelable: CancelablePromise<T> | null = null;
       const timer = setTimeout(
-        () => {
-          resolve(true);
+        async () => {
+          const result = callback();
+          if (result instanceof CancelablePromise) {
+            cancelable = result;
+          }
+          resolve(await result);
         },
         Math.min(delay, 0x7fffffff),
       );
       onCancel(() => {
+        cancelable?.cancel();
         clearTimeout(timer);
       });
     });

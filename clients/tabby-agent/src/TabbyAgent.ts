@@ -399,10 +399,18 @@ export class TabbyAgent extends EventEmitter implements Agent {
           if (response) return response;
           if (this.completionCache.has(request)) {
             this.logger.debug({ request }, "Completion cache hit");
-            const debounce = this.CompletionDebounce.debounce(request, this.config.completion.debounce, 0);
-            cancelableList.push(debounce);
-            await debounce;
-            return this.completionCache.get(request);
+            const debounced = this.CompletionDebounce.debounce(
+              () => {
+                return this.completionCache.get(request);
+              },
+              {
+                request,
+                config: this.config.completion.debounce,
+                responseTime: 0,
+              },
+            );
+            cancelableList.push(debounced);
+            return await debounced;
           }
           return null;
         })
@@ -417,26 +425,31 @@ export class TabbyAgent extends EventEmitter implements Agent {
               choices: [],
             };
           }
-          const debounce = this.CompletionDebounce.debounce(
-            request,
-            this.config.completion.debounce,
-            this.completionResponseStats.stats()["averageResponseTime"],
-          );
-          cancelableList.push(debounce);
-          await debounce;
-          const apiRequest = this.callApi(
-            this.api.v1.completion,
-            {
-              language: request.language,
-              segments,
-              user: this.auth?.user,
+          const debouncedApiRequest = this.CompletionDebounce.debounce(
+            () => {
+              return this.callApi(
+                this.api.v1.completion,
+                {
+                  language: request.language,
+                  segments,
+                  user: this.auth?.user,
+                },
+                {
+                  timeout: request.manually
+                    ? this.config.completion.timeout.manually
+                    : this.config.completion.timeout.auto,
+                },
+              );
             },
             {
-              timeout: request.manually ? this.config.completion.timeout.manually : this.config.completion.timeout.auto,
+              request,
+              config: this.config.completion.debounce,
+              responseTime: this.completionResponseStats.stats()["averageResponseTime"],
             },
           );
-          cancelableList.push(apiRequest);
-          let res = await apiRequest;
+          cancelableList.push(debouncedApiRequest);
+
+          let res = await debouncedApiRequest;
           res = await preCacheProcess(request, res);
           this.completionCache.set(request, res);
           return res;

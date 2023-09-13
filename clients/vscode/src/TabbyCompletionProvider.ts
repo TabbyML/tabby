@@ -16,8 +16,6 @@ import { agent } from "./agent";
 import { notifications } from "./notifications";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
-  private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
-
   // User Settings
   private enabled: boolean = true;
 
@@ -47,10 +45,6 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
 
     const replaceRange = this.calculateReplaceRange(document, position);
 
-    if (this.pendingCompletion) {
-      this.pendingCompletion.cancel();
-    }
-
     const request = {
       filepath: document.uri.fsPath,
       language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
@@ -58,12 +52,10 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       position: document.offsetAt(position),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
-    this.pendingCompletion = agent().provideCompletions(request);
 
-    const completion = await this.pendingCompletion.catch((e: Error) => {
+    const completion = await agent().provideCompletions(request).catch((_) => {
       return null;
     });
-    this.pendingCompletion = null;
 
     const completions = this.toInlineCompletions(completion, replaceRange);
     return Promise.resolve(completions);
