@@ -696,7 +696,7 @@ namespace ctranslate2 {
          text_tokens = std::move(text_tokens),
          num_frames = std::move(num_frames),
          median_filter_width]
-        (WhisperReplica& replica) {
+        (WhisperReplica& replica) mutable {
           return replica.align(std::move(features),
                                start_sequence,
                                text_tokens,
