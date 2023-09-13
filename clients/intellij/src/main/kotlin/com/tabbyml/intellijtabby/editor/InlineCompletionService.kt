@@ -1,5 +1,8 @@
 package com.tabbyml.intellijtabby.editor
 
+import com.intellij.codeInsight.lookup.LookupEvent
+import com.intellij.codeInsight.lookup.LookupListener
+import com.intellij.codeInsight.lookup.LookupManager
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.components.Service
@@ -40,6 +43,15 @@ class InlineCompletionService {
   fun show(editor: Editor, offset: Int, completion: Agent.CompletionResponse) {
     dismiss()
     if (completion.choices.isEmpty()) {
+      return
+    }
+    val activeLookup = LookupManager.getActiveLookup(editor)
+    if (activeLookup != null) {
+      activeLookup.addLookupListener(object : LookupListener {
+        override fun lookupCanceled(event: LookupEvent) {
+          show(editor, offset, completion)
+        }
+      })
       return
     }
     invokeLater {
