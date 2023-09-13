@@ -1,4 +1,6 @@
-# 🚀 Roadmap
+# 🗺️ Roadmap
+
+We continuously work on updating our roadmap and we love to discuss those with our community. Feel encouraged to participate.
 
 ## Q4 2023
 * 🔧 Improve RAG by deeper integration with Treesitter using custom query. This will bring LSP-like understanding to Tabby's code index.
