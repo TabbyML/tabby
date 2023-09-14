@@ -15,6 +15,8 @@ namespace ctranslate2 {
                             const StorageView& sin,
                             const StorageView& cos,
                             StorageView& output) const {
+      PROFILE("Rotary");
+
       output.resize_as(input);
 
       DEVICE_AND_FLOAT_DISPATCH("Rotary", input.device(), input.dtype(),
