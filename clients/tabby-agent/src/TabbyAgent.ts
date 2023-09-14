@@ -329,7 +329,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       throw new Error("Agent is not initialized");
     }
     await this.auth.pollingToken(code, options);
-    this.setupApi();
+    await this.setupApi();
   }
 
   public async provideCompletions(
@@ -429,7 +429,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
-    await this.post("/v1/events", { body: request }, options);
+    await this.post("/v1/events", { body: request, parseAs: "text" }, options);
     return true;
   }
 }

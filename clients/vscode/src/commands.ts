@@ -141,7 +141,7 @@ const openAuthPage: Command = {
             notifications.showInformationWhenAuthFailed();
           }
         } catch (error: any) {
-          if (error.isCancelled) {
+          if (error.name === "AbortError") {
             return;
           }
           console.debug("Error auth", { error });
