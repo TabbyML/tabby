@@ -5,5 +5,8 @@
     "clients/vscode",
     "clients/vim",
     "clients/intellij"
-  ]
+  ],
+  "engines": {
+    "node": ">=18"
+  }
 }

@@ -1,10 +1,4 @@
-import {
-  CancelablePromise,
-  LogEventRequest as ApiLogEventRequest,
-  CompletionResponse as ApiCompletionResponse,
-  HealthState,
-} from "./generated";
-
+import type { components as ApiComponents } from "./types/tabbyApi";
 import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 
 export type AgentInitOptions = Partial<{
@@ -13,7 +7,7 @@ export type AgentInitOptions = Partial<{
   clientProperties: Record<string, any>;
 }>;
 
-export type ServerHealthState = HealthState;
+export type ServerHealthState = ApiComponents["schemas"]["HealthState"];
 
 export type CompletionRequest = {
   filepath: string;
@@ -23,9 +17,11 @@ export type CompletionRequest = {
   manually?: boolean;
 };
 
-export type CompletionResponse = ApiCompletionResponse;
+export type CompletionResponse = ApiComponents["schemas"]["CompletionResponse"];
 
-export type LogEventRequest = ApiLogEventRequest;
+export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"];
+
+export type AbortSignalOption = { signal: AbortSignal };
 
 export type SlowCompletionResponseTimeIssue = {
   name: "slowCompletionResponseTime";
@@ -58,7 +54,7 @@ export interface AgentFunction {
    * Initialize agent. Client should call this method before calling any other methods.
    * @param options
    */
-  initialize(options: AgentInitOptions): Promise<boolean>;
+  initialize(options?: AgentInitOptions): Promise<boolean>;
 
   /**
    * The agent configuration has the following levels, will be deep merged in the order:
@@ -104,7 +100,7 @@ export interface AgentFunction {
    * @returns the auth url for redirecting, and the code for next step `waitingForAuth`
    * @throws Error if agent is not initialized
    */
-  requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string } | null>;
+  requestAuthUrl(options?: AbortSignalOption): Promise<{ authUrl: string; code: string } | null>;
 
   /**
    * Wait for auth token to be ready after redirecting user to auth url,
@@ -112,7 +108,7 @@ export interface AgentFunction {
    * @param code from `requestAuthUrl`
    * @throws Error if agent is not initialized
    */
-  waitForAuthToken(code: string): CancelablePromise<any>;
+  waitForAuthToken(code: string, options?: AbortSignalOption): Promise<void>;
 
   /**
    * Provide completions for the given request. This method is debounced, calling it before the previous
@@ -122,14 +118,14 @@ export interface AgentFunction {
    * @returns
    * @throws Error if agent is not initialized
    */
-  provideCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse>;
+  provideCompletions(request: CompletionRequest, options?: AbortSignalOption): Promise<CompletionResponse>;
 
   /**
    * @param event
    * @returns
    * @throws Error if agent is not initialized
    */
-  postEvent(event: LogEventRequest): CancelablePromise<boolean>;
+  postEvent(event: LogEventRequest, options?: AbortSignalOption): Promise<boolean>;
 }
 
 export type StatusChangedEvent = {

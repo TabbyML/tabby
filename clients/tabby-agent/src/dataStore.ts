@@ -28,10 +28,7 @@ export const dataStore: DataStore = isBrowser
         migrateFrom_0_3_0: async function () {
           const dataFile_0_3_0 = require("path").join(require("os").homedir(), ".tabby", "agent", "data.json");
           const migratedFlag = require("path").join(require("os").homedir(), ".tabby", "agent", ".data_json_migrated");
-          if (
-            (await fs.pathExists(dataFile_0_3_0)) &&
-            !(await fs.pathExists(migratedFlag))
-          ) {
+          if ((await fs.pathExists(dataFile_0_3_0)) && !(await fs.pathExists(migratedFlag))) {
             const data = await fs.readJson(dataFile_0_3_0);
             await fs.outputJson(dataFile, data);
             await fs.outputFile(migratedFlag, "");

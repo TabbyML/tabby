@@ -4,18 +4,21 @@ export {
   AgentStatus,
   AgentFunction,
   AgentEvent,
+  AgentEventEmitter,
+  AgentIssue,
   StatusChangedEvent,
   ConfigUpdatedEvent,
   AuthRequiredEvent,
   NewIssueEvent,
-  AgentIssue,
   SlowCompletionResponseTimeIssue,
   HighCompletionTimeoutRateIssue,
+  AgentInitOptions,
+  ServerHealthState,
   CompletionRequest,
   CompletionResponse,
   LogEventRequest,
+  AbortSignalOption,
   agentEventNames,
 } from "./Agent";
 export { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 export { DataStore } from "./dataStore";
-export { CancelablePromise } from "./generated";

@@ -9,7 +9,6 @@ import {
   commands,
 } from "vscode";
 import { strict as assert } from "assert";
-import { CancelablePromise } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 
@@ -121,22 +120,19 @@ const openAuthPage: Command = {
         cancellable: true,
       },
       async (progress, token) => {
-        let requestAuthUrl: CancelablePromise<{ authUrl: string; code: string } | null>;
-        let waitForAuthToken: CancelablePromise<any>;
+        const abortController = new AbortController();
         token.onCancellationRequested(() => {
-          requestAuthUrl?.cancel();
-          waitForAuthToken?.cancel();
+          abortController.abort();
         });
+        const signal = abortController.signal;
         try {
           callbacks?.onAuthStart?.();
           progress.report({ message: "Generating authorization url..." });
-          requestAuthUrl = agent().requestAuthUrl();
-          let authUrl = await requestAuthUrl;
+          let authUrl = await agent().requestAuthUrl({ signal });
           if (authUrl) {
             env.openExternal(Uri.parse(authUrl.authUrl));
             progress.report({ message: "Waiting for authorization from browser..." });
-            waitForAuthToken = agent().waitForAuthToken(authUrl.code);
-            await waitForAuthToken;
+            await agent().waitForAuthToken(authUrl.code, { signal });
             assert(agent().getStatus() === "ready");
             notifications.showInformationAuthSuccess();
           } else if (agent().getStatus() === "ready") {

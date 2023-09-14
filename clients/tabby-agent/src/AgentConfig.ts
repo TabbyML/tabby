@@ -3,7 +3,7 @@ import { isBrowser } from "./env";
 export type AgentConfig = {
   server: {
     endpoint: string;
-    requestHeaders: Record<string, string>;
+    requestHeaders: Record<string, string | number | boolean | null | undefined>;
     requestTimeout: number;
   };
   completion: {

@@ -1,12 +1,13 @@
 import { name as agentName, version as agentVersion } from "../package.json";
-import { CloudApi } from "./cloud";
+import createClient from "openapi-fetch";
+import type { paths as CloudApi } from "./types/cloudApi";
 import { v4 as uuid } from "uuid";
 import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
 import { dataStore, DataStore } from "./dataStore";
 
 export class AnonymousUsageLogger {
-  private anonymousUsageTrackingApi = new CloudApi();
+  private anonymousUsageTrackingApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
   private logger = rootLogger.child({ component: "AnonymousUsage" });
   private systemData = {
     agent: `${agentName}, ${agentVersion}`,
@@ -73,18 +74,20 @@ export class AnonymousUsageLogger {
     if (unique) {
       this.emittedUniqueEvent.push(event);
     }
-    await this.anonymousUsageTrackingApi.api
-      .usage({
-        distinctId: this.anonymousId,
-        event,
-        properties: {
-          ...this.systemData,
-          ...this.properties,
-          ...data,
+    try {
+      await this.anonymousUsageTrackingApi.POST("/usage", {
+        body: {
+          distinctId: this.anonymousId,
+          event,
+          properties: {
+            ...this.systemData,
+            ...this.properties,
+            ...data,
+          },
         },
-      })
-      .catch((error) => {
-        this.logger.error({ error }, "Error when sending anonymous usage data");
       });
+    } catch (error) {
+      this.logger.error({ error }, "Error when sending anonymous usage data");
+    }
   }
 }

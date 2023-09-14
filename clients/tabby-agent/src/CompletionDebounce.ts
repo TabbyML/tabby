@@ -1,6 +1,5 @@
-import { CancelablePromise } from "./generated";
-import { CompletionRequest } from "./Agent";
-import { AgentConfig } from "./AgentConfig";
+import type { CompletionRequest, AbortSignalOption } from "./Agent";
+import type { AgentConfig } from "./AgentConfig";
 import { rootLogger } from "./logger";
 import { splitLines } from "./utils";
 
@@ -10,7 +9,6 @@ function clamp(min: number, max: number, value: number): number {
 
 export class CompletionDebounce {
   private readonly logger = rootLogger.child({ component: "CompletionDebounce" });
-  private ongoing: CancelablePromise<any> | null = null;
   private lastCalledTimeStamp = 0;
 
   private baseInterval = 200; // ms
@@ -38,16 +36,20 @@ export class CompletionDebounce {
     },
   };
 
-  debounce(
-    request: CompletionRequest,
-    config: AgentConfig["completion"]["debounce"],
-    responseTime: number,
-  ): CancelablePromise<any> {
+  async debounce(
+    context: {
+      request: CompletionRequest;
+      config: AgentConfig["completion"]["debounce"];
+      responseTime: number;
+    },
+    options?: AbortSignalOption,
+  ): Promise<void> {
+    const { request, config, responseTime } = context;
     if (request.manually) {
-      return this.renewPromise(0);
+      return this.sleep(0, options);
     }
     if (config.mode === "fixed") {
-      return this.renewPromise(config.interval);
+      return this.sleep(config.interval, options);
     }
     const now = Date.now();
     this.updateBaseInterval(now - this.lastCalledTimeStamp);
@@ -57,25 +59,24 @@ export class CompletionDebounce {
       this.options.adaptiveRate.max - (this.options.adaptiveRate.max - this.options.adaptiveRate.min) * contextScore;
     const expectedLatency = adaptiveRate * this.baseInterval;
     const delay = clamp(this.options.requestDelay.min, this.options.requestDelay.max, expectedLatency - responseTime);
-    return this.renewPromise(delay);
+    return this.sleep(delay, options);
   }
 
-  private renewPromise(delay: number): CancelablePromise<any> {
-    if (this.ongoing) {
-      this.ongoing.cancel();
-    }
-    this.ongoing = new CancelablePromise<any>((resolve, reject, onCancel) => {
-      const timer = setTimeout(
-        () => {
-          resolve(true);
-        },
-        Math.min(delay, 0x7fffffff),
-      );
-      onCancel(() => {
-        clearTimeout(timer);
-      });
+  private async sleep(delay: number, options?: AbortSignalOption): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(resolve, Math.min(delay, 0x7fffffff));
+      if (options?.signal) {
+        if (options.signal.aborted) {
+          clearTimeout(timer);
+          reject(options.signal.reason);
+        } else {
+          options.signal.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(options.signal.reason);
+          });
+        }
+      }
     });
-    return this.ongoing;
   }
 
   private updateBaseInterval(interval: number) {
