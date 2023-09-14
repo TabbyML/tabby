@@ -110,7 +110,7 @@ def build_prompt(sp, dialog):
         [
             ["<s>"]
             + sp.encode_as_pieces(
-                f"{B_INST} {(prompt['content']).strip()} {E_INST} {(answer['content']).strip()}"
+                f"{B_INST} {(prompt['content']).strip()} {E_INST} {(answer['content']).strip()} "
             )
             + ["</s>"]
             for prompt, answer in zip(
