@@ -1,5 +1,6 @@
 package com.tabbyml.intellijtabby.actions
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -29,7 +30,10 @@ class CheckIssueDetail : AnAction() {
       }
       val message = buildDetailMessage(detail, serverHealthState)
       invokeLater {
-        Messages.showInfoMessage(message, title)
+        val result = Messages.showOkCancelDialog(message, title, "Dismiss", "Supported Models", Messages.getInformationIcon())
+        if (result == Messages.CANCEL) {
+          BrowserUtil.browse("https://tabby.tabbyml.com/docs/models/")
+        }
       }
     }
   }
@@ -62,7 +66,7 @@ class CheckIssueDetail : AnAction() {
       """
       Your Tabby server is running model $model on CPU.
       This model is too large to run on CPU, please try a smaller model or switch to GPU.
-      You can find supported model list by search TabbyML on HuggingFace.
+      You can find supported model list in online documents.
       """
     } else {
       ""
@@ -78,7 +82,7 @@ class CheckIssueDetail : AnAction() {
     helpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
     if (helpMessageForRunningLargeModelOnCPU.isEmpty()) {
       helpMessage += " - The running model $model is too large to run on your Tabby server. ";
-      helpMessage += "Please try a smaller model. You can find supported model list by search TabbyML on HuggingFace.\n";
+      helpMessage += "Please try a smaller model. You can find supported model list in online documents.\n";
     }
     return statsMessages + helpMessage
   }
