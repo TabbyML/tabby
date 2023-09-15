@@ -117,7 +117,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
     helpMessageForRunningLargeModelOnCPU +=
       `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
       "This model is too large to run on CPU, please try a smaller model or switch to GPU. " +
-      "You can find supported model list by search TabbyML on HuggingFace. \n";
+      "You can find supported model list in online documents. \n";
   }
   let message = "";
   if (helpMessageForRunningLargeModelOnCPU.length > 0) {
@@ -130,7 +130,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
   message += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
   if (helpMessageForRunningLargeModelOnCPU.length == 0) {
     message += ` - The running model ${serverHealthState?.model ?? ""} is too large to run on your Tabby server. `;
-    message += "Please try a smaller model. You can find supported model list by search TabbyML on HuggingFace.\n";
+    message += "Please try a smaller model. You can find supported model list in online documents.\n";
   }
   return message;
 }
@@ -158,7 +158,7 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
       .then((selection) => {
         switch (selection) {
           case "Supported Models":
-            env.openExternal(Uri.parse("https://huggingface.co/models?search=tabbyml"));
+            env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
             break;
         }
       });
@@ -199,7 +199,7 @@ function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
       .then((selection) => {
         switch (selection) {
           case "Supported Models":
-            env.openExternal(Uri.parse("https://huggingface.co/models?search=tabbyml"));
+            env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
             break;
         }
       });
