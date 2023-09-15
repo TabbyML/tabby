@@ -1,7 +1,9 @@
 import { EventEmitter } from "events";
 import decodeJwt from "jwt-decode";
-import { CloudApi, DeviceTokenResponse, DeviceTokenAcceptResponse } from "./cloud";
-import { ApiError, CancelablePromise } from "./generated";
+import createClient from "openapi-fetch";
+import type { paths as CloudApi } from "./types/cloudApi";
+import type { AbortSignalOption } from "./Agent";
+import { HttpError, abortSignalFromAnyOf } from "./utils";
 import { dataStore, DataStore } from "./dataStore";
 import { rootLogger } from "./logger";
 
@@ -40,7 +42,7 @@ export class Auth extends EventEmitter {
   readonly endpoint: string;
   readonly dataStore: DataStore | null = null;
   private refreshTokenTimer: ReturnType<typeof setInterval> | null = null;
-  private authApi: CloudApi | null = null;
+  private authApi: ReturnType<typeof createClient<CloudApi>>;
   private jwt: JWT | null = null;
 
   static async create(options: { endpoint: string; dataStore?: DataStore }): Promise<Auth> {
@@ -53,7 +55,7 @@ export class Auth extends EventEmitter {
     super();
     this.endpoint = options.endpoint;
     this.dataStore = options.dataStore || dataStore;
-    this.authApi = new CloudApi();
+    this.authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
     this.scheduleRefreshToken();
   }
 
@@ -113,47 +115,52 @@ export class Auth extends EventEmitter {
     }
   }
 
-  requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string }> {
-    return new CancelablePromise(async (resolve, reject, onCancel) => {
-      let apiRequest: CancelablePromise<DeviceTokenResponse>;
-      onCancel(() => {
-        apiRequest?.cancel();
-      });
-      try {
-        await this.reset();
-        if (onCancel.isCancelled) return;
-        this.logger.debug("Start to request device token");
-        apiRequest = this.authApi.api.deviceToken({ auth_url: this.endpoint });
-        const deviceToken = await apiRequest;
-        this.logger.debug({ deviceToken }, "Request device token response");
-        const authUrl = new URL(Auth.authPageUrl);
-        authUrl.searchParams.append("code", deviceToken.data.code);
-        resolve({ authUrl: authUrl.toString(), code: deviceToken.data.code });
-      } catch (error) {
-        this.logger.error({ error }, "Error when requesting token");
-        reject(error);
+  async requestAuthUrl(options?: AbortSignalOption): Promise<{ authUrl: string; code: string }> {
+    try {
+      await this.reset();
+      if (options?.signal.aborted) {
+        throw options.signal.reason;
       }
-    });
+      this.logger.debug("Start to request device token");
+      const response = await this.authApi.POST("/device-token", {
+        body: { auth_url: this.endpoint },
+        signal: options?.signal,
+      });
+      if (response.error) {
+        throw new HttpError(response.response);
+      }
+      const deviceToken = response.data;
+      this.logger.debug({ deviceToken }, "Request device token response");
+      const authUrl = new URL(Auth.authPageUrl);
+      authUrl.searchParams.append("code", deviceToken.data.code);
+      return { authUrl: authUrl.toString(), code: deviceToken.data.code };
+    } catch (error) {
+      this.logger.error({ error }, "Error when requesting token");
+      throw error;
+    }
   }
 
-  pollingToken(code: string): CancelablePromise<boolean> {
-    return new CancelablePromise((resolve, reject, onCancel) => {
-      let apiRequest: CancelablePromise<DeviceTokenAcceptResponse>;
+  async pollingToken(code: string, options?: AbortSignalOption): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const signal = abortSignalFromAnyOf([AbortSignal.timeout(Auth.tokenStrategy.polling.timeout), options?.signal]);
       const timer = setInterval(async () => {
         try {
-          apiRequest = this.authApi.api.deviceTokenAccept({ code });
-          const response = await apiRequest;
-          this.logger.debug({ response }, "Poll jwt response");
+          const response = await this.authApi.POST("/device-token/accept", { params: { query: { code } }, signal });
+          if (response.error) {
+            throw new HttpError(response.response);
+          }
+          const result = response.data;
+          this.logger.debug({ result }, "Poll jwt response");
           this.jwt = {
-            token: response.data.jwt,
-            payload: decodeJwt(response.data.jwt),
+            token: result.data.jwt,
+            payload: decodeJwt(result.data.jwt),
           };
           super.emit("updated", this.jwt);
           await this.save();
           clearInterval(timer);
           resolve(true);
         } catch (error) {
-          if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+          if (error instanceof HttpError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
             this.logger.debug({ error }, "Expected error when polling jwt");
           } else {
             // unknown error but still keep polling
@@ -161,28 +168,35 @@ export class Auth extends EventEmitter {
           }
         }
       }, Auth.tokenStrategy.polling.interval);
-      setTimeout(() => {
+      if (signal.aborted) {
         clearInterval(timer);
-        reject(new Error("Timeout when polling token"));
-      }, Auth.tokenStrategy.polling.timeout);
-      onCancel(() => {
-        apiRequest?.cancel();
-        clearInterval(timer);
-      });
+        reject(signal.reason);
+      } else {
+        signal.addEventListener("abort", () => {
+          clearInterval(timer);
+          reject(signal.reason);
+        });
+      }
     });
   }
 
   private async refreshToken(jwt: JWT, options = { maxTry: 1, retryDelay: 1000 }, retry = 0): Promise<JWT> {
     try {
       this.logger.debug({ retry }, "Start to refresh token");
-      const refreshedJwt = await this.authApi.api.deviceTokenRefresh(jwt.token);
+      const response = await this.authApi.POST("/device-token/refresh", {
+        headers: { Authorization: `Bearer ${jwt.token}` },
+      });
+      if (response.error) {
+        throw new HttpError(response.response);
+      }
+      const refreshedJwt = response.data;
       this.logger.debug({ refreshedJwt }, "Refresh token response");
       return {
         token: refreshedJwt.data.jwt,
         payload: decodeJwt(refreshedJwt.data.jwt),
       };
     } catch (error) {
-      if (error instanceof ApiError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
+      if (error instanceof HttpError && [400, 401, 403, 405].indexOf(error.status) !== -1) {
         this.logger.debug({ error }, "Error when refreshing jwt");
       } else {
         // unknown error, retry a few times

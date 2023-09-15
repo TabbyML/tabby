@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { rootLogger } from "./logger";
+import { isTimeoutError } from "./utils";
 
 export type ResponseStatsEntry = {
   name: string;
@@ -22,7 +23,7 @@ export const completionResponseTimeStatsStrategy = {
   stats: {
     total: (entries: ResponseStatsEntry[]) => entries.length,
     responses: (entries: ResponseStatsEntry[]) => entries.filter((entry) => entry.status === 200).length,
-    timeouts: (entries: ResponseStatsEntry[]) => entries.filter((entry) => entry.error?.isTimeoutError).length,
+    timeouts: (entries: ResponseStatsEntry[]) => entries.filter((entry) => isTimeoutError(entry.error)).length,
     averageResponseTime: (entries: ResponseStatsEntry[]) =>
       entries.filter((entry) => entry.status === 200).reduce((acc, entry) => acc + entry.responseTime, 0) /
       entries.length,

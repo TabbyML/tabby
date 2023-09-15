@@ -3,14 +3,16 @@ import { v4 as uuid } from "uuid";
 import deepEqual from "deep-equal";
 import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
-import { TabbyApi, CancelablePromise } from "./generated";
-import { cancelable, splitLines, isBlank } from "./utils";
-import {
+import createClient from "openapi-fetch";
+import { paths as TabbyApi } from "./types/tabbyApi";
+import { splitLines, isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError } from "./utils";
+import type {
   Agent,
   AgentStatus,
   AgentIssue,
   AgentEvent,
   AgentInitOptions,
+  AbortSignalOption,
   ServerHealthState,
   CompletionRequest,
   CompletionResponse,
@@ -43,14 +45,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private status: AgentStatus = "notInitialized";
   private issues: AgentIssue["name"][] = [];
   private serverHealthState: ServerHealthState | null = null;
-  private api: TabbyApi;
+  private api: ReturnType<typeof createClient<TabbyApi>>;
   private auth: Auth;
   private dataStore: DataStore | null = null;
   private completionCache: CompletionCache = new CompletionCache();
-  private CompletionDebounce: CompletionDebounce = new CompletionDebounce();
+  private completionDebounce: CompletionDebounce = new CompletionDebounce();
+  private nonParallelProvideCompletionAbortController: AbortController | null = null;
+  private completionResponseStats: ResponseStats = new ResponseStats(completionResponseTimeStatsStrategy);
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
-  private completionResponseStats: ResponseStats = new ResponseStats(completionResponseTimeStatsStrategy);
 
   private constructor() {
     super();
@@ -97,16 +100,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
         this.auth.on("updated", this.setupApi.bind(this));
       }
     } else {
+      // If `Authorization` request header is provided, use it directly.
       this.auth = null;
     }
     await this.setupApi();
   }
 
   private async setupApi() {
-    this.api = new TabbyApi({
-      BASE: this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
-      TOKEN: this.auth?.token,
-      HEADERS: this.config.server.requestHeaders,
+    this.api = createClient<TabbyApi>({
+      baseUrl: this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
+      headers: {
+        Authorization: this.auth?.token ? `Bearer ${this.auth.token}` : undefined,
+        ...this.config.server.requestHeaders,
+      },
     });
     await this.healthCheck();
   }
@@ -160,111 +166,65 @@ export class TabbyAgent extends EventEmitter implements Agent {
     super.emit("authRequired", event);
   }
 
-  private callApi<Request, Response>(
-    api: (request: Request) => CancelablePromise<Response>,
-    request: Request,
-    options: { timeout?: number } = { timeout: this.config.server.requestTimeout },
-  ): CancelablePromise<Response> {
-    return new CancelablePromise((resolve, reject, onCancel) => {
-      const requestId = uuid();
-      this.logger.debug({ requestId, api: api.name, request }, "API request");
-      let timeout: ReturnType<typeof setTimeout> | null = null;
-      let timeoutCancelled = false;
-      const apiRequest = api.call(this.api.v1, request);
-      const requestStartedAt = performance.now();
-      apiRequest
-        .then((response: Response) => {
-          this.logger.debug({ requestId, api: api.name, response }, "API response");
-          if (this.status !== "issuesExist") {
-            this.changeStatus("ready");
-          }
-          if (api.name === "completion") {
-            this.completionResponseStats.push({
-              name: api.name,
-              status: 200,
-              responseTime: performance.now() - requestStartedAt,
-            });
-          }
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-          resolve(response);
-        })
-        .catch((error) => {
-          if (
-            (!!error.isCancelled && timeoutCancelled) ||
-            (!error.isCancelled && error.code === "ECONNABORTED") ||
-            (error.name === "ApiError" && [408, 499].indexOf(error.status) !== -1)
-          ) {
-            error.isTimeoutError = true;
-            this.logger.debug({ requestId, api: api.name, error }, "API request timeout");
-          } else if (!!error.isCancelled) {
-            this.logger.debug({ requestId, api: api.name, error }, "API request cancelled");
-          } else if (
-            error.name === "ApiError" &&
-            [401, 403, 405].indexOf(error.status) !== -1 &&
-            new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
-            this.config.server.requestHeaders["Authorization"] === undefined
-          ) {
-            this.logger.debug({ requestId, api: api.name, error }, "API unauthorized");
-            this.changeStatus("unauthorized");
-          } else if (error.name === "ApiError") {
-            this.logger.error({ requestId, api: api.name, error }, "API error");
-            this.changeStatus("disconnected");
-          } else {
-            this.logger.error({ requestId, api: api.name, error }, "API request failed with unknown error");
-            this.changeStatus("disconnected");
-          }
-          // don't record cancelled request in stats
-          if (api.name === "completion" && (error.isTimeoutError || !error.isCancelled)) {
-            this.completionResponseStats.push({
-              name: api.name,
-              status: error.status,
-              responseTime: performance.now() - requestStartedAt,
-              error,
-            });
-          }
-          if (timeout) {
-            clearTimeout(timeout);
-          }
-          reject(error);
-        });
-      // It seems that openapi-typescript-codegen does not provide timeout options passing to axios,
-      // Just use setTimeout to cancel the request manually.
-      if (options.timeout && options.timeout > 0) {
-        timeout = setTimeout(
-          () => {
-            this.logger.debug({ api: api.name, timeout: options.timeout }, "Cancel API request due to timeout");
-            timeoutCancelled = true;
-            apiRequest.cancel();
-          },
-          Math.min(options.timeout, 0x7fffffff),
-        );
+  private async post<T extends Parameters<typeof this.api.POST>[0]>(
+    path: T,
+    requestOptions: Parameters<typeof this.api.POST<T>>[1],
+    abortOptions?: { signal?: AbortSignal; timeout?: number },
+  ): Promise<Awaited<ReturnType<typeof this.api.POST<T>>>["data"]> {
+    const requestId = uuid();
+    this.logger.debug({ requestId, path, requestOptions, abortOptions }, "API request");
+    try {
+      const timeout = Math.min(0x7fffffff, abortOptions?.timeout || this.config.server.requestTimeout);
+      const signal = abortSignalFromAnyOf([AbortSignal.timeout(timeout), abortOptions?.signal]);
+      const response = await this.api.POST(path, { ...requestOptions, signal });
+      if (response.error) {
+        throw new HttpError(response.response);
       }
-      onCancel(() => {
-        if (timeout) {
-          clearTimeout(timeout);
-        }
-        apiRequest.cancel();
-      });
-    });
+      this.logger.debug({ requestId, path, response: response.data }, "API response");
+      if (this.status !== "issuesExist") {
+        this.changeStatus("ready");
+      }
+      return response.data;
+    } catch (error) {
+      if (isTimeoutError(error)) {
+        this.logger.debug({ requestId, path, error }, "API request timeout");
+      } else if (isCanceledError(error)) {
+        this.logger.debug({ requestId, path, error }, "API request canceled");
+      } else if (
+        error instanceof HttpError &&
+        [401, 403, 405].indexOf(error.status) !== -1 &&
+        new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
+        this.config.server.requestHeaders["Authorization"] === undefined
+      ) {
+        this.logger.debug({ requestId, path, error }, "API unauthorized");
+        this.changeStatus("unauthorized");
+      } else if (error instanceof HttpError) {
+        this.logger.error({ requestId, path, error }, "API error");
+        this.changeStatus("disconnected");
+      } else {
+        this.logger.error({ requestId, path, error }, "API request failed with unknown error");
+        this.changeStatus("disconnected");
+      }
+      throw error;
+    }
   }
 
-  private healthCheck(): Promise<any> {
-    return this.callApi(this.api.v1.health, {})
-      .then((healthState) => {
-        if (
-          typeof healthState === "object" &&
-          healthState["model"] !== undefined &&
-          healthState["device"] !== undefined
-        ) {
-          this.serverHealthState = healthState;
-          if (this.status === "ready") {
-            this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
-          }
+  private async healthCheck(options?: AbortSignalOption): Promise<any> {
+    try {
+      const healthState = await this.post("/v1/health", {}, options);
+      if (
+        typeof healthState === "object" &&
+        healthState["model"] !== undefined &&
+        healthState["device"] !== undefined
+      ) {
+        this.serverHealthState = healthState;
+        if (this.status === "ready") {
+          this.anonymousUsageLogger.uniqueEvent("AgentConnected", healthState);
         }
-      })
-      .catch(() => {});
+      }
+    } catch (_) {
+      // ignore
+    }
   }
 
   private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
@@ -352,109 +312,124 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.serverHealthState;
   }
 
-  public requestAuthUrl(): CancelablePromise<{ authUrl: string; code: string } | null> {
+  public async requestAuthUrl(options?: AbortSignalOption): Promise<{ authUrl: string; code: string } | null> {
     if (this.status === "notInitialized") {
-      return cancelable(Promise.reject("Agent is not initialized"), () => {});
+      throw new Error("Agent is not initialized");
     }
-    return new CancelablePromise(async (resolve, reject, onCancel) => {
-      let request: CancelablePromise<{ authUrl: string; code: string }>;
-      onCancel(() => {
-        request?.cancel();
-      });
-      await this.healthCheck();
-      if (onCancel.isCancelled) return;
-      if (this.status === "unauthorized") {
-        request = this.auth.requestAuthUrl();
-        resolve(request);
+    await this.healthCheck(options);
+    if (this.status !== "unauthorized") {
+      return null;
+    } else {
+      return await this.auth.requestAuthUrl(options);
+    }
+  }
+
+  public async waitForAuthToken(code: string, options?: AbortSignalOption): Promise<void> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+    await this.auth.pollingToken(code, options);
+    await this.setupApi();
+  }
+
+  public async provideCompletions(
+    request: CompletionRequest,
+    options?: AbortSignalOption,
+  ): Promise<CompletionResponse> {
+    if (this.status === "notInitialized") {
+      throw new Error("Agent is not initialized");
+    }
+    if (this.nonParallelProvideCompletionAbortController) {
+      this.nonParallelProvideCompletionAbortController.abort();
+    }
+    this.nonParallelProvideCompletionAbortController = new AbortController();
+    const signal = abortSignalFromAnyOf([this.nonParallelProvideCompletionAbortController.signal, options?.signal]);
+    let completionResponse: CompletionResponse | null = null;
+    if (this.completionCache.has(request)) {
+      // Hit cache
+      this.logger.debug({ request }, "Completion cache hit");
+      await this.completionDebounce.debounce(
+        {
+          request,
+          config: this.config.completion.debounce,
+          responseTime: 0,
+        },
+        { signal },
+      );
+      completionResponse = this.completionCache.get(request);
+    } else {
+      // No cache
+      const segments = this.createSegments(request);
+      if (isBlank(segments.prefix)) {
+        // Empty prompt
+        this.logger.debug("Segment prefix is blank, returning empty completion response");
+        completionResponse = {
+          id: "agent-" + uuid(),
+          choices: [],
+        };
       } else {
-      }
-      resolve(null);
-    });
-  }
-
-  public waitForAuthToken(code: string): CancelablePromise<any> {
-    if (this.status === "notInitialized") {
-      return cancelable(Promise.reject("Agent is not initialized"), () => {});
-    }
-    const polling = this.auth.pollingToken(code);
-    return cancelable(
-      polling.then(() => {
-        return this.setupApi();
-      }),
-      () => {
-        polling.cancel();
-      },
-    );
-  }
-
-  public provideCompletions(request: CompletionRequest): CancelablePromise<CompletionResponse> {
-    if (this.status === "notInitialized") {
-      return cancelable(Promise.reject("Agent is not initialized"), () => {});
-    }
-    const cancelableList: CancelablePromise<any>[] = [];
-    return cancelable(
-      Promise.resolve(null)
-        // From cache
-        .then(async (response: CompletionResponse | null) => {
-          if (response) return response;
-          if (this.completionCache.has(request)) {
-            this.logger.debug({ request }, "Completion cache hit");
-            const debounce = this.CompletionDebounce.debounce(request, this.config.completion.debounce, 0);
-            cancelableList.push(debounce);
-            await debounce;
-            return this.completionCache.get(request);
-          }
-          return null;
-        })
-        // From api
-        .then(async (response: CompletionResponse | null) => {
-          if (response) return response;
-          const segments = this.createSegments(request);
-          if (isBlank(segments.prefix)) {
-            this.logger.debug("Segment prefix is blank, returning empty completion response");
-            return {
-              id: "agent-" + uuid(),
-              choices: [],
-            };
-          }
-          const debounce = this.CompletionDebounce.debounce(
+        // Request server
+        await this.completionDebounce.debounce(
+          {
             request,
-            this.config.completion.debounce,
-            this.completionResponseStats.stats()["averageResponseTime"],
-          );
-          cancelableList.push(debounce);
-          await debounce;
-          const apiRequest = this.callApi(
-            this.api.v1.completion,
+            config: this.config.completion.debounce,
+            responseTime: this.completionResponseStats.stats()["averageResponseTime"],
+          },
+          options,
+        );
+
+        const requestStartedAt = performance.now();
+        const apiPath = "/v1/completions";
+        try {
+          completionResponse = await this.post(
+            apiPath,
             {
-              language: request.language,
-              segments,
-              user: this.auth?.user,
+              body: {
+                language: request.language,
+                segments,
+                user: this.auth?.user,
+              },
             },
             {
+              signal,
               timeout: request.manually ? this.config.completion.timeout.manually : this.config.completion.timeout.auto,
             },
           );
-          cancelableList.push(apiRequest);
-          let res = await apiRequest;
-          res = await preCacheProcess(request, res);
-          this.completionCache.set(request, res);
-          return res;
-        })
-        // Postprocess
-        .then(async (response: CompletionResponse | null) => {
-          return postprocess(request, response);
-        }),
-      () => {
-        cancelableList.forEach((cancelable) => cancelable.cancel());
-      },
-    );
+          this.completionResponseStats.push({
+            name: apiPath,
+            status: 200,
+            responseTime: performance.now() - requestStartedAt,
+          });
+        } catch (error) {
+          // record timed out request in stats, do not record canceled request
+          if (isTimeoutError(error)) {
+            this.completionResponseStats.push({
+              name: apiPath,
+              status: error.status,
+              responseTime: performance.now() - requestStartedAt,
+              error,
+            });
+          }
+        }
+        completionResponse = await preCacheProcess(request, completionResponse);
+        if (options?.signal?.aborted) {
+          throw options.signal.reason;
+        }
+        this.completionCache.set(request, completionResponse);
+      }
+    }
+    completionResponse = await postprocess(request, completionResponse);
+    if (options?.signal?.aborted) {
+      throw options.signal.reason;
+    }
+    return completionResponse;
   }
 
-  public postEvent(request: LogEventRequest): CancelablePromise<boolean> {
+  public async postEvent(request: LogEventRequest, options?: AbortSignalOption): Promise<boolean> {
     if (this.status === "notInitialized") {
-      return cancelable(Promise.reject("Agent is not initialized"), () => {});
+      throw new Error("Agent is not initialized");
     }
-    return this.callApi(this.api.v1.event, request);
+    await this.post("/v1/events", { body: request, parseAs: "text" }, options);
+    return true;
   }
 }

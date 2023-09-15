@@ -3,21 +3,17 @@ import {
   InlineCompletionContext,
   InlineCompletionItem,
   InlineCompletionItemProvider,
-  InlineCompletionList,
   InlineCompletionTriggerKind,
   Position,
-  ProviderResult,
   Range,
   TextDocument,
   workspace,
 } from "vscode";
-import { CompletionResponse, CancelablePromise } from "tabby-agent";
+import { CompletionResponse } from "tabby-agent";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 
 export class TabbyCompletionProvider implements InlineCompletionItemProvider {
-  private pendingCompletion: CancelablePromise<CompletionResponse> | null = null;
-
   // User Settings
   private enabled: boolean = true;
 
@@ -30,9 +26,12 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     });
   }
 
-  //@ts-ignore because ASYNC and PROMISE
-  //prettier-ignore
-  public async provideInlineCompletionItems(document: TextDocument, position: Position, context: InlineCompletionContext, token: CancellationToken): ProviderResult<InlineCompletionItem[] | InlineCompletionList> {
+  public async provideInlineCompletionItems(
+    document: TextDocument,
+    position: Position,
+    context: InlineCompletionContext,
+    token: CancellationToken,
+  ): Promise<InlineCompletionItem[]> {
     const emptyResponse = Promise.resolve([] as InlineCompletionItem[]);
     if (!this.enabled) {
       console.debug("Extension not enabled, skipping.");
@@ -45,25 +44,32 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
       return emptyResponse;
     }
 
-    const replaceRange = this.calculateReplaceRange(document, position);
-
-    if (this.pendingCompletion) {
-      this.pendingCompletion.cancel();
+    if (token?.isCancellationRequested) {
+      console.debug("Cancellation was requested.");
+      return emptyResponse;
     }
+
+    const replaceRange = this.calculateReplaceRange(document, position);
 
     const request = {
       filepath: document.uri.fsPath,
-      language: document.languageId,  // https://code.visualstudio.com/docs/languages/identifiers
+      language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: document.getText(),
       position: document.offsetAt(position),
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
-    this.pendingCompletion = agent().provideCompletions(request);
 
-    const completion = await this.pendingCompletion.catch((e: Error) => {
-      return null;
+    const abortController = new AbortController();
+    token?.onCancellationRequested(() => {
+      console.debug("Cancellation requested.");
+      abortController.abort();
     });
-    this.pendingCompletion = null;
+
+    const completion = await agent()
+      .provideCompletions(request, { signal: abortController.signal })
+      .catch((_) => {
+        return null;
+      });
 
     const completions = this.toInlineCompletions(completion, replaceRange);
     return Promise.resolve(completions);

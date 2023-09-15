@@ -18,18 +18,43 @@ export function calcDistance(a: string, b: string) {
   return levenshtein.get(a, b);
 }
 
-import { CancelablePromise } from "./generated";
-export function cancelable<T>(promise: Promise<T>, cancel: () => void): CancelablePromise<T> {
-  return new CancelablePromise((resolve, reject, onCancel) => {
-    promise
-      .then((resp: T) => {
-        resolve(resp);
-      })
-      .catch((err: Error) => {
-        reject(err);
-      });
-    onCancel(() => {
-      cancel();
+// Polyfill for AbortSignal.any(signals) which added in Node.js v20.
+export function abortSignalFromAnyOf(signals: AbortSignal[]) {
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal?.aborted) {
+      controller.abort(signal.reason);
+      return signal;
+    }
+    signal?.addEventListener("abort", () => controller.abort(signal.reason), {
+      signal: controller.signal,
     });
-  });
+  }
+  return controller.signal;
+}
+
+// Http Error
+export class HttpError extends Error {
+  status: number;
+  statusText: string;
+  response: Response;
+
+  constructor(response: Response) {
+    super(`${response.status} ${response.statusText}`);
+    this.name = "HttpError";
+    this.status = response.status;
+    this.statusText = response.statusText;
+    this.response = response;
+  }
+}
+
+export function isTimeoutError(error: any) {
+  return (
+    (error instanceof Error && error.name === "TimeoutError") ||
+    (error instanceof HttpError && [408, 499].indexOf(error.status) !== -1)
+  );
+}
+
+export function isCanceledError(error: any) {
+  return error instanceof Error && error.name === "AbortError";
 }
