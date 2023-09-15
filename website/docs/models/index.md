@@ -13,6 +13,8 @@ We recommend using
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | :-------------------------------------------------: |
 | [TabbyML/CodeLlama-13B](https://huggingface.co/TabbyML/CodeLlama-13B) | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ✅                          |
 | [TabbyML/CodeLlama-7B](https://huggingface.co/TabbyML/CodeLlama-7B)   | [Llama2](https://github.com/facebookresearch/llama/blob/main/LICENSE)                       |                         ✅                          |
+| [TabbyML/StarCoder-7B](https://huggingface.co/TabbyML/StarCoder-7B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         🔜                         |
+| [TabbyML/StarCoder-3B](https://huggingface.co/TabbyML/StarCoder-3B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         🔜                         |
 | [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         🔜                         |
 | [TabbyML/SantaCoder-1B](https://huggingface.co/TabbyML/SantaCoder-1B) | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |                         ❌                          |
 | [TabbyML/J-350M](https://huggingface.co/TabbyML/J-350M)               | [BSD-3](https://opensource.org/license/bsd-3-clause/)                                       |                         ❌                          |
@@ -22,9 +24,9 @@ We recommend using
 
 Code Llama is a collection of pretrained and fine-tuned generative text models. Theses model is designed for general code synthesis and understanding.
 
-### StarCoder-1B
+### StarCoder-1B / StarCoder-3B / StarCoder-7B
 
-StarCoderBase-1B is a 1B parameter model trained on 80+ programming languages from The Stack (v1.2), with opt-out requests excluded. The model uses Multi Query Attention, a context window of 8192 tokens, and was trained using the Fill-in-the-Middle objective on 1 trillion tokens.
+StarCoder series model are trained on 80+ programming languages from The Stack (v1.2), with opt-out requests excluded. The model uses Multi Query Attention, a context window of 8192 tokens, and was trained using the Fill-in-the-Middle objective on 1 trillion tokens.
 
 ### SantaCoder-1B
 
