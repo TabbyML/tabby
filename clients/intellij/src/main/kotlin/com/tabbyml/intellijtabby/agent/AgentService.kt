@@ -43,7 +43,7 @@ class AgentService : Disposable {
     INITIALIZATION_FAILED,
   }
   private var initResultFlow: MutableStateFlow<Boolean?> = MutableStateFlow(null)
-  val status get() = initResultFlow.combine(agent.status) { initResult, agentStatus ->
+  val status = initResultFlow.combine(agent.status) { initResult, agentStatus ->
     if (initResult == null) {
       Status.INITIALIZING
     } else if (initResult) {
@@ -51,7 +51,7 @@ class AgentService : Disposable {
     } else {
       Status.INITIALIZATION_FAILED
     }
-  }.stateIn(scope, SharingStarted.WhileSubscribed(), Status.INITIALIZING)
+  }.stateIn(scope, SharingStarted.Eagerly, Status.INITIALIZING)
 
   val currentIssue get() = agent.currentIssue
 

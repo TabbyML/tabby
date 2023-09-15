@@ -1,3 +1,15 @@
+## 0.5.0
+
+### Incompatible Changes:
+
+- Node.js version requirement is now v18+.
+- System proxy environment variables are now ignored, including `http_proxy`, `https_proxy`, `all_proxy` and `no_proxy`. Before this change, proxy environment variables are processed, but requests will fail due to lack of supporting for https over http proxy and socks proxy.
+
+### Fixes:
+
+- Fixed a bug that causes auto-completion requests cannot be cancelled.
+- Migrated Tabby cloud authorization tokens and anonymous usage tracking id from the old data directory to the new one.
+
 ## 0.4.0
 
 ### Features:

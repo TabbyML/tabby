@@ -84,10 +84,10 @@ class Agent : ProcessAdapter() {
       val process = GeneralCommandLine(node, "--version").createProcess()
       val version = BufferedReader(InputStreamReader(process.inputStream)).readLine()
       val regResult = Regex("v([0-9]+)\\.([0-9]+)\\.([0-9]+)").find(version)
-      if (regResult != null && regResult.groupValues[1].toInt() >= 16) {
+      if (regResult != null && regResult.groupValues[1].toInt() >= 18) {
         return
       } else {
-        throw AgentException("Node version is too old: $version. Please install Node.js v16+ and add bin path to system environment variable PATH, then restart IDE.")
+        throw AgentException("Node version is too old: $version. Please install Node.js v18+ and add bin path to system environment variable PATH, then restart IDE.")
       }
     } catch (e: Exception) {
       if (e is AgentException) {
@@ -186,15 +186,15 @@ class Agent : ProcessAdapter() {
   }
 
   suspend fun requestAuthUrl(): AuthUrlResponse? {
-    return request("requestAuthUrl", listOf())
+    return request("requestAuthUrl", listOf(ABORT_SIGNAL_ENABLED))
   }
 
   suspend fun waitForAuthToken(code: String) {
-    return request("waitForAuthToken", listOf(code))
+    return request("waitForAuthToken", listOf(code, ABORT_SIGNAL_ENABLED))
   }
 
   suspend fun provideCompletions(request: CompletionRequest): CompletionResponse? {
-    return request("provideCompletions", listOf(request))
+    return request("provideCompletions", listOf(request, ABORT_SIGNAL_ENABLED))
   }
 
   data class LogEventRequest(
@@ -212,7 +212,7 @@ class Agent : ProcessAdapter() {
   }
 
   suspend fun postEvent(event: LogEventRequest) {
-    request<Any>("postEvent", listOf(event))
+    request<Any>("postEvent", listOf(event, ABORT_SIGNAL_ENABLED))
   }
 
   data class AuthUrlResponse(
@@ -330,5 +330,9 @@ class Agent : ProcessAdapter() {
         logger.warn("Agent notification, unknown event name: ${event["event"]}")
       }
     }
+  }
+
+  companion object {
+    private val ABORT_SIGNAL_ENABLED = mapOf("signal" to true)
   }
 }
