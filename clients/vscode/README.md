@@ -7,7 +7,7 @@
 
 Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
 
-Tabby VSCode extension is compatible with `VSCode ≥ 1.70.0`, as well as web environments like [vscode.dev](https://vscode.dev).
+Tabby VSCode extension is compatible with `VSCode ≥ 1.82.0`, as well as web environments like [vscode.dev](https://vscode.dev).
 
 For more information, please check out our [Website](https://tabbyml.com/) and [GitHub](https://github.com/TabbyML/tabby).
 If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new)!
