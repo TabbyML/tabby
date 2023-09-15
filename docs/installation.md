@@ -65,7 +65,8 @@ Compiling the library requires a compiler supporting C++17 and CMake 3.15 or gre
 mkdir build && cd build
 cmake ..
 make -j4
-make install
+sudo make install
+sudo ldconfig
 ```
 
 By default, the library is compiled with the [Intel MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html) backend which should be installed separately. See the {ref}`installation:build options` to select or add another backend.
