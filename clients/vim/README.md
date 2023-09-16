@@ -1,6 +1,10 @@
 # Tabby VIM extension
 
+TabbyML is compatible with both Vim and NeoVim text editor via a plugin
+
 ## Requirements
+
+Before installing the plugin you will need to have installed:
 
 1. VIM 9.0+ with `+job` and `+textprop` features enabled, or NeoVIM 0.6.0+.
 2. Node.js 16.0+.
@@ -67,7 +71,7 @@ let g:tabby_server_url = 'http://127.0.0.1:8080'
 ```
 > In the future, the ideal would be to export the Vim extension to a separate Git repository. This would simplify the installation process [#252](https://github.com/TabbyML/tabby/issues/252).
 
-## Check install
+## Checking the installation
 
 Once the plugin is installed you can check if the install was done sucessfully by doing in your vim command
 
