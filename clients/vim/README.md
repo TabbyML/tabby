@@ -7,6 +7,8 @@
 
 ## Getting started
 
+You can either install TabbyML vim extension using [Vim-Plug](https://github.com/junegunn/vim-plug) or by manually cloning the repo.
+
 ### 🔌 Vim-Plug
 ```
 " Make sure that the filetype plugin has been enabled.
