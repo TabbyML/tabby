@@ -16,6 +16,9 @@ You can install Vim-Plug by following these [intructions](https://github.com/jun
 
 
 
+You will need to edit your vim config file (usually `~/.vimrc`) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
+
+
 ```
 " Make sure that the filetype plugin has been enabled.
 filetype plugin on
@@ -26,6 +29,9 @@ Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
 " Set URL of Tabby server
 let g:tabby_server_url = 'http://127.0.0.1:8080'
 ```
+
+Note that you can change the tabby server url here.
+
 ### 📦 Packer and Lazy
 In this case, you first need to clone the repo in your machine
 ```
