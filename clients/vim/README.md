@@ -1,6 +1,6 @@
 # Tabby VIM extension
 
-TabbyML is compatible with both Vim and NeoVim text editor via a plugin
+TabbyML is compatible with both Vim and NeoVim text editor via a plugin.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ You can either install TabbyML vim extension using [Vim-Plug](https://github.com
 
 ### 🔌 Vim-Plug
 
-[Vim-Plug](https://github.com/junegunn/vim-plug) is minimalist Vim plugin manager that you can use to install TabbyML plugin.
+[Vim-Plug](https://github.com/junegunn/vim-plug) is a minimalist Vim plugin manager that you can use to install TabbyML plugin.
 You can install Vim-Plug by following these [intructions](https://github.com/junegunn/vim-plug#installation).
 
 
