@@ -10,6 +10,12 @@
 You can either install TabbyML vim extension using [Vim-Plug](https://github.com/junegunn/vim-plug) or by manually cloning the repo.
 
 ### 🔌 Vim-Plug
+
+[Vim-Plug](https://github.com/junegunn/vim-plug) is minimalist Vim plugin manager that you can use to install TabbyML plugin.
+You can install Vim-Plug by following these [intructions](https://github.com/junegunn/vim-plug#installation).
+
+
+
 ```
 " Make sure that the filetype plugin has been enabled.
 filetype plugin on
