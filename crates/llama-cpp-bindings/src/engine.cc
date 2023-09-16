@@ -47,7 +47,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   uint32_t start(const rust::Str prompt, size_t max_input_length) const override {
     auto* ctx = ctx_.get();
     llama_reset_timings(ctx);
-    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), max_input_length, /* add_bos = */ true);
+    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), max_input_length, /* add_bos = */ false);
 
     for (size_t i = 0; i < tokens_list.size(); i += N_BATCH) {
       const size_t size = std::min(N_BATCH, tokens_list.size() - i);
