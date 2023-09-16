@@ -16,7 +16,7 @@ You can install Vim-Plug by following these [intructions](https://github.com/jun
 
 
 
-You will need to edit your vim config file (usually `~/.vimrc`) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
+You will need to edit your vim config file (`~/.vimrc` for vim and `~/.config/nvim/init.vim` for neovim) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
 
 
 ```
