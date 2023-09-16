@@ -32,6 +32,26 @@ let g:tabby_server_url = 'http://127.0.0.1:8080'
 
 Note that you can change the tabby server url here.
 
+You then need to actually install the plugin, to do so you need to type in your vim command.
+
+```
+:PlugInstall
+```
+You should see the tabbyML plugin beeing installed.
+
+Once it is done you can check if the install was done sucessfully by doing in your vim command
+
+```
+:Tabby status
+```
+
+You should see
+```
+Tabby is online
+```
+
+If you se `Tabby cannot connect to the server` it means that you need to start the tabbyML server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
+
 ### 📦 Packer and Lazy
 In this case, you first need to clone the repo in your machine
 ```
