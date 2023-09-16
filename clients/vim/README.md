@@ -7,7 +7,7 @@
 
 ## Getting started
 
-You can either install TabbyML vim extension using [Vim-Plug](https://github.com/junegunn/vim-plug) or by manually cloning the repo.
+You can either install TabbyML vim extension using [Vim-Plug](https://github.com/junegunn/vim-plug), [Packer](https://github.com/wbthomason/packer.nvim) or [Lazy](https://github.com/folke/lazy.nvim).
 
 ### 🔌 Vim-Plug
 
@@ -32,6 +32,7 @@ let g:tabby_server_url = 'http://127.0.0.1:8080'
 
 Note that you can change the tabby server url here.
 
+
 You then need to actually install the plugin, to do so you need to type in your vim command.
 
 ```
@@ -39,25 +40,16 @@ You then need to actually install the plugin, to do so you need to type in your 
 ```
 You should see the tabbyML plugin beeing installed.
 
-Once it is done you can check if the install was done sucessfully by doing in your vim command
-
-```
-:Tabby status
-```
-
-You should see
-```
-Tabby is online
-```
-
-If you se `Tabby cannot connect to the server` it means that you need to start the tabbyML server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
 
 ### 📦 Packer and Lazy
+You first need to install either [Packer](https://github.com/wbthomason/packer.nvim) or [Lazy](https://github.com/folke/lazy.nvim).
+
 In this case, you first need to clone the repo in your machine
 ```
 git clone https://github.com/TabbyML/tabby.git ~/tabby
 ```
-Then on the config file:
+You will need to edit your vim config file (`~/.vimrc` for vim and `~/.config/nvim/init.vim` for neovim) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
+
 ```
 " For lazy
 return { name = "tabby", dir = '~/tabby/clients/vim', enabled = true }
@@ -74,6 +66,21 @@ vim.g.tabby_server_url = 'http://127.0.0.1:8080'
 let g:tabby_server_url = 'http://127.0.0.1:8080'
 ```
 > In the future, the ideal would be to export the Vim extension to a separate Git repository. This would simplify the installation process [#252](https://github.com/TabbyML/tabby/issues/252).
+
+## Check install
+
+Once the plugin is installed you can check if the install was done sucessfully by doing in your vim command
+
+```
+:Tabby status
+```
+
+You should see
+```
+Tabby is online
+```
+
+If you se `Tabby cannot connect to the server` it means that you need to start the tabbyML server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
 
 ## Usage
 
