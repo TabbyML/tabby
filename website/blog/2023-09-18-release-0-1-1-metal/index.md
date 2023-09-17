@@ -9,6 +9,8 @@ We are thrilled to announce the release of Tabby [v0.1.1](https://github.com/Tab
 
 ![Staring tabby riding on llama.cpp](./staring-tabby-on-llama-cpp.png)
 
+*Created with [SDXL-botw](https://replicate.com/jbilcke/sdxl-botw) and a [twitter post](https://twitter.com/BigCodeProject/status/1684600506658717712) of BigCode*
+
 </center>
 
 Apple M1/M2 Tabby users can now harness Metal inference support on Apple's M1 and M2 chips by using the `--device metal` flag, thanks to [llama.cpp](https://github.com/ggerganov/llama.cpp)'s awesome metal support.
