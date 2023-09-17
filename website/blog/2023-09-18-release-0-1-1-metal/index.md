@@ -1,8 +1,15 @@
 ---
 authors: [ meng ]
 ---
-# Highlights of Tabby v0.1.1: Apple M1/M2 Support
+# Tabby v0.1.1: Metal inference and StarCoder supports in llama.cpp!
+
 We are thrilled to announce the release of Tabby [v0.1.1](https://github.com/TabbyML/tabby/releases/tag/v0.1.1) 👏🏻.
+
+<center>
+
+![Staring tabby riding on llama.cpp](./staring-tabby-on-llama-cpp.png)
+
+</center>
 
 Apple M1/M2 Tabby users can now harness Metal inference support on Apple's M1 and M2 chips by using the `--device metal` flag, thanks to [llama.cpp](https://github.com/ggerganov/llama.cpp)'s awesome metal support.
 
