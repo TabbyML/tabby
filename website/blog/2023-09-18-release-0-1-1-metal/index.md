@@ -1,7 +1,7 @@
 ---
 authors: [ meng ]
 
-image: ./staring-tabby-on-llama-cpp.png
+image: ./twitter-img.jpg
 ---
 # Tabby v0.1.1: Metal inference and StarCoder supports!
 
