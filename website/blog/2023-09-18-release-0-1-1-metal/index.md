@@ -1,7 +1,7 @@
 ---
 authors: [ meng ]
 ---
-# Tabby v0.1.1: Metal inference and StarCoder supports in llama.cpp!
+# Tabby v0.1.1: Metal inference and StarCoder supports!
 
 We are thrilled to announce the release of Tabby [v0.1.1](https://github.com/TabbyML/tabby/releases/tag/v0.1.1) 👏🏻.
 
