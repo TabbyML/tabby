@@ -9,15 +9,17 @@ import {
   TextDocument,
   workspace,
 } from "vscode";
+import { EventEmitter } from "events";
 import { CompletionResponse } from "tabby-agent";
 import { agent } from "./agent";
-import { notifications } from "./notifications";
 
-export class TabbyCompletionProvider implements InlineCompletionItemProvider {
-  // User Settings
-  private enabled: boolean = true;
+export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
+  private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
+  private onGoingRequestAbortController: AbortController | null = null;
+  private loading: boolean = false;
 
   constructor() {
+    super();
     this.updateConfiguration();
     workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("tabby") || event.affectsConfiguration("editor.inlineSuggest")) {
@@ -26,27 +28,37 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     });
   }
 
+  public getTriggerMode(): "automatic" | "manual" | "disabled" {
+    return this.triggerMode;
+  }
+
+  public isLoading(): boolean {
+    return this.loading;
+  }
+
   public async provideInlineCompletionItems(
     document: TextDocument,
     position: Position,
     context: InlineCompletionContext,
     token: CancellationToken,
-  ): Promise<InlineCompletionItem[]> {
-    const emptyResponse = Promise.resolve([] as InlineCompletionItem[]);
-    if (!this.enabled) {
-      console.debug("Extension not enabled, skipping.");
-      return emptyResponse;
+  ): Promise<InlineCompletionItem[] | null> {
+    if (context.triggerKind === InlineCompletionTriggerKind.Automatic && this.triggerMode === "manual") {
+      return null;
+    }
+
+    if (context.triggerKind === InlineCompletionTriggerKind.Invoke && this.triggerMode === "automatic") {
+      return null;
     }
 
     // Check if autocomplete widget is visible
     if (context.selectedCompletionInfo !== undefined) {
       console.debug("Autocomplete widget is visible, skipping.");
-      return emptyResponse;
+      return null;
     }
 
     if (token?.isCancellationRequested) {
       console.debug("Cancellation was requested.");
-      return emptyResponse;
+      return null;
     }
 
     const replaceRange = this.calculateReplaceRange(document, position);
@@ -60,33 +72,40 @@ export class TabbyCompletionProvider implements InlineCompletionItemProvider {
     };
 
     const abortController = new AbortController();
+    this.onGoingRequestAbortController = abortController;
     token?.onCancellationRequested(() => {
       console.debug("Cancellation requested.");
       abortController.abort();
     });
 
-    const completion = await agent()
-      .provideCompletions(request, { signal: abortController.signal })
-      .catch((_) => {
-        return null;
-      });
+    try {
+      this.loading = true;
+      this.emit("loadingStatusUpdated");
+      const result = await agent().provideCompletions(request, { signal: abortController.signal });
+      this.loading = false;
+      this.emit("loadingStatusUpdated");
+      return this.toInlineCompletions(result, replaceRange);
+    } catch (error: any) {
+      if (this.onGoingRequestAbortController === abortController) {
+        // the request was not replaced by a new request, set loading to false safely
+        this.loading = false;
+        this.emit("loadingStatusUpdated");
+      }
+      if (error.name !== "AbortError") {
+        console.debug("Error when providing completions", { error });
+      }
+    }
 
-    const completions = this.toInlineCompletions(completion, replaceRange);
-    return Promise.resolve(completions);
+    return null;
   }
 
   private updateConfiguration() {
-    const configuration = workspace.getConfiguration("tabby");
-    this.enabled = configuration.get("codeCompletion", true);
-    this.checkInlineCompletionEnabled();
-  }
-
-  private checkInlineCompletionEnabled() {
-    const configuration = workspace.getConfiguration("editor.inlineSuggest");
-    const inlineSuggestEnabled = configuration.get("enabled", true);
-    if (this.enabled && !inlineSuggestEnabled) {
-      console.debug("Tabby code completion is enabled but inline suggest is disabled.");
-      notifications.showInformationWhenInlineSuggestDisabled();
+    if (!workspace.getConfiguration("editor").get("inlineSuggest.enabled", true)) {
+      this.triggerMode = "disabled";
+      this.emit("triggerModeUpdated");
+    } else {
+      this.triggerMode = workspace.getConfiguration("tabby").get("inlineCompletion.triggerMode", "automatic");
+      this.emit("triggerModeUpdated");
     }
   }
 

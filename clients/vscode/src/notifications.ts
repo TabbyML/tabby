@@ -1,7 +1,7 @@
 import { commands, window, workspace, env, ConfigurationTarget, Uri } from "vscode";
 import { agent } from "./agent";
 
-function showInformationWhenLoading() {
+function showInformationWhenInitializing() {
   window.showInformationMessage("Tabby is initializing.", "Settings").then((selection) => {
     switch (selection) {
       case "Settings":
@@ -11,13 +11,17 @@ function showInformationWhenLoading() {
   });
 }
 
-function showInformationWhenDisabled() {
+function showInformationWhenAutomaticTrigger() {
   window
-    .showInformationMessage("Tabby code completion is disabled. Enable it?", "Enable", "Settings")
+    .showInformationMessage(
+      "Tabby automatic code completion is enabled. Switch to manual trigger mode?",
+      "Manual Mode",
+      "Settings",
+    )
     .then((selection) => {
       switch (selection) {
-        case "Enable":
-          commands.executeCommand("tabby.toggleEnabled");
+        case "Manual Mode":
+          commands.executeCommand("tabby.toggleInlineCompletionTriggerMode", "manual");
           break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");
@@ -26,16 +30,55 @@ function showInformationWhenDisabled() {
     });
 }
 
-function showInformationWhenReady() {
+function showInformationWhenManualTrigger() {
   window
-    .showInformationMessage("Tabby is providing code suggestions for you. Disable it?", "Disable", "Settings")
+    .showInformationMessage(
+      "Tabby is standing by. Trigger code completion manually?",
+      "Trigger",
+      "Automatic Mode",
+      "Settings",
+    )
     .then((selection) => {
       switch (selection) {
-        case "Disable":
-          commands.executeCommand("tabby.toggleEnabled");
+        case "Trigger":
+          commands.executeCommand("editor.action.inlineSuggest.trigger");
+          break;
+        case "Automatic Mode":
+          commands.executeCommand("tabby.toggleInlineCompletionTriggerMode", "automatic");
           break;
         case "Settings":
           commands.executeCommand("tabby.openSettings");
+          break;
+      }
+    });
+}
+
+function showInformationWhenManualTriggerLoading() {
+  window.showInformationMessage("Tabby is generating code completions.", "Settings").then((selection) => {
+    switch (selection) {
+      case "Settings":
+        commands.executeCommand("tabby.openSettings");
+        break;
+    }
+  });
+}
+
+function showInformationWhenInlineSuggestDisabled() {
+  window
+    .showWarningMessage(
+      "Tabby's suggestion is not showing because inline suggestion is disabled. Please enable it first.",
+      "Enable",
+      "Settings",
+    )
+    .then((selection) => {
+      switch (selection) {
+        case "Enable":
+          const configuration = workspace.getConfiguration("editor");
+          console.debug(`Set editor.inlineSuggest.enabled: true.`);
+          configuration.update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
+          break;
+        case "Settings":
+          commands.executeCommand("workbench.action.openSettings", "@id:editor.inlineSuggest.enabled");
           break;
       }
     });
@@ -87,27 +130,6 @@ function showInformationWhenAuthFailed() {
         break;
     }
   });
-}
-
-function showInformationWhenInlineSuggestDisabled() {
-  window
-    .showWarningMessage(
-      "Tabby's suggestion is not showing because inline suggestion is disabled. Please enable it first.",
-      "Enable",
-      "Settings",
-    )
-    .then((selection) => {
-      switch (selection) {
-        case "Enable":
-          const configuration = workspace.getConfiguration("editor");
-          console.debug(`Set editor.inlineSuggest.enabled: true.`);
-          configuration.update("inlineSuggest.enabled", true, ConfigurationTarget.Global, false);
-          break;
-        case "Settings":
-          commands.executeCommand("workbench.action.openSettings", "@id:editor.inlineSuggest.enabled");
-          break;
-      }
-    });
 }
 
 function getHelpMessageForCompletionResponseTimeIssue() {
@@ -218,15 +240,16 @@ function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
 }
 
 export const notifications = {
-  showInformationWhenLoading,
-  showInformationWhenDisabled,
-  showInformationWhenReady,
+  showInformationWhenInitializing,
+  showInformationWhenAutomaticTrigger,
+  showInformationWhenManualTrigger,
+  showInformationWhenManualTriggerLoading,
+  showInformationWhenInlineSuggestDisabled,
   showInformationWhenDisconnected,
   showInformationStartAuth,
   showInformationAuthSuccess,
   showInformationWhenStartAuthButAlreadyAuthorized,
   showInformationWhenAuthFailed,
-  showInformationWhenInlineSuggestDisabled,
   showInformationWhenSlowCompletionResponseTime,
   showInformationWhenHighCompletionTimeoutRate,
 };
