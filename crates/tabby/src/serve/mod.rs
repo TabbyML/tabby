@@ -15,7 +15,7 @@ use tabby_common::{config::Config, usage};
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
-use utoipa::OpenApi;
+use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
 use self::health::HealthState;
@@ -37,7 +37,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     servers(
         (url = "https://playground.app.tabbyml.com", description = "Playground server"),
-        (url = "http://localhost:8080", description = "Local server"),
     ),
     paths(events::log_event, completions::completion, health::health),
     components(schemas(
@@ -161,8 +160,20 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     info!("Starting server, this might takes a few minutes...");
+
+    // swagger add local server
+    let mut doc = ApiDoc::openapi();
+    if let Some(servers) = doc.servers.as_mut() {
+        servers.push(
+            ServerBuilder::new()
+                .url(format!("http://localhost:{}", args.port))
+                .description(Some("Local server"))
+                .build(),
+        );
+    }
+
     let app = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .nest("/v1", api_router(args, config))
         .fallback(fallback());
 
