@@ -4,6 +4,21 @@
 
 ### Fixes and improvements
 
+## [v3.20.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.20.0) (2023-09-18)
+
+### New features
+
+* Update the Transformers converter to support more model architectures:
+  * MixFormerSequential (used by microsoft/phi-1_5)
+* Accept batch inputs in method `generate_tokens`
+* Add method `async_generate_tokens` to return an asynchronous generator compatible with `asyncio`
+
+### Fixes and improvements
+
+* Remove the epsilon value in the softmax CPU kernel for consistency with other implementations
+* Optimize implementation of the Dynamic Time Wrapping (DTW) function (used for Whisper alignment)
+* Avoid an unnecessary copy of the input arguments in method `Whisper::align`
+
 ## [v3.19.0](https://github.com/OpenNMT/CTranslate2/releases/tag/v3.19.0) (2023-08-31)
 
 ### Changes
