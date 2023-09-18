@@ -31,7 +31,7 @@ The **prompt_template** field is optional. When present, it is assumed that the 
 One example for the **prompt_template** is `<PRE>{prefix}<SUF>{suffix}<MID>`. In this format, `{prefix}` and `{suffix}` will be replaced with their corresponding values, and the entire prompt will be fed into the LLM.
 
 ### tokenizer.json
-This is the standard fast tokenizer file created using Hugging Face Tokenizers. Most Hugging Face models already come with it in repository.
+This is the standard fast tokenizer file created using [Hugging Face Tokenizers](https://github.com/huggingface/tokenizers). Most Hugging Face models already come with it in repository.
 
 ### ctranslate2/
 This directory contains binary files used by the [ctranslate2](https://github.com/OpenNMT/CTranslate2) inference engine. Tabby utilizes ctranslate2 for inference on both `cpu` and `cuda` devices.
