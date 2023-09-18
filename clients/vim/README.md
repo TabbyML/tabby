@@ -1,6 +1,6 @@
 # Tabby VIM extension
 
-TabbyML is compatible with both Vim and NeoVim text editor via a plugin.
+Tabby is compatible with both Vim and NeoVim text editor via a plugin.
 
 ## Requirements
 
@@ -52,7 +52,7 @@ In this case, you first need to clone the repo in your machine
 ```
 git clone https://github.com/TabbyML/tabby.git ~/tabby
 ```
-You will need to edit your vim config file (`~/.vimrc` for vim and `~/.config/nvim/init.vim` for neovim) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
+You will need to edit `~/.config/nvim/init.vim` for and copy paste the following lines in it.
 
 ```
 " For lazy
@@ -84,7 +84,7 @@ You should see
 Tabby is online
 ```
 
-If you se `Tabby cannot connect to the server` it means that you need to start the tabbyML server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
+If you se `Tabby cannot connect to the server` it means that you need to start the tabby server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
 
 ## Usage
 
