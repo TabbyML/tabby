@@ -8,8 +8,7 @@ This guide explains how to install Tabby using homebrew.
 Thanks to Apple's Accelerate and CoreML frameworks, we can now run Tabby on edge devices with reasonable inference speed. Follow the steps below to set it up using homebrew:
 
 ```bash
-brew tap TabbyML/tabby
-brew install tabby
+brew install tabbyml/tabby/tabby
 
 # Start server with StarCoder-1B
 tabby serve --device metal --model TabbyML/StarCoder-1B
