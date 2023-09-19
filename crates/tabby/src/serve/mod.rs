@@ -163,14 +163,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     // swagger add local server
     let mut doc = ApiDoc::openapi();
-    if let Some(servers) = doc.servers.as_mut() {
-        servers.push(
-            ServerBuilder::new()
-                .url(format!("http://localhost:{}", args.port))
-                .description(Some("Local server"))
-                .build(),
-        );
-    }
+    add_localhost_server(&mut doc, args.port);
 
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
@@ -233,4 +226,15 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(300)).await;
         }
     });
+}
+
+fn add_localhost_server(api: &mut utoipa::openapi::OpenApi, port: u16) {
+    if let Some(servers) = api.servers.as_mut() {
+        servers.push(
+            ServerBuilder::new()
+                .url(format!("http://localhost:{}", port))
+                .description(Some("Local server"))
+                .build(),
+        );
+    }
 }
