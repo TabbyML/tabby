@@ -1,4 +1,4 @@
-FROM ghcr.io/opennmt/ctranslate2:3.17.1-ubuntu20.04-cuda11.2 as source
+FROM ghcr.io/opennmt/ctranslate2:3.20.0-ubuntu20.04-cuda11.2 as source
 FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
 
 ENV CTRANSLATE2_ROOT=/opt/ctranslate2
@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --features link_shared --release && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ghcr.io/opennmt/ctranslate2:3.17.1-ubuntu20.04-cuda11.2
+FROM ghcr.io/opennmt/ctranslate2:3.20.0-ubuntu20.04-cuda11.2
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
