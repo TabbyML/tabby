@@ -63,7 +63,7 @@
       "commandPalette": [
         {
           "command": "tabby.inlineCompletion.trigger",
-          "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+          "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
         },
         {
           "command": "tabby.openTabbyAgentSettings",
@@ -88,16 +88,15 @@
           {
             "id": "connectToTabbyServer",
             "title": "Connect to Tabby Server",
-            "description": "Once your Tabby server is ready, specify the server API endpoint here. If you are using a Tabby Cloud endpoint, please follow the popup messages to complete authorization. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
+            "description": "Once your Tabby server is ready, specify the server API endpoint here. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
             "media": {
-              "image": "assets/walkthroughs/setApiEndpoint.png",
-              "altText": "Tabby: Specify API Endpoint of Tabby"
+              "markdown": "assets/walkthroughs/setApiEndpoint.md"
             }
           },
           {
             "id": "codeCompletion",
             "title": "Code Completion",
-            "description": "Tabby provides inline suggestions automatically, and you can accept suggestions by just pressing the Tab key. Follow this guide to find more useful actions.",
+            "description": "Tabby provides inline suggestions automatically by default, and you can accept suggestions by just pressing the Tab key.",
             "media": {
               "markdown": "assets/walkthroughs/codeCompletion.md"
             }
@@ -107,8 +106,7 @@
             "title": "Commands",
             "description": "Type `>Tabby:` in command palette to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
             "media": {
-              "image": "assets/walkthroughs/commands.png",
-              "altText": "Tabby Commands"
+              "markdown": "assets/walkthroughs/commands.md"
             }
           }
         ]

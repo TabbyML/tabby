@@ -161,42 +161,10 @@ const openAuthPage: Command = {
   },
 };
 
-const statusBarItemClicked: Command = {
-  command: "tabby.statusBarItemClicked",
-  callback: (status) => {
-    switch (status) {
-      case "initializing":
-        notifications.showInformationWhenInitializing();
-        break;
-      case "automatic":
-        notifications.showInformationWhenAutomaticTrigger();
-        break;
-      case "manual":
-        notifications.showInformationWhenManualTrigger();
-        break;
-      case "loading":
-        notifications.showInformationWhenManualTriggerLoading();
-        break;
-      case "disabled":
-        notifications.showInformationWhenInlineSuggestDisabled();
-        break;
-      case "disconnected":
-        notifications.showInformationWhenDisconnected();
-        break;
-      case "unauthorized":
-        notifications.showInformationStartAuth();
-        break;
-      case "issuesExist":
-        switch (agent().getIssues()[0]?.name) {
-          case "slowCompletionResponseTime":
-            notifications.showInformationWhenSlowCompletionResponseTime();
-            break;
-          case "highCompletionTimeoutRate":
-            notifications.showInformationWhenHighCompletionTimeoutRate();
-            break;
-        }
-        break;
-    }
+const applyCallback: Command = {
+  command: "tabby.applyCallback",
+  callback: (callback) => {
+    callback?.();
   },
 };
 
@@ -240,7 +208,7 @@ export const tabbyCommands = () =>
     gettingStarted,
     emitEvent,
     openAuthPage,
-    statusBarItemClicked,
+    applyCallback,
     triggerInlineCompletion,
     acceptInlineCompletion,
     acceptInlineCompletionNextWord,

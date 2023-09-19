@@ -20,9 +20,11 @@ Try our online demo [here](https://tabby.tabbyml.com/playground).
 
 ## Get Started
 
-If you have installed the Tabby VSCode extension, you can follow the built-in walkthrough guides to get started. You can also reopen walkthrough page anytime by using command `Tabby: Getting Started`.
+Once you have installed the Tabby VSCode extension, you can easily get started by following the built-in walkthrough guides. You can access the walkthrough page at any time by using the command `Tabby: Getting Started`.
 
-1. Setup the Tabby server: you can get a Tabby Cloud hosted server [here](https://app.tabbyml.com), or build your self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation).
-2. Use the command `Tabby: Specify API Endpoint of Tabby` to connect the extension to your Tabby server. If you are using a Tabby Cloud server endpoint, please follow the popup messages to complete authorization.
+1. **Setup the Tabby server**: You have two options to set up your Tabby server. You can either get a Tabby Cloud hosted server [here](https://app.tabbyml.com) or build your own self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation).
+2. **Connect the extension to your Tabby server**: Use the command `Tabby: Specify API Endpoint of Tabby` to connect the extension to your Tabby server. If you are using a Tabby Cloud server endpoint, follow the instructions provided in the popup messages to complete the authorization process.
 
-Once setup is complete, Tabby will provide inline suggestions automatically, and you can accept suggestions by just pressing the Tab key. You can hover on the inline suggestion text to find more useful actions such as partially accepting by word or by line.
+Once the setup is complete, Tabby will automatically provide inline suggestions. You can accept the suggestions by simply pressing the `Tab` key. Hovering over the inline suggestion text will display additional useful actions, such as partially accepting suggestions by word or by line.
+
+If you prefer to trigger code completion manually, you can select the manual trigger option in the settings. After that, use the shortcut `Alt + \` to trigger code completion. To access the settings page, use the command `Tabby: Open Settings`.

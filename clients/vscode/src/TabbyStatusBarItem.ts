@@ -181,7 +181,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
     this.item.tooltip = "Tabby is initializing.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["initializing"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenInitializing()],
+    };
   }
 
   private toAutomatic() {
@@ -189,7 +193,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconAutomatic} ${label}`;
     this.item.tooltip = "Tabby automatic code completion is enabled.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["automatic"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenAutomaticTrigger()],
+    };
   }
 
   private toManual() {
@@ -197,7 +205,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconManual} ${label}`;
     this.item.tooltip = "Tabby is standing by, click or press `Alt + \\` to trigger code completion.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["manual"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenManualTrigger()],
+    };
   }
 
   private toLoading() {
@@ -205,7 +217,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorNormal;
     this.item.text = `${iconLoading} ${label}`;
     this.item.tooltip = "Tabby is generating code completions.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["loading"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenManualTriggerLoading()],
+    };
   }
 
   private toDisabled() {
@@ -213,7 +229,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisabled} ${label}`;
     this.item.tooltip = "Tabby is disabled. Click to check settings.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["disabled"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenInlineSuggestDisabled()],
+    };
 
     console.debug("Tabby code completion is enabled but inline suggest is disabled.");
     notifications.showInformationWhenInlineSuggestDisabled();
@@ -224,7 +244,11 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconDisconnected} ${label}`;
     this.item.tooltip = "Cannot connect to Tabby Server. Click to open settings.";
-    this.item.command = undefined;
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [() => notifications.showInformationWhenDisconnected()],
+    };
   }
 
   private toUnauthorized() {
@@ -232,7 +256,21 @@ export class TabbyStatusBarItem {
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconUnauthorized} ${label}`;
     this.item.tooltip = "Tabby Server requires authorization. Click to continue.";
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["unauthorized"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [
+        () =>
+          notifications.showInformationStartAuth({
+            onAuthStart: () => {
+              this.fsmService.send("authStart");
+            },
+            onAuthEnd: () => {
+              this.fsmService.send("authEnd");
+            },
+          }),
+      ],
+    };
   }
 
   private toUnauthorizedAndAuthInProgress() {
@@ -258,6 +296,21 @@ export class TabbyStatusBarItem {
         this.item.tooltip = "";
         break;
     }
-    this.item.command = { title: "", command: "tabby.statusBarItemClicked", arguments: ["issuesExist"] };
+    this.item.command = {
+      title: "",
+      command: "tabby.applyCallback",
+      arguments: [
+        () => {
+          switch (agent().getIssues()[0]?.name) {
+            case "slowCompletionResponseTime":
+              notifications.showInformationWhenSlowCompletionResponseTime();
+              break;
+            case "highCompletionTimeoutRate":
+              notifications.showInformationWhenHighCompletionTimeoutRate();
+              break;
+          }
+        },
+      ],
+    };
   }
 }
