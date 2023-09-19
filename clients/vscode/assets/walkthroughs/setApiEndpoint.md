@@ -1,4 +1,4 @@
-# Connect to Tabby Server 
+# Connect to Tabby Server
 
 When you execute the command `Tabby: Specify API Endpoint of Tabby`, you will see a prompt asking you to enter the API endpoint of your Tabby server.
 
