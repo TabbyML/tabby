@@ -4,16 +4,18 @@ import { ExtensionContext, languages } from "vscode";
 import { createAgentInstance } from "./agent";
 import { tabbyCommands } from "./commands";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
-import { tabbyStatusBarItem } from "./statusBarItem";
+import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: ExtensionContext) {
   console.debug("Activating Tabby extension", new Date());
   await createAgentInstance(context);
+  const completionProvider = new TabbyCompletionProvider();
+  const statusBarItem = new TabbyStatusBarItem(completionProvider);
   context.subscriptions.push(
-    languages.registerInlineCompletionItemProvider({ pattern: "**" }, new TabbyCompletionProvider()),
-    tabbyStatusBarItem(),
+    languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider),
+    statusBarItem.register(),
     ...tabbyCommands(),
   );
 }

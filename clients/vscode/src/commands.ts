@@ -20,13 +20,20 @@ type Command = {
   thisArg?: any;
 };
 
-const toggleEnabled: Command = {
-  command: "tabby.toggleEnabled",
-  callback: () => {
+const toggleInlineCompletionTriggerMode: Command = {
+  command: "tabby.toggleInlineCompletionTriggerMode",
+  callback: (value: "automatic" | "manual" | undefined) => {
     const configuration = workspace.getConfiguration("tabby");
-    const enabled = configuration.get("codeCompletion", true);
-    console.debug(`Toggle Enabled: ${enabled} -> ${!enabled}.`);
-    configuration.update("codeCompletion", !enabled, configTarget, false);
+    let target = value;
+    if (!target) {
+      const current = configuration.get("inlineCompletion.triggerMode", "automatic");
+      if (current === "automatic") {
+        target = "manual";
+      } else {
+        target = "automatic";
+      }
+    }
+    configuration.update("inlineCompletion.triggerMode", target, configTarget, false);
   },
 };
 
@@ -154,42 +161,17 @@ const openAuthPage: Command = {
   },
 };
 
-const statusBarItemClicked: Command = {
-  command: "tabby.statusBarItemClicked",
-  callback: (status) => {
-    switch (status) {
-      case "loading":
-        notifications.showInformationWhenLoading();
-        break;
-      case "ready":
-        notifications.showInformationWhenReady();
-        break;
-      case "disconnected":
-        notifications.showInformationWhenDisconnected();
-        break;
-      case "unauthorized":
-        notifications.showInformationStartAuth();
-        break;
-      case "issuesExist":
-        switch (agent().getIssues()[0]?.name) {
-          case "slowCompletionResponseTime":
-            notifications.showInformationWhenSlowCompletionResponseTime();
-            break;
-          case "highCompletionTimeoutRate":
-            notifications.showInformationWhenHighCompletionTimeoutRate();
-            break;
-        }
-        break;
-      case "disabled":
-        const enabled = workspace.getConfiguration("tabby").get("codeCompletion", true);
-        const inlineSuggestEnabled = workspace.getConfiguration("editor").get("inlineSuggest.enabled", true);
-        if (enabled && !inlineSuggestEnabled) {
-          notifications.showInformationWhenInlineSuggestDisabled();
-        } else {
-          notifications.showInformationWhenDisabled();
-        }
-        break;
-    }
+const applyCallback: Command = {
+  command: "tabby.applyCallback",
+  callback: (callback) => {
+    callback?.();
+  },
+};
+
+const triggerInlineCompletion: Command = {
+  command: "tabby.inlineCompletion.trigger",
+  callback: () => {
+    commands.executeCommand("editor.action.inlineSuggest.trigger");
   },
 };
 
@@ -218,7 +200,7 @@ const acceptInlineCompletionNextLine: Command = {
 
 export const tabbyCommands = () =>
   [
-    toggleEnabled,
+    toggleInlineCompletionTriggerMode,
     setApiEndpoint,
     openSettings,
     openTabbyAgentSettings,
@@ -226,7 +208,8 @@ export const tabbyCommands = () =>
     gettingStarted,
     emitEvent,
     openAuthPage,
-    statusBarItemClicked,
+    applyCallback,
+    triggerInlineCompletion,
     acceptInlineCompletion,
     acceptInlineCompletionNextWord,
     acceptInlineCompletionNextLine,

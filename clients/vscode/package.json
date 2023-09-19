@@ -7,7 +7,7 @@
   "repository": "https://github.com/TabbyML/tabby",
   "bugs": "https://github.com/TabbyML/tabby/issues",
   "license": "Apache-2.0",
-  "version": "0.5.0",
+  "version": "0.6.0-dev",
   "keywords": [
     "ai",
     "autocomplete",
@@ -35,8 +35,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "tabby.toggleEnabled",
-        "title": "Tabby: Toggle Code Suggestion On/Off"
+        "command": "tabby.toggleInlineCompletionTriggerMode",
+        "title": "Tabby: Toggle Code Completion Trigger Mode (Automatic/Manual)"
+      },
+      {
+        "command": "tabby.inlineCompletion.trigger",
+        "title": "Tabby: Trigger Code Completion Manually"
       },
       {
         "command": "tabby.setApiEndpoint",
@@ -57,6 +61,10 @@
     ],
     "menus": {
       "commandPalette": [
+        {
+          "command": "tabby.inlineCompletion.trigger",
+          "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && !editorHasSelection && !inlineSuggestionsVisible"
+        },
         {
           "command": "tabby.openTabbyAgentSettings",
           "when": "!isWeb"
@@ -80,16 +88,15 @@
           {
             "id": "connectToTabbyServer",
             "title": "Connect to Tabby Server",
-            "description": "Once your Tabby server is ready, specify the server API endpoint here. If you are using a Tabby Cloud endpoint, please follow the popup messages to complete authorization. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
+            "description": "Once your Tabby server is ready, specify the server API endpoint here. \n[Specify API Endpoint](command:tabby.setApiEndpoint)",
             "media": {
-              "image": "assets/walkthroughs/setApiEndpoint.png",
-              "altText": "Tabby: Specify API Endpoint of Tabby"
+              "markdown": "assets/walkthroughs/setApiEndpoint.md"
             }
           },
           {
             "id": "codeCompletion",
             "title": "Code Completion",
-            "description": "Tabby provides inline suggestions automatically, and you can accept suggestions by just pressing the Tab key. Follow this guide to find more useful actions.",
+            "description": "Tabby provides inline suggestions automatically by default, and you can accept suggestions by just pressing the Tab key.",
             "media": {
               "markdown": "assets/walkthroughs/codeCompletion.md"
             }
@@ -99,8 +106,7 @@
             "title": "Commands",
             "description": "Type `>Tabby:` in command palette to list all Tabby commands. \n[Tabby commands](command:workbench.action.quickOpen?%5B%22%3ETabby%3A%22%5D)",
             "media": {
-              "image": "assets/walkthroughs/commands.png",
-              "altText": "Tabby Commands"
+              "markdown": "assets/walkthroughs/commands.md"
             }
           }
         ]
@@ -116,10 +122,18 @@
           "patternErrorMessage": "Please enter a validate http or https URL.",
           "markdownDescription": "Specify API Endpoint of Tabby.  \nIf leave empty, server endpoint in [Tabby Agent Settings](command:tabby.openTabbyAgentSettings) will be used."
         },
-        "tabby.codeCompletion": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Tabby code completion or not."
+        "tabby.inlineCompletion.triggerMode": {
+          "type": "string",
+          "enum": [
+            "automatic",
+            "manual"
+          ],
+          "default": "automatic",
+          "description": "Select the code completion trigger mode.",
+          "enumDescriptions": [
+            "Automatic trigger when you stop typing",
+            "Manual trigger by pressing `Alt + \\`"
+          ]
         },
         "tabby.keybindings": {
           "type": "string",
@@ -128,7 +142,7 @@
             "tabby-style"
           ],
           "default": "vscode-style",
-          "markdownDescription": "Select keybinding profile to accept current inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
+          "markdownDescription": "Select the keybinding profile to accept shown inline completion. \n | | Next Line | Full Completion | Next Word | \n |:---:|:---:|:---:|:---:| \n | _vscode-style_ | - | Tab | Ctrl + RightArrow | \n | _tabby-style_ <br/> _(experimental)_ | Tab | Ctrl + Tab | Ctrl + RightArrow | \n"
         },
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
@@ -139,29 +153,34 @@
     },
     "keybindings": [
       {
+        "key": "alt+\\",
+        "command": "tabby.inlineCompletion.trigger",
+        "when": "config.tabby.inlineCompletion.triggerMode === 'manual' && editorTextFocus && !editorHasSelection && !inlineSuggestionsVisible"
+      },
+      {
         "command": "tabby.inlineCompletion.accept",
         "key": "tab",
-        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !editorTabMovesFocus && inlineSuggestionHasIndentationLessThanTabSize"
+        "when": "config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus && inlineSuggestionHasIndentationLessThanTabSize"
       },
       {
         "command": "tabby.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
-        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly"
+        "when": "config.tabby.keybindings === 'vscode-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.accept",
         "key": "ctrl+tab",
-        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly"
+        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.acceptNextWord",
         "key": "ctrl+right",
-        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly"
+        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible"
       },
       {
         "command": "tabby.inlineCompletion.acceptNextLine",
         "key": "tab",
-        "when": "config.tabby.codeCompletion && config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !editorTabMovesFocus"
+        "when": "config.tabby.keybindings === 'tabby-style' && inlineSuggestionVisible && !editorReadonly && !suggestWidgetVisible && !editorHoverFocused && !editorTabMovesFocus"
       }
     ]
   },
