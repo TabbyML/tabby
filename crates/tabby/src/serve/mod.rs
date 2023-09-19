@@ -15,7 +15,7 @@ use tabby_common::{config::Config, usage};
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
-use utoipa::OpenApi;
+use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
 use self::health::HealthState;
@@ -37,7 +37,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     ),
     servers(
         (url = "https://playground.app.tabbyml.com", description = "Playground server"),
-        (url = "http://localhost:8080", description = "Local server"),
     ),
     paths(events::log_event, completions::completion, health::health),
     components(schemas(
@@ -161,8 +160,10 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     }
 
     info!("Starting server, this might takes a few minutes...");
+
+    let doc = add_localhost_server(ApiDoc::openapi(), args.port);
     let app = Router::new()
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .nest("/v1", api_router(args, config))
         .fallback(fallback());
 
@@ -222,4 +223,18 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(300)).await;
         }
     });
+}
+
+fn add_localhost_server(doc: utoipa::openapi::OpenApi, port: u16) -> utoipa::openapi::OpenApi {
+    let mut doc = doc;
+    if let Some(servers) = doc.servers.as_mut() {
+        servers.push(
+            ServerBuilder::new()
+                .url(format!("http://localhost:{}", port))
+                .description(Some("Local server"))
+                .build(),
+        );
+    }
+
+    doc
 }
