@@ -162,6 +162,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let doc = add_localhost_server(ApiDoc::openapi(), args.port);
+    let doc = add_proxy_server(doc, config.swagger.server_url.clone());
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .nest("/v1", api_router(args, config))
@@ -232,6 +233,28 @@ fn add_localhost_server(doc: utoipa::openapi::OpenApi, port: u16) -> utoipa::ope
             ServerBuilder::new()
                 .url(format!("http://localhost:{}", port))
                 .description(Some("Local server"))
+                .build(),
+        );
+    }
+
+    doc
+}
+
+fn add_proxy_server(
+    doc: utoipa::openapi::OpenApi,
+    server_url: Option<String>,
+) -> utoipa::openapi::OpenApi {
+    if server_url.is_none() {
+        return doc;
+    }
+
+    let server_url: String = server_url.unwrap();
+    let mut doc = doc;
+    if let Some(servers) = doc.servers.as_mut() {
+        servers.push(
+            ServerBuilder::new()
+                .url(server_url)
+                .description(Some("Swagger Server"))
                 .build(),
         );
     }
