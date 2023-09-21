@@ -103,10 +103,6 @@ pub struct ServeArgs {
     #[clap(long)]
     model: String,
 
-    /// proxy server address mapping to the model server.
-    #[clap(long, default_value_t = String::from(""))]
-    proxy_server: String,
-
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
@@ -166,7 +162,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let doc = add_localhost_server(ApiDoc::openapi(), args.port);
-    let doc = add_proxy_server(doc, &args.proxy_server);
+    let doc = add_proxy_server(doc, config.swagger.server_url.clone());
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .nest("/v1", api_router(args, config))
@@ -218,13 +214,6 @@ fn valid_args(args: &ServeArgs) {
             _ => fatal!("CPU device only supports int8 compute type"),
         }
     }
-
-    if !args.proxy_server.is_empty()
-        && !args.proxy_server.starts_with("http://")
-        && !args.proxy_server.starts_with("https://")
-    {
-        fatal!("proxy server should start with https:// or http://");
-    }
 }
 
 fn start_heartbeat(args: &ServeArgs) {
@@ -251,8 +240,12 @@ fn add_localhost_server(doc: utoipa::openapi::OpenApi, port: u16) -> utoipa::ope
     doc
 }
 
-fn add_proxy_server(doc: utoipa::openapi::OpenApi, proxy_server: &str) -> utoipa::openapi::OpenApi {
-    if proxy_server.is_empty() {
+fn add_proxy_server(
+    doc: utoipa::openapi::OpenApi,
+    server_url: Option<String>,
+) -> utoipa::openapi::OpenApi {
+    let server_url: String = server_url.unwrap_or_default();
+    if server_url.is_empty() {
         return doc;
     }
 
@@ -260,8 +253,8 @@ fn add_proxy_server(doc: utoipa::openapi::OpenApi, proxy_server: &str) -> utoipa
     if let Some(servers) = doc.servers.as_mut() {
         servers.push(
             ServerBuilder::new()
-                .url(proxy_server.to_string())
-                .description(Some("Proxy server"))
+                .url(server_url)
+                .description(Some("Swagger Server"))
                 .build(),
         );
     }

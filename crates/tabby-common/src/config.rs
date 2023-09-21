@@ -15,12 +15,20 @@ pub struct Config {
 
     #[serde(default)]
     pub experimental: Experimental,
+
+    #[serde(default)]
+    pub swagger: SwaggerConfig,
 }
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct Experimental {
     #[serde(default = "default_as_false")]
     pub enable_prompt_rewrite: bool,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct SwaggerConfig {
+    pub server_url: Option<String>,
 }
 
 impl Config {
