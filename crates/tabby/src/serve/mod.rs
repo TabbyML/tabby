@@ -245,7 +245,7 @@ fn add_proxy_server(
     server_url: Option<String>,
 ) -> utoipa::openapi::OpenApi {
     if server_url.is_none() {
-        return doc
+        return doc;
     }
 
     let server_url: String = server_url.unwrap();
