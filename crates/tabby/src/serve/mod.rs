@@ -244,11 +244,11 @@ fn add_proxy_server(
     doc: utoipa::openapi::OpenApi,
     server_url: Option<String>,
 ) -> utoipa::openapi::OpenApi {
-    let server_url: String = server_url.unwrap_or_default();
-    if server_url.is_empty() {
-        return doc;
+    if server_url.is_none() {
+        return doc
     }
 
+    let server_url: String = server_url.unwrap();
     let mut doc = doc;
     if let Some(servers) = doc.servers.as_mut() {
         servers.push(
