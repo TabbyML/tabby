@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐾 Tabby
+# 🐾 Tabby 🐱
   
 [![build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/ci.yml?label=build)](https://github.com/TabbyML/tabby/actions/workflows/ci.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
@@ -22,8 +22,8 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
   <img alt="Demo" src="https://user-images.githubusercontent.com/388154/230440226-9bc01d05-9f57-478b-b04d-81184eba14ca.gif">
 </p>
 
-## 👀 What's New
-* **09/21/2023** We've hit 10K stars 🌟 on GitHub! 🚀🎉👏
+## 🔥 What's New
+* **09/21/2023** We've hit **10K stars** 🌟 on GitHub! 🚀🎉👏
 * **09/18/2023** Apple's M1/M2 Metal inference support has landed in [v0.1.1](https://github.com/TabbyML/tabby/releases/tag/v0.1.1)!
 * **08/31/2023** Tabby's first stable release [v0.0.1](https://github.com/TabbyML/tabby/releases/tag/v0.0.1) 🥳.
 * **08/28/2023** Experimental support for the [CodeLlama 7B](https://github.com/TabbyML/tabby/issues/370).
