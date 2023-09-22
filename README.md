@@ -51,6 +51,8 @@ git clone --recurse-submodules https://github.com/TabbyML/tabby
 cd tabby
 ```
 
+If you have already cloned the repository, you could run the `git submodule update --recursive --init` command to fetch all submodules.
+
 ### Build
 
 1. Set up the Rust environment by following this [tutorial](https://www.rust-lang.org/learn/get-started).
