@@ -51,6 +51,8 @@ git clone --recurse-submodules https://github.com/TabbyML/tabby
 cd tabby
 ```
 
+If you have already cloned the repository, you could run the `git submodule update --recursive --init` command to fetch all submodules.
+
 ### Build
 
 1. Set up the Rust environment by following this [tutorial](https://www.rust-lang.org/learn/get-started).
@@ -64,12 +66,7 @@ brew install protobuf
 apt-get install protobuf-compiler libopenblas-dev
 ```
 
-3. Clone all submoudles to local enviorment if you forget to use `recurse-submodules` at the first step:
-```bash
-git submodule update --recursive --init
-```
-
-4. Now, you can build Tabby by running the command `cargo build`.
+3. Now, you can build Tabby by running the command `cargo build`.
 
 ### Start Hacking!
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)
