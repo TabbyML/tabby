@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐾 Tabby 🐱
+# 🐾 Tabby
   
 [![build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/ci.yml?label=build)](https://github.com/TabbyML/tabby/actions/workflows/ci.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
