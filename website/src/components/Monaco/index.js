@@ -154,17 +154,34 @@ class CompletionProvider {
   }
 
   toInlineCompletions(value, range) {
-    return (
-      value.choices.map((choice) => ({
+    return value.choices.map(choice => this.processInlineCompletion(value, range, choice)) || []
+  }
+
+  processInlineCompletion (value, range, choice) {
+    const insertText = choice.text
+    const isEndWithNewLine = insertText.endsWith("\n")
+    const inlineCompletion = {
+      range,
+      insertText,
+      choice,
+      command: {
+        id: "acceptTabbyCompletion",
+        arguments: [value.id, choice.index],
+      }
+    }
+
+    // hotfix - keep indent aligned with the last row if the completion end with \n
+    // reference: https://blutorange.github.io/primefaces-monaco/typedoc/interfaces/monaco.languages.completionitem.html
+    if (isEndWithNewLine) {
+      const lastRow = insertText.split("\n").slice(-2, -1)[0]
+      const spaceMatch = lastRow.match(/^\s+/)
+      const spaceLen = spaceMatch ? spaceMatch[0].length : 0
+      inlineCompletion.additionalTextEdits = [{
         range,
-        insertText: choice.text,
-        choice,
-        command: {
-          id: "acceptTabbyCompletion",
-          arguments: [value.id, choice.index],
-        },
-      })) || []
-    )
+        text: " ".repeat(spaceLen)
+      }]
+    }
+    return inlineCompletion
   }
 
   hasSuffixParen(document, position) {
