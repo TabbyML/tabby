@@ -429,7 +429,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
-    await this.post("/v1/events", { body: request, parseAs: "text" }, options);
+    await this.post(
+      "/v1/events",
+      {
+        body: request,
+        params: {
+          query: {
+            select_kind: request.select_kind,
+          },
+        },
+        parseAs: "text",
+      },
+      options,
+    );
     return true;
   }
 }
