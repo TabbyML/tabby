@@ -216,6 +216,6 @@
   },
   "dependencies": {
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "0.2.0"
+    "tabby-agent": "0.3.0-dev"
   }
 }
