@@ -19,7 +19,9 @@ export type CompletionRequest = {
 
 export type CompletionResponse = ApiComponents["schemas"]["CompletionResponse"];
 
-export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"];
+export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"] & {
+  select_kind?: "line";
+};
 
 export type AbortSignalOption = { signal: AbortSignal };
 

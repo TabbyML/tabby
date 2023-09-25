@@ -11,7 +11,7 @@ import { TabbyStatusBarItem } from "./TabbyStatusBarItem";
 export async function activate(context: ExtensionContext) {
   console.debug("Activating Tabby extension", new Date());
   await createAgentInstance(context);
-  const completionProvider = new TabbyCompletionProvider();
+  const completionProvider = TabbyCompletionProvider.getInstance();
   const statusBarItem = new TabbyStatusBarItem(completionProvider);
   context.subscriptions.push(
     languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider),

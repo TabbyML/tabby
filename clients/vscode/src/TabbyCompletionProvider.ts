@@ -10,15 +10,24 @@ import {
   workspace,
 } from "vscode";
 import { EventEmitter } from "events";
-import { CompletionResponse } from "tabby-agent";
+import { CompletionRequest, CompletionResponse, LogEventRequest } from "tabby-agent";
 import { agent } from "./agent";
 
 export class TabbyCompletionProvider extends EventEmitter implements InlineCompletionItemProvider {
+  static instance: TabbyCompletionProvider;
+  static getInstance(): TabbyCompletionProvider {
+    if (!TabbyCompletionProvider.instance) {
+      TabbyCompletionProvider.instance = new TabbyCompletionProvider();
+    }
+    return TabbyCompletionProvider.instance;
+  }
+
   private triggerMode: "automatic" | "manual" | "disabled" = "automatic";
   private onGoingRequestAbortController: AbortController | null = null;
   private loading: boolean = false;
+  private latestCompletions: CompletionResponse | null = null;
 
-  constructor() {
+  private constructor() {
     super();
     this.updateConfiguration();
     workspace.onDidChangeConfiguration((event) => {
@@ -57,13 +66,13 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     }
 
     if (token?.isCancellationRequested) {
-      console.debug("Cancellation was requested.");
+      console.debug("Completion request is canceled before agent request.");
       return null;
     }
 
     const replaceRange = this.calculateReplaceRange(document, position);
 
-    const request = {
+    const request: CompletionRequest = {
       filepath: document.uri.fsPath,
       language: document.languageId, // https://code.visualstudio.com/docs/languages/identifiers
       text: document.getText(),
@@ -71,10 +80,12 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       manually: context.triggerKind === InlineCompletionTriggerKind.Invoke,
     };
 
+    this.latestCompletions = null;
+
     const abortController = new AbortController();
     this.onGoingRequestAbortController = abortController;
     token?.onCancellationRequested(() => {
-      console.debug("Cancellation requested.");
+      console.debug("Completion request is canceled.");
       abortController.abort();
     });
 
@@ -84,7 +95,30 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       const result = await agent().provideCompletions(request, { signal: abortController.signal });
       this.loading = false;
       this.emit("loadingStatusUpdated");
-      return this.toInlineCompletions(result, replaceRange);
+
+      if (token?.isCancellationRequested) {
+        console.debug("Completion request is canceled after agent request.");
+        return null;
+      }
+
+      // Assume only one choice is provided, do not support multiple choices for now
+      if (result.choices.length > 0) {
+        this.latestCompletions = result;
+
+        this.postEvent("show");
+
+        return [
+          new InlineCompletionItem(result.choices[0].text, replaceRange, {
+            title: "",
+            command: "tabby.applyCallback",
+            arguments: [
+              () => {
+                this.postEvent("accept");
+              },
+            ],
+          }),
+        ];
+      }
     } catch (error: any) {
       if (this.onGoingRequestAbortController === abortController) {
         // the request was not replaced by a new request, set loading to false safely
@@ -99,6 +133,35 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     return null;
   }
 
+  public postEvent(event: "show" | "accept" | "accept_word" | "accept_line") {
+    const completion = this.latestCompletions;
+    if (completion && completion.choices.length > 0) {
+      let postBody: LogEventRequest = {
+        type: event === "show" ? "view" : "select",
+        completion_id: completion.id,
+        // Assume only one choice is provided for now
+        choice_index: completion.choices[0].index,
+      };
+      switch (event) {
+        case "accept_word":
+          // select_kind should be "word" but not supported by Tabby Server yet, use "line" instead
+          postBody = { ...postBody, select_kind: "line" };
+          break;
+        case "accept_line":
+          postBody = { ...postBody, select_kind: "line" };
+          break;
+        default:
+          break;
+      }
+      console.debug(`Post event ${event}`, { postBody });
+      try {
+        agent().postEvent(postBody);
+      } catch (error: any) {
+        console.debug("Error when posting event", { error });
+      }
+    }
+  }
+
   private updateConfiguration() {
     if (!workspace.getConfiguration("editor").get("inlineSuggest.enabled", true)) {
       this.triggerMode = "disabled";
@@ -107,23 +170,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       this.triggerMode = workspace.getConfiguration("tabby").get("inlineCompletion.triggerMode", "automatic");
       this.emit("triggerModeUpdated");
     }
-  }
-
-  private toInlineCompletions(tabbyCompletion: CompletionResponse | null, range: Range): InlineCompletionItem[] {
-    return (
-      tabbyCompletion?.choices?.map((choice: any) => {
-        let event = {
-          type: "select",
-          completion_id: tabbyCompletion.id,
-          choice_index: choice.index,
-        };
-        return new InlineCompletionItem(choice.text, range, {
-          title: "",
-          command: "tabby.emitEvent",
-          arguments: [event],
-        });
-      }) || []
-    );
   }
 
   private hasSuffixParen(document: TextDocument, position: Position) {

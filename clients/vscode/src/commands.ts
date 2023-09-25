@@ -11,6 +11,7 @@ import {
 import { strict as assert } from "assert";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
+import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
 
 const configTarget = ConfigurationTarget.Global;
 
@@ -109,14 +110,6 @@ const gettingStarted: Command = {
   },
 };
 
-const emitEvent: Command = {
-  command: "tabby.emitEvent",
-  callback: (event) => {
-    console.debug("Emit Event: ", event);
-    agent().postEvent(event);
-  },
-};
-
 const openAuthPage: Command = {
   command: "tabby.openAuthPage",
   callback: (callbacks?: { onAuthStart?: () => void; onAuthEnd?: () => void }) => {
@@ -185,7 +178,7 @@ const acceptInlineCompletion: Command = {
 const acceptInlineCompletionNextWord: Command = {
   command: "tabby.inlineCompletion.acceptNextWord",
   callback: () => {
-    // FIXME: sent event when partially accept?
+    TabbyCompletionProvider.getInstance().postEvent("accept_word");
     commands.executeCommand("editor.action.inlineSuggest.acceptNextWord");
   },
 };
@@ -193,7 +186,8 @@ const acceptInlineCompletionNextWord: Command = {
 const acceptInlineCompletionNextLine: Command = {
   command: "tabby.inlineCompletion.acceptNextLine",
   callback: () => {
-    // FIXME: sent event when partially accept?
+    TabbyCompletionProvider.getInstance().postEvent("accept_line");
+    // FIXME: this command move cursor to next line, but we want to move cursor to the end of current line
     commands.executeCommand("editor.action.inlineSuggest.acceptNextLine");
   },
 };
@@ -206,7 +200,6 @@ export const tabbyCommands = () =>
     openTabbyAgentSettings,
     openKeybindings,
     gettingStarted,
-    emitEvent,
     openAuthPage,
     applyCallback,
     triggerInlineCompletion,
