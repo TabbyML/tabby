@@ -7,7 +7,7 @@ use anyhow::{anyhow, Result};
 use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
-use registry::HuggingFaceRegistry;
+use registry::{create_registry, Registry};
 use tabby_common::path::ModelDir;
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
@@ -17,7 +17,7 @@ use tokio_retry::{
 pub struct Downloader {
     model_id: String,
     prefer_local_file: bool,
-    registry: HuggingFaceRegistry,
+    registry: Box<dyn Registry>,
 }
 
 impl Downloader {
@@ -25,7 +25,7 @@ impl Downloader {
         Self {
             model_id: model_id.to_owned(),
             prefer_local_file,
-            registry: HuggingFaceRegistry::default(),
+            registry: create_registry(),
         }
     }
 
@@ -62,7 +62,7 @@ impl Downloader {
         let mut cache_info = CacheInfo::from(&self.model_id).await;
         for (path, required) in files {
             download_model_file(
-                &self.registry,
+                self.registry.as_ref(),
                 &mut cache_info,
                 &self.model_id,
                 path,
@@ -76,7 +76,7 @@ impl Downloader {
 }
 
 async fn download_model_file(
-    registry: &HuggingFaceRegistry,
+    registry: &dyn Registry,
     cache_info: &mut CacheInfo,
     model_id: &str,
     path: &str,
@@ -122,7 +122,7 @@ async fn download_model_file(
 }
 
 async fn download_file(
-    registry: &HuggingFaceRegistry,
+    registry: &dyn Registry,
     url: &str,
     path: &str,
     local_cache_key: Option<&str>,

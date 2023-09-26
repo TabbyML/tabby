@@ -1,35 +1,19 @@
 use std::collections::HashMap;
 
 use anyhow::{anyhow, Result};
+use async_trait::async_trait;
 use cached::proc_macro::cached;
 use reqwest::Url;
 use serde::Deserialize;
 
-#[derive(Default)]
-pub struct HuggingFaceRegistry {}
-
-impl HuggingFaceRegistry {
-    pub fn build_url(&self, model_id: &str, path: &str) -> String {
-        format!("https://huggingface.co/{}/resolve/main/{}", model_id, path)
-    }
-
-    pub async fn build_cache_key(&self, url: &str) -> Result<String> {
-        let res = reqwest::get(url).await?;
-        let cache_key = res
-            .headers()
-            .get("etag")
-            .ok_or(anyhow!("etag key missing"))?
-            .to_str()?;
-        Ok(cache_key.to_owned())
-    }
-}
+use crate::Registry;
 
 #[derive(Default)]
-pub struct ModelScopeRegistry {
-}
+pub struct ModelScopeRegistry {}
 
-impl ModelScopeRegistry {
-    pub fn build_url(&self, model_id: &str, path: &str) -> String {
+#[async_trait]
+impl Registry for ModelScopeRegistry {
+    fn build_url(&self, model_id: &str, path: &str) -> String {
         format!(
             "https://modelscope.cn/api/v1/models/{}/repo?FilePath={}",
             model_id,
@@ -37,9 +21,10 @@ impl ModelScopeRegistry {
         )
     }
 
-    pub async fn build_cache_key(&self, url: &str) -> Result<String> {
+    async fn build_cache_key(&self, url: &str) -> Result<String> {
         let url = Url::parse(url)?;
-        let model_id = url.path()
+        let model_id = url
+            .path()
             .strip_prefix("/api/v1/models/")
             .ok_or(anyhow!("Invalid url"))?
             .strip_suffix("/repo")
@@ -49,13 +34,10 @@ impl ModelScopeRegistry {
         let path = query
             .get("FilePath")
             .ok_or(anyhow!("Failed to extract FilePath"))?;
-        self.get_cache_key(model_id, path).await
-    }
 
-    async fn get_cache_key(&self, model_id: &str, path: &str) -> Result<String> {
         let revision_map = fetch_revision_map(model_id.to_owned()).await?;
         for x in revision_map.data.files {
-            if x.path == path {
+            if x.path == *path {
                 return Ok(x.sha256);
             }
         }
