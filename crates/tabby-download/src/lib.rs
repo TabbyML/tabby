@@ -1,4 +1,5 @@
 mod cache_info;
+mod registry;
 
 use std::{cmp, fs, io::Write, path::Path};
 
@@ -6,16 +7,17 @@ use anyhow::{anyhow, Result};
 use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use registry::HuggingFaceRegistry;
 use tabby_common::path::ModelDir;
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
-use tracing::info;
 
 pub struct Downloader {
     model_id: String,
     prefer_local_file: bool,
+    registry: HuggingFaceRegistry,
 }
 
 impl Downloader {
@@ -23,6 +25,7 @@ impl Downloader {
         Self {
             model_id: model_id.to_owned(),
             prefer_local_file,
+            registry: HuggingFaceRegistry::default(),
         }
     }
 
@@ -56,10 +59,10 @@ impl Downloader {
             return Ok(());
         }
 
-        info!("Start downloading model `{}`", self.model_id);
         let mut cache_info = CacheInfo::from(&self.model_id).await;
         for (path, required) in files {
             download_model_file(
+                &self.registry,
                 &mut cache_info,
                 &self.model_id,
                 path,
@@ -73,6 +76,7 @@ impl Downloader {
 }
 
 async fn download_model_file(
+    registry: &HuggingFaceRegistry,
     cache_info: &mut CacheInfo,
     model_id: &str,
     path: &str,
@@ -80,7 +84,7 @@ async fn download_model_file(
     required: bool,
 ) -> Result<()> {
     // Create url.
-    let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
+    let url = registry.build_url(model_id, path);
 
     // Get cache key.
     let local_cache_key = cache_info.local_cache_key(path);
@@ -106,7 +110,7 @@ async fn download_model_file(
     if !local_file_ready {
         let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
         let etag = Retry::spawn(strategy, || {
-            download_file(&url, &filepath, local_cache_key, !required)
+            download_file(registry, &url, &filepath, local_cache_key, !required)
         })
         .await?;
 
@@ -118,6 +122,7 @@ async fn download_model_file(
 }
 
 async fn download_file(
+    registry: &HuggingFaceRegistry,
     url: &str,
     path: &str,
     local_cache_key: Option<&str>,
@@ -137,7 +142,7 @@ async fn download_file(
         return Err(anyhow!(format!("Invalid url: {}", url)));
     }
 
-    let remote_cache_key = CacheInfo::remote_cache_key(&res)?.to_string();
+    let remote_cache_key = registry.build_cache_key(url).await?;
     if let Some(local_cache_key) = local_cache_key {
         if local_cache_key == remote_cache_key {
             return Ok(remote_cache_key);
