@@ -1,4 +1,5 @@
 mod cache_info;
+mod registry;
 
 use std::{cmp, fs, io::Write, path::Path};
 
@@ -6,111 +7,114 @@ use anyhow::{anyhow, Result};
 use cache_info::CacheInfo;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
+use registry::{create_registry, Registry};
 use tabby_common::path::ModelDir;
 use tokio_retry::{
     strategy::{jitter, ExponentialBackoff},
     Retry,
 };
-use tracing::info;
 
-impl CacheInfo {
-    async fn download(
-        &mut self,
-        model_id: &str,
-        path: &str,
-        prefer_local_file: bool,
-        is_optional: bool,
-    ) -> Result<()> {
-        // Create url.
-        let url = format!("https://huggingface.co/{}/resolve/main/{}", model_id, path);
+pub struct Downloader {
+    model_id: String,
+    prefer_local_file: bool,
+    registry: Box<dyn Registry>,
+}
 
-        // Get cache key.
-        let local_cache_key = self.local_cache_key(path);
+impl Downloader {
+    pub fn new(model_id: &str, prefer_local_file: bool) -> Self {
+        Self {
+            model_id: model_id.to_owned(),
+            prefer_local_file,
+            registry: create_registry(),
+        }
+    }
 
-        // Create destination path.
-        let filepath = ModelDir::new(model_id).path_string(path);
+    pub async fn download_ctranslate2_files(&self) -> Result<()> {
+        let files = vec![
+            ("tabby.json", true),
+            ("tokenizer.json", true),
+            ("ctranslate2/vocabulary.txt", false),
+            ("ctranslate2/shared_vocabulary.txt", false),
+            ("ctranslate2/vocabulary.json", false),
+            ("ctranslate2/shared_vocabulary.json", false),
+            ("ctranslate2/config.json", true),
+            ("ctranslate2/model.bin", true),
+        ];
 
-        // Cache hit.
-        let local_file_ready = if prefer_local_file {
-            if let Some(local_cache_key) = local_cache_key {
-                if local_cache_key == "404" {
-                    true
-                } else {
-                    fs::metadata(&filepath).is_ok()
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
+        self.download_files(&files).await
+    }
 
-        if !local_file_ready {
-            let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(3);
-            let etag = Retry::spawn(strategy, || {
-                download_file(&url, &filepath, local_cache_key, is_optional)
-            })
+    pub async fn download_ggml_files(&self) -> Result<()> {
+        let files = vec![
+            ("tabby.json", true),
+            ("tokenizer.json", true),
+            ("ggml/q8_0.gguf", true),
+        ];
+        self.download_files(&files).await
+    }
+
+    async fn download_files(&self, files: &[(&str, bool)]) -> Result<()> {
+        // Local path, no need for downloading.
+        if fs::metadata(&self.model_id).is_ok() {
+            return Ok(());
+        }
+
+        let mut cache_info = CacheInfo::from(&self.model_id).await;
+        for (path, required) in files {
+            download_model_file(
+                self.registry.as_ref(),
+                &mut cache_info,
+                &self.model_id,
+                path,
+                self.prefer_local_file,
+                *required,
+            )
             .await?;
-            self.set_local_cache_key(path, &etag).await;
         }
         Ok(())
     }
 }
 
-pub async fn download_model(
+async fn download_model_file(
+    registry: &dyn Registry,
+    cache_info: &mut CacheInfo,
     model_id: &str,
-    download_ctranslate2_files: bool,
-    download_ggml_files: bool,
+    path: &str,
     prefer_local_file: bool,
+    required: bool,
 ) -> Result<()> {
-    if fs::metadata(model_id).is_ok() {
-        // Local path, no need for downloading.
-        return Ok(());
-    }
+    // Create url.
+    let url = registry.build_url(model_id, path);
 
-    info!("Start downloading model `{}`", model_id);
+    // Get cache key.
+    let local_cache_key = cache_info.local_cache_key(path);
 
-    let mut cache_info = CacheInfo::from(model_id).await;
+    // Create destination path.
+    let filepath = ModelDir::new(model_id).path_string(path);
 
-    let mut optional_files = vec![];
-    if download_ctranslate2_files {
-        optional_files.push("ctranslate2/vocabulary.txt");
-        optional_files.push("ctranslate2/shared_vocabulary.txt");
-        optional_files.push("ctranslate2/vocabulary.json");
-        optional_files.push("ctranslate2/shared_vocabulary.json");
-    }
+    // Cache hit.
+    let local_file_ready = if prefer_local_file {
+        if let Some(local_cache_key) = local_cache_key {
+            if local_cache_key == "404" {
+                true
+            } else {
+                fs::metadata(&filepath).is_ok()
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
 
-    if download_ggml_files {
-        optional_files.push("ggml/q8_0.gguf");
-    }
+    if !local_file_ready {
+        let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
+        let etag = Retry::spawn(strategy, || {
+            download_file(registry, &url, &filepath, local_cache_key, !required)
+        })
+        .await?;
 
-    for path in optional_files {
-        cache_info
-            .download(
-                model_id,
-                path,
-                prefer_local_file,
-                /* is_optional */ true,
-            )
-            .await?;
-    }
-
-    let mut required_files = vec!["tabby.json", "tokenizer.json"];
-
-    if download_ctranslate2_files {
-        required_files.push("ctranslate2/config.json");
-        required_files.push("ctranslate2/model.bin");
-    }
-
-    for path in required_files {
-        cache_info
-            .download(
-                model_id,
-                path,
-                prefer_local_file,
-                /* required= */ false,
-            )
-            .await?;
+        cache_info.set_local_cache_key(path, &etag).await;
     }
 
     cache_info.save(model_id)?;
@@ -118,6 +122,7 @@ pub async fn download_model(
 }
 
 async fn download_file(
+    registry: &dyn Registry,
     url: &str,
     path: &str,
     local_cache_key: Option<&str>,
@@ -137,7 +142,7 @@ async fn download_file(
         return Err(anyhow!(format!("Invalid url: {}", url)));
     }
 
-    let remote_cache_key = CacheInfo::remote_cache_key(&res)?.to_string();
+    let remote_cache_key = registry.build_cache_key(url).await?;
     if let Some(local_cache_key) = local_cache_key {
         if local_cache_key == remote_cache_key {
             return Ok(remote_cache_key);
