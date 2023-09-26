@@ -26,7 +26,7 @@ import { DataStore } from "./dataStore";
 import { postprocess, preCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
-import { ResponseStats, completionResponseTimeStatsStrategy } from "./ResponseStats";
+import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
 
 /**
  * Different from AgentInitOptions or AgentConfig, this may contain non-serializable objects,
@@ -51,9 +51,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private completionCache: CompletionCache = new CompletionCache();
   private completionDebounce: CompletionDebounce = new CompletionDebounce();
   private nonParallelProvideCompletionAbortController: AbortController | null = null;
-  private completionResponseStats: ResponseStats = new ResponseStats(completionResponseTimeStatsStrategy);
+  private completionProviderStats: CompletionProviderStats = new CompletionProviderStats();
   static readonly tryConnectInterval = 1000 * 30; // 30s
   private tryingConnectTimer: ReturnType<typeof setInterval> | null = null;
+  static readonly submitStatsInterval = 1000 * 60 * 60 * 24; // 24h
+  private submitStatsTimer: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     super();
@@ -65,22 +67,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
       }
     }, TabbyAgent.tryConnectInterval);
 
-    this.completionResponseStats.on("healthy", () => {
-      this.popIssue("slowCompletionResponseTime");
-      this.popIssue("highCompletionTimeoutRate");
-    });
-    this.completionResponseStats.on("highTimeoutRate", () => {
-      if (this.status === "ready" || this.status === "issuesExist") {
-        this.popIssue("slowCompletionResponseTime");
-        this.pushIssue("highCompletionTimeoutRate");
-      }
-    });
-    this.completionResponseStats.on("slowResponseTime", () => {
-      if (this.status === "ready" || this.status === "issuesExist") {
-        this.popIssue("highCompletionTimeoutRate");
-        this.pushIssue("slowCompletionResponseTime");
-      }
-    });
+    this.submitStatsTimer = setInterval(async () => {
+      await this.submitStats();
+      this.logger.debug("Stats submitted");
+    }, TabbyAgent.submitStatsInterval);
   }
 
   static async create(options?: TabbyAgentOptions): Promise<TabbyAgent> {
@@ -91,6 +81,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async applyConfig() {
+    const oldConfig = this.config;
+    const oldStatus = this.status;
+
     this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig);
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
@@ -104,6 +97,24 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.auth = null;
     }
     await this.setupApi();
+
+    // If server config changed, clear server related state
+    if (!deepEqual(oldConfig.server, this.config.server)) {
+      this.serverHealthState = null;
+      this.completionProviderStats.resetWindowed();
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
+
+      // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
+      // but `changeStatus` will not emit `authRequired` if status is not changed, so we emit it manually here.
+      if (oldStatus === "unauthorized" && this.status === "unauthorized") {
+        this.emitAuthRequired();
+      }
+    }
+
+    const event: AgentEvent = { event: "configUpdated", config: this.config };
+    this.logger.debug({ event }, "Config updated");
+    super.emit("configUpdated", event);
   }
 
   private async setupApi() {
@@ -129,17 +140,17 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
-  private issueWithDetails(issue: AgentIssue["name"]): AgentIssue {
-    switch (issue) {
+  private issueFromName(issueName: AgentIssue["name"]): AgentIssue {
+    switch (issueName) {
       case "highCompletionTimeoutRate":
         return {
           name: "highCompletionTimeoutRate",
-          completionResponseStats: this.completionResponseStats.stats(),
+          completionResponseStats: this.completionProviderStats.windowed().stats,
         };
       case "slowCompletionResponseTime":
         return {
           name: "slowCompletionResponseTime",
-          completionResponseStats: this.completionResponseStats.stats(),
+          completionResponseStats: this.completionProviderStats.windowed().stats,
         };
     }
   }
@@ -147,23 +158,34 @@ export class TabbyAgent extends EventEmitter implements Agent {
   private pushIssue(issue: AgentIssue["name"]) {
     if (this.issues.indexOf(issue) === -1) {
       this.issues.push(issue);
-      this.changeStatus("issuesExist");
-      const event: AgentEvent = { event: "newIssue", issue: this.issueWithDetails(issue) };
-      this.logger.debug({ event }, "New issue");
-      super.emit("newIssue", event);
+      this.logger.debug({ issue }, "Issues Pushed");
+      this.emitIssueUpdated();
     }
   }
 
   private popIssue(issue: AgentIssue["name"]) {
-    this.issues = this.issues.filter((i) => i !== issue);
-    if (this.issues.length === 0 && this.status === "issuesExist") {
-      this.changeStatus("ready");
+    const index = this.issues.indexOf(issue);
+    if (index >= 0) {
+      this.issues.splice(index, 1);
+      this.logger.debug({ issue }, "Issues Popped");
+      this.emitIssueUpdated();
     }
   }
 
   private emitAuthRequired() {
     const event: AgentEvent = { event: "authRequired", server: this.config.server };
     super.emit("authRequired", event);
+  }
+
+  private emitIssueUpdated() {
+    const event: AgentEvent = { event: "issuesUpdated", issues: this.issues };
+    super.emit("issuesUpdated", event);
+  }
+
+  private async submitStats() {
+    const stats = this.completionProviderStats.stats();
+    await this.anonymousUsageLogger.event("AgentStats", { stats, config: this.config.completion });
+    this.completionProviderStats.reset();
   }
 
   private async post<T extends Parameters<typeof this.api.POST>[0]>(
@@ -181,9 +203,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         throw new HttpError(response.response);
       }
       this.logger.debug({ requestId, path, response: response.data }, "API response");
-      if (this.status !== "issuesExist") {
-        this.changeStatus("ready");
-      }
+      this.changeStatus("ready");
       return response.data;
     } catch (error) {
       if (isTimeoutError(error)) {
@@ -266,6 +286,21 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.status !== "notInitialized";
   }
 
+  public async finalize(): Promise<boolean> {
+    await this.submitStats();
+
+    if (this.tryingConnectTimer) {
+      clearInterval(this.tryingConnectTimer);
+      this.tryingConnectTimer = null;
+    }
+    if (this.submitStatsTimer) {
+      clearInterval(this.submitStatsTimer);
+      this.submitStatsTimer = null;
+    }
+    this.logger.debug("Finalized");
+    return true;
+  }
+
   public async updateConfig(key: string, value: any): Promise<boolean> {
     const current = getProperty(this.clientConfig, key);
     if (!deepEqual(current, value)) {
@@ -274,20 +309,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       } else {
         setProperty(this.clientConfig, key, value);
       }
-      const prevStatus = this.status;
       await this.applyConfig();
-      // If server config changed, clear server health state
-      if (key.startsWith("server")) {
-        this.serverHealthState = null;
-      }
-      // If status unchanged, `authRequired` will not be emitted when `applyConfig`,
-      // so we need to emit it manually.
-      if (key.startsWith("server") && prevStatus === "unauthorized" && this.status === "unauthorized") {
-        this.emitAuthRequired();
-      }
-      const event: AgentEvent = { event: "configUpdated", config: this.config };
-      this.logger.debug({ event }, "Config updated");
-      super.emit("configUpdated", event);
     }
     return true;
   }
@@ -304,8 +326,18 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.status;
   }
 
-  public getIssues(): AgentIssue[] {
-    return this.issues.map((issue) => this.issueWithDetails(issue));
+  public getIssues(): AgentIssue["name"][] {
+    return this.issues;
+  }
+
+  public getIssueDetail(options: { index?: number; name?: AgentIssue["name"] }): AgentIssue | null {
+    if (options.index !== undefined) {
+      return this.issueFromName(this.issues[options.index]);
+    } else if (options.name !== undefined && this.issues.indexOf(options.name) !== -1) {
+      return this.issueFromName(options.name);
+    } else {
+      return null;
+    }
   }
 
   public getServerHealthState(): ServerHealthState | null {
@@ -345,83 +377,139 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.nonParallelProvideCompletionAbortController = new AbortController();
     const signal = abortSignalFromAnyOf([this.nonParallelProvideCompletionAbortController.signal, options?.signal]);
     let completionResponse: CompletionResponse | null = null;
-    if (this.completionCache.has(request)) {
-      // Hit cache
-      this.logger.debug({ request }, "Completion cache hit");
-      await this.completionDebounce.debounce(
-        {
-          request,
-          config: this.config.completion.debounce,
-          responseTime: 0,
-        },
-        { signal },
-      );
-      completionResponse = this.completionCache.get(request);
-    } else {
-      // No cache
-      const segments = this.createSegments(request);
-      if (isBlank(segments.prefix)) {
-        // Empty prompt
-        this.logger.debug("Segment prefix is blank, returning empty completion response");
-        completionResponse = {
-          id: "agent-" + uuid(),
-          choices: [],
-        };
-      } else {
-        // Request server
+
+    let stats: CompletionProviderStatsEntry | null = {
+      triggerMode: request.manually ? "manual" : "auto",
+      cacheHit: false,
+      aborted: false,
+      requestSent: false,
+      requestLatency: 0,
+      requestCanceled: false,
+      requestTimeout: false,
+    };
+    let requestStartedAt: number | null = null;
+
+    try {
+      if (this.completionCache.has(request)) {
+        // Cache hit
+        stats.cacheHit = true;
+        this.logger.debug({ request }, "Completion cache hit");
+        // Debounce before returning cached response
         await this.completionDebounce.debounce(
           {
             request,
             config: this.config.completion.debounce,
-            responseTime: this.completionResponseStats.stats()["averageResponseTime"],
+            responseTime: 0,
           },
-          options,
+          { signal },
         );
-
-        const requestStartedAt = performance.now();
-        const apiPath = "/v1/completions";
-        try {
-          completionResponse = await this.post(
-            apiPath,
+        completionResponse = this.completionCache.get(request);
+      } else {
+        // Cache miss
+        stats.cacheHit = false;
+        const segments = this.createSegments(request);
+        if (isBlank(segments.prefix)) {
+          // Empty prompt
+          stats = null; // no need to record stats for empty prompt
+          this.logger.debug("Segment prefix is blank, returning empty completion response");
+          completionResponse = {
+            id: "agent-" + uuid(),
+            choices: [],
+          };
+        } else {
+          // Debounce before sending request
+          await this.completionDebounce.debounce(
             {
-              body: {
-                language: request.language,
-                segments,
-                user: this.auth?.user,
-              },
+              request,
+              config: this.config.completion.debounce,
+              responseTime: this.completionProviderStats.stats()["averageResponseTime"],
             },
-            {
-              signal,
-              timeout: request.manually ? this.config.completion.timeout.manually : this.config.completion.timeout.auto,
-            },
+            options,
           );
-          this.completionResponseStats.push({
-            name: apiPath,
-            status: 200,
-            responseTime: performance.now() - requestStartedAt,
-          });
-        } catch (error) {
-          // record timed out request in stats, do not record canceled request
-          if (isTimeoutError(error)) {
-            this.completionResponseStats.push({
-              name: apiPath,
-              status: error.status,
-              responseTime: performance.now() - requestStartedAt,
-              error,
-            });
+
+          // Send http request
+          stats.requestSent = true;
+          requestStartedAt = performance.now();
+          try {
+            completionResponse = await this.post(
+              "/v1/completions",
+              {
+                body: {
+                  language: request.language,
+                  segments,
+                  user: this.auth?.user,
+                },
+              },
+              {
+                signal,
+                timeout: request.manually
+                  ? this.config.completion.timeout.manually
+                  : this.config.completion.timeout.auto,
+              },
+            );
+            stats.requestLatency = performance.now() - requestStartedAt;
+          } catch (error) {
+            if (isCanceledError(error)) {
+              stats.requestCanceled = true;
+              stats.requestLatency = performance.now() - requestStartedAt;
+            }
+            if (isTimeoutError(error)) {
+              stats.requestTimeout = true;
+              stats.requestLatency = NaN;
+            }
+            // rethrow error
+            throw error;
+          }
+          // Postprocess (pre-cache)
+          completionResponse = await preCacheProcess(request, completionResponse);
+          if (options?.signal?.aborted) {
+            throw options.signal.reason;
+          }
+          // Build cache
+          this.completionCache.set(request, completionResponse);
+        }
+      }
+      // Postprocess (post-cache)
+      completionResponse = await postprocess(request, completionResponse);
+      if (options?.signal?.aborted) {
+        throw options.signal.reason;
+      }
+    } catch (error) {
+      if (isCanceledError(error) || isTimeoutError(error)) {
+        if (stats) {
+          stats.aborted = true;
+        }
+      } else {
+        // unexpected error
+        stats = null;
+      }
+      // rethrow error
+      throw error;
+    } finally {
+      if (stats) {
+        this.completionProviderStats.add(stats);
+
+        if (stats.requestSent && !stats.requestCanceled) {
+          const windowedStats = this.completionProviderStats.windowed();
+          const checkResult = CompletionProviderStats.check(windowedStats);
+          switch (checkResult) {
+            case "healthy":
+              this.popIssue("slowCompletionResponseTime");
+              this.popIssue("highCompletionTimeoutRate");
+              break;
+            case "highTimeoutRate":
+              this.popIssue("slowCompletionResponseTime");
+              this.pushIssue("highCompletionTimeoutRate");
+              break;
+            case "slowResponseTime":
+              this.popIssue("highCompletionTimeoutRate");
+              this.pushIssue("slowCompletionResponseTime");
+              break;
           }
         }
-        completionResponse = await preCacheProcess(request, completionResponse);
-        if (options?.signal?.aborted) {
-          throw options.signal.reason;
-        }
-        this.completionCache.set(request, completionResponse);
       }
     }
-    completionResponse = await postprocess(request, completionResponse);
-    if (options?.signal?.aborted) {
-      throw options.signal.reason;
-    }
+
     return completionResponse;
   }
 

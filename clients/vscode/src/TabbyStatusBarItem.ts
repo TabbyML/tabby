@@ -20,8 +20,13 @@ const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground")
 export class TabbyStatusBarItem {
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
   private completionProvider: TabbyCompletionProvider;
+  private completionResponseWarningShown = false;
 
-  private transitionsForCompletionProviderStatus = [
+  private subStatusForReady = [
+    {
+      target: "issuesExist",
+      cond: () => agent().getIssues().length > 0,
+    },
     {
       target: "automatic",
       cond: () => this.completionProvider.getTriggerMode() === "automatic",
@@ -46,82 +51,70 @@ export class TabbyStatusBarItem {
     states: {
       initializing: {
         on: {
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toInitializing(),
       },
       automatic: {
         on: {
-          completionStatusChanged: this.transitionsForCompletionProviderStatus,
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toAutomatic(),
       },
       manual: {
         on: {
-          completionStatusChanged: this.transitionsForCompletionProviderStatus,
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toManual(),
       },
       loading: {
         on: {
-          completionStatusChanged: this.transitionsForCompletionProviderStatus,
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toLoading(),
       },
       disabled: {
         on: {
-          completionStatusChanged: this.transitionsForCompletionProviderStatus,
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toDisabled(),
       },
       disconnected: {
         on: {
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           unauthorized: "unauthorized",
-          issuesExist: "issuesExist",
         },
         entry: () => this.toDisconnected(),
       },
       unauthorized: {
         on: {
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
-          issuesExist: "issuesExist",
           authStart: "unauthorizedAndAuthInProgress",
         },
         entry: () => this.toUnauthorized(),
       },
       unauthorizedAndAuthInProgress: {
         on: {
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
-          issuesExist: "issuesExist",
           authEnd: "unauthorized", // if auth succeeds, we will get `ready` before `authEnd` event
         },
         entry: () => this.toUnauthorizedAndAuthInProgress(),
       },
       issuesExist: {
         on: {
-          ready: this.transitionsForCompletionProviderStatus,
+          ready: this.subStatusForReady,
           disconnected: "disconnected",
           unauthorized: "unauthorized",
         },
@@ -136,14 +129,13 @@ export class TabbyStatusBarItem {
     this.completionProvider = completionProvider;
     this.fsmService.start();
     this.fsmService.send(agent().getStatus());
-    this.fsmService.send("completionStatusChanged");
     this.item.show();
 
     this.completionProvider.on("triggerModeUpdated", () => {
-      this.fsmService.send("completionStatusChanged");
+      this.fsmService.send(agent().getStatus());
     });
     this.completionProvider.on("loadingStatusUpdated", () => {
-      this.fsmService.send("completionStatusChanged");
+      this.fsmService.send(agent().getStatus());
     });
     agent().on("statusChanged", (event) => {
       console.debug("Tabby agent statusChanged", { event });
@@ -162,12 +154,16 @@ export class TabbyStatusBarItem {
       });
     });
 
-    agent().on("newIssue", (event) => {
-      console.debug("Tabby agent newIssue", { event });
-      if (event.issue.name === "slowCompletionResponseTime") {
-        notifications.showInformationWhenSlowCompletionResponseTime();
-      } else if (event.issue.name === "highCompletionTimeoutRate") {
-        notifications.showInformationWhenHighCompletionTimeoutRate();
+    agent().on("issuesUpdated", (event) => {
+      console.debug("Tabby agent issuesUpdated", { event });
+      this.fsmService.send(agent().getStatus());
+      if (event.issues.length > 0 && !this.completionResponseWarningShown) {
+        this.completionResponseWarningShown = true;
+        if (event.issues[0] === "slowCompletionResponseTime") {
+          notifications.showInformationWhenSlowCompletionResponseTime();
+        } else if (event.issues[0] === "highCompletionTimeoutRate") {
+          notifications.showInformationWhenHighCompletionTimeoutRate();
+        }
       }
     });
   }
@@ -285,7 +281,8 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconIssueExist} ${label}`;
-    switch (agent().getIssues()[0]?.name) {
+    const issue = agent().getIssueDetail({ index: 0 });
+    switch (issue?.name) {
       case "slowCompletionResponseTime":
         this.item.tooltip = "Completion requests appear to take too much time.";
         break;
@@ -301,7 +298,7 @@ export class TabbyStatusBarItem {
       command: "tabby.applyCallback",
       arguments: [
         () => {
-          switch (agent().getIssues()[0]?.name) {
+          switch (issue?.name) {
             case "slowCompletionResponseTime":
               notifications.showInformationWhenSlowCompletionResponseTime();
               break;
