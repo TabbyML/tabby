@@ -45,11 +45,8 @@ export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeout
  *   and no `Authorization` request header is provided in the agent config,
  *   and the user has not completed the auth flow or the auth token is expired.
  *   See also `requestAuthUrl` and `waitForAuthToken`.
- * @property {string} issuesExist - When the agent gets a valid response from the server, but still
- *   has some non-blocking issues, e.g. the average completion response time is too slow,
- *   or the timeout rate is too high.
  */
-export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized" | "issuesExist";
+export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
 
 export interface AgentFunction {
   /**
@@ -57,6 +54,11 @@ export interface AgentFunction {
    * @param options
    */
   initialize(options?: AgentInitOptions): Promise<boolean>;
+
+  /**
+   * Finalize agent. Client should call this method before exiting.
+   */
+  finalize(): Promise<boolean>;
 
   /**
    * The agent configuration has the following levels, will be deep merged in the order:
@@ -87,7 +89,7 @@ export interface AgentFunction {
   getStatus(): AgentStatus;
 
   /**
-   * @returns the current issues if AgentStatus is `issuesExist`, otherwise returns empty array
+   * @returns the current issues if any exists
    */
   getIssues(): AgentIssue[];
 
@@ -146,13 +148,18 @@ export type AuthRequiredEvent = {
   event: "authRequired";
   server: AgentConfig["server"];
 };
-export type NewIssueEvent = {
-  event: "newIssue";
-  issue: AgentIssue;
+export type IssuesUpdatedEvent = {
+  event: "issuesUpdated";
+  issues: AgentIssue["name"][];
 };
 
-export type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent | NewIssueEvent;
-export const agentEventNames: AgentEvent["event"][] = ["statusChanged", "configUpdated", "authRequired", "newIssue"];
+export type AgentEvent = StatusChangedEvent | ConfigUpdatedEvent | AuthRequiredEvent | IssuesUpdatedEvent;
+export const agentEventNames: AgentEvent["event"][] = [
+  "statusChanged",
+  "configUpdated",
+  "authRequired",
+  "issuesUpdated",
+];
 
 export interface AgentEventEmitter {
   on<T extends AgentEvent>(eventName: T["event"], callback: (event: T) => void): this;

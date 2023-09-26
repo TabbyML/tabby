@@ -20,6 +20,7 @@ const backgroundColorWarning = new ThemeColor("statusBarItem.warningBackground")
 export class TabbyStatusBarItem {
   private item = window.createStatusBarItem(StatusBarAlignment.Right);
   private completionProvider: TabbyCompletionProvider;
+  private completionResponseWarningShown = false;
 
   private transitionsForCompletionProviderStatus = [
     {
@@ -162,12 +163,21 @@ export class TabbyStatusBarItem {
       });
     });
 
-    agent().on("newIssue", (event) => {
-      console.debug("Tabby agent newIssue", { event });
-      if (event.issue.name === "slowCompletionResponseTime") {
-        notifications.showInformationWhenSlowCompletionResponseTime();
-      } else if (event.issue.name === "highCompletionTimeoutRate") {
-        notifications.showInformationWhenHighCompletionTimeoutRate();
+    agent().on("issuesUpdated", (event) => {
+      console.debug("Tabby agent issuesUpdated", { event });
+      if (event.issues.length > 0) {
+        this.fsmService.send("issuesExist");
+
+        if (!this.completionResponseWarningShown) {
+          this.completionResponseWarningShown = true;
+          if (event.issues[0] === "slowCompletionResponseTime") {
+            notifications.showInformationWhenSlowCompletionResponseTime();
+          } else if (event.issues[0] === "highCompletionTimeoutRate") {
+            notifications.showInformationWhenHighCompletionTimeoutRate();
+          }
+        }
+      } else {
+        this.fsmService.send(agent().getStatus());
       }
     });
   }
@@ -285,7 +295,8 @@ export class TabbyStatusBarItem {
     this.item.color = colorWarning;
     this.item.backgroundColor = backgroundColorWarning;
     this.item.text = `${iconIssueExist} ${label}`;
-    switch (agent().getIssues()[0]?.name) {
+    const issue = agent().getIssues()[0];
+    switch (issue?.name) {
       case "slowCompletionResponseTime":
         this.item.tooltip = "Completion requests appear to take too much time.";
         break;
@@ -301,7 +312,7 @@ export class TabbyStatusBarItem {
       command: "tabby.applyCallback",
       arguments: [
         () => {
-          switch (agent().getIssues()[0]?.name) {
+          switch (issue?.name) {
             case "slowCompletionResponseTime":
               notifications.showInformationWhenSlowCompletionResponseTime();
               break;
