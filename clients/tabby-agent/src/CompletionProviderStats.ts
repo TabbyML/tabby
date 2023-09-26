@@ -106,7 +106,7 @@ export class CompletionProviderStats {
     this.completionRequestTimeoutCount = 0;
   }
 
-  resetWindowed() { 
+  resetWindowed() {
     this.recentCompletionRequestLatencies = new Windowed(10);
   }
 
