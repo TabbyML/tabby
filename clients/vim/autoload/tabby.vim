@@ -282,7 +282,7 @@ function! s:GetCompletion(id)
   endif
 
   let s:pending_request_id = tabby#job#Send(s:tabby, #{
-    \ func: 'getCompletions',
+    \ func: 'provideCompletions',
     \ args: [s:CreateCompletionRequest()],
     \ }, #{
     \ callback: function('s:HandleCompletion', [a:id]),
