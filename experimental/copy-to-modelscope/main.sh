@@ -13,11 +13,11 @@ if [ -z "${MODEL_ID}" ]; then
   usage
 fi
 
-git clone https://huggingface.co/$MODEL_ID hf_model
 git clone https://oauth2:${ACCESS_TOKEN}@www.modelscope.cn/$MODEL_ID.git ms_model
+git clone https://huggingface.co/$MODEL_ID hf_model
 
 echo "Sync directory"
-rsync -a --exclude '.git' hf_model/ ms_model/
+rsync -avh --exclude '.git' --delete hf_model/ ms_model/
 
 echo "Create README.md"
 cat <<EOF >ms_model/README.md
@@ -30,6 +30,11 @@ tasks:
 # ${MODEL_ID}
 
 This is an mirror of [${MODEL_ID}](https://huggingface.co/${MODEL_ID}).
+
+[Tabby](https://github.com/TabbyML/tabby) is a self-hosted AI coding assistant, offering an open-source and on-premises alternative to GitHub Copilot. It boasts several key features:
+* Self-contained, with no need for a DBMS or cloud service.
+* OpenAPI interface, easy to integrate with existing infrastructure (e.g Cloud IDE).
+* Supports consumer-grade GPUs.
 EOF
 
 echo "Create configuration.json"
@@ -44,10 +49,11 @@ cat <<EOF >ms_model/configuration.json
 EOF
 
 set -x
-cd ms_model
+pushd ms_model
 git add .
 git commit -m "sync with upstream"
 git push origin
+popd
 
 echo "Success!"
 rm -rf hf_model
