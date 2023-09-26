@@ -26,9 +26,14 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 * **09/21/2023** We've hit **10K stars** 🌟 on GitHub! 🚀🎉👏
 * **09/18/2023** Apple's M1/M2 Metal inference support has landed in [v0.1.1](https://github.com/TabbyML/tabby/releases/tag/v0.1.1)!
 * **08/31/2023** Tabby's first stable release [v0.0.1](https://github.com/TabbyML/tabby/releases/tag/v0.0.1) 🥳.
+
+<details>
+  <summary>Archived</summary>
+  
 * **08/28/2023** Experimental support for the [CodeLlama 7B](https://github.com/TabbyML/tabby/issues/370).
 * **08/24/2023** Tabby is now on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)!
 
+</details>
 
 ## 👋 Getting Started
 
