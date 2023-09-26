@@ -53,6 +53,8 @@ impl CacheInfo {
             .await?;
             self.set_local_cache_key(path, &etag).await;
         }
+
+        self.save(model_id)?;
         Ok(())
     }
 }
@@ -113,7 +115,6 @@ pub async fn download_model(
             .await?;
     }
 
-    cache_info.save(model_id)?;
     Ok(())
 }
 
