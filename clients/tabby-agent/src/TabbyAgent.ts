@@ -81,6 +81,9 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async applyConfig() {
+    const oldConfig = this.config;
+    const oldStatus = this.status;
+
     this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig);
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
@@ -94,6 +97,24 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.auth = null;
     }
     await this.setupApi();
+
+    // If server config changed, clear server related state
+    if (!deepEqual(oldConfig.server, this.config.server)) {
+      this.serverHealthState = null;
+      this.completionProviderStats.resetWindowed();
+      this.popIssue("slowCompletionResponseTime");
+      this.popIssue("highCompletionTimeoutRate");
+
+      // If server config changed and status remain `unauthorized`, we want to emit `authRequired` again.
+      // but `changeStatus` will not emit `authRequired` if status is not changed, so we emit it manually here.
+      if (oldStatus === "unauthorized" && this.status === "unauthorized") {
+        this.emitAuthRequired();
+      }
+    }
+
+    const event: AgentEvent = { event: "configUpdated", config: this.config };
+    this.logger.debug({ event }, "Config updated");
+    super.emit("configUpdated", event);
   }
 
   private async setupApi() {
@@ -288,20 +309,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       } else {
         setProperty(this.clientConfig, key, value);
       }
-      const prevStatus = this.status;
       await this.applyConfig();
-      // If server config changed, clear server health state
-      if (key.startsWith("server")) {
-        this.serverHealthState = null;
-      }
-      // If status unchanged, `authRequired` will not be emitted when `applyConfig`,
-      // so we need to emit it manually.
-      if (key.startsWith("server") && prevStatus === "unauthorized" && this.status === "unauthorized") {
-        this.emitAuthRequired();
-      }
-      const event: AgentEvent = { event: "configUpdated", config: this.config };
-      this.logger.debug({ event }, "Config updated");
-      super.emit("configUpdated", event);
     }
     return true;
   }
@@ -318,8 +326,18 @@ export class TabbyAgent extends EventEmitter implements Agent {
     return this.status;
   }
 
-  public getIssues(): AgentIssue[] {
-    return this.issues.map((issue) => this.issueFromName(issue));
+  public getIssues(): AgentIssue["name"][] {
+    return this.issues;
+  }
+
+  public getIssueDetail(options: { index?: number; name?: AgentIssue["name"] }): AgentIssue | null {
+    if (options.index !== undefined) {
+      return this.issueFromName(this.issues[options.index]);
+    } else if (options.name !== undefined && this.issues.indexOf(options.name) !== -1) {
+      return this.issueFromName(options.name);
+    } else {
+      return null;
+    }
   }
 
   public getServerHealthState(): ServerHealthState | null {

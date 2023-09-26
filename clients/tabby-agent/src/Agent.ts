@@ -91,7 +91,14 @@ export interface AgentFunction {
   /**
    * @returns the current issues if any exists
    */
-  getIssues(): AgentIssue[];
+  getIssues(detail?: boolean): AgentIssue["name"][];
+
+  /**
+   * Get the detail of an issue by index or name.
+   * @param options if `index` is provided, `name` will be ignored
+   * @returns the issue detail if exists, otherwise null
+   */
+  getIssueDetail(options: { index?: number; name?: AgentIssue["name"] }): AgentIssue | null;
 
   /**
    * @returns server info returned from latest server health check, returns null if not available
