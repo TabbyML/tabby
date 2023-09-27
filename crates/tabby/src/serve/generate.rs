@@ -8,8 +8,6 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::instrument;
 use utoipa::ToSchema;
 
-use super::completions::CompletionState;
-
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GenerateRequest {
     #[schema(
@@ -35,7 +33,7 @@ pub struct GenerateResponse {
 )]
 #[instrument(skip(state, request))]
 pub async fn generate_stream(
-    State(state): State<Arc<CompletionState>>,
+    State(state): State<Arc<GenerateState>>,
     Json(request): Json<GenerateRequest>,
 ) -> impl IntoResponse {
     let options = TextGenerationOptionsBuilder::default()
@@ -52,4 +50,14 @@ pub async fn generate_stream(
     };
 
     StreamBodyAs::json_nl(s)
+}
+
+pub struct GenerateState {
+    engine: Arc<Box<dyn TextGeneration>>,
+}
+
+impl GenerateState {
+    pub fn new(engine: Arc<Box<dyn TextGeneration>>) -> Self {
+        Self { engine }
+    }
 }

@@ -1,4 +1,5 @@
 mod completions;
+mod engine;
 mod events;
 mod generate;
 mod health;
@@ -20,7 +21,7 @@ use tracing::{info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::health::HealthState;
+use self::{engine::create_engine, health::HealthState};
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -174,7 +175,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let completion_state = Arc::new(completions::CompletionState::new(args, config));
+    let (engine, prompt_template) = create_engine(args);
+    let engine = Arc::new(engine);
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
@@ -183,11 +185,14 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         )
         .route(
             "/completions",
-            routing::post(completions::completion).with_state(completion_state.clone()),
+            routing::post(completions::completion).with_state(Arc::new(
+                completions::CompletionState::new(engine.clone(), prompt_template, config),
+            )),
         )
         .route(
             "/generate_stream",
-            routing::post(generate::generate_stream).with_state(completion_state.clone()),
+            routing::post(generate::generate_stream)
+                .with_state(Arc::new(generate::GenerateState::new(engine.clone()))),
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
