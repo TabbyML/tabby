@@ -1651,11 +1651,13 @@ checksum = "ef53942eb7bf7ff43a617b3e2c1c4a5ecf5944a7c1bc12d7ee39bbb15e5c1519"
 name = "llama-cpp-bindings"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "async-trait",
  "cmake",
  "cxx",
  "cxx-build",
  "derive_builder",
+ "futures",
  "stop-words",
  "tabby-inference",
  "tokenizers",
