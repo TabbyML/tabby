@@ -8,6 +8,16 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::instrument;
 use utoipa::ToSchema;
 
+pub struct GenerateState {
+    engine: Arc<Box<dyn TextGeneration>>,
+}
+
+impl GenerateState {
+    pub fn new(engine: Arc<Box<dyn TextGeneration>>) -> Self {
+        Self { engine }
+    }
+}
+
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GenerateRequest {
     #[schema(
@@ -19,6 +29,33 @@ pub struct GenerateRequest {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GenerateResponse {
     text: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/v1/generate",
+    request_body = GenerateRequest,
+    operation_id = "generate",
+    tag = "v1",
+    responses(
+        (status = 200, description = "Success", body = GenerateResponse, content_type = "application/json"),
+    )
+)]
+#[instrument(skip(state, request))]
+pub async fn generate(
+    State(state): State<Arc<GenerateState>>,
+    Json(request): Json<GenerateRequest>,
+) -> impl IntoResponse {
+    let options = TextGenerationOptionsBuilder::default()
+        .max_input_length(1024 + 512)
+        .max_decoding_length(128)
+        .sampling_temperature(0.1)
+        .build()
+        .unwrap();
+
+    Json(GenerateResponse {
+        text: state.engine.generate(&request.prompt, options).await,
+    })
 }
 
 #[utoipa::path(
@@ -50,14 +87,4 @@ pub async fn generate_stream(
     };
 
     StreamBodyAs::json_nl(s)
-}
-
-pub struct GenerateState {
-    engine: Arc<Box<dyn TextGeneration>>,
-}
-
-impl GenerateState {
-    pub fn new(engine: Arc<Box<dyn TextGeneration>>) -> Self {
-        Self { engine }
-    }
 }
