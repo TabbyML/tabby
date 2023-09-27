@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs, path::Path};
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use tabby_common::path::ModelDir;
 
@@ -31,15 +31,6 @@ impl CacheInfo {
 
     pub fn local_cache_key(&self, path: &str) -> Option<&str> {
         self.etags.get(path).map(|x| x.as_str())
-    }
-
-    pub fn remote_cache_key(res: &reqwest::Response) -> Result<&str> {
-        let key = res
-            .headers()
-            .get("etag")
-            .ok_or(anyhow!("etag key missing"))?
-            .to_str()?;
-        Ok(key)
     }
 
     pub async fn set_local_cache_key(&mut self, path: &str, cache_key: &str) {

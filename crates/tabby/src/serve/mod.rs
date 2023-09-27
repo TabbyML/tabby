@@ -12,6 +12,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
+use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
 use tracing::{info, warn};
@@ -136,25 +137,16 @@ fn should_download_ggml_files(device: &Device) -> bool {
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
+    let downloader = Downloader::new(&args.model, /* prefer_local_file= */ true);
     if args.device != Device::ExperimentalHttp {
-        let download_ctranslate2_files = !should_download_ggml_files(&args.device);
-        let download_ggml_files = should_download_ggml_files(&args.device);
+        let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", args.model, err,);
+        let download_result = if should_download_ggml_files(&args.device) {
+            downloader.download_ggml_files().await
+        } else {
+            downloader.download_ctranslate2_files().await
+        };
 
-        // Ensure model exists.
-        tabby_download::download_model(
-            &args.model,
-            download_ctranslate2_files,
-            download_ggml_files,
-            /* prefer_local_file= */ true,
-        )
-        .await
-        .unwrap_or_else(|err| {
-            fatal!(
-                "Failed to fetch model due to '{}', is '{}' a valid model id?",
-                err,
-                args.model
-            )
-        });
+        download_result.unwrap_or_else(handler);
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
     }
@@ -162,6 +154,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let doc = add_localhost_server(ApiDoc::openapi(), args.port);
+    let doc = add_proxy_server(doc, config.swagger.server_url.clone());
     let app = Router::new()
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .nest("/v1", api_router(args, config))
@@ -232,6 +225,28 @@ fn add_localhost_server(doc: utoipa::openapi::OpenApi, port: u16) -> utoipa::ope
             ServerBuilder::new()
                 .url(format!("http://localhost:{}", port))
                 .description(Some("Local server"))
+                .build(),
+        );
+    }
+
+    doc
+}
+
+fn add_proxy_server(
+    doc: utoipa::openapi::OpenApi,
+    server_url: Option<String>,
+) -> utoipa::openapi::OpenApi {
+    if server_url.is_none() {
+        return doc;
+    }
+
+    let server_url: String = server_url.unwrap();
+    let mut doc = doc;
+    if let Some(servers) = doc.servers.as_mut() {
+        servers.push(
+            ServerBuilder::new()
+                .url(server_url)
+                .description(Some("Swagger Server"))
                 .build(),
         );
     }

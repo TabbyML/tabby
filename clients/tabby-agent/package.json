@@ -1,6 +1,6 @@
 {
   "name": "tabby-agent",
-  "version": "0.2.0",
+  "version": "0.3.0-dev",
   "description": "Generic client agent for Tabby AI coding assistant IDE extensions.",
   "repository": "https://github.com/TabbyML/tabby",
   "main": "./dist/index.js",
@@ -44,6 +44,7 @@
     "openapi-fetch": "^0.7.6",
     "pino": "^8.14.1",
     "rotating-file-stream": "^3.1.0",
+    "stats-logscale": "^1.0.7",
     "toml": "^3.0.0",
     "uuid": "^9.0.0"
   }

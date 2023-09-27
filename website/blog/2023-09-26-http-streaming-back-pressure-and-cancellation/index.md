@@ -16,11 +16,9 @@ tags: [tech design]
 ![back-pressure](./back-pressure.png)
 
 
-You can understand the concept better if you thinking about ***Black Friday***. During that time, the online shops (*LLM*) will keep sending a bulk of deliveries to the express companies (*Server*), but the express companies (*Server*) are only able to send a limited number of deliveries to customers (*Client*) every day. Finally,  express companies (*Server*) will get into trouble of warehouse overstock (*out of memory*).
+Let's think about ***Black Friday*** 🛍️. During the time,  online shops (*LLM*) will keep sending a bulk of deliveries to the express companies (*Server*), but express companies (*Server*) are only able to send a limited number of deliveries to customers (*Client*) every day. Finally, express companies (*Server*) will get into trouble of warehouse overstock (*out of memory*).
 
-Many applications produce a large amount of LLM responses so the server
-
-In many LLM applications, responses from LLM are usually large, so the server is always under the pressure of receiving too much data and we need to figure out a way to consume the data as soon as possible before out of memory.
+In many LLM applications, responses from LLM are usually large, so the server is always under the pressure of receiving too much data. Thus, we need to figure out a way to consume the data as soon as possible before server gets out of memory.
 
 
 ## How to handle back-pressure?
@@ -30,7 +28,7 @@ The solution is **Using Stream** and **Consume As You Use**. By using stream, we
 ![back-pressure](./stream.png)
 
 
-Stream between LLM and server can reduce the memory usage of the server, and the stream between server and client can improve the user experience by a faster rendering.
+**Stream between LLM and server** can reduce the memory usage of the server, and the **stream between server and client** can improve the user experience by a faster rendering.
 
 
 
@@ -79,7 +77,7 @@ app.get('/api/server', async (req, res) => {
 ```
 
 
-But only using stream can **not** solve the back-pressure issue in the server side, because if the stream between server and LLM is faster than the stream between server and client, the server would still saving too much data in the memory till out-of-memory.
+But only using stream can not solve the back-pressure issue in the server side. If the stream between server and LLM is faster than the stream between server and client, the server would still save too much data in the memory till out-of-memory.
 
 ![stream-flush](./stream-flush.png)
 
@@ -125,7 +123,7 @@ app.get('/api/server', async (req, res) => {
 
 ## What is cancellation?
 
-Now we know the backend is made up by the stream, and the stream usually is expensive and time-consuming. So what if the client abort the in-flight request because of the network issue or other intended behaviors? That’s why we need to implement the cancellation to stop the stream on time to save the computer resource.
+Now we know the backend is made up by the stream, and the stream usually is expensive and time-consuming. What if the client abort the in-flight request because of the network issue or other intended behaviors? That’s why we need to implement the cancellation to stop the stream on time in order to save the computer resource.
 
 ![cancellation](./cancellation.png)
 
@@ -178,9 +176,9 @@ app.get('/api/server', async (req, res) => {
 
 ## Implement back-pressure and cancellation for Tabby
 
-In Tabby, we need to handle both back- pressure and cancellation for the code auto- completion so that we can react to the user’s input as soon as possible, while protecting the usage of the model to keep the performance.
+In Tabby, we need to handle both back-pressure and cancellation for code completion so that we can react to users' inputs as soon as possible, while protecting the usage of the model to keep the performance.
 
-In the client side, everytime we got a new input from the user, we need to abort the previous query to the server and fetching a new response from the LLM.
+On the client side, everytime we receive a new input from a user, we need to abort the previous query to the server and fetch a new response from LLM.
 
 ```JavaScript
 let controller;
@@ -211,8 +209,7 @@ const onChange = (e) => {
 ```
 
 
-In the server side, we need to listen to the `close` event and tell the LLM to stop
-generating the result.
+On the server side, we need to listen to the `close` event and tell the LLM to stop generating results.
 
 ```JavaScript
 app.post('/v1/completions', async (req, res) => {
@@ -258,9 +255,7 @@ app.post('/v1/completions', async (req, res) => {
 ```
 
 
-That’s it :D
 
 <center>
-
 <img src="done.png" width="300" height="250">
 </center>

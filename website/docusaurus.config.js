@@ -63,8 +63,7 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // FIXME(meng): set social card.
-      // image: 'img/docusaurus-social-card.jpg',
+      image: 'img/tabby-social-card.png',
       navbar: {
         title: 'Tabby',
         logo: {

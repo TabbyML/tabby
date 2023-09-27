@@ -17,7 +17,7 @@ function getWorkspaceConfiguration(): PartialAgentConfig {
   return config;
 }
 
-var instance: TabbyAgent;
+var instance: TabbyAgent | undefined = undefined;
 
 export function agent(): TabbyAgent {
   if (!instance) {
@@ -71,4 +71,11 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
     instance = agent;
   }
   return instance;
+}
+
+export async function disposeAgentInstance(): Promise<void> {
+  if (instance) {
+    await instance.finalize();
+    instance = undefined;
+  }
 }

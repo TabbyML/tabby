@@ -199,8 +199,8 @@
   "devDependencies": {
     "@types/glob": "^7.2.0",
     "@types/mocha": "^10.0.1",
-    "@types/node": "16.x",
-    "@types/vscode": "^1.70.0",
+    "@types/node": "18.x",
+    "@types/vscode": "^1.82.0",
     "@typescript-eslint/eslint-plugin": "^5.31.0",
     "@typescript-eslint/parser": "^5.31.0",
     "@vscode/test-electron": "^2.1.5",
@@ -216,6 +216,6 @@
   },
   "dependencies": {
     "@xstate/fsm": "^2.0.1",
-    "tabby-agent": "0.2.0"
+    "tabby-agent": "0.3.0-dev"
   }
 }

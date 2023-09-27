@@ -9,7 +9,7 @@ export {
   StatusChangedEvent,
   ConfigUpdatedEvent,
   AuthRequiredEvent,
-  NewIssueEvent,
+  IssuesUpdatedEvent,
   SlowCompletionResponseTimeIssue,
   HighCompletionTimeoutRateIssue,
   AgentInitOptions,

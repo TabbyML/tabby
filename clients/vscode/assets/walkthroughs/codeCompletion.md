@@ -10,10 +10,6 @@ Tabby will show inline suggestions when you stop typing, and you can accept sugg
 
 If you select manual trigger in the [settings](command:tabby.openSettings), you can trigger code completion by pressing `Alt + \`.
 
-## Cycling Through Choices
-
-When multiple choices are available, you can cycle through them by pressing `Alt + [` and `Alt + ]`.
-
 ## Keybindings
 
 You can select a keybinding profile in the [settings](command:tabby.openSettings), or customize your own [keybindings](command:tabby.openKeybindings).
