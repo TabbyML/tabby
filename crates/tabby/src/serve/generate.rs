@@ -4,7 +4,7 @@ use async_stream::stream;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
 use serde::{Deserialize, Serialize};
-use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
+use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder, TextGenerationOptions};
 use tracing::instrument;
 use utoipa::ToSchema;
 
@@ -46,13 +46,7 @@ pub async fn generate(
     State(state): State<Arc<GenerateState>>,
     Json(request): Json<GenerateRequest>,
 ) -> impl IntoResponse {
-    let options = TextGenerationOptionsBuilder::default()
-        .max_input_length(1024 + 512)
-        .max_decoding_length(128)
-        .sampling_temperature(0.1)
-        .build()
-        .unwrap();
-
+    let options = build_options(&request);
     Json(GenerateResponse {
         text: state.engine.generate(&request.prompt, options).await,
     })
@@ -73,13 +67,7 @@ pub async fn generate_stream(
     State(state): State<Arc<GenerateState>>,
     Json(request): Json<GenerateRequest>,
 ) -> impl IntoResponse {
-    let options = TextGenerationOptionsBuilder::default()
-        .max_input_length(1024 + 512)
-        .max_decoding_length(128)
-        .sampling_temperature(0.1)
-        .build()
-        .unwrap();
-
+    let options = build_options(&request);
     let s = stream! {
         for await text in state.engine.generate_stream(&request.prompt, options).await {
             yield GenerateResponse { text }
@@ -87,4 +75,13 @@ pub async fn generate_stream(
     };
 
     StreamBodyAs::json_nl(s)
+}
+
+fn build_options(_request: &GenerateRequest) -> TextGenerationOptions {
+    TextGenerationOptionsBuilder::default()
+        .max_input_length(2048)
+        .max_decoding_length(usize::MAX)
+        .sampling_temperature(0.1)
+        .build()
+        .unwrap()
 }
