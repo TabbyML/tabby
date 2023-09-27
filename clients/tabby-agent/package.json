@@ -10,9 +10,10 @@
     "openapi-codegen": "openapi-typescript ./openapi/tabby.json -o ./src/types/tabbyApi.d.ts",
     "dev": "tsup --watch --no-minify --no-treeshake",
     "build": "tsup",
-    "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
     "test": "mocha",
-    "lint": "prettier --write ."
+    "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
+    "lint": "prettier --write .",
+    "lint:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/chai": "^4.3.5",

@@ -191,6 +191,7 @@
     "dev": "code --extensionDevelopmentPath=$PWD --disable-extensions && yarn watch",
     "dev:browser": "vscode-test-web --extensionDevelopmentPath=$PWD --browserType=chromium --port=3000 && yarn watch",
     "lint": "prettier --write .",
+    "lint:check": "prettier --check .",
     "vscode:prepackage": "yarn build",
     "vscode:package": "vsce package --no-dependencies",
     "vscode:prepublish": "yarn build",
