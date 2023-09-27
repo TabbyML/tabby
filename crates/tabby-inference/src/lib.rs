@@ -23,7 +23,6 @@ static EMPTY_STOP_WORDS: Vec<&'static str> = vec![];
 #[async_trait]
 pub trait TextGeneration: Sync + Send {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String;
-
     async fn generate_stream(
         &self,
         prompt: &str,

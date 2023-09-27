@@ -692,11 +692,13 @@ dependencies = [
 name = "ctranslate2-bindings"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "async-trait",
  "cmake",
  "cxx",
  "cxx-build",
  "derive_builder",
+ "futures",
  "rust-cxx-cmake-bridge",
  "stop-words",
  "tabby-inference",
