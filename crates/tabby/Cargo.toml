@@ -36,6 +36,9 @@ anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings" }
+futures = { workspace = true }
+async-stream = { workspace = true }
+axum-streams = { version = "0.9.1", features = ["json"] }
 
 [target.'cfg(all(target_os="macos", target_arch="aarch64"))'.dependencies]
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }

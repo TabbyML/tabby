@@ -124,7 +124,7 @@ pub async fn completion(
 }
 
 pub struct CompletionState {
-    engine: Box<dyn TextGeneration>,
+    pub(crate) engine: Box<dyn TextGeneration>,
     prompt_builder: prompt::PromptBuilder,
 }
 

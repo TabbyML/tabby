@@ -1,5 +1,6 @@
 mod completions;
 mod events;
+mod generate;
 mod health;
 
 use std::{
@@ -39,13 +40,15 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "https://playground.app.tabbyml.com", description = "Playground server"),
     ),
-    paths(events::log_event, completions::completion, health::health),
+    paths(events::log_event, completions::completion, generate::generate_stream, health::health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
         completions::Choice,
+        generate::GenerateRequest,
+        generate::GenerateResponse,
         health::HealthState,
         health::Version,
     ))
@@ -171,6 +174,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
+    let completion_state = Arc::new(completions::CompletionState::new(args, config));
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
@@ -179,8 +183,11 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         )
         .route(
             "/completions",
-            routing::post(completions::completion)
-                .with_state(Arc::new(completions::CompletionState::new(args, config))),
+            routing::post(completions::completion).with_state(completion_state.clone()),
+        )
+        .route(
+            "/generate_stream",
+            routing::post(generate::generate_stream).with_state(completion_state.clone()),
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
