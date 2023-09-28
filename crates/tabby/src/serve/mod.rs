@@ -159,9 +159,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let doc = add_localhost_server(ApiDoc::openapi(), args.port);
     let doc = add_proxy_server(doc, config.swagger.server_url.clone());
-    let app = Router::new()
+    let app = api_router(args, config)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
-        .nest("/v1", api_router(args, config))
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
@@ -178,24 +177,24 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let (engine, prompt_template) = create_engine(args);
     let engine = Arc::new(engine);
     Router::new()
-        .route("/events", routing::post(events::log_event))
+        .route("/v1/events", routing::post(events::log_event))
         .route(
-            "/health",
+            "/v1/health",
             routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
         )
         .route(
-            "/completions",
+            "/v1/completions",
             routing::post(completions::completion).with_state(Arc::new(
                 completions::CompletionState::new(engine.clone(), prompt_template, config),
             )),
         )
         .route(
-            "/generate",
+            "/v1beta/generate",
             routing::post(generate::generate)
                 .with_state(Arc::new(generate::GenerateState::new(engine.clone()))),
         )
         .route(
-            "/generate_stream",
+            "/v1beta/generate_stream",
             routing::post(generate::generate_stream)
                 .with_state(Arc::new(generate::GenerateState::new(engine.clone()))),
         )
