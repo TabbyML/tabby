@@ -3,9 +3,9 @@ use std::sync::Arc;
 use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
-use futures::{pin_mut, stream::BoxStream, StreamExt};
+use futures::stream::BoxStream;
 use stop_words::{StopWords, StopWordsCondition};
-use tabby_inference::{TextGeneration, TextGenerationOptions};
+use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio::sync::mpsc::{channel, Sender};
 use tokio_util::sync::CancellationToken;
@@ -118,14 +118,7 @@ impl CTranslate2Engine {
 impl TextGeneration for CTranslate2Engine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let s = self.generate_stream(prompt, options).await;
-        pin_mut!(s);
-
-        let mut text = "".to_owned();
-        while let Some(value) = s.next().await {
-            text += &value;
-        }
-
-        text
+        helpers::stream_to_string(s).await
     }
 
     async fn generate_stream(

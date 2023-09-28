@@ -10,6 +10,3 @@ async-stream = { workspace = true }
 async-trait = { workspace = true }
 derive_builder = "0.12.0"
 futures = { workspace = true }
-
-[dev-dependencies]
-tokio = { workspace = true, features = ["rt", "macros"] }

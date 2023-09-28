@@ -1323,6 +1323,7 @@ name = "http-api-bindings"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures",
  "reqwest",
  "serde",
  "serde_json",
@@ -3123,7 +3124,6 @@ dependencies = [
  "async-trait",
  "derive_builder",
  "futures",
- "tokio",
 ]
 
 [[package]]

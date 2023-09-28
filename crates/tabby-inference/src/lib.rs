@@ -1,4 +1,3 @@
-use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
@@ -27,53 +26,29 @@ pub trait TextGeneration: Sync + Send {
         &self,
         prompt: &str,
         options: TextGenerationOptions,
-    ) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
+    ) -> BoxStream<String>;
+}
+
+pub mod helpers {
+    use async_stream::stream;
+    use futures::{pin_mut, stream::BoxStream, Stream, StreamExt};
+
+    pub async fn stream_to_string(s: impl Stream<Item = String>) -> String {
+        pin_mut!(s);
+
+        let mut text = "".to_owned();
+        while let Some(value) = s.next().await {
+            text += &value;
+        }
+
+        text
+    }
+
+    pub async fn string_to_stream(s: String) -> BoxStream<'static, String> {
         let stream = stream! {
-            yield self.generate(&prompt, options).await;
+            yield s
         };
 
         Box::pin(stream)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use futures::{pin_mut, StreamExt};
-
-    use super::{async_trait, TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
-
-    #[derive(Default)]
-    struct FakeEngine {}
-
-    #[async_trait]
-    impl TextGeneration for FakeEngine {
-        async fn generate(&self, _prompt: &str, _options: TextGenerationOptions) -> String {
-            "fake".to_owned()
-        }
-    }
-
-    #[tokio::test]
-    async fn it_generate() {
-        let engine = FakeEngine::default();
-        let options = TextGenerationOptionsBuilder::default().build().unwrap();
-        let ret = engine.generate("", options).await;
-        assert_eq!(ret, "fake");
-    }
-
-    #[tokio::test]
-    async fn it_generate_stream() {
-        let engine = FakeEngine::default();
-        let options = TextGenerationOptionsBuilder::default().build().unwrap();
-        let stream = engine.generate_stream("", options).await;
-
-        pin_mut!(stream);
-
-        let ret = stream.next().await.unwrap();
-        assert_eq!(ret, "fake");
-
-        let ret = stream.next().await;
-        assert!(ret.is_none());
     }
 }
