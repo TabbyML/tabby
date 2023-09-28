@@ -4,7 +4,7 @@ use async_stream::stream;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
 use serde::{Deserialize, Serialize};
-use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder, TextGenerationOptions};
+use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
 use utoipa::ToSchema;
 
