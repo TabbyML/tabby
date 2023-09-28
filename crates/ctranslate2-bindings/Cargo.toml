@@ -12,6 +12,8 @@ tokio-util = { workspace = true }
 tabby-inference = { path = "../tabby-inference" }
 async-trait = { workspace = true }
 stop-words = { path = "../stop-words" }
+futures.workspace = true
+async-stream.workspace = true
 
 [build-dependencies]
 cxx-build = "1.0"

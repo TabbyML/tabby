@@ -1,8 +1,9 @@
 use async_trait::async_trait;
+use futures::stream::BoxStream;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tabby_inference::{TextGeneration, TextGenerationOptions};
+use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 
 #[derive(Serialize)]
 struct Request {
@@ -86,5 +87,13 @@ impl TextGeneration for FastChatEngine {
         let resp: Response = resp.json().await.expect("Failed to parse response");
 
         resp.choices[0].text[0].clone()
+    }
+
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        options: TextGenerationOptions,
+    ) -> BoxStream<String> {
+        helpers::string_to_stream(self.generate(prompt, options).await).await
     }
 }

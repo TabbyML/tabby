@@ -16,3 +16,5 @@ derive_builder = { workspace = true }
 tokenizers = { workspace = true }
 stop-words = { version = "0.1.0", path = "../stop-words" }
 tokio-util = { workspace = true }
+futures.workspace = true
+async-stream.workspace = true

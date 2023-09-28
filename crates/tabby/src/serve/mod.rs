@@ -1,5 +1,7 @@
 mod completions;
+mod engine;
 mod events;
+mod generate;
 mod health;
 
 use std::{
@@ -19,7 +21,7 @@ use tracing::{info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::health::HealthState;
+use self::{engine::create_engine, health::HealthState};
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -39,13 +41,15 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "https://playground.app.tabbyml.com", description = "Playground server"),
     ),
-    paths(events::log_event, completions::completion, health::health),
+    paths(events::log_event, completions::completion, generate::generate, generate::generate_stream, health::health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
         completions::Choice,
+        generate::GenerateRequest,
+        generate::GenerateResponse,
         health::HealthState,
         health::Version,
     ))
@@ -171,6 +175,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
+    let (engine, prompt_template) = create_engine(args);
+    let engine = Arc::new(engine);
     Router::new()
         .route("/events", routing::post(events::log_event))
         .route(
@@ -179,8 +185,19 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         )
         .route(
             "/completions",
-            routing::post(completions::completion)
-                .with_state(Arc::new(completions::CompletionState::new(args, config))),
+            routing::post(completions::completion).with_state(Arc::new(
+                completions::CompletionState::new(engine.clone(), prompt_template, config),
+            )),
+        )
+        .route(
+            "/generate",
+            routing::post(generate::generate)
+                .with_state(Arc::new(generate::GenerateState::new(engine.clone()))),
+        )
+        .route(
+            "/generate_stream",
+            routing::post(generate::generate_stream)
+                .with_state(Arc::new(generate::GenerateState::new(engine.clone()))),
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())

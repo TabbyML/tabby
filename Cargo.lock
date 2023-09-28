@@ -248,6 +248,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-streams"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a3e367d27d8c1ce16fbd0d96ddf05105fd1147f5d35ffc55e254dab914e72e8"
+dependencies = [
+ "axum",
+ "bytes",
+ "cargo-husky",
+ "futures",
+ "futures-util",
+ "http",
+ "mime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+]
+
+[[package]]
 name = "axum-tracing-opentelemetry"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -416,6 +436,12 @@ name = "cached_proc_macro_types"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3a4f925191b4367301851c6d99b09890311d74b0d43f274c0b34c86d308a3663"
+
+[[package]]
+name = "cargo-husky"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b02b629252fe8ef6460461409564e2c21d0c8e77e0944f3d189ff06c4e932ad"
 
 [[package]]
 name = "cc"
@@ -666,11 +692,13 @@ dependencies = [
 name = "ctranslate2-bindings"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "async-trait",
  "cmake",
  "cxx",
  "cxx-build",
  "derive_builder",
+ "futures",
  "rust-cxx-cmake-bridge",
  "stop-words",
  "tabby-inference",
@@ -1295,6 +1323,7 @@ name = "http-api-bindings"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "futures",
  "reqwest",
  "serde",
  "serde_json",
@@ -1625,11 +1654,13 @@ checksum = "ef53942eb7bf7ff43a617b3e2c1c4a5ecf5944a7c1bc12d7ee39bbb15e5c1519"
 name = "llama-cpp-bindings"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "async-trait",
  "cmake",
  "cxx",
  "cxx-build",
  "derive_builder",
+ "futures",
  "stop-words",
  "tabby-inference",
  "tokenizers",
@@ -3012,10 +3043,13 @@ name = "tabby"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "async-stream",
  "axum",
+ "axum-streams",
  "axum-tracing-opentelemetry",
  "clap",
  "ctranslate2-bindings",
+ "futures",
  "http-api-bindings",
  "hyper",
  "lazy_static",
@@ -3086,8 +3120,10 @@ dependencies = [
 name = "tabby-inference"
 version = "0.1.0"
 dependencies = [
+ "async-stream",
  "async-trait",
  "derive_builder",
+ "futures",
 ]
 
 [[package]]
