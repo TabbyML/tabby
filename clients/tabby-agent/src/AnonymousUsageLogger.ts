@@ -1,6 +1,7 @@
 import { name as agentName, version as agentVersion } from "../package.json";
 import createClient from "openapi-fetch";
 import type { paths as CloudApi } from "./types/cloudApi";
+import { setProperty } from "dot-prop";
 import { v4 as uuid } from "uuid";
 import { isBrowser } from "./env";
 import { rootLogger } from "./logger";
@@ -16,7 +17,8 @@ export class AnonymousUsageLogger {
       ? undefined
       : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`,
   };
-  private properties: { [key: string]: any } = {};
+  private sessionProperties: Record<string, any> = {};
+  private pendingUserProperties: Record<string, any> = {};
   private emittedUniqueEvent: string[] = [];
   private dataStore: DataStore | null = null;
   private anonymousId: string;
@@ -55,9 +57,18 @@ export class AnonymousUsageLogger {
     }
   }
 
-  addProperties(properties: { [key: string]: any }) {
-    // not a deep merge
-    this.properties = { ...this.properties, ...properties };
+  /**
+   * Set properties to be sent with every event in this session.
+   */
+  setSessionProperties(key: string, value: any) {
+    setProperty(this.sessionProperties, key, value);
+  }
+
+  /**
+   * Set properties which will be bind to the user.
+   */
+  setUserProperties(key: string, value: any) {
+    setProperty(this.pendingUserProperties, key, value);
   }
 
   async uniqueEvent(event: string, data: { [key: string]: any } = {}) {
@@ -74,16 +85,21 @@ export class AnonymousUsageLogger {
     if (unique) {
       this.emittedUniqueEvent.push(event);
     }
+    const properties = {
+      ...this.systemData,
+      ...this.sessionProperties,
+      ...data,
+    };
+    if (Object.keys(this.pendingUserProperties).length > 0) {
+      properties["$set"] = this.pendingUserProperties;
+      this.pendingUserProperties = {};
+    }
     try {
       await this.anonymousUsageTrackingApi.POST("/usage", {
         body: {
           distinctId: this.anonymousId,
           event,
-          properties: {
-            ...this.systemData,
-            ...this.properties,
-            ...data,
-          },
+          properties,
         },
       });
     } catch (error) {

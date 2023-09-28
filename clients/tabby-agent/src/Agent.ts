@@ -1,10 +1,14 @@
 import type { components as ApiComponents } from "./types/tabbyApi";
 import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
 
+export type ClientProperties = Partial<{
+  user: Record<string, any>;
+  session: Record<string, any>;
+}>;
+
 export type AgentInitOptions = Partial<{
   config: PartialAgentConfig;
-  client: string;
-  clientProperties: Record<string, any>;
+  clientProperties: ClientProperties;
 }>;
 
 export type ServerHealthState = ApiComponents["schemas"]["HealthState"];
@@ -59,6 +63,12 @@ export interface AgentFunction {
    * Finalize agent. Client should call this method before exiting.
    */
   finalize(): Promise<boolean>;
+
+  /**
+   * Update client properties.
+   * Client properties are mostly used for logging and anonymous usage statistics.
+   */
+  updateClientProperties(type: keyof ClientProperties, key: string, value: any): Promise<boolean>;
 
   /**
    * The agent configuration has the following levels, will be deep merged in the order:

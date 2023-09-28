@@ -11,6 +11,7 @@ import type {
   AgentStatus,
   AgentIssue,
   AgentEvent,
+  ClientProperties,
   AgentInitOptions,
   AbortSignalOption,
   ServerHealthState,
@@ -262,11 +263,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
-    if (options.client || options.clientProperties) {
-      // Client info is only used in logging for now
-      // `pino.Logger.setBindings` is not present in the browser
-      allLoggers.forEach((logger) => logger.setBindings?.({ client: options.client, ...options.clientProperties }));
-      this.anonymousUsageLogger.addProperties({ client: options.client, ...options.clientProperties });
+    if (options.clientProperties) {
+      const { user: userProp, session: sessionProp } = options.clientProperties;
+      allLoggers.forEach((logger) => logger.setBindings?.({ ...sessionProp }));
+      if (sessionProp) {
+        Object.entries(sessionProp).forEach(([key, value]) => {
+          this.anonymousUsageLogger.setSessionProperties(key, value);
+        });
+      }
+      if (userProp) {
+        Object.entries(userProp).forEach(([key, value]) => {
+          this.anonymousUsageLogger.setUserProperties(key, value);
+        });
+      }
     }
     if (userAgentConfig) {
       await userAgentConfig.load();
@@ -298,6 +307,21 @@ export class TabbyAgent extends EventEmitter implements Agent {
       this.submitStatsTimer = null;
     }
     this.logger.debug("Finalized");
+    return true;
+  }
+
+  public async updateClientProperties(type: keyof ClientProperties, key: string, value: any): Promise<boolean> {
+    switch (type) {
+      case "session":
+        const prop = {};
+        setProperty(prop, key, value);
+        allLoggers.forEach((logger) => logger.setBindings?.(prop));
+        this.anonymousUsageLogger.setSessionProperties(key, value);
+        break;
+      case "user":
+        this.anonymousUsageLogger.setUserProperties(key, value);
+        break;
+    }
     return true;
   }
 
