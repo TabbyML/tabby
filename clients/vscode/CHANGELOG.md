@@ -1,3 +1,15 @@
+## 0.6.0
+
+### Features:
+
+- Added manual trigger for inline completion. With the manual trigger mode, you can now use the `Alt + \` hotkey to manually trigger inline completion. This mode can be selected in the extension settings, replacing the old enable/disable inline completion option.
+- Improved anonymous usage tracking. Your contribution in sending anonymous usage data is greatly appreciated. However, if you prefer not to participate, you have the option to opt out of this feature within the extension settings.
+
+### Fixes:
+
+- Fixed completion `view` / `select` event logging.
+- Adjusted notifications for `highCompletionTimeoutRate` and `slowCompletionResponseTime` to be displayed only once per session.
+
 ## 0.5.0
 
 ### Incompatible Changes:
