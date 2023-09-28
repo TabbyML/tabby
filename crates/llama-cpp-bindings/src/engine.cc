@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <ggml.h>
-#include <ggml-metal.h>
 #include <llama.h>
 
 namespace llama {
