@@ -3,6 +3,7 @@ use std::sync::Arc;
 use async_stream::stream;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
@@ -21,7 +22,7 @@ impl GenerateState {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct GenerateRequest {
     #[schema(
-        example = "# Dijkstra'\''s shortest path algorithm in Python (4 spaces indentation) + complexity analysis:\n\ndef"
+        example = "# Dijkstra'\''s shortest path algorithm in Python (4 spaces indentation) + complexity analysis:\n\n"
     )]
     prompt: String,
 }
@@ -33,10 +34,10 @@ pub struct GenerateResponse {
 
 #[utoipa::path(
     post,
-    path = "/v1/generate",
+    path = "/v1beta/generate",
     request_body = GenerateRequest,
     operation_id = "generate",
-    tag = "v1",
+    tag = "v1beta",
     responses(
         (status = 200, description = "Success", body = GenerateResponse, content_type = "application/json"),
     )
@@ -54,10 +55,10 @@ pub async fn generate(
 
 #[utoipa::path(
     post,
-    path = "/v1/generate_stream",
+    path = "/v1beta/generate_stream",
     request_body = GenerateRequest,
     operation_id = "generate_stream",
-    tag = "v1",
+    tag = "v1beta",
     responses(
         (status = 200, description = "Success", body = GenerateResponse, content_type = "application/jsonstream"),
     )
@@ -77,11 +78,16 @@ pub async fn generate_stream(
     StreamBodyAs::json_nl(s)
 }
 
+lazy_static! {
+    static ref STOP_WORDS: Vec<&'static str> = vec!["\n\n",];
+}
+
 fn build_options(_request: &GenerateRequest) -> TextGenerationOptions {
     TextGenerationOptionsBuilder::default()
-        .max_input_length(2048)
-        .max_decoding_length(usize::MAX)
+        .max_input_length(1024)
+        .max_decoding_length(1024)
         .sampling_temperature(0.1)
+        .stop_words(&STOP_WORDS)
         .build()
         .unwrap()
 }
