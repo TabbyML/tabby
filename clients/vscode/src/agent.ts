@@ -1,7 +1,7 @@
 import { ExtensionContext, workspace, env, version } from "vscode";
-import { TabbyAgent, PartialAgentConfig, DataStore } from "tabby-agent";
+import { TabbyAgent, AgentInitOptions, PartialAgentConfig, ClientProperties, DataStore } from "tabby-agent";
 
-function getWorkspaceConfiguration(): PartialAgentConfig {
+function buildInitOptions(context: ExtensionContext): AgentInitOptions {
   const configuration = workspace.getConfiguration("tabby");
   const config: PartialAgentConfig = {};
   const endpoint = configuration.get<string>("api.endpoint");
@@ -14,7 +14,27 @@ function getWorkspaceConfiguration(): PartialAgentConfig {
   config.anonymousUsageTracking = {
     disable: anonymousUsageTrackingDisabled,
   };
-  return config;
+  const clientProperties: ClientProperties = {
+    user: {
+      vscode: {
+        triggerMode: configuration.get("inlineCompletion.triggerMode", "automatic"),
+        keybindings: configuration.get("keybindings", "vscode-style"),
+      },
+    },
+    session: {
+      client: `${env.appName} ${env.appHost} ${version}, ${context.extension.id} ${context.extension.packageJSON.version}`,
+      ide: {
+        name: `${env.appName} ${env.appHost}`,
+        version: version,
+      },
+      tabby_plugin: {
+        name: context.extension.id,
+        version: context.extension.packageJSON.version,
+      },
+    },
+  };
+
+  return { config, clientProperties };
 }
 
 var instance: TabbyAgent | undefined = undefined;
@@ -38,20 +58,7 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
       },
     };
     const agent = await TabbyAgent.create({ dataStore: env.appHost === "desktop" ? undefined : extensionDataStore });
-    const initPromise = agent.initialize({
-      config: getWorkspaceConfiguration(),
-      client: `${env.appName} ${env.appHost} ${version}, ${context.extension.id} ${context.extension.packageJSON.version}`,
-      clientProperties: {
-        ide: {
-          name: `${env.appName} ${env.appHost}`,
-          version: version,
-        },
-        tabby_plugin: {
-          name: context.extension.id,
-          version: context.extension.packageJSON.version,
-        },
-      },
-    });
+    const initPromise = agent.initialize(buildInitOptions(context));
     workspace.onDidChangeConfiguration(async (event) => {
       await initPromise;
       const configuration = workspace.getConfiguration("tabby");
@@ -66,6 +73,14 @@ export async function createAgentInstance(context: ExtensionContext): Promise<Ta
       if (event.affectsConfiguration("tabby.usage.anonymousUsageTracking")) {
         const anonymousUsageTrackingDisabled = configuration.get<boolean>("usage.anonymousUsageTracking", false);
         agent.updateConfig("anonymousUsageTracking.disable", anonymousUsageTrackingDisabled);
+      }
+      if (event.affectsConfiguration("tabby.inlineCompletion.triggerMode")) {
+        const triggerMode = configuration.get<string>("inlineCompletion.triggerMode", "automatic");
+        agent.updateClientProperties("user", "vscode.triggerMode", triggerMode);
+      }
+      if (event.affectsConfiguration("tabby.keybindings")) {
+        const keybindings = configuration.get<string>("keybindings", "vscode-style");
+        agent.updateClientProperties("user", "vscode.keybindings", keybindings);
       }
     });
     instance = agent;
