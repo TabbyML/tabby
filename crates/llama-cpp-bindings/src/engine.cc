@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <ggml.h>
+#include <ggml-metal.h>
 #include <llama.h>
 
 namespace llama {
@@ -16,13 +17,14 @@ template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
 std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string & text, size_t max_input_length, bool add_bos) {
+    const struct llama_model* model = llama_get_model(ctx);
     // upper limit for the number of tokens
     int n_tokens = max_input_length;
     std::vector<llama_token> result(n_tokens);
-    n_tokens = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
+    n_tokens = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos);
     if (n_tokens < 0) {
         result.resize(-n_tokens);
-        int check = llama_tokenize(ctx, text.c_str(), result.data(), result.size(), add_bos);
+        int check = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos);
         GGML_ASSERT(check == -n_tokens);
 
         int start = check - max_input_length;
@@ -58,7 +60,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
   uint32_t step(uint32_t next_token_id) const override {
     const llama_token id = next_token_id;
-    eval(&id, 1, /* reset = */ false);
+    eval(const_cast<llama_token*>(&id), 1, /* reset = */ false);
     return sample();
   }
 
@@ -75,20 +77,19 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     auto* ctx = ctx_.get();
 
     auto logits = llama_get_logits(ctx);
-    auto n_vocab = llama_n_vocab(ctx);
+    auto n_vocab = llama_n_vocab(llama_get_model(ctx));
 
     // Greedy sampling (always select the highest logit).
     return std::distance(logits, std::max_element(logits, logits + n_vocab));
   }
 
-  bool eval(const llama_token* data, size_t size, bool reset) const {
+  bool eval(llama_token* data, size_t size, bool reset) const {
     auto* ctx = ctx_.get();
     if (llama_eval(
           ctx,
           data,
           size,
-          reset ? 0 : llama_get_kv_cache_token_count(ctx),
-          /* n_threads = */ 4)) {
+          reset ? 0 : llama_get_kv_cache_token_count(ctx))) {
       fprintf(stderr, "%s : failed to eval\n", __func__);
       return false;
     }
@@ -101,7 +102,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 };
 
 static int g_llama_cpp_log_level = 0;
-static void llama_log_callback(llama_log_level level, const char * text, void * user_data) {
+static void llama_log_callback(ggml_log_level level, const char * text, void * user_data) {
   (void)user_data;
   if (level < g_llama_cpp_log_level) {
     fputs(text, stderr);
@@ -127,18 +128,18 @@ struct BackendInitializer {
 std::shared_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   static BackendInitializer initializer;
 
-  llama_context_params ctx_params = llama_context_default_params();
-  ctx_params.n_ctx = 2048;
-  ctx_params.n_batch = N_BATCH;
-  ctx_params.n_gpu_layers = 1;
-
-  llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), ctx_params);
+  llama_model_params model_params = llama_model_default_params();
+  model_params.n_gpu_layers = 1;
+  llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), model_params);
 
   if (!model) {
     fprintf(stderr , "%s: error: unable to load model\n" , __func__);
     return nullptr;
   }
 
+  llama_context_params ctx_params = llama_context_default_params();
+  ctx_params.n_ctx = 2048;
+  ctx_params.n_batch = N_BATCH;
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
 
   return std::make_shared<TextInferenceEngineImpl>(
