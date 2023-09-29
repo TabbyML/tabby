@@ -3,6 +3,7 @@ mod engine;
 mod events;
 mod generate;
 mod health;
+mod playground;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -161,6 +162,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     let doc = add_proxy_server(doc, config.swagger.server_url.clone());
     let app = api_router(args, config)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
+        .route("/playground", routing::get(playground::handler))
+        .route("/playground/*path", routing::get(playground::handler))
         .fallback(fallback());
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
