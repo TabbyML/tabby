@@ -5,8 +5,7 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use futures::{lock::Mutex, stream::BoxStream};
-use stop_words::StopWords;
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
+use tabby_inference::{decoding::DecodingFactory, helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 
 #[cxx::bridge(namespace = "llama")]
@@ -18,8 +17,8 @@ mod ffi {
 
         fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
 
-        fn start(&self, prompt: &str, max_input_length: usize) -> u32;
-        fn step(&self, next_token_id: u32) -> u32;
+        fn start(&self, input_token_ids: &[u32]);
+        fn step(&self) -> u32;
         fn end(&self);
 
         fn eos_token(&self) -> u32;
@@ -38,7 +37,7 @@ pub struct LlamaEngineOptions {
 pub struct LlamaEngine {
     engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
     tokenizer: Arc<Tokenizer>,
-    stop_words: StopWords,
+    decoding_factory: DecodingFactory,
 }
 
 impl LlamaEngine {
@@ -46,7 +45,7 @@ impl LlamaEngine {
         LlamaEngine {
             engine: Mutex::new(create_engine(&options.model_path)),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
-            stop_words: StopWords::default(),
+            decoding_factory: DecodingFactory::default(),
         }
     }
 }
@@ -63,40 +62,43 @@ impl TextGeneration for LlamaEngine {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
-        let mut stop_condition = self
-            .stop_words
-            .create_condition(self.tokenizer.clone(), options.stop_words);
+        let encoding = self.tokenizer.encode(prompt, true).unwrap();
 
         let s = stream! {
             let engine = self.engine.lock().await;
             let eos_token = engine.eos_token();
 
-            let mut next_token_id = engine.start(&prompt, options.max_input_length);
-            if next_token_id == eos_token {
-                yield "".to_owned();
-            } else {
-                let mut n_remains = options.max_decoding_length - 1;
-
-                while n_remains > 0 {
-                    next_token_id = engine.step(next_token_id);
-                    if next_token_id == eos_token {
-                        break;
-                    }
-
-                    if stop_condition.next_token(next_token_id) {
-                        break;
-                    }
-
-                    let text = self.tokenizer.decode(&[next_token_id], true).unwrap();
-                    yield text;
-                    n_remains -= 1;
+            let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
+            engine.start(input_token_ids);
+            let mut decoding = self.decoding_factory.create_incremental_decoding(self.tokenizer.clone(), input_token_ids, options.stop_words);
+            let mut n_remains = options.max_decoding_length ;
+            while n_remains > 0 {
+                let next_token_id = engine.step();
+                if next_token_id == eos_token {
+                    break;
                 }
+
+                if let Some(new_text) = decoding.next_token(next_token_id) {
+                    yield new_text;
+                } else {
+                    break;
+                }
+
+                n_remains -= 1;
             }
 
             engine.end();
         };
 
         Box::pin(s)
+    }
+}
+
+fn truncate_tokens(tokens: &[u32], max_length: usize) -> &[u32] {
+    if max_length < tokens.len() {
+        let start = tokens.len() - max_length;
+        &tokens[start..]
+    } else {
+        tokens
     }
 }

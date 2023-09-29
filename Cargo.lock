@@ -700,7 +700,6 @@ dependencies = [
  "derive_builder",
  "futures",
  "rust-cxx-cmake-bridge",
- "stop-words",
  "tabby-inference",
  "tokenizers",
  "tokio",
@@ -1661,7 +1660,6 @@ dependencies = [
  "cxx-build",
  "derive_builder",
  "futures",
- "stop-words",
  "tabby-inference",
  "tokenizers",
  "tokio",
@@ -2941,15 +2939,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
-name = "stop-words"
-version = "0.1.0"
-dependencies = [
- "dashmap",
- "regex",
- "tokenizers",
-]
-
-[[package]]
 name = "strfmt"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3122,8 +3111,11 @@ version = "0.1.0"
 dependencies = [
  "async-stream",
  "async-trait",
+ "dashmap",
  "derive_builder",
  "futures",
+ "regex",
+ "tokenizers",
 ]
 
 [[package]]
