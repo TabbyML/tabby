@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use futures::{lock::Mutex, stream::BoxStream};
-use stop_words::StopWords;
+use stop_words::DecodingFactory;
 use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 
@@ -38,7 +38,7 @@ pub struct LlamaEngineOptions {
 pub struct LlamaEngine {
     engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
     tokenizer: Arc<Tokenizer>,
-    stop_words: StopWords,
+    decoding_factory: DecodingFactory
 }
 
 impl LlamaEngine {
@@ -46,7 +46,7 @@ impl LlamaEngine {
         LlamaEngine {
             engine: Mutex::new(create_engine(&options.model_path)),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
-            stop_words: StopWords::default(),
+            decoding_factory: DecodingFactory::default()
         }
     }
 }
@@ -70,7 +70,7 @@ impl TextGeneration for LlamaEngine {
             let eos_token = engine.eos_token();
 
             let all_token_ids : Vec<u32> = engine.start(&prompt, options.max_input_length).iter().map(|x| x.to_owned()).collect();
-            let mut decoding = self.stop_words.create_incremental_decoding(self.tokenizer.clone(), &all_token_ids, options.stop_words);
+            let mut decoding = self.decoding_factory.create_incremental_decoding(self.tokenizer.clone(), &all_token_ids, options.stop_words);
             let mut n_remains = options.max_decoding_length ;
             while n_remains > 0 {
                 let next_token_id = engine.step();

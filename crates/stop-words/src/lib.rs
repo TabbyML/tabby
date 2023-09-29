@@ -4,7 +4,7 @@ use dashmap::DashMap;
 use regex::Regex;
 use tokenizers::tokenizer::Tokenizer;
 
-pub struct StopWords {
+pub struct DecodingFactory {
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
@@ -12,7 +12,7 @@ fn reverse(s: &&str) -> String {
     s.chars().rev().collect()
 }
 
-impl Default for StopWords {
+impl Default for DecodingFactory {
     fn default() -> Self {
         Self {
             stop_regex_cache: DashMap::new(),
@@ -20,7 +20,7 @@ impl Default for StopWords {
     }
 }
 
-impl StopWords {
+impl DecodingFactory {
     pub fn create_incremental_decoding(
         &self,
         tokenizer: Arc<Tokenizer>,

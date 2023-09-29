@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
-use stop_words::{IncrementalDecoding, StopWords};
+use stop_words::{IncrementalDecoding, DecodingFactory};
 use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio::sync::mpsc::{channel, Sender};
@@ -91,7 +91,7 @@ impl InferenceContext {
 
 pub struct CTranslate2Engine {
     engine: cxx::SharedPtr<ffi::TextInferenceEngine>,
-    stop_words: StopWords,
+    decoding_factory: DecodingFactory,
     tokenizer: Arc<Tokenizer>,
 }
 
@@ -108,7 +108,7 @@ impl CTranslate2Engine {
 
         return Self {
             engine,
-            stop_words: StopWords::default(),
+            decoding_factory: DecodingFactory::default(),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
         };
     }
@@ -134,7 +134,7 @@ impl TextGeneration for CTranslate2Engine {
             let _guard = cancel.drop_guard();
 
             let decoding = self
-                .stop_words
+                .decoding_factory
                 .create_incremental_decoding(self.tokenizer.clone(), encoding.get_ids(), options.stop_words);
 
             let (sender, mut receiver) = channel::<String>(8);
