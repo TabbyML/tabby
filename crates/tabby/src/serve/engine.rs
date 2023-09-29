@@ -18,15 +18,17 @@ fn get_param(params: &Value, key: &str) -> String {
         .to_string()
 }
 
-pub fn create_engine(args: &crate::serve::ServeArgs) -> (Box<dyn TextGeneration>, Option<String>) {
+pub fn create_engine(
+    model: &str,
+    args: &crate::serve::ServeArgs,
+) -> (Box<dyn TextGeneration>, Option<String>) {
     if args.device != super::Device::ExperimentalHttp {
-        let model_dir = get_model_dir(&args.model);
+        let model_dir = get_model_dir(model);
         let metadata = read_metadata(&model_dir);
         let engine = create_local_engine(args, &model_dir, &metadata);
         (engine, metadata.prompt_template)
     } else {
-        let params: Value =
-            serdeconv::from_json_str(&args.model).expect("Failed to parse model string");
+        let params: Value = serdeconv::from_json_str(model).expect("Failed to parse model string");
 
         let kind = get_param(&params, "kind");
 
