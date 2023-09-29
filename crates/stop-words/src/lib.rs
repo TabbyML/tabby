@@ -26,7 +26,18 @@ impl StopWords {
         tokenizer: Arc<Tokenizer>,
         stop_words: &'static Vec<&'static str>,
     ) -> StopWordsCondition {
-        let re = if stop_words.is_empty() {
+        StopWordsCondition::new(tokenizer, self.get_re(stop_words))
+    }
+
+    pub fn create_incremental_decoding(&self,
+        tokenizer: Arc<Tokenizer>,
+        input_token_ids: &[u32],
+        stop_words: &'static Vec<&'static str>) -> IncrementalDecoding {
+        IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
+    }
+
+    fn get_re(&self, stop_words: &'static Vec<&'static str>) -> Option<Regex> {
+        if stop_words.is_empty() {
             None
         } else {
             let mut re = self.stop_regex_cache.get(stop_words);
@@ -36,9 +47,7 @@ impl StopWords {
                 re = self.stop_regex_cache.get(stop_words);
             }
             re.map(|x| x.value().clone())
-        };
-
-        StopWordsCondition::new(tokenizer, re)
+        }
     }
 }
 
@@ -76,5 +85,52 @@ impl StopWordsCondition {
         } else {
             false
         }
+    }
+}
+
+pub struct IncrementalDecoding {
+    tokenizer: Arc<Tokenizer>,
+    stop_re: Option<Regex>,
+
+    token_ids: Vec<u32>,
+    text: String,
+}
+
+impl IncrementalDecoding {
+    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>, input_token_ids: &[u32]) -> Self {
+        let text = tokenizer.decode(input_token_ids, /* skip_special_token = */ true)
+                .expect("Cannot decode token from tokenizer.");
+        Self {
+            tokenizer,
+            stop_re,
+            token_ids: input_token_ids.to_owned(),
+            text
+        }
+    }
+
+    pub fn next_token(&mut self, token_id: u32) -> Option<String> {
+        self.token_ids.push(token_id);
+        let text = self.tokenizer.decode(&self.token_ids, /* skip_special_token = */ true)
+                        .expect("Cannot decode token from tokenizer.")
+                        .as_bytes()
+                        .to_vec();
+        let text : String = unsafe { String::from_utf8_unchecked(text) };
+        let reversed_text = reverse(&text.as_str());
+
+        if let Some(re) = &self.stop_re {
+            if re.find(&reversed_text).is_some() {
+                return None;
+            }
+        }
+
+        let new_text = if text.ends_with('�') {
+            "".to_owned()
+        } else {
+            text[self.text.len()..].to_owned()
+        };
+
+        self.text = text;
+        println!("text {}", new_text);
+        Some(new_text)
     }
 }

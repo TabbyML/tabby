@@ -18,8 +18,8 @@ mod ffi {
 
         fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
 
-        fn start(&self, prompt: &str, max_input_length: usize) -> u32;
-        fn step(&self, next_token_id: u32) -> u32;
+        fn start(&self, prompt: &str, max_input_length: usize) -> UniquePtr<CxxVector<u32>>;
+        fn step(&self) -> u32;
         fn end(&self);
 
         fn eos_token(&self) -> u32;
@@ -64,34 +64,27 @@ impl TextGeneration for LlamaEngine {
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
         let prompt = prompt.to_owned();
-        let mut stop_condition = self
-            .stop_words
-            .create_condition(self.tokenizer.clone(), options.stop_words);
 
         let s = stream! {
             let engine = self.engine.lock().await;
             let eos_token = engine.eos_token();
 
-            let mut next_token_id = engine.start(&prompt, options.max_input_length);
-            if next_token_id == eos_token {
-                yield "".to_owned();
-            } else {
-                let mut n_remains = options.max_decoding_length - 1;
-
-                while n_remains > 0 {
-                    next_token_id = engine.step(next_token_id);
-                    if next_token_id == eos_token {
-                        break;
-                    }
-
-                    if stop_condition.next_token(next_token_id) {
-                        break;
-                    }
-
-                    let text = self.tokenizer.decode(&[next_token_id], true).unwrap();
-                    yield text;
-                    n_remains -= 1;
+            let all_token_ids : Vec<u32> = engine.start(&prompt, options.max_input_length).iter().map(|x| x.to_owned()).collect();
+            let mut decoding = self.stop_words.create_incremental_decoding(self.tokenizer.clone(), &all_token_ids, options.stop_words);
+            let mut n_remains = options.max_decoding_length ;
+            while n_remains > 0 {
+                let next_token_id = engine.step();
+                if next_token_id == eos_token {
+                    break;
                 }
+
+                if let Some(new_text) = decoding.next_token(next_token_id) {
+                    yield new_text;
+                } else {
+                    break;
+                }
+
+                n_remains -= 1;
             }
 
             engine.end();
