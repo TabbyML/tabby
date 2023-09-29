@@ -8,8 +8,8 @@ pub struct DecodingFactory {
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
-fn reverse(s: &&str) -> String {
-    s.chars().rev().collect()
+fn reverse<T>(s: T) -> String where T: Into<String> {
+    s.into().chars().rev().collect()
 }
 
 impl Default for DecodingFactory {
@@ -46,7 +46,7 @@ impl DecodingFactory {
 }
 
 fn create_stop_regex(stop_words: &[&str]) -> Regex {
-    let tokens: Vec<String> = stop_words.iter().map(reverse).collect();
+    let tokens: Vec<String> = stop_words.iter().map(|x| reverse(*x)).collect();
 
     // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
@@ -59,7 +59,10 @@ pub struct IncrementalDecoding {
     stop_re: Option<Regex>,
 
     token_ids: Vec<u32>,
-    text: String,
+    prefix_offset: usize,
+    read_offset: usize,
+
+    reversed_text: String,
 }
 
 impl IncrementalDecoding {
@@ -71,34 +74,44 @@ impl IncrementalDecoding {
             tokenizer,
             stop_re,
             token_ids: input_token_ids.to_owned(),
-            text,
+            prefix_offset: 0,
+            read_offset: input_token_ids.len(),
+            reversed_text: reverse(text)
         }
     }
 
     pub fn next_token(&mut self, token_id: u32) -> Option<String> {
+        let skip_special_token = true;
         self.token_ids.push(token_id);
-        let text = self
-            .tokenizer
-            .decode(&self.token_ids, /* skip_special_token = */ true)
-            .expect("Cannot decode token from tokenizer.")
-            .as_bytes()
-            .to_vec();
-        let text: String = unsafe { String::from_utf8_unchecked(text) };
-        let reversed_text = reverse(&text.as_str());
 
-        if let Some(re) = &self.stop_re {
-            if re.find(&reversed_text).is_some() {
-                return None;
+        let prefix_text = self
+            .tokenizer
+            .decode(&self.token_ids[self.prefix_offset..self.read_offset], skip_special_token)
+            .expect("Cannot decode token from tokenizer.");
+
+        let new_text = self
+            .tokenizer
+            .decode(&self.token_ids[self.prefix_offset..], skip_special_token)
+            .expect("Cannot decode token from tokenizer.");
+
+        let new_text = if new_text.len() > prefix_text.len() && !new_text.ends_with('�') {
+            self.prefix_offset = self.read_offset;
+            self.read_offset = self.token_ids.len();
+            &new_text[prefix_text.len()..]
+        } else {
+            ""
+        };
+
+        if new_text.len() > 0 {
+            self.reversed_text = reverse(new_text) + &self.reversed_text;
+
+            if let Some(re) = &self.stop_re {
+                if re.find(&self.reversed_text).is_some() {
+                    return None;
+                }
             }
         }
 
-        let new_text = if text.ends_with('�') {
-            "".to_owned()
-        } else {
-            text[self.text.len()..].to_owned()
-        };
-
-        self.text = text;
-        Some(new_text)
+        Some(new_text.to_owned())
     }
 }
