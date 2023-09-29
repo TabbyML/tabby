@@ -16,6 +16,7 @@ export function usePatchFetch() {
 
       const { messages } = JSON.parse(options!.body as string)
       const res = await fetch(`${serverUrl}/v1beta/generate_stream`, {
+        ...options,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
