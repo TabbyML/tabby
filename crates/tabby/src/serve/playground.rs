@@ -39,6 +39,10 @@ where
 }
 
 pub async fn handler(uri: Uri) -> impl IntoResponse {
-    let path = uri.path().trim_start_matches("/playground").trim_start_matches('/').to_string();
+    let path = uri
+        .path()
+        .trim_start_matches("/playground")
+        .trim_start_matches('/')
+        .to_string();
     WebStaticFile(path)
 }
