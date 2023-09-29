@@ -5,8 +5,7 @@ use async_trait::async_trait;
 use derive_builder::Builder;
 use ffi::create_engine;
 use futures::{lock::Mutex, stream::BoxStream};
-use stop_words::DecodingFactory;
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
+use tabby_inference::{decoding::DecodingFactory, helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 
 #[cxx::bridge(namespace = "llama")]
@@ -38,7 +37,7 @@ pub struct LlamaEngineOptions {
 pub struct LlamaEngine {
     engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
     tokenizer: Arc<Tokenizer>,
-    decoding_factory: DecodingFactory
+    decoding_factory: DecodingFactory,
 }
 
 impl LlamaEngine {
@@ -46,7 +45,7 @@ impl LlamaEngine {
         LlamaEngine {
             engine: Mutex::new(create_engine(&options.model_path)),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
-            decoding_factory: DecodingFactory::default()
+            decoding_factory: DecodingFactory::default(),
         }
     }
 }

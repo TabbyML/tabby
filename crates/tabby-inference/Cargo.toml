@@ -8,5 +8,8 @@ edition = "2021"
 [dependencies]
 async-stream = { workspace = true }
 async-trait = { workspace = true }
+dashmap = "5.5.3"
 derive_builder = "0.12.0"
 futures = { workspace = true }
+regex = "1.9.5"
+tokenizers.workspace = true

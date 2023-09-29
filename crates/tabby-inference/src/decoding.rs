@@ -99,7 +99,6 @@ impl IncrementalDecoding {
         };
 
         self.text = text;
-        println!("text {}", new_text);
         Some(new_text)
     }
 }

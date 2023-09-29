@@ -4,8 +4,10 @@ use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
-use stop_words::{IncrementalDecoding, DecodingFactory};
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
+use tabby_inference::{
+    decoding::{DecodingFactory, IncrementalDecoding},
+    helpers, TextGeneration, TextGenerationOptions,
+};
 use tokenizers::tokenizer::Tokenizer;
 use tokio::sync::mpsc::{channel, Sender};
 use tokio_util::sync::CancellationToken;
