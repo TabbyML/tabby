@@ -1,5 +1,6 @@
 package com.tabbyml.intellijtabby.settings
 
+import com.google.gson.annotations.SerializedName
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -14,7 +15,14 @@ import kotlinx.coroutines.flow.asStateFlow
   storages = [Storage("intellij-tabby.xml")]
 )
 class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsState> {
-  var isAutoCompletionEnabled: Boolean = true
+  enum class TriggerMode {
+    @SerializedName("manual")
+    MANUAL,
+    @SerializedName("automatic")
+    AUTOMATIC,
+  }
+
+  var completionTriggerMode: TriggerMode = TriggerMode.AUTOMATIC
     set(value) {
       field = value
       stateFlow.value = this.data
@@ -31,14 +39,14 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     }
 
   data class State(
-    val isAutoCompletionEnabled: Boolean,
+    val completionTriggerMode: TriggerMode,
     val serverEndpoint: String,
     val isAnonymousUsageTrackingDisabled: Boolean,
   )
 
   val data: State
     get() = State(
-      isAutoCompletionEnabled = isAutoCompletionEnabled,
+      completionTriggerMode = completionTriggerMode,
       serverEndpoint = serverEndpoint,
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
     )
