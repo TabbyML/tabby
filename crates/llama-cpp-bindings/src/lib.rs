@@ -17,7 +17,7 @@ mod ffi {
 
         fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
 
-        fn start(&self, prompt: &str, max_input_length: usize) -> UniquePtr<CxxVector<u32>>;
+        fn start(&self, input_token_ids: &[u32]);
         fn step(&self) -> u32;
         fn end(&self);
 
@@ -62,14 +62,15 @@ impl TextGeneration for LlamaEngine {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let prompt = prompt.to_owned();
+        let encoding = self.tokenizer.encode(prompt, true).unwrap();
 
         let s = stream! {
             let engine = self.engine.lock().await;
             let eos_token = engine.eos_token();
 
-            let all_token_ids : Vec<u32> = engine.start(&prompt, options.max_input_length).iter().map(|x| x.to_owned()).collect();
-            let mut decoding = self.decoding_factory.create_incremental_decoding(self.tokenizer.clone(), &all_token_ids, options.stop_words);
+            let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
+            engine.start(input_token_ids);
+            let mut decoding = self.decoding_factory.create_incremental_decoding(self.tokenizer.clone(), input_token_ids, options.stop_words);
             let mut n_remains = options.max_decoding_length ;
             while n_remains > 0 {
                 let next_token_id = engine.step();
@@ -90,5 +91,14 @@ impl TextGeneration for LlamaEngine {
         };
 
         Box::pin(s)
+    }
+}
+
+fn truncate_tokens(tokens: &[u32], max_length: usize) -> &[u32] {
+    if max_length < tokens.len() {
+        let start = tokens.len() - max_length;
+        &tokens[start..]
+    } else {
+        tokens
     }
 }

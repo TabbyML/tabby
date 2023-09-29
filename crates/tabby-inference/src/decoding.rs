@@ -8,7 +8,10 @@ pub struct DecodingFactory {
     stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
 }
 
-fn reverse<T>(s: T) -> String where T: Into<String> {
+fn reverse<T>(s: T) -> String
+where
+    T: Into<String>,
+{
     s.into().chars().rev().collect()
 }
 
@@ -76,7 +79,7 @@ impl IncrementalDecoding {
             token_ids: input_token_ids.to_owned(),
             prefix_offset: 0,
             read_offset: input_token_ids.len(),
-            reversed_text: reverse(text)
+            reversed_text: reverse(text),
         }
     }
 
@@ -86,7 +89,10 @@ impl IncrementalDecoding {
 
         let prefix_text = self
             .tokenizer
-            .decode(&self.token_ids[self.prefix_offset..self.read_offset], skip_special_token)
+            .decode(
+                &self.token_ids[self.prefix_offset..self.read_offset],
+                skip_special_token,
+            )
             .expect("Cannot decode token from tokenizer.");
 
         let new_text = self
@@ -102,7 +108,7 @@ impl IncrementalDecoding {
             ""
         };
 
-        if new_text.len() > 0 {
+        if !new_text.is_empty() {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
 
             if let Some(re) = &self.stop_re {

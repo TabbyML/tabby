@@ -45,17 +45,15 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     ctx_(std::move(ctx)) {
   }
 
-  std::unique_ptr<std::vector<uint32_t>> start(const rust::Str prompt, size_t max_input_length) const override {
+  void start(rust::Slice<const uint32_t> input_token_ids) const override {
     auto* ctx = ctx_.get();
     llama_reset_timings(ctx);
-    std::vector<llama_token> tokens_list = tokenize(ctx, std::string(prompt), max_input_length, /* add_bos = */ false);
+    std::vector<llama_token> tokens_list(input_token_ids.begin(), input_token_ids.end());
 
     for (size_t i = 0; i < tokens_list.size(); i += N_BATCH) {
       const size_t size = std::min(N_BATCH, tokens_list.size() - i);
       eval(tokens_list.data() + i, size, /* reset = */ i == 0);
     }
-
-    return std::make_unique<std::vector<uint32_t>>(tokens_list.begin(), tokens_list.end());
   }
 
   uint32_t step() const override {

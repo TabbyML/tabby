@@ -137,7 +137,7 @@ impl TextGeneration for CTranslate2Engine {
 
             let decoding = self
                 .decoding_factory
-                .create_incremental_decoding(self.tokenizer.clone(), encoding.get_ids(), options.stop_words);
+                .create_incremental_decoding(self.tokenizer.clone(), truncate_tokens(encoding.get_ids(), options.max_input_length), options.stop_words);
 
             let (sender, mut receiver) = channel::<String>(8);
             let context = InferenceContext::new(sender, decoding, cancel_for_inference);
@@ -160,7 +160,7 @@ impl TextGeneration for CTranslate2Engine {
     }
 }
 
-fn truncate_tokens(tokens: &[String], max_length: usize) -> &[String] {
+fn truncate_tokens<T>(tokens: &[T], max_length: usize) -> &[T] {
     if max_length < tokens.len() {
         let start = tokens.len() - max_length;
         &tokens[start..]
