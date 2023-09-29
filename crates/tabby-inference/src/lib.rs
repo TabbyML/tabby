@@ -16,7 +16,10 @@ pub struct TextGenerationOptions {
     pub sampling_temperature: f32,
 
     #[builder(default = "&EMPTY_STOP_WORDS")]
-    pub stop_words: &'static Vec<&'static str>,
+    pub static_stop_words: &'static Vec<&'static str>,
+
+    #[builder(default = "vec![]")]
+    pub stop_words: Vec<String>,
 }
 
 static EMPTY_STOP_WORDS: Vec<&'static str> = vec![];

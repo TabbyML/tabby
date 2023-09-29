@@ -80,7 +80,7 @@ pub async fn completion(
         .max_input_length(1024 + 512)
         .max_decoding_length(128)
         .sampling_temperature(0.1)
-        .stop_words(get_stop_words(&language))
+        .static_stop_words(get_stop_words(&language))
         .build()
         .unwrap();
 

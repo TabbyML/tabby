@@ -3,7 +3,6 @@ use std::sync::Arc;
 use async_stream::stream;
 use axum::{extract::State, response::IntoResponse, Json};
 use axum_streams::StreamBodyAs;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
@@ -20,11 +19,12 @@ impl GenerateState {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[schema(example=json!({
+    "prompt": "# Dijkstra'\''s shortest path algorithm in Python (4 spaces indentation) + complexity analysis:\n\n",
+}))]
 pub struct GenerateRequest {
-    #[schema(
-        example = "# Dijkstra'\''s shortest path algorithm in Python (4 spaces indentation) + complexity analysis:\n\n"
-    )]
     prompt: String,
+    stop_words: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -47,9 +47,9 @@ pub async fn generate(
     State(state): State<Arc<GenerateState>>,
     Json(request): Json<GenerateRequest>,
 ) -> impl IntoResponse {
-    let options = build_options(&request);
+    let (prompt, options) = parse_request(request);
     Json(GenerateResponse {
-        text: state.engine.generate(&request.prompt, options).await,
+        text: state.engine.generate(&prompt, options).await,
     })
 }
 
@@ -68,9 +68,9 @@ pub async fn generate_stream(
     State(state): State<Arc<GenerateState>>,
     Json(request): Json<GenerateRequest>,
 ) -> impl IntoResponse {
-    let options = build_options(&request);
+    let (prompt, options) = parse_request(request);
     let s = stream! {
-        for await text in state.engine.generate_stream(&request.prompt, options).await {
+        for await text in state.engine.generate_stream(&prompt, options).await {
             yield GenerateResponse { text }
         }
     };
@@ -78,16 +78,17 @@ pub async fn generate_stream(
     StreamBodyAs::json_nl(s)
 }
 
-lazy_static! {
-    static ref STOP_WORDS: Vec<&'static str> = vec!["\n\n",];
-}
+fn parse_request(request: GenerateRequest) -> (String, TextGenerationOptions) {
+    let mut builder = TextGenerationOptionsBuilder::default();
 
-fn build_options(_request: &GenerateRequest) -> TextGenerationOptions {
-    TextGenerationOptionsBuilder::default()
+    builder
         .max_input_length(1024)
-        .max_decoding_length(1024)
-        .sampling_temperature(0.1)
-        .stop_words(&STOP_WORDS)
-        .build()
-        .unwrap()
+        .max_decoding_length(968)
+        .sampling_temperature(0.1);
+
+    if let Some(stop_words) = request.stop_words {
+        builder.stop_words(stop_words);
+    };
+
+    (request.prompt, builder.build().unwrap())
 }
