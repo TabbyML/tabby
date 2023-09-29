@@ -5,44 +5,41 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
 import com.tabbyml.intellijtabby.agent.AgentService
-import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @Service
-class CompletionScheduler {
-  private val logger = Logger.getInstance(CompletionScheduler::class.java)
+class CompletionProvider {
+  private val logger = Logger.getInstance(CompletionProvider::class.java)
 
   data class CompletionContext(val editor: Editor, val offset: Int, val job: Job)
 
-  var scheduled: CompletionContext? = null
-    private set
+  private val ongoingCompletionFlow: MutableStateFlow<CompletionContext?> = MutableStateFlow(null)
+  val ongoingCompletion = ongoingCompletionFlow.asStateFlow()
 
-  fun schedule(editor: Editor, offset: Int, manually: Boolean = false) {
+  fun provideCompletion(editor: Editor, offset: Int, manually: Boolean = false) {
     val agentService = service<AgentService>()
     val inlineCompletionService = service<InlineCompletionService>()
-    val settings = service<ApplicationSettingsState>()
     clear()
     val job = agentService.scope.launch {
-      if (!manually && !settings.isAutoCompletionEnabled) {
-        return@launch
-      }
-
       logger.info("Trigger completion at $offset")
       agentService.provideCompletion(editor, offset, manually)?.let {
         logger.info("Show completion at $offset: $it")
         inlineCompletionService.show(editor, offset, it)
+        ongoingCompletionFlow.value = null
       }
     }
-    scheduled = CompletionContext(editor, offset, job)
+    ongoingCompletionFlow.value = CompletionContext(editor, offset, job)
   }
 
   fun clear() {
     val inlineCompletionService = service<InlineCompletionService>()
     inlineCompletionService.dismiss()
-    scheduled?.let {
+    ongoingCompletionFlow.value?.let {
       it.job.cancel()
-      scheduled = null
+      ongoingCompletionFlow.value = null
     }
   }
 }

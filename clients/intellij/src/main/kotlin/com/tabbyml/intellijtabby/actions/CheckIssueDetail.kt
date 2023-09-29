@@ -8,7 +8,6 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ui.Messages
-import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
 import kotlinx.coroutines.launch
 
@@ -89,7 +88,7 @@ class CheckIssueDetail : AnAction() {
 
   override fun update(e: AnActionEvent) {
     val agentService = service<AgentService>()
-    e.presentation.isVisible = agentService.status.value == Agent.Status.ISSUES_EXIST
+    e.presentation.isVisible = agentService.currentIssue.value != null
   }
 
   override fun getActionUpdateThread(): ActionUpdateThread {

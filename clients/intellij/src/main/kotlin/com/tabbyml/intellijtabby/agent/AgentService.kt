@@ -26,22 +26,27 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @Service
 class AgentService : Disposable {
   private val logger = Logger.getInstance(AgentService::class.java)
   private var agent: Agent = Agent()
   val scope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+
   private var initFailedNotification: Notification? = null
   var authNotification: Notification? = null
     private set
   var issueNotification: Notification? = null
     private set
 
+  private var completionResponseWarningShown = false
+
   enum class Status {
     INITIALIZING,
     INITIALIZATION_FAILED,
   }
+
   private var initResultFlow: MutableStateFlow<Boolean?> = MutableStateFlow(null)
   val status = initResultFlow.combine(agent.status) { initResult, agentStatus ->
     if (initResult == null) {
@@ -59,14 +64,12 @@ class AgentService : Disposable {
     val settings = service<ApplicationSettingsState>()
     val anonymousUsageLogger = service<AnonymousUsageLogger>()
     scope.launch {
-      val appInfo = ApplicationInfo.getInstance().fullApplicationName
-      val pluginId = "com.tabbyml.intellij-tabby"
-      val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
-      val client = "$appInfo $pluginId $pluginVersion"
 
+      val config = createAgentConfig(settings.data)
+      val clientProperties = createClientProperties(settings.data)
       try {
         agent.open()
-        agent.initialize(createAgentConfig(settings.data), client)
+        agent.initialize(config, clientProperties)
         initResultFlow.value = true
         logger.info("Agent init done.")
       } catch (e: Exception) {
@@ -74,7 +77,7 @@ class AgentService : Disposable {
         logger.warn("Agent init failed: $e")
         anonymousUsageLogger.event(
           "IntelliJInitFailed", mapOf(
-            "client" to client, "error" to e.stackTraceToString()
+            "client" to clientProperties.session["client"] as String, "error" to e.stackTraceToString()
           )
         )
         val notification = Notification(
@@ -99,6 +102,7 @@ class AgentService : Disposable {
         } else {
           clearConfig("server.endpoint")
         }
+        updateClientProperties("user", "intellij.triggerMode", it.completionTriggerMode)
         updateConfig("anonymousUsageTracking.disable", it.isAnonymousUsageTrackingDisabled)
       }
     }
@@ -127,6 +131,10 @@ class AgentService : Disposable {
           "highCompletionTimeoutRate" -> "Most completion requests timed out"
           else -> return@collect
         }
+        if (completionResponseWarningShown) {
+          return@collect
+        }
+        completionResponseWarningShown = true
         val notification = Notification(
           "com.tabbyml.intellijtabby.notification.warning",
           content,
@@ -161,8 +169,34 @@ class AgentService : Disposable {
     )
   }
 
+  private fun createClientProperties(state: ApplicationSettingsState.State): Agent.ClientProperties {
+    val appInfo = ApplicationInfo.getInstance()
+    val appVersion = appInfo.fullVersion
+    val appName = appInfo.fullApplicationName.replace(appVersion, "").trim()
+    val pluginId = "com.tabbyml.intellij-tabby"
+    val pluginVersion = PluginManagerCore.getPlugin(PluginId.getId(pluginId))?.version
+    val client = "$appName $pluginId $pluginVersion"
+    return Agent.ClientProperties(
+      user = mapOf(
+        "intellij" to mapOf(
+          "triggerMode" to state.completionTriggerMode,
+        ),
+      ),
+      session = mapOf(
+        "client" to client,
+        "ide" to mapOf("name" to appName, "version" to appVersion),
+        "tabby_plugin" to mapOf("name" to pluginId, "version" to pluginVersion),
+      ),
+    )
+  }
+
   private suspend fun waitForInitialized() {
     agent.status.first { it != Agent.Status.NOT_INITIALIZED }
+  }
+
+  private suspend fun updateClientProperties(type: String, key: String, config: Any) {
+    waitForInitialized()
+    agent.updateClientProperties(type, key, config)
   }
 
   private suspend fun updateConfig(key: String, config: Any) {
@@ -235,7 +269,7 @@ class AgentService : Disposable {
 
   suspend fun getCurrentIssueDetail(): Map<String, Any>? {
     waitForInitialized()
-    return agent.getIssues().firstOrNull { it["name"] == currentIssue.value }
+    return agent.getIssueDetail(Agent.GetIssueDetailOptions(name = currentIssue.value))
   }
 
   suspend fun getServerHealthState(): Map<String, Any>? {
@@ -244,6 +278,11 @@ class AgentService : Disposable {
   }
 
   override fun dispose() {
+    runBlocking {
+      runCatching {
+        agent.finalize()
+      }
+    }
     agent.close()
   }
 

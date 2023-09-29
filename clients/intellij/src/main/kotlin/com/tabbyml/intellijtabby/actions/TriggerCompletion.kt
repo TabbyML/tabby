@@ -5,15 +5,15 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
-import com.tabbyml.intellijtabby.editor.CompletionScheduler
+import com.tabbyml.intellijtabby.editor.CompletionProvider
 
 
 class TriggerCompletion : AnAction() {
   override fun actionPerformed(e: AnActionEvent) {
-    val completionScheduler = service<CompletionScheduler>()
+    val completionScheduler = service<CompletionProvider>()
     val editor = e.getRequiredData(CommonDataKeys.EDITOR)
     val offset = editor.caretModel.primaryCaret.offset
-    completionScheduler.schedule(editor, offset, manually = true)
+    completionScheduler.provideCompletion(editor, offset, manually = true)
   }
 
   override fun update(e: AnActionEvent) {

@@ -35,7 +35,6 @@ class Agent : ProcessAdapter() {
     READY,
     DISCONNECTED,
     UNAUTHORIZED,
-    ISSUES_EXIST,
   }
 
   private val statusFlow = MutableStateFlow(Status.NOT_INITIALIZED)
@@ -140,15 +139,28 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  suspend fun initialize(config: Config, client: String): Boolean {
+  data class ClientProperties(
+    val user: Map<String, Any>,
+    val session: Map<String, Any>,
+  )
+
+  suspend fun initialize(config: Config, clientProperties: ClientProperties): Boolean {
     return request(
       "initialize", listOf(
         mapOf(
           "config" to config,
-          "client" to client,
+          "clientProperties" to clientProperties,
         )
       )
     )
+  }
+
+  suspend fun finalize(): Boolean {
+    return request("finalize", listOf())
+  }
+
+  suspend fun updateClientProperties(type: String, key: String, value: Any): Boolean {
+    return request("updateClientProperties", listOf(type, key, value))
   }
 
   suspend fun updateConfig(key: String, config: Any): Boolean {
@@ -159,12 +171,42 @@ class Agent : ProcessAdapter() {
     return request("clearConfig", listOf(key))
   }
 
-  suspend fun getIssues(): List<Map<String, Any>> {
+  suspend fun getConfig(): Config {
+    return request("getConfig", listOf())
+  }
+
+  suspend fun getStatus(): Status {
+    return request("getStatus", listOf())
+  }
+
+  suspend fun getIssues(): List<String> {
     return request("getIssues", listOf())
+  }
+
+  data class GetIssueDetailOptions(
+    val index: Int? = null,
+    val name: String? = null,
+  )
+
+  suspend fun getIssueDetail(options: GetIssueDetailOptions): Map<String, Any>? {
+    return request("getIssueDetail", listOf(options))
   }
 
   suspend fun getServerHealthState(): Map<String, Any>? {
     return request("getServerHealthState", listOf())
+  }
+
+  data class AuthUrlResponse(
+    val authUrl: String,
+    val code: String,
+  )
+
+  suspend fun requestAuthUrl(): AuthUrlResponse? {
+    return request("requestAuthUrl", listOf(ABORT_SIGNAL_ENABLED))
+  }
+
+  suspend fun waitForAuthToken(code: String) {
+    return request("waitForAuthToken", listOf(code, ABORT_SIGNAL_ENABLED))
   }
 
   data class CompletionRequest(
@@ -185,14 +227,6 @@ class Agent : ProcessAdapter() {
     )
   }
 
-  suspend fun requestAuthUrl(): AuthUrlResponse? {
-    return request("requestAuthUrl", listOf(ABORT_SIGNAL_ENABLED))
-  }
-
-  suspend fun waitForAuthToken(code: String) {
-    return request("waitForAuthToken", listOf(code, ABORT_SIGNAL_ENABLED))
-  }
-
   suspend fun provideCompletions(request: CompletionRequest): CompletionResponse? {
     return request("provideCompletions", listOf(request, ABORT_SIGNAL_ENABLED))
   }
@@ -201,6 +235,7 @@ class Agent : ProcessAdapter() {
     val type: EventType,
     @SerializedName("completion_id") val completionId: String,
     @SerializedName("choice_index") val choiceIndex: Int,
+    @SerializedName("select_kind") val selectKind: SelectKind? = null,
   ) {
     enum class EventType {
       @SerializedName("view")
@@ -209,16 +244,17 @@ class Agent : ProcessAdapter() {
       @SerializedName("select")
       SELECT,
     }
+
+    enum class SelectKind {
+      @SerializedName("line")
+      LINE,
+    }
   }
 
   suspend fun postEvent(event: LogEventRequest) {
     request<Any>("postEvent", listOf(event, ABORT_SIGNAL_ENABLED))
   }
 
-  data class AuthUrlResponse(
-    val authUrl: String,
-    val code: String,
-  )
 
   fun close() {
     try {
@@ -304,11 +340,7 @@ class Agent : ProcessAdapter() {
           "ready" -> Status.READY
           "disconnected" -> Status.DISCONNECTED
           "unauthorized" -> Status.UNAUTHORIZED
-          "issuesExist" -> Status.ISSUES_EXIST
           else -> Status.NOT_INITIALIZED
-        }
-        if (statusFlow.value !== Status.ISSUES_EXIST) {
-          currentIssueFlow.value = null
         }
       }
 
@@ -321,9 +353,9 @@ class Agent : ProcessAdapter() {
         authRequiredEventFlow.tryEmit(Unit)
       }
 
-      "newIssue" -> {
+      "issuesUpdated" -> {
         logger.info("Agent notification $event")
-        currentIssueFlow.value = (event["issue"] as Map<*, *>)["name"] as String?
+        currentIssueFlow.value = (event["issues"] as List<*>).firstOrNull() as String?
       }
 
       else -> {

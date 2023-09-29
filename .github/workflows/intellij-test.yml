@@ -24,7 +24,7 @@ jobs:
           distribution: zulu
           java-version: 17
       - name: Test Build
-        uses: gradle/gradle-build-action@v2
+        uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: buildPlugin
           build-root-directory: clients/intellij

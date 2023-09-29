@@ -11,14 +11,17 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.StatusBarWidget
 import com.intellij.openapi.wm.impl.status.EditorBasedStatusBarPopup
 import com.intellij.openapi.wm.impl.status.widget.StatusBarEditorBasedWidgetFactory
+import com.intellij.ui.AnimatedIcon
 import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
+import com.tabbyml.intellijtabby.editor.CompletionProvider
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import javax.swing.Icon
 
 class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
   override fun getId(): String {
@@ -30,20 +33,28 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
   }
 
   override fun createWidget(project: Project): StatusBarWidget {
+    data class CombinedState(
+      val settings: ApplicationSettingsState.State,
+      val agentStatus: Enum<*>,
+      val currentIssue: String?,
+      val ongoingCompletion: CompletionProvider.CompletionContext?,
+    )
+
     return object : EditorBasedStatusBarPopup(project, false) {
       val updateStatusScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
       val text = "Tabby"
-      var icon = AllIcons.Actions.Refresh
+      var icon: Icon = AnimatedIcon.Default()
       var tooltip = "Tabby: Initializing"
 
       init {
         val settings = service<ApplicationSettingsState>()
         val agentService = service<AgentService>()
+        val completionProvider = service<CompletionProvider>()
         updateStatusScope.launch {
-          combine(settings.state, agentService.status, agentService.currentIssue) { settings, agentStatus, currentIssue ->
-            Triple(settings, agentStatus, currentIssue)
+          combine(settings.state, agentService.status, agentService.currentIssue, completionProvider.ongoingCompletion) { settings, agentStatus, currentIssue, ongoingCompletion ->
+            CombinedState(settings, agentStatus, currentIssue, ongoingCompletion)
           }.collect {
-            updateStatus(it.first, it.second, it.third)
+            updateStatus(it)
           }
         }
       }
@@ -74,7 +85,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
               return arrayOf(
                 actionManager.getAction("Tabby.OpenAuthPage"),
                 actionManager.getAction("Tabby.CheckIssueDetail"),
-                actionManager.getAction("Tabby.ToggleAutoCompletionEnabled"),
+                actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
                 actionManager.getAction("Tabby.OpenSettings"),
               )
             }
@@ -86,40 +97,50 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
         )
       }
 
-      private fun updateStatus(settingsState: ApplicationSettingsState.State, agentStatus: Enum<*>, currentIssue: String?) {
-        if (!settingsState.isAutoCompletionEnabled) {
-          icon = AllIcons.Windows.CloseSmall
-          tooltip = "Tabby: Auto completion is disabled"
-        } else {
-          when(agentStatus) {
-            AgentService.Status.INITIALIZING, Agent.Status.NOT_INITIALIZED -> {
-              icon = AllIcons.Actions.Refresh
-              tooltip = "Tabby: Initializing"
-            }
-            AgentService.Status.INITIALIZATION_FAILED -> {
-              icon = AllIcons.General.Error
-              tooltip = "Tabby: Initialization failed"
-            }
-            Agent.Status.READY -> {
-              icon = AllIcons.Actions.Checked
-              tooltip = "Tabby: Ready"
-            }
-            Agent.Status.DISCONNECTED -> {
-              icon = AllIcons.General.Error
-              tooltip = "Tabby: Cannot connect to Server"
-            }
-            Agent.Status.UNAUTHORIZED -> {
+      private fun updateStatus(state: CombinedState) {
+        when(state.agentStatus) {
+          AgentService.Status.INITIALIZING, Agent.Status.NOT_INITIALIZED -> {
+            icon = AnimatedIcon.Default()
+            tooltip = "Tabby: Initializing"
+          }
+          AgentService.Status.INITIALIZATION_FAILED -> {
+            icon = AllIcons.General.Error
+            tooltip = "Tabby: Initialization failed"
+          }
+          Agent.Status.READY -> {
+            if (state.currentIssue != null) {
               icon = AllIcons.General.Warning
-              tooltip = "Tabby: Requires authorization"
-            }
-            Agent.Status.ISSUES_EXIST -> {
-              icon = AllIcons.General.Warning
-              tooltip = when(currentIssue) {
+              tooltip = when(state.currentIssue) {
                 "slowCompletionResponseTime" -> "Tabby: Completion requests appear to take too much time"
                 "highCompletionTimeoutRate" -> "Tabby: Most completion requests timed out"
                 else -> "Tabby: Issues exist"
               }
+            } else {
+              when (state.settings.completionTriggerMode) {
+                ApplicationSettingsState.TriggerMode.AUTOMATIC -> {
+                  icon = AllIcons.Actions.Checked
+                  tooltip = "Tabby: Automatic code completion is enabled"
+                }
+
+                ApplicationSettingsState.TriggerMode.MANUAL -> {
+                  if (state.ongoingCompletion == null) {
+                    icon = AllIcons.General.ChevronRight
+                    tooltip = "Tabby: Standing by, press `Alt + \\` to trigger code completion."
+                  } else {
+                    icon = AnimatedIcon.Default()
+                    tooltip = "Tabby: Generating code completions"
+                  }
+                }
+              }
             }
+          }
+          Agent.Status.DISCONNECTED -> {
+            icon = AllIcons.General.Error
+            tooltip = "Tabby: Cannot connect to Server, please check settings"
+          }
+          Agent.Status.UNAUTHORIZED -> {
+            icon = AllIcons.General.Warning
+            tooltip = "Tabby: Authorization required, click to continue"
           }
         }
         invokeLater {

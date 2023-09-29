@@ -22,17 +22,7 @@
         <h2 id="demo">Demo</h2>
         <p>Try our online demo <a href="https://tabby.tabbyml.com/playground/">here</a>.</p>
         <h2 id="requirements">Requirements</h2>
-        Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> 16.0+ installed and added into <code>PATH</code> enviroment variable. </p>
-        <h2 id="get-started">Get Started</h2>
-        <ol>
-        <li>
-            Set up the Tabby server: you can get a Tabby Cloud hosted server <a href="https://app.tabbyml.com">here</a>, or build your self-hosted Tabby server following <a href="https://tabby.tabbyml.com/docs/installation/">this guide</a>.<br/>
-            <b>Note:</b> Tabby Cloud is currently in beta. Join our <a href="https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA">Slack community</a> and ask in Tabby Cloud channel to get a beta invite.
-        </li>
-        <li>Open the settings page <code>Settings &gt; Editor &gt; Tabby</code>, or click the <code>Tabby</code> status bar item and <code>Open Settings...</code>. Fill in the server endpoint URL to connect the plugin to your Tabby server. The status bar item will show a checked icon if the connection is successful.</li>
-        <li>Once setup is complete, Tabby will provide inline suggestions automatically, and you can accept suggestions by just pressing the <code>Tab</code> key.</li>
-        <li>You can find more actions and hotkey in the IDE tools menu <code>Code &gt; Tabby</code>.</li>
-        </ol>
+        Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> v18+ installed and added into <code>PATH</code> environment variable. </p>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -93,8 +83,8 @@
                     text="Check Issue Detail..."
                     description="Show detail information for current issue.">
             </action>
-            <action id="Tabby.ToggleAutoCompletionEnabled"
-                    class="com.tabbyml.intellijtabby.actions.ToggleAutoCompletionEnabled">
+            <action id="Tabby.ToggleInlineCompletionTriggerMode"
+                    class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode">
             </action>
             <action id="Tabby.OpenSettings"
                     class="com.tabbyml.intellijtabby.actions.OpenSettings"

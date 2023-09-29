@@ -8,6 +8,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.util.messages.MessageBusConnection
+import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 
 class EditorListener : EditorFactoryListener {
   private val logger = Logger.getInstance(EditorListener::class.java)
@@ -16,14 +17,17 @@ class EditorListener : EditorFactoryListener {
   override fun editorCreated(event: EditorFactoryEvent) {
     val editor = event.editor
     val editorManager = editor.project?.let { FileEditorManager.getInstance(it) } ?: return
-    val completionScheduler = service<CompletionScheduler>()
+    val settings = service<ApplicationSettingsState>()
+    val completionProvider = service<CompletionProvider>()
 
     editor.caretModel.addCaretListener(object : CaretListener {
       override fun caretPositionChanged(event: CaretEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          completionScheduler.scheduled?.let {
-            if (it.editor != editor || it.offset != editor.caretModel.primaryCaret.offset) {
-              completionScheduler.clear()
+          completionProvider.ongoingCompletion.value.let {
+            if (it != null && it.editor == editor && it.offset == editor.caretModel.primaryCaret.offset) {
+              // keep ongoing completion
+            } else {
+              completionProvider.clear()
             }
           }
         }
@@ -33,8 +37,10 @@ class EditorListener : EditorFactoryListener {
     editor.document.addDocumentListener(object : DocumentListener {
       override fun documentChanged(event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor) {
-          val offset = event.offset + event.newFragment.length
-          completionScheduler.schedule(editor, offset)
+          if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
+            val offset = event.offset + event.newFragment.length
+            completionProvider.provideCompletion(editor, offset)
+          }
         }
       }
     })
@@ -42,10 +48,10 @@ class EditorListener : EditorFactoryListener {
     editor.project?.messageBus?.connect()?.let {
       it.subscribe(
         FileEditorManagerListener.FILE_EDITOR_MANAGER,
-        object: FileEditorManagerListener {
+        object : FileEditorManagerListener {
           override fun selectionChanged(event: FileEditorManagerEvent) {
             logger.info("FileEditorManagerListener selectionChanged.")
-            completionScheduler.clear()
+            completionProvider.clear()
           }
         }
       )
@@ -54,9 +60,6 @@ class EditorListener : EditorFactoryListener {
   }
 
   override fun editorReleased(event: EditorFactoryEvent) {
-    messagesConnection[event.editor]?.let {
-      it.disconnect()
-      it.dispose()
-    }
+    messagesConnection[event.editor]?.disconnect()
   }
 }
