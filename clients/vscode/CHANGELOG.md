@@ -1,3 +1,9 @@
+## 0.6.1
+
+### Fixes:
+
+- Reduced the frequency of event submissions for anonymous usage tracking.
+
 ## 0.6.0
 
 ### Features:

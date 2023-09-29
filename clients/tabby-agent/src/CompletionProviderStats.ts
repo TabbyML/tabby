@@ -20,7 +20,10 @@ class Average {
     this.quantity += 1;
   }
 
-  mean(): number {
+  mean(): number | undefined {
+    if (this.quantity === 0) {
+      return undefined;
+    }
     return this.sum / this.quantity;
   }
 

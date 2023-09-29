@@ -18,7 +18,8 @@ export class AnonymousUsageLogger {
       : `${process.version} ${process.platform} ${require("os").arch()} ${require("os").release()}`,
   };
   private sessionProperties: Record<string, any> = {};
-  private pendingUserProperties: Record<string, any> = {};
+  private userProperties: Record<string, any> = {};
+  private userPropertiesUpdated = false;
   private emittedUniqueEvent: string[] = [];
   private dataStore: DataStore | null = null;
   private anonymousId: string;
@@ -68,7 +69,8 @@ export class AnonymousUsageLogger {
    * Set properties which will be bind to the user.
    */
   setUserProperties(key: string, value: any) {
-    setProperty(this.pendingUserProperties, key, value);
+    setProperty(this.userProperties, key, value);
+    this.userPropertiesUpdated = true;
   }
 
   async uniqueEvent(event: string, data: { [key: string]: any } = {}) {
@@ -90,9 +92,9 @@ export class AnonymousUsageLogger {
       ...this.sessionProperties,
       ...data,
     };
-    if (Object.keys(this.pendingUserProperties).length > 0) {
-      properties["$set"] = this.pendingUserProperties;
-      this.pendingUserProperties = {};
+    if (this.userPropertiesUpdated) {
+      properties["$set"] = this.userProperties;
+      this.userPropertiesUpdated = false;
     }
     try {
       await this.anonymousUsageTrackingApi.POST("/usage", {
