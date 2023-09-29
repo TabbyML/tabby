@@ -11,7 +11,7 @@ const exampleMessages = [
   {
     heading: 'Explain how to parse email address',
     message: 'How to parse email address with regex'
-  },
+  }
 ]
 
 export function EmptyScreen({ setInput }: Pick<UseChatHelpers, 'setInput'>) {

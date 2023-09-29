@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { CodeBlock } from '@/components/ui/codeblock'
 import { MemoizedReactMarkdown } from '@/components/markdown'
 import { IconUser } from '@/components/ui/icons'
-import Image from "next/image"
+import Image from 'next/image'
 import { ChatMessageActions } from '@/components/chat-message-actions'
 
 export interface ChatMessageProps {
@@ -81,5 +81,13 @@ export function ChatMessage({ message, ...props }: ChatMessageProps) {
 }
 
 function IconTabby() {
-  return <Image style={{borderRadius: 4}} src="https://avatars.githubusercontent.com/u/125617854?s=128&v=4" alt="tabby" width="128" height="128" />
+  return (
+    <Image
+      style={{ borderRadius: 4 }}
+      src="https://avatars.githubusercontent.com/u/125617854?s=128&v=4"
+      alt="tabby"
+      width="128"
+      height="128"
+    />
+  )
 }

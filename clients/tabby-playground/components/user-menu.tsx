@@ -34,7 +34,8 @@ export function UserMenu({ user }: UserMenuProps) {
                 className="w-6 h-6 transition-opacity duration-300 rounded-full select-none ring-1 ring-zinc-100/10 hover:opacity-80"
                 src={user?.image ? `${user.image}&s=60` : ''}
                 alt={user.name ?? 'Avatar'}
-                height={48} width={48}
+                height={48}
+                width={48}
               />
             ) : (
               <div className="flex items-center justify-center text-xs font-medium uppercase rounded-full select-none h-7 w-7 shrink-0 bg-muted/50 text-muted-foreground">

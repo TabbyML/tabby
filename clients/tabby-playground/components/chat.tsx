@@ -8,7 +8,7 @@ import { ChatPanel } from '@/components/chat-panel'
 import { EmptyScreen } from '@/components/empty-screen'
 import { ChatScrollAnchor } from '@/components/chat-scroll-anchor'
 import { toast } from 'react-hot-toast'
-import { usePatchFetch } from "@/lib/hooks/use-patch-fetch"
+import { usePatchFetch } from '@/lib/hooks/use-patch-fetch'
 
 export interface ChatProps extends React.ComponentProps<'div'> {
   initialMessages?: Message[]
@@ -17,20 +17,28 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 
 export function Chat({ id, initialMessages, className }: ChatProps) {
   usePatchFetch()
-  
-  const { messages, append, reload, stop, isLoading, input, setInput, setMessages } =
-    useChat({
-      initialMessages,
-      id,
-      body: {
-        id,
-      },
-      onResponse(response) {
-        if (response.status === 401) {
-          toast.error(response.statusText)
-        }
+
+  const {
+    messages,
+    append,
+    reload,
+    stop,
+    isLoading,
+    input,
+    setInput,
+    setMessages
+  } = useChat({
+    initialMessages,
+    id,
+    body: {
+      id
+    },
+    onResponse(response) {
+      if (response.status === 401) {
+        toast.error(response.statusText)
       }
-    })
+    }
+  })
   if (messages.length > 2) {
     setMessages(messages.slice(messages.length - 2, messages.length))
   }

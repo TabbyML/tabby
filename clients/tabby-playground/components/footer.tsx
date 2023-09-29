@@ -12,8 +12,8 @@ export function FooterText({ className, ...props }: React.ComponentProps<'p'>) {
       )}
       {...props}
     >
-      <ExternalLink href="https://tabby.tabbyml.com">Tabby</ExternalLink>, an opensource, self-hosted AI coding assistant
-      .
+      <ExternalLink href="https://tabby.tabbyml.com">Tabby</ExternalLink>, an
+      opensource, self-hosted AI coding assistant .
     </p>
   )
 }
