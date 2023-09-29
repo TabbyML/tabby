@@ -15,29 +15,6 @@ static size_t N_BATCH = 512;
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
-std::vector<llama_token> tokenize(struct llama_context * ctx, const std::string & text, size_t max_input_length, bool add_bos) {
-    const struct llama_model* model = llama_get_model(ctx);
-    // upper limit for the number of tokens
-    int n_tokens = max_input_length;
-    std::vector<llama_token> result(n_tokens);
-    n_tokens = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos);
-    if (n_tokens < 0) {
-        result.resize(-n_tokens);
-        int check = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos);
-        GGML_ASSERT(check == -n_tokens);
-
-        int start = check - max_input_length;
-        GGML_ASSERT(start >= 0);
-        result = std::vector<llama_token>(result.begin() + start, result.end());
-        if (add_bos) {
-          result[0] = llama_token_bos(ctx);
-        }
-    } else {
-        result.resize(n_tokens);
-    }
-    return result;
-}
-
 class TextInferenceEngineImpl : public TextInferenceEngine {
  public:
   TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
