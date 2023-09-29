@@ -11,10 +11,10 @@ import { Header } from '@/components/header'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Next.js AI Chatbot',
-    template: `%s - Next.js AI Chatbot`
+    default: 'Tabby Playground',
+    template: `%s - Tabby Playground`
   },
-  description: 'An AI-powered chatbot template built with Next.js and Vercel.',
+  description: 'Tabby, an opensource, self-hosted AI coding assistant.',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: 'white' },
     { media: '(prefers-color-scheme: dark)', color: 'black' }
