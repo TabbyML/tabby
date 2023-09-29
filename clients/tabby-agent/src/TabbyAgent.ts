@@ -70,7 +70,6 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
     this.submitStatsTimer = setInterval(async () => {
       await this.submitStats();
-      this.logger.debug("Stats submitted");
     }, TabbyAgent.submitStatsInterval);
   }
 
@@ -185,8 +184,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
 
   private async submitStats() {
     const stats = this.completionProviderStats.stats();
-    await this.anonymousUsageLogger.event("AgentStats", { stats, config: this.config.completion });
-    this.completionProviderStats.reset();
+    if (stats.completion_request.count > 0) {
+      await this.anonymousUsageLogger.event("AgentStats", { stats });
+      this.completionProviderStats.reset();
+      this.logger.debug({ stats }, "Stats submitted");
+    }
   }
 
   private async post<T extends Parameters<typeof this.api.POST>[0]>(
