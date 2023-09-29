@@ -21,18 +21,12 @@ impl Default for StopWords {
 }
 
 impl StopWords {
-    pub fn create_condition(
+    pub fn create_incremental_decoding(
         &self,
         tokenizer: Arc<Tokenizer>,
-        stop_words: &'static Vec<&'static str>,
-    ) -> StopWordsCondition {
-        StopWordsCondition::new(tokenizer, self.get_re(stop_words))
-    }
-
-    pub fn create_incremental_decoding(&self,
-        tokenizer: Arc<Tokenizer>,
         input_token_ids: &[u32],
-        stop_words: &'static Vec<&'static str>) -> IncrementalDecoding {
+        stop_words: &'static Vec<&'static str>,
+    ) -> IncrementalDecoding {
         IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
     }
 
@@ -60,34 +54,6 @@ fn create_stop_regex(stop_words: &[&str]) -> Regex {
     Regex::new(&regex_string).unwrap()
 }
 
-pub struct StopWordsCondition {
-    tokenizer: Arc<Tokenizer>,
-    stop_re: Option<Regex>,
-    reversed_output_text: String,
-}
-
-impl StopWordsCondition {
-    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>) -> Self {
-        Self {
-            tokenizer,
-            stop_re,
-            reversed_output_text: String::new(),
-        }
-    }
-
-    pub fn next_token(&mut self, token_id: u32) -> bool {
-        if let Some(re) = &self.stop_re {
-            let token = self.tokenizer.decode(&[token_id], false).unwrap();
-            let mut new_token = reverse(&token.as_str());
-            new_token.push_str(&self.reversed_output_text);
-            self.reversed_output_text = new_token;
-            re.find(&self.reversed_output_text).is_some()
-        } else {
-            false
-        }
-    }
-}
-
 pub struct IncrementalDecoding {
     tokenizer: Arc<Tokenizer>,
     stop_re: Option<Regex>,
@@ -98,23 +64,26 @@ pub struct IncrementalDecoding {
 
 impl IncrementalDecoding {
     pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>, input_token_ids: &[u32]) -> Self {
-        let text = tokenizer.decode(input_token_ids, /* skip_special_token = */ true)
-                .expect("Cannot decode token from tokenizer.");
+        let text = tokenizer
+            .decode(input_token_ids, /* skip_special_token = */ true)
+            .expect("Cannot decode token from tokenizer.");
         Self {
             tokenizer,
             stop_re,
             token_ids: input_token_ids.to_owned(),
-            text
+            text,
         }
     }
 
     pub fn next_token(&mut self, token_id: u32) -> Option<String> {
         self.token_ids.push(token_id);
-        let text = self.tokenizer.decode(&self.token_ids, /* skip_special_token = */ true)
-                        .expect("Cannot decode token from tokenizer.")
-                        .as_bytes()
-                        .to_vec();
-        let text : String = unsafe { String::from_utf8_unchecked(text) };
+        let text = self
+            .tokenizer
+            .decode(&self.token_ids, /* skip_special_token = */ true)
+            .expect("Cannot decode token from tokenizer.")
+            .as_bytes()
+            .to_vec();
+        let text: String = unsafe { String::from_utf8_unchecked(text) };
         let reversed_text = reverse(&text.as_str());
 
         if let Some(re) = &self.stop_re {

@@ -4,7 +4,7 @@ use async_stream::stream;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
-use stop_words::{StopWords, StopWordsCondition};
+use stop_words::{IncrementalDecoding, StopWords};
 use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 use tokenizers::tokenizer::Tokenizer;
 use tokio::sync::mpsc::{channel, Sender};
@@ -70,20 +70,20 @@ pub struct CTranslate2EngineOptions {
 }
 
 pub struct InferenceContext {
-    sender: Sender<u32>,
-    stop_condition: StopWordsCondition,
+    sender: Sender<String>,
+    decoding: IncrementalDecoding,
     cancel: CancellationToken,
 }
 
 impl InferenceContext {
     fn new(
-        sender: Sender<u32>,
-        stop_condition: StopWordsCondition,
+        sender: Sender<String>,
+        decoding: IncrementalDecoding,
         cancel: CancellationToken,
     ) -> Self {
         InferenceContext {
             sender,
-            stop_condition,
+            decoding,
             cancel,
         }
     }
@@ -133,12 +133,12 @@ impl TextGeneration for CTranslate2Engine {
             let cancel_for_inference = cancel.clone();
             let _guard = cancel.drop_guard();
 
-            let stop_condition = self
+            let decoding = self
                 .stop_words
-                .create_condition(self.tokenizer.clone(), options.stop_words);
+                .create_incremental_decoding(self.tokenizer.clone(), encoding.get_ids(), options.stop_words);
 
-            let (sender, mut receiver) = channel::<u32>(8);
-            let context = InferenceContext::new(sender, stop_condition, cancel_for_inference);
+            let (sender, mut receiver) = channel::<String>(8);
+            let context = InferenceContext::new(sender, decoding, cancel_for_inference);
             tokio::task::spawn(async move {
                 let context = Box::new(context);
                 engine.inference(
@@ -150,8 +150,7 @@ impl TextGeneration for CTranslate2Engine {
                     );
             });
 
-            while let Some(next_token_id) = receiver.recv().await {
-                let text = self.tokenizer.decode(&[next_token_id], true).unwrap();
+            while let Some(text) = receiver.recv().await {
                 yield text;
             }
         };
@@ -174,10 +173,12 @@ fn inference_callback(
     token_id: u32,
     _token: String,
 ) -> bool {
-    let _ = context.sender.blocking_send(token_id);
     if context.cancel.is_cancelled() {
         true
+    } else if let Some(new_text) = context.decoding.next_token(token_id) {
+        let _ = context.sender.blocking_send(new_text);
+        false
     } else {
-        context.stop_condition.next_token(token_id)
+        true
     }
 }
