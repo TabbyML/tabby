@@ -30,6 +30,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "lib/patch-fetch.js"  ],
   "exclude": ["node_modules"]
 }
