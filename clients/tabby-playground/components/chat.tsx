@@ -18,7 +18,7 @@ export interface ChatProps extends React.ComponentProps<'div'> {
 export function Chat({ id, initialMessages, className }: ChatProps) {
   usePatchFetch()
   
-  const { messages, append, reload, stop, isLoading, input, setInput } =
+  const { messages, append, reload, stop, isLoading, input, setInput, setMessages } =
     useChat({
       initialMessages,
       id,
@@ -31,6 +31,9 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
         }
       }
     })
+  if (messages.length > 2) {
+    setMessages(messages.slice(messages.length - 2, messages.length))
+  }
   return (
     <>
       <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>
