@@ -15,11 +15,11 @@ mod ffi {
 
         type TextInferenceEngine;
 
-        fn create_engine(model_path: &str) -> SharedPtr<TextInferenceEngine>;
+        fn create_engine(model_path: &str) -> UniquePtr<TextInferenceEngine>;
 
-        fn start(&self, input_token_ids: &[u32]);
-        fn step(&self) -> u32;
-        fn end(&self);
+        fn start(self: Pin<&mut TextInferenceEngine>, input_token_ids: &[u32]);
+        fn step(self: Pin<&mut TextInferenceEngine>) -> u32;
+        fn end(self: Pin<&mut TextInferenceEngine>);
 
         fn eos_token(&self) -> u32;
     }
@@ -35,7 +35,7 @@ pub struct LlamaEngineOptions {
 }
 
 pub struct LlamaEngine {
-    engine: Mutex<cxx::SharedPtr<ffi::TextInferenceEngine>>,
+    engine: Mutex<cxx::UniquePtr<ffi::TextInferenceEngine>>,
     tokenizer: Arc<Tokenizer>,
     decoding_factory: DecodingFactory,
 }
@@ -65,15 +65,16 @@ impl TextGeneration for LlamaEngine {
         let encoding = self.tokenizer.encode(prompt, true).unwrap();
 
         let s = stream! {
-            let engine = self.engine.lock().await;
+            let mut engine = self.engine.lock().await;
+            let mut engine = engine.as_mut().unwrap();
             let eos_token = engine.eos_token();
 
             let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
-            engine.start(input_token_ids);
+            engine.as_mut().start(input_token_ids);
             let mut decoding = self.decoding_factory.create(self.tokenizer.clone(), input_token_ids, &options.stop_words, options.static_stop_words);
             let mut n_remains = options.max_decoding_length ;
             while n_remains > 0 {
-                let next_token_id = engine.step();
+                let next_token_id = engine.as_mut().step();
                 if next_token_id == eos_token {
                     break;
                 }
