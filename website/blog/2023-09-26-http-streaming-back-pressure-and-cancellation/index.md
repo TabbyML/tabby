@@ -242,6 +242,6 @@ app.post("/v1/completions", async (req, res) => {
 
 ## That's it
 
-We would love for you to join our Slack community! Please feel free to reach out to us on [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) - we have channels for discussing all aspects of the product and tech, and everyone is welcome to join the conversation.
+We would love to invite to join our Slack community! Please feel free to reach out to us on [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) - we have channels for discussing all aspects of the product and tech, and everyone is welcome to join the conversation.
 
-Happy hacking : )
+Happy hacking 😁💪🏻
