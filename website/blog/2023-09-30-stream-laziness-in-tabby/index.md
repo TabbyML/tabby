@@ -60,12 +60,15 @@ async function client() {
     // we know our stream is infinite, so there's no need to check `done`.
     const { value } = await reader.read();
     console.log(`read ${value}`);
+    await sleep(10ms);
   }
 }
 
 server(llm());
 client();
 ```
+
+In this example, we are creating an async generator to mimic a LLM that produces string tokens. We then create an HTTP endpoint that wraps the generator, as well as a client that reads values from the HTTP stream. It's important to note that our generator logs `producing ${i}`, and our client logs `read ${value}`. The LLM inference could take an arbitrary amount of time to complete, simulated by a 1000ms sleep in the generator.
 
 ## Stream Laziness
 
