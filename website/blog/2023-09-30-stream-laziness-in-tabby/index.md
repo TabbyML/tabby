@@ -50,7 +50,7 @@ function server(llm) {
   app.listen(8080);
 }
 
-async function consumer() {
+async function client() {
   const resp = await fetch('http://localhost:8080');
 
   // Read values from our stream
@@ -64,12 +64,12 @@ async function consumer() {
 }
 
 server(llm());
-consumer();
+client();
 ```
 
 ## Stream Laziness
 
-If you were to run this program, you'd notice something interesting. We'll observe the LLM continuing to output `producing ${i}` even after the consumer has finished reading three times. This might seem obvious, given that the LLM is generating an infinite stream of integers. However, it represents a problem: our server must maintain an ever-expanding queue of items that have been pushed in but not pulled out.
+If you were to run this program, you'd notice something interesting. We'll observe the LLM continuing to output `producing ${i}` even after the client has finished reading three times. This might seem obvious, given that the LLM is generating an infinite stream of integers. However, it represents a problem: our server must maintain an ever-expanding queue of items that have been pushed in but not pulled out.
 
 Moreover, the workload involved in creating the stream is typically both expensive and time-consuming, such as computation workload on the GPU. But what if the client aborts the in-flight request due to a network issue or other intended behaviors?
 
