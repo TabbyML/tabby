@@ -8,11 +8,11 @@ use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptio
 use tracing::instrument;
 use utoipa::ToSchema;
 
-pub struct GenerateState {
+pub struct ChatState {
     engine: Arc<Box<dyn TextGeneration>>,
 }
 
-impl GenerateState {
+impl ChatState {
     pub fn new(engine: Arc<Box<dyn TextGeneration>>) -> Self {
         Self { engine }
     }
@@ -22,63 +22,42 @@ impl GenerateState {
 #[schema(example=json!({
     "prompt": "# Dijkstra'\''s shortest path algorithm in Python (4 spaces indentation) + complexity analysis:\n\n",
 }))]
-pub struct GenerateRequest {
+pub struct ChatCompletionRequest {
     prompt: String,
     stop_words: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct GenerateResponse {
+pub struct ChatCompletionResponse {
     text: String,
 }
 
 #[utoipa::path(
     post,
-    path = "/v1beta/generate",
-    request_body = GenerateRequest,
-    operation_id = "generate",
+    path = "/v1beta/chat/completions",
+    request_body = ChatCompletionRequest,
+    operation_id = "chat_completions",
     tag = "v1beta",
     responses(
-        (status = 200, description = "Success", body = GenerateResponse, content_type = "application/json"),
+        (status = 200, description = "Success", body = ChatCompletionResponse, content_type = "application/jsonstream"),
     )
 )]
 #[instrument(skip(state, request))]
-pub async fn generate(
-    State(state): State<Arc<GenerateState>>,
-    Json(request): Json<GenerateRequest>,
-) -> impl IntoResponse {
-    let (prompt, options) = parse_request(request);
-    Json(GenerateResponse {
-        text: state.engine.generate(&prompt, options).await,
-    })
-}
-
-#[utoipa::path(
-    post,
-    path = "/v1beta/generate_stream",
-    request_body = GenerateRequest,
-    operation_id = "generate_stream",
-    tag = "v1beta",
-    responses(
-        (status = 200, description = "Success", body = GenerateResponse, content_type = "application/jsonstream"),
-    )
-)]
-#[instrument(skip(state, request))]
-pub async fn generate_stream(
-    State(state): State<Arc<GenerateState>>,
-    Json(request): Json<GenerateRequest>,
+pub async fn completions(
+    State(state): State<Arc<ChatState>>,
+    Json(request): Json<ChatCompletionRequest>,
 ) -> impl IntoResponse {
     let (prompt, options) = parse_request(request);
     let s = stream! {
         for await text in state.engine.generate_stream(&prompt, options).await {
-            yield GenerateResponse { text }
+            yield ChatCompletionResponse { text }
         }
     };
 
     StreamBodyAs::json_nl(s)
 }
 
-fn parse_request(request: GenerateRequest) -> (String, TextGenerationOptions) {
+fn parse_request(request: ChatCompletionRequest) -> (String, TextGenerationOptions) {
     let mut builder = TextGenerationOptionsBuilder::default();
 
     builder
