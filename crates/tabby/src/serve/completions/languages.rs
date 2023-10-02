@@ -12,7 +12,6 @@ lazy_static! {
         "\n\n          ",
         "\n\n            ",
         "\n\n              ",
-        "\n\n",
         "\n\n\t",
         "\n\n\t\t",
         "\n\n\t\t\t",

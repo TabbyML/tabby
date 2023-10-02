@@ -121,3 +121,17 @@ impl IncrementalDecoding {
         Some(new_text.to_owned())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_it_should_not_match() {
+        let stop_words = vec!["\n\n", "\n\n  "];
+        let re = create_stop_regex(&stop_words);
+        let text = reverse("void write_u32(std::uint32_t val) const {\n        write_raw(&val, sizeof(val));\n    }\n\n    ~llama_file() {\n        if (fp) {\n            std::fclose(fp);\n        }\n    }\n};\n\nvoid");
+        let matched = re.find(&text).is_some();
+        assert!(!matched);
+    }
+}
