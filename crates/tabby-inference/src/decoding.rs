@@ -24,35 +24,16 @@ impl Default for DecodingFactory {
 }
 
 impl DecodingFactory {
-    pub fn create(
+    pub fn create_incremental_decoding(
         &self,
         tokenizer: Arc<Tokenizer>,
         input_token_ids: &[u32],
-        stop_words: &Vec<String>,
-        static_stop_words: &'static Vec<&'static str>,
+        stop_words: &'static Vec<&'static str>,
     ) -> IncrementalDecoding {
-        IncrementalDecoding::new(
-            tokenizer,
-            vec![
-                self.get_static_re(static_stop_words),
-                self.get_re(stop_words),
-            ]
-            .into_iter()
-            .flatten()
-            .collect(),
-            input_token_ids,
-        )
+        IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
     }
 
-    fn get_re(&self, stop_words: &Vec<String>) -> Option<Regex> {
-        if !stop_words.is_empty() {
-            Some(create_stop_regex(stop_words))
-        } else {
-            None
-        }
-    }
-
-    fn get_static_re(&self, stop_words: &'static Vec<&'static str>) -> Option<Regex> {
+    fn get_re(&self, stop_words: &'static Vec<&'static str>) -> Option<Regex> {
         if stop_words.is_empty() {
             None
         } else {
@@ -67,8 +48,8 @@ impl DecodingFactory {
     }
 }
 
-fn create_stop_regex<T: AsRef<str>>(stop_words: &[T]) -> Regex {
-    let tokens: Vec<String> = stop_words.iter().map(|x| reverse(x.as_ref())).collect();
+fn create_stop_regex(stop_words: &[&str]) -> Regex {
+    let tokens: Vec<String> = stop_words.iter().map(|x| reverse(*x)).collect();
 
     // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
@@ -78,7 +59,7 @@ fn create_stop_regex<T: AsRef<str>>(stop_words: &[T]) -> Regex {
 
 pub struct IncrementalDecoding {
     tokenizer: Arc<Tokenizer>,
-    stop_re: Vec<Regex>,
+    stop_re: Option<Regex>,
 
     token_ids: Vec<u32>,
     prefix_offset: usize,
@@ -88,7 +69,7 @@ pub struct IncrementalDecoding {
 }
 
 impl IncrementalDecoding {
-    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Vec<Regex>, input_token_ids: &[u32]) -> Self {
+    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>, input_token_ids: &[u32]) -> Self {
         let text = tokenizer
             .decode(input_token_ids, /* skip_special_token = */ true)
             .expect("Cannot decode token from tokenizer.");
@@ -129,7 +110,8 @@ impl IncrementalDecoding {
 
         if !new_text.is_empty() {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
-            for re in &self.stop_re {
+
+            if let Some(re) = &self.stop_re {
                 if re.find(&self.reversed_text).is_some() {
                     return None;
                 }
