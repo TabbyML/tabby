@@ -1,7 +1,7 @@
+mod chat;
 mod completions;
 mod engine;
 mod events;
-mod generate;
 mod health;
 mod playground;
 
@@ -42,15 +42,15 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "https://playground.app.tabbyml.com", description = "Playground server"),
     ),
-    paths(events::log_event, completions::completion, generate::generate, generate::generate_stream, health::health),
+    paths(events::log_event, completions::completions, chat::completions, health::health),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
         completions::CompletionResponse,
         completions::Segments,
         completions::Choice,
-        generate::GenerateRequest,
-        generate::GenerateResponse,
+        chat::ChatCompletionRequest,
+        chat::ChatCompletionResponse,
         health::HealthState,
         health::Version,
     ))
@@ -105,12 +105,11 @@ pub enum ComputeType {
 
 #[derive(Args)]
 pub struct ServeArgs {
-    /// Model id for `/completion` API endpoint.
+    /// Model id for `/completions` API endpoint.
     #[clap(long)]
     model: String,
 
-    /// Model id for `/generate` and `/generate_stream` API endpoints.
-    /// If not set, `model` will be loaded for the purpose.
+    /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     instruct_model: Option<String>,
 
@@ -193,21 +192,14 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         )
         .route(
             "/v1/completions",
-            routing::post(completions::completion).with_state(Arc::new(
+            routing::post(completions::completions).with_state(Arc::new(
                 completions::CompletionState::new(engine.clone(), prompt_template, config),
             )),
         )
         .route(
-            "/v1beta/generate",
-            routing::post(generate::generate).with_state(Arc::new(generate::GenerateState::new(
-                instruct_engine.clone(),
-            ))),
-        )
-        .route(
-            "/v1beta/generate_stream",
-            routing::post(generate::generate_stream).with_state(Arc::new(
-                generate::GenerateState::new(instruct_engine.clone()),
-            )),
+            "/v1beta/chat/completions",
+            routing::post(chat::completions)
+                .with_state(Arc::new(chat::ChatState::new(instruct_engine.clone()))),
         )
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())

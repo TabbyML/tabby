@@ -71,7 +71,7 @@ pub struct CompletionResponse {
     )
 )]
 #[instrument(skip(state, request))]
-pub async fn completion(
+pub async fn completions(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
