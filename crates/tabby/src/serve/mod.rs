@@ -14,7 +14,10 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{config::Config, usage};
+use tabby_common::{
+    config::{Config, SwaggerConfig},
+    usage,
+};
 use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
@@ -158,8 +161,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     info!("Starting server, this might takes a few minutes...");
 
-    let doc = add_localhost_server(ApiDoc::openapi(), args.port);
-    let doc = add_proxy_server(doc, config.swagger.server_url.clone());
+    let mut doc = ApiDoc::openapi();
+    doc.override_doc(args, &config.swagger);
+
     let app = Router::new()
         .merge(api_router(args, config))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
@@ -259,42 +263,6 @@ fn start_heartbeat(args: &ServeArgs) {
     });
 }
 
-fn add_localhost_server(doc: utoipa::openapi::OpenApi, port: u16) -> utoipa::openapi::OpenApi {
-    let mut doc = doc;
-    if let Some(servers) = doc.servers.as_mut() {
-        servers.push(
-            ServerBuilder::new()
-                .url(format!("http://localhost:{}", port))
-                .description(Some("Local server"))
-                .build(),
-        );
-    }
-
-    doc
-}
-
-fn add_proxy_server(
-    doc: utoipa::openapi::OpenApi,
-    server_url: Option<String>,
-) -> utoipa::openapi::OpenApi {
-    if server_url.is_none() {
-        return doc;
-    }
-
-    let server_url: String = server_url.unwrap();
-    let mut doc = doc;
-    if let Some(servers) = doc.servers.as_mut() {
-        servers.push(
-            ServerBuilder::new()
-                .url(server_url)
-                .description(Some("Swagger Server"))
-                .build(),
-        );
-    }
-
-    doc
-}
-
 async fn download_model(model: &str, device: &Device) {
     let downloader = Downloader::new(model, /* prefer_local_file= */ true);
     let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
@@ -305,4 +273,40 @@ async fn download_model(model: &str, device: &Device) {
     };
 
     download_result.unwrap_or_else(handler);
+}
+
+trait OpenApiOverride {
+    fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig);
+}
+
+impl OpenApiOverride for utoipa::openapi::OpenApi {
+    fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig) {
+        if let Some(servers) = self.servers.as_mut() {
+            servers.push(
+                ServerBuilder::new()
+                    .url(format!("http://localhost:{}", args.port))
+                    .description(Some("Local server"))
+                    .build(),
+            );
+
+            if let Some(server_url) = &config.server_url {
+                servers.push(
+                    ServerBuilder::new()
+                        .url(server_url)
+                        .description(Some("Swagger Server"))
+                        .build(),
+                );
+            }
+        }
+
+        if args.chat_model.is_none() {
+            self.paths.paths.remove("/v1beta/chat/completions");
+
+            if let Some(components) = self.components.as_mut() {
+                components.schemas.remove("ChatCompletionRequest");
+                components.schemas.remove("ChatCompletionChunk");
+                components.schemas.remove("Message");
+            }
+        }
+    }
 }

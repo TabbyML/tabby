@@ -4,7 +4,7 @@ import { TabbyStream } from '@/lib/tabby-stream'
 import { useEffect } from 'react'
 
 const serverUrl =
-  process.env.NEXT_PUBLIC_TABBY_SERVER_URL || 'http://localhost:8080'
+  process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
 
 export function usePatchFetch() {
   useEffect(() => {
