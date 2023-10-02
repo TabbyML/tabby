@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use regex::Regex;
+use regex::RegexSet;
 use tokenizers::tokenizer::Tokenizer;
 
 pub struct DecodingFactory {
-    stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
+    stop_regex_cache: DashMap<&'static Vec<&'static str>, RegexSet>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -33,7 +33,7 @@ impl DecodingFactory {
         IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
     }
 
-    fn get_re(&self, stop_words: &'static Vec<&'static str>) -> Option<Regex> {
+    fn get_re(&self, stop_words: &'static Vec<&'static str>) -> Option<RegexSet> {
         if stop_words.is_empty() {
             None
         } else {
@@ -48,18 +48,19 @@ impl DecodingFactory {
     }
 }
 
-fn create_stop_regex(stop_words: &[&str]) -> Regex {
-    let tokens: Vec<String> = stop_words.iter().map(|x| reverse(*x)).collect();
-
+fn create_stop_regex(stop_words: &[&str]) -> RegexSet {
     // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
-    let regex_string = r"(?m)\A".to_owned() + &tokens.join("|");
-    Regex::new(&regex_string).unwrap()
+    let tokens: Vec<String> = stop_words
+        .iter()
+        .map(|x| r"(?m)\A".to_owned() + &reverse(*x))
+        .collect();
+    RegexSet::new(tokens).expect("Failed to create regex set")
 }
 
 pub struct IncrementalDecoding {
     tokenizer: Arc<Tokenizer>,
-    stop_re: Option<Regex>,
+    stop_re: Option<RegexSet>,
 
     token_ids: Vec<u32>,
     prefix_offset: usize,
@@ -69,7 +70,11 @@ pub struct IncrementalDecoding {
 }
 
 impl IncrementalDecoding {
-    pub fn new(tokenizer: Arc<Tokenizer>, stop_re: Option<Regex>, input_token_ids: &[u32]) -> Self {
+    pub fn new(
+        tokenizer: Arc<Tokenizer>,
+        stop_re: Option<RegexSet>,
+        input_token_ids: &[u32],
+    ) -> Self {
         let text = tokenizer
             .decode(input_token_ids, /* skip_special_token = */ true)
             .expect("Cannot decode token from tokenizer.");
@@ -112,12 +117,25 @@ impl IncrementalDecoding {
             self.reversed_text = reverse(new_text) + &self.reversed_text;
 
             if let Some(re) = &self.stop_re {
-                if re.find(&self.reversed_text).is_some() {
+                if re.is_match(&self.reversed_text) {
                     return None;
                 }
             }
         }
 
         Some(new_text.to_owned())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_it_should_not_match() {
+        let stop_words = vec!["\n\n", "\n\n  "];
+        let re = create_stop_regex(&stop_words);
+        let text = reverse("void write_u32(std::uint32_t val) const {\n        write_raw(&val, sizeof(val));\n    }\n\n    ~llama_file() {\n        if (fp) {\n            std::fclose(fp);\n        }\n    }\n};\n\nvoid");
+        assert!(!re.is_match(&text))
     }
 }
