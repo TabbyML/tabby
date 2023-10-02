@@ -123,7 +123,6 @@ std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), model_params);
 
   if (!model) {
-    fprintf(stderr , "%s: error: unable to load model\n" , __func__);
     return nullptr;
   }
 

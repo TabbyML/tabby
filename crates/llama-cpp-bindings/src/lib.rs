@@ -42,8 +42,12 @@ pub struct LlamaEngine {
 
 impl LlamaEngine {
     pub fn create(options: LlamaEngineOptions) -> Self {
+        let engine = create_engine(&options.model_path);
+        if engine.is_null() {
+            panic!("Unable to load model: {}", options.model_path);
+        }
         LlamaEngine {
-            engine: Mutex::new(create_engine(&options.model_path)),
+            engine: Mutex::new(engine),
             tokenizer: Arc::new(Tokenizer::from_file(&options.tokenizer_path).unwrap()),
             decoding_factory: DecodingFactory::default(),
         }
