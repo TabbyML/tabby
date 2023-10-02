@@ -9,12 +9,11 @@ use axum::{
     Json,
 };
 use axum_streams::StreamBodyAs;
+use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
 use utoipa::ToSchema;
-
-use prompt::ChatPromptBuilder;
 
 pub struct ChatState {
     engine: Arc<Box<dyn TextGeneration>>,
@@ -50,7 +49,7 @@ pub struct Message {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct ChatCompletionChunk {
-    content: String
+    content: String,
 }
 
 #[utoipa::path(
