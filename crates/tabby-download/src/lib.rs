@@ -93,28 +93,22 @@ async fn download_model_file(
     let filepath = ModelDir::new(model_id).path_string(path);
 
     // Cache hit.
-    let local_file_ready = if prefer_local_file {
-        if let Some(local_cache_key) = local_cache_key {
-            if local_cache_key == "404" {
-                true
-            } else {
-                fs::metadata(&filepath).is_ok()
-            }
-        } else {
-            false
-        }
+    let local_file_ready = if let Some(local_cache_key) = local_cache_key {
+        local_cache_key == "404" || fs::metadata(&filepath).is_ok()
     } else {
         false
     };
 
-    if !local_file_ready {
-        let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
-        let etag = Retry::spawn(strategy, || {
-            download_file(registry, &url, &filepath, local_cache_key, !required)
-        })
-        .await?;
-
+    let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
+    let download_job = Retry::spawn(strategy, || {
+        download_file(registry, &url, &filepath, local_cache_key, !required)
+    });
+    if let Ok(etag) = download_job.await {
         cache_info.set_local_cache_key(path, &etag).await;
+    } else if prefer_local_file && local_file_ready {
+        // Do nothing.
+    } else {
+        return Err(anyhow!("Failed to fetch url {}", url));
     }
 
     cache_info.save(model_id)?;
