@@ -15,15 +15,12 @@ export function usePatchFetch() {
       }
 
       const { messages } = JSON.parse(options!.body as string)
-      const res = await fetch(`${serverUrl}/v1beta/generate_stream`, {
+      const res = await fetch(`${serverUrl}/v1beta/chat/completions`, {
         ...options,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt: messagesToPrompt(messages)
-        })
       })
 
       const stream = CohereStream(res, undefined)
@@ -32,8 +29,3 @@ export function usePatchFetch() {
   }, [])
 }
 
-function messagesToPrompt(messages: Message[]) {
-  const instruction = messages[messages.length - 1].content
-  const prompt = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n${instruction}\n\n### Response:`
-  return prompt
-}
