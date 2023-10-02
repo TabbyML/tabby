@@ -1,3 +1,5 @@
+mod prompt;
+
 use std::sync::Arc;
 
 use async_stream::stream;
@@ -7,7 +9,7 @@ use axum::{
     Json,
 };
 use axum_streams::StreamBodyAs;
-use minijinja::{context, Environment};
+use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
@@ -91,28 +93,4 @@ fn parse_request(
         state.prompt_builder.build(&request.messages),
         builder.build().unwrap(),
     )
-}
-
-struct ChatPromptBuilder {
-    env: Environment<'static>,
-}
-
-impl ChatPromptBuilder {
-    fn new(prompt_template: String) -> Self {
-        let mut env = Environment::new();
-        env.add_template_owned("prompt", prompt_template)
-            .expect("Failed to compile template");
-
-        Self { env }
-    }
-
-    fn build(&self, messages: &[Message]) -> String {
-        self.env
-            .get_template("prompt")
-            .unwrap()
-            .render(context!(
-                    messages => messages
-            ))
-            .expect("Failed to evaluate")
-    }
 }
