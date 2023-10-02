@@ -50,6 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::Segments,
         completions::Choice,
         chat::ChatCompletionRequest,
+        chat::Message,
         chat::ChatCompletionResponse,
         health::HealthState,
         health::Version,
@@ -111,7 +112,7 @@ pub struct ServeArgs {
 
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
-    instruct_model: Option<String>,
+    chat_model: Option<String>,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -148,8 +149,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     if args.device != Device::ExperimentalHttp {
         download_model(&args.model, &args.device).await;
-        if let Some(instruct_model) = &args.instruct_model {
-            download_model(instruct_model, &args.device).await;
+        if let Some(chat_model) = &args.chat_model {
+            download_model(chat_model, &args.device).await;
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -159,11 +160,17 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let doc = add_localhost_server(ApiDoc::openapi(), args.port);
     let doc = add_proxy_server(doc, config.swagger.server_url.clone());
-    let app = api_router(args, config)
+    let app = Router::new()
+        .merge(api_router(args, config))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
-        .route("/playground", routing::get(playground::handler))
-        .route("/playground/*path", routing::get(playground::handler))
         .fallback(fallback());
+
+    let app = if args.chat_model.is_some() {
+        app.route("/playground", routing::get(playground::handler))
+            .route("/playground/*path", routing::get(playground::handler))
+    } else {
+        app
+    };
 
     let address = SocketAddr::from((Ipv4Addr::UNSPECIFIED, args.port));
     info!("Listening at {}", address);
@@ -176,15 +183,26 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
-    let (engine, prompt_template) = create_engine(&args.model, args);
-    let engine = Arc::new(engine);
-    let instruct_engine = if let Some(instruct_model) = &args.instruct_model {
-        Arc::new(create_engine(instruct_model, args).0)
-    } else {
-        engine.clone()
+    let completion_state = {
+        let (engine, prompt_template) = create_engine(&args.model, args);
+        let engine = Arc::new(engine);
+        let state = completions::CompletionState::new(engine.clone(), prompt_template, config);
+        Arc::new(state)
     };
 
-    Router::new()
+    let chat_state = if let Some(chat_model) = &args.chat_model {
+        let (engine, prompt_template) = create_engine(chat_model, args);
+        let Some(prompt_template) = prompt_template else {
+            panic!("Chat model requires specifying prompt template");
+        };
+        let engine = Arc::new(engine);
+        let state = chat::ChatState::new(engine, prompt_template);
+        Some(Arc::new(state))
+    } else {
+        None
+    };
+
+    let router = Router::new()
         .route("/v1/events", routing::post(events::log_event))
         .route(
             "/v1/health",
@@ -192,15 +210,19 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
         )
         .route(
             "/v1/completions",
-            routing::post(completions::completions).with_state(Arc::new(
-                completions::CompletionState::new(engine.clone(), prompt_template, config),
-            )),
-        )
-        .route(
+            routing::post(completions::completions).with_state(completion_state),
+        );
+
+    let router = if let Some(chat_state) = chat_state {
+        router.route(
             "/v1beta/chat/completions",
-            routing::post(chat::completions)
-                .with_state(Arc::new(chat::ChatState::new(instruct_engine.clone()))),
+            routing::post(chat::completions).with_state(chat_state),
         )
+    } else {
+        router
+    };
+
+    router
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
 }
