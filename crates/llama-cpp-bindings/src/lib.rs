@@ -18,7 +18,7 @@ mod ffi {
         fn create_engine(model_path: &str) -> UniquePtr<TextInferenceEngine>;
 
         fn start(self: Pin<&mut TextInferenceEngine>, input_token_ids: &[u32]);
-        fn step(self: Pin<&mut TextInferenceEngine>) -> u32;
+        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<u32>;
         fn end(self: Pin<&mut TextInferenceEngine>);
 
         fn eos_token(&self) -> u32;
@@ -75,10 +75,12 @@ impl TextGeneration for LlamaEngine {
 
             let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
             engine.as_mut().start(input_token_ids);
-            let mut decoding = self.decoding_factory.create(self.tokenizer.clone(), input_token_ids, &options.stop_words, options.static_stop_words);
+            let mut decoding = self.decoding_factory.create_incremental_decoding(self.tokenizer.clone(), input_token_ids, options.stop_words);
             let mut n_remains = options.max_decoding_length ;
             while n_remains > 0 {
-                let next_token_id = engine.as_mut().step();
+                let Ok(next_token_id) = engine.as_mut().step() else {
+                    panic!("Failed to eval");
+                };
                 if next_token_id == eos_token {
                     break;
                 }

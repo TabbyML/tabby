@@ -39,9 +39,6 @@ export function Chat({ id, initialMessages, className }: ChatProps) {
       }
     }
   })
-  if (messages.length > 2) {
-    setMessages(messages.slice(messages.length - 2, messages.length))
-  }
   return (
     <>
       <div className={cn('pb-[200px] pt-4 md:pt-10', className)}>

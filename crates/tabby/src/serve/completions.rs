@@ -71,7 +71,7 @@ pub struct CompletionResponse {
     )
 )]
 #[instrument(skip(state, request))]
-pub async fn completion(
+pub async fn completions(
     State(state): State<Arc<CompletionState>>,
     Json(request): Json<CompletionRequest>,
 ) -> Result<Json<CompletionResponse>, StatusCode> {
@@ -80,7 +80,7 @@ pub async fn completion(
         .max_input_length(1024 + 512)
         .max_decoding_length(128)
         .sampling_temperature(0.1)
-        .static_stop_words(get_stop_words(&language))
+        .stop_words(get_stop_words(&language))
         .build()
         .unwrap();
 

@@ -67,7 +67,7 @@ impl VertexAIEngine {
 impl TextGeneration for VertexAIEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
         let stop_sequences: Vec<String> = options
-            .static_stop_words
+            .stop_words
             .iter()
             .map(|x| x.to_string())
             // vertex supports at most 5 stop sequence.

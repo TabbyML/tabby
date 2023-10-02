@@ -1,5 +1,6 @@
 import { type Message } from 'ai/react'
-import { CohereStream, StreamingTextResponse } from 'ai'
+import { StreamingTextResponse } from 'ai'
+import { TabbyStream } from '@/lib/tabby-stream'
 import { useEffect } from 'react'
 
 const serverUrl =
@@ -15,25 +16,17 @@ export function usePatchFetch() {
       }
 
       const { messages } = JSON.parse(options!.body as string)
-      const res = await fetch(`${serverUrl}/v1beta/generate_stream`, {
+      const res = await fetch(`${serverUrl}/v1beta/chat/completions`, {
         ...options,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          prompt: messagesToPrompt(messages)
-        })
       })
 
-      const stream = CohereStream(res, undefined)
+      const stream = TabbyStream(res, undefined)
       return new StreamingTextResponse(stream)
     }
   }, [])
 }
 
-function messagesToPrompt(messages: Message[]) {
-  const instruction = messages[messages.length - 1].content
-  const prompt = `Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\n${instruction}\n\n### Response:`
-  return prompt
-}

@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 pub struct HealthState {
     model: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    instruct_model: Option<String>,
+    chat_model: Option<String>,
     device: String,
     compute_type: String,
     arch: String,
@@ -32,7 +32,7 @@ impl HealthState {
 
         Self {
             model: args.model.clone(),
-            instruct_model: args.instruct_model.clone(),
+            chat_model: args.chat_model.clone(),
             device: args.device.to_string(),
             compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),

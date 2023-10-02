@@ -10,7 +10,8 @@ namespace llama {
 TextInferenceEngine::~TextInferenceEngine() {}
 
 namespace {
-static size_t N_BATCH = 512;
+static size_t N_BATCH = 512;  // # per batch inference.
+static size_t N_CTX = 4096;   // # max kv history.
 
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
@@ -59,7 +60,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     return std::distance(logits, std::max_element(logits, logits + n_vocab));
   }
 
-  bool eval(llama_token* data, size_t size, bool reset) {
+  void eval(llama_token* data, size_t size, bool reset) {
     if (reset) {
       n_past_ = 0;
     }
@@ -76,12 +77,10 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     auto* ctx = ctx_.get();
     llama_kv_cache_tokens_rm(ctx, n_past_, -1);
     if (llama_decode(ctx, batch_)) {
-      fprintf(stderr, "%s : failed to eval\n", __func__);
-      return false;
+      throw std::runtime_error("Failed to eval");
     }
 
     n_past_ += size;
-    return true;
   }
 
   size_t n_past_;
@@ -127,7 +126,7 @@ std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
   }
 
   llama_context_params ctx_params = llama_context_default_params();
-  ctx_params.n_ctx = 2048;
+  ctx_params.n_ctx = N_CTX;
   ctx_params.n_batch = N_BATCH;
   llama_context* ctx = llama_new_context_with_model(model, ctx_params);
 
