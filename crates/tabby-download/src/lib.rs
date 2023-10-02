@@ -135,9 +135,8 @@ async fn download_file(
         return Err(anyhow!(format!("Invalid url: {}", url)));
     }
 
-    // Check remote cache key matches only if local file is ready.
     let remote_cache_key = registry.build_cache_key(url).await?;
-    if Some(remote_cache_key.as_str()) == local_cache_key {
+    if local_cache_key == Some(remote_cache_key.as_str()) {
         return Ok(remote_cache_key);
     }
 
