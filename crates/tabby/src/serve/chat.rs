@@ -9,11 +9,12 @@ use axum::{
     Json,
 };
 use axum_streams::StreamBodyAs;
-use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::instrument;
 use utoipa::ToSchema;
+
+use prompt::ChatPromptBuilder;
 
 pub struct ChatState {
     engine: Arc<Box<dyn TextGeneration>>,
@@ -48,8 +49,8 @@ pub struct Message {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
-pub struct ChatCompletionResponse {
-    text: String,
+pub struct ChatCompletionChunk {
+    content: String
 }
 
 #[utoipa::path(
@@ -59,7 +60,7 @@ pub struct ChatCompletionResponse {
     operation_id = "chat_completions",
     tag = "v1beta",
     responses(
-        (status = 200, description = "Success", body = ChatCompletionResponse, content_type = "application/jsonstream"),
+        (status = 200, description = "Success", body = ChatCompletionChunk, content_type = "application/jsonstream"),
         (status = 405, description = "When chat model is not specified, the endpoint will returns 405 Method Not Allowed"),
     )
 )]
@@ -70,8 +71,8 @@ pub async fn completions(
 ) -> Response {
     let (prompt, options) = parse_request(&state, request);
     let s = stream! {
-        for await text in state.engine.generate_stream(&prompt, options).await {
-            yield ChatCompletionResponse { text }
+        for await content in state.engine.generate_stream(&prompt, options).await {
+            yield ChatCompletionChunk { content }
         }
     };
 

@@ -1,5 +1,6 @@
 import { type Message } from 'ai/react'
-import { CohereStream, StreamingTextResponse } from 'ai'
+import { StreamingTextResponse } from 'ai'
+import { TabbyStream } from '@/lib/tabby-stream'
 import { useEffect } from 'react'
 
 const serverUrl =
@@ -23,7 +24,7 @@ export function usePatchFetch() {
         },
       })
 
-      const stream = CohereStream(res, undefined)
+      const stream = TabbyStream(res, undefined)
       return new StreamingTextResponse(stream)
     }
   }, [])

@@ -51,7 +51,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::Choice,
         chat::ChatCompletionRequest,
         chat::Message,
-        chat::ChatCompletionResponse,
+        chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
     ))
