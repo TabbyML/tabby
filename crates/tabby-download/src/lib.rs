@@ -86,18 +86,17 @@ async fn download_model_file(
     // Create url.
     let url = registry.build_url(model_id, path);
 
-    // Get cache key.
-    let local_cache_key = cache_info.local_cache_key(path);
-
     // Create destination path.
     let filepath = ModelDir::new(model_id).path_string(path);
 
-    // Cache hit.
-    let local_file_ready = if let Some(local_cache_key) = local_cache_key {
-        local_cache_key == "404" || fs::metadata(&filepath).is_ok()
-    } else {
-        false
-    };
+    // Get cache key.
+    let local_cache_key = cache_info.local_cache_key(path);
+
+    // Check local file ready.
+    let local_cache_key = local_cache_key
+        // local cache key is only valid if == 404 or local file exists.
+        // FIXME(meng): use sha256 to validate file is ready.
+        .filter(|&local_cache_key| local_cache_key == "404" || fs::metadata(&filepath).is_ok());
 
     let strategy = ExponentialBackoff::from_millis(100).map(jitter).take(2);
     let download_job = Retry::spawn(strategy, || {
@@ -105,7 +104,7 @@ async fn download_model_file(
     });
     if let Ok(etag) = download_job.await {
         cache_info.set_local_cache_key(path, &etag).await;
-    } else if prefer_local_file && local_file_ready {
+    } else if prefer_local_file && local_cache_key.is_some() {
         // Do nothing.
     } else {
         return Err(anyhow!("Failed to fetch url {}", url));
@@ -136,11 +135,10 @@ async fn download_file(
         return Err(anyhow!(format!("Invalid url: {}", url)));
     }
 
+    // Check remote cache key matches only if local file is ready.
     let remote_cache_key = registry.build_cache_key(url).await?;
-    if let Some(local_cache_key) = local_cache_key {
-        if local_cache_key == remote_cache_key {
-            return Ok(remote_cache_key);
-        }
+    if Some(remote_cache_key.as_str()) == local_cache_key {
+        return Ok(remote_cache_key);
     }
 
     let total_size = res
