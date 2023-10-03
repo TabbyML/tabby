@@ -1,4 +1,4 @@
-# [Unreleased]
+# v0.3.0 [Unreleased]
 
 ## 🚀 Features
 ## 🧰 Fixes and improvements
