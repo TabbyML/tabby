@@ -690,7 +690,7 @@ dependencies = [
 
 [[package]]
 name = "ctranslate2-bindings"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -1651,7 +1651,7 @@ checksum = "ef53942eb7bf7ff43a617b3e2c1c4a5ecf5944a7c1bc12d7ee39bbb15e5c1519"
 
 [[package]]
 name = "llama-cpp-bindings"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3086,7 +3086,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.1.1"
+version = "0.2.0-rc.0"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -3131,7 +3131,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "chrono",
  "filenamify",
@@ -3146,7 +3146,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3165,7 +3165,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3178,7 +3178,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.1.0"
+version = "0.2.0-rc.0"
 dependencies = [
  "anyhow",
  "file-rotate",
