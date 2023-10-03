@@ -12,7 +12,7 @@ use axum_streams::StreamBodyAs;
 use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
-use tracing::instrument;
+use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 pub struct ChatState {
@@ -69,6 +69,7 @@ pub async fn completions(
     Json(request): Json<ChatCompletionRequest>,
 ) -> Response {
     let (prompt, options) = parse_request(&state, request);
+    debug!("PROMPT: {}", prompt);
     let s = stream! {
         for await content in state.engine.generate_stream(&prompt, options).await {
             yield ChatCompletionChunk { content }
