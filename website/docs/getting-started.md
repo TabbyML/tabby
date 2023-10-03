@@ -13,7 +13,7 @@ Tabby is an open-source, self-hosted AI coding assistant. With Tabby, every team
 
 | Section                                     | Goal                                                                        |
 | ------------------------------------------- | --------------------------------------------------------------------------- |
-| [🔧 Installation](./installation)           | Everything deployment: Docker, Homebrew, Hugging Face Space and many others |
+| [📚 Installation](./installation)           | Everything deployment: Docker, Homebrew, Hugging Face Space and many others |
 | [💻 IDE / Editor Extensions](./extensions)  | IDE/Editor extensions that can be seamlessly integrated with Tabby          |
 | [🧑‍🔬 Models Directory](./models)             | A curated list of models that we recommend using with Tabby                 |
 | [🏷️ API References](/api)                   | API Documentation                                                           |
