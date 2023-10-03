@@ -244,10 +244,6 @@ fn fallback() -> routing::MethodRouter {
 }
 
 fn valid_args(args: &ServeArgs) {
-    if args.device == Device::Cuda && args.num_replicas_per_device != 1 {
-        fatal!("CUDA device only supports 1 replicas per device");
-    }
-
     if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
         fatal!("CPU device only supports device indices = [0]");
