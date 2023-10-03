@@ -21,12 +21,18 @@ fn get_param(params: &Value, key: &str) -> String {
 pub fn create_engine(
     model: &str,
     args: &crate::serve::ServeArgs,
-) -> (Box<dyn TextGeneration>, Option<String>) {
+) -> (Box<dyn TextGeneration>, EngineInfo) {
     if args.device != super::Device::ExperimentalHttp {
         let model_dir = get_model_dir(model);
         let metadata = read_metadata(&model_dir);
         let engine = create_local_engine(args, &model_dir, &metadata);
-        (engine, metadata.prompt_template)
+        (
+            engine,
+            EngineInfo {
+                prompt_template: metadata.prompt_template,
+                chat_template: metadata.chat_template,
+            },
+        )
     } else {
         let params: Value = serdeconv::from_json_str(model).expect("Failed to parse model string");
 
@@ -39,7 +45,13 @@ pub fn create_engine(
                 api_endpoint.as_str(),
                 authorization.as_str(),
             ));
-            (engine, Some(VertexAIEngine::prompt_template()))
+            (
+                engine,
+                EngineInfo {
+                    prompt_template: Some(VertexAIEngine::prompt_template()),
+                    chat_template: None,
+                },
+            )
         } else if kind == "fastchat" {
             let model_name = get_param(&params, "model_name");
             let api_endpoint = get_param(&params, "api_endpoint");
@@ -49,11 +61,22 @@ pub fn create_engine(
                 model_name.as_str(),
                 authorization.as_str(),
             ));
-            (engine, Some(FastChatEngine::prompt_template()))
+            (
+                engine,
+                EngineInfo {
+                    prompt_template: Some(FastChatEngine::prompt_template()),
+                    chat_template: None,
+                },
+            )
         } else {
             fatal!("Only vertex_ai and fastchat are supported for http backend");
         }
     }
+}
+
+pub struct EngineInfo {
+    pub prompt_template: Option<String>,
+    pub chat_template: Option<String>,
 }
 
 #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
@@ -121,6 +144,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 struct Metadata {
     auto_model: String,
     prompt_template: Option<String>,
+    chat_template: Option<String>,
 }
 
 fn read_metadata(model_dir: &ModelDir) -> Metadata {

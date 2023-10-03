@@ -21,10 +21,10 @@ pub struct ChatState {
 }
 
 impl ChatState {
-    pub fn new(engine: Arc<Box<dyn TextGeneration>>, prompt_template: String) -> Self {
+    pub fn new(engine: Arc<Box<dyn TextGeneration>>, chat_template: String) -> Self {
         Self {
             engine,
-            prompt_builder: ChatPromptBuilder::new(prompt_template),
+            prompt_builder: ChatPromptBuilder::new(chat_template),
         }
     }
 }

@@ -25,7 +25,10 @@ use tracing::{info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::{engine::create_engine, health::HealthState};
+use self::{
+    engine::{create_engine, EngineInfo},
+    health::HealthState,
+};
 use crate::fatal;
 
 #[derive(OpenApi)]
@@ -188,19 +191,24 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let completion_state = {
-        let (engine, prompt_template) = create_engine(&args.model, args);
+        let (
+            engine,
+            EngineInfo {
+                prompt_template, ..
+            },
+        ) = create_engine(&args.model, args);
         let engine = Arc::new(engine);
         let state = completions::CompletionState::new(engine.clone(), prompt_template, config);
         Arc::new(state)
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, prompt_template) = create_engine(chat_model, args);
-        let Some(prompt_template) = prompt_template else {
+        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args);
+        let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
         let engine = Arc::new(engine);
-        let state = chat::ChatState::new(engine, prompt_template);
+        let state = chat::ChatState::new(engine, chat_template);
         Some(Arc::new(state))
     } else {
         None
