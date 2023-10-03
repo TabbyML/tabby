@@ -1,10 +1,10 @@
 # v0.3.0 [Unreleased]
 
-## 🚀 Features
-## 🧰 Fixes and improvements
+## Features
+## Fixes and improvements
 
 # v0.2.0 (10/03/2023)
-## 🚀 Features
+## Features
 ### Chat Model & Web Interface
 
 We have introduced a new argument, `--chat-model`, which allows you to specify the model for the chat playground located at http://localhost:8080/playground
@@ -24,7 +24,7 @@ Mainland Chinese users have been facing challenges accessing Hugging Face due to
 TABBY_REGISTRY=modelscope tabby download --model TabbyML/WizardCoder-1B
 ```
 
-## 🧰 Fixes and improvements
+## Fixes and improvements
 
 * Implemented more accurate UTF-8 incremental decoding in the [GitHub pull request](https://github.com/TabbyML/tabby/pull/491).
 * Fixed the stop words implementation by utilizing RegexSet to isolate the stop word group.
