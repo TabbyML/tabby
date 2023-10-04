@@ -4,11 +4,6 @@
 ## Fixes and improvements
 
 # v0.2.1 (10/03/2023)
-
-## Fixes and improvements
-* set default num_replicas_per_device for ctranslate2 backend to increase parallelism.
-
-# v0.2.0 (10/03/2023)
 ## Features
 ### Chat Model & Web Interface
 
@@ -34,3 +29,4 @@ TABBY_REGISTRY=modelscope tabby download --model TabbyML/WizardCoder-1B
 * Implemented more accurate UTF-8 incremental decoding in the [GitHub pull request](https://github.com/TabbyML/tabby/pull/491).
 * Fixed the stop words implementation by utilizing RegexSet to isolate the stop word group.
 * Improved model downloading logic; now Tabby will attempt to fetch the latest model version if there's a remote change, and the local cache key becomes stale.
+* set default num_replicas_per_device for ctranslate2 backend to increase parallelism.
