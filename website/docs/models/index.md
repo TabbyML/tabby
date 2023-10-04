@@ -25,6 +25,5 @@ To ensure optimal response quality, and given that latency requirements are not 
 
 | Model ID                                                                  |                                       License                                       |
 | ------------------------------------------------------------------------- | :---------------------------------------------------------------------------------: |
-| [TabbyML/WizardCoder-15B](https://huggingface.co/TabbyML/WizardCoder-15B) | [OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |
 | [TabbyML/Mistral-7B](https://huggingface.co/TabbyML/Mistral-7B)           |              [Apache 2.0](https://opensource.org/licenses/Apache-2.0)               |
 | [TabbyML/WizardCoder-3B](https://huggingface.co/TabbyML/WizardCoder-3B)   | [OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |
