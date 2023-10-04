@@ -30,7 +30,7 @@ To ensure optimal response quality, and given that latency requirements are not 
 
 ## Alternative Registry
 
-By default, Tabby utilizes the [Hugging Face organization](https://huggingface.co/TabbyML) as its model registry. Mainland Chinese users have encountered challenges accessing Hugging Face for various reasons. The Tabby team has established a mirrored at [modelscope]([https://www.modelscope.cn](https://www.modelscope.cn/organization/TabbyML)), which can be utilized using the following environment variable:
+By default, Tabby utilizes the [Hugging Face organization](https://huggingface.co/TabbyML) as its model registry. Mainland Chinese users have encountered challenges accessing Hugging Face for various reasons. The Tabby team has established a mirrored at [modelscope](https://www.modelscope.cn/organization/TabbyML), which can be utilized using the following environment variable:
 
 ```bash
 TABBY_REGISTRY=modelscope tabby serve --model TabbyML/StarCoder-1B
