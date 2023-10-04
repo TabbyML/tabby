@@ -3187,6 +3187,7 @@ dependencies = [
  "lazy_static",
  "serde",
  "serde-jsonlines",
+ "serde_json",
  "tabby-common",
  "tantivy",
  "temp_testdir",
