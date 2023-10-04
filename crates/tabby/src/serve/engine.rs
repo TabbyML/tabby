@@ -7,7 +7,6 @@ use serde_json::Value;
 use tabby_common::path::ModelDir;
 use tabby_inference::TextGeneration;
 
-use super::Device;
 use crate::fatal;
 
 fn get_param(params: &Value, key: &str) -> String {
@@ -108,28 +107,12 @@ fn create_ctranslate2_engine(
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
     let device = format!("{}", args.device);
-    let compute_type = format!("{}", args.compute_type);
-    let num_replicas_per_device = {
-        let num_cpus = std::thread::available_parallelism()
-            .expect("Failed to read # of cpu")
-            .get();
-        if args.device == Device::Cuda {
-            // When device is cuda, set parallelism to be number of thread.
-            num_cpus
-        } else {
-            // Otherwise, adjust the number based on threads per replica.
-            // https://github.com/OpenNMT/CTranslate2/blob/master/src/utils.cc#L77
-            std::cmp::max(num_cpus / 4, 1)
-        }
-    };
     let options = CTranslate2EngineOptionsBuilder::default()
         .model_path(model_dir.ctranslate2_dir())
         .tokenizer_path(model_dir.tokenizer_file())
         .device(device)
         .model_type(metadata.auto_model.clone())
         .device_indices(args.device_indices.clone())
-        .num_replicas_per_device(num_replicas_per_device)
-        .compute_type(compute_type)
         .build()
         .unwrap();
     Box::new(CTranslate2Engine::create(options))
