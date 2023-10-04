@@ -102,11 +102,11 @@ pub struct ServeArgs {
     device_indices: Vec<i32>,
 
     /// DEPRECATED: Do not use.
-    #[clap(long)]
+    #[clap(long, hide(true))]
     num_replicas_per_device: Option<usize>,
 
     /// DEPRECATED: Do not use.
-    #[clap(long)]
+    #[clap(long, hide(true))]
     compute_type: Option<String>,
 }
 
