@@ -1,7 +1,6 @@
-use std::{collections::HashMap, fs};
+use std::fs;
 
 use anyhow::Result;
-use lazy_static::lazy_static;
 use tabby_common::{config::Config, path::index_dir, SourceFile};
 use tantivy::{
     directory::MmapDirectory,
@@ -79,11 +78,6 @@ fn reduce_language_if_needed(language: &str) -> &str {
     } else {
         language
     }
-}
-
-lazy_static! {
-    static ref LANGUAGE_NAME_BLACKLIST: HashMap<&'static str, Vec<&'static str>> =
-        HashMap::from([("python", vec!["__init__"])]);
 }
 
 #[cfg(test)]
