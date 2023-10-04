@@ -27,9 +27,7 @@ mod ffi {
             model_path: &str,
             model_type: &str,
             device: &str,
-            compute_type: &str,
             device_indices: &[i32],
-            num_replicas_per_device: usize,
         ) -> SharedPtr<TextInferenceEngine>;
 
         fn inference(
@@ -65,10 +63,6 @@ pub struct CTranslate2EngineOptions {
     device: String,
 
     device_indices: Vec<i32>,
-
-    num_replicas_per_device: usize,
-
-    compute_type: String,
 }
 
 pub struct InferenceContext {
@@ -103,9 +97,7 @@ impl CTranslate2Engine {
             &options.model_path,
             &options.model_type,
             &options.device,
-            &options.compute_type,
             &options.device_indices,
-            options.num_replicas_per_device,
         );
 
         return Self {
