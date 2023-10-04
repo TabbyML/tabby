@@ -15,10 +15,11 @@ tokenizer.json
 
 This file provides meta information about the model. An example file appears as follows:
 
-```js
+```json
 {
     "auto_model": "AutoModelForCausalLM",
-    "prompt_template": "<PRE>{prefix}<SUF>{suffix}<MID>"
+    "prompt_template": "<PRE>{prefix}<SUF>{suffix}<MID>",
+    "chat_template":  "<s>{% for message in messages %}{% if message['role'] == 'user' %}{{ '[INST] ' + message['content'] + ' [/INST]' }}{% elif message['role'] == 'assistant' %}{{ message['content'] + '</s> ' }}{% endif %}{% endfor %}",
 }
 ```
 
@@ -29,6 +30,8 @@ The **auto_model** field can have one of the following values:
 The **prompt_template** field is optional. When present, it is assumed that the model supports [FIM inference](https://arxiv.org/abs/2207.14255).
 
 One example for the **prompt_template** is `<PRE>{prefix}<SUF>{suffix}<MID>`. In this format, `{prefix}` and `{suffix}` will be replaced with their corresponding values, and the entire prompt will be fed into the LLM.
+
+The **chat_template** field is optional. When it is present, it is assumed that the model supports an instruct/chat-style interaction, and can be passed to `--chat-model`.
 
 ### tokenizer.json
 This is the standard fast tokenizer file created using [Hugging Face Tokenizers](https://github.com/huggingface/tokenizers). Most Hugging Face models already come with it in repository.
