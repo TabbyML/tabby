@@ -3,6 +3,11 @@
 ## Features
 ## Fixes and improvements
 
+# v0.2.1 (10/03/2023)
+
+## Fixes and improvements
+* set default num_replicas_per_device for ctranslate2 backend to increase parallelism.
+
 # v0.2.0 (10/03/2023)
 ## Features
 ### Chat Model & Web Interface
