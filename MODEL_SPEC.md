@@ -45,6 +45,6 @@ ct2-transformers-converter --model ./ --output_dir ctranslate2 --quantization=fl
 *Note that the model itself must be compatible with ctranslate2.*
 
 ### ggml/
-This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine. Tabby utilizes ctranslate2 for inference on the `metal` device.
+This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine. Tabby utilizes ggml for inference on the `metal` device.
 
 Currently, only `q8_0.gguf` in this directory is in use. You can refer to the instructions in llama.cpp to learn how to acquire it.
