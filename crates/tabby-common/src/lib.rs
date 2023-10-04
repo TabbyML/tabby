@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 use serde_jsonlines::JsonLinesReader;
 
 #[derive(Serialize, Deserialize)]
-pub struct Document {
+pub struct SourceFile {
     pub git_url: String,
     pub filepath: String,
     pub content: String,
@@ -25,13 +25,13 @@ pub struct Document {
     pub tags: Vec<Tag>,
 }
 
-impl Document {
+impl SourceFile {
     pub fn all() -> Result<impl Iterator<Item = Self>, Error> {
         let iter = dataset_dir().read_dir()?.flat_map(|path| {
             let path = path.unwrap().path();
             let fp = BufReader::new(File::open(path).unwrap());
             let reader = JsonLinesReader::new(fp);
-            reader.read_all::<Document>().map(|x| x.unwrap())
+            reader.read_all::<SourceFile>().map(|x| x.unwrap())
         });
         Ok(iter)
     }

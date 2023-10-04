@@ -12,7 +12,7 @@ use serde_jsonlines::WriteExt;
 use tabby_common::{
     config::{Config, Repository},
     path::dataset_dir,
-    Document,
+    SourceFile,
 };
 use tracing::{error, info};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
@@ -41,7 +41,7 @@ impl RepositoryExt for Repository {
                 .to_owned();
             if let Ok(file_content) = read_to_string(entry.path()) {
                 info!("Building {:?}", relative_path);
-                let doc = Document {
+                let source_file = SourceFile {
                     git_url: self.git_url.clone(),
                     filepath: relative_path.display().to_string(),
                     max_line_length: metrics::max_line_length(&file_content),
@@ -51,7 +51,7 @@ impl RepositoryExt for Repository {
                     language,
                     content: file_content,
                 };
-                writer.write_json_lines([doc])?;
+                writer.write_json_lines([source_file])?;
             } else {
                 error!("Cannot read {:?}", relative_path);
             }
