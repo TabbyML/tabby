@@ -46,7 +46,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         license(name = "Apache 2.0", url="https://github.com/TabbyML/tabby/blob/main/LICENSE")
     ),
     servers(
-        (url = "https://playground.app.tabbyml.com", description = "Playground server"),
+        (url = "/", description = "Server"),
     ),
     paths(events::log_event, completions::completions, chat::completions, health::health),
     components(schemas(
@@ -290,13 +290,6 @@ trait OpenApiOverride {
 impl OpenApiOverride for utoipa::openapi::OpenApi {
     fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig) {
         if let Some(servers) = self.servers.as_mut() {
-            servers.push(
-                ServerBuilder::new()
-                    .url(format!("http://localhost:{}", args.port))
-                    .description(Some("Local server"))
-                    .build(),
-            );
-
             if let Some(server_url) = &config.server_url {
                 servers.push(
                     ServerBuilder::new()
