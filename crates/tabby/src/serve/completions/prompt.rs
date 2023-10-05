@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use lazy_static::lazy_static;
 use strfmt::strfmt;
 use tabby_common::path::index_dir;
@@ -186,14 +186,8 @@ impl IndexState {
             .reader_builder()
             .reload_policy(ReloadPolicy::OnCommit)
             .try_into()?;
-        let field_name = index
-            .schema()
-            .get_field("name")
-            .ok_or(anyhow!("Index doesn't have required field"))?;
-        let field_body = index
-            .schema()
-            .get_field("body")
-            .ok_or(anyhow!("Index doesn't have required field"))?;
+        let field_name = index.schema().get_field("name")?;
+        let field_body = index.schema().get_field("body")?;
         let query_parser = QueryParser::for_index(&index, vec![field_body]);
         Ok(Self {
             searcher: reader.searcher(),
