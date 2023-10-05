@@ -5,29 +5,54 @@ use tabby_common::{config::Config, path::index_dir, SourceFile};
 use tantivy::{
     directory::MmapDirectory,
     doc,
-    schema::{Schema, STORED, STRING, TEXT},
+    schema::{Schema, TextFieldIndexing, TextOptions, STORED, STRING},
+    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index,
 };
 
+// Magic numbers
+static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
+static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
+
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
+
+    let code_indexing_options = TextFieldIndexing::default()
+        .set_tokenizer("code")
+        .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
+    let code_options = TextOptions::default()
+        .set_indexing_options(code_indexing_options)
+        .set_stored();
 
     let field_git_url = builder.add_text_field("git_url", STRING | STORED);
     let field_filepath = builder.add_text_field("filepath", STRING | STORED);
     let field_language = builder.add_text_field("language", STRING | STORED);
     let field_name = builder.add_text_field("name", STRING | STORED);
     let field_kind = builder.add_text_field("kind", STRING | STORED);
-    let field_body = builder.add_text_field("body", TEXT | STORED);
+    let field_body = builder.add_text_field("body", code_options);
 
     let schema = builder.build();
 
     fs::create_dir_all(index_dir())?;
     let directory = MmapDirectory::open(index_dir())?;
     let index = Index::open_or_create(directory, schema)?;
+    let code_tokenizer = TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w*)").unwrap())
+        .filter(RemoveLongFilter::limit(40))
+        .build();
+
+    index.tokenizers().register("code", code_tokenizer);
     let mut writer = index.writer(10_000_000)?;
     writer.delete_all_documents()?;
 
     for file in SourceFile::all()? {
+        if file.max_line_length > MAX_LINE_LENGTH_THRESHOLD {
+            continue;
+        }
+
+        if file.avg_line_length > AVG_LINE_LENGTH_THRESHOLD {
+            continue;
+        }
+
         for doc in from_source_file(file) {
             writer.add_document(doc!(
                     field_git_url => doc.git_url,
@@ -141,8 +166,18 @@ mod tests {
 
         assert_eq!(docs[0].name, "ConstantLengthDataset");
         assert_eq!(docs[0].kind, "class");
+        assert!(
+            docs[0].body.starts_with("class ConstantLengthDataset"),
+            "body: {:?}",
+            docs[0].body
+        );
 
         assert_eq!(docs[1].name, "__init__");
         assert_eq!(docs[1].kind, "function");
+        assert!(
+            docs[1].body.starts_with("def __init__"),
+            "body: {:?}",
+            docs[1].body
+        );
     }
 }
