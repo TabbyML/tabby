@@ -77,11 +77,7 @@ pub struct IndexServer {
 }
 
 impl IndexServer {
-    pub fn new() -> Self {
-        Self::load().expect("Failed to load code state")
-    }
-
-    fn load() -> Result<Self> {
+    pub fn load() -> Result<Self> {
         let index = Index::open_in_dir(path::index_dir())?;
         index.register_tokenizer();
 

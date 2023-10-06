@@ -92,10 +92,6 @@ pub struct ServeArgs {
     #[clap(long)]
     chat_model: Option<String>,
 
-    /// When set to `true`, the search API route will be enabled.
-    #[clap(long, default_value_t = false)]
-    enable_search: bool,
-
     #[clap(long, default_value_t = 8080)]
     port: u16,
 
@@ -201,13 +197,18 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             routing::post(completions::completions).with_state(completion_state),
         );
 
-    let router = if args.enable_search {
-        router.route(
+    let router = match IndexServer::load() {
+        Ok(index_server) => router.route(
             "/v1beta/search",
-            routing::get(search::search).with_state(Arc::new(IndexServer::new())),
-        )
-    } else {
-        router
+            routing::get(search::search).with_state(Arc::new(index_server)),
+        ),
+        Err(err) => {
+            warn!(
+                "Load index failed due to `{}`, search interface will not be enabled",
+                err
+            );
+            router
+        }
     };
 
     let router = if let Some(chat_state) = chat_state {
