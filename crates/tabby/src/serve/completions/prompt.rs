@@ -1,11 +1,10 @@
-use std::{collections::HashMap, env, sync::Arc};
+use std::{env, sync::Arc};
 
-use lazy_static::lazy_static;
 use strfmt::strfmt;
 use tracing::{info, warn};
 
 use super::Segments;
-use crate::serve::search::IndexServer;
+use crate::serve::{completions::languages::get_language, search::IndexServer};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 512;
@@ -84,7 +83,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
         return prefix.to_owned();
     }
 
-    let comment_char = LANGUAGE_LINE_COMMENT_CHAR.get(language).unwrap();
+    let comment_char = get_language(language).line_comment;
     let mut lines: Vec<String> = vec![
         format!(
             "Below are some relevant {} snippets found in the repository:",
@@ -163,11 +162,6 @@ fn sanitize_text(text: &str) -> String {
     );
     let tokens: Vec<&str> = x.split(' ').filter(|x| x.len() > 5).collect();
     tokens.join(" ")
-}
-
-lazy_static! {
-    static ref LANGUAGE_LINE_COMMENT_CHAR: HashMap<&'static str, &'static str> =
-        HashMap::from([("python", "#"), ("rust", "//"),]);
 }
 
 #[cfg(test)]
