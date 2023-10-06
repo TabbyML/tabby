@@ -3142,6 +3142,7 @@ dependencies = [
  "serde",
  "serde-jsonlines",
  "serdeconv",
+ "tantivy",
  "tokio",
  "uuid 1.4.1",
 ]

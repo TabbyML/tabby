@@ -1,12 +1,16 @@
 use std::fs;
 
 use anyhow::Result;
-use tabby_common::{config::Config, path::index_dir, SourceFile};
+use tabby_common::{
+    config::Config,
+    index::{IndexExt, CODE_TOKENIZER},
+    path::index_dir,
+    SourceFile,
+};
 use tantivy::{
     directory::MmapDirectory,
     doc,
     schema::{Schema, TextFieldIndexing, TextOptions, STORED, STRING},
-    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index,
 };
 
@@ -18,7 +22,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
 
     let code_indexing_options = TextFieldIndexing::default()
-        .set_tokenizer("code")
+        .set_tokenizer(CODE_TOKENIZER)
         .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
     let code_options = TextOptions::default()
         .set_indexing_options(code_indexing_options)
@@ -36,11 +40,8 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
     fs::create_dir_all(index_dir())?;
     let directory = MmapDirectory::open(index_dir())?;
     let index = Index::open_or_create(directory, schema)?;
-    let code_tokenizer = TextAnalyzer::builder(RegexTokenizer::new(r"(?:\w*)").unwrap())
-        .filter(RemoveLongFilter::limit(40))
-        .build();
+    index.register_tokenizer();
 
-    index.tokenizers().register("code", code_tokenizer);
     let mut writer = index.writer(10_000_000)?;
     writer.delete_all_documents()?;
 

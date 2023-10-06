@@ -13,6 +13,7 @@ serde-jsonlines = { workspace = true }
 reqwest = { workspace = true, features = [ "json" ] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 uuid = { version = "1.4.1", features = ["v4"] }
+tantivy.workspace = true
 
 [features]
 testutils = []
