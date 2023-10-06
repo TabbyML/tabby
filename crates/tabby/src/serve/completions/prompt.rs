@@ -112,7 +112,13 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
 
     let commented_lines: Vec<String> = lines
         .iter()
-        .map(|x| format!("{} {}", comment_char, x))
+        .map(|x| {
+            if x.is_empty() {
+                comment_char.to_string()
+            } else {
+                format!("{} {}", comment_char, x)
+            }
+        })
         .collect();
     let comments = commented_lines.join("\n");
     format!("{}\n{}", comments, prefix)
@@ -334,14 +340,19 @@ def this_is_prefix():\n";
 
         let expected_built_prefix = "\
 # Below are some relevant python snippets found in the repository:
+#
 # == Snippet 1 ==
 # res_1 = invoke_function_1(n)
+#
 # == Snippet 2 ==
 # res_2 = invoke_function_2(n)
+#
 # == Snippet 3 ==
 # res_3 = invoke_function_3(n)
+#
 # == Snippet 4 ==
 # res_4 = invoke_function_4(n)
+#
 # == Snippet 5 ==
 # res_5 = invoke_function_5(n)
 '''
