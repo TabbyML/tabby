@@ -1,5 +1,6 @@
 pub mod config;
 pub mod events;
+pub mod index;
 pub mod path;
 pub mod usage;
 

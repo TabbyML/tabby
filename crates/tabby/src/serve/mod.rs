@@ -4,6 +4,7 @@ mod engine;
 mod events;
 mod health;
 mod playground;
+mod search;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -28,6 +29,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::{
     engine::{create_engine, EngineInfo},
     health::HealthState,
+    search::IndexServer,
 };
 use crate::fatal;
 
@@ -48,7 +50,7 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
     servers(
         (url = "/", description = "Server"),
     ),
-    paths(events::log_event, completions::completions, chat::completions, health::health),
+    paths(events::log_event, completions::completions, chat::completions, health::health, search::search),
     components(schemas(
         events::LogEventRequest,
         completions::CompletionRequest,
@@ -89,6 +91,10 @@ pub struct ServeArgs {
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     chat_model: Option<String>,
+
+    /// When set to `true`, the search API route will be enabled.
+    #[clap(long, default_value_t = false)]
+    enable_search: bool,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -194,6 +200,15 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             "/v1/completions",
             routing::post(completions::completions).with_state(completion_state),
         );
+
+    let router = if args.enable_search {
+        router.route(
+            "/v1beta/search",
+            routing::get(search::search).with_state(Arc::new(IndexServer::new())),
+        )
+    } else {
+        router
+    };
 
     let router = if let Some(chat_state) = chat_state {
         router.route(

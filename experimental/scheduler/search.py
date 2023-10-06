@@ -13,7 +13,7 @@ class Doc(NamedTuple):
         return Doc(
             name=doc["name"][0],
             body=doc["body"][0],
-            score=json["score"]
+            score=json["score"],
         )
 
 # force wide mode
@@ -22,7 +22,7 @@ st.set_page_config(layout="wide")
 query = st.text_input("Query")
 
 if query:
-    r = requests.get("http://localhost:3000/api", params=dict(q=query))
+    r = requests.get("http://localhost:8081/v1beta/search", params=dict(q=query))
     hits = r.json()["hits"]
     for x in hits:
         doc = Doc.from_json(x)
