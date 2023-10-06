@@ -6,7 +6,7 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::Config, events};
+use tabby_common::events;
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
@@ -130,7 +130,6 @@ impl CompletionState {
         engine: Arc<Box<dyn TextGeneration>>,
         index_server: Option<Arc<IndexServer>>,
         prompt_template: Option<String>,
-        _config: &Config,
     ) -> Self {
         Self {
             engine,

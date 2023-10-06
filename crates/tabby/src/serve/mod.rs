@@ -143,7 +143,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     doc.override_doc(args, &config.swagger);
 
     let app = Router::new()
-        .merge(api_router(args, config))
+        .merge(api_router(args))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(fallback());
 
@@ -164,7 +164,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config) -> Router {
+fn api_router(args: &ServeArgs) -> Router {
     let index_server = match IndexServer::load() {
         Ok(index_server) => Some(Arc::new(index_server)),
         Err(err) => {
@@ -185,7 +185,6 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             engine.clone(),
             index_server.clone(),
             prompt_template,
-            config,
         );
         Arc::new(state)
     };
