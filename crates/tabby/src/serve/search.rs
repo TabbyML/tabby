@@ -12,7 +12,7 @@ use tantivy::{
     collector::{Count, TopDocs},
     query::QueryParser,
     schema::Field,
-    DocAddress, Document, Index, IndexReader, Score,
+    DocAddress, Document, Index, IndexReader,
 };
 use tracing::instrument;
 use utoipa::{IntoParams, ToSchema};
@@ -37,7 +37,7 @@ pub struct SearchResponse {
 
 #[derive(Serialize, ToSchema)]
 pub struct Hit {
-    pub score: Score,
+    pub score: f32,
     pub doc: HitDocument,
     pub id: u32,
 }
@@ -140,7 +140,7 @@ impl IndexServer {
         Ok(SearchResponse { num_hits, hits })
     }
 
-    fn create_hit(&self, score: Score, doc: Document, doc_address: DocAddress) -> Hit {
+    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> Hit {
         Hit {
             score,
             doc: HitDocument {
