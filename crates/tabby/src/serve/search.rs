@@ -15,7 +15,7 @@ use tantivy::{
     DocAddress, Document, Index, IndexReader, Score,
 };
 use tracing::instrument;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::IntoParams;
 
 #[derive(Deserialize, IntoParams)]
 pub struct SearchQuery {
