@@ -11,8 +11,8 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
+use self::languages::get_language;
 use super::search::IndexServer;
-use crate::serve::completions::languages::get_language;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
