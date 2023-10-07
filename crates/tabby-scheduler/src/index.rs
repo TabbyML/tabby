@@ -17,7 +17,7 @@ use tantivy::{
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
-static MAX_LINES_THRESHOLD: usize = 15;
+static MAX_BODY_LINES_THRESHOLD: usize = 15;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
@@ -55,10 +55,6 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
             continue;
         }
 
-        if file.content.lines().collect::<Vec<_>>().len() > MAX_LINES_THRESHOLD {
-            continue;
-        }
-
         for doc in from_source_file(file) {
             writer.add_document(doc!(
                     field_git_url => doc.git_url,
@@ -87,19 +83,23 @@ struct IndexedDocument {
 }
 
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
-    file.tags.into_iter().map(move |tag| {
+    file.tags.into_iter().filter_map(move |tag| {
         let name = file.content.get(tag.name_range).unwrap().to_owned();
         let body = file.content.get(tag.range).unwrap().to_owned();
 
+        if body.lines().collect::<Vec<_>>().len() > MAX_BODY_LINES_THRESHOLD {
+            return None;
+        }
+
         let language = reduce_language_if_needed(&file.language).to_owned();
-        IndexedDocument {
+        Some(IndexedDocument {
             git_url: file.git_url.clone(),
             filepath: file.filepath.clone(),
             language,
             name,
             body,
             kind: tag.syntax_type_name,
-        }
+        })
     })
 }
 
