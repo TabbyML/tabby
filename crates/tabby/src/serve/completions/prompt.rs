@@ -143,7 +143,7 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
 
     for hit in serp.hits {
         if hit.score < SNIPPET_SCORE_THRESHOLD {
-            break
+            break;
         }
 
         let body = hit.doc.body;
