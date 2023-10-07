@@ -8,6 +8,7 @@ use crate::serve::{completions::languages::get_language, search::IndexServer};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 512;
+static SNIPPET_SCORE_THRESHOLD: f32 = 5.0;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
@@ -141,6 +142,10 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
     };
 
     for hit in serp.hits {
+        if hit.score < SNIPPET_SCORE_THRESHOLD {
+            break
+        }
+
         let body = hit.doc.body;
 
         if text.contains(&body) {
