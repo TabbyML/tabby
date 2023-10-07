@@ -131,7 +131,7 @@ mod tests {
                   {
                     "range": {
                       "start": 290,
-                      "end": 3094
+                      "end": 320
                     },
                     "name_range": {
                       "start": 296,
@@ -147,7 +147,7 @@ mod tests {
                   {
                     "range": {
                       "start": 953,
-                      "end": 1507
+                      "end": 970
                     },
                     "name_range": {
                       "start": 957,
