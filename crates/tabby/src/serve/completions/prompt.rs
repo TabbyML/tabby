@@ -160,7 +160,10 @@ fn sanitize_text(text: &str) -> String {
         |c: char| !c.is_ascii_digit() && !c.is_alphabetic() && c != '_' && c != '-',
         " ",
     );
-    let tokens: Vec<&str> = x.split(' ').filter(|x| x.len() > 5).collect();
+    let tokens: Vec<&str> = x
+        .split(' ')
+        .filter(|x| *x != "AND" && *x != "NOT" && *x != "OR" && x.len() > 5)
+        .collect();
     tokens.join(" ")
 }
 
