@@ -11,11 +11,11 @@ use tabby_common::{index::IndexExt, path};
 use tantivy::{
     collector::{Count, TopDocs},
     query::QueryParser,
-    schema::{Field, FieldType, NamedFieldDocument, Schema},
-    DocAddress, Document, Index, IndexReader, Score,
+    schema::Field,
+    DocAddress, Document, Index, IndexReader,
 };
 use tracing::instrument;
-use utoipa::IntoParams;
+use utoipa::{IntoParams, ToSchema};
 
 #[derive(Deserialize, IntoParams)]
 pub struct SearchQuery {
@@ -29,18 +29,27 @@ pub struct SearchQuery {
     offset: Option<usize>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SearchResponse {
-    q: String,
-    num_hits: usize,
-    hits: Vec<Hit>,
+    pub num_hits: usize,
+    pub hits: Vec<Hit>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct Hit {
-    score: Score,
-    doc: NamedFieldDocument,
-    id: u32,
+    pub score: f32,
+    pub doc: HitDocument,
+    pub id: u32,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct HitDocument {
+    pub body: String,
+    pub filepath: String,
+    pub git_url: String,
+    pub kind: String,
+    pub language: String,
+    pub name: String,
 }
 
 #[utoipa::path(
@@ -50,7 +59,7 @@ pub struct Hit {
     operation_id = "search",
     tag = "v1beta",
     responses(
-        (status = 200, description = "Success" , content_type = "application/json"),
+        (status = 200, description = "Success" , body = SearchResponse, content_type = "application/json"),
         (status = 405, description = "When code search is not enabled, the endpoint will returns 405 Method Not Allowed"),
     )
 )]
@@ -73,40 +82,41 @@ pub async fn search(
 pub struct IndexServer {
     reader: IndexReader,
     query_parser: QueryParser,
-    schema: Schema,
+
+    field_body: Field,
+    field_filepath: Field,
+    field_git_url: Field,
+    field_kind: Field,
+    field_language: Field,
+    field_name: Field,
 }
 
 impl IndexServer {
-    pub fn new() -> Self {
-        Self::load().expect("Failed to load code state")
-    }
-
-    fn load() -> Result<Self> {
+    pub fn load() -> Result<Self> {
         let index = Index::open_in_dir(path::index_dir())?;
         index.register_tokenizer();
 
         let schema = index.schema();
-        let default_fields: Vec<Field> = schema
-            .fields()
-            .filter(|&(_, field_entry)| match field_entry.field_type() {
-                FieldType::Str(ref text_field_options) => {
-                    text_field_options.get_indexing_options().is_some()
-                }
-                _ => false,
-            })
-            .map(|(field, _)| field)
-            .collect();
+        let field_body = schema.get_field("body").unwrap();
         let query_parser =
-            QueryParser::new(schema.clone(), default_fields, index.tokenizers().clone());
-        let reader = index.reader()?;
+            QueryParser::new(schema.clone(), vec![field_body], index.tokenizers().clone());
+        let reader = index
+            .reader_builder()
+            .reload_policy(tantivy::ReloadPolicy::OnCommit)
+            .try_into()?;
         Ok(Self {
             reader,
             query_parser,
-            schema,
+            field_body,
+            field_filepath: schema.get_field("filepath").unwrap(),
+            field_git_url: schema.get_field("git_url").unwrap(),
+            field_kind: schema.get_field("kind").unwrap(),
+            field_language: schema.get_field("language").unwrap(),
+            field_name: schema.get_field("name").unwrap(),
         })
     }
 
-    fn search(&self, q: &str, limit: usize, offset: usize) -> tantivy::Result<SearchResponse> {
+    pub fn search(&self, q: &str, limit: usize, offset: usize) -> tantivy::Result<SearchResponse> {
         let query = self
             .query_parser
             .parse_query(q)
@@ -127,18 +137,28 @@ impl IndexServer {
                 })
                 .collect()
         };
-        Ok(SearchResponse {
-            q: q.to_owned(),
-            num_hits,
-            hits,
-        })
+        Ok(SearchResponse { num_hits, hits })
     }
 
-    fn create_hit(&self, score: Score, doc: Document, doc_address: DocAddress) -> Hit {
+    fn create_hit(&self, score: f32, doc: Document, doc_address: DocAddress) -> Hit {
         Hit {
             score,
-            doc: self.schema.to_named_doc(&doc),
+            doc: HitDocument {
+                body: get_field(&doc, self.field_body),
+                filepath: get_field(&doc, self.field_filepath),
+                git_url: get_field(&doc, self.field_git_url),
+                kind: get_field(&doc, self.field_kind),
+                name: get_field(&doc, self.field_name),
+                language: get_field(&doc, self.field_language),
+            },
             id: doc_address.doc_id,
         }
     }
+}
+
+fn get_field(doc: &Document, field: Field) -> String {
+    doc.get_first(field)
+        .and_then(|x| x.as_text())
+        .unwrap()
+        .to_owned()
 }

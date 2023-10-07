@@ -22,7 +22,7 @@ use tabby_common::{
 use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::cors::CorsLayer;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -62,6 +62,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         chat::ChatCompletionChunk,
         health::HealthState,
         health::Version,
+        search::SearchResponse,
+        search::Hit,
+        search::HitDocument
     ))
 )]
 struct ApiDoc;
@@ -91,10 +94,6 @@ pub struct ServeArgs {
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     chat_model: Option<String>,
-
-    /// When set to `true`, the search API route will be enabled.
-    #[clap(long, default_value_t = false)]
-    enable_search: bool,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -144,7 +143,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     doc.override_doc(args, &config.swagger);
 
     let app = Router::new()
-        .merge(api_router(args, config))
+        .merge(api_router(args))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(fallback());
 
@@ -165,7 +164,15 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config) -> Router {
+fn api_router(args: &ServeArgs) -> Router {
+    let index_server = match IndexServer::load() {
+        Ok(index_server) => Some(Arc::new(index_server)),
+        Err(err) => {
+            debug!("Load index failed due to `{}`", err);
+            None
+        }
+    };
+
     let completion_state = {
         let (
             engine,
@@ -174,7 +181,11 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             },
         ) = create_engine(&args.model, args);
         let engine = Arc::new(engine);
-        let state = completions::CompletionState::new(engine.clone(), prompt_template, config);
+        let state = completions::CompletionState::new(
+            engine.clone(),
+            index_server.clone(),
+            prompt_template,
+        );
         Arc::new(state)
     };
 
@@ -201,19 +212,20 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             routing::post(completions::completions).with_state(completion_state),
         );
 
-    let router = if args.enable_search {
+    let router = if let Some(chat_state) = chat_state {
         router.route(
-            "/v1beta/search",
-            routing::get(search::search).with_state(Arc::new(IndexServer::new())),
+            "/v1beta/chat/completions",
+            routing::post(chat::completions).with_state(chat_state),
         )
     } else {
         router
     };
 
-    let router = if let Some(chat_state) = chat_state {
+    let router = if let Some(index_server) = index_server {
+        info!("Index is ready, enabling /v1beta/search API route");
         router.route(
-            "/v1beta/chat/completions",
-            routing::post(chat::completions).with_state(chat_state),
+            "/v1beta/search",
+            routing::get(search::search).with_state(index_server),
         )
     } else {
         router

@@ -6,12 +6,13 @@ use std::sync::Arc;
 use axum::{extract::State, Json};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
-use tabby_common::{config::Config, events};
+use tabby_common::events;
 use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
 use self::languages::get_stop_words;
+use super::search::IndexServer;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 #[schema(example=json!({
@@ -127,15 +128,12 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
+        index_server: Option<Arc<IndexServer>>,
         prompt_template: Option<String>,
-        config: &Config,
     ) -> Self {
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(
-                prompt_template,
-                config.experimental.enable_prompt_rewrite,
-            ),
+            prompt_builder: prompt::PromptBuilder::new(prompt_template, index_server),
         }
     }
 }
