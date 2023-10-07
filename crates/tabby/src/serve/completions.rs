@@ -11,7 +11,7 @@ use tabby_inference::{TextGeneration, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
 
-use self::languages::get_stop_words;
+use self::languages::get_language;
 use super::search::IndexServer;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -81,7 +81,7 @@ pub async fn completions(
         .max_input_length(1024 + 512)
         .max_decoding_length(128)
         .sampling_temperature(0.1)
-        .stop_words(get_stop_words(&language))
+        .stop_words(get_language(&language).stop_words)
         .build()
         .unwrap();
 

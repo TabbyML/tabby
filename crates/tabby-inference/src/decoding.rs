@@ -5,7 +5,7 @@ use regex::Regex;
 use tokenizers::tokenizer::Tokenizer;
 
 pub struct DecodingFactory {
-    stop_regex_cache: DashMap<&'static Vec<&'static str>, Regex>,
+    stop_regex_cache: DashMap<&'static [&'static str], Regex>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -28,12 +28,12 @@ impl DecodingFactory {
         &self,
         tokenizer: Arc<Tokenizer>,
         input_token_ids: &[u32],
-        stop_words: &'static Vec<&'static str>,
+        stop_words: &'static [&'static str],
     ) -> IncrementalDecoding {
         IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
     }
 
-    fn get_re(&self, stop_words: &'static Vec<&'static str>) -> Option<Regex> {
+    fn get_re(&self, stop_words: &'static [&'static str]) -> Option<Regex> {
         if stop_words.is_empty() {
             None
         } else {

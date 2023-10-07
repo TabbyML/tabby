@@ -1,14 +1,14 @@
-use std::{collections::HashMap, env, sync::Arc};
+use std::{env, sync::Arc};
 
-use lazy_static::lazy_static;
 use strfmt::strfmt;
 use tracing::{info, warn};
 
 use super::Segments;
-use crate::serve::search::IndexServer;
+use crate::serve::{completions::languages::get_language, search::IndexServer};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 512;
+static SNIPPET_SCORE_THRESHOLD: f32 = 5.0;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
@@ -84,7 +84,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
         return prefix.to_owned();
     }
 
-    let comment_char = LANGUAGE_LINE_COMMENT_CHAR.get(language).unwrap();
+    let comment_char = get_language(language).line_comment;
     let mut lines: Vec<String> = vec![
         format!(
             "Below are some relevant {} snippets found in the repository:",
@@ -142,6 +142,10 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
     };
 
     for hit in serp.hits {
+        if hit.score < SNIPPET_SCORE_THRESHOLD {
+            break;
+        }
+
         let body = hit.doc.body;
 
         if text.contains(&body) {
@@ -161,13 +165,11 @@ fn sanitize_text(text: &str) -> String {
         |c: char| !c.is_ascii_digit() && !c.is_alphabetic() && c != '_' && c != '-',
         " ",
     );
-    let tokens: Vec<&str> = x.split(' ').filter(|x| x.len() > 5).collect();
+    let tokens: Vec<&str> = x
+        .split(' ')
+        .filter(|x| *x != "AND" && *x != "NOT" && *x != "OR" && x.len() > 5)
+        .collect();
     tokens.join(" ")
-}
-
-lazy_static! {
-    static ref LANGUAGE_LINE_COMMENT_CHAR: HashMap<&'static str, &'static str> =
-        HashMap::from([("python", "#"), ("rust", "//"),]);
 }
 
 #[cfg(test)]
