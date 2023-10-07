@@ -17,6 +17,7 @@ use tantivy::{
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
+static MAX_LINES_THRESHOLD: usize = 15;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
@@ -51,6 +52,10 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
         }
 
         if file.avg_line_length > AVG_LINE_LENGTH_THRESHOLD {
+            continue;
+        }
+
+        if file.content.lines().collect::<Vec<_>>().len() > MAX_LINES_THRESHOLD {
             continue;
         }
 
