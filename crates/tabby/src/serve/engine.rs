@@ -1,22 +1,11 @@
 use std::path::Path;
 
 use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
-use http_api_bindings::{fastchat::FastChatEngine, vertex_ai::VertexAIEngine};
 use serde::Deserialize;
-use serde_json::Value;
 use tabby_common::path::ModelDir;
 use tabby_inference::TextGeneration;
 
 use crate::fatal;
-
-fn get_param(params: &Value, key: &str) -> String {
-    params
-        .get(key)
-        .unwrap_or_else(|| panic!("Missing {} field", key))
-        .as_str()
-        .expect("Type unmatched")
-        .to_string()
-}
 
 pub fn create_engine(
     model: &str,
@@ -34,43 +23,14 @@ pub fn create_engine(
             },
         )
     } else {
-        let params: Value = serdeconv::from_json_str(model).expect("Failed to parse model string");
-
-        let kind = get_param(&params, "kind");
-
-        if kind == "vertex-ai" {
-            let api_endpoint = get_param(&params, "api_endpoint");
-            let authorization = get_param(&params, "authorization");
-            let engine = Box::new(VertexAIEngine::create(
-                api_endpoint.as_str(),
-                authorization.as_str(),
-            ));
-            (
-                engine,
-                EngineInfo {
-                    prompt_template: Some(VertexAIEngine::prompt_template()),
-                    chat_template: None,
-                },
-            )
-        } else if kind == "fastchat" {
-            let model_name = get_param(&params, "model_name");
-            let api_endpoint = get_param(&params, "api_endpoint");
-            let authorization = get_param(&params, "authorization");
-            let engine = Box::new(FastChatEngine::create(
-                api_endpoint.as_str(),
-                model_name.as_str(),
-                authorization.as_str(),
-            ));
-            (
-                engine,
-                EngineInfo {
-                    prompt_template: Some(FastChatEngine::prompt_template()),
-                    chat_template: None,
-                },
-            )
-        } else {
-            fatal!("Only vertex_ai and fastchat are supported for http backend");
-        }
+        let (engine, prompt_template) = http_api_bindings::create(model);
+        (
+            engine,
+            EngineInfo {
+                prompt_template: Some(prompt_template),
+                chat_template: None,
+            },
+        )
     }
 }
 

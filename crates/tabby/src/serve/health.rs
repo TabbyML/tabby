@@ -92,7 +92,7 @@ impl Version {
 }
 
 #[utoipa::path(
-    post,
+    get,
     path = "/v1/health",
     tag = "v1",
     responses(

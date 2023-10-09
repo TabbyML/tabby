@@ -202,12 +202,18 @@ fn api_router(args: &ServeArgs) -> Router {
     };
 
     let mut routers = vec![];
+  
+    let health_state = Arc::new(health::HealthState::new(args));
     routers.push({
         Router::new()
             .route("/v1/events", routing::post(events::log_event))
             .route(
                 "/v1/health",
-                routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
+                routing::post(health::health).with_state(health_state.clone()),
+            )
+            .route(
+                "/v1/health",
+                routing::get(health::health).with_state(health_state),
             )
     });
 
