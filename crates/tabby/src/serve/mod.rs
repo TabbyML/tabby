@@ -201,11 +201,17 @@ fn api_router(args: &ServeArgs) -> Router {
         None
     };
 
+    let health_state = Arc::new(health::HealthState::new(args));
     let router = Router::new()
         .route("/v1/events", routing::post(events::log_event))
+        /* Remove POST /v1/health route in next major version release. */
         .route(
             "/v1/health",
-            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
+            routing::post(health::health).with_state(health_state.clone()),
+        )
+        .route(
+            "/v1/health",
+            routing::get(health::health).with_state(health_state),
         )
         .route(
             "/v1/completions",
