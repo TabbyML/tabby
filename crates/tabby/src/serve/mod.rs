@@ -202,7 +202,7 @@ fn api_router(args: &ServeArgs) -> Router {
     };
 
     let mut routers = vec![];
-  
+
     let health_state = Arc::new(health::HealthState::new(args));
     routers.push({
         Router::new()
