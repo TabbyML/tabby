@@ -163,9 +163,7 @@ fn inference_callback(
 ) -> bool {
     if context.cancel.is_cancelled() {
         true
-    } else if let Some(_) = context.decoding.next_token(token_id) {
-        false
     } else {
-        true
+        !context.decoding.next_token(token_id).is_some()
     }
 }
