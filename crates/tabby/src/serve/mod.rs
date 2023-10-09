@@ -21,7 +21,7 @@ use tabby_common::{
 };
 use tabby_download::Downloader;
 use tokio::time::sleep;
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::{debug, info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
@@ -206,10 +206,6 @@ fn api_router(args: &ServeArgs) -> Router {
         .route(
             "/v1/health",
             routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
-        )
-        .route(
-            "/v1/completions",
-            routing::post(completions::completions).with_state(completion_state),
         );
 
     let router = if let Some(chat_state) = chat_state {
@@ -231,7 +227,16 @@ fn api_router(args: &ServeArgs) -> Router {
         router
     };
 
-    router
+    let completion_router = Router::new()
+        .route(
+            "/v1/completions",
+            routing::post(completions::completions).with_state(completion_state),
+        )
+        .layer(TimeoutLayer::new(Duration::from_secs(3)));
+
+    Router::new()
+        .merge(router)
+        .merge(completion_router)
         .layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
 }
