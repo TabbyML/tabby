@@ -201,43 +201,49 @@ fn api_router(args: &ServeArgs) -> Router {
         None
     };
 
-    let router = Router::new()
-        .route("/v1/events", routing::post(events::log_event))
-        .route(
-            "/v1/health",
-            routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
-        );
+    let mut routers = vec![];
+    routers.push({
+        Router::new()
+            .route("/v1/events", routing::post(events::log_event))
+            .route(
+                "/v1/health",
+                routing::post(health::health).with_state(Arc::new(health::HealthState::new(args))),
+            )
+    });
 
-    let router = if let Some(chat_state) = chat_state {
-        router.route(
-            "/v1beta/chat/completions",
-            routing::post(chat::completions).with_state(chat_state),
-        )
-    } else {
-        router
-    };
+    routers.push({
+        Router::new()
+            .route(
+                "/v1/completions",
+                routing::post(completions::completions).with_state(completion_state),
+            )
+            .layer(TimeoutLayer::new(Duration::from_secs(3)))
+    });
 
-    let router = if let Some(index_server) = index_server {
+    if let Some(chat_state) = chat_state {
+        routers.push({
+            Router::new().route(
+                "/v1beta/chat/completions",
+                routing::post(chat::completions).with_state(chat_state),
+            )
+        })
+    }
+
+    if let Some(index_server) = index_server {
         info!("Index is ready, enabling /v1beta/search API route");
-        router.route(
-            "/v1beta/search",
-            routing::get(search::search).with_state(index_server),
-        )
-    } else {
-        router
-    };
+        routers.push({
+            Router::new().route(
+                "/v1beta/search",
+                routing::get(search::search).with_state(index_server),
+            )
+        })
+    }
 
-    let completion_router = Router::new()
-        .route(
-            "/v1/completions",
-            routing::post(completions::completions).with_state(completion_state),
-        )
-        .layer(TimeoutLayer::new(Duration::from_secs(3)));
-
-    Router::new()
-        .merge(router)
-        .merge(completion_router)
-        .layer(CorsLayer::permissive())
+    let mut root = Router::new();
+    for router in routers {
+        root = root.merge(router);
+    }
+    root.layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
 }
 
