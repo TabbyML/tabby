@@ -3,7 +3,10 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use derive_builder::Builder;
 use futures::stream::BoxStream;
-use tabby_inference::{helpers, TextGeneration, TextGenerationOptions, decoding::{DecodingFactory, IncrementalDecoding}};
+use tabby_inference::{
+    decoding::{DecodingFactory, IncrementalDecoding},
+    helpers, TextGeneration, TextGenerationOptions,
+};
 use tokenizers::tokenizer::Tokenizer;
 use tokio_util::sync::CancellationToken;
 
@@ -73,10 +76,7 @@ pub struct InferenceContext {
 
 impl InferenceContext {
     fn new(decoding: IncrementalDecoding, cancel: CancellationToken) -> Self {
-        InferenceContext {
-            decoding,
-            cancel,
-        }
+        InferenceContext { decoding, cancel }
     }
 }
 
@@ -115,9 +115,11 @@ impl TextGeneration for CTranslate2Engine {
         let cancel_for_inference = cancel.clone();
         let _guard = cancel.drop_guard();
 
-        let decoding = self
-            .decoding_factory
-            .create_incremental_decoding(self.tokenizer.clone(), truncate_tokens(encoding.get_ids(), options.max_input_length), options.stop_words);
+        let decoding = self.decoding_factory.create_incremental_decoding(
+            self.tokenizer.clone(),
+            truncate_tokens(encoding.get_ids(), options.max_input_length),
+            options.stop_words,
+        );
 
         let context = InferenceContext::new(decoding, cancel_for_inference);
         let output_ids = tokio::task::spawn_blocking(move || {
