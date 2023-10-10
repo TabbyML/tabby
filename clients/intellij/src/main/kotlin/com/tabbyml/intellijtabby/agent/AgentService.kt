@@ -20,7 +20,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
-import com.tabbyml.intellijtabby.usage.AnonymousUsageLogger
 import io.ktor.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -62,9 +61,7 @@ class AgentService : Disposable {
 
   init {
     val settings = service<ApplicationSettingsState>()
-    val anonymousUsageLogger = service<AnonymousUsageLogger>()
     scope.launch {
-
       val config = createAgentConfig(settings.data)
       val clientProperties = createClientProperties(settings.data)
       try {
@@ -75,18 +72,14 @@ class AgentService : Disposable {
       } catch (e: Exception) {
         initResultFlow.value = false
         logger.warn("Agent init failed: $e")
-        anonymousUsageLogger.event(
-          "IntelliJInitFailed", mapOf(
-            "client" to clientProperties.session["client"] as String, "error" to e.stackTraceToString()
-          )
-        )
+
         val notification = Notification(
           "com.tabbyml.intellijtabby.notification.warning",
           "Tabby initialization failed",
           "${e.message}",
           NotificationType.ERROR,
         )
-        // FIXME: Add action to open FAQ page to help user set up nodejs.
+        notification.addAction(ActionManager.getInstance().getAction("Tabby.OpenOnlineDocs"))
         invokeLater {
           initFailedNotification?.expire()
           initFailedNotification = notification

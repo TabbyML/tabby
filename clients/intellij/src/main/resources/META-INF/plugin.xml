@@ -22,7 +22,7 @@
         <h2 id="demo">Demo</h2>
         <p>Try our online demo <a href="https://tabby.tabbyml.com/playground/">here</a>.</p>
         <h2 id="requirements">Requirements</h2>
-        Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> v18+ installed and added into <code>PATH</code> environment variable. </p>
+        Tabby plugin requires <a href="https://nodejs.org/">Node.js</a> v18+ installed. </p>
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -86,10 +86,16 @@
             <action id="Tabby.ToggleInlineCompletionTriggerMode"
                     class="com.tabbyml.intellijtabby.actions.ToggleInlineCompletionTriggerMode">
             </action>
+            <separator/>
             <action id="Tabby.OpenSettings"
                     class="com.tabbyml.intellijtabby.actions.OpenSettings"
                     text="Open Settings..."
                     description="Show settings for Tabby.">
+            </action>
+            <action id="Tabby.OpenOnlineDocs"
+                    class="com.tabbyml.intellijtabby.actions.OpenOnlineDocs"
+                    text="Open Online Help..."
+                    description="Open the online docs in your web browser.">
             </action>
         </group>
     </actions>

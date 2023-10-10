@@ -10,17 +10,20 @@ import com.intellij.execution.process.ProcessAdapter
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.Key
 import com.intellij.util.EnvironmentUtil
 import com.intellij.util.io.BaseOutputReader
+import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.BufferedReader
+import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 
@@ -46,27 +49,21 @@ class Agent : ProcessAdapter() {
 
   open class AgentException(message: String) : Exception(message)
 
+  open class NodeBinaryException(message: String) : AgentException(
+    message = "$message Please install Node.js version >= 18.0, set the binary path in Tabby plugin settings or add bin path to system environment variable PATH, then restart IDE."
+  )
+
+  open class NodeBinaryNotFoundException : NodeBinaryException(
+    message = "Cannot find Node binary."
+  )
+
+  open class NodeBinaryInvalidVersionException(version: String) : NodeBinaryException(
+    message = "Node version is too old: $version."
+  )
+
   fun open() {
-    logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
-
-    val node = PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
-    if (node?.exists() == true) {
-      logger.info("Node bin path: ${node.absolutePath}")
-    } else {
-      throw AgentException("Node bin not found. Please install Node.js v16+ and add bin path to system environment variable PATH, then restart IDE.")
-    }
-
-    checkNodeVersion(node.absolutePath)
-
-    val script =
-      PluginManagerCore.getPlugin(PluginId.getId("com.tabbyml.intellij-tabby"))?.pluginPath?.resolve("node_scripts/tabby-agent.js")
-        ?.toFile()
-    if (script?.exists() == true) {
-      logger.info("Node script path: ${script.absolutePath}")
-    } else {
-      throw AgentException("Node script not found. Please reinstall Tabby plugin.")
-    }
-
+    val node = getNodeBinary()
+    val script = getNodeScript()
     val cmd = GeneralCommandLine(node.absolutePath, script.absolutePath)
     process = object : KillableProcessHandler(cmd) {
       override fun readerOptions(): BaseOutputReader.Options {
@@ -78,22 +75,53 @@ class Agent : ProcessAdapter() {
     streamWriter = process.processInput.writer()
   }
 
-  private fun checkNodeVersion(node: String) {
+  private fun getNodeBinary(): File {
+    val settings = service<ApplicationSettingsState>()
+    val node = if (settings.nodeBinary.isNotBlank()) {
+      val path = settings.nodeBinary.replaceFirst(Regex("^~"), System.getProperty("user.home"))
+      File(path)
+    } else {
+      logger.info("Environment variables: PATH: ${EnvironmentUtil.getValue("PATH")}")
+      PathEnvironmentVariableUtil.findExecutableInPathOnAnyOS("node")
+    }
+
+    if (node?.exists() == true) {
+      logger.info("Node binary path: ${node.absolutePath}")
+      checkNodeVersion(node)
+      return node
+    } else {
+      throw NodeBinaryNotFoundException()
+    }
+  }
+
+  private fun checkNodeVersion(node: File) {
     try {
-      val process = GeneralCommandLine(node, "--version").createProcess()
+      val process = GeneralCommandLine(node.absolutePath, "--version").createProcess()
       val version = BufferedReader(InputStreamReader(process.inputStream)).readLine()
       val regResult = Regex("v([0-9]+)\\.([0-9]+)\\.([0-9]+)").find(version)
       if (regResult != null && regResult.groupValues[1].toInt() >= 18) {
         return
       } else {
-        throw AgentException("Node version is too old: $version. Please install Node.js v18+ and add bin path to system environment variable PATH, then restart IDE.")
+        throw NodeBinaryInvalidVersionException(version)
       }
     } catch (e: Exception) {
       if (e is AgentException) {
         throw e
       } else {
-        throw AgentException("Failed to check node version: $e. Please check your node installation.")
+        throw AgentException("Failed to check node version: $e.")
       }
+    }
+  }
+
+  private fun getNodeScript(): File {
+    val script =
+      PluginManagerCore.getPlugin(PluginId.getId("com.tabbyml.intellij-tabby"))?.pluginPath?.resolve("node_scripts/tabby-agent.js")
+        ?.toFile()
+    if (script?.exists() == true) {
+      logger.info("Node script path: ${script.absolutePath}")
+      return script
+    } else {
+      throw AgentException("Node script not found. Please reinstall Tabby plugin.")
     }
   }
 
