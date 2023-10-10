@@ -1,6 +1,6 @@
 [package]
 name = "ctranslate2-bindings"
-version = "0.2.2-rc.3"
+version = "0.2.2-rc.4"
 edition = "2021"
 
 [dependencies]
