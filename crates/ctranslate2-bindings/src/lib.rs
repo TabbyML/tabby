@@ -9,7 +9,7 @@ use tabby_inference::{
     helpers, TextGeneration, TextGenerationOptions,
 };
 use tokenizers::tokenizer::Tokenizer;
-use tokio::sync::mpsc::{channel, Sender};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use tokio_util::sync::CancellationToken;
 
 #[cxx::bridge(namespace = "tabby")]
@@ -72,14 +72,14 @@ pub struct CTranslate2EngineOptions {
 }
 
 pub struct InferenceContext {
-    sender: Sender<String>,
+    sender: UnboundedSender<String>,
     decoding: IncrementalDecoding,
     cancel: CancellationToken,
 }
 
 impl InferenceContext {
     fn new(
-        sender: Sender<String>,
+        sender: UnboundedSender<String>,
         decoding: IncrementalDecoding,
         cancel: CancellationToken,
     ) -> Self {
@@ -137,7 +137,7 @@ impl TextGeneration for CTranslate2Engine {
 
         let cancel = CancellationToken::new();
         let engine = self.engine.clone();
-        let (sender, mut receiver) = channel::<String>(8);
+        let (sender, mut receiver) = unbounded_channel();
         let context = InferenceContext::new(sender, decoding, cancel.clone());
         tokio::task::spawn(async move {
             let context = Box::new(context);
@@ -178,7 +178,7 @@ fn inference_callback(
     if context.cancel.is_cancelled() {
         true
     } else if let Some(new_text) = context.decoding.next_token(token_id) {
-        let _ = context.sender.blocking_send(new_text);
+        let _ = context.sender.send(new_text);
         false
     } else {
         true
