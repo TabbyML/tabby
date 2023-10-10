@@ -1,6 +1,6 @@
 [package]
 name = "tabby"
-version = "0.2.2-rc.4"
+version = "0.2.2"
 edition = "2021"
 
 [dependencies]
