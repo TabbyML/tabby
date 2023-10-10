@@ -20,7 +20,7 @@ export default () => {
     prompt: "def binarySearch(arr, left, right, x):\n    mid = (left +",
   });
   const headers = { "Content-Type": "application/json" };
-  const res = http.post("https://tabbyml-tabby-template-space.hf.space/v1/completions", payload, {
+  const res = http.post("http://api.tabbyml.com/v1/completions", payload, {
     headers,
   });
   check(res, { success: (r) => r.status === 200 });
