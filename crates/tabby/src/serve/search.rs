@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use anyhow::Result;
 use axum::{
@@ -14,7 +14,8 @@ use tantivy::{
     schema::Field,
     DocAddress, Document, Index, IndexReader,
 };
-use tracing::instrument;
+use tokio::{sync::OnceCell, task, time::sleep};
+use tracing::{debug, instrument, log::info};
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Deserialize, IntoParams)]
@@ -60,9 +61,9 @@ pub struct HitDocument {
     tag = "v1beta",
     responses(
         (status = 200, description = "Success" , body = SearchResponse, content_type = "application/json"),
-        (status = 405, description = "When code search is not enabled, the endpoint will returns 405 Method Not Allowed"),
-    )
-)]
+        (status = 501, description = "When code search is not enabled, the endpoint will returns 501 Not Implemented"),
+        )
+    )]
 #[instrument(skip(state, query))]
 pub async fn search(
     State(state): State<Arc<IndexServer>>,
@@ -73,13 +74,13 @@ pub async fn search(
         query.limit.unwrap_or(20),
         query.offset.unwrap_or(0),
     ) else {
-        return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        return Err(StatusCode::NOT_IMPLEMENTED);
     };
 
     Ok(Json(serp))
 }
 
-pub struct IndexServer {
+struct IndexServerImpl {
     reader: IndexReader,
     query_parser: QueryParser,
 
@@ -91,7 +92,7 @@ pub struct IndexServer {
     field_name: Field,
 }
 
-impl IndexServer {
+impl IndexServerImpl {
     pub fn load() -> Result<Self> {
         let index = Index::open_in_dir(path::index_dir())?;
         index.register_tokenizer();
@@ -161,4 +162,47 @@ fn get_field(doc: &Document, field: Field) -> String {
         .and_then(|x| x.as_text())
         .unwrap()
         .to_owned()
+}
+
+static IMPL: OnceCell<IndexServerImpl> = OnceCell::const_new();
+
+pub struct IndexServer {}
+
+impl IndexServer {
+    pub fn new() -> Self {
+        task::spawn(IMPL.get_or_init(|| async {
+            task::spawn(IndexServer::worker())
+                .await
+                .expect("Failed to create IndexServerImpl")
+        }));
+        Self {}
+    }
+
+    fn get_cell(&self) -> Option<&IndexServerImpl> {
+        IMPL.get()
+    }
+
+    async fn worker() -> IndexServerImpl {
+        loop {
+            match IndexServerImpl::load() {
+                Ok(index_server) => {
+                    info!("Index is ready, enabling server...");
+                    return index_server;
+                }
+                Err(err) => {
+                    debug!("Source code index is not ready `{}`", err);
+                }
+            };
+
+            sleep(Duration::from_secs(60)).await;
+        }
+    }
+
+    pub fn search(&self, q: &str, limit: usize, offset: usize) -> tantivy::Result<SearchResponse> {
+        if let Some(imp) = self.get_cell() {
+            imp.search(q, limit, offset)
+        } else {
+            Err(tantivy::TantivyError::InternalError("Not Ready".to_owned()))
+        }
+    }
 }

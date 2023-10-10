@@ -22,7 +22,7 @@ use tabby_common::{
 use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 use utoipa::{openapi::ServerBuilder, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -165,14 +165,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 }
 
 fn api_router(args: &ServeArgs) -> Router {
-    let index_server = match IndexServer::load() {
-        Ok(index_server) => Some(Arc::new(index_server)),
-        Err(err) => {
-            debug!("Load index failed due to `{}`", err);
-            None
-        }
-    };
-
+    let index_server = Arc::new(IndexServer::new());
     let completion_state = {
         let (
             engine,
@@ -235,15 +228,12 @@ fn api_router(args: &ServeArgs) -> Router {
         })
     }
 
-    if let Some(index_server) = index_server {
-        info!("Index is ready, enabling /v1beta/search API route");
-        routers.push({
-            Router::new().route(
-                "/v1beta/search",
-                routing::get(search::search).with_state(index_server),
-            )
-        })
-    }
+    routers.push({
+        Router::new().route(
+            "/v1beta/search",
+            routing::get(search::search).with_state(index_server),
+        )
+    });
 
     let mut root = Router::new();
     for router in routers {
