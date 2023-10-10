@@ -690,7 +690,7 @@ dependencies = [
 
 [[package]]
 name = "ctranslate2-bindings"
-version = "0.2.2-rc.1"
+version = "0.2.2-rc.2"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3086,7 +3086,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.2.2-rc.1"
+version = "0.2.2-rc.2"
 dependencies = [
  "anyhow",
  "async-stream",
