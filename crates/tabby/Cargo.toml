@@ -18,7 +18,7 @@ utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 serde = { workspace = true }
 serdeconv = { workspace = true }
 serde_json = { workspace = true }
-tower-http = { version = "0.4.0", features = ["cors"] }
+tower-http = { version = "0.4.0", features = ["cors", "timeout"] }
 clap = { version = "4.3.0", features = ["derive"] }
 lazy_static = { workspace = true }
 rust-embed = "8.0.0"
