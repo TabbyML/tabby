@@ -20,6 +20,7 @@ class ApplicationConfigurable : Configurable {
     val settings = service<ApplicationSettingsState>()
     return settingsPanel.completionTriggerMode != settings.completionTriggerMode
         || settingsPanel.serverEndpoint != settings.serverEndpoint
+        || settingsPanel.nodeBinary != settings.nodeBinary
         || settingsPanel.isAnonymousUsageTrackingDisabled != settings.isAnonymousUsageTrackingDisabled
   }
 
@@ -27,6 +28,7 @@ class ApplicationConfigurable : Configurable {
     val settings = service<ApplicationSettingsState>()
     settings.completionTriggerMode = settingsPanel.completionTriggerMode
     settings.serverEndpoint = settingsPanel.serverEndpoint
+    settings.nodeBinary = settingsPanel.nodeBinary
     settings.isAnonymousUsageTrackingDisabled = settingsPanel.isAnonymousUsageTrackingDisabled
   }
 
@@ -34,6 +36,7 @@ class ApplicationConfigurable : Configurable {
     val settings = service<ApplicationSettingsState>()
     settingsPanel.completionTriggerMode = settings.completionTriggerMode
     settingsPanel.serverEndpoint = settings.serverEndpoint
+    settingsPanel.nodeBinary = settings.nodeBinary
     settingsPanel.isAnonymousUsageTrackingDisabled = settings.isAnonymousUsageTrackingDisabled
   }
 }

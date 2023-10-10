@@ -87,6 +87,7 @@ class StatusBarWidgetFactory : StatusBarEditorBasedWidgetFactory() {
                 actionManager.getAction("Tabby.CheckIssueDetail"),
                 actionManager.getAction("Tabby.ToggleInlineCompletionTriggerMode"),
                 actionManager.getAction("Tabby.OpenSettings"),
+                actionManager.getAction("Tabby.OpenOnlineDocs"),
               )
             }
           },

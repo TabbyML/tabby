@@ -9,7 +9,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ui.Messages
 import com.tabbyml.intellijtabby.agent.AgentService
+import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.launch
+import java.net.URL
 
 class CheckIssueDetail : AnAction() {
   private val logger = Logger.getInstance(CheckIssueDetail::class.java)
@@ -21,29 +23,35 @@ class CheckIssueDetail : AnAction() {
     agentService.scope.launch {
       val detail = agentService.getCurrentIssueDetail() ?: return@launch
       val serverHealthState = agentService.getServerHealthState()
-      logger.info("Show issue detail: $detail, $serverHealthState")
+      val settingsState = service<ApplicationSettingsState>().state.value
+      logger.info("Show issue detail: $detail, $serverHealthState, $settingsState")
       val title = when (detail["name"]) {
         "slowCompletionResponseTime" -> "Completion Requests Appear to Take Too Much Time"
         "highCompletionTimeoutRate" -> "Most Completion Requests Timed Out"
         else -> return@launch
       }
-      val message = buildDetailMessage(detail, serverHealthState)
+      val message = buildDetailMessage(detail, serverHealthState, settingsState)
       invokeLater {
-        val result = Messages.showOkCancelDialog(message, title, "Dismiss", "Supported Models", Messages.getInformationIcon())
-        if (result == Messages.CANCEL) {
+        val result =
+          Messages.showOkCancelDialog(message, title, "Supported Models", "Dismiss", Messages.getInformationIcon())
+        if (result == Messages.OK) {
           BrowserUtil.browse("https://tabby.tabbyml.com/docs/models/")
         }
       }
     }
   }
 
-  private fun buildDetailMessage(detail: Map<String, Any>, serverHealthState: Map<String, Any>?): String {
+  private fun buildDetailMessage(
+    detail: Map<String, Any>,
+    serverHealthState: Map<String, Any>?,
+    settingsState: ApplicationSettingsState.State
+  ): String {
     val stats = detail["completionResponseStats"] as Map<*, *>?
     val statsMessages = when (detail["name"]) {
       "slowCompletionResponseTime" -> if (stats != null && stats["responses"] is Number && stats["averageResponseTime"] is Number) {
         val response = (stats["responses"] as Number).toInt()
         val averageResponseTime = (stats["averageResponseTime"] as Number).toInt()
-        "The average response time of recent $response completion requests is $averageResponseTime ms.\n\n"
+        "The average response time of recent $response completion requests is $averageResponseTime ms."
       } else {
         ""
       }
@@ -51,7 +59,7 @@ class CheckIssueDetail : AnAction() {
       "highCompletionTimeoutRate" -> if (stats != null && stats["total"] is Number && stats["timeouts"] is Number) {
         val timeout = (stats["timeouts"] as Number).toInt()
         val total = (stats["total"] as Number).toInt()
-        "$timeout of $total completion requests timed out.\n\n"
+        "$timeout of $total completion requests timed out."
       } else {
         ""
       }
@@ -63,27 +71,35 @@ class CheckIssueDetail : AnAction() {
     val model = serverHealthState?.get("model") as String? ?: ""
     val helpMessageForRunningLargeModelOnCPU = if (device == "cpu" && model.endsWith("B")) {
       """
-      Your Tabby server is running model $model on CPU.
+      Your Tabby server is running model <i>$model</i> on CPU.
       This model is too large to run on CPU, please try a smaller model or switch to GPU.
       You can find supported model list in online documents.
-      """
+      """.trimIndent()
     } else {
       ""
     }
-    var helpMessage = ""
-    if (helpMessageForRunningLargeModelOnCPU.isNotEmpty()) {
-      helpMessage += helpMessageForRunningLargeModelOnCPU + "\n\n"
-      helpMessage += "Other possible causes of this issue are: \n"
-    } else {
-      helpMessage += "Possible causes of this issue are: \n";
-    }
-    helpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
-    helpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
+    var commonHelpMessage = ""
+    val host = URL(settingsState.serverEndpoint).host
     if (helpMessageForRunningLargeModelOnCPU.isEmpty()) {
-      helpMessage += " - The running model $model is too large to run on your Tabby server. ";
-      helpMessage += "Please try a smaller model. You can find supported model list in online documents.\n";
+      commonHelpMessage += "<li>The running model <i>$model</i> is too large to run on your Tabby server.<br/>"
+      commonHelpMessage += "Please try a smaller model. You can find supported model list in online documents.</li>"
     }
-    return statsMessages + helpMessage
+    if (!(host == "localhost" || host == "127.0.0.1")) {
+      commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>"
+      commonHelpMessage += "<li>Server overload. Please contact your Tabby server administrator for assistance.</li>"
+    }
+
+    var helpMessage: String
+    if (helpMessageForRunningLargeModelOnCPU.isNotEmpty()) {
+      helpMessage = "$helpMessageForRunningLargeModelOnCPU<br/>"
+      if (commonHelpMessage.isNotEmpty()) {
+        helpMessage += "<br/>Other possible causes of this issue: <br/><ul>$commonHelpMessage</ul>"
+      }
+    } else {
+      // commonHelpMessage should not be empty here
+      helpMessage = "Possible causes of this issue: <br/><ul>$commonHelpMessage</ul>"
+    }
+    return "<html>$statsMessages<br/><br/>$helpMessage</html>"
   }
 
   override fun update(e: AnActionEvent) {

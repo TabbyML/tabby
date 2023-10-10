@@ -32,6 +32,11 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
       field = value
       stateFlow.value = this.data
     }
+  var nodeBinary: String = ""
+    set(value) {
+      field = value
+      stateFlow.value = this.data
+    }
   var isAnonymousUsageTrackingDisabled: Boolean = false
     set(value) {
       field = value
@@ -41,6 +46,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
   data class State(
     val completionTriggerMode: TriggerMode,
     val serverEndpoint: String,
+    val nodeBinary: String,
     val isAnonymousUsageTrackingDisabled: Boolean,
   )
 
@@ -48,6 +54,7 @@ class ApplicationSettingsState : PersistentStateComponent<ApplicationSettingsSta
     get() = State(
       completionTriggerMode = completionTriggerMode,
       serverEndpoint = serverEndpoint,
+      nodeBinary = nodeBinary,
       isAnonymousUsageTrackingDisabled = isAnonymousUsageTrackingDisabled,
     )
 
