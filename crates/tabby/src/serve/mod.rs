@@ -149,7 +149,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = if args.chat_model.is_some() {
         app.route("/playground", routing::get(playground::handler))
-            .route("/playground/*path", routing::get(playground::handler))
+            .route("/_next/*path", routing::get(playground::handler))
     } else {
         app
     };
