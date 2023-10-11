@@ -1,3 +1,16 @@
+## 0.6.0
+
+### Features:
+
+- Added an option to switch between automatic/manual completion trigger mode. This option replaces the old enable/disable inline completion option. You can use the `Alt + \` hotkey to trigger inline completion in manual mode.
+- Added an option to specify the Node.js binary path.
+- Added an action to open online help documents quickly in status bar item menu.
+
+### Fixes:
+
+- Adjusted notifications for `highCompletionTimeoutRate` and `slowCompletionResponseTime` to be displayed only once per session.
+- Improved anonymous usage tracking, reduced the frequency of data submissions. Your contribution in sending anonymous usage data is greatly appreciated. However, if you prefer not to participate, you have the option to opt out of this feature within the plugin settings.
+
 ## 0.5.0
 
 ### Incompatible Changes:
