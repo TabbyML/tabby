@@ -1,7 +1,7 @@
-use std::{env, sync::Arc};
+use std::sync::Arc;
 
 use strfmt::strfmt;
-use tracing::{info, warn};
+use tracing::warn;
 
 use super::Segments;
 use crate::serve::{completions::languages::get_language, search::IndexServer};
@@ -17,13 +17,6 @@ pub struct PromptBuilder {
 
 impl PromptBuilder {
     pub fn new(prompt_template: Option<String>, index_server: Option<Arc<IndexServer>>) -> Self {
-        let index_server = if env::var("TABBY_ENABLE_PROMPT_REWRITE").is_ok() {
-            info!("Prompt rewriting is enabled...");
-            index_server
-        } else {
-            None
-        };
-
         PromptBuilder {
             prompt_template,
             index_server,
