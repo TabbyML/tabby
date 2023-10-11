@@ -22,7 +22,8 @@ Try our online demo [here](https://tabby.tabbyml.com/playground).
 
 Once you have installed the Tabby VSCode extension, you can easily get started by following the built-in walkthrough guides. You can access the walkthrough page at any time by using the command `Tabby: Getting Started`.
 
-1. **Setup the Tabby server**: You have two options to set up your Tabby server. You can either get a Tabby Cloud hosted server [here](https://app.tabbyml.com) or build your own self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation).
+1. **Setup the Tabby server**: You have two options to set up your Tabby server. You can either build your own self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation) or get a Tabby Cloud hosted server [here](https://app.tabbyml.com).  
+   **Note**: Tabby Cloud is currently in **closed** beta. Join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and ask in #help-self-hosting channel to get a beta invite.
 2. **Connect the extension to your Tabby server**: Use the command `Tabby: Specify API Endpoint of Tabby` to connect the extension to your Tabby server. If you are using a Tabby Cloud server endpoint, follow the instructions provided in the popup messages to complete the authorization process.
 
 Once the setup is complete, Tabby will automatically provide inline suggestions. You can accept the suggestions by simply pressing the `Tab` key.

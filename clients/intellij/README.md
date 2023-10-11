@@ -1,12 +1,30 @@
 # Tabby Plugin for IntelliJ Platform
 [![JetBrains plugins](https://img.shields.io/jetbrains/plugin/d/22379-tabby)](https://plugins.jetbrains.com/plugin/22379-tabby)
 
-## Requirements
-- Tabby plugin works with all IntelliJ Platform IDEs that have build 2022.2.5 or later versions, such as Idea, PyCharm, Android Studio, and more.
-- Tabby plugin requires [Node.js](https://nodejs.org) 18.0+ to be installed and added into the `PATH` environment variable.
+Tabby is an AI coding assistant that can suggest multi-line code or full functions in real-time.
 
-## Installation
-You can install Tabby plugin from the IntelliJ Platform [plugin marketplace](https://plugins.jetbrains.com/plugin/22379-tabby).
+Tabby IntelliJ Platform plugin works with all [IntelliJ Platform IDEs](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform) that have build 2022.2.5 or later versions, such as [IDEA](https://www.jetbrains.com/idea/), [PyCharm](https://www.jetbrains.com/pycharm/), [GoLand](https://www.jetbrains.com/go/), [Android Studio](https://developer.android.com/studio), and [more](https://plugins.jetbrains.com/docs/intellij/intellij-platform.html#ides-based-on-the-intellij-platform).
+
+## Getting Started
+
+1. Set up the Tabby Server: you can build your self-hosted Tabby server following [this guide](https://tabby.tabbyml.com/docs/installation/), or get a Tabby Cloud hosted server [here](https://app.tabbyml.com).  
+  **Note**: Tabby Cloud is currently in **closed** beta. Join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and ask in Tabby Cloud channel to get a beta invite.
+2. Install Tabby plugin from [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/22379-tabby).
+3. Install [Node.js](https://nodejs.org/en/download/) version 18.0 or higher.
+4. Open the settings by clicking on the Tabby plugin status bar item and select `Open Settings...`.
+   1. Fill in the server endpoint URL to connect the plugin to your Tabby server.  
+     * If you are using default port `http://localhost:8080`, you can skip this step.  
+     * If you are using a Tabby Cloud server endpoint, follow the instructions provided in the popup messages to complete the authorization process. 
+   2. Fill in node binary path if the node binary.
+     * If node binary is already accessible via your `PATH` environment variable, you can skip this step.
+     * Remember to save the settings and restart the IDE if you made changes to this option.
+5. Check the Tabby plugin status bar item, it should display a check mark if the plugin is successfully connected to the Tabby server. 
+
+## Troubleshooting
+
+If you encounter any problem, please check out our [troubleshooting guide](https://tabby.tabbyml.com/docs/extensions/troubleshooting).
 
 ## Development and Build
-To develop and build Tabby plugin, please clone this directory and open it with IntelliJ Idea.
+
+To develop and build Tabby plugin, please clone [this directory](https://github.com/TabbyML/tabby/tree/main/clients/intellij) and import it into IntelliJ Idea.
+
