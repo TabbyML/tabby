@@ -17,10 +17,7 @@ where
     T: Into<String>,
 {
     fn into_response(self) -> Response {
-        let mut path = self.0.into();
-        if WebAssets::get(path.as_str()).is_none() {
-            path = "index.html".to_owned();
-        }
+        let path = self.0.into();
         match WebAssets::get(path.as_str()) {
             Some(content) => {
                 let body = boxed(Full::from(content.data));
@@ -39,10 +36,9 @@ where
 }
 
 pub async fn handler(uri: Uri) -> impl IntoResponse {
-    let path = uri
-        .path()
-        .trim_start_matches("/playground")
-        .trim_start_matches('/')
-        .to_string();
+    let mut path = uri.path().trim_start_matches('/').to_string();
+    if path == "playground" {
+        path = "playground.html".to_owned();
+    }
     WebStaticFile(path)
 }
