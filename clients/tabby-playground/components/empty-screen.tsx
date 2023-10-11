@@ -5,11 +5,11 @@ import { IconArrowRight } from '@/components/ui/icons'
 
 const exampleMessages = [
   {
-    heading: 'Explain technical concepts',
-    message: `What is a "serverless function"?`
+    heading: 'Convert list of string to numbers',
+    message: `How to convert a list of string to numbers in python`,
   },
   {
-    heading: 'Explain how to parse email address',
+    heading: 'How to parse email address',
     message: 'How to parse email address with regex'
   }
 ]
