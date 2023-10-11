@@ -133,7 +133,7 @@ impl CompletionState {
     ) -> Self {
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(prompt_template, index_server),
+            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(index_server)),
         }
     }
 }

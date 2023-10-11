@@ -16,10 +16,10 @@ pub struct PromptBuilder {
 }
 
 impl PromptBuilder {
-    pub fn new(prompt_template: Option<String>, index_server: Arc<IndexServer>) -> Self {
+    pub fn new(prompt_template: Option<String>, index_server: Option<Arc<IndexServer>>) -> Self {
         let index_server = if env::var("TABBY_ENABLE_PROMPT_REWRITE").is_ok() {
             info!("Prompt rewriting is enabled...");
-            Some(index_server)
+            index_server
         } else {
             None
         };
@@ -185,7 +185,7 @@ mod tests {
         };
 
         // Init prompt builder with prompt rewrite disabled.
-        PromptBuilder::new(prompt_template, Arc::new(IndexServer::new()))
+        PromptBuilder::new(prompt_template, None)
     }
 
     #[test]
