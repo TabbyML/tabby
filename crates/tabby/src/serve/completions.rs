@@ -128,12 +128,12 @@ pub struct CompletionState {
 impl CompletionState {
     pub fn new(
         engine: Arc<Box<dyn TextGeneration>>,
-        index_server: Option<Arc<IndexServer>>,
+        index_server: Arc<IndexServer>,
         prompt_template: Option<String>,
     ) -> Self {
         Self {
             engine,
-            prompt_builder: prompt::PromptBuilder::new(prompt_template, index_server),
+            prompt_builder: prompt::PromptBuilder::new(prompt_template, Some(index_server)),
         }
     }
 }
