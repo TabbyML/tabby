@@ -67,40 +67,35 @@ fn rewrite_with_index(
     if snippets.is_empty() {
         segments
     } else {
-        let prefix = build_prefix(language, &segments.prefix, snippets);
+        let prefix = build_prefix(language, &segments.prefix, snippets, MAX_SNIPPET_CHARS_IN_PROMPT);
         Segments { prefix, ..segments }
     }
 }
 
-fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
+fn build_prefix(language: &str, prefix: &str, snippets: Vec<Snippet>, max_snippet_chars_in_prompt: usize) -> String {
     if snippets.is_empty() {
         return prefix.to_owned();
     }
 
     let comment_char = get_language(language).line_comment;
-    let mut lines: Vec<String> = vec![
-        format!(
-            "Below are some relevant {} snippets found in the repository:",
-            language
-        ),
-        "".to_owned(),
-    ];
+    let mut lines: Vec<String> = vec![];
 
     let mut count_characters = 0;
     for (i, snippet) in snippets.iter().enumerate() {
-        if count_characters + snippet.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
+        let len = snippet.body.len();
+        if count_characters + len > max_snippet_chars_in_prompt {
             break;
         }
 
-        lines.push(format!("== Snippet {} ==", i + 1));
-        for line in snippet.lines() {
+        lines.push(format!("Path: {}", snippet.filepath));
+        for line in snippet.body.lines() {
             lines.push(line.to_owned());
         }
 
         if i < snippets.len() - 1 {
             lines.push("".to_owned());
         }
-        count_characters += snippet.len();
+        count_characters += len;
     }
 
     let commented_lines: Vec<String> = lines
@@ -117,7 +112,12 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<String>) -> String {
     format!("{}\n{}", comments, prefix)
 }
 
-fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<String> {
+struct Snippet {
+    filepath: String,
+    body: String,
+}
+
+fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let sanitized_text = sanitize_text(text);
     if sanitized_text.is_empty() {
@@ -146,7 +146,10 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
             continue;
         }
 
-        ret.push(body.to_owned());
+        ret.push(Snippet {
+            filepath: hit.doc.filepath,
+            body
+        });
     }
 
     ret
@@ -320,11 +323,26 @@ mod tests {
     #[test]
     fn test_build_prefix_readable() {
         let snippets = vec![
-            "res_1 = invoke_function_1(n)".to_string(),
-            "res_2 = invoke_function_2(n)".to_string(),
-            "res_3 = invoke_function_3(n)".to_string(),
-            "res_4 = invoke_function_4(n)".to_string(),
-            "res_5 = invoke_function_5(n)".to_string(),
+            Snippet {
+                filepath: "a1.py".to_owned(),
+                body: "res_1 = invoke_function_1(n)".to_owned(),
+            },
+            Snippet {
+                filepath: "a2.py".to_owned(),
+                body: "res_2 = invoke_function_2(n)".to_owned(),
+            },
+            Snippet {
+                filepath: "a3.py".to_owned(),
+                body: "res_3 = invoke_function_3(n)".to_owned(),
+            },
+            Snippet {
+                filepath: "a4.py".to_owned(),
+                body: "res_4 = invoke_function_4(n)".to_owned(),
+            },
+            Snippet {
+                filepath: "a5.py".to_owned(),
+                body: "res_5 = invoke_function_5(n)".to_owned(),
+            },
         ];
 
         let prefix = "\
@@ -334,53 +352,22 @@ Use some invoke_function to do some job.
 def this_is_prefix():\n";
 
         let expected_built_prefix = "\
-# Below are some relevant python snippets found in the repository:
-#
-# == Snippet 1 ==
+# Path: a1.py
 # res_1 = invoke_function_1(n)
 #
-# == Snippet 2 ==
+# Path: a2.py
 # res_2 = invoke_function_2(n)
 #
-# == Snippet 3 ==
+# Path: a3.py
 # res_3 = invoke_function_3(n)
-#
-# == Snippet 4 ==
-# res_4 = invoke_function_4(n)
-#
-# == Snippet 5 ==
-# res_5 = invoke_function_5(n)
 '''
 Use some invoke_function to do some job.
 '''
 def this_is_prefix():\n";
 
         assert_eq!(
-            build_prefix("python", prefix, snippets),
+            build_prefix("python", prefix, snippets, 96),
             expected_built_prefix
         );
-    }
-
-    #[test]
-    fn test_build_prefix_count_chars() {
-        let snippets_expected = 4;
-        let snippet_payload = "a".repeat(MAX_SNIPPET_CHARS_IN_PROMPT / snippets_expected);
-        let mut snippets = vec![];
-        for _ in 0..snippets_expected + 1 {
-            snippets.push(snippet_payload.clone());
-        }
-
-        let prefix = "def this_is_prefix():\n";
-
-        let generated_prompt = build_prefix("python", prefix, snippets);
-
-        for i in 0..snippets_expected + 1 {
-            let st = format!("# == Snippet {} ==", i + 1);
-            if i < snippets_expected {
-                assert!(generated_prompt.contains(&st));
-            } else {
-                assert!(!generated_prompt.contains(&st));
-            }
-        }
     }
 }
