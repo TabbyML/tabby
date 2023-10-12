@@ -3200,6 +3200,7 @@ dependencies = [
  "tree-sitter-python",
  "tree-sitter-rust",
  "tree-sitter-tags",
+ "tree-sitter-typescript",
  "walkdir",
 ]
 
@@ -3939,6 +3940,16 @@ dependencies = [
  "memchr",
  "regex",
  "thiserror",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-typescript"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a75049f0aafabb2aac205d7bb24da162b53dcd0cfb326785f25a2f32efa8071a"
+dependencies = [
+ "cc",
  "tree-sitter",
 ]
 
