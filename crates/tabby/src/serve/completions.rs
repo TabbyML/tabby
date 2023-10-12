@@ -23,6 +23,7 @@ use super::search::IndexServer;
     }
 }))]
 pub struct CompletionRequest {
+    #[deprecated]
     #[schema(example = "def fib(n):")]
     prompt: Option<String>,
 
@@ -97,7 +98,7 @@ pub async fn completions(
     };
 
     debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-    let prompt = state.prompt_builder.build(&language, segments);
+    let prompt = state.prompt_builder.build(&language, segments.clone());
     debug!("PROMPT: {}", prompt);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
     let text = state.engine.generate(&prompt, options).await;
@@ -106,6 +107,10 @@ pub async fn completions(
         completion_id: &completion_id,
         language: &language,
         prompt: &prompt,
+        segments: &tabby_common::events::Segments {
+            prefix: &segments.prefix,
+            suffix: segments.suffix.as_deref(),
+        },
         choices: vec![events::Choice {
             index: 0,
             text: &text,
