@@ -91,24 +91,15 @@ fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
             return None;
         }
 
-        let language = reduce_language_if_needed(&file.language).to_owned();
         Some(IndexedDocument {
             git_url: file.git_url.clone(),
             filepath: file.filepath.clone(),
-            language,
+            language: file.language.clone(),
             name,
             body,
             kind: tag.syntax_type_name,
         })
     })
-}
-
-fn reduce_language_if_needed(language: &str) -> &str {
-    if ["javascript", "jsx", "typescript", "tsx"].contains(&language) {
-        "javascript-typescript"
-    } else {
-        language
-    }
 }
 
 #[cfg(test)]
