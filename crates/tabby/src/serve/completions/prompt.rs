@@ -1,14 +1,17 @@
 use std::sync::Arc;
 
+use lazy_static::lazy_static;
+use regex::Regex;
 use strfmt::strfmt;
+use textdistance::Algorithm;
 use tracing::warn;
 
-use super::Segments;
+use super::{Segments, Snippet};
 use crate::serve::{completions::languages::get_language, search::IndexServer};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
-static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 512;
-static SNIPPET_SCORE_THRESHOLD: f32 = 5.0;
+static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 1024;
+static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub struct PromptBuilder {
     prompt_template: Option<String>,
@@ -23,56 +26,45 @@ impl PromptBuilder {
         }
     }
 
-    fn build_prompt(&self, prefix: String, suffix: String) -> String {
-        if let Some(prompt_template) = &self.prompt_template {
-            strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
-        } else {
-            prefix
-        }
+    fn build_prompt(&self, prefix: String, suffix: Option<String>) -> String {
+        let Some(suffix) = suffix else {
+            return prefix;
+        };
+
+        let Some(prompt_template) = &self.prompt_template else {
+            return prefix;
+        };
+
+        strfmt!(prompt_template, prefix => prefix, suffix => suffix).unwrap()
     }
 
-    pub fn build(&self, language: &str, segments: Segments) -> String {
-        let segments = self.rewrite(language, segments);
-        self.build_prompt(segments.prefix, get_default_suffix(segments.suffix))
-    }
-
-    fn rewrite(&self, language: &str, segments: Segments) -> Segments {
+    pub fn collect(&self, language: &str, segments: &Segments) -> Vec<Snippet> {
         if let Some(index_server) = &self.index_server {
-            rewrite_with_index(index_server, language, segments)
+            collect_snippets(index_server, language, &segments.prefix)
         } else {
-            segments
+            vec![]
         }
     }
-}
 
-fn get_default_suffix(suffix: Option<String>) -> String {
-    if suffix.is_none() {
-        return "\n".to_owned();
-    }
-
-    let suffix = suffix.unwrap();
-    if suffix.is_empty() {
-        "\n".to_owned()
-    } else {
-        suffix
+    pub fn build(&self, language: &str, segments: Segments, snippets: &[Snippet]) -> String {
+        let segments = rewrite_with_snippets(language, segments, snippets);
+        self.build_prompt(
+            segments.prefix,
+            segments.suffix.filter(|x| !x.trim_end().is_empty()),
+        )
     }
 }
 
-fn rewrite_with_index(
-    index_server: &Arc<IndexServer>,
-    language: &str,
-    segments: Segments,
-) -> Segments {
-    let snippets = collect_snippets(index_server, language, &segments.prefix);
+fn rewrite_with_snippets(language: &str, segments: Segments, snippets: &[Snippet]) -> Segments {
     if snippets.is_empty() {
         segments
     } else {
-        let prefix = build_prefix(language, &segments.prefix, snippets, MAX_SNIPPET_CHARS_IN_PROMPT);
+        let prefix = build_prefix(language, &segments.prefix, snippets);
         Segments { prefix, ..segments }
     }
 }
 
-fn build_prefix(language: &str, prefix: &str, snippets: Vec<Snippet>, max_snippet_chars_in_prompt: usize) -> String {
+fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
     if snippets.is_empty() {
         return prefix.to_owned();
     }
@@ -80,13 +72,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<Snippet>, max_snippe
     let comment_char = get_language(language).line_comment;
     let mut lines: Vec<String> = vec![];
 
-    let mut count_characters = 0;
     for (i, snippet) in snippets.iter().enumerate() {
-        let len = snippet.body.len();
-        if count_characters + len > max_snippet_chars_in_prompt {
-            break;
-        }
-
         lines.push(format!("Path: {}", snippet.filepath));
         for line in snippet.body.lines() {
             lines.push(line.to_owned());
@@ -95,7 +81,6 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<Snippet>, max_snippe
         if i < snippets.len() - 1 {
             lines.push("".to_owned());
         }
-        count_characters += len;
     }
 
     let commented_lines: Vec<String> = lines
@@ -112,14 +97,10 @@ fn build_prefix(language: &str, prefix: &str, snippets: Vec<Snippet>, max_snippe
     format!("{}\n{}", comments, prefix)
 }
 
-struct Snippet {
-    filepath: String,
-    body: String,
-}
-
 fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
-    let sanitized_text = sanitize_text(text);
+    let tokens = tokenize_text(text);
+    let sanitized_text = tokens.join(" ");
     if sanitized_text.is_empty() {
         return ret;
     }
@@ -134,38 +115,49 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
         }
     };
 
+    let mut count_characters = 0;
     for hit in serp.hits {
-        if hit.score < SNIPPET_SCORE_THRESHOLD {
+        let body = hit.doc.body;
+        let body_tokens = tokenize_text(&body);
+
+        if count_characters + body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
             break;
         }
 
-        let body = hit.doc.body;
+        let similarity = if body_tokens.len() > tokens.len() {
+            0.0
+        } else {
+            let distance = textdistance::LCSSeq::default()
+                .for_iter(tokens.iter(), body_tokens.iter())
+                .val() as f32;
+            distance / body_tokens.len() as f32
+        };
 
-        if text.contains(&body) {
-            // Exclude snippets already in the context window.
+        if similarity > MAX_SIMILARITY_THRESHOLD {
+            // Exclude snippets presents in context window.
             continue;
         }
 
+        count_characters += body.len();
         ret.push(Snippet {
             filepath: hit.doc.filepath,
-            body
+            body,
+            score: hit.score,
         });
     }
 
     ret
 }
 
-fn sanitize_text(text: &str) -> String {
-    // Only keep [a-zA-Z0-9-_]
-    let x = text.replace(
-        |c: char| !c.is_ascii_digit() && !c.is_alphabetic() && c != '_' && c != '-',
-        " ",
-    );
-    let tokens: Vec<&str> = x
-        .split(' ')
-        .filter(|x| *x != "AND" && *x != "NOT" && *x != "OR" && x.len() > 5)
-        .collect();
-    tokens.join(" ")
+lazy_static! {
+    static ref TOKENIZER: Regex = Regex::new(r"[^\w]").unwrap();
+}
+
+fn tokenize_text(text: &str) -> Vec<&str> {
+    TOKENIZER
+        .split(text)
+        .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT")
+        .collect()
 }
 
 #[cfg(test)]
@@ -190,6 +182,7 @@ mod tests {
 
         // Rewrite disabled, so the language doesn't matter.
         let language = "python";
+        let snippets = &vec![];
 
         // Test w/ prefix, w/ suffix.
         {
@@ -198,7 +191,7 @@ mod tests {
                 suffix: Some("this is some suffix".into()),
             };
             assert_eq!(
-                pb.build(language, segments),
+                pb.build(language, segments, snippets),
                 "<PRE> this is some prefix <SUF>this is some suffix <MID>"
             );
         }
@@ -210,8 +203,8 @@ mod tests {
                 suffix: None,
             };
             assert_eq!(
-                pb.build(language, segments),
-                "<PRE> this is some prefix <SUF>\n <MID>"
+                pb.build(language, segments, snippets),
+                "this is some prefix"
             );
         }
 
@@ -222,8 +215,8 @@ mod tests {
                 suffix: Some("".into()),
             };
             assert_eq!(
-                pb.build(language, segments),
-                "<PRE> this is some prefix <SUF>\n <MID>"
+                pb.build(language, segments, snippets),
+                "this is some prefix"
             );
         }
 
@@ -234,7 +227,7 @@ mod tests {
                 suffix: Some("this is some suffix".into()),
             };
             assert_eq!(
-                pb.build(language, segments),
+                pb.build(language, segments, snippets),
                 "<PRE>  <SUF>this is some suffix <MID>"
             );
         }
@@ -245,7 +238,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: None,
             };
-            assert_eq!(pb.build(language, segments), "<PRE>  <SUF>\n <MID>");
+            assert_eq!(pb.build(language, segments, snippets), "");
         }
 
         // Test w/ emtpy prefix, w/ empty suffix.
@@ -254,7 +247,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "<PRE>  <SUF>\n <MID>");
+            assert_eq!(pb.build(language, segments, snippets), "");
         }
     }
 
@@ -264,6 +257,7 @@ mod tests {
 
         // Rewrite disabled, so the language doesn't matter.
         let language = "python";
+        let snippets = &vec![];
 
         // Test w/ prefix, w/ suffix.
         {
@@ -271,7 +265,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: Some("this is some suffix".into()),
             };
-            assert_eq!(pb.build(language, segments), "this is some prefix");
+            assert_eq!(
+                pb.build(language, segments, snippets),
+                "this is some prefix"
+            );
         }
 
         // Test w/ prefix, w/o suffix.
@@ -280,7 +277,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: None,
             };
-            assert_eq!(pb.build(language, segments), "this is some prefix");
+            assert_eq!(
+                pb.build(language, segments, snippets),
+                "this is some prefix"
+            );
         }
 
         // Test w/ prefix, w/ empty suffix.
@@ -289,7 +289,10 @@ mod tests {
                 prefix: "this is some prefix".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "this is some prefix");
+            assert_eq!(
+                pb.build(language, segments, snippets),
+                "this is some prefix"
+            );
         }
 
         // Test w/ empty prefix, w/ suffix.
@@ -298,7 +301,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("this is some suffix".into()),
             };
-            assert_eq!(pb.build(language, segments), "");
+            assert_eq!(pb.build(language, segments, snippets), "");
         }
 
         // Test w/ empty prefix, w/o suffix.
@@ -307,7 +310,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: None,
             };
-            assert_eq!(pb.build(language, segments), "");
+            assert_eq!(pb.build(language, segments, snippets), "");
         }
 
         // Test w/ empty prefix, w/ empty suffix.
@@ -316,7 +319,7 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments), "");
+            assert_eq!(pb.build(language, segments, snippets), "");
         }
     }
 
@@ -326,22 +329,17 @@ mod tests {
             Snippet {
                 filepath: "a1.py".to_owned(),
                 body: "res_1 = invoke_function_1(n)".to_owned(),
+                score: 1.0,
             },
             Snippet {
                 filepath: "a2.py".to_owned(),
                 body: "res_2 = invoke_function_2(n)".to_owned(),
+                score: 1.0,
             },
             Snippet {
                 filepath: "a3.py".to_owned(),
                 body: "res_3 = invoke_function_3(n)".to_owned(),
-            },
-            Snippet {
-                filepath: "a4.py".to_owned(),
-                body: "res_4 = invoke_function_4(n)".to_owned(),
-            },
-            Snippet {
-                filepath: "a5.py".to_owned(),
-                body: "res_5 = invoke_function_5(n)".to_owned(),
+                score: 1.0,
             },
         ];
 
@@ -366,7 +364,7 @@ Use some invoke_function to do some job.
 def this_is_prefix():\n";
 
         assert_eq!(
-            build_prefix("python", prefix, snippets, 96),
+            build_prefix("python", prefix, &snippets),
             expected_built_prefix
         );
     }

@@ -8,13 +8,21 @@ st.set_page_config(layout="wide")
 
 language = st.text_input("Language", "rust")
 
-query = st.text_area("Query", "get")
-tokens = re.findall(r"\w+", query)
-tokens = [x for x in tokens if x != "AND" and x != "OR" and x != "NOT"]
-query = "(" + " ".join(tokens) + ")" + " "  + "AND language:" + language
+query = st.text_area("Query", "to_owned")
 
 if query:
-    r = requests.get("http://localhost:8080/v1beta/search", params=dict(q=query))
-    hits = r.json()["hits"]
-    for x in hits:
-        st.write(x)
+    r = requests.post("http://localhost:8080/v1/completions", json=dict(segments=dict(prefix=query), language=language, debug=dict(enabled=True)))
+    json = r.json()
+    debug = json["debug_data"]
+    snippets = debug.get("snippets", [])
+
+    st.write("Prompt")
+    st.code(debug["prompt"])
+
+    st.write("Completion")
+    st.code(json["choices"][0]["text"])
+
+    for x in snippets:
+        st.write(f"**{x['filepath']}**: {x['score']}")
+        st.write(f"Length: {len(x['body'])}")
+        st.code(x['body'])

@@ -38,6 +38,14 @@ pub struct CompletionRequest {
     // A unique identifier representing your end-user, which can help Tabby to monitor & generating
     // reports.
     user: Option<String>,
+
+    debug: Option<DebugRequest>,
+}
+
+#[derive(Serialize, ToSchema, Deserialize, Clone, Debug)]
+pub struct DebugRequest {
+    // When true, returns debug_data in completion response.
+    enabled: bool,
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -56,9 +64,31 @@ pub struct Choice {
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct Snippet {
+    filepath: String,
+    body: String,
+    score: f32,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[schema(example=json!({
+    "id": "string",
+    "choices": [ { "index": 0, "text": "string" } ]
+}))]
 pub struct CompletionResponse {
     id: String,
     choices: Vec<Choice>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    debug_data: Option<DebugData>,
+}
+
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct DebugData {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    snippets: Vec<Snippet>,
+
+    prompt: String,
 }
 
 #[utoipa::path(
@@ -98,7 +128,10 @@ pub async fn completions(
     };
 
     debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-    let prompt = state.prompt_builder.build(&language, segments.clone());
+    let snippets = state.prompt_builder.collect(&language, &segments);
+    let prompt = state
+        .prompt_builder
+        .build(&language, segments.clone(), &snippets);
     debug!("PROMPT: {}", prompt);
     let completion_id = format!("cmpl-{}", uuid::Uuid::new_v4());
     let text = state.engine.generate(&prompt, options).await;
@@ -119,9 +152,16 @@ pub async fn completions(
     }
     .log();
 
+    let debug_data = DebugData { snippets, prompt };
+
     Ok(Json(CompletionResponse {
         id: completion_id,
         choices: vec![Choice { index: 0, text }],
+        debug_data: if request.debug.is_some_and(|x| x.enabled) {
+            Some(debug_data)
+        } else {
+            None
+        },
     }))
 }
 
