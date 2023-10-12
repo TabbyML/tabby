@@ -23,6 +23,7 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 </p>
 
 ## 🔥 What's New
+* **10/04/2023** Check out the [model directory](https://tabby.tabbyml.com/docs/models/) for the latest models supported by Tabby.
 * **09/21/2023** We've hit **10K stars** 🌟 on GitHub! 🚀🎉👏
 * **09/18/2023** Apple's M1/M2 Metal inference support has landed in [v0.1.1](https://github.com/TabbyML/tabby/releases/tag/v0.1.1)!
 * **08/31/2023** Tabby's first stable release [v0.0.1](https://github.com/TabbyML/tabby/releases/tag/v0.0.1) 🥳.
@@ -37,6 +38,12 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 
 ## 👋 Getting Started
 
+You can find our documentation [here](https://tabby.tabbyml.com/docs/getting-started).
+- [📚 Installation](https://tabby.tabbyml.com/docs/installation/)
+- [💻 IDE/Editor Extensions](https://tabby.tabbyml.com/docs/extensions/)
+- [⚙️ Configuration](https://tabby.tabbyml.com/docs/configuration)
+
+### Run Tabby in 1 Minute
 The easiest way to start a Tabby server is by using the following Docker command:
 
 ```bash
@@ -45,7 +52,7 @@ docker run -it \
   tabbyml/tabby \
   serve --model TabbyML/SantaCoder-1B --device cuda
 ```
-For additional options (e.g inference type, parallelism), please refer to the documentation at https://tabbyml.github.io/tabby.
+For additional options (e.g inference type, parallelism), please refer to the [documentation page](https://tabbyml.github.io/tabby).
 
 ## 🤝 Contributing
 
@@ -76,7 +83,14 @@ apt-get install protobuf-compiler libopenblas-dev
 ### Start Hacking!
 ... and don't forget to submit a [Pull Request](https://github.com/TabbyML/tabby/compare)
 
+## 🌍 Community
+- #️⃣ [Slack](https://join.slack.com/t/tabbyml/shared_invite/zt-22thejc0z-7ePKeWNCHPX31pEtnT4oYQ) - connect with the TabbyML community 
+- 🎤 [Twitter / X](https://twitter.com/Tabby_ML) - engage with TabbyML for all things possible 
+- 📚 [LinkedIn](https://www.linkedin.com/company/tabbyml/) - follow for the latest from the community 
+- 💌 [Newsletter](https://tinyletter.com/tabbyml/) - subscribe to unlock Tabby insights and secrets
 
-## 🌟 Star History
+
+
+### 🌟 Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=tabbyml/tabby&type=Date)](https://star-history.com/#tabbyml/tabby&Date)
