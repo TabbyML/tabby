@@ -206,7 +206,10 @@ lazy_static! {
             ("sql", vec!["sql"]),
             ("scala", vec!["scala"]),
             ("shellscript", vec!["sh", "bash", "command", "zsh"]),
-            ("javascript-typescript", vec!["ts", "mts", "js", "mjs", "jsx", "tsx"]),
+            (
+                "javascript-typescript",
+                vec!["ts", "mts", "js", "mjs", "jsx", "tsx"],
+            ),
             ("tex", vec!["tex"]),
             ("vb", vec!["vb"]),
         ])
