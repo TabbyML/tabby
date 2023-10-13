@@ -27,29 +27,47 @@ lazy_static! {
         stop_words: &DEFAULT,
         line_comment: "#"
     };
+
+    /* Python */
     static ref PYTHON_STOP_WORDS: Vec<&'static str> =
-        vec!["\ndef", "\n#", "\nfrom", "\nclass"].with_default();
+        vec!["\ndef", "\n#", "\nfrom", "\nclass", "\nimport"].with_default();
     static ref PYTHON: Language = Language {
         stop_words: &PYTHON_STOP_WORDS,
         line_comment: "#",
     };
-    static ref RUST_STOP_WORDS: Vec<&'static str> =
-        vec!["\ndef", "\n#", "\nfrom", "\nclass"].with_default();
+
+    /* Rust */
+    static ref RUST_STOP_WORDS: Vec<&'static str> = vec![
+        "\n//", "\nfn", "\ntrait", "\nimpl", "\nenum", "\npub", "\nextern", "\nstatic",
+        "\ntrait", "\nunsafe", "\nuse"
+    ]
+    .with_default();
     static ref RUST: Language = Language {
         stop_words: &RUST_STOP_WORDS,
         line_comment: "//",
     };
-    static ref JAVASCRIPT_STOP_WORDS: Vec<&'static str> =
-        vec!["\ndef", "\n#", "\nfrom", "\nclass"].with_default();
-    static ref JAVASCRIPT: Language = Language {
-        stop_words: &JAVASCRIPT_STOP_WORDS,
-        line_comment: "",
-    };
-    static ref TYPESCRIPT_STOP_WORDS: Vec<&'static str> =
-        vec!["\ndef", "\n#", "\nfrom", "\nclass"].with_default();
-    static ref TYPESCRIPT: Language = Language {
-        stop_words: &TYPESCRIPT_STOP_WORDS,
-        line_comment: "",
+
+    /* Javascript / Typescript */
+    static ref JAVASCRIPT_TYPESCRIPT_STOP_WORDS: Vec<&'static str> = vec![
+        "\n//",
+        "\nabstract",
+        "\nasync",
+        "\nclass",
+        "\nconst",
+        "\nexport",
+        "\nfunction",
+        "\ninterface",
+        "\nmodule",
+        "\npackage",
+        "\ntype",
+        "\nvar",
+        "\nenum",
+        "\nlet",
+    ]
+    .with_default();
+    static ref JAVASCRIPT_TYPESCRIPT: Language = Language {
+        stop_words: &JAVASCRIPT_TYPESCRIPT_STOP_WORDS,
+        line_comment: "//",
     };
 }
 
@@ -58,10 +76,8 @@ pub fn get_language(language: &str) -> &'static Language {
         &PYTHON
     } else if language == "rust" {
         &RUST
-    } else if language == "javascript" {
-        &JAVASCRIPT
-    } else if language == "typescript" {
-        &TYPESCRIPT
+    } else if language == "javascript" || language == "typescript" {
+        &JAVASCRIPT_TYPESCRIPT
     } else {
         &UNKONWN
     }
