@@ -35,8 +35,8 @@ pub struct CompletionRequest {
     /// When segments are set, the `prompt` is ignored during the inference.
     segments: Option<Segments>,
 
-    // A unique identifier representing your end-user, which can help Tabby to monitor & generating
-    // reports.
+    /// A unique identifier representing your end-user, which can help Tabby to monitor & generating
+    /// reports.
     user: Option<String>,
 
     debug: Option<DebugRequest>,
@@ -44,9 +44,15 @@ pub struct CompletionRequest {
 
 #[derive(Serialize, ToSchema, Deserialize, Clone, Debug)]
 pub struct DebugRequest {
-    // When true, returns debug_data in completion response.
+    /// When true, returns debug_data in completion response.
     enabled: bool,
+
+    /// When true, turn off prompt rewrite with source code index.
+    #[serde(default="default_false")]
+    disable_prompt_rewrite: bool,
 }
+
+fn default_false() -> bool { false }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
@@ -128,7 +134,15 @@ pub async fn completions(
     };
 
     debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-    let snippets = state.prompt_builder.collect(&language, &segments);
+    let snippets = if !request
+        .debug
+        .as_ref()
+        .is_some_and(|x| x.disable_prompt_rewrite)
+    {
+        state.prompt_builder.collect(&language, &segments)
+    } else {
+        vec![]
+    };
     let prompt = state
         .prompt_builder
         .build(&language, segments.clone(), &snippets);
