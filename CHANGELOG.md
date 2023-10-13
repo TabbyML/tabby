@@ -3,6 +3,10 @@
 ## Features
 ## Fixes and improvements
 
+# v0.2.2 (10/09/2023)
+## Fixes and improvements
+* Fix a critical issue that might cause request dead locking in ctranslate2 backend (when loading is heavy)
+
 # v0.2.1 (10/03/2023)
 ## Features
 ### Chat Model & Web Interface
