@@ -18,9 +18,7 @@ pub struct Config {
 }
 
 #[derive(Serialize, Deserialize, Default)]
-pub struct SwaggerConfig {
-    pub server_url: Option<String>,
-}
+pub struct SwaggerConfig {}
 
 impl Config {
     pub fn load() -> Result<Self, Error> {
