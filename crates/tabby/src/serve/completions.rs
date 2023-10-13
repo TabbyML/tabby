@@ -39,21 +39,13 @@ pub struct CompletionRequest {
     /// reports.
     user: Option<String>,
 
-    debug: Option<DebugRequest>,
+    debug_options: Option<DebugOptions>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DebugRequest {
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+pub struct DebugOptions {
     /// When true, returns debug_data in completion response.
     enabled: bool,
-
-    /// When true, turn off prompt rewrite with source code index.
-    #[serde(default = "default_false")]
-    disable_prompt_rewrite: bool,
-}
-
-fn default_false() -> bool {
-    false
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -91,7 +83,7 @@ pub struct CompletionResponse {
     debug_data: Option<DebugData>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DebugData {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     snippets: Vec<Snippet>,
@@ -136,15 +128,7 @@ pub async fn completions(
     };
 
     debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-    let snippets = if !request
-        .debug
-        .as_ref()
-        .is_some_and(|x| x.disable_prompt_rewrite)
-    {
-        state.prompt_builder.collect(&language, &segments)
-    } else {
-        vec![]
-    };
+    let snippets = state.prompt_builder.collect(&language, &segments);
     let prompt = state
         .prompt_builder
         .build(&language, segments.clone(), &snippets);
@@ -173,7 +157,7 @@ pub async fn completions(
     Ok(Json(CompletionResponse {
         id: completion_id,
         choices: vec![Choice { index: 0, text }],
-        debug_data: if request.debug.is_some_and(|x| x.enabled) {
+        debug_data: if request.debug_options.is_some_and(|x| x.enabled) {
             Some(debug_data)
         } else {
             None
