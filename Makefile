@@ -15,4 +15,4 @@ bump-version:
 	cargo ws version --no-individual-tags --no-git-push
 
 bump-release-version:
-	cargo ws version --allow-branch "r*" --no-individual-tags --no-git-push
+	cargo ws version --allow-branch "r*" --no-individual-tags --force "*"
