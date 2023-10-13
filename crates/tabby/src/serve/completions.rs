@@ -42,7 +42,7 @@ pub struct CompletionRequest {
     debug: Option<DebugRequest>,
 }
 
-#[derive(Serialize, ToSchema, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DebugRequest {
     /// When true, returns debug_data in completion response.
     enabled: bool,
@@ -91,7 +91,7 @@ pub struct CompletionResponse {
     debug_data: Option<DebugData>,
 }
 
-#[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DebugData {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     snippets: Vec<Snippet>,

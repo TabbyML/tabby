@@ -20,7 +20,7 @@ mod tests {
             repositories: vec![Repository {
                 git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
             }],
-            swagger: SwaggerConfig { server_url: None },
+            swagger: SwaggerConfig {},
         };
 
         config.save();
