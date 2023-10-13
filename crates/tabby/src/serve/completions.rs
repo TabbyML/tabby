@@ -48,11 +48,13 @@ pub struct DebugRequest {
     enabled: bool,
 
     /// When true, turn off prompt rewrite with source code index.
-    #[serde(default="default_false")]
+    #[serde(default = "default_false")]
     disable_prompt_rewrite: bool,
 }
 
-fn default_false() -> bool { false }
+fn default_false() -> bool {
+    false
+}
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct Segments {
