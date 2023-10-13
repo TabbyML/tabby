@@ -70,7 +70,6 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         search::HitDocument
     ))
 )]
-#[openapi(modifiers(&DebugAddon))]
 struct ApiDoc;
 
 #[derive(clap::ValueEnum, strum::Display, PartialEq, Clone)]
