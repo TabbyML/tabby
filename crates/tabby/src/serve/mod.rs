@@ -23,7 +23,7 @@ use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::{info, warn};
-use utoipa::{openapi::ServerBuilder, OpenApi};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use self::{
@@ -57,9 +57,9 @@ Install following IDE / Editor extensions to get started with [Tabby](https://gi
         completions::CompletionResponse,
         completions::Segments,
         completions::Choice,
-        completions::DebugRequest,
-        completions::DebugData,
         completions::Snippet,
+        completions::DebugOptions,
+        completions::DebugData,
         chat::ChatCompletionRequest,
         chat::Message,
         chat::ChatCompletionChunk,
@@ -292,18 +292,7 @@ trait OpenApiOverride {
 }
 
 impl OpenApiOverride for utoipa::openapi::OpenApi {
-    fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig) {
-        if let Some(servers) = self.servers.as_mut() {
-            if let Some(server_url) = &config.server_url {
-                servers.push(
-                    ServerBuilder::new()
-                        .url(server_url)
-                        .description(Some("Swagger Server"))
-                        .build(),
-                );
-            }
-        }
-
+    fn override_doc(&mut self, args: &ServeArgs, _config: &SwaggerConfig) {
         if args.chat_model.is_none() {
             self.paths.paths.remove("/v1beta/chat/completions");
 

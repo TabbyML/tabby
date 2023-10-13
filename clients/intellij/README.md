@@ -15,7 +15,7 @@ Tabby IntelliJ Platform plugin works with all [IntelliJ Platform IDEs](https://p
    1. Fill in the server endpoint URL to connect the plugin to your Tabby server.  
      * If you are using default port `http://localhost:8080`, you can skip this step.  
      * If you are using a Tabby Cloud server endpoint, follow the instructions provided in the popup messages to complete the authorization process. 
-   2. Fill in node binary path if the node binary.
+   2. Enter the node binary path into the designated field
      * If node binary is already accessible via your `PATH` environment variable, you can skip this step.
      * Remember to save the settings and restart the IDE if you made changes to this option.
 5. Check the Tabby plugin status bar item, it should display a check mark if the plugin is successfully connected to the Tabby server. 
