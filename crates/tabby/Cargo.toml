@@ -40,6 +40,8 @@ futures = { workspace = true }
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
+textdistance = "1.0.2"
+regex.workspace = true
 
 [target.'cfg(all(target_os="macos", target_arch="aarch64"))'.dependencies]
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }

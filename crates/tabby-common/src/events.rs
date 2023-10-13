@@ -56,9 +56,15 @@ pub enum Event<'a> {
         completion_id: &'a str,
         language: &'a str,
         prompt: &'a str,
+        segments: &'a Segments<'a>,
         choices: Vec<Choice<'a>>,
         user: Option<&'a str>,
     },
+}
+#[derive(Serialize)]
+pub struct Segments<'a> {
+    pub prefix: &'a str,
+    pub suffix: Option<&'a str>,
 }
 
 #[derive(Serialize)]
