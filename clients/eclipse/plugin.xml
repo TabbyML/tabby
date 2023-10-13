@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.core.runtime.preferences">
+      <initializer
+            class="eclipsetabby.preferences.PreferenceInitializer">
+      </initializer>
+   </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="eclipsetabby.preferences.TabbySettings"
+            id="eclipsetabby.preferences.TabbySettings"
+            name="TabbyML">
+      </page>
+   </extension>
+
+</plugin>
