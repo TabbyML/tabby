@@ -1,10 +1,25 @@
 # v0.3.0 [Unreleased]
 
 ## Features
-## Fixes and improvements
+### Retrieval-Augmented Code Completion Enabled by Default
+
+The currently supported languages are:
+
+* Rust
+* Python
+* JavaScript / JSX
+* TypeScript / TSX
+
+A blog series detailing the technical aspects of Retrieval-Augmented Code Completion will be published soon. Stay tuned!
+
+## Fixes and Improvements
+
+* Fix [Issue #511](https://github.com/TabbyML/tabby/issues/511) by marking ggml models as optional.
+* Improve stop words handling by combining RegexSet into Regex for efficiency.
 
 # v0.2.2 (10/09/2023)
 ## Fixes and improvements
+
 * Fix a critical issue that might cause request dead locking in ctranslate2 backend (when loading is heavy)
 
 # v0.2.1 (10/03/2023)
