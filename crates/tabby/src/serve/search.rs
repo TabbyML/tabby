@@ -14,6 +14,7 @@ use tantivy::{
     schema::Field,
     DocAddress, Document, Index, IndexReader,
 };
+use thiserror::Error;
 use tokio::{sync::OnceCell, task, time::sleep};
 use tracing::{debug, instrument, log::info};
 use utoipa::{IntoParams, ToSchema};
@@ -198,11 +199,25 @@ impl IndexServer {
         }
     }
 
-    pub fn search(&self, q: &str, limit: usize, offset: usize) -> tantivy::Result<SearchResponse> {
+    pub fn search(
+        &self,
+        q: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, IndexServerError> {
         if let Some(imp) = self.get_cell() {
-            imp.search(q, limit, offset)
+            Ok(imp.search(q, limit, offset)?)
         } else {
-            Err(tantivy::TantivyError::InternalError("Not Ready".to_owned()))
+            Err(IndexServerError::NotReady)
         }
     }
+}
+
+#[derive(Error, Debug)]
+pub enum IndexServerError {
+    #[error("index not ready")]
+    NotReady,
+
+    #[error("underlying tantivy error")]
+    TantivyError(#[from] tantivy::TantivyError),
 }
