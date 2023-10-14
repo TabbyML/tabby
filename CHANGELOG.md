@@ -1,4 +1,10 @@
-# v0.3.0 [Unreleased]
+# v0.4.0 [Unreleased]
+
+## Features
+
+## Fixes and Improvements
+
+# v0.3.0
 
 ## Features
 ### Retrieval-Augmented Code Completion Enabled by Default
