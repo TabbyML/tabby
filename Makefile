@@ -12,7 +12,7 @@ update-playground:
 	rm -rf crates/tabby/playground && cp -R clients/tabby-playground/out crates/tabby/playground
 
 bump-version:
-	cargo ws version --no-individual-tags --no-git-push
+	cargo ws version --no-git-tag --force "*"
 
 bump-release-version:
 	cargo ws version --allow-branch "r*" --no-individual-tags --force "*"
