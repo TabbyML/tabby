@@ -1,6 +1,7 @@
 # v0.4.0 [Unreleased]
 
 ## Features
+* Supports golang: https://github.com/TabbyML/tabby/issues/553
 
 ## Fixes and Improvements
 
