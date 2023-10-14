@@ -7,7 +7,10 @@ use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::serve::{completions::languages::get_language, search::IndexServer};
+use crate::serve::{
+    completions::languages::get_language,
+    search::{IndexServer, IndexServerError},
+};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
@@ -109,7 +112,11 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
 
     let serp = match index_server.search(&query_text, MAX_SNIPPETS_TO_FETCH, 0) {
         Ok(serp) => serp,
-        Err(err) => {
+        Err(IndexServerError::NotReady) => {
+            // Ignore.
+            return vec![];
+        }
+        Err(IndexServerError::TantivyError(err)) => {
             warn!("Failed to search query: {}", err);
             return ret;
         }
