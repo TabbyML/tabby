@@ -1,5 +1,9 @@
 export function splitLines(input: string) {
-  return input.match(/.*(?:$|\r?\n)/g).filter(Boolean); // Split lines and keep newline character
+  const lines = input.match(/.*(?:$|\r?\n)/g).filter(Boolean); // Split lines and keep newline character
+  if (lines.length > 0 && lines[lines.length - 1].endsWith("\n")) { // Keep last empty line
+    lines.push("");
+  }
+  return lines;
 }
 
 export function splitWords(input: string) {
