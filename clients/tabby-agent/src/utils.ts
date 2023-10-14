@@ -1,6 +1,7 @@
 export function splitLines(input: string) {
   const lines = input.match(/.*(?:$|\r?\n)/g).filter(Boolean); // Split lines and keep newline character
-  if (lines.length > 0 && lines[lines.length - 1].endsWith("\n")) { // Keep last empty line
+  if (lines.length > 0 && lines[lines.length - 1].endsWith("\n")) {
+    // Keep last empty line
     lines.push("");
   }
   return lines;
