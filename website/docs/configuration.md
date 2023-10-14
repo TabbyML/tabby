@@ -1,22 +1,76 @@
 # ⚙️ Configuration
 
-:::tip
-The configuration file is not mandatory; Tabby can be run with just a single line of command.
-:::
+Tabby server will look for a configuration file at `~/.tabby/config.toml` for advanced features.
 
-Server config can be found at `~/.tabby/config.toml`
+### Repository context for code completion
 
-it looks something like this
+To enable repository level context for code completion, you can add the following to your configuration file:
 
-```toml
+```toml title="~/.tabby/config.toml"
+# Index `tabby` source code as additional context for code completion.
 [[repositories]]
 git_url = "https://github.com/TabbyML/tabby.git"
 ```
 
-| Parameter                 | Description                                                                         |
-| ------------------------- | ----------------------------------------------------------------------------------- |
-| `repository`              | List of source code repository to integrate with the instance.                      |
-| `repository.git_url`      | URL to git repository, where tabby extract snippets for prompting and fine tuning.  |
+Once this is set, you can run `tabby scheduler` to index the source code repository.
+
+:::tip
+By default, `tabby scheduler` runs in a daemon and processes its pipeline every 5 hours. To run the pipeline immediately, use `tabby scheduler --now`.
+:::
+
+```bash title="artifacts produced by tabby scheduler"
+~/.tabby % ls dataset
+data.jsonl
+
+~/.tabby % ls index
+1a8729fa34d844df984b444f4def1456.fast      2ed712d4a7a44ed797dd4ff5ceaf4312.fieldnorm
+b42ca53fe6f94d0c8e96f947318278ba.idx       1a8729fa34d844df984b444f4def1456.fieldnorm 
+2ed712d4a7a44ed797dd4ff5ceaf4312.idx       b42ca53fe6f94d0c8e96f947318278ba.pos
+...
+```
+
+In a code completion request, additional context from the source code repository will be attached to the prompt for better completion quality. For example:
+
+```rust title="Example prompt for code completion, with retrieval augmented enabled"
+// Path: crates/tabby/src/serve/engine.rs
+// fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
+//     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
+//         .model_path(model_dir.ggml_q8_0_file())
+//         .tokenizer_path(model_dir.tokenizer_file())
+//         .build()
+//         .unwrap();
+//
+//     Box::new(llama_cpp_bindings::LlamaEngine::create(options))
+// }
+//
+// Path: crates/tabby/src/serve/engine.rs
+// create_local_engine(args, &model_dir, &metadata)
+//
+// Path: crates/tabby/src/serve/health.rs
+// args.device.to_string()
+//
+// Path: crates/tabby/src/serve/mod.rs
+// download_model(&args.model, &args.device)
+    } else {
+        create_llama_engine(model_dir)
+    }
+}
+
+fn create_ctranslate2_engine(
+    args: &crate::serve::ServeArgs,
+    model_dir: &ModelDir,
+    metadata: &Metadata,
+) -> Box<dyn TextGeneration> {
+    let device = format!("{}", args.device);
+    let options = CTranslate2EngineOptionsBuilder::default()
+        .model_path(model_dir.ctranslate2_dir())
+        .tokenizer_path(model_dir.tokenizer_file())
+        .device(device)
+        .model_type(metadata.auto_model.clone())
+        .device_indices(args.device_indices.clone())
+        .build()
+        .⮹
+```
 
 ## Usage Collection
 Tabby collects usage stats by default. This data will only be used by the Tabby team to improve its services.
