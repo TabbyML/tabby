@@ -25,6 +25,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [Python](https://www.python.org/)
 * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 * [TypeScript](https://www.typescriptlang.org/)
+* [Golang](https://www.go.dev/): From v0.4.0
 
 ## Languages Missing Certain Support
 
@@ -33,7 +34,6 @@ For an actual example of an issue or pull request adding the above support, plea
 |  C/C++   |                    🚫                    |                       🚫                        |
 |    C#    |                    🚫                    |                       🚫                        |
 |   CSS    |                    🚫                    |                       🚫                        |
-|    Go    |                    🚫                    |                       🚫                        |
 | Haskell  |                    🚫                    |                       🚫                        |
 |   Java   |                    🚫                    |                       🚫                        |
 |  Julia   |                    🚫                    |                       🚫                        |
