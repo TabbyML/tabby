@@ -11,7 +11,7 @@ language = st.text_input("Language", "rust")
 query = st.text_area("Query", "to_owned")
 
 if query:
-    r = requests.post("http://localhost:8080/v1/completions", json=dict(segments=dict(prefix=query), language=language, debug=dict(enabled=True)))
+    r = requests.post("http://localhost:8080/v1/completions", json=dict(segments=dict(prefix=query), language=language, debug_options=dict(enabled=True)))
     json = r.json()
     debug = json["debug_data"]
     snippets = debug.get("snippets", [])
