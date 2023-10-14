@@ -259,6 +259,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "go",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_go::language(),
+                        include_str!("../queries/go.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }
