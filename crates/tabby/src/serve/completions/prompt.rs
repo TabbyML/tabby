@@ -29,11 +29,7 @@ impl PromptBuilder {
         }
     }
 
-    fn build_prompt(&self, prefix: String, suffix: Option<String>) -> String {
-        let Some(suffix) = suffix else {
-            return prefix;
-        };
-
+    fn build_prompt(&self, prefix: String, suffix: String) -> String {
         let Some(prompt_template) = &self.prompt_template else {
             return prefix;
         };
@@ -51,10 +47,20 @@ impl PromptBuilder {
 
     pub fn build(&self, language: &str, segments: Segments, snippets: &[Snippet]) -> String {
         let segments = rewrite_with_snippets(language, segments, snippets);
-        self.build_prompt(
-            segments.prefix,
-            segments.suffix.filter(|x| !x.trim_end().is_empty()),
-        )
+        self.build_prompt(segments.prefix, get_default_suffix(segments.suffix))
+    }
+}
+
+fn get_default_suffix(suffix: Option<String>) -> String {
+    if suffix.is_none() {
+        return "\n".to_owned();
+    }
+
+    let suffix = suffix.unwrap();
+    if suffix.is_empty() {
+        "\n".to_owned()
+    } else {
+        suffix
     }
 }
 
@@ -211,7 +217,7 @@ mod tests {
             };
             assert_eq!(
                 pb.build(language, segments, snippets),
-                "this is some prefix"
+                "<PRE> this is some prefix <SUF>\n <MID>"
             );
         }
 
@@ -223,7 +229,7 @@ mod tests {
             };
             assert_eq!(
                 pb.build(language, segments, snippets),
-                "this is some prefix"
+                "<PRE> this is some prefix <SUF>\n <MID>"
             );
         }
 
@@ -245,7 +251,10 @@ mod tests {
                 prefix: "".into(),
                 suffix: None,
             };
-            assert_eq!(pb.build(language, segments, snippets), "");
+            assert_eq!(
+                pb.build(language, segments, snippets),
+                "<PRE>  <SUF>\n <MID>"
+            );
         }
 
         // Test w/ emtpy prefix, w/ empty suffix.
@@ -254,7 +263,10 @@ mod tests {
                 prefix: "".into(),
                 suffix: Some("".into()),
             };
-            assert_eq!(pb.build(language, segments, snippets), "");
+            assert_eq!(
+                pb.build(language, segments, snippets),
+                "<PRE>  <SUF>\n <MID>"
+            );
         }
     }
 
