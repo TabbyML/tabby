@@ -69,6 +69,24 @@ lazy_static! {
         stop_words: &JAVASCRIPT_TYPESCRIPT_STOP_WORDS,
         line_comment: "//",
     };
+
+    /* Golang */
+    static ref GO_STOP_WORDS: Vec<&'static str> = vec![
+        "\n//",
+        "\nfunc",
+        "\ninterface",
+        "\nstruct",
+        "\npackage",
+        "\ntype",
+        "\nimport",
+        "\nvar",
+        "\nconst",
+    ]
+    .with_default();
+    static ref GO: Language = Language {
+        stop_words: &GO_STOP_WORDS,
+        line_comment: "//",
+    };
 }
 
 pub fn get_language(language: &str) -> &'static Language {
@@ -78,6 +96,8 @@ pub fn get_language(language: &str) -> &'static Language {
         &RUST
     } else if language == "javascript" || language == "typescript" {
         &JAVASCRIPT_TYPESCRIPT
+    } else if language == "go" {
+        &GO
     } else {
         &UNKONWN
     }
