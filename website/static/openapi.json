@@ -2,21 +2,17 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Tabby Server",
-    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby?style=social)](https://github.com/TabbyML/tabby)\n\nOpenAPI documentation for [tabby](https://github.com/TabbyML/tabby), a self-hosted AI coding assistant.",
+    "description": "\n[![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)\n[![Join Slack](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)\n\nInstall following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).\n* [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)\n* [VIM Extension](https://github.com/TabbyML/tabby/tree/main/clients/vim)\n* [IntelliJ Platform Plugin](https://github.com/TabbyML/tabby/tree/main/clients/intellij) – Install from the [marketplace](https://plugins.jetbrains.com/plugin/22379-tabby)\n",
     "license": {
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.1.0"
+    "version": "0.3.0"
   },
   "servers": [
     {
       "url": "https://playground.app.tabbyml.com",
       "description": "Playground server"
-    },
-    {
-      "url": "http://localhost:8080",
-      "description": "Local server"
     }
   ],
   "paths": {
@@ -80,7 +76,7 @@
       }
     },
     "/v1/health": {
-      "post": {
+      "get": {
         "tags": [
           "v1"
         ],
@@ -102,6 +98,47 @@
   },
   "components": {
     "schemas": {
+      "ChatCompletionChunk": {
+        "type": "object",
+        "required": [
+          "content"
+        ],
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": [
+          "messages"
+        ],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          }
+        },
+        "example": {
+          "messages": [
+            {
+              "content": "What is tail recursion?",
+              "role": "user"
+            },
+            {
+              "content": "It's a kind of optimization in compiler?",
+              "role": "assistant"
+            },
+            {
+              "content": "Could you share more details?",
+              "role": "user"
+            }
+          ]
+        }
+      },
       "Choice": {
         "type": "object",
         "required": [
@@ -124,6 +161,7 @@
         "properties": {
           "prompt": {
             "type": "string",
+            "deprecated": true,
             "example": "def fib(n):",
             "nullable": true
           },
@@ -143,6 +181,7 @@
           },
           "user": {
             "type": "string",
+            "description": "A unique identifier representing your end-user, which can help Tabby to monitor & generating\nreports.",
             "nullable": true
           }
         },
@@ -170,6 +209,15 @@
               "$ref": "#/components/schemas/Choice"
             }
           }
+        },
+        "example": {
+          "choices": [
+            {
+              "index": 0,
+              "text": "string"
+            }
+          ],
+          "id": "string"
         }
       },
       "HealthState": {
@@ -177,7 +225,6 @@
         "required": [
           "model",
           "device",
-          "compute_type",
           "arch",
           "cpu_info",
           "cpu_count",
@@ -188,10 +235,11 @@
           "model": {
             "type": "string"
           },
-          "device": {
-            "type": "string"
+          "chat_model": {
+            "type": "string",
+            "nullable": true
           },
-          "compute_type": {
+          "device": {
             "type": "string"
           },
           "arch": {
@@ -212,6 +260,59 @@
           },
           "version": {
             "$ref": "#/components/schemas/Version"
+          }
+        }
+      },
+      "Hit": {
+        "type": "object",
+        "required": [
+          "score",
+          "doc",
+          "id"
+        ],
+        "properties": {
+          "score": {
+            "type": "number",
+            "format": "float"
+          },
+          "doc": {
+            "$ref": "#/components/schemas/HitDocument"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "HitDocument": {
+        "type": "object",
+        "required": [
+          "body",
+          "filepath",
+          "git_url",
+          "kind",
+          "language",
+          "name"
+        ],
+        "properties": {
+          "body": {
+            "type": "string"
+          },
+          "filepath": {
+            "type": "string"
+          },
+          "git_url": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -238,6 +339,40 @@
           }
         }
       },
+      "Message": {
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "required": [
+          "num_hits",
+          "hits"
+        ],
+        "properties": {
+          "num_hits": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "hits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Hit"
+            }
+          }
+        }
+      },
       "Segments": {
         "type": "object",
         "required": [
@@ -252,6 +387,26 @@
             "type": "string",
             "description": "Content that appears after the cursor in the editor window.",
             "nullable": true
+          }
+        }
+      },
+      "Snippet": {
+        "type": "object",
+        "required": [
+          "filepath",
+          "body",
+          "score"
+        ],
+        "properties": {
+          "filepath": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "float"
           }
         }
       },
