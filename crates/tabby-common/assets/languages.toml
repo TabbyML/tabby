@@ -37,3 +37,17 @@ top_level_keywords = [
     "enum",
     "let",
 ]
+
+[[config]]
+languages = ["go"]
+line_comment = "//"
+top_level_keywords = [
+    "func",
+    "interface",
+    "struct",
+    "package",
+    "type",
+    "import",
+    "var",
+    "const",
+]
