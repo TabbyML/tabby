@@ -3,14 +3,12 @@ use std::sync::Arc;
 use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
+use tabby_common::languages::get_language;
 use textdistance::Algorithm;
 use tracing::warn;
 
 use super::{Segments, Snippet};
-use crate::serve::{
-    completions::languages::get_language,
-    search::{IndexServer, IndexServerError},
-};
+use crate::serve::search::{IndexServer, IndexServerError};
 
 static MAX_SNIPPETS_TO_FETCH: usize = 20;
 static MAX_SNIPPET_CHARS_IN_PROMPT: usize = 768;
@@ -78,7 +76,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
         return prefix.to_owned();
     }
 
-    let comment_char = get_language(language).line_comment;
+    let comment_char = &get_language(language).line_comment;
     let mut lines: Vec<String> = vec![];
 
     for (i, snippet) in snippets.iter().enumerate() {

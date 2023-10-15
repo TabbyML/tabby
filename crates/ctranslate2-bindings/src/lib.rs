@@ -124,7 +124,7 @@ impl TextGeneration for CTranslate2Engine {
         let decoding = self.decoding_factory.create_incremental_decoding(
             self.tokenizer.clone(),
             truncate_tokens(encoding.get_ids(), options.max_input_length),
-            options.stop_words,
+            options.language,
         );
 
         let cancel = CancellationToken::new();

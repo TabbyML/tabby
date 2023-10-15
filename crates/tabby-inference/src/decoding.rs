@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use regex::Regex;
+use tabby_common::languages::Language;
 use tokenizers::tokenizer::Tokenizer;
 
 pub struct DecodingFactory {
-    stop_regex_cache: DashMap<&'static [&'static str], Regex>,
+    stop_regex_cache: DashMap<String, Regex>,
 }
 
 fn reverse<T>(s: T) -> String
@@ -28,32 +29,34 @@ impl DecodingFactory {
         &self,
         tokenizer: Arc<Tokenizer>,
         input_token_ids: &[u32],
-        stop_words: &'static [&'static str],
+        language: &'static Language,
     ) -> IncrementalDecoding {
-        IncrementalDecoding::new(tokenizer, self.get_re(stop_words), input_token_ids)
+        IncrementalDecoding::new(tokenizer, self.get_re(language), input_token_ids)
     }
 
-    fn get_re(&self, stop_words: &'static [&'static str]) -> Option<Regex> {
+    fn get_re(&self, language: &'static Language) -> Option<Regex> {
+        let stop_words = language.get_stop_words();
         if stop_words.is_empty() {
             None
         } else {
-            let mut re = self.stop_regex_cache.get(stop_words);
+            let hashkey = language.get_hashkey();
+            let mut re = self.stop_regex_cache.get(&hashkey);
             if re.is_none() {
                 self.stop_regex_cache
-                    .insert(stop_words, create_stop_regex(stop_words));
-                re = self.stop_regex_cache.get(stop_words);
+                    .insert(hashkey.clone(), create_stop_regex(stop_words));
+                re = self.stop_regex_cache.get(&hashkey);
             }
             re.map(|x| x.value().clone())
         }
     }
 }
 
-fn create_stop_regex(stop_words: &[&str]) -> Regex {
+fn create_stop_regex(stop_words: Vec<String>) -> Regex {
     // (?m) enables multi-line matching mode.
     // \A means absolute begins of string.
     let reversed_stop_words: Vec<_> = stop_words
         .iter()
-        .map(|x| regex::escape(&reverse(*x)))
+        .map(|x| regex::escape(&reverse(x)))
         .collect();
     let regex_string = r"(?m)\A".to_owned() + "((" + &reversed_stop_words.join(")|(") + "))";
     Regex::new(&regex_string).expect("Failed to create regex")
@@ -131,7 +134,12 @@ mod tests {
     #[test]
     fn test_it_works() {
         let text = reverse("void write_u32(std::uint32_t val) const {\n        write_raw(&val, sizeof(val));\n    }\n\n    ~llama_file() {\n        if (fp) {\n            std::fclose(fp);\n        }\n    }\n};\n\nvoid");
-        assert!(!create_stop_regex(&["\n\n", "\n\n  "]).is_match(&text));
-        assert!(create_stop_regex(&["\n\n", "\n\n  ", "\nvoid"]).is_match(&text));
+        assert!(!create_stop_regex(vec!["\n\n".to_owned(), "\n\n  ".to_owned()]).is_match(&text));
+        assert!(create_stop_regex(vec![
+            "\n\n".to_owned(),
+            "\n\n  ".to_owned(),
+            "\nvoid".to_owned()
+        ])
+        .is_match(&text));
     }
 }
