@@ -1,8 +1,9 @@
-smoke:
-	k6 run tests/*.smoke.js
-
 loadtest:
+ifdef TABBY_API_HOST
 	k6 run tests/*.loadtest.js
+else 
+	$(error TABBY_API_HOST is undefined)
+endif
 
 fix:
 	cargo clippy --fix --allow-dirty --allow-staged && cargo +nightly fmt

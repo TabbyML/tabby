@@ -1,23 +1,28 @@
 import http from "k6/http";
-import { check, group, sleep } from "k6";
+import { check, group, sleep, abortTest } from "k6";
 
 export const options = {
   stages: [
-    { duration: "5s", target: 10 }, // simulate ramp-up of traffic from 1 to 10 users over 30s.
-    { duration: "30s", target: 10 }, // stay at 10 users for 10 minutes
-    { duration: "5s", target: 0 }, // ramp-down to 0 users
+    { duration: "5s", target: 8 },
+    { duration: "20s", target: 8 },
+    { duration: "5s", target: 0 },
   ],
   hosts: {
-    "api.tabbyml.com": __ENV.TABBY_API_HOST || "localhost:5000",
+    "api.tabbyml.com": __ENV.TABBY_API_HOST,
   },
+  // Below thresholds are tested against TabbyML/StarCoder-1B served by NVIDIA T4 GPU.
   thresholds: {
-    http_req_duration: ["p(99)<1000"], // 99% of requests must complete below 1000ms
+    http_req_failed: ['rate<0.01'], // http errors should be less than 1%
+    http_req_duration: ["med<400", "avg<1500", "p(95)<3000"],
   },
 };
 
 export default () => {
   const payload = JSON.stringify({
-    prompt: "def binarySearch(arr, left, right, x):\n    mid = (left +",
+    language: "python",
+    segments: {
+      prefix: "def binarySearch(arr, left, right, x):\n    mid = (left +"
+    },
   });
   const headers = { "Content-Type": "application/json" };
   const res = http.post("http://api.tabbyml.com/v1/completions", payload, {
