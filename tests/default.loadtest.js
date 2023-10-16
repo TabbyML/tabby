@@ -10,6 +10,7 @@ export const options = {
   hosts: {
     "api.tabbyml.com": __ENV.TABBY_API_HOST,
   },
+  // Below thresholds are tested against TabbyML/StarCoder-1B served by NVIDIA T4 GPU.
   thresholds: {
     http_req_failed: ['rate<0.01'], // http errors should be less than 1%
     http_req_duration: ["med<400", "avg<1500", "p(95)<3000"],
