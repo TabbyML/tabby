@@ -60,3 +60,7 @@ link_shared = ["ctranslate2-bindings/link_shared"]
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }
+
+[dev-dependencies]
+assert-json-diff = "2.0.2"
+reqwest.workspace = true
