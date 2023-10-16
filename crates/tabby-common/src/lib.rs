@@ -1,6 +1,7 @@
 pub mod config;
 pub mod events;
 pub mod index;
+pub mod languages;
 pub mod path;
 pub mod usage;
 

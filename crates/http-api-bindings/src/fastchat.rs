@@ -58,9 +58,6 @@ impl FastChatEngine {
 #[async_trait]
 impl TextGeneration for FastChatEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let _stop_sequences: Vec<String> =
-            options.stop_words.iter().map(|x| x.to_string()).collect();
-
         let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {
             model: self.model_name.to_owned(),

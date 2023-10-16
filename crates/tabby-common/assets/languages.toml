@@ -1,0 +1,53 @@
+[[config]]
+languages = ["python"]
+line_comment = "#"
+top_level_keywords = ["def", "from", "class", "import"]
+
+[[config]]
+languages = ["rust"]
+line_comment = "//"
+top_level_keywords = [
+    "fn",
+    "trait",
+    "impl",
+    "enum",
+    "pub",
+    "extern",
+    "static",
+    "trait",
+    "unsafe",
+    "use",
+]
+
+[[config]]
+languages = ["javascript", "typescript", "javascriptreact", "typescriptreact"]
+line_comment = "//"
+top_level_keywords = [
+    "abstract",
+    "async",
+    "class",
+    "const",
+    "export",
+    "function",
+    "interface",
+    "module",
+    "package",
+    "type",
+    "var",
+    "enum",
+    "let",
+]
+
+[[config]]
+languages = ["go"]
+line_comment = "//"
+top_level_keywords = [
+    "func",
+    "interface",
+    "struct",
+    "package",
+    "type",
+    "import",
+    "var",
+    "const",
+]
