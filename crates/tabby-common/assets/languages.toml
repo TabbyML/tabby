@@ -1,7 +1,12 @@
 [[config]]
 languages = ["python"]
 line_comment = "#"
-top_level_keywords = ["def", "from", "class", "import"]
+top_level_keywords = [
+    "def", "class", "return", "raise", "import", "from", "if", "elif", "else",
+    "try", "except", "finally", "for", "while", "break", "continue", "pass",
+    "async", "await", "with", "yield"
+]
+
 
 [[config]]
 languages = ["rust"]
