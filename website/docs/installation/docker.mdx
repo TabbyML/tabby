@@ -13,42 +13,15 @@ import TabItem from '@theme/TabItem';
 <Tabs>
   <TabItem value="cpu" label="CPU" default>
 
-  <p>For Linux(Bash) or WSL2:</p>
-
   ```bash title="run.sh"
-  docker run -it \
-    -p 8080:8080 -v $HOME/.tabby:/data \
-    tabbyml/tabby serve --model TabbyML/StarCoder-1B
-  ```
-
-  <p>For Windows(PowerShell):</p>
-
-  ```bash title="run.ps1"
-  docker run -it `
-    -p 8080:8080 -v $HOME/.tabby:/data `
-    tabbyml/tabby serve --model TabbyML/StarCoder-1B
+  docker run -it -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B
   ```
  
   </TabItem>
   <TabItem value="cuda" label="CUDA (requires NVIDIA Container Toolkit)" default>
 
-  <p>For Linux(Bash) or WSL2:</p>
-
   ```bash title="run.sh"
-  docker run -it \
-    --gpus all -p 8080:8080 -v $HOME/.tabby:/data \
-    tabbyml/tabby \
-    serve --model TabbyML/StarCoder-1B --device cuda
+  docker run -it --gpus all -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B --device cuda
   ```
 
-  <p>For Windows(PowerShell):</p>
-
-  ```bash title="run.ps1"
-  docker run -it `
-    --gpus all -p 8080:8080 -v $HOME/.tabby:/data `
-    tabbyml/tabby `
-    serve --model TabbyML/StarCoder-1B --device cuda
-  ```
-
-  </TabItem>
 </Tabs>
