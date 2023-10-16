@@ -42,6 +42,10 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Disable safe directory in docker
+# Context: https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
+RUN git config --system --add safe.directory "*"
+
 # Make link to libnvidia-ml.so (NVML) library
 # so that we could get GPU stats.
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
