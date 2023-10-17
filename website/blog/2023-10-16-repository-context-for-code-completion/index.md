@@ -125,9 +125,9 @@ In the [v0.3.0 release](https://github.com/TabbyML/tabby/releases/tag/v0.3.0), w
 
 By snagging snippets like this, LLM gets to peek into variables, classes, methods, and function signatures scattered throughout the repo. This context allows LLM to tackle a multitude of tasks. For instance, it can cleverly decipher how to utilize APIs exported from a module, all thanks to the snippet defining / invoking that API.
 
-## Use Tree-sitter to Create Snippets 🌳
+## Use Tree-sitter to Create Snippets
 
-Tabby, under the hood, leverages Tree-sitter query to construct its index. Tree-sitter is capable of scanning source code written in various languages and extracting data about all the symbols defined in each file.
+Tabby, under the hood, leverages 🌳 Tree-sitter query to construct its index. Tree-sitter is capable of scanning source code written in various languages and extracting data about all the symbols defined in each file.
 
 Historically, Tree-sitter was utilized by IDEs or code editors to facilitate the creation of language formatters or syntax highlighters, among other things. However, we're taking a different approach and using Tree-sitter to aid LLM in understanding the codebase.
 
