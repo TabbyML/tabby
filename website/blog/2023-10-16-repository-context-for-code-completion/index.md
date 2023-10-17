@@ -150,9 +150,9 @@ These snippets are then compiled into an efficient token reverse index for use d
 
 The current approach to extracting snippets and performing ranking is relatively simple. We're actively working on various aspects to fully iterate through this approach and elevate its efficiency and effectiveness:
 
-1. **Detailed Snippet Indexing**: We are aiming to achieve a detailed understanding of what snippets should be incorporated into the index for each programming language. 📚
+1. **Snippet Indexing**: We are aiming to achieve a detailed understanding of what snippets should be incorporated into the index for each programming language. 📚
 
-2. **Optimized Retrieval Algorithm**: Our focus is on refining the retrieval algorithm using attention weight heatmaps. Ideally, snippets with higher attention weights from Language Models (LLMs) should be prioritized in the retrieval process. ⚙️
+2. **Retrieval Algorithm**: Our focus is on refining the retrieval algorithm using attention weight heatmaps. Ideally, snippets with higher attention weights from Language Models (LLMs) should be prioritized in the retrieval process. ⚙️
 
 We are incredibly enthusiastic about the potential for enhancing the quality and are eager to delve deeper into this exciting development! 🌟
 
