@@ -51,11 +51,10 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     context: InlineCompletionContext,
     token: CancellationToken,
   ): Promise<InlineCompletionItem[] | null> {
-    if (context.triggerKind === InlineCompletionTriggerKind.Automatic && this.triggerMode === "manual") {
-      return null;
-    }
+    console.debug("Call provideInlineCompletionItems.");
 
-    if (context.triggerKind === InlineCompletionTriggerKind.Invoke && this.triggerMode === "automatic") {
+    if (context.triggerKind === InlineCompletionTriggerKind.Automatic && this.triggerMode === "manual") {
+      console.debug("Skip automatic trigger when triggerMode is manual.");
       return null;
     }
 
@@ -69,8 +68,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       console.debug("Completion request is canceled before agent request.");
       return null;
     }
-
-    const replaceRange = this.calculateReplaceRange(document, position);
 
     const request: CompletionRequest = {
       filepath: document.uri.fsPath,
@@ -104,19 +101,24 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
       // Assume only one choice is provided, do not support multiple choices for now
       if (result.choices.length > 0) {
         this.latestCompletions = result;
+        const choice = result.choices[0];
 
         this.postEvent("show");
 
         return [
-          new InlineCompletionItem(result.choices[0].text, replaceRange, {
-            title: "",
-            command: "tabby.applyCallback",
-            arguments: [
-              () => {
-                this.postEvent("accept");
-              },
-            ],
-          }),
+          new InlineCompletionItem(
+            choice.text,
+            new Range(document.positionAt(choice.replaceRange.start), document.positionAt(choice.replaceRange.end)),
+            {
+              title: "",
+              command: "tabby.applyCallback",
+              arguments: [
+                () => {
+                  this.postEvent("accept");
+                },
+              ],
+            },
+          ),
         ];
       }
     } catch (error: any) {
@@ -169,23 +171,6 @@ export class TabbyCompletionProvider extends EventEmitter implements InlineCompl
     } else {
       this.triggerMode = workspace.getConfiguration("tabby").get("inlineCompletion.triggerMode", "automatic");
       this.emit("triggerModeUpdated");
-    }
-  }
-
-  private hasSuffixParen(document: TextDocument, position: Position) {
-    const suffix = document.getText(
-      new Range(position.line, position.character, position.line, position.character + 1),
-    );
-    return ")]}".indexOf(suffix) > -1;
-  }
-
-  // FIXME: move replace range calculation to tabby-agent
-  private calculateReplaceRange(document: TextDocument, position: Position): Range {
-    const hasSuffixParen = this.hasSuffixParen(document, position);
-    if (hasSuffixParen) {
-      return new Range(position.line, position.character, position.line, position.character + 1);
-    } else {
-      return new Range(position, position);
     }
   }
 }

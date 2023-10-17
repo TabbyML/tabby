@@ -1,4 +1,5 @@
-import { PostprocessFilter, PostprocessContext, logger } from "./base";
+import { CompletionContext } from "../Agent";
+import { PostprocessFilter, logger } from "./base";
 import { isBlank, calcDistance } from "../utils";
 
 function blockSplitter(language) {
@@ -8,9 +9,9 @@ function blockSplitter(language) {
 }
 
 // FIXME: refactor this because it is very similar to `removeRepetitiveLines`
-export const removeRepetitiveBlocks: (context: PostprocessContext) => PostprocessFilter = (context) => {
+export const removeRepetitiveBlocks: (context: CompletionContext) => PostprocessFilter = (context) => {
   return (input) => {
-    const inputBlocks = input.split(blockSplitter(context.request.language));
+    const inputBlocks = input.split(blockSplitter(context.language));
     let repetitionCount = 0;
     const repetitionThreshold = 2;
     // skip last block, it maybe cut
@@ -25,10 +26,10 @@ export const removeRepetitiveBlocks: (context: PostprocessContext) => Postproces
         prev--;
       }
       if (prev < 0) break;
-      // if distance between current and previous block is less than threshold (threshold = 3, or 10% of string length)
+      // if distance between current and previous block is less than threshold (threshold = or 10% of string length)
       const currentBlock = inputBlocks[index].trim();
       const previousBlock = inputBlocks[prev].trim();
-      const threshold = Math.max(3, 0.1 * currentBlock.length, 0.1 * previousBlock.length);
+      const threshold = Math.max(0.1 * currentBlock.length, 0.1 * previousBlock.length);
       const distance = calcDistance(currentBlock, previousBlock);
       if (distance <= threshold) {
         repetitionCount++;

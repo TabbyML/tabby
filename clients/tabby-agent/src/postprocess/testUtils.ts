@@ -1,11 +1,10 @@
 import dedent from "dedent";
-import { buildContext, PostprocessContext } from "./base";
+import { CompletionContext } from "../CompletionContext";
 
 // `║` is the cursor position
-
-export function documentContext(strings): PostprocessContext {
+export function documentContext(strings): CompletionContext {
   const doc = dedent(strings);
-  return buildContext({
+  return new CompletionContext({
     filepath: null,
     language: null,
     text: doc.replace(/║/, ""),

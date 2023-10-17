@@ -15,6 +15,52 @@ export function isBlank(input: string) {
   return input.trim().length === 0;
 }
 
+export const autoClosingPairs = [
+  ["(", ")"],
+  ["[", "]"],
+  ["{", "}"],
+  ["'", "'"],
+  ['"', '"'],
+  ["`", "`"],
+];
+
+export const autoClosingPairOpenings = autoClosingPairs.map((pair) => pair[0]);
+export const autoClosingPairClosings = autoClosingPairs.map((pair) => pair[1]);
+
+// FIXME: This function is not good enough, it can not handle escaped characters.
+export function findUnpairedAutoClosingChars(input: string): string {
+  const stack: string[] = [];
+
+  for (const char of input) {
+    [
+      ["(", ")"],
+      ["[", "]"],
+      ["{", "}"],
+    ].forEach((pair) => {
+      if (char === pair[1]) {
+        if (stack.length > 0 && stack[stack.length - 1] === pair[0]) {
+          stack.pop();
+        } else {
+          stack.push(char);
+        }
+      }
+    });
+    if ("([{".includes(char)) {
+      stack.push(char);
+    }
+    ["'", '"', "`"].forEach((quote) => {
+      if (char === quote) {
+        if (stack.length > 0 && stack.includes(quote)) {
+          stack.splice(stack.lastIndexOf(quote), stack.length - stack.lastIndexOf(quote));
+        } else {
+          stack.push(char);
+        }
+      }
+    });
+  }
+  return stack.join("");
+}
+
 // Using string levenshtein distance is not good, because variable name may create a large distance.
 // Such as distance is 9 between `const fooFooFoo = 1;` and `const barBarBar = 1;`, but maybe 1 is enough.
 // May be better to count distance based on words instead of characters.
