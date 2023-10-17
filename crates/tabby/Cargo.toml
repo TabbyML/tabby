@@ -40,7 +40,7 @@ futures = { workspace = true }
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }
-textdistance = "1.0.2"
+textdistance.workspace = true
 regex.workspace = true
 thiserror.workspace = true
 

@@ -3216,6 +3216,7 @@ dependencies = [
  "tabby-common",
  "tantivy",
  "temp_testdir",
+ "textdistance",
  "tokio",
  "tracing",
  "tracing-test",

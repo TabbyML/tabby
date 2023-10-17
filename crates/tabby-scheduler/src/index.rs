@@ -13,11 +13,13 @@ use tantivy::{
     schema::{Schema, TextFieldIndexing, TextOptions, STORED, STRING},
     Index,
 };
+use textdistance::Algorithm;
 
 // Magic numbers
 static MAX_LINE_LENGTH_THRESHOLD: usize = 300;
 static AVG_LINE_LENGTH_THRESHOLD: f32 = 150f32;
 static MAX_BODY_LINES_THRESHOLD: usize = 15;
+static MAX_SIMILARITY_THRESHOLD: f32 = 0.9;
 
 pub fn index_repositories(_config: &Config) -> Result<()> {
     let mut builder = Schema::builder();
@@ -73,6 +75,7 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
 }
 
 /// Atomic repository document in index.
+#[derive(Clone)]
 struct IndexedDocument {
     git_url: String,
     filepath: String,
@@ -82,7 +85,17 @@ struct IndexedDocument {
     kind: String,
 }
 
+impl IndexedDocument {
+    fn distance_to(&self, rhs: &IndexedDocument) -> f32 {
+        let distance = textdistance::LCSSeq::default()
+            .for_str(&self.body, &rhs.body)
+            .val();
+        distance as f32 / std::cmp::max(self.body.len(), rhs.body.len()) as f32
+    }
+}
+
 fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
+    let mut docs: Vec<IndexedDocument> = vec![];
     file.tags.into_iter().filter_map(move |tag| {
         let name = file.content.get(tag.name_range).unwrap().to_owned();
         let body = file.content.get(tag.range).unwrap().to_owned();
@@ -91,14 +104,24 @@ fn from_source_file(file: SourceFile) -> impl Iterator<Item = IndexedDocument> {
             return None;
         }
 
-        Some(IndexedDocument {
+        let doc = IndexedDocument {
             git_url: file.git_url.clone(),
             filepath: file.filepath.clone(),
             language: file.language.clone(),
             name,
             body,
             kind: tag.syntax_type_name,
-        })
+        };
+
+        for x in &docs {
+            if x.distance_to(&doc) > MAX_SIMILARITY_THRESHOLD {
+                // Exclude snippets that's are very similar in index.
+                return None;
+            }
+        }
+
+        docs.push(doc.clone());
+        Some(doc)
     })
 }
 
