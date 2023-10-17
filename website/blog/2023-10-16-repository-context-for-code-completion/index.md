@@ -5,7 +5,7 @@ tags: [tech design, repository context]
 image: ./whiteboard.jpg
 ---
 
-# Repository Context for LLM assisted Code Completion
+# Repository context for LLM assisted code completion
 
 <div align="center">
 
@@ -99,7 +99,7 @@ However, manually pinpointing the right set of context to transmit to LLM isn't 
 Plus, sending entire files is a bulky way to relay code context, wasting the precious context window. LLM doesn't need a grand tour of the complete `completion.rs`, only a robust enough understanding to utilize it effectively.
 If you continually dispatch multiple files' worth of code just for context, you'll soon hit a wall with the context window limit.
 
-## Use code snippet to provide context.
+## Code snippet to provide context.
 
 In the [v0.3.0 release](https://github.com/TabbyML/tabby/releases/tag/v0.3.0), we introduced Retrieval Augmented Code Completion, a nifty feature that taps into the repository context to enhance code suggestions. Here's a sneak peek of a snippet we pulled from the repository context:
 
@@ -125,7 +125,7 @@ In the [v0.3.0 release](https://github.com/TabbyML/tabby/releases/tag/v0.3.0), w
 
 By snagging snippets like this, LLM gets to peek into variables, classes, methods, and function signatures scattered throughout the repo. This context allows LLM to tackle a multitude of tasks. For instance, it can cleverly decipher how to utilize APIs exported from a module, all thanks to the snippet defining / invoking that API.
 
-## Use Tree-sitter to Create Snippets
+## Use tree-sitter to create snippets
 
 Tabby, under the hood, leverages 🌳 Tree-sitter query to construct its index. Tree-sitter is capable of scanning source code written in various languages and extracting data about all the symbols defined in each file.
 
