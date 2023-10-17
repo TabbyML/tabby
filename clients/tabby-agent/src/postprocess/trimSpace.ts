@@ -1,7 +1,8 @@
-import { PostprocessFilter, PostprocessContext } from "./base";
+import { CompletionContext } from "../Agent";
+import { PostprocessFilter, logger } from "./base";
 import { splitLines, isBlank } from "../utils";
 
-export const trimSpace: (context: PostprocessContext) => PostprocessFilter = (context) => {
+export const trimSpace: (context: CompletionContext) => PostprocessFilter = (context) => {
   return (input) => {
     const { prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);

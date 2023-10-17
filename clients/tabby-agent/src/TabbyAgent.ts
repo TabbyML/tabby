@@ -5,7 +5,14 @@ import { deepmerge } from "deepmerge-ts";
 import { getProperty, setProperty, deleteProperty } from "dot-prop";
 import createClient from "openapi-fetch";
 import { paths as TabbyApi } from "./types/tabbyApi";
-import { splitLines, isBlank, abortSignalFromAnyOf, HttpError, isTimeoutError, isCanceledError } from "./utils";
+import {
+  isBlank,
+  abortSignalFromAnyOf,
+  findUnpairedAutoClosingChars,
+  HttpError,
+  isTimeoutError,
+  isCanceledError,
+} from "./utils";
 import type {
   Agent,
   AgentStatus,
@@ -23,8 +30,9 @@ import { Auth } from "./Auth";
 import { AgentConfig, PartialAgentConfig, defaultAgentConfig, userAgentConfig } from "./AgentConfig";
 import { CompletionCache } from "./CompletionCache";
 import { CompletionDebounce } from "./CompletionDebounce";
+import { CompletionContext } from "./CompletionContext";
 import { DataStore } from "./dataStore";
-import { postprocess, preCacheProcess } from "./postprocess";
+import { preCacheProcess, postCacheProcess } from "./postprocess";
 import { rootLogger, allLoggers } from "./logger";
 import { AnonymousUsageLogger } from "./AnonymousUsageLogger";
 import { CompletionProviderStats, CompletionProviderStatsEntry } from "./CompletionProviderStats";
@@ -250,18 +258,44 @@ export class TabbyAgent extends EventEmitter implements Agent {
     }
   }
 
-  private createSegments(request: CompletionRequest): { prefix: string; suffix: string } {
+  private createSegments(context: CompletionContext): { prefix: string; suffix: string } {
     // max lines in prefix and suffix configurable
     const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
     const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
-    const prefix = request.text.slice(0, request.position);
-    const prefixLines = splitLines(prefix);
-    const suffix = request.text.slice(request.position);
-    const suffixLines = splitLines(suffix);
+    const { prefixLines, suffixLines } = context;
     return {
       prefix: prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join(""),
       suffix: suffixLines.slice(0, maxSuffixLines).join(""),
     };
+  }
+
+  private calculateReplaceRange(response: CompletionResponse, context: CompletionContext): CompletionResponse {
+    const { suffixLines } = context;
+    const suffixText = suffixLines[0]?.trimEnd() || "";
+    if (isBlank(suffixText)) {
+      return response;
+    }
+    for (const choice of response.choices) {
+      const completionText = choice.text.slice(context.position - choice.replaceRange.start);
+      const unpaired = findUnpairedAutoClosingChars(completionText);
+      if (isBlank(unpaired)) {
+        continue;
+      }
+      if (suffixText.startsWith(unpaired)) {
+        choice.replaceRange.end = context.position + unpaired.length;
+        this.logger.trace(
+          { context, completion: choice.text, range: choice.replaceRange, unpaired },
+          "Adjust replace range",
+        );
+      } else if (unpaired.startsWith(suffixText)) {
+        choice.replaceRange.end = context.position + suffixText.length;
+        this.logger.trace(
+          { context, completion: choice.text, range: choice.replaceRange, unpaired },
+          "Adjust replace range",
+        );
+      }
+    }
+    return response;
   }
 
   public async initialize(options: AgentInitOptions): Promise<boolean> {
@@ -397,6 +431,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
     if (this.status === "notInitialized") {
       throw new Error("Agent is not initialized");
     }
+    this.logger.trace({ request }, "Call provideCompletions");
     if (this.nonParallelProvideCompletionAbortController) {
       this.nonParallelProvideCompletionAbortController.abort();
     }
@@ -415,11 +450,12 @@ export class TabbyAgent extends EventEmitter implements Agent {
     };
     let requestStartedAt: number | null = null;
 
+    const context = new CompletionContext(request);
     try {
-      if (this.completionCache.has(request)) {
+      if (this.completionCache.has(context)) {
         // Cache hit
         stats.cacheHit = true;
-        this.logger.debug({ request }, "Completion cache hit");
+        this.logger.debug({ context }, "Completion cache hit");
         // Debounce before returning cached response
         await this.completionDebounce.debounce(
           {
@@ -429,11 +465,11 @@ export class TabbyAgent extends EventEmitter implements Agent {
           },
           { signal },
         );
-        completionResponse = this.completionCache.get(request);
+        completionResponse = this.completionCache.get(context);
       } else {
         // Cache miss
         stats.cacheHit = false;
-        const segments = this.createSegments(request);
+        const segments = this.createSegments(context);
         if (isBlank(segments.prefix)) {
           // Empty prompt
           stats = null; // no need to record stats for empty prompt
@@ -457,7 +493,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
           stats.requestSent = true;
           requestStartedAt = performance.now();
           try {
-            completionResponse = await this.post(
+            const response = await this.post(
               "/v1/completions",
               {
                 body: {
@@ -474,6 +510,19 @@ export class TabbyAgent extends EventEmitter implements Agent {
               },
             );
             stats.requestLatency = performance.now() - requestStartedAt;
+            completionResponse = {
+              id: response.id,
+              choices: response.choices.map((choice) => {
+                return {
+                  index: choice.index,
+                  text: choice.text,
+                  replaceRange: {
+                    start: request.position,
+                    end: request.position,
+                  },
+                };
+              }),
+            };
           } catch (error) {
             if (isCanceledError(error)) {
               stats.requestCanceled = true;
@@ -487,19 +536,21 @@ export class TabbyAgent extends EventEmitter implements Agent {
             throw error;
           }
           // Postprocess (pre-cache)
-          completionResponse = await preCacheProcess(request, completionResponse);
+          completionResponse = await preCacheProcess(context, completionResponse);
           if (options?.signal?.aborted) {
             throw options.signal.reason;
           }
           // Build cache
-          this.completionCache.set(request, completionResponse);
+          this.completionCache.buildCache(context, completionResponse);
         }
       }
       // Postprocess (post-cache)
-      completionResponse = await postprocess(request, completionResponse);
+      completionResponse = await postCacheProcess(context, completionResponse);
       if (options?.signal?.aborted) {
         throw options.signal.reason;
       }
+      // Calculate replace range
+      completionResponse = this.calculateReplaceRange(completionResponse, context);
     } catch (error) {
       if (isCanceledError(error) || isTimeoutError(error)) {
         if (stats) {
@@ -535,7 +586,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }
       }
     }
-
+    this.logger.trace({ context, completionResponse }, "Return from provideCompletions");
     return completionResponse;
   }
 

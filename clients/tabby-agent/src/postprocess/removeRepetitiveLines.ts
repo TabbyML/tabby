@@ -1,7 +1,8 @@
-import { PostprocessFilter, PostprocessContext, logger } from "./base";
+import { CompletionContext } from "../Agent";
+import { PostprocessFilter, logger } from "./base";
 import { splitLines, isBlank, calcDistance } from "../utils";
 
-export const removeRepetitiveLines: (context: PostprocessContext) => PostprocessFilter = () => {
+export const removeRepetitiveLines: (context: CompletionContext) => PostprocessFilter = () => {
   return (input) => {
     const inputLines = splitLines(input);
     let repetitionCount = 0;
@@ -18,10 +19,10 @@ export const removeRepetitiveLines: (context: PostprocessContext) => Postprocess
         prev--;
       }
       if (prev < 0) break;
-      // if distance between current and previous line is less than threshold (threshold = 3, or 10% of string length)
+      // if distance between current and previous line is less than threshold (threshold = or 10% of string length)
       const currentLine = inputLines[index].trim();
       const previousLine = inputLines[prev].trim();
-      const threshold = Math.max(3, 0.1 * currentLine.length, 0.1 * previousLine.length);
+      const threshold = Math.max(0.1 * currentLine.length, 0.1 * previousLine.length);
       const distance = calcDistance(currentLine, previousLine);
       if (distance <= threshold) {
         repetitionCount++;

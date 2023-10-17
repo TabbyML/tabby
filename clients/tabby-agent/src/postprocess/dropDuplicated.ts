@@ -1,7 +1,8 @@
-import { PostprocessFilter, PostprocessContext, logger } from "./base";
+import { CompletionContext } from "../Agent";
+import { PostprocessFilter, logger } from "./base";
 import { splitLines, isBlank, calcDistance } from "../utils";
 
-export const dropDuplicated: (context: PostprocessContext) => PostprocessFilter = (context) => {
+export const dropDuplicated: (context: CompletionContext) => PostprocessFilter = (context) => {
   return (input) => {
     // get first n (n <= 3) lines of input and suffix, ignore blank lines
     const { suffixLines } = context;
@@ -24,9 +25,9 @@ export const dropDuplicated: (context: PostprocessContext) => PostprocessFilter 
       .slice(suffixIndex, suffixIndex + lineCount)
       .join("")
       .trim();
-    // if string distance is less than threshold (threshold = 3, or 5% of string length)
+    // if string distance is less than threshold (threshold = 1, or 5% of string length)
     // drop this completion due to duplicated
-    const threshold = Math.max(3, 0.05 * inputToCompare.length, 0.05 * suffixToCompare.length);
+    const threshold = Math.max(1, 0.05 * inputToCompare.length, 0.05 * suffixToCompare.length);
     const distance = calcDistance(inputToCompare, suffixToCompare);
     if (distance <= threshold) {
       logger.debug(

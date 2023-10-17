@@ -1,5 +1,8 @@
 import type { components as ApiComponents } from "./types/tabbyApi";
 import { AgentConfig, PartialAgentConfig } from "./AgentConfig";
+import { CompletionRequest, CompletionResponse, CompletionContext } from "./CompletionContext";
+
+export { CompletionRequest, CompletionResponse, CompletionContext };
 
 export type ClientProperties = Partial<{
   user: Record<string, any>;
@@ -12,16 +15,6 @@ export type AgentInitOptions = Partial<{
 }>;
 
 export type ServerHealthState = ApiComponents["schemas"]["HealthState"];
-
-export type CompletionRequest = {
-  filepath: string;
-  language: string;
-  text: string;
-  position: number;
-  manually?: boolean;
-};
-
-export type CompletionResponse = ApiComponents["schemas"]["CompletionResponse"];
 
 export type LogEventRequest = ApiComponents["schemas"]["LogEventRequest"] & {
   select_kind?: "line";

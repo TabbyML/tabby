@@ -1,4 +1,5 @@
-import { PostprocessFilter, PostprocessContext, logger } from "./base";
+import { CompletionContext } from "../Agent";
+import { PostprocessFilter, logger } from "./base";
 import { isBlank, splitLines } from "../utils";
 
 function calcIndentLevel(line: string): number {
@@ -10,11 +11,6 @@ function isOpeningIndentBlock(lines, index) {
     return false;
   }
   return calcIndentLevel(lines[index]) < calcIndentLevel(lines[index + 1]);
-}
-
-function shouldOnlyAllowSingleLine(suffixLines: string[]): boolean {
-  let currentLineInSuffix = suffixLines[0] ?? "";
-  return !isBlank(currentLineInSuffix.replace(/[\)\}\]]/g, ""));
 }
 
 function processContext(
@@ -81,7 +77,7 @@ function processContext(
   }
 
   // check if suffix context allows closing line
-  // skip 0 that is current line in suffix, it is processed in `shouldOnlyAllowSingleLine`
+  // skip 0 that is current line in suffix
   let firstNonBlankLineInSuffix = 1;
   while (firstNonBlankLineInSuffix < suffixLines.length && isBlank(suffixLines[firstNonBlankLineInSuffix])) {
     firstNonBlankLineInSuffix++;
@@ -92,11 +88,11 @@ function processContext(
   return result;
 }
 
-export const limitScopeByIndentation: (context: PostprocessContext) => PostprocessFilter = (context) => {
+export const limitScopeByIndentation: (context: CompletionContext) => PostprocessFilter = (context) => {
   return (input) => {
     const { prefix, suffix, prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);
-    if (shouldOnlyAllowSingleLine(suffixLines)) {
+    if (context.mode === "fill-in-line") {
       if (inputLines.length > 1) {
         logger.debug({ input, prefix, suffix }, "Drop content with multiple lines");
         return null;
@@ -116,8 +112,11 @@ export const limitScopeByIndentation: (context: PostprocessContext) => Postproce
           continue;
         }
         // We include this closing line here if context allows
-        // Python does not have closing bracket, so we always include closing line
-        if (indentContext.allowClosingLine && context.request.language !== "python") {
+        // For python, if previous line is blank, we don't include this line
+        if (
+          (context.language !== "python" && indentContext.allowClosingLine) ||
+          (context.language === "python" && indentContext.allowClosingLine && !isBlank(inputLines[index - 1]))
+        ) {
           index++;
         }
         break;

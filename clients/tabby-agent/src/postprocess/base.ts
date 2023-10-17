@@ -1,31 +1,9 @@
-import { CompletionRequest, CompletionResponse } from "../Agent";
-import { splitLines } from "../utils";
+import { CompletionResponse, CompletionContext } from "../CompletionContext";
 import { rootLogger } from "../logger";
 
-export type PostprocessContext = {
-  request: CompletionRequest; // request contains full context, others are for easy access
-  prefix: string;
-  suffix: string;
-  prefixLines: string[];
-  suffixLines: string[];
-};
 export type PostprocessFilter = (item: string) => string | null | Promise<string | null>;
 
 export const logger = rootLogger.child({ component: "Postprocess" });
-
-export function buildContext(request: CompletionRequest): PostprocessContext {
-  const prefix = request.text.slice(0, request.position);
-  const suffix = request.text.slice(request.position);
-  const prefixLines = splitLines(prefix);
-  const suffixLines = splitLines(suffix);
-  return {
-    request,
-    prefix,
-    suffix,
-    prefixLines,
-    suffixLines,
-  };
-}
 
 declare global {
   interface Array<T> {
@@ -39,12 +17,17 @@ if (!Array.prototype.distinct) {
   };
 }
 
-export function applyFilter(filter: PostprocessFilter): (response: CompletionResponse) => Promise<CompletionResponse> {
+export function applyFilter(
+  filter: PostprocessFilter,
+  context: CompletionContext,
+): (response: CompletionResponse) => Promise<CompletionResponse> {
   return async (response: CompletionResponse) => {
     response.choices = (
       await Promise.all(
         response.choices.map(async (choice) => {
-          choice.text = await filter(choice.text);
+          const replaceLength = context.position - choice.replaceRange.start;
+          const filtered = await filter(choice.text.slice(replaceLength));
+          choice.text = choice.text.slice(0, replaceLength) + (filtered ?? "");
           return choice;
         }),
       )
