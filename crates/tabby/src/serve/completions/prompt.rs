@@ -169,7 +169,7 @@ lazy_static! {
 fn tokenize_text(text: &str) -> Vec<&str> {
     TOKENIZER
         .split(text)
-        .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT")
+        .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT" && !s.is_empty())
         .collect()
 }
 
