@@ -107,7 +107,9 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
     let tokens = tokenize_text(text);
+
     let sanitized_text = tokens.join(" ");
+    let sanitized_text = sanitized_text.trim();
     if sanitized_text.is_empty() {
         return ret;
     }
