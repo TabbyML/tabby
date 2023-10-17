@@ -133,7 +133,7 @@ Historically, Tree-sitter was utilized by IDEs or code editors to facilitate the
 
 Here's an example of the output you'll get when you run following query on go source code:
 
-```scm title="Go Tree-sitter query to collect all function calls"
+```scheme title="Tree-sitter query to collect all type definitions"
 (type_declaration (type_spec name: (type_identifier) @name)) @definition.type
 ```
 
