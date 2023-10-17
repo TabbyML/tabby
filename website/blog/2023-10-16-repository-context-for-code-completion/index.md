@@ -2,6 +2,7 @@
 authors: [meng]
 
 tags: [tech design, repository context]
+image: ./whiteboard.jpg
 ---
 
 # Repository Context for Code Completion
