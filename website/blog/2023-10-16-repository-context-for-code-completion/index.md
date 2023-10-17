@@ -5,7 +5,7 @@ tags: [tech design, repository context]
 image: ./whiteboard.jpg
 ---
 
-# Repository Context for Code Completion
+# Repository Context for LLM assisted Code Completion
 
 <div align="center">
 
