@@ -73,7 +73,6 @@ async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
     body.as_object_mut().unwrap().insert(
         "debug_options".to_owned(),
         json!({
-            "enabled": true,
             "disable_retrieval_augmented_code_completion": true
         }),
     );
