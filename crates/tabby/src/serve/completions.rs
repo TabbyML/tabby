@@ -43,7 +43,16 @@ pub struct CompletionRequest {
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DebugOptions {
     /// When true, returns debug_data in completion response.
+    #[serde(default = "default_false")]
     enabled: bool,
+
+    /// When true, disable retrieval augmented code completion.
+    #[serde(default = "default_false")]
+    disable_retrieval_augmented_code_completion: bool,
+}
+
+fn default_false() -> bool {
+    false
 }
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
@@ -126,7 +135,15 @@ pub async fn completions(
     };
 
     debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
-    let snippets = state.prompt_builder.collect(&language, &segments);
+    let snippets = if !request
+        .debug_options
+        .as_ref()
+        .is_some_and(|x| x.disable_retrieval_augmented_code_completion)
+    {
+        state.prompt_builder.collect(&language, &segments)
+    } else {
+        vec![]
+    };
     let prompt = state
         .prompt_builder
         .build(&language, segments.clone(), &snippets);

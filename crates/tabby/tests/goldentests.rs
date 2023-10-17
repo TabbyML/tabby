@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use assert_json_diff::assert_json_include;
 use lazy_static::lazy_static;
 use serde::Deserialize;
+use serde_json::json;
 use tokio::{
     process::Command,
     time::{sleep, Duration},
@@ -68,6 +69,15 @@ async fn wait_for_server() {
 }
 
 async fn golden_test(body: serde_json::Value, expected: serde_json::Value) {
+    let mut body = body.clone();
+    body.as_object_mut().unwrap().insert(
+        "debug_options".to_owned(),
+        json!({
+            "enabled": true,
+            "disable_retrieval_augmented_code_completion": true
+        }),
+    );
+
     let actual: serde_json::Value = CLIENT
         .post("http://localhost:9090/v1/completions")
         .json(&body)
