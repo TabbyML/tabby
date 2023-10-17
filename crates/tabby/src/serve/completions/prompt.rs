@@ -106,7 +106,7 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 
 fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
-    let tokens = tokenize_text(text);
+    let mut tokens = Box::new(tokenize_text(text));
 
     let sanitized_text = tokens.join(" ");
     let sanitized_text = sanitized_text.trim();
@@ -131,7 +131,7 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
     let mut count_characters = 0;
     for hit in serp.hits {
         let body = hit.doc.body;
-        let body_tokens = tokenize_text(&body);
+        let mut body_tokens = tokenize_text(&body);
 
         if count_characters + body.len() > MAX_SNIPPET_CHARS_IN_PROMPT {
             break;
@@ -151,6 +151,11 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
             continue;
         }
 
+        // Prepend body tokens and update tokens, so future similarity calculation will consider
+        // added snippets.
+        body_tokens.append(&mut tokens);
+        *tokens = body_tokens;
+
         count_characters += body.len();
         ret.push(Snippet {
             filepath: hit.doc.filepath,
@@ -166,10 +171,11 @@ lazy_static! {
     static ref TOKENIZER: Regex = Regex::new(r"[^\w]").unwrap();
 }
 
-fn tokenize_text(text: &str) -> Vec<&str> {
+fn tokenize_text(text: &str) -> Vec<String> {
     TOKENIZER
         .split(text)
         .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT" && !s.is_empty())
+        .map(|x| x.to_owned())
         .collect()
 }
 
