@@ -6,6 +6,13 @@ tags: [tech design, repository context]
 
 # Repository Context for Code Completion
 
+<div align="center">
+
+![Whiteboard](./whiteboard.jpg)
+*Credit: [Elon Mask's tweet](https://twitter.com/elonmusk/status/1593899029531803649)*
+
+</div>
+
 Using a Language Model (LLM) pretrained on coding data proves incredibly useful for "self-contained" coding tasks, like conjuring up a completely new function that operates independently 🚀.
 
 However, employing LLM for code completion within a vast and intricate pre-existing codebase poses certain challenges 🤔. To tackle this, LLM needs to comprehend the dependencies and APIs that intricately link its subsystems. We must provide this "repository context" to LLM when requesting it to complete a snippet.
