@@ -95,7 +95,7 @@ One obvious solution is to pack the whole codebase into LLM with each completion
 
 A more efficient approach is to be selective, hand-picking the snippets to send. For instance, in the example above, we send the file containing the declaration of the `CompletionState::new` method. This strategy works like a charm, as illustrated in the example.
 
-However, manually pinpointing the right set of context to transmit to LLM isn't ideal🤔.
+However, manually pinpointing the right set of context to transmit to LLM isn't ideal.
 Plus, sending entire files is a bulky way to relay code context, wasting the precious context window. LLM doesn't need a grand tour of the complete `completion.rs`, only a robust enough understanding to utilize it effectively.
 If you continually dispatch multiple files' worth of code just for context, you'll soon hit a wall with the context window limit.
 
