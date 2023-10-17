@@ -5,7 +5,7 @@ tags: [tech design, repository context]
 image: ./whiteboard.jpg
 ---
 
-# Repository context for LLM assisted code completion
+# RAG Series(1/3): Repository context for LLM assisted code completion
 
 <div align="center">
 
