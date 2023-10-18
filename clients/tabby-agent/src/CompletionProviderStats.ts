@@ -101,7 +101,7 @@ export class CompletionProviderStats {
     }
   }
 
-  addEvent(event: "select"): void {
+  addEvent(event: string): void {
     const count = this.eventMap.get(event) || 0;
     this.eventMap.set(event, count + 1);
   }
