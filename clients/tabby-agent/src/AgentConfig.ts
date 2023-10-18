@@ -53,9 +53,10 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
+    // Deprecated: There is a timeout of 3s on the server side since v0.3.0.
     timeout: {
-      auto: 5000, // 5s
-      manually: 30000, // 30s
+      auto: 4000, // 4s
+      manually: 4000, // 4s
     },
   },
   logs: {
@@ -72,30 +73,19 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## Configurations in this file has lower priority than in IDE settings.
 
 ## Server
-## You can set the server endpoint and request timeout here.
+## You can set the server endpoint here.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
-# requestTimeout = 30000 # ms
 
 ## You can add custom request headers, e.g. for authentication.
 # [server.requestHeaders]
 # Authorization = "Bearer eyJhbGciOiJ..........."
 
 ## Completion
-## You can set the prompt context to send to the server for completion.
-# [completion.prompt]
-# maxPrefixLines = 20
-# maxSuffixLines = 20
-
 ## You can set the debounce mode for auto completion requests when typing.
 # [completion.debounce]
 # mode = "adaptive" # or "fixed"
 # interval = 250 # ms, only used when mode is "fixed"
-
-## You can set the timeout for completion requests.
-# [completion.timeout]
-# auto = 5000 # ms, for auto completion when typing
-# manually = 30000 # ms, for manually triggered completion
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
