@@ -141,18 +141,29 @@ function getHelpMessageForCompletionResponseTimeIssue() {
       "This model is too large to run on CPU, please try a smaller model or switch to GPU. " +
       "You can find supported model list in online documents. \n";
   }
+  let commonHelpMessage = "";
+  const host = new URL(agent().getConfig().server.endpoint).host;
+  if (helpMessageForRunningLargeModelOnCPU.length == 0) {
+    commonHelpMessage += ` - The running model ${
+      serverHealthState?.model ?? ""
+    } is too large to run on your Tabby server. `;
+    commonHelpMessage += "Please try a smaller model. You can find supported model list in online documents.\n";
+  }
+  if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
+    commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
+    commonHelpMessage += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
+  }
   let message = "";
   if (helpMessageForRunningLargeModelOnCPU.length > 0) {
     message += helpMessageForRunningLargeModelOnCPU + "\n";
-    message += "Other possible causes of this issue are: \n";
+    if (commonHelpMessage.length > 0) {
+      message += "Other possible causes of this issue are: \n";
+      message += commonHelpMessage;
+    }
   } else {
+    // commonHelpMessage should not be empty here
     message += "Possible causes of this issue are: \n";
-  }
-  message += " - A poor network connection. Please check your network and proxy settings.\n";
-  message += " - Server overload. Please contact your Tabby server administrator for assistance.\n";
-  if (helpMessageForRunningLargeModelOnCPU.length == 0) {
-    message += ` - The running model ${serverHealthState?.model ?? ""} is too large to run on your Tabby server. `;
-    message += "Please try a smaller model. You can find supported model list in online documents.\n";
+    message += commonHelpMessage;
   }
   return message;
 }

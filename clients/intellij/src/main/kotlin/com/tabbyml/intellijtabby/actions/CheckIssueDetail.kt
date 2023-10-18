@@ -8,6 +8,7 @@ import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.ui.Messages
+import com.tabbyml.intellijtabby.agent.Agent
 import com.tabbyml.intellijtabby.agent.AgentService
 import com.tabbyml.intellijtabby.settings.ApplicationSettingsState
 import kotlinx.coroutines.launch
@@ -23,14 +24,14 @@ class CheckIssueDetail : AnAction() {
     agentService.scope.launch {
       val detail = agentService.getCurrentIssueDetail() ?: return@launch
       val serverHealthState = agentService.getServerHealthState()
-      val settingsState = service<ApplicationSettingsState>().state.value
-      logger.info("Show issue detail: $detail, $serverHealthState, $settingsState")
+      val agentConfig = agentService.getConfig()
+      logger.info("Show issue detail: $detail, $serverHealthState, $agentConfig")
       val title = when (detail["name"]) {
         "slowCompletionResponseTime" -> "Completion Requests Appear to Take Too Much Time"
         "highCompletionTimeoutRate" -> "Most Completion Requests Timed Out"
         else -> return@launch
       }
-      val message = buildDetailMessage(detail, serverHealthState, settingsState)
+      val message = buildDetailMessage(detail, serverHealthState, agentConfig)
       invokeLater {
         val result =
           Messages.showOkCancelDialog(message, title, "Supported Models", "Dismiss", Messages.getInformationIcon())
@@ -44,7 +45,7 @@ class CheckIssueDetail : AnAction() {
   private fun buildDetailMessage(
     detail: Map<String, Any>,
     serverHealthState: Map<String, Any>?,
-    settingsState: ApplicationSettingsState.State
+    agentConfig: Agent.Config
   ): String {
     val stats = detail["completionResponseStats"] as Map<*, *>?
     val statsMessages = when (detail["name"]) {
@@ -79,12 +80,12 @@ class CheckIssueDetail : AnAction() {
       ""
     }
     var commonHelpMessage = ""
-    val host = URL(settingsState.serverEndpoint).host
+    val host = URL(agentConfig.server?.endpoint).host
     if (helpMessageForRunningLargeModelOnCPU.isEmpty()) {
       commonHelpMessage += "<li>The running model <i>$model</i> is too large to run on your Tabby server.<br/>"
       commonHelpMessage += "Please try a smaller model. You can find supported model list in online documents.</li>"
     }
-    if (!(host == "localhost" || host == "127.0.0.1")) {
+    if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
       commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>"
       commonHelpMessage += "<li>Server overload. Please contact your Tabby server administrator for assistance.</li>"
     }
