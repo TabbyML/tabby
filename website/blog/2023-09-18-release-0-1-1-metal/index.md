@@ -1,6 +1,8 @@
 ---
 authors: [ meng ]
 
+tags: [release]
+
 image: ./twitter-img.jpg
 ---
 # Tabby v0.1.1: Metal inference and StarCoder supports!
