@@ -33,7 +33,7 @@ describe("postprocess", () => {
       expect(limitScopeByIndentation(context)(completion)).to.eq(completion);
     });
 
-    it("should allow multiline completions, when the suffix only have special chars that will be replaced in the current line, such as `)]}`.", () => {
+    it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", () => {
       const context = {
         ...documentContext`
         function findMax(arr) {║}
@@ -274,8 +274,7 @@ describe("postprocess", () => {
       const expected = inline`
             ├return JSON.parse(json);
           } catch (e) {
-            return null;
-          }┤
+            return null;┤
         ┴┴
       `;
       expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
