@@ -270,7 +270,7 @@ fn start_heartbeat(args: &ServeArgs) {
     tokio::spawn(async move {
         loop {
             usage::capture("ServeHealth", &state).await;
-            sleep(Duration::from_secs(300)).await;
+            sleep(Duration::from_secs(3000)).await;
         }
     });
 }
