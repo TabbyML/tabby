@@ -39,9 +39,9 @@ Tabby is a self-hosted AI coding assistant, offering an open-source and on-premi
 ## 👋 Getting Started
 
 You can find our documentation [here](https://tabby.tabbyml.com/docs/getting-started).
-- [📚 Installation](https://tabby.tabbyml.com/docs/installation/)
-- [💻 IDE/Editor Extensions](https://tabby.tabbyml.com/docs/extensions/)
-- [⚙️ Configuration](https://tabby.tabbyml.com/docs/configuration)
+- 📚 [Installation](https://tabby.tabbyml.com/docs/installation/)
+- 💻 [IDE/Editor Extensions](https://tabby.tabbyml.com/docs/extensions/)
+- ⚙️ [Configuration](https://tabby.tabbyml.com/docs/configuration)
 
 ### Run Tabby in 1 Minute
 The easiest way to start a Tabby server is by using the following Docker command:
