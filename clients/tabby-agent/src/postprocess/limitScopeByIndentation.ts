@@ -17,8 +17,9 @@ function processContext(
   lines: string[],
   prefixLines: string[],
   suffixLines: string[],
-): { indentLevelLimit: number; allowClosingLine: boolean } {
-  let result = { indentLevelLimit: 0, allowClosingLine: false };
+): { indentLevelLimit: number; allowClosingLine: (closingLine: string) => boolean } {
+  let allowClosingLine = false;
+  let result = { indentLevelLimit: 0, allowClosingLine: (closingLine: string) => allowClosingLine };
   if (lines.length == 0 || prefixLines.length == 0) {
     return result; // guard for empty input, technically unreachable
   }
@@ -58,22 +59,22 @@ function processContext(
 
     result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
     // allow closing line if first line is opening a new indent block
-    result.allowClosingLine = !!lines[1] && calcIndentLevel(lines[1]) > referenceLineInPrefixIndent;
+    allowClosingLine = !!lines[1] && calcIndentLevel(lines[1]) > referenceLineInPrefixIndent;
   } else if (referenceLineInCompletionIndent > referenceLineInPrefixIndent) {
     // if reference line in completion has more indent than reference line in prefix, it is opening a new indent block
 
     result.indentLevelLimit = referenceLineInPrefixIndent + 1;
-    result.allowClosingLine = true;
+    allowClosingLine = true;
   } else if (referenceLineInCompletionIndent < referenceLineInPrefixIndent) {
     // if reference line in completion has less indent than reference line in prefix, allow this closing
 
     result.indentLevelLimit = referenceLineInPrefixIndent;
-    result.allowClosingLine = true;
+    allowClosingLine = true;
   } else {
     // otherwise, it is starting a new sentence at same indent level
 
     result.indentLevelLimit = referenceLineInPrefixIndent;
-    result.allowClosingLine = false;
+    allowClosingLine = true;
   }
 
   // check if suffix context allows closing line
@@ -83,7 +84,13 @@ function processContext(
     firstNonBlankLineInSuffix++;
   }
   if (firstNonBlankLineInSuffix < suffixLines.length) {
-    result.allowClosingLine &&= calcIndentLevel(suffixLines[firstNonBlankLineInSuffix]) < result.indentLevelLimit;
+    allowClosingLine &&= calcIndentLevel(suffixLines[firstNonBlankLineInSuffix]) < result.indentLevelLimit;
+    result.allowClosingLine = (closingLine: string) => {
+      const duplicatedClosingLine =
+        closingLine.startsWith(suffixLines[firstNonBlankLineInSuffix]) ||
+        suffixLines[firstNonBlankLineInSuffix].startsWith(closingLine);
+      return allowClosingLine && !duplicatedClosingLine;
+    };
   }
   return result;
 }
@@ -114,8 +121,8 @@ export const limitScopeByIndentation: (context: CompletionContext) => Postproces
         // We include this closing line here if context allows
         // For python, if previous line is blank, we don't include this line
         if (
-          (context.language !== "python" && indentContext.allowClosingLine) ||
-          (context.language === "python" && indentContext.allowClosingLine && !isBlank(inputLines[index - 1]))
+          indentContext.allowClosingLine(inputLines[index]) &&
+          (context.language !== "python" || !isBlank(inputLines[index - 1]))
         ) {
           index++;
         }
