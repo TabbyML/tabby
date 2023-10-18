@@ -65,6 +65,8 @@ export class CompletionProviderStats {
   private cacheHitCount = 0;
   private cacheMissCount = 0;
 
+  private eventMap = new Map<string, number>();
+
   private completionRequestLatencyStats = new Univariate();
   private completionRequestCanceledStats = new Average();
   private completionRequestTimeoutCount = 0;
@@ -99,11 +101,19 @@ export class CompletionProviderStats {
     }
   }
 
+  addEvent(event: "select"): void {
+    const count = this.eventMap.get(event) || 0;
+    this.eventMap.set(event, count + 1);
+  }
+
   reset() {
     this.autoCompletionCount = 0;
     this.manualCompletionCount = 0;
     this.cacheHitCount = 0;
     this.cacheMissCount = 0;
+
+    this.eventMap = new Map<string, number>();
+
     this.completionRequestLatencyStats = new Univariate();
     this.completionRequestCanceledStats = new Average();
     this.completionRequestTimeoutCount = 0;
@@ -115,12 +125,16 @@ export class CompletionProviderStats {
 
   // stats for anonymous usage report
   stats() {
+    const eventCount = Object.fromEntries(
+      Array.from(this.eventMap.entries()).map(([key, value]) => ["count_" + key, value]),
+    );
     return {
       completion: {
         count_auto: this.autoCompletionCount,
         count_manual: this.manualCompletionCount,
         cache_hit: this.cacheHitCount,
         cache_miss: this.cacheMissCount,
+        ...eventCount,
       },
       completion_request: {
         count: this.completionRequestLatencyStats.count(),
