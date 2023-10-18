@@ -1,5 +1,11 @@
 # Tabby Model Specification (Unstable)
 
+> 💁 **INFO**
+> Tabby currently operates with two inference backends: [ctranslate2](https://github.com/OpenNMT/CTranslate2) and [llama.cpp](https://github.com/ggerganov/llama.cpp).
+> The CUDA/CPU device utilizes ctranslate2 when the `--device cuda` or `--device cpu` options are specified, while the Metal (M1/M2) device employs llama.cpp with the `--device metal` option.
+> 
+> It is possible to create a model that is only usable for a specific inference backend. However, in general, the Tabby team will maintain models that are usable on all devices.
+
 Tabby organizes the model within a directory. This document provides an explanation of the necessary contents for supporting model serving. An example model directory can be found at https://huggingface.co/TabbyML/StarCoder-1B
 
 The minimal Tabby model directory should include the following contents:
