@@ -147,7 +147,8 @@ function getHelpMessageForCompletionResponseTimeIssue() {
     commonHelpMessage += ` - The running model ${
       serverHealthState?.model ?? ""
     } may be performing poorly due to its large parameter size. `;
-    commonHelpMessage += "Please consider trying smaller models. You can find a list of supported models in the model directory.\n";
+    commonHelpMessage +=
+      "Please consider trying smaller models. You can find a list of supported models in the model directory.\n";
   }
   if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
     commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
