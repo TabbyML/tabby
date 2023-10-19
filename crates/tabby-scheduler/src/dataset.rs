@@ -270,6 +270,18 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "ruby",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_ruby::language(),
+                        include_str!("../queries/ruby.scm"),
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
+
         ])
     };
 }
