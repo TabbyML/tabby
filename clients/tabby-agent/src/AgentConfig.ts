@@ -53,9 +53,10 @@ export const defaultAgentConfig: AgentConfig = {
       mode: "adaptive",
       interval: 250, // ms
     },
+    // Deprecated: There is a timeout of 3s on the server side since v0.3.0.
     timeout: {
-      auto: 5000, // 5s
-      manually: 30000, // 30s
+      auto: 4000, // 4s
+      manually: 4000, // 4s
     },
   },
   logs: {
@@ -66,7 +67,7 @@ export const defaultAgentConfig: AgentConfig = {
   },
 };
 
-const configTomlTemplate = `## Tabby agent configuration file
+const oldConfigTomlTemplate = `## Tabby agent configuration file
 
 ## You can uncomment any block to enable settings.
 ## Configurations in this file has lower priority than in IDE settings.
@@ -109,6 +110,32 @@ const configTomlTemplate = `## Tabby agent configuration file
 
 `;
 
+const configTomlTemplate = `## Tabby agent configuration file
+
+## You can uncomment any block to enable settings.
+## Configurations in this file has lower priority than in IDE settings.
+
+## Server
+## You can set the server endpoint here.
+# [server]
+# endpoint = "http://localhost:8080" # http or https URL
+
+## You can add custom request headers, e.g. for authentication.
+# [server.requestHeaders]
+# Authorization = "Bearer eyJhbGciOiJ..........."
+
+## Logs
+## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
+# [logs]
+# level = "silent" # or "error" or "debug"
+
+## Anonymous usage tracking
+## You can disable anonymous usage tracking here.
+# [anonymousUsageTracking]
+# disable = false # set to true to disable
+
+`;
+
 export const userAgentConfig = isBrowser
   ? null
   : (() => {
@@ -135,6 +162,12 @@ export const userAgentConfig = isBrowser
         async load() {
           try {
             const fileContent = await fs.readFile(this.filepath, "utf8");
+            // If the config file is the old template, and user has not modified it,
+            // Overwrite it with the new template.
+            if (fileContent.trim() === oldConfigTomlTemplate.trim()) {
+              await this.createTemplate();
+              return await this.load();
+            }
             this.data = toml.parse(fileContent);
             super.emit("updated", this.data);
           } catch (error) {
