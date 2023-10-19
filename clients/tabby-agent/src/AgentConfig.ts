@@ -124,12 +124,6 @@ const configTomlTemplate = `## Tabby agent configuration file
 # [server.requestHeaders]
 # Authorization = "Bearer eyJhbGciOiJ..........."
 
-## Completion
-## You can set the debounce mode for auto completion requests when typing.
-# [completion.debounce]
-# mode = "adaptive" # or "fixed"
-# interval = 250 # ms, only used when mode is "fixed"
-
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
 # [logs]
