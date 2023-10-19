@@ -12,6 +12,7 @@ To enable repository level context for code completion, you can add the followin
 
 ```toml title="~/.tabby/config.toml"
 # Index two repositories' source code as additional context for code completion.
+
 [[repositories]]
 git_url = "https://github.com/TabbyML/tabby.git"
 
