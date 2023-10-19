@@ -105,24 +105,19 @@ std::shared_ptr<TextInferenceEngine> create_engine(
     rust::Str model_path,
     rust::Str model_type,
     rust::Str device,
-    rust::Slice<const int32_t> device_indices
+    rust::Str compute_type,
+    rust::Slice<const int32_t> device_indices,
+    size_t num_replicas_per_device
 ) {
   std::string model_type_str(model_type);
   std::string model_path_str(model_path);
   ctranslate2::models::ModelLoader loader(model_path_str);
   loader.device = ctranslate2::str_to_device(std::string(device));
   loader.device_indices = std::vector<int>(device_indices.begin(), device_indices.end());
-  loader.compute_type = ctranslate2::ComputeType::AUTO;
+  loader.num_replicas_per_device = num_replicas_per_device;
 
-  const size_t num_cpus = std::thread::hardware_concurrency();
-  if (loader.device == ctranslate2::Device::CUDA) {
-    // When device is cuda, set parallelism to be number of thread.
-    loader.num_replicas_per_device = num_cpus;
-  } else if (loader.device == ctranslate2::Device::CPU){
-    // When device is cpu, adjust the number based on threads per replica.
-    // https://github.com/OpenNMT/CTranslate2/blob/master/src/utils.cc#L77
-    loader.num_replicas_per_device = std::max<int32_t>(num_cpus / 4, 1);
-  }
+  std::string compute_type_str(compute_type);
+  loader.compute_type = ctranslate2::str_to_compute_type(compute_type_str);
 
   if (model_type_str == "AutoModelForCausalLM") {
     return DecoderImpl::create(loader);
