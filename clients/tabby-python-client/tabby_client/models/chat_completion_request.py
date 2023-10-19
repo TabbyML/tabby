@@ -3,41 +3,38 @@ from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 import attr
 
 if TYPE_CHECKING:
-    from ..models.choice import Choice
+    from ..models.message import Message
 
 
-T = TypeVar("T", bound="CompletionResponse")
+T = TypeVar("T", bound="ChatCompletionRequest")
 
 
 @attr.s(auto_attribs=True)
-class CompletionResponse:
+class ChatCompletionRequest:
     """
     Example:
-        {'choices': [{'index': 0, 'text': 'string'}], 'id': 'string'}
+        {'messages': [{'content': 'What is tail recursion?', 'role': 'user'}, {'content': "It's a kind of optimization
+            in compiler?", 'role': 'assistant'}, {'content': 'Could you share more details?', 'role': 'user'}]}
 
     Attributes:
-        id (str):
-        choices (List['Choice']):
+        messages (List['Message']):
     """
 
-    id: str
-    choices: List["Choice"]
+    messages: List["Message"]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        choices = []
-        for choices_item_data in self.choices:
-            choices_item = choices_item_data.to_dict()
+        messages = []
+        for messages_item_data in self.messages:
+            messages_item = messages_item_data.to_dict()
 
-            choices.append(choices_item)
+            messages.append(messages_item)
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "choices": choices,
+                "messages": messages,
             }
         )
 
@@ -45,25 +42,22 @@ class CompletionResponse:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
-        from ..models.choice import Choice
+        from ..models.message import Message
 
         d = src_dict.copy()
-        id = d.pop("id")
+        messages = []
+        _messages = d.pop("messages")
+        for messages_item_data in _messages:
+            messages_item = Message.from_dict(messages_item_data)
 
-        choices = []
-        _choices = d.pop("choices")
-        for choices_item_data in _choices:
-            choices_item = Choice.from_dict(choices_item_data)
+            messages.append(messages_item)
 
-            choices.append(choices_item)
-
-        completion_response = cls(
-            id=id,
-            choices=choices,
+        chat_completion_request = cls(
+            messages=messages,
         )
 
-        completion_response.additional_properties = d
-        return completion_response
+        chat_completion_request.additional_properties = d
+        return chat_completion_request
 
     @property
     def additional_keys(self) -> List[str]:

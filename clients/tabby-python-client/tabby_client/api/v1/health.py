@@ -19,7 +19,7 @@ def _get_kwargs(
     cookies: Dict[str, Any] = client.get_cookies()
 
     return {
-        "method": "post",
+        "method": "get",
         "url": url,
         "headers": headers,
         "cookies": cookies,

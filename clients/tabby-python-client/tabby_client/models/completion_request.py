@@ -23,7 +23,9 @@ class CompletionRequest:
         language (Union[Unset, None, str]): Language identifier, full list is maintained at
             https://code.visualstudio.com/docs/languages/identifiers Example: python.
         segments (Union[Unset, None, Segments]):
-        user (Union[Unset, None, str]):
+        user (Union[Unset, None, str]): A unique identifier representing your end-user, which can help Tabby to monitor
+            & generating
+            reports.
     """
 
     prompt: Union[Unset, None, str] = UNSET

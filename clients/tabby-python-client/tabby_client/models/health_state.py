@@ -1,6 +1,12 @@
-from typing import Any, Dict, List, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
+
+from ..types import UNSET, Unset
+
+if TYPE_CHECKING:
+    from ..models.version import Version
+
 
 T = TypeVar("T", bound="HealthState")
 
@@ -11,18 +17,35 @@ class HealthState:
     Attributes:
         model (str):
         device (str):
-        compute_type (str):
+        arch (str):
+        cpu_info (str):
+        cpu_count (int):
+        cuda_devices (List[str]):
+        version (Version):
+        chat_model (Union[Unset, None, str]):
     """
 
     model: str
     device: str
-    compute_type: str
+    arch: str
+    cpu_info: str
+    cpu_count: int
+    cuda_devices: List[str]
+    version: "Version"
+    chat_model: Union[Unset, None, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         model = self.model
         device = self.device
-        compute_type = self.compute_type
+        arch = self.arch
+        cpu_info = self.cpu_info
+        cpu_count = self.cpu_count
+        cuda_devices = self.cuda_devices
+
+        version = self.version.to_dict()
+
+        chat_model = self.chat_model
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -30,25 +53,48 @@ class HealthState:
             {
                 "model": model,
                 "device": device,
-                "compute_type": compute_type,
+                "arch": arch,
+                "cpu_info": cpu_info,
+                "cpu_count": cpu_count,
+                "cuda_devices": cuda_devices,
+                "version": version,
             }
         )
+        if chat_model is not UNSET:
+            field_dict["chat_model"] = chat_model
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.version import Version
+
         d = src_dict.copy()
         model = d.pop("model")
 
         device = d.pop("device")
 
-        compute_type = d.pop("compute_type")
+        arch = d.pop("arch")
+
+        cpu_info = d.pop("cpu_info")
+
+        cpu_count = d.pop("cpu_count")
+
+        cuda_devices = cast(List[str], d.pop("cuda_devices"))
+
+        version = Version.from_dict(d.pop("version"))
+
+        chat_model = d.pop("chat_model", UNSET)
 
         health_state = cls(
             model=model,
             device=device,
-            compute_type=compute_type,
+            arch=arch,
+            cpu_info=cpu_info,
+            cpu_count=cpu_count,
+            cuda_devices=cuda_devices,
+            version=version,
+            chat_model=chat_model,
         )
 
         health_state.additional_properties = d

@@ -7,7 +7,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="tabby-python-client",
-    version="0.1.0",
+    version="0.3.0",
     description="A client library for accessing Tabby Server",
     long_description=long_description,
     long_description_content_type="text/markdown",

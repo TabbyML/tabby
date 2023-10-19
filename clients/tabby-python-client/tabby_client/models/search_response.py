@@ -3,41 +3,38 @@ from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 import attr
 
 if TYPE_CHECKING:
-    from ..models.choice import Choice
+    from ..models.hit import Hit
 
 
-T = TypeVar("T", bound="CompletionResponse")
+T = TypeVar("T", bound="SearchResponse")
 
 
 @attr.s(auto_attribs=True)
-class CompletionResponse:
+class SearchResponse:
     """
-    Example:
-        {'choices': [{'index': 0, 'text': 'string'}], 'id': 'string'}
-
     Attributes:
-        id (str):
-        choices (List['Choice']):
+        num_hits (int):
+        hits (List['Hit']):
     """
 
-    id: str
-    choices: List["Choice"]
+    num_hits: int
+    hits: List["Hit"]
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        choices = []
-        for choices_item_data in self.choices:
-            choices_item = choices_item_data.to_dict()
+        num_hits = self.num_hits
+        hits = []
+        for hits_item_data in self.hits:
+            hits_item = hits_item_data.to_dict()
 
-            choices.append(choices_item)
+            hits.append(hits_item)
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
-                "id": id,
-                "choices": choices,
+                "num_hits": num_hits,
+                "hits": hits,
             }
         )
 
@@ -45,25 +42,25 @@ class CompletionResponse:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
-        from ..models.choice import Choice
+        from ..models.hit import Hit
 
         d = src_dict.copy()
-        id = d.pop("id")
+        num_hits = d.pop("num_hits")
 
-        choices = []
-        _choices = d.pop("choices")
-        for choices_item_data in _choices:
-            choices_item = Choice.from_dict(choices_item_data)
+        hits = []
+        _hits = d.pop("hits")
+        for hits_item_data in _hits:
+            hits_item = Hit.from_dict(hits_item_data)
 
-            choices.append(choices_item)
+            hits.append(hits_item)
 
-        completion_response = cls(
-            id=id,
-            choices=choices,
+        search_response = cls(
+            num_hits=num_hits,
+            hits=hits,
         )
 
-        completion_response.additional_properties = d
-        return completion_response
+        search_response.additional_properties = d
+        return search_response
 
     @property
     def additional_keys(self) -> List[str]:

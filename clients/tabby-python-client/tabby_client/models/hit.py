@@ -3,41 +3,39 @@ from typing import TYPE_CHECKING, Any, Dict, List, Type, TypeVar
 import attr
 
 if TYPE_CHECKING:
-    from ..models.choice import Choice
+    from ..models.hit_document import HitDocument
 
 
-T = TypeVar("T", bound="CompletionResponse")
+T = TypeVar("T", bound="Hit")
 
 
 @attr.s(auto_attribs=True)
-class CompletionResponse:
+class Hit:
     """
-    Example:
-        {'choices': [{'index': 0, 'text': 'string'}], 'id': 'string'}
-
     Attributes:
-        id (str):
-        choices (List['Choice']):
+        score (float):
+        doc (HitDocument):
+        id (int):
     """
 
-    id: str
-    choices: List["Choice"]
+    score: float
+    doc: "HitDocument"
+    id: int
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        id = self.id
-        choices = []
-        for choices_item_data in self.choices:
-            choices_item = choices_item_data.to_dict()
+        score = self.score
+        doc = self.doc.to_dict()
 
-            choices.append(choices_item)
+        id = self.id
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update(
             {
+                "score": score,
+                "doc": doc,
                 "id": id,
-                "choices": choices,
             }
         )
 
@@ -45,25 +43,23 @@ class CompletionResponse:
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
-        from ..models.choice import Choice
+        from ..models.hit_document import HitDocument
 
         d = src_dict.copy()
+        score = d.pop("score")
+
+        doc = HitDocument.from_dict(d.pop("doc"))
+
         id = d.pop("id")
 
-        choices = []
-        _choices = d.pop("choices")
-        for choices_item_data in _choices:
-            choices_item = Choice.from_dict(choices_item_data)
-
-            choices.append(choices_item)
-
-        completion_response = cls(
+        hit = cls(
+            score=score,
+            doc=doc,
             id=id,
-            choices=choices,
         )
 
-        completion_response.additional_properties = d
-        return completion_response
+        hit.additional_properties = d
+        return hit
 
     @property
     def additional_keys(self) -> List[str]:
