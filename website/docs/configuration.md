@@ -11,9 +11,13 @@ Tabby server will look for a configuration file at `~/.tabby/config.toml` for ad
 To enable repository level context for code completion, you can add the following to your configuration file:
 
 ```toml title="~/.tabby/config.toml"
-# Index `tabby` source code as additional context for code completion.
+# Index two repositories' source code as additional context for code completion.
+
 [[repositories]]
 git_url = "https://github.com/TabbyML/tabby.git"
+
+[[repositories]]
+git_url = "https://github.com/OpenNMT/CTranslate2.git"
 ```
 
 Once this is set, you can run `tabby scheduler` to index the source code repository.
