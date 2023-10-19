@@ -87,7 +87,9 @@ class Model:
         request = CompletionRequest(
             language=language, prompt=prompt 
         )
+
         resp: CompletionResponse = await completion.asyncio(client=self.client, json_body=request)
+
         return resp.choices[0].text
 
 
