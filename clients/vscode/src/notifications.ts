@@ -138,16 +138,16 @@ function getHelpMessageForCompletionResponseTimeIssue() {
   if (serverHealthState?.device === "cpu" && serverHealthState?.model?.match(/[0-9\.]+B$/)) {
     helpMessageForRunningLargeModelOnCPU +=
       `Your Tabby server is running model ${serverHealthState?.model} on CPU. ` +
-      "This model is too large to run on CPU, please try a smaller model or switch to GPU. " +
-      "You can find supported model list in online documents. \n";
+      "This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU. " +
+      "You can find a list of supported models in the model directory.\n";
   }
   let commonHelpMessage = "";
   const host = new URL(agent().getConfig().server.endpoint).host;
   if (helpMessageForRunningLargeModelOnCPU.length == 0) {
     commonHelpMessage += ` - The running model ${
       serverHealthState?.model ?? ""
-    } is too large to run on your Tabby server. `;
-    commonHelpMessage += "Please try a smaller model. You can find supported model list in online documents.\n";
+    } may be performing poorly due to its large parameter size. `;
+    commonHelpMessage += "Please consider trying smaller models. You can find a list of supported models in the model directory.\n";
   }
   if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
     commonHelpMessage += " - A poor network connection. Please check your network and proxy settings.\n";
@@ -157,12 +157,12 @@ function getHelpMessageForCompletionResponseTimeIssue() {
   if (helpMessageForRunningLargeModelOnCPU.length > 0) {
     message += helpMessageForRunningLargeModelOnCPU + "\n";
     if (commonHelpMessage.length > 0) {
-      message += "Other possible causes of this issue are: \n";
+      message += "Other possible causes of this issue: \n";
       message += commonHelpMessage;
     }
   } else {
     // commonHelpMessage should not be empty here
-    message += "Possible causes of this issue are: \n";
+    message += "Possible causes of this issue: \n";
     message += commonHelpMessage;
   }
   return message;
@@ -184,11 +184,11 @@ function showInformationWhenSlowCompletionResponseTime(modal: boolean = false) {
           modal: true,
           detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
         },
-        "Supported Models",
+        "Model Directory",
       )
       .then((selection) => {
         switch (selection) {
-          case "Supported Models":
+          case "Model Directory":
             env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
             break;
         }
@@ -223,11 +223,11 @@ function showInformationWhenHighCompletionTimeoutRate(modal: boolean = false) {
           modal: true,
           detail: statsMessage + getHelpMessageForCompletionResponseTimeIssue(),
         },
-        "Supported Models",
+        "Model Directory",
       )
       .then((selection) => {
         switch (selection) {
-          case "Supported Models":
+          case "Model Directory":
             env.openExternal(Uri.parse("https://tabby.tabbyml.com/docs/models/"));
             break;
         }

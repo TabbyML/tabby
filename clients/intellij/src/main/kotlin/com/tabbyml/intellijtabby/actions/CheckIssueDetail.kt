@@ -33,11 +33,7 @@ class CheckIssueDetail : AnAction() {
       }
       val message = buildDetailMessage(detail, serverHealthState, agentConfig)
       invokeLater {
-        val result =
-          Messages.showOkCancelDialog(message, title, "Supported Models", "Dismiss", Messages.getInformationIcon())
-        if (result == Messages.OK) {
-          BrowserUtil.browse("https://tabby.tabbyml.com/docs/models/")
-        }
+        Messages.showMessageDialog(message, title, Messages.getInformationIcon())
       }
     }
   }
@@ -73,8 +69,8 @@ class CheckIssueDetail : AnAction() {
     val helpMessageForRunningLargeModelOnCPU = if (device == "cpu" && model.endsWith("B")) {
       """
       Your Tabby server is running model <i>$model</i> on CPU.
-      This model is too large to run on CPU, please try a smaller model or switch to GPU.
-      You can find supported model list in online documents.
+      This model may be performing poorly due to its large parameter size, please consider trying smaller models or switch to GPU.
+      You can find a list of supported models in the <a href='https://tabby.tabbyml.com/docs/models/'>model directory</a>.
       """.trimIndent()
     } else {
       ""
@@ -82,8 +78,8 @@ class CheckIssueDetail : AnAction() {
     var commonHelpMessage = ""
     val host = URL(agentConfig.server?.endpoint).host
     if (helpMessageForRunningLargeModelOnCPU.isEmpty()) {
-      commonHelpMessage += "<li>The running model <i>$model</i> is too large to run on your Tabby server.<br/>"
-      commonHelpMessage += "Please try a smaller model. You can find supported model list in online documents.</li>"
+      commonHelpMessage += "<li>The running model <i>$model</i> may be performing poorly due to its large parameter size.<br/>"
+      commonHelpMessage += "Please consider trying smaller models. You can find a list of supported models in the <a href='https://tabby.tabbyml.com/docs/models/'>model directory</a>.</li>"
     }
     if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
       commonHelpMessage += "<li>A poor network connection. Please check your network and proxy settings.</li>"
