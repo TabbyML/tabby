@@ -202,6 +202,11 @@ class AgentService : Disposable {
     agent.clearConfig(key)
   }
 
+  suspend fun getConfig(): Agent.Config {
+    waitForInitialized()
+    return agent.getConfig()
+  }
+
   suspend fun provideCompletion(editor: Editor, offset: Int, manually: Boolean = false): Agent.CompletionResponse? {
     waitForInitialized()
     return ReadAction.compute<PsiFile, Throwable> {
