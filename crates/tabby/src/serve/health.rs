@@ -13,7 +13,6 @@ pub struct HealthState {
     #[serde(skip_serializing_if = "Option::is_none")]
     chat_model: Option<String>,
     device: String,
-    compute_type: String,
     arch: String,
     cpu_info: String,
     cpu_count: usize,
@@ -34,7 +33,6 @@ impl HealthState {
             model: args.model.clone(),
             chat_model: args.chat_model.clone(),
             device: args.device.to_string(),
-            compute_type: args.compute_type.to_string(),
             arch: ARCH.to_string(),
             cpu_info,
             cpu_count,
