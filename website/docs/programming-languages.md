@@ -26,7 +26,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [JavaScript](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 * [TypeScript](https://www.typescriptlang.org/)
 * [Golang](https://go.dev/): Since v0.4.0
-* [Ruby](https://www.ruby-lang.org/)
+* [Ruby](https://www.ruby-lang.org/): Since v0.4.0
 
 ## Languages Missing Certain Support
 

@@ -275,7 +275,7 @@ lazy_static! {
                 TagsConfigurationSync(
                     TagsConfiguration::new(
                         tree_sitter_ruby::language(),
-                        include_str!("../queries/ruby.scm"),
+                        tree_sitter_rust::TAGGING_QUERY,
                         "",
                     )
                     .unwrap(),
