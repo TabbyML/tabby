@@ -270,6 +270,17 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
+            (
+                "ruby",
+                TagsConfigurationSync(
+                    TagsConfiguration::new(
+                        tree_sitter_ruby::language(),
+                        tree_sitter_rust::TAGGING_QUERY,
+                        "",
+                    )
+                    .unwrap(),
+                ),
+            ),
         ])
     };
 }

@@ -51,3 +51,19 @@ top_level_keywords = [
     "var",
     "const",
 ]
+
+[[config]]
+languages = ["ruby"]
+line_comment = "#"
+top_level_keywords = [
+    "begin",
+    "class",
+    "def",
+    "end",
+    "ensure",
+    "include",
+    "module",
+    "require",
+    "rescue",
+    "self",
+]
