@@ -139,9 +139,9 @@ pub struct ServeArgs {
     #[clap(long, default_values_t=[0])]
     device_indices: Vec<i32>,
 
-    /// Number of replicas per device, only applicable for CPU.
-    #[clap(long, default_value_t = 1)]
-    num_replicas_per_device: usize,
+    /// DEPRECATED: Do not use.
+    #[clap(long)]
+    num_replicas_per_device: Option<usize>,
 
     /// Compute type
     #[clap(long, default_value_t=ComputeType::Auto)]
@@ -281,6 +281,10 @@ fn fallback() -> routing::MethodRouter {
 }
 
 fn valid_args(args: &ServeArgs) {
+    if args.num_replicas_per_device.is_some() {
+        warn!("num_replicas_per_device is deprecated and will be removed in future release.");
+    }
+
     if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
     {
         fatal!("CPU device only supports device indices = [0]");
