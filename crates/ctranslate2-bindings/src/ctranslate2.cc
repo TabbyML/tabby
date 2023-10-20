@@ -116,8 +116,8 @@ std::shared_ptr<TextInferenceEngine> create_engine(
 
   const size_t num_cpus = std::thread::hardware_concurrency();
   if (loader.device == ctranslate2::Device::CUDA) {
-    // When device is cuda, set parallelism to be number of thread.
-    loader.num_replicas_per_device = num_cpus;
+    // When device is cuda, set parallelism to be number of thread, capped to 4 to avoid VRAM oom.
+    loader.num_replicas_per_device = std::min<int32_t>(num_cpus, 4);
   } else if (loader.device == ctranslate2::Device::CPU){
     // When device is cpu, adjust the number based on threads per replica.
     // https://github.com/OpenNMT/CTranslate2/blob/master/src/utils.cc#L77
