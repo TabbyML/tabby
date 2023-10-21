@@ -159,12 +159,6 @@
       "CompletionRequest": {
         "type": "object",
         "properties": {
-          "prompt": {
-            "type": "string",
-            "deprecated": true,
-            "example": "def fib(n):",
-            "nullable": true
-          },
           "language": {
             "type": "string",
             "description": "Language identifier, full list is maintained at\nhttps://code.visualstudio.com/docs/languages/identifiers",
