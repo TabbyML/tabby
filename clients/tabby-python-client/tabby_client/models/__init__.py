@@ -5,6 +5,8 @@ from .chat_completion_request import ChatCompletionRequest
 from .choice import Choice
 from .completion_request import CompletionRequest
 from .completion_response import CompletionResponse
+from .debug_data import DebugData
+from .debug_options import DebugOptions
 from .health_state import HealthState
 from .hit import Hit
 from .hit_document import HitDocument
@@ -21,6 +23,8 @@ __all__ = (
     "Choice",
     "CompletionRequest",
     "CompletionResponse",
+    "DebugData",
+    "DebugOptions",
     "HealthState",
     "Hit",
     "HitDocument",

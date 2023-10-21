@@ -5,6 +5,7 @@ import attr
 from ..types import UNSET, Unset
 
 if TYPE_CHECKING:
+    from ..models.debug_options import DebugOptions
     from ..models.segments import Segments
 
 
@@ -26,12 +27,14 @@ class CompletionRequest:
         user (Union[Unset, None, str]): A unique identifier representing your end-user, which can help Tabby to monitor
             & generating
             reports.
+        debug_options (Union[Unset, None, DebugOptions]):
     """
 
     prompt: Union[Unset, None, str] = UNSET
     language: Union[Unset, None, str] = UNSET
     segments: Union[Unset, None, "Segments"] = UNSET
     user: Union[Unset, None, str] = UNSET
+    debug_options: Union[Unset, None, "DebugOptions"] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -42,6 +45,9 @@ class CompletionRequest:
             segments = self.segments.to_dict() if self.segments else None
 
         user = self.user
+        debug_options: Union[Unset, None, Dict[str, Any]] = UNSET
+        if not isinstance(self.debug_options, Unset):
+            debug_options = self.debug_options.to_dict() if self.debug_options else None
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
@@ -54,11 +60,14 @@ class CompletionRequest:
             field_dict["segments"] = segments
         if user is not UNSET:
             field_dict["user"] = user
+        if debug_options is not UNSET:
+            field_dict["debug_options"] = debug_options
 
         return field_dict
 
     @classmethod
     def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
+        from ..models.debug_options import DebugOptions
         from ..models.segments import Segments
 
         d = src_dict.copy()
@@ -77,11 +86,21 @@ class CompletionRequest:
 
         user = d.pop("user", UNSET)
 
+        _debug_options = d.pop("debug_options", UNSET)
+        debug_options: Union[Unset, None, DebugOptions]
+        if _debug_options is None:
+            debug_options = None
+        elif isinstance(_debug_options, Unset):
+            debug_options = UNSET
+        else:
+            debug_options = DebugOptions.from_dict(_debug_options)
+
         completion_request = cls(
             prompt=prompt,
             language=language,
             segments=segments,
             user=user,
+            debug_options=debug_options,
         )
 
         completion_request.additional_properties = d

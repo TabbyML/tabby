@@ -30,3 +30,15 @@ update-openapi-doc:
 			["components", "schemas", "DebugOptions"]                                                                 \
 			])' | jq '.servers[0] |= { url: "https://playground.app.tabbyml.com", description: "Playground server" }' \
 			    > website/static/openapi.json
+
+update-python-client:
+	rm -rf clients/tabby-python-client
+	curl http://localhost:8080/api-docs/openapi.json | jq '                                                       \
+	  delpaths([                                                                                                  \
+		  ["paths", "/v1beta/chat/completions"]                                                                     \
+		])' > /tmp/openapi.json
+
+	cd clients && openapi-python-client generate \
+    --path /tmp/openapi.json \
+    --config ../experimental/openapi/python.yaml \
+    --meta setup
