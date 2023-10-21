@@ -17,3 +17,15 @@ bump-version:
 
 bump-release-version:
 	cargo ws version --allow-branch "r*" --no-individual-tags --force "*"
+
+update-openapi-doc:
+	curl http://localhost:8080/api-docs/openapi.json | jq '                                                       \
+	  delpaths([                                                                                                  \
+		  ["paths", "/v1beta/chat/completions"],                                                                    \
+		  ["paths", "/v1beta/search"],                                                                              \
+		  ["components", "schemas", "CompletionRequest", "properties", "debug_options"],                            \
+		  ["components", "schemas", "CompletionResponse", "properties", "debug_data"],                              \
+		  ["components", "schemas", "DebugData"],                                                                   \
+			["components", "schemas", "DebugOptions"]                                                                 \
+			])' | jq '.servers[0] |= { url: "https://playground.app.tabbyml.com", description: "Playground server" }' \
+			    > website/static/openapi.json
