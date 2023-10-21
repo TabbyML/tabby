@@ -35,15 +35,16 @@ export type AgentIssue = SlowCompletionResponseTimeIssue | HighCompletionTimeout
 /**
  * Represents the status of the agent.
  * @enum
- * @property {string} notInitialized - When the agent is not initialized.
+ * @property {string} notInitialized - When the agent has not been initialized.
  * @property {string} ready - When the agent gets a valid response from the server.
  * @property {string} disconnected - When the agent fails to connect to the server.
  * @property {string} unauthorized - When the server is set to a Tabby Cloud endpoint that requires auth,
  *   and no `Authorization` request header is provided in the agent config,
  *   and the user has not completed the auth flow or the auth token is expired.
  *   See also `requestAuthUrl` and `waitForAuthToken`.
+ * @property {string} finalized - When the agent is finalized.
  */
-export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized";
+export type AgentStatus = "notInitialized" | "ready" | "disconnected" | "unauthorized" | "finalized";
 
 export interface AgentFunction {
   /**

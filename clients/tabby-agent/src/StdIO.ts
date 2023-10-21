@@ -1,6 +1,6 @@
 import { AgentFunction, AgentEvent, Agent, agentEventNames } from "./Agent";
 import { rootLogger } from "./logger";
-import { splitLines } from "./utils";
+import { splitLines, isCanceledError } from "./utils";
 
 type AgentFunctionRequest<T extends keyof AgentFunction> = [
   id: number,
@@ -41,6 +41,7 @@ type StdIOResponse = AgentFunctionResponse<any> | AgentEventNotification | Cance
  * Every request and response should be single line JSON string and end with a newline.
  */
 export class StdIO {
+  private readonly process: NodeJS.Process = process;
   private readonly inStream: NodeJS.ReadStream = process.stdin;
   private readonly outStream: NodeJS.WriteStream = process.stdout;
   private readonly logger = rootLogger.child({ component: "StdIO" });
@@ -85,7 +86,7 @@ export class StdIO {
     const abortController = new AbortController();
     try {
       if (!this.agent) {
-        throw new Error(`Agent not bound.\n`);
+        throw { message: `Agent not bound.\n` };
       }
       requestId = request[0];
       response[0] = requestId;
@@ -96,7 +97,7 @@ export class StdIO {
       } else {
         const func = this.agent[funcName];
         if (!func) {
-          throw new Error(`Unknown function: ${funcName}`);
+          throw { message: `Unknown function: ${funcName}`};
         }
         const args = request[1].args;
         // If the last argument is an object and has `signal` property, replace it with the abort signal.
@@ -107,7 +108,11 @@ export class StdIO {
         response[1] = await func.apply(this.agent, args);
       }
     } catch (error) {
-      this.logger.error({ error, request }, `Failed to handle request`);
+      if (isCanceledError(error)) {
+        this.logger.debug({ error, request }, `Request canceled`);
+      } else {
+        this.logger.error({ error, request }, `Failed to handle request`);
+      }
     } finally {
       if (this.abortControllers[requestId]) {
         delete this.abortControllers[requestId];
@@ -141,5 +146,14 @@ export class StdIO {
 
   listen() {
     this.inStream.on("data", this.handleInput.bind(this));
+
+    ["SIGTERM", "SIGINT"].forEach((sig) => {
+      this.process.on(sig, async () => {
+        if (this.agent && this.agent.getStatus() !== "finalized") {
+          await this.agent.finalize();
+        }
+        this.process.exit(0);
+      });
+    });
   }
 }
