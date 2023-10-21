@@ -1,105 +1,168 @@
-# Tabby VIM extension
+# Tabby Plugin for Vim and NeoVim
 
-Tabby is compatible with both Vim and NeoVim text editor via a plugin.
+Tabby is a self-hosted AI coding assistant that can suggest multi-line code or full functions in real-time. For more information, please check out our [website](https://tabbyml.com/) and [github](https://github.com/TabbyML/tabby).  
+If you encounter any problem or have any suggestion, please [open an issue](https://github.com/TabbyML/tabby/issues/new) or join our [Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) for support.
+
+## Table of Contents
+
+- [Tabby Plugin for Vim and NeoVim](#tabby-plugin-for-vim-and-neovim)
+  - [Table of Contents](#table-of-contents)
+  - [Requirements](#requirements)
+  - [Installation](#installation)
+    - [🔌 Vim-plug](#-vim-plug)
+    - [📦 Packer.nvim](#-packernvim)
+    - [💤 Lazy.nvim](#-lazynvim)
+  - [Usage](#usage)
+  - [Configuration](#configuration)
+    - [Tabby Server](#tabby-server)
+    - [Node.js Binary Path](#nodejs-binary-path)
+    - [Completion Trigger Mode](#completion-trigger-mode)
+    - [KeyBindings](#keybindings)
 
 ## Requirements
 
-Before installing the plugin you will need to have installed:
+Tabby plugin requires the following dependencies:
 
-1. VIM 9.0+ with `+job` and `+textprop` features enabled, or NeoVIM 0.6.0+.
-2. Node.js 16.0+.
+- Vim 9.0+ with `+job` and `+textprop` features enabled, or NeoVim 0.6.0+.
+- Tabby server. You can install Tabby server locally or have it hosted on a remote server. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
+- [Node.js](https://nodejs.org/en/download/) version v18.0+.
+  - If you need have multiple Node.js versions installed, you can use Node.js version manager such as [nvm](https://github.com/nvm-sh/nvm).
+- Vim filetype plugin enabled. You can add following lines in vim config file (`~/.vimrc` for Vim and `~/.config/nvim/init.vim` or `~/.config/nvim/init.lua` for NeoVim).
 
-## Getting started
+  ```vim
+  filetype plugin on
+  ```
 
-You can either install TabbyML vim extension using [Vim-Plug](https://github.com/junegunn/vim-plug), [Packer](https://github.com/wbthomason/packer.nvim) or [Lazy](https://github.com/folke/lazy.nvim).
+  ```lua
+  --- lua
+  vim.cmd('filetype plugin on')
+  ```
 
-### 🔌 Vim-Plug
+## Installation
 
-[Vim-Plug](https://github.com/junegunn/vim-plug) is a minimalist Vim plugin manager that you can use to install TabbyML plugin.
-You can install Vim-Plug by following these [intructions](https://github.com/junegunn/vim-plug#installation).
+You can install Tabby plugin using your favorite plugin manager. Here are some examples using popular plugin managers, you can choose one to follow.
 
+### 🔌 Vim-plug
 
+[Vim-plug](https://github.com/junegunn/vim-plug) is a minimalist Vim plugin manager that you can use to install Tabby plugin. You can install Vim-plug by following these [instructions](https://github.com/junegunn/vim-plug#installation).
 
-You will need to edit your vim config file (`~/.vimrc` for vim and `~/.config/nvim/init.vim` for neovim) and copy paste the following lines in it (between the `plug#begin` and `plug#end` lines)
+Once Vim-plug is installed, you can install Tabby plugin by adding the following line to your vim config file (`~/.vimrc` for Vim and `~/.config/nvim/init.vim` for NeoVim), between the `plug#begin()` and `plug#end()` lines.
 
+```vim
+" ...your vim configs...
 
+" Section for plugins managed by vim-plug
+plug#begin()
+
+" ...other plugins...
+
+" Add Tabby plugin
+Plug 'TabbyML/vim-tabby'
+plug#end()
 ```
-" Make sure that the filetype plugin has been enabled.
-filetype plugin on
 
-" Add this to the vim-plug config
-Plug 'TabbyML/tabby', {'rtp': 'clients/vim'}
-
-" Set URL of Tabby server
-let g:tabby_server_url = 'http://127.0.0.1:8080'
-```
-
-Note that you can change the tabby server url here.
-
-
-You then need to actually install the plugin, to do so you need to type in your vim command.
+Then, run the following command in your vim command line:
 
 ```
 :PlugInstall
 ```
-You should see the tabbyML plugin beeing installed.
 
+You should see the Tabby plugin being installed.
 
-### 📦 Packer and Lazy
-You first need to install either [Packer](https://github.com/wbthomason/packer.nvim) or [Lazy](https://github.com/folke/lazy.nvim).
+### 📦 Packer.nvim
 
-In this case, you first need to clone the repo in your machine
-```
-git clone https://github.com/TabbyML/tabby.git ~/tabby
-```
-You will need to edit `~/.config/nvim/init.vim` for and copy paste the following lines in it.
+[Packer.nvim](https://github.com/wbthomason/packer.nvim) is a plugin manager for NeoVim that is written in Lua. You can install Packer.nvim by following these [instructions](https://github.com/wbthomason/packer.nvim#quickstart).
 
-```
-" For lazy
-return { name = "tabby", dir = '~/tabby/clients/vim', enabled = true }
+Once Packer is installed, you can install Tabby plugin by adding the following line to your plugin specification, e.g. (in `~/.config/nvim/lua/plugins.lua`).
 
-" For packer
-use {'~/tabby/clients/vim', as = 'tabby', enabled = true}
+```lua
+--- Packer plugin specification
+return require('packer').startup(function(use)
+  --- ...other plugins...
 
-" Set URL of Tabby server
-
-" With Lua
-vim.g.tabby_server_url = 'http://127.0.0.1:8080'
-
-" With VimScript
-let g:tabby_server_url = 'http://127.0.0.1:8080'
-```
-> In the future, the ideal would be to export the Vim extension to a separate Git repository. This would simplify the installation process [#252](https://github.com/TabbyML/tabby/issues/252).
-
-## Checking the installation
-
-Once the plugin is installed you can check if the install was done sucessfully by doing in your vim command
-
-```
-:Tabby status
+  --- Add Tabby plugin
+  use 'TabbyML/vim-tabby'
+end)
 ```
 
-You should see
-```
-Tabby is online
-```
+### 💤 Lazy.nvim
 
-If you se `Tabby cannot connect to the server` it means that you need to start the tabby server first. Refer to this [documentation](https://tabby.tabbyml.com/docs/installation/)
+[Lazy.nvim](https://github.com/folke/lazy.nvim) is an alternative plugin manager for NeoVim. You can install Lazy.nvim by following these [instructions](https://github.com/folke/lazy.nvim#-installation).
+
+Once Lazy is installed, you can install Tabby plugin by adding the following line to your plugin specification in `~/.config/nvim/init.lua`.
+
+```lua
+--- ...your NeoVim configs...
+
+--- Lazy plugin specification
+require("lazy").setup({
+  --- ...other plugins...
+
+  --- Add Tabby plugin
+  "TabbyML/vim-tabby",
+})
+```
 
 ## Usage
 
-1. In insert mode, Tabby will show code suggestion when you stop typing. Press `<Tab>` to accpet the current suggestion, `<M-]>` to see the next suggestion, `<M-[>` to see previous suggestion, or `<C-]>` to dismiss.
-2. Use command `:Tabby enable` to enable, `:Tabby disable` to disable Tabby, and `:Tabby status` to check status.
-3. Use command `:help Tabby` for more information.
+After installation, please exit and restart Vim or NeoVim. Then you can check the Tabby plugin status by running `:Tabby` in your vim command line. If you see any message reported by Tabby, it means the plugin is installed successfully. If you see `Not an editor command: Tabby` or any other error message, please check the installation steps.
+
+In insert mode, Tabby plugin will show inline completion automatically when you stop typing. You can simply press `<Tab>` to accept the completion. If you want to dismiss the completion manually, you can press `<C-\>` to dismiss, and press `<C-\>` again to show the completion again.
 
 ## Configuration
 
+### Tabby Server
+
+You need to start the Tabby server before using the plugin. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
+
+If your Tabby server endpoint is different from the default `http://localhost:8080`, please set the endpoint in `~/.tabby-client/config.toml`.
+
+```toml
+# Server
+# You can set the server endpoint here.
+[server]
+endpoint = "http://localhost:8080" # http or https URL
+```
+
+### Node.js Binary Path
+
+Normally, this config is not required as the Tabby plugin will try to find the Node.js binary in your `PATH` environment variable.  
+But if you have installed Node.js in a non-standard location, or you are using a Node.js version manager such as nvm, you can set the Node.js binary path in your vim config file (`~/.vimrc` for Vim and `~/.config/nvim/init.vim` or `~/.config/nvim/init.lua` for NeoVim).
+
+```vim
+let g:tabby_node_binary = '/path/to/node'
+```
+
+```lua
+--- lua
+vim.g.tabby_node_binary = '/path/to/node'
+```
+
+### Completion Trigger Mode
+
+Completion trigger mode is set to `auto` by default, Tabby plugin will show inline completion automatically when you stop typing.  
+If you prefer to trigger code completion manually, add this config in your vim config file. Tabby plugin will not show inline completion automatically, you can trigger the completion manually by pressing `<C-\>`.
+
+```vim
+let g:tabby_trigger_mode = 'manual'
+```
+
+```lua
+--- lua
+vim.g.tabby_trigger_mode = 'manual'
+```
+
 ### KeyBindings
 
-The default key bindings for accept/dismiss(`<Tab>/<C-]>`) can be customized
-with the following global settings.
+The default key bindings for accept completion(`<Tab>`), manual trigger/dismiss(`<C-\>`) can be customized with the following global settings.
 
-```vimscript
-let g:tabby_accept_binding = '<Tab>'
-let g:tabby_dismiss_binding = '<C-]>'
+```vim
+let g:tabby_keybinding_accept = '<Tab>'
+let g:tabby_keybinding_trigger_or_dismiss = '<C-\>'
+```
+
+```lua
+--- lua
+vim.g.tabby_keybinding_accept = '<Tab>'
+vim.g.tabby_keybinding_trigger_or_dismiss = '<C-\\>'
 ```
