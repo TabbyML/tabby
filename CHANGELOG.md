@@ -2,8 +2,10 @@
 
 ## Features
 * Supports golang: https://github.com/TabbyML/tabby/issues/553
+* Supports ruby: https://github.com/TabbyML/tabby/pull/597
 
 ## Fixes and Improvements
+* Improve snippets retrieval by dedup candidates to existing content + snippets: https://github.com/TabbyML/tabby/pull/582
 
 # v0.3.1
 ## Fixes and improvements
