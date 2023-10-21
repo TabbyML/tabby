@@ -38,7 +38,7 @@ pub struct CompletionRequest {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DebugOptions {
-    /// When raw_prompt is specified, it will be passed directly to the inference engine for completion. `segments` field in `CompletionRequest` will be ignored.
+    /// When `raw_prompt` is specified, it will be passed directly to the inference engine for completion. `segments` field in `CompletionRequest` will be ignored.
     ///
     /// This is useful for certain requests that aim to test the tabby's e2e quality.
     raw_prompt: Option<String>,
