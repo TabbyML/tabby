@@ -82,10 +82,10 @@ class Model:
     @method()
     async def complete(self, language: str, prompt: str):
         from tabby_client.api.v1 import completion
-        from tabby_client.models import CompletionRequest, CompletionResponse, Segments
+        from tabby_client.models import CompletionRequest, DebugOptions, CompletionResponse, Segments
 
         request = CompletionRequest(
-            language=language, prompt=prompt 
+            language=language, debug_options=DebugOptions(raw_prompt=prompt)
         )
         resp: CompletionResponse = await completion.asyncio(client=self.client, json_body=request)
         return resp.choices[0].text
