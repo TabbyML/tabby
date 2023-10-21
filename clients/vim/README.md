@@ -27,15 +27,10 @@ Tabby plugin requires the following dependencies:
 - Tabby server. You can install Tabby server locally or have it hosted on a remote server. For Tabby server installation, please refer to this [documentation](https://tabby.tabbyml.com/docs/installation/).
 - [Node.js](https://nodejs.org/en/download/) version v18.0+.
   - If you need have multiple Node.js versions installed, you can use Node.js version manager such as [nvm](https://github.com/nvm-sh/nvm).
-- Vim filetype plugin enabled. You can add following lines in vim config file (`~/.vimrc` for Vim and `~/.config/nvim/init.vim` or `~/.config/nvim/init.lua` for NeoVim).
+- Vim filetype plugin enabled. You can add following lines in vim config file (`~/.vimrc`). For NeoVim, filetype plugin is enabled by default, you don't need to add these lines.
 
   ```vim
   filetype plugin on
-  ```
-
-  ```lua
-  --- lua
-  vim.cmd('filetype plugin on')
   ```
 
 ## Installation
@@ -67,8 +62,6 @@ Then, run the following command in your vim command line:
 :PlugInstall
 ```
 
-You should see the Tabby plugin being installed.
-
 ### 📦 Packer.nvim
 
 [Packer.nvim](https://github.com/wbthomason/packer.nvim) is a plugin manager for NeoVim that is written in Lua. You can install Packer.nvim by following these [instructions](https://github.com/wbthomason/packer.nvim#quickstart).
@@ -83,6 +76,12 @@ return require('packer').startup(function(use)
   --- Add Tabby plugin
   use 'TabbyML/vim-tabby'
 end)
+```
+
+Then, run the following command in your NeoVim command line:
+
+```
+:PackerSync
 ```
 
 ### 💤 Lazy.nvim
