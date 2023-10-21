@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.1-rc.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["Meng Zhang"]
 homepage = "https://github.com/TabbyML/tabby"
