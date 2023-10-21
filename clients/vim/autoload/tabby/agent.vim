@@ -22,13 +22,12 @@ function! tabby#agent#Issues()
   return s:tabby_issues
 endfunction
 
-function! tabby#agent#Open()
+function! tabby#agent#Open(command)
   if type(s:tabby) != v:t_number || s:tabby != 0
     return
   endif
 
-  let command = g:tabby_node_binary . ' ' . g:tabby_node_script
-  let s:tabby = tabby#job#Start(command, #{
+  let s:tabby = tabby#job#Start(a:command, #{
     \ out_cb: { _, data -> s:OnNotification(data) },
     \ err_cb: { _, data -> s:OnError(data) },
     \ exit_cb: { _ -> s:OnExit() },

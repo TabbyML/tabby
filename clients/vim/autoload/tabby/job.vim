@@ -67,7 +67,6 @@ function! tabby#job#Stop(job)
   endif
   if s:nvim
     let ret = jobstop(a:job)
-    call jobwait([a:job], 1000)
     if has_key(s:nvim_job_map, a:job)
       unlet s:nvim_job_map[a:job]
     endif

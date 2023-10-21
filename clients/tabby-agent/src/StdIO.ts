@@ -86,7 +86,7 @@ export class StdIO {
     const abortController = new AbortController();
     try {
       if (!this.agent) {
-        throw { message: `Agent not bound.\n` };
+        throw new Error(`Agent not bound.\n`);
       }
       requestId = request[0];
       response[0] = requestId;
@@ -97,7 +97,7 @@ export class StdIO {
       } else {
         const func = this.agent[funcName];
         if (!func) {
-          throw { message: `Unknown function: ${funcName}`};
+          throw new Error(`Unknown function: ${funcName}`);
         }
         const args = request[1].args;
         // If the last argument is an object and has `signal` property, replace it with the abort signal.

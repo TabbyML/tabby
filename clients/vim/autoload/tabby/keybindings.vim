@@ -26,14 +26,6 @@ function! tabby#keybindings#Map()
     exec 'imap <script><silent><nowait><expr> ' . g:tabby_keybinding_accept . ' tabby#Accept()'
   endif
 
-  " map `tabby#Dismiss`
-  if toupper(g:tabby_keybinding_dismiss) == '<C-]>'
-    imap <script><silent><nowait><expr> <C-]> tabby#Dismiss("\<C-]>")
-  else
-    " map directly without fallback if the user has set keybinding to other than <C-]>
-    exec 'imap <script><silent><nowait><expr> ' . g:tabby_keybinding_dismiss . ' tabby#Dismiss()'
-  endif
-
-  " map `tabby#TriggerManually`, default to <M-\>
-  exec 'imap <script><silent><nowait><expr> ' . g:tabby_keybinding_trigger . ' tabby#TriggerManually()'
+  " map `tabby#TriggerOrDismiss`, default to <C-\>
+  exec 'imap <script><silent><nowait><expr> ' . g:tabby_keybinding_trigger_or_dismiss . ' tabby#TriggerOrDismiss()'
 endfunction

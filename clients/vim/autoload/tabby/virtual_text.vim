@@ -16,8 +16,8 @@ function! tabby#virtual_text#Check()
 endfunction
 
 function! tabby#virtual_text#Init()
-  hi def TabbyCompletion guifg=#808080 ctermfg=8
-  hi def TabbyCompletionReplaceRange guifg=#ffffff ctermfg=15 guibg=#808080 ctermbg=8
+  hi def TabbyCompletion guifg=#808080 ctermfg=245
+  hi def TabbyCompletionReplaceRange guifg=#303030 ctermfg=236 guibg=#808080 ctermbg=245
   if s:vim
     let s:prop_type_completion = 'TabbyCompletion'
     if prop_type_get(s:prop_type_completion) != {}
@@ -55,19 +55,32 @@ function! tabby#virtual_text#Render(request, choice)
   let prefix_replace_chars = a:request.position - a:choice.replaceRange.start 
   let suffix_replace_chars = a:choice.replaceRange.end - a:request.position
   let text = strcharpart(a:choice.text, prefix_replace_chars)
+  if len(text) == 0
+    return
+  endif
   let current_line_suffix = strpart(getline('.'), col('.') - 1)
   if strchars(current_line_suffix) < suffix_replace_chars
     return
   endif
   let text_lines = split(text, "\n")
   " split will not give an empty line if text starts or ends with "\n"
-  if a:choice.text[0] == "\n"
+  if text[:0] == "\n"
     call insert(text_lines, '')
   endif
-  if a:choice.text[-1] == "\n"
-    call append(text_lines, '')
+  if text[-1:] == "\n"
+    call add(text_lines, '')
   endif
-  " If no replace range in the suffix
+  " FIXME: no replace range processing for nvim for now, we need 
+  "  feat `virt_text_pos: "inline"` after nvim 0.10.0
+  if s:nvim
+    let text_lines[-1] .= strcharpart(current_line_suffix, suffix_replace_chars)
+    call s:AddInlay(text_lines[0], col('.'))
+    if len(text_lines) > 1
+      call s:AddLinesBelow(text_lines[1:])
+    endif
+    return
+  endif
+  " Replace range processing for vim
   if suffix_replace_chars == 0
     call s:AddInlay(text_lines[0], col('.'))
     if len(text_lines) > 1
@@ -113,10 +126,10 @@ function! tabby#virtual_text#Render(request, choice)
   endif
 endfunction
 
-function! s:AddInlay(inlay, c)
+function! s:AddInlay(inlay, column)
   if s:vim
     if len(a:inlay) > 0
-      call prop_add(line('.'), a:c, #{
+      call prop_add(line('.'), a:column, #{
         \ type: s:prop_type_completion,
         \ text: a:inlay,
         \ })
@@ -124,8 +137,9 @@ function! s:AddInlay(inlay, c)
   endif
   if s:nvim
     if len(a:inlay) > 0
-      call nvim_buf_set_extmark(0, s:nvim_namespace, line('.') - 1, a:c - 1, #{
-        \ virt_text_pos: 'inline',
+      " FIXME: using virt_text_pos: "inline" after nvim 0.10.0
+      call nvim_buf_set_extmark(0, s:nvim_namespace, line('.') - 1, col('.') - 1, #{
+        \ virt_text_win_col: virtcol('.') - 1,
         \ virt_text: [[a:inlay, s:nvim_highlight_completion]],
         \ })
     endif
@@ -148,7 +162,7 @@ function! s:AddLinesBelow(lines_below)
   endif
   if s:nvim
     call nvim_buf_set_extmark(0, s:nvim_namespace, line('.') - 1, col('.') - 1, #{
-      \ virt_lines: map(a:below_lines, { i, l -> [[l, s:nvim_highlight_completion]] })
+      \ virt_lines: map(a:lines_below, { i, l -> [[l, s:nvim_highlight_completion]] })
       \ })
   endif
 endfunction
@@ -178,6 +192,6 @@ function! tabby#virtual_text#Clear()
       \ })
   endif
   if s:nvim
-    call nvim_buf_clear_namespace(0, s:nvim_namespace)
+    call nvim_buf_clear_namespace(0, s:nvim_namespace, 0, -1)
   endif
 endfunction

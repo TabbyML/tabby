@@ -30,7 +30,8 @@ function! tabby#Status()
           echo 'Most completion requests timed out.'
         endif
       elseif g:tabby_trigger_mode == 'manual'
-        echo 'You can use ' . g:tabby_keybinding_trigger . ' to trigger completion manually.'
+        echo 'You can use ' . g:tabby_keybinding_trigger_or_dismiss . 
+          \ ' in insert mode to trigger completion manually.'
       elseif g:tabby_trigger_mode == 'auto'
         echo 'Automatic inline completion is enabled.'
       endif
@@ -60,13 +61,14 @@ function! tabby#OnVimEnter()
   endif
   call tabby#virtual_text#Init()
 
-  if !executable(g:tabby_node_binary)
+  let node_binary = expand(g:tabby_node_binary)
+  if !executable(node_binary)
     let s:status = "initialization_failed"
     let s:message = 'Node.js binary not found. Please install Node.js version >= 18.0.'
     return
   endif
 
-  let node_version_command = g:tabby_node_binary . ' --version'
+  let node_version_command = node_binary . ' --version'
   let version_output = system(node_version_command)
   let node_version = matchstr(version_output, '\d\+\.\d\+\.\d\+')
   let major_version = str2nr(split(node_version, '\.')[0])
@@ -81,7 +83,8 @@ function! tabby#OnVimEnter()
     return
   endif
 
-  call tabby#agent#Open()
+  let command = node_binary . ' ' . g:tabby_node_script
+  call tabby#agent#Open(command)
 
   call tabby#keybindings#Map()
 
@@ -120,12 +123,16 @@ function! tabby#OnInsertLeave()
   endif
 endfunction
 
-function! tabby#TriggerManually()
+function! tabby#TriggerOrDismiss()
   if s:status != "initialization_done"
-    return
+    return ''
   endif
-  call tabby#Dismiss()
-  call tabby#Trigger(v:true)
+  if s:current_completion_response != {}
+    call tabby#Dismiss()
+  else
+    call tabby#Trigger(v:true)
+  endif
+  return ''
 endfunction
 
 " Store the context of ongoing completion request
@@ -203,8 +210,14 @@ function! tabby#Accept(...)
   let prefix_replace_chars = s:current_completion_request.position - choice.replaceRange.start 
   let suffix_replace_chars = choice.replaceRange.end - s:current_completion_request.position
   let s:text_to_insert = strcharpart(choice.text, prefix_replace_chars)
-  let insertion = repeat("\<Del>", suffix_replace_chars) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>\<End>"
-
+  let insertion = repeat("\<Del>", suffix_replace_chars) . "\<C-R>\<C-O>=tabby#ConsumeInsertion()\<CR>"
+  
+  if s:text_to_insert[-1:] == "\n"
+    " Add a char and remove, workaround for insertion bug if ends with newline
+    let s:text_to_insert .= "_"
+    let insertion .= "\<BS>"
+  endif
+  
   call tabby#Dismiss()
   
   call tabby#agent#PostEvent(#{
@@ -216,20 +229,9 @@ function! tabby#Accept(...)
   return insertion
 endfunction
 
-function! tabby#Dismiss(...)
-  if s:current_completion_response == {}
-    " keybindings fallback
-    if a:0 < 1
-      return "\<Ignore>"
-    elseif type(a:1) == v:t_string
-      return a:1
-    elseif type(a:1) == v:t_func
-      return call(a:1, [])
-    endif
-  endif
+function! tabby#Dismiss()
   let s:current_completion_response = {}
   call tabby#virtual_text#Clear()
-  return ''
 endfunction
 
 function! s:GetCompletionContext(is_manual)

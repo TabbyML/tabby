@@ -13,11 +13,7 @@ export const trimSpace: (context: CompletionContext) => PostprocessFilter = (con
       trimmedInput = trimmedInput.trimStart();
     }
 
-    if (
-      inputLines.length > 1 ||
-      isBlank(suffixCurrentLine) ||
-      (!isBlank(suffixCurrentLine) && suffixCurrentLine.match(/^\s/))
-    ) {
+    if (isBlank(suffixCurrentLine) || (!isBlank(suffixCurrentLine) && suffixCurrentLine.match(/^\s/))) {
       trimmedInput = trimmedInput.trimEnd();
     }
     return trimmedInput;

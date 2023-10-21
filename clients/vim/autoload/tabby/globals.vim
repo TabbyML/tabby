@@ -12,7 +12,7 @@ function! tabby#globals#Load()
 
   " The trigger mode of compleiton, default is "auto".
   " - auto: Tabby automatically show inline completion when you stop typing.
-  " - manual: You need to press <M-\> to show inline completion.
+  " - manual: You need to press <C-\> to show inline completion.
   let g:tabby_trigger_mode = get(g:, 'tabby_trigger_mode', 'auto')
 
 
@@ -42,15 +42,11 @@ function! tabby#globals#Load()
   let g:tabby_filetype_dict = get(g:, 'tabby_filetype_dict', {})
   let g:tabby_filetype_dict = extend(s:default_filetype_dict, g:tabby_filetype_dict)
 
-
-  " Keybinding of manual trigger, default is "<M-\>".
-  let g:tabby_keybinding_trigger = get(g:, 'tabby_keybinding_trigger', '<M-\\>')
-
   " Keybinding of accept completion, default is "<Tab>".
   let g:tabby_keybinding_accept = get(g:, 'tabby_keybinding_accept', '<Tab>')
 
-  " Keybinding of dismiss completion, default is "<C-]>".
-  let g:tabby_keybinding_dismiss = get(g:, 'tabby_keybinding_dismiss', '<C-]>')
+  " Keybinding of trigger or dismiss completion, default is "<C-\>".
+  let g:tabby_keybinding_trigger_or_dismiss = get(g:, 'tabby_keybinding_trigger_or_dismiss', '<C-\>')
 
 
   " Version of Tabby plugin. Not configurable.
