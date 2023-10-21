@@ -15,33 +15,35 @@ T = TypeVar("T", bound="DebugData")
 class DebugData:
     """
     Attributes:
-        prompt (str):
-        snippets (Union[Unset, List['Snippet']]):
+        snippets (Union[Unset, None, List['Snippet']]):
+        prompt (Union[Unset, None, str]):
     """
 
-    prompt: str
-    snippets: Union[Unset, List["Snippet"]] = UNSET
+    snippets: Union[Unset, None, List["Snippet"]] = UNSET
+    prompt: Union[Unset, None, str] = UNSET
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        prompt = self.prompt
-        snippets: Union[Unset, List[Dict[str, Any]]] = UNSET
+        snippets: Union[Unset, None, List[Dict[str, Any]]] = UNSET
         if not isinstance(self.snippets, Unset):
-            snippets = []
-            for snippets_item_data in self.snippets:
-                snippets_item = snippets_item_data.to_dict()
+            if self.snippets is None:
+                snippets = None
+            else:
+                snippets = []
+                for snippets_item_data in self.snippets:
+                    snippets_item = snippets_item_data.to_dict()
 
-                snippets.append(snippets_item)
+                    snippets.append(snippets_item)
+
+        prompt = self.prompt
 
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
-        field_dict.update(
-            {
-                "prompt": prompt,
-            }
-        )
+        field_dict.update({})
         if snippets is not UNSET:
             field_dict["snippets"] = snippets
+        if prompt is not UNSET:
+            field_dict["prompt"] = prompt
 
         return field_dict
 
@@ -50,8 +52,6 @@ class DebugData:
         from ..models.snippet import Snippet
 
         d = src_dict.copy()
-        prompt = d.pop("prompt")
-
         snippets = []
         _snippets = d.pop("snippets", UNSET)
         for snippets_item_data in _snippets or []:
@@ -59,9 +59,11 @@ class DebugData:
 
             snippets.append(snippets_item)
 
+        prompt = d.pop("prompt", UNSET)
+
         debug_data = cls(
-            prompt=prompt,
             snippets=snippets,
+            prompt=prompt,
         )
 
         debug_data.additional_properties = d

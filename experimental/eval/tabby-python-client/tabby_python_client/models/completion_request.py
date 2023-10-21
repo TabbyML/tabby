@@ -20,7 +20,6 @@ class CompletionRequest:
             fib(n - 2)'}}
 
     Attributes:
-        prompt (Union[Unset, None, str]):  Example: def fib(n):.
         language (Union[Unset, None, str]): Language identifier, full list is maintained at
             https://code.visualstudio.com/docs/languages/identifiers Example: python.
         segments (Union[Unset, None, Segments]):
@@ -30,7 +29,6 @@ class CompletionRequest:
         debug_options (Union[Unset, None, DebugOptions]):
     """
 
-    prompt: Union[Unset, None, str] = UNSET
     language: Union[Unset, None, str] = UNSET
     segments: Union[Unset, None, "Segments"] = UNSET
     user: Union[Unset, None, str] = UNSET
@@ -38,7 +36,6 @@ class CompletionRequest:
     additional_properties: Dict[str, Any] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
-        prompt = self.prompt
         language = self.language
         segments: Union[Unset, None, Dict[str, Any]] = UNSET
         if not isinstance(self.segments, Unset):
@@ -52,8 +49,6 @@ class CompletionRequest:
         field_dict: Dict[str, Any] = {}
         field_dict.update(self.additional_properties)
         field_dict.update({})
-        if prompt is not UNSET:
-            field_dict["prompt"] = prompt
         if language is not UNSET:
             field_dict["language"] = language
         if segments is not UNSET:
@@ -71,8 +66,6 @@ class CompletionRequest:
         from ..models.segments import Segments
 
         d = src_dict.copy()
-        prompt = d.pop("prompt", UNSET)
-
         language = d.pop("language", UNSET)
 
         _segments = d.pop("segments", UNSET)
@@ -96,7 +89,6 @@ class CompletionRequest:
             debug_options = DebugOptions.from_dict(_debug_options)
 
         completion_request = cls(
-            prompt=prompt,
             language=language,
             segments=segments,
             user=user,
