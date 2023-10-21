@@ -29,10 +29,6 @@ pub struct CompletionRequest {
     /// When segments are set, the `prompt` is ignored during the inference.
     segments: Option<Segments>,
 
-    /// When prompt is specified, it will be passed directly to the inference engine for completion.
-    /// This is useful for certain requests that aim to test the model's quality.
-    prompt: Option<String>,
-
     /// A unique identifier representing your end-user, which can help Tabby to monitor & generating
     /// reports.
     user: Option<String>,
@@ -42,9 +38,18 @@ pub struct CompletionRequest {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DebugOptions {
-    /// When true, returns debug_data in completion response.
+    /// When raw_prompt is specified, it will be passed directly to the inference engine for completion. `segments` field in `CompletionRequest` will be ignored.
+    ///
+    /// This is useful for certain requests that aim to test the tabby's e2e quality.
+    raw_prompt: Option<String>,
+
+    /// When true, returns `snippets` in `debug_data`.
     #[serde(default = "default_false")]
-    enabled: bool,
+    return_snippets: bool,
+
+    /// When true, returns `prompt` in `debug_data`.
+    #[serde(default = "default_false")]
+    return_prompt: bool,
 
     /// When true, disable retrieval augmented code completion.
     #[serde(default = "default_false")]
@@ -92,10 +97,11 @@ pub struct CompletionResponse {
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct DebugData {
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    snippets: Vec<Snippet>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    snippets: Option<Vec<Snippet>>,
 
-    prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    prompt: Option<String>,
 }
 
 #[utoipa::path(
@@ -123,12 +129,16 @@ pub async fn completions(
         .build()
         .unwrap();
 
-    let (prompt, segments, snippets) = if let Some(segments) = request.segments {
+    let (prompt, segments, snippets) = if let Some(prompt) = request
+        .debug_options
+        .as_ref()
+        .and_then(|x| x.raw_prompt.clone())
+    {
+        (prompt, None, vec![])
+    } else if let Some(segments) = request.segments {
         debug!("PREFIX: {}, SUFFIX: {:?}", segments.prefix, segments.suffix);
         let (prompt, snippets) = build_prompt(&state, &request.debug_options, &language, &segments);
         (prompt, Some(segments), snippets)
-    } else if let Some(prompt) = request.prompt {
-        (prompt, None, vec![])
     } else {
         return Err(StatusCode::BAD_REQUEST);
     };
@@ -155,16 +165,18 @@ pub async fn completions(
     }
     .log();
 
-    let debug_data = DebugData { snippets, prompt };
+    let debug_data = request
+        .debug_options
+        .as_ref()
+        .map(|debug_options| DebugData {
+            snippets: debug_options.return_snippets.then_some(snippets),
+            prompt: debug_options.return_prompt.then_some(prompt),
+        });
 
     Ok(Json(CompletionResponse {
         id: completion_id,
         choices: vec![Choice { index: 0, text }],
-        debug_data: if request.debug_options.is_some_and(|x| x.enabled) {
-            Some(debug_data)
-        } else {
-            None
-        },
+        debug_data,
     }))
 }
 
@@ -178,14 +190,14 @@ fn build_prompt(
         .as_ref()
         .is_some_and(|x| x.disable_retrieval_augmented_code_completion)
     {
-        state.prompt_builder.collect(&language, &segments)
+        state.prompt_builder.collect(language, segments)
     } else {
         vec![]
     };
     (
         state
             .prompt_builder
-            .build(&language, segments.clone(), &snippets),
+            .build(language, segments.clone(), &snippets),
         snippets,
     )
 }
