@@ -5,6 +5,12 @@
 
 ## Fixes and Improvements
 
+# v0.3.1
+## Fixes and improvements
+
+* Fix GPU OOM issue caused the parallelism: https://github.com/TabbyML/tabby/issues/541, https://github.com/TabbyML/tabby/issues/561
+* Fix git safe directory check in docker: https://github.com/TabbyML/tabby/issues/569
+
 # v0.3.0
 
 ## Features
