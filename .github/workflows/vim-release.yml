@@ -17,3 +17,4 @@ jobs:
           sot_repo: TabbyML/tabby
           destination_repo: TabbyML/vim-tabby
           push_include: "clients/vim/**"
+          workflow: push
