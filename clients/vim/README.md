@@ -18,6 +18,8 @@ If you encounter any problem or have any suggestion, please [open an issue](http
     - [Node.js Binary Path](#nodejs-binary-path)
     - [Completion Trigger Mode](#completion-trigger-mode)
     - [KeyBindings](#keybindings)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Requirements
 
@@ -165,3 +167,11 @@ let g:tabby_keybinding_trigger_or_dismiss = '<C-\>'
 vim.g.tabby_keybinding_accept = '<Tab>'
 vim.g.tabby_keybinding_trigger_or_dismiss = '<C-\\>'
 ```
+
+## Contributing
+
+Repository [TabbyML/vim-tabby](https://github.com/TabbyML/vim-tabby) is for releasing Tabby plugin for Vim and NeoVim. If you want to contribute to Tabby plugin, please check our main repository [TabbyML/tabby](https://github.com/TabbyML/tabby/tree/main/clients/vim).
+
+## License
+
+[Apache-2.0](https://github.com/TabbyML/tabby/blob/main/LICENSE)

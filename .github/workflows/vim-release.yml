@@ -1,0 +1,19 @@
+name: Release Vim Plugin
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: olivr/copybara-action@v1.2.3
+        with:
+          ssh_key: ${{ secrets.VIM_RELEASE_SSH_KEY }}
+          access_token: ${{ secrets.VIM_RELEASE_GH_TOKEN }}
+          sot_repo: TabbyML/tabby
+          destination_repo: TabbyML/vim-tabby
+          push_include: "clients/vim/**"
