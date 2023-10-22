@@ -16,7 +16,8 @@ const stream =
         interval: "1d",
       });
 
-export const rootLogger = !!stream ? pino(stream) : pino();
+const options = { serializers: { error: pino.stdSerializers.err } };
+export const rootLogger = !!stream ? pino(options, stream) : pino(options);
 if (isTest && testLogDebug) {
   rootLogger.level = "debug";
 } else {

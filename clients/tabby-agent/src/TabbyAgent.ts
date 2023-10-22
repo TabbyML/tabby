@@ -254,7 +254,8 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }
       }
     } catch (_) {
-      // ignore
+      this.changeStatus("disconnected");
+      this.serverHealthState = null;
     }
   }
 
@@ -332,6 +333,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   public async finalize(): Promise<boolean> {
+    if (this.status === "finalized") {
+      return false;
+    }
+
     await this.submitStats();
 
     if (this.tryingConnectTimer) {
@@ -342,7 +347,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
       clearInterval(this.submitStatsTimer);
       this.submitStatsTimer = null;
     }
-    this.logger.debug("Finalized");
+    this.changeStatus("finalized");
     return true;
   }
 

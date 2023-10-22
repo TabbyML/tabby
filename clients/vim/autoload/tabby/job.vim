@@ -1,3 +1,5 @@
+" Handles IO with child processes jobs
+
 if exists('g:autoloaded_tabby_job')
   finish
 endif
@@ -10,7 +12,7 @@ function! tabby#job#Check()
   return #{
     \ ok: s:vim || s:nvim,
     \ message: 'Tabby requires Vim 9.0+ with +job feature support, or NeoVim 0.6.0+.',
-    \}
+    \ }
 endfunction
 
 let s:nvim_job_map = {}
@@ -41,11 +43,11 @@ function! tabby#job#Start(command, ...)
       \ on_stdout: function('s:NvimHandleStdout'),
       \ on_stderr: function('s:NvimHandleStderr'),
       \ on_exit: function('s:NvimHandleExit'),
-      \})
+      \ })
     let s:nvim_job_map[id] = #{
       \ out_buffer: '',
       \ requests: {},
-      \}
+      \ }
     if has_key(options, 'out_cb')
       let s:nvim_job_map[id].out_cb = options.out_cb
     endif
@@ -65,7 +67,6 @@ function! tabby#job#Stop(job)
   endif
   if s:nvim
     let ret = jobstop(a:job)
-    call jobwait([a:job], 100)
     if has_key(s:nvim_job_map, a:job)
       unlet s:nvim_job_map[a:job]
     endif
