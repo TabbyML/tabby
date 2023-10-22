@@ -118,7 +118,7 @@ def app():
 
 Once we deploy this model with `modal serve app.py`, it will output the url of the web endpoint, in a form of `https://<USERNAME>--tabby-server-starcoder-1b-app-dev.modal.run`, it can be used as tabby server url in tabby editor extensions!
 
-See [app.py](https://github.com/TabbyML/tabby/tree/main/website/docs/modal/app.py) for a complete example.
+See [app.py](https://github.com/TabbyML/tabby/blob/main/website/docs/installation/modal/app.py) for a complete example.
 
 ## Feedback and support
 If you have improvement suggestions or need specific support, please join [Tabby Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) or reach out on [Tabby’s GitHub repository](https://github.com/TabbyML/tabby).
