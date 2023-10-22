@@ -1,3 +1,7 @@
+"""Usage:
+modal serve app.py
+"""
+
 from modal import Image, Stub, asgi_app, gpu
 
 IMAGE_NAME = "tabbyml/tabby:0.3.1"
