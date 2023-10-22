@@ -1,6 +1,6 @@
 # Modal
 
-Modal is a serverless GPU provider. By leveraging Modal, your Tabby instance will run on demand. When there are no requests to the Tabby server for a certain amount of time, Modal will schedule the container to sleep, thereby saving GPU costs.
+[Modal](https://modal.com/) is a serverless GPU provider. By leveraging Modal, your Tabby instance will run on demand. When there are no requests to the Tabby server for a certain amount of time, Modal will schedule the container to sleep, thereby saving GPU costs.
 
 ## Setup
 
