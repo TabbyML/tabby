@@ -18,7 +18,7 @@ Try our online demo [here](https://tabby.tabbyml.com/playground).
 
 ![Demo](https://tabby.tabbyml.com/img/demo.gif)
 
-## Get Started
+## Getting Started
 
 Once you have installed the Tabby VSCode extension, you can easily get started by following the built-in walkthrough guides. You can access the walkthrough page at any time by using the command `Tabby: Getting Started`.
 
