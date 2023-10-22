@@ -3,11 +3,11 @@ sidebar_label: Hugging Face Spaces
 ---
 # Hugging Face Spaces
 
+In this guide, you will learn how to deploy your own Tabby instance and use it for development directly from the Huggingface website.
+
 :::tip
 This tutorial is now also available on [Hugging Face](https://huggingface.co/docs/hub/spaces-sdks-docker-tabby)!
 :::
-
-In this guide, you will learn how to deploy your own Tabby instance and use it for development directly from the Huggingface website.
 
 ## Your first Tabby Space
 
