@@ -59,7 +59,3 @@ You’ll see a URL like this: https://tabbyml-tabby.hf.space. This URL gives you
 </center>
 
 You can also utilize Tabby extensions in other IDEs, such as [JetBrains](https://plugins.jetbrains.com/plugin/22379-tabby).
-
-
-## Feedback and support
-If you have improvement suggestions or need specific support, please join [Tabby Slack community](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) or reach out on [Tabby’s GitHub repository](https://github.com/TabbyML/tabby).
