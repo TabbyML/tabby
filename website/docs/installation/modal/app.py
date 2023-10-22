@@ -1,11 +1,4 @@
-"""
-modal serve app.py
-"""
-
-from pathlib import Path
-
-import modal
-from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
+from modal import Image, Stub, asgi_app, gpu
 
 IMAGE_NAME = "tabbyml/tabby:0.3.1"
 MODEL_ID = "TabbyML/StarCoder-1B"
@@ -27,7 +20,7 @@ def download_model():
 
 image = (
     Image.from_registry(
-        "tabbyml/tabby:0.3.1",
+        IMAGE_NAME,
         add_python="3.11",
     )
     .dockerfile_commands("ENTRYPOINT []")
@@ -65,7 +58,7 @@ def app():
     )
 
     # Poll until webserver at 127.0.0.1:8000 accepts connections before running inputs.
-    def webserver_ready():
+    def tabby_ready():
         try:
             socket.create_connection(("127.0.0.1", 8000), timeout=1).close()
             return True
@@ -77,7 +70,7 @@ def app():
                 raise RuntimeError(f"launcher exited unexpectedly with code {retcode}")
             return False
 
-    while not webserver_ready():
+    while not tabby_ready():
         time.sleep(1.0)
 
     print("Tabby server ready!")
