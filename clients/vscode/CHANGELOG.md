@@ -1,3 +1,11 @@
+## 1.0.0
+
+### Changes:
+
+- Added auto-closing character check to improve inline completion experience. This improvement ensures proper handling of scenarios involving missing or duplicate closing characters.
+- Optimized completion caching for better efficiency, especially when a completion is partially accepted.
+- Updated the config.toml template file by removing deprecated options.
+
 ## 0.6.1
 
 ### Fixes:
