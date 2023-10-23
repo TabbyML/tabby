@@ -1,5 +1,6 @@
 package com.tabbyml.intellijtabby.editor
 
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.editor.Editor
@@ -38,8 +39,9 @@ class EditorListener : EditorFactoryListener {
       override fun documentChanged(event: DocumentEvent) {
         if (editorManager.selectedTextEditor == editor) {
           if (settings.completionTriggerMode == ApplicationSettingsState.TriggerMode.AUTOMATIC) {
-            val offset = event.offset + event.newFragment.length
-            completionProvider.provideCompletion(editor, offset)
+            invokeLater {
+              completionProvider.provideCompletion(editor, editor.caretModel.primaryCaret.offset)
+            }
           }
         }
       }

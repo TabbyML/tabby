@@ -127,36 +127,13 @@ class Agent : ProcessAdapter() {
 
   data class Config(
     val server: Server? = null,
-    val completion: Completion? = null,
     val logs: Logs? = null,
     val anonymousUsageTracking: AnonymousUsageTracking? = null,
   ) {
     data class Server(
       val endpoint: String? = null,
       val requestHeaders: Map<String, String>? = null,
-      val requestTimeout: Int? = null,
     )
-
-    data class Completion(
-      val prompt: Prompt? = null,
-      val debounce: Debounce? = null,
-      val timeout: Timeout? = null,
-    ) {
-      data class Prompt(
-        val maxPrefixLines: Int? = null,
-        val maxSuffixLines: Int? = null,
-      )
-
-      data class Debounce(
-        val mode: String? = null,
-        val interval: Int? = null,
-      )
-
-      data class Timeout(
-        val auto: Int? = null,
-        val manually: Int? = null,
-      )
-    }
 
     data class Logs(
       val level: String? = null,
@@ -252,7 +229,13 @@ class Agent : ProcessAdapter() {
     data class Choice(
       val index: Int,
       val text: String,
-    )
+      val replaceRange: Range,
+    ) {
+      data class Range(
+        val start: Int,
+        val end: Int,
+      )
+    }
   }
 
   suspend fun provideCompletions(request: CompletionRequest): CompletionResponse? {
