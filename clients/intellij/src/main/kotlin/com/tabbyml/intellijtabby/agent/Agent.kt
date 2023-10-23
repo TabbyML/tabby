@@ -64,7 +64,8 @@ class Agent : ProcessAdapter() {
   fun open() {
     val node = getNodeBinary()
     val script = getNodeScript()
-    val cmd = GeneralCommandLine(node.absolutePath, script.absolutePath)
+    val options = "--dns-result-order=ipv4first"
+    val cmd = GeneralCommandLine(node.absolutePath, options, script.absolutePath)
     process = object : KillableProcessHandler(cmd) {
       override fun readerOptions(): BaseOutputReader.Options {
         return BaseOutputReader.Options.forMostlySilentProcess()
