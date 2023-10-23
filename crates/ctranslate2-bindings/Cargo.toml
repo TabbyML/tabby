@@ -16,6 +16,7 @@ async-stream.workspace = true
 
 [build-dependencies]
 cxx-build = "1.0"
+regex = { workspace = true }
 cmake = { version = "0.1", optional = true }
 rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge", optional = true }
 

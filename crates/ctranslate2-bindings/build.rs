@@ -1,4 +1,5 @@
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, path::Path, fs};
+use regex::Regex;
 
 use cmake::Config;
 use rust_cxx_cmake_bridge::read_cmake_generated;
@@ -26,6 +27,20 @@ fn main() {
     lib.compile("cxxbridge");
 }
 
+fn check_jetson() -> bool {
+    if Path::new("/etc/hosts").exists() {
+        let contents = fs::read_to_string("/proc/device-tree/model").expect("read /proc/device-tree/model failed");
+        let matched = Regex::new(r"^NVIDIA.*Developer Kit").unwrap().is_match(&contents);
+        if matched {
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 fn link_static() -> PathBuf {
     let mut config = Config::new(".");
     config
@@ -37,9 +52,21 @@ fn link_static() -> PathBuf {
     if cfg!(target_os = "linux") {
         config
             .define("WITH_MKL", "OFF")
-            .define("OPENMP_RUNTIME", "NONE")
-            .define("WITH_OPENBLAS", "ON")
-            .cxxflag("-msse4.1")
+            .define("OPENMP_RUNTIME", "NONE");
+
+        if cfg!(target_arch = "aarch64") && check_jetson() {
+            config
+               .define("WITH_CUDA", "ON")
+               .define("WITH_CUDNN", "ON")
+               .cxxflag("-mcpu=native")
+        } else if cfg!(target_feature = "sse4.1") {
+            config
+                .define("WITH_OPENBLAS", "ON")
+                .cxxflag("-msse4.1")
+        } else {
+            config
+                .define("WITH_CUDA", "ON")
+        }
     } else if cfg!(target_os = "macos") {
         config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")

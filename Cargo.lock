@@ -695,6 +695,7 @@ dependencies = [
  "cxx-build",
  "derive_builder",
  "futures",
+ "regex",
  "rust-cxx-cmake-bridge",
  "tabby-inference",
  "tokenizers",
