@@ -37,6 +37,12 @@ Tabby optimizes the experience for these core users to enhance your team's produ
 
 ## 🏘️ Community
 
-⭐ Tabby [Github repo](https://github.com/TabbyML/tabby) to stay updated about new releases and tutorials.
+- ⭐ Tabby [Github repo](https://github.com/TabbyML/tabby) to stay updated about new releases and tutorials.
 
-🙋 Join the Tabby community on [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and get direct support from the community.
+- 🙋 Join the Tabby community on [Slack](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA) and get direct support from the community.
+
+- 🎤 Follow Tabby on [Twitter / X](https://twitter.com/Tabby_ML) to engage with TabbyML for all things possible.
+
+- 📚 Follow Tabby on [LinkedIn](https://www.linkedin.com/company/tabbyml/) for the latest from the community.
+
+- 💌 Subscribe to our [Newsletter](https://tinyletter.com/tabbyml/) to unlock Tabby insights and secrets.
