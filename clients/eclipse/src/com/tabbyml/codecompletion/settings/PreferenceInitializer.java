@@ -1,4 +1,4 @@
-package eclipsetabby.preferences;
+package com.tabbyml.codecompletion.settings;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.InstanceScope;

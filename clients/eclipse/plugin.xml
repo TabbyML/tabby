@@ -4,16 +4,28 @@
    <extension
          point="org.eclipse.core.runtime.preferences">
       <initializer
-            class="eclipsetabby.preferences.PreferenceInitializer">
+            class="com.tabbyml.codecompletion.settings.PreferenceInitializer">
       </initializer>
    </extension>
    <extension
          point="org.eclipse.ui.preferencePages">
       <page
-            class="eclipsetabby.preferences.TabbySettings"
-            id="eclipsetabby.preferences.TabbySettings"
+            class="com.tabbyml.codecompletion.settings.TabbySettings"
+            id="com.tabbyml.codecompletion.TabbySettings"
             name="TabbyML">
       </page>
    </extension>
+   <extension
+         id="id1"
+         point="org.eclipse.jdt.ui.javaCompletionProposalComputer">
+      <javaCompletionProposalComputer
+            activate="true"
+            categoryId="org.eclipse.jdt.ui.defaultProposalCategory"
+            class="com.tabbyml.codecompletion.TabbyCompletionProposalComputer"
+            needsSortingAfterFiltering="false"
+            requiresUIThread="true">
+      </javaCompletionProposalComputer>
+   </extension>
+
 
 </plugin>

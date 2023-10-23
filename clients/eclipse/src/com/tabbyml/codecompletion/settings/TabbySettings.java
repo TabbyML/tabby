@@ -1,4 +1,4 @@
-package eclipsetabby.preferences;
+package com.tabbyml.codecompletion.settings;
 
 import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.jface.preference.PreferencePage;
@@ -34,7 +34,7 @@ public class TabbySettings extends PreferencePage implements IWorkbenchPreferenc
 	@Override
 	protected Control createContents(Composite parent) {
 		Composite composite = new Composite(parent, SWT.NULL);
-		StringFieldEditor stf = new StringFieldEditor("name","name",50, 1, composite);
+		StringFieldEditor stf = new StringFieldEditor("serverEndpoint","Tabby server endpoint",50, 1, composite);
 		stf.setStringValue(PreferenceInitializer.getPreferenceStore().getString(PreferenceConstants.P_SERVER_ENDPOINT));
 		return composite;
 	}

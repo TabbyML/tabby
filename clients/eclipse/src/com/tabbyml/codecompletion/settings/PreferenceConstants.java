@@ -1,4 +1,4 @@
-package eclipsetabby.preferences;
+package com.tabbyml.codecompletion.settings;
 
 /**
  * Constant definitions for plug-in preferences
