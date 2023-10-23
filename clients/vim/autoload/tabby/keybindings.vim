@@ -13,7 +13,7 @@ function! tabby#keybindings#Map()
       " fallback to the original <Tab> mapping
       let tab_maparg = maparg('<Tab>', 'i', 0, 1)
       " warp as function if rhs is expr, otherwise encode rhs as json
-      let fallback_rhs = tab_maparg.expr ? '{ -> ' . tab_maparg.rhs . ' }' : substitute(json_encode(tab_map.rhs), '<', '\\<', 'g')
+      let fallback_rhs = tab_maparg.expr ? '{ -> ' . tab_maparg.rhs . ' }' : substitute(json_encode(tab_maparg.rhs), '<', '\\<', 'g')
       " inject <SID>
       let fallback_rhs = substitute(fallback_rhs, '<SID>', "\<SNR>" . get(tab_maparg, 'sid') . '_', 'g')
       exec 'imap <script><silent><nowait><expr> <Tab> tabby#Accept(' . fallback_rhs . ')'
