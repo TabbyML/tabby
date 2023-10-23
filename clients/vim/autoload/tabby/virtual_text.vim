@@ -93,7 +93,7 @@ function! tabby#virtual_text#Render(request, choice)
   elseif suffix_replace_chars == 1
     let replace_char = strcharpart(current_line_suffix, 0, 1)
     let inlay = ''
-    if stridx(text_lines[0], replace_char) != 0
+    if strchars(text_lines[0]) > 0 && stridx(text_lines[0], replace_char) != 0
       let inlay = split(text_lines[0], replace_char)[0]
     endif
     call s:AddInlay(inlay, col('.'))
@@ -102,7 +102,7 @@ function! tabby#virtual_text#Render(request, choice)
       call s:AddInlay(inlay_suffix, col('.') + len(replace_char))
     endif
     if len(text_lines) > 1
-      if strchars(current_line_suffix) > 1
+      if strchars(current_line_suffix) > 0
         let range_start = col('.')
         if inlay != text_lines[0]
           let range_start += len(replace_char)
