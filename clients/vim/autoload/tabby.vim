@@ -83,7 +83,7 @@ function! tabby#OnVimEnter()
     return
   endif
 
-  let command = node_binary . ' ' . g:tabby_node_script
+  let command = node_binary . ' --dns-result-order=ipv4first ' . g:tabby_node_script
   call tabby#agent#Open(command)
 
   call tabby#keybindings#Map()
