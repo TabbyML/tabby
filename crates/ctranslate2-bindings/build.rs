@@ -28,7 +28,7 @@ fn main() {
 }
 
 fn check_jetson() -> bool {
-    if Path::new("/etc/hosts").exists() {
+    if Path::new("/proc/device-tree/model").exists() {
         let contents = fs::read_to_string("/proc/device-tree/model").expect("read /proc/device-tree/model failed");
         let matched = Regex::new(r"^NVIDIA.*Developer Kit").unwrap().is_match(&contents);
         if matched {
