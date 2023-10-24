@@ -147,12 +147,14 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .route("/", routing::get(playground::handler))
+        .route("/index.txt", routing::get(playground::handler))
         .route("/_next/*path", routing::get(playground::handler))
         .merge(api_router(args))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
 
     let app = if args.chat_model.is_some() {
         app.route("/playground", routing::get(playground::handler))
+            .route("/playground.txt", routing::get(playground::handler))
     } else {
         app
     };
