@@ -1,11 +1,20 @@
-# v0.4.0 [Unreleased]
+# v0.5.0 [Unreleased]
 
 ## Features
+
+## Fixes and Improvements
+
+# v0.4.0
+
+## Features
+
 * Supports golang: https://github.com/TabbyML/tabby/issues/553
 * Supports ruby: https://github.com/TabbyML/tabby/pull/597
 * Supports using local directory for `Repository.git_url`: use `file:///path/to/repo` to specify a local directory.
+* A new UI design for webserver.
 
 ## Fixes and Improvements
+
 * Improve snippets retrieval by dedup candidates to existing content + snippets: https://github.com/TabbyML/tabby/pull/582
 
 # v0.3.1
