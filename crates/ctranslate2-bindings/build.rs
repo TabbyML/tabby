@@ -54,18 +54,20 @@ fn link_static() -> PathBuf {
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE");
 
-        if cfg!(target_arch = "aarch64") && check_jetson() {
-            config
-               .define("WITH_CUDA", "ON")
-               .define("WITH_CUDNN", "ON")
-               .cxxflag("-mcpu=native")
-        } else if cfg!(target_feature = "sse4.1") {
-            config
-                .define("WITH_OPENBLAS", "ON")
-                .cxxflag("-msse4.1")
+        if cfg!(target_feature = "sse4.1") {
+            config.cxxflag("-msse4.1");
+        }
+        
+        if cfg!(feature = "link_static_cuda") {
+            config.define("WITH_CUDA", "ON");
+            
+            if cfg!(target_arch = "aarch64") && check_jetson() {
+                config
+                   .define("WITH_CUDNN", "ON")
+                   .cxxflag("-mcpu=native");
+            } 
         } else {
-            config
-                .define("WITH_CUDA", "ON")
+            config.define("WITH_OPENBLAS", "ON");
         }
     } else if cfg!(target_os = "macos") {
         config
@@ -73,7 +75,7 @@ fn link_static() -> PathBuf {
             .define("WITH_ACCELERATE", "ON")
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE")
-            .define("WITH_RUY", "ON")
+            .define("WITH_RUY", "ON");
     } else {
         panic!("Invalid target")
     };
