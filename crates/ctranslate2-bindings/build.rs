@@ -42,15 +42,13 @@ fn link_static() -> PathBuf {
         if cfg!(target_feature = "sse4.1") {
             config.cxxflag("-msse4.1");
         }
-        
+
         if cfg!(feature = "link_static_cuda") {
-            config
-                .define("WITH_CUDA", "ON")
-                .define("WITH_CUDNN", "ON");
-                
+            config.define("WITH_CUDA", "ON").define("WITH_CUDNN", "ON");
+
             if cfg!(target_arch = "aarch64") {
                 config.cxxflag("-mcpu=native");
-            } 
+            }
         } else {
             config.define("WITH_OPENBLAS", "ON");
         }
