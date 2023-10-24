@@ -14,6 +14,10 @@ const ThemeToggle = dynamic(
 )
 
 export function Header() {
+  const [isChatEnabled, setIsChatEnabled] = React.useState(false);
+  React.useEffect(() => {
+    fetchIsChatEnabled().then(setIsChatEnabled);
+  }, []);
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between w-full h-16 px-4 border-b shrink-0 bg-gradient-to-b from-background/10 via-background/50 to-background/80 backdrop-blur-xl">
       <div className="flex items-center">
@@ -21,9 +25,9 @@ export function Header() {
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
           Home
         </Link>
-        <Link href="/playground" className={cn(buttonVariants({ variant: 'link' }))}>
+        {isChatEnabled && <Link href="/playground" className={cn(buttonVariants({ variant: 'link' }))}>
           Playground
-        </Link>
+        </Link>}
       </div>
       <div className="flex items-center justify-end space-x-2">
         <a
@@ -47,4 +51,10 @@ export function Header() {
       </div>
     </header>
   )
+}
+
+async function fetchIsChatEnabled() {
+  const resp = await fetch("/v1/health");
+  const json = await resp.json();
+  return !!json.chat_model;
 }
