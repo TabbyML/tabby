@@ -696,7 +696,7 @@ dependencies = [
 
 [[package]]
 name = "ctranslate2-bindings"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -1320,7 +1320,7 @@ dependencies = [
 
 [[package]]
 name = "http-api-bindings"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "async-trait",
  "futures",
@@ -1684,7 +1684,7 @@ checksum = "3852614a3bd9ca9804678ba6be5e3b8ce76dfc902cae004e3e0c44051b6e88db"
 
 [[package]]
 name = "llama-cpp-bindings"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2665,7 +2665,7 @@ dependencies = [
 
 [[package]]
 name = "rust-cxx-cmake-bridge"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 
 [[package]]
 name = "rust-embed"
@@ -3144,7 +3144,7 @@ dependencies = [
 
 [[package]]
 name = "tabby"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "anyhow",
  "assert-json-diff",
@@ -3194,7 +3194,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-common"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "chrono",
  "filenamify",
@@ -3210,7 +3210,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-download"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3229,7 +3229,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-inference"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -3243,7 +3243,7 @@ dependencies = [
 
 [[package]]
 name = "tabby-scheduler"
-version = "0.4.0-dev"
+version = "0.5.0-dev"
 dependencies = [
  "anyhow",
  "file-rotate",
