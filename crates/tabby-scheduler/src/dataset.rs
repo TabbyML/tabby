@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::Result;
 use file_rotate::{compression::Compression, suffix::AppendCount, ContentLimit, FileRotate};
+use ignore::{DirEntry, Walk};
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
@@ -16,7 +17,6 @@ use tabby_common::{
 };
 use tracing::{error, info};
 use tree_sitter_tags::{TagsConfiguration, TagsContext};
-use walkdir::{DirEntry, WalkDir};
 
 trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
@@ -27,9 +27,7 @@ impl RepositoryExt for Repository {
         let dir = self.dir();
 
         info!("Start indexing repository {}", self.git_url);
-        let walk_dir = WalkDir::new(dir.as_path())
-            .into_iter()
-            .filter_entry(is_not_hidden)
+        let walk_dir = Walk::new(dir.as_path())
             .filter_map(Result::ok)
             .filter(is_source_code);
 
@@ -67,19 +65,11 @@ fn get_language(ext: &OsStr) -> Option<&str> {
 }
 
 fn is_source_code(entry: &DirEntry) -> bool {
-    if entry.file_type().is_file() {
+    if entry.file_type().is_some_and(|x| x.is_file()) {
         entry.path().extension().and_then(get_language).is_some()
     } else {
         false
     }
-}
-
-fn is_not_hidden(entry: &DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| entry.depth() == 0 || !s.starts_with('.'))
-        .unwrap_or(false)
 }
 
 pub fn create_dataset(config: &Config) -> Result<()> {

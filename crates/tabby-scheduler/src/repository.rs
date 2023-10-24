@@ -10,7 +10,13 @@ trait ConfigExt {
 impl ConfigExt for Config {
     fn sync_repositories(&self) -> Result<()> {
         for repository in self.repositories.iter() {
-            repository.sync()?;
+            if repository.is_local_dir() {
+                if !repository.dir().exists() {
+                    panic!("Directory {} does not exist", repository.dir().display());
+                }
+            } else {
+                repository.sync()?;
+            }
         }
 
         Ok(())
