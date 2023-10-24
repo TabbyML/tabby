@@ -50,7 +50,7 @@ pub struct Repository {
 impl Repository {
     pub fn dir(&self) -> PathBuf {
         if self.is_local_dir() {
-            let path = self.git_url.strip_prefix("file:/").unwrap();
+            let path = self.git_url.strip_prefix("file://").unwrap();
             path.into()
         } else {
             repositories_dir().join(filenamify(&self.git_url))
@@ -75,7 +75,7 @@ mod tests {
     #[test]
     fn it_parses_local_dir() {
         let repo = Repository {
-            git_url: "file://home/user".to_owned(),
+            git_url: "file:///home/user".to_owned(),
         };
         assert!(repo.is_local_dir());
         assert_eq!(repo.dir().display().to_string(), "/home/user");
