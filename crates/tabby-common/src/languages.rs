@@ -36,6 +36,7 @@ pub struct Language {
 
 impl Language {
     pub fn get_stop_words(&self) -> Vec<String> {
+        // Special handling for empty languages - returns empty stop words.
         if self.get_hashkey() == "empty" {
             return vec![];
         }
@@ -79,4 +80,11 @@ pub fn get_language(language: &str) -> &'static Language {
         .iter()
         .find(|c| c.languages.iter().any(|x| x == language))
         .unwrap_or(&UNKNOWN_LANGUAGE)
+}
+
+mod tests {
+    #[test]
+    fn test_empty_language() {
+        assert!(super::EMPTY_LANGUAGE.get_stop_words().is_empty())
+    }
 }
