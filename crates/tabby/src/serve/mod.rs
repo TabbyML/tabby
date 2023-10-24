@@ -146,13 +146,15 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     doc.override_doc(args, &config.swagger);
 
     let app = Router::new()
+        .route("/", routing::get(playground::handler))
+        .route("/index.txt", routing::get(playground::handler))
+        .route("/_next/*path", routing::get(playground::handler))
         .merge(api_router(args))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
-        .fallback(fallback());
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
 
     let app = if args.chat_model.is_some() {
         app.route("/playground", routing::get(playground::handler))
-            .route("/_next/*path", routing::get(playground::handler))
+            .route("/playground.txt", routing::get(playground::handler))
     } else {
         app
     };
@@ -244,10 +246,6 @@ fn api_router(args: &ServeArgs) -> Router {
     }
     root.layer(CorsLayer::permissive())
         .layer(opentelemetry_tracing_layer())
-}
-
-fn fallback() -> routing::MethodRouter {
-    routing::get(|| async { axum::response::Redirect::temporary("/swagger-ui") })
 }
 
 fn valid_args(args: &ServeArgs) {
