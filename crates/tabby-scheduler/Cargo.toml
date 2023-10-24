@@ -13,7 +13,6 @@ tabby-common = { path = "../tabby-common" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.20.2"
-walkdir = "2.3.3"
 lazy_static = { workspace = true }
 serde = { workspace = true }
 serde-jsonlines = { workspace = true }
@@ -23,6 +22,7 @@ tree-sitter-rust = "0.20.3"
 tree-sitter-typescript = "0.20.3"
 tree-sitter-go = "0.20.0"
 tree-sitter-ruby= "0.20.0"
+ignore = "0.4.20"
 
 [dev-dependencies]
 temp_testdir = "0.2"
