@@ -66,11 +66,6 @@ In the case above, the final decoded string would be `" he llo"` with an undesir
 Incremental decoding:  ......, 207, 211  ->   "......[ hello]"  ✅
 ```
 
-Here are some real coding examples fixed by incremental decoding:
-
-![incremental](./incremental.jpeg)
-
-
 For interested folks, you can refer to Tabby's exact implementation in `IncrementalDecoding` funcion in [`creates/tabby-inference/src/decoding.rs`](https://github.com/TabbyML/tabby/pull/491).
 
 Have you found incremental decoding effective? Share your thoughts with us in our [Slack](https://join.slack.com/t/tabbyml/shared_invite/zt-22thejc0z-7ePKeWNCHPX31pEtnT4oYQ) channel 🌍😊!
