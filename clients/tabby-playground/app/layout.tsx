@@ -11,8 +11,8 @@ import { Header } from '@/components/header'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Tabby Playground',
-    template: `%s - Tabby Playground`
+    default: 'Tabby - Home',
+    template: `Tabby - %s`
   },
   description: 'Tabby, an opensource, self-hosted AI coding assistant.',
   themeColor: [
