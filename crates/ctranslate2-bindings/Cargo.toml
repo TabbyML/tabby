@@ -22,3 +22,4 @@ rust-cxx-cmake-bridge = { path = "../rust-cxx-cmake-bridge", optional = true }
 [features]
 default = ["dep:cmake", "dep:rust-cxx-cmake-bridge"]
 link_shared = []
+link_static_cuda = []

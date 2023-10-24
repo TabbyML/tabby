@@ -37,16 +37,28 @@ fn link_static() -> PathBuf {
     if cfg!(target_os = "linux") {
         config
             .define("WITH_MKL", "OFF")
-            .define("OPENMP_RUNTIME", "NONE")
-            .define("WITH_OPENBLAS", "ON")
-            .cxxflag("-msse4.1")
+            .define("OPENMP_RUNTIME", "NONE");
+
+        if cfg!(target_feature = "sse4.1") {
+            config.cxxflag("-msse4.1");
+        }
+
+        if cfg!(feature = "link_static_cuda") {
+            config.define("WITH_CUDA", "ON").define("WITH_CUDNN", "ON");
+
+            if cfg!(target_arch = "aarch64") {
+                config.cxxflag("-mcpu=native");
+            }
+        } else {
+            config.define("WITH_OPENBLAS", "ON");
+        }
     } else if cfg!(target_os = "macos") {
         config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
             .define("WITH_ACCELERATE", "ON")
             .define("WITH_MKL", "OFF")
             .define("OPENMP_RUNTIME", "NONE")
-            .define("WITH_RUY", "ON")
+            .define("WITH_RUY", "ON");
     } else {
         panic!("Invalid target")
     };
