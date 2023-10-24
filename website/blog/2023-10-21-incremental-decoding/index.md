@@ -27,13 +27,6 @@ To simplify the scenario, we assume that the language model maintains a probaili
 Here's how different decoding methods might suggest 🔍:
 
 
-### Greedy Decoding 🏆
-
-Greedy decoding selects the most probable next token at each step, which is most intuitive method but can sometimes lead to sub-optimal sequences. This is because it only considers one token at a time and makes such choice greedily. 
-
-In this particular case, greedy decoding would complete the code with `]\n print` as each of the token here has maximum probability given the chosen token before.
-
-![greedy](./greedy.png)
 
 ### Beam Search 🌈
 Beam search maintains multiple possible sequences (beams) and expands them, which offers better quality at the expense of higher computation.
@@ -41,6 +34,14 @@ Beam search maintains multiple possible sequences (beams) and expands them, whic
 Assuming `num_beams=2`, in this case, it'll actually produce ` if x % 2`, as `0.4*0.7=0.28` gives the highest probability when considering a sequence of 2.
 
 ![beam](./beam.png)
+
+### Greedy Decoding 🏆
+
+Greedy decoding selects the most probable next token at each step, which is most intuitive method but can sometimes lead to sub-optimal sequences. This is because it only considers one token at a time and makes such choice greedily. 
+
+In this particular case, greedy decoding would complete the code with `]\n print` as each of the token here has maximum probability given the chosen token before.
+
+![greedy](./greedy.png)
 
 ### Sampling-based methods 🎲
 The two methods above alway produce deterministic results given the language model probability distribution. Often times this isn't the ideal case, especially in conversational use case where users often retry to expect an alternative answer (or think about language translation). Alternatively, sampling-based methods like random sampling, top-k, and top-p sampling introduce randomness to achieve diverse outputs. 
