@@ -1,7 +1,8 @@
 <div align="center">
 
 # 🐾 Tabby
-  
+
+[![latest release](https://shields.io/github/v/release/TabbyML/tabby?sort=semver)](https://github.com/TabbyML/tabby/releases/latest)
 [![build status](https://img.shields.io/github/actions/workflow/status/TabbyML/tabby/ci.yml?label=build)](https://github.com/TabbyML/tabby/actions/workflows/ci.yml)
 [![Docker pulls](https://img.shields.io/docker/pulls/tabbyml/tabby)](https://hub.docker.com/r/tabbyml/tabby)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
