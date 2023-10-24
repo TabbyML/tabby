@@ -3,6 +3,7 @@
 ## Features
 * Supports golang: https://github.com/TabbyML/tabby/issues/553
 * Supports ruby: https://github.com/TabbyML/tabby/pull/597
+* Supports using local directory for `Repository.git_url`: use `file:///path/to/repo` to specify a local directory.
 
 ## Fixes and Improvements
 * Improve snippets retrieval by dedup candidates to existing content + snippets: https://github.com/TabbyML/tabby/pull/582

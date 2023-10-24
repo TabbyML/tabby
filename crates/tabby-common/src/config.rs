@@ -49,17 +49,40 @@ pub struct Repository {
 
 impl Repository {
     pub fn dir(&self) -> PathBuf {
-        repositories_dir().join(filenamify(&self.git_url))
+        if self.is_local_dir() {
+            let path = self.git_url.strip_prefix("file:/").unwrap();
+            path.into()
+        } else {
+            repositories_dir().join(filenamify(&self.git_url))
+        }
+    }
+
+    pub fn is_local_dir(&self) -> bool {
+        self.git_url.starts_with("file://")
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Config;
+    use super::{Config, Repository};
 
     #[test]
     fn it_parses_empty_config() {
         let config = serdeconv::from_toml_str::<Config>("");
         debug_assert!(config.is_ok(), "{}", config.err().unwrap());
+    }
+
+    #[test]
+    fn it_parses_local_dir() {
+        let repo = Repository {
+            git_url: "file://home/user".to_owned(),
+        };
+        assert!(repo.is_local_dir());
+        assert_eq!(repo.dir().display().to_string(), "/home/user");
+
+        let repo = Repository {
+            git_url: "https://github.com/TabbyML/tabby".to_owned(),
+        };
+        assert!(!repo.is_local_dir());
     }
 }
