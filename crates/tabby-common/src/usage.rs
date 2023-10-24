@@ -20,6 +20,25 @@ impl UsageTracker {
             // usage id file doesn't exists.
             let id = Uuid::new_v4().to_string();
             std::fs::write(usage_id_file(), id).expect("Failed to create usage id");
+
+            eprintln!(
+                "
+  \x1b[34;1mTELEMETRY\x1b[0m
+
+  As an open source project, we collect usage statistics to inform development priorities. For more
+  information, read https://tabby.tabbyml.com/docs/configuration#usage-collection
+
+  We will not see or any code in your development process.
+
+  To opt-out, add the TABBY_DISABLE_USAGE_COLLECTION=1 to your tabby server's environment variables.
+
+  \x1b[1mWelcome to Tabby!\x1b[0m
+
+  If you have any questions or would like to engage with the Tabby team, please join us on Slack
+  (https://tinyurl.com/35sv9kz2).
+
+"
+            );
         }
 
         let id = fs::read_to_string(usage_id_file()).expect("Failed to read usage id");
