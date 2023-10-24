@@ -36,6 +36,11 @@ pub struct Language {
 
 impl Language {
     pub fn get_stop_words(&self) -> Vec<String> {
+        // Special handling for empty languages - returns empty stop words.
+        if self.get_hashkey() == "empty" {
+            return vec![];
+        }
+
         let mut out = vec![];
         out.push(format!("\n{}", self.line_comment));
         for word in &self.top_level_keywords {
@@ -62,6 +67,11 @@ lazy_static! {
         line_comment: "".to_owned(),
         top_level_keywords: vec![],
     };
+    pub static ref EMPTY_LANGUAGE: Language = Language {
+        languages: vec!["empty".to_owned()],
+        line_comment: "".to_owned(),
+        top_level_keywords: vec![],
+    };
 }
 
 pub fn get_language(language: &str) -> &'static Language {
@@ -70,4 +80,11 @@ pub fn get_language(language: &str) -> &'static Language {
         .iter()
         .find(|c| c.languages.iter().any(|x| x == language))
         .unwrap_or(&UNKNOWN_LANGUAGE)
+}
+
+mod tests {
+    #[test]
+    fn test_empty_language() {
+        assert!(super::EMPTY_LANGUAGE.get_stop_words().is_empty())
+    }
 }
