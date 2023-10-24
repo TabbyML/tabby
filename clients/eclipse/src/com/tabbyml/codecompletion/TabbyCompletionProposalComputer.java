@@ -19,6 +19,7 @@ import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tabbyml.codecompletion.api.TabbyCompletionService;
 import com.tabbyml.codecompletion.api.TabbyV1Choice;
 import com.tabbyml.codecompletion.api.TabbyV1CompletionRequest;
 import com.tabbyml.codecompletion.api.TabbyV1CompletionResponse;
@@ -27,9 +28,9 @@ import com.tabbyml.codecompletion.settings.PreferenceInitializer;
 
 public class TabbyCompletionProposalComputer implements IJavaCompletionProposalComputer {
 	private static Logger LOG = Logger.getLogger(TabbyCompletionProposalComputer.class.getName());
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 	private static final String apiBase = PreferenceInitializer.getPreferenceStore().getString(PreferenceConstants.P_SERVER_ENDPOINT);
     private static final int displayStringLength = 50;
+    private static final TabbyCompletionService tabbyService = new TabbyCompletionService(apiBase);
 	
 	
     @Override
@@ -60,7 +61,7 @@ public class TabbyCompletionProposalComputer implements IJavaCompletionProposalC
             LOG.info(prefix);
             LOG.info(suffix);
 
-            TabbyV1CompletionResponse tabbyProposal = completeWithTabby(prefix, suffix);
+            TabbyV1CompletionResponse tabbyProposal = tabbyService.completeWithTabby(prefix, suffix);
             
             if(null != tabbyProposal) {
             	for (TabbyV1Choice choice : tabbyProposal.getChoices()) {
@@ -96,56 +97,5 @@ public class TabbyCompletionProposalComputer implements IJavaCompletionProposalC
 		return null;
 	}
 	
-	private TabbyV1CompletionResponse completeWithTabby(String prefix, String suffix) {
-		try {
-			URL obj = new URL(apiBase + "/v1/completions");
-
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setRequestMethod("POST");
-            con.setDoInput(true);
-            con.setDoOutput(true);
-            con.setRequestProperty("Content-Type", "application/json");
-            
-            TabbyV1CompletionRequest completionRequest = new TabbyV1CompletionRequest(prefix, suffix);
-
-            // Encode the JSON data as bytes
-            byte[] jsonDataBytes = objectMapper.writeValueAsBytes(completionRequest);
-            
-            // Set the content length
-            con.setRequestProperty("Content-Length", String.valueOf(jsonDataBytes.length));
-
-         // Open an output stream and send the JSON data
-            try (DataOutputStream out = new DataOutputStream(con.getOutputStream())) {
-                out.write(jsonDataBytes);
-                out.flush();
-            }
-            
-            int responseCode = con.getResponseCode();
-            LOG.info("Tabby responsecode: " + String.valueOf(responseCode));
-            
-            // Read and print the response content
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                LOG.info("Response Content:\n" + response.toString());
-
-                TabbyV1CompletionResponse completionResponse = objectMapper.readValue(response.toString(), TabbyV1CompletionResponse.class);
-                
-               
-                return completionResponse;
-            } else {
-                LOG.warning("HTTP GET request failed.");
-            }
-		} catch (IOException e) {
-			LOG.warning(e.getLocalizedMessage());
-		}
-		return null;
-	}
+	
 }
