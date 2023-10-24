@@ -11,6 +11,7 @@ use axum::{
 use axum_streams::StreamBodyAs;
 use prompt::ChatPromptBuilder;
 use serde::{Deserialize, Serialize};
+use tabby_common::languages::EMPTY_LANGUAGE;
 use tabby_inference::{TextGeneration, TextGenerationOptions, TextGenerationOptionsBuilder};
 use tracing::{debug, instrument};
 use utoipa::ToSchema;
@@ -88,6 +89,7 @@ fn parse_request(
     builder
         .max_input_length(2048)
         .max_decoding_length(1920)
+        .language(&EMPTY_LANGUAGE)
         .sampling_temperature(0.1);
 
     (

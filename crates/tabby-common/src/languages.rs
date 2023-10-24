@@ -36,6 +36,10 @@ pub struct Language {
 
 impl Language {
     pub fn get_stop_words(&self) -> Vec<String> {
+        if self.get_hashkey() == "empty" {
+            return vec![];
+        }
+
         let mut out = vec![];
         out.push(format!("\n{}", self.line_comment));
         for word in &self.top_level_keywords {
@@ -59,6 +63,11 @@ lazy_static! {
         serdeconv::from_toml_str(include_str!("../assets/languages.toml")).unwrap();
     pub static ref UNKNOWN_LANGUAGE: Language = Language {
         languages: vec!["unknown".to_owned()],
+        line_comment: "".to_owned(),
+        top_level_keywords: vec![],
+    };
+    pub static ref EMPTY_LANGUAGE: Language = Language {
+        languages: vec!["empty".to_owned()],
         line_comment: "".to_owned(),
         top_level_keywords: vec![],
     };
