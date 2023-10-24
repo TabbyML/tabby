@@ -1,5 +1,4 @@
-use std::{env, path::PathBuf, path::Path, fs};
-use regex::Regex;
+use std::{env, path::PathBuf};
 
 use cmake::Config;
 use rust_cxx_cmake_bridge::read_cmake_generated;
@@ -27,20 +26,6 @@ fn main() {
     lib.compile("cxxbridge");
 }
 
-fn check_jetson() -> bool {
-    if Path::new("/proc/device-tree/model").exists() {
-        let contents = fs::read_to_string("/proc/device-tree/model").expect("read /proc/device-tree/model failed");
-        let matched = Regex::new(r"^NVIDIA.*Developer Kit").unwrap().is_match(&contents);
-        if matched {
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return false;
-    }
-}
-
 fn link_static() -> PathBuf {
     let mut config = Config::new(".");
     config
@@ -59,12 +44,12 @@ fn link_static() -> PathBuf {
         }
         
         if cfg!(feature = "link_static_cuda") {
-            config.define("WITH_CUDA", "ON");
-            
-            if cfg!(target_arch = "aarch64") && check_jetson() {
-                config
-                   .define("WITH_CUDNN", "ON")
-                   .cxxflag("-mcpu=native");
+            config
+                .define("WITH_CUDA", "ON")
+                .define("WITH_CUDNN", "ON");
+                
+            if cfg!(target_arch = "aarch64") {
+                config.cxxflag("-mcpu=native");
             } 
         } else {
             config.define("WITH_OPENBLAS", "ON");
