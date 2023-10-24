@@ -6,7 +6,7 @@ tags: [tech design]
 ---
 # Incremental Decoding for Good
 
-In the context of the Transformer model, which is widely used across LLMs, ***decoding*** refers to the process of generating an output sequence from an encoded input. Tabby recenty  [implemented ***incremental decoding***](https://github.com/TabbyML/tabby/pull/491) as the default decoding method. This blog will provide an introduction into why Tabby chooses incremental decoding for code completion tasks 🛠️💡.
+In the context of the Transformer model, which is widely used across LLMs, ***decoding*** refers to the process of generating an output sequence from an encoded input. Tabby recenty  [implemented ***incremental decoding***](https://github.com/TabbyML/tabby/pull/491) as part of the greedy search. This blog will provide an introduction into why Tabby chooses incremental decoding for code completion tasks 🛠️💡.
 
 
 ## Common Decoding Methods
