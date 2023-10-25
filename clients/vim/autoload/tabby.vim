@@ -79,6 +79,7 @@ function! tabby#OnVimEnter()
   endif
 
   if !filereadable(g:tabby_node_script)
+    let s:status = "initialization_failed"
     let s:message = 'Tabby agent script not found. Please reinstall Tabby plugin.'
     return
   endif
