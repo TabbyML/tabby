@@ -7,7 +7,7 @@ use axum::{
 use crate::fatal;
 
 #[derive(rust_embed::RustEmbed)]
-#[folder = "./playground"]
+#[folder = "./ui"]
 struct WebAssets;
 
 struct WebStaticFile<T>(pub T);
@@ -29,7 +29,7 @@ where
             }
             None => Response::builder()
                 .status(StatusCode::NOT_FOUND)
-                .body(boxed(Full::from("404")))
+                .body(boxed(Full::from(WebAssets::get("404.html").unwrap().data)))
                 .unwrap_or_else(|_| fatal!("Invalid response")),
         }
     }

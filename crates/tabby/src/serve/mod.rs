@@ -3,8 +3,8 @@ mod completions;
 mod engine;
 mod events;
 mod health;
-mod playground;
 mod search;
+mod ui;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -155,15 +155,16 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     doc.override_doc(args);
 
     let app = Router::new()
-        .route("/", routing::get(playground::handler))
-        .route("/index.txt", routing::get(playground::handler))
-        .route("/_next/*path", routing::get(playground::handler))
+        .route("/", routing::get(ui::handler))
+        .route("/index.txt", routing::get(ui::handler))
+        .route("/_next/*path", routing::get(ui::handler))
         .merge(api_router(args, config))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
+        .fallback(ui::handler);
 
     let app = if args.chat_model.is_some() {
-        app.route("/playground", routing::get(playground::handler))
-            .route("/playground.txt", routing::get(playground::handler))
+        app.route("/playground", routing::get(ui::handler))
+            .route("/playground.txt", routing::get(ui::handler))
     } else {
         app
     };
