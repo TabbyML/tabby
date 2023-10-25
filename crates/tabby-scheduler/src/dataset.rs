@@ -11,7 +11,7 @@ use ignore::{DirEntry, Walk};
 use lazy_static::lazy_static;
 use serde_jsonlines::WriteExt;
 use tabby_common::{
-    config::{Config, Repository},
+    config::{Config, RepositoryConfig},
     path::dataset_dir,
     SourceFile,
 };
@@ -22,7 +22,7 @@ trait RepositoryExt {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()>;
 }
 
-impl RepositoryExt for Repository {
+impl RepositoryExt for RepositoryConfig {
     fn create_dataset(&self, writer: &mut impl Write) -> Result<()> {
         let dir = self.dir();
 

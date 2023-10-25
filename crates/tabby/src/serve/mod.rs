@@ -125,7 +125,7 @@ fn should_download_ggml_files(device: &Device) -> bool {
     *device == Device::Metal
 }
 
-pub async fn main(_config: &Config, args: &ServeArgs) {
+pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
@@ -146,7 +146,7 @@ pub async fn main(_config: &Config, args: &ServeArgs) {
         .route("/", routing::get(playground::handler))
         .route("/index.txt", routing::get(playground::handler))
         .route("/_next/*path", routing::get(playground::handler))
-        .merge(api_router(args))
+        .merge(api_router(args, config))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
 
     let app = if args.chat_model.is_some() {
@@ -166,7 +166,7 @@ pub async fn main(_config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs) -> Router {
+fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let index_server = Arc::new(IndexServer::new());
     let completion_state = {
         let (
@@ -218,7 +218,9 @@ fn api_router(args: &ServeArgs) -> Router {
                 "/v1/completions",
                 routing::post(completions::completions).with_state(completion_state),
             )
-            .layer(TimeoutLayer::new(Duration::from_secs(3)))
+            .layer(TimeoutLayer::new(Duration::from_secs(
+                config.server.completion_timeout,
+            )))
     });
 
     if let Some(chat_state) = chat_state {
