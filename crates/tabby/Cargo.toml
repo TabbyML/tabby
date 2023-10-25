@@ -4,7 +4,6 @@ version = "0.5.0-dev"
 edition = "2021"
 
 [dependencies]
-ctranslate2-bindings = { path = "../ctranslate2-bindings", optional = true }
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
@@ -43,9 +42,10 @@ minijinja = { version = "1.0.8", features = ["loader"] }
 textdistance = "1.0.2"
 regex.workspace = true
 thiserror.workspace = true
-
-[target.'cfg(all(target_os="macos", target_arch="aarch64"))'.dependencies]
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
+
+[target.'cfg(any(feature="link_shared", feature="link_cuda_static"))'.dependencies]
+ctranslate2-bindings = { path = "../ctranslate2-bindings" }
 
 [dependencies.uuid]
 version = "1.3.3"
