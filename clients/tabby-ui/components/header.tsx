@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { IconGitHub, IconExternalLink } from '@/components/ui/icons'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { useHealth } from '@/lib/hooks/use-health'
 
 const ThemeToggle = dynamic(
   () => import('@/components/theme-toggle').then(x => x.ThemeToggle),
@@ -14,10 +15,8 @@ const ThemeToggle = dynamic(
 )
 
 export function Header() {
-  const [isChatEnabled, setIsChatEnabled] = React.useState(false);
-  React.useEffect(() => {
-    fetchIsChatEnabled().then(setIsChatEnabled);
-  }, []);
+  const { data } = useHealth();
+  const isChatEnabled = !!data?.chat_model;
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between w-full h-16 px-4 border-b shrink-0 bg-gradient-to-b from-background/10 via-background/50 to-background/80 backdrop-blur-xl">
       <div className="flex items-center">
