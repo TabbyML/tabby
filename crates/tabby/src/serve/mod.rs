@@ -3,8 +3,8 @@ mod completions;
 mod engine;
 mod events;
 mod health;
-mod ui;
 mod search;
+mod ui;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
