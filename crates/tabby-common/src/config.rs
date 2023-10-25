@@ -11,7 +11,10 @@ use crate::path::{config_file, repositories_dir};
 #[derive(Serialize, Deserialize, Default)]
 pub struct Config {
     #[serde(default)]
-    pub repositories: Vec<Repository>,
+    pub repositories: Vec<RepositoryConfig>,
+
+    #[serde(default)]
+    pub server: ServerConfig,
 }
 
 impl Config {
@@ -37,11 +40,11 @@ impl Config {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Repository {
+pub struct RepositoryConfig {
     pub git_url: String,
 }
 
-impl Repository {
+impl RepositoryConfig {
     pub fn dir(&self) -> PathBuf {
         if self.is_local_dir() {
             let path = self.git_url.strip_prefix("file://").unwrap();
@@ -56,9 +59,23 @@ impl Repository {
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ServerConfig {
+    /// The timeout in seconds for the /v1/completion api.
+    pub completion_timeout: u64,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            completion_timeout: 30,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{Config, Repository};
+    use super::{Config, RepositoryConfig};
 
     #[test]
     fn it_parses_empty_config() {
@@ -68,13 +85,13 @@ mod tests {
 
     #[test]
     fn it_parses_local_dir() {
-        let repo = Repository {
+        let repo = RepositoryConfig {
             git_url: "file:///home/user".to_owned(),
         };
         assert!(repo.is_local_dir());
         assert_eq!(repo.dir().display().to_string(), "/home/user");
 
-        let repo = Repository {
+        let repo = RepositoryConfig {
             git_url: "https://github.com/TabbyML/tabby".to_owned(),
         };
         assert!(!repo.is_local_dir());
