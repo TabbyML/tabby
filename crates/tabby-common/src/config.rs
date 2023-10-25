@@ -12,13 +12,7 @@ use crate::path::{config_file, repositories_dir};
 pub struct Config {
     #[serde(default)]
     pub repositories: Vec<Repository>,
-
-    #[serde(default)]
-    pub swagger: SwaggerConfig,
 }
-
-#[derive(Serialize, Deserialize, Default)]
-pub struct SwaggerConfig {}
 
 impl Config {
     pub fn load() -> Result<Self, Error> {

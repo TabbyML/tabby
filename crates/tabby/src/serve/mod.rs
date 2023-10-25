@@ -15,10 +15,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{
-    config::{Config, SwaggerConfig},
-    usage,
-};
+use tabby_common::{config::Config, usage};
 use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -128,7 +125,7 @@ fn should_download_ggml_files(device: &Device) -> bool {
     *device == Device::Metal
 }
 
-pub async fn main(config: &Config, args: &ServeArgs) {
+pub async fn main(_config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
@@ -143,7 +140,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let mut doc = ApiDoc::openapi();
-    doc.override_doc(args, &config.swagger);
+    doc.override_doc(args);
 
     let app = Router::new()
         .route("/", routing::get(playground::handler))
@@ -286,11 +283,11 @@ async fn download_model(model: &str, device: &Device) {
 }
 
 trait OpenApiOverride {
-    fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig);
+    fn override_doc(&mut self, args: &ServeArgs);
 }
 
 impl OpenApiOverride for utoipa::openapi::OpenApi {
-    fn override_doc(&mut self, args: &ServeArgs, _config: &SwaggerConfig) {
+    fn override_doc(&mut self, args: &ServeArgs) {
         if args.chat_model.is_none() {
             self.paths.paths.remove("/v1beta/chat/completions");
 

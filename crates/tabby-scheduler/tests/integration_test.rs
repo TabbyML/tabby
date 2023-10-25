@@ -3,7 +3,7 @@ mod tests {
     use std::fs::create_dir_all;
 
     use tabby_common::{
-        config::{Config, Repository, SwaggerConfig},
+        config::{Config, Repository},
         path::set_tabby_root,
     };
     use temp_testdir::*;
@@ -20,7 +20,6 @@ mod tests {
             repositories: vec![Repository {
                 git_url: "https://github.com/TabbyML/interview-questions".to_owned(),
             }],
-            swagger: SwaggerConfig {},
         };
 
         config.save();
