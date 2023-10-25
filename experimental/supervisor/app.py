@@ -1,3 +1,7 @@
+"""Usage:
+    python app.py --model TabbyML/StarCoder-1B --chat-model TabbyML/Mistral-7B --device metal
+"""
+
 import socket
 import time
 import asyncio
@@ -11,26 +15,26 @@ MODEL_ID = "TabbyML/StarCoder-1B"
 
 
 class TabbyLauncher(object):
-    def __init__(self):
+    def __init__(self, args):
         self.proc = None
+        self.args = args
 
-    async def start(self):
+    def start(self):
         print("Starting tabby process...")
         self.proc = subprocess.Popen(
             [
                 "tabby",
                 "serve",
-                "--model",
-                MODEL_ID,
+            ]
+            + self.args
+            + [
                 "--port",
                 "8081",
-                "--device",
-                "metal",
             ],
         )
 
         while not self._server_ready():
-            await asyncio.sleep(1.0)
+            time.sleep(1.0)
         return self
 
     def _server_ready(self):
@@ -74,8 +78,8 @@ class Timer:
         self._task.cancel()
 
 
-def supervisor():
-    launcher = TabbyLauncher()
+def supervisor(serve_args):
+    launcher = TabbyLauncher(serve_args)
     proxy = asgi_proxy("http://localhost:8081")
     timer = None
 
@@ -83,7 +87,7 @@ def supervisor():
         nonlocal timer
 
         if not launcher.is_running:
-            await launcher.start()
+            launcher.start()
         elif timer is not None:
             timer = timer.cancel()
 
@@ -94,14 +98,15 @@ def supervisor():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start a proxy server")
+    parser = argparse.ArgumentParser(description="Start a tabby supervisor")
     parser.add_argument(
         "-p", "--port", type=int, default=8080, help="Port to use (default: 8080)"
     )
     parser.add_argument(
         "--host", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)"
     )
-    args = parser.parse_args()
 
-    app = supervisor()
+    args, serve_args = parser.parse_known_args()
+
+    app = supervisor(serve_args)
     uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
