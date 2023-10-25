@@ -122,7 +122,7 @@ fn should_download_ggml_files(_device: &Device) -> bool {
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn should_download_ggml_files(device: &Device) -> bool {
-    *device == Device::Metal
+    *device == Device::Metal || *device == Device::Cpu
 }
 
 pub async fn main(_config: &Config, args: &ServeArgs) {
