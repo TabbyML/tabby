@@ -95,6 +95,16 @@ impl Device {
     fn use_ggml_backend(&self) -> bool {
         *self == Device::Cpu
     }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Metal
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    fn ggml_use_gpu(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Args)]

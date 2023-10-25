@@ -44,7 +44,7 @@ fn create_local_engine(
     model_dir: &ModelDir,
     _metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
-    create_llama_engine(&args.device, model_dir)
+    create_ggml_engine(&args.device, model_dir)
 }
 
 #[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
@@ -54,7 +54,7 @@ fn create_local_engine(
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
     if args.device.use_ggml_backend() {
-        create_llama_engine(&args.device, model_dir)
+        create_ggml_engine(&args.device, model_dir)
     } else {
         create_ctranslate2_engine(args, model_dir, metadata)
     }
@@ -80,11 +80,11 @@ fn create_ctranslate2_engine(
     Box::new(CTranslate2Engine::create(options))
 }
 
-fn create_llama_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {
+fn create_ggml_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
         .model_path(model_dir.ggml_q8_0_file())
         .tokenizer_path(model_dir.tokenizer_file())
-        .use_gpu(*device == super::Device::Metal)
+        .use_gpu(device.ggml_use_gpu())
         .build()
         .unwrap();
 
