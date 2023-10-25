@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
 use serde::Deserialize;
 use tabby_common::path::ModelDir;
 use tabby_inference::TextGeneration;
@@ -39,33 +38,36 @@ pub struct EngineInfo {
     pub chat_template: Option<String>,
 }
 
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+#[cfg(not(any(feature = "link_shared", feature = "link_cuda_static")))]
 fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
-    metadata: &Metadata,
+    _metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
-    create_ctranslate2_engine(args, model_dir, metadata)
+    create_llama_engine(&args.device, model_dir)
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
 fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
-    if args.device != super::Device::Metal && args.device != super::Device::Cpu {
-        create_ctranslate2_engine(args, model_dir, metadata)
-    } else {
+    if args.device.use_ggml_backend() {
         create_llama_engine(&args.device, model_dir)
+    } else {
+        create_ctranslate2_engine(args, model_dir, metadata)
     }
 }
 
+#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
 fn create_ctranslate2_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
+    use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
+
     let device = format!("{}", args.device);
     let options = CTranslate2EngineOptionsBuilder::default()
         .model_path(model_dir.ctranslate2_dir())
@@ -99,6 +101,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 
 #[derive(Deserialize)]
 struct Metadata {
+    #[allow(dead_code)]
     auto_model: String,
     prompt_template: Option<String>,
     chat_template: Option<String>,

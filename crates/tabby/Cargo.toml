@@ -4,7 +4,7 @@ version = "0.5.0-dev"
 edition = "2021"
 
 [dependencies]
-ctranslate2-bindings = { path = "../ctranslate2-bindings" }
+ctranslate2-bindings = { path = "../ctranslate2-bindings", optional = true }
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
 tabby-download = { path = "../tabby-download" }
