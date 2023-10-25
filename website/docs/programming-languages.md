@@ -27,6 +27,7 @@ For an actual example of an issue or pull request adding the above support, plea
 * [TypeScript](https://www.typescriptlang.org/)
 * [Golang](https://go.dev/): Since v0.4.0
 * [Ruby](https://www.ruby-lang.org/): Since v0.4.0
+* [PHP](https://www.php.net/)
 
 ## Languages Missing Certain Support
 
@@ -39,6 +40,5 @@ For an actual example of an issue or pull request adding the above support, plea
 |   Java   |                    🚫                    |                       🚫                        |
 |  Julia   |                    🚫                    |                       🚫                        |
 |   Lua    |                    🚫                    |                       🚫                        |
-|   PHP    |                    🚫                    |                       🚫                        |
 |   Perl   |                    🚫                    |                       🚫                        |
 |  Scala   |                    🚫                    |                       🚫                        |
