@@ -111,7 +111,7 @@ jobs:
       - run: bash ./ci/prepare_build_environment.sh
 
       - name: Bulid release binary
-        run: cargo build --no-default-features --release --target ${{ matrix.target }}
+        run: cargo build --no-default-features --release --target ${{ matrix.target }} --package tabby
 
       - name: Rename release binary
         run: mv target/${{ matrix.target }}/release/tabby tabby_${{ matrix.target }}

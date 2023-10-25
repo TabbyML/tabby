@@ -74,7 +74,7 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[strum(serialize = "cuda")]
+    #[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -83,6 +83,28 @@ pub enum Device {
 
     #[strum(serialize = "experimental_http")]
     ExperimentalHttp,
+}
+
+impl Device {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn use_ggml_backend(&self) -> bool {
+        *self == Device::Metal || *self == Device::Cpu
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    fn use_ggml_backend(&self) -> bool {
+        *self == Device::Cpu
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Metal
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    fn ggml_use_gpu(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Args)]
@@ -113,16 +135,6 @@ pub struct ServeArgs {
     /// DEPRECATED: Do not use.
     #[clap(long, hide(true))]
     compute_type: Option<String>,
-}
-
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-fn should_download_ggml_files(_device: &Device) -> bool {
-    false
-}
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn should_download_ggml_files(device: &Device) -> bool {
-    *device == Device::Metal
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -275,7 +287,7 @@ fn start_heartbeat(args: &ServeArgs) {
 async fn download_model(model: &str, device: &Device) {
     let downloader = Downloader::new(model, /* prefer_local_file= */ true);
     let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = if should_download_ggml_files(device) {
+    let download_result = if device.use_ggml_backend() {
         downloader.download_ggml_files().await
     } else {
         downloader.download_ctranslate2_files().await

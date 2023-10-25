@@ -15,7 +15,7 @@ mod ffi {
 
         type TextInferenceEngine;
 
-        fn create_engine(model_path: &str) -> UniquePtr<TextInferenceEngine>;
+        fn create_engine(use_gpu: bool, model_path: &str) -> UniquePtr<TextInferenceEngine>;
 
         fn start(self: Pin<&mut TextInferenceEngine>, input_token_ids: &[u32]);
         fn step(self: Pin<&mut TextInferenceEngine>) -> Result<u32>;
@@ -32,6 +32,7 @@ unsafe impl Sync for ffi::TextInferenceEngine {}
 pub struct LlamaEngineOptions {
     model_path: String,
     tokenizer_path: String,
+    use_gpu: bool,
 }
 
 pub struct LlamaEngine {
@@ -42,7 +43,7 @@ pub struct LlamaEngine {
 
 impl LlamaEngine {
     pub fn create(options: LlamaEngineOptions) -> Self {
-        let engine = create_engine(&options.model_path);
+        let engine = create_engine(options.use_gpu, &options.model_path);
         if engine.is_null() {
             panic!("Unable to load model: {}", options.model_path);
         }

@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
 use serde::Deserialize;
 use tabby_common::path::ModelDir;
 use tabby_inference::TextGeneration;
@@ -39,33 +38,36 @@ pub struct EngineInfo {
     pub chat_template: Option<String>,
 }
 
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+#[cfg(not(any(feature = "link_shared", feature = "link_cuda_static")))]
 fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
-    metadata: &Metadata,
+    _metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
-    create_ctranslate2_engine(args, model_dir, metadata)
+    create_ggml_engine(&args.device, model_dir)
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
 fn create_local_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
-    if args.device != super::Device::Metal {
-        create_ctranslate2_engine(args, model_dir, metadata)
+    if args.device.use_ggml_backend() {
+        create_ggml_engine(&args.device, model_dir)
     } else {
-        create_llama_engine(model_dir)
+        create_ctranslate2_engine(args, model_dir, metadata)
     }
 }
 
+#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
 fn create_ctranslate2_engine(
     args: &crate::serve::ServeArgs,
     model_dir: &ModelDir,
     metadata: &Metadata,
 ) -> Box<dyn TextGeneration> {
+    use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
+
     let device = format!("{}", args.device);
     let options = CTranslate2EngineOptionsBuilder::default()
         .model_path(model_dir.ctranslate2_dir())
@@ -78,11 +80,11 @@ fn create_ctranslate2_engine(
     Box::new(CTranslate2Engine::create(options))
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn create_llama_engine(model_dir: &ModelDir) -> Box<dyn TextGeneration> {
+fn create_ggml_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
         .model_path(model_dir.ggml_q8_0_file())
         .tokenizer_path(model_dir.tokenizer_file())
+        .use_gpu(device.ggml_use_gpu())
         .build()
         .unwrap();
 
@@ -99,6 +101,7 @@ fn get_model_dir(model: &str) -> ModelDir {
 
 #[derive(Deserialize)]
 struct Metadata {
+    #[allow(dead_code)]
     auto_model: String,
     prompt_template: Option<String>,
     chat_template: Option<String>,

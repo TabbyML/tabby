@@ -16,5 +16,5 @@ class TextInferenceEngine {
   virtual uint32_t eos_token() const = 0;
 };
 
-std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path);
+std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path);
 }  // namespace
