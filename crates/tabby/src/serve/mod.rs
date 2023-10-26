@@ -3,8 +3,8 @@ mod completions;
 mod engine;
 mod events;
 mod health;
-mod playground;
 mod search;
+mod ui;
 
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -15,10 +15,7 @@ use std::{
 use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
-use tabby_common::{
-    config::{Config, SwaggerConfig},
-    usage,
-};
+use tabby_common::{config::Config, usage};
 use tabby_download::Downloader;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
@@ -77,7 +74,7 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[strum(serialize = "cuda")]
+    #[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -86,6 +83,28 @@ pub enum Device {
 
     #[strum(serialize = "experimental_http")]
     ExperimentalHttp,
+}
+
+impl Device {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn use_ggml_backend(&self) -> bool {
+        *self == Device::Metal || *self == Device::Cpu
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    fn use_ggml_backend(&self) -> bool {
+        *self == Device::Cpu
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Metal
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    fn ggml_use_gpu(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Args)]
@@ -118,16 +137,6 @@ pub struct ServeArgs {
     compute_type: Option<String>,
 }
 
-#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-fn should_download_ggml_files(_device: &Device) -> bool {
-    false
-}
-
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn should_download_ggml_files(device: &Device) -> bool {
-    *device == Device::Metal
-}
-
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
@@ -143,18 +152,19 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     info!("Starting server, this might takes a few minutes...");
 
     let mut doc = ApiDoc::openapi();
-    doc.override_doc(args, &config.swagger);
+    doc.override_doc(args);
 
     let app = Router::new()
-        .route("/", routing::get(playground::handler))
-        .route("/index.txt", routing::get(playground::handler))
-        .route("/_next/*path", routing::get(playground::handler))
-        .merge(api_router(args))
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc));
+        .route("/", routing::get(ui::handler))
+        .route("/index.txt", routing::get(ui::handler))
+        .route("/_next/*path", routing::get(ui::handler))
+        .merge(api_router(args, config))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
+        .fallback(ui::handler);
 
     let app = if args.chat_model.is_some() {
-        app.route("/playground", routing::get(playground::handler))
-            .route("/playground.txt", routing::get(playground::handler))
+        app.route("/playground", routing::get(ui::handler))
+            .route("/playground.txt", routing::get(ui::handler))
     } else {
         app
     };
@@ -169,7 +179,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs) -> Router {
+fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let index_server = Arc::new(IndexServer::new());
     let completion_state = {
         let (
@@ -221,7 +231,9 @@ fn api_router(args: &ServeArgs) -> Router {
                 "/v1/completions",
                 routing::post(completions::completions).with_state(completion_state),
             )
-            .layer(TimeoutLayer::new(Duration::from_secs(3)))
+            .layer(TimeoutLayer::new(Duration::from_secs(
+                config.server.completion_timeout,
+            )))
     });
 
     if let Some(chat_state) = chat_state {
@@ -276,7 +288,7 @@ fn start_heartbeat(args: &ServeArgs) {
 async fn download_model(model: &str, device: &Device) {
     let downloader = Downloader::new(model, /* prefer_local_file= */ true);
     let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = if should_download_ggml_files(device) {
+    let download_result = if device.use_ggml_backend() {
         downloader.download_ggml_files().await
     } else {
         downloader.download_ctranslate2_files().await
@@ -286,11 +298,11 @@ async fn download_model(model: &str, device: &Device) {
 }
 
 trait OpenApiOverride {
-    fn override_doc(&mut self, args: &ServeArgs, config: &SwaggerConfig);
+    fn override_doc(&mut self, args: &ServeArgs);
 }
 
 impl OpenApiOverride for utoipa::openapi::OpenApi {
-    fn override_doc(&mut self, args: &ServeArgs, _config: &SwaggerConfig) {
+    fn override_doc(&mut self, args: &ServeArgs) {
         if args.chat_model.is_none() {
             self.paths.paths.remove("/v1beta/chat/completions");
 

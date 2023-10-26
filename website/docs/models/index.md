@@ -17,7 +17,6 @@ We recommend using
 | [TabbyML/StarCoder-7B](https://huggingface.co/TabbyML/StarCoder-7B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |        ✅         |       ✅       |
 | [TabbyML/StarCoder-3B](https://huggingface.co/TabbyML/StarCoder-3B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |        ✅         |       ✅       |
 | [TabbyML/StarCoder-1B](https://huggingface.co/TabbyML/StarCoder-1B)   | [BigCode-OpenRAIL-M](https://huggingface.co/spaces/bigcode/bigcode-model-license-agreement) |        ✅         |       ✅       |
-| [TabbyML/J-350M](https://huggingface.co/TabbyML/J-350M)               |                    [BSD-3](https://opensource.org/license/bsd-3-clause/)                    |        ❌         |       ❌       |
 
 ## Chat models (`--chat-model`)
 

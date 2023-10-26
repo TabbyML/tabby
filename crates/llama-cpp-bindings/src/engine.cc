@@ -114,11 +114,11 @@ struct BackendInitializer {
 };
 } // namespace
 
-std::unique_ptr<TextInferenceEngine> create_engine(rust::Str model_path) {
+std::unique_ptr<TextInferenceEngine> create_engine(bool use_gpu, rust::Str model_path) {
   static BackendInitializer initializer;
 
   llama_model_params model_params = llama_model_default_params();
-  model_params.n_gpu_layers = 1;
+  model_params.n_gpu_layers = use_gpu ? 1 : 0;
   llama_model* model = llama_load_model_from_file(std::string(model_path).c_str(), model_params);
 
   if (!model) {

@@ -3,8 +3,9 @@ authors: [ gyxlucy ]
 
 tags: [tech design]
 
+image: ./twitter-decoding.png
 ---
-# Decoding the Decoding in Tabby
+# Decode the Decoding in Tabby
 
 In the context of the Transformer model, which is widely used across LLMs, ***decoding*** refers to the process of generating an output sequence from an encoded input. Tabby recenty [implemented ***incremental decoding***](https://github.com/TabbyML/tabby/pull/491) as part of the greedy search. This blog will explain our thoughts behind this 🛠️💡.
 

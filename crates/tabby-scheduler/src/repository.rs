@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use anyhow::{anyhow, Result};
-use tabby_common::config::{Config, Repository};
+use tabby_common::config::{Config, RepositoryConfig};
 
 trait ConfigExt {
     fn sync_repositories(&self) -> Result<()>;
@@ -27,7 +27,7 @@ trait RepositoryExt {
     fn sync(&self) -> Result<()>;
 }
 
-impl RepositoryExt for Repository {
+impl RepositoryExt for RepositoryConfig {
     fn sync(&self) -> Result<()> {
         let dir = self.dir();
         let dir_string = dir.display().to_string();
