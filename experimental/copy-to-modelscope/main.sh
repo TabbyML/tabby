@@ -13,8 +13,8 @@ if [ -z "${MODEL_ID}" ]; then
   usage
 fi
 
-git clone https://oauth2:${ACCESS_TOKEN}@www.modelscope.cn/$MODEL_ID.git ms_model --depth 1
-git clone https://huggingface.co/$MODEL_ID hf_model --depth 1
+git clone https://oauth2:${ACCESS_TOKEN}@www.modelscope.cn/$MODEL_ID.git ms_model --depth 1 || true
+git clone https://huggingface.co/$MODEL_ID hf_model --depth 1 || true
 
 echo "Sync directory"
 rsync -avh --exclude '.git' --delete hf_model/ ms_model/
@@ -48,12 +48,20 @@ cat <<EOF >ms_model/configuration.json
 }
 EOF
 
+push_origin() {
+git lfs push origin --all
+git push origin
+}
+
 set -x
 pushd ms_model
 git add .
-git commit -m "sync with upstream"
-git lfs push origin
-git push origin
+git commit -m "sync with upstream" || true
+
+while true; do
+	push_origin && break
+done
+
 popd
 
 echo "Success!"
