@@ -14,7 +14,8 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-    return useSWRImmutable('/v1/health', {
+    const fetcher = (url: string) => fetch(url).then(x => x.json());
+    return useSWRImmutable('/v1/health', fetcher, {
         fallbackData: process.env.NODE_ENV !== "production" ? {
             "device": "metal",
             "model": "TabbyML/StarCoder-1B",
