@@ -1,7 +1,7 @@
 # v0.5.0 [Unreleased]
 
 ## BREAKING CHANGES
-* llama.cpp backend (CPU, Metal) now requires a redownload of gguf model due to upstream format changes: https://github.com/TabbyML/tabby/pull/645
+* llama.cpp backend (CPU, Metal) now requires a redownload of gguf model due to upstream format changes: https://github.com/TabbyML/tabby/pull/645 https://github.com/ggerganov/llama.cpp/pull/3252
 
 ## Features
 
