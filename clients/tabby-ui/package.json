@@ -29,6 +29,7 @@
     "ai": "^2.1.6",
     "class-variance-authority": "^0.4.0",
     "clsx": "^1.2.1",
+    "compare-versions": "^6.1.0",
     "focus-trap-react": "^10.1.1",
     "nanoid": "^4.0.2",
     "next": "^13.4.7",
@@ -43,7 +44,8 @@
     "react-syntax-highlighter": "^15.5.0",
     "react-textarea-autosize": "^8.4.1",
     "remark-gfm": "^3.0.1",
-    "remark-math": "^5.1.1"
+    "remark-math": "^5.1.1",
+    "swr": "^2.2.4"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.9",
