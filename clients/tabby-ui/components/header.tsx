@@ -66,13 +66,3 @@ export function Header() {
     </header>
   )
 }
-
-async function fetchIsChatEnabled() {
-  if (process.env.NODE_ENV === "production") {
-    const resp = await fetch("/v1/health");
-    const json = await resp.json();
-    return !!json.chat_model;
-  } else {
-    return true;
-  }
-}
