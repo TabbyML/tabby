@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 [![Slack Community](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
-[![Office Hours](https://img.shields.io/badge/book-office%20hours-purple?logo=googlecalendar&logoColor=white)](https://calendly.com/tabby_ml/chat-with-tabbyml)
+[![Office Hours](https://img.shields.io/badge/Book-Office%20Hours-purple?logo=googlecalendar&logoColor=white)](https://calendly.com/tabby_ml/chat-with-tabbyml)
 
 </div>
 
