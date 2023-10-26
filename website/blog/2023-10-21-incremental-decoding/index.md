@@ -3,6 +3,7 @@ authors: [ gyxlucy ]
 
 tags: [tech design]
 
+image: ./twitter-decoding.png
 ---
 # Decoding the Decoding in Tabby
 
