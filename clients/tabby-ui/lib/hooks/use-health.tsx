@@ -14,9 +14,9 @@ export interface HealthInfo {
 }
 
 export function useHealth(): SWRResponse<HealthInfo> {
-    const fetcher = (url: string) => fetch(url).then(x => x.json());
-    return useSWRImmutable('/v1/health', fetcher, {
-        fallbackData: process.env.NODE_ENV !== "production" ? {
+    let fetcher = (url: string) => fetch(url).then(x => x.json());
+    if (process.env.NODE_ENV !== "production") {
+        fetcher = async (url: string) => ({
             "device": "metal",
             "model": "TabbyML/StarCoder-1B",
             "version": {
@@ -24,6 +24,7 @@ export function useHealth(): SWRResponse<HealthInfo> {
                 "git_describe": "v0.3.1",
                 "git_sha": "d5fdcf3a2cbe0f6b45d6e8ef3255e6a18f840132"
             }
-        } : undefined
-    });
+        });
+    }
+    return useSWRImmutable('/v1/health', fetcher);
 }
