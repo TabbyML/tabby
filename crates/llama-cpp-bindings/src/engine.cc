@@ -21,7 +21,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   TextInferenceEngineImpl(owned<llama_model> model, owned<llama_context> ctx) :
     model_(std::move(model)),
     ctx_(std::move(ctx)) {
-      batch_ = llama_batch_init(N_BATCH, 0);
   }
 
   void start(rust::Slice<const uint32_t> input_token_ids) override {
@@ -46,14 +45,14 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   }
 
   uint32_t eos_token() const override {
-    return llama_token_eos(ctx_.get());
+    return llama_token_eos(llama_get_model(ctx_.get()));
   }
 
  private:
   uint32_t sample() const {
     auto* ctx = ctx_.get();
 
-    auto logits = llama_get_logits_ith(ctx, batch_.n_tokens - 1);
+    auto logits = llama_get_logits_ith(ctx, 0);
     auto n_vocab = llama_n_vocab(llama_get_model(ctx));
 
     // Greedy sampling (always select the highest logit).
@@ -65,18 +64,9 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       n_past_ = 0;
     }
 
-    batch_.n_tokens = size;
-    for (size_t i = 0; i < size; ++i) {
-      batch_.token[i] = data[i];
-      batch_.pos[i] = n_past_ + i;
-      batch_.seq_id[i] = 0;
-      batch_.logits[i] = false;
-    }
-    batch_.logits[size - 1] = true;
-
     auto* ctx = ctx_.get();
     llama_kv_cache_tokens_rm(ctx, n_past_, -1);
-    if (llama_decode(ctx, batch_)) {
+    if (llama_decode(ctx, llama_batch_get_one(data, size, n_past_, 0))) {
       throw std::runtime_error("Failed to eval");
     }
 
@@ -86,8 +76,6 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
   size_t n_past_;
   owned<llama_model> model_;
   owned<llama_context> ctx_;
-
-  llama_batch batch_;
 };
 
 static int g_llama_cpp_log_level = 0;

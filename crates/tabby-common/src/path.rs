@@ -89,4 +89,8 @@ impl ModelDir {
     pub fn ggml_q8_0_file(&self) -> String {
         self.path_string("ggml/q8_0.gguf")
     }
+
+    pub fn ggml_q8_0_v2_file(&self) -> String {
+        self.path_string("ggml/q8_0.v2.gguf")
+    }
 }

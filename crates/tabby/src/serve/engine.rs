@@ -82,7 +82,7 @@ fn create_ctranslate2_engine(
 
 fn create_ggml_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {
     let options = llama_cpp_bindings::LlamaEngineOptionsBuilder::default()
-        .model_path(model_dir.ggml_q8_0_file())
+        .model_path(model_dir.ggml_q8_0_v2_file())
         .tokenizer_path(model_dir.tokenizer_file())
         .use_gpu(device.ggml_use_gpu())
         .build()
