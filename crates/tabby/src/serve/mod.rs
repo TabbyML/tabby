@@ -95,6 +95,11 @@ impl Device {
     fn ggml_use_gpu(&self) -> bool {
         *self == Device::Cuda
     }
+
+    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
+    fn ggml_use_gpu(&self) -> bool {
+        false
+    }
 }
 
 #[derive(Args)]
@@ -114,17 +119,10 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
-    /// GPU indices to run models, only applicable for CUDA.
-    #[clap(long, default_values_t=[0])]
+    /// DEPRECATED: Do not use.
+    #[deprecated(since = "0.5.0")]
+    #[clap(long, hide(true))]
     device_indices: Vec<i32>,
-
-    /// DEPRECATED: Do not use.
-    #[clap(long, hide(true))]
-    num_replicas_per_device: Option<usize>,
-
-    /// DEPRECATED: Do not use.
-    #[clap(long, hide(true))]
-    compute_type: Option<String>,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
@@ -251,17 +249,8 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn valid_args(args: &ServeArgs) {
-    if args.num_replicas_per_device.is_some() {
-        warn!("--num-replicas-per-device is deprecated and will be removed in future release.");
-    }
-
-    if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
-    {
-        fatal!("CPU device only supports device indices = [0]");
-    }
-
-    if args.compute_type.is_some() {
-        warn!("--compute-type is deprecated and will be removed in future release.");
+    if !args.device_indices.is_empty() {
+        warn!("--device-indices is deprecated and will be removed in future release.");
     }
 }
 
