@@ -161,6 +161,7 @@ export const userAgentConfig = isBrowser
   : (() => {
       const EventEmitter = require("events");
       const fs = require("fs-extra");
+      const path = require("path");
       const toml = require("toml");
       const chokidar = require("chokidar");
       const deepEqual = require("deep-equal");
@@ -202,7 +203,7 @@ export const userAgentConfig = isBrowser
         async migrateConfig(config) {
           try {
             const prefix = new Date().toISOString().replace(/\D+/g, "");
-            const target = `${prefix}-${this.filepath}`;
+            const target = path.join(path.dirname(this.filepath), `${prefix}-config.toml`);
             await fs.move(this.filepath, target);
             await fs.outputFile(this.filepath, generateConfigFile(true, config));
             this.logger.info(`Migrated config file to ${target}.`);
