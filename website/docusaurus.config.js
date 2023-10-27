@@ -141,6 +141,10 @@ const config = {
               {
                 label: "Status",
                 href: "https://uptime.tabbyml.com"
+              },
+              {
+                label: "MediaKit",
+                href: "https://www.figma.com/community/file/1299817332961215434/tabby-mediakit"
               }
             ],
           },
