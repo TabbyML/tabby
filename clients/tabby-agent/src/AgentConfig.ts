@@ -1,4 +1,3 @@
-import semverCompare from "semver-compare";
 import { isBrowser } from "./env";
 
 const configVersion = "1.1.0";
@@ -164,6 +163,8 @@ export const userAgentConfig = isBrowser
       const fs = require("fs-extra");
       const toml = require("toml");
       const chokidar = require("chokidar");
+      const deepEqual = require("deep-equal");
+      const semverCompare = require("semver-compare");
 
       class ConfigFile extends EventEmitter {
         filepath: string;
@@ -189,7 +190,6 @@ export const userAgentConfig = isBrowser
               return await this.load();
             }
             this.data = data;
-            super.emit("updated", this.data);
           } catch (error) {
             if (error.code === "ENOENT") {
               await this.createTemplate();
@@ -222,8 +222,15 @@ export const userAgentConfig = isBrowser
           this.watcher = chokidar.watch(this.filepath, {
             interval: 1000,
           });
-          this.watcher.on("add", this.load.bind(this));
-          this.watcher.on("change", this.load.bind(this));
+          const onChanged = async () => {
+            const oldData = this.data;
+            await this.load();
+            if (!deepEqual(oldData, this.data)) {
+              super.emit("updated", this.data);
+            }
+          }
+          this.watcher.on("add", onChanged);
+          this.watcher.on("change", onChanged);
         }
       }
 
