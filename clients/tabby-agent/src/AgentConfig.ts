@@ -94,8 +94,8 @@ function generateConfigFile(isMigrated: boolean, config: PartialAgentConfig) {
   file += "\n";
 
   if (isMigrated) {
-    file += `## This file is automatically updated by Tabby.\n`;
-    file += `## You configuration is migrated and the old config file is retained as ~/.tabby-client/agent/config.toml.{date}.\n`;
+    file += `## This file has been automatically updated by Tabby.\n`;
+    file += `## You configuration is migrated and the old config file is retained as ~/.tabby-client/agent/{date}-config.toml.\n`;
     file += "\n";
   }
   file += `## You can edit this file to customize your settings.\n`;
@@ -201,10 +201,11 @@ export const userAgentConfig = isBrowser
 
         async migrateConfig(config) {
           try {
-            const suffix = `.${new Date().toISOString().replace(/\D+/g, "")}`;
-            await fs.move(this.filepath, `${this.filepath}${suffix}`);
+            const prefix = new Date().toISOString().replace(/\D+/g, "");
+            const target = `${prefix}-${this.filepath}`;
+            await fs.move(this.filepath, target);
             await fs.outputFile(this.filepath, generateConfigFile(true, config));
-            this.logger.info(`Migrated config file to ${this.filepath}${suffix}.`);
+            this.logger.info(`Migrated config file to ${target}.`);
           } catch (error) {
             this.logger.error({ error }, "Failed to migrate config file");
           }
@@ -228,7 +229,7 @@ export const userAgentConfig = isBrowser
             if (!deepEqual(oldData, this.data)) {
               super.emit("updated", this.data);
             }
-          }
+          };
           this.watcher.on("add", onChanged);
           this.watcher.on("change", onChanged);
         }
