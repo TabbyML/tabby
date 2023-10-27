@@ -48,7 +48,7 @@ impl Downloader {
         let files = vec![
             ("tabby.json", true),
             ("tokenizer.json", true),
-            ("ggml/q8_0.gguf", true),
+            ("ggml/q8_0.v2.gguf", true),
         ];
         self.download_files(&files).await
     }
