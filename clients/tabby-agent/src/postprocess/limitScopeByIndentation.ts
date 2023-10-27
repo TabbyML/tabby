@@ -1,4 +1,5 @@
 import { CompletionContext } from "../Agent";
+import { AgentConfig } from "../AgentConfig";
 import { PostprocessFilter, logger } from "./base";
 import { isBlank, splitLines } from "../utils";
 
@@ -17,6 +18,7 @@ function processContext(
   lines: string[],
   prefixLines: string[],
   suffixLines: string[],
+  config: AgentConfig["postprocess"]["limitScopeByIndentation"],
 ): { indentLevelLimit: number; allowClosingLine: (closingLine: string) => boolean } {
   let allowClosingLine = false;
   let result = { indentLevelLimit: 0, allowClosingLine: (closingLine: string) => allowClosingLine };
@@ -57,7 +59,11 @@ function processContext(
   if (!isCurrentLineInCompletionBlank && !isCurrentLineInPrefixBlank) {
     // if two reference lines are contacted at current line, it is continuing uncompleted sentence
 
-    result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
+    if (config.keepBlockScopeWhenCompletingLine) {
+      result.indentLevelLimit = referenceLineInPrefixIndent;
+    } else {
+      result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
+    }
     // allow closing line if first line is opening a new indent block
     allowClosingLine = !!lines[1] && calcIndentLevel(lines[1]) > referenceLineInPrefixIndent;
   } else if (referenceLineInCompletionIndent > referenceLineInPrefixIndent) {
@@ -95,7 +101,10 @@ function processContext(
   return result;
 }
 
-export const limitScopeByIndentation: (context: CompletionContext) => PostprocessFilter = (context) => {
+export function limitScopeByIndentation(
+  context: CompletionContext,
+  config: AgentConfig["postprocess"]["limitScopeByIndentation"],
+): PostprocessFilter {
   return (input) => {
     const { prefix, suffix, prefixLines, suffixLines } = context;
     const inputLines = splitLines(input);
@@ -105,7 +114,7 @@ export const limitScopeByIndentation: (context: CompletionContext) => Postproces
         return null;
       }
     }
-    const indentContext = processContext(inputLines, prefixLines, suffixLines);
+    const indentContext = processContext(inputLines, prefixLines, suffixLines, config);
     let index;
     for (index = 1; index < inputLines.length; index++) {
       if (isBlank(inputLines[index])) {
@@ -135,4 +144,4 @@ export const limitScopeByIndentation: (context: CompletionContext) => Postproces
     }
     return input;
   };
-};
+}
