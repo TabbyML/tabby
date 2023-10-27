@@ -26,33 +26,40 @@ prepare_llama_cpp() {
 }
 
 update_model() {
-  MODEL_ID=$1
+  CONVERTER=$1
+  MODEL_ID=$2
 
-  git clone https://${ACCESS_TOKEN}@huggingface.co/$MODEL_ID hf_model --depth 1
+  git clone https://huggingface.co/$MODEL_ID hf_model --depth 1
 
   pushd hf_model
   huggingface-cli lfs-enable-largefiles .
 
-  python ../llama.cpp/convert-starcoder-hf-to-gguf.py  . --outfile ./ggml/f16.v2.gguf 1
+  "$CONVERTER"
   ../llama.cpp/build/bin/quantize ./ggml/f16.v2.gguf ./ggml/q8_0.v2.gguf q8_0
-
-  git add .
-  git commit -m "add ggml model v2"
-  git lfs push origin
-  git push origin
+  huggingface-cli upload $MODEL_ID ggml/q8_0.v2.gguf ggml/q8_0.v2.gguf
   popd
 
   echo "Success!"
   rm -rf hf_model
 }
 
+starcoder() {
+  python ../llama.cpp/convert-starcoder-hf-to-gguf.py  . --outfile ./ggml/f16.v2.gguf 1
+}
+
+llama() {
+  python ../llama.cpp/convert.py  . --outfile ./ggml/f16.v2.gguf --outtype f16
+}
+
 set -x
+huggingface-cli login --token ${ACCESS_TOKEN}
+
 prepare_llama_cpp || true
 
-# update_model TabbyML/StarCoder-1B
-# update_model TabbyML/StarCoder-3B
-update_model TabbyML/StarCoder-7B
-update_model TabbyML/CodeLlama-7B
-update_model TabbyML/CodeLlama-13B
-update_model TabbyML/Mistral-7B
-update_model TabbyML/WizardCoder-3B
+update_model starcoder TabbyML/StarCoder-1B
+update_model starcoder TabbyML/StarCoder-3B
+update_model starcoder TabbyML/StarCoder-7B
+update_model llama TabbyML/CodeLlama-7B
+update_model llama TabbyML/CodeLlama-13B
+update_model llama TabbyML/Mistral-7B
+update_model starcoder TabbyML/WizardCoder-3B
