@@ -47,7 +47,7 @@ export const dataStore = isBrowser
             if (!deepEqual(oldData, this.data)) {
               super.emit("updated", this.data);
             }
-          }
+          };
           this.watcher.on("add", onChanged);
           this.watcher.on("change", onChanged);
         }
