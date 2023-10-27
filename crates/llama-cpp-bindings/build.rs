@@ -14,6 +14,9 @@ fn main() {
     }
     if cfg!(feature = "cuda") {
         config.define("LLAMA_CUBLAS", "ON");
+        println!("cargo:rustc-link-lib=cudart");
+        println!("cargo:rustc-link-lib=cublas");
+        println!("cargo:rustc-link-lib=cublasLt");
     }
 
     let dst = config.build();
