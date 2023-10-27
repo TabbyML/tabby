@@ -36,3 +36,37 @@ import CodeBlock from '@theme/CodeBlock';
     <p>For details on the registry format, please refer to <a href="https://github.com/TabbyML/registry-tabby/blob/main/models.json">models.json</a></p>
   </div>
 </details>
+
+<details>
+  <summary>How can I run tabby offline?</summary>
+  <div>
+    <ul>   
+      <li>
+        First download the models and docker image on an internet connected machine:
+        <CodeBlock language="bash">
+        {`# Download the docker container and models
+docker run --rm --name tabby -it -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby download --model TabbyML/StarCoder-1B      
+# Compress the models directory
+tar zcvf models.tgz $HOME/.tabby
+# Save the docker image
+docker save -o tabbyml.tar tabbyml/tabby`}
+        </CodeBlock>
+      </li>
+      <li>Then transfer the files <code>models.tgz</code> and <code>tabbyml.tar</code> to the offline system.</li>
+      <li>
+        Prepare tabby on the offline system:
+        <CodeBlock language="bash">
+        {`# Load the docker image
+docker load -i tabbyml.tar
+# Extract the models directory
+tar -zxvf models.tgz -C $HOME
+# Start tabby
+docker run --name tabby -it -p 8080:8080 -v $HOME/.tabby:/data tabbyml/tabby serve --model TabbyML/StarCoder-1B`}
+        </CodeBlock>
+      </li>
+      <li>
+        Launch tabby as described in the <a href="https://tabby.tabbyml.com/docs/installation/docker">Docker</a> installation instructions.
+      </li>
+    </ul>
+  </div>
+</details>
