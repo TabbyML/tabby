@@ -7,9 +7,9 @@
 
 ## Fixes and Improvements
 
-* Switch cuda backend to llama.cpp: https://github.com/TabbyML/tabby/pull/TODO
 * Switch cpu backend to llama.cpp: https://github.com/TabbyML/tabby/pull/638
 * add `server.completion_timeout` to control the code completion interface timeout: https://github.com/TabbyML/tabby/pull/637
+* Switch cuda backend to llama.cpp: https://github.com/TabbyML/tabby/pull/656
 
 # v0.4.0
 

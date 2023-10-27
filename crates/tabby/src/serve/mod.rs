@@ -91,7 +91,7 @@ impl Device {
         *self == Device::Metal
     }
 
-    #[cfg(feature="cuda")]
+    #[cfg(feature = "cuda")]
     fn ggml_use_gpu(&self) -> bool {
         *self == Device::Cuda
     }

@@ -55,7 +55,7 @@ RUN git config --system --add safe.directory "*"
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
         /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
-COPY --from=builder /opt/tabby /opt/tabby
+COPY --from=build /opt/tabby /opt/tabby
 
 ENV TABBY_ROOT=/data
 
