@@ -74,7 +74,7 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
+    #[cfg(feature = "cuda")]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -87,23 +87,13 @@ pub enum Device {
 
 impl Device {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    fn use_ggml_backend(&self) -> bool {
-        *self == Device::Metal || *self == Device::Cpu
-    }
-
-    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-    fn use_ggml_backend(&self) -> bool {
-        *self == Device::Cpu
-    }
-
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     fn ggml_use_gpu(&self) -> bool {
         *self == Device::Metal
     }
 
-    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    #[cfg(feature="cuda")]
     fn ggml_use_gpu(&self) -> bool {
-        false
+        *self == Device::Cuda
     }
 }
 
@@ -141,9 +131,9 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        download_model(&args.model, &args.device).await;
+        download_model(&args.model).await;
         if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model, &args.device).await;
+            download_model(chat_model).await;
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -285,15 +275,10 @@ fn start_heartbeat(args: &ServeArgs) {
     });
 }
 
-async fn download_model(model: &str, device: &Device) {
+async fn download_model(model: &str) {
     let downloader = Downloader::new(model, /* prefer_local_file= */ true);
     let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = if device.use_ggml_backend() {
-        downloader.download_ggml_files().await
-    } else {
-        downloader.download_ctranslate2_files().await
-    };
-
+    let download_result = downloader.download_ggml_files().await;
     download_result.unwrap_or_else(handler);
 }
 

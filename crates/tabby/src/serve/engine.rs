@@ -13,7 +13,7 @@ pub fn create_engine(
     if args.device != super::Device::ExperimentalHttp {
         let model_dir = get_model_dir(model);
         let metadata = read_metadata(&model_dir);
-        let engine = create_local_engine(args, &model_dir, &metadata);
+        let engine = create_ggml_engine(&args.device, &model_dir);
         (
             engine,
             EngineInfo {
@@ -36,48 +36,6 @@ pub fn create_engine(
 pub struct EngineInfo {
     pub prompt_template: Option<String>,
     pub chat_template: Option<String>,
-}
-
-#[cfg(not(any(feature = "link_shared", feature = "link_cuda_static")))]
-fn create_local_engine(
-    args: &crate::serve::ServeArgs,
-    model_dir: &ModelDir,
-    _metadata: &Metadata,
-) -> Box<dyn TextGeneration> {
-    create_ggml_engine(&args.device, model_dir)
-}
-
-#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
-fn create_local_engine(
-    args: &crate::serve::ServeArgs,
-    model_dir: &ModelDir,
-    metadata: &Metadata,
-) -> Box<dyn TextGeneration> {
-    if args.device.use_ggml_backend() {
-        create_ggml_engine(&args.device, model_dir)
-    } else {
-        create_ctranslate2_engine(args, model_dir, metadata)
-    }
-}
-
-#[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
-fn create_ctranslate2_engine(
-    args: &crate::serve::ServeArgs,
-    model_dir: &ModelDir,
-    metadata: &Metadata,
-) -> Box<dyn TextGeneration> {
-    use ctranslate2_bindings::{CTranslate2Engine, CTranslate2EngineOptionsBuilder};
-
-    let device = format!("{}", args.device);
-    let options = CTranslate2EngineOptionsBuilder::default()
-        .model_path(model_dir.ctranslate2_dir())
-        .tokenizer_path(model_dir.tokenizer_file())
-        .device(device)
-        .model_type(metadata.auto_model.clone())
-        .device_indices(args.device_indices.clone())
-        .build()
-        .unwrap();
-    Box::new(CTranslate2Engine::create(options))
 }
 
 fn create_ggml_engine(device: &super::Device, model_dir: &ModelDir) -> Box<dyn TextGeneration> {

@@ -3,6 +3,9 @@ name = "tabby"
 version = "0.5.0-dev"
 edition = "2021"
 
+[features]
+cuda = ["llama-cpp-bindings/cuda"]
+
 [dependencies]
 tabby-common = { path = "../tabby-common" }
 tabby-scheduler = { path = "../tabby-scheduler" }
@@ -43,7 +46,6 @@ textdistance = "1.0.2"
 regex.workspace = true
 thiserror.workspace = true
 llama-cpp-bindings = { path = "../llama-cpp-bindings" }
-ctranslate2-bindings = { path = "../ctranslate2-bindings", optional = true }
 
 [dependencies.uuid]
 version = "1.3.3"
@@ -52,10 +54,6 @@ features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
-
-[features]
-link_shared = ["ctranslate2-bindings/link_shared"]
-link_cuda_static = ["ctranslate2-bindings"]
 
 [build-dependencies]
 vergen = { version = "8.0.0", features = ["build", "git", "gitcl"] }

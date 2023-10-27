@@ -1,8 +1,12 @@
-FROM ghcr.io/opennmt/ctranslate2:3.20.0-ubuntu20.04-cuda11.2 as source
-FROM nvidia/cuda:11.2.2-cudnn8-devel-ubuntu20.04 as builder
+ARG UBUNTU_VERSION=22.04
+# This needs to generally match the container host's environment.
+ARG CUDA_VERSION=11.7.1
+# Target the CUDA build image
+ARG BASE_CUDA_DEV_CONTAINER=nvidia/cuda:${CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION}
+# Target the CUDA runtime image
+ARG BASE_CUDA_RUN_CONTAINER=nvidia/cuda:${CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION}
 
-ENV CTRANSLATE2_ROOT=/opt/ctranslate2
-COPY --from=source $CTRANSLATE2_ROOT $CTRANSLATE2_ROOT
+FROM ${BASE_CUDA_DEV_CONTAINER} as build
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
@@ -30,10 +34,10 @@ RUN mkdir -p target
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \
-    cargo build --features link_shared --release && \
+    cargo build --features cuda --release && \
     cp target/release/tabby /opt/tabby/bin/
 
-FROM ghcr.io/opennmt/ctranslate2:3.20.0-ubuntu20.04-cuda11.2
+FROM ${BASE_CUDA_RUN_CONTAINER} as runtime
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
