@@ -3153,7 +3153,6 @@ dependencies = [
  "axum-streams",
  "axum-tracing-opentelemetry",
  "clap",
- "ctranslate2-bindings",
  "futures",
  "http-api-bindings",
  "hyper",

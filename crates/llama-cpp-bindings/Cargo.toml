@@ -3,6 +3,9 @@ name = "llama-cpp-bindings"
 version = "0.5.0-dev"
 edition = "2021"
 
+[features]
+cuda = []
+
 [build-dependencies]
 cxx-build = "1.0"
 cmake = "0.1"

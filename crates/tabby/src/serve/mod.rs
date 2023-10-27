@@ -74,7 +74,7 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[cfg(any(feature = "link_shared", feature = "link_cuda_static"))]
+    #[cfg(feature = "cuda")]
     Cuda,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -87,21 +87,16 @@ pub enum Device {
 
 impl Device {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    fn use_ggml_backend(&self) -> bool {
-        *self == Device::Metal || *self == Device::Cpu
-    }
-
-    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-    fn use_ggml_backend(&self) -> bool {
-        *self == Device::Cpu
-    }
-
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     fn ggml_use_gpu(&self) -> bool {
         *self == Device::Metal
     }
 
-    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    #[cfg(feature = "cuda")]
+    fn ggml_use_gpu(&self) -> bool {
+        *self == Device::Cuda
+    }
+
+    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda")))]
     fn ggml_use_gpu(&self) -> bool {
         false
     }
@@ -124,26 +119,19 @@ pub struct ServeArgs {
     #[clap(long, default_value_t=Device::Cpu)]
     device: Device,
 
-    /// GPU indices to run models, only applicable for CUDA.
-    #[clap(long, default_values_t=[0])]
+    /// DEPRECATED: Do not use.
+    #[deprecated(since = "0.5.0")]
+    #[clap(long, hide(true))]
     device_indices: Vec<i32>,
-
-    /// DEPRECATED: Do not use.
-    #[clap(long, hide(true))]
-    num_replicas_per_device: Option<usize>,
-
-    /// DEPRECATED: Do not use.
-    #[clap(long, hide(true))]
-    compute_type: Option<String>,
 }
 
 pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        download_model(&args.model, &args.device).await;
+        download_model(&args.model).await;
         if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model, &args.device).await;
+            download_model(chat_model).await;
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -261,17 +249,8 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
 }
 
 fn valid_args(args: &ServeArgs) {
-    if args.num_replicas_per_device.is_some() {
-        warn!("--num-replicas-per-device is deprecated and will be removed in future release.");
-    }
-
-    if args.device == Device::Cpu && (args.device_indices.len() != 1 || args.device_indices[0] != 0)
-    {
-        fatal!("CPU device only supports device indices = [0]");
-    }
-
-    if args.compute_type.is_some() {
-        warn!("--compute-type is deprecated and will be removed in future release.");
+    if !args.device_indices.is_empty() {
+        warn!("--device-indices is deprecated and will be removed in future release.");
     }
 }
 
@@ -285,15 +264,10 @@ fn start_heartbeat(args: &ServeArgs) {
     });
 }
 
-async fn download_model(model: &str, device: &Device) {
+async fn download_model(model: &str) {
     let downloader = Downloader::new(model, /* prefer_local_file= */ true);
     let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = if device.use_ggml_backend() {
-        downloader.download_ggml_files().await
-    } else {
-        downloader.download_ctranslate2_files().await
-    };
-
+    let download_result = downloader.download_ggml_files().await;
     download_result.unwrap_or_else(handler);
 }
 
