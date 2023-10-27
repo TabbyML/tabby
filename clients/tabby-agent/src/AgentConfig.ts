@@ -1,8 +1,13 @@
+import semverCompare from "semver-compare";
 import { isBrowser } from "./env";
 
+const configVersion = "1.1.0";
+
 export type AgentConfig = {
+  version: string;
   server: {
     endpoint: string;
+    token: string;
     requestHeaders: Record<string, string | number | boolean | null | undefined>;
     requestTimeout: number;
   };
@@ -48,8 +53,10 @@ type RecursivePartial<T> = {
 export type PartialAgentConfig = RecursivePartial<AgentConfig>;
 
 export const defaultAgentConfig: AgentConfig = {
+  version: configVersion,
   server: {
     endpoint: "http://localhost:8080",
+    token: "",
     requestHeaders: {},
     requestTimeout: 30000, // 30s
   },
@@ -82,74 +89,73 @@ export const defaultAgentConfig: AgentConfig = {
   },
 };
 
-const oldConfigTomlTemplate = `## Tabby agent configuration file
+function generateConfigFile(isMigrated: boolean, config: PartialAgentConfig) {
+  let file = `## Tabby agent configuration file\n`;
+  file += `version = "${configVersion}" # Version of the config file, managed by Tabby. Do not edit.\n`;
+  file += "\n";
 
-## You can uncomment any block to enable settings.
-## Configurations in this file has lower priority than in IDE settings.
+  if (isMigrated) {
+    file += `## This file is automatically updated by Tabby.\n`;
+    file += `## You configuration is migrated and the old config file is retained as ~/.tabby-client/agent/config.toml.{date}.\n`;
+    file += "\n";
+  }
+  file += `## You can edit this file to customize your settings.\n`;
+  file += `## Note that configurations in this file has lower priority than in IDE settings.\n`;
+  file += "\n";
 
-## Server
-## You can set the server endpoint and request timeout here.
-# [server]
-# endpoint = "http://localhost:8080" # http or https URL
-# requestTimeout = 30000 # ms
+  file += `## Server\n`;
+  file += `## You can set the server endpoint and authentication token here.\n`;
+  if (
+    config.server?.endpoint !== undefined ||
+    config.server?.token !== undefined ||
+    config.server?.requestHeaders?.["Authorization"] !== undefined
+  ) {
+    file += `[server]\n`;
+    if (config.server?.endpoint !== undefined) {
+      file += `endpoint = "${config.server.endpoint}" # http or https URL\n`;
+    } else {
+      file += `# endpoint = "http://localhost:8080" # http or https URL\n`;
+    }
+    if (config.server?.token !== undefined || config.server?.requestHeaders?.["Authorization"] !== undefined) {
+      const token =
+        config.server?.token ?? config.server?.requestHeaders["Authorization"]?.toString()?.replace("Bearer ", "");
+      file += `token = "${token}" # if server requires authentication\n`;
+    } else {
+      file += `# token = "your-token-here" # if server requires authentication\n`;
+    }
+  } else {
+    file += `# [server]\n`;
+    file += `# endpoint = "http://localhost:8080" # http or https URL\n`;
+    file += `# token = "your-token-here" # if server requires authentication\n`;
+  }
+  file += "\n";
 
-## You can add custom request headers, e.g. for authentication.
-# [server.requestHeaders]
-# Authorization = "Bearer eyJhbGciOiJ..........."
+  file += `## Logs\n`;
+  file += `## You can set the log level here.\n`;
+  file += `## The log file is located at ~/.tabby-client/agent/logs/.\n`;
 
-## Completion
-## You can set the prompt context to send to the server for completion.
-# [completion.prompt]
-# maxPrefixLines = 20
-# maxSuffixLines = 20
+  if (config.logs?.level !== undefined) {
+    file += `[logs]\n`;
+    file += `level = "${config.logs.level}" # "silent" or "error" or "debug"\n`;
+  } else {
+    file += `# [logs]\n`;
+    file += `# level = "silent" # "silent" or "error" or "debug"\n`;
+  }
+  file += "\n";
 
-## You can set the debounce mode for auto completion requests when typing.
-# [completion.debounce]
-# mode = "adaptive" # or "fixed"
-# interval = 250 # ms, only used when mode is "fixed"
+  file += `## Anonymous usage tracking\n`;
+  file += `## You can disable anonymous usage tracking here.\n`;
+  if (config.anonymousUsageTracking?.disable !== undefined) {
+    file += `[anonymousUsageTracking]\n`;
+    file += `disable = ${config.anonymousUsageTracking.disable} # set to true to disable\n`;
+  } else {
+    file += `# [anonymousUsageTracking]\n`;
+    file += `# disable = false # set to true to disable\n`;
+  }
+  file += "\n";
 
-## You can set the timeout for completion requests.
-# [completion.timeout]
-# auto = 5000 # ms, for auto completion when typing
-# manually = 30000 # ms, for manually triggered completion
-
-## Logs
-## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
-# [logs]
-# level = "silent" # or "error" or "debug"
-
-## Anonymous usage tracking
-## You can disable anonymous usage tracking here.
-# [anonymousUsageTracking]
-# disable = false # set to true to disable
-
-`;
-
-const configTomlTemplate = `## Tabby agent configuration file
-
-## You can uncomment any block to enable settings.
-## Configurations in this file has lower priority than in IDE settings.
-
-## Server
-## You can set the server endpoint here.
-# [server]
-# endpoint = "http://localhost:8080" # http or https URL
-
-## You can add custom request headers, e.g. for authentication.
-# [server.requestHeaders]
-# Authorization = "Bearer eyJhbGciOiJ..........."
-
-## Logs
-## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
-# [logs]
-# level = "silent" # or "error" or "debug"
-
-## Anonymous usage tracking
-## You can disable anonymous usage tracking here.
-# [anonymousUsageTracking]
-# disable = false # set to true to disable
-
-`;
+  return file;
+}
 
 export const userAgentConfig = isBrowser
   ? null
@@ -177,13 +183,12 @@ export const userAgentConfig = isBrowser
         async load() {
           try {
             const fileContent = await fs.readFile(this.filepath, "utf8");
-            // If the config file is the old template, and user has not modified it,
-            // Overwrite it with the new template.
-            if (fileContent.trim() === oldConfigTomlTemplate.trim()) {
-              await this.createTemplate();
+            const data = toml.parse(fileContent);
+            if (semverCompare(data.version ?? "0", configVersion) < 0) {
+              await this.migrateConfig(data);
               return await this.load();
             }
-            this.data = toml.parse(fileContent);
+            this.data = data;
             super.emit("updated", this.data);
           } catch (error) {
             if (error.code === "ENOENT") {
@@ -194,9 +199,20 @@ export const userAgentConfig = isBrowser
           }
         }
 
+        async migrateConfig(config) {
+          try {
+            const suffix = `.${new Date().toISOString().replace(/\D+/g, "")}`;
+            await fs.move(this.filepath, `${this.filepath}${suffix}`);
+            await fs.outputFile(this.filepath, generateConfigFile(true, config));
+            this.logger.info(`Migrated config file to ${this.filepath}${suffix}.`);
+          } catch (error) {
+            this.logger.error({ error }, "Failed to migrate config file");
+          }
+        }
+
         async createTemplate() {
           try {
-            await fs.outputFile(this.filepath, configTomlTemplate);
+            await fs.outputFile(this.filepath, generateConfigFile(false, {}));
           } catch (error) {
             this.logger.error({ error }, "Failed to create config template file");
           }
