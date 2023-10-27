@@ -83,3 +83,11 @@
 .Playground .monaco-editor {
   padding-top: 15px;
 }
+
+.navbar__logo {
+  height: 28px;
+}
+
+.hero__title {
+  font-family: 'Azeret Mono';
+}

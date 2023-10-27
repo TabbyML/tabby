@@ -32,6 +32,16 @@ const config = {
     locales: ['en'],
   },
 
+  headTags: [
+    {
+      tagName: 'link',
+      attributes: {
+        href: 'https://fonts.googleapis.com/css?family=Azeret Mono',
+        rel: 'stylesheet'
+      }
+    }
+  ],
+
   presets: [
     [
       'docusaurus-preset-openapi',
@@ -65,8 +75,7 @@ const config = {
     ({
       image: 'img/tabby-social-card.png',
       navbar: {
-        title: 'Tabby',
-        logo: {
+      logo: {
           alt: 'Tabby',
           src: 'img/logo.png',
         },
