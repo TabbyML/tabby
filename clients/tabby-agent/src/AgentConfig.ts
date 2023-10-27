@@ -8,6 +8,7 @@ export type AgentConfig = {
   };
   completion: {
     prompt: {
+      stripAutoClosingCharacters: boolean;
       maxPrefixLines: number;
       maxSuffixLines: number;
     };
@@ -46,6 +47,7 @@ export const defaultAgentConfig: AgentConfig = {
   },
   completion: {
     prompt: {
+      stripAutoClosingCharacters: false,
       maxPrefixLines: 20,
       maxSuffixLines: 20,
     },
