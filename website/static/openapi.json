@@ -7,7 +7,7 @@
       "name": "Apache 2.0",
       "url": "https://github.com/TabbyML/tabby/blob/main/LICENSE"
     },
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "servers": [
     {
