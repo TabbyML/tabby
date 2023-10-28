@@ -19,14 +19,9 @@ pub async fn main(args: &DownloadArgs) {
     let downloader = Downloader::new(&args.model, args.prefer_local_file);
 
     downloader
-        .download_ctranslate2_files()
-        .await
-        .unwrap_or_else(|err| fatal!("Failed to fetch model '{}' due to '{}'", args.model, err));
-
-    downloader
         .download_ggml_files()
         .await
-        .unwrap_or_else(|err| warn!("Failed to fetch model '{}' due to '{}'", args.model, err));
+        .unwrap_or_else(|err| fatal!("Failed to fetch model '{}' due to '{}'", args.model, err));
 
     info!("model '{}' is ready", args.model);
 }
