@@ -30,6 +30,9 @@ export function Header() {
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
           Home
         </Link>
+        <Link href="/api" className={cn(buttonVariants({ variant: 'link' }))}>
+          API
+        </Link>
         {isChatEnabled && <Link href="/playground" className={cn(buttonVariants({ variant: 'link' }))}>
           Playground
         </Link>}
@@ -52,15 +55,6 @@ export function Header() {
         >
           <IconGitHub />
           <span className="hidden ml-2 md:flex">GitHub</span>
-        </a>
-        <a
-          target="_blank"
-          href="/swagger-ui"
-          rel="noopener noreferrer"
-          className={cn(buttonVariants({ variant: 'outline' }))}
-        >
-          <IconExternalLink />
-          <span className="hidden ml-2 md:flex">OpenAPI</span>
         </a>
       </div>
     </header>
