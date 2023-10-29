@@ -24,11 +24,7 @@ import CodeBlock from '@theme/CodeBlock';
 <details>
   <summary>How to utilize multiple NVIDIA GPUs?</summary>
   <div>
-    <p>Tabby supports replicating models on multiple GPUs to increase throughput. You can specify the devices for model replication by using the <b>--device-indices</b> option.</p>
-    <CodeBlock language="bash">
-    # Replicate model to GPU 0 and GPU 1.{'\n'}
-    tabby serve ... --device-indices 0 --device-indices 1
-    </CodeBlock>
+    <p>Tabby only supports the use of a single GPU. To utilize multiple GPUs, you can initiate multiple Tabby instances and set CUDA_VISIBLE_DEVICES accordingly.</p>
   </div>
 </details>
 
