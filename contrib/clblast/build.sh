@@ -1,1 +1,0 @@
-docker build -t tabbyml/tabby:clblast -f Dockerfile ../../

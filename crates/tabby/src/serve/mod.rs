@@ -74,8 +74,11 @@ pub enum Device {
     #[strum(serialize = "cpu")]
     Cpu,
 
-    #[cfg(any(feature = "cuda", feature = "clblast"))]
+    #[cfg(feature = "cuda")]
     Cuda,
+
+    #[cfg(feature = "opencl")]
+    OpenCL,
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[strum(serialize = "metal")]
@@ -91,12 +94,17 @@ impl Device {
         *self == Device::Metal
     }
 
-    #[cfg(any(feature = "cuda", feature = "clblast"))]
+    #[cfg(feature = "cuda")]
     fn ggml_use_gpu(&self) -> bool {
         *self == Device::Cuda
     }
 
-    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda", feature = "clblast")))]
+    #[cfg(feature = "opencl")]
+    fn ggml_use_gpu(&self) -> bool {
+        true
+    }
+
+    #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda", feature = "opencl")))]
     fn ggml_use_gpu(&self) -> bool {
         false
     }
