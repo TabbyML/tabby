@@ -1,6 +1,6 @@
 use clap::Args;
 use tabby_download::Downloader;
-use tracing::{info, log::warn};
+use tracing::info;
 
 use crate::fatal;
 
