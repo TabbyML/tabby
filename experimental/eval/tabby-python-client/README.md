@@ -61,7 +61,7 @@ client = AuthenticatedClient(
 )
 ```
 
-There are more settings on the generated `Client` class which let you control more runtime behaviour, check out the docstring on that class for more info.
+There are more settings on the generated `Client` class which let you control more runtime behavior, check out the docstring on that class for more info.
 
 Things to know:
 1. Every path/method combo becomes a Python module with four functions:
