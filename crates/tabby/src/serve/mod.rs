@@ -35,7 +35,7 @@ use crate::fatal;
     info(title="Tabby Server",
         description = "
 [![tabby stars](https://img.shields.io/github/stars/TabbyML/tabby)](https://github.com/TabbyML/tabby)
-[![Join Slack](https://shields.io/badge/Tabby-Join%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
+[![Join Slack](https://shields.io/badge/Join-Tabby%20Slack-red?logo=slack)](https://join.slack.com/t/tabbycommunity/shared_invite/zt-1xeiddizp-bciR2RtFTaJ37RBxr8VxpA)
 
 Install following IDE / Editor extensions to get started with [Tabby](https://github.com/TabbyML/tabby).
 * [VSCode Extension](https://github.com/TabbyML/tabby/tree/main/clients/vscode) – Install from the [marketplace](https://marketplace.visualstudio.com/items?itemName=TabbyML.vscode-tabby), or [open-vsx.org](https://open-vsx.org/extension/TabbyML/vscode-tabby)
@@ -145,6 +145,8 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     let app = Router::new()
         .route("/", routing::get(ui::handler))
         .route("/index.txt", routing::get(ui::handler))
+        .route("/api", routing::get(ui::handler))
+        .route("/api.txt", routing::get(ui::handler))
         .route("/_next/*path", routing::get(ui::handler))
         .merge(api_router(args, config))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))

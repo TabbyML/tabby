@@ -55,10 +55,13 @@ function MainPanel() {
 
   return <div className="w-2/3 lg:w-1/3 flex flex-col gap-3">
     <h1><span className="font-bold">Congratulations</span>, your tabby instance is running!</h1>
-    <span className="flex gap-1">
-      <a target="_blank" href={`https://github.com/TabbyML/tabby/releases/tag/${healthInfo.version.git_describe}`}><img src={`https://img.shields.io/badge/version-${toBadgeString(healthInfo.version.git_describe)}-green`} /></a>
+    <span className="flex flex-wrap gap-1">
+      <a target="_blank" href={`https://github.com/TabbyML/tabby/releases/tag/${healthInfo.version.git_describe}`}>
+        <img src={`https://img.shields.io/badge/version-${toBadgeString(healthInfo.version.git_describe)}-green`} />
+      </a>
       <img src={`https://img.shields.io/badge/device-${healthInfo.device}-blue`} />
       <img src={`https://img.shields.io/badge/model-${toBadgeString(healthInfo.model)}-red`} />
+      {healthInfo.chat_model && <img src={`https://img.shields.io/badge/chat%20model-${toBadgeString(healthInfo.chat_model)}-orange`} />}
     </span>
 
     <Separator />
