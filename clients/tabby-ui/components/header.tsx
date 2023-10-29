@@ -8,7 +8,7 @@ import { IconGitHub, IconExternalLink, IconNotice } from '@/components/ui/icons'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
-import { useLatestRelease } from '@/lib/hooks/use-latest-release'
+import { ReleaseInfo, useLatestRelease } from '@/lib/hooks/use-latest-release'
 import { compare } from 'compare-versions'
 
 const ThemeToggle = dynamic(
@@ -21,7 +21,7 @@ export function Header() {
   const isChatEnabled = !!data?.chat_model;
   const version = data?.version?.git_describe;
   const { data: latestRelease } = useLatestRelease();
-  const newVersionAvailable = version && latestRelease && compare(latestRelease.name, version, '>');
+  const newVersionAvailable = isNewVersionAvailable(version, latestRelease);
 
   return (
     <header className="sticky top-0 z-50 flex items-center justify-between w-full h-16 px-4 border-b shrink-0 bg-gradient-to-b from-background/10 via-background/50 to-background/80 backdrop-blur-xl">
@@ -42,7 +42,7 @@ export function Header() {
           className={buttonVariants({ variant: 'ghost' })}
         >
           <IconNotice className='text-yellow-600 dark:text-yellow-400' />
-          <span className="hidden ml-2 md:flex">New version ({latestRelease.name}) available</span>
+          <span className="hidden ml-2 md:flex">New version ({latestRelease?.name}) available</span>
         </a>}
         <a
           target="_blank"
@@ -65,4 +65,14 @@ export function Header() {
       </div>
     </header>
   )
+}
+
+function isNewVersionAvailable(version?: string, latestRelease?: ReleaseInfo) {
+  try {
+    return version && latestRelease && compare(latestRelease.name, version, '>');
+  } catch (err) {
+    // Handle invalid semver
+    console.warn(err);
+    return true;
+  }
 }

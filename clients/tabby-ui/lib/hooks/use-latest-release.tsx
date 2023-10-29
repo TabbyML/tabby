@@ -4,7 +4,7 @@
 import useSWRImmutable from 'swr/immutable';
 import { SWRResponse } from 'swr'
 
-interface ReleaseInfo {
+export interface ReleaseInfo {
     name: string
 }
 
