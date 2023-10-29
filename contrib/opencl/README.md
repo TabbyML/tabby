@@ -1,4 +1,3 @@
-# Tabby with OpenCL
 
 
 ## Build the docker container

@@ -101,7 +101,7 @@ impl Device {
 
     #[cfg(feature = "opencl")]
     fn ggml_use_gpu(&self) -> bool {
-        true
+        *self == Device::OpenCL
     }
 
     #[cfg(not(any(all(target_os = "macos", target_arch = "aarch64"), feature = "cuda", feature = "opencl")))]
