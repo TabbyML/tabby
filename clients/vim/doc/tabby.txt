@@ -78,6 +78,6 @@ Keybindings~
 			`<Tab>` if no completion is shown.
 
 <C-\>			Trigger completion if not shown. Dismiss the current 
-			compleiton if shown.
+			completion if shown.
 
  vim:tw=78:ts=8:noet:ft=help:norl:

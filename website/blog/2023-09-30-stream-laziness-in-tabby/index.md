@@ -80,7 +80,7 @@ This is where the concept of stream laziness comes into play. We should perform 
 
 ![Cancellation](./cancellation.png)
 
-## How to handle canellation?
+## How to handle cancellation?
 
 The core idea is straightforward: on the server side, we need to listen to the `close` event and check if the connection is still valid before pulling data from the LLM stream.
 
