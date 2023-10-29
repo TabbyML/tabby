@@ -10,6 +10,9 @@ assignees: ''
 **Describe the bug**
 A clear and concise description of what the bug is.
 
+**Information about your version**
+Please provide output of `tabby --version`
+
 **Information about your GPU**
 Please provide output of `nvidia-smi`
 
