@@ -100,6 +100,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     stopped_requests_.clear();
 
     if (requests_.size() == 0) {
+      llama_kv_cache_clear(ctx);
       return {};
     }
 
