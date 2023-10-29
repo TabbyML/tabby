@@ -271,17 +271,6 @@ lazy_static! {
                     .unwrap(),
                 ),
             ),
-            (
-                "php",
-                TagsConfigurationSync(
-                    TagsConfiguration::new(
-                        tree_sitter_php::language(),
-                        tree_sitter_php::TAGS_QUERY,
-                        "",
-                    )
-                    .unwrap(),
-                ),
-            ),
         ])
     };
 }
