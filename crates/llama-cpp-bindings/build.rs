@@ -22,6 +22,14 @@ fn main() {
         println!("cargo:rustc-link-lib=cublas");
         println!("cargo:rustc-link-lib=cublasLt");
     }
+    if cfg!(feature = "clblast") {
+        config.define("LLAMA_CLBLAST", "ON");
+        println!("cargo:rustc-link-search=native=/opt/intel/opencl/intel64/");
+        // println!("cargo:rustc-link-lib=cudart");
+        // println!("cargo:rustc-link-lib=culibos");
+        // println!("cargo:rustc-link-lib=cublas");
+        // println!("cargo:rustc-link-lib=cublasLt");
+    }
 
     let dst = config.build();
     println!("cargo:rustc-link-search=native={}/build", dst.display());

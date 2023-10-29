@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 cuda = []
+clblast = []
 
 [build-dependencies]
 cxx-build = "1.0"
