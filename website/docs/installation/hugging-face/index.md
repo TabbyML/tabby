@@ -11,7 +11,7 @@ This tutorial is now also available on [Hugging Face](https://huggingface.co/doc
 
 ## Your first Tabby Space
 
-In this section, you will learn how to deploy a Tabby Space and use it for yourself or your orgnization.
+In this section, you will learn how to deploy a Tabby Space and use it for yourself or your organization.
 
 ### Deploy Tabby on Spaces
 

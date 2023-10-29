@@ -37,7 +37,7 @@ Tabby plugin requires the following dependencies:
 
 ## Installation
 
-You can install Tabby plugin using your favorite plugin manager. Here are some examples using popular plugin managers, you can choose one to follow.
+You can install Tabby plugin using your favourite plugin manager. Here are some examples using popular plugin managers, you can choose one to follow.
 
 ### 🔌 Vim-plug
 

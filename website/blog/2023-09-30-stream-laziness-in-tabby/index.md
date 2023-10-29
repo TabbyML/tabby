@@ -74,13 +74,13 @@ In this example, we are creating an async generator to mimic a LLM that produces
 
 If you were to run this program, you'd notice something interesting. We'll observe the LLM continuing to output `producing ${i}` even after the client has finished reading three times. This might seem obvious, given that the LLM is generating an infinite stream of integers. However, it represents a problem: our server must maintain an ever-expanding queue of items that have been pushed in but not pulled out.
 
-Moreover, the workload involved in creating the stream is typically both expensive and time-consuming, such as computation workload on the GPU. But what if the client aborts the in-flight request due to a network issue or other intended behaviors?
+Moreover, the workload involved in creating the stream is typically both expensive and time-consuming, such as computation workload on the GPU. But what if the client aborts the in-flight request due to a network issue or other intended behaviours?
 
 This is where the concept of stream laziness comes into play. We should perform computations only when the client requests them. If the client no longer needs a response, we should halt production and pause the stream, thereby saving valuable GPU resources.
 
 ![Cancellation](./cancellation.png)
 
-## How to handle canellation?
+## How to handle cancellation?
 
 The core idea is straightforward: on the server side, we need to listen to the `close` event and check if the connection is still valid before pulling data from the LLM stream.
 

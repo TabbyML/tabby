@@ -7,7 +7,7 @@ image: ./twitter-decoding.png
 ---
 # Decode the Decoding in Tabby
 
-In the context of the Transformer model, which is widely used across LLMs, ***decoding*** refers to the process of generating an output sequence from an encoded input. Tabby recenty [implemented ***incremental decoding***](https://github.com/TabbyML/tabby/pull/491) as part of the greedy search. This blog will explain our thoughts behind this 🛠️💡.
+In the context of the Transformer model, which is widely used across LLMs, ***decoding*** refers to the process of generating an output sequence from an encoded input. Tabby recently [implemented ***incremental decoding***](https://github.com/TabbyML/tabby/pull/491) as part of the greedy search. This blog will explain our thoughts behind this 🛠️💡.
 
 
 ## Common Decoding Methods
@@ -21,7 +21,7 @@ numbers = [1, 2, 3, 4, 5]
 evens = [x for x in numbers
 ```
 
-To simplify the scenario, we assume that the language model maintains a probaility distribution as shown below,
+To simplify the scenario, we assume that the language model maintains a probability distribution as shown below,
 
 ![probability](./probability.png)
 
@@ -67,6 +67,6 @@ In the case above, the final decoded string would be `" he llo"` with an awkward
 Incremental decoding:  ......, 207, 211  ->   "......[ hello]"  ✅
 ```
 
-For interested folks, you can refer to Tabby's exact implementation in `IncrementalDecoding` funcion in [`creates/tabby-inference/src/decoding.rs`](https://github.com/TabbyML/tabby/pull/491).
+For interested folks, you can refer to Tabby's exact implementation in `IncrementalDecoding` function in [`creates/tabby-inference/src/decoding.rs`](https://github.com/TabbyML/tabby/pull/491).
 
 Have you found our new decoding methods effective? Share your thoughts with us in our [Slack](https://join.slack.com/t/tabbyml/shared_invite/zt-22thejc0z-7ePKeWNCHPX31pEtnT4oYQ) channel 🌍😊!

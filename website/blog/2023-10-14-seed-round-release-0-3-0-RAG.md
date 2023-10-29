@@ -15,7 +15,7 @@ Today, Tabby stands out as the most popular and user-friendly solution to enable
 
 
 ## Release v0.3.0 - Retrieval Augmented Code Completion 🎁
-Tabby also comes to a [v0.3.0 release](https://github.com/TabbyML/tabby/releases/tag/v0.3.0), with the support of retrieval-augmented code completion enabled by default. Enhanced by repo-level retrieval, Tabby gets smarter at your codebase and will quickly reference to a related funcion / code example from another file in your repository.
+Tabby also comes to a [v0.3.0 release](https://github.com/TabbyML/tabby/releases/tag/v0.3.0), with the support of retrieval-augmented code completion enabled by default. Enhanced by repo-level retrieval, Tabby gets smarter at your codebase and will quickly reference to a related function / code example from another file in your repository.
 
 A blog series detailing the technical designs of retrieval-augmented code completion will be published soon. Stay tuned!🔔
 
