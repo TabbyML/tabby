@@ -1,9 +1,9 @@
 import { nanoid } from '@/lib/utils'
 import { Chat } from '@/components/chat'
 import { Metadata } from 'next'
- 
+
 export const metadata: Metadata = {
-  title: 'Playground',
+  title: 'Playground'
 }
 
 export default function IndexPage() {

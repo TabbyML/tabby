@@ -8,6 +8,9 @@ endif
 fix:
 	cargo clippy --fix --allow-dirty --allow-staged && cargo +nightly fmt
 
+fix-ui:
+	cd clients/tabby-ui && yarn format:write && yarn lint:fix
+
 update-ui:
 	cd clients/tabby-ui && yarn build
 	rm -rf crates/tabby/ui && cp -R clients/tabby-ui/out crates/tabby/ui

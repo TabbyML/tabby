@@ -1,0 +1,43 @@
+name: Test tabby-ui
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/tabby-ui-test.yml'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'clients/tabby-ui/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/tabby-ui-test.yml'
+      - 'package.json'
+      - 'yarn.lock'
+      - 'clients/tabby-ui/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          cache: yarn
+          cache-dependency-path: 'yarn.lock'
+      - name: Install dependencies
+        working-directory: ./clients/tabby-ui
+        run: yarn install
+      - name: Format
+        working-directory: ./clients/tabby-ui
+        run: yarn format:check
+      - name: Lint
+        working-directory: ./clients/tabby-ui
+        run: yarn lint
+      - name: Test build
+        working-directory: ./clients/tabby-ui
+        run: yarn build
+      

@@ -3,8 +3,7 @@ import { StreamingTextResponse } from 'ai'
 import { TabbyStream } from '@/lib/tabby-stream'
 import { useEffect } from 'react'
 
-const serverUrl =
-  process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
+const serverUrl = process.env.NEXT_PUBLIC_TABBY_SERVER_URL || ''
 
 export function usePatchFetch() {
   useEffect(() => {
@@ -21,7 +20,7 @@ export function usePatchFetch() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
+        }
       })
 
       const stream = TabbyStream(res, undefined)
@@ -29,4 +28,3 @@ export function usePatchFetch() {
     }
   }, [])
 }
-

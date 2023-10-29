@@ -2,70 +2,70 @@ import {
   type AIStreamCallbacksAndOptions,
   createCallbacksTransformer,
   createStreamDataTransformer
-} from 'ai';
+} from 'ai'
 
-const utf8Decoder = new TextDecoder('utf-8');
+const utf8Decoder = new TextDecoder('utf-8')
 
 async function processLines(
   lines: string[],
-  controller: ReadableStreamDefaultController<string>,
+  controller: ReadableStreamDefaultController<string>
 ) {
   for (const line of lines) {
-    const { content } = JSON.parse(line);
-    controller.enqueue(content);
+    const { content } = JSON.parse(line)
+    controller.enqueue(content)
   }
 }
 
 async function readAndProcessLines(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  controller: ReadableStreamDefaultController<string>,
+  controller: ReadableStreamDefaultController<string>
 ) {
-  let segment = '';
+  let segment = ''
 
   while (true) {
-    const { value: chunk, done } = await reader.read();
+    const { value: chunk, done } = await reader.read()
     if (done) {
-      break;
+      break
     }
 
-    segment += utf8Decoder.decode(chunk, { stream: true });
+    segment += utf8Decoder.decode(chunk, { stream: true })
 
-    const linesArray = segment.split(/\r\n|\n|\r/g);
-    segment = linesArray.pop() || '';
+    const linesArray = segment.split(/\r\n|\n|\r/g)
+    segment = linesArray.pop() || ''
 
-    await processLines(linesArray, controller);
+    await processLines(linesArray, controller)
   }
 
   if (segment) {
-    const linesArray = [segment];
-    await processLines(linesArray, controller);
+    const linesArray = [segment]
+    await processLines(linesArray, controller)
   }
 
-  controller.close();
+  controller.close()
 }
 
 function createParser(res: Response) {
-  const reader = res.body?.getReader();
+  const reader = res.body?.getReader()
 
   return new ReadableStream<string>({
     async start(controller): Promise<void> {
       if (!reader) {
-        controller.close();
-        return;
+        controller.close()
+        return
       }
 
-      await readAndProcessLines(reader, controller);
-    },
-  });
+      await readAndProcessLines(reader, controller)
+    }
+  })
 }
 
 export function TabbyStream(
   reader: Response,
-  callbacks?: AIStreamCallbacksAndOptions,
+  callbacks?: AIStreamCallbacksAndOptions
 ): ReadableStream {
   return createParser(reader)
     .pipeThrough(createCallbacksTransformer(callbacks))
     .pipeThrough(
-      createStreamDataTransformer(callbacks?.experimental_streamData),
-    );
+      createStreamDataTransformer(callbacks?.experimental_streamData)
+    )
 }
