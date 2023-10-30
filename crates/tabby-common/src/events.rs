@@ -1,29 +1,55 @@
 use std::{
     fs,
     io::{BufWriter, Write},
-    sync::Mutex,
+    time::Duration,
 };
 
 use chrono::Utc;
 use lazy_static::lazy_static;
 use serde::Serialize;
+use tokio::{
+    sync::mpsc::{unbounded_channel, UnboundedSender},
+    time::{self},
+};
 
 lazy_static! {
-    static ref WRITER: Mutex<BufWriter<fs::File>> = {
-        let events_dir = crate::path::events_dir();
-        std::fs::create_dir_all(events_dir.as_path()).ok();
+    static ref WRITER: UnboundedSender<String> = {
+        let (tx, mut rx) = unbounded_channel::<String>();
 
-        let now = Utc::now();
-        let fname = now.format("%Y-%m-%d.json");
-        let file = fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .write(true)
-            .open(events_dir.join(fname.to_string()))
-            .ok()
-            .unwrap();
+        tokio::spawn(async move {
+            let events_dir = crate::path::events_dir();
+            std::fs::create_dir_all(events_dir.as_path()).ok();
 
-        Mutex::new(BufWriter::new(file))
+            let now = Utc::now();
+            let fname = now.format("%Y-%m-%d.json");
+            let file = fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .write(true)
+                .open(events_dir.join(fname.to_string()))
+                .ok()
+                .unwrap();
+
+            let mut writer = BufWriter::new(file);
+            let mut interval = time::interval(Duration::from_secs(5));
+
+            loop {
+                tokio::select! {
+                    content = rx.recv() => {
+                        if let Some(content) = content {
+                            writeln!(&mut writer, "{}", content).unwrap();
+                        } else {
+                            break;
+                        }
+                    }
+                    _ = interval.tick() => {
+                        writer.flush().unwrap();
+                    }
+                }
+            }
+        });
+
+        tx
     };
 }
 
@@ -75,18 +101,13 @@ struct Log<'a> {
 
 impl Event<'_> {
     pub fn log(&self) {
-        let mut writer = WRITER.lock().unwrap();
-
-        serdeconv::to_json_writer(
-            &Log {
-                ts: timestamp(),
-                event: self,
-            },
-            writer.by_ref(),
-        )
+        let content = serdeconv::to_json_string(&Log {
+            ts: timestamp(),
+            event: self,
+        })
         .unwrap();
-        writeln!(writer).unwrap();
-        writer.flush().unwrap();
+
+        WRITER.send(content).unwrap();
     }
 }
 
