@@ -24,6 +24,7 @@ fn main() {
     }
     if cfg!(feature = "opencl") {
         config.define("LLAMA_CLBLAST", "ON");
+        config.define("CLBlast_DIR", "/usr/local");
         println!("cargo:rustc-link-search=native=/opt/intel/opencl/intel64/");        
     }
 

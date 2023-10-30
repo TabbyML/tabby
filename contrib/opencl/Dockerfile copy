@@ -1,14 +1,17 @@
-# Start with Ubuntu 23.10 as base image
-FROM ubuntu:23.10 as build
+FROM rust:latest as build
 
-# Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
-
-# Update Ubuntu Software repository
-RUN apt update
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        pkg-config \
+        libssl-dev \
+        protobuf-compiler \
+        git \
+        cmake \
+        build-essential gcc make cmake git libopencl1 ocl-icd-opencl-dev clblast-utils       
 
 # Install necessary dependencies
-#RUN apt install -y wget gpg curl build-essential cmake git libopencl1 ocl-icd-opencl-dev clblast-utils opencl-headers ocl-icd libclblast-dev
 RUN apt-get install -y wget gpg curl build-essential cmake git opencl-headers
 
 # Add Intel's package repository
@@ -39,19 +42,7 @@ RUN git clone https://github.com/CNugteren/CLBlast.git && \
     cmake --build . --config Release && \
     cmake --install . --prefix /usr/local/ && \
     cd /opt
-    
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        pkg-config \
-        libssl-dev \
-        protobuf-compiler \
-        git \
-        cmake \
-        build-essential gcc make \ 
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /root/workspace
 COPY ../.. .
@@ -60,12 +51,6 @@ COPY ../.. .
 RUN mkdir -p /opt/tabby/bin
 RUN mkdir -p /opt/tabby/lib
 RUN mkdir -p target
-
-# Install Rust
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-
-# Add Cargo to the PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/root/workspace/target \

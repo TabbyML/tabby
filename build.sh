@@ -1,0 +1,1 @@
+docker build -t tabbyml/tabby:opencl -f contrib/opencl/Dockerfile .
