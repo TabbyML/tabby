@@ -27,7 +27,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 RUN git config --system --add safe.directory "*"
 
-FROM build as built
+FROM build as rust_build
 WORKDIR /root/workspace
 COPY . .
 
@@ -58,7 +58,7 @@ RUN git config --system --add safe.directory "*"
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
         /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
-COPY --from=built /opt/tabby /opt/tabby
+COPY --from=rust_build /opt/tabby /opt/tabby
 
 ENV TABBY_ROOT=/data
 
