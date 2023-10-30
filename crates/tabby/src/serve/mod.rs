@@ -144,10 +144,6 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .route("/", routing::get(ui::handler))
-        .route("/index.txt", routing::get(ui::handler))
-        .route("/api", routing::get(ui::handler))
-        .route("/api.txt", routing::get(ui::handler))
-        .route("/_next/*path", routing::get(ui::handler))
         .merge(api_router(args, config))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(ui::handler);
