@@ -106,7 +106,7 @@ impl Device {
 pub struct ServeArgs {
     /// Model id for `/completions` API endpoint.
     #[clap(long)]
-    model: Option<String>,
+    model: String,
 
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
@@ -129,9 +129,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        if let Some(model) = &args.model {
-            download_model(model).await;
-        }
+        download_model(&args.model).await;
         if let Some(chat_model) = &args.chat_model {
             download_model(chat_model).await;
         }
@@ -173,22 +171,20 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
 fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let index_server = Arc::new(IndexServer::new());
-    let completion_state = if let Some(model) = &args.model {
+    let completion_state = {
         let (
             engine,
             EngineInfo {
                 prompt_template, ..
             },
-        ) = create_engine(model, args);
+        ) = create_engine(&args.model, args);
         let engine = Arc::new(engine);
         let state = completions::CompletionState::new(
             engine.clone(),
             index_server.clone(),
             prompt_template,
         );
-        Some(Arc::new(state))
-    } else {
-        None
+        Arc::new(state)
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
@@ -219,18 +215,16 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             )
     });
 
-    if let Some(completion_state) = completion_state {
-        routers.push({
-            Router::new()
-                .route(
-                    "/v1/completions",
-                    routing::post(completions::completions).with_state(completion_state),
-                )
-                .layer(TimeoutLayer::new(Duration::from_secs(
-                    config.server.completion_timeout,
-                )))
-        });
-    }
+    routers.push({
+        Router::new()
+            .route(
+                "/v1/completions",
+                routing::post(completions::completions).with_state(completion_state),
+            )
+            .layer(TimeoutLayer::new(Duration::from_secs(
+                config.server.completion_timeout,
+            )))
+    });
 
     if let Some(chat_state) = chat_state {
         routers.push({
@@ -285,19 +279,6 @@ trait OpenApiOverride {
 
 impl OpenApiOverride for utoipa::openapi::OpenApi {
     fn override_doc(&mut self, args: &ServeArgs) {
-        if args.model.is_none() {
-            self.paths.paths.remove("/v1/completions");
-            if let Some(components) = self.components.as_mut() {
-                components.schemas.remove("CompletionRequest");
-                components.schemas.remove("CompletionResponse");
-                components.schemas.remove("Choice");
-                components.schemas.remove("DebugData");
-                components.schemas.remove("DebugOptions");
-                components.schemas.remove("Segments");
-                components.schemas.remove("Snippet");
-            }
-        }
-
         if args.chat_model.is_none() {
             self.paths.paths.remove("/v1beta/chat/completions");
 
