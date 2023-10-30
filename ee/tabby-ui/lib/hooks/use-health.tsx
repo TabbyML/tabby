@@ -6,7 +6,7 @@ import fetcher from '@/lib/tabby-fetcher'
 
 export interface HealthInfo {
   device: string
-  model: string
+  model?: string
   chat_model?: string
   version: {
     build_date: string

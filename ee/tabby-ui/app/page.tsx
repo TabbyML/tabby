@@ -95,11 +95,13 @@ function MainPanel() {
         <img
           src={`https://img.shields.io/badge/device-${healthInfo.device}-blue`}
         />
-        <img
-          src={`https://img.shields.io/badge/model-${toBadgeString(
-            healthInfo.model
-          )}-red`}
-        />
+        {healthInfo.model && (
+          <img
+            src={`https://img.shields.io/badge/model-${toBadgeString(
+              healthInfo.model
+            )}-red`}
+          />
+        )}
         {healthInfo.chat_model && (
           <img
             src={`https://img.shields.io/badge/chat%20model-${toBadgeString(
