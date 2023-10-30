@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 
 #[derive(Serialize, Deserialize, ToSchema, Clone, Debug)]
 pub struct HealthState {
-    model: Option<String>,
+    model: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     chat_model: Option<String>,
     device: String,
