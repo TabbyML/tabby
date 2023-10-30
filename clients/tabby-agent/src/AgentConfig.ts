@@ -90,16 +90,15 @@ const configTomlTemplate = `## Tabby agent configuration file
 ## Configurations in this file has lower priority than in IDE settings.
 
 ## Server
-## You can set the server endpoint and authentication token here.
+## You can set the server endpoint here, and auth token if server requires.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
-# token = "your-token-here" # if server requires authentication
+# token = "your-token-here" # if token is set, request header Authorization = "Bearer $token" will be added automatically
 
 ## You can add custom request headers.
 # [server.requestHeaders]
 # Header1 = "Value1" # list your custom headers here
 # Header2 = "Value2" # value can be string, number or boolean
-# Authorization = "Bearer your-token-here" # if Authorization header is set, server.token will be ignored
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
