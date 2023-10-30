@@ -20,7 +20,7 @@ struct Response {
 
 #[derive(Deserialize)]
 struct Prediction {
-    text: Vec<String>,
+    text: String,
 }
 
 pub struct FastChatEngine {
@@ -83,7 +83,7 @@ impl TextGeneration for FastChatEngine {
 
         let resp: Response = resp.json().await.expect("Failed to parse response");
 
-        resp.choices[0].text[0].clone()
+        resp.choices[0].text.clone()
     }
 
     async fn generate_stream(
