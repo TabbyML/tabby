@@ -8,6 +8,9 @@ export interface HealthInfo {
   device: string
   model: string
   chat_model?: string
+  cpu_info: string
+  cpu_count: number
+  cuda_devices: string[]
   version: {
     build_date: string
     git_describe: string
