@@ -1,12 +1,7 @@
 {
   "private": true,
-  "workspaces": [
-    "clients/tabby-agent",
-    "clients/vscode",
-    "clients/vim",
-    "clients/intellij"
-  ],
   "engines": {
     "node": ">=18"
-  }
+  },
+  "packageManager": "^pnpm@8.3.1"
 }
