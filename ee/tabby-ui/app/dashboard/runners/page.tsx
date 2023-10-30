@@ -9,7 +9,7 @@ export default function Runners() {
   if (!health) return
 
   return (
-    <div className="flex h-full w-full items-start justify-start p-8">
+    <div className="flex h-full w-full items-start justify-start">
       <RunnerCard title="Local Runner" health={health} />
     </div>
   )

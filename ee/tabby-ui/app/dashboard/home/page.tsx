@@ -26,7 +26,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex grow items-center justify-center">
+    <div>
       <MainPanel />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -75,7 +75,7 @@ function MainPanel() {
   if (!healthInfo) return
 
   return (
-    <div className="flex w-2/3 flex-col gap-3 lg:w-1/3">
+    <div className="flex w-full flex-col gap-3">
       <h1>
         <span className="font-bold">Congratulations</span>, your tabby instance
         is running!
