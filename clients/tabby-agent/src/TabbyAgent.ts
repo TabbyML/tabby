@@ -264,10 +264,14 @@ export class TabbyAgent extends EventEmitter implements Agent {
     const maxPrefixLines = this.config.completion.prompt.maxPrefixLines;
     const maxSuffixLines = this.config.completion.prompt.maxSuffixLines;
     const { prefixLines, suffixLines } = context;
-    return {
-      prefix: prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join(""),
-      suffix: suffixLines.slice(0, maxSuffixLines).join(""),
-    };
+    const prefix = prefixLines.slice(Math.max(prefixLines.length - maxPrefixLines, 0)).join("");
+    let suffix;
+    if (this.config.completion.prompt.experimentalStripAutoClosingCharacters && context.mode !== "fill-in-line") {
+      suffix = "\n" + suffixLines.slice(1, maxSuffixLines).join("");
+    } else {
+      suffix = suffixLines.slice(0, maxSuffixLines).join("");
+    }
+    return { prefix, suffix };
   }
 
   private calculateReplaceRange(response: CompletionResponse, context: CompletionContext): CompletionResponse {
