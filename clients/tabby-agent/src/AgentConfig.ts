@@ -25,7 +25,7 @@ export type AgentConfig = {
       // When completion is continuing the current line, limit the scope to:
       // false(default): the line scope, meaning use the next indent level as the limit.
       // true: the block scope, meaning use the current indent level as the limit.
-      keepBlockScopeWhenCompletingLine: boolean;
+      experimentalKeepBlockScopeWhenCompletingLine: boolean;
     };
   };
   logs: {
@@ -69,7 +69,7 @@ export const defaultAgentConfig: AgentConfig = {
   },
   postprocess: {
     limitScopeByIndentation: {
-      keepBlockScopeWhenCompletingLine: false,
+      experimentalKeepBlockScopeWhenCompletingLine: false,
     },
   },
   logs: {

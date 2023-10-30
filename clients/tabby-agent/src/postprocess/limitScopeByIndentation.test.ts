@@ -3,7 +3,10 @@ import { documentContext, inline } from "./testUtils";
 import { limitScopeByIndentation } from "./limitScopeByIndentation";
 
 describe("postprocess", () => {
-  describe("limitScopeByIndentation", () => {
+  describe("limitScopeByIndentation: default config", () => {
+    let limitScopeByIndentationDefault = (context) => {
+      return limitScopeByIndentation(context, { experimentalKeepBlockScopeWhenCompletingLine: false });
+    };
     it("should drop multiline completions, when the suffix have meaningful chars in the current line.", () => {
       const context = {
         ...documentContext`
@@ -16,7 +19,7 @@ describe("postprocess", () => {
                     ├message);
         throw error;┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.be.null;
+      expect(limitScopeByIndentationDefault(context)(completion)).to.be.null;
     });
 
     it("should allow singleline completions, when the suffix have meaningful chars in the current line.", () => {
@@ -30,7 +33,7 @@ describe("postprocess", () => {
       const completion = inline`
                     ├error, ┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(completion);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(completion);
     });
 
     it("should allow multiline completions, when the suffix only have auto-closed chars that will be replaced in the current line, such as `)]}`.", () => {
@@ -51,7 +54,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(completion);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(completion);
     });
 
     it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", () => {
@@ -68,7 +71,7 @@ describe("postprocess", () => {
       const expected = inline`
                ├ 1;┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
     it("should limit scope at sentence end, when completion is continuing uncompleted sentence in the prefix.", () => {
@@ -96,10 +99,10 @@ describe("postprocess", () => {
       const expected = inline`
                         ├("Parsing", { json });┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
-    it("should limit scope at next indent level, including closing line, when completion is continuing uncompleted sentence in the prefix, and starting a new indent level in next line.", () => {
+    it("should limit scope at next indent level, including closing line, when completion is starting a new indent level in next line.", () => {
       const context = {
         ...documentContext`
         function findMax(arr) {║}
@@ -129,7 +132,7 @@ describe("postprocess", () => {
           return max;
         }┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
     it("should limit scope at next indent level, including closing line, when completion is continuing uncompleted sentence in the prefix, and starting a new indent level in next line.", () => {
@@ -160,7 +163,7 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
     it("should limit scope at current indent level, exclude closing line, when completion starts new sentences at same indent level.", () => {
@@ -192,7 +195,7 @@ describe("postprocess", () => {
           return max;┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
     it("should allow only one level closing bracket", () => {
@@ -216,7 +219,7 @@ describe("postprocess", () => {
           }┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
     });
 
     it("should allow level closing bracket at current line, it looks same as starts new sentences", () => {
@@ -231,7 +234,7 @@ describe("postprocess", () => {
       const completion = inline`
           ├}┤
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.be.eq(completion);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.be.eq(completion);
     });
 
     it("should not allow level closing bracket, when the suffix lines have same indent level", () => {
@@ -250,7 +253,7 @@ describe("postprocess", () => {
       `;
       const expected = inline`
                                ├┤`;
-      expect(limitScopeByIndentation(context)(completion)).to.be.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.be.eq(expected);
     });
 
     it("should use indent level of previous line, when current line is empty.", () => {
@@ -277,7 +280,88 @@ describe("postprocess", () => {
             return null;┤
         ┴┴
       `;
-      expect(limitScopeByIndentation(context)(completion)).to.eq(expected);
+      expect(limitScopeByIndentationDefault(context)(completion)).to.eq(expected);
+    });
+  });
+
+  describe("limitScopeByIndentation: with experimentalKeepBlockScopeWhenCompletingLine on", () => {
+    let limitScopeByIndentationKeepBlock = (context) => {
+      return limitScopeByIndentation(context, { experimentalKeepBlockScopeWhenCompletingLine: true });
+    };
+
+    it("should limit scope at block end, when completion is continuing uncompleted sentence in the prefix.", () => {
+      const context = {
+        ...documentContext`
+        let a =║
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+               ├ 1;
+        let b = 2;┤
+      `;
+      expect(limitScopeByIndentationKeepBlock(context)(completion)).to.eq(completion);
+    });
+
+    it("should limit scope at block end, when completion is continuing uncompleted sentence in the prefix.", () => {
+      const context = {
+        ...documentContext`
+        function safeParse(json) {
+          try {
+            console.log║
+          }
+        }
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+                        ├("Parsing", { json });
+            return JSON.parse(json);
+          } catch (e) {
+            return null;
+          }
+        }┤
+      `;
+      const expected = inline`
+                        ├("Parsing", { json });
+            return JSON.parse(json);
+          } catch (e) {
+            return null;┤
+        ┴┴
+      `;
+      expect(limitScopeByIndentationKeepBlock(context)(completion)).to.eq(expected);
+    });
+
+    it("should limit scope at same indent level, including closing line, when completion is continuing uncompleted sentence in the prefix, and starting a new indent level in next line.", () => {
+      const context = {
+        ...documentContext`
+        function findMax(arr) {
+          let max = arr[0];
+          for║
+        }
+        `,
+        language: "javascript",
+      };
+      const completion = inline`
+             ├ (let i = 1; i < arr.length; i++) {
+            if (arr[i] > max) {
+              max = arr[i];
+            }
+          }
+          return max;
+        }
+        console.log(findMax([1, 2, 3, 4, 5]));┤
+      `;
+      const expected = inline`
+             ├ (let i = 1; i < arr.length; i++) {
+            if (arr[i] > max) {
+              max = arr[i];
+            }
+          }
+          return max;┤
+        ┴┴
+      `;
+      expect(limitScopeByIndentationKeepBlock(context)(completion)).to.eq(expected);
     });
   });
 });

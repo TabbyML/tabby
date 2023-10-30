@@ -59,7 +59,7 @@ function processContext(
   if (!isCurrentLineInCompletionBlank && !isCurrentLineInPrefixBlank) {
     // if two reference lines are contacted at current line, it is continuing uncompleted sentence
 
-    if (config.keepBlockScopeWhenCompletingLine) {
+    if (config.experimentalKeepBlockScopeWhenCompletingLine) {
       result.indentLevelLimit = referenceLineInPrefixIndent;
     } else {
       result.indentLevelLimit = referenceLineInPrefixIndent + 1; // + 1 for comparison, no matter how many spaces indent
