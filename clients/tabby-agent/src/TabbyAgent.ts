@@ -545,7 +545,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
             throw error;
           }
           // Postprocess (pre-cache)
-          completionResponse = await preCacheProcess(context, completionResponse);
+          completionResponse = await preCacheProcess(context, this.config.postprocess, completionResponse);
           if (options?.signal?.aborted) {
             throw options.signal.reason;
           }
@@ -554,7 +554,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }
       }
       // Postprocess (post-cache)
-      completionResponse = await postCacheProcess(context, completionResponse);
+      completionResponse = await postCacheProcess(context, this.config.postprocess, completionResponse);
       if (options?.signal?.aborted) {
         throw options.signal.reason;
       }

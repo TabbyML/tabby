@@ -1,4 +1,5 @@
 import { CompletionContext, CompletionResponse } from "../Agent";
+import { AgentConfig } from "../AgentConfig";
 import { applyFilter } from "./base";
 import { removeRepetitiveBlocks } from "./removeRepetitiveBlocks";
 import { removeRepetitiveLines } from "./removeRepetitiveLines";
@@ -10,6 +11,7 @@ import { dropBlank } from "./dropBlank";
 
 export async function preCacheProcess(
   context: CompletionContext,
+  config: AgentConfig["postprocess"],
   response: CompletionResponse,
 ): Promise<CompletionResponse> {
   return Promise.resolve(response)
@@ -21,12 +23,13 @@ export async function preCacheProcess(
 
 export async function postCacheProcess(
   context: CompletionContext,
+  config: AgentConfig["postprocess"],
   response: CompletionResponse,
 ): Promise<CompletionResponse> {
   return Promise.resolve(response)
     .then(applyFilter(removeRepetitiveBlocks(context), context))
     .then(applyFilter(removeRepetitiveLines(context), context))
-    .then(applyFilter(limitScopeByIndentation(context), context))
+    .then(applyFilter(limitScopeByIndentation(context, config["limitScopeByIndentation"]), context))
     .then(applyFilter(dropDuplicated(context), context))
     .then(applyFilter(trimSpace(context), context))
     .then(applyFilter(dropBlank(), context));
