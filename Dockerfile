@@ -25,6 +25,9 @@ RUN apt-get update && \
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
+RUN git config --system --add safe.directory "*"
+
+FROM build as built
 WORKDIR /root/workspace
 COPY . .
 
@@ -55,7 +58,7 @@ RUN git config --system --add safe.directory "*"
 RUN ln -s /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
         /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
 
-COPY --from=build /opt/tabby /opt/tabby
+COPY --from=built /opt/tabby /opt/tabby
 
 ENV TABBY_ROOT=/data
 
