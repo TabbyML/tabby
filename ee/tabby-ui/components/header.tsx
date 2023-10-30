@@ -4,7 +4,7 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 import { buttonVariants } from '@/components/ui/button'
-import { IconGitHub, IconExternalLink, IconNotice } from '@/components/ui/icons'
+import { IconGitHub, IconNotice } from '@/components/ui/icons'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useHealth } from '@/lib/hooks/use-health'
@@ -28,7 +28,7 @@ export function Header() {
       <div className="flex items-center">
         <ThemeToggle />
         <Link href="/" className={cn(buttonVariants({ variant: 'link' }))}>
-          Home
+          Dashboard
         </Link>
         <Link href="/api" className={cn(buttonVariants({ variant: 'link' }))}>
           API
