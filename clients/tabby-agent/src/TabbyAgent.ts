@@ -95,13 +95,13 @@ export class TabbyAgent extends EventEmitter implements Agent {
     this.config = deepmerge(defaultAgentConfig, this.userConfig, this.clientConfig);
     allLoggers.forEach((logger) => (logger.level = this.config.logs.level));
     this.anonymousUsageLogger.disabled = this.config.anonymousUsageTracking.disable;
-    if (this.config.server.requestHeaders["Authorization"] === undefined) {
+    if (isBlank(this.config.server.token) && this.config.server.requestHeaders["Authorization"] === undefined) {
       if (this.config.server.endpoint !== this.auth?.endpoint) {
         this.auth = await Auth.create({ endpoint: this.config.server.endpoint, dataStore: this.dataStore });
         this.auth.on("updated", this.setupApi.bind(this));
       }
     } else {
-      // If `Authorization` request header is provided, use it directly.
+      // If auth token is provided, use it directly.
       this.auth = null;
     }
     await this.setupApi();
@@ -126,10 +126,15 @@ export class TabbyAgent extends EventEmitter implements Agent {
   }
 
   private async setupApi() {
+    const auth = !isBlank(this.config.server.token)
+      ? `Bearer ${this.config.server.token}`
+      : this.auth?.token
+      ? `Bearer ${this.auth.token}`
+      : undefined;
     this.api = createClient<TabbyApi>({
       baseUrl: this.config.server.endpoint.replace(/\/+$/, ""), // remove trailing slash
       headers: {
-        Authorization: this.auth?.token ? `Bearer ${this.auth.token}` : undefined,
+        Authorization: auth,
         ...this.config.server.requestHeaders,
       },
     });
@@ -225,6 +230,7 @@ export class TabbyAgent extends EventEmitter implements Agent {
         error instanceof HttpError &&
         [401, 403, 405].indexOf(error.status) !== -1 &&
         new URL(this.config.server.endpoint).hostname.endsWith("app.tabbyml.com") &&
+        isBlank(this.config.server.token) &&
         this.config.server.requestHeaders["Authorization"] === undefined
       ) {
         this.logger.debug({ requestId, path, error }, "API unauthorized");
@@ -254,8 +260,10 @@ export class TabbyAgent extends EventEmitter implements Agent {
         }
       }
     } catch (_) {
-      this.changeStatus("disconnected");
-      this.serverHealthState = null;
+      if (this.status === "ready" || this.status === "notInitialized") {
+        this.changeStatus("disconnected");
+        this.serverHealthState = null;
+      }
     }
   }
 

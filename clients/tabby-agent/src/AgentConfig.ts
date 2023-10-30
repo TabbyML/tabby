@@ -3,6 +3,7 @@ import { isBrowser } from "./env";
 export type AgentConfig = {
   server: {
     endpoint: string;
+    token: string;
     requestHeaders: Record<string, string | number | boolean | null | undefined>;
     requestTimeout: number;
   };
@@ -50,6 +51,7 @@ export type PartialAgentConfig = RecursivePartial<AgentConfig>;
 export const defaultAgentConfig: AgentConfig = {
   server: {
     endpoint: "http://localhost:8080",
+    token: "",
     requestHeaders: {},
     requestTimeout: 30000, // 30s
   },
@@ -82,67 +84,27 @@ export const defaultAgentConfig: AgentConfig = {
   },
 };
 
-const oldConfigTomlTemplate = `## Tabby agent configuration file
-
-## You can uncomment any block to enable settings.
-## Configurations in this file has lower priority than in IDE settings.
-
-## Server
-## You can set the server endpoint and request timeout here.
-# [server]
-# endpoint = "http://localhost:8080" # http or https URL
-# requestTimeout = 30000 # ms
-
-## You can add custom request headers, e.g. for authentication.
-# [server.requestHeaders]
-# Authorization = "Bearer eyJhbGciOiJ..........."
-
-## Completion
-## You can set the prompt context to send to the server for completion.
-# [completion.prompt]
-# maxPrefixLines = 20
-# maxSuffixLines = 20
-
-## You can set the debounce mode for auto completion requests when typing.
-# [completion.debounce]
-# mode = "adaptive" # or "fixed"
-# interval = 250 # ms, only used when mode is "fixed"
-
-## You can set the timeout for completion requests.
-# [completion.timeout]
-# auto = 5000 # ms, for auto completion when typing
-# manually = 30000 # ms, for manually triggered completion
-
-## Logs
-## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
-# [logs]
-# level = "silent" # or "error" or "debug"
-
-## Anonymous usage tracking
-## You can disable anonymous usage tracking here.
-# [anonymousUsageTracking]
-# disable = false # set to true to disable
-
-`;
-
 const configTomlTemplate = `## Tabby agent configuration file
 
 ## You can uncomment any block to enable settings.
 ## Configurations in this file has lower priority than in IDE settings.
 
 ## Server
-## You can set the server endpoint here.
+## You can set the server endpoint and authentication token here.
 # [server]
 # endpoint = "http://localhost:8080" # http or https URL
+# token = "your-token-here" # if server requires authentication
 
-## You can add custom request headers, e.g. for authentication.
+## You can add custom request headers.
 # [server.requestHeaders]
-# Authorization = "Bearer eyJhbGciOiJ..........."
+# Header1 = "Value1" # list your custom headers here
+# Header2 = "Value2" # value can be string, number or boolean
+# Authorization = "Bearer your-token-here" # if Authorization header is set, server.token will be ignored
 
 ## Logs
 ## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
 # [logs]
-# level = "silent" # or "error" or "debug"
+# level = "silent" # "silent" or "error" or "debug"
 
 ## Anonymous usage tracking
 ## You can disable anonymous usage tracking here.
@@ -158,6 +120,7 @@ export const userAgentConfig = isBrowser
       const fs = require("fs-extra");
       const toml = require("toml");
       const chokidar = require("chokidar");
+      const deepEqual = require("deep-equal");
 
       class ConfigFile extends EventEmitter {
         filepath: string;
@@ -177,14 +140,13 @@ export const userAgentConfig = isBrowser
         async load() {
           try {
             const fileContent = await fs.readFile(this.filepath, "utf8");
-            // If the config file is the old template, and user has not modified it,
-            // Overwrite it with the new template.
-            if (fileContent.trim() === oldConfigTomlTemplate.trim()) {
+            const data = toml.parse(fileContent);
+            // If the config file contains no value, overwrite it with the new template.
+            if (Object.keys(data).length === 0 && fileContent.trim() !== configTomlTemplate.trim()) {
               await this.createTemplate();
-              return await this.load();
+              return;
             }
-            this.data = toml.parse(fileContent);
-            super.emit("updated", this.data);
+            this.data = data;
           } catch (error) {
             if (error.code === "ENOENT") {
               await this.createTemplate();
@@ -206,8 +168,15 @@ export const userAgentConfig = isBrowser
           this.watcher = chokidar.watch(this.filepath, {
             interval: 1000,
           });
-          this.watcher.on("add", this.load.bind(this));
-          this.watcher.on("change", this.load.bind(this));
+          const onChanged = async () => {
+            const oldData = this.data;
+            await this.load();
+            if (!deepEqual(oldData, this.data)) {
+              super.emit("updated", this.data);
+            }
+          };
+          this.watcher.on("add", onChanged);
+          this.watcher.on("change", onChanged);
         }
       }
 

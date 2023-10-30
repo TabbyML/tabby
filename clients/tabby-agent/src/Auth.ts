@@ -54,7 +54,16 @@ export class Auth extends EventEmitter {
   constructor(options: { endpoint: string; dataStore?: DataStore }) {
     super();
     this.endpoint = options.endpoint;
-    this.dataStore = options.dataStore || dataStore;
+    if (options.dataStore) {
+      this.dataStore = options.dataStore;
+    } else {
+      this.dataStore = dataStore;
+      dataStore.on("updated", async () => {
+        await this.load();
+        super.emit("updated", this.jwt);
+      });
+      dataStore.watch();
+    }
     this.authApi = createClient<CloudApi>({ baseUrl: "https://app.tabbyml.com/api" });
     this.scheduleRefreshToken();
   }
