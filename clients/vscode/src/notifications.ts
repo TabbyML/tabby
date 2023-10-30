@@ -143,7 +143,7 @@ function getHelpMessageForCompletionResponseTimeIssue() {
   }
   let commonHelpMessage = "";
   const host = new URL(agent().getConfig().server.endpoint).host;
-  if (helpMessageForRunningLargeModelOnCPU.length == 0) {
+  if (helpMessageForRunningLargeModelOnCPU.length === 0) {
     commonHelpMessage += ` - The running model ${
       serverHealthState?.model ?? ""
     } may be performing poorly due to its large parameter size. `;

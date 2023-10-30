@@ -49,7 +49,7 @@ const setApiEndpoint: Command = {
         validateInput: (input: string) => {
           try {
             let url = new URL(input);
-            assert(url.protocol == "http:" || url.protocol == "https:");
+            assert(url.protocol === "http:" || url.protocol === "https:");
           } catch (_) {
             return {
               message: "Please enter a validate http or https URL.",

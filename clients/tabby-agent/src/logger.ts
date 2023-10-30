@@ -1,4 +1,5 @@
 import pino from "pino";
+import { err as pinoStdSerializersError } from "pino-std-serializers";
 import { isBrowser, isTest, testLogDebug } from "./env";
 
 /**
@@ -16,7 +17,7 @@ const stream =
         interval: "1d",
       });
 
-const options = { serializers: { error: pino.stdSerializers.err } };
+const options = { serializers: { error: pinoStdSerializersError } };
 export const rootLogger = !!stream ? pino(options, stream) : pino(options);
 if (isTest && testLogDebug) {
   rootLogger.level = "debug";

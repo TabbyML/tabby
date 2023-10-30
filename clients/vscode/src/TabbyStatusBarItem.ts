@@ -3,6 +3,7 @@ import { createMachine, interpret } from "@xstate/fsm";
 import { agent } from "./agent";
 import { notifications } from "./notifications";
 import { TabbyCompletionProvider } from "./TabbyCompletionProvider";
+import { StatusChangedEvent, AuthRequiredEvent, IssuesUpdatedEvent } from "tabby-agent";
 
 const label = "Tabby";
 const iconLoading = "$(loading~spin)";
@@ -137,12 +138,12 @@ export class TabbyStatusBarItem {
     this.completionProvider.on("loadingStatusUpdated", () => {
       this.fsmService.send(agent().getStatus());
     });
-    agent().on("statusChanged", (event) => {
+    agent().on("statusChanged", (event: StatusChangedEvent) => {
       console.debug("Tabby agent statusChanged", { event });
       this.fsmService.send(event.status);
     });
 
-    agent().on("authRequired", (event) => {
+    agent().on("authRequired", (event: AuthRequiredEvent) => {
       console.debug("Tabby agent authRequired", { event });
       notifications.showInformationStartAuth({
         onAuthStart: () => {
@@ -154,7 +155,7 @@ export class TabbyStatusBarItem {
       });
     });
 
-    agent().on("issuesUpdated", (event) => {
+    agent().on("issuesUpdated", (event: IssuesUpdatedEvent) => {
       console.debug("Tabby agent issuesUpdated", { event });
       this.fsmService.send(agent().getStatus());
       if (event.issues.length > 0 && !this.completionResponseWarningShown) {
