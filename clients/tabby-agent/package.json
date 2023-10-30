@@ -44,7 +44,6 @@
     "openapi-fetch": "^0.7.6",
     "pino": "^8.14.1",
     "rotating-file-stream": "^3.1.0",
-    "semver-compare": "^1.0.0",
     "stats-logscale": "^1.0.7",
     "toml": "^3.0.0",
     "uuid": "^9.0.0"

@@ -1,9 +1,6 @@
 import { isBrowser } from "./env";
 
-const configVersion = "1.1.0";
-
 export type AgentConfig = {
-  version: string;
   server: {
     endpoint: string;
     token: string;
@@ -52,7 +49,6 @@ type RecursivePartial<T> = {
 export type PartialAgentConfig = RecursivePartial<AgentConfig>;
 
 export const defaultAgentConfig: AgentConfig = {
-  version: configVersion,
   server: {
     endpoint: "http://localhost:8080",
     token: "",
@@ -88,84 +84,43 @@ export const defaultAgentConfig: AgentConfig = {
   },
 };
 
-function generateConfigFile(isMigrated: boolean, config: PartialAgentConfig) {
-  let file = `## Tabby agent configuration file\n`;
-  file += `version = "${configVersion}" # Version of the config file, managed by Tabby. Do not edit.\n`;
-  file += "\n";
+const configTomlTemplate = `## Tabby agent configuration file
 
-  if (isMigrated) {
-    file += `## This file has been automatically updated by Tabby.\n`;
-    file += `## You configuration is migrated and the old config file is retained as ~/.tabby-client/agent/{date}-config.toml.\n`;
-    file += "\n";
-  }
-  file += `## You can edit this file to customize your settings.\n`;
-  file += `## Note that configurations in this file has lower priority than in IDE settings.\n`;
-  file += "\n";
+## You can uncomment any block to enable settings.
+## Configurations in this file has lower priority than in IDE settings.
 
-  file += `## Server\n`;
-  file += `## You can set the server endpoint and authentication token here.\n`;
-  if (
-    config.server?.endpoint !== undefined ||
-    config.server?.token !== undefined ||
-    config.server?.requestHeaders?.["Authorization"] !== undefined
-  ) {
-    file += `[server]\n`;
-    if (config.server?.endpoint !== undefined) {
-      file += `endpoint = "${config.server.endpoint}" # http or https URL\n`;
-    } else {
-      file += `# endpoint = "http://localhost:8080" # http or https URL\n`;
-    }
-    if (config.server?.token !== undefined || config.server?.requestHeaders?.["Authorization"] !== undefined) {
-      const token =
-        config.server?.token ?? config.server?.requestHeaders["Authorization"]?.toString()?.replace("Bearer ", "");
-      file += `token = "${token}" # if server requires authentication\n`;
-    } else {
-      file += `# token = "your-token-here" # if server requires authentication\n`;
-    }
-  } else {
-    file += `# [server]\n`;
-    file += `# endpoint = "http://localhost:8080" # http or https URL\n`;
-    file += `# token = "your-token-here" # if server requires authentication\n`;
-  }
-  file += "\n";
+## Server
+## You can set the server endpoint and authentication token here.
+# [server]
+# endpoint = "http://localhost:8080" # http or https URL
+# token = "your-token-here" # if server requires authentication
 
-  file += `## Logs\n`;
-  file += `## You can set the log level here.\n`;
-  file += `## The log file is located at ~/.tabby-client/agent/logs/.\n`;
+## You can add custom request headers.
+# [server.requestHeaders]
+# Header1 = "Value1" # list your custom headers here
+# Header2 = "Value2" # value can be string, number or boolean
+# Authorization = "Bearer your-token-here" # if Authorization header is set, server.token will be ignored
 
-  if (config.logs?.level !== undefined) {
-    file += `[logs]\n`;
-    file += `level = "${config.logs.level}" # "silent" or "error" or "debug"\n`;
-  } else {
-    file += `# [logs]\n`;
-    file += `# level = "silent" # "silent" or "error" or "debug"\n`;
-  }
-  file += "\n";
+## Logs
+## You can set the log level here. The log file is located at ~/.tabby-client/agent/logs/.
+# [logs]
+# level = "silent" # "silent" or "error" or "debug"
 
-  file += `## Anonymous usage tracking\n`;
-  file += `## You can disable anonymous usage tracking here.\n`;
-  if (config.anonymousUsageTracking?.disable !== undefined) {
-    file += `[anonymousUsageTracking]\n`;
-    file += `disable = ${config.anonymousUsageTracking.disable} # set to true to disable\n`;
-  } else {
-    file += `# [anonymousUsageTracking]\n`;
-    file += `# disable = false # set to true to disable\n`;
-  }
-  file += "\n";
+## Anonymous usage tracking
+## You can disable anonymous usage tracking here.
+# [anonymousUsageTracking]
+# disable = false # set to true to disable
 
-  return file;
-}
+`;
 
 export const userAgentConfig = isBrowser
   ? null
   : (() => {
       const EventEmitter = require("events");
       const fs = require("fs-extra");
-      const path = require("path");
       const toml = require("toml");
       const chokidar = require("chokidar");
       const deepEqual = require("deep-equal");
-      const semverCompare = require("semver-compare");
 
       class ConfigFile extends EventEmitter {
         filepath: string;
@@ -186,9 +141,10 @@ export const userAgentConfig = isBrowser
           try {
             const fileContent = await fs.readFile(this.filepath, "utf8");
             const data = toml.parse(fileContent);
-            if (semverCompare(data.version ?? "0", configVersion) < 0) {
-              await this.migrateConfig(data);
-              return await this.load();
+            // If the config file contains no value, overwrite it with the new template.
+            if (Object.keys(data).length === 0 && fileContent.trim() !== configTomlTemplate.trim()) {
+              await this.createTemplate();
+              return;
             }
             this.data = data;
           } catch (error) {
@@ -200,21 +156,9 @@ export const userAgentConfig = isBrowser
           }
         }
 
-        async migrateConfig(config) {
-          try {
-            const prefix = new Date().toISOString().replace(/\D+/g, "");
-            const target = path.join(path.dirname(this.filepath), `${prefix}-config.toml`);
-            await fs.move(this.filepath, target);
-            await fs.outputFile(this.filepath, generateConfigFile(true, config));
-            this.logger.info(`Migrated config file to ${target}.`);
-          } catch (error) {
-            this.logger.error({ error }, "Failed to migrate config file");
-          }
-        }
-
         async createTemplate() {
           try {
-            await fs.outputFile(this.filepath, generateConfigFile(false, {}));
+            await fs.outputFile(this.filepath, configTomlTemplate);
           } catch (error) {
             this.logger.error({ error }, "Failed to create config template file");
           }
