@@ -5,7 +5,7 @@ import { SWRResponse } from 'swr'
 import fetcher from '@/lib/tabby-fetcher'
 
 export interface HealthInfo {
-  device: string
+  device: 'metal' | 'cpu' | 'cuda'
   model: string
   chat_model?: string
   cpu_info: string

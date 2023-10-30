@@ -13,6 +13,7 @@ import { IconSlack } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { useHealth } from '@/lib/hooks/use-health'
 import { PropsWithChildren, useEffect, useState } from 'react'
+import RunnerCard from './components/runner-card'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -26,7 +27,7 @@ export default function Home() {
   }, [])
 
   return (
-    <div>
+    <div className="p-4 lg:p-16">
       <MainPanel />
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -78,7 +79,7 @@ function MainPanel() {
     <div className="flex w-full flex-col gap-3">
       <h1>
         <span className="font-bold">Congratulations</span>, your tabby instance
-        is running!
+        is up!
       </h1>
       <span className="flex flex-wrap gap-1">
         <a
@@ -92,27 +93,33 @@ function MainPanel() {
           />
         </a>
       </span>
-
       <Separator />
 
-      <span>
-        You can find our documentation{' '}
-        <Link href="https://tabby.tabbyml.com/docs/getting-started">here</Link>.
-        <ul className="mt-2">
-          <li>
-            💻{' '}
-            <Link href="https://tabby.tabbyml.com/docs/extensions/">
-              IDE/Editor Extensions
-            </Link>
-          </li>
-          <li>
-            ⚙️{' '}
-            <Link href="https://tabby.tabbyml.com/docs/configuration">
-              Configuration
-            </Link>
-          </li>
-        </ul>
-      </span>
+      <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
+        <span className="font-bold">Runners</span>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+          <RunnerCard
+            source="localhost"
+            name={healthInfo.model}
+            type="completion"
+            health={healthInfo}
+          />
+          {healthInfo.chat_model && (
+            <RunnerCard
+              source="localhost"
+              name={healthInfo.chat_model}
+              type="chat"
+              health={healthInfo}
+            />
+          )}
+          <RunnerCard
+            source="localhost"
+            name="Code Search Index"
+            type="index"
+            health={healthInfo}
+          />
+        </div>
+      </div>
     </div>
   )
 }

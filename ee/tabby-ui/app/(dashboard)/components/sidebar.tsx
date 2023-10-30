@@ -1,7 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { VariantProps, cva } from 'class-variance-authority'
+import { cva } from 'class-variance-authority'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
@@ -20,7 +20,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
           <div className="h-[12px]"></div>
           <div className="flex-1">
             <nav className="grid items-start gap-4 px-4 text-sm font-medium">
-              <SidebarButton href="/dashboard/home">
+              <SidebarButton href="/">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className=" h-4 w-4"
@@ -38,7 +38,7 @@ export default function Sidebar({ children, className }: SidebarProps) {
                 </svg>
                 Home
               </SidebarButton>
-              <SidebarButton href="/dashboard/runners">
+              <SidebarButton href="/swagger">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className=" h-4 w-4"
@@ -51,19 +51,20 @@ export default function Sidebar({ children, className }: SidebarProps) {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
-                  <path d="m6.08 9.5-3.5 1.6a1 1 0 0 0 0 1.81l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.59" />
-                  <path d="m6.08 14.5-3.5 1.6a1 1 0 0 0 0 1.81l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9a1 1 0 0 0 0-1.83l-3.5-1.59" />
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  <path d="M6 8h2" />
+                  <path d="M6 12h2" />
+                  <path d="M16 8h2" />
+                  <path d="M16 12h2" />
                 </svg>
-                Runners
+                Swagger
               </SidebarButton>
             </nav>
           </div>
         </div>
       </div>
-      <div className="flex flex-1 flex-col overflow-auto p-4 lg:p-16">
-        {children}
-      </div>
+      <div className="flex flex-1 flex-col overflow-auto">{children}</div>
     </div>
   )
 }
