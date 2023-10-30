@@ -1,13 +1,10 @@
 {
-	"name": "TabbyML",
+	"name": "TabbyML (CPU)",
 	"build": {
-		"context": "..",
-		"dockerfile": "../Dockerfile",
+		"context": "../..",
+		"dockerfile": "../../Dockerfile",
 		"target": "build"
 	},
-	"runArgs": [
-		"--gpus", "all",
-	],
 	"forwardPorts": [
 		8080
 	],
