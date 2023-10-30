@@ -90,7 +90,10 @@ impl AsyncTextInferenceEngine {
                 // Cancelled by client side or hit eos.
                 stopped = true;
             } else if let Some(new_text) = decoding.next_token(token_id) {
-                tx.send(new_text).await.expect("send failed");
+                match tx.send(new_text).await {
+                    Ok(_) => (),
+                    Err(_) => stopped = true,
+                }
             } else {
                 // Stoop words stopped
                 stopped = true;
