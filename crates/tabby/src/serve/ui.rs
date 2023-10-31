@@ -41,10 +41,8 @@ pub async fn handler(uri: Uri) -> impl IntoResponse {
         path = "index.html".to_owned()
     } else if path == "playground" {
         path = "playground.html".to_owned();
-    } else if path == "dashboard/home" {
-        path = "dashboard/home.html".to_owned();
-    } else if path == "dashboard/runners" {
-        path = "dashboard/runners.html".to_owned();
+    } else if path == "swagger" {
+        path = "swagger.html".to_owned();
     }
     WebStaticFile(path)
 }
