@@ -13,7 +13,7 @@ import { IconSlack } from '@/components/ui/icons'
 import { Separator } from '@/components/ui/separator'
 import { useHealth } from '@/lib/hooks/use-health'
 import { PropsWithChildren, useEffect, useState } from 'react'
-import RunnerCard from './components/runner-card'
+import WorkerCard from './components/worker-card'
 
 const COMMUNITY_DIALOG_SHOWN_KEY = 'community-dialog-shown'
 
@@ -96,23 +96,23 @@ function MainPanel() {
       <Separator />
 
       <div className="mt-4 rounded-lg bg-zinc-100 p-4 dark:bg-zinc-800">
-        <span className="font-bold">Runners</span>
+        <span className="font-bold">Workers</span>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:flex-wrap">
-          <RunnerCard
+          <WorkerCard
             source="localhost"
             name={healthInfo.model}
             type="completion"
             health={healthInfo}
           />
           {healthInfo.chat_model && (
-            <RunnerCard
+            <WorkerCard
               source="localhost"
               name={healthInfo.chat_model}
               type="chat"
               health={healthInfo}
             />
           )}
-          <RunnerCard
+          <WorkerCard
             source="localhost"
             name="Code Search Index"
             type="index"
