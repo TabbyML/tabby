@@ -176,18 +176,18 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     // Decode tokens in chunks
     for (size_t i = 0; i < static_cast<size_t>(batch_.n_tokens); i += N_BATCH) {
       const int32_t n_tokens = std::min(N_BATCH, batch_.n_tokens - i);
-			llama_batch batch_view = {
-				n_tokens,
-				batch_.token    + i,
-				nullptr,
-				batch_.pos      + i,
-				batch_.n_seq_id + i,
-				batch_.seq_id   + i,
-				batch_.logits   + i,
-				0, 0, 0, // unused
-			};
+      llama_batch batch_view = {
+        n_tokens,
+        batch_.token    + i,
+        nullptr,
+        batch_.pos      + i,
+        batch_.n_seq_id + i,
+        batch_.seq_id   + i,
+        batch_.logits   + i,
+        0, 0, 0, // unused
+      };
 
-			const int ret = llama_decode(ctx, batch_view);
+      const int ret = llama_decode(ctx, batch_view);
       if (ret != 0) {
         throw std::runtime_error("Failed to eval");
       }
@@ -216,21 +216,21 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         if (request.multibyte_pending > 0) {
           request.multibyte_pending -= token_str.size();
         } else if (token_str.size() == 1) {
-            const char c = token_str[0];
-            // 2-byte characters: 110xxxxx 10xxxxxx
-            if ((c & 0xE0) == 0xC0) {
-                request.multibyte_pending = 1;
-                // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
-            }
-            else if ((c & 0xF0) == 0xE0) {
-                request.multibyte_pending = 2;
-                // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-            } else if ((c & 0xF8) == 0xF0) {
-                request.multibyte_pending = 3;
-            }
-            else {
-                request.multibyte_pending = 0;
-            }
+          const char c = token_str[0];
+          // 2-byte characters: 110xxxxx 10xxxxxx
+          if ((c & 0xE0) == 0xC0) {
+              request.multibyte_pending = 1;
+              // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
+          }
+          else if ((c & 0xF0) == 0xE0) {
+              request.multibyte_pending = 2;
+              // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+          } else if ((c & 0xF8) == 0xF0) {
+              request.multibyte_pending = 3;
+          }
+          else {
+              request.multibyte_pending = 0;
+          }
         }
 
         if (request.multibyte_pending == 0) {
