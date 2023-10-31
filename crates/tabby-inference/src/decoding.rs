@@ -2,7 +2,7 @@ use dashmap::DashMap;
 use regex::Regex;
 use tabby_common::languages::Language;
 
-pub struct DecodingFactory {
+pub struct StopConditionFactory {
     stop_regex_cache: DashMap<String, Regex>,
 }
 
@@ -13,7 +13,7 @@ where
     s.into().chars().rev().collect()
 }
 
-impl Default for DecodingFactory {
+impl Default for StopConditionFactory {
     fn default() -> Self {
         Self {
             stop_regex_cache: DashMap::new(),
@@ -21,13 +21,9 @@ impl Default for DecodingFactory {
     }
 }
 
-impl DecodingFactory {
-    pub fn create_incremental_decoding(
-        &self,
-        text: &str,
-        language: &'static Language,
-    ) -> IncrementalDecoding {
-        IncrementalDecoding::new(self.get_re(language), text)
+impl StopConditionFactory {
+    pub fn create(&self, text: &str, language: &'static Language) -> StopCondition {
+        StopCondition::new(self.get_re(language), text)
     }
 
     fn get_re(&self, language: &'static Language) -> Option<Regex> {
@@ -58,12 +54,12 @@ fn create_stop_regex(stop_words: Vec<String>) -> Regex {
     Regex::new(&regex_string).expect("Failed to create regex")
 }
 
-pub struct IncrementalDecoding {
+pub struct StopCondition {
     stop_re: Option<Regex>,
     reversed_text: String,
 }
 
-impl IncrementalDecoding {
+impl StopCondition {
     pub fn new(stop_re: Option<Regex>, text: &str) -> Self {
         Self {
             stop_re,

@@ -7,7 +7,7 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use futures::{lock::Mutex, stream::BoxStream};
 use tabby_inference::{
-    decoding::{DecodingFactory, IncrementalDecoding},
+    decoding::{StopCondition, StopConditionFactory},
     helpers, TextGeneration, TextGenerationOptions,
 };
 use tokio::{
@@ -45,12 +45,12 @@ unsafe impl Sync for ffi::TextInferenceEngine {}
 
 struct InferenceRequest {
     tx: Sender<String>,
-    decoding: IncrementalDecoding,
+    stop_condition: StopCondition,
 }
 
 struct AsyncTextInferenceEngine {
     engine: Mutex<cxx::UniquePtr<ffi::TextInferenceEngine>>,
-    decoding_factory: DecodingFactory,
+    stop_condition_factory: StopConditionFactory,
     requests: Mutex<HashMap<u32, InferenceRequest>>,
 
     next_request_id: Mutex<u32>,
@@ -60,7 +60,7 @@ impl AsyncTextInferenceEngine {
     fn create(engine: UniquePtr<ffi::TextInferenceEngine>) -> Self {
         Self {
             engine: Mutex::new(engine),
-            decoding_factory: DecodingFactory::default(),
+            stop_condition_factory: StopConditionFactory::default(),
             requests: Mutex::new(HashMap::new()),
             next_request_id: Mutex::new(0),
         }
@@ -80,12 +80,12 @@ impl AsyncTextInferenceEngine {
 
         for ffi::StepOutput { request_id, text } in result {
             let mut stopped = false;
-            let InferenceRequest { tx, decoding } = requests.get_mut(&request_id).unwrap();
+            let InferenceRequest { tx, stop_condition } = requests.get_mut(&request_id).unwrap();
 
             if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
                 stopped = true;
-            } else if !decoding.should_stop(&text) {
+            } else if !stop_condition.should_stop(&text) {
                 match tx.send(text).await {
                     Ok(_) => (),
                     Err(_) => stopped = true,
@@ -107,9 +107,7 @@ impl AsyncTextInferenceEngine {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let decoding = self
-            .decoding_factory
-            .create_incremental_decoding(prompt, options.language);
+        let stop_condition = self.stop_condition_factory.create(prompt, options.language);
 
         let (tx, mut rx) = channel::<String>(4);
         {
@@ -121,7 +119,7 @@ impl AsyncTextInferenceEngine {
             self.requests
                 .lock()
                 .await
-                .insert(*request_id, InferenceRequest { tx, decoding });
+                .insert(*request_id, InferenceRequest { tx, stop_condition });
             engine
                 .as_mut()
                 .unwrap()
