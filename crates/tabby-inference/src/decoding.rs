@@ -88,6 +88,20 @@ impl IncrementalDecoding {
         }
     }
 
+    pub fn should_stop(&mut self, new_text: &str) -> bool {
+        if !new_text.is_empty() {
+            self.reversed_text = reverse(new_text) + &self.reversed_text;
+
+            if let Some(re) = &self.stop_re {
+                if re.is_match(&self.reversed_text) {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     pub fn next_token(&mut self, token_id: u32) -> Option<String> {
         let skip_special_token = true;
         self.token_ids.push(token_id);

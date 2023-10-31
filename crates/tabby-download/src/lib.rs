@@ -29,6 +29,7 @@ impl Downloader {
         }
     }
 
+    #[deprecated]
     pub async fn download_ctranslate2_files(&self) -> Result<()> {
         let files = vec![
             ("tabby.json", true),
@@ -45,11 +46,7 @@ impl Downloader {
     }
 
     pub async fn download_ggml_files(&self) -> Result<()> {
-        let files = vec![
-            ("tabby.json", true),
-            ("tokenizer.json", true),
-            ("ggml/q8_0.v2.gguf", true),
-        ];
+        let files = vec![("tabby.json", true), ("ggml/q8_0.v2.gguf", true)];
         self.download_files(&files).await
     }
 

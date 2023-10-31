@@ -18,6 +18,11 @@ use tokio::{
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
+    struct StepOutput {
+        request_id: u32,
+        text: String,
+    }
+
     unsafe extern "C++" {
         include!("llama-cpp-bindings/include/engine.h");
 
@@ -31,9 +36,7 @@ mod ffi {
             input_token_ids: &[u32],
         );
         fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
-        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<u32>>;
-
-        fn eos_token_id(&self) -> u32;
+        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
     }
 }
 
@@ -52,13 +55,11 @@ struct AsyncTextInferenceEngine {
     requests: Mutex<HashMap<u32, InferenceRequest>>,
 
     next_request_id: Mutex<u32>,
-    eos_token_id: u32,
 }
 
 impl AsyncTextInferenceEngine {
     fn create(engine: UniquePtr<ffi::TextInferenceEngine>, tokenizer: Tokenizer) -> Self {
         Self {
-            eos_token_id: engine.eos_token_id(),
             engine: Mutex::new(engine),
             tokenizer: Arc::new(tokenizer),
             decoding_factory: DecodingFactory::default(),
@@ -79,18 +80,15 @@ impl AsyncTextInferenceEngine {
             panic!("Failed to evaluation");
         };
 
-        for i in (0..result.len()).step_by(2) {
-            let request_id = result[i];
-            let token_id = result[i + 1];
-
-            let InferenceRequest { tx, decoding } = requests.get_mut(&request_id).unwrap();
+        for ffi::StepOutput { request_id, text } in result {
             let mut stopped = false;
+            let InferenceRequest { tx, decoding } = requests.get_mut(&request_id).unwrap();
 
-            if tx.is_closed() || token_id == self.eos_token_id {
+            if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
                 stopped = true;
-            } else if let Some(new_text) = decoding.next_token(token_id) {
-                match tx.send(new_text).await {
+            } else if !decoding.should_stop(&text) {
+                match tx.send(text).await {
                     Ok(_) => (),
                     Err(_) => stopped = true,
                 }
