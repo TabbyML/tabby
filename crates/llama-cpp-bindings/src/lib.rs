@@ -29,11 +29,11 @@ mod ffi {
 
         fn create_engine(use_gpu: bool, model_path: &str) -> UniquePtr<TextInferenceEngine>;
 
-        fn tokenize(self: Pin<&mut TextInferenceEngine>, text: &str) -> Vec<u32>;
         fn add_request(
             self: Pin<&mut TextInferenceEngine>,
             request_id: u32,
-            input_token_ids: &[u32],
+            prompt: &str,
+            max_input_length: usize,
         );
         fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
         fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
@@ -113,8 +113,6 @@ impl AsyncTextInferenceEngine {
         {
             let mut engine = self.engine.lock().await;
 
-            let input_token_ids = engine.as_mut().unwrap().tokenize(prompt);
-            let input_token_ids = truncate_tokens(&input_token_ids, options.max_input_length);
             let mut request_id = self.next_request_id.lock().await;
             self.requests
                 .lock()
@@ -123,7 +121,7 @@ impl AsyncTextInferenceEngine {
             engine
                 .as_mut()
                 .unwrap()
-                .add_request(*request_id, input_token_ids);
+                .add_request(*request_id, prompt, options.max_input_length);
 
             // 2048 should be large enough to avoid collision.
             *request_id = (*request_id + 1) % 2048;
@@ -193,14 +191,5 @@ impl TextGeneration for LlamaTextGeneration {
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
         self.engine.generate_stream(prompt, options).await
-    }
-}
-
-fn truncate_tokens(tokens: &[u32], max_length: usize) -> &[u32] {
-    if max_length < tokens.len() {
-        let start = tokens.len() - max_length;
-        &tokens[start..]
-    } else {
-        tokens
     }
 }

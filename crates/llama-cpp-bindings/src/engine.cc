@@ -29,7 +29,7 @@ constexpr size_t N_BATCH = 512;  // # per batch inference.
 constexpr size_t N_CTX = 4096;   // # max kv history.
  
 struct Request {
-  Request(size_t request_id, rust::Slice<const uint32_t> input_token_ids) :
+  Request(size_t request_id, std::vector<llama_token> input_token_ids) :
     id(request_id),
     tokens(input_token_ids.begin(), input_token_ids.end()) {
     }
@@ -94,17 +94,13 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
     llama_batch_free(batch_);
   }
 
-  rust::Vec<uint32_t> tokenize(rust::Str text) override {
-    const auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
-
-    rust::Vec<uint32_t> ret;
-    ret.reserve(tokens.size());
-    std::copy(tokens.begin(), tokens.end(), std::back_inserter(ret));
-    return ret;
-  }
-
-  void add_request(uint32_t request_id, rust::Slice<const uint32_t> input_token_ids) override {
-    pending_requests_.push_back(Request(request_id, input_token_ids));
+  virtual void add_request(uint32_t request_id, rust::Str text, size_t max_input_length) override {
+    auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
+    if (tokens.size() > max_input_length) {
+      int start = tokens.size() - max_input_length;
+      tokens = std::vector<llama_token>(tokens.begin() + start, tokens.end());
+    }
+    pending_requests_.push_back(Request(request_id, tokens));
   }
 
   void stop_request(uint32_t request_id) override {
@@ -219,17 +215,17 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
           const char c = token_str[0];
           // 2-byte characters: 110xxxxx 10xxxxxx
           if ((c & 0xE0) == 0xC0) {
-              request.multibyte_pending = 1;
-              // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
+            request.multibyte_pending = 1;
+            // 3-byte characters: 1110xxxx 10xxxxxx 10xxxxxx
           }
           else if ((c & 0xF0) == 0xE0) {
-              request.multibyte_pending = 2;
-              // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+            request.multibyte_pending = 2;
+            // 4-byte characters: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
           } else if ((c & 0xF8) == 0xF0) {
-              request.multibyte_pending = 3;
+            request.multibyte_pending = 3;
           }
           else {
-              request.multibyte_pending = 0;
+            request.multibyte_pending = 0;
           }
         }
 
