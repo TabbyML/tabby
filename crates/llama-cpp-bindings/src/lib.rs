@@ -7,10 +7,9 @@ use derive_builder::Builder;
 use ffi::create_engine;
 use futures::{lock::Mutex, stream::BoxStream};
 use tabby_inference::{
-    decoding::{DecodingFactory, IncrementalDecoding},
+    decoding::{StopCondition, StopConditionFactory},
     helpers, TextGeneration, TextGenerationOptions,
 };
-use tokenizers::tokenizer::Tokenizer;
 use tokio::{
     sync::mpsc::{channel, Sender},
     task::yield_now,
@@ -18,6 +17,11 @@ use tokio::{
 
 #[cxx::bridge(namespace = "llama")]
 mod ffi {
+    struct StepOutput {
+        request_id: u32,
+        text: String,
+    }
+
     unsafe extern "C++" {
         include!("llama-cpp-bindings/include/engine.h");
 
@@ -28,12 +32,11 @@ mod ffi {
         fn add_request(
             self: Pin<&mut TextInferenceEngine>,
             request_id: u32,
-            input_token_ids: &[u32],
+            prompt: &str,
+            max_input_length: usize,
         );
         fn stop_request(self: Pin<&mut TextInferenceEngine>, request_id: u32);
-        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<u32>>;
-
-        fn eos_token_id(&self) -> u32;
+        fn step(self: Pin<&mut TextInferenceEngine>) -> Result<Vec<StepOutput>>;
     }
 }
 
@@ -42,26 +45,22 @@ unsafe impl Sync for ffi::TextInferenceEngine {}
 
 struct InferenceRequest {
     tx: Sender<String>,
-    decoding: IncrementalDecoding,
+    stop_condition: StopCondition,
 }
 
 struct AsyncTextInferenceEngine {
     engine: Mutex<cxx::UniquePtr<ffi::TextInferenceEngine>>,
-    tokenizer: Arc<Tokenizer>,
-    decoding_factory: DecodingFactory,
+    stop_condition_factory: StopConditionFactory,
     requests: Mutex<HashMap<u32, InferenceRequest>>,
 
     next_request_id: Mutex<u32>,
-    eos_token_id: u32,
 }
 
 impl AsyncTextInferenceEngine {
-    fn create(engine: UniquePtr<ffi::TextInferenceEngine>, tokenizer: Tokenizer) -> Self {
+    fn create(engine: UniquePtr<ffi::TextInferenceEngine>) -> Self {
         Self {
-            eos_token_id: engine.eos_token_id(),
             engine: Mutex::new(engine),
-            tokenizer: Arc::new(tokenizer),
-            decoding_factory: DecodingFactory::default(),
+            stop_condition_factory: StopConditionFactory::default(),
             requests: Mutex::new(HashMap::new()),
             next_request_id: Mutex::new(0),
         }
@@ -79,18 +78,15 @@ impl AsyncTextInferenceEngine {
             panic!("Failed to evaluation");
         };
 
-        for i in (0..result.len()).step_by(2) {
-            let request_id = result[i];
-            let token_id = result[i + 1];
-
-            let InferenceRequest { tx, decoding } = requests.get_mut(&request_id).unwrap();
+        for ffi::StepOutput { request_id, text } in result {
             let mut stopped = false;
+            let InferenceRequest { tx, stop_condition } = requests.get_mut(&request_id).unwrap();
 
-            if tx.is_closed() || token_id == self.eos_token_id {
+            if tx.is_closed() || text.is_empty() {
                 // Cancelled by client side or hit eos.
                 stopped = true;
-            } else if let Some(new_text) = decoding.next_token(token_id) {
-                match tx.send(new_text).await {
+            } else if !stop_condition.should_stop(&text) {
+                match tx.send(text).await {
                     Ok(_) => (),
                     Err(_) => stopped = true,
                 }
@@ -111,25 +107,21 @@ impl AsyncTextInferenceEngine {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let encoding = self.tokenizer.encode(prompt, true).unwrap();
-        let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
-        let decoding = self.decoding_factory.create_incremental_decoding(
-            self.tokenizer.clone(),
-            input_token_ids,
-            options.language,
-        );
+        let stop_condition = self.stop_condition_factory.create(prompt, options.language);
 
         let (tx, mut rx) = channel::<String>(4);
         {
             let mut engine = self.engine.lock().await;
-            let engine = engine.as_mut().unwrap();
 
             let mut request_id = self.next_request_id.lock().await;
             self.requests
                 .lock()
                 .await
-                .insert(*request_id, InferenceRequest { tx, decoding });
-            engine.add_request(*request_id, input_token_ids);
+                .insert(*request_id, InferenceRequest { tx, stop_condition });
+            engine
+                .as_mut()
+                .unwrap()
+                .add_request(*request_id, prompt, options.max_input_length);
 
             // 2048 should be large enough to avoid collision.
             *request_id = (*request_id + 1) % 2048;
@@ -155,7 +147,6 @@ impl AsyncTextInferenceEngine {
 #[derive(Builder, Debug)]
 pub struct LlamaTextGenerationOptions {
     model_path: String,
-    tokenizer_path: String,
     use_gpu: bool,
 }
 
@@ -169,9 +160,8 @@ impl LlamaTextGeneration {
         if engine.is_null() {
             panic!("Unable to load model: {}", options.model_path);
         }
-        let tokenizer = Tokenizer::from_file(&options.tokenizer_path).unwrap();
         let ret = LlamaTextGeneration {
-            engine: Arc::new(AsyncTextInferenceEngine::create(engine, tokenizer)),
+            engine: Arc::new(AsyncTextInferenceEngine::create(engine)),
         };
         ret.start_background_job();
         ret
@@ -201,14 +191,5 @@ impl TextGeneration for LlamaTextGeneration {
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
         self.engine.generate_stream(prompt, options).await
-    }
-}
-
-fn truncate_tokens(tokens: &[u32], max_length: usize) -> &[u32] {
-    if max_length < tokens.len() {
-        let start = tokens.len() - max_length;
-        &tokens[start..]
-    } else {
-        tokens
     }
 }

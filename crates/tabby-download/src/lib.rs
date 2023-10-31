@@ -29,27 +29,8 @@ impl Downloader {
         }
     }
 
-    pub async fn download_ctranslate2_files(&self) -> Result<()> {
-        let files = vec![
-            ("tabby.json", true),
-            ("tokenizer.json", true),
-            ("ctranslate2/vocabulary.txt", false),
-            ("ctranslate2/shared_vocabulary.txt", false),
-            ("ctranslate2/vocabulary.json", false),
-            ("ctranslate2/shared_vocabulary.json", false),
-            ("ctranslate2/config.json", true),
-            ("ctranslate2/model.bin", true),
-        ];
-
-        self.download_files(&files).await
-    }
-
     pub async fn download_ggml_files(&self) -> Result<()> {
-        let files = vec![
-            ("tabby.json", true),
-            ("tokenizer.json", true),
-            ("ggml/q8_0.v2.gguf", true),
-        ];
+        let files = vec![("tabby.json", true), ("ggml/q8_0.v2.gguf", true)];
         self.download_files(&files).await
     }
 

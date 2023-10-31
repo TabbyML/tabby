@@ -78,14 +78,6 @@ impl ModelDir {
         self.path_string("tabby.json")
     }
 
-    pub fn tokenizer_file(&self) -> String {
-        self.path_string("tokenizer.json")
-    }
-
-    pub fn ctranslate2_dir(&self) -> String {
-        self.path_string("ctranslate2")
-    }
-
     pub fn ggml_q8_0_file(&self) -> String {
         self.path_string("ggml/q8_0.gguf")
     }

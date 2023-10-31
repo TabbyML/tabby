@@ -6,7 +6,6 @@ members = [
     "crates/tabby-scheduler",
     "crates/tabby-download",
     "crates/tabby-inference",
-    "crates/ctranslate2-bindings",
     "crates/rust-cxx-cmake-bridge",
     "crates/llama-cpp-bindings",
     "crates/http-api-bindings",
@@ -33,7 +32,6 @@ tantivy = "0.21.0"
 async-trait = "0.1.72"
 reqwest = { version = "0.11.18" }
 derive_builder = "0.12.0"
-tokenizers = "0.13.4-rc3"
 futures = "0.3.28"
 async-stream = "0.3.5"
 regex = "1.10.0"

@@ -12,5 +12,4 @@ dashmap = "5.5.3"
 derive_builder = "0.12.0"
 futures = { workspace = true }
 regex.workspace = true
-tokenizers.workspace = true
 tabby-common = { path = "../tabby-common" }
