@@ -695,24 +695,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ctranslate2-bindings"
-version = "0.5.0-dev"
-dependencies = [
- "async-stream",
- "async-trait",
- "cmake",
- "cxx",
- "cxx-build",
- "derive_builder",
- "futures",
- "rust-cxx-cmake-bridge",
- "tabby-inference",
- "tokenizers",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "cxx"
 version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"

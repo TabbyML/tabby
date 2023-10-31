@@ -60,6 +60,25 @@ std::string llama_token_to_piece(const struct llama_context * ctx, llama_token t
     return std::string(result.data(), result.size());
 }
 
+std::vector<llama_token> llama_tokenize(
+    const struct llama_model * model,
+           const rust::Str &   text,
+                        bool   add_bos,
+                        bool   special) {
+    // upper limit for the number of tokens
+    int n_tokens = text.length() + add_bos;
+    std::vector<llama_token> result(n_tokens);
+    n_tokens = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos, special);
+    if (n_tokens < 0) {
+        result.resize(-n_tokens);
+        int check = llama_tokenize(model, text.data(), text.length(), result.data(), result.size(), add_bos, special);
+        GGML_ASSERT(check == -n_tokens);
+    } else {
+        result.resize(n_tokens);
+    }
+    return result;
+}
+
 template<class T>
 using owned = std::unique_ptr<T, std::function<void(T*)>>;
 
@@ -73,6 +92,15 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
 
   ~TextInferenceEngineImpl() {
     llama_batch_free(batch_);
+  }
+
+  rust::Vec<uint32_t> tokenize(rust::Str text) override {
+    const auto tokens = llama_tokenize(llama_get_model(ctx_.get()), text, false, true);
+
+    rust::Vec<uint32_t> ret;
+    ret.reserve(tokens.size());
+    std::copy(tokens.begin(), tokens.end(), std::back_inserter(ret));
+    return ret;
   }
 
   void add_request(uint32_t request_id, rust::Slice<const uint32_t> input_token_ids) override {

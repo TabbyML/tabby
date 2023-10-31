@@ -10,7 +10,6 @@ use tabby_inference::{
     decoding::{DecodingFactory, IncrementalDecoding},
     helpers, TextGeneration, TextGenerationOptions,
 };
-use tokenizers::tokenizer::Tokenizer;
 use tokio::{
     sync::mpsc::{channel, Sender},
     task::yield_now,
@@ -30,6 +29,7 @@ mod ffi {
 
         fn create_engine(use_gpu: bool, model_path: &str) -> UniquePtr<TextInferenceEngine>;
 
+        fn tokenize(self: Pin<&mut TextInferenceEngine>, text: &str) -> Vec<u32>;
         fn add_request(
             self: Pin<&mut TextInferenceEngine>,
             request_id: u32,
@@ -50,7 +50,6 @@ struct InferenceRequest {
 
 struct AsyncTextInferenceEngine {
     engine: Mutex<cxx::UniquePtr<ffi::TextInferenceEngine>>,
-    tokenizer: Arc<Tokenizer>,
     decoding_factory: DecodingFactory,
     requests: Mutex<HashMap<u32, InferenceRequest>>,
 
@@ -58,10 +57,9 @@ struct AsyncTextInferenceEngine {
 }
 
 impl AsyncTextInferenceEngine {
-    fn create(engine: UniquePtr<ffi::TextInferenceEngine>, tokenizer: Tokenizer) -> Self {
+    fn create(engine: UniquePtr<ffi::TextInferenceEngine>) -> Self {
         Self {
             engine: Mutex::new(engine),
-            tokenizer: Arc::new(tokenizer),
             decoding_factory: DecodingFactory::default(),
             requests: Mutex::new(HashMap::new()),
             next_request_id: Mutex::new(0),
@@ -109,25 +107,25 @@ impl AsyncTextInferenceEngine {
         prompt: &str,
         options: TextGenerationOptions,
     ) -> BoxStream<String> {
-        let encoding = self.tokenizer.encode(prompt, true).unwrap();
-        let input_token_ids = truncate_tokens(encoding.get_ids(), options.max_input_length);
-        let decoding = self.decoding_factory.create_incremental_decoding(
-            self.tokenizer.clone(),
-            input_token_ids,
-            options.language,
-        );
+        let decoding = self
+            .decoding_factory
+            .create_incremental_decoding(prompt, options.language);
 
         let (tx, mut rx) = channel::<String>(4);
         {
             let mut engine = self.engine.lock().await;
-            let engine = engine.as_mut().unwrap();
 
+            let input_token_ids = engine.as_mut().unwrap().tokenize(prompt);
+            let input_token_ids = truncate_tokens(&input_token_ids, options.max_input_length);
             let mut request_id = self.next_request_id.lock().await;
             self.requests
                 .lock()
                 .await
                 .insert(*request_id, InferenceRequest { tx, decoding });
-            engine.add_request(*request_id, input_token_ids);
+            engine
+                .as_mut()
+                .unwrap()
+                .add_request(*request_id, input_token_ids);
 
             // 2048 should be large enough to avoid collision.
             *request_id = (*request_id + 1) % 2048;
@@ -153,7 +151,6 @@ impl AsyncTextInferenceEngine {
 #[derive(Builder, Debug)]
 pub struct LlamaTextGenerationOptions {
     model_path: String,
-    tokenizer_path: String,
     use_gpu: bool,
 }
 
@@ -167,9 +164,8 @@ impl LlamaTextGeneration {
         if engine.is_null() {
             panic!("Unable to load model: {}", options.model_path);
         }
-        let tokenizer = Tokenizer::from_file(&options.tokenizer_path).unwrap();
         let ret = LlamaTextGeneration {
-            engine: Arc::new(AsyncTextInferenceEngine::create(engine, tokenizer)),
+            engine: Arc::new(AsyncTextInferenceEngine::create(engine)),
         };
         ret.start_background_job();
         ret
