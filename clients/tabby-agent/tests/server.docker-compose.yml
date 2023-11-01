@@ -1,0 +1,17 @@
+version: "3.5"
+services:
+  serve:
+    restart: always
+    image: tabbyml/tabby:0.4.0
+    command: serve --model "/data/models/TabbyML/SantaCoder-1B" --device cuda
+    ports:
+      - "8087:8080"
+    volumes:
+      - "~/.tabby:/data"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

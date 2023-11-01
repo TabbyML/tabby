@@ -12,6 +12,7 @@
     "build": "tsup",
     "test": "mocha",
     "test:watch": "env TEST_LOG_DEBUG=1 mocha --watch",
+    "test:golden": "mocha --grep golden ./tests/golden.test.ts",
     "lint": "prettier --write .",
     "lint:check": "prettier --check ."
   },
