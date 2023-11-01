@@ -7,7 +7,6 @@ The minimal Tabby model directory should include the following contents:
 ```
 ggml/
 tabby.json
-tokenizer.json
 ```
 
 ### tabby.json
@@ -27,10 +26,8 @@ One example for the **prompt_template** is `<PRE>{prefix}<SUF>{suffix}<MID>`. In
 
 The **chat_template** field is optional. When it is present, it is assumed that the model supports an instruct/chat-style interaction, and can be passed to `--chat-model`.
 
-### tokenizer.json
-This is the standard fast tokenizer file created using [Hugging Face Tokenizers](https://github.com/huggingface/tokenizers). Most Hugging Face models already come with it in repository.
-
 ### ggml/
+
 This directory contains binary files used by the [llama.cpp](https://github.com/ggerganov/llama.cpp) inference engine. Tabby utilizes ggml for inference on `cpu`, `cuda` and `metal` devices.
 
 Currently, only `q8_0.v2.gguf` in this directory is in use. You can refer to the instructions in llama.cpp to learn how to acquire it.
