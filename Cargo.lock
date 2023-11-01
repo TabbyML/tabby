@@ -2357,10 +2357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-cxx-cmake-bridge"
-version = "0.5.0-dev"
-
-[[package]]
 name = "rust-embed"
 version = "6.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
