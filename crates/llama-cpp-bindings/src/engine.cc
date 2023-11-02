@@ -246,9 +246,14 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         }
 
         if (request.multibyte_pending == 0) {
-          rust::String generated_text = is_eos ? "" : request.generated_text;
-          result.push_back({request.id, generated_text});
+          rust::String generated_text;
+          try {
+            generated_text = is_eos ? "" : request.generated_text;
+          } catch (const std::invalid_argument& e) {
+            fprintf(stderr, "%s:%d [%s] - ignoring non utf-8/utf-16 output\n", __FILE__, __LINE__, __func__);
+          }
 
+          result.push_back({request.id, generated_text});
           request.generated_text.clear();
         }
       }

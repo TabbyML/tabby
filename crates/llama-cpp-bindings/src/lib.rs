@@ -76,7 +76,9 @@ impl AsyncTextInferenceEngine {
 
         let result = match engine.as_mut().unwrap().step() {
             Ok(result) => result,
-            Err(err) => panic!("Failed to step: {}", err),
+            Err(err) => {
+                panic!("Failed to step: {}", err)
+            }
         };
 
         for ffi::StepOutput { request_id, text } in result {
