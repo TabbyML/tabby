@@ -74,8 +74,9 @@ impl AsyncTextInferenceEngine {
 
         let mut engine = self.engine.lock().await;
 
-        let Ok(result) = engine.as_mut().unwrap().step() else {
-            panic!("Failed to evaluation");
+        let result = match engine.as_mut().unwrap().step() {
+            Ok(result) => result,
+            Err(err) => panic!("Failed to step: {}", err),
         };
 
         for ffi::StepOutput { request_id, text } in result {
