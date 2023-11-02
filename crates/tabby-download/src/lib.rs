@@ -89,11 +89,6 @@ async fn download_file(url: &str, path: &Path) -> Result<()> {
 }
 
 pub async fn download_model(model_id: &str, prefer_local_file: bool) {
-    // Local file path.
-    if fs::metadata(model_id).is_ok() {
-        return;
-    }
-
     let (registry, name) = parse_model_id(model_id);
 
     let registry = ModelRegistry::new(registry).await;

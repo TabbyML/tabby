@@ -1,7 +1,10 @@
-use std::fs;
+use std::{fs, path::PathBuf};
 
-use tabby_common::registry::{parse_model_id, ModelRegistry};
+use serde::Deserialize;
+use tabby_common::registry::{parse_model_id, ModelRegistry, GGML_MODEL_RELATIVE_PATH};
 use tabby_inference::TextGeneration;
+
+use crate::fatal;
 
 pub async fn create_engine(
     model_id: &str,
@@ -9,14 +12,12 @@ pub async fn create_engine(
 ) -> (Box<dyn TextGeneration>, EngineInfo) {
     if args.device != super::Device::ExperimentalHttp {
         if fs::metadata(model_id).is_ok() {
-            let engine = create_ggml_engine(&args.device, model_id);
-            (
-                engine,
-                EngineInfo {
-                    prompt_template: args.prompt_template.clone(),
-                    chat_template: args.chat_template.clone(),
-                },
-            )
+            let path = PathBuf::from(model_id);
+            let model_path = path.join(GGML_MODEL_RELATIVE_PATH);
+            let engine =
+                create_ggml_engine(&args.device, model_path.display().to_string().as_str());
+            let engine_info = EngineInfo::read(path.join("tabby.json"));
+            (engine, engine_info)
         } else {
             let (registry, name) = parse_model_id(model_id);
             let registry = ModelRegistry::new(registry).await;
@@ -43,9 +44,17 @@ pub async fn create_engine(
     }
 }
 
+#[derive(Deserialize)]
 pub struct EngineInfo {
     pub prompt_template: Option<String>,
     pub chat_template: Option<String>,
+}
+
+impl EngineInfo {
+    fn read(filepath: PathBuf) -> EngineInfo {
+        serdeconv::from_json_file(&filepath)
+            .unwrap_or_else(|_| fatal!("Invalid metadata file: {}", filepath.display()))
+    }
 }
 
 fn create_ggml_engine(device: &super::Device, model_path: &str) -> Box<dyn TextGeneration> {

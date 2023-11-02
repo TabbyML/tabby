@@ -109,17 +109,9 @@ pub struct ServeArgs {
     #[clap(long)]
     model: String,
 
-    /// Prompt template to be used when `--model` is a local file.
-    #[clap(long)]
-    prompt_template: Option<String>,
-
     /// Model id for `/chat/completions` API endpoints.
     #[clap(long)]
     chat_model: Option<String>,
-
-    /// Chat prompt template to be used when `--chat-model` is a local file.
-    #[clap(long)]
-    chat_template: Option<String>,
 
     #[clap(long, default_value_t = 8080)]
     port: u16,
@@ -138,9 +130,13 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        download_model(&args.model, true).await;
-        if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model, true).await;
+        if fs::metadata(&args.model).is_ok() {
+            info!("Loading model from local path {}", &args.model);
+        } else {
+            download_model(&args.model, true).await;
+            if let Some(chat_model) = &args.chat_model {
+                download_model(chat_model, true).await;
+            }
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -258,16 +254,6 @@ async fn api_router(args: &ServeArgs, config: &Config) -> Router {
 fn valid_args(args: &ServeArgs) {
     if !args.device_indices.is_empty() {
         warn!("--device-indices is deprecated and will be removed in future release.");
-    }
-
-    if fs::metadata(&args.model).is_ok() && args.prompt_template.is_none() {
-        fatal!("When passing a local file to --model, --prompt-template is required to set.")
-    }
-
-    if let Some(chat_model) = &args.chat_model {
-        if fs::metadata(chat_model).is_ok() && args.chat_template.is_none() {
-            fatal!("When passing a local file to --chat-model, --chat-template is required to set.")
-        }
     }
 }
 

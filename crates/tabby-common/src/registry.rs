@@ -62,7 +62,7 @@ impl ModelRegistry {
         models_dir()
             .join(&self.name)
             .join(name)
-            .join("ggml/q8_0.v2.gguf")
+            .join(GGML_MODEL_RELATIVE_PATH)
     }
 
     pub fn get_model_info(&self, name: &str) -> &ModelInfo {
@@ -81,3 +81,5 @@ pub fn parse_model_id(model_id: &str) -> (&str, &str) {
 
     (parts[0], parts[1])
 }
+
+pub static GGML_MODEL_RELATIVE_PATH: &str = "ggml/q8_0.v2.gguf";
