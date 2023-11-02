@@ -117,7 +117,7 @@ pub struct ServeArgs {
     #[clap(long)]
     chat_model: Option<String>,
 
-    /// Prompt template to be used when `--model` is a local file.
+    /// Chat prompt template to be used when `--chat-model` is a local file.
     #[clap(long)]
     chat_template: Option<String>,
 
@@ -261,14 +261,12 @@ fn valid_args(args: &ServeArgs) {
     }
 
     if fs::metadata(&args.model).is_ok() && args.prompt_template.is_none() {
-        fatal!(
-            "When passing a local file to --chat-model, --chat-prompt-template is required to set."
-        )
+        fatal!("When passing a local file to --model, --prompt-template is required to set.")
     }
 
     if let Some(chat_model) = &args.chat_model {
         if fs::metadata(chat_model).is_ok() && args.chat_template.is_none() {
-            fatal!("When passing a local file to --chat-model, --chat-prompt-template is required to set.")
+            fatal!("When passing a local file to --chat-model, --chat-template is required to set.")
         }
     }
 }
