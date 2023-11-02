@@ -1,7 +1,9 @@
 # v0.5.0 [Unreleased]
 
 ## Notice
+
 * llama.cpp backend (CPU, Metal) now requires a redownload of gguf model due to upstream format changes: https://github.com/TabbyML/tabby/pull/645 https://github.com/ggerganov/llama.cpp/pull/3252
+* With tabby fully migrated to the `llama.cpp` serving stack, the `--model` and `--chat-model` options now accept local file paths instead of a directory path containing both the `tabby.json` and `ggml` files, as was the case previously.
 
 ## Features
 

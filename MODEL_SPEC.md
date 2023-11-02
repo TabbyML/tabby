@@ -1,5 +1,8 @@
 # Tabby Model Specification (Unstable)
 
+> [!WARNING]  
+> This documentation is no longer valid , tabby accept gguf files directly since release of v0.5. see https://github.com/TabbyML/registry-tabby for details.
+
 Tabby organizes the model within a directory. This document provides an explanation of the necessary contents for supporting model serving. An example model directory can be found at https://huggingface.co/TabbyML/StarCoder-1B
 
 The minimal Tabby model directory should include the following contents:

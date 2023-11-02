@@ -1,8 +1,6 @@
 use clap::Args;
-use tabby_download::Downloader;
+use tabby_download::download_model;
 use tracing::info;
-
-use crate::fatal;
 
 #[derive(Args)]
 pub struct DownloadArgs {
@@ -16,12 +14,6 @@ pub struct DownloadArgs {
 }
 
 pub async fn main(args: &DownloadArgs) {
-    let downloader = Downloader::new(&args.model, args.prefer_local_file);
-
-    downloader
-        .download_ggml_files()
-        .await
-        .unwrap_or_else(|err| fatal!("Failed to fetch model '{}' due to '{}'", args.model, err));
-
+    download_model(&args.model, args.prefer_local_file).await;
     info!("model '{}' is ready", args.model);
 }
