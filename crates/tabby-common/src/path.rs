@@ -51,38 +51,4 @@ pub fn events_dir() -> PathBuf {
     tabby_root().join("events")
 }
 
-pub struct ModelDir(PathBuf);
-
-impl ModelDir {
-    pub fn new(model: &str) -> Self {
-        Self(models_dir().join(model))
-    }
-
-    pub fn from(path: &str) -> Self {
-        Self(PathBuf::from(path))
-    }
-
-    pub fn path(&self) -> &PathBuf {
-        &self.0
-    }
-
-    pub fn path_string(&self, name: &str) -> String {
-        self.0.join(name).display().to_string()
-    }
-
-    pub fn cache_info_file(&self) -> String {
-        self.path_string(".cache_info.json")
-    }
-
-    pub fn metadata_file(&self) -> String {
-        self.path_string("tabby.json")
-    }
-
-    pub fn ggml_q8_0_file(&self) -> String {
-        self.path_string("ggml/q8_0.gguf")
-    }
-
-    pub fn ggml_q8_0_v2_file(&self) -> String {
-        self.path_string("ggml/q8_0.v2.gguf")
-    }
-}
+mod registry {}

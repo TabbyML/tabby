@@ -7,6 +7,7 @@ mod search;
 mod ui;
 
 use std::{
+    fs,
     net::{Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
@@ -16,7 +17,7 @@ use axum::{routing, Router, Server};
 use axum_tracing_opentelemetry::opentelemetry_tracing_layer;
 use clap::Args;
 use tabby_common::{config::Config, usage};
-use tabby_download::Downloader;
+use tabby_download::download_model;
 use tokio::time::sleep;
 use tower_http::{cors::CorsLayer, timeout::TimeoutLayer};
 use tracing::{info, warn};
@@ -129,9 +130,13 @@ pub async fn main(config: &Config, args: &ServeArgs) {
     valid_args(args);
 
     if args.device != Device::ExperimentalHttp {
-        download_model(&args.model).await;
-        if let Some(chat_model) = &args.chat_model {
-            download_model(chat_model).await;
+        if fs::metadata(&args.model).is_ok() {
+            info!("Loading model from local path {}", &args.model);
+        } else {
+            download_model(&args.model, true).await;
+            if let Some(chat_model) = &args.chat_model {
+                download_model(chat_model, true).await;
+            }
         }
     } else {
         warn!("HTTP device is unstable and does not comply with semver expectations.")
@@ -144,7 +149,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
 
     let app = Router::new()
         .route("/", routing::get(ui::handler))
-        .merge(api_router(args, config))
+        .merge(api_router(args, config).await)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", doc))
         .fallback(ui::handler);
 
@@ -165,7 +170,7 @@ pub async fn main(config: &Config, args: &ServeArgs) {
         .unwrap_or_else(|err| fatal!("Error happens during serving: {}", err))
 }
 
-fn api_router(args: &ServeArgs, config: &Config) -> Router {
+async fn api_router(args: &ServeArgs, config: &Config) -> Router {
     let index_server = Arc::new(IndexServer::new());
     let completion_state = {
         let (
@@ -173,7 +178,7 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
             EngineInfo {
                 prompt_template, ..
             },
-        ) = create_engine(&args.model, args);
+        ) = create_engine(&args.model, args).await;
         let engine = Arc::new(engine);
         let state = completions::CompletionState::new(
             engine.clone(),
@@ -184,7 +189,7 @@ fn api_router(args: &ServeArgs, config: &Config) -> Router {
     };
 
     let chat_state = if let Some(chat_model) = &args.chat_model {
-        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args);
+        let (engine, EngineInfo { chat_template, .. }) = create_engine(chat_model, args).await;
         let Some(chat_template) = chat_template else {
             panic!("Chat model requires specifying prompt template");
         };
@@ -260,13 +265,6 @@ fn start_heartbeat(args: &ServeArgs) {
             sleep(Duration::from_secs(3000)).await;
         }
     });
-}
-
-async fn download_model(model: &str) {
-    let downloader = Downloader::new(model, /* prefer_local_file= */ true);
-    let handler = |err| fatal!("Failed to fetch model '{}' due to '{}'", model, err,);
-    let download_result = downloader.download_ggml_files().await;
-    download_result.unwrap_or_else(handler);
 }
 
 trait OpenApiOverride {
