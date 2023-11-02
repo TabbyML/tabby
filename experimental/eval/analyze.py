@@ -1,12 +1,13 @@
 import json
 import sys
 
-def analyze(language, input_file):
+def analyze(model, language, file):
     count = 0
-    output_file = "result_" + input_file[7:]
+    input_file = "./data/" + model + "/" + language + "/" + file
+    output_file = "./data/" + model + "/" + language + "/result_" + file[7:]
 
-    with open("./"+ language + "/" + output_file, "w") as fout:
-        with open("./" + language + "/" + input_file, "r") as fin:
+    with open(output_file, "w") as fout:
+        with open(input_file, "r") as fin:
             for line in fin:
                 obj = json.loads(line)
                 prompt = obj["prompt"]
