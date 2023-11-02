@@ -63,6 +63,7 @@ jobs:
 
 
   release-binary:
+    if: github.event_name != 'pull_request'
     needs: tests
     runs-on: ${{ matrix.os }}
     strategy:
