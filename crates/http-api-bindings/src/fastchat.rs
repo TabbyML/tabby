@@ -8,7 +8,7 @@ use tabby_inference::{helpers, TextGeneration, TextGenerationOptions};
 #[derive(Serialize)]
 struct Request {
     model: String,
-    prompt: Vec<String>,
+    prompt: String,
     max_tokens: usize,
     temperature: f32,
 }
@@ -49,19 +49,14 @@ impl FastChatEngine {
             client,
         }
     }
-
-    pub fn prompt_template() -> String {
-        "{prefix}<MID>{suffix}".to_owned()
-    }
 }
 
 #[async_trait]
 impl TextGeneration for FastChatEngine {
     async fn generate(&self, prompt: &str, options: TextGenerationOptions) -> String {
-        let tokens: Vec<&str> = prompt.split("<MID>").collect();
         let request = Request {
             model: self.model_name.to_owned(),
-            prompt: vec![tokens[0].to_owned()],
+            prompt: prompt.to_string(),
             max_tokens: options.max_decoding_length,
             temperature: options.sampling_temperature,
         };

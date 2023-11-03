@@ -33,14 +33,9 @@ pub async fn create_engine(
             )
         }
     } else {
-        let (engine, prompt_template) = http_api_bindings::create(model_id);
-        (
-            engine,
-            EngineInfo {
-                prompt_template: Some(prompt_template),
-                chat_template: None,
-            },
-        )
+        let (engine, metafile) = http_api_bindings::create(model_id);
+        let engine_info = EngineInfo::read(PathBuf::from(metafile));
+        (engine, engine_info)
     }
 }
 

@@ -9,6 +9,7 @@ use vertex_ai::VertexAIEngine;
 pub fn create(model: &str) -> (Box<dyn TextGeneration>, String) {
     let params = serde_json::from_str(model).expect("Failed to parse model string");
     let kind = get_param(&params, "kind");
+    let metafile = get_param(&params, "tabby_config");
     if kind == "vertex-ai" {
         let api_endpoint = get_param(&params, "api_endpoint");
         let authorization = get_param(&params, "authorization");
@@ -16,7 +17,7 @@ pub fn create(model: &str) -> (Box<dyn TextGeneration>, String) {
             api_endpoint.as_str(),
             authorization.as_str(),
         ));
-        (engine, VertexAIEngine::prompt_template())
+        (engine, metafile)
     } else if kind == "fastchat" {
         let model_name = get_param(&params, "model_name");
         let api_endpoint = get_param(&params, "api_endpoint");
@@ -26,7 +27,7 @@ pub fn create(model: &str) -> (Box<dyn TextGeneration>, String) {
             model_name.as_str(),
             authorization.as_str(),
         ));
-        (engine, FastChatEngine::prompt_template())
+        (engine, metafile)
     } else {
         panic!("Only vertex_ai and fastchat are supported for http backend");
     }

@@ -57,10 +57,6 @@ impl VertexAIEngine {
             client,
         }
     }
-
-    pub fn prompt_template() -> String {
-        "{prefix}<MID>{suffix}".to_owned()
-    }
 }
 
 #[async_trait]
