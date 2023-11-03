@@ -1,0 +1,18 @@
+---
+sidebar_position: 4
+hide_table_of_contents: true
+---
+
+import GitHubReadme from "./readme";
+
+# 🧑‍🔬 Models Registry
+
+<GitHubReadme src="https://raw.githubusercontent.com/TabbyML/registry-tabby/main/README.md" />
+
+## Model Mirrors
+
+Mainland Chinese users might encounter challenges accessing Hugging Face. For models with mirrored to modelscope, you could download model by utilizing following environment variable:
+
+```bash
+TABBY_DOWNLOAD_HOST=modelscope.cn tabby serve --model TabbyML/StarCoder-1B
+```
