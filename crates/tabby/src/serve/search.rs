@@ -10,13 +10,13 @@ use serde::{Deserialize, Serialize};
 use tabby_common::{index::IndexExt, path};
 use tantivy::{
     collector::{Count, TopDocs},
-    query::QueryParser,
-    schema::Field,
-    DocAddress, Document, Index, IndexReader,
+    query::{QueryParser, TermQuery, TermSetQuery},
+    schema::{Field, IndexRecordOption},
+    DocAddress, Document, Index, IndexReader, Term,
 };
 use thiserror::Error;
 use tokio::{sync::OnceCell, task, time::sleep};
-use tracing::{debug, instrument, log::info};
+use tracing::{debug, instrument, log::info, warn};
 use utoipa::{IntoParams, ToSchema};
 
 #[derive(Deserialize, IntoParams)]
@@ -70,15 +70,18 @@ pub async fn search(
     State(state): State<Arc<IndexServer>>,
     query: Query<SearchQuery>,
 ) -> Result<Json<SearchResponse>, StatusCode> {
-    let Ok(serp) = state.search(
+    match state.search(
         &query.q,
         query.limit.unwrap_or(20),
         query.offset.unwrap_or(0),
-    ) else {
-        return Err(StatusCode::NOT_IMPLEMENTED);
-    };
-
-    Ok(Json(serp))
+    ) {
+        Ok(serp) => Ok(Json(serp)),
+        Err(IndexServerError::NotReady) => Err(StatusCode::NOT_IMPLEMENTED),
+        Err(IndexServerError::TantivyError(err)) => {
+            warn!("{}", err);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 struct IndexServerImpl {
@@ -119,17 +122,19 @@ impl IndexServerImpl {
     }
 
     pub fn search(&self, q: &str, limit: usize, offset: usize) -> tantivy::Result<SearchResponse> {
-        let query = self
-            .query_parser
-            .parse_query(q)
-            .expect("Parsing the query failed");
+        let query = self.query_parser.parse_query(q)?;
+        self.search_with_query(&query, limit, offset)
+    }
+
+    pub fn search_with_query(
+        &self,
+        q: &dyn tantivy::query::Query,
+        limit: usize,
+        offset: usize,
+    ) -> tantivy::Result<SearchResponse> {
         let searcher = self.reader.searcher();
-        let (top_docs, num_hits) = {
-            searcher.search(
-                &query,
-                &(TopDocs::with_limit(limit).and_offset(offset), Count),
-            )?
-        };
+        let (top_docs, num_hits) =
+            { searcher.search(q, &(TopDocs::with_limit(limit).and_offset(offset), Count))? };
         let hits: Vec<Hit> = {
             top_docs
                 .iter()
@@ -179,8 +184,15 @@ impl IndexServer {
         Self {}
     }
 
-    fn get_cell(&self) -> Option<&IndexServerImpl> {
-        IMPL.get()
+    fn with_impl<T, F>(&self, op: F) -> Result<T, IndexServerError>
+    where
+        F: FnOnce(&IndexServerImpl) -> Result<T, IndexServerError>,
+    {
+        if let Some(imp) = IMPL.get() {
+            op(imp)
+        } else {
+            Err(IndexServerError::NotReady)
+        }
     }
 
     async fn worker() -> IndexServerImpl {
@@ -199,17 +211,41 @@ impl IndexServer {
         }
     }
 
+    pub fn language_query(&self, language: &str) -> Result<Box<TermQuery>, IndexServerError> {
+        self.with_impl(|imp| {
+            Ok(Box::new(TermQuery::new(
+                Term::from_field_text(imp.field_language, language),
+                IndexRecordOption::WithFreqsAndPositions,
+            )))
+        })
+    }
+
+    pub fn body_query(&self, tokens: &[String]) -> Result<Box<TermSetQuery>, IndexServerError> {
+        self.with_impl(|imp| {
+            Ok(Box::new(TermSetQuery::new(
+                tokens
+                    .iter()
+                    .map(|x| Term::from_field_text(imp.field_body, x)),
+            )))
+        })
+    }
+
     pub fn search(
         &self,
         q: &str,
         limit: usize,
         offset: usize,
     ) -> Result<SearchResponse, IndexServerError> {
-        if let Some(imp) = self.get_cell() {
-            Ok(imp.search(q, limit, offset)?)
-        } else {
-            Err(IndexServerError::NotReady)
-        }
+        self.with_impl(|imp| Ok(imp.search(q, limit, offset)?))
+    }
+
+    pub fn search_with_query(
+        &self,
+        q: &dyn tantivy::query::Query,
+        limit: usize,
+        offset: usize,
+    ) -> Result<SearchResponse, IndexServerError> {
+        self.with_impl(|imp| Ok(imp.search_with_query(q, limit, offset)?))
     }
 }
 
@@ -218,6 +254,6 @@ pub enum IndexServerError {
     #[error("index not ready")]
     NotReady,
 
-    #[error("underlying tantivy error")]
+    #[error("{0}")]
     TantivyError(#[from] tantivy::TantivyError),
 }

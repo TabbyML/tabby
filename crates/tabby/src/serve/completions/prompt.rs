@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use strfmt::strfmt;
 use tabby_common::languages::get_language;
+use tantivy::{query::BooleanQuery, query_grammar::Occur};
 use textdistance::Algorithm;
 use tracing::warn;
 
@@ -106,17 +107,16 @@ fn build_prefix(language: &str, prefix: &str, snippets: &[Snippet]) -> String {
 
 fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> Vec<Snippet> {
     let mut ret = Vec::new();
-    let mut tokens = Box::new(tokenize_text(text));
+    let mut tokens = tokenize_text(text);
 
-    let sanitized_text = tokens.join(" ");
-    let sanitized_text = sanitized_text.trim();
-    if sanitized_text.is_empty() {
-        return ret;
-    }
+    let language_query = index_server.language_query(language).unwrap();
+    let body_query = index_server.body_query(&tokens).unwrap();
+    let query = BooleanQuery::new(vec![
+        (Occur::Must, language_query),
+        (Occur::Must, body_query),
+    ]);
 
-    let query_text = format!("language:{} AND ({})", language, sanitized_text);
-
-    let serp = match index_server.search(&query_text, MAX_SNIPPETS_TO_FETCH, 0) {
+    let serp = match index_server.search_with_query(&query, MAX_SNIPPETS_TO_FETCH, 0) {
         Ok(serp) => serp,
         Err(IndexServerError::NotReady) => {
             // Ignore.
@@ -154,7 +154,7 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
         // Prepend body tokens and update tokens, so future similarity calculation will consider
         // added snippets.
         body_tokens.append(&mut tokens);
-        *tokens = body_tokens;
+        tokens.append(&mut body_tokens);
 
         count_characters += body.len();
         ret.push(Snippet {
@@ -172,11 +172,7 @@ lazy_static! {
 }
 
 fn tokenize_text(text: &str) -> Vec<String> {
-    TOKENIZER
-        .split(text)
-        .filter(|s| *s != "AND" && *s != "OR" && *s != "NOT" && !s.is_empty())
-        .map(|x| x.to_owned())
-        .collect()
+    TOKENIZER.split(text).map(|x| x.to_owned()).collect()
 }
 
 #[cfg(test)]
