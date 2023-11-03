@@ -3,7 +3,7 @@ use std::fs;
 use anyhow::Result;
 use tabby_common::{
     config::Config,
-    index::{IndexExt, CODE_TOKENIZER},
+    index::{IndexExt, CODE_TOKENIZER, IDENTIFIER_TOKENIZER},
     path::index_dir,
     SourceFile,
 };
@@ -29,10 +29,17 @@ pub fn index_repositories(_config: &Config) -> Result<()> {
         .set_indexing_options(code_indexing_options)
         .set_stored();
 
+    let name_indexing_options = TextFieldIndexing::default()
+        .set_tokenizer(IDENTIFIER_TOKENIZER)
+        .set_index_option(tantivy::schema::IndexRecordOption::WithFreqsAndPositions);
+    let name_options = TextOptions::default()
+        .set_indexing_options(name_indexing_options)
+        .set_stored();
+
     let field_git_url = builder.add_text_field("git_url", STRING | STORED);
     let field_filepath = builder.add_text_field("filepath", STRING | STORED);
     let field_language = builder.add_text_field("language", STRING | STORED);
-    let field_name = builder.add_text_field("name", STRING | STORED);
+    let field_name = builder.add_text_field("name", name_options);
     let field_kind = builder.add_text_field("kind", STRING | STORED);
     let field_body = builder.add_text_field("body", code_options);
 

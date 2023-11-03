@@ -1,5 +1,5 @@
 use tantivy::{
-    tokenizer::{RegexTokenizer, RemoveLongFilter, TextAnalyzer},
+    tokenizer::{NgramTokenizer, RegexTokenizer, RemoveLongFilter, TextAnalyzer},
     Index,
 };
 
@@ -8,6 +8,7 @@ pub trait IndexExt {
 }
 
 pub static CODE_TOKENIZER: &str = "code";
+pub static IDENTIFIER_TOKENIZER: &str = "identifier";
 
 impl IndexExt for Index {
     fn register_tokenizer(&self) {
@@ -16,5 +17,11 @@ impl IndexExt for Index {
             .build();
 
         self.tokenizers().register(CODE_TOKENIZER, code_tokenizer);
+
+        let identifier_tokenzier =
+            TextAnalyzer::builder(NgramTokenizer::prefix_only(2, 5).unwrap()).build();
+
+        self.tokenizers()
+            .register(IDENTIFIER_TOKENIZER, identifier_tokenzier);
     }
 }
