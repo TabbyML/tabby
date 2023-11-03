@@ -3,6 +3,7 @@
 #include <mutex>
 
 #include "ctranslate2/models/whisper.h"
+#include "ctranslate2/models/wav2vec2.h"
 #include "ctranslate2/models/transformer.h"
 
 namespace ctranslate2 {
@@ -20,6 +21,8 @@ namespace ctranslate2 {
       register_model<TransformerEncoderModel>("TransformerEncoderSpec");
 
       register_model<WhisperModel>("WhisperSpec");
+
+      register_model<Wav2Vec2Model>("Wav2Vec2Spec");
     }
 
     std::shared_ptr<Model> create_model(const std::string& name) {

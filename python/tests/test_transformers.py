@@ -943,3 +943,134 @@ class TestWhisper:
         output_dir = str(tmp_dir.join("ctranslate2_model"))
         output_dir = converter.convert(output_dir)
         assert os.path.isfile(os.path.join(output_dir, "tokenizer.json"))
+
+
+class TestWav2Vec2:
+    @classmethod
+    def teardown_class(cls):
+        clear_transformers_cache_in_ci()
+
+    @test_utils.only_on_linux
+    @test_utils.on_available_devices
+    @pytest.mark.parametrize(
+        "model_name,expected_transcription",
+        [
+            (
+                "facebook/wav2vec2-large-robust-ft-swbd-300h",
+                [
+                    "MISTER QUILTER IS THE APOSSEL OF THE MIDDLE CLASSES AND"
+                    " WE ARE GLAD TO WELCOME HIS GOSPEL",
+                ],
+            ),
+        ],
+    )
+    def test_transformers_wav2vec2(
+        self,
+        tmp_dir,
+        device,
+        model_name,
+        expected_transcription,
+    ):
+        import torch
+        import transformers
+
+        converter = ctranslate2.converters.TransformersConverter(
+            model_name, load_as_float16="int8"
+        )
+        output_dir = str(tmp_dir.join("ctranslate2_model"))
+        output_dir = converter.convert(output_dir)
+        # 24 x Wav2Vec2EncoderLayerStableLayerNorm converted & saved
+
+        w2v2_model = transformers.Wav2Vec2ForCTC.from_pretrained(model_name)
+        del w2v2_model.wav2vec2.encoder.layers
+        del w2v2_model.wav2vec2.encoder.layer_norm
+        torch.save(w2v2_model, output_dir + "/wav2vec2_partial.bin")
+        w2v2_processor = transformers.Wav2Vec2Processor.from_pretrained(model_name)
+        torch.save(w2v2_processor, output_dir + "/wav2vec2_processor.bin")
+
+        device = "cuda" if os.environ.get("CUDA_VISIBLE_DEVICES") else "cpu"
+        cpu_threads = int(os.environ.get("OMP_NUM_THREADS", 0))
+        w2v2_model = torch.load(output_dir + "/wav2vec2_partial.bin").to(device)
+        w2v2_processor = torch.load(output_dir + "/wav2vec2_processor.bin")
+        ct2_w2v2_model = ctranslate2.models.Wav2Vec2(
+            output_dir,
+            device=device,
+            device_index=[0],
+            compute_type="int8",
+            intra_threads=cpu_threads,
+            inter_threads=1,
+        )
+
+        speech_array = np.load(
+            os.path.join(test_utils.get_data_dir(), "audio", "mr_quilter.npy")
+        )
+        input_values = w2v2_processor(
+            speech_array,
+            padding=True,
+            return_tensors="pt",
+            sampling_rate=16000,
+        ).input_values
+
+        with torch.no_grad():
+            extract_features = w2v2_model.wav2vec2.feature_extractor(
+                input_values.to(w2v2_model.device)
+            ).transpose(1, 2)
+            hidden_states, extract_features = w2v2_model.wav2vec2.feature_projection(
+                extract_features
+            )
+            position_embeddings = w2v2_model.wav2vec2.encoder.pos_conv_embed(
+                hidden_states
+            )
+            hidden_states = position_embeddings + hidden_states
+            # hidden_states = w2v2_model.encoder.dropout(hidden_states)
+            # Dropout(p=0.0, inplace=False) bypassed
+
+        if ct2_w2v2_model.device == "cuda":
+            hidden_states = hidden_states.cpu()
+        else:
+            hidden_states.numpy()
+
+        hidden_states = np.ascontiguousarray(hidden_states)
+        hidden_states = ctranslate2.StorageView.from_array(hidden_states)
+        to_cpu = (
+            ct2_w2v2_model.device == "cuda" and len(ct2_w2v2_model.device_index) > 1
+        )
+        ct2_output = ct2_w2v2_model.encode(
+            hidden_states,
+            to_cpu=to_cpu,
+        )  # 24 x Wav2Vec2EncoderLayerStableLayerNorm processed
+        if ct2_w2v2_model.device == "cuda":
+            hidden_states = torch.as_tensor(
+                ct2_output,
+                device=ct2_w2v2_model.device,
+            )
+        else:
+            hidden_states = torch.as_tensor(
+                np.array(ct2_output),
+                dtype=torch.float32,
+                device=ct2_w2v2_model.device,
+            )
+
+        encoder_outputs = transformers.modeling_outputs.BaseModelOutput(
+            last_hidden_state=hidden_states,
+            hidden_states=None,
+            attentions=None,
+        )
+        hidden_states = encoder_outputs[0]
+        outputs = transformers.modeling_outputs.Wav2Vec2BaseModelOutput(
+            last_hidden_state=hidden_states,
+            extract_features=extract_features,
+            hidden_states=encoder_outputs.hidden_states,
+            attentions=encoder_outputs.attentions,
+        )
+        hidden_states = outputs[0]
+        # hidden_states = w2v2_model.dropout(hidden_states)
+        # Dropout(p=0.0, inplace=False) bypassed
+
+        with torch.no_grad():
+            logits = w2v2_model.lm_head(hidden_states.to(torch.float32))[0]
+
+        predicted_ids = torch.argmax(logits, dim=-1)
+        transcription = w2v2_processor.decode(predicted_ids, output_word_offsets=True)
+
+        assert transcription[0] == expected_transcription[0]

@@ -5,3 +5,4 @@ OpenNMT-tf==2.30.*
 tensorflow-cpu==2.11.*
 pytest
 wurlitzer==3.0.*;platform_system=='Linux'
+torch
