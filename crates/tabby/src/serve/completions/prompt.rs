@@ -109,8 +109,12 @@ fn collect_snippets(index_server: &IndexServer, language: &str, text: &str) -> V
     let mut ret = Vec::new();
     let mut tokens = tokenize_text(text);
 
-    let language_query = index_server.language_query(language).unwrap();
-    let body_query = index_server.body_query(&tokens).unwrap();
+    let Ok(language_query) = index_server.language_query(language) else {
+        return vec![];
+    };
+    let Ok(body_query) = index_server.body_query(&tokens) else {
+        return vec![];
+    };
     let query = BooleanQuery::new(vec![
         (Occur::Must, language_query),
         (Occur::Must, body_query),

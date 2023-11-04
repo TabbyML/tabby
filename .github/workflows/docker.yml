@@ -83,7 +83,7 @@ jobs:
             ${{ env.IMAGE_NAME }}
           # generate Docker tags based on the following events/attributes
           tags: |
-            type=raw,value={{branch}}-{{sha}},enable={{#if branch}}true{{else}}false{{/if}}
+            type=raw,value={{branch}}-{{sha}},enable=${{ startsWith(github.ref, 'refs/heads') }}
             type=schedule,pattern=nightly
             type=schedule,pattern={{date 'YYYYMMDD'}}
             type=semver,pattern={{version}}
