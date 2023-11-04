@@ -53,7 +53,7 @@ class Model:
         from tabby_python_client import Client
 
         my_env = os.environ.copy()
-        my_env["PATH"] = f"/opt/tabby/bin:{my_env['PATH']}"
+        my_env["TABBY_DISABLE_USAGE_COLLECTION"] = 1
         self.launcher = subprocess.Popen(["/opt/tabby/bin/tabby"] + LAUNCH_FLAGS, env=my_env)
         self.client = Client("http://127.0.0.1:8000")
 
