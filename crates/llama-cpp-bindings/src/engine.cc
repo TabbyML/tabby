@@ -90,7 +90,8 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
       batch_ = llama_batch_init(N_CTX * N_CONCURRENT_REQUESTS, 0, 1);
       // warm up
       {
-        for (int i = 0; i < 16; ++i) {
+        batch_.n_tokens = 16;
+        for (int i = 0; i < batch_.n_tokens; ++i) {
           batch_.token[i] = 0;
           batch_.pos[i] = i;
           batch_.n_seq_id[0] = 1;
@@ -98,7 +99,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
           batch_.logits[i] = false;
         }
 
-        if (!llama_decode(ctx_.get(), batch_)) {
+        if (llama_decode(ctx_.get(), batch_)) {
           fprintf(stderr, "%s: warmup failed\n", __func__);
         }
 
