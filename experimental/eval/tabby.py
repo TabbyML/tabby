@@ -1,10 +1,11 @@
 from pathlib import Path
 
+import os
 import modal
 from modal import Image, Mount, Secret, Stub, asgi_app, gpu, method
 
 GPU_CONFIG = gpu.T4()
-MODEL_ID = "TabbyML/StarCoder-1B"
+MODEL_ID = os.environ.get("MODEL_ID", "TabbyML/StarCoder-1B")
 LAUNCH_FLAGS = ["serve", "--model", MODEL_ID, "--port", "8000", "--device", "cuda"]
 
 
