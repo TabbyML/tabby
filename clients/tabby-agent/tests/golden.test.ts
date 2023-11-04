@@ -1,7 +1,6 @@
 // This golden test requires local Tabby server to be running on port 8087.
 // The server should use tabby linux image version 0.4.0, with model TabbyML/StarCoder-1B,
 // cuda backend, and without any repository specified for RAG.
-// See also `server.docker-compose.yml`.
 
 import { spawn } from "child_process";
 import readline from "readline";
@@ -50,18 +49,22 @@ describe("agent golden test", () => {
       position: prefix.length + replacePrefix.length,
       manually: true,
     };
-    const expected = {
-      choices: [
-        {
-          index: 0,
-          text: replacePrefix + suggestion,
-          replaceRange: {
-            start: prefix.length,
-            end: prefix.length + replacePrefix.length + replaceSuffix.length,
-          },
-        },
-      ],
-    };
+    const text = replacePrefix + suggestion;
+    const expected =
+      text.length == 0
+        ? { choices: [] }
+        : {
+            choices: [
+              {
+                index: 0,
+                text,
+                replaceRange: {
+                  start: prefix.length,
+                  end: prefix.length + replacePrefix.length + replaceSuffix.length,
+                },
+              },
+            ],
+          };
     return { request, expected };
   };
 

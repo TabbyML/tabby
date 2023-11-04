@@ -12,5 +12,6 @@ def parse_expenses(expenses_string):
     for line in expenses_string.split('\\n'):
         ⏩⏭if line.startswith('#'):
             continue
-        date, value, currency = line.split()
-        yield datetime.datetime.strptime(date, '%Y-%m-%d'), float(value), currency⏮⏪
+        date, value, currency = line.split(' - ')
+        date = datetime.datetime.strptime(date, '%Y-%m-%d')
+        yield date, float(value), currency⏮⏪
