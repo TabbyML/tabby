@@ -22,7 +22,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install latest cmake
-RUN curl https://apt.kitware.com/kitware-archive.sh | bash -s -- --release focal \
+RUN curl https://apt.kitware.com/kitware-archive.sh | bash -s -- --release focal && \
     apt-get install -y --no-install-recommends \
         cmake \
         && \
