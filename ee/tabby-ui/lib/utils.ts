@@ -41,3 +41,18 @@ export function formatDate(input: string | number | Date): string {
     year: 'numeric'
   })
 }
+
+/**
+ * Retrieves the name of the completion query from a given string@.
+ * @param {string} val - The input string to search for the completion query name.
+ * @param {number | undefined} selectionEnd - The index at which the selection ends in the input string.
+ * @return {string | undefined} - The name of the completion query if found, otherwise undefined.
+ */
+export function getSearchCompletionQueryName(
+  val: string,
+  selectionEnd: number | undefined
+): string | undefined {
+  const queryString = val.substring(0, selectionEnd)
+  const matches = /@(\w+)$/.exec(queryString)
+  return matches?.[1]
+}

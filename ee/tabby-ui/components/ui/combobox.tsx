@@ -1,0 +1,216 @@
+import * as React from 'react'
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverPortal,
+  PopoverContent,
+  PopoverClose
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
+import { useCombobox } from 'downshift'
+import type { UseComboboxReturnValue } from 'downshift'
+import Textarea from 'react-textarea-autosize'
+import { isNil, omitBy } from 'lodash'
+
+interface ComboboxContextValue<T = any> extends UseComboboxReturnValue<T> {
+  open: boolean
+  inputRef: React.MutableRefObject<
+    HTMLInputElement | HTMLTextAreaElement | null
+  >
+  anchorRef: React.MutableRefObject<HTMLElement | null>
+}
+
+export const ComboboxContext = React.createContext({} as ComboboxContextValue)
+
+export const ComboboxClose = PopoverClose
+export const ComboboxAnchor = React.forwardRef<
+  React.ElementRef<typeof PopoverAnchor>,
+  React.ComponentPropsWithoutRef<typeof PopoverAnchor>
+>((props, forwardRef) => {
+  return <PopoverAnchor {...props} ref={forwardRef} />
+})
+ComboboxAnchor.displayName = 'ComboboxAnchor'
+
+export const ComboboxTextarea = React.forwardRef<
+  React.ElementRef<typeof Textarea>,
+  React.ComponentPropsWithoutRef<typeof Textarea>
+>((props, forwardRef) => {
+  const { getInputProps, open } = React.useContext(ComboboxContext)
+  const { onKeyDown, onChange, onInput, onBlur, onClick, ...rest } = props
+
+  return (
+    <Textarea
+      {...getInputProps(
+        omitBy(
+          {
+            onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === 'Enter' && open) {
+                e.preventDefault()
+              } else if (!open) {
+                onKeyDown?.(e)
+              }
+            },
+            onChange,
+            onInput,
+            onBlur,
+            onClick,
+            ref: forwardRef
+          },
+          isNil
+        )
+      )}
+      {...rest}
+    />
+  )
+})
+ComboboxTextarea.displayName = 'ComboboxTextarea'
+
+export const ComboboxContent = React.forwardRef<
+  React.ElementRef<typeof PopoverContent>,
+  React.ComponentPropsWithoutRef<typeof PopoverContent> & {
+    popupMatchAnchorWidth?: boolean
+  }
+>(({ children, style, popupMatchAnchorWidth, ...rest }, forwardRef) => {
+  const { getMenuProps, anchorRef } = React.useContext(ComboboxContext)
+  const popupWidth = React.useRef<number | undefined>(undefined)
+
+  React.useLayoutEffect(() => {
+    if (popupMatchAnchorWidth) {
+      const anchor = anchorRef.current
+      if (anchor) {
+        const rect = anchor.getBoundingClientRect()
+        popupWidth.current = rect.width
+      }
+    }
+  }, [])
+
+  return (
+    <PopoverPortal>
+      <PopoverContent
+        align="start"
+        onOpenAutoFocus={e => e.preventDefault()}
+        style={{
+          width: popupWidth.current,
+          ...style
+        }}
+        {...getMenuProps({ ref: forwardRef }, { suppressRefError: true })}
+        {...rest}
+      >
+        {children}
+      </PopoverContent>
+    </PopoverPortal>
+  )
+})
+ComboboxContent.displayName = 'ComboboxContent'
+
+interface ComboboxOptionProps<T = any> {
+  item: T
+  index: number
+  className?: string
+  disabled?: boolean
+  children?:
+    | React.ReactNode
+    | React.ReactNode[]
+    | ((p: { selected: boolean; highlighted: boolean }) => React.ReactNode)
+}
+
+export const ComboboxOption = React.forwardRef<
+  React.RefObject<HTMLDivElement>,
+  ComboboxOptionProps
+>(({ item, index, className, children, disabled, ...rest }, forwardRef) => {
+  const { highlightedIndex, selectedItem, getItemProps } =
+    React.useContext(ComboboxContext)
+  const highlighted = highlightedIndex === index
+  const selected = selectedItem === item
+
+  return (
+    <ComboboxClose key={item.id} asChild>
+      <div
+        className={cn(
+          'relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
+          highlighted && 'text-accent-foreground bg-accent',
+          selected && 'font-bold',
+          disabled && 'pointer-events-none opacity-50',
+          className
+        )}
+        {...getItemProps({ item, index })}
+        {...rest}
+      >
+        {typeof children === 'function'
+          ? children({ highlighted, selected })
+          : children}
+      </div>
+    </ComboboxClose>
+  )
+})
+ComboboxOption.displayName = 'ComboboxOption'
+
+interface ComboboxProps<T> {
+  options: T[] | undefined
+  onSelect?: (
+    ref: React.MutableRefObject<HTMLTextAreaElement | HTMLInputElement | null>,
+    data: T
+  ) => void
+  children?:
+    | React.ReactNode
+    | React.ReactNode[]
+    | ((p: ComboboxContextValue) => React.ReactNode)
+}
+export function Combobox<T extends { id: number }>({
+  options,
+  onSelect,
+  children
+}: ComboboxProps<T>) {
+  const [manualOpen, setManualOpen] = React.useState(false)
+  const inputRef = React.useRef<HTMLTextAreaElement | HTMLInputElement | null>(
+    null
+  )
+  const anchorRef = React.useRef<HTMLElement | null>(null)
+  const comboboxValue = useCombobox({
+    items: options ?? [],
+    isOpen: manualOpen,
+    onSelectedItemChange({ selectedItem }) {
+      if (selectedItem) {
+        onSelect?.(inputRef, selectedItem)
+        setManualOpen(false)
+      }
+    },
+    onIsOpenChange: ({ isOpen }) => {
+      if (!isOpen) {
+        setManualOpen(false)
+      }
+    }
+  })
+
+  const { setHighlightedIndex, highlightedIndex, isOpen } = comboboxValue
+  const open = isOpen && !!options?.length
+
+  React.useEffect(() => {
+    if (open && !!options.length && highlightedIndex === -1) {
+      setHighlightedIndex(0)
+    }
+    if (open && !options.length) {
+      setManualOpen(false)
+    }
+  }, [open])
+
+  React.useEffect(() => {
+    if (options?.length) {
+      setManualOpen(true)
+    } else {
+      setManualOpen(false)
+    }
+  }, [options])
+
+  const contextValue = React.useMemo(() => {
+    return { ...comboboxValue, open, inputRef, anchorRef }
+  }, [comboboxValue, open, inputRef, anchorRef])
+
+  return (
+    <ComboboxContext.Provider value={contextValue}>
+      <Popover open={open}>
+        {typeof children === 'function' ? children(contextValue) : children}
+      </Popover>
+    </ComboboxContext.Provider>
+  )
+}
