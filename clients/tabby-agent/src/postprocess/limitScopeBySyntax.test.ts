@@ -325,7 +325,6 @@ describe("postprocess", () => {
     });
   });
 
-
   describe("limitScopeBySyntax ruby", () => {
     it("should limit scope at for.", async () => {
       const context = {
