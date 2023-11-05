@@ -14,7 +14,6 @@ tabby-inference = { path = "../tabby-inference" }
 axum = "0.6"
 hyper = { version = "0.14", features = ["full"] }
 tokio = { workspace = true, features = ["full"] }
-tower = "0.4"
 utoipa = { version = "3.3", features = ["axum_extras", "preserve_order"] }
 utoipa-swagger-ui = { version = "3.1", features = ["axum"] }
 serde = { workspace = true }
@@ -38,7 +37,6 @@ anyhow = { workspace = true }
 sysinfo = "0.29.8"
 nvml-wrapper = "0.9.0"
 http-api-bindings = { path = "../http-api-bindings" }
-futures = { workspace = true }
 async-stream = { workspace = true }
 axum-streams = { version = "0.9.1", features = ["json"] }
 minijinja = { version = "1.0.8", features = ["loader"] }

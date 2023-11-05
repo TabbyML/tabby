@@ -2138,7 +2138,6 @@ dependencies = [
  "futures",
  "tabby-inference",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]
@@ -4062,7 +4061,6 @@ dependencies = [
  "axum-streams",
  "axum-tracing-opentelemetry",
  "clap 4.4.7",
- "futures",
  "http-api-bindings",
  "hyper",
  "lazy_static",
@@ -4089,7 +4087,6 @@ dependencies = [
  "textdistance",
  "thiserror",
  "tokio",
- "tower",
  "tower-http 0.4.0",
  "tracing",
  "tracing-opentelemetry",
@@ -4148,11 +4145,9 @@ version = "0.5.0"
 dependencies = [
  "anyhow",
  "file-rotate",
- "filenamify",
  "ignore",
  "job_scheduler",
  "lazy_static",
- "serde",
  "serde-jsonlines",
  "serde_json",
  "tabby-common",
