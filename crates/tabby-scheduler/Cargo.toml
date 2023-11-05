@@ -7,14 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
-filenamify = "0.1.0"
 job_scheduler = "1.2.1"
 tabby-common = { path = "../tabby-common" }
 tantivy = { workspace = true }
 tracing = { workspace = true }
 tree-sitter-tags = "0.20.2"
 lazy_static = { workspace = true }
-serde = { workspace = true }
 serde-jsonlines = { workspace = true }
 file-rotate = "0.7.5"
 tree-sitter-python = "0.20.2"
