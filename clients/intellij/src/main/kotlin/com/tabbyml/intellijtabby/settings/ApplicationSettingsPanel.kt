@@ -1,17 +1,34 @@
 package com.tabbyml.intellijtabby.settings
 
 import com.intellij.ui.components.JBCheckBox
+import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBRadioButton
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.FormBuilder
+import com.intellij.util.ui.JBUI
+import com.intellij.util.ui.UIUtil
 import javax.swing.ButtonGroup
 import javax.swing.JPanel
+
+private fun FormBuilder.addCopyableTooltip(text: String): FormBuilder {
+  return this.addComponentToRightColumn(
+    JBLabel(
+      text,
+      UIUtil.ComponentStyle.SMALL,
+      UIUtil.FontColor.BRIGHTER
+    ).apply {
+      setBorder(JBUI.Borders.emptyLeft(10))
+      setCopyable(true)
+    },
+    1,
+  )
+}
 
 class ApplicationSettingsPanel {
   private val serverEndpointTextField = JBTextField()
   private val serverEndpointPanel = FormBuilder.createFormBuilder()
     .addComponent(serverEndpointTextField)
-    .addTooltip(
+    .addCopyableTooltip(
       """
       <html>
       A http or https URL of Tabby server endpoint.<br/>
@@ -25,7 +42,7 @@ class ApplicationSettingsPanel {
   private val nodeBinaryTextField = JBTextField()
   private val nodeBinaryPanel = FormBuilder.createFormBuilder()
     .addComponent(nodeBinaryTextField)
-    .addTooltip(
+    .addCopyableTooltip(
       """
       <html>
       Path to the Node binary for running the Tabby agent. The Node version must be >= 18.0.<br/>
@@ -43,12 +60,24 @@ class ApplicationSettingsPanel {
   }
   private val completionTriggerModePanel: JPanel = FormBuilder.createFormBuilder()
     .addComponent(completionTriggerModeAutomaticRadioButton)
-    .addTooltip("Trigger automatically when you stop typing")
+    .addCopyableTooltip("Trigger automatically when you stop typing")
     .addComponent(completionTriggerModeManualRadioButton)
-    .addTooltip("Trigger manually by pressing `Alt + \\`")
+    .addCopyableTooltip("Trigger manually by pressing `Alt + \\`")
     .panel
 
-  private val isAnonymousUsageTrackingDisabledCheckBox = JBCheckBox("Disable")
+  private val isAnonymousUsageTrackingDisabledCheckBox = JBCheckBox("Disable anonymous usage tracking")
+  private val isAnonymousUsageTrackingPanel: JPanel = FormBuilder.createFormBuilder()
+    .addComponent(isAnonymousUsageTrackingDisabledCheckBox)
+    .addCopyableTooltip(
+      """
+      <html>
+      Tabby collects anonymous usage data and sends it to the Tabby team to help improve our products.<br/>
+      Your code, generated completions, or any sensitive information is never tracked or sent.<br/>
+      For more details on data collection, please check our <a href="https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection">online documentation</a>.<br/>
+      </html>
+      """
+    )
+    .panel
 
   val mainPanel: JPanel = FormBuilder.createFormBuilder()
     .addLabeledComponent("Server endpoint", serverEndpointPanel, 5, false)
@@ -57,7 +86,7 @@ class ApplicationSettingsPanel {
     .addSeparator(5)
     .addLabeledComponent("<html>Node binary<br/>(Requires restart IDE)</html>", nodeBinaryPanel, 5, false)
     .addSeparator(5)
-    .addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingDisabledCheckBox, 5, false)
+    .addLabeledComponent("Anonymous usage tracking", isAnonymousUsageTrackingPanel, 5, false)
     .addComponentFillVertically(JPanel(), 0)
     .panel
 
