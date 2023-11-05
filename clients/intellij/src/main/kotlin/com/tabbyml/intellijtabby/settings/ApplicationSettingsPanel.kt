@@ -71,8 +71,8 @@ class ApplicationSettingsPanel {
     .addCopyableTooltip(
       """
       <html>
-      Tabby collects anonymous usage data and sends it to the Tabby team to help improve our products.<br/>
-      Your code, generated completions, or any sensitive information is never tracked or sent.<br/>
+      Tabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.<br/>
+      Your code, generated completions, or any identifying information is never tracked or transmitted.<br/>
       For more details on data collection, please check our <a href="https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection">online documentation</a>.<br/>
       </html>
       """

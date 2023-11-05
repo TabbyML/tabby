@@ -45,9 +45,9 @@ level = "silent" # "silent" or "error" or "debug"
 
 ## Usage Collection
 
-Tabby IDE extensions collect anonymous usage data and send it to the Tabby team to help improve our products.
+Tabby IDE extensions collect aggregated anonymous usage data and sends it to the Tabby team to help improve our products.
 
-**Do not worry, your code, generated completions, or any sensitive information are never tracked or sent.**  
+**Do not worry, your code, generated completions, or any identifying information is never tracked or transmitted.**  
 
 The data we collect, as of the latest update on November 6, 2023, includes:
 

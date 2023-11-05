@@ -147,7 +147,7 @@
         "tabby.usage.anonymousUsageTracking": {
           "type": "boolean",
           "default": false,
-          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any sensitive information is never tracked or sent.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection)."
+          "markdownDescription": "**Disable anonymous usage tracking**  \nTabby collects aggregated anonymous usage data and sends it to the Tabby team to help improve our products.  \nYour code, generated completions, or any identifying information is never tracked or transmitted.  \nFor more details on data collection, please check our [online documentation](https://tabby.tabbyml.com/docs/extensions/configuration#usage-collection)."
         }
       }
     },
