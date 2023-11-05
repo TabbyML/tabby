@@ -82,7 +82,12 @@ describe("agent golden test", () => {
         debounce: { mode: "adaptive", interval: 250 },
         timeout: { auto: 4000, manually: 4000 },
       },
-      postprocess: { limitScopeByIndentation: { experimentalKeepBlockScopeWhenCompletingLine: false } },
+      postprocess: {
+        limitScope: {
+          experimentalSyntax: false,
+          indentation: { experimentalKeepBlockScopeWhenCompletingLine: false },
+        },
+      },
       logs: { level: "debug" },
       anonymousUsageTracking: { disable: true },
     };
