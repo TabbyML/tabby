@@ -59,7 +59,6 @@ describe("postprocess", () => {
       expect(await limitScopeBySyntax(context)(completion)).to.eq(completion);
     });
 
-
     it("should limit scope at function_declaration", async () => {
       const context = {
         ...documentContext`
@@ -131,7 +130,6 @@ describe("postprocess", () => {
     });
   });
 
-
   describe("limitScopeBySyntax python", () => {
     it("should limit scope at function_definition.", async () => {
       const context = {
@@ -187,7 +185,6 @@ describe("postprocess", () => {
       `;
       expect(await limitScopeBySyntax(context)(completion)).to.eq(expected);
     });
-
 
     it("should limit scope at function_definition.", async () => {
       const context = {
