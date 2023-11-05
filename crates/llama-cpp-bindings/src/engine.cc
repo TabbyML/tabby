@@ -94,7 +94,7 @@ class TextInferenceEngineImpl : public TextInferenceEngine {
         for (int i = 0; i < batch_.n_tokens; ++i) {
           batch_.token[i] = 0;
           batch_.pos[i] = i;
-          batch_.n_seq_id[0] = 1;
+          batch_.n_seq_id[i] = 1;
           batch_.seq_id[i][0] = 0;
           batch_.logits[i] = false;
         }
